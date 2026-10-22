@@ -46,7 +46,7 @@ enum TitleLanguageWords {
         case .anilist:
             let signedOut = "While you are signed out of AniList, titles show in English."
             guard signedIn, let viewer else { return "Follows your AniList account. " + signedOut }
-            return "Follows your AniList account, which is set to \(name(viewer).lowercased()). " + signedOut
+            return "Follows your AniList account, which is set to \(name(viewer)). " + signedOut
         case .english:
             if let kept = examples.first(where: { ($0.titleEnglish ?? "").isEmpty }) {
                 return "\(kept.titleRomaji ?? kept.title) has no English title on AniList, so it keeps its romaji one."
@@ -57,6 +57,8 @@ enum TitleLanguageWords {
         }
     }
 
+    /// A title language as every sentence names it, with its capital: "English", whatever case
+    /// AniList's own word for it is in.
     static func name(_ language: TitleLanguage) -> String {
         switch language {
         case .romaji: "Romaji"

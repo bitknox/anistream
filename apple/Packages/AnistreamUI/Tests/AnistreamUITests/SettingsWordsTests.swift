@@ -16,6 +16,15 @@ struct SettingsWordsTests {
         #expect(SettingKey.commitThreshold.title == "Counts as watched at")
     }
 
+    @Test func aTitleLanguageIsNamedWithItsCapitalInEverySentence() {
+        let note = TitleLanguageWords.note(.anilist, signedIn: true, viewer: .english, examples: [])
+        #expect(note.hasPrefix("Follows your AniList account, which is set to English. "))
+        #expect(TitleLanguageWords.line(.anilist, signedIn: true, viewer: .romaji) == "Romaji, from your AniList account")
+        for language in [TitleLanguage.romaji, .english, .native] {
+            #expect(TitleLanguageWords.name(language).first?.isUppercase == true)
+        }
+    }
+
     @Test func theProtectionIsNamedAsTheTurnOnSheetNamesIt() {
         #expect(Protection.label("socks5") == "SOCKS5 proxy")
         #expect(Protection.label("external") == "VPN on this device")
