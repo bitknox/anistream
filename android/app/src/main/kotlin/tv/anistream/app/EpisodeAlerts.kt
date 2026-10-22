@@ -16,9 +16,10 @@ import tv.anistream.store.AppStore
 
 /**
  * New-episode notifications on this device: the engine's `EpisodeNotifications` setting, off until
- * the person turns it on. The periodic check runs while it is on and a notification can show; where
- * one no longer can, the permission taken back or the channel turned off, it goes off, and Settings
- * says why.
+ * the person turns it on, and the shows switched on for themselves, which notify whatever it says.
+ * The periodic check runs while either is on, and is cancelled only when neither is. Where a
+ * notification no longer can show, the permission taken back or the channel turned off, the setting
+ * goes off, and Settings says why.
  */
 class EpisodeAlerts(private val context: Context, private val store: AppStore, private val notifier: EpisodeNotifier) {
     private val _refused = MutableStateFlow(false)
@@ -26,11 +27,15 @@ class EpisodeAlerts(private val context: Context, private val store: AppStore, p
     /** Whether it went off, or did not go on, because Android does not let anistream notify. */
     val refused: StateFlow<Boolean> = _refused.asStateFlow()
 
-    /** Turn them on, as the activity does once they can show, or off. */
+    /**
+     * Turn them on, as the activity does once they can show, or off: off keeps the schedule for
+     * the shows switched on for themselves, while there are any.
+     */
     fun set(on: Boolean) {
         if (on) _refused.value = false
         store.setSwitch(KEY, on)
-        NewEpisodesSchedule.set(context, on)
+        val switchedOn = store.settings.view.value?.notifySwitchedOn ?: 0u
+        NewEpisodesSchedule.set(context, Wanted.of(on, switchedOn).checks)
     }
 
     /** They could not go on, or stay on: the permission declined, or notifications blocked. */
@@ -40,15 +45,25 @@ class EpisodeAlerts(private val context: Context, private val store: AppStore, p
     }
 
     /**
-     * For the life of the process: the schedule as the setting says, asked again at each launch so
-     * it keeps its place and takes this version's constraints, and the setting off where
-     * notifications can no longer show.
+     * For the life of the process: the schedule as the setting and the shows' own switches say,
+     * asked again at each launch so it keeps its place and takes this version's constraints, and
+     * the setting off where notifications can no longer show.
      */
     fun follow(scope: CoroutineScope) {
         scope.launch {
-            store.settings.view.filterNotNull().map { store.settings.isOn(KEY, it) }.distinctUntilChanged().collect { on ->
-                if (on && !notifier.canPost) refuse() else NewEpisodesSchedule.set(context, on)
+            store.settings.view.filterNotNull().map { Wanted.of(store.settings.isOn(KEY, it), it.notifySwitchedOn) }.distinctUntilChanged().collect { wanted ->
+                if (wanted.setting && !notifier.canPost) refuse() else NewEpisodesSchedule.set(context, wanted.checks)
             }
+        }
+    }
+
+    /** What the settings say of new-episode notifications: the switch, and the shows switched on. */
+    data class Wanted(val setting: Boolean, val switchedOn: Boolean) {
+        /** Whether the periodic check runs: anything notifies, the setting or a show of its own. */
+        val checks: Boolean get() = setting || switchedOn
+
+        companion object {
+            fun of(setting: Boolean, switchedOn: UInt): Wanted = Wanted(setting, switchedOn > 0u)
         }
     }
 

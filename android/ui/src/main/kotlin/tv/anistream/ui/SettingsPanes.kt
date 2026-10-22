@@ -40,7 +40,8 @@ import tv.anistream.design.Nagare
 import tv.anistream.design.tabular
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
-import tv.anistream.engine.model.ComingEpisode
+import tv.anistream.engine.model.NoticeReason
+import tv.anistream.engine.model.UpcomingNotice
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
@@ -51,6 +52,7 @@ import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.AirTime
+import tv.anistream.store.ComingModel
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
 import tv.anistream.store.SettingsCatalog
@@ -141,7 +143,7 @@ internal fun NotificationsPane(actions: AppActions) {
     val row = store.settings.row(key, view)
     val app = actions.notifications
     val refused = app?.refused?.collectAsStateWithLifecycle()?.value == true
-    val coming by store.coming.episodes.collectAsStateWithLifecycle()
+    val week by store.coming.week.collectAsStateWithLifecycle()
     var opened by remember { mutableStateOf<AnilistId?>(null) }
     LaunchedEffect(Unit) { store.loadComing() }
     Pane {
@@ -162,12 +164,12 @@ internal fun NotificationsPane(actions: AppActions) {
                 },
             ),
         )
-        coming?.let { episodes ->
+        week?.let { week ->
             SettingsGroup(
                 title = "Coming up · next 7 days",
-                footer = if (episodes.isEmpty()) "Nothing airs this week for the shows followed." else "A show opens its settings.",
-                rows = episodes.map { episode ->
-                    @Composable { place: Place -> ComingRow(place, episode, dimmed = !SettingsCatalog.isOn(row)) { opened = episode.id } }
+                footer = ComingModel.footer(week),
+                rows = ComingModel.listed(week).map { episode ->
+                    @Composable { place: Place -> ComingRow(place, episode) { opened = episode.id } }
                 },
             )
         }
@@ -206,11 +208,13 @@ internal fun NotificationsPane(actions: AppActions) {
 
 /**
  * One episode coming up: the show's cover, its title, "E4 · Today 22:00", and "On in this show's
- * settings" for a show followed by its own switch. Dimmed while new-episode notifications are off.
+ * settings" for a show followed by its own switch. Dimmed when it does not notify, as the engine
+ * says: a show following the switch while it is off. A show switched on stays.
  */
 @Composable
-private fun ComingRow(place: Place, episode: ComingEpisode, dimmed: Boolean, onClick: () -> Unit) {
-    val note = if (episode.switchedOn) "On in this show’s settings" else null
+private fun ComingRow(place: Place, episode: UpcomingNotice, onClick: () -> Unit) {
+    val dimmed = !episode.notifies
+    val note = if (episode.reason == NoticeReason.SWITCHED_ON) "On in this show’s settings" else null
     InfoRow(
         place,
         episode.title,

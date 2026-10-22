@@ -363,9 +363,12 @@ class AppStore(
         setSetting(key, SettingValue.Bool(on))
     }
 
-    /** The episodes coming up this week for the shows notified of: Notifications' "Coming up". */
+    /**
+     * The week's broadcasts for the shows notified of, and those a show's own switch leaves out:
+     * Notifications' "Coming up".
+     */
     fun loadComing() {
-        send(Command.ComingEpisodes)
+        send(Command.UpcomingNotices)
     }
 
     /** The title language the signed-in AniList viewer reads in, for AniList's choice. */
@@ -578,7 +581,7 @@ class AppStore(
             is Event.Seeding -> downloads.seeding(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
             is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
-            is Event.ComingEpisodes -> coming.apply(event.v1)
+            is Event.UpcomingNotices -> coming.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

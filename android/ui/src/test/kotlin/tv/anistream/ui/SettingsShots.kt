@@ -91,10 +91,21 @@ class SettingsShots {
         val now = AppClock.now().epochSecond
         store.apply(
             listOf(
-                Event.ComingEpisodes(
-                    listOf(
-                        tv.anistream.engine.model.ComingEpisode(900002u, "The Library Above the Clouds", 6u, now + 2 * 86_400 + 11_700, coverUrl = coverOf(store, 900002u)),
-                        tv.anistream.engine.model.ComingEpisode(900006u, "Summer Wind Relay", 9u, now + 6 * 86_400 + 18_000, coverUrl = coverOf(store, 900006u), switchedOn = true),
+                Event.UpcomingNotices(
+                    tv.anistream.engine.model.UpcomingNotices(
+                        enabled = false,
+                        generatedAt = now,
+                        airings = listOf(
+                            tv.anistream.engine.model.UpcomingNotice(
+                                900002u, "The Library Above the Clouds", 6u, now + 2 * 86_400 + 11_700,
+                                tv.anistream.engine.model.NoticeReason.WATCHING, 4u, coverUrl = coverOf(store, 900002u),
+                            ),
+                            tv.anistream.engine.model.UpcomingNotice(
+                                900006u, "Summer Wind Relay", 9u, now + 6 * 86_400 + 18_000,
+                                tv.anistream.engine.model.NoticeReason.SWITCHED_ON, 8u, coverUrl = coverOf(store, 900006u), notifies = true,
+                            ),
+                        ),
+                        overrides = 1u,
                     ),
                 ),
             ),
