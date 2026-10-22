@@ -172,24 +172,30 @@ internal fun DownloadsScreen() {
             Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 48.dp),
         ) {
+            // Rows come and go on standard, every item with the rest (motion-android.md's list
+            // insert and remove), so a cancelled or cleared download never leaves a gap that snaps.
             groups.forEachIndexed { index, group ->
-                if (index > 0) item(key = "rule-${group.id}") { HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outlineVariant) }
-                item(key = "title-${group.id}") { GroupHeader(group, titles[group.id]) }
+                if (index > 0) item(key = "rule-${group.id}", contentType = "rule") { HorizontalDivider(itemMotion().padding(vertical = 8.dp), color = colors.outlineVariant) }
+                item(key = "title-${group.id}", contentType = "group") { Box(itemMotion()) { GroupHeader(group, titles[group.id]) } }
                 // TODO(engine): AndroidDownloads puts the show's own "Keep next 3 episodes ·
                 // Higher quality" row here, with a switch, under its title. Keep next and the
                 // download quality are Settings-wide; the row waits on per-show settings for both
                 // (`ShowSettingKey` has neither yet).
-                items(group.rows, key = { "row-${it.id}" }) { row ->
-                    DownloadItem(row, episodes[row.anilistId]?.firstOrNull { it.number == row.episode })
+                items(group.rows, key = { "row-${it.id}" }, contentType = { "download" }) { row ->
+                    Box(itemMotion()) { DownloadItem(row, episodes[row.anilistId]?.firstOrNull { it.number == row.episode }) }
                 }
             }
             if (seeding.isNotEmpty()) {
-                item(key = "seeding") {
-                    if (groups.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outlineVariant)
-                    SettingsHeader("Seeding after watching", Modifier.padding(start = 0.dp))
+                item(key = "seeding", contentType = "seeding") {
+                    Column(itemMotion()) {
+                        if (groups.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outlineVariant)
+                        SettingsHeader("Seeding after watching", Modifier.padding(start = 0.dp))
+                    }
                 }
-                items(seeding, key = { "seed-${it.name}" }) { SeedItem(it) }
-                item(key = "seeding-note") { SettingsFootnote("Watched episodes seed while anistream is open, until the ratio or the time limit set in Sources.") }
+                items(seeding, key = { "seed-${it.name}" }, contentType = { "seed" }) { Box(itemMotion()) { SeedItem(it) } }
+                item(key = "seeding-note", contentType = "note") {
+                    Box(itemMotion()) { SettingsFootnote("Watched episodes seed while anistream is open, until the ratio or the time limit set in Sources.") }
+                }
             }
         }
     }
