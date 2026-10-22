@@ -191,9 +191,10 @@ struct SpotlightTests {
         await indexer.pass()
         await index.reset()
 
-        // Named another way: its title in another language first.
+        // Named another way: its title in another language first, as the engine names it once
+        // Settings › Title language changes.
         store.apply(.content(view: .library(.planning), content: .entries([
-            shelved(900_003, "Moonlit Ferry") { $0.secondary = "Tsukiyo no Watashibune" },
+            shelved(900_003, "Tsukiyo no Watashibune") { $0.secondary = "Moonlit Ferry" },
         ])))
         await indexer.pass()
         let calls = await index.calls
@@ -367,9 +368,11 @@ struct SpotlightTests {
             .appending(path: "anistream-spotlight-\(UUID().uuidString)/shelf.json", directoryHint: .notDirectory)
     }
 
+    /// Named as the engine names it with Settings › Title language on romaji: the romaji, with
+    /// the English as the other form.
     func wayfarer() -> Entry {
-        shelved(900_001, "Stardust Wayfarer") {
-            $0.secondary = "Hoshikuzu no Tabibito"
+        shelved(900_001, "Hoshikuzu no Tabibito") {
+            $0.secondary = "Stardust Wayfarer"
             $0.titleRomaji = "Hoshikuzu no Tabibito"
             $0.titleEnglish = "Stardust Wayfarer"
             $0.titleNative = "星屑の旅人"
