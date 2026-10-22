@@ -90,6 +90,11 @@ public struct PictureInPictureMachine: Equatable, Sendable {
         case (.stopping, .stopped):
             phase = .inline
             return [.endFeed]
+        case (.stopping, .failedToStart):
+            // Closed before the system's window opened, or it never could: the system was never
+            // asked, or said no, so no `stopped` follows.
+            phase = .inline
+            return [.endFeed]
         case (.starting, .playbackClosed), (.active, .playbackClosed), (.stopping(restore: true), .playbackClosed):
             phase = .stopping(restore: false)
             return [.dismiss]

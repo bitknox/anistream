@@ -4,6 +4,9 @@
 import AnistreamKit
 import AnistreamPlayer
 import Foundation
+#if canImport(AppKit)
+import AppKit
+#endif
 import AVKit
 import CoreMedia
 import CoreVideo
@@ -67,6 +70,23 @@ struct PictureInPictureMachineTests {
         #expect(machine.handle(.started) == [])
         #expect(machine.handle(.restore) == [.returnToWindow])
         #expect(machine.handle(.stopped) == [.endFeed])
+    }
+
+    @Test func aStartCalledOffBeforeTheSystemWasAskedEndsAsAFailedStart() {
+        var machine = PictureInPictureMachine()
+        // Asked again while the frames were still coming: the system was never asked, so it never
+        // says it stopped, and the start says it failed instead.
+        _ = machine.handle(.toggle)
+        #expect(machine.handle(.toggle) == [.stop])
+        #expect(machine.handle(.failedToStart) == [.endFeed])
+        #expect(machine.phase == .inline)
+        // The player closing while it starts, the same.
+        _ = machine.handle(.toggle)
+        #expect(machine.handle(.playbackClosed) == [.dismiss])
+        #expect(machine.handle(.failedToStart) == [.endFeed])
+        #expect(machine.phase == .inline)
+        // And it starts again from there.
+        #expect(machine.handle(.toggle) == [.start])
     }
 
     @Test func eventsThatMeanNothingWhereItIsChangeNothing() {
@@ -217,6 +237,33 @@ struct PictureInPictureTests {
         #expect(system.starts == 1)
         let frame = try #require(pip.feed.latestFrame)
         #expect(CVPixelBufferGetWidth(frame) == 16)
+    }
+
+    /// AVKit's own controller, asked to stop before it was asked to start: by a second toggle while
+    /// the first frames are copied, or by the player closing then. Stuck in stopping before.
+    @Test func aStartCalledOffBeforeAVKitWasAskedLeavesNothingWaiting() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        rig.mpv.emit(.playbackRestart)
+        try await until("the first frame") { rig.model.hasPicture }
+        _ = NSApplication.shared
+        let feed = PictureFeed()
+        let system = SystemPictureInPicture(feed: feed, model: rig.model)
+        let pip = PictureInPicture(model: rig.model, feed: feed, system: system)
+        // The scripted mpv draws nothing, so the frames AVKit waits for never come.
+        rig.model.togglePictureInPicture()
+        #expect(pip.phase == .starting)
+        #expect(feed.isRunning)
+        rig.model.togglePictureInPicture()
+        #expect(pip.phase == .inline)
+        #expect(!feed.isRunning)
+
+        rig.model.togglePictureInPicture()
+        #expect(pip.phase == .starting)
+        pip.playerClosed()
+        #expect(pip.phase == .inline)
+        #expect(!feed.isRunning)
+        #expect(rig.model.inMainWindow)
     }
 
     @Test func aWindowThatNeverOpensLeavesThePictureWhereItWas() async throws {

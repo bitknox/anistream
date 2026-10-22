@@ -2,7 +2,28 @@
 
 import AnistreamKit
 @testable import AnistreamUI
+import Foundation
 import Testing
+
+struct WebSignInTests {
+    /// What a browser sign-in keeps, its session and the session's window, lives until the sheet
+    /// answers: let go of before, the session closes its sheet, or never answers.
+    @Test func whatASignInKeepsLivesUntilItAnswers() async throws {
+        weak var kept: NSObject?
+        let answer = try await withCheckedThrowingContinuation { continuation in
+            let once = Once(continuation)
+            do {
+                let session = NSObject()
+                kept = session
+                once.keep(session)
+            }
+            #expect(kept != nil, "held while the sheet is up")
+            once.resume(.success(URL(string: "anistream://auth/anilist#state=s")!))
+        }
+        #expect(answer.scheme == "anistream")
+        #expect(kept == nil, "let go once it answered")
+    }
+}
 
 func entry(_ change: (inout Entry) -> Void) -> Entry {
     var entry = Entry(

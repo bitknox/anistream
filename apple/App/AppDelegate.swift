@@ -5,6 +5,7 @@ import AnistreamPlayerUI
 import AnistreamStore
 import AnistreamUI
 import Foundation
+import Observation
 #if os(macOS)
 import AppKit
 #else
@@ -17,6 +18,8 @@ final class AppDelegate: NSObject {
     let navigator = Navigator()
     /// The player the app hosts for the engine, fed the store's playback events.
     let player: PlayerModel
+    /// Where the app is and the network the device uses, told to the engine.
+    let phases: SystemPhases
     private var started = false
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
@@ -24,15 +27,36 @@ final class AppDelegate: NSObject {
     override init() {
         let store = AppStore()
         self.store = store
-        player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        let player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        self.player = player
+        phases = SystemPhases(
+            send: { [weak store] command in store?.send(command) },
+            playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false })
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
+        watchPlaying()
+    }
+
+    /// In the background, what waits follows whether the player plays: watched here rather than
+    /// by a view, which the system does not update while the app is away.
+    private func watchPlaying() {
+        withObservationTracking {
+            _ = player.isPresented
+            _ = player.paused
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.phases.playingChanged()
+                self?.watchPlaying()
+            }
+        }
     }
 
     /// Start the engine, once, however many windows ask.
     func start() async {
         guard !started else { return }
         started = true
+        // Said from the start, queued for the engine until it is up.
+        phases.watchNetwork()
         #if FIXTURES
         let (launch, temporary) = EngineLaunch.fixtures(platform: Self.platform)
         self.temporary = temporary

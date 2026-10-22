@@ -206,6 +206,71 @@ struct ClosingTests {
         #expect(rig.reports.last?.1 == .closed)
     }
 
+    func staged(_ rig: Rig, _ episode: String) {
+        rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: episode, episodeTitle: nil, speed: 1))
+    }
+
+    /// What the engine says to a player it opens for `playback`.
+    func opening(_ rig: Rig, _ playback: PlaybackId, episode: String) {
+        rig.ui(playback, .starting(id: 900_001, title: "Stardust Wayfarer", episode: episode, episodeTitle: nil, coverUrl: nil, bannerUrl: nil))
+        rig.ops(playback, [.open(fullscreen: false, speed: nil, volume: nil), .load(url: "/media/\(episode).mkv", options: [])])
+    }
+
+    @Test func closingWhileThePlayIsFoundStopsItAndItsPlayerNeverComesUp() async throws {
+        let rig = Rig()
+        // The playback the player showed before, long over: what it last heard of.
+        try await rig.opened(1)
+        rig.model.viewerClosed()
+        staged(rig, "7")
+        #expect(rig.model.isPresented, "the starting screen, finding a source")
+        rig.model.viewerClosed()
+        #expect(!rig.model.isPresented)
+        #expect(rig.sent.last == .player(.stop), "for the play being found, not the playback before")
+
+        // Found all the same: its player is refused, and the engine told it closed, once.
+        opening(rig, 2, episode: "7")
+        rig.ops(2, [.set(property: "pause", value: .flag(false))])
+        #expect(!rig.model.isPresented)
+        #expect(rig.made.count == 1)
+        #expect(rig.reports.filter { $0 == (2, .closed) }.count == 1)
+
+        // A play after it is the viewer's again.
+        staged(rig, "8")
+        try await rig.opened(3)
+        #expect(rig.model.isPresented)
+        #expect(rig.made.count == 2)
+    }
+
+    /// The viewer closes the player on the next episode's starting screen, while it is found.
+    func closedWhileTheNextIsFound(_ ask: (PlayerModel) -> Void) async throws {
+        let rig = Rig()
+        try await rig.opened(1)
+        rig.mpv.emit(.playbackRestart)
+        try await until("the picture") { rig.model.hasPicture }
+        rig.ui(1, .upNext(next: NextEpisode(number: "8", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 3))
+        ask(rig.model)
+        staged(rig, "8")
+        // The window says what comes, as the playback driving it.
+        rig.ui(1, .starting(id: 900_001, title: "Stardust Wayfarer", episode: "8", episodeTitle: nil, coverUrl: nil, bannerUrl: nil))
+        rig.model.viewerClosed()
+        #expect(rig.reports.suffix(2).map(\.1) == [.ended(reason: .quit), .closed])
+        #expect(rig.sent.last == .player(.stop), "the next episode, still being found, stops too")
+        #expect(!rig.model.isPresented)
+
+        opening(rig, 2, episode: "8")
+        #expect(!rig.model.isPresented, "no player comes back up for it")
+        #expect(rig.made.count == 1)
+        #expect(rig.reports.last! == (2, .closed))
+    }
+
+    @Test func closingAfterPlayNextBringsNoPlayerBack() async throws {
+        try await closedWhileTheNextIsFound { $0.playNext() }
+    }
+
+    @Test func closingAfterAnEpisodeIsPickedBringsNoPlayerBack() async throws {
+        try await closedWhileTheNextIsFound { $0.choose(.episode("8")) }
+    }
+
     @Test func aPlaybackThatNeverOpenedComesDownWhenItPlaysElsewhere() {
         let rig = Rig()
         rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1))
@@ -276,6 +341,42 @@ struct CardTests {
         #expect(!rig.model.upNextShown)
         try await rig.playhead(1410)
         #expect(rig.model.upNextShown)
+    }
+
+    @Test func aSeekPastTheEndingRunsTheCountdownAgainRatherThanPlayingNext() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        upNext(rig)
+        try await rig.playhead(44)
+        #expect(rig.model.countdown?.seconds == 8)
+        // Well past where the countdown would have run out: it runs again, all ten seconds.
+        rig.model.seek(to: 80)
+        rig.ops(1, [.seek(seconds: 80, absolute: true)])
+        try await rig.playhead(80)
+        #expect(!rig.controls.contains(.playNext))
+        #expect(rig.model.countdown?.seconds == 10)
+        try await rig.playhead(89)
+        #expect(!rig.controls.contains(.playNext))
+        try await rig.playhead(90)
+        #expect(rig.controls.filter { $0 == .playNext }.count == 1)
+    }
+
+    @Test func scrubbingPastTheEndingPlaysNothingUntilTheCountdownRunsAgain() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        upNext(rig)
+        try await rig.playhead(43)
+        // The keyframe seeks under the finger move the playhead past the countdown's end.
+        rig.model.scrub(to: 70)
+        try await rig.playhead(70)
+        #expect(!rig.controls.contains(.playNext), "not while scrubbing")
+        rig.model.endScrub()
+        rig.ops(1, [.seek(seconds: 70, absolute: true)])
+        try await rig.playhead(71)
+        #expect(!rig.controls.contains(.playNext))
+        #expect(rig.model.countdown?.seconds == 9)
+        try await rig.playhead(80)
+        #expect(rig.controls.filter { $0 == .playNext }.count == 1)
     }
 
     @Test func aCancelledUpNextNeverPlaysNext() async throws {
@@ -424,6 +525,30 @@ struct CardTests {
         #expect(rig.model.stillWatchingAfter == 2)
     }
 
+    @Test func anEpisodePlayedNextAfterASeekIsNotOneInARowWithNobodyThere() async throws {
+        let rig = Rig()
+        try await rig.opened(1)
+        for playback: PlaybackId in 2...4 {
+            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 2))
+            if playback == 3 {
+                // The viewer seeks into the ending, and the countdown runs out after it.
+                rig.model.seek(to: 45)
+                rig.ops(playback - 1, [.seek(seconds: 45, absolute: true)])
+                try await rig.playhead(55)
+            } else {
+                try await rig.playhead(52)
+            }
+            rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
+            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            rig.mpv.emit(.startFile)
+            rig.mpv.emit(.playbackRestart)
+            try await rig.playhead(0.5)
+        }
+        // Two rolled on with nobody there would ask; the one after the seek is not among them.
+        #expect(rig.controls.filter { $0 == .playNext }.count == 3)
+        #expect(!rig.model.stillWatching)
+    }
+
     @Test func anyInputStartsTheCountAgain() async throws {
         let rig = Rig()
         try await rig.opened(1)
@@ -544,5 +669,14 @@ extension BufferingLineTests {
         let square = BufferingLine.picture(in: CGSize(width: 1600, height: 1000), aspect: 4.0 / 3)
         #expect(square.minY == 0 && abs(square.width - 1333.33) < 0.01)
         #expect(BufferingLine.picture(in: CGSize(width: 800, height: 600), aspect: nil) == CGRect(x: 0, y: 0, width: 800, height: 600))
+    }
+}
+
+struct LogLineTests {
+    @Test func mpvsLinesAreLoggedWithoutTheTokensInTheirAddresses() {
+        let line = MpvLogLine(
+            prefix: "ffmpeg", level: "error",
+            text: "https: HTTP error 403 for https://cdn.example/hls/7/seg-12.ts?token=s3cret&expires=1")
+        #expect(PlayerModel.said(line) == "ffmpeg: https: HTTP error 403 for https://cdn.example")
     }
 }

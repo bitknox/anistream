@@ -166,6 +166,12 @@ public struct UpNextCard: Equatable, Sendable {
     public var cancelled = false
     /// PlayNext has been sent, once.
     public var played = false
+    /// Where the countdown runs from since a seek landed in or past it: its full length again
+    /// from there, where the ending alone would have it already over.
+    public var restartedAt: Double?
+    /// The viewer sought while it was up: the next episode it plays is asked for by someone
+    /// there, and does not count toward "Still watching?".
+    public var sought = false
 
     public init(
         next: NextEpisode, auto: Bool, endingAt: Double?, countdown: Double = PlayerTiming.upNextCountdown,
@@ -190,8 +196,9 @@ public struct UpNextCard: Equatable, Sendable {
     /// Seconds left on the countdown at `position`, while it runs: never with no countdown,
     /// where the card waits for the viewer.
     public func remaining(at position: Double, duration: Double?) -> Double? {
-        guard auto, !cancelled, countdown > 0, let start = showsAt(duration: duration), position >= start
-        else { return nil }
+        guard auto, !cancelled, countdown > 0, let shows = showsAt(duration: duration) else { return nil }
+        let start = max(shows, restartedAt ?? shows)
+        guard position >= start else { return nil }
         return max(0, countdown - (position - start))
     }
 }

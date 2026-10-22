@@ -1,7 +1,7 @@
 // Picture in Picture's frames: what the feed copies from mpv's layer, and what that costs.
 
 #if os(macOS)
-import AnistreamPlayer
+@testable import AnistreamPlayer
 import CoreImage
 import CoreVideo
 import Darwin
@@ -70,6 +70,22 @@ extension PlayerTests {
             #expect(variety(try image(frame)) > 0.01)
             feed.stop()
             await client.shutdown()
+        }
+
+        /// A still with no pool to draw it from is dropped, and holds no copy's place: with two such
+        /// places taken, every frame after would have been dropped as the copies falling behind.
+        @Test @MainActor func aStillThatCannotBeDrawnHoldsNoPlace() throws {
+            let feed = PictureFeed(makePool: { _ in nil })
+            #expect(feed.start(MpvLayer()))
+            let context = try #require(CGContext(
+                data: nil, width: 16, height: 9, bitsPerComponent: 8, bytesPerRow: 64,
+                space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            let still = try #require(context.makeImage())
+            for _ in 0..<3 { feed.show(still) }
+            #expect(feed.inFlight == 0)
+            #expect(feed.counts.dropped == 3)
+            #expect(feed.counts.copied == 0)
+            feed.stop()
         }
 
         @Test func copiesNothingOnceStopped() async throws {

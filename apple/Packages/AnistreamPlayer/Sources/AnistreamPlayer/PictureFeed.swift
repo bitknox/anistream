@@ -54,17 +54,25 @@ public final class PictureFeed: @unchecked Sendable {
     private var format: CMVideoFormatDescription?
     private var pending = 0
     private var tally = Counts()
+    /// What makes the pixel buffer pool for frames of one size and format: a test's may fail.
+    let makePool: @Sendable (PoolKey) -> CVPixelBufferPool?
     private var lastFrame: CVPixelBuffer?
     private let enqueueing = DispatchQueue(label: "tv.anistream.picture-feed")
 
-    private struct PoolKey: Equatable {
+    struct PoolKey: Equatable {
         let width: Int
         let height: Int
         let pixelFormat: OSType
     }
 
     @MainActor
-    public init() {
+    public convenience init() {
+        self.init(makePool: Self.makePool)
+    }
+
+    @MainActor
+    init(makePool: @escaping @Sendable (PoolKey) -> CVPixelBufferPool?) {
+        self.makePool = makePool
         displayLayer = AVSampleBufferDisplayLayer()
         displayLayer.videoGravity = .resizeAspect
         displayLayer.backgroundColor = CGColor(gray: 0, alpha: 1)
@@ -74,6 +82,9 @@ public final class PictureFeed: @unchecked Sendable {
     public var isRunning: Bool { lock.withLock { layer != nil } }
 
     public var counts: Counts { lock.withLock { tally } }
+
+    /// Copies and stills in flight, for a test.
+    var inFlight: Int { lock.withLock { pending } }
 
     /// The last frame copied, for a capture of what the window shows.
     public var latestFrame: CVPixelBuffer? { lock.withLock { lastFrame } }
@@ -127,7 +138,7 @@ public final class PictureFeed: @unchecked Sendable {
                 return nil
             }
             if poolKey != key {
-                pool = Self.makePool(key)
+                pool = makePool(key)
                 poolKey = key
                 format = nil
             }
@@ -178,12 +189,18 @@ public final class PictureFeed: @unchecked Sendable {
         let pool: CVPixelBufferPool? = lock.withLock {
             guard layer != nil else { return nil }
             if poolKey != key {
-                self.pool = Self.makePool(key)
+                self.pool = makePool(key)
                 poolKey = key
                 format = nil
             }
+            // Pending only once there is a pool to draw from: a frame that cannot be made is
+            // dropped here, and would otherwise hold a copy's place for good.
+            guard let pool = self.pool else {
+                tally.dropped += 1
+                return nil
+            }
             pending += 1
-            return self.pool
+            return pool
         }
         guard let pool else { return }
         var made: CVPixelBuffer?
@@ -252,7 +269,7 @@ public final class PictureFeed: @unchecked Sendable {
         lock.withLock { layer }?.colorspace
     }
 
-    private static func makePool(_ key: PoolKey) -> CVPixelBufferPool? {
+    static func makePool(_ key: PoolKey) -> CVPixelBufferPool? {
         let attributes: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: key.pixelFormat,
             kCVPixelBufferWidthKey as String: key.width,
