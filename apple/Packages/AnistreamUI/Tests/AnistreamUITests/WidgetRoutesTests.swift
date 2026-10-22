@@ -41,6 +41,14 @@ struct WidgetRoutesTests {
         #expect(navigator.settingsPane == .accounts)
     }
 
+    @Test func aFinishedDownloadPlaysOrOpensDownloadsWhileTheQueueIsNotHere() {
+        let store = AppStore()
+        let navigator = Navigator(route: LaunchRoute())
+        navigator.openWidgetLink(.download(7), store: store)
+        #expect(navigator.section == .downloads)
+        #expect(store.sentLog.isEmpty)
+    }
+
     @Test func thePlayIntentsLinkWaitsForTheAppToTakeIt() {
         let router = WidgetLinkRouter()
         router.open(.play(900_001, episode: 7))

@@ -7,7 +7,8 @@ import Foundation
 /// - `snapshot.json`, which the app writes and the widgets read;
 /// - `art/`, the snapshot's art as small JPEGs, so a widget reads local files only;
 /// - `public-schedule.json`, the extension's own copy of AniList's public schedule, for a widget
-///   with no snapshot to show.
+///   with no snapshot to show;
+/// - `live/`, the downloads' Live Activity's covers.
 ///
 /// The group is the `AnistreamAppGroup` key of the bundle's Info.plist, which the build fills
 /// from the `ANISTREAM_APP_GROUP` setting: `group.tv.anistream` on iPhone and iPad, the
@@ -48,6 +49,8 @@ public struct WidgetFiles: Sendable, Equatable {
     public var snapshotFile: URL { directory.appending(path: "snapshot.json") }
     public var artDirectory: URL { directory.appending(path: "art", directoryHint: .isDirectory) }
     public var publicScheduleFile: URL { directory.appending(path: "public-schedule.json") }
+    /// The Live Activity's covers, apart from the snapshot's art, which a snapshot clears.
+    public var liveDirectory: URL { directory.appending(path: "live", directoryHint: .isDirectory) }
 
     /// The art file `name`.
     public func art(_ name: String) -> URL {

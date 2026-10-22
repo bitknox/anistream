@@ -1,5 +1,5 @@
 // Where the widgets' taps land: a title's page, the player on an episode, the Calendar on today,
-// and Settings › Accounts. They come as anistream:// links, and the small widget's play button as
+// and Settings › Accounts; and the Live Activity's Play, on a downloaded episode. They come as anistream:// links, and the small widget's play button as
 // an App Intent that runs in the app.
 
 import AnistreamKit
@@ -58,6 +58,18 @@ extension Navigator {
             }
             #endif
             openSettings(.accounts)
+        case .download(let id):
+            // The Live Activity's Play: the downloaded file, or Downloads while the queue is not
+            // here yet.
+            if let row = store.downloads.rows.first(where: { $0.id == id && $0.path != nil }) {
+                showWidgetTitle(row.anilistId)
+                store.playDownload(row)
+            } else {
+                #if os(iOS)
+                phoneSettings = nil
+                #endif
+                open(.downloads)
+            }
         }
     }
 

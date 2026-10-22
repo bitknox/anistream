@@ -7,6 +7,7 @@
 // test kit's fixture catalogue, and the art its stand-in art, made into the widgets' thumbnails
 // as the app makes them.
 
+#if os(macOS)
 import AnistreamDesign
 import AnistreamWidgetData
 import AnistreamWidgetUI
@@ -234,9 +235,104 @@ enum Shots {
             SnapshotAiring(id: $0.id, title: $0.title, episode: $0.episode, airsAt: $0.airsAt)
         }
         shoot(iphone, "airing-no-snapshot", .airing, nil, families: states, publicSchedule: publicRows)
+
+        liveActivity(files: files, out: out)
+    }
+
+    // MARK: The downloads' Live Activity (NativeLiveActivity)
+
+    static func liveActivity(files: WidgetFiles, out: URL) {
+        // The cover, as the app keeps it for the activity.
+        let poster = art(900001, in: files).poster
+        if let poster {
+            try? FileManager.default.createDirectory(at: files.liveDirectory, withIntermediateDirectories: true)
+            try? FileManager.default.copyItem(at: files.art(poster), to: files.liveDirectory.appending(path: poster))
+        }
+        let one = DownloadsActivityState(
+            titleID: 900001, title: "Hoshikuzu no Tabibito", episode: "8", coverFile: poster,
+            bytesDone: 412_000_000, bytesTotal: 1_100_000_000, speed: 2_400_000, secondsLeft: 290)
+        var several = one
+        several.count = 3
+        several.bytesDone = 400_000_000
+        several.bytesTotal = 3_100_000_000
+        several.bytesLeft = 2_700_000_000
+        var paused = one
+        paused.paused = true
+        paused.speed = nil
+        paused.secondsLeft = nil
+        var finished = one
+        finished.finished = true
+        finished.downloadID = 7
+        finished.bytesDone = finished.bytesTotal
+
+        func draw(_ view: some View, _ name: String, width: CGFloat, height: CGFloat?, radius: CGFloat, background: Color) {
+            let content = view
+                .environment(\.widgetFiles, files)
+                .environment(\.widgetDrawsTaps, false)
+                .environment(\.locale, Locale(identifier: "en_GB"))
+                .environment(\.colorScheme, .dark)
+                .frame(width: width, height: height)
+                .background(background)
+                .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+                .padding(16)
+                .background(Color(red: 13 / 255, green: 16 / 255, blue: 32 / 255))
+            let renderer = ImageRenderer(content: content)
+            renderer.scale = 3
+            guard let image = renderer.cgImage else { return }
+            let url = out.appending(path: "iphone-live-\(name).png")
+            try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: url)
+            print(url.path)
+        }
+
+        let card = Palette.ground.opacity(0.92)
+        draw(DownloadsLockScreenView(state: one), "one", width: 358, height: nil, radius: 24, background: card)
+        draw(DownloadsLockScreenView(state: several), "several", width: 358, height: nil, radius: 24, background: card)
+        draw(DownloadsLockScreenView(state: paused), "paused", width: 358, height: nil, radius: 24, background: card)
+        draw(DownloadsLockScreenView(state: finished), "finished", width: 358, height: nil, radius: 24, background: card)
+        draw(DownloadsLockScreenView(state: one, stale: true), "stale", width: 358, height: nil, radius: 24, background: card)
+
+        // The island, laid out as the system lays out its regions.
+        let compact = HStack {
+            DownloadsIslandCover(state: one)
+            Spacer()
+            DownloadRing(fraction: one.fraction)
+        }
+        .padding(.horizontal, 8)
+        draw(compact, "island-compact", width: 250, height: 37, radius: 18.5, background: .black)
+        draw(DownloadRing(fraction: one.fraction), "island-minimal", width: 37, height: 37, radius: 18.5, background: .black)
+        let expanded = VStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                DownloadsIslandCoverLarge(state: one)
+                DownloadsIslandTitle(state: one).padding(.top, 4)
+                DownloadsIslandTimeLeft(state: one).padding(.top, 6)
+            }
+            DownloadsIslandBottom(state: one)
+        }
+        .padding(EdgeInsets(top: 18, leading: 20, bottom: 14, trailing: 16))
+        draw(expanded, "island-expanded", width: 371, height: 160, radius: 44, background: .black)
+    }
+}
+
+/// The expanded island's leading cover, as the extension draws it.
+struct DownloadsIslandCoverLarge: View {
+    let state: DownloadsActivityState
+    @Environment(\.widgetFiles) private var files
+
+    var body: some View {
+        if let file = state.coverFile, let files,
+           let image = ArtThumbnail.image(at: files.liveDirectory.appending(path: file)) {
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 36, height: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
     }
 }
 
 let arguments = CommandLine.arguments.dropFirst()
 let out = URL(filePath: arguments.first ?? FileManager.default.currentDirectoryPath, directoryHint: .isDirectory)
 try MainActor.assumeIsolated { try Shots.run(out: out) }
+#else
+print("WidgetShots draws on the Mac.")
+#endif
