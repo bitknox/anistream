@@ -504,7 +504,7 @@ jobs:
 
   # Every Rust crate's licence, as a release collects them for the terminal binaries and for the
   # apps (packaging/rust-licences): a crate under a licence about.toml does not accept, or whose
-  # licence cannot be read, fails here rather than on a release's tag.
+  # licence cannot be read, fails here rather than in a release.
   licences:
     needs: changes
     if: needs.changes.outputs.rust == 'true'

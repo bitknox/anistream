@@ -93,8 +93,10 @@ anistream --update
 ```
 
 Downloads the latest release, verifies its published SHA-256, and replaces the binary in place.
-The app also checks for new releases once a day and mentions one in a toast; `check = false`
-under `[updates]` turns that off.
+The app also checks for new releases once a day. Most changes to anistream come out as a release
+of their own, so it mentions a new one in a toast the first time it finds one and then at most
+once a week, except that a new minor or major version is mentioned as soon as it is found.
+`check = false` under `[updates]` turns the check off.
 
 ## Build from source
 

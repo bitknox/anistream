@@ -3,8 +3,9 @@ name: Apps release
 # The apps a release ships beside the terminal binaries: the Android APK, the Mac app in a .dmg
 # and the iPhone and iPad app as an .ipa for AltStore or SideStore to sign, with the notices for
 # the LGPL libmpv and FFmpeg inside them and for the engine's Rust crates, and the source those
-# libraries were built from. release.yml calls this on a tag and, once the terminal builds have
-# made the draft release, adds what it built to it. This workflow never publishes anything itself.
+# libraries were built from. release.yml calls this for each release, from the commit it releases
+# and with the tag it will make, and publishes what it built once every build has succeeded.
+# This workflow never publishes anything itself.
 #
 # Its own runs are dry runs, which build everything a release would and keep the files on the run
 # for a week: a pull request that changes how the apps are built or packaged, and a dispatch.
@@ -12,14 +13,17 @@ name: Apps release
 # APK unsigned, saying so, when they do not, as on a pull request from a fork.
 #
 # Nothing here is cached by cargo. Each engine is kept by engine.sh's own cache, keyed by the Rust
-# sources, and libmpv by its build script and patches. A tag's run can restore only what main
-# saved, so a dry run dispatched from main at the commit about to be tagged makes the release
-# reuse its engines rather than build them.
+# sources with the version a release sets in Cargo.toml, and libmpv by its build script and
+# patches. Runs on main keep their engines, so a release's run that is run again reuses them.
 on:
   workflow_call:
     inputs:
       tag:
-        description: The release's tag, which the apps are built from and numbered by
+        description: The release's tag, which the apps are numbered by. It is made once they are built.
+        required: true
+        type: string
+      ref:
+        description: The commit the release is built from
         required: true
         type: string
     secrets:
@@ -56,7 +60,7 @@ on:
         required: false
         type: string
       dry_run:
-        description: Build and publish nothing. This workflow only dry-runs; a tag, or release.yml's dispatch, publishes.
+        description: Build and publish nothing. This workflow only dry-runs; release.yml publishes.
         required: true
         type: boolean
         default: true
@@ -93,19 +97,24 @@ jobs:
       - name: Only a dry run
         if: toJSON(inputs.dry_run) == 'false'
         run: |
-          echo "::error::This workflow builds without publishing. To publish, push the tag, or dispatch release.yml with it."
+          echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
 
-      # `inputs.tag` is empty on a pull request or a dispatch without one, and checkout then takes
-      # the ref that started the run.
+      # `inputs.ref` is release.yml's commit. A dispatch has none, and builds its tag, or with no
+      # tag either, like a pull request, the ref that started the run.
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref || inputs.tag }}
 
       - name: The version
         run: |
           version="$(packaging/apps/version.sh "$TAG")"
           echo "$version" | tee -a "$GITHUB_ENV"
+      # So the engine says the release's version, as the terminal's binaries do. Before the
+      # engine's cache key is made from the sources. A run with no tag keeps the workspace's own.
+      - name: The workspace's version
+        if: env.TAG != ''
+        run: packaging/set-version.sh "$VERSION"
 
       # Room for two release builds of the engine, libmpv's and Gradle's, on a runner that starts
       # with a fraction of its disk free.
@@ -168,8 +177,9 @@ jobs:
           path: android/.mpv/${{ env.MPV_PIN }}
           key: ${{ steps.mpv.outputs.cache-primary-key }}
 
-      # engine.sh's cache, keyed by what its stamp is made from. Kept from dispatches only: a pull
-      # request's would push main's own caches out of the repository's quota.
+      # engine.sh's cache, keyed by what its stamp is made from. Kept from main's runs only: a pull
+      # request's would push main's own caches out of the repository's quota, and a tag's could be
+      # read by no other run.
       - name: Restore the engine
         id: engine
         uses: actions/cache/restore@v6
@@ -179,7 +189,7 @@ jobs:
       - name: The engine
         run: android/scripts/engine.sh release
       - name: Keep the engine
-        if: steps.engine.outputs.cache-hit != 'true' && github.event_name == 'workflow_dispatch'
+        if: steps.engine.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v6
         with:
           path: ${{ env.ANISTREAM_ENGINE_CACHE }}
@@ -323,17 +333,20 @@ jobs:
       - name: Only a dry run
         if: toJSON(inputs.dry_run) == 'false'
         run: |
-          echo "::error::This workflow builds without publishing. To publish, push the tag, or dispatch release.yml with it."
+          echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
 
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref || inputs.tag }}
 
       - name: The version
         run: |
           version="$(packaging/apps/version.sh "$TAG")"
           echo "$version" | tee -a "$GITHUB_ENV"
+      - name: The workspace's version
+        if: env.TAG != ''
+        run: packaging/set-version.sh "$VERSION"
 
       # rust-toolchain.toml lists the iOS targets.
       - run: rustup toolchain install
@@ -370,7 +383,7 @@ jobs:
       - name: The engine
         run: apple/scripts/engine.sh release macos ios
       - name: Keep the engine
-        if: steps.engine.outputs.cache-hit != 'true' && github.event_name == 'workflow_dispatch'
+        if: steps.engine.outputs.cache-hit != 'true' && github.ref == 'refs/heads/main'
         uses: actions/cache/save@v6
         with:
           path: ${{ env.ANISTREAM_ENGINE_CACHE }}
@@ -513,13 +526,16 @@ jobs:
       - name: Only a dry run
         if: toJSON(inputs.dry_run) == 'false'
         run: |
-          echo "::error::This workflow builds without publishing. To publish, push the tag, or dispatch release.yml with it."
+          echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref || inputs.tag }}
       - name: The version
         run: packaging/apps/version.sh "$TAG" >> "$GITHUB_ENV"
+      - name: The workspace's version
+        if: env.TAG != ''
+        run: packaging/set-version.sh "$VERSION"
       - name: The libraries' sources
         run: packaging/apps/sources.sh "$VERSION" dist
       - run: rustup toolchain install
@@ -542,7 +558,7 @@ jobs:
           retention-days: 7
 
   # The notices for both, as one zip, and the release's notes for the apps, which the run's
-  # summary shows, so a dry run's can be read before a tag publishes them.
+  # summary shows, so a dry run's can be read before a release publishes them.
   notices:
     name: Notices and release notes
     needs: [android, apple, sources]
@@ -550,7 +566,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.ref || inputs.tag }}
       - name: The version
         run: packaging/apps/version.sh "$TAG" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v8

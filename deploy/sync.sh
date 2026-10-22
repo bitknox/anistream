@@ -24,12 +24,15 @@ files=(store.js store_bg.wasm store.d.ts store_bg.wasm.d.ts)
 # features; the files of the workspace's own crates among them, admin page included, by their
 # git hashes; any release profile; and the pinned toolchain. The rest of the lockfile and the
 # workspace manifest are left out, so a bump to a crate the store never compiles does not mark it
-# stale. Content, not commits, so an uncommitted change counts.
+# stale. The workspace's own crates are listed without their version, which is the release's,
+# changes nothing in the package and is raised in Cargo.toml for each new minor or major. Content,
+# not commits, so an uncommitted change counts.
 sources() (
   cd "$root"
   tree="$(cargo tree --quiet --color never -p anistream-store-wasm \
     --target wasm32-unknown-unknown -e normal,build --prefix none --format '{p} {f}' |
-    sed -e 's/ (\*)$//' -e "s|$root|.|" | LC_ALL=C sort -u)"
+    sed -e 's/ (\*)$//' -e "s|$root|.|" -e 's|^\([^ ]*\) v[^ ]* \((\./\)|\1 \2|' |
+    LC_ALL=C sort -u)"
   printf '%s\n' "$tree"
   awk '/^\[/ { keep = /^\[profile\.release/ } keep' Cargo.toml
   sed -n 's|.* (\./\([^)]*\)).*|\1|p' <<<"$tree" |

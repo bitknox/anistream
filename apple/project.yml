@@ -35,7 +35,7 @@ settings:
     ANISTREAM_SLICE[sdk=iphonesimulator*]: ios-sim
     ANISTREAM_SLICE[sdk=iphoneos*]: ios
     # A release passes both on xcodebuild's command line, from its tag (packaging/apps/version.sh).
-    MARKETING_VERSION: "1.1.0"
+    MARKETING_VERSION: "2.0.0"
     CURRENT_PROJECT_VERSION: "1"
     DEAD_CODE_STRIPPING: true
   configs:

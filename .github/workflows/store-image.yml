@@ -1,13 +1,18 @@
 name: Store image
 
 # The plugin store's container image, ghcr.io/bitknox/anistream-store, which the Fly, Render,
-# Railway, Heroku and Docker templates under deploy/ run. Each release publishes it; a pull
-# request that could change it only checks that it still builds.
+# Railway, Heroku and Docker templates under deploy/ run. release.yml calls this for each release
+# once the release is published; a pull request that could change it only checks that it still
+# builds.
 on:
-  push:
-    tags: ['v*']
+  workflow_call:
+    inputs:
+      tag:
+        description: The release's tag, which the image is built from and tagged by
+        required: true
+        type: string
   # Publishes an existing release's image again, after a fix to the Dockerfile or to this
-  # workflow, without cutting a new tag.
+  # workflow, without a new release.
   workflow_dispatch:
     inputs:
       tag:
@@ -30,9 +35,10 @@ on:
       - .github/workflows/store-image.yml
 
 # A newer push to the same pull request makes the running build moot. A release is left to
-# finish, since cancelling it would leave the tag without an image.
+# finish, since cancelling it would leave the tag without an image, and one publish waits for
+# another. Not named after github.workflow, which is release.yml's when it calls this.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: store-image-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # The workflow's own token pushes to GHCR, which also links the package to this repository.
@@ -44,8 +50,8 @@ permissions:
 env:
   IMAGE: ghcr.io/bitknox/anistream-store
   # One list for both jobs: the build job needs it for the version label, the merge job for the
-  # tags. `value` is empty on a tag push, which makes the action read the pushed tag instead.
-  # Pre-release tags such as v1.1.0-rc.1 only get their own version tag, never `latest` or `1`.
+  # tags. Pre-release tags such as v2.1.0-rc.1 only get their own version tag, never `latest`
+  # or `2`.
   IMAGE_TAGS: |
     type=semver,pattern={{version}},value=${{ inputs.tag }}
     type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }}
@@ -72,11 +78,19 @@ jobs:
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
 
-      # `inputs.tag` is empty on a tag push or a pull request, and checkout then takes the ref
-      # that triggered the run.
+      # `inputs.tag` is empty on a pull request, and checkout then takes the ref that started the
+      # run.
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag }}
+
+      # So `anistream-store --version` says the release's version (packaging/set-version.sh).
+      # A pull request keeps the workspace's own.
+      - name: The workspace's version
+        if: inputs.tag != ''
+        env:
+          TAG: ${{ inputs.tag }}
+        run: packaging/set-version.sh "${TAG#v}"
 
       - name: Docker meta
         id: meta
