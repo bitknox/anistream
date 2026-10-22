@@ -77,7 +77,7 @@ class DownloadNotificationsTest {
         assertTrue(notification.flags and Notification.FLAG_ONGOING_EVENT == 0)
         val play = notification.actions.single()
         assertEquals("Play", play.title.toString())
-        assertEquals(AppLink.Download(42), AppLink.parse(shadowOf(play.actionIntent).savedIntent.dataString))
-        assertEquals(AppLink.Downloads, AppLink.parse(shadowOf(notification.contentIntent).savedIntent.dataString))
+        assertEquals(AppLink.Download(42), shadowOf(play.actionIntent).savedIntent.appLink())
+        assertEquals(AppLink.Downloads, shadowOf(notification.contentIntent).savedIntent.appLink())
     }
 }

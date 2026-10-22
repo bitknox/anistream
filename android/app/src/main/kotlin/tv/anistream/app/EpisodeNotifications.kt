@@ -13,7 +13,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Typeface
-import android.net.Uri
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.StyleSpan
@@ -240,6 +239,10 @@ class EpisodeNotifier(private val context: Context) {
         const val EXTRA_NOTIFICATION = "tv.anistream.extra.NOTIFICATION"
 
         /** The show and the episode a notification is for, for the summary's lines. */
+        /** The show and the episode Mark watched marks. */
+        private const val EXTRA_WATCHED_SHOW = "tv.anistream.extra.WATCHED_SHOW"
+        private const val EXTRA_WATCHED_EPISODE = "tv.anistream.extra.WATCHED_EPISODE"
+
         private const val EXTRA_SHOW = "tv.anistream.extra.SHOW"
         private const val EXTRA_EPISODE = "tv.anistream.extra.EPISODE"
 
@@ -261,19 +264,26 @@ class EpisodeNotifier(private val context: Context) {
         fun markWatchedIntent(context: Context, id: AnilistId, episode: UInt): PendingIntent = PendingIntent.getBroadcast(
             context,
             0,
-            Intent(ACTION_MARK_WATCHED, watchedUri(id, episode), context, EpisodeActionReceiver::class.java),
+            watchedIntent(context, id, episode),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        /** What a Mark watched intent carries: `anistream://watched/<id>/<episode>`. */
-        fun watchedUri(id: AnilistId, episode: UInt): Uri = Uri.parse("anistream://watched/$id/$episode")
+        /**
+         * What Mark watched sends: the show and the episode in its extras, and an identifier of
+         * its own, so each episode's is an intent apart.
+         */
+        fun watchedIntent(context: Context, id: AnilistId, episode: UInt): Intent =
+            Intent(ACTION_MARK_WATCHED, null, context, EpisodeActionReceiver::class.java)
+                .putExtra(EXTRA_WATCHED_SHOW, id.toLong())
+                .putExtra(EXTRA_WATCHED_EPISODE, episode.toLong())
+                .setIdentifier(EpisodePlan.tagOf(id, episode))
 
-        /** The show and episode [uri] names, when it is a Mark watched one. */
-        fun watchedOf(uri: String?): Pair<AnilistId, UInt>? {
-            val parts = uri?.removePrefix("anistream://watched/")?.takeIf { it != uri }?.split('/') ?: return null
-            val id = parts.getOrNull(0)?.toUIntOrNull() ?: return null
-            val episode = parts.getOrNull(1)?.toUIntOrNull() ?: return null
-            return if (parts.size == 2) id to episode else null
+        /** The show and episode a Mark watched intent names. */
+        fun watchedOf(intent: Intent): Pair<AnilistId, UInt>? {
+            if (intent.action != ACTION_MARK_WATCHED) return null
+            val id = intent.getLongExtra(EXTRA_WATCHED_SHOW, -1).takeIf { it >= 0 } ?: return null
+            val episode = intent.getLongExtra(EXTRA_WATCHED_EPISODE, -1).takeIf { it >= 0 } ?: return null
+            return id.toUInt() to episode.toUInt()
         }
     }
 }

@@ -161,15 +161,18 @@ its own VPN and index has:
    (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
 8. In flight mode, play it from Downloads.
 
-Launcher shortcuts and notifications open the activity on an app link, on an explicit intent, in
-any build: `anistream://open/search`, `…/downloads`, `…/title/<id>`, `…/continue/<id>` (the title
-page, then the episode Continue would play) and `…/play/<id>/<episode>`. The frame follows each
-through the app's own navigation (`AppLinks.kt`). Search and Downloads are static shortcuts,
-written into each variant's resources from `app/shortcuts.xml` with its package; "Continue
-<title>" is published from the Continue queue as its first playable title changes.
+Launcher shortcuts and notifications open the activity on an app link: an explicit intent, action
+`tv.anistream.action.OPEN`, with the link in its extras, never a URL (`Shortcuts.kt`):
+`tv.anistream.link.open` says what it opens (`search`, `downloads`, `title`, `continue`, `play`
+or `download`) and `tv.anistream.link.show`, `.episode` and `.download` what of. The frame
+follows each through the app's own navigation (`AppLinks.kt`). Search and Downloads are static
+shortcuts, written into each variant's resources from `app/shortcuts.xml` with its package;
+Continue ("Continue", in full "Hoshikuzu no Tabibito E7") is published from the Continue queue,
+opens the player on the episode Continue would play, and with nothing to continue is taken off
+the list, a pinned copy disabled with "Nothing to continue".
 
 ```sh
-adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
+adb shell am start -a tv.anistream.action.OPEN --es tv.anistream.link.open downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
 ```
 
 New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on

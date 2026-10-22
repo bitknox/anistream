@@ -108,7 +108,7 @@ class NewEpisodesWorker(context: Context, params: WorkerParameters) : CoroutineW
 class EpisodeActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != EpisodeNotifier.ACTION_MARK_WATCHED) return
-        val (id, episode) = EpisodeNotifier.watchedOf(intent.dataString) ?: return
+        val (id, episode) = EpisodeNotifier.watchedOf(intent) ?: return
         val host = context.applicationContext as? NewEpisodesHost ?: return
         host.episodeNotifier.dismiss(EpisodePlan.tagOf(id, episode))
         val pending = goAsync()
