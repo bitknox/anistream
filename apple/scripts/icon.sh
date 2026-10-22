@@ -14,7 +14,9 @@
 #   tones and a one-cell outline on black, which the system tints and works Clear out from), and
 #   the Mac's 16 to 1024;
 # - assets/icon: the terminal's PNGs, anistream.ico and anistream.iconset, which the release
-#   workflow packages.
+#   workflow packages;
+# - apple/App/Assets.xcassets/LaunchNagare.imageset and LaunchGround.colorset: the iPhone and iPad
+#   launch screen, Nagare whole at 4 pt a cell on the ground.
 #
 # The figures, the size rule and the appearances are in the Native layer spec's "App icon".
 set -euo pipefail

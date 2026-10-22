@@ -10,7 +10,9 @@ What it writes:
 
 - apple/App/Assets.xcassets/AppIcon.appiconset: one PNG per slot, iPhone and iPad (with Dark and
   Tinted variants) and the Mac's 16 to 1024;
-- assets/icon: the terminal's PNGs, anistream.ico and anistream.iconset.
+- assets/icon: the terminal's PNGs, anistream.ico and anistream.iconset;
+- apple/App/Assets.xcassets/LaunchNagare.imageset and LaunchGround.colorset: what the iPhone and
+  iPad launch screen draws, the full sprite at 4 pt a cell on the ground.
 
 Standard library only, so it runs on any Mac's python3.
 """
@@ -24,11 +26,13 @@ import zlib
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from nagare_icon import G, SPRITE_COL, TONE, place  # noqa: E402
+from nagare_icon import G, SPRITE, SPRITE_COL, TONE, place  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 APP_ICON = os.path.join('apple', 'App', 'Assets.xcassets', 'AppIcon.appiconset')
 TERMINAL = os.path.join('assets', 'icon')
+LAUNCH_IMAGE = os.path.join('apple', 'App', 'Assets.xcassets', 'LaunchNagare.imageset')
+LAUNCH_GROUND = os.path.join('apple', 'App', 'Assets.xcassets', 'LaunchGround.colorset')
 
 
 def rgb(hex_colour):
@@ -160,7 +164,51 @@ def terminal():
     return files
 
 
-SETS = {APP_ICON: app_icon, TERMINAL: terminal}
+# The launch screen: Nagare whole, 20 × 32 cells at 4 pt a cell, 80 × 128 pt, on the ground colour
+# the screen is filled with. iPhone and iPad only: the Mac has no launch screen.
+LAUNCH_CELL_PT = 4
+LAUNCH_SCALES = [('iphone', 2), ('iphone', 3), ('ipad', 2)]
+
+
+def sprite(cell):
+    """The canonical sprite at `cell` px a cell, on nothing: the ground shows through."""
+    rows = [r.ljust(20, '.') for r in SPRITE]
+    clear = (0, 0, 0, 0)
+    pixels = [[clear] * (20 * cell) for _ in range(len(rows) * cell)]
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch == '.':
+                continue
+            for py in range(y * cell, (y + 1) * cell):
+                for px in range(x * cell, (x + 1) * cell):
+                    pixels[py][px] = rgb(SPRITE_COL[ch]) + (255,)
+    return pixels
+
+
+def launch_image():
+    files, images = {}, []
+    for scale in sorted({scale for _, scale in LAUNCH_SCALES}):
+        files[f'launch-nagare@{scale}x.png'] = png(sprite(LAUNCH_CELL_PT * scale), alpha=True)
+    for idiom, scale in LAUNCH_SCALES:
+        images.append({'filename': f'launch-nagare@{scale}x.png', 'idiom': idiom, 'scale': f'{scale}x'})
+    files['Contents.json'] = catalogue_json({
+        'images': images,
+        'info': {'author': 'xcode', 'version': 1},
+    })
+    return files
+
+
+def launch_ground():
+    r, g, b = GROUND
+    colour = {'color-space': 'srgb', 'components': {
+        'alpha': '1.000', 'blue': f'0x{b:02X}', 'green': f'0x{g:02X}', 'red': f'0x{r:02X}'}}
+    return {'Contents.json': catalogue_json({
+        'colors': [{'color': colour, 'idiom': 'universal'}],
+        'info': {'author': 'xcode', 'version': 1},
+    })}
+
+
+SETS = {APP_ICON: app_icon, TERMINAL: terminal, LAUNCH_IMAGE: launch_image, LAUNCH_GROUND: launch_ground}
 
 
 # --- writing and checking -------------------------------------------------------------------------

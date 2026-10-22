@@ -15,5 +15,17 @@
 		<string>tv.anistream.fixtures.title</string>
 		<string>tv.anistream.fixtures.playing</string>
 	</array>
+	<!-- iPhone and iPad: the launch screen, the ground with Nagare whole at 4 pt a cell
+	     (LaunchNagare, drawn on whole pixels by scripts/icon.sh), nothing animated. The Mac has
+	     none and ignores this. -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchGround</string>
+		<key>UIImageName</key>
+		<string>LaunchNagare</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<false/>
+	</dict>
 </dict>
 </plist>
