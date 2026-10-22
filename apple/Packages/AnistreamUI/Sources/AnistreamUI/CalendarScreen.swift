@@ -290,16 +290,24 @@ struct BroadcastCell: View {
                             .macLineHeight(17)
                             .foregroundStyle(.silk)
                             .lineLimit(2)
-                        HStack(spacing: 4) {
+                            // Two lines, as the board has them: without this a column's stack
+                            // cuts the iPad's larger type to one.
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
                             if broadcast.isNew(now: now) {
-                                Circle().fill(.water).frame(width: 6, height: 6)
+                                // The dot centred on the first line, where a line of one has it.
+                                Text(verbatim: "X").hidden().frame(width: 6)
+                                    .overlay { Circle().fill(.water).frame(width: 6, height: 6) }
                             }
+                            // Two lines in a column narrower than the line, as on an iPad in
+                            // portrait, rather than cut before it says when.
                             Text(broadcast.line(now: now))
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .font(.mac(12))
                         .macLineHeight(16)
                         .foregroundStyle(.haze)
-                        .lineLimit(1)
                     }
                 }
                 .padding(4)

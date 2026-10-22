@@ -24,6 +24,15 @@ struct SettingsWordsTests {
             == "One, Two and Three notify when their dubs are out. A row opens that show’s settings.")
     }
 
+    @Test func aTitleLanguageIsNamedWithItsCapitalInEverySentence() {
+        let note = TitleLanguageWords.note(.anilist, signedIn: true, viewer: .english, examples: [])
+        #expect(note.hasPrefix("Follows your AniList account, which is set to English. "))
+        #expect(TitleLanguageWords.line(.anilist, signedIn: true, viewer: .romaji) == "Romaji, from your AniList account")
+        for language in [TitleLanguage.romaji, .english, .native] {
+            #expect(TitleLanguageWords.name(language).first?.isUppercase == true)
+        }
+    }
+
     @Test func theProtectionIsNamedAsTheTurnOnSheetNamesIt() {
         #expect(ProtectionWords.label(TorrentProtection.proxy) == "SOCKS5 proxy")
         #expect(ProtectionWords.label(TorrentProtection.device) == "VPN on this device")
