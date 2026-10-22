@@ -195,7 +195,7 @@ async fn a_store_from_before_previews_joins_without_one() {
     assert_eq!(client().redeem(&open, "laptop").await.unwrap_err(), ClientError::NotOpen);
     assert_eq!(
         ClientError::NotOpen.to_string(),
-        "this store does not accept open joins — ask its owner for an invite"
+        "this store does not accept open joins. Ask its owner for an invite"
     );
 }
 
@@ -848,7 +848,7 @@ async fn an_old_client_given_an_open_link_is_told_to_update() {
         let refused = client().preview_index(&as_invite).await.unwrap_err();
         assert_eq!(refused.code(), Some("open_link"));
         assert!(
-            refused.to_string().contains("update anistream, then paste the link again"),
+            refused.to_string().contains("so update it and paste the link again."),
             "{refused}"
         );
     }
@@ -965,7 +965,7 @@ async fn only_an_owner_decides_who_can_join() {
         .await
         .unwrap_err();
     assert_eq!(refused.code(), Some("forbidden"));
-    assert!(refused.to_string().contains("join another one the same way"), "{refused}");
+    assert!(refused.to_string().contains("Join another one the same way"), "{refused}");
 }
 
 #[tokio::test]

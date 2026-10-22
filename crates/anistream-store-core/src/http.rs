@@ -411,8 +411,8 @@ impl<D: Database, B: Blobs> Service<D, B> {
                 400,
                 "open_link",
                 format!(
-                    "anyone with this link can join {}, and this anistream is too old to join \
-                     that way — update anistream, then paste the link again",
+                    "Anyone with this link can join {}. This anistream is too old to join that \
+                     way, so update it and paste the link again.",
                     self.store.name().await
                 ),
             ));
@@ -510,7 +510,7 @@ impl<D: Database, B: Blobs> Service<D, B> {
                 return Err(Failure::new(
                     403,
                     "forbidden",
-                    "this device joined with the store's link — join another one the same way",
+                    "this device joined with the store's link. Join another one the same way",
                 ));
             }
             // Anyone may add a device for themselves: it grants nothing they do not already have.

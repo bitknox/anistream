@@ -45,7 +45,7 @@ pub enum ClientError {
     Integrity(String),
     /// An open link to a store whose server has no open joining: one from before it, or another
     /// server that leaves it out.
-    #[error("this store does not accept open joins — ask its owner for an invite")]
+    #[error("this store does not accept open joins. Ask its owner for an invite")]
     NotOpen,
 }
 

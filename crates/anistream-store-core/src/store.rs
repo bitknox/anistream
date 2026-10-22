@@ -11,7 +11,8 @@
 //! requests racing for the same invite cannot both win, whatever runs underneath.
 //!
 //! A member who joined with the open link has no name: that is what makes them anonymous, and
-//! every name anyone is given otherwise is one to 64 characters. Nothing else about them is kept.
+//! every name anyone is given otherwise is one to 64 characters. Nothing else about them is kept,
+//! and their row goes with their last device.
 
 use crate::{
     blobs::{BlobError, Blobs},
@@ -58,11 +59,11 @@ pub enum StoreError {
     /// The store does not let anyone join, or not with that code any more: closed, or opened
     /// again since with a new link. One error for both, like [`Self::InviteUnusable`].
     #[error(
-        "this link no longer lets anyone join — ask the store's owner for a new link or an invite"
+        "this link no longer lets anyone join. Ask the store's owner for a new link or an invite"
     )]
     OpenUnusable,
     /// Too many devices joined with the open link from one address lately.
-    #[error("too many devices joined from this address lately — wait an hour and try again")]
+    #[error("too many devices joined from this address lately. Wait an hour and try again")]
     TooManyJoins,
 }
 
@@ -714,21 +715,19 @@ impl<D: Database, B: Blobs> Store<D, B> {
         })
     }
 
-    /// Remove every member who joined with a link, and so every device they joined on. Answers
-    /// how many devices stopped working. Whether anyone can join is left as it is.
+    /// Remove every member who joined with a link, and so every device they joined on: the
+    /// devices are revoked and the members' rows deleted, together. Answers how many devices
+    /// stopped working. Whether anyone can join is left as it is.
     pub async fn remove_anonymous(&self, now: i64) -> Result<u64, StoreError> {
         let changed = self
             .batch(vec![
                 sql!(
                     "UPDATE devices SET revoked_at = ?1
                      WHERE revoked_at IS NULL AND member_id IN (
-                         SELECT id FROM members WHERE name = '' AND removed_at IS NULL)",
+                         SELECT id FROM members WHERE name = '')",
                     now
                 ),
-                sql!(
-                    "UPDATE members SET removed_at = ?1 WHERE name = '' AND removed_at IS NULL",
-                    now
-                ),
+                sql!("DELETE FROM members WHERE name = ''"),
             ])
             .await?;
         Ok(changed.first().copied().unwrap_or(0))
@@ -768,26 +767,18 @@ impl<D: Database, B: Blobs> Store<D, B> {
         Ok(Some((member, device)))
     }
 
+    /// Revoke a device: the one a request came from, as it leaves. An anonymous member goes
+    /// with their last device, in the same batch.
     pub async fn revoke_device(&self, device_id: &str, now: i64) -> Result<(), StoreError> {
-        self.exec(sql!(
-            "UPDATE devices SET revoked_at = ?1 WHERE id = ?2 AND revoked_at IS NULL",
-            now,
-            device_id
-        ))
-        .await?;
+        self.batch(revoke(device_id, now)).await?;
         Ok(())
     }
 
-    /// Revoke one device of anyone's, for an owner. The member stays.
+    /// Revoke one device of anyone's, for an owner. A member with a name stays; an anonymous one
+    /// goes with their last device, in the same batch.
     pub async fn revoke_any_device(&self, device_id: &str, now: i64) -> Result<(), StoreError> {
-        let changed = self
-            .exec(sql!(
-                "UPDATE devices SET revoked_at = ?1 WHERE id = ?2 AND revoked_at IS NULL",
-                now,
-                device_id
-            ))
-            .await?;
-        if changed == 0 {
+        let changed = self.batch(revoke(device_id, now)).await?;
+        if changed.first().copied().unwrap_or(0) == 0 {
             return Err(StoreError::NotFound("no device with that id".into()));
         }
         Ok(())
@@ -916,6 +907,8 @@ impl<D: Database, B: Blobs> Store<D, B> {
                     id
                 ),
                 sql!("DELETE FROM sessions WHERE member_id = ?1", id),
+                // An anonymous member is not kept as removed: nothing of them is kept at all.
+                sql!("DELETE FROM members WHERE id = ?1 AND name = ''", id),
             ])
             .await?;
         if changed.first().copied().unwrap_or(0) == 0 {
@@ -1466,6 +1459,25 @@ impl<D: Database, B: Blobs> Store<D, B> {
             )),
         }
     }
+}
+
+/// Revoke one device, and delete its member when the member is anonymous and this was their
+/// last working device: one batch, so no member with no name is left with no way in.
+fn revoke(device_id: &str, now: i64) -> Vec<Statement> {
+    vec![
+        sql!(
+            "UPDATE devices SET revoked_at = ?1 WHERE id = ?2 AND revoked_at IS NULL",
+            now,
+            device_id
+        ),
+        sql!(
+            "DELETE FROM members
+             WHERE name = '' AND id IN (SELECT member_id FROM devices WHERE id = ?1)
+               AND NOT EXISTS (SELECT 1 FROM devices d
+                               WHERE d.member_id = members.id AND d.revoked_at IS NULL)",
+            device_id
+        ),
+    ]
 }
 
 /// Two codes compared as digests: equal-length, so the comparison's timing says nothing about

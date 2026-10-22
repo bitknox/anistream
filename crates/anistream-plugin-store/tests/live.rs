@@ -158,6 +158,14 @@ async fn a_whole_journey_against_a_running_store() {
     assert_eq!(client.open_state(&base, &owner.token).await.unwrap().devices, 1);
     assert_eq!(client.members(&base, &owner.token).await.unwrap().members.len(), 1);
 
+    // A second device joins and is revoked on its own: it stops, and the first does not.
+    let second = client.redeem(&open_link, "").await.unwrap();
+    let device = client.me(&base, &second.token).await.unwrap().device.id;
+    client.revoke_device(&base, &owner.token, &device).await.unwrap();
+    assert_eq!(client.me(&base, &second.token).await.unwrap_err(), ClientError::Unauthorized);
+    assert!(client.me(&base, &anonymous.token).await.is_ok());
+    assert_eq!(client.open_state(&base, &owner.token).await.unwrap().devices, 1);
+
     // Invite-only again: the link stops, the device stays until the owner removes it.
     let closed = client.set_open(&base, &owner.token, false).await.unwrap();
     assert!(!closed.open && closed.link.is_none());

@@ -593,3 +593,56 @@ async fn the_open_code_is_not_an_invite() {
         Err(StoreError::OpenUnusable)
     ));
 }
+
+/// A store as `open` makes it, with its database at hand to look at what is kept.
+async fn open_with_db() -> (tempfile::TempDir, TestStore, Arc<dyn Database>) {
+    let dir = tempfile::tempdir().unwrap();
+    let db: Arc<dyn Database> = Arc::new(SqliteDb::in_memory().unwrap());
+    let blobs: Box<dyn Blobs> = Box::new(LocalBlobs::new(dir.path()));
+    let store = Store::open(db.clone(), blobs, Some(BASE), Some("Test")).await.unwrap();
+    (dir, store, db)
+}
+
+/// How many members with no name the store keeps a row for, removed or not.
+async fn unnamed_rows(db: &Arc<dyn Database>) -> i64 {
+    let rows = db.query("SELECT COUNT(*) FROM members WHERE name = ''", &[]).await.unwrap();
+    rows[0].int(0).unwrap()
+}
+
+async fn device_of(store: &TestStore, token: &str) -> String {
+    store.authenticate(token, NOW).await.unwrap().unwrap().1.id
+}
+
+#[tokio::test]
+async fn an_anonymous_member_is_deleted_with_their_last_device() {
+    let (_dir, store, db) = open_with_db().await;
+    let (alex_token, alex) = join(&store, "Alex", Role::Member).await;
+    let code = opened(&store).await;
+    let (first, _) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    let (second, _) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert_eq!(unnamed_rows(&db).await, 2);
+
+    // Revoked by the owner: the device stops, and its member's row goes with it.
+    store.revoke_any_device(&device_of(&store, &first).await, NOW).await.unwrap();
+    assert!(store.authenticate(&first, NOW).await.unwrap().is_none());
+    assert_eq!(unnamed_rows(&db).await, 1);
+    // Left from the device itself: the same.
+    store.revoke_device(&device_of(&store, &second).await, NOW).await.unwrap();
+    assert_eq!(unnamed_rows(&db).await, 0);
+    assert_eq!(store.open_state(BASE).await.unwrap().devices, 0);
+
+    // A member with a name keeps their row with no device left, as before.
+    store.revoke_any_device(&device_of(&store, &alex_token).await, NOW).await.unwrap();
+    let kept = store.members().await.unwrap();
+    assert_eq!(kept.iter().find(|m| m.id == alex.id).map(|m| m.devices), Some(0));
+
+    // Removing them all, or one as a member, keeps no row either.
+    store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    let (_, removed) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    let (_, owner) = join(&store, "Owner", Role::Owner).await;
+    store.remove_member(&removed.id, &owner.id, NOW).await.unwrap();
+    assert_eq!(unnamed_rows(&db).await, 1);
+    store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert_eq!(store.remove_anonymous(NOW).await.unwrap(), 2);
+    assert_eq!(unnamed_rows(&db).await, 0);
+}
