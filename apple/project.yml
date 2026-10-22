@@ -34,6 +34,7 @@ settings:
     ANISTREAM_SLICE[sdk=macosx*]: macos
     ANISTREAM_SLICE[sdk=iphonesimulator*]: ios-sim
     ANISTREAM_SLICE[sdk=iphoneos*]: ios
+    # A release passes both on xcodebuild's command line, from its tag (packaging/apps/version.sh).
     MARKETING_VERSION: "1.1.0"
     CURRENT_PROJECT_VERSION: "1"
     DEAD_CODE_STRIPPING: true
@@ -166,10 +167,10 @@ targetTemplates:
       - path: ThirdParty/NOTICES-fonts.txt
         buildPhase: resources
         destinationFilters: [iOS]
-      # libmpv's notices, which the iPhone's About › Acknowledgements shows.
+      # libmpv's notices, which every copy of the app carries, as the LGPL asks of a build that
+      # bundles libmpv and FFmpeg, and which the iPhone's About › Acknowledgements shows.
       - path: ThirdParty/NOTICES-libmpv.txt
         buildPhase: resources
-        destinationFilters: [iOS]
     preBuildScripts:
       - name: Check the subtitle font
         script: |

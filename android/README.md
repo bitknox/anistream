@@ -89,8 +89,10 @@ notification and the lock screen carry back 10 s, play or pause and forward 10 s
 foreground and background, and the network it is on, go to the engine as `AppPhase` and
 `NetworkPath` (`app/SystemPhases.kt`).
 
-CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
-shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
+CI's checks do not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv
+and the shim, so its Kotlin compiles and its unit tests run, and that APK cannot play. A release
+does run it, on Linux (`.github/workflows/apps-release.yml`), where it also needs `gperf` and
+`python3-venv`.
 
 The instrumented tests drive the protocol on the testing engine's Playing scene against a real mpv
 in the emulator, with the episode `android/scripts/player-media.sh` makes:
