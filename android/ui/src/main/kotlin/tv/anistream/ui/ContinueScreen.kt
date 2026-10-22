@@ -131,26 +131,28 @@ internal fun Quiet(text: String) {
  */
 private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
     val hero = queue.lead ?: return
-    item(key = "hero") { Hero(hero, actions) }
+    // Every item moves as one list does, the headings with the rows, so a change never slides a
+    // row over a heading that snapped into place.
+    item(key = "hero", contentType = "hero") { Box(itemMotion()) { Hero(hero, actions) } }
     val rail = queue.inProgress.drop(1)
     if (rail.isNotEmpty()) {
-        item(key = "rail") {
-            Column(Modifier.padding(top = 16.dp)) {
+        item(key = "rail", contentType = "rail") {
+            Column(itemMotion().padding(top = 16.dp)) {
                 Heading("In progress")
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    items(rail, key = { it.id.toLong() }) { Box(itemMotion()) { ProgressCard(it) } }
+                    items(rail, key = { it.id.toLong() }, contentType = { "card" }) { Box(itemMotion()) { ProgressCard(it) } }
                 }
             }
         }
     }
     val fresh = if (queue.inProgress.isEmpty()) queue.newThisWeek.drop(1) else queue.newThisWeek
     if (fresh.isNotEmpty()) {
-        item(key = "new") { Heading("New this week", Modifier.padding(top = 16.dp)) }
-        items(fresh, key = { "new-${it.id}" }) { Box(itemMotion()) { NewRow(it) } }
+        item(key = "new", contentType = "heading") { Heading("New this week", itemMotion().padding(top = 16.dp)) }
+        items(fresh, key = { "new-${it.id}" }, contentType = { "new-row" }) { Box(itemMotion()) { NewRow(it) } }
     }
 }
 
@@ -305,21 +307,23 @@ private fun NewRow(item: ContinueItem) {
 }
 
 private fun LazyListScope.welcome(actions: AppActions, openCalendar: () -> Unit, openSeasonal: () -> Unit) {
-    item(key = "setup") {
+    item(key = "setup", contentType = "setup") {
         val context = LocalContext.current
         var hidden by remember { mutableStateOf(context.preferences().getBoolean(SETUP_HIDDEN, false)) }
-        if (!hidden) {
-            SetupCard(
-                actions,
-                hide = {
-                    hidden = true
-                    context.preferences().edit().putBoolean(SETUP_HIDDEN, true).apply()
-                },
-            )
+        Box(itemMotion()) {
+            if (!hidden) {
+                SetupCard(
+                    actions,
+                    hide = {
+                        hidden = true
+                        context.preferences().edit().putBoolean(SETUP_HIDDEN, true).apply()
+                    },
+                )
+            }
         }
     }
-    item(key = "airing") { AiringToday(openCalendar) }
-    item(key = "season") { ThisSeason(openSeasonal) }
+    item(key = "airing", contentType = "airing") { Box(itemMotion()) { AiringToday(openCalendar) } }
+    item(key = "season", contentType = "season") { Box(itemMotion()) { ThisSeason(openSeasonal) } }
 }
 
 /**
@@ -435,8 +439,13 @@ private fun AiringToday(openCalendar: () -> Unit) {
     val store = LocalAppStore.current
     val window by store.calendar.window.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadCalendar() }
-    val now = AppClock.now()
-    val today = window.broadcasts(now).today(now)
+    // Dated once a minute, not on every pass: the same list, and the same now, let the cards
+    // below skip when anything else on Continue changes.
+    val minute = AppClock.now().epochSecond / 60
+    val (now, today) = remember(window, minute) {
+        val now = AppClock.now()
+        now to window.broadcasts(now).today(now)
+    }
     if (today.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
         SectionHeading("Airing today", "Show airing today in Calendar", openCalendar)
@@ -444,7 +453,7 @@ private fun AiringToday(openCalendar: () -> Unit) {
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(today, key = { "${it.entry.id}-${it.episode}" }) { broadcast -> Box(itemMotion()) { AiringCard(broadcast, now) } }
+            items(today, key = { "${it.entry.id}-${it.episode}" }, contentType = { "card" }) { broadcast -> Box(itemMotion()) { AiringCard(broadcast, now) } }
         }
     }
 }

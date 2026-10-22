@@ -330,12 +330,12 @@ private fun Results(query: String) {
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     val grid = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)
     val answered = state.takeIf { it is ListState.Loaded || it is ListState.Empty || it is ListState.Failed }
-    Loading(answered, placeholders = { PosterGrid(grid) { items(9) { PosterPlaceholder() } } }) { list ->
+    Loading(answered, placeholders = { PosterGrid(grid) { items(9, contentType = { "placeholder" }) { PosterPlaceholder() } } }) { list ->
         when (list) {
             is ListState.Loaded -> {
                 val (yours, rest) = list.ids.mapNotNull { titles[it] }.partition { it.listStatus != null }
                 PosterGrid(grid) {
-                    items(yours + rest, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "search", detail = searchDetail(it)) }
+                    items(yours + rest, key = { it.id.toLong() }, contentType = { "poster" }) { PosterCell(it, itemMotion(), from = "search", detail = searchDetail(it)) }
                 }
             }
             is ListState.Failed -> Quiet(list.reason)
