@@ -11,13 +11,14 @@ use anistream_core::{
     ids::AnilistId,
     media::Translation,
     settings::SettingValue,
+    track_memory::{SubtitleChoice, SubtitleMemory, TrackMemory, TrackPrint},
 };
 use anistream_model::{
     command::Command,
     event::Event,
     protection::{FailedCheck, TorrentProtection},
     settings::{SettingKey, SettingOverride, SettingsView},
-    show::ShowSettingKey,
+    show::{RememberedSubtitles, RememberedTrack, ShowSettingKey, ShowSettingsView},
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
@@ -332,6 +333,114 @@ async fn what_a_show_sets_for_itself_comes_with_its_sheet_and_is_counted_on_the_
     assert_eq!(view.overridden, [SettingOverride { key: SettingKey::Translation, shows: 1 }]);
     assert_eq!(shown(view, SettingKey::Translation), "sub", "Settings' own is as it was");
     assert!(!h.paths().config_file.exists(), "the file is Settings', not the show's");
+}
+
+#[tokio::test]
+async fn a_show_keeps_its_own_download_quality_and_how_many_episodes_to_keep() {
+    let mut h = Harness::new().await;
+    let id = AnilistId::new(7);
+    let higher = Some(SettingValue::Str("higher".into()));
+    h.send(Command::SetShowSetting { id, key: ShowSettingKey::DownloadQuality, value: higher });
+    h.send(Command::SetShowSetting {
+        id,
+        key: ShowSettingKey::KeepNext,
+        value: Some(SettingValue::Int(3)),
+    });
+    let updates = h.settle().await;
+
+    let sheet = last_sheet(&updates);
+    let row = |key| sheet.rows.iter().find(|row| row.key == key).unwrap();
+    let quality = row(ShowSettingKey::DownloadQuality);
+    assert_eq!((quality.value.as_str(), quality.default.as_str()), ("higher", "standard"));
+    let keep = row(ShowSettingKey::KeepNext);
+    assert_eq!(keep.own, Some(SettingValue::Int(3)));
+    assert_eq!((keep.value.as_str(), keep.default.as_str()), ("3 episodes", "off"));
+    let view =
+        settings(updates.iter().rev().find(|u| matches!(u, Event::Settings(_))).unwrap());
+    assert_eq!(
+        view.overridden,
+        [
+            SettingOverride { key: SettingKey::DownloadQuality, shows: 1 },
+            SettingOverride { key: SettingKey::KeepNextEpisodes, shows: 1 },
+        ]
+    );
+}
+
+#[tokio::test]
+async fn a_show_s_subtitles_are_chosen_and_forgotten_from_its_sheet() {
+    let mut h = Harness::new().await;
+    let id = AnilistId::new(7);
+    // As the player prints a track: more than the sheet's words for it.
+    let print = |title: &str| TrackPrint {
+        lang: Some("eng".into()),
+        title: title.into(),
+        external: true,
+        codec: Some("ass".into()),
+        ..TrackPrint::default()
+    };
+    let memory = |title, audio: &str| TrackMemory {
+        subtitles: Some(SubtitleMemory {
+            choice: SubtitleChoice::Track(print(title)),
+            audio_lang: Some(audio.into()),
+        }),
+        sub_delay: Some(0.5),
+        ..TrackMemory::default()
+    };
+    h.store().remember_tracks(id, Translation::Sub, &memory("full", "jpn")).unwrap();
+    h.store().remember_tracks(id, Translation::Dub, &memory("signs", "eng")).unwrap();
+    let words = |title: &str| RememberedSubtitles::Track {
+        track: RememberedTrack {
+            language: Some("eng".into()),
+            title: title.into(),
+            forced: false,
+            hearing_impaired: false,
+        },
+    };
+
+    // The dub's signs, chosen for the sub, from the sheet's words for them.
+    let subtitles = Some(words("signs"));
+    h.send(Command::SetShowSubtitles { id, translation: Translation::Sub, subtitles });
+    let updates = h.settle().await;
+    assert_eq!(h.trace(), ["ShowSettings"]);
+    let sub = |sheet: &ShowSettingsView| {
+        sheet.remembered.iter().find(|r| r.translation == Translation::Sub).cloned()
+    };
+    let kept = sub(last_sheet(&updates)).unwrap();
+    assert_eq!((kept.subtitles, kept.sub_delay), (Some(words("signs")), Some(0.5)));
+    let stored = h.store().track_memory(id, Translation::Sub).unwrap().unwrap();
+    assert_eq!(
+        stored.subtitles,
+        Some(SubtitleMemory {
+            choice: SubtitleChoice::Track(print("signs")),
+            audio_lang: Some("jpn".into()),
+        }),
+        "the player's own print, over the audio the sub plays in"
+    );
+
+    // Use default: the subtitles forgotten, the delay kept.
+    h.send(Command::SetShowSubtitles { id, translation: Translation::Sub, subtitles: None });
+    let kept = sub(last_sheet(&h.settle().await)).unwrap();
+    assert_eq!((kept.subtitles, kept.sub_delay), (None, Some(0.5)));
+
+    // Subtitles the show never had are not made up.
+    let subtitles = Some(words("commentary"));
+    h.send(Command::SetShowSubtitles { id, translation: Translation::Dub, subtitles });
+    let updates = h.settle().await;
+    assert_eq!(h.trace(), ["Toast", "ShowSettings"]);
+    assert_eq!(toasts(&updates), ["alert: not saved: the show remembers no such subtitles"]);
+    let dub = h.store().track_memory(id, Translation::Dub).unwrap().unwrap();
+    assert_eq!(dub, memory("signs", "eng"), "left as it was");
+}
+
+fn last_sheet(updates: &[Event]) -> &ShowSettingsView {
+    updates
+        .iter()
+        .rev()
+        .find_map(|update| match update {
+            Event::ShowSettings(sheet) => Some(sheet),
+            _ => None,
+        })
+        .expect("a show sheet")
 }
 
 #[tokio::test]
