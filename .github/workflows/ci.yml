@@ -521,3 +521,42 @@ jobs:
           x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-msvc
       - name: The apps'
         run: packaging/rust-licences/generate.sh apps "$RUNNER_TEMP/apps.txt"
+
+  # The one check main requires, so GitHub's auto-merge can merge a pull request once it is
+  # green. It waits for every other check on the pull request's head commit, whichever workflow
+  # or app reports it (the apps' release builds, the release build, the store image and
+  # Cloudflare Pages run only when their paths change), and fails if any of them did. Skipped
+  # and neutral count as passed.
+  passed:
+    name: CI passed
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      checks: read
+      statuses: read
+    steps:
+      - name: Wait for every other check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          sleep 30
+          while true; do
+            runs="$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+              --jq '.check_runs[] | select(.name != "CI passed") | [.name, .status, (.conclusion // "")] | @tsv')"
+            statuses="$(gh api "repos/$REPO/commits/$SHA/status" \
+              --jq '.statuses[] | [.context, (if .state == "pending" then "in_progress" else "completed" end), .state] | @tsv')"
+            all="$(printf '%s\n%s\n' "$runs" "$statuses" | sed '/^$/d')"
+            failed="$(awk -F'\t' '$2 == "completed" && $3 !~ /^(success|skipped|neutral)$/' <<<"$all")"
+            if [ -n "$failed" ]; then
+              echo "::error::Checks that did not pass:"; echo "$failed"; exit 1
+            fi
+            waiting="$(awk -F'\t' '$2 != "completed"' <<<"$all")"
+            if [ -z "$waiting" ]; then
+              echo "All $(wc -l <<<"$all" | tr -d ' ') other checks passed."; exit 0
+            fi
+            echo "Waiting on $(wc -l <<<"$waiting" | tr -d ' '): $(cut -f1 <<<"$waiting" | paste -sd, - | cut -c1-300)"
+            sleep 60
+          done
