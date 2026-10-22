@@ -809,7 +809,12 @@ fn aired_since(vars: &Value, clock: Clock) -> Value {
             Some(json!({
                 "episode": row["episode"],
                 "airingAt": at,
-                "media": { "id": media["id"], "title": media["title"], "coverImage": media["coverImage"] },
+                "media": {
+                    "id": media["id"],
+                    "title": media["title"],
+                    "coverImage": media["coverImage"],
+                    "bannerImage": media["bannerImage"],
+                },
             }))
         })
         .collect();
