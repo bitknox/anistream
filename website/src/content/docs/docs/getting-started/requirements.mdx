@@ -1,9 +1,22 @@
 ---
 title: Requirements
-description: mpv and ffmpeg for a prebuilt install, Rust and cmake to build, and a terminal with a graphics protocol for cover art.
+description: What the apps run on, mpv and ffmpeg for the terminal app, Rust and cmake to build it, and a terminal with a graphics protocol for cover art.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## The apps
+
+| | |
+|---|---|
+| Mac | macOS 26 or later, on Apple silicon |
+| iPhone and iPad | iOS or iPadOS 26 or later, and AltStore or SideStore to install |
+| Android | Android 15 or later, on 64-bit ARM |
+
+The apps have mpv built in and need nothing else installed. See
+[installation](/docs/getting-started/installation/#the-apps) for the first start on each.
+
+## The terminal app
 
 A prebuilt install needs only mpv and ffmpeg. The `.deb` pulls both in. Elsewhere, install them
 with `brew install mpv ffmpeg`, `winget install shinchiro.mpv Gyan.FFmpeg`, or your distro's

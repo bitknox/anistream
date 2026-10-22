@@ -3,6 +3,11 @@ title: Quick start
 description: Browsing works at once, with no account and no config; playback, sync and plugins are set up when you want them.
 ---
 
+In the apps, browsing starts on Continue, with what airs today and this season. Plugins, plugin
+stores and tracker accounts are added in the app. The rest of this page is about the terminal app.
+
+In a terminal:
+
 ```sh
 anistream                  # from an installer or archive
 cargo run --release        # from a source checkout

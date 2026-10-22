@@ -1,11 +1,12 @@
 ---
 title: Overview
-description: 'An anime client in the terminal: browsing with no account, playback in mpv, sync to five trackers and sources as plugins.'
+description: 'An anime client for Mac, iPhone, iPad, Android and the terminal: browsing with no account, playback in mpv, sync to five trackers and sources as plugins.'
 ---
 
-anistream is an anime client for the terminal, written in Rust. It browses AniList with no
-account, plays episodes in mpv, keeps your history locally and syncs it to five trackers. Sources
-are plugins or services you set up, and anistream ships none of its own.
+anistream is an anime client for Mac, iPhone, iPad and Android, and for the terminal on macOS,
+Linux and Windows, written in Rust. It browses AniList with no account, plays episodes in mpv,
+keeps your history locally and syncs it to five trackers. Sources are plugins or services you set
+up, and anistream ships none of its own.
 
 :::note[Sources are external]
 anistream hosts no content and ships no sources of its own, not even an index. The torrent side
@@ -13,9 +14,17 @@ is a transport with nothing to search until you supply an endpoint. Everything e
 API or plugin you configure. What you point any of it at is your own decision, at your own risk.
 :::
 
-## Today
+## The apps
 
-anistream is under active development. What is in the app now:
+The [apps](/apps/) for Mac, iPhone, iPad and Android run the same engine as the terminal app, with
+each platform's own navigation and controls and mpv built in. They have widgets, new-episode
+notifications, Picture in Picture and downloads, and they install from the releases on GitHub, as
+[installation](/docs/getting-started/installation/#the-apps) describes. On a Mac, the app and the
+terminal app share one history and one config.
+
+## The terminal app
+
+anistream is under active development. What is in the terminal app now:
 
 - Browsing, search and seasonal lists from AniList, with no account. When AniList cannot answer,
   metadata falls back to Tenrai and then to what was last cached (`[meta] fallback`). `Ctrl-F`
@@ -50,7 +59,6 @@ anistream is under active development. What is in the app now:
 
 ## In development
 
-- Native apps for Mac, iPhone and iPad, and for Android, on the same engine as the terminal app.
 - More sources, as plugins. The [plugin system](/docs/plugins/authoring/) is the path for new
   providers.
 - Licensed services open in their own apps. anistream does not circumvent DRM, so a licensed
@@ -61,7 +69,8 @@ anistream is under active development. What is in the app now:
 ## Where to go next
 
 - [Requirements](/docs/getting-started/requirements/) and
-  [installation](/docs/getting-started/installation/): prebuilt binaries, or build from source.
+  [installation](/docs/getting-started/installation/): the apps, prebuilt binaries for the
+  terminal, or a build from source.
 - [Quick start](/docs/getting-started/quick-start/): browsing needs no account and no config.
 - [Configuration](/docs/guides/configuration/): every section of `config.toml` is optional.
 - [Writing a provider plugin](/docs/plugins/authoring/): WebAssembly components in Rust,

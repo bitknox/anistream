@@ -1,12 +1,73 @@
 ---
 title: Installation
-description: Prebuilt binaries for macOS, Linux and Windows, or build from source.
+description: The apps for Mac, iPhone, iPad and Android, and the terminal app for macOS, Linux and Windows, from the releases on GitHub or from source.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Every release on the [releases page](https://github.com/bitknox/anistream/releases) ships the same
-build several ways:
+Every release on the [releases page](https://github.com/bitknox/anistream/releases/latest) has the
+apps and the terminal app. Each file has a `.sha256` beside it. With both in one folder,
+`shasum -a 256 -c <file>.sha256` checks the file on macOS, and `sha256sum -c <file>.sha256` on
+Linux.
+
+## The apps
+
+The apps for Mac, iPhone, iPad and Android are not in the App Store or on Google Play. Download
+them from the [latest release](https://github.com/bitknox/anistream/releases/latest) and allow them
+once, as below. The [apps page](/apps/) shows what each one looks like.
+
+### Mac
+
+`anistream-<version>-macos.dmg`, for macOS 26 or later on a Mac with Apple silicon.
+
+Open the disk image and drag Anistream to Applications. The app is signed without an Apple
+developer account and is not notarized, so macOS stops it the first time it opens:
+
+1. Open Anistream, and choose **Done** when macOS says it cannot verify the app.
+2. Open **System Settings › Privacy & Security**. Under Security, choose **Open Anyway** beside
+   the line about Anistream, and confirm with your password or Touch ID.
+
+That is once for each version you download. Right-click › Open no longer skips the check since
+macOS 15. From a terminal, `xattr -dr com.apple.quarantine /Applications/Anistream.app` does the
+same as Open Anyway.
+
+After an update, macOS may ask whether Anistream can use what it keeps in your keychain. Choose
+**Always Allow**.
+
+The Mac app and the terminal app share one history and one config, in
+`~/Library/Application Support/anistream`.
+
+### iPhone and iPad
+
+`anistream-<version>-ios-unsigned.ipa`, for iOS or iPadOS 26 or later.
+
+The `.ipa` is unsigned. [AltStore](https://altstore.io) or [SideStore](https://sidestore.io) signs
+it with your own Apple ID as it installs it:
+
+1. Set up AltStore or SideStore on the iPhone or iPad, as its own guide describes.
+2. Download the `.ipa` on the device, open it in AltStore or SideStore, and install it.
+3. If iOS asks for Developer Mode, turn it on under **Settings › Privacy & Security › Developer
+   Mode** and restart when it asks. Apps signed with a personal Apple ID need it.
+
+With a free Apple ID the signature lasts 7 days. AltStore or SideStore has to refresh the app
+within that time, or it will not open until they do. Your data stays either way. A free Apple ID
+also allows only three apps signed this way at a time, AltStore or SideStore among them.
+
+### Android
+
+`anistream-<version>-android-arm64.apk`, for Android 15 or later on a 64-bit ARM phone or tablet.
+
+1. Download the APK on the device and open it.
+2. Android asks once whether the app you opened it from, your browser or your file manager, may
+   install apps. Allow it, go back, and choose **Install**.
+
+The APK is signed with anistream’s release key, so each release installs over the one before and
+keeps your data. It is not on Google Play, and Play Protect may offer to scan it. To take the
+permission back afterwards, go to **Settings › Apps › Special app access › Install unknown apps**.
+
+## The terminal app
+
+The terminal app comes several ways in each release:
 
 - An installer: `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu. Each one
   puts `anistream` on your `PATH` and adds a launcher, so you can type it or click it. The
@@ -17,13 +78,11 @@ build several ways:
 - An archive, `.tar.gz` or `.zip`, for putting the binary on `PATH` yourself. It holds the binary,
   the README, the licence and a `third-party` folder with the notices for what anistream bundles.
 
-Everything ships with a `.sha256` worth checking first.
-
 :::caution[Not code-signed]
-The releases are not signed, so the first open takes one extra step:
+The terminal app is not signed either, so the first open takes one extra step:
 
 - On macOS, opening the `.pkg` says Apple could not verify it. Choose **Done**, go to
-  **System Settings → Privacy & Security**, find the line about anistream near the bottom and
+  **System Settings › Privacy & Security**, find the line about anistream near the bottom and
   choose **Open Anyway**.
 - On macOS, a binary from an archive downloaded with a browser is refused the first time it runs.
   Clear the download flag once with `xattr -d com.apple.quarantine anistream`.
@@ -34,9 +93,10 @@ Updates through `anistream --update` are not downloaded by a browser and open wi
 steps.
 :::
 
-mpv and ffmpeg are not bundled. anistream drives mpv for playback and shells out to ffmpeg when
-muxing subtitles into a completed download. The `.deb` declares both as dependencies. On macOS and
-Windows, install them yourself, as in Prerequisites below.
+mpv and ffmpeg are not bundled with the terminal app. It drives mpv for playback and shells out to
+ffmpeg when muxing subtitles into a completed download. The `.deb` declares both as dependencies.
+On macOS and Windows, install them yourself, as in Prerequisites below. The apps have mpv built in
+and need neither.
 
 anistream's [player interface](/docs/guides/player/), with the skip button, Up Next, menus and
 thumbnails, needs mpv 0.36 or newer. Older versions play with mpv's own controls; Ubuntu 24.04
@@ -47,13 +107,18 @@ prerequisites and then build.
 
 ## Updating
 
+To update an app, install the new release's file the same way. It replaces the version before it
+and keeps your history and settings.
+
+The terminal app updates itself:
+
 ```sh
 anistream --update
 ```
 
-That downloads the latest release for your platform, verifies it against the published SHA-256,
-and replaces the binary in place. Restart anistream to use it. The app also checks GitHub for a
-new release once a day (one cached HTTPS request, nothing downloaded) and mentions it in a toast.
+That downloads the latest release for your platform, checks it against the published SHA-256,
+and replaces the binary in place. Restart anistream to use it. The terminal app also checks GitHub
+for a new release once a day (one cached HTTPS request, nothing downloaded) and mentions it in a toast.
 Turn the check off with:
 
 ```toml
