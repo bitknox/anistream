@@ -324,7 +324,7 @@ internal object TitleLanguageWords {
     fun note(choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?, examples: List<Entry>): String = when (choice) {
         TitleChoice.AniList -> {
             val signedOut = "While you are signed out of AniList, titles show in English."
-            if (signedIn && viewer != null) "Follows your AniList account, which is set to ${name(viewer).lowercase(Locale.UK)}. $signedOut"
+            if (signedIn && viewer != null) "Follows your AniList account, which is set to ${name(viewer)}. $signedOut"
             else "Follows your AniList account. $signedOut"
         }
         TitleChoice.English -> examples.firstOrNull { it.titleEnglish.isNullOrEmpty() }
@@ -333,6 +333,7 @@ internal object TitleLanguageWords {
         TitleChoice.Romaji -> "Japanese titles written in Latin letters, as AniList lists them."
     }
 
+    /** A title language as every sentence names it, with its capital: "English". */
     fun name(language: TitleLanguage): String = when (language) {
         TitleLanguage.ROMAJI -> "Romaji"
         TitleLanguage.ENGLISH -> "English"
