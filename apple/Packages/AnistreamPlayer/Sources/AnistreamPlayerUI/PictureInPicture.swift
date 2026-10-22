@@ -1,23 +1,34 @@
-// Picture in Picture on the Mac: the system's floating window, showing mpv's own frames.
+// Picture in Picture: the system's floating window, showing mpv's own frames, on the Mac, iPhone
+// and iPad.
 //
 // mpv keeps playing in the one player throughout. While Picture in Picture runs, `PictureFeed`
 // copies each frame mpv presents, after the shaders and with the subtitles, into the
-// AVSampleBufferDisplayLayer the system's window shows; the picture's layer leaves the main
-// window, which goes back to browsing, and renders at the size of the floating window. Returning
-// puts the layer back in the main window's player. Nothing reloads either way.
+// AVSampleBufferDisplayLayer the system's window shows; the picture's layer leaves the player,
+// the app goes back to browsing, and the picture renders at the size of the floating window.
+// Returning puts the layer back in the player. Nothing reloads either way.
+//
+// - Mac: the button, ⌥⌘P, the Window menu, or the window minimised or the app hidden while it
+//   plays. The display layer sits in a plain window of its own while it runs (`setStage`).
+// - iPhone and iPad: the button, or going home while it plays. The system does that by itself,
+//   from a display layer it sees playing where the picture is: so there the feed runs whenever
+//   the player is up, small, into a display layer beneath the picture, and at the floating
+//   window's size while the picture floats.
 
-#if os(macOS)
 import AnistreamPlayer
-import AppKit
 import AVKit
 import CoreImage
 import CoreMedia
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// The system's side of Picture in Picture, as `PictureInPicture` drives it: AVKit's controller in
 /// the app, a stand-in in the tests.
 @MainActor
 protocol PictureInPictureSystem: AnyObject {
-    /// What the system says: started, failed, restore, stopped.
+    /// What the system says: starting by itself, started, failed, restore, stopped.
     var events: ((PictureInPictureEvent) -> Void)? { get set }
     /// The size the floating window renders at, in pixels, as it changes.
     var renderSize: ((CGSize) -> Void)? { get set }
@@ -30,36 +41,57 @@ protocol PictureInPictureSystem: AnyObject {
 }
 
 /// Picture in Picture for one player: the button, ⌥⌘P, the window minimised or the app hidden
-/// while it plays, and the floating window's own buttons, carried out on the player's model.
+/// while it plays, going home while it plays, and the floating window's own buttons, carried out
+/// on the player's model.
 @MainActor
 public final class PictureInPicture {
     public private(set) var machine = PictureInPictureMachine()
     let feed: PictureFeed
     let system: PictureInPictureSystem
     weak var model: PlayerModel?
-    /// Brings the main window back to the front, out of the Dock and out of hiding.
+    /// The feed runs whenever the player is up, not only while the picture floats, into a display
+    /// layer beneath the picture: iPhone and iPad, where the system starts by itself from it.
+    let inline: Bool
+    /// Brings the main window back to the front, out of the Dock and out of hiding (Mac).
     var bringBackWindow: () -> Void = {}
     /// The size the floating window renders at, in pixels, as the system last said: mpv draws at
     /// it while the picture floats. A 16:9 window of 640 points until the system says.
     private var renderPixels = CGSize(width: 1280, height: 720)
+    /// The layer the feed copies, while it runs.
+    private weak var feedLayer: MpvLayer?
 
-    init(model: PlayerModel, feed: PictureFeed, system: PictureInPictureSystem) {
+    /// While the player is up on iPhone and iPad, frames no larger than this: enough for the
+    /// system's window to open from, at a fraction of the full copy's cost.
+    static let inlineSize = CGSize(width: 960, height: 540)
+
+    init(model: PlayerModel, feed: PictureFeed, system: PictureInPictureSystem, inline: Bool = false) {
         self.model = model
         self.feed = feed
         self.system = system
+        self.inline = inline
         system.events = { [weak self] event in self?.receive(event) }
         system.renderSize = { [weak self] size in self?.rendering(at: size) }
         model.pictureInPictureToggle = { [weak self] in self?.toggle() }
         model.pictureInPictureFrame = { [feed] in feed.latestFrame.flatMap(Self.image) }
+        if inline { model.pictureInPictureLayer = feed.displayLayer }
         watchPlayback()
         watchStill()
+        if inline { watchInline() }
     }
 
     /// Picture in Picture for `model` on AVKit.
     public convenience init(model: PlayerModel) {
         let feed = PictureFeed()
-        self.init(model: model, feed: feed, system: SystemPictureInPicture(feed: feed, model: model))
+        #if os(macOS)
+        let inline = false
+        #else
+        let inline = true
+        #endif
+        self.init(model: model, feed: feed, system: SystemPictureInPicture(feed: feed, model: model), inline: inline)
     }
+
+    /// Whether the device has Picture in Picture at all.
+    public static var isSupported: Bool { AVPictureInPictureController.isPictureInPictureSupported() }
 
     public var phase: PictureInPicturePhase { machine.phase }
 
@@ -102,16 +134,22 @@ public final class PictureInPicture {
                 receive(.failedToStart)
                 return
             }
-            feed.start(layer)
+            fitFeed()
+            startFeed(on: layer)
             // Paused, mpv draws nothing new for the feed to copy: its screenshot instead.
             if model.paused { showStill() }
             system.start()
+        case .startFeed:
+            fitFeed()
+            if let layer = model.layer { startFeed(on: layer) }
         case .stop, .dismiss:
             system.stop()
         case .leaveWindow:
             model.pictureInPicture = true
             // The floating window has no controls of ours for the subtitles to rise above.
             model.liftSubtitles(0, animated: false)
+            // All of it from here: the picture renders at the floating window's size and shape.
+            fitFeed()
             if let layer = model.layer {
                 // No view hosts it while it floats: it renders at the floating window's size,
                 // unseen, and the feed copies that.
@@ -120,12 +158,69 @@ public final class PictureInPicture {
             }
         case .returnToWindow:
             model.pictureInPicture = false
+            fitFeed()
             bringBackWindow()
         case .endFeed:
-            feed.stop()
-            feed.flush()
+            if inline, model.isPresented, model.layer != nil, model.layer === feedLayer {
+                // Back in the player: the copying goes on, small, for the next time.
+                fitFeed()
+            } else {
+                stopFeed()
+            }
         case .closePlayback:
             model.viewerClosed()
+        }
+    }
+
+    /// The feed's size and part for where the picture is. In the player, mpv draws the video with
+    /// bars to the player's shape, and only the video's part is copied, small on iPhone and
+    /// iPad, so the floating window opens at the video's shape. Floating, the picture is that
+    /// shape already, and is copied at the window's size; the part still cuts a frame drawn at
+    /// the player's shape on the way.
+    private func fitFeed() {
+        feed.contentAspect = model?.videoAspect
+        feed.maximumSize = model?.pictureInPicture == true || !inline ? nil : Self.inlineSize
+    }
+
+    private func startFeed(on layer: MpvLayer) {
+        if feed.isRunning, feedLayer === layer { return }
+        if feed.isRunning { feed.stop() }
+        feed.start(layer)
+        feedLayer = layer
+    }
+
+    private func stopFeed() {
+        feed.stop()
+        feed.flush()
+        feedLayer = nil
+    }
+
+    /// iPhone and iPad: the feed runs while the player is up, small, so that the system can
+    /// open its window from it by itself; it stops as the player closes.
+    private func watchInline() {
+        withObservationTracking {
+            _ = model?.layer
+            _ = model?.isPresented
+            _ = model?.videoAspect
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.followPlayer()
+                self.watchInline()
+            }
+        }
+        followPlayer()
+    }
+
+    private func followPlayer() {
+        guard let model else { return }
+        if model.isPresented, let layer = model.layer {
+            fitFeed()
+            guard !feed.isRunning || feedLayer !== layer else { return }
+            startFeed(on: layer)
+            PlayerModel.note(.info, "picture in picture: copying the player's frames, \(feed.isRunning ? "small" : "but there is no GPU to copy with")")
+        } else if machine.phase == .inline, feed.isRunning {
+            stopFeed()
         }
     }
 
@@ -142,7 +237,8 @@ public final class PictureInPicture {
     /// The floating picture at the video's own shape, inside the size the window renders at: the
     /// window takes its shape from the frames, which in the main window had its bars.
     private func resizeFloating(_ layer: MpvLayer) {
-        let scale = NSScreen.main?.backingScaleFactor ?? 2
+        // The screen's scale, as the player's host last sized the layer for it.
+        let scale = layer.contentsScale > 0 ? layer.contentsScale : 2
         let aspect = model?.videoAspect ?? 16 / 9
         var size = renderPixels
         if size.width / size.height > aspect {
@@ -215,19 +311,30 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
     private let feed: PictureFeed
     private weak var model: PlayerModel?
     private var controller: AVPictureInPictureController?
+    private var possible: NSKeyValueObservation?
     private var waiting: Task<Void, Never>?
     /// Started, and AVKit not yet asked: still waiting for the feed's first frames.
     private var unasked = false
+    #if os(macOS)
     private var stage: NSWindow?
+    #endif
 
     init(feed: PictureFeed, model: PlayerModel) {
         self.feed = feed
         self.model = model
+        super.init()
+        #if os(iOS)
+        // There for the system from the start: it opens its window by itself as the viewer goes
+        // home while the player plays.
+        _ = make()
+        #endif
     }
 
     func start() {
         let controller = self.controller ?? make()
+        #if os(macOS)
         setStage()
+        #endif
         waiting?.cancel()
         unasked = true
         waiting = Task { @MainActor [weak self] in
@@ -241,7 +348,9 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
             guard self.feed.counts.copied >= 1, controller.isPictureInPicturePossible else {
                 PlayerModel.note(.error, "picture in picture: no frames, or not possible (\(controller.isPictureInPicturePossible))")
                 self.unasked = false
+                #if os(macOS)
                 self.clearStage()
+                #endif
                 self.events?(.failedToStart)
                 return
             }
@@ -270,6 +379,28 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
         controller?.stopPictureInPicture()
     }
 
+    func playbackChanged() {
+        controller?.invalidatePlaybackState()
+    }
+
+    private func make() -> AVPictureInPictureController {
+        let source = AVPictureInPictureController.ContentSource(
+            sampleBufferDisplayLayer: feed.displayLayer, playbackDelegate: self)
+        let controller = AVPictureInPictureController(contentSource: source)
+        controller.delegate = self
+        #if os(iOS)
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        #endif
+        // In the log: whether the system would open its window now, as that changes.
+        possible = controller.observe(\.isPictureInPicturePossible, options: [.initial, .new]) { _, change in
+            let now = change.newValue ?? false
+            PlayerModel.note(.info, "picture in picture \(now ? "possible" : "not possible")")
+        }
+        self.controller = controller
+        return controller
+    }
+
+    #if os(macOS)
     /// The display layer in a window of its own while Picture in Picture runs. AVKit puts a view of
     /// its own beside the layer, into the root view of the layer's window, and AppKit traps when
     /// that root is a SwiftUI hosting view, as every window of the app's is; with the layer in no
@@ -316,22 +447,28 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
     func clearStage() {
         stage?.orderOut(nil)
     }
+    #else
+    func clearStage() {}
 
-    func playbackChanged() {
-        controller?.invalidatePlaybackState()
+    /// Whether the display layer is back in a window: the player full screen again, where the
+    /// floating window shrinks into.
+    var displayLayerShown: Bool {
+        (feed.displayLayer.superlayer?.delegate as? UIView)?.window != nil
     }
+    #endif
+}
 
-    private func make() -> AVPictureInPictureController {
-        let source = AVPictureInPictureController.ContentSource(
-            sampleBufferDisplayLayer: feed.displayLayer, playbackDelegate: self)
-        let controller = AVPictureInPictureController(contentSource: source)
-        controller.delegate = self
-        self.controller = controller
-        return controller
-    }
+/// AVKit's completion handlers, carried to the main actor and called there.
+private struct Completion: @unchecked Sendable {
+    let handler: (Bool) -> Void
 }
 
 extension SystemPictureInPicture: AVPictureInPictureControllerDelegate {
+    nonisolated func pictureInPictureControllerWillStartPictureInPicture(_ controller: AVPictureInPictureController) {
+        // After the app's own ask, nothing; begun by the system, the machine follows.
+        MainActor.assumeIsolated { events?(.systemStarting) }
+    }
+
     nonisolated func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
         MainActor.assumeIsolated { events?(.started) }
     }
@@ -350,8 +487,24 @@ extension SystemPictureInPicture: AVPictureInPictureControllerDelegate {
         _ controller: AVPictureInPictureController,
         restoreUserInterfaceForPictureInPictureStopWithCompletionHandler completionHandler: @escaping (Bool) -> Void
     ) {
+        #if os(macOS)
         MainActor.assumeIsolated { events?(.restore) }
         completionHandler(true)
+        #else
+        // The player comes back full screen first, so the floating window shrinks into it: done
+        // once the display layer beneath the picture is in a window again, or after 2 s.
+        let completion = Completion(handler: completionHandler)
+        MainActor.assumeIsolated {
+            events?(.restore)
+            Task { @MainActor [weak self] in
+                let deadline = ContinuousClock.now + .seconds(2)
+                while let self, !self.displayLayerShown, ContinuousClock.now < deadline {
+                    try? await Task.sleep(for: .milliseconds(20))
+                }
+                completion.handler(true)
+            }
+        }
+        #endif
     }
 
     nonisolated func pictureInPictureControllerDidStopPictureInPicture(_ controller: AVPictureInPictureController) {
@@ -401,4 +554,3 @@ extension SystemPictureInPicture: AVPictureInPictureSampleBufferPlaybackDelegate
         completionHandler()
     }
 }
-#endif

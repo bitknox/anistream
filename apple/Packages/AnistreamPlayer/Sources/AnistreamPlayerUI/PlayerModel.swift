@@ -7,6 +7,7 @@ import AnistreamStore
 import CoreGraphics
 import Foundation
 import Observation
+import QuartzCore
 import os
 
 /// The app's one player, on the main actor.
@@ -177,17 +178,23 @@ public final class PlayerModel {
     public private(set) var holds: Set<String> = []
     /// Up for a screenshot, whatever else says.
     public var pinnedControls = false
-    /// The Mac's Picture in Picture: the picture in the system's floating window while the main
-    /// window browses. Set by `PictureInPicture` as the picture leaves the window and returns.
+    /// Picture in Picture: the picture in the system's floating window while the app browses.
+    /// Set by `PictureInPicture` as the picture leaves the player and returns.
     public internal(set) var pictureInPicture = false
     /// Where Picture in Picture is, for the button and the menu.
-    public internal(set) var pictureInPicturePhase: PictureInPicturePhase = .inline
-    /// What toggles Picture in Picture, where the player has it (the Mac).
+    public internal(set) var pictureInPicturePhase: PictureInPicturePhase = .inline {
+        didSet { if pictureInPicturePhase != oldValue { followVideoTrack() } }
+    }
+    /// On iPhone and iPad, the layer Picture in Picture shows, which the player keeps beneath the
+    /// picture.
+    public internal(set) var pictureInPictureLayer: CALayer?
+    /// What toggles Picture in Picture, where the device has it.
     @ObservationIgnored var pictureInPictureToggle: (@MainActor () -> Void)?
     /// The last frame Picture in Picture's window was given, for a capture of it.
     @ObservationIgnored public internal(set) var pictureInPictureFrame: (@MainActor () -> CGImage?)?
 
-    /// The player has the main window: up, and not in Picture in Picture.
+    /// The player has the main window, or the screen on iPhone and iPad: up, and not in Picture
+    /// in Picture.
     public var inMainWindow: Bool { isPresented && !pictureInPicture }
 
     /// Picture in Picture can be asked for: there is a picture to put in it.
@@ -590,6 +597,8 @@ public final class PlayerModel {
         layer = nil
         fullScreen = false
         pictureInPicture = false
+        // The next playback's mpv starts with its video on.
+        videoOff = false
         subtitleTween?.cancel()
         subtitlePosition = 100
         staged = nil
@@ -1300,10 +1309,28 @@ public final class PlayerModel {
         }
     }
 
-    /// The app went to the background, or came back: the audio plays on, the video track is off
-    /// meanwhile.
+    /// In the background, on iPhone and iPad.
+    @ObservationIgnored private var inBackground = false
+    /// Whether mpv's video track is off, as last asked.
+    @ObservationIgnored private var videoOff = false
+
+    /// The app went to the background, or came back: the audio plays on, and the video track is
+    /// off meanwhile unless Picture in Picture shows it.
     public func backgrounded(_ background: Bool) {
-        enqueue(.call(.set(property: "vid", value: .string(background ? "no" : "auto"))))
+        inBackground = background
+        followVideoTrack()
+    }
+
+    /// The video track off in the background with no Picture in Picture, and on otherwise: no
+    /// decoding for a picture nobody sees, and the frames for the floating window when it is
+    /// up. Picture in Picture may begin as the app leaves, before or after the app says it has
+    /// gone, so both changes come here.
+    private func followVideoTrack() {
+        let off = inBackground && pictureInPicturePhase == .inline
+        guard off != videoOff else { return }
+        videoOff = off
+        Self.note(.info, "video track \(off ? "off" : "on"): \(inBackground ? "in the background" : "in front"), picture in picture \(pictureInPicturePhase)")
+        enqueue(.call(.set(property: "vid", value: .string(off ? "no" : "auto"))))
     }
 
     #if FIXTURES

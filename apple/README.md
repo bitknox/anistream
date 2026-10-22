@@ -271,21 +271,29 @@ engine in temporary directories, and keep secrets in memory.
   Back in its top bar, Esc or ⌘[ returns to the title page and stops the playback. Pointer,
   scroll wheel and the companion's keys. `PhonePlayerView` is the iPhone's and iPad's full-screen cover (PhonePlayer,
   T2 to T5): tap, double tap, long press for 2×, pinch, swipe down to close, landscape on iPhone,
-  the audio on in the background with `vid=no`. While the controls are up the subtitles rise
+  the audio on in the background with `vid=no` (unless Picture in Picture shows the video). While
+  the controls are up the subtitles rise
   above them (`sub-pos`, which libass applies to ASS dialogue and not to placed signs).
   Scrubbing shows the frame under the finger from a second, hidden mpv (`SeekPreview`, off in
   Low Power Mode) with the time and the chapter, slows to half and quarter speed as the finger
   lifts (⌥ on the Mac), and ticks across opening and ending marks; on the Mac hovering the seek
-  line shows it too. Picture in Picture (the button, ⌥⌘P, the Window menu, or by itself when
-  the window is minimised or the app hidden while it plays) puts the same playback in the
-  system's floating window, which has play and pause and 10 s either way: the picture's layer
-  leaves the main window, which browses meanwhile, and renders unseen at the floating window's
-  size and the video's shape while `PictureFeed` hands its frames over. Returning puts it back
-  in the main window's player, out of the Dock or out of hiding; closing the floating window
-  stops the playback as the player's own close does. `PictureInPictureMachine` holds the steps,
-  and the display layer sits in a plain window of its own while it runs, as AVKit adds a view
-  beside it that a SwiftUI hosting view does not take. One mpv throughout: its layer moves
-  between them. The player sets Now Playing and the remote commands and keeps the display awake
+  line shows it too. Picture in Picture puts the same playback in the system's floating window,
+  which has play and pause and 10 s either way: the picture's layer leaves the player, the app
+  browses meanwhile, and it renders unseen at the floating window's size and the video's shape
+  while `PictureFeed` copies its frames, shaders and subtitles in, into the window's
+  `AVSampleBufferDisplayLayer`. Returning puts it back in the player; closing the floating window
+  stops the playback as the player's own close does, which keeps the place.
+  `PictureInPictureMachine` holds the steps. On the Mac it starts from the button, ⌥⌘P, the
+  Window menu, or by itself when the window is minimised or the app hidden while it plays;
+  returning brings the window out of the Dock or out of hiding; and the display layer sits in a
+  plain window of its own while it runs, as AVKit adds a view beside it that a SwiftUI hosting
+  view does not take. On iPhone and iPad it starts from the button in the player's top bar (the
+  Mac's, until the PhonePlayer board draws one) or by itself when the viewer goes home while it
+  plays: the system does that from a display layer it sees playing where the picture is, so the
+  feed runs while the player is up, cut to the video and no larger than 960×540, into a display
+  layer beneath the picture. The full-screen cover goes down while the picture floats and comes
+  back with it. In the background the video track stays on while the window is up and goes off
+  (`vid=no`) when it closes. One mpv throughout: its layer moves between them. The player sets Now Playing and the remote commands and keeps the display awake
   while playing. `View.hostsPlayer(_:)` opens it with the model. Its
   tests run the model on a scripted mpv, and one plays the Fixtures app's episode end to end on
   the testing engine and a real mpv.
@@ -570,9 +578,29 @@ mpv, in mpv's own vocabulary:
 Each names its playback: one player can carry a binge, and the playback driving it changes as an
 episode rolls on to the next. See `anistream_model::hosted` for the whole protocol.
 
+Picture in Picture on iPhone and iPad, checked on the iPad Simulator with
+`apple/scripts/pip-check.sh`: in by the toggle, the window over the browsing and over another app
+with the video on, back in the app with the window still up, and back into the player on the same
+playback. What the Simulator cannot show, and a device has to:
+
+- The iPhone Simulator has no Picture in Picture (`isPictureInPictureSupported` is false), so
+  there the button is not shown; iPhones have it.
+- Starting by itself on the home gesture. Opening another app from `simctl` is not that gesture:
+  AVKit and SpringBoard both log the app as ready to start on it, and SpringBoard then declines for
+  a scene that does not match.
+- The window's own buttons (play and pause, 10 s, return, close), which the Simulator cannot
+  press; the tests call AVKit's delegate for them.
+- The copy as a device makes it. The Simulator's drawables have no presented handler, so there
+  each is copied as mpv takes the next one, unordered against mpv's queue (`PictureFeed`).
+- mpv drawing in the background. iOS refuses GPU work from apps in the background, and whether
+  an app whose Picture in Picture is up may render into a layer of its own there is not
+  documented; the Simulator does not enforce it. If a device refuses, the floating window keeps
+  its last frame while the audio plays on.
+- HDR10 in the floating window, as on the Mac: the copy is 8-bit.
+
 ## Not yet
 
-- The player: Picture in Picture and Sync subtitles, and telling the engine of a shader hook
+- The player: Sync subtitles, and telling the engine of a shader hook
   libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's merged Audio and subtitles
   sheet also holds Speed, Upscaling, Night mode and Sources, for want of a More menu on its board.
 - Settings' "Show titles in Spotlight" switch, which waits for the design: Settings has no

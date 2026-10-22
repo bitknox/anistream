@@ -29,6 +29,27 @@ extension PlayerTests {
             #expect(variety(try image(frame)) > 0.01)
         }
 
+        /// In the player on iPhone and iPad: the video's part of a drawable of another shape,
+        /// small. The video is 16:9 in a portrait layer, with bars above and below it.
+        @Test func copiesTheVideosPartSmall() async throws {
+            let (client, layer) = try await startedClient(width: 540, height: 960)
+            try await play(client, "testsrc.mkv")
+            let feed = await PictureFeed()
+            feed.contentAspect = 16 / 9
+            feed.maximumSize = CGSize(width: 320, height: 320)
+            #expect(feed.start(layer))
+            let copied = await eventually { feed.counts.copied >= 12 ? true : nil }
+            let frame = try #require(feed.latestFrame)
+            feed.stop()
+            await client.shutdown()
+            #expect(copied == true, "\(feed.counts)")
+            // 540 wide at 16:9 is 540×304, fitted inside 320×320 at even sizes.
+            #expect(CVPixelBufferGetWidth(frame) == 320 && CVPixelBufferGetHeight(frame) == 180)
+            // The video's rows top and bottom, not the bars: neither is black throughout.
+            let image = try image(frame)
+            #expect(brightness(of: image, row: 2) > 0.05 && brightness(of: image, row: image.height - 3) > 0.05)
+        }
+
         /// The feed shows what mpv drew: the frame after the shaders, with the subtitles in it, as
         /// mpv's own screenshot of the window has it, and not the video alone. Playing, so the
         /// frames differ by a few frames of motion either way; only the subtitles tell them apart.
@@ -126,6 +147,24 @@ extension PlayerTests {
             #expect(perFrame < bound, "GPU \(perFrame) ms a frame")
         }
     }
+}
+
+/// The mean brightness of one row of `image`, 0 to 1.
+private func brightness(of image: CGImage, row: Int) -> Double {
+    var data = [UInt8](repeating: 0, count: image.width * image.height * 4)
+    let context = CGContext(
+        data: &data, width: image.width, height: image.height, bitsPerComponent: 8,
+        bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    context?.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+    // Rows are stored top first.
+    let start = row * image.width * 4
+    var sum = 0
+    for x in 0..<image.width {
+        let pixel = start + x * 4
+        sum += Int(data[pixel]) + Int(data[pixel + 1]) + Int(data[pixel + 2])
+    }
+    return Double(sum) / Double(image.width * 3 * 255)
 }
 
 /// The process's CPU time, user and system, over `duration`.

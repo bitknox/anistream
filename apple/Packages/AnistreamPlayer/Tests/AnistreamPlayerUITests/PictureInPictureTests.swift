@@ -1,5 +1,5 @@
-// Picture in Picture on the Mac: the steps between its states, and what they do to the player,
-// on a scripted mpv and a stand-in for the system's floating window.
+// Picture in Picture on the Mac, iPhone and iPad: the steps between its states, and what they do
+// to the player, on a scripted mpv and a stand-in for the system's floating window.
 
 import AnistreamKit
 import AnistreamPlayer
@@ -89,6 +89,29 @@ struct PictureInPictureMachineTests {
         #expect(machine.handle(.toggle) == [.start])
     }
 
+    /// iPhone and iPad: going home while it plays, the system opens its window by itself.
+    @Test func theSystemStartingByItselfTakesThePictureOut() {
+        var machine = PictureInPictureMachine()
+        #expect(machine.handle(.systemStarting) == [.startFeed])
+        #expect(machine.phase == .starting)
+        #expect(machine.handle(.started) == [.leaveWindow])
+        #expect(machine.phase == .active)
+        #expect(machine.handle(.restore) == [.returnToWindow])
+        #expect(machine.handle(.stopped) == [.endFeed])
+        #expect(machine.phase == .inline)
+    }
+
+    @Test func theSystemSayingItStartsAfterTheAppAskedChangesNothing() {
+        var machine = PictureInPictureMachine()
+        _ = machine.handle(.toggle)
+        #expect(machine.handle(.systemStarting) == [])
+        #expect(machine.phase == .starting)
+        // Asked to close before it opened, then opening anyway: still closing.
+        _ = machine.handle(.toggle)
+        #expect(machine.handle(.systemStarting) == [])
+        #expect(machine.phase == .stopping(restore: true))
+    }
+
     @Test func eventsThatMeanNothingWhereItIsChangeNothing() {
         var machine = PictureInPictureMachine()
         for event: PictureInPictureEvent in [.started, .restore, .stopped, .playbackClosed, .failedToStart] {
@@ -98,7 +121,6 @@ struct PictureInPictureMachineTests {
     }
 }
 
-#if os(macOS)
 /// The system's floating window as a test drives it.
 @MainActor
 final class StandInSystem: PictureInPictureSystem {
@@ -307,4 +329,112 @@ struct PictureInPictureTests {
         withExtendedLifetime(pip) {}
     }
 }
-#endif
+
+/// Picture in Picture as iPhone and iPad have it: the feed runs while the player is up, into a
+/// display layer beneath the picture, so the system can open its window by itself.
+@MainActor
+struct InlinePictureInPictureTests {
+    private func playing() async throws -> (Rig, PictureInPicture, StandInSystem) {
+        let rig = Rig()
+        try await rig.opened()
+        rig.mpv.emit(.playbackRestart)
+        try await until("the first frame") { rig.model.hasPicture }
+        let system = StandInSystem()
+        let pip = PictureInPicture(model: rig.model, feed: PictureFeed(), system: system, inline: true)
+        return (rig, pip, system)
+    }
+
+    /// The values of `vid` the player set on mpv, in order.
+    private func videoTracks(_ rig: Rig) -> [String] {
+        rig.mpv.calls.compactMap { call in
+            if case .set(property: "vid", let value) = call { value.string } else { nil }
+        }
+    }
+
+    @Test func theFeedRunsSmallBeneathThePictureWhileThePlayerIsUp() async throws {
+        let (rig, pip, _) = try await playing()
+        #expect(pip.feed.isRunning)
+        #expect(pip.feed.maximumSize == PictureInPicture.inlineSize)
+        #expect(rig.model.pictureInPictureLayer === pip.feed.displayLayer)
+        rig.model.viewerClosed()
+        try await until("the feed stopped with the player") { !pip.feed.isRunning }
+    }
+
+    @Test func goingHomeWhilePlayingTakesThePictureOutAndRestoreBringsItBack() async throws {
+        let (rig, pip, system) = try await playing()
+        let layer = try #require(rig.model.layer)
+        let host = CALayer()
+        host.addSublayer(layer)
+        // The system opens its window as the viewer goes home: the app asked for nothing.
+        system.say(.systemStarting)
+        #expect(system.starts == 0)
+        #expect(pip.phase == .starting)
+        system.say(.started)
+        #expect(rig.model.pictureInPicture)
+        #expect(!rig.model.inMainWindow)
+        #expect(layer.superlayer == nil)
+        // At the floating window's size from here.
+        #expect(pip.feed.maximumSize == nil)
+        // The window's return button: the player full screen again, the copying on and small.
+        system.say(.restore)
+        #expect(rig.model.inMainWindow)
+        system.say(.stopped)
+        #expect(pip.phase == .inline)
+        #expect(pip.feed.isRunning)
+        #expect(pip.feed.maximumSize == PictureInPicture.inlineSize)
+        #expect(rig.model.isPresented)
+        #expect(!rig.reports.contains { $0.1 == .closed })
+    }
+
+    @Test func closingTheWindowStopsThePlaybackWhereItWas() async throws {
+        let (rig, pip, system) = try await playing()
+        system.say(.systemStarting)
+        system.say(.started)
+        system.say(.stopped)
+        // As the player's own close: the file ended by quitting, which keeps the place, and the
+        // player closed.
+        #expect(rig.reports.suffix(2).map(\.1) == [.ended(reason: .quit), .closed])
+        #expect(!rig.model.isPresented)
+        try await until("the feed stopped") { !pip.feed.isRunning }
+    }
+
+    @Test func theVideoTrackIsOffInTheBackgroundUnlessPictureInPictureShowsIt() async throws {
+        let (rig, pip, system) = try await playing()
+        // Home with no Picture in Picture: the audio plays on, the picture is not decoded.
+        rig.model.backgrounded(true)
+        try await until("the video off") { videoTracks(rig) == ["no"] }
+        rig.model.backgrounded(false)
+        try await until("the video on") { videoTracks(rig) == ["no", "auto"] }
+
+        // Home while it plays, the system opening its window after the app said it had gone.
+        rig.model.backgrounded(true)
+        system.say(.systemStarting)
+        try await until("the video on for the window") { videoTracks(rig) == ["no", "auto", "no", "auto"] }
+        system.say(.started)
+        // In the floating window, still in the background: on.
+        system.say(.restore)
+        #expect(videoTracks(rig).count == 4)
+        // The window gone and the app still in the background: off again.
+        system.say(.stopped)
+        try await until("the video off") { videoTracks(rig).last == "no" && videoTracks(rig).count == 5 }
+        rig.model.backgrounded(false)
+        try await until("the video on") { videoTracks(rig).last == "auto" && videoTracks(rig).count == 6 }
+        withExtendedLifetime(pip) {}
+    }
+
+    @Test func theWindowOpenedBeforeTheAppLeftKeepsTheVideoOn() async throws {
+        let (rig, pip, system) = try await playing()
+        rig.model.togglePictureInPicture()
+        #expect(system.starts == 1)
+        system.say(.started)
+        rig.model.backgrounded(true)
+        rig.model.backgrounded(false)
+        // Something sent to mpv after them, so anything they sent is in by the time it is.
+        rig.model.liftSubtitles(0.2, animated: false)
+        try await until("the lift sent") {
+            rig.mpv.calls.contains { if case .set(property: "sub-pos", _) = $0 { true } else { false } }
+        }
+        #expect(videoTracks(rig).isEmpty)
+        withExtendedLifetime(pip) {}
+    }
+}

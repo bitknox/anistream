@@ -1,6 +1,6 @@
-// Where the player shows: in the main window on the Mac, where the browsing was (M4), or in the
-// system's Picture in Picture window; a full-screen cover zooming out of the banner on iPhone and
-// iPad (T2).
+// Where the player shows: in the main window on the Mac, where the browsing was (M4); a
+// full-screen cover zooming out of the banner on iPhone and iPad (T2); or, on both, the system's
+// Picture in Picture window.
 
 import AnistreamDesign
 import AnistreamStore
@@ -11,8 +11,9 @@ import AppKit
 
 extension View {
     /// This view, the app's main window's content, hosts the player. On the Mac the player takes
-    /// the window's content while it plays, the browsing kept beneath it as it was, and moves to
-    /// the system's Picture in Picture window and back; on iPhone and iPad it covers the window.
+    /// the window's content while it plays, the browsing kept beneath it as it was; on iPhone and
+    /// iPad it covers the window. On both it moves to the system's Picture in Picture window and
+    /// back.
     public func hostsPlayer(_ model: PlayerModel) -> some View {
         modifier(HostsPlayer(model: model))
     }
@@ -22,12 +23,14 @@ struct HostsPlayer: ViewModifier {
     @Environment(AppStore.self) private var store
     let model: PlayerModel
     @Namespace private var zoom
+    @State private var pip: PictureInPicture?
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
-    @State private var pip: PictureInPicture?
 
     /// The player has the main window: up, and not in Picture in Picture.
     private var inWindow: Bool { model.inMainWindow }
+    #else
+    @Environment(\.scenePhase) private var phase
     #endif
 
     func body(content: Content) -> some View {
@@ -70,21 +73,40 @@ struct HostsPlayer: ViewModifier {
             }
             .onReceive(powerChanges) { _ in model.powerChanged() }
         #else
+        // Read here, so the cover follows it: a binding's getter is not read while the body is.
+        let presented = model.inMainWindow
         content
             .environment(\.playerZoom, zoom)
             .onChange(of: store.home?.cache, initial: true) { _, cache in
                 model.shaderCache = cache?.appending(path: "mpv-shaders", directoryHint: .isDirectory)
             }
+            // Down while the picture floats in Picture in Picture, and back up when it returns.
             .fullScreenCover(
                 isPresented: Binding(
-                    get: { model.isPresented },
-                    set: { presented in if !presented { model.viewerClosed() } })
+                    get: { presented },
+                    // SwiftUI says so for its own dismissals too: the picture going into Picture
+                    // in Picture, or the player already closed, are not the viewer closing it.
+                    set: { up in if !up, model.inMainWindow { model.viewerClosed() } })
             ) {
                 PhonePlayerView(model: model)
                     .environment(store)
                     .navigationTransition(.zoom(sourceID: model.staged?.id ?? 0, in: zoom))
                     .interactiveDismissDisabled()
                     .presentationBackground(.black)
+            }
+            .onAppear {
+                guard pip == nil else { return }
+                guard PictureInPicture.isSupported else {
+                    PlayerModel.note(.info, "picture in picture: not on this device")
+                    return
+                }
+                pip = PictureInPicture(model: model)
+            }
+            // Here rather than in the player, which is down while the picture floats: the audio
+            // plays on in the background, and the video only for Picture in Picture.
+            .onChange(of: phase) { _, phase in
+                if phase == .background { model.backgrounded(true) }
+                if phase == .active { model.backgrounded(false) }
             }
             .onReceive(powerChanges) { _ in model.powerChanged() }
         #endif

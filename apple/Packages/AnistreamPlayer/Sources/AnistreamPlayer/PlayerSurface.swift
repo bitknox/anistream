@@ -97,6 +97,10 @@ private struct MainThreadOnly: @unchecked Sendable {
 /// mpv after a resize, and tells it about the screen. The client must have started on `layer`.
 public struct PlayerSurface {
     let layer: MpvLayer
+    /// On iPhone and iPad, the layer Picture in Picture shows, kept beneath the picture: the
+    /// system takes the picture into its floating window by itself only from a layer it sees
+    /// playing where the picture is.
+    let beneath: CALayer?
     private let onResize: @MainActor () -> Void
     private let onDisplay: @MainActor (DisplayInfo) -> Void
     private let onPointer: @MainActor () -> Void
@@ -113,11 +117,12 @@ public struct PlayerSurface {
     /// the Mac, `pointer` is told each time the pointer moves over the picture, whichever window
     /// is key: what brings a player's controls up.
     public init(
-        layer: MpvLayer, resized: @escaping @MainActor () -> Void,
+        layer: MpvLayer, beneath: CALayer? = nil, resized: @escaping @MainActor () -> Void,
         display: @escaping @MainActor (DisplayInfo) -> Void,
         pointer: @escaping @MainActor () -> Void = {}
     ) {
         self.layer = layer
+        self.beneath = beneath
         self.onResize = resized
         self.onDisplay = display
         self.onPointer = pointer
@@ -233,16 +238,19 @@ extension PlayerSurface: NSViewRepresentable {
 /// Stage Manager all arrive there.
 public final class PlayerHostView: UIView {
     let mpvLayer: MpvLayer
+    let beneath: CALayer?
     var onResize: (() -> Void)?
     var onScreen: ((UIScreen) -> Void)?
 
-    init(layer mpvLayer: MpvLayer) {
+    init(layer mpvLayer: MpvLayer, beneath: CALayer?) {
         self.mpvLayer = mpvLayer
+        self.beneath = beneath
         super.init(frame: .zero)
         backgroundColor = .black
         isOpaque = true
         // Touches belong to the player's gestures around the picture.
         isUserInteractionEnabled = false
+        if let beneath { layer.addSublayer(beneath) }
         layer.addSublayer(mpvLayer)
     }
 
@@ -250,6 +258,14 @@ public final class PlayerHostView: UIView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
+        if let beneath, beneath.superlayer === layer {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            beneath.frame = bounds
+            CATransaction.commit()
+        }
+        // The picture leaves its host while it floats in Picture in Picture, and a new host
+        // takes it on the way back; only the host that has it now sizes it.
         guard mpvLayer.superlayer === layer else { return }
         let scale = window?.windowScene?.screen.nativeScale ?? traitCollection.displayScale
         let before = mpvLayer.drawableSize
@@ -265,7 +281,7 @@ public final class PlayerHostView: UIView {
 
 extension PlayerSurface: UIViewRepresentable {
     public func makeUIView(context: Context) -> PlayerHostView {
-        let view = PlayerHostView(layer: layer)
+        let view = PlayerHostView(layer: layer, beneath: beneath)
         view.onResize = { resized() }
         view.onScreen = { screen in moved(to: DisplayInfo(screen: screen)) }
         return view
