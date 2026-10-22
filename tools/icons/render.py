@@ -99,13 +99,23 @@ def tile(N, appearance='any'):
 
 # --- the Mac --------------------------------------------------------------------------------------
 
+import math  # noqa: E402
+
 from nagare_icon import MASTERS, pick  # noqa: E402
 
 # macOS draws every app icon inside its rounded square, 824 of every 1024 pixels across, and shrinks
 # an image drawn to the tile's edge into it, which puts the cells on fractions of a pixel. So the
 # Mac's are drawn already inset: the ground in that square, transparent around it, and Nagare by the
 # size rule against the square, centred on whole pixels. macOS then draws them as they are.
-MAC_SQUARE = 824 / 1024
+#
+# Its square is a whole, even number of pixels: 824/1024 of the tile rounded up, 14 at 16 px, 26
+# at 32, 52 at 64 and 104 at 128. A square a fraction smaller is scaled up to fill it, about 1%,
+# which blurs every cell; so ours is the same whole square.
+def mac_square(N):
+    """The side of the rounded square in the Mac's N px tile, in whole pixels, as macOS draws it."""
+    return 2 * math.ceil(N * 412 / 1024)
+
+
 # The square's corners: a superellipse this round is the system's continuous corner, near enough
 # that its own mask and edge fall on the ground.
 MAC_ROUNDNESS = 5.0
@@ -113,9 +123,9 @@ MAC_ROUNDNESS = 5.0
 
 def mac_pick(N):
     """The master and scale for the Mac's N px tile: the size rule, against the square inside it. The
-    16 px tile's square, under 13 px, fits no figure at 87.5%: there, the 16 master at 1x."""
+    16 px tile's square, 14 px, fits no figure at 87.5%: there, the 16 master at 1x, as tall as it."""
     try:
-        return pick(N * MAC_SQUARE)
+        return pick(mac_square(N))
     except ValueError:
         return 16, 1, MASTERS[16]
 
@@ -136,7 +146,7 @@ def mac_tile(N):
                 for px in range(ox + x * k, ox + (x + 1) * k):
                     pixels[py][px] = colour[ch]
 
-    half, centre, n = N * MAC_SQUARE / 2, N / 2, MAC_ROUNDNESS
+    half, centre, n = mac_square(N) / 2, N / 2, MAC_ROUNDNESS
 
     def inside(x, y):
         return abs((x - centre) / half) ** n + abs((y - centre) / half) ** n <= 1
