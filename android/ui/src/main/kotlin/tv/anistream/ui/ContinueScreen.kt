@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -83,11 +84,15 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     LaunchedEffect(Unit) { store.loadContinue() }
     val empty = state == ListState.Empty
     val user = trackers.values.firstOrNull { it.connected }?.user
+    // The queue's selection and scroll, held here so they outlive a fold (AT3).
+    val queueState = rememberQueueState()
+    val wide = wideWindow()
+    FoldFollowsSelection(wide, queueState)
     // A tablet with something under way: the queue beside the selected title.
-    if (wideWindow() && state is ListState.Loaded) {
+    if (wide && state is ListState.Loaded) {
         val queue = store.continuing.queue(titles)
         if (!queue.isEmpty) {
-            TabletQueue(queue, actions)
+            TabletQueue(queue, actions, queueState)
             return
         }
     }
@@ -125,7 +130,7 @@ internal fun Quiet(text: String) {
  * this week as rows.
  */
 private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
-    val hero = queue.inProgress.firstOrNull() ?: queue.newThisWeek.firstOrNull() ?: return
+    val hero = queue.lead ?: return
     item(key = "hero") { Hero(hero, actions) }
     val rail = queue.inProgress.drop(1)
     if (rail.isNotEmpty()) {
@@ -137,7 +142,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    items(rail, key = { it.id.toLong() }) { ProgressCard(it) }
+                    items(rail, key = { it.id.toLong() }) { Box(itemMotion()) { ProgressCard(it) } }
                 }
             }
         }
@@ -145,7 +150,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
     val fresh = if (queue.inProgress.isEmpty()) queue.newThisWeek.drop(1) else queue.newThisWeek
     if (fresh.isNotEmpty()) {
         item(key = "new") { Heading("New this week", Modifier.padding(top = 16.dp)) }
-        items(fresh, key = { "new-${it.id}" }) { NewRow(it) }
+        items(fresh, key = { "new-${it.id}" }) { Box(itemMotion()) { NewRow(it) } }
     }
 }
 
@@ -180,7 +185,7 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
         Column(
             Modifier
                 .shared(Shared.Page, item.id, "hero")
-                .clickable { navigator.openTitle(item.id, "hero") },
+                .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "hero") },
         ) {
         BannerArt(
             item.entry,
@@ -193,26 +198,41 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 8.dp))
         Text(episodeLine(item), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
-        Row(
-            Modifier.padding(top = 12.dp).fillMaxWidth().height(56.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Side by side, or, with text large enough to crowd the button, the progress above it.
+        val stacked = LocalDensity.current.fontScale > 1.3f
+        val progress: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.fraction?.let { Meter(it) }
                 item.minutesLeft?.let {
                     Text("$it min left", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
+        }
+        val play: @Composable (Modifier) -> Unit = { modifier ->
             Button(
                 onClick = { actions.play(item.id, item.episode.toString()) },
                 enabled = item.playable,
-                modifier = Modifier.height(56.dp),
+                modifier = modifier.heightIn(min = 56.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+            }
+        }
+        if (stacked) {
+            Column(Modifier.padding(top = 12.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                progress(Modifier.fillMaxWidth())
+                play(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                Modifier.padding(top = 12.dp).fillMaxWidth().heightIn(min = 56.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                progress(Modifier.weight(1f))
+                play(Modifier)
             }
         }
     }
@@ -239,7 +259,7 @@ private fun ProgressCard(item: ContinueItem) {
         Modifier
             .width(208.dp)
             .shared(Shared.Page, item.id, "rail")
-            .clickable { navigator.openTitle(item.id, "rail") },
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "rail") },
     ) {
         BannerArt(item.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, item.id, "rail").clip(ArtShape.banner))
         Box(Modifier.padding(top = 8.dp).height(4.dp)) { item.fraction?.let { Meter(it) } }
@@ -267,8 +287,8 @@ private fun NewRow(item: ContinueItem) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(72.dp)
-            .clickable { navigator.openTitle(item.id, "new") }
+            .heightIn(min = 72.dp)
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "new") }
             .padding(start = 16.dp, end = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -322,7 +342,7 @@ private fun SetupCard(actions: AppActions, hide: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Nagare(cell = 4)
             Column(Modifier.weight(1f)) {
-                Row(Modifier.height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Set up anistream",
                         style = type.titleMedium,
@@ -381,13 +401,31 @@ private fun SetupRow(name: String, note: String?, detail: String, action: @Compo
 @Composable
 private fun SectionHeading(title: String, open: String, onOpen: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(48.dp).padding(start = 16.dp, end = 4.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).semantics { heading() })
         IconButton(onClick = onOpen, modifier = Modifier.semantics { contentDescription = open }) {
             Icon(Icons.Forward, contentDescription = null)
         }
+    }
+}
+
+/**
+ * Folding to one pane with a title picked shows that title's page (AT3); its page goes back to
+ * the list and detail when the window widens again.
+ */
+@Composable
+private fun FoldFollowsSelection(wide: Boolean, state: QueueState) {
+    val navigator = LocalNavigator.current
+    var was by remember { mutableStateOf(wide) }
+    LaunchedEffect(wide) {
+        val id = state.selected?.toUInt()
+        if (was && !wide && state.picked && id != null) {
+            navigator.openedByFold = id
+            navigator.openTitle(id, "fold")
+        }
+        was = wide
     }
 }
 
@@ -406,7 +444,7 @@ private fun AiringToday(openCalendar: () -> Unit) {
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(today, key = { "${it.entry.id}-${it.episode}" }) { broadcast -> AiringCard(broadcast, now) }
+            items(today, key = { "${it.entry.id}-${it.episode}" }) { broadcast -> Box(itemMotion()) { AiringCard(broadcast, now) } }
         }
     }
 }
@@ -426,7 +464,7 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
         Modifier
             .width(208.dp)
             .shared(Shared.Page, id, "airing")
-            .clickable { navigator.openTitle(id, "airing") },
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(id, "airing") },
     ) {
         BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, id, "airing").clip(ArtShape.banner))
         Text(
@@ -493,7 +531,7 @@ internal fun PosterCell(
     Column(
         modifier
             .shared(Shared.Page, entry.id, from)
-            .clickable { navigator.openTitle(entry.id, from) },
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(entry.id, from) },
     ) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
             CoverArt(entry, maxWidth, Modifier.size(maxWidth, maxWidth * 1.5f).shared(Shared.Cover, entry.id, from))

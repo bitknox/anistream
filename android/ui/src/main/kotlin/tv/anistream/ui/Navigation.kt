@@ -63,6 +63,12 @@ class Navigator(private val nav: NavHostController, private val start: Destinati
     var source: String? by mutableStateOf(null)
         private set
 
+    /**
+     * The title a fold put on screen (AT3): folding a tablet layout with a title selected opens
+     * its page, and unfolding again goes back to the list and detail it came from.
+     */
+    var openedByFold: AnilistId? = null
+
     /** The destination on screen. */
     fun current(): Destination = nav.currentBackStackEntry?.destinationOf() ?: start
 
@@ -70,6 +76,13 @@ class Navigator(private val nav: NavHostController, private val start: Destinati
     fun openTitle(id: AnilistId, from: String) {
         source = "$from:$id"
         nav.navigate(titleRoute(current(), id))
+    }
+
+    /** Whether [id]'s page is the one on screen. */
+    fun showing(id: AnilistId): Boolean {
+        val entry = nav.currentBackStackEntry ?: return false
+        val destination = entry.destinationOf() ?: return false
+        return entry.destination.route == titlePattern(destination) && entry.arguments?.getLong("id") == id.toLong()
     }
 
     /**

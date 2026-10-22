@@ -45,6 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -56,6 +59,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
@@ -65,6 +71,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
@@ -90,7 +100,7 @@ enum class Destination(val route: String, val label: String, val icon: ImageVect
 data class AppActions(
     /** Connect AniList: the engine's sign-in in a Custom Tab, which [AppRoot] starts itself. */
     val connectAniList: () -> Unit = {},
-    /** Join a plugin store: the join sheet, from A2. */
+    /** Join a plugin store: the join sheet, which [AppRoot] opens itself. */
     val addStore: () -> Unit = {},
     /** Accounts and settings: Settings, which [AppRoot] opens itself. */
     val openSettings: () -> Unit = {},
@@ -101,6 +111,11 @@ data class AppActions(
      * itself.
      */
     val hint: (NoticeHint) -> Unit = {},
+    /**
+     * New-episode notifications, on or off: the app's, which asks for the permission to post as
+     * they are turned on. `null` leaves their row out, where the engine has no check for them.
+     */
+    val episodeNotifications: AppSwitch? = null,
 )
 
 /**
@@ -122,6 +137,9 @@ interface PlayerSlot {
 
 /** The player's route: outside the destinations' graphs, over whichever is on screen. */
 const val PLAYER_ROUTE = "player"
+
+/** A switch the app keeps, rather than the engine's settings: what it says, and turning it. */
+class AppSwitch(val on: StateFlow<Boolean>, val set: (Boolean) -> Unit)
 
 /** Whether the window is wide enough for the rail: 600 dp and up, a tablet or an unfolded foldable. */
 @Composable
@@ -158,17 +176,23 @@ fun AppRoot(
     startPage: String? = null,
     /** The player, which the frame shows over everything while it is up. */
     player: PlayerSlot? = null,
+    /** The links the system opens the app on, followed as they come: shortcuts, notifications. */
+    links: Flow<AppLink> = emptyFlow(),
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
     val sheets = remember { AppSheets() }
+    // Whether Search is to open its field as it shows: a link to Search asked for it.
+    var searchOpening by remember { mutableStateOf(false) }
     val routed = remember(actions, navigator, store) {
         actions.copy(
             openSettings = { navigator.openSettings() },
             connectAniList = { store.connect("anilist") },
+            addStore = { store.stores.openJoin() },
             hint = { hint ->
                 when (hint) {
                     NoticeHint.KITSU_CREDENTIALS -> sheets.kitsu = true
+                    NoticeHint.OPEN_STORES -> navigator.open(STORES_ROUTE)
                     else -> actions.hint(hint)
                 }
             },
@@ -191,6 +215,7 @@ fun AppRoot(
     ) {
         EngineNotices(onHint = routed.hint)
         AccountSheets()
+        JoinStoreSheetHost()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }
         }
@@ -205,10 +230,16 @@ fun AppRoot(
                 if (!player.presented && there) nav.popBackStack()
             }
         }
+        val following by rememberUpdatedState(routed)
+        androidx.compose.runtime.LaunchedEffect(links, navigator) {
+            // A new link takes over from one still waiting to play.
+            links.collectLatest { link -> navigator.follow(link, store, following) { searchOpening = true } }
+        }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
-            snackbarHost = { SnackbarHost(snackbars.host) },
+            // The player says its own notices on the video; the snackbars wait for it to close.
+            snackbarHost = { if (!onPlayer) SnackbarHost(snackbars.host) },
             bottomBar = { if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go) },
         ) { padding ->
             Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
@@ -237,7 +268,7 @@ fun AppRoot(
                                 navigation(route = graphRoute(destination), startDestination = destination.route) {
                                     composable(destination.route) {
                                         CompositionLocalProvider(LocalPageAnimation provides this) {
-                                            DestinationScreen(destination, routed, startQuery)
+                                            DestinationScreen(destination, routed, startQuery, searchOpening) { searchOpening = false }
                                         }
                                     }
                                     composable(
@@ -253,6 +284,8 @@ fun AppRoot(
                             }
                             settingsPages(routed)
                             providerPages(routed)
+                            storePages()
+                            downloadPages(routed)
                         }
                     }
                 }
@@ -262,7 +295,13 @@ fun AppRoot(
 }
 
 @Composable
-private fun DestinationScreen(destination: Destination, actions: AppActions, startQuery: String?) {
+private fun DestinationScreen(
+    destination: Destination,
+    actions: AppActions,
+    startQuery: String?,
+    searchOpening: Boolean,
+    searchOpened: () -> Unit,
+) {
     val navigator = LocalNavigator.current
     when (destination) {
         Destination.Continue -> ContinueScreen(
@@ -273,7 +312,7 @@ private fun DestinationScreen(destination: Destination, actions: AppActions, sta
         Destination.Calendar -> CalendarScreen()
         Destination.Seasonal -> SeasonalScreen()
         Destination.Library -> LibraryScreen(actions)
-        Destination.Search -> SearchScreen(startQuery)
+        Destination.Search -> SearchScreen(startQuery, open = searchOpening, opened = searchOpened)
     }
 }
 
@@ -285,6 +324,21 @@ private fun DestinationIcon(destination: Destination, selected: Boolean) {
         if (selected) destination.selectedIcon else destination.icon,
         contentDescription = null,
         tint = if (filled) Color.Unspecified else LocalContentColor.current,
+    )
+}
+
+/** A navigation bar label on one line, shrinking to fit as the text grows. */
+@Composable
+private fun BarLabel(text: String) {
+    val style = LocalTextStyle.current
+    Text(
+        text,
+        maxLines = 1,
+        softWrap = false,
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+            minFontSize = 8.sp,
+            maxFontSize = if (style.fontSize.isSpecified) style.fontSize else 12.sp,
+        ),
     )
 }
 
@@ -304,7 +358,9 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
                 selected = selected,
                 onClick = { go(destination) },
                 icon = { DestinationIcon(destination, selected) },
-                label = { Text(destination.label) },
+                // One line however large the text: five labels share the width, so each shrinks
+                // to fit before it would break mid-word.
+                label = { BarLabel(destination.label) },
                 colors = ShortNavigationBarItemDefaults.colors(
                     selectedIconColor = colors.onPrimaryContainer,
                     selectedTextColorTopIconPosition = colors.primary,
@@ -319,12 +375,12 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
 
 /**
  * The drawer's pages beyond the five destinations (AT1): Downloads, then Providers and Plugin
- * stores under a Sources header. Each opens the page closest to it in this build.
+ * stores under a Sources header.
  */
 internal enum class DrawerPage(val label: String, val icon: ImageVector, val route: String) {
-    Downloads("Downloads", Icons.DownloadsPage, settingsRoute(SettingsPane.Downloads)),
+    Downloads("Downloads", Icons.DownloadsPage, DOWNLOADS_ROUTE),
     Providers("Providers", Icons.Providers, PROVIDERS_ROUTE),
-    Stores("Plugin stores", Icons.Stores, settingsRoute(SettingsPane.Sources)),
+    Stores("Plugin stores", Icons.Stores, STORES_ROUTE),
 }
 
 /**

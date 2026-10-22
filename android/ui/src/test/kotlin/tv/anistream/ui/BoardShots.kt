@@ -2,8 +2,14 @@ package tv.anistream.ui
 
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToKeyAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -13,6 +19,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToKey
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -111,9 +119,69 @@ class BoardShots {
         open("Settings for this show")
     }
 
+    // TalkBack and the keyboard.
+
+    /** An episode row says what a tap and a hold do: it plays, and it opens its options. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun episode_rows_name_their_actions() = shoot("phone-title-episodes", WATCHING, title = 900001u) {
+        toEpisodes()
+        val row = compose.onNode(hasClickAction() and hasAnyDescendant(hasText("E7 \u00b7 14", substring = true)), useUnmergedTree = true)
+        row.assert(SemanticsMatcher("plays on a tap") { it.config.getOrNull(SemanticsActions.OnClick)?.label == "Play" })
+        row.assert(SemanticsMatcher("opens its options on a hold") { it.config.getOrNull(SemanticsActions.OnLongClick)?.label == "Episode options" })
+    }
+
+    // Font scale at 200 %, the largest the system offers: nothing cut, nothing overlapping.
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2.0f)
+    fun phone_home_large_text() = shoot("phone-home-large-text", WATCHING)
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2.0f)
+    fun phone_title_large_text() = shoot("phone-title-large-text", WATCHING, title = 900001u)
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2.0f)
+    fun phone_title_episodes_large_text() = shoot("phone-title-episodes-large-text", WATCHING, title = 900001u) { toEpisodes() }
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2.0f)
+    fun phone_calendar_large_text() = shoot("phone-calendar-large-text", WATCHING, start = Destination.Calendar)
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2.0f)
+    fun phone_library_large_text() = shoot("phone-library-large-text", WATCHING, start = Destination.Library)
+
+    @Test
+    @Config(qualifiers = TABLET, fontScale = 2.0f)
+    fun tablet_home_large_text() = shoot("tablet-home-large-text", WATCHING)
+
     @Test
     @Config(qualifiers = TABLET)
     fun tablet_home() = shoot("tablet-home", WATCHING)
+
+    /** AT2: the divider dragged past the middle settles on half the content. */
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_home_divider() = shoot("tablet-home-divider", WATCHING) {
+        // The handle stands where the list pane ends: the rail's 96 and the list's 380 in.
+        compose.onRoot().performTouchInput {
+            val handle = Offset(483.dp.toPx(), height / 2f)
+            down(handle)
+            moveBy(Offset(240.dp.toPx(), 0f), delayMillis = 200)
+            up()
+        }
+        compose.waitForIdle()
+    }
+
+    /** AT2: another title picked, its fill on the row and its preview beside the list. */
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING) {
+        compose.onNodeWithText("Resume E2", substring = true).performClick()
+        compose.waitForIdle()
+    }
 
     @Test
     @Config(qualifiers = TABLET)

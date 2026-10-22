@@ -62,8 +62,10 @@ build in, in under a second and with no cargo, which is most app work: it rarely
 beside its place and renamed into it, so two builds at once never leave half of one, and entries
 unused for 14 days are removed; each takes about 370 MB.
 
-Every Gradle build checks first that its flavour's engine is current and that the fonts are there
-(`engine.sh --check`, `fonts.sh --check`), and fails saying what to run when not. Rust changes
+Every Gradle build checks first that its flavour's engine is current (`engine.sh --check`), and
+fails saying what to run when not, and fetches the fonts if they are not there yet (`fonts.sh`),
+from a copy every worktree shares in `~/.cache/anistream-fonts` or else from google/fonts, failing
+only if that fetch does. Rust changes
 need `engine.sh` again; Gradle never builds Rust itself.
 
 `ANISTREAM_ENGINE_PROFILE` picks the cargo profile: `app-dev` (opt-level 1, line tables) unless it
@@ -79,6 +81,13 @@ surface. It carries out the engine's `PlayerOps`, keeps its `PlayerUi`, and repo
 properties and events back; `PlayerService` is the media session around it, a `mediaPlayback`
 foreground service. The emulator decodes in software: its MediaCodec stalls under FFmpeg, and a
 watchdog moves a decoder with no picture to software, or a stuck mpv to a new one.
+
+The player's screen is a destination of the frame's own (`PlayerSlot`), over the navigation bar,
+landscape on a phone. Going home while it plays takes the activity into Picture in Picture with
+the three actions; with the screen off the audio plays on with the video track off; the media
+notification and the lock screen carry back 10 s, play or pause and forward 10 s. The process's
+foreground and background, and the network it is on, go to the engine as `AppPhase` and
+`NetworkPath` (`app/SystemPhases.kt`).
 
 CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
 shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
@@ -102,12 +111,95 @@ The fixtures flavour takes intent extras under the names of the Apple app's `-An
 arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing scene streams),
 `section` (`continue`, `calendar`, `seasonal`, `library`, `search`), `title` (a title page to
 open, by id), `query` (a search to run), `page` (a page over the destination, by its route:
-`settings`, `settings/playback`, `settings/sources`), `watched` (`900006:8`, or several titles joined by `/`),
-and `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
+`settings`, `settings/playback`, `settings/sources`, `downloads`), `watched` (`900006:8`, or
+several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), `notify`
+(any value: two new-episode notifications posted), and
+`sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
 own. A debug build of either flavour says `ANISTREAM_READY` in the log, tag
 `anistream`, once its screens have what they asked for.
+
+The engine downloads torrents only, and no fixture has one, so the `downloads` extra seeds the
+queue instead (`seed_fixture_downloads`): episode 6 of 900001 finished, its file the fixtures'
+clip (`app/src/fixtures/assets/fixture-download.mkv`, ffmpeg's test pattern from
+`scripts/fixture-clip.sh`) copied into the app's download folder, so it plays offline; episode 7
+running; episode 3 of 900002 waiting. `shots.sh phone watching:downloads=1+page=downloads` shoots
+the Downloads screen, and `page=settings/downloads` the storage meter.
+
+### Checking downloads on a phone
+
+The real transfer, the download job and Wi-Fi only need a torrent source, which only a phone with
+its own VPN and index has:
+
+1. Build and install the app flavour: `android/scripts/engine.sh release`, then
+   `cd android && ./gradlew assembleAppDebug` and
+   `adb install -r app/build/outputs/apk/app/debug/app-app-debug.apk`.
+2. With the phone's VPN on, open Settings › Sources, turn on Torrent source, pick VPN on this
+   device, enter the torrent index, and Turn on. Wait for Last check to say Passed.
+3. On a title page, long-press an episode and pick Download. Downloads lists it as Queued, then
+   running, with its speed and the time left.
+4. The download notification is up. `adb shell dumpsys jobscheduler | grep -A4 tv.anistream.app`
+   shows the job, user-initiated, running.
+5. Lock the phone for ten minutes, or switch to another app: the download goes on and the
+   notification moves.
+6. With Wi-Fi only on (Settings › Downloads), turn Wi-Fi off: the download waits. Turn it on: it
+   goes on.
+7. Once done, the row says Downloaded with its size, the job ends and its notification goes. The
+   file is under `/sdcard/Android/data/tv.anistream.app/files/Movies`
+   (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
+8. In flight mode, play it from Downloads.
+
+Launcher shortcuts and notifications open the activity on an app link, on an explicit intent, in
+any build: `anistream://open/search`, `…/downloads`, `…/title/<id>`, `…/continue/<id>` (the title
+page, then the episode Continue would play) and `…/play/<id>/<episode>`. The frame follows each
+through the app's own navigation (`AppLinks.kt`). Search and Downloads are static shortcuts,
+written into each variant's resources from `app/shortcuts.xml` with its package; "Continue
+<title>" is published from the Continue queue as its first playable title changes.
+
+```sh
+adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
+```
+
+New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on
+a network with the battery not low, while Settings' "New episode notifications" is on; turning it
+on is the one time the app asks to post notifications. The job asks the engine for what aired
+(`CheckNewEpisodes`), on the app's engine when it runs and otherwise on one started for the job
+with every background switch off (`BackgroundEngine`), and posts one notification per episode on
+the "New episodes" channel, grouped under a summary when there are several, with Play (an app
+link) and Mark watched (the app's own receiver). Until the engine has the check, the row is left
+out and the job does nothing. The fixtures' `notify` extra posts two, for a look at the shade:
+
+```sh
+adb shell pm grant tv.anistream.fixtures android.permission.POST_NOTIFICATIONS
+adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es notify 1
+```
+
+## On your own phone
+
+```sh
+android/scripts/install.sh
+```
+
+`install.sh` builds the app flavour's release, signed with the release key, installs it over the
+anistream already on the phone, keeping its data, and opens it. It ends by printing the version it
+installed and the signing certificate's SHA-256, which is public. The first run builds the engine
+in the release profile, which takes a while; later runs reuse it.
+
+- **The phone:** turn on Developer options (Settings › About phone, tap Build number seven times),
+  then Settings › System › Developer options › USB debugging. Connect it by USB and accept "Allow
+  USB debugging?" for this computer. The script takes the one phone `adb devices -l` lists,
+  emulators aside; with several, `ANDROID_SERIAL=<serial>` picks one. `--apk <file>` installs an
+  APK built already.
+- **The key:** the four `ANISTREAM_RELEASE_*` properties in `~/.gradle/gradle.properties` name the
+  keystore, its alias and their passwords. Without them the release is unsigned, and the script
+  stops before installing.
+- **Keep the release key backed up, somewhere other than this Mac.** An update installs only over
+  a build signed with the same key, and AniList's sign-in comes back on an App Link verified
+  against it. Losing it means uninstalling anistream from every phone that has it, which deletes
+  its downloads and sign-ins there, and verifying a new key for the App Link.
+- A phone with a build signed by another key, a debug build for instance, refuses the update. The
+  script says so, and leaves the uninstall to you.
 
 ## Tests
 

@@ -9,6 +9,7 @@ import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiHost
 import tv.anistream.engine.ffi.FfiScene
 import tv.anistream.engine.ffi.FfiStart
+import tv.anistream.engine.ffi.seedFixtureDownloads
 
 /** The testing engine on [scene]. */
 internal fun startFixtures(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine =
@@ -18,8 +19,10 @@ internal fun startFixtures(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, st
  * The testing engine on [scene], through the engine's scenes: the fake AniList answering at the
  * real time, with its art, and the scene's history seeded in the database first.
  */
-internal fun startScene(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine =
-    FfiEngine.startScene(dirs, host, scene.ffi(), start)
+internal fun startScene(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine {
+    fixtureDownloadClip?.let { seedFixtureDownloads(dirs, it) }
+    return FfiEngine.startScene(dirs, host, scene.ffi(), start)
+}
 
 /** The engine's own scene for [this]. */
 private fun FixtureScene.ffi(): FfiScene = when (this) {
@@ -32,6 +35,13 @@ private fun FixtureScene.ffi(): FfiScene = when (this) {
 /** What the Playing scene streams: the fixtures' `media` extra, set at launch. */
 @Volatile
 var fixtureMedia: String = ""
+
+/**
+ * The file the fixture downloads' finished episode plays, when the fixtures' `downloads` extra
+ * asked for them: a finished one, one running and one waiting are seeded before the scene starts.
+ */
+@Volatile
+var fixtureDownloadClip: String? = null
 
 /** Whether this build has the testing engine in it. */
 const val HAS_TESTING_ENGINE = true

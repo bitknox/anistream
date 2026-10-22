@@ -79,6 +79,15 @@ data class ContinueQueue(
     val all: List<ContinueItem> get() = inProgress + newThisWeek
     val isEmpty: Boolean get() = inProgress.isEmpty() && newThisWeek.isEmpty()
 
+    /** The row Continue leads with, as its hero: the first under way, else the newest out. */
+    val lead: ContinueItem? get() = inProgress.firstOrNull() ?: newThisWeek.firstOrNull()
+
+    /**
+     * The first row with an episode out to play, in Continue's order: what the launcher's
+     * Continue shortcut plays.
+     */
+    val nextUp: ContinueItem? get() = all.firstOrNull { it.playable }
+
     companion object {
         /** At most this many rows: Continue is a shortlist, not a second library. */
         const val ROWS = 5

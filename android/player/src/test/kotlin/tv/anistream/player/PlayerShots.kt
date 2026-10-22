@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -23,6 +24,7 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
@@ -48,6 +50,9 @@ class PlayerShots {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    /** The model's clock, held where a shot puts it. */
+    private var time = 0L
+
     @After
     fun tearDown() = scope.cancel()
 
@@ -56,6 +61,29 @@ class PlayerShots {
     fun phone_player() = shoot("phone-player") { model, mpv ->
         mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(151.0)))
         model.apply(Event.PlayerUi(1u, PlayerUi.Skip(SkipKind.OPENING, 220.0)))
+    }
+
+    /** AndroidPlayerUpNext: the ending under way at 21:33, Up Next two seconds into its countdown, the controls hidden. */
+    @Test
+    fun phone_player_up_next() = shoot("phone-player-up-next") { model, mpv ->
+        model.apply(
+            Event.PlayerUi(
+                1u,
+                PlayerUi.UpNext(NextEpisode("8", "A Town Without Night", "${FixtureArt.HOST}ep/900001/8.jpg"), true, 1291.0, 10u, 3u),
+            ),
+        )
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(1293.0)))
+        model.hideControls()
+    }
+
+    /** Waiting for data mid-episode, the controls hidden: the buffering line along the video's top edge. */
+    @Test
+    fun phone_player_buffering() = shoot("phone-player-buffering") { model, mpv ->
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(612.0)))
+        mpv.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
+        time = 1_500
+        model.hideControls()
+        check(model.showsBuffering) { "the shot is of a buffering player" }
     }
 
     /** The starting screen (T2): the banner art under the dim, the indicator and its line, before the first frame. */
@@ -73,7 +101,7 @@ class PlayerShots {
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         var mpv: ScriptedMpv? = null
         // The clock held, so the controls stay up for the shot as after a tap.
-        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { 0L }, hwdec = "no")
+        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { time }, hwdec = "no")
         compose.runOnUiThread {
             model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
             model.apply(Event.PlayerOps(1u, listOf(PlayerOp.Open(true, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))))
@@ -84,7 +112,8 @@ class PlayerShots {
         val still = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
         compose.setContent {
             AnistreamTheme {
-                CompositionLocalProvider(LocalAppStore provides store) {
+                // As a preview draws it: what moves for ever, such as the buffering line, as a still.
+                CompositionLocalProvider(LocalAppStore provides store, LocalInspectionMode provides true) {
                     PlayerScreen(model, video = { _, modifier, _ ->
                         Image(still, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier)
                     })
@@ -101,8 +130,8 @@ class PlayerShots {
             m.emit(MpvEvent.property("video-params", MpvValue.parse("""{"w":1920,"h":1080,"dw":1920,"dh":1080}""")!!))
             m.emit(MpvEvent.property("chapter-list", MpvValue.parse(CHAPTERS)!!))
             if (picture) m.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
-            at(model, m)
             model.poke()
+            at(model, m)
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()

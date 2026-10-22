@@ -89,6 +89,11 @@ struct HomeTests {
         // The registered clients, on every platform.
         #expect(launch.record.anilistClientId == "54537")
         #expect(launch.record.malClientId == "0ccc4725381aca9513f26d32107a94cd")
+        #expect(launch.record.simklClientId == "016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b")
+        #expect(launch.record.traktClientId == "p2yWSSGe7aVAlnHEMiQQh0RhiL6ivZfJNaubOJi4DZE")
+        #expect(launch.record.traktClientSecret == nil, "Trakt's client has no secret")
+        #expect(launch.record.anilistRedirectUri == nil && launch.record.malRedirectUri == nil,
+                "the app's own scheme")
         let phone = EngineLaunch.app(home: launch.home, platform: .ios)
         #expect(phone.record.anilistClientId == "54537" && phone.record.malClientId == EngineLaunch.malClient)
         launch.anilistClientID = "4242"

@@ -1035,7 +1035,8 @@ pub struct MalAuthConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct DeviceAuthConfig {
     pub client_id: Option<String>,
-    /// Trakt requires this on the token exchange; Simkl does not use one at all.
+    /// Trakt requires this on the token exchange. Simkl wants one only from an app registered
+    /// as a server app; a device or command-line app has none.
     pub client_secret: Option<String>,
 }
 

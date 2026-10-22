@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -30,7 +31,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExpandedFullScreenSearchBar
@@ -121,9 +121,13 @@ private fun searchDetail(entry: Entry): String? {
     return listOfNotNull(formatLabel(entry.format), season).joinToString(" · ").ifEmpty { null }
 }
 
+/**
+ * Search. [open] asks for the field to open for typing as the screen shows, as a link to Search
+ * does; [opened] says it has, so coming back later leaves the screen as it was.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(startQuery: String? = null) {
+fun SearchScreen(startQuery: String? = null, open: Boolean = false, opened: () -> Unit = {}) {
     val store = LocalAppStore.current
     val context = LocalContext.current
     val recents = remember { RecentSearches(context) }
@@ -143,6 +147,14 @@ fun SearchScreen(startQuery: String? = null) {
         }
         store.search(query.trim(), with)
         scope.launch { bar.animateToCollapsed() }
+    }
+
+    LaunchedEffect(open) {
+        // Said once it is open: saying it first would restart this and stop the opening.
+        if (open) {
+            bar.animateToExpanded()
+            opened()
+        }
     }
 
     LaunchedEffect(startQuery) {
@@ -221,7 +233,7 @@ private fun SearchStart(recent: List<String>, onRecent: (String) -> Unit, onGenr
                         Text(
                             query,
                             style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.fillMaxWidth().height(48.dp).clickable { onRecent(query) }.padding(vertical = 12.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { onRecent(query) }.padding(vertical = 12.dp),
                         )
                     }
                 }
@@ -231,7 +243,7 @@ private fun SearchStart(recent: List<String>, onRecent: (String) -> Unit, onGenr
             item(span = { GridItemSpan(maxLineSpan) }, key = "season-heading") { StartHeading("This season") }
             item(span = { GridItemSpan(maxLineSpan) }, key = "season") {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                    items(season, key = { it.id.toLong() }) { PosterCell(it, Modifier.width(104.dp), from = "search-season") }
+                    items(season, key = { it.id.toLong() }) { PosterCell(it, itemMotion().width(104.dp), from = "search-season") }
                 }
             }
         }
@@ -256,12 +268,12 @@ private fun StartHeading(text: String) {
 private fun OutlinedChip(text: String, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
-    Box(Modifier.height(48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.heightIn(min = 48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Text(
             text,
             style = MaterialTheme.typography.labelMedium,
             color = colors.onSurfaceVariant,
-            modifier = Modifier.height(32.dp).clip(shape).border(1.dp, colors.outline, shape).padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.heightIn(min = 32.dp).clip(shape).border(1.dp, colors.outline, shape).padding(horizontal = 16.dp, vertical = 8.dp),
         )
     }
 }
@@ -276,10 +288,10 @@ private fun Filters(filters: SearchFilters, onChange: (SearchFilters) -> Unit) {
             val value = filter.value(filters)
             val chosen = filter.choices.firstOrNull { it.first == value }?.second
             val shape = MaterialTheme.shapes.small
-            Box(Modifier.height(48.dp).clickable { open = true }.semantics { contentDescription = "${filter.label}: ${chosen ?: "any"}" }, contentAlignment = Alignment.Center) {
+            Box(Modifier.heightIn(min = 48.dp).clickable { open = true }.semantics { contentDescription = "${filter.label}: ${chosen ?: "any"}" }, contentAlignment = Alignment.Center) {
                 Row(
                     Modifier
-                        .height(32.dp)
+                        .heightIn(min = 32.dp)
                         .clip(shape)
                         .then(if (chosen != null) Modifier.background(colors.primaryContainer) else Modifier.border(1.dp, colors.outline, shape))
                         .padding(start = if (chosen != null) 8.dp else 16.dp, end = 8.dp),
@@ -291,7 +303,7 @@ private fun Filters(filters: SearchFilters, onChange: (SearchFilters) -> Unit) {
                     Text(chosen ?: filter.label, style = MaterialTheme.typography.labelMedium, color = content)
                     Icon(Icons.Down, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
                 }
-                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                Menu(expanded = open, onDismissRequest = { open = false }) {
                     DropdownMenuItem(text = { Text("Any") }, onClick = { open = false; onChange(filter.with(filters, null)) })
                     for ((key, label) in filter.choices) {
                         DropdownMenuItem(
@@ -323,7 +335,7 @@ private fun Results(query: String) {
             is ListState.Loaded -> {
                 val (yours, rest) = list.ids.mapNotNull { titles[it] }.partition { it.listStatus != null }
                 PosterGrid(grid) {
-                    items(yours + rest, key = { it.id.toLong() }) { PosterCell(it, from = "search", detail = searchDetail(it)) }
+                    items(yours + rest, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "search", detail = searchDetail(it)) }
                 }
             }
             is ListState.Failed -> Quiet(list.reason)

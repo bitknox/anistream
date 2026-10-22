@@ -92,6 +92,34 @@ impl FfiEngine {
     }
 }
 
+/// Downloads for the Downloads screen to show, seeded into the database at `dirs` before a scene
+/// starts on it: episode 6 of the finished fixture downloaded, its file `clip` (a real file on
+/// the device, which plays offline), episode 7 of it 40% in, and episode 3 of the airing one
+/// waiting. The engine's downloads are torrents, which no fixture has, so this is how a build
+/// shows them without one.
+///
+/// Only in a build with the `testing` feature, which an app never turns on.
+#[uniffi::export]
+pub fn seed_fixture_downloads(dirs: FfiDirs, clip: String) -> Result<(), FfiError> {
+    let opened = Opened::open(&dirs)?;
+    let size = std::fs::metadata(&clip)
+        .map_err(|e| FfiError::Dirs { reason: format!("{clip}: {e}") })?
+        .len();
+    seed_downloads(&opened.store, &clip, size)
+        .map_err(|e| FfiError::Store { reason: format!("seeding the downloads: {e}") })
+}
+
+/// The three rows [`seed_fixture_downloads`] seeds, the finished one at `clip`, `size` bytes.
+fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Result<()> {
+    use anistream_store::DownloadState;
+    let done = seed::download(store, FINISHED, "6", DownloadState::Done);
+    store.update_download_progress(done.id, size, size, Some(clip))?;
+    store.finish_download(done.id, Some(clip))?;
+    seed::download(store, FINISHED, "7", DownloadState::Active);
+    seed::download(store, AIRING, "3", DownloadState::Queued);
+    Ok(())
+}
+
 /// The scene's sources, for a scene that plays: the test kit's fixture provider, its stills
 /// under `art`, streaming `media`. `None` for the others, which have the fixture provider as
 /// [`FfiEngine::start_testing`] has it.
@@ -206,6 +234,22 @@ mod tests {
             scene_sources(&scene, "http://127.0.0.1:9/art/").expect("a scene that plays");
         assert_eq!(playing.ids(), [sources::PROVIDER_ID]);
         assert!(scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/").is_none());
+    }
+
+    #[test]
+    fn the_fixture_downloads_are_one_finished_at_the_clip_one_running_and_one_waiting() {
+        use anistream_store::DownloadState;
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let store = Store::open(dir.path().join("anistream.db")).expect("a database");
+        seed_downloads(&store, "/sdcard/clip.mkv", 2_048).expect("seeded");
+        let rows = store.downloads().expect("the queue");
+        let states: Vec<_> = rows.iter().map(|row| (row.episode.as_str(), row.state)).collect();
+        assert!(states.contains(&("6", DownloadState::Done)), "{states:?}");
+        assert!(states.contains(&("7", DownloadState::Active)), "{states:?}");
+        assert!(states.contains(&("3", DownloadState::Queued)), "{states:?}");
+        let done = rows.iter().find(|row| row.episode == "6").expect("the finished one");
+        assert_eq!(done.path.as_deref(), Some("/sdcard/clip.mkv"));
+        assert_eq!((done.downloaded, done.total), (2_048, 2_048));
     }
 
     #[test]

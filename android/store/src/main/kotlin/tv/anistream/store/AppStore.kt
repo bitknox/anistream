@@ -106,12 +106,19 @@ class AppStore(
 
     // The engine
 
-    /** Start the engine [launch] describes with [host], off the main thread, and read its events. */
-    fun start(launch: EngineLaunch, host: FfiHost) {
+    /**
+     * Start the engine [launch] describes with [host], off the main thread, and read its events.
+     * [prepare] runs first, on the same thread: the first call into the engine's library, which
+     * loads it and JNA, so that never happens on the main thread.
+     */
+    fun start(launch: EngineLaunch, host: FfiHost, prepare: () -> Unit = {}) {
         _phase.value = Phase.Starting
         scope.launch {
             try {
-                val engine = withContext(Dispatchers.IO) { launch.start(host) }
+                val engine = withContext(Dispatchers.IO) {
+                    traced("prepare") { prepare() }
+                    traced("engine start") { launch.start(host) }
+                }
                 attach(engine)
             } catch (e: FfiException) {
                 _phase.value = Phase.Failed(e.reason)
@@ -258,6 +265,53 @@ class AppStore(
         send(Command.LoadDownloads)
     }
 
+    /** Queue [episode] of [id] for download. */
+    fun downloadEpisode(id: AnilistId, episode: String) {
+        send(Command.DownloadEpisode(id, episode))
+    }
+
+    /** Pause a download, or resume it. */
+    fun toggleDownload(id: Long) {
+        send(Command.DownloadPause(id))
+    }
+
+    /** Take a download off the queue, keeping a finished file. */
+    fun cancelDownload(id: Long) {
+        send(Command.DownloadCancel(id))
+    }
+
+    /** Take a download off the queue and delete its file. */
+    fun deleteDownload(id: Long) {
+        send(Command.DownloadDelete(id))
+    }
+
+    fun clearCompletedDownloads() {
+        send(Command.DownloadClearCompleted)
+    }
+
+    /** Pause every download that runs or waits. */
+    fun pauseAllDownloads() {
+        for (row in downloads.rows.value) {
+            if (row.state == tv.anistream.engine.model.DownloadState.ACTIVE || row.state == tv.anistream.engine.model.DownloadState.QUEUED) toggleDownload(row.id)
+        }
+    }
+
+    /** Resume every paused download. */
+    fun resumeAllDownloads() {
+        for (row in downloads.rows.value) if (row.state == tv.anistream.engine.model.DownloadState.PAUSED) toggleDownload(row.id)
+    }
+
+    /** Play a finished download from its file, with the history, resume and sync a stream has. */
+    fun playDownload(row: tv.anistream.engine.model.DownloadRow) {
+        val path = row.path ?: return
+        send(Command.PlayLocal(row.anilistId, row.episode, row.title, path))
+    }
+
+    /** The device's network, as the system says it: cellular, and Data Saver as constrained. */
+    fun networkPath(cellular: Boolean, constrained: Boolean) {
+        send(Command.NetworkPath(cellular, constrained))
+    }
+
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
@@ -340,6 +394,21 @@ class AppStore(
 
     // Sources
 
+    /**
+     * Protect torrent traffic with [mode], through [proxy] when it is one, and have a failed
+     * connection check do [onFailure]: written as one change, the proxy's password to the
+     * keystore-sealed secrets and never to the file. No protection and warn only need
+     * [acknowledged], the viewer having confirmed it.
+     */
+    fun setTorrentProtection(
+        mode: tv.anistream.engine.model.TorrentProtection,
+        proxy: tv.anistream.engine.model.TorrentProxy?,
+        onFailure: tv.anistream.engine.model.FailedCheck,
+        acknowledged: Boolean,
+    ) {
+        send(Command.SetTorrentProtection(mode, proxy, onFailure, acknowledged))
+    }
+
     /** Check every provider again. */
     fun checkProviders() {
         send(Command.CheckProviders)
@@ -360,12 +429,34 @@ class AppStore(
 
     /** Install [plugin] from [store], or update it. */
     fun installPlugin(store: String, plugin: String) {
-        send(Command.InstallPlugin(store, plugin))
+        stores.started(StoresModel.Work.Install(store, plugin), send(Command.InstallPlugin(store, plugin)))
     }
 
     /** Delete an installed plugin from this device. */
     fun removePlugin(plugin: String) {
-        send(Command.RemovePlugin(plugin))
+        stores.started(StoresModel.Work.Remove(plugin), send(Command.RemovePlugin(plugin)))
+    }
+
+    /** Check a pasted invite link against the store it names, before spending it. */
+    fun previewStore(link: String) {
+        val trimmed = link.trim()
+        stores.checking(trimmed)
+        send(Command.PreviewStore(trimmed))
+    }
+
+    /** Spend an invite link for a token and join. */
+    fun joinStore(link: String) {
+        stores.started(StoresModel.Work.Join, send(Command.JoinStore(link.trim())))
+    }
+
+    /** Forget [store] and revoke this device's token there. */
+    fun leaveStore(store: String) {
+        stores.started(StoresModel.Work.Leave(store), send(Command.LeaveStore(store)))
+    }
+
+    /** An invite link: for someone new with a [name], for another device of yours without. */
+    fun createInvite(store: String, name: String?) {
+        stores.started(StoresModel.Work.Invite(store), send(Command.CreateInvite(store, name)))
     }
 
     /** Pin [provider] as the source for title [id], or give the title back to automatic with `null`. */
@@ -408,7 +499,7 @@ class AppStore(
 
     // Applying
 
-    fun apply(events: List<Event>) {
+    fun apply(events: List<Event>) = traced("apply ${events.size} events") {
         for (event in events) apply(event)
         lastApplied = clock()
         onApplied?.invoke(events)
@@ -421,6 +512,7 @@ class AppStore(
             is Event.JobDone -> {
                 jobs.done(event.v1)
                 accounts.done(event.v1)
+                stores.done(event.v1)
                 detailDone(event.v1)
             }
 
@@ -452,7 +544,11 @@ class AppStore(
             is Event.Vpn -> providers.guardSaid(event.v1)
             is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
+            is Event.StorePreview -> stores.previewed(event.v1)
+            is Event.StoreJoined -> stores.joined(event.store)
+            is Event.InviteLink -> stores.invited(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
+            is Event.Seeding -> downloads.seeding(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)

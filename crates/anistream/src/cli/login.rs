@@ -221,13 +221,11 @@ async fn login_device(
     endpoints: anistream_track::DeviceEndpoints,
     http: &HttpClient,
 ) -> Result<()> {
-    let (client_id, client_secret) = match tracker {
-        "simkl" => (config.trackers.simkl.client_id.clone(), None),
-        _ => (
-            config.trackers.trakt.client_id.clone(),
-            config.trackers.trakt.client_secret.clone(),
-        ),
+    let auth = match tracker {
+        "simkl" => &config.trackers.simkl,
+        _ => &config.trackers.trakt,
     };
+    let (client_id, client_secret) = (auth.client_id.clone(), auth.client_secret.clone());
     let Some(client_id) = client_id.filter(|id| !id.trim().is_empty()) else {
         anyhow::bail!(
             "set trackers.{tracker}.client_id in your config first — register an app at {}",
@@ -240,9 +238,8 @@ async fn login_device(
     };
 
     let plain = http.plain().clone();
-    let code = anistream_track::device::request_code(&plain, &endpoints, &client_id)
-        .await
-        .with_context(|| format!("requesting a {tracker} device code"))?;
+    // No context added: each error is already one sentence naming the service and what it said.
+    let code = anistream_track::device::request_code(&plain, &endpoints, &client_id).await?;
 
     // Printed rather than only opened: over SSH the browser that opens is on the wrong machine, and
     // the code is the only thing the user actually needs.
@@ -263,13 +260,11 @@ async fn login_device(
 
     let pair = anistream_track::device::poll_for_token(
         &plain,
-        &endpoints,
         &client_id,
         client_secret.as_deref(),
         &code,
     )
-    .await
-    .with_context(|| format!("{tracker} sign-in"))?;
+    .await?;
 
     let tokens = tracking::token_store(config, paths);
     lift_reauth_hold(tracker);
@@ -277,10 +272,15 @@ async fn login_device(
         .set_pair(tracker, &pair.access, pair.refresh.as_deref(), pair.expires_at)
         .with_context(|| format!("storing the {tracker} token"))?;
     println!("signed in to {tracker} — token in the {}", storage.describe());
-    if pair.refresh.is_none() {
-        // Worth saying: without one, this token cannot be renewed and a re-sign-in is eventually
-        // required. Simkl's do not expire, so there is nothing to renew.
-        println!("no refresh token issued (Simkl's tokens do not expire)");
+    match (&pair.refresh, pair.expires_at) {
+        // Simkl's OAuth 2.0 tokens last a week, and its tracker renews them before then.
+        (Some(_), Some(_)) if tracker == "simkl" => {
+            println!("it lasts a week and is renewed automatically before it runs out");
+        }
+        // Worth saying: without a refresh token, a token that runs out needs a new sign-in.
+        (None, Some(_)) => println!("no refresh token issued: sign in again when it runs out"),
+        // Simkl's PIN flow, for an app registered before its OAuth 2.0, never runs out.
+        _ => {}
     }
     Ok(())
 }

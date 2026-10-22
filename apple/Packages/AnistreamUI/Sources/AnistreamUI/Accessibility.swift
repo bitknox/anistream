@@ -216,10 +216,12 @@ struct TitleActions: View {
 /// Every notice said aloud as it is posted, an alert at high priority.
 struct NoticeAnnouncer: ViewModifier {
     @Environment(AppStore.self) private var store
+    /// Off where the notice is shown elsewhere, so it is read once.
+    var enabled = true
 
     func body(content: Content) -> some View {
         content.onChange(of: store.notices.current?.id) { _, id in
-            guard id != nil, let item = store.notices.current else { return }
+            guard enabled, id != nil, let item = store.notices.current else { return }
             var words = AttributedString(item.notice.text.capitalizedSentence)
             words.accessibilitySpeechAnnouncementPriority = item.isAlert ? .high : .default
             AccessibilityNotification.Announcement(words).post()

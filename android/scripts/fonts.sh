@@ -8,8 +8,12 @@
 # Both are under the SIL Open Font License 1.1. The licences ship in the APK beside the fonts, as
 # assets under licences/.
 #
-#   android/scripts/fonts.sh            fetch them unless they are there
-#   android/scripts/fonts.sh --check    fail unless they are there, as Gradle's preBuild asks
+#   android/scripts/fonts.sh            fetch them unless they are there, as Gradle's preBuild does
+#   android/scripts/fonts.sh --check    fail unless they are there
+#
+# A fetch keeps a copy in a cache every worktree shares, $ANISTREAM_FONTS_CACHE or
+# ~/.cache/anistream-fonts, by the pinned commit, so a new worktree takes them from there with no
+# network; each file is checked against its SHA-256 wherever it comes from.
 #
 # What it writes, which the :design module reads as a resource and an asset directory:
 #
@@ -52,10 +56,18 @@ if [[ "${1:-}" == --check ]]; then
   exit 1
 fi
 
+cache="${ANISTREAM_FONTS_CACHE:-$HOME/.cache/anistream-fonts}/$commit"
 rm -rf "$out.partial"
+from=cache
 for entry in "${files[@]}"; do
   IFS='|' read -r path source sha <<<"$entry"
   mkdir -p "$(dirname "$out.partial/$path")"
+  # The shared copy when it is whole, else the pinned commit on GitHub.
+  if [[ -f "$cache/$path" && "$(shasum -a 256 "$cache/$path" | cut -d' ' -f1)" == "$sha" ]]; then
+    cp "$cache/$path" "$out.partial/$path"
+    continue
+  fi
+  from=network
   curl -fsSL --retry 3 --max-time 300 -o "$out.partial/$path" "$base/$source"
   if [[ "$(shasum -a 256 "$out.partial/$path" | cut -d' ' -f1)" != "$sha" ]]; then
     rm -rf "$out.partial"
@@ -65,4 +77,10 @@ for entry in "${files[@]}"; do
 done
 rm -rf "$out"
 mv "$out.partial" "$out"
-echo "fonts.sh: fetched Roboto Flex and Zen Kaku Gothic New into $out"
+if [[ "$from" == network ]]; then
+  # Kept for the next worktree; a copy that cannot be written costs nothing but the next fetch.
+  { mkdir -p "$cache" && cp -R "$out/." "$cache/"; } 2>/dev/null || true
+  echo "fonts.sh: fetched Roboto Flex and Zen Kaku Gothic New into $out"
+else
+  echo "fonts.sh: took Roboto Flex and Zen Kaku Gothic New from $cache into $out"
+fi

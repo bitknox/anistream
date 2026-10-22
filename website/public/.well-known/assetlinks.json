@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "tv.anistream.app",
+      "sha256_cert_fingerprints": [
+        "4D:66:4A:AB:A3:15:8B:C1:C0:27:81:34:3A:2C:E2:F2:9E:E2:8E:9A:64:10:C9:4F:F1:89:A2:5D:2D:4C:9F:95"
+      ]
+    }
+  }
+]

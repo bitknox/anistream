@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,7 +26,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -97,7 +97,7 @@ fun LibraryScreen(actions: AppActions) {
                     androidx.compose.material3.IconButton(onClick = { sorting = true }) {
                         Icon(Icons.Sort, contentDescription = "Sort: ${sort.label}")
                     }
-                    DropdownMenu(expanded = sorting, onDismissRequest = { sorting = false }) {
+                    Menu(expanded = sorting, onDismissRequest = { sorting = false }) {
                         for (each in LibrarySort.entries) {
                             DropdownMenuItem(
                                 text = { Text(each.label) },
@@ -150,7 +150,7 @@ fun LibraryScreen(actions: AppActions) {
                     Quiet("Nothing on your ${segment.label} list")
                 }
                 is ListState.Loaded -> items(entries, key = { it.id.toLong() }) { entry ->
-                    PosterCell(entry, from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
+                    PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
                 }
                 else -> items(9) { AfterWait { PosterPlaceholder() } }
             }
@@ -174,10 +174,12 @@ private fun hasNew(entry: Entry): Boolean {
 /** The Downloads row, which opens the Downloads page (A2), with what they take on this device. */
 @Composable
 private fun DownloadsRow(detail: String, inset: Boolean = true) {
+    val navigator = LocalNavigator.current
     Row(
         Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .heightIn(min = 72.dp)
+            .clickable { navigator.open(DOWNLOADS_ROUTE) }
             .padding(horizontal = if (inset) 16.dp else 0.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -195,10 +197,10 @@ private fun DownloadsRow(detail: String, inset: Boolean = true) {
 private fun SegmentChip(segment: LibrarySegment, count: Int, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
-    Box(Modifier.height(48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.heightIn(min = 48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Row(
             Modifier
-                .height(32.dp)
+                .heightIn(min = 32.dp)
                 .clip(shape)
                 .then(if (selected) Modifier.background(colors.primaryContainer) else Modifier.border(1.dp, colors.outline, shape))
                 .padding(start = if (selected) 8.dp else 16.dp, end = 16.dp),

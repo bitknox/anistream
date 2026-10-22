@@ -77,3 +77,27 @@ class SignInTest {
         assertEquals(listOf(row), store.accounts.conflicts.value)
     }
 }
+
+/** Which AniList client the app flavour signs in with, before and after the Android one is registered. */
+class AniListClientTest {
+    @Test
+    fun until_the_android_client_is_registered_the_shared_one_comes_back_on_the_scheme() {
+        assertEquals(AniListClient("54537", null), EngineLaunch.aniListClient(null))
+        assertEquals(AniListClient("54537", null), EngineLaunch.aniListClient(" "))
+        val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")), androidAniListClientId = null)
+        assertEquals("54537", launch.record.anilistClientId)
+        assertNull(launch.record.anilistRedirectUri)
+    }
+
+    @Test
+    fun once_it_is_registered_it_comes_back_on_the_verified_app_link() {
+        assertEquals(AniListClient("61234", "https://anistream.tv/auth/anilist"), EngineLaunch.aniListClient("61234"))
+        val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")), androidAniListClientId = "61234")
+        assertEquals("61234", launch.record.anilistClientId)
+        assertEquals("https://anistream.tv/auth/anilist", launch.record.anilistRedirectUri)
+        // MyAnimeList keeps the scheme, and Simkl and Trakt their device codes.
+        assertNull(launch.record.malRedirectUri)
+        assertEquals(EngineLaunch.TRAKT_CLIENT_ID, launch.record.traktClientId)
+        assertNull(launch.record.traktClientSecret)
+    }
+}

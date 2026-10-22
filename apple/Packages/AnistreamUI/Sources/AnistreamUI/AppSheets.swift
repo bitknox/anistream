@@ -10,23 +10,13 @@ struct AppSheets: ViewModifier {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @Environment(\.webSignIn) private var webSignIn
-    /// The code the viewer closed, so it does not come straight back.
-    @State private var closedCode: String?
 
     func body(content: Content) -> some View {
         @Bindable var navigator = navigator
         content
-            .sheet(item: Binding<DeviceCodeItem?>(
-                get: {
-                    guard let prompt = store.accounts.deviceCode, prompt.code != closedCode else { return nil }
-                    return DeviceCodeItem(prompt: prompt)
-                },
-                set: { (item: DeviceCodeItem?) in
-                    if item == nil { closedCode = store.accounts.deviceCode?.code }
-                }
-            )) { item in
-                DeviceCodeSheet(prompt: item.prompt)
-            }
+            // Over the iPhone's Settings sheet, the sheet itself shows the code: a window shows
+            // one sheet at a time.
+            .modifier(DeviceCodePresenter(here: navigator.phoneSettings == nil))
             .sheet(item: Binding<InviteItem?>(
                 get: { navigator.invite.map(InviteItem.init) },
                 set: { (item: InviteItem?) in navigator.invite = item?.link }
@@ -51,6 +41,32 @@ struct AppSheets: ViewModifier {
                     store.cancelSignIn(request)
                 }
             }
+    }
+}
+
+/// A sign-in code to type on another device, Simkl's or Trakt's, as a sheet over the view, while
+/// `here` says this is where it shows. Closed, the same code does not come straight back.
+struct DeviceCodePresenter: ViewModifier {
+    @Environment(AppStore.self) private var store
+    let here: Bool
+    /// The code the viewer closed.
+    @State private var closedCode: String?
+
+    func body(content: Content) -> some View {
+        content.sheet(item: Binding<DeviceCodeItem?>(
+            get: {
+                guard here, let prompt = store.accounts.deviceCode, prompt.code != closedCode else { return nil }
+                return DeviceCodeItem(prompt: prompt)
+            },
+            set: { (item: DeviceCodeItem?) in
+                if item == nil { closedCode = store.accounts.deviceCode?.code }
+            }
+        )) { item in
+            DeviceCodeSheet(prompt: item.prompt)
+                #if os(iOS)
+                .presentationDetents([.medium])
+                #endif
+        }
     }
 }
 

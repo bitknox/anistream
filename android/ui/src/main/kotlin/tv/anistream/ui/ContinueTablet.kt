@@ -5,11 +5,15 @@
 package tv.anistream.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,40 +24,52 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDragHandle
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
+import androidx.compose.material3.adaptive.layout.PaneExpansionAnchor
+import androidx.compose.material3.adaptive.layout.rememberPaneExpansionState
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -64,32 +80,100 @@ import tv.anistream.design.ArtShape
 import tv.anistream.design.Motion
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
+import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.store.ContinueItem
 import tv.anistream.store.ContinueQueue
-import tv.anistream.engine.model.LibrarySegment
+
+/**
+ * What the queue keeps through a fold, a turn or a resize (AT3): the title selected, whether the
+ * viewer picked it, and the list's scroll. Held by Continue, above the layouts it switches
+ * between, so neither is lost when the window crosses 600 dp and back.
+ */
+@Stable
+internal class QueueState(selected: Long?, picked: Boolean, val list: LazyListState) {
+    var selected by mutableStateOf(selected)
+    /** Whether the viewer chose the selection, rather than it falling on the first title. */
+    var picked by mutableStateOf(picked)
+
+    companion object {
+        val Saver: Saver<QueueState, Any> = listSaver(
+            save = { listOf(it.selected ?: -1L, it.picked, it.list.firstVisibleItemIndex, it.list.firstVisibleItemScrollOffset) },
+            restore = {
+                QueueState(
+                    (it[0] as Long).takeIf { id -> id >= 0 },
+                    it[1] as Boolean,
+                    LazyListState(it[2] as Int, it[3] as Int),
+                )
+            },
+        )
+    }
+}
+
+@Composable
+internal fun rememberQueueState(): QueueState = rememberSaveable(saver = QueueState.Saver) {
+    QueueState(selected = null, picked = false, list = LazyListState())
+}
+
+/** Selections closer together than this, a held arrow key or a run of taps, skip the crossfade. */
+private const val QUICK_RESELECT_MILLIS = 150L
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-internal fun TabletQueue(queue: ContinueQueue, actions: AppActions) {
+internal fun TabletQueue(queue: ContinueQueue, actions: AppActions, state: QueueState) {
     val items = queue.all
-    var selected by rememberSaveable { mutableStateOf(items.firstOrNull()?.id?.toLong()) }
-    val current = items.firstOrNull { it.id.toLong() == selected } ?: items.firstOrNull() ?: return
+    val current = items.firstOrNull { it.id.toLong() == state.selected } ?: items.firstOrNull() ?: return
     val panes = rememberListDetailPaneScaffoldNavigator<Long>()
+    // The divider settles on the list's 380 or on half the content (AT2).
+    val split = rememberPaneExpansionState(
+        anchors = listOf(
+            PaneExpansionAnchor.Offset.fromStart(380.dp),
+            PaneExpansionAnchor.Proportion(0.5f),
+        ),
+    )
+    // When the selection last moved, so a quick run of them lands without the crossfade.
+    var lastPick by remember { mutableStateOf(0L) }
+    var quick by remember { mutableStateOf(false) }
     ListDetailPaneScaffold(
         directive = panes.scaffoldDirective,
         value = panes.scaffoldValue,
         modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
+        paneExpansionState = split,
+        paneExpansionDragHandle = { handle ->
+            val interaction = remember { MutableInteractionSource() }
+            VerticalDragHandle(
+                modifier = Modifier
+                    .paneExpansionDraggable(handle, LocalMinimumInteractiveComponentSize.current, interaction)
+                    .semantics { contentDescription = "Resize the queue" },
+                interactionSource = interaction,
+            )
+        },
         listPane = {
             AnimatedPane(Modifier.preferredWidth(380.dp)) {
-                QueueList(queue, current, onSelect = { selected = it.id.toLong() }, actions)
+                QueueList(
+                    queue,
+                    current,
+                    state.list,
+                    onSelect = {
+                        val now = System.nanoTime() / 1_000_000
+                        quick = now - lastPick < QUICK_RESELECT_MILLIS
+                        lastPick = now
+                        state.selected = it.id.toLong()
+                        state.picked = true
+                    },
+                    actions,
+                )
             }
         },
         detailPane = {
             AnimatedPane {
-                // The preview's content crossfades with the selection, keyed by the title.
+                // The preview's content crossfades with the selection, keyed by the title, both
+                // ways on fade-in; a quick run of selections lands at once.
                 AnimatedContent(
                     current,
-                    transitionSpec = { fadeIn(Motion.fadeIn()) togetherWith fadeOut(Motion.fadeOut()) },
+                    transitionSpec = {
+                        if (quick) EnterTransition.None togetherWith ExitTransition.None
+                        else fadeIn(Motion.fadeIn()) togetherWith fadeOut(Motion.fadeIn())
+                    },
                     contentKey = { it.id },
                     label = "preview",
                 ) { item -> QueuePreview(item, actions) }
@@ -99,20 +183,26 @@ internal fun TabletQueue(queue: ContinueQueue, actions: AppActions) {
 }
 
 @Composable
-private fun QueueList(queue: ContinueQueue, current: ContinueItem, onSelect: (ContinueItem) -> Unit, actions: AppActions) {
-    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
+private fun QueueList(
+    queue: ContinueQueue,
+    current: ContinueItem,
+    list: LazyListState,
+    onSelect: (ContinueItem) -> Unit,
+    actions: AppActions,
+) {
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
         item(key = "title") {
-            Box(Modifier.height(64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.heightIn(min = 64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Text("Continue", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
             }
         }
         if (queue.inProgress.isNotEmpty()) {
             item(key = "progress") { ListHeading("In progress") }
-            items(queue.inProgress, key = { "p-${it.id}" }) { QueueRow(it, it.id == current.id, onSelect, actions) }
+            items(queue.inProgress, key = { "p-${it.id}" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
         if (queue.newThisWeek.isNotEmpty()) {
             item(key = "new") { ListHeading("New this week", Modifier.padding(top = 16.dp)) }
-            items(queue.newThisWeek, key = { "n-${it.id}" }) { QueueRow(it, it.id == current.id, onSelect, actions) }
+            items(queue.newThisWeek, key = { "n-${it.id}" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
     }
 }
@@ -133,13 +223,23 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
     val store = LocalAppStore.current
     val navigator = LocalNavigator.current
     var menu by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    // The fill leaves the old row and arrives on the new one on quick (AT2).
+    val fill by animateColorAsState(
+        if (selected) colors.primaryContainer else colors.primaryContainer.copy(alpha = 0f),
+        Motion.quick(),
+        label = "selection",
+    )
     Row(
         Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .heightIn(min = 72.dp)
             .clip(MaterialTheme.shapes.large)
-            .background(if (selected) colors.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
-            .clickable { onSelect(item) }
+            .background(fill)
+            // Arrow keys and a D-pad walk the selection with the focus (AT2); this watches the
+            // row's own focus, so it stands ahead of it.
+            .onFocusChanged { if (it.isFocused && !selected) onSelect(item) }
+            .selectable(selected = selected, onClick = { onSelect(item) })
             .padding(start = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -179,7 +279,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
                     Icon(Icons.More, contentDescription = null)
                 }
             }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            Menu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
                     text = { Text(item.action) },
                     leadingIcon = { Icon(Icons.Play, contentDescription = null) },
@@ -189,7 +289,12 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
                 DropdownMenuItem(
                     text = { Text("Mark E${item.episode} watched") },
                     leadingIcon = { Icon(Icons.Check, contentDescription = null) },
-                    onClick = { menu = false; store.setWatched(item.id, listOf(item.episode.toString())) },
+                    onClick = {
+                        menu = false
+                        // Marked watched from the queue plays T9's toggle, as from the title page.
+                        haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                        store.setWatched(item.id, listOf(item.episode.toString()))
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Go to title") },
@@ -246,26 +351,27 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
                 )
             }
         }
-        Row(Modifier.padding(top = 16.dp).height(56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = 16.dp).heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(
                 onClick = { actions.play(item.id, item.episode.toString()) },
                 enabled = item.playable,
-                modifier = Modifier.height(56.dp),
+                // The action gives way before Episodes does: it is cut at the end, never wrapped.
+                modifier = Modifier.weight(1f, fill = false).heightIn(min = 56.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             FilledTonalButton(onClick = { navigator.openTitle(item.id, "preview") }, contentPadding = PaddingValues(horizontal = 24.dp)) {
-                Text("Episodes")
+                Text("Episodes", maxLines = 1, softWrap = false)
             }
         }
         upNext?.let { row ->
             HorizontalDivider(Modifier.padding(top = 8.dp), color = colors.outlineVariant)
             // The episode after the one under way: its still hidden, as the title page hides it.
             Row(
-                Modifier.height(80.dp).semantics(mergeDescendants = true) {},
+                Modifier.heightIn(min = 80.dp).semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

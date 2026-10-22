@@ -51,7 +51,7 @@ struct TabShell: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .overlay(alignment: .top) {
-            NoticeCapsule().padding(.top, 8)
+            NoticeCapsule(here: navigator.phoneSettings == nil).padding(.top, 8)
         }
         .sheet(isPresented: $navigator.messagesShown) {
             MessagesView()
