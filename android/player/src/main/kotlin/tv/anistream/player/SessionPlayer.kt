@@ -4,8 +4,11 @@
 package tv.anistream.player
 
 import android.graphics.Bitmap
+import android.os.Handler
 import android.os.Looper
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -28,6 +31,14 @@ class SessionPlayer(
 ) : SimpleBasePlayer(Looper.getMainLooper()) {
     /** The art last encoded for the session, by its URL. */
     private var art: Pair<String, ByteArray>? = null
+
+    /** The art being encoded off the main thread, by its URL, so it is asked for once. */
+    private var encoding: String? = null
+
+    /** Released: an encoding that lands after it changes nothing. */
+    private var released = false
+
+    private val main = Handler(Looper.getMainLooper())
 
     init {
         model.onSessionChange = { invalidateState() }
@@ -73,17 +84,28 @@ class SessionPlayer(
             .build()
     }
 
-    /** The title's cover as the notification shows it, else its banner, encoded once. */
+    /**
+     * The title's cover as the notification shows it, else its banner, encoded once. The encoding
+     * runs off the main thread, since the state is asked for on it as the player opens (T2): the
+     * metadata goes without art until it is ready, then the state is asked for again.
+     */
     private fun artworkBytes(): ByteArray? {
         val url = model.coverUrl ?: model.bannerUrl ?: return null
         art?.let { (known, bytes) -> if (known == url) return bytes }
+        if (encoding == url) return null
         val bitmap = artwork(url) ?: return null
-        val bytes = ByteArrayOutputStream().use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-            out.toByteArray()
+        encoding = url
+        ENCODER.execute {
+            val bytes = runCatching { encode(bitmap) }.getOrNull()
+            main.post {
+                if (encoding == url) encoding = null
+                if (bytes != null && !released) {
+                    art = url to bytes
+                    invalidateState()
+                }
+            }
         }
-        art = url to bytes
-        return bytes
+        return null
     }
 
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
@@ -106,6 +128,7 @@ class SessionPlayer(
     }
 
     override fun handleRelease(): ListenableFuture<*> {
+        released = true
         model.onSessionChange = null
         return Futures.immediateVoidFuture()
     }
@@ -113,5 +136,31 @@ class SessionPlayer(
     companion object {
         /** Back and forward 10 s, as the player's own buttons. */
         const val SEEK_STEP_MS = 10_000L
+
+        /** The longest side the session's art is sent at: more than the lock screen draws. */
+        private const val ART_SIDE = 1024
+
+        /** Where the art is encoded: one thread, at low priority, off the frames' way. */
+        private val ENCODER: Executor = Executors.newSingleThreadExecutor { work ->
+            Thread(work, "session-art").apply {
+                isDaemon = true
+                priority = Thread.MIN_PRIORITY
+            }
+        }
+
+        /** [bitmap] as a JPEG at most [ART_SIDE] on its longer side. */
+        private fun encode(bitmap: Bitmap): ByteArray {
+            val side = maxOf(bitmap.width, bitmap.height)
+            val scaled = if (side <= ART_SIDE) {
+                bitmap
+            } else {
+                val scale = ART_SIDE.toFloat() / side
+                Bitmap.createScaledBitmap(bitmap, (bitmap.width * scale).toInt().coerceAtLeast(1), (bitmap.height * scale).toInt().coerceAtLeast(1), true)
+            }
+            return ByteArrayOutputStream().use { out ->
+                scaled.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                out.toByteArray()
+            }
+        }
     }
 }
