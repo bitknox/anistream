@@ -21,6 +21,8 @@ final class AppDelegate: NSObject {
     /// Where the app is and the network the device uses, told to the engine.
     let phases: SystemPhases
     private var started = false
+    /// Spotlight's titles, kept the shelf's once the engine is up.
+    private var spotlight: SpotlightIndexer?
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
 
@@ -67,6 +69,12 @@ final class AppDelegate: NSObject {
         let secrets: any SecretBackend = KeychainSecrets()
         #endif
         await store.start(launch, host: AppHost(secrets: secrets, open: Self.open))
+        if store.phase == .running {
+            // The Fixtures app's titles go under its own domain, and its shelf in its own home.
+            let spotlight = SpotlightIndexer(store: store, file: Shelf.file(in: launch.home))
+            spotlight.start()
+            self.spotlight = spotlight
+        }
         #if FIXTURES
         store.applyWatchedArgument()
         #endif

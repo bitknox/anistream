@@ -181,6 +181,14 @@ engine in temporary directories, and keep secrets in memory.
   Downloads, a show's own settings, and the sign-in sheets. A `Navigator` holds where the app is. Settings' menus offer the engine's own choices, from
   `AnistreamKit`'s ports of the setting ladders and their words, which a test holds to the
   engine's.
+  Spotlight has the titles on the Library's lists and on Continue (`SpotlightIndexer`), as
+  native-spec/native-layer.md has them: each under its list's domain (`watching`, `continue`;
+  `fixtures.watching` in the Fixtures app, so its titles never mix with the app's), with its other
+  names, "Watching · Episode 7 of 24" beneath it, its genres, format and year as keywords, and its
+  cover at 120 by 180. A result opens the title's page. The shelf it last indexed is saved in the
+  engine's cache (`apple/shelf.json`), so
+  a list not shown this session keeps its titles and a title that left is removed; with nothing
+  saved, as on every Fixtures launch, the domain is cleared first.
 - **AnistreamPlayer**: libmpv in the app's own view, on `Mpv.xcframework` (which mpv.sh links in
   as `Mpv/`). `MpvClient` owns one mpv: every call runs on its own serial queue, so nothing waits
   on mpv from the main thread (a screenshot or a reconfigure waits on mpv's render thread, which
@@ -442,5 +450,8 @@ episode rolls on to the next. See `anistream_model::hosted` for the whole protoc
 - The player: Picture in Picture and Sync subtitles, and telling the engine of a shader hook
   libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's merged Audio and subtitles
   sheet also holds Speed, Upscaling, Night mode and Sources, for want of a More menu on its board.
+- Settings' "Show titles in Spotlight" switch, which waits for the design: Settings has no
+  Privacy pane. The indexer already honours `anistream.showInSpotlight` in the app's defaults,
+  on unless set off. The Library's lists are indexed as they are shown, not asked for at launch.
 - Settings, Providers, Plugin Stores and Downloads: what the engine cannot set yet (E8's settings,
   E9's fields, `DisablePlugin`) is drawn as the boards have it and disabled.

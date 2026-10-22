@@ -34,6 +34,7 @@ public struct RootView: View {
         .tint(.silk)
         #endif
         .preferredColorScheme(.dark)
+        .modifier(SpotlightResults())
     }
 }
 
