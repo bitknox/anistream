@@ -399,8 +399,10 @@ no device invites: another device joins with the same link.
 and still work, open or not, and `device_list` is the newest hundred of them. `PUT /v1/open` takes
 `{ "open": true }` or `{ "open": false }` and answers the same way. Opening a store that is closed
 makes a new code; opening one that is open keeps it. `DELETE /v1/open/devices` removes every member
-with no name and their devices, and answers the same way; `DELETE /v1/devices/{id}` removes one.
-Members with no name are counted here and left out of `GET /v1/members`.
+with no name and their devices, and answers the same way; `DELETE /v1/devices/{id}` removes one. A
+member with no name is not kept as removed: their row is deleted with their last working device, in
+the same batch, whether the owner revoked it or the device left. Members with no name are counted
+here and left out of `GET /v1/members`.
 
 `POST /v1/invites` takes `{ "kind": "device" }` from anyone, for themselves, or
 `{ "kind": "member", "name": "Alex", "role": "member" }` from an owner. `role` may be `owner`.
