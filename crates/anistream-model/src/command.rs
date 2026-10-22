@@ -294,8 +294,10 @@ pub enum Command {
     AppPhase {
         phase: AppState,
     },
-    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. Either
-    /// one holds downloads and seeding until the device is back on a network that is neither.
+    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. On
+    /// cellular, torrents and downloads run only as `TorrentsOnCellular` and
+    /// `DownloadsOnCellular` let them, the torrent source being unavailable there while the
+    /// first is off; in Low Data Mode downloads and seeding wait, whatever those say.
     NetworkPath {
         cellular: bool,
         constrained: bool,

@@ -8,7 +8,7 @@ use anistream_model::{
     command::PlayerCommand, episodes::EpisodeRow, event::Event, notice::Notice,
     playback::PlaybackId,
 };
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 use crate::{
     cache::{PlayHints, PlayKind},
@@ -21,6 +21,7 @@ use crate::{
         link::{PlayerOpener, opener},
         resolve::{Resolved, resolve_for_playback},
         shaders::shader_dir,
+        slot::PlayerSlot,
     },
     services::Services,
     show_settings,
@@ -183,11 +184,12 @@ fn play_staged(
     let for_show = show_settings::for_show(engine.config.effective(), store, id);
     let hints =
         hints_for(id, &episode, PlayKind::Staged, for_show.playback.skip_filler, engine);
-    let EngineState { player_tx, .. } = engine;
+    let EngineState { player_tx, finding, .. } = engine;
     let config = &for_show;
     // A fresh channel per playback. The one playing gives up its window only once
     // this one has something to play — see `Handoff`.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
+    let stopped = watch_for_stop(finding);
     // Never from the streams found ahead for a release picked by hand: the pick names its
     // own. Otherwise the same fresh channel, the same session-replacement semantics.
     let prefetched = match pick {
@@ -206,6 +208,7 @@ fn play_staged(
         pick,
         party_by_default(config),
         prx,
+        stopped,
         handoff,
         config,
         services,
@@ -242,10 +245,11 @@ pub fn play_party(
     let played = engine.next_playback(id, &episode);
     let for_show = show_settings::for_show(engine.config.effective(), store, id);
     let hints = hints_for(id, &episode, PlayKind::Party, for_show.playback.skip_filler, engine);
-    let EngineState { player_tx, .. } = engine;
+    let EngineState { player_tx, finding, .. } = engine;
     let config = &for_show;
     // Same resolution as Play; the handoff at the end is the only difference.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
+    let stopped = watch_for_stop(finding);
     let prefetched = None;
     let tracker_ids = signed_in_tracker_ids(sync);
     spawn_playback(
@@ -254,6 +258,7 @@ pub fn play_party(
         None,
         true,
         prx,
+        stopped,
         handoff,
         config,
         services,
@@ -291,7 +296,9 @@ pub fn play_local(
     let staged =
         stage(&played, title.clone(), engine.cache.episode_title(id, &episode), engine);
     let _ = tx.send(staged);
-    let EngineState { player_tx, .. } = engine;
+    let EngineState { player_tx, finding, .. } = engine;
+    // Nothing to find: it opens at once, and a Stop is its session's from the start.
+    *finding = None;
     let config = &for_show;
     // No provider walk and no torrent session — the file is on disk — but the full
     // playback session all the same: a downloaded episode records history, resumes,
@@ -362,8 +369,16 @@ fn machine(opener: Arc<dyn PlayerOpener>, services: &Services) -> playback::Mach
 }
 
 /// Steer whatever is playing, through the controls of the playback started last.
+///
+/// A Stop is that playback's whether or not it has opened yet: one still finding its stream
+/// reads its controls only once it plays, so it is told at once as well, and opens nothing.
 pub fn control_player(command: PlayerCommand, engine: &EngineState) {
-    let EngineState { player_tx, .. } = engine;
+    let EngineState { player_tx, finding, .. } = engine;
+    if command == PlayerCommand::Stop
+        && let Some(finding) = finding
+    {
+        finding.send_replace(true);
+    }
     if let Some(sender) = player_tx.as_ref() {
         let _ = sender.send(command);
     }
@@ -372,8 +387,15 @@ pub fn control_player(command: PlayerCommand, engine: &EngineState) {
 /// Steer `playback`, when it is the playback started last, which holds the controls. A command
 /// aimed at one another has followed since is let go: a Play Now or an Undo that a hosted
 /// player sent as its episode rolled on to the next was meant for the episode it showed.
+///
+/// But for a Stop while the playback started last is still finding its stream. The viewer
+/// stopped what was on screen, which was that one's starting screen, or the episode it is
+/// about to take the window from: the player it would open is what they turned down.
 pub fn control_playback(playback: PlaybackId, command: PlayerCommand, engine: &EngineState) {
-    if PlaybackId::new(engine.playbacks) != playback {
+    let current = PlaybackId::new(engine.playbacks);
+    let finding = engine.finding.as_ref().is_some_and(|finding| !finding.is_closed());
+    if current != playback && !(command == PlayerCommand::Stop && playback < current && finding)
+    {
         tracing::debug!(
             playback = playback.get(),
             current = engine.playbacks,
@@ -382,7 +404,40 @@ pub fn control_playback(playback: PlaybackId, command: PlayerCommand, engine: &E
         );
         return;
     }
+    if current != playback {
+        tracing::info!(
+            playback = playback.get(),
+            current = engine.playbacks,
+            "a stop for the playback before, while this one finds its stream: stopping it"
+        );
+    }
     control_player(command, engine);
+}
+
+/// A fresh watch for a Stop that reaches the playback starting now before it opens, kept as the
+/// engine's `finding` in place of the one before it. See [`control_player`].
+fn watch_for_stop(finding: &mut Option<watch::Sender<bool>>) -> watch::Receiver<bool> {
+    let (stop, stopped) = watch::channel(false);
+    *finding = Some(stop);
+    stopped
+}
+
+/// Until a Stop reaches the playback `stopped` watches for; never, once nothing can send one,
+/// a newer playback having taken the controls.
+async fn stop_asked(stopped: &mut watch::Receiver<bool>) {
+    if stopped.wait_for(|stop| *stop).await.is_err() {
+        std::future::pending::<()>().await;
+    }
+}
+
+/// A playback stopped before it opened a player: it says it ended, stopped, and nothing opens.
+/// A window parked for it would wait for nothing.
+fn stopped_unopened(slot: &PlayerSlot, tx: &Outbox) {
+    tracing::info!("stopped while finding its stream; no player opens for it");
+    slot.release();
+    let _ = tx.send(Event::playback_ended(false, anistream_model::playback::Ending::Stopped));
+    // The playback this one took over left its "playing" line up for it to replace.
+    let _ = tx.send(Event::Status(String::new()));
 }
 
 /// Resolve a stream and start playing it.
@@ -399,6 +454,8 @@ fn spawn_playback(
     // Hand the resolved stream to a Syncplay party instead of a private session.
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
+    // Whether a Stop reached this playback before it opened: see `control_player`.
+    mut stopped: watch::Receiver<bool>,
     handoff: Handoff,
     config: &Config,
     services: &Services,
@@ -426,25 +483,40 @@ fn spawn_playback(
 
     tokio::spawn(async move {
         let playback = config.playback.clone();
-        let resolved = match prefetched {
-            Some(found) => {
-                tracing::info!(episode = %episode, "playing from the streams found ahead");
-                Ok(found)
+        let resolving = async {
+            match prefetched {
+                Some(found) => {
+                    tracing::info!(episode = %episode, "playing from the streams found ahead");
+                    Ok(found)
+                }
+                None => {
+                    resolve_for_playback(
+                        &meta,
+                        &store,
+                        &registry,
+                        id,
+                        &episode,
+                        pick,
+                        &playback,
+                        job.as_ref(),
+                        &tx,
+                    )
+                    .await
+                }
             }
-            None => {
-                resolve_for_playback(
-                    &meta,
-                    &store,
-                    &registry,
-                    id,
-                    &episode,
-                    pick,
-                    &playback,
-                    job.as_ref(),
-                    &tx,
-                )
-                .await
-            }
+        };
+        // Stopped while it looks: the viewer closed its starting screen, or stopped the episode
+        // it was to take the window from. Read in the controls, it would open the player first.
+        let resolved = tokio::select! {
+            biased;
+            () = stop_asked(&mut stopped) => None,
+            resolved = resolving => Some(resolved),
+        };
+        let Some(resolved) = resolved else {
+            // The episode it was to take over stops with it: what the viewer stopped.
+            handoff.stop();
+            stopped_unopened(&slot, &tx);
+            return;
         };
         let context = match resolved {
             Ok(pair) => pair,
@@ -490,6 +562,13 @@ fn spawn_playback(
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
         handoff.complete().await;
+        // Stopped while the window was handed over: the one parked for it closes.
+        if *stopped.borrow() {
+            stopped_unopened(&slot, &tx);
+            return;
+        }
+        // Opening from here: a Stop is the session's, read off its controls.
+        drop(stopped);
         playback::play(streams, context, store, http, machine, settings, tx, commands).await;
     });
 }

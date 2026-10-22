@@ -359,7 +359,8 @@ pub(crate) async fn handle_internal(
         *shared = engine.config.effective().clone();
     }
     match message {
-        Internal::SettingsSaved => {}
+        // What runs on cellular may have changed with it.
+        Internal::SettingsSaved => crate::phases::settings_saved(engine, tx),
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
             sources::arrange(&services.registry, engine.config.effective());

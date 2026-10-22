@@ -286,19 +286,42 @@ pub struct TorrentSession {
     held: Mutex<std::collections::HashSet<usize>>,
     /// What is held now.
     hold: Mutex<Hold>,
+    /// Why no torrent may start on the network the device is on, when none may: see
+    /// [`Self::refuse_on_this_network`].
+    refusal: Mutex<Option<String>>,
 }
 
-/// Which torrents wait while the app cannot or should not use the network for them.
+/// Which torrents wait while the app cannot or should not use the network for them, by what
+/// each is for. A torrent held for every part it plays is held: the episode streaming that a
+/// download has fetched too runs while either may.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Hold {
+pub struct Hold {
+    /// The episode streaming, and the next one fetched ahead of it.
+    pub streaming: bool,
+    /// The download queue's.
+    pub downloads: bool,
+    /// The rest: episodes watched and still giving back.
+    pub seeding: bool,
+}
+
+impl Hold {
     /// None: everything runs as the viewer left it.
-    #[default]
-    Nothing,
-    /// Everything but the episode streaming, and the next one fetched ahead of it: downloads
-    /// and seeding wait.
-    AllButStreaming,
+    pub const NOTHING: Self = Self { streaming: false, downloads: false, seeding: false };
+    /// Everything but the episode streaming: downloads and seeding wait.
+    pub const ALL_BUT_STREAMING: Self =
+        Self { streaming: false, downloads: true, seeding: true };
     /// Every torrent.
-    Everything,
+    pub const EVERYTHING: Self = Self { streaming: true, downloads: true, seeding: true };
+
+    /// Whether a torrent waits, streaming or not and the download queue's or not.
+    pub const fn holds(self, streaming: bool, download: bool) -> bool {
+        match (streaming, download) {
+            (true, true) => self.streaming && self.downloads,
+            (true, false) => self.streaming,
+            (false, true) => self.downloads,
+            (false, false) => self.seeding,
+        }
+    }
 }
 
 /// One watched episode giving back.
@@ -429,6 +452,7 @@ impl TorrentSession {
             active: Mutex::new(std::collections::VecDeque::new()),
             held: Mutex::default(),
             hold: Mutex::default(),
+            refusal: Mutex::default(),
             token,
             output_dir: download_dir,
             stream_history: Mutex::new(std::collections::VecDeque::new()),
@@ -485,6 +509,7 @@ impl TorrentSession {
         // Re-checked here, not only at construction: the guard may have started leaking
         // since the session was built.
         self.guard.permit()?;
+        self.network_permit()?;
 
         let response = self
             .session
@@ -640,8 +665,8 @@ impl TorrentSession {
         }
         // Nor may the seeding pool, whose goal would otherwise forget it mid-download.
         self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != handle.id());
-        // Queued while torrents are held, it waits with them.
-        if self.hold() != Hold::Nothing && self.session.pause(&handle).await.is_ok() {
+        // Queued while downloads are held, it waits with them.
+        if self.hold().downloads && self.session.pause(&handle).await.is_ok() {
             self.held.lock().unwrap_or_else(|e| e.into_inner()).insert(handle.id());
         }
 
@@ -704,11 +729,8 @@ impl TorrentSession {
         let torrents = self.session.with_torrents(|torrents| {
             torrents.map(|(id, handle)| (id, handle.clone())).collect::<Vec<_>>()
         });
-        let wanted = |id: usize| match hold {
-            Hold::Nothing => false,
-            Hold::AllButStreaming => !streaming.contains(&id),
-            Hold::Everything => true,
-        };
+        let downloads = self.download_ids.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let wanted = |id: usize| hold.holds(streaming.contains(&id), downloads.contains(&id));
         let held: std::collections::HashSet<usize> =
             self.held.lock().unwrap_or_else(|e| e.into_inner()).clone();
         let permitted = self.guard.permit();
@@ -746,6 +768,21 @@ impl TorrentSession {
     /// The torrents held for the app's sake.
     pub fn held(&self) -> std::collections::HashSet<usize> {
         self.held.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+
+    /// No torrent starts on the network the device is on, for `reason`, until this is said
+    /// again with `None`: cellular, with torrents not to run on it. The torrent source is
+    /// unavailable meanwhile, which the chain walks past to the next source.
+    pub fn refuse_on_this_network(&self, reason: Option<String>) {
+        *self.refusal.lock().unwrap_or_else(|e| e.into_inner()) = reason;
+    }
+
+    /// Whether a torrent may start on the network the device is on.
+    pub fn network_permit(&self) -> Result<(), ProviderError> {
+        match self.refusal.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+            Some(reason) => Err(ProviderError::Unavailable(reason.clone())),
+            None => Ok(()),
+        }
     }
 
     async fn for_one(&self, id: usize, pause: bool) -> Result<(), ProviderError> {
@@ -1012,8 +1049,8 @@ impl TorrentSession {
             }
         }
         // A hold that ended while the guard was failing is let go of now.
-        if self.hold() == Hold::Nothing && !held.is_empty() {
-            let _ = self.set_hold(Hold::Nothing).await;
+        if self.hold() == Hold::NOTHING && !held.is_empty() {
+            let _ = self.set_hold(Hold::NOTHING).await;
         }
         tracing::info!("vpn guard recovered: torrents resumed");
         Ok(())
@@ -1283,23 +1320,78 @@ mod tests {
         session.resume_one(id).await.unwrap();
         assert!(!paused(&session));
 
-        session.set_hold(Hold::Everything).await.unwrap();
+        session.set_hold(Hold::EVERYTHING).await.unwrap();
         assert!(paused(&session));
         assert_eq!(session.held(), [id].into_iter().collect());
         // A download's own resume while held: said to work, and left for the hold to end.
         session.resume_one(id).await.unwrap();
         assert!(paused(&session), "still held");
 
-        session.set_hold(Hold::Nothing).await.unwrap();
+        session.set_hold(Hold::NOTHING).await.unwrap();
         assert!(!paused(&session), "let go of");
         assert!(session.held().is_empty());
 
         // One the viewer paused is no hold's to let go of.
         session.pause_one(id).await.unwrap();
-        session.set_hold(Hold::Everything).await.unwrap();
+        session.set_hold(Hold::EVERYTHING).await.unwrap();
         assert!(session.held().is_empty(), "already paused, so not held");
-        session.set_hold(Hold::Nothing).await.unwrap();
+        session.set_hold(Hold::NOTHING).await.unwrap();
         assert!(paused(&session), "as the viewer left it");
+        session.session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn a_hold_on_downloads_holds_the_queues_torrents_and_leaves_the_rest_running() {
+        // Cellular, with downloads not to run on it and torrents allowed: the queue waits, and
+        // what gives back after watching goes on.
+        let root = tempfile::tempdir().unwrap();
+        let (session, seeding) =
+            session_with_local_torrent(root.path(), "Watched Batch", &BATCH).await;
+        session.resume_one(seeding).await.unwrap();
+        let paused = |id| session.progress_of(id).unwrap().paused;
+        let only_downloads = Hold { downloads: true, ..Hold::NOTHING };
+
+        session.set_hold(only_downloads).await.unwrap();
+        assert!(!paused(seeding), "seeding is no download");
+        assert!(session.held().is_empty());
+
+        // Taken over by the queue, it is the queue's, and waits with it.
+        session.download_ids.lock().unwrap().insert(seeding);
+        session.set_hold(only_downloads).await.unwrap();
+        assert!(paused(seeding));
+        assert_eq!(session.held(), [seeding].into_iter().collect());
+        session.set_hold(Hold { seeding: true, ..Hold::NOTHING }).await.unwrap();
+        assert!(!paused(seeding), "let go once downloads may run, whatever seeding does");
+        session.session.stop().await;
+    }
+
+    #[test]
+    fn a_torrent_waits_only_when_everything_it_is_for_waits() {
+        let hold = Hold { streaming: false, downloads: true, seeding: true };
+        assert!(!hold.holds(true, false), "the episode streaming");
+        assert!(!hold.holds(true, true), "streamed, and downloaded too");
+        assert!(hold.holds(false, true) && hold.holds(false, false));
+        assert!(Hold::EVERYTHING.holds(true, true) && !Hold::NOTHING.holds(false, false));
+        assert_eq!(Hold::ALL_BUT_STREAMING, hold);
+    }
+
+    #[tokio::test]
+    async fn no_torrent_starts_on_a_network_it_is_refused_on() {
+        let root = tempfile::tempdir().unwrap();
+        let (session, _) =
+            session_with_local_torrent(root.path(), "Refused Batch", &BATCH).await;
+        assert!(session.network_permit().is_ok());
+        session.refuse_on_this_network(Some("torrents wait for Wi-Fi".into()));
+        let refused = session
+            .stream("magnet:?xt=urn:btih:0000000000000000000000000000000000000000", Some(1))
+            .await;
+        assert!(
+            matches!(&refused, Err(ProviderError::Unavailable(reason)) if reason == "torrents wait for Wi-Fi"),
+            "{:?}",
+            refused.map(|_| ())
+        );
+        session.refuse_on_this_network(None);
+        assert!(session.network_permit().is_ok());
         session.session.stop().await;
     }
 
