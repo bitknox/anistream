@@ -22,6 +22,24 @@ struct DesignTests {
         #expect(Color(hex: "not a colour") == nil)
     }
 
+    @Test func theSidebarIsTheBriefsGlassOverTheGround() {
+        /// `top` at its opacity over the opaque `bottom`, in 0 to 255.
+        func over(_ top: Color, _ bottom: [Int]) -> [Int] {
+            let alpha = Double(top.resolve(in: EnvironmentValues()).opacity)
+            return zip(components(top), bottom).map { Int((alpha * Double($0) + (1 - alpha) * Double($1)).rounded()) }
+        }
+        let navy = components(Palette.glassOverGround)
+        #expect(navy == [0x23, 0x28, 0x3E])
+        #expect(over(Palette.glass, components(Palette.ground)) == navy)
+        // The Mac's tint over the system's sidebar glass, as macOS 27 draws it in a key window and
+        // in an inactive one, lands within a step of the same navy.
+        for system in [[0x1D, 0x24, 0x3A], [0x1E, 0x25, 0x33]] {
+            for (landed, wanted) in zip(over(Palette.sidebarTint, system), navy) {
+                #expect(abs(landed - wanted) <= 1)
+            }
+        }
+    }
+
     @Test func theShowTitleFaceIsThere() {
         #expect(ShowTitleFace.isAvailable)
     }

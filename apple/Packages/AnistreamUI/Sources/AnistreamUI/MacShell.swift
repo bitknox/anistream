@@ -16,8 +16,18 @@ struct MacShell: View {
         @Bindable var navigator = navigator
         NavigationSplitView {
             Sidebar(selection: $navigator.section)
+                // 220 wide, as the boards draw it. macOS 26 takes the column width; macOS 27
+                // ignores it and opens the column at 144, where "Plugin Stores" is cut, or at
+                // whatever it saved. A minimum on the column's content holds on both, and brings
+                // a saved 144 back to 220.
+                .frame(minWidth: 220)
                 .navigationSplitViewColumnWidth(220)
                 .toolbar(removing: .sidebarToggle)
+                // The brief's navy glass. macOS draws its sidebar glass a slate of its own, grey
+                // in an inactive window, and has no tint for it: `.navigationSplitView` container
+                // backgrounds are iOS only, and a tint on the sidebar's NSGlassEffectView lifts it
+                // to a light grey. So the column lays its tint over that glass, inside its shape.
+                .background(.sidebarFill)
         } detail: {
             ZStack {
                 SectionView(section: navigator.section)
