@@ -497,6 +497,61 @@ internal fun CaughtUp(action: TitleAction, modifier: Modifier = Modifier) {
     }
 }
 
+/** What a cut synopsis ends with to be measured: the ellipsis and More, set a little wider. */
+private const val SYNOPSIS_ENDING = "\u2026 More "
+
+/**
+ * The longest start of [text] that leaves room on its two lines at [width] for "… More", with the
+ * ellipsis; `null` when the whole text fits. The answer a search over every length would give: it
+ * is estimated from one layout of the whole text, where the ending would start on its second line,
+ * then confirmed against the next length, widening the step only when the estimate is off. A few
+ * layouts in all, where the search took one for every halving of the text's length.
+ */
+internal fun synopsisCut(text: String, width: Int, style: androidx.compose.ui.text.TextStyle, measurer: androidx.compose.ui.text.TextMeasurer): String? {
+    fun layout(candidate: String) = measurer.measure(candidate, style, maxLines = 2, constraints = Constraints(maxWidth = width))
+    fun fits(length: Int) = !layout(text.take(length).trimEnd() + SYNOPSIS_ENDING).hasVisualOverflow
+    val whole = layout(text)
+    if (!whole.hasVisualOverflow) return null
+    val ending = measurer.measure(SYNOPSIS_ENDING, style).size.width
+    val line = whole.lineCount - 1
+    val estimate = whole.getOffsetForPosition(
+        androidx.compose.ui.geometry.Offset(
+            (width - ending).coerceAtLeast(0).toFloat(),
+            (whole.getLineTop(line) + whole.getLineBottom(line)) / 2,
+        ),
+    ).coerceIn(0, text.length)
+    // Bound the longest length that fits between one that does and one that does not, stepping
+    // out from the estimate, then close in between them.
+    var low: Int
+    var high: Int
+    if (fits(estimate)) {
+        low = estimate
+        var step = 1
+        high = minOf(text.length, low + step)
+        while (high > low && fits(high)) {
+            low = high
+            step *= 2
+            high = minOf(text.length, low + step)
+        }
+        if (high == low) return text.take(low).trimEnd() + "\u2026"
+    } else {
+        high = estimate
+        var step = 1
+        low = maxOf(0, high - step)
+        while (low > 0 && !fits(low)) {
+            high = low
+            step *= 2
+            low = maxOf(0, high - step)
+        }
+    }
+    // low fits (or is 0), high does not.
+    while (high - low > 1) {
+        val mid = (low + high) / 2
+        if (fits(mid)) low = mid else high = mid
+    }
+    return text.take(low).trimEnd() + "\u2026"
+}
+
 /**
  * The synopsis in two lines, ending "… More" where there is more; a tap on it expands it in place,
  * and it stays open.
@@ -517,22 +572,7 @@ private fun Synopsis(text: String) {
             .padding(vertical = 4.dp),
     ) {
         val width = constraints.maxWidth
-        val cut = remember(text, width, style) {
-            fun fits(candidate: String) =
-                !measurer.measure(candidate, style, maxLines = 2, constraints = Constraints(maxWidth = width)).hasVisualOverflow
-            if (fits(text)) {
-                null
-            } else {
-                // The longest start that leaves room for the ending, More set a little wider.
-                var low = 0
-                var high = text.length
-                while (low < high) {
-                    val mid = (low + high + 1) / 2
-                    if (fits(text.take(mid).trimEnd() + "\u2026 More ")) low = mid else high = mid - 1
-                }
-                text.take(low).trimEnd() + "\u2026"
-            }
-        }
+        val cut = remember(text, width, style) { synopsisCut(text, width, style, measurer) }
         Text(
             buildAnnotatedString {
                 if (expanded || cut == null) {
