@@ -537,6 +537,16 @@ html:not(.js) .scene {
 	border-radius: 5.7cqi;
 }
 
+/* Android phones have tighter corners than an iPhone, which also keeps the status bar's clock
+   clear of them. */
+.shot-android.shot-phone:not(.shot-landscape) .shot-frame {
+	border-radius: 9cqi;
+}
+
+.shot-android.shot-phone:not(.shot-landscape) img {
+	border-radius: 7.4cqi;
+}
+
 /* A landscape tablet, likewise. */
 .shot-tablet.shot-landscape .shot-frame {
 	padding: var(--bezel, max(3px, 0.7cqi));

@@ -23,7 +23,7 @@ const landscape = shot.w > shot.h;
 ---
 
 <span
-	class:list={['shot', `shot-${frame}`, { 'shot-landscape': landscape }, className]}
+	class:list={['shot', `shot-${frame}`, `shot-${name.split('-')[0]}`, { 'shot-landscape': landscape }, className]}
 	style={`--ratio: ${(shot.w / shot.h).toFixed(4)}`}
 >
 	<span class="shot-frame"><img
