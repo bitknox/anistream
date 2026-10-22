@@ -15,6 +15,7 @@
 //! **The VPN guard is re-checked on every start.** A download runs unattended for a long time,
 //! which makes it the most important thing to gate, not the least.
 
+pub mod ahead;
 pub mod commands;
 
 use std::{path::PathBuf, sync::Arc, time::Duration};
@@ -399,6 +400,7 @@ pub fn to_row(download: &Download) -> anistream_model::downloads::DownloadRow {
         total: download.total,
         error: download.error.clone(),
         path: download.path.clone(),
+        ahead: download.ahead,
     }
 }
 
@@ -523,10 +525,12 @@ impl Wanted {
     }
 }
 
-/// Queue an episode, resolving a magnet for it first.
+/// Queue an episode, resolving a magnet for it first: `ahead` for keep next, and otherwise
+/// asked for by the viewer, which makes one keep next queued theirs.
 ///
 /// Resolution happens here rather than in the manager because it needs the provider chain and the
-/// mapping ladder — the same walk playback does. A download is "play it, but to disk".
+/// mapping ladder — the same walk playback does. A download is "play it, but to disk", from the
+/// source the show is pinned to when it is.
 pub async fn enqueue(
     store: &Store,
     registry: &ProviderRegistry,
@@ -534,18 +538,31 @@ pub async fn enqueue(
     anilist_id: AnilistId,
     episode: &str,
     wanted: Wanted,
+    ahead: bool,
 ) -> Result<(Download, Queued), Refusal> {
     let Wanted { translation, resolution } = wanted;
     // Already queued or finished: report that instead of resolving again.
     if let Ok(Some(existing)) = store.download_for(anilist_id, episode)
         && existing.state != DownloadState::Failed
     {
+        if existing.ahead && !ahead {
+            let _ = store.keep_download(existing.id);
+        }
         return Ok((existing, Queued::Existing));
     }
 
     let media = meta.media(anilist_id).await.map_err(|e| Refusal::Title(e.to_string()))?;
     let title = meta.titles().pick(&media.title);
     let now = anistream_store::now();
+    // "Use this source for this series", as playback applies it: before the title is matched,
+    // since a key means something only to the source that gave it. One not registered now falls
+    // back to the chain.
+    let pinned = store
+        .provider_preference(anilist_id)
+        .ok()
+        .flatten()
+        .and_then(|provider| registry.pinned(&provider));
+    let registry = pinned.as_ref().unwrap_or(registry);
     let answer = anistream_providers::first_answer(
         store,
         registry,
@@ -589,10 +606,12 @@ pub async fn enqueue(
         })?;
 
     // A store that cannot write one row will not write the next.
-    store
-        .enqueue_download(anilist_id, episode, title, &magnet)
-        .map(|row| (row, Queued::New))
-        .map_err(|e| Refusal::Title(e.to_string()))
+    let queued = if ahead {
+        store.enqueue_download_ahead(anilist_id, episode, title, &magnet)
+    } else {
+        store.enqueue_download(anilist_id, episode, title, &magnet)
+    };
+    queued.map(|row| (row, Queued::New)).map_err(|e| Refusal::Title(e.to_string()))
 }
 
 #[cfg(test)]

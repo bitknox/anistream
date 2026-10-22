@@ -344,6 +344,26 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        // Numbered after the merge train's 0009 and 0010, which this lands behind.
+        "0011_download_ahead",
+        r#"
+    -- Whether keep next queued a download, to have a show's next episodes on the device, rather
+    -- than the viewer asking for it. The Downloads row says so, and nothing deletes a download
+    -- the viewer asked for on its own. Asking for one keep next queued makes it the viewer's.
+    ALTER TABLE download ADD COLUMN ahead INTEGER NOT NULL DEFAULT 0;
+
+    -- The episodes the viewer let go of from the queue: cancelled, deleted, or cleared from the
+    -- list once finished. Keep next never queues one again, so it does not fight the viewer;
+    -- asking for the episode by hand takes it off this list.
+    CREATE TABLE download_dismissed (
+        anilist_id INTEGER NOT NULL,
+        episode    TEXT    NOT NULL,
+        at         INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, episode)
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -460,6 +480,7 @@ mod tests {
             "show_setting",
             "server_health",
             "library_status",
+            "download_dismissed",
         ] {
             let found: bool = conn
                 .query_row(

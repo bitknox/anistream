@@ -80,6 +80,7 @@ fn download(id: i64, state: DownloadState) -> DownloadRow {
         total: 2,
         error: None,
         path: Some("/downloads/title-1.mkv".into()),
+        ahead: false,
     }
 }
 

@@ -31,6 +31,24 @@ impl Store {
         })
     }
 
+    /// The titles being watched, on the list as watching or rewatching: what keep next keeps
+    /// the next episodes of. The most recently watched here first, then the rest by id.
+    pub fn watching(&self) -> Result<Vec<AnilistId>> {
+        self.with_conn(|c| {
+            let mut statement = c.prepare(
+                "SELECT s.anilist_id FROM library_status s
+                   LEFT JOIN watch_progress p ON p.anilist_id = s.anilist_id
+                  WHERE s.status IN ('CURRENT', 'REPEATING')
+                  ORDER BY COALESCE(p.updated_at, 0) DESC, s.anilist_id",
+            )?;
+            let ids = statement
+                .query_map([], |r| r.get::<_, u32>(0))?
+                .map(|id| id.map(AnilistId::new))
+                .collect::<rusqlite::Result<_>>()?;
+            Ok(ids)
+        })
+    }
+
     /// Where `id` is on the list, as the tracker words it, when it is on it.
     pub fn library_status(&self, id: AnilistId) -> Result<Option<String>> {
         self.with_conn(|c| {
@@ -60,6 +78,24 @@ mod tests {
             .unwrap();
         assert_eq!(store.library_status(ONE).unwrap().as_deref(), Some("COMPLETED"));
         assert_eq!(store.library_status(TWO).unwrap().as_deref(), Some("PLANNING"));
+    }
+
+    #[test]
+    fn the_shows_being_watched_are_the_current_and_rewatched_ones_last_watched_first() {
+        let store = Store::open_in_memory().unwrap();
+        const THREE: AnilistId = AnilistId::new(900_005);
+        store
+            .replace_library_statuses(
+                "anilist",
+                &[(ONE, "CURRENT"), (TWO, "REPEATING"), (THREE, "PAUSED")],
+                10,
+            )
+            .unwrap();
+        assert_eq!(store.watching().unwrap(), [ONE, TWO], "by id with nothing watched here");
+        let mut watched = crate::WatchEvent::new(TWO, "1", 30.0);
+        watched.at = 50;
+        store.record_event(&watched).unwrap();
+        assert_eq!(store.watching().unwrap(), [TWO, ONE]);
     }
 
     #[test]

@@ -144,5 +144,6 @@ pub(super) fn download(
         total: of,
         error: None,
         path: None,
+        ahead: false,
     }
 }

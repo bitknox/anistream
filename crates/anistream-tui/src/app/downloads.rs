@@ -95,6 +95,7 @@ mod tests {
             total: 2,
             error: None,
             path: None,
+            ahead: false,
         };
         let mut a = app();
         a.handle(Action::JumpSection(6), 5);
@@ -127,6 +128,7 @@ mod tests {
             total: 2,
             error: None,
             path: Some("/tmp/title-0-1.mkv".into()),
+            ahead: false,
         }]));
         assert_eq!(a.handle(Action::HideFromContinue, 5), None);
         assert!(

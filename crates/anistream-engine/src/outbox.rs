@@ -31,6 +31,9 @@ pub enum Internal {
     /// A setting changed which sources should exist: stand the torrent stack down, rebuild the
     /// chain, and pass it on as [`Event::SourcesChanged`].
     SourcesChanged,
+    /// Where a show being watched stands may have moved, from work that has no engine side to
+    /// read: keep next tops the shows up, as [`crate::downloads::ahead::top_up`] does.
+    TopUp,
 }
 
 /// One item of the engine side's inbox, in the order it was sent.

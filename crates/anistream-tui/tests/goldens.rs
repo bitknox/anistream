@@ -842,6 +842,7 @@ fn downloads(s: &mut Screen) {
                 total,
                 error: None,
                 path: None,
+                ahead: false,
             }
         };
     s.apply(Event::Downloads(vec![

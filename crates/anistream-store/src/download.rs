@@ -69,6 +69,8 @@ pub struct Download {
     pub error: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+    /// Queued by keep next, to have a show's next episodes on the device, rather than asked for.
+    pub ahead: bool,
 }
 
 impl Download {
@@ -85,7 +87,7 @@ impl Store {
     ///
     /// Idempotent on `(anilist_id, episode)`. A held-down key must not queue the same file eight
     /// times, and re-requesting something already downloaded should surface *that* rather than
-    /// starting again.
+    /// starting again. Asked for, a row keep next queued becomes the viewer's own.
     pub fn enqueue_download(
         &self,
         anilist_id: AnilistId,
@@ -93,12 +95,42 @@ impl Store {
         title: &str,
         magnet: &str,
     ) -> Result<Download> {
+        self.insert_download(anilist_id, episode, title, magnet, false)
+    }
+
+    /// [`Self::enqueue_download`], for keep next: the row says it was queued ahead. One the
+    /// viewer asked for stays theirs.
+    pub fn enqueue_download_ahead(
+        &self,
+        anilist_id: AnilistId,
+        episode: &str,
+        title: &str,
+        magnet: &str,
+    ) -> Result<Download> {
+        self.insert_download(anilist_id, episode, title, magnet, true)
+    }
+
+    fn insert_download(
+        &self,
+        anilist_id: AnilistId,
+        episode: &str,
+        title: &str,
+        magnet: &str,
+        ahead: bool,
+    ) -> Result<Download> {
         let at = now();
-        self.with_conn(|c| {
+        self.with_tx(|c| {
+            // Asked for by the viewer: theirs to keep, whatever they let go of before.
+            if !ahead {
+                c.execute(
+                    "DELETE FROM download_dismissed WHERE anilist_id = ?1 AND episode = ?2",
+                    rusqlite::params![anilist_id.get(), episode],
+                )?;
+            }
             c.execute(
                 "INSERT INTO download
-                    (anilist_id, episode, title, magnet, state, created_at, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, 'queued', ?5, ?5)
+                    (anilist_id, episode, title, magnet, state, created_at, updated_at, ahead)
+                 VALUES (?1, ?2, ?3, ?4, 'queued', ?5, ?5, ?6)
                  ON CONFLICT(anilist_id, episode) DO UPDATE SET
                     -- A failed download asked for again is a retry, so it re-enters the queue. One
                     -- that is running or finished is left exactly as it is.
@@ -111,13 +143,25 @@ impl Store {
                     -- failed row is the one case where taking the new magnet is the point.
                     magnet = CASE WHEN download.state = 'failed' THEN excluded.magnet
                                   ELSE download.magnet END,
+                    -- Asked for by the viewer, it is theirs from now on; keep next never takes
+                    -- one of theirs over.
+                    ahead = download.ahead AND excluded.ahead,
                     updated_at = ?5",
-                rusqlite::params![anilist_id.get(), episode, title, magnet, at],
+                rusqlite::params![anilist_id.get(), episode, title, magnet, at, ahead],
             )?;
             Ok(())
         })?;
         self.download_for(anilist_id, episode)?
             .ok_or_else(|| crate::StoreError::Missing("download row after insert".into()))
+    }
+
+    /// Make download `id` the viewer's own: asked for, a row keep next queued is no longer one
+    /// it queued.
+    pub fn keep_download(&self, id: i64) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute("UPDATE download SET ahead = 0 WHERE id = ?1", [id])?;
+            Ok(())
+        })
     }
 
     pub fn download_for(
@@ -128,7 +172,7 @@ impl Store {
         self.with_conn(|c| {
             Ok(c.query_row(
                 "SELECT id, anilist_id, episode, title, magnet, state, path, downloaded, total,
-                        error, created_at, updated_at
+                        error, created_at, updated_at, ahead
                    FROM download WHERE anilist_id = ?1 AND episode = ?2",
                 rusqlite::params![anilist_id.get(), episode],
                 row_to_download,
@@ -142,7 +186,7 @@ impl Store {
         self.with_conn(|c| {
             let mut stmt = c.prepare(
                 "SELECT id, anilist_id, episode, title, magnet, state, path, downloaded, total,
-                        error, created_at, updated_at
+                        error, created_at, updated_at, ahead
                    FROM download ORDER BY created_at DESC",
             )?;
             let rows = stmt.query_map([], row_to_download)?;
@@ -158,7 +202,7 @@ impl Store {
         self.with_conn(|c| {
             let mut stmt = c.prepare(
                 "SELECT id, anilist_id, episode, title, magnet, state, path, downloaded, total,
-                        error, created_at, updated_at
+                        error, created_at, updated_at, ahead
                    FROM download
                   WHERE state IN ('queued', 'active')
                   ORDER BY created_at ASC",
@@ -254,16 +298,44 @@ impl Store {
         })
     }
 
+    /// Take a download off the queue, as the viewer lets it go: keep next does not queue its
+    /// episode again unless they ask for it themselves.
     pub fn remove_download(&self, id: i64) -> Result<()> {
-        self.with_conn(|c| {
-            c.execute("DELETE FROM download WHERE id = ?1", [id])?;
+        self.with_tx(|tx| {
+            tx.execute(
+                "INSERT OR REPLACE INTO download_dismissed (anilist_id, episode, at)
+                 SELECT anilist_id, episode, ?2 FROM download WHERE id = ?1",
+                rusqlite::params![id, now()],
+            )?;
+            tx.execute("DELETE FROM download WHERE id = ?1", [id])?;
             Ok(())
         })
     }
 
-    /// Drop every finished row, returning how many went.
+    /// Drop every finished row, returning how many went. Their files stay where they are, so
+    /// keep next does not fetch their episodes again either.
     pub fn clear_completed_downloads(&self) -> Result<usize> {
-        self.with_conn(|c| Ok(c.execute("DELETE FROM download WHERE state = 'done'", [])?))
+        self.with_tx(|tx| {
+            tx.execute(
+                "INSERT OR REPLACE INTO download_dismissed (anilist_id, episode, at)
+                 SELECT anilist_id, episode, ?1 FROM download WHERE state = 'done'",
+                [now()],
+            )?;
+            Ok(tx.execute("DELETE FROM download WHERE state = 'done'", [])?)
+        })
+    }
+
+    /// Whether the viewer let `episode` of `anilist_id` go from the queue, and has not asked
+    /// for it since: keep next leaves it alone.
+    pub fn download_dismissed(&self, anilist_id: AnilistId, episode: &str) -> Result<bool> {
+        self.with_conn(|c| {
+            Ok(c.query_row(
+                "SELECT EXISTS(SELECT 1 FROM download_dismissed
+                                WHERE anilist_id = ?1 AND episode = ?2)",
+                rusqlite::params![anilist_id.get(), episode],
+                |r| r.get(0),
+            )?)
+        })
     }
 
     /// How many downloads still want the network — the rail badge.
@@ -292,6 +364,7 @@ fn row_to_download(row: &rusqlite::Row<'_>) -> rusqlite::Result<Download> {
         error: row.get(9)?,
         created_at: row.get(10)?,
         updated_at: row.get(11)?,
+        ahead: row.get(12)?,
     })
 }
 
@@ -473,6 +546,49 @@ mod tests {
             store.downloads().unwrap().into_iter().map(|d| d.state).collect();
         assert!(!left.contains(&DownloadState::Done));
         assert_eq!(left.len(), 2, "a failed download is still there to retry");
+    }
+
+    #[test]
+    fn a_download_queued_ahead_says_so_until_the_viewer_asks_for_it() {
+        let store = store();
+        let ahead = store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap();
+        assert!(ahead.ahead);
+        assert!(!store.enqueue_download(ID, "5", "Show", "m").unwrap().ahead);
+
+        // Queued ahead again: still the one row, still ahead.
+        let again = store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap();
+        assert_eq!((again.id, again.ahead), (ahead.id, true));
+        // Asked for: the viewer's from now on, whatever keep next asks after.
+        assert!(!store.enqueue_download(ID, "4", "Show", "m").unwrap().ahead);
+        assert!(!store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap().ahead);
+        // Nor does keep next take over one the viewer asked for first.
+        assert!(!store.enqueue_download_ahead(ID, "5", "Show", "m").unwrap().ahead);
+
+        let kept = store.enqueue_download_ahead(ID, "6", "Show", "m").unwrap();
+        store.keep_download(kept.id).unwrap();
+        assert!(!store.download_for(ID, "6").unwrap().unwrap().ahead);
+    }
+
+    #[test]
+    fn an_episode_let_go_of_is_remembered_until_asked_for_again() {
+        let store = store();
+        let cancelled = store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap();
+        let finished = store.enqueue_download_ahead(ID, "5", "Show", "m").unwrap();
+        store.finish_download(finished.id, None).unwrap();
+        store.enqueue_download_ahead(ID, "6", "Show", "m").unwrap();
+        assert!(!store.download_dismissed(ID, "4").unwrap());
+
+        store.remove_download(cancelled.id).unwrap();
+        assert_eq!(store.clear_completed_downloads().unwrap(), 1);
+        assert!(store.download_dismissed(ID, "4").unwrap(), "cancelled");
+        assert!(store.download_dismissed(ID, "5").unwrap(), "cleared from the list");
+        assert!(!store.download_dismissed(ID, "6").unwrap(), "still queued");
+
+        // Queued ahead again, it stays let go of; asked for, it is the viewer's again.
+        store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap();
+        assert!(store.download_dismissed(ID, "4").unwrap());
+        store.enqueue_download(ID, "4", "Show", "m").unwrap();
+        assert!(!store.download_dismissed(ID, "4").unwrap());
     }
 
     #[test]

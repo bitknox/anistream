@@ -113,7 +113,7 @@ class BackgroundEngine(
     companion object {
         /**
          * Every background switch off: the work's engine answers what it is sent and nothing
-         * else, no sync loops, update check or digest of its own.
+         * else, no sync loops, update check, digest or keep next of its own.
          */
         val QUIET = FfiBackground(
             prune = false,
@@ -123,6 +123,7 @@ class BackgroundEngine(
             syncLoops = false,
             storeRefresh = false,
             playerCheck = false,
+            keepNext = false,
         )
     }
 }

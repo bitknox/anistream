@@ -92,7 +92,9 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         // one show cut at the same place were five identical rows.
         // Two cells short of the state column, so the number never runs into the state.
         let room = state_x.saturating_sub(area.left() + 4) as usize;
-        let episode = format!("  ep {}", row.episode);
+        // Queued by keep next rather than asked for, said beside the episode it is.
+        let ahead = if row.ahead { " · ahead" } else { "" };
+        let episode = format!("  ep {}{ahead}", row.episode);
         let label = match room.checked_sub(episode.chars().count()) {
             Some(title_room) if title_room >= 4 => {
                 format!("{}{episode}", truncate(&row.title, title_room))
@@ -315,6 +317,23 @@ mod tests {
     }
 
     #[test]
+    fn a_download_keep_next_queued_says_it_came_ahead() {
+        let mut app = app_with(ContentList::Empty);
+        app.go_to_section(Section::Downloads);
+        let ahead = anistream_model::downloads::DownloadRow {
+            ahead: true,
+            ..download("Show", "6", DownloadState::Queued, 0)
+        };
+        app.apply(Event::Downloads(vec![
+            download("Show", "5", DownloadState::Queued, 0),
+            ahead,
+        ]));
+        let lines = lines_of(&mut app, 120, 30);
+        assert!(lines.iter().any(|l| l.contains("Show  ep 6 · ahead")), "{lines:#?}");
+        assert!(lines.iter().any(|l| l.contains("ep 5") && !l.contains("ahead")), "{lines:#?}");
+    }
+
+    #[test]
     fn an_empty_download_queue_says_how_to_fill_it() {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
@@ -341,6 +360,7 @@ mod tests {
                 total: 1_400_000_000,
                 error: None,
                 path: Some("/downloads/Hoshikuzu - 05.mkv".into()),
+                ahead: false,
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
@@ -367,6 +387,7 @@ mod tests {
                 total: 0,
                 error: Some("no peers after 60s".into()),
                 path: None,
+                ahead: false,
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
@@ -392,6 +413,7 @@ mod tests {
                     total: 0,
                     error: None,
                     path: None,
+                    ahead: false,
                 })
                 .collect(),
         ));

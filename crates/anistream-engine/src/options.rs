@@ -49,6 +49,10 @@ pub struct EngineOptions {
     /// Parts a test stands the engine up with instead of the ones it builds.
     #[cfg(feature = "testing")]
     pub parts: Option<Parts>,
+    /// What keep next takes to be free on the device, in bytes, in place of asking the disk:
+    /// for a test, whose answer should not depend on the machine it runs on.
+    #[cfg(feature = "testing")]
+    pub free_space: Option<u64>,
 }
 
 impl EngineOptions {
@@ -74,6 +78,8 @@ impl EngineOptions {
             background: Background::default(),
             #[cfg(feature = "testing")]
             parts: None,
+            #[cfg(feature = "testing")]
+            free_space: None,
         }
     }
 }
@@ -133,6 +139,10 @@ pub struct Background {
     /// Check that mpv is there to play, and new enough to wear anistream's interface, and say
     /// so at launch. Only with the `desktop` feature: without it there is no player to check.
     pub player_check: bool,
+    /// Keep next: queue the next episodes of each show being watched, at launch and as the
+    /// viewer moves on, as many as the show or Settings keeps. See
+    /// [`crate::downloads::ahead`].
+    pub keep_next: bool,
 }
 
 impl Background {
@@ -146,6 +156,7 @@ impl Background {
             sync_loops: false,
             store_refresh: false,
             player_check: false,
+            keep_next: false,
         }
     }
 }
@@ -161,6 +172,7 @@ impl Default for Background {
             sync_loops: true,
             store_refresh: true,
             player_check: true,
+            keep_next: true,
         }
     }
 }
@@ -200,6 +212,7 @@ mod tests {
             on.sync_loops,
             on.store_refresh,
             on.player_check,
+            on.keep_next,
         ];
         assert!(all.iter().all(|on| *on), "{on:?}");
         assert_eq!(
@@ -212,6 +225,7 @@ mod tests {
                 sync_loops: false,
                 store_refresh: false,
                 player_check: false,
+                keep_next: false,
             }
         );
     }

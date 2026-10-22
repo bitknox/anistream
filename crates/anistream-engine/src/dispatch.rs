@@ -6,7 +6,7 @@
 //! [`handle_internal`] for each message the engine side left itself. No front end calls them.
 
 use anistream_meta::Meta;
-use anistream_model::{command::Command, event::Event, notice::Notice};
+use anistream_model::{command::Command, event::Event, notice::Notice, show::ShowSettingKey};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
@@ -23,7 +23,7 @@ use crate::{
     },
     data,
     downloads::{
-        self,
+        self, ahead,
         commands::{
             download_cancel, download_clear_completed, download_delete, download_episode,
             download_many, download_pause,
@@ -146,7 +146,8 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| list_episodes(lent, id))
         }
         Command::SetWatched { id, episodes, watched } => {
-            set_watched(id, &episodes, watched, engine, services, tx)
+            set_watched(id, &episodes, watched, engine, services, tx);
+            ahead::top_up(engine, services, tx);
         }
         Command::ClearMatch { id } => {
             spawn(job, services, tx, move |lent| clear_match(lent, id))
@@ -181,10 +182,14 @@ pub(crate) fn dispatch(
         Command::Player(command) => control_player(command, engine),
         // The same, aimed: let go when another playback has followed the one it names.
         Command::Control { playback, command } => control_playback(playback, command, engine),
-        // Where the app is and its network: which torrents wait.
-        Command::AppPhase { phase } => crate::phases::app_phase(phase, engine, tx),
+        // Where the app is and its network: which torrents wait, and whether keep next runs.
+        Command::AppPhase { phase } => {
+            crate::phases::app_phase(phase, engine, tx);
+            ahead::top_up(engine, services, tx);
+        }
         Command::NetworkPath { cellular, constrained } => {
-            crate::phases::network_path(cellular, constrained, engine, tx)
+            crate::phases::network_path(cellular, constrained, engine, tx);
+            ahead::top_up(engine, services, tx);
         }
         // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
         Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
@@ -229,17 +234,33 @@ pub(crate) fn dispatch(
         Command::DownloadClearCompleted => download_clear_completed(services, tx),
 
         // Settings.
-        Command::StepSetting { key, delta } => step_setting(key, delta, engine, services, tx),
-        Command::SetSetting { key, value } => set_setting(key, value, engine, services, tx),
+        Command::StepSetting { key, delta } => {
+            step_setting(key, delta, engine, services, tx);
+            if ahead::follows(key) {
+                ahead::top_up(engine, services, tx);
+            }
+        }
+        Command::SetSetting { key, value } => {
+            set_setting(key, value, engine, services, tx);
+            if ahead::follows(key) {
+                ahead::top_up(engine, services, tx);
+            }
+        }
         Command::SetTranslation { translation } => set_translation(translation, engine, tx),
         Command::SetTorrentProtection { mode, proxy, on_failure, acknowledged } => {
             set_torrent_protection(mode, proxy, on_failure, acknowledged, engine, services, tx)
         }
         Command::LoadShowSettings { id } => load_show_settings(id, engine, services, tx),
         Command::SetShowSetting { id, key, value } => {
-            set_show_setting(id, key, value, engine, services, tx)
+            set_show_setting(id, key, value, engine, services, tx);
+            if key == ShowSettingKey::KeepNext {
+                ahead::top_up(engine, services, tx);
+            }
         }
-        Command::ResetShowSettings { id } => reset_show_settings(id, engine, services, tx),
+        Command::ResetShowSettings { id } => {
+            reset_show_settings(id, engine, services, tx);
+            ahead::top_up(engine, services, tx);
+        }
         Command::SetShowSubtitles { id, translation, subtitles } => {
             set_show_subtitles(id, translation, subtitles, engine, services, tx)
         }
@@ -365,6 +386,7 @@ pub(crate) async fn handle_internal(
     }
     match message {
         Internal::SettingsSaved => {}
+        Internal::TopUp => ahead::top_up(engine, services, tx),
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
             sources::arrange(&services.registry, engine.config.effective());
