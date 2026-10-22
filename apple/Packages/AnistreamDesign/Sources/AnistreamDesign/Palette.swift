@@ -106,6 +106,10 @@ public enum Palette {
     public static let glassOverArtEdge = Color(rgb: 0xE4E0D6, opacity: 0.12)
     /// The selection tint, under an amber label and icon.
     public static let selection = Color(rgb: 0xF2A64B, opacity: 0.14)
+    /// The selection tint while it is pressed.
+    public static let selectionPressed = Color(rgb: 0xF2A64B, opacity: 0.22)
+    /// A row that is not selected, while it is pressed: a faint silk.
+    public static let rowPressed = Color(rgb: 0xE4E0D6, opacity: 0.06)
     /// A separator inside a menu or on glass.
     public static let glassRule = Color(rgb: 0xE4E0D6, opacity: 0.12)
     /// The dim player controls sit on: 35% of the ground.

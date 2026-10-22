@@ -199,6 +199,8 @@ struct TabStack<Screen: View>: View {
 /// - The rows: it styles each row as UIKit asks the sidebar's delegate for it (`SidebarRows`,
 ///   which hands everything else on to SwiftUI's own delegate), and has them asked again when the
 ///   section changes, since UIKit moves the selection without asking.
+/// - A pressed row: UIKit tells the delegate nothing of a press, so `RowPress` watches the list's
+///   touches and lays a faint layer under the row while the finger is down.
 struct PadSidebarStyle: UIViewRepresentable {
     let selection: AppSection
 
@@ -217,22 +219,38 @@ struct PadSidebarStyle: UIViewRepresentable {
 
         private func apply() {
             guard window != nil else { return }
-            tintGlass()
+            if let glass {
+                tint(glass)
+                if let list = list(in: glass.contentView) { RowPress.watch(list) }
+            }
             guard let controller = tabBarController else { return }
             if SidebarRows.install(on: controller) { restyle() }
         }
 
-        private func tintGlass() {
+        /// The glass the sidebar sits in.
+        private var glass: UIVisualEffectView? {
             var view = superview
             while let current = view {
-                if let glass = current as? UIVisualEffectView, let effect = glass.effect as? UIGlassEffect {
-                    guard effect.tintColor != Self.navy, let tinted = effect.copy() as? UIGlassEffect else { return }
-                    tinted.tintColor = Self.navy
-                    glass.effect = tinted
-                    return
-                }
+                if let glass = current as? UIVisualEffectView, glass.effect is UIGlassEffect { return glass }
                 view = current.superview
             }
+            return nil
+        }
+
+        private func tint(_ glass: UIVisualEffectView) {
+            guard let effect = glass.effect as? UIGlassEffect, effect.tintColor != Self.navy,
+                  let tinted = effect.copy() as? UIGlassEffect else { return }
+            tinted.tintColor = Self.navy
+            glass.effect = tinted
+        }
+
+        /// The sidebar's list of rows.
+        private func list(in view: UIView) -> UICollectionView? {
+            if let list = view as? UICollectionView { return list }
+            for subview in view.subviews {
+                if let list = list(in: subview) { return list }
+            }
+            return nil
         }
 
         private var tabBarController: UITabBarController? {
@@ -345,6 +363,73 @@ final class SidebarRows: NSObject, UITabBarController.Sidebar.Delegate {
         background.backgroundColor = selected ? UIColor(Palette.selection) : .clear
         background.cornerRadius = 12
         item.backgroundConfiguration = background
+    }
+}
+
+/// A finger on one of the sidebar's rows. UIKit tells neither the sidebar's delegate nor the rows'
+/// configurations that a row is pressed, and its own press was drawn on the colours `SidebarRows`
+/// replaces, so this watches the list's touches, alongside the list's own gestures, and lays a
+/// layer under the pressed row: a faint silk, or under the selected row enough amber that the two
+/// make `Palette.selectionPressed`. It goes when the finger lifts or moves away.
+final class RowPress: UILongPressGestureRecognizer, UIGestureRecognizerDelegate {
+    private static let underSelection: UIColor = {
+        let environment = EnvironmentValues()
+        let shown = Double(Palette.selection.resolve(in: environment).opacity)
+        let pressed = Double(Palette.selectionPressed.resolve(in: environment).opacity)
+        return UIColor(Palette.amber.opacity(1 - (1 - pressed) / (1 - shown)))
+    }()
+
+    private var pressLayer: UIView?
+    private var start: CGPoint = .zero
+
+    /// Watches `list`'s rows, once.
+    static func watch(_ list: UICollectionView) {
+        guard !(list.gestureRecognizers ?? []).contains(where: { $0 is RowPress }) else { return }
+        list.addGestureRecognizer(RowPress())
+    }
+
+    private init() {
+        super.init(target: nil, action: nil)
+        addTarget(self, action: #selector(changed))
+        minimumPressDuration = 0
+        cancelsTouchesInView = false
+        delaysTouchesBegan = false
+        delaysTouchesEnded = false
+        delegate = self
+    }
+
+    @objc private func changed() {
+        guard let list = view as? UICollectionView else { return }
+        switch state {
+        case .began:
+            start = location(in: list)
+            guard let path = list.indexPathForItem(at: start), let row = list.cellForItem(at: path) else { return }
+            let under = UIView(frame: row.bounds)
+            under.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            under.isUserInteractionEnabled = false
+            under.layer.cornerRadius = 12
+            under.layer.cornerCurve = .continuous
+            under.backgroundColor = row.isSelected ? Self.underSelection : UIColor(Palette.rowPressed)
+            row.insertSubview(under, belowSubview: row.contentView)
+            pressLayer = under
+        case .changed:
+            let point = location(in: list)
+            if hypot(point.x - start.x, point.y - start.y) > 10 { lift() }
+        default:
+            lift()
+        }
+    }
+
+    private func lift() {
+        pressLayer?.removeFromSuperview()
+        pressLayer = nil
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+    ) -> Bool {
+        true
     }
 }
 #endif
