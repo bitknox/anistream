@@ -345,8 +345,9 @@ const MIGRATIONS: &[(&str, &str)] = &[
     "#,
     ),
     (
-        // Numbered after the merge train's 0009 and 0010, which this lands behind.
-        "0011_download_ahead",
+        // Numbered after the merge train's 0009 and 0010, and native-layer/notify-follow-ups'
+        // 0011, which this lands beside.
+        "0012_download_ahead",
         r#"
     -- Whether keep next queued a download, to have a show's next episodes on the device, rather
     -- than the viewer asking for it. The Downloads row says so, and nothing deletes a download

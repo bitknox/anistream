@@ -1,10 +1,14 @@
 //! Keep next: the next episodes of the shows being watched, queued ahead of the viewer as they
 //! move on — on start, as the number to keep changes, as an episode is watched or played to its
-//! end, and as a list sync moves a show — and not while downloads wait.
+//! end, and as a list sync moves a show — and not while downloads wait; and let go of a day after
+//! they are watched.
 //!
 //! Off in every other test, as the rest of the engine's own work is; on here, with the device
 //! taken to have a terabyte free. Nothing starts a torrent: the harness has no session, so what
-//! is queued stays queued, which is all these read.
+//! is queued stays queued, which is all these read. Watching is dated by the wall clock, which
+//! the engine reads it against, rather than by the fixtures' moment, which is in the past.
+//! Unless a test signs in, there is no tracker account, so the shows followed are the ones
+//! watched here lately.
 
 use anistream_core::{
     ids::AnilistId,
@@ -21,7 +25,7 @@ use anistream_model::{
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anistream_testkit::{
-    fixtures::{AIRING, FINISHED, FIXTURE_NOW},
+    fixtures::{AIRING, FINISHED},
     seed, sources,
 };
 
@@ -51,10 +55,22 @@ fn keep(n: u32) -> Option<String> {
     Some(format!("[downloads]\nkeep_next = {n}\n"))
 }
 
-/// [`FINISHED`] being watched, four episodes in.
+const HOUR: i64 = 3_600;
+
+/// Now, by the wall clock.
+fn now() -> i64 {
+    anistream_store::now()
+}
+
+/// [`FINISHED`] being watched, four episodes in, the last ten minutes ago.
 fn four_in(store: &Store) {
-    store.replace_library_statuses("anilist", &[(FINISHED, "CURRENT")], FIXTURE_NOW).unwrap();
-    seed::watched(store, FINISHED, 4, FIXTURE_NOW - 600);
+    store.replace_library_statuses("anilist", &[(FINISHED, "CURRENT")], now()).unwrap();
+    seed::watched(store, FINISHED, 4, now() - 600);
+}
+
+/// `config.toml` signed in to AniList, keeping `n` episodes.
+fn signed_in_keeping(n: u32) -> Option<String> {
+    Some(format!("{WITH_ANILIST}\n[downloads]\nkeep_next = {n}\n"))
 }
 
 /// What the queue has of show `id`: each episode, with `ahead` beside one keep next queued.
@@ -160,14 +176,14 @@ async fn an_episode_played_to_its_end_or_counted_watched_tops_the_show_up() {
     h.settle().await;
 
     // As the playback of 5 records it, then says it ended.
-    seed::watched(h.store(), FINISHED, 5, FIXTURE_NOW);
+    seed::watched(h.store(), FINISHED, 5, now());
     let ended = Event::playback_ended(true, Ending::Complete { next: None });
     h.playback_says(1_000_001, FINISHED, "5", ended);
     h.settle().await;
     assert_eq!(queue(h.store(), FINISHED), ["5 ahead", "6 ahead", "7 ahead"]);
 
     // Counted watched partway through the credits of 6.
-    seed::watched(h.store(), FINISHED, 6, FIXTURE_NOW + 60);
+    seed::watched(h.store(), FINISHED, 6, now() + 60);
     h.player_says(Event::ProgressQueued);
     h.settle().await;
     assert_eq!(queue(h.store(), FINISHED), ["5 ahead", "6 ahead", "7 ahead", "8 ahead"]);
@@ -175,9 +191,8 @@ async fn an_episode_played_to_its_end_or_counted_watched_tops_the_show_up() {
 
 #[tokio::test]
 async fn a_list_sync_that_moves_a_show_tops_it_up_with_only_what_is_out() {
-    let config = format!("{WITH_ANILIST}\n[downloads]\nkeep_next = 4\n");
     let mut h = keeping(Options {
-        config: Some(config),
+        config: signed_in_keeping(4),
         signed_in: vec!["anilist"],
         ..Options::default()
     })
@@ -212,17 +227,20 @@ async fn nothing_is_kept_while_downloads_wait_on_cellular_or_off_screen() {
 }
 
 #[tokio::test]
-async fn a_show_that_leaves_watching_keeps_its_downloads_and_is_topped_up_no_more() {
-    let mut h =
-        keeping(Options { config: keep(2), before_start: Some(four_in), ..Options::default() })
-            .await;
+async fn a_show_set_aside_on_the_list_keeps_its_downloads_and_is_topped_up_no_more() {
+    let mut h = keeping(Options {
+        config: signed_in_keeping(2),
+        signed_in: vec!["anilist"],
+        before_start: Some(four_in),
+        ..Options::default()
+    })
+    .await;
     h.send(Command::LoadDownloads);
     h.settle().await;
     assert_eq!(queue(h.store(), FINISHED), ["5 ahead", "6 ahead"]);
 
-    h.store()
-        .replace_library_statuses("anilist", &[(FINISHED, "PAUSED")], FIXTURE_NOW)
-        .unwrap();
+    // Paused on the list, however lately it was watched here.
+    h.store().replace_library_statuses("anilist", &[(FINISHED, "PAUSED")], now()).unwrap();
     h.send(Command::SetWatched { id: FINISHED, episodes: vec!["5".into()], watched: true });
     h.settle().await;
     assert_eq!(queue(h.store(), FINISHED), ["5 ahead", "6 ahead"]);
@@ -258,4 +276,37 @@ async fn an_episode_the_viewer_lets_go_of_is_not_queued_again_until_asked_for() 
     h.send(Command::DownloadEpisode { id: FINISHED, episode: "6".into() });
     h.settle().await;
     assert_eq!(queue(h.store(), FINISHED), ["5 ahead", "6"]);
+}
+
+/// Episodes 1 and 3 of [`FINISHED`] downloaded ahead and 2 by hand; four watched, the first a
+/// day and an hour ago and the last 22 hours ago, an hour apart.
+fn watched_past_ahead(store: &Store) {
+    seed::watched(store, FINISHED, 4, now() - 22 * HOUR);
+    for (episode, ahead) in [("1", true), ("2", false), ("3", true)] {
+        let row = if ahead {
+            store.enqueue_download_ahead(FINISHED, episode, "Show", "magnet:?xt=urn:btih:1")
+        } else {
+            store.enqueue_download(FINISHED, episode, "Show", "magnet:?xt=urn:btih:1")
+        };
+        store.finish_download(row.unwrap().id, None).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn an_episode_kept_ahead_goes_a_day_after_it_is_watched_and_one_asked_for_stays() {
+    let mut h = keeping(Options {
+        config: keep(2),
+        before_start: Some(watched_past_ahead),
+        ..Options::default()
+    })
+    .await;
+    h.send(Command::LoadDownloads);
+    let updates = h.settle().await;
+    // One a day gone, two the viewer's, three an hour short of a day.
+    assert_eq!(queue(h.store(), FINISHED), ["2", "3 ahead", "5 ahead", "6 ahead"]);
+    assert_eq!(said(&updates), ["2", "3 ahead", "5 ahead", "6 ahead"]);
+    assert!(
+        !h.store().download_dismissed(FINISHED, "1").unwrap(),
+        "not let go of by the viewer"
+    );
 }

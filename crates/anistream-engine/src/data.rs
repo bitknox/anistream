@@ -103,6 +103,8 @@ fn detail_from(media: &Media, store: Option<&Store>) -> TitleDetail {
     let linked = |node: &RelationNode, relation| LinkedTitle {
         list_status: store
             .and_then(|s| s.library_status(node.id).ok().flatten())
+            // A rewatch is on the Watching segment, as AniList's own list shows it.
+            .map(|status| if status == "REPEATING" { "CURRENT".to_owned() } else { status })
             .and_then(|status| LibrarySegment::ALL.into_iter().find(|s| s.wire() == status)),
         ..linked(node, relation)
     };

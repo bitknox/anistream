@@ -325,6 +325,15 @@ impl Store {
         })
     }
 
+    /// Take download `id` off the queue as keep next's, a day after its episode was watched:
+    /// only one keep next queued and the viewer never asked for, and not kept as let go of,
+    /// since a watched episode is not queued again anyway. Whether there was one to take.
+    pub fn expire_download(&self, id: i64) -> Result<bool> {
+        self.with_conn(|c| {
+            Ok(c.execute("DELETE FROM download WHERE id = ?1 AND ahead = 1", [id])? > 0)
+        })
+    }
+
     /// Whether the viewer let `episode` of `anilist_id` go from the queue, and has not asked
     /// for it since: keep next leaves it alone.
     pub fn download_dismissed(&self, anilist_id: AnilistId, episode: &str) -> Result<bool> {
@@ -588,6 +597,18 @@ mod tests {
         store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap();
         assert!(store.download_dismissed(ID, "4").unwrap());
         store.enqueue_download(ID, "4", "Show", "m").unwrap();
+        assert!(!store.download_dismissed(ID, "4").unwrap());
+    }
+
+    #[test]
+    fn only_a_download_queued_ahead_expires_and_it_is_not_kept_as_let_go_of() {
+        let store = store();
+        let ahead = store.enqueue_download_ahead(ID, "4", "Show", "m").unwrap();
+        let mine = store.enqueue_download(ID, "5", "Show", "m").unwrap();
+        assert!(!store.expire_download(mine.id).unwrap(), "asked for by hand");
+        assert!(store.expire_download(ahead.id).unwrap());
+        assert!(store.download_for(ID, "4").unwrap().is_none());
+        assert!(store.download_for(ID, "5").unwrap().is_some());
         assert!(!store.download_dismissed(ID, "4").unwrap());
     }
 

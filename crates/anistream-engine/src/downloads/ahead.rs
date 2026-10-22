@@ -1,20 +1,29 @@
-//! Keep next: the next episodes of each show being watched, downloaded ahead.
+//! Keep next: the next episodes of each show being watched, downloaded ahead, and let go of a day
+//! after they are watched.
 //!
-//! For every show on the viewer's list as watching or rewatching, with a number to keep — its
-//! own, or else Settings' — the episodes after where the viewer is are queued, as many as that
-//! number, and only those that are out. Each is queued as a download asked for by hand would
-//! be: in the show's own download quality and translation, from the source it is pinned to.
+//! The shows are those being watched: on the list as watching or rewatching, and watched here in
+//! the last 30 days unless the list has them dropped or paused, which is the rule the
+//! new-episode check follows too. A viewer with no tracker account has the second half. For each
+//! with a number to keep — its own, or else Settings' — the episodes after where the viewer is
+//! are queued, as many as that number, and only those that are out. Each is queued as a download
+//! asked for by hand would be: in the show's own download quality and translation, from the
+//! source it is pinned to.
 //!
 //! **What it does is top up.** It queues what is missing and nothing else: an episode with a
-//! row in the queue, however that row stands, is not asked for again, and nothing is ever
-//! deleted. A show that leaves the list's watching keeps what it has; it is only no longer
-//! topped up. Starting the downloads is the queue's own work, at its own concurrency.
+//! row in the queue, however that row stands, or one the viewer let go of from it, is not asked
+//! for again. A show that stops being watched keeps what it has; it is only no longer topped up.
+//! Starting the downloads is the queue's own work, at its own concurrency.
 //!
-//! **When it tops up.** On start; after an episode is marked watched, counts as watched in the
+//! **What it lets go of.** An episode it queued goes a day after it counts as watched: its row,
+//! and its file. Never one the viewer asked for, nor one queued ahead that the viewer has since
+//! asked for themselves, and never one at or after where the viewer is, as in a rewatch, where
+//! the episodes ahead were watched long ago and are about to be again.
+//!
+//! **When it runs.** On start; after an episode is marked watched, counts as watched in the
 //! player, or plays to its end; after the airing digest finds a new episode; when the number to
-//! keep changes, or the network or the app's phase lets downloads run again; and after a list
-//! sync moves a show's progress or where it is on the list. Asked for again while a top-up runs,
-//! the latest ask runs once it is done.
+//! keep changes; when the network, the app's phase or the connection check lets downloads run
+//! again; and after a list sync moves a show's progress or where it is on the list. Asked for
+//! again while a top-up runs, the latest ask runs once it is done.
 //!
 //! **What it waits for.** Nothing is topped up while downloads wait: off screen, on a metered
 //! network, or while the connection check that guards torrents fails. And it stops before the
@@ -44,6 +53,7 @@ use crate::{
 };
 
 const GB: u64 = 1_000_000_000;
+const DAY: i64 = 24 * 3_600;
 
 /// What keep next leaves free on the device, whatever it would keep: room for the system and
 /// everything else on it.
@@ -52,6 +62,14 @@ pub const KEEP_FREE: u64 = 2 * GB;
 /// What an episode is taken to need while no download has finished to measure one by: an
 /// ordinary 1080p episode.
 pub const EPISODE_GUESS: u64 = 3 * GB / 2;
+
+/// How long an episode kept ahead stays once it counts as watched: room for a rewatch of the
+/// ending, or a finish that was a slip of the seek bar.
+pub const GRACE: i64 = DAY;
+
+/// How recently a show has to have been watched here to be followed without being on the list:
+/// the new-episode check's `WATCHED_WITHIN`.
+pub const WATCHED_WITHIN: i64 = 30 * DAY;
 
 /// What keep next says, once, when the device has no room for another episode.
 pub const FULL: &str = "not enough free space to keep the next episodes downloaded";
@@ -76,9 +94,30 @@ struct Inner {
 /// The top-ups asked for: the latest, waiting for the one under way.
 #[derive(Default)]
 struct Queue {
-    /// The config the next top-up runs on, the one in effect when it was asked for.
-    next: Option<Config>,
+    /// What the next top-up runs on: the config in effect when it was asked for, and whether
+    /// the list was a signed-in tracker's then.
+    next: Option<(Config, bool)>,
     running: bool,
+}
+
+/// Whose shows are followed, and as of when: the list counts only while the tracker it came from
+/// is signed in, as the Library's.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Viewer {
+    pub now: i64,
+    pub listed: bool,
+}
+
+impl Viewer {
+    /// The viewer as `services` have them now.
+    fn now(services: &Services) -> Self {
+        Self { now: anistream_store::now(), listed: listed(services) }
+    }
+}
+
+/// Whether the list the database keeps is a signed-in tracker's: the Library's, the first.
+pub(crate) fn listed(services: &Services) -> bool {
+    services.sync.trackers.first().is_some_and(|tracker| tracker.is_authenticated())
 }
 
 impl Ahead {
@@ -90,9 +129,9 @@ impl Ahead {
 
     /// Run a top-up on `config`, now or after the one under way, which then runs no more than
     /// once for every ask that came while it ran: on the config of the latest.
-    fn ask(&self, config: Config, services: &Services, tx: &Outbox) {
+    fn ask(&self, config: Config, listed: bool, services: &Services, tx: &Outbox) {
         let mut queue = self.0.queue.lock().unwrap_or_else(|e| e.into_inner());
-        queue.next = Some(config);
+        queue.next = Some((config, listed));
         if queue.running {
             return;
         }
@@ -109,27 +148,35 @@ impl Ahead {
         let tx = tx.clone();
         tokio::spawn(async move {
             loop {
-                let config = {
+                let (config, listed) = {
                     let mut queue = inner.queue.lock().unwrap_or_else(|e| e.into_inner());
                     match queue.next.take() {
-                        Some(config) => config,
+                        Some(next) => next,
                         None => {
                             queue.running = false;
                             return;
                         }
                     }
                 };
-                run(&config, &live, &live.store, &inner.said_full, &tx).await;
+                let viewer = Viewer { now: anistream_store::now(), listed };
+                run(&config, viewer, &live, &live.store, &inner.said_full, &tx).await;
             }
         });
     }
 }
 
-/// Top up the shows being watched: when keep next runs, downloads may run now, and a show has
-/// an episode to keep that is not in the queue. What is missing is read here, from the
-/// database; finding which of it is out, and queueing it, runs off the actor.
+/// Let go of the episodes kept ahead that were watched a day ago, then top up the shows being
+/// watched: when keep next runs, downloads may run now, and a show has an episode to keep that
+/// is not in the queue. What goes, and what is missing, is read here, from the database; finding
+/// which of it is out, and queueing it, runs off the actor.
 pub fn top_up(engine: &EngineState, services: &Services, tx: &Outbox) {
-    if !engine.ahead.0.on || downloads_wait(engine) {
+    if !engine.ahead.0.on {
+        return;
+    }
+    let viewer = Viewer::now(services);
+    // Whatever downloads may do: letting go asks nothing of the network.
+    expire(&services.store, viewer, tx);
+    if downloads_wait(engine) {
         return;
     }
     let config = engine.config.effective();
@@ -138,10 +185,10 @@ pub fn top_up(engine: &EngineState, services: &Services, tx: &Outbox) {
     if config.downloads.keep_next == 0 && kept_by_shows == 0 {
         return;
     }
-    if missing(config, &services.store).is_empty() {
+    if missing(config, &services.store, viewer).is_empty() {
         return;
     }
-    engine.ahead.ask(config.clone(), services, tx);
+    engine.ahead.ask(config.clone(), viewer.listed, services, tx);
 }
 
 /// Whether downloads wait now, as the torrent session is told: off screen, on a metered
@@ -167,6 +214,29 @@ pub fn follows(key: SettingKey) -> bool {
     matches!(key, SettingKey::KeepNextEpisodes | SettingKey::DownloadsOnCellular)
 }
 
+/// A show being watched, and whether the list has it as rewatched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Show {
+    pub id: AnilistId,
+    pub rewatching: bool,
+}
+
+/// The shows being watched, as of `viewer`: the most recently watched here first.
+pub(crate) fn followed(store: &Store, viewer: Viewer) -> Vec<Show> {
+    let ids =
+        store.watching(viewer.now - WATCHED_WITHIN, viewer.listed).unwrap_or_else(|error| {
+            tracing::warn!(%error, "keep next could not read the shows being watched");
+            Vec::new()
+        });
+    ids.into_iter().map(|id| Show { id, rewatching: rewatching(store, id, viewer) }).collect()
+}
+
+/// Whether the list has show `id` as rewatched.
+fn rewatching(store: &Store, id: AnilistId, viewer: Viewer) -> bool {
+    viewer.listed
+        && matches!(store.library_status(id), Ok(Some(status)) if status == "REPEATING")
+}
+
 /// What one show wants kept and the queue does not have: the episodes, in order, before the
 /// show's schedule has said which of them are out; and the config a download of it runs under.
 #[derive(Debug, Clone)]
@@ -178,45 +248,106 @@ pub(crate) struct Missing {
 
 /// What each show being watched wants kept and the queue does not have, on `config`, the one
 /// in effect: the most recently watched show first.
-pub(crate) fn missing(config: &Config, store: &Store) -> Vec<Missing> {
-    let watching = store.watching().unwrap_or_else(|error| {
-        tracing::warn!(%error, "keep next could not read the shows being watched");
-        Vec::new()
-    });
-    watching
+pub(crate) fn missing(config: &Config, store: &Store, viewer: Viewer) -> Vec<Missing> {
+    followed(store, viewer)
         .into_iter()
-        .filter_map(|id| {
-            let config = show_settings::for_show(config, store, id);
+        .filter_map(|show| {
+            let config = show_settings::for_show(config, store, show.id);
             let keep = config.downloads.keep_next;
             if keep == 0 {
                 return None;
             }
-            let episodes: Vec<u32> = next_episodes(store, id, keep)
+            let episodes: Vec<u32> = next_episodes(store, show, keep)
                 .into_iter()
                 .filter(|episode| {
                     let episode = episode.to_string();
                     // Any row is one: queued, running, paused, done, or failed and left for
                     // the viewer to retry. And one the viewer let go of stays gone.
-                    !matches!(store.download_for(id, &episode), Ok(Some(_)))
-                        && !store.download_dismissed(id, &episode).unwrap_or(true)
+                    !matches!(store.download_for(show.id, &episode), Ok(Some(_)))
+                        && !store.download_dismissed(show.id, &episode).unwrap_or(true)
                 })
                 .collect();
-            (!episodes.is_empty()).then_some(Missing { id, episodes, config })
+            (!episodes.is_empty()).then_some(Missing { id: show.id, episodes, config })
         })
         .collect()
 }
 
-/// The `keep` episodes of show `id` after where the viewer is: from the episode Continue
-/// offers, the ones not yet watched.
-pub(crate) fn next_episodes(store: &Store, id: AnilistId, keep: u32) -> Vec<u32> {
-    let completed = store.completed_episodes(id).unwrap_or_default();
-    let start = match store.progress(id) {
-        Ok(Some(progress)) => crate::data::continue_from(&progress, &completed, None),
-        _ => 1,
+/// The `keep` episodes of `show` after where the viewer is: from [`position`], the ones not yet
+/// watched, or in a rewatch every one, since all were watched before.
+pub(crate) fn next_episodes(store: &Store, show: Show, keep: u32) -> Vec<u32> {
+    let start = position(store, show);
+    let completed = if show.rewatching {
+        Vec::new()
+    } else {
+        store.completed_episodes(show.id).unwrap_or_default()
     };
     let watched = |n: u32| completed.iter().any(|e| e.trim().parse::<u32>() == Ok(n));
     // Bounded: a run of watched episodes ahead must still end.
     (start..start.saturating_add(1_000)).filter(|n| !watched(*n)).take(keep as usize).collect()
+}
+
+/// The episode the viewer is on in `show`: the one Continue offers, or in a rewatch the one
+/// last played, until it is finished, and then the one after it.
+pub(crate) fn position(store: &Store, show: Show) -> u32 {
+    let Ok(Some(progress)) = store.progress(show.id) else { return 1 };
+    if show.rewatching
+        && let Ok(last) = progress.last_episode.trim().parse::<u32>()
+    {
+        let finished =
+            matches!(store.last_watch(show.id, &progress.last_episode), Ok(Some((true, _))));
+        return if finished { last.saturating_add(1) } else { last };
+    }
+    let completed = store.completed_episodes(show.id).unwrap_or_default();
+    crate::data::continue_from(&progress, &completed, None)
+}
+
+/// The downloads keep next queued that go now, as of `viewer`: each of an episode that counts
+/// as watched, last played to its end at least [`GRACE`] ago, and before where the viewer is.
+/// One the viewer asked for is not keep next's to let go of.
+pub(crate) fn expired(store: &Store, viewer: Viewer) -> Vec<Download> {
+    let rows = store.downloads().unwrap_or_default();
+    rows.into_iter()
+        .filter(|row| row.ahead)
+        .filter(|row| {
+            let Ok(episode) = row.episode.trim().parse::<u32>() else { return false };
+            let watched = matches!(
+                store.last_watch(row.anilist_id, &row.episode),
+                Ok(Some((true, at))) if viewer.now - at >= GRACE
+            );
+            let show = Show {
+                id: row.anilist_id,
+                rewatching: rewatching(store, row.anilist_id, viewer),
+            };
+            watched && episode < position(store, show)
+        })
+        .collect()
+}
+
+/// Let go of what [`expired`] says, its files with it, and say the queue when anything went.
+/// Not kept as let go of by the viewer: a watched episode is not queued again anyway, and in a
+/// rewatch it is wanted again.
+pub(crate) fn expire(store: &Store, viewer: Viewer, tx: &Outbox) -> usize {
+    let mut gone = 0;
+    for row in expired(store, viewer) {
+        // The row first. A running download's torrent, and its part of the file, the queue
+        // drops once its row is gone; a finished one's file is deleted here.
+        if !store.expire_download(row.id).unwrap_or(false) {
+            continue;
+        }
+        gone += 1;
+        if let (DownloadState::Done | DownloadState::Failed, Some(path)) =
+            (row.state, &row.path)
+            && let Err(error) = std::fs::remove_file(path)
+            && error.kind() != std::io::ErrorKind::NotFound
+        {
+            tracing::warn!(%error, %path, "keep next could not delete a watched episode's file");
+        }
+        tracing::info!(id = %row.anilist_id, episode = %row.episode, "kept ahead, watched, let go");
+    }
+    if gone > 0 {
+        downloads::publish_now(store, tx);
+    }
+    gone
 }
 
 /// Of `episodes`, in order, those that are out: up to the first that is past the show's last
@@ -345,23 +476,25 @@ fn free_space(path: &Path) -> Option<u64> {
     Some(stat.f_bavail.saturating_mul(stat.f_frsize))
 }
 
-/// Not asked off Unix: unknown room is taken as room.
+/// Not asked off Unix: unknown room is taken as room. Windows has no safe way to ask in this
+/// build's dependencies, and the workspace forbids unsafe code.
 #[cfg(not(unix))]
 fn free_space(_: &Path) -> Option<u64> {
     None
 }
 
-/// Top up, on `config`: for each show missing what it keeps, the episodes of it that are out,
-/// queued in order while they fit. A show stops at the first episode refused, and the whole
-/// top-up at the first that would not fit, which is said once until one fits again.
+/// Top up, on `config`, for `viewer`: for each show missing what it keeps, the episodes of it
+/// that are out, queued in order while they fit. A show stops at the first episode refused, and
+/// the whole top-up at the first that would not fit, which is said once until one fits again.
 pub(crate) async fn run(
     config: &Config,
+    viewer: Viewer,
     work: &impl Work,
     store: &Store,
     said_full: &AtomicBool,
     tx: &Outbox,
 ) {
-    for show in missing(config, store) {
+    for show in missing(config, store, viewer) {
         let Some(media) = work.media(show.id).await else { continue };
         let wanted = Wanted::of(&show.config);
         for episode in out(&media, &show.episodes) {
@@ -402,6 +535,13 @@ mod tests {
     /// Plenty of room: a hundred episodes' worth over what is kept free.
     const ROOMY: u64 = KEEP_FREE + 100 * EPISODE_GUESS;
 
+    /// The moment the tests are at.
+    const NOW: i64 = 2_000_000_000;
+    /// A viewer signed in to the tracker the list is from, at [`NOW`].
+    const SIGNED_IN: Viewer = Viewer { now: NOW, listed: true };
+    /// One with no tracker account, at [`NOW`].
+    const NO_ACCOUNT: Viewer = Viewer { now: NOW, listed: false };
+
     /// A store with `shows` on the list as `status`.
     fn listed(shows: &[(AnilistId, &str)]) -> Store {
         let store = Store::open_in_memory().unwrap();
@@ -409,15 +549,27 @@ mod tests {
         store
     }
 
-    /// Episodes `1..=upto` of `id` watched to the end, at `at`.
-    fn watched(store: &Store, id: AnilistId, upto: u32, at: i64) {
-        for n in 1..=upto {
+    /// Episodes `from..=upto` of `id` watched to the end, at `at`.
+    fn watched_from(store: &Store, id: AnilistId, from: u32, upto: u32, at: i64) {
+        for n in from..=upto {
             let mut event = WatchEvent::new(id, n.to_string(), 1_400.0);
             event.duration_secs = Some(1_440.0);
             event.completed = true;
             event.at = at;
             store.record_event(&event).unwrap();
         }
+    }
+
+    /// Episodes `1..=upto` of `id` watched to the end, at `at`.
+    fn watched(store: &Store, id: AnilistId, upto: u32, at: i64) {
+        watched_from(store, id, 1, upto, at);
+    }
+
+    /// Episode `n` of `id` started, at `at`.
+    fn started(store: &Store, id: AnilistId, n: u32, at: i64) {
+        let mut event = WatchEvent::new(id, n.to_string(), 300.0);
+        (event.duration_secs, event.at) = (Some(1_440.0), at);
+        store.record_event(&event).unwrap();
     }
 
     fn keeping(n: u32) -> Config {
@@ -427,8 +579,8 @@ mod tests {
     }
 
     /// Each show and what it is missing.
-    fn wants(config: &Config, store: &Store) -> Vec<(AnilistId, Vec<u32>)> {
-        missing(config, store).into_iter().map(|m| (m.id, m.episodes)).collect()
+    fn wants(config: &Config, store: &Store, viewer: Viewer) -> Vec<(AnilistId, Vec<u32>)> {
+        missing(config, store, viewer).into_iter().map(|m| (m.id, m.episodes)).collect()
     }
 
     /// The episodes of `id` in the queue, each with whether it was queued ahead.
@@ -442,6 +594,25 @@ mod tests {
             .collect();
         rows.sort_by_key(|(episode, _)| episode.parse::<u32>().unwrap_or(0));
         rows
+    }
+
+    /// Episodes `episodes` of `id` downloaded ahead, finished.
+    fn kept(store: &Store, id: AnilistId, episodes: &[u32]) {
+        for n in episodes {
+            let row = store.enqueue_download_ahead(id, &n.to_string(), "Show", "m").unwrap();
+            store.finish_download(row.id, None).unwrap();
+        }
+    }
+
+    /// The episodes of `id` that [`expired`] lets go of.
+    fn going(store: &Store, id: AnilistId, viewer: Viewer) -> Vec<String> {
+        let mut going: Vec<_> = expired(store, viewer)
+            .into_iter()
+            .filter(|row| row.anilist_id == id)
+            .map(|row| row.episode)
+            .collect();
+        going.sort();
+        going
     }
 
     /// A top-up's work from memory: the fixtures' schedules, `free` bytes free, and each
@@ -494,10 +665,10 @@ mod tests {
         }
     }
 
-    /// Run one top-up on `config` with `work`, and return what it said.
+    /// Run one top-up on `config` with `work`, signed in, and return what it said.
     async fn top_up_with(config: &Config, work: &Fake, said_full: &AtomicBool) -> Vec<Event> {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        run(config, work, &work.store, said_full, &Outbox::from(tx)).await;
+        run(config, SIGNED_IN, work, &work.store, said_full, &Outbox::from(tx)).await;
         std::iter::from_fn(|| rx.try_recv().ok()).collect()
     }
 
@@ -513,19 +684,39 @@ mod tests {
     #[test]
     fn the_number_kept_is_settings_or_the_shows_own() {
         let store = listed(&[(FINISHED, "CURRENT"), (SEQUEL, "REPEATING"), (ONA, "CURRENT")]);
-        watched(&store, FINISHED, 4, 300);
+        watched(&store, FINISHED, 4, NOW - DAY);
         // A show that keeps more for itself, and one that keeps none.
         store.set_show_setting(SEQUEL, "keep_next", Some("3"), 1).unwrap();
         store.set_show_setting(ONA, "keep_next", Some("0"), 1).unwrap();
 
         assert_eq!(
-            wants(&keeping(2), &store),
+            wants(&keeping(2), &store, SIGNED_IN),
             [(FINISHED, vec![5, 6]), (SEQUEL, vec![1, 2, 3])],
             "the last watched first, each with its own number",
         );
         // Off in Settings, a show that keeps its own still keeps them.
-        assert_eq!(wants(&keeping(0), &store), [(SEQUEL, vec![1, 2, 3])]);
-        assert!(wants(&keeping(0), &listed(&[(FINISHED, "CURRENT")])).is_empty());
+        assert_eq!(wants(&keeping(0), &store, SIGNED_IN), [(SEQUEL, vec![1, 2, 3])]);
+        let off = listed(&[(FINISHED, "CURRENT")]);
+        assert!(wants(&keeping(0), &off, SIGNED_IN).is_empty());
+    }
+
+    #[test]
+    fn a_viewer_with_no_tracker_account_keeps_the_shows_watched_here_lately() {
+        // On the list, but nobody is signed in to it any more: it says nothing.
+        let store = listed(&[(SEQUEL, "CURRENT"), (ONA, "PAUSED")]);
+        watched(&store, FINISHED, 4, NOW - 29 * DAY);
+        watched(&store, ONA, 2, NOW - DAY);
+        watched(&store, AIRING, 2, NOW - WATCHED_WITHIN - DAY);
+        assert_eq!(
+            wants(&keeping(1), &store, NO_ACCOUNT),
+            [(ONA, vec![3]), (FINISHED, vec![5])],
+            "watched here in the last 30 days, the list's pause or not",
+        );
+        // Signed in, the list counts: its show, and not the one it has paused.
+        assert_eq!(
+            wants(&keeping(1), &store, SIGNED_IN),
+            [(FINISHED, vec![5]), (SEQUEL, vec![1])],
+        );
     }
 
     #[test]
@@ -533,22 +724,36 @@ mod tests {
         let store = listed(&[(FINISHED, "CURRENT")]);
         watched(&store, FINISHED, 4, 300);
         // Episode 6 watched out of order, and episode 5 left part way.
-        let mut six = WatchEvent::new(FINISHED, "6", 1_400.0);
-        (six.duration_secs, six.completed, six.at) = (Some(1_440.0), true, 310);
-        store.record_event(&six).unwrap();
-        let mut five = WatchEvent::new(FINISHED, "5", 600.0);
-        (five.duration_secs, five.at) = (Some(1_440.0), 320);
-        store.record_event(&five).unwrap();
-        assert_eq!(next_episodes(&store, FINISHED, 3), [5, 7, 8], "6 is watched already");
+        watched_from(&store, FINISHED, 6, 6, 310);
+        started(&store, FINISHED, 5, 320);
+        let show = |id| Show { id, rewatching: false };
+        assert_eq!(next_episodes(&store, show(FINISHED), 3), [5, 7, 8], "6 is watched already");
 
         // Nothing watched here: from the first.
-        assert_eq!(next_episodes(&store, SEQUEL, 2), [1, 2]);
+        assert_eq!(next_episodes(&store, show(SEQUEL), 2), [1, 2]);
+    }
+
+    #[test]
+    fn a_rewatch_keeps_the_episodes_after_the_one_rewatched() {
+        let store = listed(&[(FINISHED, "REPEATING")]);
+        watched(&store, FINISHED, 12, NOW - 100 * DAY);
+        watched(&store, FINISHED, 3, NOW - DAY);
+        assert_eq!(wants(&keeping(2), &store, SIGNED_IN), [(FINISHED, vec![4, 5])]);
+        // Partway into the fourth again.
+        started(&store, FINISHED, 4, NOW - 60);
+        assert_eq!(wants(&keeping(2), &store, SIGNED_IN), [(FINISHED, vec![4, 5])]);
+        // Not a rewatch the list knows of: Continue's next, past the last episode, which the
+        // schedule then rules out.
+        let current = listed(&[(FINISHED, "CURRENT")]);
+        watched(&current, FINISHED, 12, NOW - 100 * DAY);
+        watched(&current, FINISHED, 3, NOW - DAY);
+        assert_eq!(wants(&keeping(2), &current, SIGNED_IN), [(FINISHED, vec![13, 14])]);
     }
 
     #[test]
     fn an_episode_with_a_row_in_the_queue_is_not_asked_for_again() {
         let store = listed(&[(FINISHED, "CURRENT")]);
-        watched(&store, FINISHED, 2, 300);
+        watched(&store, FINISHED, 2, NOW - DAY);
         let done = store.enqueue_download(FINISHED, "3", "Show", "m").unwrap();
         store.finish_download(done.id, None).unwrap();
         let failed = store.enqueue_download_ahead(FINISHED, "5", "Show", "m").unwrap();
@@ -556,18 +761,18 @@ mod tests {
         let paused = store.enqueue_download(FINISHED, "6", "Show", "m").unwrap();
         store.set_download_state(paused.id, DownloadState::Paused).unwrap();
         store.enqueue_download_ahead(FINISHED, "7", "Show", "m").unwrap();
-        assert_eq!(wants(&keeping(6), &store), [(FINISHED, vec![4, 8])]);
+        assert_eq!(wants(&keeping(6), &store, SIGNED_IN), [(FINISHED, vec![4, 8])]);
 
         // Cancelled by the viewer: not queued again.
         let cancelled = store.download_for(FINISHED, "7").unwrap().unwrap();
         store.remove_download(cancelled.id).unwrap();
-        assert_eq!(wants(&keeping(6), &store), [(FINISHED, vec![4, 8])]);
+        assert_eq!(wants(&keeping(6), &store, SIGNED_IN), [(FINISHED, vec![4, 8])]);
     }
 
     #[tokio::test]
     async fn a_top_up_queues_what_is_missing_once_in_the_shows_own_quality() {
         let store = listed(&[(FINISHED, "CURRENT")]);
-        watched(&store, FINISHED, 4, 300);
+        watched(&store, FINISHED, 4, NOW - DAY);
         store.set_show_setting(FINISHED, "download_quality", Some("higher"), 1).unwrap();
         store.enqueue_download(FINISHED, "5", "Show", "m").unwrap();
         let work = Fake::on(&store);
@@ -595,8 +800,8 @@ mod tests {
     async fn an_episode_not_out_yet_is_not_asked_for() {
         // Five of its twenty-four out, the sixth two days off.
         let store = listed(&[(AIRING, "CURRENT"), (FINISHED, "CURRENT")]);
-        watched(&store, AIRING, 3, 400);
-        watched(&store, FINISHED, 10, 300);
+        watched(&store, AIRING, 3, NOW - DAY);
+        watched(&store, FINISHED, 10, NOW - 2 * DAY);
         let work = Fake::on(&store);
         top_up_with(&keeping(4), &work, &AtomicBool::new(false)).await;
         assert_eq!(
@@ -613,24 +818,90 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_show_that_leaves_watching_keeps_what_it_has_and_is_topped_up_no_more() {
+    async fn a_show_that_stops_being_watched_keeps_what_it_has_and_is_topped_up_no_more() {
         let store = listed(&[(FINISHED, "CURRENT")]);
-        watched(&store, FINISHED, 4, 300);
+        watched(&store, FINISHED, 4, NOW - WATCHED_WITHIN - 2 * DAY);
         let work = Fake::on(&store);
         top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
         assert_eq!(queued(&store, FINISHED).len(), 2);
 
-        for status in ["COMPLETED", "PAUSED", "DROPPED", "PLANNING"] {
+        // Not watched here lately, and off the list's watching.
+        for status in ["COMPLETED", "PLANNING"] {
             store.replace_library_statuses("anilist", &[(FINISHED, status)], 20).unwrap();
-            watched(&store, FINISHED, 5, 400);
-            assert!(wants(&keeping(2), &store).is_empty(), "{status}");
+            assert!(wants(&keeping(2), &store, SIGNED_IN).is_empty(), "{status}");
             top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
         }
-        // Off the list altogether.
-        store.replace_library_statuses("anilist", &[], 30).unwrap();
-        top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
+        // Set aside on the list, however lately it was watched here.
+        for status in ["PAUSED", "DROPPED"] {
+            store.replace_library_statuses("anilist", &[(FINISHED, status)], 20).unwrap();
+            watched_from(&store, FINISHED, 5, 5, NOW - 60);
+            assert!(wants(&keeping(2), &store, SIGNED_IN).is_empty(), "{status}");
+            top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
+        }
         assert_eq!(work.asked().len(), 2, "asked for nothing more");
         assert_eq!(queued(&store, FINISHED), [("5".into(), true), ("6".into(), true)]);
+    }
+
+    #[test]
+    fn an_episode_kept_ahead_goes_a_day_after_it_is_watched() {
+        let store = listed(&[(FINISHED, "CURRENT")]);
+        kept(&store, FINISHED, &[3, 4, 5]);
+        // Three a second over a day ago, four a second short of one, five not yet.
+        watched(&store, FINISHED, 3, NOW - GRACE - 1);
+        watched_from(&store, FINISHED, 4, 4, NOW - GRACE + 1);
+        assert_eq!(going(&store, FINISHED, SIGNED_IN), ["3"]);
+        assert_eq!(going(&store, FINISHED, Viewer { now: NOW + 2, ..SIGNED_IN }), ["3", "4"]);
+
+        // Its file goes with it, and the queue is said; nothing is kept as let go of.
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("03.mkv");
+        std::fs::write(&file, b"an episode").unwrap();
+        let three = store.download_for(FINISHED, "3").unwrap().unwrap();
+        store.finish_download(three.id, Some(file.to_str().unwrap())).unwrap();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        assert_eq!(expire(&store, SIGNED_IN, &Outbox::from(tx)), 1);
+        assert!(!file.exists());
+        assert!(matches!(rx.try_recv(), Ok(Event::Downloads(_))));
+        assert_eq!(queued(&store, FINISHED), [("4".into(), true), ("5".into(), true)]);
+        assert!(!store.download_dismissed(FINISHED, "3").unwrap());
+        // Nothing more to go: nothing said.
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        assert_eq!(expire(&store, SIGNED_IN, &Outbox::from(tx)), 0);
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[test]
+    fn a_download_the_viewer_asked_for_is_never_let_go_of() {
+        let store = listed(&[(FINISHED, "CURRENT")]);
+        let mine = store.enqueue_download(FINISHED, "2", "Show", "m").unwrap();
+        store.finish_download(mine.id, None).unwrap();
+        // Kept ahead, then asked for by hand.
+        kept(&store, FINISHED, &[3]);
+        store.enqueue_download(FINISHED, "3", "Show", "m").unwrap();
+        watched(&store, FINISHED, 4, NOW - 10 * DAY);
+        assert!(going(&store, FINISHED, SIGNED_IN).is_empty());
+    }
+
+    #[test]
+    fn a_rewatch_keeps_the_episode_the_viewer_is_on_and_the_ones_after() {
+        let store = listed(&[(FINISHED, "REPEATING")]);
+        // Watched through long ago, with four to six downloaded ahead back then.
+        watched(&store, FINISHED, 12, NOW - 100 * DAY);
+        kept(&store, FINISHED, &[2, 4, 5, 6]);
+        // Rewatched to three, two of them days ago, and partway into four now.
+        watched(&store, FINISHED, 3, NOW - 3 * DAY);
+        watched_from(&store, FINISHED, 3, 3, NOW - 2 * 3_600);
+        started(&store, FINISHED, 4, NOW - 60);
+        assert_eq!(going(&store, FINISHED, SIGNED_IN), ["2"]);
+
+        // Four finished just now: five, not started, is where the viewer is.
+        watched_from(&store, FINISHED, 4, 4, NOW - 30);
+        assert_eq!(going(&store, FINISHED, SIGNED_IN), ["2"]);
+        // A day on, four goes too.
+        assert_eq!(
+            going(&store, FINISHED, Viewer { now: NOW + GRACE, ..SIGNED_IN }),
+            ["2", "4"]
+        );
     }
 
     #[tokio::test]

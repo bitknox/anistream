@@ -245,9 +245,9 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
         ) {
             Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
                 Text(name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                // Queued by keep next rather than asked for.
+                // Queued by keep next rather than asked for, and let go of a day after it is watched.
                 if (row.ahead) {
-                    Text("Downloaded ahead", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1)
+                    Text("Downloaded ahead · Removed a day after you watch it", style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 2)
                 }
                 StateLine(row, store.downloads.secondsLeft(row, rates), rates[row.id])
                 if (progress) {

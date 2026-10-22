@@ -198,7 +198,10 @@ struct DownloadLine: View {
         case .done:
             HStack(spacing: 6) {
                 Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
-                Text("Downloaded").foregroundStyle(.haze)
+                // One keep next queued goes a day after it is watched.
+                Text(row.ahead ? "Downloaded · Removed a day after you watch it" : "Downloaded")
+                    .foregroundStyle(.haze)
+                    .lineLimit(1)
             }
             .font(.mac(13))
         case .active where row.total == 0:

@@ -191,8 +191,25 @@ pub fn download_state_label(state: DownloadState) -> &'static str {
     }
 }
 
-/// The line under the queue for the selected download.
+/// The line under the queue for the selected download, with what becomes of one keep next
+/// queued.
 fn download_detail(app: &App, row: &anistream_model::downloads::DownloadRow) -> (String, Role) {
+    let (text, role) = download_standing(app, row);
+    match (row.ahead, role) {
+        (true, Role::TextDim) if text.is_empty() => (AHEAD.into(), role),
+        (true, Role::TextDim) => (format!("{text} · {AHEAD}"), role),
+        _ => (text, role),
+    }
+}
+
+/// What becomes of a download keep next queued.
+const AHEAD: &str = "downloaded ahead, removed a day after you watch it";
+
+/// Where the selected download stands: the path, the failure, or what it waits for.
+fn download_standing(
+    app: &App,
+    row: &anistream_model::downloads::DownloadRow,
+) -> (String, Role) {
     if let Some(error) = &row.error {
         return (error.clone(), Role::Alert);
     }
@@ -331,6 +348,21 @@ mod tests {
         let lines = lines_of(&mut app, 120, 30);
         assert!(lines.iter().any(|l| l.contains("Show  ep 6 · ahead")), "{lines:#?}");
         assert!(lines.iter().any(|l| l.contains("ep 5") && !l.contains("ahead")), "{lines:#?}");
+        assert!(!lines.iter().any(|l| l.contains("removed a day")), "ep 5 is selected");
+
+        // Selected, it says what becomes of it, after where it stands.
+        app.cursors.downloads.selected = 1;
+        let lines = lines_of(&mut app, 120, 30);
+        let detail = lines.iter().find(|l| l.contains("· downloaded ahead")).expect("said");
+        assert!(detail.contains("downloads need torrents"), "{detail}");
+        assert_eq!(
+            download_detail(&app, &app.downloads[1]).0,
+            format!(
+                "downloads need torrents, which are off — press {} for Settings · downloaded \
+                 ahead, removed a day after you watch it",
+                app.section_key(Section::Settings)
+            )
+        );
     }
 
     #[test]
