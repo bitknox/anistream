@@ -9,17 +9,38 @@ import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.MainScope
 import tv.anistream.engine.ffi.startLog
+import tv.anistream.player.Device
+import tv.anistream.player.MpvBackend
+import tv.anistream.player.PlayerConnection
+import tv.anistream.player.PlayerHost
+import tv.anistream.player.PlayerModel
 import tv.anistream.store.AppHost
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
 import tv.anistream.store.SealedFileSecrets
 
-class AnistreamApp : Application() {
+class AnistreamApp : Application(), PlayerHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
     val store: AppStore by lazy { AppStore(scope) }
+
+    /**
+     * The player, for the life of the process rather than an activity's: mpv and the media session
+     * stay through a rotation, a fold, Picture in Picture and the app in the background.
+     */
+    override val player: PlayerModel by lazy {
+        PlayerModel(
+            send = { store.send(it) },
+            backend = { MpvBackend(this) },
+            scope = scope,
+            power = { Device.power(this) },
+        ).also { player ->
+            store.onPlayback = player::apply
+            PlayerConnection(this, player, scope)
+        }
+    }
 
     val notifier: Notifier by lazy { Notifier(this) }
 
@@ -32,6 +53,8 @@ class AnistreamApp : Application() {
         // The engine's log, a file a day under the cache, which never holds a token.
         startLog(launch.home.cache.path)
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
+        // Before the engine, so no playback event finds no player.
+        player
         store.start(launch, host())
     }
 

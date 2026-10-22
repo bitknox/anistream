@@ -1,0 +1,97 @@
+vulkan/moltenvk: follow the CAMetalLayer's size
+
+MPVKit's gpu-context=moltenvk (0001) reads the layer's drawableSize only at reconfig, so
+after a resize, full screen or rotation the swapchain followed the layer but mpv kept
+drawing into the old rectangle: cropped, or in a corner (mpvkit/MPVKit#3). The context now
+checks the drawable on every VOCTRL_CHECK_EVENTS and reports VO_EVENT_RESIZE when it
+changed, setting vo->dwidth/dheight from the drawable each time, since vo_reconfig resets
+them to the video's size first.
+
+For anistream's Apple app (apple/scripts/mpv.sh), on top of MPVKit 1.1.0-n9.0.2's patches
+0001-0003 for mpv v0.41.0. LGPL-2.1-or-later, as mpv.
+
+diff --git a/video/out/vulkan/context_moltenvk.m b/video/out/vulkan/context_moltenvk.m
+index 445b907..4ab94db 100644
+--- a/video/out/vulkan/context_moltenvk.m
++++ b/video/out/vulkan/context_moltenvk.m
+@@ -15,6 +15,15 @@
+  * License along with mpv.  If not, see <http://www.gnu.org/licenses/>.
+  */
+ 
++/*
++ * MPVKit's gpu-context=moltenvk, with resizing: MPVKit's version reads the layer's
++ * drawableSize only at reconfig, so a window resize, full screen or a rotation left mpv
++ * drawing into the old rectangle (mpvkit/MPVKit#3). Here VOCTRL_CHECK_EVENTS, which the VO
++ * polls every iteration, compares the drawable with the size mpv last used and reports
++ * VO_EVENT_RESIZE when it differs, as edde746/MPVKit@e6b129f does. While paused the VO
++ * thread sleeps until something wakes it, so the host wakes it after a resize.
++ */
++
+ #include <CoreGraphics/CoreGraphics.h>
+ #include <QuartzCore/CAMetalLayer.h>
+ #include <MoltenVK/mvk_vulkan.h>
+@@ -26,6 +35,8 @@
+ struct priv {
+     struct mpvk_ctx vk;
+     CAMetalLayer *layer;
++    int last_width;
++    int last_height;
+ };
+ 
+ static void moltenvk_uninit(struct ra_ctx *ctx)
+@@ -35,6 +46,26 @@ static void moltenvk_uninit(struct ra_ctx *ctx)
+     mpvk_uninit(&p->vk);
+ }
+ 
++// The layer's drawable is the source of truth: embedded through wid, mpv has no window of
++// its own to ask.
++static bool resize(struct ra_ctx *ctx)
++{
++    struct priv *p = ctx->priv;
++    CGSize s = p->layer.drawableSize;
++    int w = (int)s.width, h = (int)s.height;
++    if (w <= 1 || h <= 1)
++        return false;
++    // vo_reconfig sets dwidth/dheight to the video's size before calling us, so set them
++    // every time, not only when the swapchain changes.
++    ctx->vo->dwidth = w;
++    ctx->vo->dheight = h;
++    if (w == p->last_width && h == p->last_height)
++        return true;
++    p->last_width = w;
++    p->last_height = h;
++    return ra_vk_ctx_resize(ctx, w, h);
++}
++
+ static bool moltenvk_init(struct ra_ctx *ctx)
+ {
+     struct priv *p = ctx->priv = talloc_zero(ctx, struct priv);
+@@ -76,14 +107,25 @@ static bool moltenvk_init(struct ra_ctx *ctx)
+ static bool moltenvk_reconfig(struct ra_ctx *ctx)
+ {
+     struct priv *p = ctx->priv;
+-    CGSize s = p->layer.drawableSize;
+-    ra_vk_ctx_resize(ctx, s.width, s.height);
++    p->last_width = p->last_height = 0;
++    resize(ctx);
+     return true;
+ }
+ 
+ static int moltenvk_control(struct ra_ctx *ctx, int *events, int request, void *arg)
+ {
+-    return VO_NOTIMPL;
++    if (request != VOCTRL_CHECK_EVENTS)
++        return VO_NOTIMPL;
++
++    struct priv *p = ctx->priv;
++    CGSize s = p->layer.drawableSize;
++    int w = (int)s.width, h = (int)s.height;
++    if (w > 1 && h > 1 && (w != p->last_width || h != p->last_height)) {
++        if (!resize(ctx))
++            return VO_ERROR;
++        *events |= VO_EVENT_RESIZE;
++    }
++    return VO_TRUE;
+ }
+ 
+ const struct ra_ctx_fns ra_ctx_vulkan_moltenvk = {

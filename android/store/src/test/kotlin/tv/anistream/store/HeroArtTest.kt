@@ -10,7 +10,7 @@ import tv.anistream.engine.model.TitleProgress
 class HeroArtTest {
     private fun entry(banner: String? = null, done: UInt? = null) = Entry(
         id = 900005u, title = "The Steel Gardener", secondary = "Hagane no Niwashi", format = "ONA", episodes = 10u,
-        year = 2026u, score = null, studio = null, synopsis = "", coverUrl = null, bannerUrl = banner,
+        year = 2026u, score = null, studio = null, synopsis = "", coverUrl = null, coverColor = null, bannerUrl = banner,
         genres = emptyList(), availableOn = emptyList(), progress = done?.let { TitleProgress(it, it + 1u) },
         airingIn = null, airingEpisode = null, nextEpisode = null, nextAiringIn = null, lastAired = null,
         resume = null, related = emptyList(), recommended = emptyList(), trailerUrl = null, listStatus = null,

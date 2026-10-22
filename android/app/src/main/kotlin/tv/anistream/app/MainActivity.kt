@@ -21,6 +21,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
+import tv.anistream.engine.model.Command
+import tv.anistream.player.ui.PlayerFrame
+import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
 
@@ -30,6 +33,9 @@ class MainActivity : ComponentActivity() {
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         app.notifier.asked()
     }
+
+    /** AniList's and MyAnimeList's sign-in in a Custom Tab, and the redirect that ends it. */
+    private val signIn by lazy { BrowserSignIn(this, app.store) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Light icons on the dark ground, over bars the app draws itself.
@@ -49,19 +55,40 @@ class MainActivity : ComponentActivity() {
             ?.let(Destination::named) ?: Destination.Continue
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
+        val page = intent.getStringExtra(PAGE)?.takeIf { steerable }
 
+        // Play from the title page, the Continue hero or an episode row: the engine finds the
+        // stream and opens the player, which the frame then shows.
+        val actions = AppActions(play = { id, episode -> app.store.send(Command.Play(id, episode)) })
+        val player = PlayerFrame(app.player)
         setContent {
             AnistreamTheme {
-                AppRoot(app.store, if (query != null) Destination.Search else start, startTitle = title, startQuery = query)
+                AppRoot(
+                    app.store,
+                    if (query != null) Destination.Search else start,
+                    actions = actions,
+                    startTitle = title,
+                    startQuery = query,
+                    startPage = page,
+                    player = player,
+                )
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
+        signIn.start()
+        signIn.handle(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        signIn.resumed()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        holdPortraitOnPhones(newConfig)
+        // The player asks for landscape on a phone while it is up, and for portrait as it closes.
+        if (!app.player.isPresented) holdPortraitOnPhones(newConfig)
     }
 
     /**
@@ -107,6 +134,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        // The redirect a sign-in comes back with is the engine's, and is not kept as the
+        // activity's intent.
+        if (signIn.handle(intent)) return
         setIntent(intent)
     }
 
@@ -122,6 +152,9 @@ class MainActivity : ComponentActivity() {
 
         /** A search to run, on Search. */
         const val QUERY = "query"
+
+        /** A page to open over the destination, by its route: `settings`, `settings/playback`. */
+        const val PAGE = "page"
 
         private const val NOTIFICATIONS_ASKED = "notificationsAsked"
     }

@@ -96,6 +96,7 @@ pub mod engine;
 pub mod error;
 pub mod host;
 pub mod jobs;
+pub mod logged;
 pub mod new_episodes;
 pub mod options;
 pub mod outbox;
@@ -111,6 +112,7 @@ pub(crate) mod state;
 pub mod title_language;
 pub mod titles;
 pub mod tracking;
+pub mod upcoming;
 pub mod updates;
 pub mod widgets;
 

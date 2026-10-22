@@ -253,6 +253,7 @@ pub(crate) fn dispatch(
         Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
         Command::ComingEpisodes => crate::new_episodes::coming(engine, services, tx),
         Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
+        Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
 
         // The plugin stores.
         Command::LoadStores => {

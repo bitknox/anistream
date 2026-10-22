@@ -109,7 +109,10 @@ class MetadataTest {
     @Test
     fun related_cards_leave_the_season_chain_to_the_picker() {
         fun linked(id: UInt, relation: RelationKind, format: String, year: Int) =
-            LinkedTitle(id, "T$id", null, null, null, relation, format, null, null, year.toUShort())
+            LinkedTitle(
+                id, "T$id", null, null, null, relation, format, coverUrl = null, coverColor = null, season = null,
+                year = year.toUShort(), listStatus = null,
+            )
         val relations = listOf(
             linked(1u, RelationKind.SEQUEL, "TV", 2025),
             linked(2u, RelationKind.SPIN_OFF, "ONA", 2026),

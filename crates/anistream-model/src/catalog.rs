@@ -30,6 +30,10 @@ pub struct Entry {
     pub synopsis: String,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub cover_url: Option<String>,
+    /// The cover's own colour, as AniList gives it (`#e4a15d`): what a front end paints where the
+    /// cover has not arrived, so a placeholder is never a grey box.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub cover_color: Option<String>,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub banner_url: Option<String>,
     #[cfg_attr(feature = "ffi", uniffi(default))]
@@ -447,6 +451,7 @@ impl Entry {
             studio: None,
             synopsis: String::new(),
             cover_url: None,
+            cover_color: None,
             banner_url: None,
             genres: Vec::new(),
             available_on: Vec::new(),

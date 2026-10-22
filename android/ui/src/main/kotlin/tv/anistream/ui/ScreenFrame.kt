@@ -36,7 +36,8 @@ import androidx.compose.ui.unit.dp
 /**
  * The large flexible top app bar, 112 at rest under the status bar (136 with a [subtitle]), which
  * collapses to the 64 small bar on surfaceContainer as the content scrolls and opens again at the
- * top. Continue and Library carry the [account] button, which opens Settings.
+ * top. Continue and Library carry the [account] button, which opens Settings; a page pushed over
+ * them carries the back arrow, [onBack].
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -44,6 +45,7 @@ fun ScreenFrame(
     title: String,
     subtitle: String? = null,
     account: Account? = null,
+    onBack: (() -> Unit)? = null,
     actions: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
@@ -63,6 +65,11 @@ fun ScreenFrame(
                 subtitle = subtitle?.let {
                     { Text(it, style = expanded(type.bodyLarge), color = colors.onSurfaceVariant) }
                 },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) { Icon(Icons.Back, contentDescription = "Back") }
+                    }
+                },
                 actions = {
                     actions()
                     if (account != null) AccountButton(account)
@@ -73,6 +80,7 @@ fun ScreenFrame(
                     scrolledContainerColor = colors.surfaceContainer,
                     titleContentColor = colors.onSurface,
                     actionIconContentColor = colors.onSurface,
+                    navigationIconContentColor = colors.onSurface,
                 ),
                 scrollBehavior = scroll,
             )

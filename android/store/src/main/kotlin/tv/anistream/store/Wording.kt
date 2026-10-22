@@ -122,6 +122,21 @@ object Wording {
 
     /** A count and its noun, singular at one: `1 episode`, `3 episodes`. */
     fun plural(count: Int, noun: String): String = if (count == 1) "1 $noun" else "$count ${noun}s"
+
+    /**
+     * A size as people read it: `9.4 GB`, `140 MB`, `0 B`, in decimal units, one decimal below
+     * ten and none above. `human_bytes`.
+     */
+    fun bytes(bytes: Long): String {
+        for ((unit, scale) in listOf("GB" to 1_000_000_000L, "MB" to 1_000_000L, "kB" to 1_000L, "B" to 1L)) {
+            if (bytes >= scale) {
+                val value = bytes.toDouble() / scale
+                return if (value < 10 && scale > 1) String.format(Locale.ROOT, "%.1f %s", value, unit)
+                else "${Math.round(value)} $unit"
+            }
+        }
+        return "0 B"
+    }
 }
 
 /** The list's name in lower case: "watching". `LibrarySegment::label`. */

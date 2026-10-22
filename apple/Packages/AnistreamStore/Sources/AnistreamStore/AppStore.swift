@@ -1,0 +1,446 @@
+// The app's state: the engine's events applied, each by the feature model that owns it.
+
+import AnistreamKit
+import Foundation
+import Observation
+
+/// Where the app's state lives, on the main actor.
+///
+/// The engine's events arrive in batches from `EngineClient`, and `apply(_:)` hands each one to
+/// the model that owns it: the lists, the title cache, jobs, notices, settings, accounts and
+/// artwork. Views read the models; commands go out through `send(_:)`.
+@Observable @MainActor
+public final class AppStore {
+    /// Where the engine stands.
+    public enum Phase: Equatable, Sendable {
+        case starting
+        case running
+        case stopped
+        /// It did not start, and why, in the engine's words.
+        case failed(String)
+    }
+
+    public private(set) var phase: Phase = .starting
+
+    public let titles = TitleCache()
+    public let continuing = ContinueModel()
+    public let seasonal = ListModel()
+    public let calendar = CalendarModel()
+    public let search = SearchModel()
+    public let library = LibraryModel()
+    public let jobs: JobsModel
+    public let notices: NoticesModel
+    public let settings = SettingsModel()
+    public let accounts = AccountsModel()
+    public let providers = ProvidersModel()
+    public let stores = StoresModel()
+    public let downloads = DownloadsModel()
+    /// New-episode notifications: the week coming up, permission, and each show's switch.
+    public let notifications = NotificationsModel()
+    /// The engine's answers to questions asked of it, for the notifications and the widgets.
+    public let answers = EngineAnswers()
+    /// The week's ask, waiting a moment in case more ask at once.
+    @ObservationIgnored var noticeRefresh: Task<Void, Never>?
+    @ObservationIgnored public private(set) var artwork: ArtworkStore!
+
+    @ObservationIgnored private var client: EngineClient?
+    /// When a batch was last applied.
+    @ObservationIgnored private var lastApplied = ContinuousClock.now
+    /// What the screens asked for before the engine was there, sent once it is.
+    @ObservationIgnored private var early: [Command] = []
+    /// The titles whose episodes were asked for their stills.
+    @ObservationIgnored private var stillsAsked: Set<AnilistId> = []
+    /// When each question about a title last went out (see `ask`).
+    @ObservationIgnored private var asked: [TitleQuestion: ContinuousClock.Instant] = [:]
+    /// The kinds of the engine's events a showcase set aside, so its rows stay on screen.
+    @ObservationIgnored private var held: Set<String> = []
+    /// Whether the engine is the testing one, which a showcase needs.
+    @ObservationIgnored private var testing = false
+    /// Called after each batch is applied: what a screenshot run waits on.
+    @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
+    /// Where the engine started keeps its files: the cache is where the player keeps mpv's.
+    public private(set) var home: EngineHome?
+    /// When the last play was sent, for the log's timings.
+    @ObservationIgnored private var playSent: ContinuousClock.Instant?
+    /// The playback's events, for the player the app hosts: its ops and interface, and the
+    /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
+    @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
+
+    public init(jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel()) {
+        self.jobs = jobs
+        self.notices = notices
+        artwork = ArtworkStore { [weak self] url in
+            guard let client = self?.client else { return false }
+            client.send(.fetchArtwork(url: url))
+            return true
+        }
+    }
+
+    // MARK: The engine
+
+    /// Start the engine `launch` describes with `host`, off the main thread, and read its events.
+    public func start(_ launch: EngineLaunch, host: any FfiHost) async {
+        phase = .starting
+        #if FIXTURES
+        if case .fixtures = launch.engine { testing = true }
+        #endif
+        home = launch.home
+        AppLog.start(cache: launch.home.cache)
+        #if os(macOS)
+        AppLog.info("store", "helper tools are looked for on \(HelperPath.extend())")
+        #endif
+        let began = ContinuousClock.now
+        do {
+            let engine = try await Task.detached(priority: .userInitiated) {
+                try launch.start(host: host)
+            }.value
+            AppLog.info("store", "engine started in \(AppLog.ms(since: began)) ms")
+            attach(engine)
+        } catch let error as FfiError {
+            AppLog.error("store", "engine did not start: \(error.reason)")
+            phase = .failed(error.reason)
+            early = []
+        } catch {
+            AppLog.error("store", "engine did not start: \(error.localizedDescription)")
+            phase = .failed(error.localizedDescription)
+            early = []
+        }
+    }
+
+    #if FIXTURES
+    /// Every command sent, by its case's name, for counting what an action costs. The Fixtures
+    /// app only.
+    @ObservationIgnored public private(set) var sentLog: [String] = []
+
+    /// What the fake AniList has been asked so far, an operation's name a request, in arrival
+    /// order.
+    public var anilistRequests: [String] { client?.engine.testingAnilistRequests() ?? [] }
+    #endif
+
+    /// Read `engine`'s events from now on.
+    public func attach(_ engine: FfiEngine) {
+        client = EngineClient(
+            engine: engine,
+            deliver: { [weak self] events in self?.apply(events) },
+            stopped: { [weak self] in self?.phase = .stopped }
+        )
+        phase = .running
+        for command in early {
+            client?.send(command)
+        }
+        early = []
+    }
+
+    /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:
+    /// while it starts, the command waits and is sent once it has.
+    @discardableResult
+    public func send(_ command: Command) -> JobId? {
+        #if FIXTURES
+        sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
+        #endif
+        switch command {
+        case .play(let id, let episode):
+            playSent = .now
+            AppLog.info("store", "play \(id) episode \(episode)")
+        case .playSource(let id, let episode, _, _):
+            playSent = .now
+            AppLog.info("store", "play \(id) episode \(episode) from a chosen source")
+        default:
+            break
+        }
+        guard let client else {
+            if phase == .starting { early.append(command) }
+            return nil
+        }
+        return client.send(command)
+    }
+
+    /// Stop the engine, waiting while it winds down: at quit.
+    public func shutdown() {
+        client?.shutdown()
+    }
+
+    // MARK: Asking
+
+    /// How long a list's answer stands: showing it again within this asks for nothing, so going
+    /// back and forth between sections costs AniList nothing.
+    public static let listFresh: Duration = .seconds(60)
+
+    /// How long a question about a title stands once asked: the same one is not put again while
+    /// its answer is on its way, which a selection moving back and forth would otherwise do.
+    public static let askAgainAfter: Duration = .seconds(20)
+
+    /// What you were watching, unless it was answered within `listFresh`; `force` asks anyway.
+    public func loadContinue(force: Bool = false) {
+        guard force || !continuing.list.answered(within: Self.listFresh) else { return }
+        continuing.list.asked()
+        send(.loadContinue)
+    }
+
+    public func loadSeasonal() {
+        seasonal.asked()
+        send(.loadSeasonal)
+    }
+
+    public func loadCalendar() {
+        calendar.list.asked()
+        send(.loadCalendar)
+    }
+
+    public func search(_ query: String, filter: SearchFilters = SearchFilters()) {
+        search.submit(query: query, filter: filter)
+        send(.search(query: query, filter: filter))
+    }
+
+    public func loadLibrary(_ segment: LibrarySegment) {
+        library.segment(segment).asked()
+        send(.loadLibrary(segment))
+    }
+
+    /// A title's page. `force` asks again however recently it was asked: Try Again.
+    public func loadDetail(_ id: AnilistId, force: Bool = false) {
+        guard ask(.detail(id)) || force else { return }
+        send(.loadDetail(id))
+    }
+
+    public func loadEpisodes(_ id: AnilistId) {
+        guard ask(.episodes(id)) else { return }
+        send(.loadEpisodes(id))
+    }
+
+    /// A question about one title.
+    private enum TitleQuestion: Hashable {
+        case detail(AnilistId)
+        case episodes(AnilistId)
+    }
+
+    /// Whether `question` may go out now: not asked within `askAgainAfter`. Noted as asked when it
+    /// may.
+    private func ask(_ question: TitleQuestion) -> Bool {
+        let now = ContinuousClock.now
+        if let at = asked[question], now - at < Self.askAgainAfter { return false }
+        asked[question] = now
+        return true
+    }
+
+    /// Ask for a title's episodes for the stills that stand in for a missing banner. Once a
+    /// session per title, and not when they are here already, so a selection moving back and
+    /// forth costs one request. Whether it asked.
+    @discardableResult
+    public func loadStills(_ id: AnilistId) -> Bool {
+        guard titles[id]?.bannerUrl == nil, titles.episodes[id] == nil,
+              stillsAsked.insert(id).inserted, ask(.episodes(id))
+        else { return false }
+        send(.loadEpisodes(id))
+        return true
+    }
+
+    /// Every title is named another way now: the lists that have been shown are asked for again,
+    /// so they name their titles the new way, and a title page asks again when it next opens.
+    private func titlesChanged() {
+        asked.removeAll()
+        if continuing.list.answeredAt != nil { loadContinue(force: true) }
+        if seasonal.answeredAt != nil { loadSeasonal() }
+        if calendar.list.answeredAt != nil { loadCalendar() }
+        for segment in LibraryModel.order where library.segment(segment).answeredAt != nil {
+            loadLibrary(segment)
+        }
+        if let submitted = search.submitted { search(submitted.query, filter: submitted.filter) }
+    }
+
+    /// Take a title off Continue: the row goes at once, and the engine keeps it hidden.
+    public func hideFromContinue(_ id: AnilistId) {
+        continuing.hide(id)
+        send(.hideFromContinue(id: id))
+    }
+
+    // MARK: Applying
+
+    public func apply(_ events: [Event]) {
+        for event in events {
+            apply(event)
+        }
+        lastApplied = .now
+        onApplied?(events)
+    }
+
+    /// Show the invented rows the launch arguments ask for, on the testing engine only, and keep
+    /// the engine's own of those kinds off screen from then on. For screenshots.
+    public func applyShowcase(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        #if FIXTURES
+        guard testing, let showcase = Showcase.from(arguments: arguments) else { return }
+        let (events, held) = showcase.events(settings: settings.view)
+        self.held = []
+        for event in events { apply(event) }
+        self.held = held
+        #endif
+    }
+
+    // MARK: Settling
+
+    /// Whether the screens have what they asked for: the engine has started or failed, no list
+    /// is loading, no job is running, and no art is on its way.
+    public var isSettled: Bool {
+        let lists = [continuing.list, seasonal, calendar.list, search.list]
+            + LibraryModel.order.map(library.segment)
+        return phase != .starting
+            && !lists.contains { $0.state == .loading }
+            && jobs.running.isEmpty
+            && !artwork.hasPending
+    }
+
+    /// Wait until the store is settled and nothing has been applied for `quiet`: what a
+    /// screenshot waits on. False when `timeout` passed first.
+    public func settle(
+        quiet: Duration = .milliseconds(800),
+        timeout: Duration = .seconds(30)
+    ) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            if isSettled, ContinuousClock.now - lastApplied >= quiet { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return false
+    }
+
+    public func apply(_ event: Event) {
+        if !held.isEmpty, let kind = event.showcaseKind, held.contains(kind) { return }
+        notifications.observe(event)
+        answers.deliver([event])
+        if notifications.schedules, NotificationsModel.reschedules(after: event) { refreshNotices() }
+        switch event {
+        case .jobStarted(let job, let activity):
+            jobs.started(job, activity: activity)
+        case .jobNote(let job, let note, let wait):
+            jobs.note(job, note: note, wait: wait)
+        case .jobDone(let job):
+            jobs.done(job)
+            stores.done(job)
+            accounts.done(job)
+
+        case .content(let view, let content):
+            self.content(content, for: view)
+        case .caption(let view, let text):
+            caption(text, for: view)
+        case .calendarWindow(let anchor, let pages, let morePast):
+            calendar.window(anchor: anchor, pages: pages, morePast: morePast)
+        case .calendarBackfill(let page, let entries, let morePast):
+            calendar.backfill(page: page, entries: entries, morePast: morePast, titles: titles)
+        case .detail(let entry):
+            titles.merge(detail: entry)
+        case .progress(let id, let progress, let resume, let episodes):
+            titles.progress(id: id, progress: progress, resume: resume, episodes: episodes)
+        case .lastAired(let rows):
+            titles.lastAired(rows)
+        case .episodes(let id, let rows):
+            titles.episodes(id: id, rows: rows)
+
+        case .status(let text):
+            notices.status(text)
+        case .toast(let notice):
+            notices.post(notice)
+
+        case .settings(let view):
+            settings.apply(view)
+
+        case .sync(let state):
+            accounts.apply(state)
+        case .progressQueued:
+            accounts.progressQueued()
+        case .conflicts(let rows):
+            accounts.conflicts(rows)
+        case .deviceCode(let prompt):
+            accounts.deviceCode(prompt)
+        case .authorize(let tracker, let url, let callbackScheme):
+            if let url = URL(string: url) {
+                accounts.authorize(SignInRequest(tracker: tracker, url: url, callbackScheme: callbackScheme))
+            } else {
+                // Nothing a sheet could open: the sign-in ends here.
+                send(.cancelSignIn(tracker: tracker))
+            }
+        case .metaStatus(let rows):
+            accounts.metaStatus(rows)
+            providers.meta(rows)
+
+        case .providers(let rows):
+            providers.apply(rows)
+        case .providerNote(let text):
+            providers.note(text)
+        case .sourcesChanged:
+            providers.sourcesChanged()
+        case .providerPreference(let provider):
+            providers.preference(provider)
+        case .vpn(let view):
+            providers.guardSaid(view)
+
+        case .stores(let rows):
+            stores.apply(rows)
+        case .storePreview(let answer):
+            stores.previewed(answer)
+        case .storeJoined(let store):
+            stores.joined(store)
+        case .inviteLink(let link):
+            stores.invited(link)
+        case .storeMembers(let store, let members, let invites):
+            stores.members(store: store, members: members, invites: invites)
+        case .localPlugins(let store, let plugins):
+            stores.localPlugins(store: store, plugins: plugins)
+
+        case .downloads(let rows):
+            downloads.apply(rows)
+        case .seeding(let rows):
+            downloads.seeding(rows)
+
+        case .artworkReady(let url, let bytes):
+            artwork.ready(url: url, bytes: bytes)
+        case .imageFailed(let url, _):
+            artwork.failed(url: url)
+
+        case .playbackStaged(let id, _, let episode, _, _):
+            let after = playSent.map { " \(AppLog.ms(since: $0)) ms after play" } ?? ""
+            AppLog.info("store", "staged \(id) episode \(episode)\(after)")
+            onPlayback?(event)
+        case .playbackEnded(let watched, let ending, let rollingOn):
+            AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
+            onPlayback?(event)
+        case .playerOps, .playerUi, .playbackKept, .sources:
+            onPlayback?(event)
+
+        case .viewerTitleLanguage(let language):
+            accounts.viewerTitleLanguage = language
+        case .titlesChanged:
+            titlesChanged()
+
+        default:
+            // Everything else is said in the events above, or has no screen.
+            break
+        }
+    }
+
+    private func content(_ content: ContentList, for view: ContentFor) {
+        switch view {
+        case .continue:
+            continuing.apply(content, titles: titles)
+        case .seasonal:
+            seasonal.apply(content, titles: titles)
+        case .calendar:
+            calendar.apply(content, titles: titles)
+        case .search(let query, let filter):
+            guard search.takes(query: query, filter: filter) else { return }
+            search.list.apply(content, titles: titles)
+        case .library(let segment):
+            library.segment(segment).apply(content, titles: titles)
+        }
+    }
+
+    private func caption(_ text: String, for view: ContentFor) {
+        switch view {
+        case .continue: continuing.list.caption = text
+        case .seasonal: seasonal.caption = text
+        case .calendar: calendar.list.caption = text
+        case .search(let query, let filter):
+            if search.takes(query: query, filter: filter) { search.list.caption = text }
+        case .library(let segment): library.segment(segment).caption = text
+        }
+    }
+}
