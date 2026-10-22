@@ -335,6 +335,15 @@ pub enum Command {
     ResetShowSettings {
         id: AnilistId,
     },
+    /// Choose the subtitles show `id` plays with in `translation`, outside the player: one of
+    /// the choices its sheet lists as remembered, or `None` to forget the one remembered, so
+    /// Settings' subtitles apply again. The audio and the delay remembered are kept. Answered
+    /// with the show's sheet.
+    SetShowSubtitles {
+        id: AnilistId,
+        translation: anistream_core::media::Translation,
+        subtitles: Option<crate::show::RememberedSubtitles>,
+    },
     /// Steer the playback `playback`, and only it: a command for one that is no longer the
     /// playback the engine started last is let go. What a hosted player sends, which names the
     /// playback its interface shows, so a Play Now or an Undo that arrives as one episode rolls

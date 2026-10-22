@@ -237,6 +237,21 @@ mod tests {
             },
             Command::SetShowSetting { id, key: ShowSettingKey::Quality, value: None },
             Command::ResetShowSettings { id },
+            Command::SetShowSetting {
+                id,
+                key: ShowSettingKey::KeepNext,
+                value: Some(SettingValue::Int(3)),
+            },
+            Command::SetShowSubtitles {
+                id,
+                translation: anistream_core::media::Translation::Dub,
+                subtitles: Some(RememberedSubtitles::Off),
+            },
+            Command::SetShowSubtitles {
+                id,
+                translation: anistream_core::media::Translation::Sub,
+                subtitles: None,
+            },
             Command::SetSetting {
                 key: SettingKey::UpNextCountdown,
                 value: SettingValue::Int(5),

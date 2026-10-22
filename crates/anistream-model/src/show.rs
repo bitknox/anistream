@@ -32,17 +32,23 @@ pub enum ShowSettingKey {
     /// off, it is not; turned on, it is whatever the list says of it, a show only planned among
     /// them. It does not turn on the setting: with that off, nothing is notified of.
     NotifyNewEpisodes,
+    /// Standard or higher, for this show's downloads: the Downloads screen's row under its title.
+    DownloadQuality,
+    /// How many of the episodes after the one watched to keep downloaded, for this show.
+    KeepNext,
 }
 
 impl ShowSettingKey {
     /// Every one, in the order the sheet shows them.
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 8] = [
         Self::Translation,
         Self::Quality,
         Self::SkipOpening,
         Self::SkipFiller,
         Self::SpoilerProtection,
         Self::NotifyNewEpisodes,
+        Self::DownloadQuality,
+        Self::KeepNext,
     ];
 
     /// The name the database keeps it under. Stable: a renamed one would forget every show's.
@@ -54,6 +60,8 @@ impl ShowSettingKey {
             Self::SkipFiller => "skip_filler",
             Self::SpoilerProtection => "spoiler_protection",
             Self::NotifyNewEpisodes => "notify_new_episodes",
+            Self::DownloadQuality => "download_quality",
+            Self::KeepNext => "keep_next",
         }
     }
 
@@ -72,6 +80,8 @@ impl ShowSettingKey {
             Self::SkipFiller => SettingKey::SkipFiller,
             Self::SpoilerProtection => SettingKey::SpoilerProtection,
             Self::NotifyNewEpisodes => SettingKey::EpisodeNotifications,
+            Self::DownloadQuality => SettingKey::DownloadQuality,
+            Self::KeepNext => SettingKey::KeepNextEpisodes,
         }
     }
 }
@@ -99,8 +109,12 @@ pub fn encode(key: ShowSettingKey, value: &SettingValue) -> Option<String> {
 /// as a value it takes, which a show then does not set.
 pub fn decode(key: ShowSettingKey, text: &str) -> Option<SettingValue> {
     let value = match key {
-        ShowSettingKey::Translation => SettingValue::Str(text.to_owned()),
-        ShowSettingKey::Quality => SettingValue::Int(text.parse().ok()?),
+        ShowSettingKey::Translation | ShowSettingKey::DownloadQuality => {
+            SettingValue::Str(text.to_owned())
+        }
+        ShowSettingKey::Quality | ShowSettingKey::KeepNext => {
+            SettingValue::Int(text.parse().ok()?)
+        }
         ShowSettingKey::SkipOpening
         | ShowSettingKey::SkipFiller
         | ShowSettingKey::SpoilerProtection
@@ -207,14 +221,22 @@ impl RememberedTracks {
         Some(Self {
             translation,
             audio: memory.audio.as_ref().map(RememberedTrack::of),
-            subtitles: memory.subtitles.as_ref().map(|subtitles| match &subtitles.choice {
-                SubtitleChoice::Off => RememberedSubtitles::Off,
-                SubtitleChoice::Track(print) => {
-                    RememberedSubtitles::Track { track: RememberedTrack::of(print) }
-                }
-            }),
+            subtitles: memory
+                .subtitles
+                .as_ref()
+                .map(|subtitles| RememberedSubtitles::of(&subtitles.choice)),
             sub_delay: memory.sub_delay,
         })
+    }
+}
+
+impl RememberedSubtitles {
+    /// A subtitle choice as the sheet lists it.
+    pub fn of(choice: &SubtitleChoice) -> Self {
+        match choice {
+            SubtitleChoice::Off => Self::Off,
+            SubtitleChoice::Track(print) => Self::Track { track: RememberedTrack::of(print) },
+        }
     }
 }
 
@@ -269,6 +291,18 @@ mod tests {
         assert_eq!(encode(ShowSettingKey::SkipOpening, &SettingValue::Int(1)), None);
         let off = SettingValue::Bool(false);
         assert_eq!(encode(ShowSettingKey::SpoilerProtection, &off).as_deref(), Some("false"));
+        let higher = SettingValue::Str("higher".into());
+        assert_eq!(encode(ShowSettingKey::DownloadQuality, &higher).as_deref(), Some("higher"));
+        assert_eq!(
+            encode(ShowSettingKey::DownloadQuality, &SettingValue::Str("best".into())),
+            None
+        );
+        assert_eq!(
+            encode(ShowSettingKey::KeepNext, &SettingValue::Int(3)).as_deref(),
+            Some("3")
+        );
+        assert_eq!(decode(ShowSettingKey::KeepNext, "3"), Some(SettingValue::Int(3)));
+        assert_eq!(decode(ShowSettingKey::DownloadQuality, "higher"), Some(higher));
 
         // And what is kept reads back as itself, or not at all.
         for key in ShowSettingKey::ALL {
