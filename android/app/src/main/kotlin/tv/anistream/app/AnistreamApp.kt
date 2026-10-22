@@ -26,6 +26,8 @@ import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.ffi.startLog
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.player.CaptionStyle
+import tv.anistream.player.CaptionStyleWatch
 import tv.anistream.player.Device
 import tv.anistream.player.MpvBackend
 import tv.anistream.player.PlayerConnection
@@ -66,12 +68,17 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
                 getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
                     ?.let { Device.display(it, resources.displayMetrics.density) }
             },
+            systemCaptionStyle = { CaptionStyle.system(this) },
         ).also { player ->
             store.onPlayback = player::apply
             PlayerConnection(this, player, scope)
             SystemPhases(store, player, scope).start()
+            captions = CaptionStyleWatch(this, player)
         }
     }
+
+    /** The player's caption style, following the setting and the system's style. */
+    private var captions: CaptionStyleWatch? = null
 
     override val notificationIcon: Int get() = R.drawable.ic_launcher_monochrome
 

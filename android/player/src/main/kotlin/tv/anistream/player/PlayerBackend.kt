@@ -15,8 +15,8 @@ interface PlayerBackend {
     /** mpv's events, on the main thread. Set before [begin], so nothing is missed. */
     var listener: ((MpvEvent) -> Unit)?
 
-    /** Start mpv, decoding with [hwdec], observing what the engine reads. */
-    suspend fun begin(hwdec: String)
+    /** Start mpv, decoding with [hwdec] and with [options] besides, observing what the engine reads. */
+    suspend fun begin(hwdec: String, options: Map<String, String>)
 
     /** One call; a `Restate` answers with the report it reads. */
     suspend fun perform(call: MpvCall): PlayerReport?
@@ -50,9 +50,9 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
             mpv.listener = value
         }
 
-    override suspend fun begin(hwdec: String) {
+    override suspend fun begin(hwdec: String, options: Map<String, String>) {
         MpvNative.setAppContext(context.applicationContext)
-        mpv.start(MpvSetup.playerOptions(context, hwdec) + extra, reportedProperties, logLevel = "warn")
+        mpv.start(MpvSetup.playerOptions(context, hwdec) + options.toList() + extra, reportedProperties, logLevel = "warn")
     }
 
     override suspend fun perform(call: MpvCall): PlayerReport? {

@@ -77,6 +77,8 @@ class PlayerModel(
      * GLES, rather than stepped down from a guess a moment later.
      */
     private val display: () -> DisplayInfo? = { null },
+    /** The system's caption style as it is now, or null while captions are off; a made-up one in the tests. */
+    private val systemCaptionStyle: () -> CaptionStyle? = { null },
 ) {
     // Wiring
 
@@ -506,7 +508,7 @@ class PlayerModel(
         this.work = work
         worker = scope.launch {
             try {
-                mpv.begin(decoding)
+                mpv.begin(decoding, captionOptions())
             } catch (e: Exception) {
                 Log.e(TAG, "mpv did not start: $e")
                 failed(mpv)
@@ -1254,6 +1256,31 @@ class PlayerModel(
         if (mpv == null) return
         note(if (background) "in the background: the audio plays on, the video track off" else "back: the video track on")
         enqueue(MpvCall.Set("vid", MpvValue.Text(if (background) "no" else "auto")))
+    }
+
+    // Caption style
+
+    /** Plain-text subtitles follow the system's caption style: the viewer's setting, on by default. */
+    var followsSystemCaptions = true
+        set(value) {
+            if (field == value) return
+            field = value
+            captionStyleChanged()
+        }
+
+    /** mpv's options for plain-text subtitles, as the setting and the system's style have them. */
+    fun captionOptions(): Map<String, String> =
+        (if (followsSystemCaptions) systemCaptionStyle() else null)?.mpvOptions() ?: CaptionStyle.MPV_DEFAULTS
+
+    /**
+     * The setting or the system's caption style changed: the mpv playing now takes the new look;
+     * the next one starts with it.
+     */
+    fun captionStyleChanged() {
+        if (mpv == null) return
+        val options = captionOptions()
+        note("caption style: ${if (options == CaptionStyle.MPV_DEFAULTS) "mpv's own" else "the system's"}, ${options["sub-border-style"]}")
+        for ((name, value) in options.toSortedMap()) enqueue(MpvCall.Set(name, MpvValue.Text(value)))
     }
 
     /** "Still watching?" now, as after three episodes in a row: for screenshots. */
