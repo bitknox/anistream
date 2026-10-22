@@ -26,6 +26,15 @@ struct DownloadsScreen: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
+                        #if os(iOS)
+                        if store.continued.ask != nil,
+                           store.downloads.rows.contains(where: { $0.state == .queued || $0.state == .active }) {
+                            Text("Downloads continue after you leave anistream.")
+                                .font(.mac(12))
+                                .foregroundStyle(.haze)
+                                .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 0))
+                        }
+                        #endif
                         ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                             if index > 0 { Rectangle().fill(.faintRule).frame(height: 1) }
                             DownloadGroupView(group: group, rotor: rotor)

@@ -2,7 +2,8 @@
 //! what coming back to the foreground puts right.
 //!
 //! A phone's app runs while it is on screen, and for the episode playing with the screen
-//! locked. In the background its torrents wait, all but the episode playing when one plays.
+//! locked. In the background its torrents wait, all but the episode playing when one plays, and
+//! its downloads while the system gives it a window for them.
 //! Coming back, the connection check runs again before any of them resumes, since the network
 //! may have changed under the app while it was away, and a loopback server the system took is
 //! bound again on its own port, with what plays opened again from it.
@@ -58,6 +59,9 @@ pub fn gate_for(phase: AppState, network: Network, config: &Config) -> Gate {
         AppState::Background { playing: true } => {
             Hold { streaming: torrents_wait, ..Hold::EVERYTHING }
         }
+        AppState::BackgroundDownloads => {
+            Hold { streaming: torrents_wait, downloads: downloads_wait, seeding: true }
+        }
         AppState::Foreground => {
             Hold { streaming: torrents_wait, downloads: downloads_wait, seeding: seeding_wait }
         }
@@ -71,8 +75,13 @@ pub const CELLULAR: &str = "torrents don't run on cellular while torrents on cel
 
 /// The app moved to `phase`.
 pub fn app_phase(phase: AppState, engine: &mut EngineState, tx: &Outbox) {
-    let back =
-        matches!(engine.phase, AppState::Background { .. }) && phase == AppState::Foreground;
+    let away = engine.phase != AppState::Foreground;
+    let back = away && phase == AppState::Foreground;
+    // What was held while away resumes only once the connection check passes again, on screen
+    // or in a downloads window: the network may have changed under the app meanwhile.
+    let checked = back
+        || (matches!(engine.phase, AppState::Background { .. })
+            && !matches!(phase, AppState::Background { .. }));
     engine.phase = phase;
     let gate = gate_now(engine);
     let torrents = engine.vpn_guard.clone();
@@ -82,7 +91,7 @@ pub fn app_phase(phase: AppState, engine: &mut EngineState, tx: &Outbox) {
         if back {
             come_back(controls).await;
         }
-        apply(gate, torrents, back, &tx).await;
+        apply(gate, torrents, checked, &tx).await;
     });
 }
 
@@ -178,6 +187,9 @@ mod tests {
         assert_eq!(hold(background(true), WIFI), Hold::ALL_BUT_STREAMING);
         assert_eq!(hold(background(false), WIFI), Hold::EVERYTHING);
         assert_eq!(hold(background(false), LOW_DATA), Hold::EVERYTHING);
+        // A downloads window: downloads and what plays go on, but not in Low Data Mode.
+        assert_eq!(hold(AppState::BackgroundDownloads, WIFI), Hold::ALL_BUT_DOWNLOADS);
+        assert_eq!(hold(AppState::BackgroundDownloads, LOW_DATA), Hold::ALL_BUT_STREAMING);
     }
 
     #[test]
@@ -213,5 +225,9 @@ mod tests {
         // episode's torrent waits too.
         let away = gate_for(AppState::Background { playing: true }, CELL, &Config::default());
         assert_eq!(away.hold, Hold::EVERYTHING);
+        // And in a downloads window the queue runs on cellular only as its setting says.
+        let window = |config: &Config| gate_for(AppState::BackgroundDownloads, CELL, config).hold;
+        assert_eq!(window(&on_cellular(true, false)), Hold::ALL_BUT_STREAMING);
+        assert_eq!(window(&on_cellular(true, true)), Hold::ALL_BUT_DOWNLOADS);
     }
 }

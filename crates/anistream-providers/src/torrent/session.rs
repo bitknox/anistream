@@ -310,6 +310,10 @@ impl Hold {
     /// Everything but the episode streaming: downloads and seeding wait.
     pub const ALL_BUT_STREAMING: Self =
         Self { streaming: false, downloads: true, seeding: true };
+    /// Everything but the download queue's torrents and what streams: seeding waits. A phone's
+    /// app in the background while the system lets its downloads go on.
+    pub const ALL_BUT_DOWNLOADS: Self =
+        Self { streaming: false, downloads: false, seeding: true };
     /// Every torrent.
     pub const EVERYTHING: Self = Self { streaming: true, downloads: true, seeding: true };
 
@@ -1048,9 +1052,10 @@ impl TorrentSession {
                 tracing::warn!(error = %e, "could not resume torrent");
             }
         }
-        // A hold that ended while the guard was failing is let go of now.
-        if self.hold() == Hold::NOTHING && !held.is_empty() {
-            let _ = self.set_hold(Hold::NOTHING).await;
+        // A hold that ended, or eased, while the guard was failing lets go now of what it no
+        // longer holds.
+        if !held.is_empty() {
+            let _ = self.set_hold(self.hold()).await;
         }
         tracing::info!("vpn guard recovered: torrents resumed");
         Ok(())
@@ -1392,6 +1397,31 @@ mod tests {
         );
         session.refuse_on_this_network(None);
         assert!(session.network_permit().is_ok());
+        session.session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn downloads_go_on_while_everything_else_waits() {
+        let root = tempfile::tempdir().unwrap();
+        let (session, id) =
+            session_with_local_torrent(root.path(), "Queued Batch", &BATCH).await;
+        let paused = |session: &TorrentSession| session.progress_of(id).unwrap().paused;
+        session.resume_one(id).await.unwrap();
+
+        // Not the queue's: it waits with the rest of what is not downloading.
+        session.set_hold(Hold::ALL_BUT_DOWNLOADS).await.unwrap();
+        assert!(paused(&session), "not a download, so held");
+        assert_eq!(session.held(), [id].into_iter().collect());
+
+        // The queue's: let go of, and left running.
+        session.download_ids.lock().unwrap().insert(id);
+        session.set_hold(Hold::ALL_BUT_DOWNLOADS).await.unwrap();
+        assert!(!paused(&session), "a download goes on");
+        assert!(session.held().is_empty());
+
+        // Every torrent waits again once the window ends.
+        session.set_hold(Hold::EVERYTHING).await.unwrap();
+        assert!(paused(&session));
         session.session.stop().await;
     }
 

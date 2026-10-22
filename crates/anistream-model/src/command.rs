@@ -595,6 +595,10 @@ pub enum AppState {
     /// Off screen, still playing the episode on when `playing`: its audio, or a screen locked
     /// on the player.
     Background { playing: bool },
+    /// Off screen while the system lets the app's downloads go on, as iOS's continued-processing
+    /// task does: downloads and what plays go on, seeding waits. Downloads on a metered network
+    /// wait, as on screen. Sent when the window opens, and `Background` again when it ends.
+    BackgroundDownloads,
 }
 
 #[cfg(test)]

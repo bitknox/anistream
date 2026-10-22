@@ -60,6 +60,14 @@ final class AppDelegate: NSObject {
         // Before launch ends, as the system asks of a notification's delegate and the background
         // task's handler.
         notices.launch()
+        #if os(iOS)
+        // Downloads go on after the app leaves, in the system's window for them.
+        store.continued.playing = { [weak player = self.player] in
+            guard let player else { return false }
+            return player.isPresented && !player.paused
+        }
+        BackgroundDownloads.install(in: store)
+        #endif
         watchPlaying()
     }
 

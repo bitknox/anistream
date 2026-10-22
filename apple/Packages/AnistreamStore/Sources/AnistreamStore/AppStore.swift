@@ -40,6 +40,8 @@ public final class AppStore {
     public let notifications = NotificationsModel()
     /// The engine's answers to questions asked of it, for the notifications and the widgets.
     public let answers = EngineAnswers()
+    /// Downloads that go on after the app leaves, in the system's window for them (iOS).
+    public let continued = ContinuedDownloads()
     /// The week's ask, waiting a moment in case more ask at once.
     @ObservationIgnored var noticeRefresh: Task<Void, Never>?
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
@@ -77,6 +79,7 @@ public final class AppStore {
             client.send(.fetchArtwork(url: url))
             return true
         }
+        continued.send = { [weak self] command in self?.send(command) }
     }
 
     // MARK: The engine
@@ -327,6 +330,7 @@ public final class AppStore {
         if !held.isEmpty, let kind = event.showcaseKind, held.contains(kind) { return }
         notifications.observe(event)
         answers.deliver([event])
+        if case .downloads(let rows) = event { continued.update(rows) }
         if notifications.schedules, NotificationsModel.reschedules(after: event) { refreshNotices() }
         switch event {
         case .jobStarted(let job, let activity):
