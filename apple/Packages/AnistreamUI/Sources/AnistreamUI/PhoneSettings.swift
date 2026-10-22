@@ -306,6 +306,7 @@ struct Avatar: View {
 
 struct PhonePlaybackPage: View {
     @Environment(AppStore.self) private var store
+    @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
 
     var body: some View {
         let overridden = store.settings.overriddenNote
@@ -314,6 +315,14 @@ struct PhonePlaybackPage: View {
                 PhoneTitleLanguageRow()
                 PhoneSettingPicker(key: .translation, note: overridden(.translation))
                 PhoneSubtitlesPicker()
+                // Kept on this device: the style it follows is this device's.
+                Toggle(isOn: $followCaptions) {
+                    PhoneRowTitle(
+                        title: "Subtitles follow your system caption style",
+                        note: "Font, size, colours and edges from Accessibility › Subtitles & Captioning. Styled subtitles keep their own look.")
+                }
+                .tint(.amber)
+                .listRowBackground(Palette.raised)
                 PhoneSettingPicker(key: .quality, note: overridden(.quality))
             } header: {
                 PhoneSectionHeader("Language")

@@ -255,6 +255,7 @@ enum Device {
 struct PlaybackPane: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
 
     var body: some View {
         let overridden = store.settings.overriddenNote
@@ -262,6 +263,16 @@ struct PlaybackPane: View {
             TitleLanguageRow()
             SettingsRow(title: SettingKey.translation.title, note: overridden(.translation)) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
+            // Kept on this device: the style it follows is this device's.
+            SettingsRow(
+                title: "Subtitles follow your system caption style",
+                note: "Plain subtitles take the font, size, colours and edges set in System Settings › Accessibility › Captions. Styled subtitles keep their own look."
+            ) {
+                Toggle("Subtitles follow your system caption style", isOn: $followCaptions)
+                    .toggleStyle(.switch)
+                    .tint(.amber)
+                    .labelsHidden()
+            }
             SettingsRow(title: SettingKey.quality.title, note: overridden(.quality)) { SettingMenu(key: .quality) }
         }
         SettingsGroup(title: "Episodes") {

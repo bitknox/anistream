@@ -22,6 +22,7 @@ extension View {
 struct HostsPlayer: ViewModifier {
     @Environment(AppStore.self) private var store
     let model: PlayerModel
+    @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
     @Namespace private var zoom
     @State private var pip: PictureInPicture?
     #if os(macOS)
@@ -34,6 +35,17 @@ struct HostsPlayer: ViewModifier {
     #endif
 
     func body(content: Content) -> some View {
+        players(content)
+            // Plain-text subtitles in the system's caption style, as the setting says, and as the
+            // viewer changes the style.
+            .onChange(of: followCaptions, initial: true) { _, follow in model.followsSystemCaptions = follow }
+            .onReceive(NotificationCenter.default.publisher(for: CaptionStyle.changed)) { _ in
+                model.captionStyleChanged()
+            }
+    }
+
+    @ViewBuilder
+    private func players(_ content: Content) -> some View {
         #if os(macOS)
         content
             // The browsing stays where it was, under the player, for Back to return to.

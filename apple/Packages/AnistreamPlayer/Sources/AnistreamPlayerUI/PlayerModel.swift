@@ -69,12 +69,14 @@ public final class PlayerModel {
     }
 
     /// The app's mpv: audio and video as the platform plays them, keeping the shaders libplacebo
-    /// compiles in `shaderCache`, so upscaling does not compile its chain again on every start.
-    public static func mpv(shaderCache: URL? = nil) -> MpvClient {
+    /// compiles in `shaderCache`, so upscaling does not compile its chain again on every start,
+    /// with `options` besides (the caption style's).
+    public static func mpv(shaderCache: URL? = nil, options: [String: String] = [:]) -> MpvClient {
         var configuration = MpvConfiguration()
         if let shaderCache, (try? FileManager.default.createDirectory(at: shaderCache, withIntermediateDirectories: true)) != nil {
             configuration.shaderCache = shaderCache
         }
+        configuration.options = options
         return MpvClient(configuration: configuration)
     }
 
@@ -420,7 +422,7 @@ public final class PlayerModel {
 
     private func open(for playback: PlaybackId, fullScreen: Bool, speed: Double?, volume: Double?) {
         if backend == nil {
-            let backend = makeBackend?() ?? Self.mpv(shaderCache: shaderCache)
+            let backend = makeBackend?() ?? Self.mpv(shaderCache: shaderCache, options: captionOptions())
             if makeBackend == nil {
                 Self.note(.info, "mpv shader cache \(shaderCache.map { $0.path(percentEncoded: false) } ?? "none")")
             }
@@ -1331,6 +1333,41 @@ public final class PlayerModel {
         videoOff = off
         Self.note(.info, "video track \(off ? "off" : "on"): \(inBackground ? "in the background" : "in front"), picture in picture \(pictureInPicturePhase)")
         enqueue(.call(.set(property: "vid", value: .string(off ? "no" : "auto"))))
+    }
+
+    // MARK: Caption style
+
+    /// Plain-text subtitles follow the system's caption style: the viewer's setting, on by
+    /// default (`DevicePreferences.followSystemCaptions`).
+    @ObservationIgnored public var followsSystemCaptions = true {
+        didSet { if followsSystemCaptions != oldValue { captionStyleChanged() } }
+    }
+    /// The system's caption style as it is now; a made-up one in the tests.
+    @ObservationIgnored var systemCaptionStyle: @MainActor () -> CaptionStyle = { CaptionStyle.system() }
+
+    /// `sub-font` where the style names none: the font the iOS app bundles, which has the Han
+    /// glyphs iOS lacks (see `MpvConfiguration.subtitleFallback`), and mpv's own on the Mac.
+    static var defaultSubtitleFont: String { SubtitleFont.bundled?.family ?? "sans-serif" }
+
+    /// mpv's options for plain-text subtitles, as the setting and the system's style have them.
+    func captionOptions() -> [String: String] {
+        if followsSystemCaptions {
+            return systemCaptionStyle().mpvOptions(defaultFont: Self.defaultSubtitleFont)
+        }
+        var options = CaptionStyle.mpvDefaults
+        options["sub-font"] = Self.defaultSubtitleFont
+        return options
+    }
+
+    /// The setting or the system's caption style changed: the mpv playing now takes the new
+    /// look; the next one starts with it.
+    public func captionStyleChanged() {
+        guard backend != nil else { return }
+        let options = captionOptions()
+        Self.note(.info, "caption style: \(followsSystemCaptions ? "the system's" : "mpv's own"), \(options["sub-border-style"] ?? "")")
+        for (name, value) in options.sorted(by: { $0.key < $1.key }) {
+            enqueue(.call(.set(property: name, value: .string(value))))
+        }
     }
 
     #if FIXTURES
