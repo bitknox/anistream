@@ -15,6 +15,12 @@ import Foundation
 /// team-prefixed `<team>.tv.anistream` on the Mac, which needs no provisioning profile. A bundle
 /// without the key, as the Fixtures app is, has no widgets' directory, so it never writes over
 /// the app's.
+///
+/// Sideloaded, the group has another name. AltStore and SideStore sign the app and the extension
+/// with the person's own Apple ID, and register the group the release's signature names as
+/// `<group>.<their team>`, which is the one the app is then signed into: AltStore also lists it in
+/// Info.plist as `ALTAppGroups`, and both put it in each bundle's `embedded.mobileprovision`. So
+/// that group comes first, when there is one.
 public struct WidgetFiles: Sendable, Equatable {
     public let directory: URL
 
@@ -41,9 +47,37 @@ public struct WidgetFiles: Sendable, Equatable {
         return WidgetFiles(directory: container.appending(path: "widgets", directoryHint: .isDirectory))
     }
 
-    /// This process's widgets' directory: the App Group its bundle names.
+    /// This process's widgets' directory: the App Group its bundle names, or the one a
+    /// sideloading store made of it.
     public static func shared(bundle: Bundle = .main) -> WidgetFiles? {
-        group(in: bundle).flatMap { appGroup($0) }
+        guard let group = group(in: bundle) else { return nil }
+        let profile = try? Data(contentsOf: bundle.bundleURL.appending(path: "embedded.mobileprovision"))
+        let granted = (bundle.object(forInfoDictionaryKey: altStoreGroupsKey) as? [String] ?? [])
+            + provisionedGroups(profile ?? Data())
+        if let sideloaded = sideloadedGroup(for: group, among: granted), let files = appGroup(sideloaded) {
+            return files
+        }
+        return appGroup(group)
+    }
+
+    /// The Info.plist key AltStore lists the App Groups it signed the bundle into under.
+    public static let altStoreGroupsKey = "ALTAppGroups"
+
+    /// Of `groups`, the one a sideloading store registered for `group` under its team:
+    /// `<group>.<team>`.
+    public static func sideloadedGroup(for group: String, among groups: [String]) -> String? {
+        groups.first { $0.hasPrefix(group + ".") && !$0.dropFirst(group.count + 1).contains(".") }
+    }
+
+    /// The App Groups a provisioning profile's entitlements grant: the plist inside its signature.
+    public static func provisionedGroups(_ profile: Data) -> [String] {
+        guard let start = profile.firstRange(of: Data("<?xml".utf8)),
+            let end = profile.firstRange(of: Data("</plist>".utf8), in: start.upperBound..<profile.endIndex),
+            let plist = try? PropertyListSerialization.propertyList(
+                from: profile[start.lowerBound..<end.upperBound], format: nil) as? [String: Any],
+            let entitlements = plist["Entitlements"] as? [String: Any]
+        else { return [] }
+        return entitlements["com.apple.security.application-groups"] as? [String] ?? []
     }
 
     public var snapshotFile: URL { directory.appending(path: "snapshot.json") }

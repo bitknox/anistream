@@ -91,9 +91,10 @@ and so does a dispatch of apps-release.yml. CI's own jobs build the apps for eve
   added.
 
 The APK is signed with the project's release key, from the repository's `ANDROID_RELEASE_*`
-secrets. The Mac app is signed ad hoc and not notarized, and the `.ipa` is unsigned, for
+secrets. The Mac app is signed ad hoc and not notarized, and the `.ipa` is signed ad hoc too, for
 AltStore or SideStore to sign with each person's own Apple ID: there is no paid Apple developer
-account behind either.
+account behind either. Its ad hoc signature carries the App Group, `group.tv.anistream`, which
+those two read from it and register under the person's team (`apple/scripts/adhoc-sign.sh`).
 
 ## The Rust crates' licences
 
