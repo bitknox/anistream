@@ -61,8 +61,9 @@ toml_edit = "0.25"
 # --- http ---
 # wreq: browser TLS/JA3/JA4 + HTTP2 fingerprint emulation. Required for Cloudflare-fronted
 # providers; a correct browser header set alone returns 403.
-wreq = { version = "5.3", features = ["json", "gzip", "brotli", "deflate", "cookies", "socks"] }
-wreq-util = "2"
+# 0.15 is 5.3 renumbered: the maintainers reset the version line in Aug 2026 and yanked 5.x.
+wreq = { version = "0.15.3", features = ["json", "gzip", "brotli", "deflate", "cookies", "socks"] }
+wreq-util = "0.1"
 # reqwest: plain client for hosts that need no emulation (AniList, its image CDN, GitHub raw).
 reqwest = { version = "0.13", default-features = false, features = ["json", "query", "form", "rustls", "webpki-roots", "http2", "gzip", "brotli", "stream", "socks"] }
 
