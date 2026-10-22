@@ -1,0 +1,22 @@
+---
+// The foot of the landing page and the apps page: Nagare, the legal line, the licence and links.
+import Nagare from '../Nagare.astro';
+import { APPS, GITHUB, LEGAL, RELEASES } from '../../data/site';
+---
+
+<footer class="l-footer">
+	<div class="footer-mascot">
+		<Nagare cell={5} class="footer-nagare" />
+		<p>Nagare 流 is anistream’s mascot, an original character.</p>
+	</div>
+	<div class="footer-legal">
+		<p>{LEGAL}</p>
+		<p class="footer-licence">anistream is open source under the MIT licence.</p>
+	</div>
+	<nav aria-label="Footer">
+		<a href={APPS}>Apps</a>
+		<a href="/docs/">Docs</a>
+		<a href={RELEASES}>Releases</a>
+		<a href={GITHUB}>GitHub</a>
+	</nav>
+</footer>

@@ -2,8 +2,8 @@
  * The landing page's motion. The page paints finished: nothing waits to be revealed, and the only
  * thing that arrives is the hero scene, which fades in once its planes are drawn. Depth comes from
  * scroll, as parallax: the scene's four planes, the faint glyph field, the katakana spine and a
- * slight drift on each section. The band drifts on its own, and the terminal demo plays its
- * session while it is on screen. With reduced motion, everything rests.
+ * slight drift on each section. The band drifts on its own, and the terminal demo further down
+ * plays its session while it is on screen. With reduced motion, everything rests.
  */
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -65,11 +65,11 @@ function drawScene(): Scene | null {
 		const lift = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
 		const left = Math.floor((width - W * cell) / 2);
 		const cfg = sceneConfig(W);
-		// From 1200 px the terminal stands beside the copy with its top on the rooftop's edge, and
+		// From 1200 px the Mac window stands beside the copy with its top on the rooftop's edge, and
 		// Nagare stands on it, a little right of its middle, rather than on the floor behind it.
-		const term = window.matchMedia('(min-width: 1200px)').matches ? $('.hero-term > .term') : null;
-		if (term) {
-			const t = term.getBoundingClientRect();
+		const mac = window.matchMedia('(min-width: 1200px)').matches ? $('.hero-mac img') : null;
+		if (mac) {
+			const t = mac.getBoundingClientRect();
 			const from = t.left - box.getBoundingClientRect().left - left;
 			cfg.nagareX = Math.round((from + t.width * 0.62) / cell);
 			cfg.feetRow = cfg.roofY - 1;

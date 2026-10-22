@@ -1,0 +1,27 @@
+---
+// The nav on the landing page and the apps page: the app icon and the name, then Apps, Docs,
+// Releases and GitHub. Over the landing page's scene it starts clear; elsewhere it is solid.
+import iconUrl from '../../assets/icon-32.svg?url';
+import { APPS, GITHUB, RELEASES } from '../../data/site';
+
+interface Props {
+	current?: 'apps';
+	/** Over the landing page's scene, clear until the scene has gone. */
+	overScene?: boolean;
+}
+
+const { current, overScene = false } = Astro.props;
+---
+
+<nav class:list={['l-nav', { 'l-nav-over': overScene }]} aria-label="Main">
+	<a class="l-brand" href="/">
+		<img src={iconUrl} width="32" height="32" alt="" />
+		<span>anistream</span>
+	</a>
+	<div class="l-nav-links">
+		<a href={APPS} aria-current={current === 'apps' ? 'page' : undefined}>Apps</a>
+		<a href="/docs/">Docs</a>
+		<a class="l-nav-releases" href={RELEASES}>Releases</a>
+		<a href={GITHUB}>GitHub</a>
+	</div>
+</nav>

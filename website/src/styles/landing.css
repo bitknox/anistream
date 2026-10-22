@@ -114,7 +114,7 @@ body.landing {
 	}
 }
 
-/* ── Nav: over the scene's sky, solid ground once the scene has gone ───── */
+/* ── Nav: over the scene's sky on the landing page, solid ground elsewhere ── */
 .landing {
 	--nav-h: 0px;
 }
@@ -125,14 +125,16 @@ body.landing {
 	justify-content: space-between;
 	height: 64px;
 	padding-inline: var(--gutter);
+	background: var(--ani-ground);
+	box-shadow: inset 0 -1px 0 var(--ani-rule-faint);
 }
 
-/* Without the script there is no scene, so the nav stays a plain bar above the copy. */
-html.js .landing {
+/* Without the script there is no scene, so the landing nav stays a plain bar above the copy. */
+html.js .landing:has(.l-nav-over) {
 	--nav-h: 64px;
 }
 
-html.js .l-nav {
+html.js .l-nav-over {
 	position: fixed;
 	inset: 0 0 auto;
 	z-index: 20;
@@ -147,12 +149,12 @@ html.js .l-nav {
 		transform var(--ani-standard) var(--ani-spring);
 }
 
-html.js .l-nav.is-hidden {
+html.js .l-nav-over.is-hidden {
 	transform: translateY(-100%);
 }
 
 /* Dims the stars behind the links, in the sky's own colour. */
-html.js .l-nav::before {
+html.js .l-nav-over::before {
 	content: '';
 	position: absolute;
 	inset: 0 0 -16px;
@@ -162,25 +164,32 @@ html.js .l-nav::before {
 	transition: opacity var(--ani-standard) var(--ani-spring);
 }
 
-html.js .l-nav.is-solid {
+html.js .l-nav-over.is-solid {
 	color: var(--ani-text);
 	background-color: var(--ani-ground);
 	box-shadow: inset 0 -1px 0 var(--ani-rule-faint);
 }
 
-html.js .l-nav.is-solid::before {
+html.js .l-nav-over.is-solid::before {
 	opacity: 0;
 }
 
 .l-brand {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	height: 44px;
 	font-family: var(--ani-font-display);
 	font-size: 20px;
 	font-weight: 500;
 	letter-spacing: 0.02em;
+}
+
+/* The app icon, on whole pixels: its 32 px tile at one CSS pixel a cell. */
+.l-brand img {
+	display: block;
+	width: 32px;
+	height: 32px;
 }
 
 .l-nav-links {
@@ -207,30 +216,30 @@ html.js .l-nav.is-solid::before {
 	text-decoration-color: var(--ani-rule);
 }
 
+.l-nav-links a[aria-current='page'] {
+	color: var(--ani-obi);
+}
+
 @media (max-width: 599px) {
 	.l-nav {
 		height: 56px;
 	}
 
-	html.js .landing {
+	html.js .landing:has(.l-nav-over) {
 		--nav-h: 56px;
 	}
 
 	.l-brand {
+		gap: 8px;
 		font-size: 18px;
 	}
 
-	.l-brand svg {
-		width: 18px;
-		height: 18px;
-	}
-
 	.l-nav-links {
-		gap: 16px;
+		gap: 14px;
 	}
 
 	.l-nav-links a {
-		padding: 0 4px;
+		padding: 0 3px;
 	}
 
 	.l-nav-links .l-nav-releases {
@@ -375,22 +384,40 @@ html:not(.js) .scene {
 	}
 }
 
-/* ── The terminal demo: below the copy, or beside it on a wide screen ──── */
-.hero-term {
+/* ── The apps beside the copy: the Mac app with a phone in front ─────────── */
+.hero-apps {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
-	max-width: 840px;
+	gap: 16px;
+	max-width: 760px;
 	margin-top: 56px;
 }
 
-/* From 1200 px the terminal stands beside the copy, its top on the rooftop's edge, where Nagare
-   stands on it. The caption sits under the copy, so both columns end together. The terminal's
-   82 columns need about 614 px. */
+/* The Mac window leaves room on the left for the phone, which stands in front of its lower corner
+   and a little below it. */
+.hero-devices {
+	position: relative;
+	padding-bottom: 10%;
+}
+
+.hero-mac {
+	display: block;
+	margin-left: 9%;
+}
+
+.hero-phone {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 25%;
+}
+
+/* From 1200 px the apps stand beside the copy, the Mac window's top on the rooftop's edge, where
+   Nagare stands on it. The caption sits under the copy, so both columns end together. */
 @media (min-width: 1200px) {
 	.hero-copy {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(614px, 620px);
+		grid-template-columns: minmax(0, 1fr) 640px;
 		grid-template-rows: auto 1fr;
 		column-gap: 40px;
 		padding-bottom: 56px;
@@ -408,21 +435,21 @@ html:not(.js) .scene {
 		grid-row: 1;
 	}
 
-	.hero-term {
+	.hero-apps {
 		display: contents;
 	}
 
-	.hero-term > .term {
+	.hero-devices {
 		grid-column: 2;
 		grid-row: 1 / span 2;
 		align-self: start;
 	}
 
-	html.js .hero-term > .term {
+	html.js .hero-devices {
 		margin-top: -16px;
 	}
 
-	.hero-term > .caption {
+	.hero-apps > .caption {
 		grid-column: 1;
 		grid-row: 2;
 		align-self: end;
@@ -432,9 +459,110 @@ html:not(.js) .scene {
 }
 
 @media (max-width: 899px) {
-	.hero-term {
+	.hero-apps {
 		margin-top: 40px;
 	}
+
+	.hero-mac {
+		margin-left: 0;
+		margin-right: 14%;
+	}
+
+	.hero-phone {
+		left: auto;
+		right: 0;
+		width: 27%;
+	}
+
+	.hero-devices {
+		padding-bottom: 16%;
+	}
+}
+
+/* ── The apps' screenshots ──────────────────────────────────────────────────
+   A Mac window as the app draws it. A phone or a tablet in a slim dark bezel with the screen's
+   rounded corners, which keeps it apart from what it stands in front of. */
+.shot {
+	display: block;
+	container-type: inline-size;
+}
+
+.shot-frame {
+	display: block;
+}
+
+.shot img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.shot-window img {
+	border-radius: 1.6cqi;
+	box-shadow: 0 0 0 1px var(--ani-rule-faint);
+}
+
+.hero .shot-window img {
+	box-shadow: 0 0 0 1px #2f3242;
+}
+
+.shot-phone .shot-frame,
+.shot-tablet .shot-frame {
+	padding: var(--bezel, max(3px, 1.6cqi));
+	border-radius: 14cqi;
+	background: #0b0d17;
+	box-shadow: 0 0 0 1px #2f3242;
+}
+
+.shot-phone img {
+	border-radius: 12.4cqi;
+}
+
+.shot-tablet .shot-frame {
+	padding: var(--bezel, max(3px, 1.1cqi));
+	border-radius: 5.4cqi;
+}
+
+.shot-tablet img {
+	border-radius: 4.4cqi;
+}
+
+/* A landscape phone keeps its corners, measured on its shorter side. */
+.shot-phone.shot-landscape .shot-frame {
+	padding: var(--bezel, max(3px, 0.75cqi));
+	border-radius: 6.5cqi;
+}
+
+.shot-phone.shot-landscape img {
+	border-radius: 5.7cqi;
+}
+
+/* A landscape tablet, likewise. */
+.shot-tablet.shot-landscape .shot-frame {
+	padding: var(--bezel, max(3px, 0.7cqi));
+	border-radius: 3.4cqi;
+}
+
+.shot-tablet.shot-landscape img {
+	border-radius: 2.8cqi;
+}
+
+/* Pictures of different shapes in one row, all the same height: each grows by its width over its
+   height, from a basis of its bezel on both sides, so the pictures inside the bezels match. */
+.ratio-row {
+	--bezel: 4px;
+	display: flex;
+	align-items: flex-start;
+	gap: 24px;
+}
+
+.ratio-row > * {
+	flex: var(--ratio, 1) 1 calc(2 * var(--bezel));
+	min-width: 0;
+}
+
+.ratio-row > .shot-window {
+	--bezel: 0px;
 }
 
 /* ── The terminal itself: a dark terminal in either theme ───────────────── */
@@ -851,6 +979,108 @@ html:not(.js) .scene {
 	}
 }
 
+/* The terminal app: the demo beside what only the terminal does */
+.term-block {
+	display: grid;
+	grid-template-columns: minmax(0, 720fr) minmax(0, 456fr);
+	column-gap: 24px;
+	align-items: start;
+	margin-top: 32px;
+}
+
+.term-demo {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	min-width: 0;
+}
+
+.term-rows {
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.term-row {
+	padding: 14px 0;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.term-row dt {
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 24px;
+}
+
+.term-row dd {
+	margin-top: 4px;
+	font-size: 15px;
+	line-height: 24px;
+}
+
+.term-block + .code-block {
+	margin-top: 40px;
+}
+
+@media (max-width: 1199px) {
+	.term-block {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 28px;
+	}
+
+	.term-demo {
+		max-width: 840px;
+	}
+}
+
+@media (max-width: 899px) {
+	.term-block {
+		margin-top: 24px;
+	}
+
+	.term-row dt {
+		font-size: 16px;
+		line-height: 22px;
+	}
+
+	.term-row dd {
+		line-height: 22px;
+	}
+
+	.term-block + .code-block {
+		margin-top: 28px;
+	}
+}
+
+/* The apps on the landing page: three shapes in one row */
+.app-strip {
+	margin-top: 32px;
+}
+
+/* On a phone the two scroll sideways at one height, edge to edge. */
+@media (max-width: 899px) {
+	.app-strip {
+		--strip-h: 300px;
+		--bezel: 3px;
+		margin: 24px calc(-1 * var(--gutter)) 0;
+		padding: 0 var(--gutter) 4px;
+		gap: 16px;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		scroll-snap-type: x mandatory;
+		scroll-padding-inline: var(--gutter);
+		scrollbar-width: none;
+	}
+
+	.app-strip::-webkit-scrollbar {
+		display: none;
+	}
+
+	.app-strip > * {
+		flex: 0 0 auto;
+		width: calc(var(--strip-h) * var(--ratio) + 2 * var(--bezel));
+		scroll-snap-align: start;
+	}
+}
+
 /* Where episodes come from */
 .legal-lead {
 	max-width: 792px;
@@ -944,19 +1174,15 @@ html:not(.js) .scene {
 }
 
 .release-files thead th:nth-child(1) {
-	width: 18.6%;
+	width: 20%;
 }
 
 .release-files thead th:nth-child(2) {
-	width: 20.3%;
+	width: 28%;
 }
 
 .release-files thead th:nth-child(3) {
-	width: 18.6%;
-}
-
-.release-files thead th:nth-child(4) {
-	width: 15.3%;
+	width: 22%;
 }
 
 .release-files tbody tr {
@@ -989,8 +1215,6 @@ html:not(.js) .scene {
 	font-size: 15px;
 }
 
-.rf-sep,
-.rf-deps-label,
 .rf-note-inline {
 	display: none;
 }
@@ -1080,15 +1304,6 @@ html:not(.js) .scene {
 		line-height: 22px;
 	}
 
-	.rf-sep {
-		display: inline;
-		white-space: pre;
-	}
-
-	.rf-file + .rf-file {
-		margin-left: 0.5ch;
-	}
-
 	.rf-deps,
 	.rf-code {
 		flex-basis: 100%;
@@ -1096,10 +1311,6 @@ html:not(.js) .scene {
 		font-size: 14px;
 		line-height: 20px;
 		color: var(--ani-dim);
-	}
-
-	.rf-deps-label {
-		display: inline;
 	}
 
 	.sect .release-files + .actions {
@@ -1119,86 +1330,13 @@ html:not(.js) .scene {
 	}
 }
 
-/* Building in the open */
-.platforms {
-	margin-top: 32px;
-	list-style: none;
-	border-bottom: 1px solid var(--ani-rule-faint);
-}
-
-.platforms li {
-	display: grid;
-	grid-template-columns: minmax(0, 344fr) minmax(0, 608fr) minmax(0, 200fr);
-	column-gap: 24px;
-	align-items: center;
-	min-height: 56px;
-	border-top: 1px solid var(--ani-rule-faint);
-}
-
-.platform-name {
-	font-size: 17px;
-	font-weight: 600;
-}
-
-.platform-text {
-	font-size: 15px;
-}
-
-.status {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 14px;
-	line-height: 20px;
-	color: var(--ani-dim);
-}
-
-.status-dot {
-	width: 7px;
-	height: 7px;
-	flex-shrink: 0;
-	border-radius: 4px;
-	background: var(--ani-dim);
-}
-
-.status-dot.is-available {
-	background: var(--ani-state);
-}
-
-.platforms + .actions {
+/* A row of buttons closing a section */
+.sect-actions {
 	margin-top: 28px;
 }
 
 @media (max-width: 899px) {
-	.platforms {
-		margin-top: 20px;
-	}
-
-	.platforms li {
-		grid-template-columns: minmax(0, 1fr) auto;
-		grid-template-areas:
-			'name status'
-			'text text';
-		row-gap: 4px;
-		padding: 14px 0;
-	}
-
-	.platform-name {
-		grid-area: name;
-		font-size: 16px;
-		line-height: 22px;
-	}
-
-	.status {
-		grid-area: status;
-	}
-
-	.platform-text {
-		grid-area: text;
-		line-height: 22px;
-	}
-
-	.platforms + .actions {
+	.sect-actions {
 		margin-top: 20px;
 	}
 }
