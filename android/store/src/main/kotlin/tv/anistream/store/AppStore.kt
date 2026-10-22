@@ -371,6 +371,21 @@ class AppStore(
         accounts.started(request.tracker, send(Command.FinishSignIn(request.tracker, callback)))
     }
 
+    /**
+     * The browser came back to the app for [tracker] with [callback], the redirect that carries
+     * the code or the token: handed to the engine as it came, which checks it against the sign-in
+     * it waits on. It ends the open sign-in only when it is that one's own, for its tracker and
+     * with its state, as the engine goes on waiting for any other: the two stay in step, and the
+     * tab's own redirect, still to come, finishes it. Says whether it ended the open one.
+     */
+    fun redirected(tracker: String, callback: String): Boolean {
+        accounts.leftForTab = false
+        val request = accounts.signIn.value?.takeIf { it.answeredBy(tracker, callback) }
+        if (request != null) accounts.signInEnded(request)
+        accounts.started(tracker, send(Command.FinishSignIn(tracker, callback)))
+        return request != null
+    }
+
     /** The browser for [request] was closed without signing in. */
     fun cancelSignIn(request: SignInRequest) {
         accounts.signInEnded(request)

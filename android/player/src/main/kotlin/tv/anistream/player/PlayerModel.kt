@@ -130,6 +130,21 @@ class PlayerModel(
     /** Every playback up to this one is over: its ops are refused. */
     private var closedThrough: ULong? = null
 
+    /**
+     * The viewer closed the player: every op is refused until the engine stages a playback again,
+     * so one it was still finding cannot bring the player back up.
+     */
+    private var closedByViewer = false
+
+    /**
+     * A playback has been staged that has said nothing yet: the one on screen, if any, is older,
+     * and stopping is for the staged one, which only a Stop for whatever plays reaches.
+     */
+    private var stagedAhead = false
+
+    /** The playbacks the engine has been told this player closed for. */
+    private val closedSaid = mutableSetOf<ULong>()
+
     /** The hardware decoding the mpv now open started with, or was moved to. */
     var decoding by mutableStateOf(hwdec)
         private set
@@ -297,6 +312,8 @@ class PlayerModel(
             is Event.PlayerOps -> for (op in event.ops) apply(op, event.playback)
             is Event.PlayerUi -> apply(event.ui, event.playback)
             is Event.PlaybackStaged -> {
+                closedByViewer = false
+                stagedAhead = true
                 failure = null
                 choosingSource = false
                 sourceChoices = null
@@ -306,7 +323,8 @@ class PlayerModel(
                 changed()
             }
             is Event.PlaybackEnded -> when {
-                event.rollingOn -> rollPending = true
+                // Not when the viewer sought into the ending: someone was there.
+                event.rollingOn -> rollPending = upNext?.sought != true
                 mpv == null && event.ending == Ending.Failed && isPresented && startingEpisode != null -> {
                     // It never played: no stream was found, or none showed a frame. Say so where the
                     // viewer is looking, with another source to choose, rather than vanish.
@@ -329,11 +347,13 @@ class PlayerModel(
 
     internal fun apply(op: PlayerOp, playback: ULong) {
         if (!accepts(playback)) {
-            note("#$playback refused ${describe(op)}: that playback is over")
+            note("#$playback refused ${describe(op)}: ${if (closedByViewer) "the viewer closed the player" else "that playback is over"}")
+            sayClosed(playback)
             return
         }
         enter(playback)
         if (loud(op)) note("#$playback ${describe(op)}")
+        if (op is PlayerOp.Seek) restartCountdown(if (op.absolute) op.seconds else playhead + op.seconds)
         when (val step = HostedStep.of(op)) {
             is HostedStep.Open -> open(playback, step.fullScreen, step.speed, step.volume)
             is HostedStep.Call -> {
@@ -360,7 +380,10 @@ class PlayerModel(
     }
 
     internal fun apply(ui: PlayerUi, playback: ULong) {
-        if (!accepts(playback)) return
+        if (!accepts(playback)) {
+            sayClosed(playback)
+            return
+        }
         enter(playback)
         val now = now()
         when (ui) {
@@ -388,6 +411,8 @@ class PlayerModel(
                     ui.next, ui.auto, ui.endingAt, ui.countdown.toDouble(), ui.stillWatchingAfter.toInt(),
                     cancelled = before?.next?.number == ui.next.number && before.cancelled,
                     played = before?.next?.number == ui.next.number && before.played,
+                    restartedAt = before?.takeIf { it.next.number == ui.next.number }?.restartedAt,
+                    sought = before?.next?.number == ui.next.number && before.sought,
                 )
             }
             PlayerUi.UpNextCleared -> upNext = null
@@ -409,13 +434,28 @@ class PlayerModel(
         }
     }
 
-    /** Whether ops and interface for [playback] are still taken: not once it is over. */
-    private fun accepts(playback: ULong): Boolean = closedThrough?.let { playback > it } ?: true
+    /**
+     * Whether ops and interface for [playback] are still taken: not once it is over, nor any at all
+     * once the viewer has closed the player, until a playback is staged again.
+     */
+    private fun accepts(playback: ULong): Boolean =
+        !closedByViewer && (closedThrough?.let { playback > it } ?: true)
+
+    /**
+     * Tell the engine this player is closed for [playback], once: what it says to a player that is
+     * gone is refused, and a playback that opened one here, as the next episode found after the
+     * viewer closed it can, ends as closed rather than waiting on it.
+     */
+    private fun sayClosed(playback: ULong) {
+        if (!closedSaid.add(playback)) return
+        send(Command.PlayerReport(playback, PlayerReport.Closed))
+    }
 
     /** The engine speaks of [playback]: a newer one starts with none of the last one's cards. */
     private fun enter(playback: ULong) {
         if (this.playback?.let { playback > it } == false) return
         this.playback = playback
+        stagedAhead = false
         skip = null
         undo = null
         upNext = null
@@ -482,7 +522,6 @@ class PlayerModel(
                     is Work.Call -> try {
                         val call = if (item.call is MpvCall.Load) ready(item.call) else item.call
                         mpv.perform(call)?.let(::report)
-                        if (call is MpvCall.Load) watch(mpv)
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.w(TAG, "mpv refused ${item.call::class.simpleName}: $e")
@@ -509,9 +548,16 @@ class PlayerModel(
     private fun zeroCopy(hwdec: String): Boolean =
         hwdec.split(',').map(String::trim).any { it == "mediacodec" || it == "auto" || it == "yes" }
 
-    /** The viewer closed the player: its back arrow, the drag down, the back gesture. */
+    /**
+     * The viewer closed the player: its back arrow, the drag down, the back gesture.
+     *
+     * Nothing the engine says brings it back up until it stages another playback: a playback still
+     * being found, the first or the next after Play now or an Episodes pick, is stopped, and should
+     * its player open all the same, it is told the player closed.
+     */
     fun viewerClosed() {
         input()
+        closedByViewer = true
         if (failure != null) {
             // Nothing is playing: the screen only said so.
             dismiss()
@@ -520,12 +566,23 @@ class PlayerModel(
         if (mpv == null) {
             if (isPresented) {
                 // Nothing opened yet: stop what is being found.
-                control(PlayerCommand.Stop)
+                stopFinding()
                 dismiss()
             }
             return
         }
         close(reporting = true)
+        // The file on screen is closed; the next one staged since is still being found.
+        if (stagedAhead) send(Command.Player(PlayerCommand.Stop))
+    }
+
+    /**
+     * Stop what the engine is finding for this player: aimed at the playback on screen, unless one
+     * has been staged since that has said nothing yet. Aimed at the one before, a Stop would miss
+     * it, so it goes to whatever plays, which is the one staged last.
+     */
+    private fun stopFinding() {
+        if (stagedAhead || playback == null) send(Command.Player(PlayerCommand.Stop)) else control(PlayerCommand.Stop)
     }
 
     /** Close mpv and the player. [reporting]: say the file ended by quitting, and that the player closed, first. */
@@ -641,7 +698,12 @@ class PlayerModel(
             }
             // A frame of the file being replaced, while the next is loading, is not the next one's.
             MpvNative.Event.PLAYBACK_RESTART -> if (!hasPicture && loads.isEmpty()) firstFrame()
-            MpvNative.Event.FILE_LOADED -> note("#$current file loaded")
+            MpvNative.Event.FILE_LOADED -> {
+                note("#$current file loaded")
+                // From here, not from the Load: a slow network, or a torrent still finding its
+                // peers, is no stalled decoder.
+                if (!hasPicture) watch(from)
+            }
             MpvNative.Event.END_FILE -> note("#$current file ended: ${event.value["reason"].string}")
             MpvNative.Event.SHUTDOWN -> {
                 note("mpv went away by itself")
@@ -711,14 +773,19 @@ class PlayerModel(
         }
     }
 
-    /** The playhead moved: the cards that run on playback time. */
+    /**
+     * The playhead moved: the cards that run on playback time. Not Up Next's countdown while the
+     * viewer scrubs, whose keyframe seeks move the playhead under the finger.
+     */
     private fun played() {
         val card = upNext
-        if (card != null && !card.played && !assisted) {
+        if (card != null && !card.played && !assisted && scrubbing == null) {
             val left = card.remaining(playhead, duration)
             if (left != null && left <= 0) {
                 upNext = card.copy(played = true)
-                rollPending = true
+                // Asked for by someone there when they sought into the ending: not one in a row with
+                // nobody watching.
+                rollPending = !card.sought
                 control(PlayerCommand.PlayNext)
             }
         }
@@ -735,10 +802,27 @@ class PlayerModel(
         }
     }
 
+    /**
+     * A seek, the viewer's or the engine's, to [target]: an Up Next countdown it lands in or past runs
+     * again from its full length there, rather than playing the next episode at once.
+     */
+    private fun restartCountdown(target: Double) {
+        val card = upNext ?: return
+        if (card.played) return
+        val start = card.showsAt(duration) ?: return
+        upNext = card.copy(restartedAt = target.takeIf { it >= start })
+    }
+
+    /** The viewer sought: Up Next, if it is up, plays next for someone who is there. */
+    private fun sought() {
+        val card = upNext ?: return
+        if (!card.played) upNext = card.copy(sought = true)
+    }
+
     // The decoder watchdog
 
     /**
-     * After a Load, while mpv decodes in hardware: a file that has no picture for
+     * Once the file has loaded, while mpv decodes in hardware: a file that has no picture for
      * [PlayerTiming.FIRST_FRAME_WATCHDOG] while mpv is not waiting for data has a decoder that
      * stalled, which takes mpv's core with it (AS5). mpv is asked to decode in software; if it
      * cannot even answer that, a new mpv takes over, on a new surface, where the file was.
@@ -800,6 +884,7 @@ class PlayerModel(
     /** Tell the engine, for the playback whose file mpv has. */
     private fun report(report: PlayerReport) {
         val target = current ?: opened ?: return
+        if (report == PlayerReport.Closed) closedSaid += target
         send(Command.PlayerReport(target, report))
     }
 
@@ -1025,11 +1110,13 @@ class PlayerModel(
 
     fun seekBy(seconds: Double) {
         input()
+        sought()
         control(PlayerCommand.Seek(seconds))
     }
 
     fun seekTo(seconds: Double) {
         input()
+        sought()
         control(PlayerCommand.SeekTo(seconds))
     }
 
@@ -1071,6 +1158,7 @@ class PlayerModel(
 
     fun takeSkip() {
         input()
+        sought()
         skipsTaken += 1
         skip = null
         control(PlayerCommand.TakeSkip)

@@ -11,6 +11,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.MpvOption
@@ -239,6 +240,72 @@ class ClosingTest {
         assertEquals(PlayerReport.Closed, rig.reports.last().second)
     }
 
+    private fun staged(rig: Rig, episode: String) =
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", episode, null, 1.0))
+
+    /** What the engine says to a player it opens for [playback]. */
+    private fun opening(rig: Rig, playback: ULong, episode: String) {
+        rig.ui(playback, PlayerUi.Starting(900_001u, "Stardust Wayfarer", episode, null, null, null))
+        rig.ops(playback, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/$episode.mkv", emptyList()))
+    }
+
+    @Test
+    fun closingWhileThePlayIsFoundStopsItAndItsPlayerNeverComesUp() = runTest {
+        val rig = Rig(this)
+        // The playback the player showed before, long over: what it last heard of.
+        rig.opened(1u)
+        rig.model.viewerClosed()
+        staged(rig, "7")
+        assertTrue("the starting screen, finding a source", rig.model.isPresented)
+        rig.model.viewerClosed()
+        assertFalse(rig.model.isPresented)
+        assertEquals("for the play being found, not the playback before", Command.Player(PlayerCommand.Stop), rig.sent.last())
+
+        // Found all the same: its player is refused, and the engine told it closed, once.
+        opening(rig, 2u, "7")
+        rig.ops(2u, PlayerOp.Cycle("pause"))
+        assertFalse(rig.model.isPresented)
+        assertEquals(1, rig.made.size)
+        assertEquals(1, rig.reports.count { it == (2uL to PlayerReport.Closed) })
+
+        // A play after it is the viewer's again.
+        staged(rig, "8")
+        rig.opened(3u)
+        assertTrue(rig.model.isPresented)
+        assertEquals(2, rig.made.size)
+    }
+
+    /** The viewer closes the player on the next episode's starting screen, while it is found. */
+    private fun closedWhileTheNextIsFound(rig: Rig, ask: (PlayerModel) -> Unit) {
+        rig.opened(1u)
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        rig.ui(1u, PlayerUi.UpNext(NextEpisode("8", null, null), true, 42.0, 10u, 3u))
+        ask(rig.model)
+        staged(rig, "8")
+        // The window says what comes, as the playback driving it.
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "8", null, null, null))
+        rig.model.viewerClosed()
+        rig.settle()
+        assertEquals(listOf(PlayerReport.Ended(PlayerEnd.QUIT), PlayerReport.Closed), rig.reports.takeLast(2).map { it.second })
+        assertEquals("the next episode, still being found, stops too", Command.Player(PlayerCommand.Stop), rig.sent.last())
+        assertFalse(rig.model.isPresented)
+
+        opening(rig, 2u, "8")
+        assertFalse("no player comes back up for it", rig.model.isPresented)
+        assertEquals(1, rig.made.size)
+        assertEquals(2uL to PlayerReport.Closed, rig.reports.last())
+    }
+
+    @Test
+    fun closingAfterPlayNowBringsNoPlayerBack() = runTest {
+        closedWhileTheNextIsFound(Rig(this)) { it.playNext() }
+    }
+
+    @Test
+    fun closingAfterAnEpisodeIsPickedBringsNoPlayerBack() = runTest {
+        closedWhileTheNextIsFound(Rig(this)) { it.choose(PlayerChoice.Episode("8")) }
+    }
+
     @Test
     fun aPlaybackThatNeverOpenedComesDownWhenItPlaysElsewhere() = runTest {
         val rig = Rig(this)
@@ -326,6 +393,44 @@ class CardTest {
         assertFalse(rig.model.upNextShown)
         rig.playhead(1410.0)
         assertTrue(rig.model.upNextShown)
+    }
+
+    @Test
+    fun aSeekPastTheEndingRunsTheCountdownAgainRatherThanPlayingNext() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        upNext(rig)
+        rig.playhead(44.0)
+        assertEquals(8, rig.model.countdown?.first)
+        // Well past where the countdown would have run out: it runs again, all ten seconds.
+        rig.model.seekTo(80.0)
+        rig.ops(1u, PlayerOp.Seek(80.0, true))
+        rig.playhead(80.0)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        assertEquals(10, rig.model.countdown?.first)
+        rig.playhead(89.0)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        rig.playhead(90.0)
+        assertEquals(1, rig.controls.count { it == PlayerCommand.PlayNext })
+    }
+
+    @Test
+    fun scrubbingPastTheEndingPlaysNothingUntilTheCountdownRunsAgain() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        upNext(rig)
+        rig.playhead(43.0)
+        // The keyframe seeks under the finger move the playhead past the countdown's end.
+        rig.model.scrub(70.0)
+        rig.playhead(70.0)
+        assertFalse("not while scrubbing", PlayerCommand.PlayNext in rig.controls)
+        rig.model.endScrub()
+        rig.ops(1u, PlayerOp.Seek(70.0, true))
+        rig.playhead(71.0)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        assertEquals(9, rig.model.countdown?.first)
+        rig.playhead(80.0)
+        assertEquals(1, rig.controls.count { it == PlayerCommand.PlayNext })
     }
 
     @Test
@@ -483,6 +588,46 @@ class CardTest {
             assertEquals(playback == 3uL, rig.model.stillWatching)
         }
         assertEquals(2, rig.model.stillWatchingAfter)
+    }
+
+    @Test
+    fun anEpisodePlayedNextAfterASeekIsNotOneInARowWithNobodyThere() = runTest {
+        val rig = Rig(this)
+        rig.opened(1u)
+        for (playback in 2uL..4uL) {
+            upNext(rig, after = 2u, playback = playback - 1u)
+            if (playback == 3uL) {
+                // The viewer seeks into the ending, and the countdown runs out after it.
+                rig.model.seekTo(45.0)
+                rig.ops(playback - 1u, PlayerOp.Seek(45.0, true))
+                rig.playhead(55.0)
+            } else {
+                rig.playhead(52.0)
+            }
+            rig.ops(playback, PlayerOp.Load("/media/$playback.mkv", emptyList()))
+            rig.emit(MpvEvent.of(MpvNative.Event.START_FILE))
+            rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+            rig.playhead(0.5)
+        }
+        // Two rolled on with nobody there would ask; the one after the seek is not among them.
+        assertEquals(3, rig.controls.count { it == PlayerCommand.PlayNext })
+        assertFalse(rig.model.stillWatching)
+    }
+
+    @Test
+    fun stillWatchingGoesOnceAnsweredOrTheViewerCloses() = runTest {
+        val rig = Rig(this)
+        rig.opened(1u)
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        for (playback in 2uL..3uL) rollOn(rig, playback, after = 2u)
+        assertTrue(rig.model.stillWatching)
+        rig.model.continueWatching()
+        assertFalse("answered", rig.model.stillWatching)
+        // Asked again, and the player closed under it, by the back gesture.
+        rig.model.askStillWatching()
+        rig.model.viewerClosed()
+        assertFalse("closed", rig.model.stillWatching)
+        assertFalse(rig.model.isPresented)
     }
 
     @Test
@@ -691,6 +836,24 @@ class WatchdogTest {
         assertTrue(rig.mpv.software)
         assertEquals("no", rig.model.decoding)
         assertEquals(1, rig.made.size)
+    }
+
+    @Test
+    fun aSlowOpenIsNotAStalledDecoder() = runTest {
+        // A torrent finding its peers, or a slow network: the file takes longer than the watchdog
+        // to load, and the decoder is not to blame.
+        val rig = Rig(this, hwdec = "mediacodec")
+        rig.model.surfaceCreated(android.view.Surface(android.graphics.SurfaceTexture(0)))
+        rig.ops(1u, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))
+        rig.emit(MpvEvent.of(MpvNative.Event.START_FILE))
+        advanceTimeBy(PlayerTiming.FIRST_FRAME_WATCHDOG + 5_000)
+        assertFalse(rig.mpv.software)
+        // Loaded at last, it has the watchdog's time from there to show a picture.
+        rig.emit(MpvEvent.of(MpvNative.Event.FILE_LOADED))
+        advanceTimeBy(PlayerTiming.FIRST_FRAME_WATCHDOG - 1_000)
+        assertFalse(rig.mpv.software)
+        advanceTimeBy(2_000)
+        assertTrue(rig.mpv.software)
     }
 
     @Test

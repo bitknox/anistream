@@ -25,7 +25,30 @@ import tv.anistream.engine.model.TitleLanguage
  * A sign-in the engine asked the browser for (`Event::Authorize`): open [url] in it, and hand
  * back the redirect it ends on, the one to [callbackScheme].
  */
-data class SignInRequest(val tracker: String, val url: String, val callbackScheme: String)
+data class SignInRequest(val tracker: String, val url: String, val callbackScheme: String) {
+    /**
+     * Whether [callback] is this request's own redirect: for its tracker, and carrying back the
+     * `state` it asked with, in the query or the fragment, when it asked with one. The engine checks
+     * the same, and goes on waiting for a redirect that is not.
+     */
+    fun answeredBy(tracker: String, callback: String): Boolean {
+        if (tracker != this.tracker) return false
+        val asked = parameter(url, "state") ?: return true
+        return parameter(callback, "state") == asked
+    }
+
+    private companion object {
+        /** [name]'s value among [url]'s query and fragment parameters, decoded. */
+        fun parameter(url: String, name: String): String? {
+            val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return null
+            return listOfNotNull(uri.rawQuery, uri.rawFragment)
+                .flatMap { it.split('&') }
+                .map { it.substringBefore('=') to it.substringAfter('=', "") }
+                .firstOrNull { it.first == name }
+                ?.let { java.net.URLDecoder.decode(it.second, Charsets.UTF_8) }
+        }
+    }
+}
 
 /** Each tracker's sync, as the engine last said it, and the sign-ins and codes waited on. */
 class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis() }) {
@@ -96,6 +119,30 @@ class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis()
     /** The browser came back from [request], or was closed. */
     internal fun signInEnded(request: SignInRequest) {
         if (_signIn.value == request) _signIn.value = null
+        if (tab == request) {
+            tab = null
+            leftForTab = false
+        }
+    }
+
+    /**
+     * The sign-in a browser tab is open for, until its own redirect comes back or the tab is
+     * closed. Kept here rather than by the activity, so one made again while the tab is open
+     * neither opens a second tab nor loses track of the first.
+     */
+    var tab: SignInRequest? = null
+        private set
+
+    /** The app left for the tab: coming back to it without the redirect means the tab was closed. */
+    var leftForTab = false
+
+    /** The sign-in to open a tab for now: [request], unless a tab is open for it already. */
+    fun toOpen(request: SignInRequest?): SignInRequest? = request?.takeIf { it != tab }
+
+    /** A tab was opened for [request]. */
+    fun tabOpened(request: SignInRequest) {
+        tab = request
+        leftForTab = true
     }
 
     internal fun deviceCode(prompt: DeviceCodePrompt?) {

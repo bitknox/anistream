@@ -33,7 +33,7 @@ class SignInTest {
 
     private val authorize = Event.Authorize(
         tracker = "anilist",
-        url = "https://anilist.co/api/v2/oauth/authorize?client_id=54537&response_type=token",
+        url = "https://anilist.co/api/v2/oauth/authorize?client_id=54537&response_type=token&state=Zq7%2Bk",
         callbackScheme = "anistream",
     )
 
@@ -49,6 +49,47 @@ class SignInTest {
         store.finishSignIn(request, callback)
         assertNull(store.accounts.signIn.value)
         assertEquals(listOf(Command.Connect("anilist"), Command.FinishSignIn("anilist", callback)), store.waiting)
+    }
+
+    @Test
+    fun only_the_open_sign_in_s_own_redirect_ends_it_and_every_one_goes_to_the_engine() {
+        store.apply(listOf(authorize))
+        val request = store.accounts.signIn.value!!
+        store.accounts.tabOpened(request)
+        // For another tracker: the engine says so, and AniList's waits on.
+        val other = "anistream://auth/mal?code=c0de&state=Zq7%2Bk"
+        assertEquals(false, store.redirected("mal", other))
+        // With another request's state, or none: the engine goes on waiting for its own, and so does
+        // the app, tab and all, for the tab's own redirect still to come.
+        val stale = "anistream://auth/anilist#access_token=a.b.c&state=0ld"
+        val bare = "anistream://auth/anilist#access_token=a.b.c"
+        assertEquals(false, store.redirected("anilist", stale))
+        assertEquals(false, store.redirected("anilist", bare))
+        assertEquals(request, store.accounts.signIn.value)
+        assertEquals(request, store.accounts.tab)
+        assertNull("the tab is not a second time", store.accounts.toOpen(request))
+
+        val own = "anistream://auth/anilist#access_token=a.b.c&token_type=Bearer&state=Zq7%2Bk"
+        assertEquals(true, store.redirected("anilist", own))
+        assertNull(store.accounts.signIn.value)
+        assertNull(store.accounts.tab)
+        assertEquals(
+            listOf(other, stale, bare, own).map { Command.FinishSignIn(if (it == other) "mal" else "anilist", it) },
+            store.waiting,
+        )
+    }
+
+    @Test
+    fun a_tab_open_for_a_sign_in_is_not_opened_again() {
+        store.apply(listOf(authorize))
+        val request = store.accounts.signIn.value!!
+        assertEquals(request, store.accounts.toOpen(request))
+        store.accounts.tabOpened(request)
+        // An activity made again while the tab is open asks the store, which has it.
+        assertNull(store.accounts.toOpen(store.accounts.signIn.value))
+        store.cancelSignIn(request)
+        assertNull(store.accounts.tab)
+        assertEquals(false, store.accounts.leftForTab)
     }
 
     @Test
