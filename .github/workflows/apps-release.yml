@@ -41,6 +41,7 @@ on:
       - apple/project.yml
       - apple/scripts/engine.sh
       - apple/scripts/mpv.sh
+      - apple/scripts/adhoc-sign.sh
       - apple/patches/**
       - android/app/build.gradle.kts
       - android/gradle/libs.versions.toml
@@ -379,8 +380,16 @@ jobs:
       - name: The project
         run: cd apple && xcodegen generate
 
-      # Built unsigned, then signed ad hoc from the inside out: each framework, then the app. No
-      # Apple developer account signs it, so it is not notarized either.
+      # Built unsigned, then signed ad hoc from the inside out by adhoc-sign.sh: each framework,
+      # the widget extension with its sandbox, then the app, and verified. No Apple developer
+      # account signs it, so it is not notarized either.
+      #
+      # Nor has it a team, which the Mac's App Group is prefixed by (ANISTREAM_APP_GROUP), so it
+      # has no group: the setting comes out as `.tv.anistream`, which the app and the widgets take
+      # for none, and the script signs neither with the group's entitlement, which macOS would
+      # ask about on every start. The app writes the widgets nothing; they load, sandboxed, and
+      # show their empty state, Airing today with AniList's public schedule. A signed build with
+      # a team gets the widgets their snapshot.
       - name: The Mac app
         id: mac
         run: |
@@ -388,12 +397,9 @@ jobs:
             -configuration Release -destination generic/platform=macOS \
             -derivedDataPath "$RUNNER_TEMP/mac" \
             MARKETING_VERSION="$APPLE_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            CODE_SIGNING_ALLOWED=NO build
+            DEVELOPMENT_TEAM= CODE_SIGNING_ALLOWED=NO build
           app="$RUNNER_TEMP/mac/Build/Products/Release/Anistream.app"
-          find "$app/Contents/Frameworks" -mindepth 1 -maxdepth 1 \( -name '*.framework' -o -name '*.dylib' \) \
-            -exec codesign --force --sign - --timestamp=none {} \;
-          codesign --force --sign - --timestamp=none "$app"
-          codesign --verify --deep --strict --verbose=2 "$app"
+          apple/scripts/adhoc-sign.sh "$app"
           echo "APP_MAC=$app" >> "$GITHUB_ENV"
 
       # For a generic iPhone and iPad with signing off. AltStore and SideStore sign it with the
@@ -409,7 +415,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO build
           echo "APP_IOS=$RUNNER_TEMP/ios/Build/Products/Release-iphoneos/Anistream.app" >> "$GITHUB_ENV"
 
-      # Each numbered by the tag and carrying libmpv with its notices; the iPhone's its subtitle font.
+      # Each numbered by the tag and carrying libmpv with its notices and the widget extension,
+      # numbered as the app is; the iPhone's its subtitle font.
       - name: Check the apps
         run: |
           check() {
@@ -421,6 +428,12 @@ jobs:
             check "$plist" CFBundleShortVersionString "$APPLE_VERSION"
             check "$plist" CFBundleVersion "$BUILD_NUMBER"
             check "$plist" CFBundleIdentifier tv.anistream.app
+          done
+          for plist in "$APP_MAC/Contents/PlugIns/AnistreamWidgets.appex/Contents/Info.plist" \
+            "$APP_IOS/PlugIns/AnistreamWidgets.appex/Info.plist"; do
+            check "$plist" CFBundleShortVersionString "$APPLE_VERSION"
+            check "$plist" CFBundleVersion "$BUILD_NUMBER"
+            check "$plist" CFBundleIdentifier tv.anistream.app.widgets
           done
           for file in "$APP_MAC/Contents/Frameworks/Mpv.framework/Versions/A/Mpv" \
             "$APP_MAC/Contents/Resources/NOTICES-libmpv.txt" \
