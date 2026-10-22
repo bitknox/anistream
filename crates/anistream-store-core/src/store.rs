@@ -1474,10 +1474,16 @@ fn codes_match(a: &str, b: &str) -> bool {
     crypto::hash_secret(a) == crypto::hash_secret(b)
 }
 
-/// What open joins from `client` are counted under: the address itself, or an IPv6 address's
-/// /64, which one connection is usually handed whole. Anything that is not an address is counted
-/// as it is.
+/// What open joins from `client` are counted under: a digest of the address, or of an IPv6
+/// address's /64, which one connection is usually handed whole. A digest, so the table never
+/// holds an address as it is; and nothing ties a count to the device that joined.
 fn join_key(client: &str) -> String {
+    crypto::hash_secret(&join_address(client))
+}
+
+/// The address an open join is counted by, before it is digested. Anything that is not an
+/// address is counted as it is.
+fn join_address(client: &str) -> String {
     match client.trim().parse::<std::net::IpAddr>() {
         Ok(std::net::IpAddr::V6(ip)) => match ip.to_ipv4_mapped() {
             Some(v4) => v4.to_string(),
