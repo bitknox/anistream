@@ -118,11 +118,17 @@ impl PlayerOpener for HostedPlayers {
             speed: request.speed,
             volume: request.volume,
         };
+        // The viewer's own options, set as the player opens: the Advanced table's, which come
+        // after anistream's own and so win over them.
+        let own = request.mpv_options.iter().map(|(name, value)| PlayerOp::Set {
+            property: name.clone(),
+            value: MpvValue::String(value.clone()),
+        });
         let link = HostedLink {
             window,
             windows: Arc::clone(&self.windows),
             driver: Mutex::default(),
-            opening: Mutex::new(Some(open)),
+            opening: Mutex::new(Some(std::iter::once(open).chain(own).collect())),
         };
         Ok((Box::new(link), rx))
     }
@@ -186,8 +192,8 @@ pub struct HostedLink {
     windows: Arc<Windows>,
     /// The playback driving the window, and the outbox it answers on.
     driver: Mutex<Option<(PlaybackId, Outbox)>>,
-    /// The op that shows the player, said once the first playback drives it.
-    opening: Mutex<Option<PlayerOp>>,
+    /// The ops that show the player, said once the first playback drives it.
+    opening: Mutex<Option<Vec<PlayerOp>>>,
 }
 
 impl HostedLink {
@@ -216,8 +222,8 @@ impl PlayerLink for HostedLink {
         let playback = tx.playback().unwrap_or(PlaybackId::new(0));
         *lock(&self.driver) = Some((playback, tx.clone()));
         self.windows.lock().insert(playback, Arc::clone(&self.window));
-        if let Some(open) = lock(&self.opening).take() {
-            let _ = self.op(open);
+        if let Some(ops) = lock(&self.opening).take() {
+            let _ = self.say(|playback| Event::PlayerOps { playback, ops });
         }
     }
 
@@ -487,6 +493,28 @@ mod tests {
             PlayerReport::Power { on_battery: false, low_power: false },
         );
         assert_eq!(power.on_battery(), Some(false));
+    }
+
+    #[tokio::test]
+    async fn the_viewer_s_own_options_are_set_as_the_player_opens() {
+        let players = HostedPlayers::new("scratch", Arc::default());
+        let request = PlaybackRequest {
+            mpv_options: vec![
+                ("sub-font-size".into(), "40".into()),
+                ("osc".into(), "no".into()),
+            ],
+            ..PlaybackRequest::default()
+        };
+        let (link, _events) = players.open(&request).await.unwrap();
+        let (tx, mut said) = mpsc::unbounded_channel();
+        link.attach(&tx.into());
+        let Some(Event::PlayerOps { ops, .. }) = said.recv().await else { panic!("ops") };
+        let set = |property: &str, value: &str| PlayerOp::Set {
+            property: property.into(),
+            value: MpvValue::String(value.into()),
+        };
+        assert!(matches!(ops[0], PlayerOp::Open { .. }), "{ops:?}");
+        assert_eq!(ops[1..], [set("sub-font-size", "40"), set("osc", "no")], "in one batch");
     }
 
     #[tokio::test]

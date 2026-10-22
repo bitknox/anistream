@@ -5,10 +5,10 @@
 use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::Config;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{event::Event, notice::Notice, sources::GuardView};
 use anistream_providers::vpn::VpnGuard;
 use anistream_store::Store;
-use tokio::sync::mpsc;
+use tokio::sync::{Notify, mpsc};
 
 use crate::{
     SharedConfig, background::prune, data, downloads, outbox::Outbox, services::Services,
@@ -34,6 +34,9 @@ pub struct TorrentTasks {
     /// Keeps the stream cache within its limit while the session writes to it.
     cache: Option<tokio::task::JoinHandle<()>>,
     session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
+    /// Brings the guard's next check forward, for Sources' Check Now: whichever waits on the
+    /// guard, the bring-up before a session or the watcher beside one, checks at once.
+    check: Arc<Notify>,
 }
 
 impl TorrentTasks {
@@ -42,11 +45,12 @@ impl TorrentTasks {
         store: &Store,
         config: &SharedConfig,
         tx: &Outbox,
+        check: &Arc<Notify>,
     ) -> Self {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
             // every downloadable source here is a torrent.
-            return Self::default();
+            return Self { check: Arc::clone(check), ..Self::default() };
         };
 
         let downloads =
@@ -54,7 +58,8 @@ impl TorrentTasks {
         downloads::publish_now(store, tx);
 
         let _ = tx.send(Event::Vpn(Some(sources::guard_view(&guard.state()))));
-        let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
+        let watcher =
+            tokio::spawn(vpn_watch(guard, session.clone(), tx.clone(), Arc::clone(check)));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
         let cache = tokio::spawn(prune::torrent_cache_watch(
@@ -70,6 +75,7 @@ impl TorrentTasks {
             seeding: Some(seeding),
             cache: Some(cache),
             session: Some(session),
+            check: Arc::clone(check),
         }
     }
 
@@ -94,6 +100,7 @@ impl TorrentTasks {
         }
         let _ = tx.send(Event::Vpn(Some(anistream_model::sources::GuardView::Checking)));
         let generation = self.generation;
+        let check = Arc::clone(&self.check);
         let (config, http, paths, store, tx, arrivals) = (
             // With the proxy's password, which only this copy holds.
             crate::protection::with_proxy_password(config, services),
@@ -104,7 +111,8 @@ impl TorrentTasks {
             arrivals.clone(),
         );
         self.bring_up = Some(tokio::spawn(async move {
-            let outcome = sources::bring_up_torrent(config, http, paths, store, tx).await;
+            let outcome =
+                sources::bring_up_torrent(config, http, paths, store, tx, check).await;
             let _ = arrivals.send((generation, outcome));
         }));
     }
@@ -141,9 +149,45 @@ impl TorrentTasks {
             let _ = tx.send(Event::Toast(Notice::info(warning)));
         }
         *vpn_guard = Some((up.guard, up.session));
-        *self = Self { generation, ..Self::start(vpn_guard, &services.store, config, tx) };
+        let check = Arc::clone(&self.check);
+        *self =
+            Self { generation, ..Self::start(vpn_guard, &services.store, config, tx, &check) };
         let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
         tracing::info!(providers = ?registry.ids(), "torrent source up");
+    }
+
+    /// Check where torrent traffic leaves from now, as Sources' Check Now asks, rather than at
+    /// the guard's next check: `Checking`, then the verdict, on `Event::Vpn`; `None` there when
+    /// torrents are off.
+    ///
+    /// What waits on the guard checks at once, so a failed check does what the guard's own
+    /// does: the watcher halts the session, or a bring-up keeps waiting. With neither, as when
+    /// the source could not come up for want of an index, the guard is checked on its own and
+    /// nothing else follows from it.
+    pub(crate) fn check_now(&self, config: &Config, services: &Services, tx: &Outbox) {
+        if self.bring_forward(config, tx) {
+            check_alone(&crate::protection::with_proxy_password(config, services), tx);
+        }
+    }
+
+    /// Check Now, as far as it is the tasks': say there is no guard, or that it is checking
+    /// and have whatever waits on it check now. Whether nothing does, so the guard is checked
+    /// on its own.
+    fn bring_forward(&self, config: &Config, tx: &Outbox) -> bool {
+        if !sources::torrent_wanted(config) {
+            let _ = tx.send(Event::Vpn(None));
+            return false;
+        }
+        let _ = tx.send(Event::Vpn(Some(GuardView::Checking)));
+        // A bring-up that has already given up, its outcome not yet taken in, waits on nothing.
+        let running = |task: &Option<tokio::task::JoinHandle<()>>| {
+            task.as_ref().is_some_and(|task| !task.is_finished())
+        };
+        if running(&self.bring_up) || running(&self.watcher) {
+            self.check.notify_one();
+            return false;
+        }
+        true
     }
 
     /// Stop everything and halt the session before letting go of it.
@@ -187,6 +231,24 @@ impl TorrentTasks {
             session.close().await;
         }
     }
+}
+
+/// Check the guard `config` describes on its own, with no session or bring-up to act on what it
+/// finds, and say the verdict.
+fn check_alone(config: &Config, tx: &Outbox) {
+    let guard = match VpnGuard::new(config.providers.torrent.vpn.clone()) {
+        Ok(guard) => guard,
+        Err(reason) => {
+            let _ = tx.send(Event::Vpn(Some(GuardView::Unreachable)));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("not checked: {reason}"))));
+            return;
+        }
+    };
+    let tx = tx.clone();
+    tokio::spawn(async move {
+        let state = guard.verify().await;
+        let _ = tx.send(Event::Vpn(Some(sources::guard_view(&state))));
+    });
 }
 
 /// Keep the session's seeding in line with the settings, retire watched episodes that have
@@ -273,4 +335,86 @@ pub async fn reload_sources(
     }));
     let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
+}
+
+#[cfg(test)]
+mod tests {
+    use anistream_core::config::VpnMode;
+
+    use super::*;
+
+    /// Torrents on, protected the way `mode` says, with the invented index they need.
+    fn torrents(mode: VpnMode) -> Config {
+        let mut config = Config::default();
+        let torrent = &mut config.providers.torrent;
+        torrent.enabled = true;
+        torrent.rss_url = Some("https://index.example/rss".into());
+        torrent.vpn.mode = mode;
+        torrent.vpn.i_understand_my_ip_is_exposed = true;
+        config
+    }
+
+    fn said(rx: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Event> {
+        std::iter::from_fn(|| rx.try_recv().ok()).collect()
+    }
+
+    /// What `Event::Vpn`s said, in order; anything else fails.
+    fn badges(said: Vec<Event>) -> Vec<Option<GuardView>> {
+        said.into_iter()
+            .map(|event| match event {
+                Event::Vpn(view) => view,
+                other => panic!("not a badge: {other:?}"),
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn check_now_wakes_what_waits_on_the_guard_or_checks_it_alone() {
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let tx: Outbox = tx.into();
+        let mut tasks = TorrentTasks::default();
+
+        // Off: there is no guard.
+        assert!(!tasks.bring_forward(&Config::default(), &tx));
+        assert_eq!(badges(said(&mut rx)), [None]);
+
+        // On, and nothing waits on it: checked on its own.
+        let config = torrents(VpnMode::None);
+        assert!(tasks.bring_forward(&config, &tx));
+        assert_eq!(badges(said(&mut rx)), [Some(GuardView::Checking)]);
+        check_alone(&config, &tx);
+        let verdict = rx.recv().await.into_iter().collect();
+        assert_eq!(badges(verdict), [Some(GuardView::Unprotected)]);
+
+        // A bring-up waiting on the guard checks now, and says the verdict itself.
+        let check = Arc::clone(&tasks.check);
+        let waiting = tokio::spawn(async move { check.notified().await });
+        tasks.bring_up = Some(waiting);
+        tokio::task::yield_now().await;
+        assert!(!tasks.bring_forward(&config, &tx));
+        assert_eq!(badges(said(&mut rx)), [Some(GuardView::Checking)]);
+        let woken =
+            tokio::time::timeout(Duration::from_secs(5), tasks.bring_up.take().unwrap());
+        woken.await.expect("woken").unwrap();
+
+        // One that has given up waits on nothing.
+        tasks.bring_up = Some(tokio::spawn(async {}));
+        tokio::task::yield_now().await;
+        while !tasks.bring_up.as_ref().unwrap().is_finished() {
+            tokio::task::yield_now().await;
+        }
+        assert!(tasks.bring_forward(&config, &tx), "checked on its own");
+    }
+
+    #[tokio::test]
+    async fn a_guard_that_cannot_be_built_is_said_and_not_checked() {
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let tx: Outbox = tx.into();
+        // A proxy with no address.
+        check_alone(&torrents(VpnMode::Socks5), &tx);
+        let mut said = said(&mut rx);
+        let Some(Event::Toast(notice)) = said.pop() else { panic!("{said:?}") };
+        assert_eq!(badges(said), [Some(GuardView::Unreachable)]);
+        assert!(notice.text.starts_with("not checked: socks5 mode requires"), "{notice:?}");
+    }
 }

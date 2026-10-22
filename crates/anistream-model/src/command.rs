@@ -110,6 +110,11 @@ pub enum Command {
     LoadTitleLanguage,
     LoadEpisodes(AnilistId),
     CheckProviders,
+    /// Check where torrent traffic leaves from now, as Sources' Check Now asks, rather than at
+    /// the next of the guard's own checks. Answered with
+    /// [`Event::Vpn`](crate::event::Event::Vpn): `Checking`, then the verdict, or `None` when
+    /// torrents are off. A failed check does what any of the guard's does.
+    CheckConnection,
     /// Fetch one segment of the tracker's list.
     LoadLibrary(LibrarySegment),
     /// Drain the outbox and pull the library now, rather than waiting for the interval.

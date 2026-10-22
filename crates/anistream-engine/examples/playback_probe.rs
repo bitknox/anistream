@@ -188,6 +188,7 @@ async fn main() {
             syncplay: Default::default(),
             party: false,
             up_next_countdown: 10,
+            mpv_options: Vec::new(),
         };
         anistream_engine::playback::play(
             vec![stream],

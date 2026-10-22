@@ -194,7 +194,8 @@ impl App {
             | S::DownloadsOnCellular
             | S::TorrentsOnCellular
             | S::VpnOnFailure
-            | S::EpisodeNotifications => return None,
+            | S::EpisodeNotifications
+            | S::MpvOptions => return None,
         })
     }
 

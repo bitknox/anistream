@@ -191,6 +191,9 @@ pub(crate) fn dispatch(
 
         // The sources.
         Command::CheckProviders => spawn(job, services, tx, check_providers),
+        Command::CheckConnection => {
+            engine.torrent_tasks.check_now(engine.config.effective(), services, tx);
+        }
 
         // The trackers.
         Command::SyncNow => sync_now(job, services, tx),

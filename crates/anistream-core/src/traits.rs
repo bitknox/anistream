@@ -208,6 +208,9 @@ pub struct PlaybackRequest {
     pub dub: bool,
     /// Open the player fullscreen rather than windowed.
     pub fullscreen: bool,
+    /// The viewer's own mpv options, `playback.mpv_args`, as property and value: what a player
+    /// a front end hosts sets as it opens. mpv's own process takes them on its command line.
+    pub mpv_options: Vec<(String, String)>,
 }
 
 /// An external service that holds watch progress.

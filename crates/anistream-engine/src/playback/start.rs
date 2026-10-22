@@ -598,6 +598,7 @@ pub fn play_settings(
         syncplay: config.syncplay.clone(),
         party,
         up_next_countdown: playback::UP_NEXT_COUNTDOWN,
+        mpv_options: anistream_playback::protocol::option_pairs(&playback.mpv_args),
     }
 }
 

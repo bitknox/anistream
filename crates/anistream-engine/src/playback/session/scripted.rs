@@ -139,6 +139,7 @@ fn settings() -> PlaySettings {
         syncplay: Default::default(),
         party: false,
         up_next_countdown: 10,
+        mpv_options: Vec::new(),
     }
 }
 
