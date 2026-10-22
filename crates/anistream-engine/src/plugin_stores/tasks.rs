@@ -45,12 +45,16 @@ impl StoreTaskContext {
         }
     }
 
-    async fn members(&self, store: &str) {
+    async fn members(&self, store: &str) -> bool {
         match self.stores.members(store).await {
             Ok((members, invites)) => {
                 self.send(Event::StoreMembers { store: store.to_owned(), members, invites });
+                true
             }
-            Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => {
+                self.toast(Notice::alert(e));
+                false
+            }
         }
     }
 
@@ -79,10 +83,11 @@ impl StoreTaskContext {
             Ok(joined) => {
                 self.rows();
                 self.send(Event::StoreJoined { store: joined.id.clone() });
-                self.toast(Notice::info(format!(
-                    "joined {} as {}",
-                    joined.name, joined.member.name
-                )));
+                self.toast(Notice::info(if joined.anonymous {
+                    format!("joined {} without a name", joined.name)
+                } else {
+                    format!("joined {} as {}", joined.name, joined.member.name)
+                }));
             }
             Err(e) => self.toast(Notice::alert(e)),
         }
@@ -136,9 +141,18 @@ impl StoreTaskContext {
         }
     }
 
-    /// A store's members and its open invites.
+    /// A store's members and its open invites, then who can join it: the members screen is
+    /// where an owner finds the store's open link and the devices that joined with it.
     pub async fn load_members(self, store: String) {
-        self.members(&store).await
+        if !self.members(&store).await {
+            return;
+        }
+        match self.stores.open_join(&store).await {
+            Ok(Some(view)) => self.send(Event::OpenJoin { store, view }),
+            // A server with no open joining: invite-only, with nothing more to show.
+            Ok(None) => {}
+            Err(e) => self.toast(Notice::alert(e)),
+        }
     }
 
     /// Take a member's access away, and list who is left.
@@ -157,6 +171,44 @@ impl StoreTaskContext {
             Err(e) => self.toast(Notice::alert(e)),
         }
         self.members(&store).await;
+    }
+
+    /// Let anyone with the store's link join, or only people its owners invite.
+    pub async fn set_open_join(self, store: String, open: bool) {
+        match self.stores.set_open(&store, open).await {
+            Ok(view) => {
+                self.rows();
+                let devices = view.devices;
+                self.send(Event::OpenJoin { store, view });
+                self.toast(Notice::info(match (open, devices) {
+                    (true, _) => "anyone with the store's link can join now — copy it from members"
+                        .to_owned(),
+                    (false, 0) => "only people you invite can join now".to_owned(),
+                    (false, 1) => "only people you invite can join now — the device that joined \
+                                   with the link keeps working until you remove it"
+                        .to_owned(),
+                    (false, n) => format!(
+                        "only people you invite can join now — the {n} devices that joined with \
+                         the link keep working until you remove them"
+                    ),
+                }));
+            }
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// Remove one device that joined with the store's link, or all of them.
+    pub async fn remove_anonymous(self, store: String, device: Option<String>) {
+        match self.stores.remove_anonymous(&store, device.as_deref()).await {
+            Ok(view) => {
+                self.send(Event::OpenJoin { store, view });
+                self.toast(Notice::info(match device {
+                    Some(_) => "removed — that device no longer works with this store",
+                    None => "removed every device that joined with the link",
+                }));
+            }
+            Err(e) => self.toast(Notice::alert(e)),
+        }
     }
 
     /// The local plugins a store's owner could publish there.

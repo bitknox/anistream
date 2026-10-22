@@ -9,10 +9,13 @@
 //! ```
 //!
 //! The store must be fresh — nobody owns it yet — and deployed with that setup code, because the
-//! journey starts by claiming it. Plugins are published as stamped stand-ins (a WebAssembly
-//! component carrying a manifest and padding), which a store that cannot run plugins accepts; a
-//! store that can run them would refuse the stand-in, so this is for serverless stores. Set
-//! `ANISTREAM_TEST_PLUGIN` to a real stamped plugin to use against the reference server.
+//! journey starts by claiming it. Along the way it opens the store to anyone with its link, has a
+//! device join that way, and closes it again.
+//!
+//! Plugins are published as stamped stand-ins (a WebAssembly component carrying a manifest and
+//! padding), which a store that cannot run plugins accepts; a store that can run them would refuse
+//! the stand-in, so this is for serverless stores. Set `ANISTREAM_TEST_PLUGIN` to a real stamped
+//! plugin to use against the reference server.
 
 use anistream_plugin_store::{
     ClientError, Invite, PluginInfo, StoreClient, manifest,
@@ -130,6 +133,40 @@ async fn a_whole_journey_against_a_running_store() {
     client.remove_member(&base, &owner.token, &member.member.id).await.unwrap();
     assert_eq!(
         client.index(&base, &member.token, &key, 0).await.unwrap_err(),
+        ClientError::Unauthorized
+    );
+
+    // Open to anyone with its link: a device joins without a name, through the same signed
+    // list and downloads, and an older anistream given the link is told to update.
+    let opened = client.set_open(&base, &owner.token, true).await.unwrap();
+    let open_link =
+        Invite::parse(opened.link.as_deref().expect("an open store's link")).unwrap();
+    assert!(open_link.open && open_link.key == key);
+    let preview = client.preview_index(&open_link).await.unwrap().expect("a preview");
+    assert!(preview.open && preview.plugin(&entry.id).is_some());
+    let anonymous = client.redeem(&open_link, "").await.unwrap();
+    assert_eq!(anonymous.member.name, "");
+    let listed = client.index(&base, &anonymous.token, &key, 0).await.unwrap();
+    let fetched = client
+        .download(&base, &anonymous.token, listed.plugin(&entry.id).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(fetched, wasm);
+    let as_invite = Invite { open: false, ..open_link.clone() };
+    let old = client.redeem(&as_invite, "older anistream").await.unwrap_err();
+    assert_eq!(old.code(), Some("open_link"));
+    assert_eq!(client.open_state(&base, &owner.token).await.unwrap().devices, 1);
+    assert_eq!(client.members(&base, &owner.token).await.unwrap().members.len(), 1);
+
+    // Invite-only again: the link stops, the device stays until the owner removes it.
+    let closed = client.set_open(&base, &owner.token, false).await.unwrap();
+    assert!(!closed.open && closed.link.is_none());
+    assert_eq!(client.redeem(&open_link, "").await.unwrap_err().code(), Some("open_unusable"));
+    assert!(client.me(&base, &anonymous.token).await.is_ok());
+    let cleared = client.remove_anonymous(&base, &owner.token).await.unwrap();
+    assert_eq!(cleared.devices, 0);
+    assert_eq!(
+        client.me(&base, &anonymous.token).await.unwrap_err(),
         ClientError::Unauthorized
     );
 

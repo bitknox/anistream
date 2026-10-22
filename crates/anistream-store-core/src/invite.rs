@@ -1,8 +1,12 @@
-//! Invite links: `{base}/join/{code}#{key}`.
+//! Invite links, `{base}/join/{code}#{key}`, and open links, `{base}/join/{code}?open#{key}`.
 //!
-//! The link is the whole trust anchor. It names the store, carries the one-time code that buys a
-//! token, and carries the store's public key, so the first contact with a store is already checked
+//! The link is the whole trust anchor. It names the store, carries the code that buys a token,
+//! and carries the store's public key, so the first contact with a store is already checked
 //! against the key its owner sent rather than trusted on first use.
+//!
+//! An invite's code works once. An open link's works for anyone, as often as they like, while the
+//! store lets anyone join. The two differ only by `?open`, so a client from before open links reads
+//! one as an invite and asks the store, which answers in words that it needs a newer anistream.
 
 use url::Url;
 
@@ -29,13 +33,15 @@ pub enum InviteError {
     Userinfo,
 }
 
-/// A parsed invite.
+/// A parsed invite, or an open link.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Invite {
     /// The store's base URL, with no trailing slash.
     pub base: String,
     pub code: String,
     pub key: PublicKey,
+    /// An open link, which anyone may join with, rather than a one-time invite.
+    pub open: bool,
 }
 
 impl Invite {
@@ -67,18 +73,25 @@ impl Invite {
             url.fragment().filter(|f| !f.is_empty()).ok_or(InviteError::MissingKey)?;
         let key = PublicKey::parse(fragment).map_err(|_| InviteError::BadKey)?;
 
+        // `?open`, alone or among other parameters a chat app may have added.
+        let open = url.query_pairs().any(|(name, _)| name == OPEN_MARK);
+
         let mut base = url.clone();
         base.set_fragment(None);
         base.set_query(None);
         base.set_path(&segments[..at].join("/"));
-        Ok(Self { base: normalise_base(&base), code: (*code).to_owned(), key })
+        Ok(Self { base: normalise_base(&base), code: (*code).to_owned(), key, open })
     }
 
-    /// The link for this invite.
+    /// The link for this invite, or this open link.
     pub fn link(&self) -> String {
-        format!("{}/join/{}#{}", self.base, self.code, self.key.encode())
+        let mark = if self.open { format!("?{OPEN_MARK}") } else { String::new() };
+        format!("{}/join/{}{mark}#{}", self.base, self.code, self.key.encode())
     }
 }
+
+/// What marks an open link: the query parameter after its code.
+pub const OPEN_MARK: &str = "open";
 
 /// Parse a store's base URL as an owner gives it to the server.
 pub fn parse_base(text: &str) -> Result<String, InviteError> {
@@ -154,6 +167,22 @@ mod tests {
         assert_eq!(invite.code, code);
         assert_eq!(invite.key, key);
         assert_eq!(invite.link(), text);
+    }
+
+    #[test]
+    fn an_open_link_is_an_invite_link_marked_open() {
+        let key = key();
+        let (text, code) = link("https://plugins.example", &key);
+        let open = text.replace('#', "?open#");
+        let parsed = Invite::parse(&open).unwrap();
+        assert!(parsed.open);
+        assert_eq!(parsed.code, code);
+        assert_eq!(parsed.base, "https://plugins.example");
+        assert_eq!(parsed.link(), open);
+        assert!(!Invite::parse(&text).unwrap().open);
+        // A parameter a chat app added on the way does not hide the mark, or count as one.
+        assert!(Invite::parse(&text.replace('#', "?utm=x&open#")).unwrap().open);
+        assert!(!Invite::parse(&text.replace('#', "?opened=1#")).unwrap().open);
     }
 
     #[test]

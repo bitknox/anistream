@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ JOIN A STORE   https://plugins.example/join/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  paste the invite link the store's owner sent you — enter checks it, esc cancels
+  paste the invite or store link you were given — enter checks it, esc cancels
 
                             │
                             │
@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    paste the invite link a store's owner sent you
+                            │    paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                               ↵ check   esc cancel
 === styles ===
@@ -58,8 +58,8 @@ r11 c02-96 fg=text bg=ground mod=BOLD
 r11 c97-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-80 fg=text-dim bg=ground
-r13 c81-119 fg=rule bg=ground
+r13 c02-77 fg=text-dim bg=ground
+r13 c78-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

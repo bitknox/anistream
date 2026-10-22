@@ -175,6 +175,8 @@ pub enum Overlay {
     InviteName,
     /// A freshly made invite link, to copy and send.
     InviteLink,
+    /// A store's open link, which anyone can join with, to copy and share.
+    OpenLink,
     /// Which local plugin to publish to a store.
     PublishPick,
 }
@@ -205,6 +207,7 @@ impl Overlay {
             Self::PluginAction => "PLUGIN",
             Self::InviteName => "INVITE SOMEONE",
             Self::InviteLink => "INVITE LINK",
+            Self::OpenLink => "THE STORE'S LINK",
             Self::PublishPick => "PUBLISH A PLUGIN",
         }
     }

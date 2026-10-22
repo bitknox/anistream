@@ -22,7 +22,9 @@ use anistream_model::{
     notice::{Notice, NoticeKind},
     settings::{SettingKey, SettingsView},
     sources::{MatchCandidate, MetaSourceRow, ProviderRow},
-    stores::{InviteLinkView, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow},
+    stores::{
+        InviteLinkView, LocalPluginRow, OpenJoinView, StoreInviteRow, StoreMemberRow, StoreRow,
+    },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
 };
 
@@ -65,7 +67,7 @@ pub use self::{
     playback::NowPlaying,
     providers::vpn_badge,
     settings::SettingLine,
-    stores::{PluginChoice, StoreConfirm, StoreLine},
+    stores::{MemberLine, PluginChoice, StoreConfirm, StoreLine},
     text::{Field, TextField},
 };
 
@@ -274,6 +276,14 @@ pub struct App {
     /// Whether that link went to the terminal's clipboard: set by whoever runs the app, once
     /// a copy has gone through. Every new link starts uncopied.
     pub invite_copied: bool,
+    /// Who can join the store whose members are on screen, as its server last said.
+    pub open_join: Option<(String, OpenJoinView)>,
+    /// Whether the open link overlay's link went to the clipboard, as `invite_copied` says it.
+    pub open_link_copied: bool,
+    /// The store just opened from its page, whose link is shown when the answer comes.
+    pub(crate) opening: Option<String>,
+    /// Text waiting to go to the terminal's clipboard: see [`App::take_clipboard`].
+    pub(crate) clipboard: Option<String>,
     /// The plugin the plugin overlay is about: store id, plugin id.
     pub plugin_action: Option<(String, String)>,
     /// What that overlay offers, fixed when it opened. A store list arriving while it is open
@@ -374,6 +384,10 @@ impl App {
             store_confirm: None,
             invite_link: None,
             invite_copied: false,
+            open_join: None,
+            open_link_copied: false,
+            opening: None,
+            clipboard: None,
             plugin_action: None,
             plugin_options: Vec::new(),
             local_plugins: Vec::new(),
@@ -441,6 +455,7 @@ impl App {
                 self.apply_store_members(store, members, invites)
             }
             Event::LocalPlugins { store, plugins } => self.apply_local_plugins(store, plugins),
+            Event::OpenJoin { store, view } => self.apply_open_join(store, view),
             Event::Settings(view) => self.take_settings(view),
             // A native app's show sheet, which the terminal has none of.
             Event::ShowSettings(_) => {}

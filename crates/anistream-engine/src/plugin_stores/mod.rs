@@ -17,8 +17,9 @@ use anistream_core::config::{Config, Paths};
 use anistream_model::{
     sources::{ProviderOrigin, ProviderUpdate},
     stores::{
-        InviteLinkView, InvitedStore, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
-        StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+        AnonymousDeviceRow, InviteLinkView, InvitedStore, LocalPluginRow, OpenJoinView, Secret,
+        StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow,
+        StoreState,
     },
 };
 use anistream_plugin_store::{
@@ -27,7 +28,9 @@ use anistream_plugin_store::{
     install,
     local::{self, plugin_file},
     manifest,
-    protocol::{Index, IndexEntry, InviteKind, InviteRequest, RESERVED_IDS, Role, host_set},
+    protocol::{
+        Index, IndexEntry, InviteKind, InviteRequest, OpenState, RESERVED_IDS, Role, host_set,
+    },
 };
 use anistream_track::secret::TokenStore;
 
@@ -248,18 +251,35 @@ impl Stores {
         Ok(previous)
     }
 
-    /// What a pasted link leads to, checked against the key it carries. Spends nothing.
+    /// Refuse an open link to a store this machine already joined by name.
+    ///
+    /// Joining again through the link would swap the member this machine joined as, owner
+    /// rights and all, for one with no name, and revoke the token that held them. A store joined
+    /// with the link already, or one that removed this device, is joined again as usual.
+    fn not_unnamed(invite: &Invite, previous: Option<&Joined>) -> Result<(), String> {
+        match previous {
+            Some(previous) if invite.open && !previous.anonymous && !previous.revoked => {
+                Err(format!(
+                    "you joined {} as {} — its link would join it again without your name, so \
+                     nothing was changed",
+                    previous.name, previous.member.name
+                ))
+            }
+            _ => Ok(()),
+        }
+    }
+
+    /// What a pasted link leads to, checked against the key it carries. Spends nothing: an
+    /// invite stays unused and an open link joins no one.
     pub async fn preview(&self, link: &str) -> Result<InvitedStore, String> {
         let invite = Invite::parse(link).map_err(|e| e.to_string())?;
-        let already = self.same_address(&invite)?.is_some();
+        let previous = self.same_address(&invite)?;
+        Self::not_unnamed(&invite, previous.as_ref())?;
         let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
         // Who runs it and what it offers, signed by the key the link carries: nothing, from a
         // store that predates the preview. A link that would not join is said now, not after
         // the viewer has said yes to it.
-        let index = self.client.preview_index(&invite).await.map_err(|e| match e.code() {
-            Some("invite_unusable") => UNUSABLE.to_owned(),
-            _ => e.to_string(),
-        })?;
+        let index = self.client.preview_index(&invite).await.map_err(unusable)?;
         let state = self.load()?;
         let id = invite.key.id();
         Ok(InvitedStore {
@@ -268,27 +288,28 @@ impl Stores {
             url: invite.base.clone(),
             host: anistream_model::stores::host(&invite.base),
             fingerprint: invite.key.fingerprint(),
-            already_joined: already,
+            already_joined: previous.is_some(),
             owners: index.as_ref().map(|index| index.owners.clone()).unwrap_or_default(),
             plugins: index
                 .as_ref()
                 .map(|index| plugin_rows(&state, &id, index, &self.plugin_dir))
                 .unwrap_or_default(),
+            open: invite.open || index.as_ref().is_some_and(|index| index.open),
+            anonymous: invite.open,
         })
     }
 
-    /// Spend an invite, keep the token, and fetch the store's list.
+    /// Spend an invite, or join with an open link, keep the token, and fetch the store's list.
     pub async fn join(&self, link: &str) -> Result<Joined, String> {
         let invite = Invite::parse(link).map_err(|e| e.to_string())?;
         let previous = self.same_address(&invite)?;
+        Self::not_unnamed(&invite, previous.as_ref())?;
         // Checked again right before the invite is spent, not only when it was previewed: the
         // answer is what decides who receives the code.
         let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
-        let redeemed =
-            self.client.redeem(&invite, &device_label()).await.map_err(|e| match e.code() {
-                Some("invite_unusable") => UNUSABLE.to_owned(),
-                _ => e.to_string(),
-            })?;
+        // An open join is sent no label: the store keeps nothing about who joined.
+        let label = if invite.open { String::new() } else { device_label() };
+        let redeemed = self.client.redeem(&invite, &label).await.map_err(unusable)?;
 
         // Nothing is kept until the server shows it holds the key the link named. Serving a
         // public key from /v1/store proves nothing; only the store itself can sign a list with
@@ -332,6 +353,7 @@ impl Stores {
             index: None,
             checked_at: None,
             revoked: false,
+            anonymous: invite.open,
         };
         let now = now();
         self.update(|state| {
@@ -448,6 +470,12 @@ impl Stores {
         name: Option<String>,
     ) -> Result<InviteLinkView, String> {
         let (joined, token) = self.joined_with_token(store)?;
+        if joined.anonymous && name.is_none() {
+            return Err(format!(
+                "this device joined {} with its link — paste the same link on the other device",
+                joined.name
+            ));
+        }
         let request = match &name {
             Some(name) => InviteRequest::Member { name: name.clone(), role: Role::Member },
             None => InviteRequest::Device,
@@ -523,6 +551,87 @@ impl Stores {
             })
             .collect();
         Ok((members, invites))
+    }
+
+    /// Who can join a store, its open link, and the devices that joined with it. `None` from a
+    /// store whose server has no open joining, which is invite-only and says nothing more.
+    pub async fn open_join(&self, store: &str) -> Result<Option<OpenJoinView>, String> {
+        let (joined, token) = self.joined_with_token(store)?;
+        match self.client.open_state(&joined.base, &token).await {
+            Ok(state) => Ok(Some(self.open_view(&joined, state)?)),
+            Err(ClientError::NotOpen) => Ok(None),
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    /// Let anyone with the store's link join, or only people its owners invite. The store's list
+    /// is fetched again after, so its row says which.
+    pub async fn set_open(&self, store: &str, open: bool) -> Result<OpenJoinView, String> {
+        let (joined, token) = self.joined_with_token(store)?;
+        let state = self.client.set_open(&joined.base, &token, open).await.map_err(|e| match e {
+            ClientError::NotOpen => format!(
+                "{} cannot let anyone join with a link — its server is older; update it first",
+                joined.name
+            ),
+            e => e.to_string(),
+        })?;
+        let view = self.open_view(&joined, state)?;
+        let _ = self.refresh_one(&joined, &token).await;
+        Ok(view)
+    }
+
+    /// Remove one device that joined with the store's link, or all of them.
+    pub async fn remove_anonymous(
+        &self,
+        store: &str,
+        device: Option<&str>,
+    ) -> Result<OpenJoinView, String> {
+        let (joined, token) = self.joined_with_token(store)?;
+        let state = match device {
+            Some(device) => {
+                self.client
+                    .revoke_device(&joined.base, &token, device)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                self.client.open_state(&joined.base, &token).await
+            }
+            None => self.client.remove_anonymous(&joined.base, &token).await,
+        }
+        .map_err(|e| e.to_string())?;
+        self.open_view(&joined, state)
+    }
+
+    /// What the store says of who can join, for its owner's screens. The link has to be this
+    /// store's own, with its key, at its address: it goes to the clipboard and from there to
+    /// whoever the owner sends it to.
+    fn open_view(&self, joined: &Joined, state: OpenState) -> Result<OpenJoinView, String> {
+        let link = match state.link.as_deref() {
+            Some(link) => {
+                let link = Invite::parse(link)
+                    .map_err(|e| format!("the store made a bad link: {e}"))?;
+                if Some(link.key) != joined.public_key() || !link.open {
+                    return Err(
+                        "the store made a link with a different key — check its --url".into()
+                    );
+                }
+                Some(Secret(link.link()))
+            }
+            None => None,
+        };
+        Ok(OpenJoinView {
+            open: state.open && link.is_some(),
+            link,
+            devices: state.devices,
+            recent: state
+                .device_list
+                .into_iter()
+                .map(|device| AnonymousDeviceRow {
+                    id: device.id,
+                    joined_at: device.created_at,
+                    last_seen: device.last_seen,
+                })
+                .collect(),
+        })
     }
 
     pub async fn remove_member(&self, store: &str, member: &str) -> Result<(), String> {
@@ -652,6 +761,19 @@ enum Fetch {
 const UNUSABLE: &str =
     "that invite was already used, cancelled or has expired — ask for a new one";
 
+/// What an open link that no longer joins is said as.
+const OPEN_UNUSABLE: &str =
+    "that link no longer lets anyone join — ask the store's owner for a new link or an invite";
+
+/// A refused preview or join, in the words the link calls for.
+fn unusable(error: ClientError) -> String {
+    match error.code() {
+        Some("invite_unusable") => UNUSABLE.to_owned(),
+        Some("open_unusable") => OPEN_UNUSABLE.to_owned(),
+        _ => error.to_string(),
+    }
+}
+
 /// Flatten the state file into the screens' rows.
 pub fn rows(
     state: &LocalState,
@@ -685,6 +807,8 @@ pub fn rows(
                 .map(|index| plugin_rows(state, &joined.id, index, plugin_dir))
                 .unwrap_or_default(),
             owners: joined.index.as_ref().map(|index| index.owners.clone()).unwrap_or_default(),
+            open: joined.index.as_ref().is_some_and(|index| index.open),
+            anonymous: joined.anonymous,
         })
         .collect()
 }
@@ -810,9 +934,11 @@ mod tests {
                 issued_at: 0,
                 plugins: vec![entry("new", "1.0.0"), entry("old", "2.0.0")],
                 owners: vec!["Alex".into(), "Sam".into()],
+                open: true,
             }),
             checked_at: Some(1_760_000_000),
             revoked: false,
+            anonymous: false,
         });
         state.installed.insert(
             "old".into(),
@@ -843,6 +969,8 @@ mod tests {
         assert_eq!(row.host, "plugins.example");
         assert_eq!(row.checked_at, Some(1_760_000_000));
         assert_eq!(row.owners, ["Alex", "Sam"], "who runs it, from its signed list");
+        assert!(row.open, "anyone can join it, from its signed list");
+        assert!(!row.anonymous);
 
         // What the Providers rows say of the plugin installed from it, and of its update.
         let store = ProviderOrigin::Store { id: "abc".into(), name: Some("Ours".into()) };

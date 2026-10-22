@@ -14,8 +14,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   stop offering it in this store
   cancel
 
+   │    open the admin page
    │    leave this store
-   │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────

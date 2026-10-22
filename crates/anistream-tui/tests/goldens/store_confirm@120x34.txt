@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    paste the invite link a store's owner sent you
+                            │    paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                             ↵ confirm   esc cancel
 === styles ===

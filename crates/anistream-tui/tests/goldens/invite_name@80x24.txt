@@ -12,10 +12,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
    │  ▌ invite someone
    │    members
+   │    who can join                only people you invite
    │    publish a plugin
    │    open the admin page
    │    leave this store
-   │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────

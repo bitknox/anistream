@@ -13,9 +13,9 @@ use crate::{
     inspect::Inspector,
     protocol::{
         AdminLink, AdminLogin, AdminOverview, ClaimRequest, Claimed, ErrorBody, InviteCreated,
-        InviteRequest, Me, Member, MemberChange, MemberList, PART_SIZE, PreviewRequest,
-        PublishRequest, RedeemRequest, RedeemResponse, Role, StoreInfo, UploadRequest,
-        UploadStarted,
+        InviteRequest, Me, Member, MemberChange, MemberList, OpenJoinRequest, OpenSetting,
+        PART_SIZE, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse, Role,
+        StoreInfo, UploadRequest, UploadStarted,
     },
     store::{NewInvite, SESSION_SECS, Store, StoreError},
 };
@@ -168,7 +168,10 @@ impl<D: Database, B: Blobs> Service<D, B> {
         match (request.method.as_str(), segments.as_slice()) {
             ("GET", []) => Ok(html(&home_page(&store.name().await, self.unclaimed().await))),
             // Never redeems. A chat app fetching the link for a preview must not spend it.
-            ("GET", ["join", _]) => Ok(html(&join_page(&store.name().await))),
+            ("GET", ["join", code]) => {
+                let open = store.is_open_code(code).await?;
+                Ok(html(&join_page(&store.name().await, open)))
+            }
             // The page is served from a directory so its assets and API calls resolve relative
             // to it, wherever the store is mounted.
             ("GET", ["admin"]) if !full.ends_with('/') => {
@@ -189,6 +192,25 @@ impl<D: Database, B: Blobs> Service<D, B> {
             }
             ("POST", ["v1", "redeem"]) => self.redeem(request).await,
             ("POST", ["v1", "preview"]) => self.preview(request).await,
+            ("POST", ["v1", "open", "preview"]) => self.open_preview(request).await,
+            ("POST", ["v1", "open", "join"]) => self.open_join(request).await,
+            ("GET", ["v1", "open"]) => {
+                self.owner(request).await?;
+                json(200, &store.open_state(&site.base).await?)
+            }
+            ("PUT", ["v1", "open"]) => {
+                let owner = self.owner(request).await?;
+                let setting: OpenSetting = read_json(request)?;
+                store.set_open(setting.open).await?;
+                tracing::info!(by = %owner.name, open = setting.open, "who can join changed");
+                json(200, &store.open_state(&site.base).await?)
+            }
+            ("DELETE", ["v1", "open", "devices"]) => {
+                let owner = self.owner(request).await?;
+                let removed = store.remove_anonymous(now).await?;
+                tracing::info!(by = %owner.name, removed, "anonymous devices removed");
+                json(200, &store.open_state(&site.base).await?)
+            }
             ("POST", ["v1", "setup"]) => self.claim(request).await,
             ("GET", ["v1", "me"]) => {
                 let (member, device) = self.member(request).await?;
@@ -319,6 +341,7 @@ impl<D: Database, B: Blobs> Service<D, B> {
                     plugins: store.plugins().await?,
                     members: store.members().await?,
                     invites: store.pending_invites(now).await?,
+                    open: store.open_state(&site.base).await?,
                 };
                 json(200, &overview)
             }
@@ -345,6 +368,7 @@ impl<D: Database, B: Blobs> Service<D, B> {
     async fn redeem(&self, request: &Request) -> Result<Response, Failure> {
         self.limited(request, "invites").await?;
         let body: RedeemRequest = read_json(request)?;
+        self.not_the_open_link(&body.invite).await?;
         match self.store.redeem(&body.invite, &body.device, request.now).await {
             Ok((token, member)) => {
                 // Never the code or the token: logs outlive the moment, and both are credentials.
@@ -365,11 +389,66 @@ impl<D: Database, B: Blobs> Service<D, B> {
     async fn preview(&self, request: &Request) -> Result<Response, Failure> {
         self.limited(request, "invites").await?;
         let body: PreviewRequest = read_json(request)?;
+        self.not_the_open_link(&body.invite).await?;
         match self.store.check_invite(&body.invite, request.now).await {
             Ok(()) => json(200, &self.store.signed_index().await?),
             Err(StoreError::InviteUnusable) => {
                 self.store.fail(&request.client, request.now).await?;
                 Err(StoreError::InviteUnusable.into())
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Refuse the open link's code where an invite's is expected, in words.
+    ///
+    /// A client from before open links reads an open link as an invite, since the two differ
+    /// only by `?open`, and sends its code here. It is not a guess, so it counts toward nothing,
+    /// and not a 404, which such a client takes for a store without previews.
+    async fn not_the_open_link(&self, code: &str) -> Result<(), Failure> {
+        if self.store.is_open_code(code).await? {
+            return Err(Failure::new(
+                400,
+                "open_link",
+                format!(
+                    "anyone with this link can join {}, and this anistream is too old to join \
+                     that way — update anistream, then paste the link again",
+                    self.store.name().await
+                ),
+            ));
+        }
+        Ok(())
+    }
+
+    /// What the open link leads to, for its confirmation: the signed index, as an invite's
+    /// preview answers it. A code that would not join counts toward the same limit as a failed
+    /// invite.
+    async fn open_preview(&self, request: &Request) -> Result<Response, Failure> {
+        self.limited(request, "links").await?;
+        let body: OpenJoinRequest = read_json(request)?;
+        match self.store.check_open(&body.code).await {
+            Ok(()) => json(200, &self.store.signed_index().await?),
+            Err(StoreError::OpenUnusable) => {
+                self.store.fail(&request.client, request.now).await?;
+                Err(StoreError::OpenUnusable.into())
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Join with the open link: a token for a member with no name. No device label is asked
+    /// for, so nothing about who joined is kept.
+    async fn open_join(&self, request: &Request) -> Result<Response, Failure> {
+        self.limited(request, "links").await?;
+        let body: OpenJoinRequest = read_json(request)?;
+        match self.store.join_open(&body.code, &request.client, request.now).await {
+            Ok((token, member)) => {
+                tracing::info!("a device joined with the open link");
+                json(200, &RedeemResponse { token, member })
+            }
+            Err(StoreError::OpenUnusable) => {
+                self.store.fail(&request.client, request.now).await?;
+                Err(StoreError::OpenUnusable.into())
             }
             Err(e) => Err(e.into()),
         }
@@ -425,6 +504,15 @@ impl<D: Database, B: Blobs> Service<D, B> {
         let now = request.now;
         let expires_at = Store::<D, B>::default_expiry(now);
         let new = match &request_body {
+            // A device that joined with the open link has no name to make an invite for, and
+            // another device of theirs joins the same way.
+            InviteRequest::Device if member.name.is_empty() => {
+                return Err(Failure::new(
+                    403,
+                    "forbidden",
+                    "this device joined with the store's link — join another one the same way",
+                ));
+            }
             // Anyone may add a device for themselves: it grants nothing they do not already have.
             InviteRequest::Device => NewInvite::device(member, expires_at),
             InviteRequest::Member { name, role } => {
@@ -641,18 +729,29 @@ fn home_page(name: &str, unclaimed: bool) -> String {
     )
 }
 
-fn join_page(name: &str) -> String {
+fn join_page(name: &str, open: bool) -> String {
     let name = escape(name);
+    let (heading, note) = if open {
+        (
+            format!("Anyone with this link can join {name}"),
+            "Joining asks for no name. Opening this page joined nothing.",
+        )
+    } else {
+        (
+            format!("You are invited to {name}"),
+            "The link works once. Opening this page did not use it.",
+        )
+    };
     page(
         &format!("Join {name}"),
         &format!(
-            "<h1>You are invited to {name}</h1>\
+            "<h1>{heading}</h1>\
              <p class=\"dim\">An anistream plugin store.</p>\
              <ol><li>Open anistream and go to <b>Providers</b>.</li>\
              <li>Press Enter to open plugin stores, then choose <b>join a store</b>.</li>\
              <li>Paste the link you were sent. Copy all of it, including the part after \
              <code>#</code>.</li></ol>\
-             <p class=\"dim\">The link works once. Opening this page did not use it.</p>"
+             <p class=\"dim\">{note}</p>"
         ),
     )
 }
@@ -708,6 +807,8 @@ impl From<StoreError> for Failure {
             StoreError::Conflict(_) => Self::new(409, "conflict", message),
             StoreError::InvalidPlugin(_) => Self::new(400, "invalid_plugin", message),
             StoreError::BadRequest(_) => Self::new(400, "bad_request", message),
+            StoreError::OpenUnusable => Self::new(404, "open_unusable", message),
+            StoreError::TooManyJoins => Self::new(429, "rate_limited", message),
             StoreError::Setup(_)
             | StoreError::Db(_)
             | StoreError::Blob(_)

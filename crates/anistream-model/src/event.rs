@@ -17,7 +17,8 @@ use crate::{
     show::ShowSettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
+        InviteLinkView, InvitePreview, LocalPluginRow, OpenJoinView, StoreInviteRow,
+        StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
 };
@@ -313,6 +314,13 @@ pub enum Event {
     LocalPlugins {
         store: String,
         plugins: Vec<LocalPluginRow>,
+    },
+    /// Who can join a store, its open link, and the devices that joined with it, for its owner.
+    /// Follows a store's members, and answers every change to who can join. Never sent for a
+    /// store whose server has no open joining.
+    OpenJoin {
+        store: String,
+        view: OpenJoinView,
     },
 }
 

@@ -12,10 +12,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌ Kawasemi  2.2.0                                             replaces 2.1.0
 
    │    members
+   │    who can join                only people you invite
    │  ▌ publish a plugin
    │    open the admin page
    │    leave this store
-   │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
@@ -57,10 +57,10 @@ r11 c62-75 fg=text bg=ground
 r11 c76-79 fg=rule bg=ground
 r12 c00-79 fg=rule bg=ground
 r13 c00-79 fg=rule
-r14 c00-07 fg=rule
-r14 c08-23 fg=rule mod=BOLD
-r14 c24-79 fg=rule
-r15 c00-79 fg=rule
+r14 c00-79 fg=rule
+r15 c00-07 fg=rule
+r15 c08-23 fg=rule mod=BOLD
+r15 c24-79 fg=rule
 r16 c00-79 fg=rule
 r17 c00-79 fg=rule
 r18 c00-79 fg=rule

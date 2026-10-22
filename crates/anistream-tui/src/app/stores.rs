@@ -5,8 +5,9 @@ use anistream_model::{
     command::Command,
     notice::Notice,
     stores::{
-        InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
-        StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+        InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, OpenJoinView, Secret,
+        StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow,
+        StoreState,
     },
 };
 
@@ -17,10 +18,38 @@ use crate::nav::{Overlay, StageView};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StoreConfirm {
     Join(InvitedStore),
-    Leave { store: String, name: String },
-    RemoveMember { store: String, member: String, name: String, devices: u32 },
-    CancelInvite { store: String, invite: String, name: String },
-    Unpublish { store: String, plugin: String, name: String },
+    Leave {
+        store: String,
+        name: String,
+    },
+    RemoveMember {
+        store: String,
+        member: String,
+        name: String,
+        devices: u32,
+    },
+    CancelInvite {
+        store: String,
+        invite: String,
+        name: String,
+    },
+    Unpublish {
+        store: String,
+        plugin: String,
+        name: String,
+    },
+    /// Let anyone with the link join, or only people the owners invite.
+    SetOpen {
+        store: String,
+        name: String,
+        open: bool,
+    },
+    /// Remove one device that joined with the link, or all of them.
+    RemoveAnonymous {
+        store: String,
+        device: Option<String>,
+        devices: u32,
+    },
 }
 
 /// One line of a store's screen: a plugin, or something to do.
@@ -30,6 +59,8 @@ pub enum StoreLine {
     LinkDevice,
     Invite,
     Members,
+    /// Only people the owners invite, or anyone with the link. Owners only.
+    WhoCanJoin,
     Publish,
     /// The store's admin page, in a browser. Owners only.
     Admin,
@@ -43,11 +74,26 @@ impl StoreLine {
             Self::LinkDevice => "link another device",
             Self::Invite => "invite someone",
             Self::Members => "members",
+            Self::WhoCanJoin => "who can join",
             Self::Publish => "publish a plugin",
             Self::Admin => "open the admin page",
             Self::Leave => "leave this store",
         }
     }
+}
+
+/// One row of a store's members screen: the people, their unused invites, and then, while the
+/// store has any, its open link and the devices that joined with it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemberLine {
+    Member(usize),
+    Invite(usize),
+    /// The store's open link, to show and copy.
+    OpenLink,
+    /// One of the most recent devices that joined with the link.
+    Anonymous(usize),
+    /// Every device that joined with the link.
+    RemoveAnonymous,
 }
 
 /// What can be done with a store's plugin from its overlay.
@@ -110,11 +156,16 @@ impl App {
         let mut lines: Vec<StoreLine> =
             (0..store.plugins.len()).map(StoreLine::Plugin).collect();
         if store.state != StoreState::Revoked {
-            lines.push(StoreLine::LinkDevice);
+            // A device that joined with the link has no invite to make: another one joins with
+            // the same link.
+            if !store.anonymous {
+                lines.push(StoreLine::LinkDevice);
+            }
             if store.owner {
                 lines.extend([
                     StoreLine::Invite,
                     StoreLine::Members,
+                    StoreLine::WhoCanJoin,
                     StoreLine::Publish,
                     StoreLine::Admin,
                 ]);
@@ -202,10 +253,81 @@ impl App {
         if self.members_for.as_deref() == Some(store.as_str()) {
             self.store_members = members;
             self.store_invites = invites;
-            let rows = self.store_members.len() + self.store_invites.len();
-            self.cursors.members.selected =
-                self.cursors.members.selected.min(rows.saturating_sub(1));
+            self.clamp_member_cursor();
         }
+    }
+
+    /// Who can join a store, for its members screen, and the link just made when the owner
+    /// opened it from its page.
+    pub(super) fn apply_open_join(&mut self, store: String, view: OpenJoinView) {
+        let opened = self.opening.as_deref() == Some(store.as_str());
+        if opened {
+            self.opening = None;
+        }
+        let here = self.members_for.as_deref() == Some(store.as_str())
+            || self.store_view() == Some(store.as_str());
+        if !here {
+            return;
+        }
+        let link = view.link.clone();
+        self.open_join = Some((store, view));
+        self.clamp_member_cursor();
+        // Just opened from the store's page, with nothing else open: the link it was opened
+        // for, shown and copied, as a new invite link is.
+        if opened
+            && let Some(link) = link
+            && !self.nav.has_overlay()
+        {
+            self.show_open_link(link);
+        }
+    }
+
+    fn clamp_member_cursor(&mut self) {
+        let last = self.member_lines().len().saturating_sub(1);
+        self.cursors.members.selected = self.cursors.members.selected.min(last);
+    }
+
+    /// Who can join the store whose members are on screen, once its server has said.
+    pub fn open_join_view(&self) -> Option<&OpenJoinView> {
+        let (store, view) = self.open_join.as_ref()?;
+        (self.members_for.as_deref() == Some(store.as_str())).then_some(view)
+    }
+
+    /// The members screen's rows, top to bottom.
+    pub fn member_lines(&self) -> Vec<MemberLine> {
+        let mut lines: Vec<MemberLine> = (0..self.store_members.len())
+            .map(MemberLine::Member)
+            .chain((0..self.store_invites.len()).map(MemberLine::Invite))
+            .collect();
+        if let Some(view) = self.open_join_view() {
+            if view.open {
+                lines.push(MemberLine::OpenLink);
+            }
+            lines.extend((0..view.recent.len()).map(MemberLine::Anonymous));
+            if view.devices > 0 {
+                lines.push(MemberLine::RemoveAnonymous);
+            }
+        }
+        lines
+    }
+
+    /// The open link overlay, with the link on its way to the clipboard.
+    fn show_open_link(&mut self, link: Secret) {
+        self.clipboard = Some(link.0);
+        self.open_link_copied = false;
+        self.nav.open_overlay(Overlay::OpenLink);
+    }
+
+    /// The text to hand the terminal's clipboard, once: whoever runs the app copies it and then
+    /// says whether that went through, as with an invite link.
+    pub fn take_clipboard(&mut self) -> Option<String> {
+        self.clipboard.take()
+    }
+
+    /// The link the open link overlay shows.
+    pub fn open_link(&self) -> Option<&str> {
+        let (_, view) = self.open_join.as_ref()?;
+        view.link.as_ref().map(|link| link.0.as_str())
     }
 
     /// The plugins that could be published to a store, for the publish picker.
@@ -294,9 +416,19 @@ impl App {
                 self.members_for = Some(store.id.clone());
                 self.store_members.clear();
                 self.store_invites.clear();
+                self.open_join = None;
                 self.cursors.members.selected = 0;
                 self.nav.push(StageView::StoreMembers(store.id.clone()));
                 Some(Command::LoadMembers { store: store.id })
+            }
+            StoreLine::WhoCanJoin => {
+                self.store_confirm = Some(StoreConfirm::SetOpen {
+                    store: store.id,
+                    name: store.name,
+                    open: !store.open,
+                });
+                self.nav.open_overlay(Overlay::StoreConfirm);
+                None
             }
             StoreLine::Publish => {
                 self.publish_for = Some(store.id.clone());
@@ -409,6 +541,15 @@ impl App {
             StoreConfirm::Unpublish { store, plugin, .. } => {
                 Command::UnpublishPlugin { store, plugin }
             }
+            StoreConfirm::SetOpen { store, open, .. } => {
+                if open {
+                    self.opening = Some(store.clone());
+                }
+                Command::SetOpenJoin { store, open }
+            }
+            StoreConfirm::RemoveAnonymous { store, device, .. } => {
+                Command::RemoveAnonymous { store, device }
+            }
         })
     }
 
@@ -421,28 +562,53 @@ impl App {
         Some(Command::PublishPlugin { store, plugin })
     }
 
-    /// Enter on the members screen: remove a member, or cancel an unused invite.
+    /// Enter on the members screen: remove a member, cancel an unused invite, show the open
+    /// link, or remove devices that joined with it.
     fn open_member_row(&mut self, store: &str) -> Option<Command> {
-        let at = self.cursors.members.selected;
-        if let Some(member) = self.store_members.get(at) {
-            if member.you {
-                self.push_toast(Notice::info("that is you — a store always keeps its owner"));
+        let line = *self.member_lines().get(self.cursors.members.selected)?;
+        let store = store.to_owned();
+        self.store_confirm = Some(match line {
+            MemberLine::Member(at) => {
+                let member = self.store_members.get(at)?;
+                if member.you {
+                    self.push_toast(Notice::info(
+                        "that is you — a store always keeps its owner",
+                    ));
+                    return None;
+                }
+                StoreConfirm::RemoveMember {
+                    store,
+                    member: member.id.clone(),
+                    name: member.name.clone(),
+                    devices: member.devices,
+                }
+            }
+            MemberLine::Invite(at) => {
+                let invite = self.store_invites.get(at)?;
+                StoreConfirm::CancelInvite {
+                    store,
+                    invite: invite.id.clone(),
+                    name: invite.name.clone(),
+                }
+            }
+            MemberLine::OpenLink => {
+                let link = self.open_join_view()?.link.clone()?;
+                self.show_open_link(link);
                 return None;
             }
-            self.store_confirm = Some(StoreConfirm::RemoveMember {
-                store: store.to_owned(),
-                member: member.id.clone(),
-                name: member.name.clone(),
-                devices: member.devices,
-            });
-        } else {
-            let invite = self.store_invites.get(at - self.store_members.len())?;
-            self.store_confirm = Some(StoreConfirm::CancelInvite {
-                store: store.to_owned(),
-                invite: invite.id.clone(),
-                name: invite.name.clone(),
-            });
-        }
+            MemberLine::Anonymous(at) => {
+                let device = self.open_join_view()?.recent.get(at)?;
+                StoreConfirm::RemoveAnonymous {
+                    store,
+                    device: Some(device.id.clone()),
+                    devices: 1,
+                }
+            }
+            MemberLine::RemoveAnonymous => {
+                let devices = self.open_join_view()?.devices;
+                StoreConfirm::RemoveAnonymous { store, device: None, devices }
+            }
+        });
         self.nav.open_overlay(Overlay::StoreConfirm);
         None
     }
@@ -473,6 +639,8 @@ mod tests {
             host: "plugins.example".into(),
             checked_at: None,
             owners: Vec::new(),
+            open: false,
+            anonymous: false,
             fingerprint: "9f3c 1a2b 77de 0c41".into(),
             member: "Johan".into(),
             owner,
@@ -528,6 +696,8 @@ mod tests {
             already_joined: false,
             owners: Vec::new(),
             plugins: Vec::new(),
+            open: false,
+            anonymous: false,
         })));
         assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
         assert_eq!(
@@ -678,6 +848,7 @@ mod tests {
                 StoreLine::LinkDevice,
                 StoreLine::Invite,
                 StoreLine::Members,
+                StoreLine::WhoCanJoin,
                 StoreLine::Publish,
                 StoreLine::Admin,
                 StoreLine::Leave
@@ -710,7 +881,7 @@ mod tests {
     fn an_owner_opens_the_admin_page_from_the_store() {
         let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
         a.handle(Action::Open, 20);
-        for _ in 0..4 {
+        for _ in 0..5 {
             a.handle(Action::Down, 20);
         }
         assert_eq!(
@@ -809,7 +980,7 @@ mod tests {
     fn publishing_picks_from_local_plugins_for_the_store_on_screen() {
         let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
         a.handle(Action::Open, 20);
-        for _ in 0..3 {
+        for _ in 0..4 {
             a.handle(Action::Down, 20);
         }
         assert_eq!(
@@ -839,7 +1010,7 @@ mod tests {
     fn nothing_to_publish_says_so() {
         let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
         a.handle(Action::Open, 20);
-        for _ in 0..3 {
+        for _ in 0..4 {
             a.handle(Action::Down, 20);
         }
         a.handle(Action::Open, 20);
@@ -949,11 +1120,154 @@ mod tests {
             already_joined: false,
             owners: Vec::new(),
             plugins: Vec::new(),
+            open: false,
+            anonymous: false,
         })));
         assert_eq!(a.store_confirm, leave);
         assert_eq!(
             a.handle(Action::Open, 20),
             Some(Command::LeaveStore { store: "abc".into() })
         );
+    }
+
+    fn open_view(open: bool, devices: u32) -> OpenJoinView {
+        OpenJoinView {
+            open,
+            link: open.then(|| Secret("https://plugins.example/join/abc?open#key".into())),
+            devices,
+            recent: (0..devices.min(2))
+                .map(|i| anistream_model::stores::AnonymousDeviceRow {
+                    id: format!("d{i}"),
+                    joined_at: 0,
+                    last_seen: None,
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn an_owner_opens_the_store_to_its_link_and_is_shown_the_link() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        for _ in 0..3 {
+            a.handle(Action::Down, 20);
+        }
+        assert_eq!(a.handle(Action::Open, 20), None);
+        assert_eq!(
+            a.store_confirm,
+            Some(StoreConfirm::SetOpen {
+                store: "abc".into(),
+                name: "store abc".into(),
+                open: true
+            })
+        );
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::SetOpenJoin { store: "abc".into(), open: true })
+        );
+
+        // The answer brings the new link, shown and on its way to the clipboard.
+        a.apply(Event::OpenJoin { store: "abc".into(), view: open_view(true, 0) });
+        assert_eq!(a.nav.overlay(), Some(&Overlay::OpenLink));
+        assert_eq!(a.open_link(), Some("https://plugins.example/join/abc?open#key"));
+        assert_eq!(
+            a.take_clipboard().as_deref(),
+            Some("https://plugins.example/join/abc?open#key")
+        );
+        assert_eq!(a.take_clipboard(), None, "copied once");
+        a.handle(Action::Open, 20);
+        assert!(!a.nav.has_overlay());
+
+        // Closing is asked the other way round, once the row says the store is open.
+        let mut open = store_row("abc", true, Vec::new());
+        open.open = true;
+        a.apply(Event::Stores(vec![open]));
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::SetOpenJoin { store: "abc".into(), open: false })
+        );
+        a.apply(Event::OpenJoin { store: "abc".into(), view: open_view(false, 3) });
+        assert!(!a.nav.has_overlay(), "nothing to show when it closes");
+    }
+
+    #[test]
+    fn the_members_screen_shows_the_link_and_removes_devices_that_joined_with_it() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Down, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::LoadMembers { store: "abc".into() })
+        );
+        a.apply(Event::StoreMembers {
+            store: "abc".into(),
+            members: vec![StoreMemberRow {
+                id: "m".into(),
+                name: "Johan".into(),
+                owner: true,
+                devices: 1,
+                last_seen: None,
+                you: true,
+            }],
+            invites: Vec::new(),
+        });
+        assert_eq!(a.member_lines(), vec![MemberLine::Member(0)]);
+        // Another store's answer is not this screen's.
+        a.apply(Event::OpenJoin { store: "other".into(), view: open_view(true, 2) });
+        assert_eq!(a.member_lines().len(), 1);
+
+        a.apply(Event::OpenJoin { store: "abc".into(), view: open_view(true, 5) });
+        assert_eq!(
+            a.member_lines(),
+            vec![
+                MemberLine::Member(0),
+                MemberLine::OpenLink,
+                MemberLine::Anonymous(0),
+                MemberLine::Anonymous(1),
+                MemberLine::RemoveAnonymous,
+            ]
+        );
+        a.handle(Action::Down, 20);
+        assert_eq!(a.handle(Action::Open, 20), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::OpenLink));
+        assert!(a.take_clipboard().is_some());
+        a.handle(Action::Back, 20);
+
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::RemoveAnonymous { store: "abc".into(), device: Some("d0".into()) })
+        );
+        a.handle(Action::Bottom, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.store_confirm,
+            Some(StoreConfirm::RemoveAnonymous {
+                store: "abc".into(),
+                device: None,
+                devices: 5
+            })
+        );
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::RemoveAnonymous { store: "abc".into(), device: None })
+        );
+
+        // All gone: the section goes, and the cursor stays on a row that exists.
+        a.apply(Event::OpenJoin { store: "abc".into(), view: open_view(false, 0) });
+        assert_eq!(a.member_lines(), vec![MemberLine::Member(0)]);
+        assert_eq!(a.member_cursor(), 0);
+    }
+
+    #[test]
+    fn a_device_that_joined_with_the_link_has_no_other_device_to_link() {
+        let mut row = store_row("abc", false, Vec::new());
+        row.anonymous = true;
+        row.member = String::new();
+        let a = at_stores(vec![row]);
+        assert_eq!(a.store_lines(a.store("abc").unwrap()), vec![StoreLine::Leave]);
     }
 }

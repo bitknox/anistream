@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    paste the invite link a store's owner sent you
+   │    paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                   ↵ open   q back   ? keys
 === styles ===
@@ -72,7 +72,7 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r20 c06-77 fg=rule
 r21 c03-03 fg=rule
-r21 c08-53 fg=text-dim
+r21 c08-52 fg=text-dim
 r22 c00-79 fg=rule
 r23 c00-20 fg=text-dim
 r23 c56-56 fg=text

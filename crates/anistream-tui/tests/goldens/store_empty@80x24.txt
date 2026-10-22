@@ -10,10 +10,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ◎│  ▌ link another device
   ⚙│    invite someone
    │    members
+   │    who can join                only people you invite
    │    publish a plugin
    │    open the admin page
    │    leave this store
-   │
    │
    │
    │
@@ -65,12 +65,14 @@ r10 c08-21 fg=text
 r11 c03-03 fg=rule
 r11 c08-14 fg=text
 r12 c03-03 fg=rule
-r12 c08-23 fg=text
+r12 c08-19 fg=text
+r12 c36-57 fg=text-dim
 r13 c03-03 fg=rule
-r13 c08-26 fg=text
+r13 c08-23 fg=text
 r14 c03-03 fg=rule
-r14 c08-23 fg=text-dim
+r14 c08-26 fg=text
 r15 c03-03 fg=rule
+r15 c08-23 fg=text-dim
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
 r18 c03-03 fg=rule

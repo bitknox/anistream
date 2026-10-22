@@ -43,8 +43,9 @@ use anistream_model::{
     settings::{self, SettingsView},
     sources::{MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
-        StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+        AnonymousDeviceRow, InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow,
+        OpenJoinView, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
+        StorePluginStatus, StoreRow, StoreState,
     },
     sync::{ConflictRow, DeviceCodePrompt, PullError, SyncState},
 };
@@ -482,6 +483,10 @@ scenarios! {
     invite_name,
     invite_link,
     publish_pick,
+    open_store_confirm,
+    open_store_members,
+    open_link,
+    open_link_confirm,
     continue_empty,
     continue_all_hidden,
     continue_failed,
@@ -1002,6 +1007,8 @@ fn two_stores() -> Vec<StoreRow> {
             host: "plugins.example".into(),
             checked_at: None,
             owners: Vec::new(),
+            open: false,
+            anonymous: false,
             fingerprint: "489f 49ea 0372 41ac".into(),
             member: "Mirei".into(),
             owner: true,
@@ -1040,6 +1047,8 @@ fn two_stores() -> Vec<StoreRow> {
             host: "rin.example".into(),
             checked_at: None,
             owners: Vec::new(),
+            open: false,
+            anonymous: false,
             fingerprint: "0c41 77de 1a2b 9f3c".into(),
             member: "Mirei".into(),
             owner: false,
@@ -1568,6 +1577,8 @@ fn four_stores() -> Vec<StoreRow> {
         host: "kumo.example".into(),
         checked_at: None,
         owners: Vec::new(),
+        open: false,
+        anonymous: false,
         fingerprint: "77c2 0e19 b4d5 a610".into(),
         member: "Mirei".into(),
         owner: false,
@@ -1581,6 +1592,8 @@ fn four_stores() -> Vec<StoreRow> {
         host: "lab.example".into(),
         checked_at: None,
         owners: Vec::new(),
+        open: false,
+        anonymous: false,
         fingerprint: "9a03 51fe 66b0 c2d4".into(),
         member: "Mirei".into(),
         owner: false,
@@ -1665,6 +1678,8 @@ fn store_confirm(s: &mut Screen) {
         already_joined: true,
         owners: Vec::new(),
         plugins: Vec::new(),
+        open: false,
+        anonymous: false,
     })));
 }
 
@@ -1698,7 +1713,7 @@ fn invite_link(s: &mut Screen) {
 /// version.
 fn publish_pick(s: &mut Screen) {
     on_owned_store(s);
-    s.press(&["j"; 6]);
+    s.press(&["j"; 7]);
     s.press(&["enter"]);
     let local = |id: &str, name: &str, version: &str, published: Option<&str>| LocalPluginRow {
         id: id.into(),
@@ -1716,6 +1731,87 @@ fn publish_pick(s: &mut Screen) {
         ],
     });
     s.press(&["j", "j"]);
+}
+
+const OPEN_LINK: &str =
+    "https://plugins.example/join/Wd3Kp8Lq2Zx7Nv5Rt1Yb0g?open#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8";
+
+/// The owned store, open to anyone with its link: its page says so on the line under its name.
+fn on_open_store(s: &mut Screen) {
+    let mut stores = two_stores();
+    stores[0].open = true;
+    on_stores(s, stores);
+    s.press(&["enter"]);
+}
+
+/// Asked before the owned store lets anyone with its link join, from the row that says who can.
+fn open_store_confirm(s: &mut Screen) {
+    on_owned_store(s);
+    s.press(&["j"; 6]);
+    s.press(&["enter"]);
+}
+
+/// The open store's members: the people, then its link and the devices that joined with it,
+/// counted and never named, the cursor on one of them.
+fn open_store_members(s: &mut Screen) {
+    on_open_store(s);
+    s.press(&["j"; 5]);
+    s.press(&["enter"]);
+    let member = |id: &str, name: &str, owner: bool, devices: u32, last_seen, you| {
+        StoreMemberRow { id: id.into(), name: name.into(), owner, devices, last_seen, you }
+    };
+    s.apply(Event::StoreMembers {
+        store: "aaaa".into(),
+        members: vec![
+            member("1", "Mirei", true, 2, Some(NOW - 12 * MINUTE - 7), true),
+            member("2", "Rin", false, 1, Some(NOW - 9 * DAY - 3 * HOUR - 41), false),
+        ],
+        invites: Vec::new(),
+    });
+    let device = |id: &str, joined_at, last_seen| AnonymousDeviceRow {
+        id: id.into(),
+        joined_at,
+        last_seen,
+    };
+    s.apply(Event::OpenJoin {
+        store: "aaaa".into(),
+        view: OpenJoinView {
+            open: true,
+            link: Some(Secret(OPEN_LINK.into())),
+            devices: 14,
+            recent: vec![
+                device("a", NOW - 2 * HOUR, Some(NOW - 20 * MINUTE)),
+                device("b", NOW - 3 * DAY, Some(NOW - DAY - HOUR)),
+                device("c", NOW - 6 * DAY, None),
+            ],
+        },
+    });
+    s.press(&["j", "j", "j"]);
+}
+
+/// The open link, shown to copy, as it is when chosen from the members screen.
+fn open_link(s: &mut Screen) {
+    open_store_members(s);
+    s.press(&["k", "enter"]);
+    s.app.open_link_copied = true;
+}
+
+/// What the link leads to when someone pastes it: anyone can join, without a name.
+fn open_link_confirm(s: &mut Screen) {
+    join_store(s);
+    s.press(&["enter"]);
+    s.apply(Event::StorePreview(InvitePreview::Store(InvitedStore {
+        link: Secret(OPEN_LINK.into()),
+        name: "Hearth plugins".into(),
+        url: "https://plugins.example".into(),
+        host: "plugins.example".into(),
+        fingerprint: "489f 49ea 0372 41ac".into(),
+        already_joined: false,
+        owners: vec!["Mirei".into()],
+        plugins: Vec::new(),
+        open: true,
+        anonymous: true,
+    })));
 }
 
 // ── Empty, failed and loading ──────────────────────────────────────────────────────────────────

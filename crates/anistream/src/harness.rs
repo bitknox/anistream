@@ -761,6 +761,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::InviteLink(_) => "InviteLink",
         Event::StoreMembers { .. } => "StoreMembers",
         Event::LocalPlugins { .. } => "LocalPlugins",
+        Event::OpenJoin { .. } => "OpenJoin",
     }
 }
 
@@ -900,6 +901,9 @@ fn copy(update: &Event) -> Event {
         },
         Event::LocalPlugins { store, plugins } => {
             Event::LocalPlugins { store: store.clone(), plugins: plugins.clone() }
+        }
+        Event::OpenJoin { store, view } => {
+            Event::OpenJoin { store: store.clone(), view: view.clone() }
         }
     }
 }

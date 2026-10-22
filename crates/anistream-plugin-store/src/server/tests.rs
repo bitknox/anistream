@@ -185,8 +185,18 @@ async fn a_store_from_before_previews_joins_without_one() {
         }
     });
     let key = crate::crypto::SigningKey::generate().unwrap().public();
-    let invite = Invite { base, code: "k3TzQe9WbA1xLr7uVn2c0g".into(), key };
+    let invite = Invite { base, code: "k3TzQe9WbA1xLr7uVn2c0g".into(), key, open: false };
     assert_eq!(client().preview_index(&invite).await.unwrap(), None);
+
+    // An open link to a store like it: one from before open joining, which says so plainly
+    // rather than as a link that stopped working.
+    let open = Invite { open: true, ..invite };
+    assert_eq!(client().preview_index(&open).await.unwrap_err(), ClientError::NotOpen);
+    assert_eq!(client().redeem(&open, "laptop").await.unwrap_err(), ClientError::NotOpen);
+    assert_eq!(
+        ClientError::NotOpen.to_string(),
+        "this store does not accept open joins — ask its owner for an invite"
+    );
 }
 
 #[tokio::test]
@@ -774,4 +784,239 @@ async fn behind_a_platforms_proxy_the_store_learns_its_address_from_the_request(
         .await
         .unwrap();
     assert!(claimed.link.starts_with("https://my-store.example/join/"), "{}", claimed.link);
+}
+
+// --- open stores ----------------------------------------------------------------------------
+
+/// Open the store as its owner, from the app, and return the open link.
+async fn open_store(running: &Running, owner: &str) -> Invite {
+    let state = client().set_open(&running.base, owner, true).await.unwrap();
+    assert!(state.open);
+    let link = Invite::parse(state.link.as_deref().expect("an open store has a link")).unwrap();
+    assert!(link.open);
+    link
+}
+
+#[tokio::test]
+async fn anyone_with_an_open_stores_link_joins_without_a_name() {
+    let running = start().await;
+    let client = client();
+    let (owner_invite, owner) = join_as_owner(&running).await;
+    let wasm = plugin("example", "1.0.0", &["api.example"]);
+    client.publish(&running.base, &owner, wasm.clone()).await.unwrap();
+    let link = open_store(&running, &owner).await;
+    assert_eq!(link.key, owner_invite.key);
+    assert_eq!(link.base, running.base);
+
+    // The confirmation shows who runs it and what it offers, and that it is open.
+    assert_eq!(client.preview(&link).await.unwrap().name, "Test store");
+    let preview = client.preview_index(&link).await.unwrap().expect("a preview");
+    assert!(preview.open);
+    assert_eq!(preview.owners, ["Owner"]);
+    assert_eq!(preview.plugins.len(), 1);
+
+    let joined = client.redeem(&link, "ignored").await.unwrap();
+    assert_eq!(joined.member.name, "");
+    assert_eq!(joined.member.role, Role::Member);
+    let me = client.me(&running.base, &joined.token).await.unwrap();
+    assert_eq!(me.device.label, "", "an open join sends no label, and none is kept");
+
+    // One code path from here on: the signed list, downloads, the same checks.
+    let index = client.index(&running.base, &joined.token, &link.key, 0).await.unwrap();
+    assert!(index.open);
+    let bytes = client.download(&running.base, &joined.token, &index.plugins[0]).await.unwrap();
+    assert_eq!(bytes, wasm);
+
+    // Reusable: a second device joins with the same link.
+    client.redeem(&link, "").await.unwrap();
+    let state = client.open_state(&running.base, &owner).await.unwrap();
+    assert_eq!(state.devices, 2);
+    let members = client.members(&running.base, &owner).await.unwrap();
+    assert_eq!(members.members.len(), 1, "the owner, and nobody without a name");
+}
+
+#[tokio::test]
+async fn an_old_client_given_an_open_link_is_told_to_update() {
+    // A client from before open links reads the link as an invite: the same path, with `?open`
+    // left unread. The store answers it in words, at the preview and at the join alike, and not
+    // as a failed guess.
+    let running = start().await;
+    let (_, owner) = join_as_owner(&running).await;
+    let link = open_store(&running, &owner).await;
+    let as_invite = Invite { open: false, ..link };
+    for _ in 0..=anistream_store_core::store::ALLOWED_FAILURES {
+        let refused = client().preview_index(&as_invite).await.unwrap_err();
+        assert_eq!(refused.code(), Some("open_link"));
+        assert!(
+            refused.to_string().contains("update anistream, then paste the link again"),
+            "{refused}"
+        );
+    }
+    let refused = client().redeem(&as_invite, "laptop").await.unwrap_err();
+    assert_eq!(refused.code(), Some("open_link"));
+    assert_eq!(client().open_state(&running.base, &owner).await.unwrap().devices, 0);
+
+    // A chat app fetching the link sees what it is, and joins nothing.
+    let page = reqwest::get(as_invite.link().split('#').next().unwrap()).await.unwrap();
+    assert!(page.text().await.unwrap().contains("Anyone with this link can join Test store"));
+}
+
+#[tokio::test]
+async fn an_invite_only_store_turns_an_open_link_away_and_its_invites_work_as_before() {
+    let running = start().await;
+    let client = client();
+    let (owner_invite, owner) = join_as_owner(&running).await;
+    let made_up =
+        Invite { code: "k3TzQe9WbA1xLr7uVn2c0g".into(), open: true, ..owner_invite.clone() };
+    let refused = client.preview_index(&made_up).await.unwrap_err();
+    assert_eq!(refused.code(), Some("open_unusable"));
+    let refused = client.redeem(&made_up, "").await.unwrap_err();
+    assert_eq!(refused.code(), Some("open_unusable"));
+    assert!(
+        !client
+            .preview_index(&invite_member(&running, &owner, "Alex").await)
+            .await
+            .unwrap()
+            .unwrap()
+            .open
+    );
+    let state = client.open_state(&running.base, &owner).await.unwrap();
+    assert!(!state.open && state.link.is_none());
+    let page = reqwest::get(owner_invite.link().split('#').next().unwrap()).await.unwrap();
+    assert!(page.text().await.unwrap().contains("You are invited to Test store"));
+}
+
+#[tokio::test]
+async fn open_joins_from_one_address_are_limited() {
+    let running = start().await;
+    let (_, owner) = join_as_owner(&running).await;
+    let link = open_store(&running, &owner).await;
+    for _ in 0..anistream_store_core::store::OPEN_JOINS_ALLOWED {
+        client().redeem(&link, "").await.unwrap();
+    }
+    let refused = client().redeem(&link, "").await.unwrap_err();
+    assert_eq!(refused.code(), Some("rate_limited"));
+    // A preview joins nothing, so it is not held back by joins.
+    client().preview_index(&link).await.unwrap();
+}
+
+#[tokio::test]
+async fn closing_an_open_store_keeps_its_devices_until_the_owner_removes_them() {
+    let running = start().await;
+    let client = client();
+    let (owner_invite, owner) = join_as_owner(&running).await;
+    let link = open_store(&running, &owner).await;
+    let first = client.redeem(&link, "").await.unwrap();
+    let second = client.redeem(&link, "").await.unwrap();
+
+    let closed = client.set_open(&running.base, &owner, false).await.unwrap();
+    assert!(!closed.open && closed.link.is_none());
+    assert_eq!(closed.devices, 2);
+    assert_eq!(client.redeem(&link, "").await.unwrap_err().code(), Some("open_unusable"));
+    assert_eq!(client.preview_index(&link).await.unwrap_err().code(), Some("open_unusable"));
+    let index = client.index(&running.base, &first.token, &owner_invite.key, 0).await.unwrap();
+    assert!(!index.open, "members see it is invite-only again");
+
+    // Open again: a new link, and the old one stays dead.
+    let fresh = open_store(&running, &owner).await;
+    assert_ne!(fresh.code, link.code);
+    assert_eq!(client.redeem(&link, "").await.unwrap_err().code(), Some("open_unusable"));
+
+    // One device, then the rest.
+    let state = client.open_state(&running.base, &owner).await.unwrap();
+    let second_device = client.me(&running.base, &second.token).await.unwrap().device.id;
+    assert!(state.device_list.iter().any(|d| d.id == second_device));
+    client.revoke_device(&running.base, &owner, &second_device).await.unwrap();
+    assert_eq!(
+        client.me(&running.base, &second.token).await.unwrap_err(),
+        ClientError::Unauthorized
+    );
+    assert!(client.me(&running.base, &first.token).await.is_ok());
+    let cleared = client.remove_anonymous(&running.base, &owner).await.unwrap();
+    assert_eq!(cleared.devices, 0);
+    assert!(cleared.open, "removing devices leaves the setting alone");
+    assert_eq!(
+        client.me(&running.base, &first.token).await.unwrap_err(),
+        ClientError::Unauthorized
+    );
+    assert!(client.me(&running.base, &owner).await.is_ok());
+}
+
+#[tokio::test]
+async fn only_an_owner_decides_who_can_join() {
+    let running = start().await;
+    let client = client();
+    let (_, owner) = join_as_owner(&running).await;
+    let invite = invite_member(&running, &owner, "Alex").await;
+    let alex = client.redeem(&invite, "laptop").await.unwrap().token;
+    for refused in [
+        client.set_open(&running.base, &alex, true).await.unwrap_err(),
+        client.open_state(&running.base, &alex).await.unwrap_err(),
+        client.remove_anonymous(&running.base, &alex).await.unwrap_err(),
+    ] {
+        assert_eq!(refused.code(), Some("forbidden"));
+    }
+
+    // An anonymous device has no name to make a device invite for: it joins another the same way.
+    let link = open_store(&running, &owner).await;
+    let anonymous = client.redeem(&link, "").await.unwrap().token;
+    let refused = client
+        .create_invite(&running.base, &anonymous, &InviteRequest::Device)
+        .await
+        .unwrap_err();
+    assert_eq!(refused.code(), Some("forbidden"));
+    assert!(refused.to_string().contains("join another one the same way"), "{refused}");
+}
+
+#[tokio::test]
+async fn the_admin_page_sees_and_changes_who_can_join() {
+    let running = start().await;
+    let (_, owner) = join_as_owner(&running).await;
+    let link = client().admin_link(&running.base, &owner).await.unwrap();
+    let mut browser = Browser::new(&running.base);
+    browser.sign_in(&link.link).await;
+
+    let opened: crate::protocol::OpenState = browser
+        .request(reqwest::Method::PUT, "v1/open")
+        .json(&serde_json::json!({ "open": true }))
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let open_link = Invite::parse(opened.link.as_deref().unwrap()).unwrap();
+    client().redeem(&open_link, "").await.unwrap();
+
+    let overview: crate::protocol::AdminOverview = browser
+        .request(reqwest::Method::GET, "v1/admin/overview")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(overview.open.open);
+    assert_eq!(overview.open.devices, 1);
+    assert_eq!(overview.members.len(), 1);
+
+    let cleared: crate::protocol::OpenState = browser
+        .request(reqwest::Method::DELETE, "v1/open/devices")
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(cleared.devices, 0);
+
+    // The cookie alone, from another site, changes nothing.
+    let forged = reqwest::Client::new()
+        .put(format!("{}/v1/open", running.base))
+        .header("cookie", browser.cookie.clone().unwrap())
+        .json(&serde_json::json!({ "open": false }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(forged.status(), 403);
 }
