@@ -11,6 +11,9 @@ import tv.anistream.store.EngineLaunch
 internal object Flavour {
     const val FIXTURES = false
 
+    /** The app flavour updates itself, from the release the engine finds. */
+    const val UPDATES = true
+
     fun launch(context: Context, intent: Intent): EngineLaunch =
         EngineLaunch.app(EngineHome.sandbox(files = context.filesDir, cache = context.cacheDir))
 

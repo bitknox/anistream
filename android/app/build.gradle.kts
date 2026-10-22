@@ -5,6 +5,16 @@ plugins {
     id("anistream.engine.flavours")
 }
 
+/**
+ * The update test's keystore (android/scripts/update-test.sh): with it, the app flavour is signed
+ * with a key the test made, never the release key, so one test build installs over another on an
+ * emulator; it carries src/updateTest, the receiver that offers it a release, and fetches over
+ * plain HTTP from this Mac. Never set for a build to keep.
+ */
+val updateTestKey: String? = providers.gradleProperty("ANISTREAM_UPDATE_TEST_KEYSTORE").orNull?.takeIf { it.isNotBlank() }
+/** The test key's passwords, which keep nothing: the key is made for the test and thrown away. */
+val UPDATE_TEST_PASSWORD = "update-test"
+
 android {
     namespace = "tv.anistream.app"
     // The NDK strips the engine's library as the APK is packaged.
@@ -31,12 +41,30 @@ android {
                 keyPassword = release.getValue("KEY_PASSWORD")
             }
         }
+        // The update test's key (android/scripts/update-test.sh), which the test makes for itself.
+        updateTestKey?.let { key ->
+            create("updateTest") {
+                storeFile = file(key)
+                storePassword = UPDATE_TEST_PASSWORD
+                keyAlias = "update-test"
+                keyPassword = UPDATE_TEST_PASSWORD
+            }
+        }
     }
     productFlavors {
         // The app flavour's release is the build to keep; the fixtures flavour is never for real use.
         named("app") {
-            if (signsReleases) signingConfig = signingConfigs.getByName("release")
+            if (updateTestKey != null) {
+                signingConfig = signingConfigs.getByName("updateTest")
+            } else if (signsReleases) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
+    }
+    buildFeatures { buildConfig = true }
+    defaultConfig {
+        // Whether this is an update test's build: plain HTTP for the APK it fetches from this Mac.
+        buildConfigField("boolean", "UPDATE_TEST", (updateTestKey != null).toString())
     }
     testOptions {
         // Robolectric reads the app's own resources: the shortcuts, the strings.
@@ -80,6 +108,12 @@ abstract class ShortcutsXml : DefaultTask() {
 }
 
 androidComponents {
+    onVariants(selector().withFlavor(AnistreamSdk.ENGINE to "app")) { variant ->
+        if (updateTestKey != null) {
+            variant.sources.manifests.addStaticManifestFile("src/updateTest/AndroidManifest.xml")
+            variant.sources.kotlin?.addStaticSourceDirectory("src/updateTest/kotlin")
+        }
+    }
     onVariants { variant ->
         val shortcuts = tasks.register<ShortcutsXml>("write${variant.name.replaceFirstChar(Char::uppercase)}Shortcuts") {
             template.set(layout.projectDirectory.file("shortcuts.xml"))

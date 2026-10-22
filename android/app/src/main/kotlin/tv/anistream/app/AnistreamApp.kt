@@ -17,6 +17,7 @@ import android.os.Environment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -52,7 +53,23 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
-    val store: AppStore by lazy { AppStore(scope) }
+    val store: AppStore by lazy {
+        AppStore(scope).also { store ->
+            if (Flavour.UPDATES) {
+                val updates = AppUpdates(this, store.updates)
+                store.updates.attach(updates, updates.files)
+                appUpdates = updates
+            }
+        }
+    }
+
+    /** The app's own update on Android, in the app flavour only; the store makes it. */
+    var appUpdates: AppUpdates? = null
+        get() {
+            store
+            return field
+        }
+        private set
 
     /**
      * The player, for the life of the process rather than an activity's: mpv and the media session
@@ -137,6 +154,8 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
         scope.launch { Widgets.publishPreviews(this@AnistreamApp) }
         // Whether a widget is placed, which keeps the background check, as the app starts.
         widgetsChanged()
+        // An update's APK and installer session a stopped process left go at every start.
+        appUpdates?.let { updates -> scope.launch(Dispatchers.IO) { updates.clearLeftovers() } }
     }
 
     /** The new-episode notifications switch, and the schedule it keeps. */
