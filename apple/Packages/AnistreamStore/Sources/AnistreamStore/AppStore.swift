@@ -376,6 +376,8 @@ public final class AppStore {
             stores.members(store: store, members: members, invites: invites)
         case .localPlugins(let store, let plugins):
             stores.localPlugins(store: store, plugins: plugins)
+        case .openJoin(let store, let view):
+            stores.openJoin(store: store, view: view)
 
         case .downloads(let rows):
             downloads.apply(rows)

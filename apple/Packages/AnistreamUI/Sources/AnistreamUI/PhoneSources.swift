@@ -152,7 +152,8 @@ struct PhoneStorePage: View {
                     Text("Each plugin can contact only the hosts listed with it and cannot read your files.")
                 }
                 Section {
-                    if row.state != .revoked {
+                    // A device that joined with the store's link joins another the same way.
+                    if row.state != .revoked, !row.anonymous {
                         Button("Link another device") { inviting = true }
                             .fontWeight(.semibold)
                             .foregroundStyle(.silk)
@@ -163,7 +164,8 @@ struct PhoneStorePage: View {
                         .listRowBackground(Palette.raised)
                 } footer: {
                     // Who runs it, and when it was checked, wait on E9's fields on `StoreRow`.
-                    Text("\(StoreWords.meta(row))\nKey \(row.fingerprint) · joined as \(row.member)")
+                    // Who can join is changed on the Mac, an iPad or the store's admin page.
+                    Text("\(StoreWords.meta(row))\(row.open ? " · anyone with the link can join" : "")\nKey \(row.fingerprint) · \(row.joinedAs)")
                 }
             }
             .navigationTitle(row.name)
@@ -306,15 +308,15 @@ struct PhoneJoinStoreSheet: View {
         NavigationStack {
             PhoneList {
                 Section {
-                    TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
+                    TextField("Link", text: $link, prompt: Text("https://…/join/…"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                         .listRowBackground(Palette.raised)
                 } header: {
-                    PhoneSectionHeader("Invite link")
+                    PhoneSectionHeader("Link")
                 } footer: {
-                    Text("Paste the link the store's owner sent you. An anistream:// invite link opened from Messages fills this sheet in directly.")
+                    Text("Paste the invite or the store's link you were given. An anistream:// link opened from Messages fills this sheet in directly.")
                 }
                 preview
             }
@@ -378,11 +380,23 @@ struct PhoneJoinStoreSheet: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "checkmark").foregroundStyle(.water)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Key matches the invite").font(.ui(17)).foregroundStyle(.silk)
+                        Text("Key matches the \(invited.anonymous ? "link" : "invite")").font(.ui(17)).foregroundStyle(.silk)
                         Text(invited.fingerprint).font(.ui(15, design: .monospaced)).foregroundStyle(.haze)
                     }
                 }
                 .listRowBackground(Palette.raised)
+                if invited.open {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "person.2").foregroundStyle(.haze)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Anyone with the link can join").font(.ui(17)).foregroundStyle(.silk)
+                            if invited.anonymous {
+                                Text("You join without a name.").font(.ui(15)).foregroundStyle(.haze)
+                            }
+                        }
+                    }
+                    .listRowBackground(Palette.raised)
+                }
             } footer: {
                 Text(invited.alreadyJoined
                      ? "This iPhone has joined this store already."

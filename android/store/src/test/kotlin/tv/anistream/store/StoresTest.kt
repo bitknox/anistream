@@ -48,6 +48,24 @@ class StoresTest {
     }
 
     @Test
+    fun a_stores_open_link_is_read_whole_with_its_mark() {
+        val open = "https://plugins.example/join/abc123?open#k3y"
+        assertEquals(open, InviteLinks.invite(open))
+        assertEquals(open, InviteLinks.invite("anistream://plugins.example/join/abc123?open#k3y"))
+        assertEquals(open, InviteLinks.invite("anistream://join?link=https%3A%2F%2Fplugins.example%2Fjoin%2Fabc123%3Fopen%23k3y"))
+        assertTrue(InviteLinks.looksLikeInvite(open))
+    }
+
+    @Test
+    fun a_preview_of_an_open_link_says_anyone_can_join() {
+        val open = "https://plugins.example/join/abc123?open#k3y"
+        val invited = InvitedStore(link = open, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false, open = true, anonymous = true)
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
+        val shown = (store.stores.preview.value as StoresModel.Preview.Store).store
+        assertTrue(shown.open && shown.anonymous)
+    }
+
+    @Test
     fun a_checked_invite_joins_and_the_sheet_moves_into_the_store() {
         store.stores.openJoin(https)
         assertEquals(https, store.stores.joining.value)

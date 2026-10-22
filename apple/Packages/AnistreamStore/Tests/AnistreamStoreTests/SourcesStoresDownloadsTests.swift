@@ -142,6 +142,34 @@ struct StoresTests {
         #expect(InviteLinks.invite(in: try #require(URL(string: "https://plugins.example/about"))) == nil)
         #expect(InviteLinks.looksLikeInvite(" \(https)\n"))
     }
+
+    @Test func aStoresOpenLinkIsReadWholeWithItsMark() throws {
+        let open = "https://plugins.example/join/abc?open#key"
+        #expect(InviteLinks.invite(in: try #require(URL(string: open))) == open)
+        #expect(InviteLinks.invite(in: try #require(URL(string: "anistream://plugins.example/join/abc?open#key"))) == open)
+        let wrapped = "anistream://join?link=" + (open.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? "")
+        #expect(InviteLinks.invite(in: try #require(URL(string: wrapped))) == open)
+        #expect(InviteLinks.looksLikeInvite(open))
+    }
+
+    @Test func whoCanJoinIsKeptForEachStoresOwner() {
+        let store = AppStore()
+        let view = OpenJoinView(open: true, link: "https://plugins.example/join/abc?open#key", devices: 3,
+                                recent: [AnonymousDeviceRow(id: "d1", joinedAt: 1_792_000_000, lastSeen: nil)])
+        store.apply(.openJoin(store: "hotaru", view: view))
+        #expect(store.stores.openJoin["hotaru"] == view)
+        #expect(store.stores.openJoin["mika"] == nil, "a store whose server has no open joining")
+        store.setOpenJoin("hotaru", open: false)
+        store.removeAnonymous(nil, from: "hotaru")
+    }
+
+    @Test func aDeviceThatJoinedWithTheLinkHasNoName() {
+        var row = storeRow("hotaru", [])
+        #expect(row.joinedAs == "joined as Mika")
+        row.anonymous = true
+        row.member = ""
+        #expect(row.joinedAs == "joined without a name")
+    }
 }
 
 @MainActor

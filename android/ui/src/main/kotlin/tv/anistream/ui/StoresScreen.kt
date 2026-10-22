@@ -179,17 +179,25 @@ internal fun StoreScreen(id: String) {
             )
             SettingsGroup(
                 title = "This store",
-                footer = listOfNotNull("Joined as ${row.member}", row.checkedAt?.let { "checked ${AccountWords.agoWords(System.currentTimeMillis() / 1000 - it)}" }).joinToString(" · "),
-                rows = listOf(
-                    { place -> InfoRow(place, "Address", row.host) },
-                    { place -> InfoRow(place, "Key fingerprint", row.fingerprint) },
-                ),
+                footer = listOfNotNull(
+                    if (row.anonymous) "Joined without a name" else "Joined as ${row.member}",
+                    row.checkedAt?.let { "checked ${AccountWords.agoWords(System.currentTimeMillis() / 1000 - it)}" },
+                ).joinToString(" · "),
+                rows = buildList<@Composable (Place) -> Unit> {
+                    add { place -> InfoRow(place, "Address", row.host) }
+                    add { place -> InfoRow(place, "Key fingerprint", row.fingerprint) }
+                    // Who can join is changed on the store's admin page, in a browser.
+                    if (row.open) add { place -> InfoRow(place, "Who can join", "Anyone with the link") }
+                },
             )
             FlowRow(Modifier.padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    onClick = { store.createInvite(row.id, name = null) },
-                    enabled = !store.stores.isWorking(working, StoresModel.Work.Invite(row.id)),
-                ) { Text("Link another device", color = MaterialTheme.colorScheme.onSurface) }
+                // A device that joined with the store's link joins another the same way.
+                if (!row.anonymous) {
+                    TextButton(
+                        onClick = { store.createInvite(row.id, name = null) },
+                        enabled = !store.stores.isWorking(working, StoresModel.Work.Invite(row.id)),
+                    ) { Text("Link another device", color = MaterialTheme.colorScheme.onSurface) }
+                }
                 TextButton(onClick = { leaving = true }) { Text("Leave store", color = MaterialTheme.colorScheme.error) }
             }
         }
@@ -355,9 +363,9 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
         SheetField(
             link,
             { link = it },
-            "Invite link",
+            "Link",
             keyboard = KeyboardOptions(keyboardType = KeyboardType.Uri, autoCorrectEnabled = false),
-            supporting = if (link.isEmpty()) "Paste the link the store's owner sent you." else null,
+            supporting = if (link.isEmpty()) "Paste the invite or the store's link you were given." else null,
             trailing = clear.takeIf { link.isNotEmpty() },
         )
         when (val shown = preview) {
@@ -383,7 +391,10 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
     }
 }
 
-/** What the invite leads to: the store, its host, and its key, matched against the invite's. */
+/**
+ * What the link leads to: the store, its host, and its key, matched against the link's; and, for a
+ * store anyone with its link can join, that it is open, and that its open link joins without a name.
+ */
 @Composable
 private fun InvitedStorePreview(invited: tv.anistream.engine.model.InvitedStore) {
     val colors = MaterialTheme.colorScheme
@@ -395,10 +406,16 @@ private fun InvitedStorePreview(invited: tv.anistream.engine.model.InvitedStore)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Key matches the invite", style = MaterialTheme.typography.titleMedium)
+                Text(if (invited.anonymous) "Key matches the link" else "Key matches the invite", style = MaterialTheme.typography.titleMedium)
                 Text(invited.fingerprint, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace), color = colors.onSurfaceVariant)
             }
             Icon(Icons.Shield, contentDescription = null, tint = colors.secondary)
+        }
+        if (invited.open) {
+            Column {
+                Text("Anyone with the link can join", style = MaterialTheme.typography.titleMedium)
+                if (invited.anonymous) SheetText("You join without a name. Another device joins with the same link.")
+            }
         }
         if (invited.alreadyJoined) SheetText("This device has joined this store already.")
     }

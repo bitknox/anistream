@@ -164,6 +164,11 @@ struct StoreDetail: View {
                         Text(StoreWords.meta(row))
                             .font(.mac(13))
                             .foregroundStyle(.haze)
+                        if row.open {
+                            Text("Anyone with the link can join")
+                                .font(.mac(12))
+                                .foregroundStyle(.haze)
+                        }
                     }
                     Spacer()
                     StoreMenu(row: row, sheet: $sheet, leaving: $leaving)
@@ -194,7 +199,7 @@ struct StoreDetail: View {
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Each plugin can contact only the hosts listed with it and cannot read your files.")
-                    Text("Store key \(row.fingerprint) · joined as \(row.member)")
+                    Text("Store key \(row.fingerprint) · \(row.joinedAs)")
                 }
                 .font(.mac(12))
                 .macLineHeight(17)
@@ -209,6 +214,7 @@ struct StoreDetail: View {
             case .update(let plugin): UpdatePluginSheet(store: row, plugin: plugin)
             case .invite(let device): InviteSheet(store: row, device: device)
             case .members: MembersSheet(store: row)
+            case .joining: OpenJoinSheet(store: row)
             case .publish: PublishSheet(store: row)
             }
         }
@@ -230,6 +236,7 @@ enum StoreSheet: Identifiable, Hashable {
     case update(StorePluginRow)
     case invite(device: Bool)
     case members
+    case joining
     case publish
 
     var id: String {
@@ -237,6 +244,7 @@ enum StoreSheet: Identifiable, Hashable {
         case .update(let plugin): "update-\(plugin.id)"
         case .invite(let device): "invite-\(device)"
         case .members: "members"
+        case .joining: "joining"
         case .publish: "publish"
         }
     }
@@ -313,7 +321,8 @@ struct StorePluginLine: View {
     }
 }
 
-/// The store's actions: invites and members for its owner, another device, and leaving.
+/// The store's actions: invites, members and who can join for its owner, another device, and
+/// leaving.
 struct StoreMenu: View {
     @Environment(AppStore.self) private var store
     let row: StoreRow
@@ -326,12 +335,16 @@ struct StoreMenu: View {
                 if row.owner {
                     Button("Invite Someone…") { sheet = .invite(device: false) }
                     Button("Show Members") { sheet = .members }
+                    Button("Who Can Join…") { sheet = .joining }
                     Button("Publish a Plugin…") { sheet = .publish }
                     Button("Open Admin Page") { store.openAdmin(row.id) }
                     Divider()
                 }
-                Button("Link Another Device…") { sheet = .invite(device: true) }
-                Divider()
+                // A device that joined with the store's link joins another the same way.
+                if !row.anonymous {
+                    Button("Link Another Device…") { sheet = .invite(device: true) }
+                    Divider()
+                }
             }
             Button("Leave Store…") { leaving = true }
         } label: {
@@ -458,15 +471,15 @@ struct JoinStoreSheet: View {
             Text("Join a Plugin Store")
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
-            Text("Paste the invite link the store's owner sent you.")
+            Text("Paste the invite or the store's link you were given.")
                 .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
-            Text("Invite link")
+            Text("Link")
                 .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 18)
-            TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
+            TextField("Link", text: $link, prompt: Text("https://…/join/…"))
                 .textFieldStyle(.plain)
                 .font(.mac(13))
                 .padding(.horizontal, 12)
@@ -541,8 +554,19 @@ struct JoinStoreSheet: View {
                     .foregroundStyle(.haze)
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
-                    Text("Key \(Text(invited.fingerprint).font(.mac(13, design: .monospaced)).foregroundStyle(.silk)) matches the invite")
+                    Text("Key \(Text(invited.fingerprint).font(.mac(13, design: .monospaced)).foregroundStyle(.silk)) matches the \(invited.anonymous ? "link" : "invite")")
                         .font(.mac(13))
+                        .foregroundStyle(.haze)
+                }
+                if invited.open {
+                    HStack(spacing: 6) {
+                        Image(systemName: "person.2").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
+                        Text("Anyone with the link can join").font(.mac(13)).foregroundStyle(.silk)
+                    }
+                }
+                if invited.anonymous {
+                    Text("You join without a name. Another \(Device.name) joins with the same link.")
+                        .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
                 if invited.alreadyJoined {
@@ -686,6 +710,127 @@ struct MembersSheet: View {
         .sheetWidth(480)
         .background(.raised)
         .task { appStore.loadMembers(store.id) }
+    }
+}
+
+/// Who can join a store, for its owner: only people they invite, or anyone with the store's link.
+/// While it is open, the link to copy and share; either way, the devices that joined with it,
+/// which have no names, to remove one at a time or all at once.
+struct OpenJoinSheet: View {
+    @Environment(AppStore.self) private var appStore
+    @Environment(\.dismiss) private var dismiss
+    let store: StoreRow
+    @State private var removingAll = false
+    /// Long enough without an answer that the store's server is taken to have no open joining.
+    @State private var waited = false
+
+    var body: some View {
+        let view = appStore.stores.openJoin[store.id]
+        let working = appStore.stores.isWorking(.openJoin(store: store.id))
+            || appStore.stores.isWorking(.removeAnonymous(store: store.id))
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Who can join \(store.name)")
+                .font(.mac(15, weight: .semibold))
+                .foregroundStyle(.silk)
+            if let view {
+                Toggle(isOn: Binding(
+                    get: { view.open },
+                    set: { appStore.setOpenJoin(store.id, open: $0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Anyone with the store's link").foregroundStyle(.silk)
+                        Text(view.open
+                             ? "They join without a name. Turning this off stops the link; turning it on again makes a new one."
+                             : "Only people you invite can join. Turned on, anyone with the link joins, without a name.")
+                            .font(.mac(12))
+                            .foregroundStyle(.haze)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .toggleStyle(.switch)
+                .disabled(working)
+                .font(.mac(13))
+                if let link = view.link {
+                    Text(link)
+                        .font(.mac(12, design: .monospaced))
+                        .foregroundStyle(.silk)
+                        .textSelection(.enabled)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ground, in: .rect(cornerRadius: 8))
+                    HStack {
+                        Spacer()
+                        ShareLink(item: link) { Text("Share…") }
+                            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                        Button("Copy Link") { Pasteboard.copy(link) }
+                            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    }
+                }
+                if view.devices > 0 {
+                    Rectangle().fill(.faintRule).frame(height: 1)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(Wording.plural(Int(view.devices), "device")) joined with the link")
+                                .foregroundStyle(.silk)
+                            Text(view.open ? "No names are kept." : "They keep working until you remove them.")
+                                .font(.mac(12)).foregroundStyle(.haze)
+                        }
+                        Spacer()
+                        Button(view.devices == 1 ? "Remove" : "Remove All") { removingAll = true }
+                            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                            .disabled(working)
+                    }
+                    .font(.mac(13))
+                    ForEach(view.recent, id: \.id) { device in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Joined \(Self.when(device.joinedAt))").foregroundStyle(.silk)
+                                Text(device.lastSeen.map { "Seen \(Self.when($0))" } ?? "Not seen since")
+                                    .font(.mac(12)).foregroundStyle(.haze)
+                            }
+                            Spacer()
+                            Button("Remove") { appStore.removeAnonymous(device.id, from: store.id) }
+                                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                                .disabled(working)
+                        }
+                        .font(.mac(13))
+                    }
+                    if view.devices > UInt32(view.recent.count) {
+                        Text("The newest \(view.recent.count) are listed.")
+                            .font(.mac(12)).foregroundStyle(.haze)
+                    }
+                }
+            } else if waited {
+                Text("This store's server is older, and lets in only people you invite. Updating it adds the choice.")
+                    .font(.mac(13)).foregroundStyle(.haze)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                ProgressView().controlSize(.small)
+            }
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .buttonStyle(PrimaryCapsuleStyle(height: 28))
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .sheetWidth(520)
+        .background(.raised)
+        .task {
+            appStore.loadMembers(store.id)
+            try? await Task.sleep(for: .seconds(4))
+            waited = true
+        }
+        .confirmationDialog("Remove the devices that joined with the link?", isPresented: $removingAll) {
+            Button("Remove", role: .destructive) { appStore.removeAnonymous(nil, from: store.id) }
+        } message: {
+            Text("They stop working with \(store.name) at once. Plugins already installed on them stay.")
+        }
+    }
+
+    static func when(_ seconds: Int64) -> String {
+        Date(timeIntervalSince1970: TimeInterval(seconds)).formatted(.relative(presentation: .named))
     }
 }
 
