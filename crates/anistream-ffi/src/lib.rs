@@ -286,7 +286,9 @@ mod tests {
     #[test]
     fn notifications_and_the_widgets_record_cross_intact() {
         use anistream_model::{
-            notifications::{ComingEpisode, NewEpisode},
+            notifications::{
+                ComingEpisode, NewEpisode, NoticeReason, UpcomingNotice, UpcomingNotices,
+            },
             show::ShowSettingKey,
             widgets::{
                 WIDGET_DATA_VERSION, WidgetAiring, WidgetContinue, WidgetData, WidgetNextAiring,
@@ -297,6 +299,7 @@ mod tests {
             Command::CheckNewEpisodes,
             Command::ComingEpisodes,
             Command::WidgetSnapshot,
+            Command::UpcomingNotices,
             Command::SetSetting {
                 key: SettingKey::EpisodeNotifications,
                 value: SettingValue::Bool(true),
@@ -347,6 +350,38 @@ mod tests {
         };
         assert_eq!(crossed(coming.clone()), coming);
         crosses_intact(Event::ComingEpisodes(vec![coming]));
+
+        let week = UpcomingNotices {
+            enabled: true,
+            generated_at: 1_792_000_000,
+            airings: vec![
+                UpcomingNotice {
+                    id,
+                    title: "The Library Above the Clouds".into(),
+                    episode: 6,
+                    airs_at: 1_792_163_730,
+                    reason: NoticeReason::Watching,
+                    next_to_watch: 4,
+                    cover_url: Some("https://img.example/library-poster.png".into()),
+                    banner_url: None,
+                },
+                UpcomingNotice {
+                    id: AnilistId::new(900_003),
+                    title: "Summer Wind Relay".into(),
+                    episode: 9,
+                    airs_at: 1_792_515_630,
+                    reason: NoticeReason::SwitchedOff,
+                    next_to_watch: 9,
+                    cover_url: None,
+                    banner_url: Some("https://img.example/banner/900003.jpg".into()),
+                },
+            ],
+            watching: vec![id],
+            overrides: 1,
+        };
+        assert_eq!(crossed(week.clone()), week);
+        crosses_intact(Event::UpcomingNotices(week));
+        crosses_intact(Event::UpcomingNotices(UpcomingNotices::default()));
 
         let data = WidgetData {
             version: WIDGET_DATA_VERSION,

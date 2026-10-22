@@ -344,6 +344,35 @@ secret's id as the account, in the login keychain where the `keyring` crate keep
 (never the data protection keychain, which is another one). The first time the app reads an item
 the terminal made, macOS asks whether to allow it. A signed build keeps that answer across rebuilds.
 
+## New-episode notifications
+
+They arrive when an episode airs, as local notifications scheduled ahead, since no code of the
+app's runs at that moment (AnistreamStore's `Notifications/`):
+
+- **The week.** The engine's `UpcomingNotices` says the next seven days' broadcasts of the shows
+  being watched or switched on for themselves, and of those switched off, each with why.
+  `NoticePlan` makes one notification of each episode that notifies: `ep.<show>.<episode>.sub`,
+  a `UNCalendarNotificationTrigger` at its time, at most 60. "Episode 9 is out." with Play and
+  Mark watched when caught up; "Episode 10 is out. Next for you: episode 8." with Play alone when
+  behind. All in the `new-episodes` thread, named in a group's summary by their show.
+- **Scheduling.** `NoticeScheduler` keeps the pending ones in step with the week: it takes back
+  what no longer notifies, schedules what is new or changed with the cover attached, and remembers
+  what it scheduled, so the background check never says an episode twice. Asked for at launch, on
+  coming forward, after a sync or a change of progress, and when a switch changes.
+- **The background refresh.** iOS's `BGAppRefreshTask` (`tv.anistream.refresh`) and the Mac's
+  `NSBackgroundActivityScheduler`, every six hours or as the system decides: `CheckNewEpisodes`
+  for what aired that no notification said, then the week, then the widgets' record, written to
+  `widgets/snapshot.json` in the App Group (`ANISTREAM_APP_GROUP`). With the app not running it
+  starts an engine of its own with none of the launch's background work, which the app's own
+  start waits out.
+- **Actions.** Play opens the app into the player; Mark watched runs in the background through the
+  engine's mark, which queues for the trackers when offline; the notification itself opens the
+  title page (`NoticeRoute`).
+- **Permission** is asked only when a switch is turned on, the setting's or a show's.
+- **Never a real banner from a test.** Everything goes through `NoticeCentre`. The tests and the
+  Fixtures app use `QuietNoticeCentre`, which shows nothing and asks nothing; the Fixtures app
+  reaches the system's only on iOS, and only when launched with `-AnistreamRealNotifications`.
+
 ## The dev harness
 
 ```sh

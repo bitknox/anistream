@@ -49,6 +49,8 @@ extension PhoneSettingsPage {
         case .root: PhoneSettingsRoot()
         case .playback: PhonePlaybackPage()
         case .downloads: PhoneDownloadsPage()
+        case .notifications: PhoneNotificationsPage()
+        case .showNotices(let id): PhoneShowNoticesPage(id: id)
         case .sources: PhoneSourcesPage()
         case .accounts: PhoneAccountsPage()
         case .providers: PhoneProvidersPage()
@@ -248,6 +250,7 @@ struct PhoneSettingsRoot: View {
             Section {
                 link(.playback, "Playback", "play.rectangle", value: playbackValue)
                 link(.downloads, "Downloads", "arrow.down.to.line", value: Wording.bytes(store.downloads.bytesOnDisk))
+                link(.notifications, "Notifications", "bell", value: store.settings.isOn(.episodeNotifications) ? "On" : "Off")
                 link(.sources, "Sources", "powerplug", value: store.settings.isOn(.torrents) ? "Torrents on" : "Torrents off")
                 link(.accounts, "Accounts", "person", value: anilist?.connected == true ? "AniList" : "None")
             }

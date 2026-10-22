@@ -36,6 +36,12 @@ public final class AppStore {
     public let providers = ProvidersModel()
     public let stores = StoresModel()
     public let downloads = DownloadsModel()
+    /// New-episode notifications: the week coming up, permission, and each show's switch.
+    public let notifications = NotificationsModel()
+    /// The engine's answers to questions asked of it, for the notifications and the widgets.
+    public let answers = EngineAnswers()
+    /// The week's ask, waiting a moment in case more ask at once.
+    @ObservationIgnored var noticeRefresh: Task<Void, Never>?
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
@@ -319,6 +325,9 @@ public final class AppStore {
 
     public func apply(_ event: Event) {
         if !held.isEmpty, let kind = event.showcaseKind, held.contains(kind) { return }
+        notifications.observe(event)
+        answers.deliver([event])
+        if notifications.schedules, NotificationsModel.reschedules(after: event) { refreshNotices() }
         switch event {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)

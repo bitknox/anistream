@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The App Group the app and its widgets share: group.tv.anistream on iPhone and iPad, the
+	     team-prefixed <team>.tv.anistream on the Mac, which needs no provisioning profile. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(ANISTREAM_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>

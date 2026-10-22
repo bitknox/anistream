@@ -11,7 +11,7 @@ use crate::{
     hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
-    notifications::{ComingEpisode, NewEpisode},
+    notifications::{ComingEpisode, NewEpisode, UpcomingNotices},
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
@@ -338,6 +338,9 @@ pub enum Event {
     /// [`Command::WidgetSnapshot`](crate::command::Command::WidgetSnapshot): for the app to
     /// write where its widgets read it.
     WidgetSnapshot(WidgetData),
+    /// The week's broadcasts that will notify and those left out, in answer to
+    /// [`Command::UpcomingNotices`](crate::command::Command::UpcomingNotices).
+    UpcomingNotices(UpcomingNotices),
 }
 
 impl Event {

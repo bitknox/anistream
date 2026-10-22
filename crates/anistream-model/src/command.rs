@@ -490,6 +490,21 @@ pub enum Command {
     /// Ask after anything that changes Continue, such as an episode ending, as the app goes to
     /// the background, and from the background task after [`Command::CheckNewEpisodes`].
     WidgetSnapshot,
+    /// What will notify of new episodes in the next seven days, and what is left out and why:
+    /// answered with one [`Event::UpcomingNotices`](crate::event::Event::UpcomingNotices), never
+    /// with a job.
+    ///
+    /// For an app that schedules its notifications ahead, to fire at air time with no code of
+    /// its own running then, as Apple's local notifications do; and for its Notifications pane's
+    /// list. The week's broadcasts are the widgets' record's, fetched once for both and used
+    /// again for a few minutes, so asking after [`Command::WidgetSnapshot`] costs AniList
+    /// nothing. The shows are those [`Command::CheckNewEpisodes`] follows, each with why: being
+    /// watched, or switched on or off for itself. It answers with every switch, the setting on
+    /// or off, and says which the setting is; the app decides what that schedules.
+    ///
+    /// Ask on launch, on coming to the foreground, after a sync or a change of progress, and
+    /// from the background task, after [`Command::CheckNewEpisodes`].
+    UpcomingNotices,
 }
 
 /// A control sent to whatever is currently playing.

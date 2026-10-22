@@ -155,7 +155,7 @@ targetTemplates:
         codeSign: true
     sources:
       - path: App
-        excludes: ["Info.plist", "Fixtures-Info.plist"]
+        excludes: ["Info.plist", "Fixtures-Info.plist", "*.entitlements"]
       # iOS only: the CJK font libass falls back to for subtitles, since iOS has no font FreeType
       # opens with simplified-only characters (scripts/fonts.sh, which the first build phase
       # checks), and its licence. AnistreamPlayer finds the folder by name. The Mac gets neither.
@@ -290,8 +290,13 @@ targets:
         PRODUCT_NAME: Anistream
         PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.app
         INFOPLIST_KEY_CFBundleDisplayName: anistream
-        # The anistream:// links the app opens.
+        # The anistream:// links the app opens, the background refresh and the App Group.
         INFOPLIST_FILE: App/Info.plist
+        # The App Group the widgets' record is written to: iPhone and iPad's needs a profile on
+        # a device, the Mac's is team-prefixed and needs none.
+        ANISTREAM_APP_GROUP[sdk=iphone*]: group.tv.anistream
+        ANISTREAM_APP_GROUP[sdk=macosx*]: $(TeamIdentifierPrefix)tv.anistream
+        CODE_SIGN_ENTITLEMENTS: App/Anistream.entitlements
     dependencies:
       - target: AnistreamKit
       - target: AnistreamDesign

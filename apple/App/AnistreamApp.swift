@@ -77,5 +77,14 @@ struct AnistreamApp: App {
                 default: delegate.phases.scene(.inactive)
                 }
             }
+            // Notifications: their permission and the week's schedule looked at again on the way
+            // back, and the next background refresh asked for on the way out.
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .active: delegate.notices.cameForward()
+                case .background: delegate.notices.wentAway()
+                default: break
+                }
+            }
     }
 }

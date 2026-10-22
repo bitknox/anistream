@@ -340,6 +340,21 @@ impl Days {
 
 const DAY: i64 = 24 * 3_600;
 
+/// The week's broadcasts as the record fetches them, from the start of today to the start of the
+/// day a week on, sharing what it fetched: for the notifications' week (`crate::upcoming`), so
+/// the two cost AniList one fetch. With the end of that week.
+pub(crate) async fn week(
+    store: Store,
+    meta: Meta,
+    clock: Clock,
+    schedule: Schedule,
+    now: i64,
+) -> (Vec<AiringEntry>, i64) {
+    let days = Days::of(now);
+    let make = Make { store, meta, tracker: None, clock, schedule };
+    (make.broadcasts(&days).await, days.week_end)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

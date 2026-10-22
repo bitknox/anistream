@@ -23,6 +23,8 @@ final class AppDelegate: NSObject {
     private var started = false
     /// Spotlight's titles, kept the shelf's once the engine is up.
     private var spotlight: SpotlightIndexer?
+    /// New-episode notifications: the centre, their actions, the background refresh.
+    private(set) var notices: AppNotifications!
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
     /// The episode playing, handed off to your other devices; it pauses here when one takes it.
@@ -49,6 +51,15 @@ final class AppDelegate: NSObject {
         // The Fixtures app's home is made at its start, a new one every launch.
         intents.shelfFile = Shelf.file(in: EngineHome.resolve())
         #endif
+        notices = AppNotifications(
+            store: store,
+            navigator: navigator,
+            storeStarted: { [weak self] in self?.started ?? false },
+            backgroundLaunch: { Self.backgroundLaunch() }
+        )
+        // Before launch ends, as the system asks of a notification's delegate and the background
+        // task's handler.
+        notices.launch()
         watchPlaying()
     }
 
@@ -66,12 +77,25 @@ final class AppDelegate: NSObject {
         }
     }
 
+    /// The engine a background refresh or a notification's Mark watched starts when the app has
+    /// none running: the app's own, on its own directories and keychain. None for the Fixtures
+    /// app, whose engine lives only as long as its window.
+    static func backgroundLaunch() -> (EngineLaunch, AppHost)? {
+        #if FIXTURES
+        return nil
+        #else
+        return (EngineLaunch.app(platform: platform), AppHost(secrets: KeychainSecrets(), open: open))
+        #endif
+    }
+
     /// Start the engine, once, however many windows ask.
     func start() async {
         guard !started else { return }
         started = true
         // Said from the start, queued for the engine until it is up.
         phases.watchNetwork()
+        // An engine a background refresh started stops first: one engine on the files at a time.
+        await notices.yieldBackgroundEngine()
         #if FIXTURES
         let (launch, temporary) = EngineLaunch.fixtures(platform: Self.platform)
         self.temporary = temporary
@@ -98,6 +122,9 @@ final class AppDelegate: NSObject {
         // the Simulator writes the app's output to a file, which would hold it back.
         var ready = await store.settle()
         store.applyShowcase()
+        // The week's notifications, scheduled, when there are any to schedule.
+        await store.notifications.refreshPermission()
+        if store.notifications.schedules { store.refreshNotices() }
         #if FIXTURES
         // A screenshot of the player: play the Playing scene's episode to the state named.
         if let shot = PlayerShot.named(in: ProcessInfo.processInfo.arguments) {
