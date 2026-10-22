@@ -64,7 +64,8 @@ public final class Navigator {
         query = route.query ?? ""
         librarySegment = route.library ?? .watching
         paletteShown = route.palette != nil
-        settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)) ?? .playback
+        settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)).flatMap { SettingsPane.shown.contains($0) ? $0 : nil }
+            ?? .playback
         // "titles": Playback, its title-language row selected (MacSettingsTitles).
         if route.pane == "titles" { playbackFocus = .titleLanguage }
         launchSheet = route.sheet

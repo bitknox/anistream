@@ -40,10 +40,14 @@ func entry(_ change: (inout Entry) -> Void) -> Entry {
 }
 
 struct PresentationTests {
-    @Test func theRomajiHeadsATitleWithTheEnglishBeneath() {
+    @Test func theEnginesTitleHeadsWithTheOtherFormBeneath() {
+        // The engine names the title in the form Settings chose, here English, and the other
+        // form beside it.
         let both = entry { _ in }
-        #expect(both.showTitle == "Hoshikuzu no Tabibito")
-        #expect(both.alternateTitle == "Stardust Wayfarer")
+        #expect(both.showTitle == "Stardust Wayfarer")
+        #expect(both.alternateTitle == "Hoshikuzu no Tabibito")
+        let same = entry { $0.secondary = "Stardust Wayfarer" }
+        #expect(same.alternateTitle == nil, "a repeat is no other form")
         let one = entry { $0.title = "Natsukaze Relay"; $0.secondary = nil }
         #expect(one.showTitle == "Natsukaze Relay")
         #expect(one.alternateTitle == nil)

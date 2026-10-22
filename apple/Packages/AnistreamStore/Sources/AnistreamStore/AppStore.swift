@@ -31,6 +31,7 @@ public final class AppStore {
     public let jobs: JobsModel
     public let notices: NoticesModel
     public let settings = SettingsModel()
+    public let showSettings = ShowSettingsModel()
     public let accounts = AccountsModel()
     public let providers = ProvidersModel()
     public let stores = StoresModel()
@@ -333,6 +334,8 @@ public final class AppStore {
 
         case .settings(let view):
             settings.apply(view)
+        case .showSettings(let view):
+            showSettings.apply(view)
 
         case .sync(let state):
             accounts.apply(state)

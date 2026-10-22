@@ -36,7 +36,8 @@ struct PhoneSettingsSheet: View {
         .overlay(alignment: .bottom) {
             NoticeCapsule(opensMessages: false).padding(.horizontal, 16).padding(.bottom, 24)
         }
-        .tint(.amber)
+        // Silk for the bar's actions and links; switches set their own amber.
+        .tint(.silk)
         .preferredColorScheme(.dark)
     }
 }
@@ -302,16 +303,15 @@ struct Avatar: View {
 
 struct PhonePlaybackPage: View {
     @Environment(AppStore.self) private var store
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
 
     var body: some View {
+        let overridden = store.settings.overriddenNote
         PhoneList {
             Section {
                 PhoneTitleLanguageRow()
-                // "Overridden for 3 shows" waits on E8's override counts.
-                PhoneSettingPicker(key: .translation)
+                PhoneSettingPicker(key: .translation, note: overridden(.translation))
                 PhoneSubtitlesPicker()
-                PhoneSettingPicker(key: .quality)
+                PhoneSettingPicker(key: .quality, note: overridden(.quality))
             } header: {
                 PhoneSectionHeader("Language")
             } footer: {
@@ -319,18 +319,13 @@ struct PhonePlaybackPage: View {
             }
             Section {
                 PhoneSettingSwitch(key: .autoNext)
-                // E8: `UpNextCountdown`.
-                PhoneDeferredRow(title: "Up Next countdown", value: "10 s", waitsOn: "E8")
-                PhoneSettingSwitch(key: .skipOpening)
-                PhoneSettingSwitch(key: .skipFiller)
+                PhoneSettingPicker(key: .upNextCountdown)
+                    .disabled(!store.settings.isOn(.autoNext))
+                PhoneSettingSwitch(key: .skipOpening, note: overridden(.skipOpening))
+                PhoneSettingSwitch(key: .skipFiller, note: overridden(.skipFiller))
                 PhoneSettingSwitch(key: .markChapters)
                 PhoneSettingPicker(key: .commitThreshold)
-                // Kept on this device until E8's `SpoilerProtection`.
-                Toggle(isOn: $spoilers) {
-                    PhoneRowTitle(title: "Spoiler protection", note: "Blurs stills after the next episode")
-                }
-                .tint(.amber)
-                .listRowBackground(Palette.raised)
+                PhoneSettingSwitch(key: .spoilerProtection, note: "Blurs stills after the next episode")
             } header: {
                 PhoneSectionHeader("Episodes")
             }
@@ -400,9 +395,9 @@ struct PhoneDownloadsPage: View {
                 }
             }
             Section {
-                // E8: `DownloadQuality`.
-                PhoneDeferredRow(title: "Quality", note: "Higher takes the best version a source offers, and more space.",
-                                 value: "Standard", waitsOn: "E8")
+                PhoneSettingPicker(key: .downloadQuality, note: "Higher takes the best version a source offers, and more space.")
+                PhoneSettingPicker(key: .keepNextEpisodes, note: "Downloads the episodes after the one you are on, for each show you watch.")
+                PhoneSettingSwitch(key: .downloadsOnCellular)
                 PhoneSettingSwitch(key: .mergeSubtitles, note: "Subtitles stay with the episode wherever the file goes.")
                 PhoneSettingSwitch(key: .keepSeeding, note: "A download that keeps seeding stays in anistream’s cache.")
             } header: {
@@ -518,13 +513,14 @@ struct PhoneSourcesPage: View {
                 .tint(.amber)
                 .listRowBackground(Palette.raised)
                 if on {
-                    // E9: `rss_url`.
-                    PhoneDeferredRow(title: "Torrent index", note: "The RSS search address anistream asks for torrents",
-                                     value: "", waitsOn: "E9")
-                    // E8: `TorrentsOnCellular`, `SetTorrentProtection`, `VpnOnFailure`.
-                    PhoneDeferredSwitch(title: "Torrents on cellular", on: false)
-                    PhoneDeferredRow(title: "Protect with", value: Protection.label(store.settings.value(.vpnMode)), waitsOn: "E8")
-                    PhoneDeferredRow(title: "If a check fails", value: "Pause torrents", waitsOn: "E8")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(SettingKey.torrentIndex.title).font(.ui(17)).foregroundStyle(.silk)
+                        TorrentIndexField(phone: true).foregroundStyle(.haze)
+                    }
+                    .listRowBackground(Palette.raised)
+                    PhoneSettingSwitch(key: .torrentsOnCellular)
+                    menuRow("Protect with") { ProtectionMenu(phone: true) }
+                    menuRow(SettingKey.vpnOnFailure.title) { FailedCheckMenu(phone: true) }
                     PhoneGuardRow()
                 }
             } header: {
@@ -566,6 +562,15 @@ struct PhoneSourcesPage: View {
             Spacer()
             Text(value).font(.ui(17)).foregroundStyle(.haze)
         }
+    }
+
+    private func menuRow(_ title: String, @ViewBuilder menu: () -> some View) -> some View {
+        HStack {
+            Text(title).font(.ui(17)).foregroundStyle(.silk)
+            Spacer()
+            menu()
+        }
+        .listRowBackground(Palette.raised)
     }
 }
 

@@ -99,7 +99,7 @@ struct ScreenRulesTests {
         }])))
         let navigator = Navigator(route: LaunchRoute())
         var lists = paletteItems(query: "hoshi", store: store, navigator: navigator)
-        #expect(lists.titles.map(\.name) == ["Hoshikuzu no Tabibito"])
+        #expect(lists.titles.map(\.name) == ["Stardust Wayfarer"], "the engine's title, found by its other form")
         #expect(lists.commands.isEmpty, "no title is focused, and no command is called hoshi")
         navigator.focusedTitle = 900_001
         lists = paletteItems(query: "hoshi", store: store, navigator: navigator)

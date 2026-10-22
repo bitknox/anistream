@@ -125,6 +125,8 @@ struct TitlePage: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            // What the show sets for itself, its spoiler protection among it: from the database.
+            store.loadShowSettings(id)
         }
     }
 }
@@ -162,6 +164,13 @@ struct TitleHero: View {
     @Environment(AppStore.self) private var store
     let entry: Entry
 
+    /// On an iPad the page speaks in sentence case and its actions are touch-sized (PadTitleMeta).
+    #if os(iOS)
+    static let pad = true
+    #else
+    static let pad = false
+    #endif
+
     var body: some View {
         let action = TitleAction(entry)
         HStack(alignment: .bottom, spacing: 28) {
@@ -189,22 +198,35 @@ struct TitleHero: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.mac(10))
-                                Text(action.title)
+                                Text(Self.pad ? action.sentence : action.title)
                             }
                         }
-                        .buttonStyle(PrimaryCapsuleStyle())
+                        .buttonStyle(PrimaryCapsuleStyle(height: Self.pad ? 48 : 34, fontSize: Self.pad ? 17 : 13))
                         .keyboardShortcut(.defaultAction)
                     } else {
-                        AirsStatus(text: action.title)
+                        AirsStatus(text: Self.pad ? action.sentence : action.title)
                     }
                     if let trailer = entry.trailerUrl {
                         Button("Trailer") {
                             store.send(.playTrailer(url: trailer, title: entry.title))
                         }
-                        .buttonStyle(SecondaryCapsuleStyle())
+                        .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
                     }
+                    #if os(iOS)
+                    // The list's menu, in the header where a narrow window's bar has no room.
+                    Menu {
+                        StatusItems(id: entry.id)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
+                            Image(systemName: "chevron.up.chevron.down").font(.ui(13, weight: .semibold))
+                        }
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(SecondaryCapsuleStyle(height: 48, fontSize: 17))
+                    #endif
                 }
-                .padding(.top, 12)
+                .padding(.top, Self.pad ? 16 : 12)
             }
             .padding(.bottom, 4)
         }
@@ -379,7 +401,6 @@ struct TitleFamilyRow: View {
 struct EpisodeList: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @State private var unwatchedOnly = false
     let entry: Entry
     /// Where the page's Unwatched episodes rotor finds the rows.
@@ -419,7 +440,7 @@ struct EpisodeList: View {
     }
 
     private func row(_ row: EpisodeRow) -> some View {
-        EpisodeRowView(entry: entry, row: row, spoilers: spoilers)
+        EpisodeRowView(entry: entry, row: row, spoilers: store.spoilerProtection(for: entry.id))
             .accessibilityRotorEntry(id: row.number, in: rotor)
     }
 

@@ -9,14 +9,21 @@ import AnistreamStore
 import SwiftUI
 
 extension Entry {
-    /// The title as VoiceOver reads it: the show title, then the English one where it differs.
-    /// The romaji is read in Japanese.
+    /// The title as VoiceOver reads it: the show title, then the other form where it differs.
+    /// The romaji, whichever it is, is read in Japanese.
     var spokenTitle: Text {
-        guard let english = alternateTitle else { return Text(showTitle) }
-        var spoken = AttributedString(showTitle)
-        spoken.languageIdentifier = "ja"
-        spoken.append(AttributedString(", " + english))
+        var spoken = romajiRead(showTitle)
+        if let other = alternateTitle {
+            spoken.append(AttributedString(", "))
+            spoken.append(romajiRead(other))
+        }
         return Text(spoken)
+    }
+
+    private func romajiRead(_ form: String) -> AttributedString {
+        var words = AttributedString(form)
+        if form == titleRomaji { words.languageIdentifier = "ja" }
+        return words
     }
 }
 

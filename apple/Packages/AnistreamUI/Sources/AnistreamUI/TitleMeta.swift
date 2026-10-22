@@ -20,9 +20,9 @@ extension Entry {
 }
 
 extension LinkedTitle {
-    /// The title a card shows, by the rule the title page's follows.
+    /// The title a card shows: the engine's, in the form Settings › Title language chose.
     var shownTitle: String {
-        titleRomaji ?? title
+        title
     }
 
     /// "Movie · 2025": its format and year, as a recommendation says them.

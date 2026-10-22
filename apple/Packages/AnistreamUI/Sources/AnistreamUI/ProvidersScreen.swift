@@ -187,9 +187,13 @@ struct ProviderStandingLabel: View {
     var body: some View {
         switch info.row.standing {
         case .failing:
-            label("Not answering", dot: .vermilion, color: selected ? .silk : .vermilion)
+            // Silk words beside the vermilion dot, as the boards have it: the dot says what is
+            // wrong, and red text would only shout it.
+            label("Not answering", dot: .vermilion, color: .silk)
         case .heldBack:
             label("Held back", ring: true, color: .haze)
+        case .off:
+            label("Off", ring: true, color: .silk)
         case .slow:
             label("Slow", dot: .haze, color: .haze)
         case .working:
@@ -297,11 +301,10 @@ struct ProviderDetail: View {
                 Button("Check Again") { store.checkProviders() }
                     .buttonStyle(SecondaryCapsuleStyle())
             }
-            // E9: `DisablePlugin` turns one plugin off without removing it.
-            Button("Disable") {}
+            // Off without removing it: its source leaves the chain until it is on again.
+            let disabled = store.isPluginDisabled(info.row.id)
+            Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(info.row.id, !disabled) }
                 .buttonStyle(SecondaryCapsuleStyle())
-                .disabled(true)
-                .help("Comes with engine step E9")
             Button("Remove…") { removing = true }
                 .buttonStyle(SecondaryCapsuleStyle())
                 .disabled(store.stores.isWorking(.remove(plugin: info.row.id)))
