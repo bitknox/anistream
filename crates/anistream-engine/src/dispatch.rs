@@ -251,7 +251,6 @@ pub(crate) fn dispatch(
         // What a native app shows outside itself: notifications, and its widgets. Off the loop,
         // with no job, each answered with one event.
         Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
-        Command::ComingEpisodes => crate::new_episodes::coming(engine, services, tx),
         Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
         Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
 

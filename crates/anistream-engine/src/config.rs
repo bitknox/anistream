@@ -26,6 +26,9 @@ pub struct ConfigState {
     /// what the Settings rows say beside the config. Kept here so every view of the settings
     /// carries them, counted again whenever a show's settings change.
     overridden: Vec<SettingOverride>,
+    /// How many shows switch new-episode notifications on for themselves, counted with
+    /// `overridden`: [`SettingsView::notify_switched_on`].
+    notify_switched_on: u32,
 }
 
 impl ConfigState {
@@ -34,7 +37,7 @@ impl ConfigState {
     /// reads it, as the defaults.
     pub fn new(launched: Config, saved: Option<Config>, paths: &Paths) -> Self {
         let saved = saved.unwrap_or_else(|| Config::load(paths).unwrap_or_default());
-        Self { saved, effective: launched, overridden: Vec::new() }
+        Self { saved, effective: launched, overridden: Vec::new(), notify_switched_on: 0 }
     }
 
     /// The config in effect.
@@ -57,13 +60,20 @@ impl ConfigState {
     pub fn view(&self) -> SettingsView {
         SettingsView {
             overridden: self.overridden.clone(),
+            notify_switched_on: self.notify_switched_on,
             ..settings::view(&self.effective, &self.saved)
         }
     }
 
-    /// The counts of shows that set each setting for themselves, as the database has them now.
-    pub fn set_overridden(&mut self, overridden: Vec<SettingOverride>) {
+    /// The counts of shows that set each setting for themselves, and of those that switch
+    /// new-episode notifications on, as the database has them now.
+    pub fn set_overridden(
+        &mut self,
+        overridden: Vec<SettingOverride>,
+        notify_switched_on: u32,
+    ) {
         self.overridden = overridden;
+        self.notify_switched_on = notify_switched_on;
     }
 
     /// Write `value` at `table`.`key`, then read the file back, whatever the write did: what
