@@ -18,5 +18,5 @@ internal object Flavour {
     fun background(context: Context): EngineLaunch =
         EngineLaunch.app(EngineHome.sandbox(files = context.filesDir, cache = context.cacheDir))
 
-    fun started(store: AppStore, intent: Intent, notifier: EpisodeNotifier) {}
+    fun started(context: Context, store: AppStore, intent: Intent, notifier: EpisodeNotifier) {}
 }

@@ -57,6 +57,7 @@ import androidx.navigation.compose.composable
 import tv.anistream.design.Motion
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.SettingsView
+import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.Wording
@@ -64,6 +65,7 @@ import tv.anistream.store.Wording
 /** The panes of Settings, in the list's order. */
 enum class SettingsPane(val route: String, val title: String) {
     Playback("playback", "Playback"),
+    Notifications("notifications", "Notifications"),
     Downloads("downloads", "Downloads"),
     Sources("sources", "Sources"),
     Accounts("accounts", "Accounts"),
@@ -164,6 +166,7 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
     AccountCard(trackers["anilist"], AccountWords.status(trackers["anilist"], syncedAt, working)) { open(SettingsPane.Accounts) }
     val panes = listOf(
         SettingsPane.Playback to playbackSummary(view),
+        SettingsPane.Notifications to notificationsSummary(view),
         SettingsPane.Downloads to storageLine(store.downloads.bytes(downloads)),
         SettingsPane.Sources to sourcesSummary(view, providers.size),
         SettingsPane.Accounts to AccountWords.connected(trackers),
@@ -185,11 +188,18 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
 private val SettingsPane.icon
     get() = when (this) {
         SettingsPane.Playback -> Icons.PlaybackPage
+        SettingsPane.Notifications -> Icons.NotificationsPage
         SettingsPane.Downloads -> Icons.DownloadsPage
         SettingsPane.Sources -> Icons.SourcesPage
         SettingsPane.Accounts -> Icons.AccountsPage
         SettingsPane.About -> Icons.About
     }
+
+/** "New episodes on", or off. */
+private fun notificationsSummary(view: SettingsView?): String? {
+    val row = view?.let { (it.rows + it.nativeRows).firstOrNull { row -> row.key == SettingKey.EPISODE_NOTIFICATIONS } } ?: return null
+    return if (SettingsCatalog.isOn(row)) "New episodes on" else "New episodes off"
+}
 
 /** "Subtitled · 1080p". */
 private fun playbackSummary(view: SettingsView?): String? {
@@ -352,7 +362,8 @@ private val SettingsPane.defaultFocus: String?
 @Composable
 internal fun PaneContent(pane: SettingsPane, actions: AppActions) {
     when (pane) {
-        SettingsPane.Playback -> PlaybackPane(actions)
+        SettingsPane.Playback -> PlaybackPane()
+        SettingsPane.Notifications -> NotificationsPane(actions)
         SettingsPane.Downloads -> DownloadsPane(actions)
         SettingsPane.Sources -> SourcesPane(actions)
         SettingsPane.Accounts -> AccountsPane(actions)

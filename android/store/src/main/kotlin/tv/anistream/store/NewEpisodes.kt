@@ -3,6 +3,7 @@
 
 package tv.anistream.store
 
+import android.graphics.Bitmap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -10,6 +11,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
@@ -17,6 +20,9 @@ import kotlinx.coroutines.withContext
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.ffi.FfiBackground
 import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.WidgetData
 
 /**
  * An episode of a show being followed that aired since the show was last checked, said once: the
@@ -33,6 +39,8 @@ data class NewEpisode(
     val airedAt: Long,
     /** The show's cover, for the notification's picture. */
     val coverUrl: String? = null,
+    /** That cover, fetched for the notification while the check's engine was up. */
+    val art: Bitmap? = null,
 )
 
 /**
@@ -45,6 +53,54 @@ fun interface EpisodeCheck {
      * notifications are off. Throws when the engine could not be asked, so the work tries again.
      */
     suspend fun newEpisodes(): List<NewEpisode>
+}
+
+/**
+ * The check on the engine, run as `CheckNewEpisodes` says to run it in the background: on the
+ * app's engine while it runs, or on a quiet one of the check's own. It takes the episodes the
+ * check says, fetches each one's cover for its notification, and then asks for the widgets' record
+ * and hands it to [widgets] to keep, so the widgets are as fresh as the check.
+ */
+class EngineEpisodeCheck(
+    private val engine: BackgroundEngine,
+    private val widgets: (WidgetData) -> Unit,
+    private val coverSize: Int = COVER_SIZE,
+) : EpisodeCheck {
+    override suspend fun newEpisodes(): List<NewEpisode> = engine.use { store ->
+        val said = store.ask(Command.CheckNewEpisodes, CHECK_MILLIS) { (it as? Event.NewEpisodes)?.v1 }
+            ?: throw Unanswered("the check for new episodes")
+        val covers = store.covers(said.mapNotNull { it.coverUrl }.distinct(), coverSize, COVERS_MILLIS)
+        store.ask(Command.WidgetSnapshot, SNAPSHOT_MILLIS) { (it as? Event.WidgetSnapshot)?.v1 }?.let(widgets)
+        said.map { NewEpisode(it.id, it.title, it.episode, it.airedAt, it.coverUrl, it.coverUrl?.let(covers::get)) }
+    }
+
+    /** The engine did not answer [what] in time. */
+    class Unanswered(what: String) : Exception("$what was not answered")
+
+    companion object {
+        /** The check answers within 15 s whatever the network does; this leaves it room. */
+        const val CHECK_MILLIS = 30_000L
+
+        /** How long the covers may take, all of them; a notification without one still posts. */
+        const val COVERS_MILLIS = 10_000L
+
+        const val SNAPSHOT_MILLIS = 20_000L
+
+        /** A cover's long side for a notification: its large icon and its expanded picture. */
+        const val COVER_SIZE = 720
+    }
+}
+
+/**
+ * The art for [urls], fetched through the engine and decoded to at most [size] on its long side,
+ * by URL: as much of it as came within [timeoutMillis].
+ */
+suspend fun AppStore.covers(urls: List<String>, size: Int, timeoutMillis: Long): Map<String, Bitmap> {
+    for (url in urls) artwork.request(url, size)
+    withTimeoutOrNull(timeoutMillis) {
+        while (urls.any(artwork::isPending)) delay(50)
+    }
+    return urls.mapNotNull { url -> artwork.image(url)?.let { url to it.image } }.toMap()
 }
 
 /**

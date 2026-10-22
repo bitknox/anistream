@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.FilledTonalButton
@@ -113,14 +114,71 @@ private fun Pane(content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
 }
 
+// Notifications
+
+/**
+ * Notifications, as AndroidSettingsNotify draws it: the New episodes switch for this device on a
+ * card of its own, with the shows that set their own, and the note that the permission is asked
+ * then; then the system's settings for the channel. Turning the switch on goes through the app,
+ * which asks for the permission to post then, and only then; where Android says no, the switch
+ * stays off and its line says why. The board's "Coming up" list waits for the engine to say which
+ * shows' episodes the check follows.
+ */
+@Composable
+internal fun NotificationsPane(actions: AppActions) {
+    val store = LocalAppStore.current
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val key = SettingKey.EPISODE_NOTIFICATIONS
+    val row = store.settings.row(key, view)
+    val app = actions.notifications
+    val refused = app?.refused?.collectAsStateWithLifecycle()?.value == true
+    Pane {
+        SettingsGroup(
+            footer = "anistream asks for permission the first time you turn this on.",
+            rows = listOf(
+                { place ->
+                    SwitchRow(
+                        place = place,
+                        title = "New episodes",
+                        checked = SettingsCatalog.isOn(row),
+                        note = listOfNotNull(
+                            if (refused) NOTIFICATIONS_REFUSED else "For shows in your Watching list",
+                            store.settings.overridden(key, view),
+                        ).joinToString("\n"),
+                        enabled = SettingsCatalog.editable(row),
+                    ) { on -> app?.turn?.invoke(on) ?: store.setSwitch(key, on) }
+                },
+            ),
+        )
+        if (app != null) {
+            SettingsGroup(
+                modifier = Modifier.padding(top = 8.dp),
+                rows = listOf(
+                    { place ->
+                        InfoRow(
+                            place,
+                            "Notification settings",
+                            "Sound, vibration and the lock screen",
+                            onClick = app.openSystemSettings,
+                            trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        )
+                    },
+                ),
+            )
+        }
+    }
+}
+
+/** What the switch's line says once Android has not let notifications go on. */
+internal const val NOTIFICATIONS_REFUSED = "Off: Android isn’t allowing anistream’s notifications"
+
 // Playback
 
 @Composable
-internal fun PlaybackPane(actions: AppActions = AppActions()) {
+internal fun PlaybackPane() {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val autoNext = store.settings.isOn(SettingKey.AUTO_NEXT, view)
-    val notifications = actions.episodeNotifications
     Pane {
         SettingsGroup(
             title = "Language",
@@ -134,15 +192,14 @@ internal fun PlaybackPane(actions: AppActions = AppActions()) {
         )
         SettingsGroup(
             title = "Episodes",
-            rows = listOfNotNull(
-                @Composable { place: Place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
+            rows = listOf(
+                { place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
                 { place -> SettingMenu(place, SettingKey.UP_NEXT_COUNTDOWN, "Up Next countdown", enabled = autoNext) },
                 { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, "Skip opening automatically") },
                 { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, "Skip filler automatically") },
                 { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, "Mark opening and ending") },
                 { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, "Counts as watched at", note = "Or when the ending starts, if it is marked") },
                 { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, "Spoiler protection", note = "Blurs stills of unwatched episodes after the next one") },
-                if (notifications != null) @Composable { place: Place -> EpisodeNotificationsRow(place, notifications) } else null,
             ),
         )
         SettingsGroup(
@@ -153,16 +210,6 @@ internal fun PlaybackPane(actions: AppActions = AppActions()) {
             ),
         )
     }
-}
-
-/**
- * New-episode notifications. Turning them on goes through the app, which asks for the permission
- * to post them first, and only then.
- */
-@Composable
-private fun EpisodeNotificationsRow(place: Place, switch: AppSwitch) {
-    val on by switch.on.collectAsStateWithLifecycle()
-    SwitchRow(place, "New episode notifications", checked = on, note = "When a show you follow has a new episode out") { switch.set(it) }
 }
 
 /** The three forms a title can be named in, as the settings file names them. */
