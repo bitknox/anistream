@@ -44,7 +44,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- Where the MyAnimeList sign-in sends the browser back, anistream://auth/mal, and
-                 AniList's while its Android client is not registered, anistream://auth/anilist. -->
+                 AniList's on the shared client, anistream://auth/anilist, for a launch without the
+                 Android one. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

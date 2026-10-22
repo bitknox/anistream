@@ -119,10 +119,18 @@ class SignInTest {
     }
 }
 
-/** Which AniList client the app flavour signs in with, before and after the Android one is registered. */
+/** Which AniList client the app flavour signs in with: the Android one, or the shared one without it. */
 class AniListClientTest {
     @Test
-    fun until_the_android_client_is_registered_the_shared_one_comes_back_on_the_scheme() {
+    fun the_app_signs_in_with_the_android_client_on_the_verified_app_link() {
+        assertEquals("54545", EngineLaunch.ANDROID_ANILIST_CLIENT_ID)
+        val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")))
+        assertEquals("54545", launch.record.anilistClientId)
+        assertEquals("https://anistream.tv/auth/anilist", launch.record.anilistRedirectUri)
+    }
+
+    @Test
+    fun without_the_android_client_the_shared_one_comes_back_on_the_scheme() {
         assertEquals(AniListClient("54537", null), EngineLaunch.aniListClient(null))
         assertEquals(AniListClient("54537", null), EngineLaunch.aniListClient(" "))
         val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")), androidAniListClientId = null)
@@ -131,7 +139,7 @@ class AniListClientTest {
     }
 
     @Test
-    fun once_it_is_registered_it_comes_back_on_the_verified_app_link() {
+    fun any_android_client_comes_back_on_the_verified_app_link() {
         assertEquals(AniListClient("61234", "https://anistream.tv/auth/anilist"), EngineLaunch.aniListClient("61234"))
         val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")), androidAniListClientId = "61234")
         assertEquals("61234", launch.record.anilistClientId)
