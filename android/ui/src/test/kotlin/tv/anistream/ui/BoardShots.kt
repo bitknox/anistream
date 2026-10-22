@@ -212,7 +212,7 @@ class BoardShots {
     /** The title page scrolled to the row its watched episodes fold under. */
     private fun toEpisodes() {
         compose.onNode(hasScrollToKeyAction() and hasAnyDescendant(hasText("More about this show")))
-            .performScrollToKey(WATCHED_FOLD)
+            .performScrollToKey(watchedFold(900001u))
         compose.waitForIdle()
     }
 

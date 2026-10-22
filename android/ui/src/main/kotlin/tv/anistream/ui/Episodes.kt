@@ -38,7 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -89,7 +89,11 @@ class UserMarks {
     fun take(number: String): Boolean = pending.remove(number)
 }
 
-val LocalUserMarks = staticCompositionLocalOf { UserMarks() }
+/**
+ * The page's marks. Dynamic rather than static: a season picked in place brings marks of its own,
+ * and only the rows reading them recompose, not the whole page under them.
+ */
+val LocalUserMarks = compositionLocalOf { UserMarks() }
 
 /** "24 min", from the row's duration. */
 internal fun minutes(row: EpisodeRow): String? = row.durationSecs?.let { "${maxOf(1, (it.toDouble() / 60).roundToInt())} min" }
