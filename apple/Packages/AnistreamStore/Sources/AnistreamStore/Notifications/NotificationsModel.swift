@@ -16,6 +16,17 @@ public final class NotificationsModel {
     public private(set) var declined = false
     /// Each show's own switch, as its settings last said: on, off, or following Settings.
     public private(set) var showSwitch: [AnilistId: Bool?] = [:]
+    /// Whether anything notifies on this device: Settings' switch on, or a show switched on for
+    /// itself. The background refresh is kept scheduled while it does, and cancelled only when
+    /// nothing does. `nil` until the engine has said its settings.
+    public private(set) var refreshes: Bool? {
+        didSet {
+            if let refreshes, refreshes != oldValue { onRefreshes?(refreshes) }
+        }
+    }
+    /// Told when `refreshes` is first known and when it changes: the app schedules or cancels
+    /// its background refresh.
+    @ObservationIgnored public var onRefreshes: (@MainActor (Bool) -> Void)?
 
     /// Where notifications are scheduled: the system's, or a quiet one in the Fixtures app and
     /// the tests. Set by the app at launch; with none, nothing is scheduled.
@@ -33,6 +44,8 @@ public final class NotificationsModel {
             if let scheduler {
                 Task { await scheduler.reschedule(week) }
             }
+        case .settings(let view):
+            refreshes = Self.refreshes(view)
         case .showSettings(let sheet):
             let row = sheet.rows.first { $0.key == .notifyNewEpisodes }
             if let row {
@@ -51,6 +64,13 @@ public final class NotificationsModel {
     /// asks for the week but the Notifications pane.
     public var schedules: Bool {
         scheduler != nil && permission == .allowed
+    }
+
+    /// Whether the settings `view` has anything notify: the New episodes switch on, or a show
+    /// switched on for itself, which notifies whatever the switch says.
+    nonisolated static func refreshes(_ view: SettingsView) -> Bool {
+        let row = (view.rows + view.nativeRows).first { $0.key == .episodeNotifications }
+        return row?.isOn == true || view.notifySwitchedOn > 0
     }
 
     /// Whether `event` can change the week: an episode ended or was marked, a sync pulled the
@@ -96,9 +116,17 @@ public final class NotificationsModel {
         return (week?.airings ?? []).filter { $0.reason == .switchedOff && seen.insert($0.id).inserted }.map(\.title)
     }
 
-    /// Whether a row of the week notifies: dimmed in the pane when it does not.
+    /// Whether a row of the week notifies, as the engine says: dimmed in the pane when it does
+    /// not. With the setting off, only a show switched on for itself does.
     public func notifies(_ row: UpcomingNotice) -> Bool {
-        NoticePlan.notifies(row.reason, enabled: week?.enabled ?? false)
+        row.notifies
+    }
+
+    /// The shows of the week watched dubbed that notify, each once: told when the dub is out,
+    /// not at the broadcast the week dates.
+    public var dubbed: [String] {
+        var seen = Set<AnilistId>()
+        return comingUp.filter { $0.notifies && $0.translation == .dub && seen.insert($0.id).inserted }.map(\.title)
     }
 
     // MARK: A show

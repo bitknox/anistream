@@ -16,6 +16,14 @@ struct SettingsWordsTests {
         #expect(SettingKey.commitThreshold.title == "Counts as watched at")
     }
 
+    @Test func theWeeksFootnoteSaysWhatWaitsForItsDubAndWhatIsOff() {
+        #expect(NoticeWords.leftOut(dubbed: [], off: []) == "A row opens that show’s settings.")
+        #expect(NoticeWords.leftOut(dubbed: ["Summer Wind Relay"], off: ["Amber Forest"])
+            == "Summer Wind Relay notifies when its dub is out. Amber Forest is off in its own settings. A row opens that show’s settings.")
+        #expect(NoticeWords.leftOut(dubbed: ["One", "Two", "Three"], off: [])
+            == "One, Two and Three notify when their dubs are out. A row opens that show’s settings.")
+    }
+
     @Test func theProtectionIsNamedAsTheTurnOnSheetNamesIt() {
         #expect(Protection.label("socks5") == "SOCKS5 proxy")
         #expect(Protection.label("external") == "VPN on this device")

@@ -68,7 +68,8 @@ final class AppNotifications: NSObject {
     }
 
     /// At launch, before it finishes: the delegate and the actions, the store's scheduler, and
-    /// the background refresh.
+    /// the background refresh, which is kept scheduled while anything notifies (Settings' switch
+    /// on, or a show switched on for itself) and cancelled once nothing does.
     func launch() {
         if real {
             UNUserNotificationCenter.current().delegate = self
@@ -76,10 +77,18 @@ final class AppNotifications: NSObject {
         }
         let questions = store.questions
         store.notifications.scheduler = NoticeScheduler(centre: centre) { await questions.art($0) }
+        store.notifications.onRefreshes = { [weak self] wanted in self?.keepRefreshing(wanted) }
         #if os(iOS)
         registerRefresh()
+        #endif
+    }
+
+    /// Schedule the background refresh while anything notifies, and cancel it once nothing does.
+    private func keepRefreshing(_ wanted: Bool) {
+        #if os(iOS)
+        if wanted { submitRefresh() } else { cancelRefresh() }
         #else
-        startActivity()
+        if wanted { startActivity() } else { stopActivity() }
         #endif
     }
 
@@ -91,10 +100,10 @@ final class AppNotifications: NSObject {
         }
     }
 
-    /// The app left: ask for the next refresh.
+    /// The app left: ask for the next refresh, while anything notifies.
     func wentAway() {
         #if os(iOS)
-        submitRefresh()
+        if store.notifications.refreshes == true { submitRefresh() }
         #endif
     }
 
@@ -185,6 +194,11 @@ final class AppNotifications: NSObject {
         }
     }
 
+    private func cancelRefresh() {
+        guard registered else { return }
+        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.refreshTask)
+    }
+
     private func submitRefresh() {
         guard registered else { return }
         let request = BGAppRefreshTaskRequest(identifier: Self.refreshTask)
@@ -197,7 +211,9 @@ final class AppNotifications: NSObject {
     }
 
     private func handle(_ task: SendableTask) {
-        submitRefresh()
+        // Asked for while something notified. The app's settings say whether that still holds;
+        // an engine of the task's own has none, and the app cancels it when it comes forward.
+        if store.notifications.refreshes != false { submitRefresh() }
         let run = Task { @MainActor in await self.refresh() }
         task.task.expirationHandler = { run.cancel() }
         Task { @MainActor in
@@ -209,6 +225,7 @@ final class AppNotifications: NSObject {
     // MARK: The Mac's background activity
 
     private func startActivity() {
+        guard self.activity == nil else { return }
         let activity = NSBackgroundActivityScheduler(identifier: Self.refreshTask)
         activity.repeats = true
         activity.interval = Self.refreshEvery
@@ -221,6 +238,11 @@ final class AppNotifications: NSObject {
             }
         }
         self.activity = activity
+    }
+
+    private func stopActivity() {
+        activity?.invalidate()
+        activity = nil
     }
     #endif
 }

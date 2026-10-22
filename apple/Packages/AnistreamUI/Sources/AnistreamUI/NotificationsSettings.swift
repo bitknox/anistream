@@ -38,17 +38,33 @@ enum NoticeWords {
         "Overridden for \(count) \(count == 1 ? "show" : "shows")"
     }
 
-    /// The footnote under the week: what is left out and why, and what a row does.
+    /// The footnote under the week: what notifies later than its broadcast and why, what is
+    /// left out and why, and what a row does.
     static func leftOut(_ store: AppStore) -> String {
-        let off = store.notifications.switchedOff
-        let opens = "A row opens that show’s settings."
-        switch off.count {
-        case 0: return opens
-        case 1: return "\(off[0]) is off in its own settings. \(opens)"
-        default:
-            let names = off.dropLast().joined(separator: ", ") + " and " + off.last!
-            return "\(names) are off in their own settings. \(opens)"
+        leftOut(dubbed: store.notifications.dubbed, off: store.notifications.switchedOff)
+    }
+
+    /// The footnote for the shows watched `dubbed`, told when the dub is out rather than at the
+    /// time a row says, and those switched `off`.
+    static func leftOut(dubbed: [String], off: [String]) -> String {
+        var lines: [String] = []
+        switch dubbed.count {
+        case 0: break
+        case 1: lines.append("\(dubbed[0]) notifies when its dub is out.")
+        default: lines.append("\(names(dubbed)) notify when their dubs are out.")
         }
+        switch off.count {
+        case 0: break
+        case 1: lines.append("\(off[0]) is off in its own settings.")
+        default: lines.append("\(names(off)) are off in their own settings.")
+        }
+        lines.append("A row opens that show’s settings.")
+        return lines.joined(separator: " ")
+    }
+
+    /// "A, B and C".
+    private static func names(_ titles: [String]) -> String {
+        titles.dropLast().joined(separator: ", ") + " and " + titles.last!
     }
 
     /// When an episode airs, as a row says it: "Today 22:00", "Tomorrow 09:30", "Thursday 16:30".
