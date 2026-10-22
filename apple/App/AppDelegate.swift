@@ -25,6 +25,8 @@ final class AppDelegate: NSObject {
     private var spotlight: SpotlightIndexer?
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
+    /// The episode playing, handed off to your other devices; it pauses here when one takes it.
+    private let playing: PlayingActivity
 
     override init() {
         let store = AppStore()
@@ -34,6 +36,7 @@ final class AppDelegate: NSObject {
         phases = SystemPhases(
             send: { [weak store] command in store?.send(command) },
             playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false })
+        playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
         watchPlaying()

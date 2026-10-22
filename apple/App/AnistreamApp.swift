@@ -59,6 +59,8 @@ struct AnistreamApp: App {
 
     private var content: some View {
         RootView()
+            // Handoff: what another device hands over opens here.
+            .continuesHandoff()
             .hostsPlayer(delegate.player)
             .environment(\.playerUp, delegate.player.isPresented)
             .environment(delegate.store)

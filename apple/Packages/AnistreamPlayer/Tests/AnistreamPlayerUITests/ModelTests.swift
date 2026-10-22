@@ -2,6 +2,7 @@
 // closing, and the cards' rules.
 
 import AnistreamKit
+import AnistreamStore
 import AnistreamPlayer
 import Foundation
 import Testing
@@ -568,6 +569,44 @@ struct CardTests {
 
 @MainActor
 struct ViewerTests {
+    @Test func handedOffElsewhereThePlayingSessionPauses() async throws {
+        let rig = Rig()
+        let types = HandoffTypes(bundleIdentifier: "tv.anistream.app")
+        let playing = rig.model.playingActivity(types: types) { _ in "Hoshikuzu no Tabibito" }
+        #expect(playing.activity == nil, "nothing plays")
+
+        rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1))
+        try await rig.opened(3)
+        try await rig.playhead(760)
+        try await until("the episode offered") { playing.activity != nil && rig.model.position == 760 }
+        let offered = try #require(playing.activity)
+        offered.delegate?.userActivityWillSave?(offered)
+        #expect(offered.activityType == "tv.anistream.playing")
+        #expect(offered.title == "Hoshikuzu no Tabibito · Episode 7", "named as its page heads it")
+        #expect(Handoff(offered, types: types) == .playing(900_001, episode: "7", position: 760))
+
+        // Another device took it over: Pause, to the playing session.
+        let before = rig.sent.count
+        offered.delegate?.userActivityWasContinued?(offered)
+        try await until("paused here") { rig.sent.count > before }
+        #expect(Array(rig.sent.dropFirst(before)) == [.control(playback: 3, command: .togglePause)])
+
+        // Paused already, a toggle would play it: nothing goes.
+        rig.mpv.emit(.property(name: "pause", value: .flag(true)))
+        try await until("paused") { rig.model.paused }
+        let paused = rig.sent.count
+        rig.model.pause()
+        offered.delegate?.userActivityWasContinued?(offered)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(rig.sent.count == paused)
+    }
+
+    @Test func pausingWithNothingPlayingSendsNothing() {
+        let rig = Rig()
+        rig.model.pause()
+        #expect(rig.sent.isEmpty)
+    }
+
     @Test func commandsAreAimedAtThePlaybackOnScreen() async throws {
         let rig = Rig()
         rig.model.togglePause()
