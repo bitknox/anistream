@@ -344,6 +344,45 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0009_episode_notices",
+        r#"
+    -- What the new-episode check has said of each show it follows, so each episode is said
+    -- once: the newest episode said, 0 before any, and when the show was first followed. An
+    -- episode that aired before then is never said, which is what keeps a first check, or a
+    -- show newly followed, from announcing a backlog.
+    --
+    -- How far the check has looked is kept in app_state, under `episode_check_through`.
+    CREATE TABLE episode_notice (
+        anilist_id INTEGER PRIMARY KEY,
+        episode    INTEGER NOT NULL,
+        since      INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    );
+    "#,
+    ),
+    (
+        "0010_airing_times",
+        r#"
+    -- When each episode airs, as this device last saw AniList's schedule, and when it was to air
+    -- before the schedule moved it later: what lets a calendar row say "Delayed (was 23:00)".
+    -- AniList keeps no record of a move, only the time as it stands, so the earlier time is only
+    -- known here, and only when this device saw it before it moved.
+    --
+    -- `was` is the time the episode stood at before it moved later, kept while it stands later
+    -- than that by more than a nudge, and cleared once it is back. Rows not seen for 120 days are
+    -- deleted.
+    CREATE TABLE airing_time (
+        anilist_id INTEGER NOT NULL,
+        episode    INTEGER NOT NULL,
+        airs_at    INTEGER NOT NULL,
+        was        INTEGER,
+        seen_at    INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, episode)
+    );
+    CREATE INDEX idx_airing_time_seen ON airing_time(seen_at);
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -460,6 +499,8 @@ mod tests {
             "show_setting",
             "server_health",
             "library_status",
+            "episode_notice",
+            "airing_time",
         ] {
             let found: bool = conn
                 .query_row(

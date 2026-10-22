@@ -22,6 +22,12 @@ struct SettingsPortTests {
         #expect(SettingKey.commitThreshold.options.map(\.label) == ["70%", "80%", "85%", "90%", "95%"])
         #expect(SettingKey.upscaling.options.map(\.label) == ["off", "natural · ArtCNN", "sharp · Anime4K"])
         #expect(SettingKey.titles.options.map(\.label) == ["AniList's choice", "English", "Romaji"])
+        #expect(SettingKey.upNextCountdown.options.map(\.label) == ["off", "5 s", "10 s", "15 s", "20 s", "30 s"])
+        #expect(SettingKey.downloadQuality.options.map(\.label) == ["standard", "higher"])
+        #expect(SettingKey.keepNextEpisodes.options.map(\.label)
+                == ["off", "1 episode", "2 episodes", "3 episodes", "5 episodes", "10 episodes"])
+        #expect(SettingKey.vpnOnFailure.options.map(\.label) == ["pause torrents", "stop torrents"])
+        #expect(SettingKey.spoilerProtection.isSwitch && SettingKey.torrentsOnCellular.isSwitch)
         #expect(SettingKey.seedRatio.options.map(\.label)
             == ["off", "until ratio 0.5", "until ratio 1.0", "until ratio 1.5", "until ratio 2.0"])
         #expect(SettingKey.seedHours.options.map(\.label) == ["1 h", "6 h", "12 h", "24 h", "72 h"])
@@ -59,13 +65,16 @@ struct SettingsPortTests {
         let keys: [SettingKey] = [
             .quality, .commitThreshold, .upscaling, .seedRatio, .seedHours, .uploadLimit,
             .translation, .playerUi, .autoNext, .skipOpening, .nightMode, .keepSeeding,
+            // The native apps' own rows.
+            .upNextCountdown, .spoilerProtection, .downloadQuality, .keepNextEpisodes,
+            .downloadsOnCellular, .torrentsOnCellular, .vpnOnFailure,
         ]
         for key in keys {
             // Last to first, so each one is a change from the default the file starts with.
             for option in key.options.reversed() {
                 _ = engine.send(command: .setSetting(key: key, value: option.value))
                 let view = try await nextSettings(from: engine)
-                let row = try #require(view.rows.first { $0.key == key })
+                let row = try #require(view.rows.first { $0.key == key } ?? view.nativeRows.first { $0.key == key })
                 #expect(row.value == option.label, "\(key) set to \(option.value)")
                 #expect(row.option == option)
             }

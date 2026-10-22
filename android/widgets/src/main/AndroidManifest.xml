@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Each widget twice, so the picker offers it at 2 × 2 and at 4 × 2; both are the same
+             widget, which changes layout as it is resized. -->
+        <receiver
+            android:name="tv.anistream.widgets.ContinueSmallReceiver"
+            android:exported="true"
+            android:label="@string/widget_continue">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_continue_small" />
+        </receiver>
+        <receiver
+            android:name="tv.anistream.widgets.ContinueWideReceiver"
+            android:exported="true"
+            android:label="@string/widget_continue">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_continue_wide" />
+        </receiver>
+        <receiver
+            android:name="tv.anistream.widgets.AiringSmallReceiver"
+            android:exported="true"
+            android:label="@string/widget_airing">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_airing_small" />
+        </receiver>
+        <receiver
+            android:name="tv.anistream.widgets.AiringWideReceiver"
+            android:exported="true"
+            android:label="@string/widget_airing">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_airing_wide" />
+        </receiver>
+    </application>
+</manifest>

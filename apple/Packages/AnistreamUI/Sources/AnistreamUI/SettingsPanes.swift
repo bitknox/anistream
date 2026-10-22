@@ -16,9 +16,11 @@ struct DownloadsPane: View {
             SettingsRow(title: SettingKey.downloadDir.title, note: DownloadFolder.note(store)) {
                 DownloadFolderMenu()
             }
-            // E8: `DownloadQuality` is not a setting the engine has yet.
-            SettingsRow(title: "Quality", note: "Higher takes the best version a source offers, and more space.") {
-                DeferredMenu(text: "Standard", waitsOn: "E8")
+            SettingsRow(title: SettingKey.downloadQuality.title, note: "Higher takes the best version a source offers, and more space.") {
+                SettingMenu(key: .downloadQuality)
+            }
+            SettingsRow(title: SettingKey.keepNextEpisodes.title, note: "Downloads the episodes after the one you are on, for each show you watch.") {
+                SettingMenu(key: .keepNextEpisodes)
             }
             SettingsRow(title: SettingKey.mergeSubtitles.title, note: "Subtitles stay with the episode wherever the file goes.") {
                 SettingSwitch(key: .mergeSubtitles)
@@ -269,8 +271,7 @@ struct SourcesPane: View {
             Button {
                 navigator.open(.providers)
             } label: {
-                // "Overridden for 1 show" waits on E8's override counts.
-                SettingsRow(title: SettingKey.sourceOrder.title) {
+                SettingsRow(title: SettingKey.sourceOrder.title, note: store.settings.overriddenNote(.sourceOrder)) {
                     HStack(spacing: 8) {
                         Text(Wording.plural(store.providers.rows.count, "source"))
                             .font(.mac(13))
@@ -302,25 +303,16 @@ struct SourcesPane: View {
                 .labelsHidden()
             }
             if on {
-                // E9: the torrent index's address, `rss_url`, is not in the protocol yet.
-                SettingsRow(title: "Torrent index", note: "The RSS search address anistream asks for torrents. anistream ships none.") {
-                    TextField("Torrent index", text: .constant(""), prompt: Text("https://…/?q={query}"))
-                        .textFieldStyle(.plain)
-                        .font(.mac(13, design: .monospaced))
+                SettingsRow(title: SettingKey.torrentIndex.title, note: "The RSS search address anistream asks for torrents. anistream ships none.") {
+                    TorrentIndexField()
                         .padding(.horizontal, 10)
                         .frame(width: 280, height: 28)
                         .background(.ground, in: .rect(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Palette.glassRule, lineWidth: 1))
-                        .disabled(true)
-                        .help("Comes with engine step E9")
                 }
-                // E8: `SetTorrentProtection` changes this; the file's own choice shows meanwhile.
-                SettingsRow(title: "Protect with") {
-                    DeferredMenu(text: Protection.label(store.settings.value(.vpnMode)), waitsOn: "E8")
-                }
+                SettingsRow(title: "Protect with") { ProtectionMenu() }
                 GuardRow()
-                // E8: `VpnOnFailure` is not a setting the engine has yet.
-                SettingsRow(title: "If a check fails") { DeferredMenu(text: "Pause torrents", waitsOn: "E8") }
+                SettingsRow(title: SettingKey.vpnOnFailure.title) { FailedCheckMenu() }
             }
         }
         if on {
@@ -333,18 +325,6 @@ struct SourcesPane: View {
         Color.clear.frame(height: 0)
             .sheet(isPresented: $turningOn) { TorrentSheet() }
             .onLaunchSheet("torrent", navigator) { turningOn = true }
-    }
-}
-
-/// What protects torrent traffic, in the words the turn-on sheet gives each choice.
-enum Protection {
-    static func label(_ mode: String?) -> String {
-        switch mode {
-        case "socks5": "SOCKS5 proxy"
-        case "external": "VPN on this device"
-        case "none": "No protection"
-        default: "–"
-        }
     }
 }
 
@@ -551,5 +531,124 @@ enum AccountWords {
         return storage.lowercased().contains("file")
             ? "Sign-in tokens are kept in a file on this \(Device.name)."
             : "Sign-in tokens are kept in the Keychain on this \(Device.name)."
+    }
+}
+
+// MARK: - Integrations
+
+/// Watching together, Discord and updates (MacSettingsIntegrations): the engine's integrations
+/// settings, which the Mac shares with the terminal app's config.
+struct IntegrationsPane: View {
+    @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+
+    var body: some View {
+        let syncplay = store.settings.isOn(.syncplay)
+        let presence = store.settings.isOn(.presence)
+        SettingsGroup(
+            title: "Watch together",
+            footnote: "Parties play through the Syncplay app. Progress is not recorded while a party is on."
+        ) {
+            SettingsRow(title: SettingKey.syncplay.title) { SettingSwitch(key: .syncplay) }
+            SettingsRow(title: SettingKey.syncplayServer.title) { TypedSettingField(key: .syncplayServer, prompt: "watch.example.net:8995") }
+                .disabled(!syncplay)
+                .opacity(syncplay ? 1 : 0.45)
+            SettingsRow(title: SettingKey.syncplayRoom.title) { TypedSettingField(key: .syncplayRoom, prompt: "tuesday-night") }
+                .disabled(!syncplay)
+                .opacity(syncplay ? 1 : 0.45)
+        }
+        SettingsGroup(title: "Discord") {
+            SettingsRow(title: SettingKey.presence.title, selected: true) { SettingSwitch(key: .presence) }
+            SettingsRow(title: SettingKey.presenceTitle.title) { SettingSwitch(key: .presenceTitle) }
+                .disabled(!presence)
+                .opacity(presence ? 1 : 0.45)
+        }
+        SettingsGroup(title: "Updates") {
+            SettingsRow(title: SettingKey.updateCheck.title, note: "Once a day. Nothing is downloaded until you choose to update.") {
+                SettingSwitch(key: .updateCheck)
+            }
+            SettingsRow(title: AppVersion.long) { EmptyView() }
+        }
+    }
+}
+
+/// The app's version as its bundle says it: "1.1.0", and "Version 1.1.0 (1)" with the build.
+enum AppVersion {
+    static var short: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+
+    static var long: String {
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+        return "Version \(short)" + (build.map { " (\($0))" } ?? "")
+    }
+
+    /// The website, which About opens.
+    static let website = URL(string: "https://anistream.tv")!
+}
+
+/// What Discord shows while an episode plays: the show and the episode, or only "Watching anime"
+/// when the title is kept off it.
+struct PresencePreview: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        let on = store.settings.isOn(.presence)
+        let titled = store.settings.isOn(.presenceTitle)
+        let example = store.continuing.queue(store.titles).all.first?.entry
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Discord presence").groupHeaderStyle().macLineHeight(14)
+                .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: 2) {
+                if titled {
+                    Text(example?.showTitle ?? "Hoshikuzu no Tabibito")
+                        .font(.mac(13, weight: .semibold))
+                        .foregroundStyle(.silk)
+                    Text("Episode \(example?.progress?.next ?? 7)").font(.mac(12)).foregroundStyle(.haze)
+                } else {
+                    Text("Watching anime").font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
+                }
+            }
+            .opacity(on ? 1 : 0.6)
+            Text(on
+                 ? "Your Discord profile shows this while an episode plays."
+                 : "Off. When on, your Discord profile shows this while an episode plays.")
+                .font(.mac(13))
+                .macLineHeight(18)
+                .foregroundStyle(.silk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// A typed setting in a field: what the file holds, sent when the field is left or Return is
+/// pressed.
+struct TypedSettingField: View {
+    @Environment(AppStore.self) private var store
+    let key: SettingKey
+    let prompt: String
+    var width: CGFloat = 196
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField(key.title, text: $text, prompt: Text(prompt))
+            .textFieldStyle(.plain)
+            .font(.mac(13, design: .monospaced))
+            .padding(.horizontal, 10)
+            .frame(width: width, height: 28)
+            .background(.ground, in: .rect(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Palette.glassRule, lineWidth: 1))
+            .focused($focused)
+            .onSubmit(save)
+            .labelsHidden()
+            .onAppear { text = store.settings.row(key)?.typedText ?? "" }
+            .onChange(of: focused) { _, now in if !now { save() } }
+    }
+
+    private func save() {
+        let saved = store.settings.row(key)?.typedText ?? ""
+        guard text != saved else { return }
+        store.setSetting(key, to: .str(text))
     }
 }

@@ -14,9 +14,9 @@ use crate::{
     invite::{self, Invite},
     protocol::{
         AdminLink, ErrorBody, Index, IndexEntry, InviteCreated, InviteRequest,
-        MAX_PLUGIN_BYTES, Me, MemberList, PART_SIZE, PROTOCOL, PublishRequest, RedeemRequest,
-        RedeemResponse, SignedIndex, StoreInfo, UploadRequest, UploadStarted, is_valid_id,
-        is_valid_version,
+        MAX_PLUGIN_BYTES, Me, MemberList, PART_SIZE, PROTOCOL, PreviewRequest, PublishRequest,
+        RedeemRequest, RedeemResponse, SignedIndex, StoreInfo, UploadRequest, UploadStarted,
+        is_valid_id, is_valid_version,
     },
 };
 
@@ -106,6 +106,26 @@ impl StoreClient {
             return Err(ClientError::Protocol(info.protocol));
         }
         Ok(info)
+    }
+
+    /// The plugin list an invite leads to, verified against the key the invite carries, before
+    /// it is spent: who runs the store and what it offers, for the confirmation. Spends nothing.
+    ///
+    /// `None` from a store that predates the preview, which answers that it has no such
+    /// endpoint: the confirmation goes without. Any sequence is taken, since nothing is kept.
+    pub async fn preview_index(&self, invite: &Invite) -> Result<Option<Index>, ClientError> {
+        let body = PreviewRequest { invite: invite.code.clone() };
+        let answer: Result<SignedIndex, _> = self
+            .send_json(reqwest::Method::POST, &invite.base, "v1/preview", None, Some(&body))
+            .await;
+        match answer {
+            Ok(signed) => verify_index(&signed, &invite.key, 0).map(Some),
+            // Without the endpoint. Not an invite that would not join, which is a 404 too.
+            Err(ClientError::Server { status: 404, code, .. }) if code != "invite_unusable" => {
+                Ok(None)
+            }
+            Err(e) => Err(e),
+        }
     }
 
     /// Spend an invite for a token.
@@ -527,6 +547,7 @@ mod tests {
                     published_at: 0,
                 })
                 .collect(),
+            owners: Vec::new(),
         };
         let index = serde_json::to_string(&index).unwrap();
         SignedIndex { signature: key.sign_index(&index), index }

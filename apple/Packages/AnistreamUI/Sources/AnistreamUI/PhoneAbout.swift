@@ -6,21 +6,6 @@ import AnistreamDesign
 import AnistreamKit
 import SwiftUI
 
-/// The app's version as its bundle says it: "1.1.0", and "Version 1.1.0 (1)" with the build.
-enum AppVersion {
-    static var short: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
-    }
-
-    static var long: String {
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
-        return "Version \(short)" + (build.map { " (\($0))" } ?? "")
-    }
-
-    /// The website, which About opens.
-    static let website = URL(string: "https://anistream.tv")!
-}
-
 struct PhoneAboutPage: View {
     @Environment(\.openURL) private var openURL
 

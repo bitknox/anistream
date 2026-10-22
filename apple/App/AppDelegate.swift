@@ -5,6 +5,7 @@ import AnistreamPlayerUI
 import AnistreamStore
 import AnistreamUI
 import Foundation
+import Observation
 #if os(macOS)
 import AppKit
 #else
@@ -17,22 +18,96 @@ final class AppDelegate: NSObject {
     let navigator = Navigator()
     /// The player the app hosts for the engine, fed the store's playback events.
     let player: PlayerModel
+    /// Where the app is and the network the device uses, told to the engine.
+    let phases: SystemPhases
     private var started = false
+    /// Spotlight's titles, kept the shelf's once the engine is up.
+    private var spotlight: SpotlightIndexer?
+    /// New-episode notifications: the centre, their actions, the background refresh.
+    private(set) var notices: AppNotifications!
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
+    /// The episode playing, handed off to your other devices; it pauses here when one takes it.
+    private let playing: PlayingActivity
 
     override init() {
         let store = AppStore()
         self.store = store
-        player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        let player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        self.player = player
+        phases = SystemPhases(
+            send: { [weak store] command in store?.send(command) },
+            playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false },
+            downloading: { [weak store] in store?.continued.stage == .running })
+        playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
+        // The App Intents reach the app here, from its first moment: an intent can be what
+        // launched it, before any window has started the engine.
+        let intents = IntentsBridge.shared
+        intents.store = store
+        intents.navigator = navigator
+        intents.start = { [weak self] in Task { await self?.start() } }
+        #if !FIXTURES
+        // The Fixtures app's home is made at its start, a new one every launch.
+        intents.shelfFile = Shelf.file(in: EngineHome.resolve())
+        #endif
+        notices = AppNotifications(
+            store: store,
+            navigator: navigator,
+            storeStarted: { [weak self] in self?.started ?? false },
+            backgroundLaunch: { Self.backgroundLaunch() }
+        )
+        // Before launch ends, as the system asks of a notification's delegate and the background
+        // task's handler.
+        notices.launch()
+        #if os(iOS)
+        // Downloads go on after the app leaves, in the system's window for them. What the window
+        // means for the engine, SystemPhases says, with the scene and the player: one teller of
+        // where the app is, so a window opening or closing away is said there.
+        store.continued.playing = { [weak player = self.player] in
+            guard let player else { return false }
+            return player.isPresented && !player.paused
+        }
+        store.continued.send = { [weak phases = self.phases] _ in phases?.downloadsWindowChanged() }
+        BackgroundDownloads.install(in: store)
+        #endif
+        watchPlaying()
+    }
+
+    /// In the background, what waits follows whether the player plays: watched here rather than
+    /// by a view, which the system does not update while the app is away.
+    private func watchPlaying() {
+        withObservationTracking {
+            _ = player.isPresented
+            _ = player.paused
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.phases.playingChanged()
+                self?.watchPlaying()
+            }
+        }
+    }
+
+    /// The engine a background refresh or a notification's Mark watched starts when the app has
+    /// none running: the app's own, on its own directories and keychain. None for the Fixtures
+    /// app, whose engine lives only as long as its window.
+    static func backgroundLaunch() -> (EngineLaunch, AppHost)? {
+        #if FIXTURES
+        return nil
+        #else
+        return (EngineLaunch.app(platform: platform), AppHost(secrets: KeychainSecrets(), open: open))
+        #endif
     }
 
     /// Start the engine, once, however many windows ask.
     func start() async {
         guard !started else { return }
         started = true
+        // Said from the start, queued for the engine until it is up.
+        phases.watchNetwork()
+        // An engine a background refresh started stops first: one engine on the files at a time.
+        await notices.yieldBackgroundEngine()
         #if FIXTURES
         let (launch, temporary) = EngineLaunch.fixtures(platform: Self.platform)
         self.temporary = temporary
@@ -43,6 +118,15 @@ final class AppDelegate: NSObject {
         let secrets: any SecretBackend = KeychainSecrets()
         #endif
         await store.start(launch, host: AppHost(secrets: secrets, open: Self.open))
+        if store.phase == .running {
+            // The Fixtures app's titles go under its own domain, and its shelf in its own home.
+            let spotlight = SpotlightIndexer(store: store, file: Shelf.file(in: launch.home))
+            // The titles "Open … in anistream" is offered for follow the shelf.
+            spotlight.onUpdate = { AnistreamShortcuts.updateAppShortcutParameters() }
+            spotlight.start()
+            self.spotlight = spotlight
+            IntentsBridge.shared.shelfFile = Shelf.file(in: launch.home)
+        }
         #if FIXTURES
         store.applyWatchedArgument()
         #endif
@@ -50,6 +134,9 @@ final class AppDelegate: NSObject {
         // the Simulator writes the app's output to a file, which would hold it back.
         var ready = await store.settle()
         store.applyShowcase()
+        // The week's notifications, scheduled, when there are any to schedule.
+        await store.notifications.refreshPermission()
+        if store.notifications.schedules { store.refreshNotices() }
         #if FIXTURES
         // A screenshot of the player: play the Playing scene's episode to the state named.
         if let shot = PlayerShot.named(in: ProcessInfo.processInfo.arguments) {
@@ -60,6 +147,18 @@ final class AppDelegate: NSObject {
             print("ANISTREAM_READY")
             fflush(stdout)
         }
+        #if FIXTURES
+        // apple/scripts/pip-check.sh: back out of Picture in Picture once in it, however it got
+        // there (the shot's toggle, or going home while it plays).
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-AnistreamPictureInPictureReturn"),
+            arguments.indices.contains(index + 1), let seconds = Int(arguments[index + 1])
+        {
+            let returned = await player.returnFromPictureInPicture(within: seconds)
+            print("ANISTREAM_PIP_RETURNED \(returned)")
+            fflush(stdout)
+        }
+        #endif
         // A transition for the motion audit's recordings, two seconds after the screen is up.
         if let motion = MotionDemo.from() {
             try? await Task.sleep(for: .seconds(2))

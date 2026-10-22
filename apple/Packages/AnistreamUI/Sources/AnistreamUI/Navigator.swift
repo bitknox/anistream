@@ -56,6 +56,8 @@ public final class Navigator {
     var watchedOpen: Set<AnilistId> = []
     /// The Playback pane's row the column beside it is about.
     public var playbackFocus: PlaybackFocus = .upscaling
+    /// An episode handed over from another device, which its title's page offers to resume.
+    public var handedOff: HandedOff?
 
     public init(route: LaunchRoute = .current) {
         section = route.section
@@ -64,7 +66,8 @@ public final class Navigator {
         query = route.query ?? ""
         librarySegment = route.library ?? .watching
         paletteShown = route.palette != nil
-        settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)) ?? .playback
+        settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)).flatMap { SettingsPane.shown.contains($0) ? $0 : nil }
+            ?? .playback
         // "titles": Playback, its title-language row selected (MacSettingsTitles).
         if route.pane == "titles" { playbackFocus = .titleLanguage }
         launchSheet = route.sheet

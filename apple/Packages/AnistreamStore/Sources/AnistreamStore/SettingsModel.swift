@@ -24,9 +24,20 @@ public final class SettingsModel {
         row(key)?.value
     }
 
-    /// One row: its value, and how it is changed.
+    /// One row: its value, and how it is changed. From the Settings screen's rows, or the native
+    /// apps' own, which the terminal draws none of.
     public func row(_ key: SettingKey) -> SettingRow? {
-        view?.rows.first { $0.key == key }
+        view?.rows.first { $0.key == key } ?? view?.nativeRows.first { $0.key == key }
+    }
+
+    /// How many shows set `key` for themselves, when any do.
+    public func overriddenShows(_ key: SettingKey) -> UInt32? {
+        view?.overridden.first { $0.key == key }?.shows
+    }
+
+    /// How torrent traffic is kept off the viewer's address, as the file has it.
+    public var torrent: ProtectionView? {
+        view?.torrent
     }
 
     /// Whether a switch is on.
@@ -37,6 +48,25 @@ public final class SettingsModel {
     /// The sources the config sets up.
     public var sources: ConfiguredSources {
         view?.sources ?? ConfiguredSources(order: [], disabled: [], torrent: false, remote: false, index: nil)
+    }
+}
+
+/// Each show's own settings, as the engine last said them: what it sets for itself over
+/// Settings, the tracks the player remembers for it, and the source it keeps.
+@Observable @MainActor
+public final class ShowSettingsModel {
+    /// The sheets asked for or changed, by show.
+    public private(set) var sheets: [AnilistId: ShowSettingsView] = [:]
+
+    public init() {}
+
+    func apply(_ view: ShowSettingsView) {
+        sheets[view.id] = view
+    }
+
+    /// One of a show's rows.
+    public func row(_ key: ShowSettingKey, of id: AnilistId) -> ShowSettingRow? {
+        sheets[id]?.rows.first { $0.key == key }
     }
 }
 

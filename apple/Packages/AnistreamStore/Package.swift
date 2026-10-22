@@ -12,11 +12,15 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../AnistreamKit"),
+        .package(path: "../AnistreamWidgets"),
     ],
     targets: [
         .target(
             name: "AnistreamStore",
-            dependencies: ["AnistreamKit"],
+            dependencies: [
+                "AnistreamKit",
+                .product(name: "AnistreamWidgetData", package: "AnistreamWidgets"),
+            ],
             // The packages build on the testing engine (see AnistreamKit), so its starts are
             // there to name. The Xcode project defines this for the Fixtures app's flavour only.
             swiftSettings: [.define("FIXTURES")]

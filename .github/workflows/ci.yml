@@ -501,3 +501,23 @@ jobs:
       # directly rather than through `cargo`, which would install the pinned toolchain only
       # to read Cargo.lock.
       - run: cargo-audit audit
+
+  # Every Rust crate's licence, as a release collects them for the terminal binaries and for the
+  # apps (packaging/rust-licences): a crate under a licence about.toml does not accept, or whose
+  # licence cannot be read, fails here rather than on a release's tag.
+  licences:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.2
+      - name: The terminal's
+        run: >-
+          packaging/rust-licences/generate.sh terminal "$RUNNER_TEMP/terminal.txt"
+          x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-msvc
+      - name: The apps'
+        run: packaging/rust-licences/generate.sh apps "$RUNNER_TEMP/apps.txt"

@@ -26,6 +26,7 @@ use crate::{
     outbox::Played,
     playback::autonext::Staging,
     sources::{TorrentUp, torrent::TorrentTasks},
+    widgets::Schedule,
 };
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
@@ -41,6 +42,11 @@ pub struct EngineState {
     /// The live player's control channel. Replaced on each new playback, so a stale sender
     /// from a finished episode can never steer the current one.
     pub player_tx: Option<mpsc::UnboundedSender<PlayerCommand>>,
+    /// The playback started last, while it finds its stream: a Stop that reaches it before it
+    /// opens a player sets this, and it opens none. Closed once it opens, so a Stop from then
+    /// on is the session's, read off `player_tx` as every other control is. `None` for a play
+    /// that opens at once.
+    pub finding: Option<tokio::sync::watch::Sender<bool>>,
     /// The copy of the config the background tasks read: the download manager, the seeding
     /// watch and the stream cache's. Brought up to `config` whenever a setting is written, so
     /// "saved" and "in effect" are the same moment.
@@ -62,9 +68,17 @@ pub struct EngineState {
     pub staging: Staging,
     /// Where the app is, as the front end last said: in the background torrents wait.
     pub phase: anistream_model::command::AppState,
-    /// Whether the network is metered, cellular or Low Data Mode, as the front end last said:
-    /// downloads and seeding wait on one.
-    pub metered: bool,
+    /// The network the device uses, as the front end last said: on cellular only what the
+    /// settings let run there runs, and in Low Data Mode downloads and seeding wait.
+    pub network: crate::phases::Network,
+    /// What the torrent session was last told of it, for a setting saved to tell whether that
+    /// changed: see [`crate::phases::gate_for`].
+    pub gated: Option<crate::phases::Gate>,
+    /// Held by each new-episode check while it runs, so two asked for together take turns
+    /// rather than both saying the same episode.
+    pub episode_check: Arc<tokio::sync::Mutex<()>>,
+    /// The week's broadcasts as the widgets' record last fetched them: see [`Schedule`].
+    pub widget_schedule: Schedule,
 }
 
 impl EngineState {
@@ -81,6 +95,7 @@ impl EngineState {
             shared_config: Arc::new(RwLock::new(config.clone())),
             config: ConfigState::new(config, saved, paths),
             player_tx: None,
+            finding: None,
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
             arrivals,
@@ -88,7 +103,10 @@ impl EngineState {
             cache: TitleCache::default(),
             staging: Staging::default(),
             phase: Default::default(),
-            metered: false,
+            network: Default::default(),
+            gated: None,
+            episode_check: Arc::default(),
+            widget_schedule: Schedule::default(),
         }
     }
 

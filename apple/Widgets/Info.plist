@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- What Xcode does not generate: the extension point, and the App Group the snapshot is in,
+	     from ANISTREAM_APP_GROUP (Config/Base.xcconfig). -->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+	<key>AnistreamAppGroup</key>
+	<string>$(ANISTREAM_APP_GROUP)</string>
+</dict>
+</plist>

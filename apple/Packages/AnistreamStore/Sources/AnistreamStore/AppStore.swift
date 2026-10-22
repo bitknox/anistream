@@ -31,10 +31,23 @@ public final class AppStore {
     public let jobs: JobsModel
     public let notices: NoticesModel
     public let settings = SettingsModel()
+    public let showSettings = ShowSettingsModel()
     public let accounts = AccountsModel()
     public let providers = ProvidersModel()
     public let stores = StoresModel()
     public let downloads = DownloadsModel()
+    /// New-episode notifications: the week coming up, permission, and each show's switch.
+    public let notifications = NotificationsModel()
+    /// The engine's answers to questions asked of it, for the notifications and the widgets.
+    public let answers = EngineAnswers()
+    /// Downloads that go on after the app leaves, in the system's window for them (iOS).
+    public let continued = ContinuedDownloads()
+    /// The week's ask, waiting a moment in case more ask at once.
+    @ObservationIgnored var noticeRefresh: Task<Void, Never>?
+    /// The home-screen widgets' snapshot, kept current as what they show changes.
+    @ObservationIgnored public let widgets: WidgetFeed
+    /// The downloads' Live Activity on iPhone.
+    @ObservationIgnored public let downloadsActivity: DownloadsActivityFeed
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
@@ -56,18 +69,28 @@ public final class AppStore {
     public private(set) var home: EngineHome?
     /// When the last play was sent, for the log's timings.
     @ObservationIgnored private var playSent: ContinuousClock.Instant?
+    /// A play that starts at a place of its own, handed over from another device.
+    @ObservationIgnored private var startAt: StartAt?
     /// The playback's events, for the player the app hosts: its ops and interface, and the
     /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
 
-    public init(jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel()) {
+    public init(
+        jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed(),
+        downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed()
+    ) {
         self.jobs = jobs
         self.notices = notices
+        self.widgets = widgets
+        self.downloadsActivity = downloadsActivity
         artwork = ArtworkStore { [weak self] url in
             guard let client = self?.client else { return false }
             client.send(.fetchArtwork(url: url))
             return true
         }
+        continued.send = { [weak self] command in self?.send(command) }
+        // The downloads' Live Activity and the system's own progress for them never show at once.
+        continued.runningChanged = { [weak self] running in self?.downloadsActivity.systemShowsProgress = running }
     }
 
     // MARK: The engine
@@ -78,6 +101,10 @@ public final class AppStore {
         #if FIXTURES
         if case .fixtures = launch.engine { testing = true }
         #endif
+        // The Live Activity's Pause and Resume act on the whole queue.
+        downloadsActivity.takeControls(
+            pause: { [weak self] in self?.pauseAllDownloads() },
+            resume: { [weak self] in self?.resumeAllDownloads() })
         home = launch.home
         AppLog.start(cache: launch.home.cache)
         #if os(macOS)
@@ -135,10 +162,14 @@ public final class AppStore {
         switch command {
         case .play(let id, let episode):
             playSent = .now
+            startAt = nil
             AppLog.info("store", "play \(id) episode \(episode)")
         case .playSource(let id, let episode, _, _):
             playSent = .now
+            startAt = nil
             AppLog.info("store", "play \(id) episode \(episode) from a chosen source")
+        case .playLocal, .playParty:
+            startAt = nil
         default:
             break
         }
@@ -146,7 +177,20 @@ public final class AppStore {
             if phase == .starting { early.append(command) }
             return nil
         }
-        return client.send(command)
+        let job = client.send(command)
+        if let then = startAt?.after(command) {
+            startAt = nil
+            send(then)
+        }
+        return job
+    }
+
+    /// Play `episode` of `id` from `position`, as a Handoff from another device asks: played as
+    /// any other, then moved there once its file is open.
+    /// Any other play sent after it gives the place up.
+    public func play(_ id: AnilistId, episode: String, at position: Double) {
+        send(.play(id: id, episode: episode))
+        startAt = StartAt(id: id, episode: episode, position: position)
     }
 
     /// Stop the engine, waiting while it winds down: at quit.
@@ -299,6 +343,10 @@ public final class AppStore {
 
     public func apply(_ event: Event) {
         if !held.isEmpty, let kind = event.showcaseKind, held.contains(kind) { return }
+        notifications.observe(event)
+        answers.deliver([event])
+        if case .downloads(let rows) = event { continued.update(rows) }
+        if notifications.schedules, NotificationsModel.reschedules(after: event) { refreshNotices() }
         switch event {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)
@@ -311,6 +359,8 @@ public final class AppStore {
 
         case .content(let view, let content):
             self.content(content, for: view)
+            if case .continue = view { widgetsChanged() }
+            if case .calendar = view { widgetsChanged() }
         case .caption(let view, let text):
             caption(text, for: view)
         case .calendarWindow(let anchor, let pages, let morePast):
@@ -321,6 +371,7 @@ public final class AppStore {
             titles.merge(detail: entry)
         case .progress(let id, let progress, let resume, let episodes):
             titles.progress(id: id, progress: progress, resume: resume, episodes: episodes)
+            widgetsChanged()
         case .lastAired(let rows):
             titles.lastAired(rows)
         case .episodes(let id, let rows):
@@ -333,9 +384,12 @@ public final class AppStore {
 
         case .settings(let view):
             settings.apply(view)
+        case .showSettings(let view):
+            showSettings.apply(view)
 
         case .sync(let state):
             accounts.apply(state)
+            widgetsChanged()
         case .progressQueued:
             accounts.progressQueued()
         case .conflicts(let rows):
@@ -379,6 +433,7 @@ public final class AppStore {
 
         case .downloads(let rows):
             downloads.apply(rows)
+            downloadsActivity.downloadsChanged(downloads, titles: titles, artwork: artwork)
         case .seeding(let rows):
             downloads.seeding(rows)
 
@@ -388,14 +443,19 @@ public final class AppStore {
             artwork.failed(url: url)
 
         case .playbackStaged(let id, _, let episode, _, _):
+            if startAt?.staged(id: id, episode: episode) == false { startAt = nil }
             let after = playSent.map { " \(AppLog.ms(since: $0)) ms after play" } ?? ""
             AppLog.info("store", "staged \(id) episode \(episode)\(after)")
             onPlayback?(event)
         case .playbackEnded(let watched, let ending, let rollingOn):
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
+            widgetsChanged()
         case .playerOps, .playerUi, .playbackKept, .sources:
             onPlayback?(event)
+
+        case .widgetSnapshot(let data):
+            widgets.received(data, art: artwork)
 
         case .viewerTitleLanguage(let language):
             accounts.viewerTitleLanguage = language
@@ -406,6 +466,11 @@ public final class AppStore {
             // Everything else is said in the events above, or has no screen.
             break
         }
+    }
+
+    /// What the widgets show may have changed: ask for their snapshot once things settle.
+    private func widgetsChanged() {
+        widgets.changed { [weak self] in self?.send(.widgetSnapshot) }
     }
 
     private func content(_ content: ContentList, for view: ContentFor) {

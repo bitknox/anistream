@@ -452,6 +452,38 @@ impl<D: Database, B: Blobs> Store<D, B> {
         Ok((token, member))
     }
 
+    /// Whether `code` is an invite that would join, checked as [`Self::redeem`] checks it but
+    /// spending nothing: for a preview of what it leads to.
+    pub async fn check_invite(&self, code: &str, now: i64) -> Result<(), StoreError> {
+        if !crypto::is_code(code) {
+            return Err(StoreError::InviteUnusable);
+        }
+        let found = self
+            .query(sql!(
+                "SELECT 1 FROM invites
+                 WHERE code_hash = ?1 AND used_at IS NULL AND cancelled_at IS NULL
+                   AND expires_at > ?2
+                   AND (created_by IS NULL OR EXISTS (
+                       SELECT 1 FROM members m
+                       WHERE m.id = invites.created_by AND m.removed_at IS NULL))",
+                crypto::hash_secret(code),
+                now
+            ))
+            .await?;
+        if found.is_empty() { Err(StoreError::InviteUnusable) } else { Ok(()) }
+    }
+
+    /// The owners' names, the longest-standing first: who the store says runs it.
+    pub async fn owner_names(&self) -> Result<Vec<String>, StoreError> {
+        let rows = self
+            .query(sql!(
+                "SELECT name FROM members WHERE role = 'owner' AND removed_at IS NULL
+                 ORDER BY joined_at, id"
+            ))
+            .await?;
+        Ok(rows.iter().map(|row| row.text(0)).collect::<Result<_, _>>()?)
+    }
+
     pub async fn pending_invites(&self, now: i64) -> Result<Vec<PendingInvite>, StoreError> {
         let rows = self
             .query(sql!(
@@ -877,6 +909,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
             sequence: sequence as u64,
             issued_at,
             plugins,
+            owners: self.owner_names().await?,
         };
         let index = serde_json::to_string(&index)
             .map_err(|e| StoreError::Setup(format!("encoding the index: {e}")))?;

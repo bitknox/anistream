@@ -483,6 +483,25 @@ fn language_variants(code: &str) -> String {
     }
 }
 
+/// The viewer's own options, written as mpv's command line takes them, as the property and value
+/// a player sets: `--name=value` as `name` and `value`, `--name` as `yes` and `--no-name` as
+/// `no`, as mpv reads a flag. Anything else is not an option and is left out.
+pub fn option_pairs(args: &[String]) -> Vec<(String, String)> {
+    args.iter()
+        .filter_map(|arg| {
+            let option = arg.trim().strip_prefix("--")?;
+            let (name, value) = match option.split_once('=') {
+                Some((name, value)) => (name, value),
+                None => match option.strip_prefix("no-") {
+                    Some(name) => (name, "no"),
+                    None => (option, "yes"),
+                },
+            };
+            (!name.is_empty()).then(|| (name.to_owned(), value.to_owned()))
+        })
+        .collect()
+}
+
 /// What one file needs, passed alongside its `loadfile`.
 ///
 /// Per-file rather than process flags, because the process now outlives the file: a referer
@@ -990,5 +1009,21 @@ mod tests {
             r"http-header-fields=%34%User-Agent: A (KHTML\, like Gecko),start=%2%12"
         );
         assert!(value["command"].get(4).is_none());
+    }
+
+    #[test]
+    fn the_viewer_s_options_become_properties_as_mpv_reads_its_command_line() {
+        let args =
+            ["--sub-font-size=40", "--no-osc", "--fs", "--glsl-shaders=a.glsl:b.glsl", "x"]
+                .map(String::from);
+        assert_eq!(
+            option_pairs(&args),
+            [
+                ("sub-font-size".to_owned(), "40".to_owned()),
+                ("osc".to_owned(), "no".to_owned()),
+                ("fs".to_owned(), "yes".to_owned()),
+                ("glsl-shaders".to_owned(), "a.glsl:b.glsl".to_owned()),
+            ]
+        );
     }
 }

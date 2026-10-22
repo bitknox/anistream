@@ -121,22 +121,23 @@ data class EngineLaunch(
 
         /**
          * The AniList client the app signs in with. AniList's implicit grant puts the token in the
-         * redirect, and any app can claim `anistream://`, so the Android client redirects to a
-         * verified App Link, [ANILIST_APP_LINK], once it is registered; until then the shared
-         * client and the app's scheme, as on Apple, whose sign-in sheet no other app can answer.
+         * redirect, and any app can claim `anistream://`, so the Android client,
+         * [ANDROID_ANILIST_CLIENT_ID], redirects to a verified App Link, [ANILIST_APP_LINK]. With
+         * none given, the shared client and the app's scheme, as on Apple, whose sign-in sheet no
+         * other app can answer.
          */
         fun aniListClient(androidClientId: String?): AniListClient =
             androidClientId?.takeIf { it.isNotBlank() }?.let { AniListClient(it, ANILIST_APP_LINK) }
                 ?: AniListClient(ANILIST_CLIENT_ID, null)
 
-        /** anistream's AniList client: the implicit grant, redirecting to `anistream://auth/anilist`. */
+        /**
+         * anistream's AniList client for Apple and the terminal: the implicit grant, redirecting to
+         * `anistream://auth/anilist`.
+         */
         const val ANILIST_CLIENT_ID = "54537"
 
-        /**
-         * anistream's Android AniList client, redirecting to [ANILIST_APP_LINK]: `null` until it
-         * is registered.
-         */
-        val ANDROID_ANILIST_CLIENT_ID: String? = null
+        /** anistream's Android AniList client: the implicit grant, redirecting to [ANILIST_APP_LINK]. */
+        const val ANDROID_ANILIST_CLIENT_ID = "54545"
 
         /** Where the Android AniList client redirects: the App Link the manifest verifies. */
         const val ANILIST_APP_LINK = "https://anistream.tv/auth/anilist"

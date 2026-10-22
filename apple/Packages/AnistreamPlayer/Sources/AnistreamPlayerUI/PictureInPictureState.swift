@@ -1,15 +1,16 @@
-// Picture in Picture on the Mac, as states and the steps between them. Pure, so the tests can
-// walk it without the system's window; `PictureInPicture` carries out the effects.
+// Picture in Picture on the Mac, iPhone and iPad, as states and the steps between them. Pure, so
+// the tests can walk it without the system's window; `PictureInPicture` carries out the effects.
 
 import Foundation
 
 /// Where the picture is, as Picture in Picture goes.
 public enum PictureInPicturePhase: Equatable, Sendable {
-    /// In the main window's player: no Picture in Picture.
+    /// In the player, in the main window or full screen: no Picture in Picture.
     case inline
-    /// Asked for: the frames are being copied and the system's window is opening.
+    /// Asked for, or begun by the system: the frames are being copied and the system's window is
+    /// opening.
     case starting
-    /// In the system's window. The main window browses.
+    /// In the system's window. The app browses.
     case active
     /// The system's window is closing; `restore` says whether the picture goes back into the main
     /// window's player or the playback stops.
@@ -20,6 +21,9 @@ public enum PictureInPicturePhase: Equatable, Sendable {
 public enum PictureInPictureEvent: Equatable, Sendable {
     /// The button, ⌥⌘P, or the window being minimised or the app hidden while it plays.
     case toggle
+    /// The system is opening its window by itself: on iPhone and iPad, as the viewer goes home
+    /// while the player plays.
+    case systemStarting
     case started
     case failedToStart
     /// The window's button that returns the picture to the app.
@@ -34,14 +38,16 @@ public enum PictureInPictureEvent: Equatable, Sendable {
 public enum PictureInPictureEffect: Equatable, Sendable {
     /// Begin copying mpv's frames, and ask the system for its window.
     case start
+    /// Make sure mpv's frames are being copied; the system is opening its window already.
+    case startFeed
     /// Ask the system to close its window, returning the picture to the app.
     case stop
     /// Close the system's window with nothing to return to.
     case dismiss
-    /// The picture leaves the main window, which goes back to browsing until the picture
+    /// The picture leaves the player, and the app goes back to browsing until the picture
     /// returns or the player closes.
     case leaveWindow
-    /// The picture comes back into the main window's player, which comes to the front.
+    /// The picture comes back into the player, which comes to the front.
     case returnToWindow
     /// Stop copying frames.
     case endFeed
@@ -61,6 +67,9 @@ public struct PictureInPictureMachine: Equatable, Sendable {
         case (.inline, .toggle):
             phase = .starting
             return [.start]
+        case (.inline, .systemStarting):
+            phase = .starting
+            return [.startFeed]
         case (.starting, .started):
             phase = .active
             return [.leaveWindow]
@@ -88,6 +97,11 @@ public struct PictureInPictureMachine: Equatable, Sendable {
             phase = .inline
             return [.endFeed, .closePlayback]
         case (.stopping, .stopped):
+            phase = .inline
+            return [.endFeed]
+        case (.stopping, .failedToStart):
+            // Closed before the system's window opened, or it never could: the system was never
+            // asked, or said no, so no `stopped` follows.
             phase = .inline
             return [.endFeed]
         case (.starting, .playbackClosed), (.active, .playbackClosed), (.stopping(restore: true), .playbackClosed):

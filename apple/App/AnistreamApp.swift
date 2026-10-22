@@ -18,6 +18,7 @@ struct AnistreamApp: App {
     #else
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     #endif
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         #if os(macOS)
@@ -58,6 +59,8 @@ struct AnistreamApp: App {
 
     private var content: some View {
         RootView()
+            // Handoff: what another device hands over opens here.
+            .continuesHandoff()
             .hostsPlayer(delegate.player)
             .environment(\.playerUp, delegate.player.isPresented)
             .environment(delegate.store)
@@ -66,5 +69,36 @@ struct AnistreamApp: App {
             .frame(minWidth: 960, minHeight: 600)
             #endif
             .task { await delegate.start() }
+            // Where the app is, for the engine: in the background its torrents wait.
+            .onChange(of: scenePhase, initial: true) { _, phase in
+                switch phase {
+                case .active: delegate.phases.scene(.active)
+                case .background: delegate.phases.scene(.background)
+                default: delegate.phases.scene(.inactive)
+                }
+            }
+            // Notifications: their permission and the week's schedule looked at again on the way
+            // back, and the next background refresh asked for on the way out. Downloads: a window
+            // to go on in after the app leaves.
+            .onChange(of: scenePhase) { old, phase in
+                switch phase {
+                case .active:
+                    delegate.notices.cameForward()
+                    #if os(iOS)
+                    delegate.store.continued.phase(foreground: true, rows: delegate.store.downloads.rows)
+                    #endif
+                case .inactive where old == .active:
+                    #if os(iOS)
+                    // Still in front: the last moment the system opens a downloads window.
+                    delegate.store.continued.leaving(rows: delegate.store.downloads.rows)
+                    #endif
+                case .background:
+                    delegate.notices.wentAway()
+                    #if os(iOS)
+                    delegate.store.continued.phase(foreground: false, rows: delegate.store.downloads.rows)
+                    #endif
+                default: break
+                }
+            }
     }
 }

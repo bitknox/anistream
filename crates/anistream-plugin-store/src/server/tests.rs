@@ -123,6 +123,73 @@ async fn an_invite_is_spent_once_and_a_preview_does_not_spend_it() {
 }
 
 #[tokio::test]
+async fn an_invite_shows_who_runs_the_store_and_what_it_offers_before_it_is_spent() {
+    let running = start().await;
+    let client = client();
+    let (owner_invite, owner) = join_as_owner(&running).await;
+    let wasm = plugin("example", "1.0.0", &["api.example"]);
+    client.publish(&running.base, &owner, wasm).await.unwrap();
+    let invite = invite_member(&running, &owner, "Alex").await;
+
+    let index = client.preview_index(&invite).await.unwrap().expect("a store with previews");
+    assert_eq!(index.owners, ["Owner"]);
+    assert_eq!(index.plugins.len(), 1);
+    assert_eq!(index.plugins[0].allowed_hosts, ["api.example"]);
+
+    // Not spent: it still joins, and the joined list says the same of who runs it.
+    let alex = client.redeem(&invite, "laptop").await.unwrap();
+    let joined = client.index(&running.base, &alex.token, &owner_invite.key, 0).await.unwrap();
+    assert_eq!(joined.owners, ["Owner"]);
+    // Spent now, so it shows nothing, and says why.
+    let spent = client.preview_index(&invite).await.unwrap_err();
+    assert_eq!(spent.code(), Some("invite_unusable"));
+
+    // A link pairing the store with someone else's key: its list is not signed by that key.
+    let forged =
+        Invite { key: crate::crypto::SigningKey::generate().unwrap().public(), ..invite };
+    let fresh = invite_member(&running, &owner, "Sam").await;
+    let forged = Invite { code: fresh.code, ..forged };
+    assert_eq!(client.preview_index(&forged).await.unwrap_err(), ClientError::BadSignature);
+}
+
+#[tokio::test]
+async fn a_made_up_invite_previews_nothing_and_counts_as_a_failure() {
+    let running = start().await;
+    let (owner_invite, _) = join_as_owner(&running).await;
+    let made_up = Invite { code: "k3TzQe9WbA1xLr7uVn2c0g".into(), ..owner_invite };
+    for _ in 0..anistream_store_core::store::ALLOWED_FAILURES {
+        let refused = client().preview_index(&made_up).await.unwrap_err();
+        assert_eq!(refused.code(), Some("invite_unusable"));
+    }
+    let blocked = client().preview_index(&made_up).await.unwrap_err();
+    assert_eq!(blocked.code(), Some("rate_limited"), "limited like a failed redeem");
+}
+
+#[tokio::test]
+async fn a_store_from_before_previews_joins_without_one() {
+    // Answers every request as a store without the endpoint does.
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let base = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        while let Ok((mut socket, _)) = listener.accept().await {
+            let mut request = [0_u8; 4096];
+            let _ = socket.read(&mut request).await;
+            let body = r#"{"error":"not_found","message":"no such endpoint"}"#;
+            let answer = format!(
+                "HTTP/1.1 404 Not Found\r\ncontent-type: application/json\r\n\
+                 content-length: {}\r\nconnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = socket.write_all(answer.as_bytes()).await;
+        }
+    });
+    let key = crate::crypto::SigningKey::generate().unwrap().public();
+    let invite = Invite { base, code: "k3TzQe9WbA1xLr7uVn2c0g".into(), key };
+    assert_eq!(client().preview_index(&invite).await.unwrap(), None);
+}
+
+#[tokio::test]
 async fn a_store_answering_with_another_key_is_not_joined() {
     let running = start().await;
     let invite =

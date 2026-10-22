@@ -50,6 +50,9 @@
 # against its SHA-256; libplacebo, which needs its git submodules, against its commit. meson,
 # ninja and pkgconf are pinned in a Python venv in android/.mpv/tools, as apple/scripts/mpv.sh
 # has them. The work tree is deleted when the build is done.
+#
+# It builds on a Mac and on Linux, as the release workflow (.github/workflows/apps-release.yml)
+# runs it on Ubuntu, which needs gperf (fontconfig's) and python3-venv beside the usual tools.
 set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
@@ -153,11 +156,16 @@ mkdir -p "$cache/downloads"
 
 # Every tool runs in a clean environment, so nothing from the caller's (Gradle's, Android
 # Studio's, a shell's CFLAGS) reaches the compilers. Homebrew's autotools, gperf and GNU tools
-# are on the path for the projects that want them.
+# are on the path for the projects that want them; on Linux, as in the release workflow, they
+# are the system's.
 clean() {
   env -i PATH="$work/bin:$tools/bin:${llvm:-/nonexistent}:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin" \
     HOME="$HOME" LC_ALL=C TMPDIR="${TMPDIR:-/tmp}" "$@"
 }
+
+# The build's parallelism and a file's size, on macOS and on Linux alike.
+jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || sysctl -n hw.ncpu)"
+size_kb() { echo $(($(wc -c <"$1") / 1024)); }
 
 started=$SECONDS
 step() { echo "mpv.sh: $* ($((SECONDS - started)) s)"; }
@@ -335,7 +343,7 @@ step "building mbedtls"
 (
   cd "$work/src/mbedtls"
   clean python3 scripts/config.py set MBEDTLS_PLATFORM_DEV_RANDOM '"/dev/urandom"'
-  clean "${cross_env[@]}" CFLAGS="-O2 -fPIC" make -j"$(sysctl -n hw.ncpu)" lib >>"$log" 2>&1
+  clean "${cross_env[@]}" CFLAGS="-O2 -fPIC" make -j"$jobs" lib >>"$log" 2>&1
   clean "${cross_env[@]}" make DESTDIR="$prefix" install >>"$log" 2>&1
 ) || fail "mbedtls did not build"
 rm -rf "$prefix/bin"
@@ -371,7 +379,7 @@ mkdir -p "$work/build/ffmpeg"
     --enable-indev=lavfi --enable-encoder=png,mjpeg --enable-muxer=mov,matroska,mpegts \
     >"$work/ffmpeg-configure.txt" 2>>"$log" || { cat "$work/ffmpeg-configure.txt" >>"$log"; exit 1; }
   cat "$work/ffmpeg-configure.txt" >>"$log"
-  clean make -j"$(sysctl -n hw.ncpu)" >>"$log" 2>&1
+  clean make -j"$jobs" >>"$log" 2>&1
   clean make install >>"$log" 2>&1
 ) || fail "ffmpeg did not build"
 rm -rf "$work/build/ffmpeg"
@@ -405,7 +413,7 @@ mkdir -p "$work/build/unibreak"
   cd "$work/build/unibreak"
   clean "${cross_env[@]}" "$work/src/unibreak/configure" --host="$triple" --prefix="$prefix" \
     --with-pic --enable-static --disable-shared >>"$log" 2>&1
-  clean make -j"$(sysctl -n hw.ncpu)" install >>"$log" 2>&1
+  clean make -j"$jobs" install >>"$log" 2>&1
 ) || fail "unibreak did not build"
 rm -rf "$work/build/unibreak"
 finish unibreak LICENCE
@@ -425,7 +433,7 @@ if (( vulkan )); then
   step "building shaderc from the NDK's sources"
   cp -R "$ndk/sources/third_party/shaderc" "$work/src/shaderc"
   clean "$ndk/ndk-build" -C "$work/src/shaderc" NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk \
-    APP_STL=c++_static APP_ABI=arm64-v8a APP_PLATFORM="android-$api" -j"$(sysctl -n hw.ncpu)" \
+    APP_STL=c++_static APP_ABI=arm64-v8a APP_PLATFORM="android-$api" -j"$jobs" \
     libshaderc_combined >>"$log" 2>&1 || fail "shaderc did not build"
   cp "$work/src/shaderc/libs/c++_static/arm64-v8a/libshaderc.a" "$prefix/lib/libshaderc_combined.a"
   cp -R "$work/src/shaderc/include/shaderc" "$prefix/include/"
@@ -522,7 +530,7 @@ cp "$log" "$stage/build.log"
 measure
 
 elapsed=$((SECONDS - started))
-sizes="$(cd "$libs" && for so in *.so; do printf '%s=%sKB ' "${so%.so}" "$(($(stat -f %z "$so") / 1024))"; done)"
+sizes="$(cd "$libs" && for so in *.so; do printf '%s=%sKB ' "${so%.so}" "$(size_kb "$so")"; done)"
 total_kb=$(($(cat "$libs"/*.so | wc -c) / 1024))
 {
   echo "sources $hash"

@@ -2,14 +2,14 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ▸  CONTINUE               │  FIND ▏
   ▤  CALENDAR               │
-  ▦  SEASONAL               │         ▀▀▄
-▌ /  SEARCH                 │       ▄▄▀▀▄▄
-  ▥  LIBRARY                │     ▄▀▀▀▀▀▀▀▀▄
-  ↓  DOWNLOADS              │    ▄▀▀▀▀▀▀▀▀▀▀▀
-  ◇  PROVIDERS              │    ▀▀▀▀▀▀▀▀▀▀▀▀
-  ◎  ACCOUNTS               │  ▄▄▀▀▀▀▀▀▀▀▀▀▀
-  ⚙  SETTINGS               │  ▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄
-                            │   ▀ ▀▀▀▀▀    ▀▀▀▀
+  ▦  SEASONAL               │         ▄
+▌ /  SEARCH                 │      ▄▀▀▀▀▀▄
+  ▥  LIBRARY                │      ▀▀▀▀▀▀▀▀
+  ↓  DOWNLOADS              │    ▀▄▀▀▀▀▀▀▀ ▄▄
+  ◇  PROVIDERS              │    ▀▀▀▀▀▀▀   ▀▀
+  ◎  ACCOUNTS               │    ▀▀▀▀▀▀▀▀▄
+  ⚙  SETTINGS               │    ▀▀▀▀▀▀▀▀▀▄
+                            │    ▀ ▀▀   ▀▀
                             │
                             │  TYPE TO SEARCH
                             │
@@ -52,79 +52,67 @@ r03 c28-28 fg=rule
 r04 c02-02 fg=text-dim
 r04 c05-12 fg=text-dim
 r04 c28-28 fg=rule
-r04 c38-38 fg=#c6bea9
-r04 c39-39 fg=#e8e2d4 bg=#e8e2d4
-r04 c40-40 fg=#c6bea9
+r04 c38-38 fg=#e8e2d4
 r05 c00-00 fg=text-dim
 r05 c02-02 fg=text
 r05 c05-10 fg=text mod=BOLD
 r05 c28-28 fg=rule
-r05 c36-36 fg=#c6bea9
-r05 c37-37 fg=#e8e2d4
-r05 c38-38 fg=#c6bea9 bg=#e8e2d4
-r05 c39-39 fg=#e8e2d4 bg=#e8e2d4
-r05 c40-40 fg=#e8e2d4
+r05 c35-35 fg=#c6bea9
+r05 c36-36 fg=#c6bea9 bg=#e8e2d4
+r05 c37-39 fg=#e8e2d4 bg=#e8e2d4
+r05 c40-40 fg=#c6bea9 bg=#e8e2d4
 r05 c41-41 fg=#c6bea9
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
-r06 c34-34 fg=#c6bea9
-r06 c35-35 fg=#c6bea9 bg=#e8e2d4
-r06 c36-41 fg=#e8e2d4 bg=#e8e2d4
-r06 c42-42 fg=#c6bea9 bg=#e8e2d4
-r06 c43-43 fg=#c6bea9
+r06 c35-35 fg=#e8e2d4 bg=#efcfac
+r06 c36-36 fg=#efcfac bg=#232842
+r06 c37-38 fg=#efcfac bg=#efcfac
+r06 c39-39 fg=#c6bea9 bg=#c6bea9
+r06 c40-41 fg=#e8e2d4 bg=#e8e2d4
+r06 c42-42 fg=#c6bea9 bg=#c6bea9
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
-r07 c33-33 fg=#c6bea9
-r07 c34-34 fg=#e8e2d4 bg=#e8e2d4
-r07 c35-38 fg=#e8e2d4 bg=#efcfac
-r07 c39-39 fg=#e8e2d4 bg=#c6bea9
-r07 c40-43 fg=#e8e2d4 bg=#e8e2d4
-r07 c44-44 fg=#c6bea9 bg=#c6bea9
+r07 c33-33 fg=#dff5fb bg=state
+r07 c34-34 fg=obi
+r07 c35-35 fg=#d0a883 bg=obi
+r07 c36-37 fg=#efcfac bg=obi
+r07 c38-38 fg=#d0a883 bg=obi
+r07 c39-39 fg=#e8e2d4 bg=obi
+r07 c40-40 fg=#e8e2d4 bg=#e8e2d4
+r07 c41-41 fg=#c6bea9 bg=#c6bea9
+r07 c43-43 fg=#c57c2c
+r07 c44-44 fg=obi
 r08 c02-02 fg=text-dim
 r08 c05-13 fg=text-dim
 r08 c28-28 fg=rule
-r08 c33-33 fg=#e8e2d4 bg=#e8e2d4
-r08 c34-34 fg=#efcfac bg=#efcfac
-r08 c35-35 fg=#efcfac bg=#232842
-r08 c36-39 fg=#efcfac bg=#efcfac
-r08 c40-40 fg=#c6bea9 bg=#c6bea9
-r08 c41-43 fg=#e8e2d4 bg=#e8e2d4
-r08 c44-44 fg=#c6bea9 bg=#c6bea9
+r08 c33-33 fg=#8a6844 bg=#8a6844
+r08 c34-34 fg=#c57c2c bg=#68729e
+r08 c35-38 fg=obi bg=#464e7c
+r08 c39-39 fg=#c57c2c bg=#2e345c
+r08 c43-43 fg=#c57c2c
+r08 c44-44 fg=obi
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule
-r09 c31-32 fg=#dff5fb
-r09 c33-33 fg=#c6bea9
-r09 c34-34 fg=#efcfac bg=#d0a883
-r09 c35-37 fg=#efcfac bg=#efcfac
-r09 c38-38 fg=#efcfac bg=#d0a883
-r09 c39-39 fg=#d0a883 bg=#c6bea9
-r09 c40-40 fg=#c6bea9 bg=#e8e2d4
-r09 c41-41 fg=#e8e2d4 bg=#e8e2d4
-r09 c42-42 fg=#e8e2d4 bg=#c6bea9
-r09 c43-43 fg=#c6bea9
+r09 c33-33 fg=#8a6844 bg=#8a6844
+r09 c34-34 fg=#68729e bg=#68729e
+r09 c35-39 fg=#464e7c bg=#464e7c
+r09 c40-40 fg=#2e345c bg=#464e7c
+r09 c41-41 fg=#2e345c
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
-r10 c31-31 fg=#dff5fb bg=#dff5fb
-r10 c32-32 fg=state bg=state
-r10 c33-33 fg=state bg=#c57c2c
-r10 c34-39 fg=obi bg=obi
-r10 c40-40 fg=#e8e2d4 bg=#c57c2c
-r10 c41-41 fg=#e8e2d4
-r10 c42-42 fg=#c6bea9
-r10 c43-43 fg=#c57c2c
-r10 c44-45 fg=obi
+r10 c33-33 fg=#8a6844 bg=#8a6844
+r10 c34-34 fg=#68729e bg=#68729e
+r10 c35-40 fg=#464e7c bg=#464e7c
+r10 c41-41 fg=#2e345c bg=#464e7c
+r10 c42-42 fg=#2e345c
 r11 c28-28 fg=rule
-r11 c32-32 fg=#dff5fb
-r11 c34-34 fg=#c57c2c
-r11 c35-37 fg=obi
-r11 c38-38 fg=#c57c2c
-r11 c43-43 fg=#c57c2c
-r11 c44-45 fg=obi
-r11 c46-46 fg=#c57c2c
+r11 c33-33 fg=#8a6844
+r11 c35-36 fg=#232842
+r11 c40-41 fg=#232842
 r12 c28-28 fg=rule
 r13 c28-28 fg=rule
 r13 c31-44 fg=text-dim
