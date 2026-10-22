@@ -76,8 +76,8 @@
                 <data android:scheme="anistream" android:host="*" android:pathPrefix="/join/" />
             </intent-filter>
             <!-- The launcher's shortcuts, Search and Downloads; Continue <title> is published as the
-                 queue changes. Each opens this activity on an anistream://open/… link, explicitly,
-                 so no filter here claims those links. -->
+                 queue changes. Each opens this activity explicitly, with the link in its extras
+                 (tv.anistream.action.OPEN), so no filter here claims those links. -->
             <meta-data
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />

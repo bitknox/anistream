@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Path
 import android.graphics.RectF
-import android.net.Uri
 import android.provider.Settings
 import android.view.View
 import android.view.ViewGroup
@@ -68,7 +67,8 @@ class WidgetShots {
         override val widgetArt = WidgetArt.of(files)
         var asked = 0
 
-        override fun widgetIntent(link: AppLink?) = Intent(Intent.ACTION_VIEW, link?.uri?.let(Uri::parse))
+        override fun widgetIntent(link: AppLink?) =
+            Intent(Intent.ACTION_VIEW).apply { link?.fields?.forEach { (field, value) -> putExtra(field, value) } }
 
         override fun refreshWidgetRecord() {
             asked++
@@ -182,24 +182,25 @@ class WidgetShots {
         val continuing = drawn(ContinueWidget { Host(Fixtures.record()) }, WIDE)
         // A show opens its title page; its play button continues it.
         tap(continuing.textView("Hagane no Niwashi"))
-        assertEquals(AppLink.Title(Fixtures.HAGANE).uri, started())
+        assertEquals(AppLink.Title(Fixtures.HAGANE), started())
         tap(continuing.described("Resume episode 7 of Hoshikuzu no Tabibito"))
-        assertEquals(AppLink.Continue(Fixtures.HOSHIKUZU).uri, started())
+        assertEquals(AppLink.Continue(Fixtures.HOSHIKUZU), started())
 
         // Signed out, Connect opens Settings › Accounts.
         tap(drawn(ContinueWidget { Host(Fixtures.record(signedIn = false, continuing = emptyList())) }, SMALL).textView("Connect"))
-        assertEquals(AppLink.Accounts.uri, started())
+        assertEquals(AppLink.Accounts, started())
 
         // A row opens its title; the header opens the Calendar.
         val airing = drawn(AiringWidget { Host(Fixtures.record()) }, WIDE)
         tap(airing.textView("Kazamachi Shokudo"))
-        assertEquals(AppLink.Title(910006u).uri, started())
+        assertEquals(AppLink.Title(910006u), started())
         tap(airing.textView("Airing today"))
-        assertEquals(AppLink.Calendar.uri, started())
+        assertEquals(AppLink.Calendar, started())
     }
 
-    /** The address of the activity a tap started last. */
-    private fun started(): String? = shadowOf(context as Application).nextStartedActivity?.dataString
+    /** The link of the activity a tap started last, from its intent's extras. */
+    private fun started(): AppLink? =
+        shadowOf(context as Application).nextStartedActivity?.let { intent -> AppLink.of(intent::getStringExtra) }
 
     /** Click [view] where the launcher would: the nearest view that takes the click. */
     private fun tap(view: View) {
