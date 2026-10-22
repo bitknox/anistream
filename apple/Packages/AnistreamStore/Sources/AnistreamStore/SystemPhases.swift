@@ -9,8 +9,10 @@ import Network
 /// Tells the engine where the app is (`Command::AppPhase`) and the network the device uses
 /// (`Command::NetworkPath`), each when it changes.
 ///
-/// - iPhone and iPad: in the background when the scene is, playing or not as the player is, and
-///   said again when that changes there. Back in the foreground when the scene is active.
+/// - iPhone and iPad: in the background when the scene is, playing or not as the player is, or
+///   with its downloads going on while the system gives them a window (`ContinuedDownloads`),
+///   and said again when either changes there. Back in the foreground when the scene is active.
+///   It alone tells the engine where the app is, so the two never say different things.
 /// - The Mac: always in the foreground. A Mac app keeps running behind other windows, minimised
 ///   or hidden, and its downloads and seeding with it; nothing takes its loopback servers away.
 /// - Both: the network from `NWPathMonitor`, an expensive path as cellular (a phone's own, or
@@ -24,6 +26,7 @@ public final class SystemPhases {
 
     private let send: @MainActor (Command) -> Void
     private let playing: @MainActor () -> Bool
+    private let downloading: @MainActor () -> Bool
     private let backgrounds: Bool
     private var away = false
     private var said: AppState?
@@ -40,14 +43,17 @@ public final class SystemPhases {
     }
 
     /// `send` hands the engine a command; `playing` says whether the player plays now, its audio
-    /// going on behind the lock screen.
+    /// going on behind the lock screen; `downloading`, whether the system has a window open for
+    /// the downloads to go on in.
     public init(
         send: @escaping @MainActor (Command) -> Void,
         playing: @escaping @MainActor () -> Bool,
+        downloading: @escaping @MainActor () -> Bool = { false },
         backgrounds: Bool = SystemPhases.hasBackground
     ) {
         self.send = send
         self.playing = playing
+        self.downloading = downloading
         self.backgrounds = backgrounds
     }
 
@@ -68,11 +74,20 @@ public final class SystemPhases {
         tell()
     }
 
+    /// The system opened or closed the downloads' window: in the background, what waits
+    /// follows it.
+    public func downloadsWindowChanged() {
+        guard away else { return }
+        tell()
+    }
+
     private func tell() {
-        let phase: AppState = away ? .background(playing: playing()) : .foreground
+        let phase: AppState =
+            !away ? .foreground : downloading() ? .backgroundDownloads : .background(playing: playing())
         guard phase != said else { return }
         said = phase
-        AppLog.info("phases", "app \(away ? "in the background" : "in the foreground")\(away && playing() ? ", playing" : "")")
+        let how = phase == .backgroundDownloads ? ", downloading" : away && playing() ? ", playing" : ""
+        AppLog.info("phases", "app \(away ? "in the background" : "in the foreground")\(how)")
         send(.appPhase(phase: phase))
     }
 

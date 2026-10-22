@@ -9,11 +9,13 @@ import Testing
 private final class Told {
     var sent: [Command] = []
     var playing = false
+    var downloading = false
 
     func phases(backgrounds: Bool) -> SystemPhases {
         SystemPhases(
             send: { [unowned self] in sent.append($0) },
             playing: { [unowned self] in playing },
+            downloading: { [unowned self] in downloading },
             backgrounds: backgrounds)
     }
 }
@@ -40,6 +42,33 @@ struct PhasesTests {
             .appPhase(phase: .foreground),
             .appPhase(phase: .background(playing: true)),
             .appPhase(phase: .background(playing: false)),
+            .appPhase(phase: .foreground),
+        ])
+    }
+
+    @Test func aDownloadsWindowInTheBackgroundIsSaidThereAndItsEndToo() {
+        let told = Told()
+        let phases = told.phases(backgrounds: true)
+        // A window already open as the app leaves: the downloads go on.
+        told.downloading = true
+        phases.scene(.background)
+        // The player is no business of the phases while the window is open.
+        told.playing = true
+        phases.playingChanged()
+        // The window ends, its downloads done or its time up: what plays goes on, the rest waits.
+        told.downloading = false
+        phases.downloadsWindowChanged()
+        // One opened later, away.
+        told.downloading = true
+        phases.downloadsWindowChanged()
+        phases.downloadsWindowChanged()
+        // Back in front, a window is nothing to the engine.
+        phases.scene(.active)
+        phases.downloadsWindowChanged()
+        #expect(told.sent == [
+            .appPhase(phase: .backgroundDownloads),
+            .appPhase(phase: .background(playing: true)),
+            .appPhase(phase: .backgroundDownloads),
             .appPhase(phase: .foreground),
         ])
     }

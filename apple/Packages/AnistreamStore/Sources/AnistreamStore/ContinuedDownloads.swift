@@ -39,8 +39,9 @@ public final class ContinuedDownloads {
     /// Ask the system for a window, titled `title` with `subtitle`: false when it refused. `nil`
     /// where there is no such window, as on the Mac: nothing is asked.
     @ObservationIgnored public var ask: (@MainActor (_ title: String, _ subtitle: String) -> Bool)?
-    /// Tell the engine where the app is.
-    @ObservationIgnored var send: (@MainActor (Command) -> Void)?
+    /// Tell the engine where the app is: the store's own sending, unless the app hands it to
+    /// `SystemPhases`, which then tells the engine once for the scene and the window both.
+    @ObservationIgnored public var send: (@MainActor (Command) -> Void)?
     /// `isRunning` changed: the store keeps the downloads' Live Activity out of the way with it.
     @ObservationIgnored var runningChanged: (@MainActor (Bool) -> Void)?
     /// Whether the episode on is playing, for the phase the app goes to when it leaves.

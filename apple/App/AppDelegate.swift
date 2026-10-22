@@ -37,7 +37,8 @@ final class AppDelegate: NSObject {
         self.player = player
         phases = SystemPhases(
             send: { [weak store] command in store?.send(command) },
-            playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false })
+            playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false },
+            downloading: { [weak store] in store?.continued.stage == .running })
         playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
@@ -61,11 +62,14 @@ final class AppDelegate: NSObject {
         // task's handler.
         notices.launch()
         #if os(iOS)
-        // Downloads go on after the app leaves, in the system's window for them.
+        // Downloads go on after the app leaves, in the system's window for them. What the window
+        // means for the engine, SystemPhases says, with the scene and the player: one teller of
+        // where the app is, so a window opening or closing away is said there.
         store.continued.playing = { [weak player = self.player] in
             guard let player else { return false }
             return player.isPresented && !player.paused
         }
+        store.continued.send = { [weak phases = self.phases] _ in phases?.downloadsWindowChanged() }
         BackgroundDownloads.install(in: store)
         #endif
         watchPlaying()

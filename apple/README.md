@@ -436,10 +436,11 @@ the system's own progress line (AnistreamStore's `ContinuedDownloads`, the app's
 some queued; each has an identifier of its own under `<bundle>.downloads.*`. While it is open the
 engine is told `AppPhase(BackgroundDownloads)`: the downloads and what plays go on, seeding waits,
 and the connection check runs as on screen. When nothing is left, when the window runs out or the
-person stops it, the engine is told `Background` and the torrents wait where they got to. The app
-also tells the engine `Foreground` and `Background` as it comes and goes. `ContinuedDownloads.isRunning`
-says whether the system's progress is showing, for the app's own Live Activity to stay out of its
-way. The Mac has no such window.
+person stops it, the engine is told `Background` and the torrents wait where they got to.
+`SystemPhases` alone tells the engine where the app is, the window among it with the scene and the
+player, so the two never say different things. `ContinuedDownloads.isRunning` says whether the
+system's progress is showing, and the app's own Live Activity stays out of its way meanwhile. The
+Mac has no such window.
 
 ## The dev harness
 
