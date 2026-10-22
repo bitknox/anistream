@@ -26,6 +26,7 @@ use crate::{
     outbox::Played,
     playback::autonext::Staging,
     sources::{TorrentUp, torrent::TorrentTasks},
+    widgets::Schedule,
 };
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
@@ -73,6 +74,11 @@ pub struct EngineState {
     /// What the torrent session was last told of it, for a setting saved to tell whether that
     /// changed: see [`crate::phases::gate_for`].
     pub gated: Option<crate::phases::Gate>,
+    /// Held by each new-episode check while it runs, so two asked for together take turns
+    /// rather than both saying the same episode.
+    pub episode_check: Arc<tokio::sync::Mutex<()>>,
+    /// The week's broadcasts as the widgets' record last fetched them: see [`Schedule`].
+    pub widget_schedule: Schedule,
 }
 
 impl EngineState {
@@ -99,6 +105,8 @@ impl EngineState {
             phase: Default::default(),
             network: Default::default(),
             gated: None,
+            episode_check: Arc::default(),
+            widget_schedule: Schedule::default(),
         }
     }
 

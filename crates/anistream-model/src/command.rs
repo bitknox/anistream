@@ -415,6 +415,51 @@ pub enum Command {
     FetchArtwork {
         url: String,
     },
+    /// Look for episodes of the shows followed that aired since they were last looked at:
+    /// answered with exactly one [`Event::NewEpisodes`], empty when there is nothing new, with
+    /// notifications off, or when AniList could not be asked. Never with a job.
+    ///
+    /// The shows followed are those on the signed-in tracker's list as watching or rewatching,
+    /// as its last pull left the list here, and those watched here in the last 30 days, unless
+    /// the list has them as dropped or paused. A show planned is not, unless it turns
+    /// [`ShowSettingKey::NotifyNewEpisodes`] on for itself, which takes in any show; one that
+    /// turns it off is left out. All of them are while [`SettingKey::EpisodeNotifications`] is
+    /// off.
+    ///
+    /// Each episode is said once, and only one that aired after its show was first followed:
+    /// the first check after notifications are turned on, or after a show is first followed,
+    /// only notes where things stand and says nothing, so a new install never fires a backlog.
+    /// An episode already watched here is not said, and nor is one that aired more than a week
+    /// ago, after a long time without a check.
+    ///
+    /// It costs AniList one request at most, for every show at once, and none when nothing
+    /// can have aired: when the last check was under five minutes ago, or when the metadata
+    /// cache has every show's next episode still to come. It answers within 15 seconds whatever
+    /// the network does, so it fits in a background task's time.
+    ///
+    /// **In the background.** On iOS, from a `BGAppRefreshTask`; on Android, from a periodic
+    /// `WorkManager` job. Start the engine if the app is not running, with every
+    /// `FfiBackground` switch off, send this, and read events until the
+    /// [`Event::NewEpisodes`]. Post one notification for each episode in it, identified by the
+    /// show and the episode, so that one posted twice replaces itself. Then send
+    /// [`Command::WidgetSnapshot`] and write what it answers for the widgets, before completing
+    /// the task. Nothing else needs to run: the check reads the list the last pull in the
+    /// foreground kept, and the settings and title form the engine has on file.
+    ///
+    /// [`Event::NewEpisodes`]: crate::event::Event::NewEpisodes
+    CheckNewEpisodes,
+    /// The record the home-screen widgets show: answered with one
+    /// [`Event::WidgetSnapshot`](crate::event::Event::WidgetSnapshot), never with a job.
+    ///
+    /// Continue's first five titles, from local history, with their titles and art from the
+    /// metadata cache, asking AniList only for one the cache does not have; and the broadcasts
+    /// from the start of today in the device's time zone to a week on, a request for each page
+    /// of fifty, used again for five minutes. What could not be fetched is left out rather than
+    /// failing the rest.
+    ///
+    /// Ask after anything that changes Continue, such as an episode ending, as the app goes to
+    /// the background, and from the background task after [`Command::CheckNewEpisodes`].
+    WidgetSnapshot,
 }
 
 /// A control sent to whatever is currently playing.

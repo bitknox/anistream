@@ -386,7 +386,8 @@ impl Default for SyncplayConfig {
     }
 }
 
-/// The airing digest: what aired for shows in your history while the app was closed.
+/// The airing digest: what aired for shows in your history while the app was closed. And the
+/// native apps' notifications of new episodes, which are off until asked for.
 ///
 /// A digest, never a stream of pings — one line on launch, and only when there is
 /// something to say. The tool must not get in the way of the person using it.
@@ -398,11 +399,14 @@ pub struct NotificationsConfig {
     /// Send the same line to the desktop as well. Off by default — the toast already
     /// says it, and a notification about the app you just opened is noise.
     pub desktop: bool,
+    /// Let a native app notify you of each new episode of the shows you follow, from its
+    /// background check. Off until you turn it on.
+    pub episodes: bool,
 }
 
 impl Default for NotificationsConfig {
     fn default() -> Self {
-        Self { airing_digest: true, desktop: false }
+        Self { airing_digest: true, desktop: false, episodes: false }
     }
 }
 

@@ -71,6 +71,8 @@ futures.workspace = true
 # The hosted player's properties, in mpv's own JSON.
 serde_json.workspace = true
 tempfile = "3"
+# The day the widgets' record calls today, in the zone the engine reads it in.
+jiff.workspace = true
 
 [lints]
 workspace = true

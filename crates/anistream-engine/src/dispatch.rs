@@ -247,6 +247,11 @@ pub(crate) fn dispatch(
             tx.clone(),
         ),
 
+        // What a native app shows outside itself: notifications, and its widgets. Off the loop,
+        // with no job, each answered with one event.
+        Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
+        Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
+
         // The plugin stores.
         Command::LoadStores => {
             store_task(job, engine, services, tx, StoreTaskContext::load_stores)
