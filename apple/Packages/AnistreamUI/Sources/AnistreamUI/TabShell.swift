@@ -168,6 +168,9 @@ struct TabStack<Screen: View>: View {
             screen()
                 .navigationTitle(section.title.capitalizedSentence)
                 .background(.ground)
+                // The ground under the whole stack, edge to edge, however narrow the screen in
+                // it: never the window's black at its sides.
+                .containerBackground(.ground, for: .navigation)
                 .navigationDestination(for: AnilistId.self) { id in
                     // A wide iPad has the Mac's page (PadTitleMeta); an iPhone and a narrow
                     // window, the iPhone's.
