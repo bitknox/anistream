@@ -16,6 +16,23 @@ struct SettingsWordsTests {
         #expect(SettingKey.commitThreshold.title == "Counts as watched at")
     }
 
+    @Test func theWeeksFootnoteSaysWhatWaitsForItsDubAndWhatIsOff() {
+        #expect(NoticeWords.leftOut(dubbed: [], off: []) == "A row opens that show’s settings.")
+        #expect(NoticeWords.leftOut(dubbed: ["Summer Wind Relay"], off: ["Amber Forest"])
+            == "Summer Wind Relay notifies when its dub is out. Amber Forest is off in its own settings. A row opens that show’s settings.")
+        #expect(NoticeWords.leftOut(dubbed: ["One", "Two", "Three"], off: [])
+            == "One, Two and Three notify when their dubs are out. A row opens that show’s settings.")
+    }
+
+    @Test func aTitleLanguageIsNamedWithItsCapitalInEverySentence() {
+        let note = TitleLanguageWords.note(.anilist, signedIn: true, viewer: .english, examples: [])
+        #expect(note.hasPrefix("Follows your AniList account, which is set to English. "))
+        #expect(TitleLanguageWords.line(.anilist, signedIn: true, viewer: .romaji) == "Romaji, from your AniList account")
+        for language in [TitleLanguage.romaji, .english, .native] {
+            #expect(TitleLanguageWords.name(language).first?.isUppercase == true)
+        }
+    }
+
     @Test func theProtectionIsNamedAsTheTurnOnSheetNamesIt() {
         #expect(ProtectionWords.label(TorrentProtection.proxy) == "SOCKS5 proxy")
         #expect(ProtectionWords.label(TorrentProtection.device) == "VPN on this device")

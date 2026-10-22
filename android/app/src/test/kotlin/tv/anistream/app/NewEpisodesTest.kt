@@ -51,8 +51,15 @@ class FakeHost : Application(), NewEpisodesHost {
 
     val marked = mutableListOf<Pair<AnilistId, UInt>>()
 
+    /** How many times a run made the widgets' record without the check. */
+    var recorded = 0
+
     override suspend fun markWatched(id: AnilistId, episode: UInt) {
         marked += id to episode
+    }
+
+    override suspend fun recordWidgets() {
+        recorded++
     }
 }
 
@@ -133,11 +140,77 @@ class NewEpisodesTest {
         main.cancel()
     }
 
-    /** The watching scene's settings, with new-episode notifications [on] or off. */
-    private fun settings(on: Boolean): Event.Settings {
+    @Test
+    fun a_show_switched_on_keeps_the_check_running_with_the_switch_off() {
+        WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().setExecutor(SynchronousExecutor()).build())
+        val main = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        val store = AppStore(main)
+        val alerts = EpisodeAlerts(context, store, host.episodeNotifier)
+        val work = { WorkManager.getInstance(context).getWorkInfosForUniqueWork(NewEpisodesSchedule.NAME).get().singleOrNull()?.state }
+
+        // The switch off, and one show switched on for itself: the check runs for it.
+        alerts.follow(main)
+        store.apply(listOf(settings(on = false, switchedOn = 1u)))
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(WorkInfo.State.ENQUEUED, work())
+        // Turning the switch off, with the show still on, keeps it; nothing is asked.
+        alerts.set(false)
+        assertEquals(WorkInfo.State.ENQUEUED, work())
+        assertFalse(alerts.refused.value)
+
+        // The show back on Settings, nothing notifies: cancelled.
+        store.apply(listOf(settings(on = false, switchedOn = 0u)))
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(WorkInfo.State.CANCELLED, work())
+        main.cancel()
+    }
+
+    @Test
+    fun the_check_runs_while_the_switch_or_a_show_is_on_or_a_widget_is_placed() {
+        assertFalse("neither", EpisodeAlerts.Wanted.of(setting = false, switchedOn = 0u, widgets = false).checks)
+        assertTrue(EpisodeAlerts.Wanted.of(setting = true, switchedOn = 0u).checks)
+        assertTrue(EpisodeAlerts.Wanted.of(setting = false, switchedOn = 2u).checks)
+        // Nothing notifies, and a widget is placed: on, for the widget's record alone.
+        val widgetOnly = EpisodeAlerts.Wanted.of(setting = false, switchedOn = 0u, widgets = true)
+        assertTrue(widgetOnly.checks)
+        assertFalse(widgetOnly.notifies)
+    }
+
+    @Test
+    fun a_widget_placed_keeps_the_check_with_nothing_notifying() {
+        WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().setExecutor(SynchronousExecutor()).build())
+        val main = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        val store = AppStore(main)
+        val alerts = EpisodeAlerts(context, store, host.episodeNotifier)
+        val work = { WorkManager.getInstance(context).getWorkInfosForUniqueWork(NewEpisodesSchedule.NAME).get().singleOrNull()?.state }
+
+        // Before the engine says its settings, a widget placed schedules the check.
+        alerts.widgetsPlaced(true)
+        assertEquals(WorkInfo.State.ENQUEUED, work())
+
+        // Nothing notifies, and the widget keeps it.
+        alerts.follow(main)
+        store.apply(listOf(settings(on = false)))
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(WorkInfo.State.ENQUEUED, work())
+        alerts.set(false)
+        assertEquals(WorkInfo.State.ENQUEUED, work())
+
+        // The last widget taken off, with nothing notifying: cancelled.
+        alerts.widgetsPlaced(false)
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(WorkInfo.State.CANCELLED, work())
+        main.cancel()
+    }
+
+    /**
+     * The watching scene's settings, with new-episode notifications [on] or off, and [switchedOn]
+     * shows switched on for themselves.
+     */
+    private fun settings(on: Boolean, switchedOn: UInt = 0u): Event.Settings {
         val view = Scene.named("watching").events.filterIsInstance<Event.Settings>().last().v1
         val said = { row: SettingRow -> if (row.key == EpisodeAlerts.KEY) row.copy(value = if (on) "on" else "off") else row }
-        return Event.Settings(view.copy(rows = view.rows.map(said), nativeRows = view.nativeRows.map(said)))
+        return Event.Settings(view.copy(rows = view.rows.map(said), nativeRows = view.nativeRows.map(said), notifySwitchedOn = switchedOn))
     }
 
     // The work
@@ -193,9 +266,11 @@ class NewEpisodesTest {
         shadowOf(host).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
         var asked = false
         host.episodeCheck = EpisodeCheck { asked = true; listOf(wayfarer) }
+        host.recorded = 0
         assertEquals(ListenableWorker.Result.success(), run())
         assertFalse(asked)
         assertTrue(manager.activeNotifications.isEmpty())
+        assertEquals("the widgets' record is still kept", 1, host.recorded)
     }
 
     @Test

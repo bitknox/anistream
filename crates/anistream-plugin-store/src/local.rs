@@ -51,6 +51,9 @@ pub struct Joined {
     /// that access was removed instead of the store silently disappearing.
     #[serde(default)]
     pub revoked: bool,
+    /// Joined with the store's open link, as a member with no name.
+    #[serde(default)]
+    pub anonymous: bool,
 }
 
 impl Joined {
@@ -315,6 +318,7 @@ mod tests {
             index: None,
             checked_at: None,
             revoked: false,
+            anonymous: false,
         }
     }
 
@@ -400,6 +404,7 @@ mod tests {
             issued_at: 0,
             plugins,
             owners: Vec::new(),
+            open: false,
         };
         state.accept_index("a", index("a", vec![entry("one", "1.1.0", &[])]), 10);
         state.accept_index("b", index("b", vec![entry("two", "2.0.0", &[])]), 10);
@@ -436,6 +441,7 @@ mod tests {
             issued_at: 0,
             plugins: Vec::new(),
             owners: Vec::new(),
+            open: false,
         };
         state.accept_index("abc", index, 0);
         state.remove_store("abc");

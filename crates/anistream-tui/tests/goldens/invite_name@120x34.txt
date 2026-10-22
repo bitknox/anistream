@@ -13,9 +13,9 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   their name, as the members list will show it — enter makes the link
 
+                            │    publish a plugin
                             │    open the admin page
                             │    leave this store
-                            │
                             │
                             │
                             │

@@ -156,11 +156,21 @@ struct DownloadLine: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Text(name)
-                .font(.mac(13))
-                .foregroundStyle(.silk)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Text(name)
+                    .font(.mac(13))
+                    .foregroundStyle(.silk)
+                    .lineLimit(1)
+                // Queued by keep next rather than asked for. The name gives way first.
+                if row.ahead {
+                    Text("Downloaded ahead")
+                        .font(.mac(11))
+                        .foregroundStyle(.haze)
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             standing
                 .frame(width: 320, alignment: .leading)
             Text(row.total > 0 ? Wording.bytes(row.total) : "")
@@ -193,7 +203,10 @@ struct DownloadLine: View {
         case .done:
             HStack(spacing: 6) {
                 Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
-                Text("Downloaded").foregroundStyle(.haze)
+                // One keep next queued goes a day after it is watched.
+                Text(row.ahead ? "Downloaded · Removed a day after you watch it" : "Downloaded")
+                    .foregroundStyle(.haze)
+                    .lineLimit(1)
             }
             .font(.mac(13))
         case .active where row.total == 0:

@@ -1,0 +1,93 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▸  CONTINUE               │  HEARTH PLUGINS                                                                   owner
+  ▤  CALENDAR               │  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▦  SEASONAL               │
+  /  SEARCH                 │    PLUGIN                      VERSION       STATE
+  ▥  LIBRARY                │  ───────────────────────────────────────────────────────────────────────────────────────
+  ↓  DOWNLOADS              │    Yamabiko                    1.4.0         ● installed
+▌ ◇  PROVIDERS              │    Kawasemi                    2.1.0         update from 2.0.3
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ LET ANYONE WITH THE LINK JOIN HEARTH PLUGINS?
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  anyone with the store's link can join it, without a name
+  the link is new each time, so an earlier one stays dead
+  members see that the store is open
+
+  enter opens it · esc keeps it to invites
+
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │  ───────────────────────────────────────────────────────────────────────────────────────
+                            │    ↵ let anyone with the store's link join, without a name
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                             ↵ confirm   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-119 fg=rule
+r01 c00-119 fg=rule
+r02 c00-30 fg=rule
+r02 c31-44 fg=rule mod=BOLD
+r02 c45-119 fg=rule
+r03 c00-119 fg=rule
+r04 c00-119 fg=rule
+r05 c00-119 fg=rule
+r06 c00-119 fg=rule
+r07 c00-119 fg=rule
+r08 c00-04 fg=rule
+r08 c05-13 fg=rule mod=BOLD
+r08 c14-119 fg=rule
+r09 c00-119 fg=rule bg=ground
+r10 c00-00 fg=obi bg=ground
+r10 c01-01 fg=rule bg=ground
+r10 c02-46 fg=text bg=ground mod=BOLD
+r10 c47-119 fg=rule bg=ground
+r11 c00-119 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-57 fg=text-dim bg=ground
+r12 c58-119 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-56 fg=text-dim bg=ground
+r13 c57-119 fg=rule bg=ground
+r14 c00-01 fg=rule bg=ground
+r14 c02-32 fg=text-dim bg=ground
+r14 c33-35 fg=text-dim bg=ground mod=BOLD
+r14 c36-44 fg=rule bg=ground mod=BOLD
+r14 c45-119 fg=rule bg=ground
+r15 c00-119 fg=rule bg=ground
+r16 c00-01 fg=rule bg=ground
+r16 c02-41 fg=text-dim bg=ground
+r16 c42-119 fg=rule bg=ground
+r17 c00-119 fg=rule bg=ground
+r18 c00-119 fg=rule
+r19 c00-119 fg=rule
+r20 c00-119 fg=rule
+r21 c00-119 fg=rule
+r22 c00-119 fg=rule
+r23 c00-119 fg=rule
+r24 c00-119 fg=rule
+r25 c00-119 fg=rule
+r26 c00-119 fg=rule
+r27 c00-119 fg=rule
+r28 c00-119 fg=rule
+r29 c00-119 fg=rule
+r30 c00-119 fg=rule
+r31 c00-119 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c21-97 fg=rule
+r33 c98-98 fg=text
+r33 c99-109 fg=text-dim
+r33 c110-112 fg=text
+r33 c113-119 fg=text-dim

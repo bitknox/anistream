@@ -154,7 +154,8 @@ struct PhoneStorePage: View {
                     Text("Each plugin can contact only the hosts listed with it and cannot read your files.")
                 }
                 Section {
-                    if row.state != .revoked {
+                    // A device that joined with the store's link joins another the same way.
+                    if row.state != .revoked, !row.anonymous {
                         Button("Link another device") { inviting = true }
                             .fontWeight(.semibold)
                             .foregroundStyle(.silk)
@@ -164,8 +165,11 @@ struct PhoneStorePage: View {
                         .fontWeight(.semibold)
                         .listRowBackground(Palette.raised)
                 } footer: {
-                    // Who runs it, and when it was checked, wait on E9's fields on `StoreRow`.
-                    Text("\(StoreWords.meta(row))\nKey \(row.fingerprint) · joined as \(row.member)")
+                    // Who can join is changed on the Mac, an iPad or the store's admin page.
+                    let about = [StoreWords.meta(row), row.open ? "anyone with the link can join" : nil]
+                    let key = ["Key \(row.fingerprint)", row.joinedAs, StoreWords.checked(row)]
+                    Text(about.compactMap { $0 }.joined(separator: " · ") + "\n"
+                         + key.compactMap { $0 }.joined(separator: " · "))
                 }
             }
             .navigationTitle(row.name)
@@ -372,20 +376,51 @@ struct PhoneJoinStoreSheet: View {
             }
         case .store(let invited)?:
             Section {
-                VStack(alignment: .leading, spacing: 2) {
-                    // The plugin count, who runs it and its plugins wait on E9's fields on `InvitedStore`.
-                    Text(invited.name).font(.ui(20, weight: .semibold)).foregroundStyle(.silk)
-                    Text(URL(string: invited.url)?.host ?? invited.url).font(.ui(15)).foregroundStyle(.haze)
-                }
-                .listRowBackground(Palette.raised)
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "checkmark").foregroundStyle(.water)
+                HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Key matches the invite").font(.ui(17)).foregroundStyle(.silk)
-                        Text(invited.fingerprint).font(.ui(15, design: .monospaced)).foregroundStyle(.haze)
+                        Text(invited.name).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+                        Text(invited.runByLine).font(.ui(13)).foregroundStyle(.haze)
+                    }
+                    Spacer(minLength: 0)
+                    if !invited.plugins.isEmpty {
+                        Text(Wording.plural(invited.plugins.count, "plugin"))
+                            .font(.ui(15)).monospacedDigit().foregroundStyle(.haze)
                     }
                 }
                 .listRowBackground(Palette.raised)
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark").font(.ui(15, weight: .semibold)).foregroundStyle(.water)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Key matches the \(invited.anonymous ? "link" : "invite")").font(.ui(15)).foregroundStyle(.silk)
+                        Text(invited.fingerprint).font(.ui(13, design: .monospaced)).foregroundStyle(.haze)
+                    }
+                }
+                .listRowBackground(Palette.raised)
+                if invited.open {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: "person.2").foregroundStyle(.haze)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Anyone with the link can join").font(.ui(17)).foregroundStyle(.silk)
+                            if invited.anonymous {
+                                Text("You join without a name.").font(.ui(15)).foregroundStyle(.haze)
+                            }
+                        }
+                    }
+                    .listRowBackground(Palette.raised)
+                }
+                ForEach(invited.plugins, id: \.id) { plugin in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(plugin.name).font(.ui(17)).foregroundStyle(.silk).lineLimit(1)
+                            Text(([plugin.contactsLine] + [plugin.standing].compactMap { $0 }).joined(separator: " · "))
+                                .font(.ui(13)).foregroundStyle(.haze).lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                        Text(plugin.version).font(.ui(15)).monospacedDigit().foregroundStyle(.haze)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .listRowBackground(Palette.raised)
+                }
             } footer: {
                 Text(invited.alreadyJoined
                      ? "This iPhone has joined this store already."

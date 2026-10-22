@@ -44,6 +44,7 @@ import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -119,6 +120,25 @@ data class AppActions(
     val notifications: NotificationActions? = null,
 )
 
+/** The app's side of the Notifications pane, and of a show's own New episodes switch. */
+class NotificationActions(
+    /** Turn new-episode notifications on, once they can show, or off. */
+    val turn: (Boolean) -> Unit,
+    /** Whether Android did not let them go on, or stay on: the switch's line says so. */
+    val refused: StateFlow<Boolean>,
+    /**
+     * Let notifications show, then do what it is handed: at once where they can, after asking for
+     * the permission the first time, and not at all where Android says no. What switching a show
+     * on for itself goes through, as Settings' switch does.
+     */
+    val permit: (then: () -> Unit) -> Unit = { it() },
+    /** The system's settings for the channel: sound, vibration and the lock screen. */
+    val openSystemSettings: () -> Unit,
+)
+
+/** The app's notification actions, for a show's own switch: `null` where there is no app, as in the screenshots. */
+val LocalNotificationActions = staticCompositionLocalOf<NotificationActions?> { null }
+
 /**
  * The player the app hosts, as the frame shows it: a destination of its own over the navigation
  * bar, grown from the banner it was opened from (T2) and closing back into it (T3).
@@ -138,16 +158,6 @@ interface PlayerSlot {
 
 /** The player's route: outside the destinations' graphs, over whichever is on screen. */
 const val PLAYER_ROUTE = "player"
-
-/** The app's side of the Notifications pane. */
-class NotificationActions(
-    /** Turn new-episode notifications on, once they can show, or off. */
-    val turn: (Boolean) -> Unit,
-    /** Whether Android did not let them go on, or stay on: the switch's line says so. */
-    val refused: StateFlow<Boolean>,
-    /** The system's settings for the channel: sound, vibration and the lock screen. */
-    val openSystemSettings: () -> Unit,
-)
 
 /** Whether the window is wide enough for the rail: 600 dp and up, a tablet or an unfolded foldable. */
 @Composable
@@ -220,6 +230,7 @@ fun AppRoot(
         LocalNavigator provides navigator,
         LocalSnackbars provides snackbars,
         LocalAppSheets provides sheets,
+        LocalNotificationActions provides actions.notifications,
     ) {
         EngineNotices(onHint = routed.hint)
         AccountSheets()

@@ -118,11 +118,24 @@ async fn dub_reach(
         return None;
     }
     let media = meta.media(id).await.ok()?;
+    last_episode(&dub_listing(&media, store, registry, id, now_epoch()).await?)
+}
+
+/// Title `id`'s episodes in the dub, from the source a play would use, once the sources on
+/// their way have arrived: `None` when no source answered. What [`dubbed_to`] reads the reach
+/// of, and the new-episode check too, for a show watched dubbed.
+pub(crate) async fn dub_listing(
+    media: &anistream_meta::anilist::Media,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+    now: i64,
+) -> Option<Vec<anistream_core::media::Episode>> {
     crate::sources::arrived(registry, || ()).await;
     // A source the ladder cannot match confidently in the dub is not asked about: the question
     // of which title is meant belongs to the episode table, which asks it in the sub.
-    match listed(&media, store, registry, id, Translation::Dub, now_epoch()).await {
-        anistream_providers::Answer::Answered { value, .. } => last_episode(&value),
+    match listed(media, store, registry, id, Translation::Dub, now).await {
+        anistream_providers::Answer::Answered { value, .. } => Some(value),
         _ => None,
     }
 }

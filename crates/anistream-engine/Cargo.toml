@@ -56,11 +56,18 @@ rand = "0.10"
 # Named by the mending proxy, whose upstream requests go through `HttpClient::emulated`.
 wreq.workspace = true
 
+# What is free on the disk downloads land on, which keep next stops short of. Safe statvfs: the
+# workspace forbids unsafe code. Already in the tree through wasmtime and tempfile.
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1.1", features = ["fs"] }
+
 [dev-dependencies]
 # mend_probe reports what failed through anyhow, and logs what the mender does as it serves.
 anyhow.workspace = true
 tracing-subscriber.workspace = true
 tempfile = "3"
+# The fixture titles' schedules, for keep next's tests of what is out.
+anistream-testkit.workspace = true
 
 # These play in mpv, or sign in the way only the desktop does.
 [[example]]

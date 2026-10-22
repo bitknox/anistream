@@ -7,8 +7,8 @@
 
 use std::path::Path;
 
-use anistream_net::HttpClient;
 use anistream_model::{event::Event, notice::Notice};
+use anistream_net::HttpClient;
 
 use crate::outbox::Outbox;
 
@@ -48,12 +48,7 @@ pub async fn latest_tag(http: &HttpClient) -> Option<String> {
 
 /// The daily check. Fire-and-forget from startup; a failure is silence, never a toast —
 /// an update notice that cries wolf on every flaky network would be turned off in a week.
-pub fn spawn_check(
-    enabled: bool,
-    cache_dir: &Path,
-    http: &HttpClient,
-    tx: &Outbox,
-) {
+pub fn spawn_check(enabled: bool, cache_dir: &Path, http: &HttpClient, tx: &Outbox) {
     if !enabled {
         return;
     }

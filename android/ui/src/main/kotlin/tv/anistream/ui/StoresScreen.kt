@@ -43,6 +43,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,6 +60,8 @@ import tv.anistream.store.StoresModel
 import tv.anistream.store.Wording
 import tv.anistream.store.contactsLine
 import tv.anistream.store.installedVersion
+import tv.anistream.store.runByLine
+import tv.anistream.store.standing
 import tv.anistream.store.updates
 
 internal const val STORES_ROUTE = "stores"
@@ -179,17 +182,25 @@ internal fun StoreScreen(id: String) {
             )
             SettingsGroup(
                 title = "This store",
-                footer = listOfNotNull("Joined as ${row.member}", row.checkedAt?.let { "checked ${AccountWords.agoWords(System.currentTimeMillis() / 1000 - it)}" }).joinToString(" · "),
-                rows = listOf(
-                    { place -> InfoRow(place, "Address", row.host) },
-                    { place -> InfoRow(place, "Key fingerprint", row.fingerprint) },
-                ),
+                footer = listOfNotNull(
+                    if (row.anonymous) "Joined without a name" else "Joined as ${row.member}",
+                    row.checkedAt?.let { "checked ${AccountWords.agoWords(System.currentTimeMillis() / 1000 - it)}" },
+                ).joinToString(" · "),
+                rows = buildList<@Composable (Place) -> Unit> {
+                    add { place -> InfoRow(place, "Address", row.host) }
+                    add { place -> InfoRow(place, "Key fingerprint", row.fingerprint) }
+                    // Who can join is changed on the store's admin page, in a browser.
+                    if (row.open) add { place -> InfoRow(place, "Who can join", "Anyone with the link") }
+                },
             )
             FlowRow(Modifier.padding(horizontal = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(
-                    onClick = { store.createInvite(row.id, name = null) },
-                    enabled = !store.stores.isWorking(working, StoresModel.Work.Invite(row.id)),
-                ) { Text("Link another device", color = MaterialTheme.colorScheme.onSurface) }
+                // A device that joined with the store's link joins another the same way.
+                if (!row.anonymous) {
+                    TextButton(
+                        onClick = { store.createInvite(row.id, name = null) },
+                        enabled = !store.stores.isWorking(working, StoresModel.Work.Invite(row.id)),
+                    ) { Text("Link another device", color = MaterialTheme.colorScheme.onSurface) }
+                }
                 TextButton(onClick = { leaving = true }) { Text("Leave store", color = MaterialTheme.colorScheme.error) }
             }
         }
@@ -383,24 +394,65 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
     }
 }
 
-/** What the invite leads to: the store, its host, and its key, matched against the invite's. */
+/**
+ * What the link leads to (AndroidJoinStore): the store, who runs it and how many plugins it
+ * offers, its key matched against the link's, and each plugin with what it may contact, where it
+ * stands here and its version. For a store anyone with its link can join, that it is open, and
+ * that its open link joins without a name. A store from before the preview shows its name and key.
+ */
 @Composable
 private fun InvitedStorePreview(invited: tv.anistream.engine.model.InvitedStore) {
     val colors = MaterialTheme.colorScheme
+    val tabular = MaterialTheme.typography.bodyMedium.tabular()
     HorizontalDivider(Modifier.padding(top = 16.dp), color = colors.outlineVariant)
-    Column(Modifier.padding(top = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column {
-            Text(invited.name, style = MaterialTheme.typography.titleMedium)
-            SheetText(invited.host)
+    PreviewLine(invited.name, invited.runByLine, titleWeight = FontWeight.Medium) {
+        if (invited.plugins.isNotEmpty()) {
+            Text(Wording.plural(invited.plugins.size, "plugin"), style = tabular, color = colors.onSurfaceVariant)
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("Key matches the invite", style = MaterialTheme.typography.titleMedium)
-                Text(invited.fingerprint, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace), color = colors.onSurfaceVariant)
+    }
+    PreviewLine(
+        if (invited.anonymous) "Key matches the link" else "Key matches the invite",
+        invited.fingerprint,
+        subtitleStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+    ) {
+        Icon(Icons.Shield, contentDescription = "Verified", tint = colors.secondary)
+    }
+    if (invited.open) {
+        PreviewLine(
+            "Anyone with the link can join",
+            if (invited.anonymous) "You join without a name. Another device joins with the same link." else null,
+        )
+    }
+    if (invited.alreadyJoined) SheetText("This device has joined this store already.", Modifier.padding(vertical = 8.dp))
+    if (invited.plugins.isNotEmpty()) {
+        HorizontalDivider(color = colors.outlineVariant)
+        invited.plugins.forEach { plugin ->
+            PreviewLine(plugin.name, listOfNotNull(plugin.contactsLine, plugin.standing).joinToString(" · ")) {
+                Text(plugin.version, style = tabular, color = colors.onSurfaceVariant)
             }
-            Icon(Icons.Shield, contentDescription = null, tint = colors.secondary)
         }
-        if (invited.alreadyJoined) SheetText("This device has joined this store already.")
+    }
+}
+
+/** One line of the join sheet's preview: a title, a line under it in haze, and what sits at its end. */
+@Composable
+private fun PreviewLine(
+    title: String,
+    subtitle: String?,
+    titleWeight: FontWeight? = null,
+    subtitleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium,
+    trailing: @Composable () -> Unit = {},
+) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = titleWeight, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            subtitle?.let { Text(it, style = subtitleStyle, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+        }
+        trailing()
     }
 }
 

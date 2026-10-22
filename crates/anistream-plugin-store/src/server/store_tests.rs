@@ -10,7 +10,10 @@ use anistream_store_core::{
     inspect::fake::{FakeInspector, plugin},
     invite::Invite,
     protocol::Role,
-    store::{ADMIN_LINK_SECS, NewInvite, SESSION_SECS, Store, StoreError},
+    store::{
+        ADMIN_LINK_SECS, NewInvite, OPEN_JOIN_WINDOW_SECS, OPEN_JOINS_ALLOWED, SESSION_SECS,
+        Store, StoreError,
+    },
 };
 
 use super::{files::LocalBlobs, sqlite::SqliteDb};
@@ -404,4 +407,242 @@ async fn a_range_is_read_from_a_file_without_the_rest() {
     assert_eq!(tail, wasm[4..]);
     assert_eq!(store.published("example", "1.0.0").await.unwrap(), Some(entry));
     assert_eq!(store.published("example", "0.9.0").await.unwrap(), None);
+}
+
+// --- open joining ---------------------------------------------------------------------------
+
+/// Open the store to anyone with its link, and return the link's code.
+async fn opened(store: &TestStore) -> String {
+    store.set_open(true).await.unwrap();
+    store.open_code().await.unwrap().expect("an open store has a code")
+}
+
+#[tokio::test]
+async fn a_store_lets_only_invited_people_join_until_its_owner_opens_it() {
+    let (_dir, store) = open().await;
+    assert_eq!(store.open_code().await.unwrap(), None);
+    assert!(store.open_link(BASE).await.unwrap().is_none());
+    let state = store.open_state(BASE).await.unwrap();
+    assert!(!state.open && state.link.is_none() && state.devices == 0);
+    let guess = crypto::new_code().unwrap();
+    assert!(matches!(
+        store.join_open(&guess, "192.0.2.1", NOW).await,
+        Err(StoreError::OpenUnusable)
+    ));
+    assert!(matches!(store.check_open(&guess).await, Err(StoreError::OpenUnusable)));
+}
+
+#[tokio::test]
+async fn anyone_with_the_link_joins_as_a_member_with_no_name() {
+    let (_dir, store) = open().await;
+    join(&store, "Owner", Role::Owner).await;
+    let code = opened(&store).await;
+    let link = store.open_link(BASE).await.unwrap().unwrap();
+    assert!(link.open);
+    assert_eq!(Invite::parse(&link.link()).unwrap(), link);
+    assert!(link.link().contains("?open#"), "{}", link.link());
+
+    store.check_open(&code).await.unwrap();
+    let (token, member) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert_eq!(member.name, "");
+    assert_eq!(member.role, Role::Member);
+    let (who, device) = store.authenticate(&token, NOW).await.unwrap().unwrap();
+    assert_eq!(who, member);
+    assert_eq!(device.label, "", "nothing about the device is kept");
+
+    // The same link again, from the same place: another device, another member with no name.
+    let (again, _) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert_ne!(again, token);
+
+    // Counted, never listed among the people.
+    let members = store.members().await.unwrap();
+    assert_eq!(members.iter().map(|m| m.name.as_str()).collect::<Vec<_>>(), ["Owner"]);
+    assert_eq!(store.owner_names().await.unwrap(), ["Owner"]);
+    let state = store.open_state(BASE).await.unwrap();
+    assert!(state.open);
+    assert_eq!(state.link.as_deref(), Some(link.link().as_str()));
+    assert_eq!(state.devices, 2);
+    assert_eq!(state.device_list.len(), 2);
+    assert!(state.device_list.iter().all(|d| d.label.is_empty() && d.created_at == NOW));
+
+    // Members see that the store is open; the list itself does not move for it.
+    let key = store.public_key();
+    let index = crate::client::verify_index(&store.signed_index().await.unwrap(), &key, 0);
+    let index = index.unwrap();
+    assert!(index.open);
+    assert_eq!(index.sequence, 0);
+}
+
+#[tokio::test]
+async fn an_anonymous_member_has_no_name_or_role_to_change() {
+    let (_dir, store) = open().await;
+    let (_, owner) = join(&store, "Owner", Role::Owner).await;
+    let code = opened(&store).await;
+    let (_, anonymous) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert!(matches!(
+        store.set_role(&anonymous.id, Role::Owner, &owner.id).await,
+        Err(StoreError::NotFound(_))
+    ));
+    assert!(matches!(store.rename(&anonymous.id, "Sam").await, Err(StoreError::NotFound(_))));
+    assert_eq!(store.owner_names().await.unwrap(), ["Owner"]);
+}
+
+#[tokio::test]
+async fn open_joins_are_limited_per_address_and_an_ipv6_network_counts_as_one() {
+    let (_dir, store) = open().await;
+    let code = opened(&store).await;
+    for _ in 0..OPEN_JOINS_ALLOWED {
+        store.join_open(&code, "198.51.100.7", NOW).await.unwrap();
+    }
+    assert!(matches!(
+        store.join_open(&code, "198.51.100.7", NOW).await,
+        Err(StoreError::TooManyJoins)
+    ));
+    // Another address is not held up by this one, and the window passes.
+    store.join_open(&code, "198.51.100.8", NOW).await.unwrap();
+    store.join_open(&code, "198.51.100.7", NOW + OPEN_JOIN_WINDOW_SECS).await.unwrap();
+
+    // Every address in one /64 is one connection's.
+    for host in 0..OPEN_JOINS_ALLOWED {
+        store.join_open(&code, &format!("2001:db8:1:2::{host:x}"), NOW).await.unwrap();
+    }
+    assert!(matches!(
+        store.join_open(&code, "2001:db8:1:2:ffff::1", NOW).await,
+        Err(StoreError::TooManyJoins)
+    ));
+    store.join_open(&code, "2001:db8:1:3::1", NOW).await.unwrap();
+}
+
+#[tokio::test]
+async fn switching_back_to_invites_stops_new_joins_and_keeps_the_devices_that_joined() {
+    let (_dir, store) = open().await;
+    let code = opened(&store).await;
+    let (token, _) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+
+    store.set_open(false).await.unwrap();
+    assert!(matches!(
+        store.join_open(&code, "192.0.2.2", NOW).await,
+        Err(StoreError::OpenUnusable)
+    ));
+    assert!(!store.is_open_code(&code).await.unwrap());
+    assert!(store.authenticate(&token, NOW).await.unwrap().is_some(), "kept until removed");
+    let state = store.open_state(BASE).await.unwrap();
+    assert!(!state.open && state.link.is_none());
+    assert_eq!(state.devices, 1);
+
+    // Opened again, with a new link: the old one stays dead.
+    let fresh = opened(&store).await;
+    assert_ne!(fresh, code);
+    assert!(matches!(
+        store.join_open(&code, "192.0.2.2", NOW).await,
+        Err(StoreError::OpenUnusable)
+    ));
+    store.join_open(&fresh, "192.0.2.2", NOW).await.unwrap();
+    // Opening an open store keeps its link.
+    store.set_open(true).await.unwrap();
+    assert_eq!(store.open_code().await.unwrap(), Some(fresh));
+}
+
+#[tokio::test]
+async fn an_owner_revokes_one_anonymous_device_or_removes_them_all() {
+    let (_dir, store) = open().await;
+    let (owner_token, _) = join(&store, "Owner", Role::Owner).await;
+    let (alex_token, _) = join(&store, "Alex", Role::Member).await;
+    let code = opened(&store).await;
+    let mut tokens = Vec::new();
+    for at in 0..3 {
+        tokens.push(store.join_open(&code, "192.0.2.1", NOW + at).await.unwrap().0);
+    }
+    let state = store.open_state(BASE).await.unwrap();
+    assert_eq!(state.devices, 3);
+    // Newest first: the one that joined last.
+    let newest = &state.device_list[0];
+    assert_eq!(newest.created_at, NOW + 2);
+    store.revoke_any_device(&newest.id, NOW).await.unwrap();
+    assert!(store.authenticate(&tokens[2], NOW).await.unwrap().is_none());
+    assert!(store.authenticate(&tokens[0], NOW).await.unwrap().is_some());
+    assert_eq!(store.open_state(BASE).await.unwrap().devices, 2);
+
+    assert_eq!(store.remove_anonymous(NOW).await.unwrap(), 2);
+    for token in &tokens {
+        assert!(store.authenticate(token, NOW).await.unwrap().is_none());
+    }
+    assert_eq!(store.open_state(BASE).await.unwrap().devices, 0);
+    // The people stay, and so does the setting.
+    assert!(store.authenticate(&owner_token, NOW).await.unwrap().is_some());
+    assert!(store.authenticate(&alex_token, NOW).await.unwrap().is_some());
+    assert!(store.open_state(BASE).await.unwrap().open);
+}
+
+#[tokio::test]
+async fn the_open_code_is_not_an_invite() {
+    // A client from before open links sends the code to redeem or preview as an invite. The
+    // store tells it apart, and it joins no one there.
+    let (_dir, store) = open().await;
+    let code = opened(&store).await;
+    assert!(store.is_open_code(&code).await.unwrap());
+    assert!(matches!(
+        store.redeem(&code, "laptop", NOW).await,
+        Err(StoreError::InviteUnusable)
+    ));
+    assert!(matches!(store.check_invite(&code, NOW).await, Err(StoreError::InviteUnusable)));
+    let invite = member_invite(&store, "Alex", Role::Member, NOW + 60).await;
+    assert!(!store.is_open_code(&invite.code).await.unwrap());
+    assert!(matches!(
+        store.join_open(&invite.code, "x", NOW).await,
+        Err(StoreError::OpenUnusable)
+    ));
+}
+
+/// A store as `open` makes it, with its database at hand to look at what is kept.
+async fn open_with_db() -> (tempfile::TempDir, TestStore, Arc<dyn Database>) {
+    let dir = tempfile::tempdir().unwrap();
+    let db: Arc<dyn Database> = Arc::new(SqliteDb::in_memory().unwrap());
+    let blobs: Box<dyn Blobs> = Box::new(LocalBlobs::new(dir.path()));
+    let store = Store::open(db.clone(), blobs, Some(BASE), Some("Test")).await.unwrap();
+    (dir, store, db)
+}
+
+/// How many members with no name the store keeps a row for, removed or not.
+async fn unnamed_rows(db: &Arc<dyn Database>) -> i64 {
+    let rows = db.query("SELECT COUNT(*) FROM members WHERE name = ''", &[]).await.unwrap();
+    rows[0].int(0).unwrap()
+}
+
+async fn device_of(store: &TestStore, token: &str) -> String {
+    store.authenticate(token, NOW).await.unwrap().unwrap().1.id
+}
+
+#[tokio::test]
+async fn an_anonymous_member_is_deleted_with_their_last_device() {
+    let (_dir, store, db) = open_with_db().await;
+    let (alex_token, alex) = join(&store, "Alex", Role::Member).await;
+    let code = opened(&store).await;
+    let (first, _) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    let (second, _) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert_eq!(unnamed_rows(&db).await, 2);
+
+    // Revoked by the owner: the device stops, and its member's row goes with it.
+    store.revoke_any_device(&device_of(&store, &first).await, NOW).await.unwrap();
+    assert!(store.authenticate(&first, NOW).await.unwrap().is_none());
+    assert_eq!(unnamed_rows(&db).await, 1);
+    // Left from the device itself: the same.
+    store.revoke_device(&device_of(&store, &second).await, NOW).await.unwrap();
+    assert_eq!(unnamed_rows(&db).await, 0);
+    assert_eq!(store.open_state(BASE).await.unwrap().devices, 0);
+
+    // A member with a name keeps their row with no device left, as before.
+    store.revoke_any_device(&device_of(&store, &alex_token).await, NOW).await.unwrap();
+    let kept = store.members().await.unwrap();
+    assert_eq!(kept.iter().find(|m| m.id == alex.id).map(|m| m.devices), Some(0));
+
+    // Removing them all, or one as a member, keeps no row either.
+    store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    let (_, removed) = store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    let (_, owner) = join(&store, "Owner", Role::Owner).await;
+    store.remove_member(&removed.id, &owner.id, NOW).await.unwrap();
+    assert_eq!(unnamed_rows(&db).await, 1);
+    store.join_open(&code, "192.0.2.1", NOW).await.unwrap();
+    assert_eq!(store.remove_anonymous(NOW).await.unwrap(), 2);
+    assert_eq!(unnamed_rows(&db).await, 0);
 }

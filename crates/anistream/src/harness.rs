@@ -115,6 +115,11 @@ pub struct Options {
     /// The title language the signed-in AniList viewer reads in, as AniList names it, in place
     /// of the fixture viewer's English: set before launch, which asks it.
     pub viewer_title_language: Option<&'static str>,
+    /// Keep next on, as the app launches with it, where it is otherwise off with the rest of
+    /// the engine's own work. It takes the device to have a terabyte free.
+    pub keep_next: bool,
+    /// What the database holds when the engine starts, written before it does.
+    pub before_start: Option<fn(&Store)>,
 }
 
 impl Default for Options {
@@ -126,6 +131,8 @@ impl Default for Options {
             size: (120, 34),
             now: FIXTURE_NOW,
             viewer_title_language: None,
+            keep_next: false,
+            before_start: None,
         }
     }
 }
@@ -246,8 +253,12 @@ impl Harness {
         );
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
-        start.background = Background::none();
+        start.background = Background { keep_next: options.keep_next, ..Background::none() };
         start.parts = Some(Parts { meta, sync, stores, clock: Default::default() });
+        start.free_space = Some(1_000_000_000_000);
+        if let Some(seed) = options.before_start {
+            seed(&store);
+        }
         let (engine, mut events) = Engine::start(start, host).await.expect("the engine starts");
         // What launch says, applied as the loop applies it before its first frame: the stores,
         // the chain and the trackers on their rows.
@@ -585,7 +596,8 @@ impl Harness {
         match message {
             Internal::SettingsSaved => self.trace.push("SettingsSaved"),
             Internal::SourcesReordered => self.trace.push("SourcesReordered"),
-            Internal::SourcesChanged => {}
+            // What it leads to, it says: keep next's rows on the queue.
+            Internal::SourcesChanged | Internal::TopUp => {}
         }
     }
 
@@ -763,9 +775,9 @@ pub fn name(update: &Event) -> &'static str {
         Event::StoreMembers { .. } => "StoreMembers",
         Event::LocalPlugins { .. } => "LocalPlugins",
         Event::NewEpisodes(_) => "NewEpisodes",
-        Event::ComingEpisodes(_) => "ComingEpisodes",
         Event::WidgetSnapshot(_) => "WidgetSnapshot",
         Event::UpcomingNotices(_) => "UpcomingNotices",
+        Event::OpenJoin { .. } => "OpenJoin",
     }
 }
 
@@ -910,8 +922,10 @@ fn copy(update: &Event) -> Event {
             Event::LocalPlugins { store: store.clone(), plugins: plugins.clone() }
         }
         Event::NewEpisodes(episodes) => Event::NewEpisodes(episodes.clone()),
-        Event::ComingEpisodes(episodes) => Event::ComingEpisodes(episodes.clone()),
         Event::WidgetSnapshot(data) => Event::WidgetSnapshot(data.clone()),
         Event::UpcomingNotices(week) => Event::UpcomingNotices(week.clone()),
+        Event::OpenJoin { store, view } => {
+            Event::OpenJoin { store: store.clone(), view: view.clone() }
+        }
     }
 }

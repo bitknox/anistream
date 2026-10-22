@@ -399,6 +399,25 @@ impl Store {
         })
     }
 
+    /// The newest record of `episode` of `anilist_id`: whether it finished the episode, and
+    /// when. A viewer partway into it again, as in a rewatch, has it unfinished.
+    pub fn last_watch(
+        &self,
+        anilist_id: AnilistId,
+        episode: &str,
+    ) -> Result<Option<(bool, i64)>> {
+        self.with_conn(|c| {
+            Ok(c.query_row(
+                "SELECT completed, at FROM watch_event
+                  WHERE anilist_id = ?1 AND episode = ?2
+                  ORDER BY at DESC, id DESC LIMIT 1",
+                rusqlite::params![anilist_id.get(), episode],
+                |r| Ok((r.get::<_, i64>(0)? != 0, r.get(1)?)),
+            )
+            .optional()?)
+        })
+    }
+
     /// Distinct completed episodes, however they are numbered.
     pub fn completed_episode_count(&self, anilist_id: AnilistId) -> Result<u32> {
         self.with_conn(|c| {

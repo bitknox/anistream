@@ -91,6 +91,18 @@ struct ScreenRulesTests {
         #expect(entry { _ in }.phoneMetadata == "TV · 12 ep · 2024 · 82%")
     }
 
+    @Test func settingsKeepsItsColumnBesideThePaneWhileThePaneHas440() {
+        #expect(SettingsColumns.columns(in: 751) == nil, "under the pane, as wide as it")
+        #expect(SettingsColumns.columns(in: 752) == .init(pane: 440, gap: 32, aside: 280))
+        #expect(SettingsColumns.columns(in: 786) == .init(pane: 440, gap: 32, aside: 314), "an 11-inch iPad in portrait")
+        #if os(macOS)
+        #expect(SettingsColumns.columns(in: 1_012) == .init(pane: 600, gap: 76, aside: 320), "the Mac board's, in the first window")
+        #expect(SettingsColumns.columns(in: 900) == .init(pane: 548, gap: 32, aside: 320))
+        #else
+        #expect(SettingsColumns.columns(in: 882) == .init(pane: 530, gap: 32, aside: 320), "an 11-inch iPad in landscape")
+        #endif
+    }
+
     @MainActor
     @Test func thePaletteFindsTitlesAndTheFocusedTitlesCommands() {
         let store = AppStore()

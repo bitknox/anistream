@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    paste the invite link a store's owner sent you
+                            │    paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
 === styles ===
@@ -101,7 +101,7 @@ r29 c28-28 fg=rule
 r30 c28-28 fg=rule
 r30 c31-117 fg=rule
 r31 c28-28 fg=rule
-r31 c33-78 fg=text-dim
+r31 c33-77 fg=text-dim
 r32 c00-119 fg=rule
 r33 c00-20 fg=text-dim
 r33 c96-96 fg=text

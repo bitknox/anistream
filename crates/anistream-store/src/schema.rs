@@ -383,6 +383,38 @@ const MIGRATIONS: &[(&str, &str)] = &[
     CREATE INDEX idx_airing_time_seen ON airing_time(seen_at);
     "#,
     ),
+    (
+        "0011_episode_notice_dub",
+        r#"
+    -- For a show watched dubbed, the newest episode whose dub the new-episode check has said, or
+    -- let go. AniList dates only the original broadcast, so a dub is said once the source a play
+    -- would use lists it, which the check asks only while a broadcast is ahead of this. NULL for a
+    -- show watched subtitled, and for one watched dubbed until its first broadcast since it was
+    -- followed, which sets where its dub is said from.
+    ALTER TABLE episode_notice ADD COLUMN dubbed INTEGER;
+    "#,
+    ),
+    (
+        // Numbered after the merge train's 0009 and 0010, and native-layer/notify-follow-ups'
+        // 0011, which this lands beside.
+        "0012_download_ahead",
+        r#"
+    -- Whether keep next queued a download, to have a show's next episodes on the device, rather
+    -- than the viewer asking for it. The Downloads row says so, and nothing deletes a download
+    -- the viewer asked for on its own. Asking for one keep next queued makes it the viewer's.
+    ALTER TABLE download ADD COLUMN ahead INTEGER NOT NULL DEFAULT 0;
+
+    -- The episodes the viewer let go of from the queue: cancelled, deleted, or cleared from the
+    -- list once finished. Keep next never queues one again, so it does not fight the viewer;
+    -- asking for the episode by hand takes it off this list.
+    CREATE TABLE download_dismissed (
+        anilist_id INTEGER NOT NULL,
+        episode    TEXT    NOT NULL,
+        at         INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, episode)
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -501,6 +533,7 @@ mod tests {
             "library_status",
             "episode_notice",
             "airing_time",
+            "download_dismissed",
         ] {
             let found: bool = conn
                 .query_row(

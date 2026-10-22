@@ -18,6 +18,10 @@ pub struct EpisodeNotice {
     pub episode: u32,
     /// When the show was first followed: nothing that aired before is said.
     pub since: i64,
+    /// For a show watched dubbed, the newest episode whose dub was said, or let go: see
+    /// `0011_episode_notice_dub`. `None` for a show watched subtitled, and for one watched dubbed
+    /// until its first broadcast since it was followed.
+    pub dubbed: Option<u32>,
 }
 
 impl Store {
@@ -25,13 +29,15 @@ impl Store {
     pub fn episode_notices(&self) -> Result<Vec<EpisodeNotice>> {
         self.with_conn(|c| {
             let mut statement = c.prepare(
-                "SELECT anilist_id, episode, since FROM episode_notice ORDER BY anilist_id",
+                "SELECT anilist_id, episode, since, dubbed FROM episode_notice
+                  ORDER BY anilist_id",
             )?;
             let rows = statement.query_map([], |r| {
                 Ok(EpisodeNotice {
                     anilist_id: AnilistId::new(r.get(0)?),
                     episode: r.get(1)?,
                     since: r.get(2)?,
+                    dubbed: r.get(3)?,
                 })
             })?;
             Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
@@ -64,10 +70,11 @@ impl Store {
     ) -> Result<()> {
         self.with_tx(|tx| {
             let mut upsert = tx.prepare(
-                "INSERT INTO episode_notice (anilist_id, episode, since, updated_at)
-                 VALUES (?1, ?2, ?3, ?4)
+                "INSERT INTO episode_notice (anilist_id, episode, since, dubbed, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
                  ON CONFLICT(anilist_id) DO UPDATE SET episode = excluded.episode,
                                                       since = excluded.since,
+                                                      dubbed = excluded.dubbed,
                                                       updated_at = excluded.updated_at",
             )?;
             for notice in notices {
@@ -75,6 +82,7 @@ impl Store {
                     notice.anilist_id.get(),
                     notice.episode,
                     notice.since,
+                    notice.dubbed,
                     at
                 ])?;
             }
@@ -166,15 +174,16 @@ mod tests {
         assert_eq!(store.episode_check_through().unwrap(), None, "no check yet");
 
         let first = [
-            EpisodeNotice { anilist_id: ONE, episode: 0, since: 100 },
-            EpisodeNotice { anilist_id: TWO, episode: 8, since: 100 },
+            EpisodeNotice { anilist_id: ONE, episode: 0, since: 100, dubbed: None },
+            EpisodeNotice { anilist_id: TWO, episode: 8, since: 100, dubbed: Some(7) },
         ];
         store.keep_episode_check(&first, 100, 100).unwrap();
         assert_eq!(store.episode_notices().unwrap(), first);
         assert_eq!(store.episode_check_through().unwrap(), Some(100));
 
         // A later check moves one show on and leaves the other as it was.
-        let later = [EpisodeNotice { anilist_id: ONE, episode: 6, since: 100 }];
+        let later =
+            [EpisodeNotice { anilist_id: ONE, episode: 6, since: 100, dubbed: Some(5) }];
         store.keep_episode_check(&later, 200, 200).unwrap();
         assert_eq!(store.episode_notices().unwrap(), [later[0], first[1]]);
         assert_eq!(store.episode_check_through().unwrap(), Some(200));

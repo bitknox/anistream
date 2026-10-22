@@ -1,6 +1,6 @@
 {
  "scene": "watching",
- "recordedAt": 1792643043749,
+ "recordedAt": 1792651358548,
  "events": [
   {
    "@type": "Settings",
@@ -376,6 +376,7 @@
      }
     ],
     "overridden": [],
+    "notifySwitchedOn": "0",
     "torrent": {
      "protection": "PROXY",
      "proxy": null,
@@ -442,36 +443,6 @@
   {
    "@type": "Downloads",
    "v1": []
-  },
-  {
-   "@type": "JobStarted",
-   "job": "4",
-   "activity": "searching “hoshi”"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "5",
-   "activity": "loading your watching list"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "6",
-   "activity": "loading your planning list"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "7",
-   "activity": "loading your completed list"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "8",
-   "activity": "loading your paused list"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "9",
-   "activity": "loading your dropped list"
   },
   {
    "@type": "Caption",
@@ -602,13 +573,8 @@
   },
   {
    "@type": "JobStarted",
-   "job": "10",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "11",
-   "activity": "loading episodes"
+   "job": "4",
+   "activity": "searching “hoshi”"
   },
   {
    "@type": "Content",
@@ -854,376 +820,18 @@
    }
   },
   {
-   "@type": "LastAired",
-   "v1": [
-    {
-     "id": "900002",
-     "aired": {
-      "episode": "5",
-      "ago": "420300"
-     }
-    },
-    {
-     "id": "900006",
-     "aired": {
-      "episode": "8",
-      "ago": "68400"
-     }
-    }
-   ]
+   "@type": "JobStarted",
+   "job": "5",
+   "activity": "loading your watching list"
   },
   {
-   "@type": "JobDone",
-   "v1": "1"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PLANNING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": [
-     {
-      "id": "900003",
-      "title": "Moonlit Platform",
-      "secondary": "Tsukiakari no Teishajo",
-      "format": "MOVIE",
-      "episodes": "1",
-      "year": "2025",
-      "score": "85",
-      "studio": "Kujaku Animation Works",
-      "synopsis": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
-      "coverUrl": "https://img.example/cover/900003-xl.jpg",
-      "coverColor": "#f1d97a",
-      "bannerUrl": "https://img.example/banner/900003.jpg",
-      "genres": [
-       "Drama",
-       "Romance"
-      ],
-      "availableOn": [],
-      "progress": {
-       "done": "0",
-       "next": "1"
-      },
-      "airingIn": null,
-      "airingEpisode": null,
-      "nextEpisode": null,
-      "nextAiringIn": null,
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": "PLANNING",
-      "titleRomaji": "Tsukiakari no Teishajo",
-      "titleEnglish": "Moonlit Platform",
-      "titleNative": "月明かりの停車場",
-      "season": "SUMMER",
-      "startDate": {
-       "year": "2025",
-       "month": "8",
-       "day": "15"
-      },
-      "endDate": {
-       "year": "2025",
-       "month": "8",
-       "day": "15"
-      },
-      "source": "ORIGINAL",
-      "adult": false,
-      "detail": null,
-      "status": "FINISHED",
-      "synopsisSpans": [
-       {
-        "text": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
-        "spoiler": false
-       }
-      ],
-      "delayedFrom": null
-     }
-    ]
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "6"
-  },
-  {
-   "@type": "LastAired",
-   "v1": [
-    {
-     "id": "900002",
-     "aired": {
-      "episode": "5",
-      "ago": "420300"
-     }
-    },
-    {
-     "id": "900006",
-     "aired": {
-      "episode": "8",
-      "ago": "68400"
-     }
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "2"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "WATCHING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": [
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "coverColor": "#5d9be4",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": {
-       "done": "3",
-       "next": "4"
-      },
-      "airingIn": "184500",
-      "airingEpisode": null,
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": "WATCHING",
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null,
-      "status": "RELEASING",
-      "synopsisSpans": [
-       {
-        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-        "spoiler": false
-       }
-      ],
-      "delayedFrom": null
-     }
-    ]
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "5"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PAUSED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "8"
-  },
-  {
-   "@type": "Caption",
-   "view": {
-    "@type": "Search",
-    "query": "hoshi",
-    "filter": {
-     "genre": null,
-     "year": null,
-     "season": null,
-     "format": null,
-     "status": null,
-     "sort": null
-    }
-   },
-   "text": ""
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Search",
-    "query": "hoshi",
-    "filter": {
-     "genre": null,
-     "year": null,
-     "season": null,
-     "format": null,
-     "status": null,
-     "sort": null
-    }
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": [
-     {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "secondary": "Hoshikuzu no Tabibito",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2024",
-      "score": "82",
-      "studio": "Kujaku Animation Works",
-      "synopsis": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
-      "coverUrl": "https://img.example/cover/900001-xl.jpg",
-      "coverColor": "#e4a15d",
-      "bannerUrl": "https://img.example/banner/900001.jpg",
-      "genres": [
-       "Adventure",
-       "Drama",
-       "Fantasy"
-      ],
-      "availableOn": [],
-      "progress": {
-       "done": "6",
-       "next": "7"
-      },
-      "airingIn": null,
-      "airingEpisode": null,
-      "nextEpisode": null,
-      "nextAiringIn": null,
-      "lastAired": null,
-      "resume": {
-       "position": 606.0,
-       "fraction": 0.42083333333333334
-      },
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Hoshikuzu no Tabibito",
-      "titleEnglish": "Stardust Wayfarer",
-      "titleNative": "星屑の旅人",
-      "season": "SPRING",
-      "startDate": {
-       "year": "2024",
-       "month": "4",
-       "day": "6"
-      },
-      "endDate": {
-       "year": "2024",
-       "month": "6",
-       "day": "22"
-      },
-      "source": "MANGA",
-      "adult": false,
-      "detail": null,
-      "status": "FINISHED",
-      "synopsisSpans": [
-       {
-        "text": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
-        "spoiler": false
-       }
-      ],
-      "delayedFrom": null
-     },
-     {
-      "id": "900004",
-      "title": "Stardust Wayfarer Season 2",
-      "secondary": "Hoshikuzu no Tabibito 2nd Season",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2025",
-      "score": "84",
-      "studio": "Kujaku Animation Works",
-      "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
-      "coverUrl": "https://img.example/cover/900004-xl.jpg",
-      "coverColor": "#d77f4a",
-      "bannerUrl": "https://img.example/banner/900004.jpg",
-      "genres": [
-       "Adventure",
-       "Drama",
-       "Fantasy"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": null,
-      "airingEpisode": null,
-      "nextEpisode": null,
-      "nextAiringIn": null,
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
-      "titleEnglish": "Stardust Wayfarer Season 2",
-      "titleNative": "星屑の旅人 第2期",
-      "season": "WINTER",
-      "startDate": {
-       "year": "2025",
-       "month": "1",
-       "day": "11"
-      },
-      "endDate": {
-       "year": "2025",
-       "month": "3",
-       "day": "29"
-      },
-      "source": "MANGA",
-      "adult": false,
-      "detail": null,
-      "status": "FINISHED",
-      "synopsisSpans": [
-       {
-        "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
-        "spoiler": false
-       }
-      ],
-      "delayedFrom": null
-     }
-    ]
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "4"
+   "@type": "JobStarted",
+   "job": "6",
+   "activity": "loading your planning list"
   },
   {
    "@type": "CalendarWindow",
-   "anchor": "1792643043",
+   "anchor": "1792651358",
    "pages": "1",
    "morePast": false
   },
@@ -1625,6 +1233,365 @@
    "v1": "3"
   },
   {
+   "@type": "LastAired",
+   "v1": [
+    {
+     "id": "900002",
+     "aired": {
+      "episode": "5",
+      "ago": "420300"
+     }
+    },
+    {
+     "id": "900006",
+     "aired": {
+      "episode": "8",
+      "ago": "68400"
+     }
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "2"
+  },
+  {
+   "@type": "LastAired",
+   "v1": [
+    {
+     "id": "900002",
+     "aired": {
+      "episode": "5",
+      "ago": "420300"
+     }
+    },
+    {
+     "id": "900006",
+     "aired": {
+      "episode": "8",
+      "ago": "68400"
+     }
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "1"
+  },
+  {
+   "@type": "Caption",
+   "view": {
+    "@type": "Search",
+    "query": "hoshi",
+    "filter": {
+     "genre": null,
+     "year": null,
+     "season": null,
+     "format": null,
+     "status": null,
+     "sort": null
+    }
+   },
+   "text": ""
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Search",
+    "query": "hoshi",
+    "filter": {
+     "genre": null,
+     "year": null,
+     "season": null,
+     "format": null,
+     "status": null,
+     "sort": null
+    }
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "secondary": "Hoshikuzu no Tabibito",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2024",
+      "score": "82",
+      "studio": "Kujaku Animation Works",
+      "synopsis": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
+      "coverUrl": "https://img.example/cover/900001-xl.jpg",
+      "coverColor": "#e4a15d",
+      "bannerUrl": "https://img.example/banner/900001.jpg",
+      "genres": [
+       "Adventure",
+       "Drama",
+       "Fantasy"
+      ],
+      "availableOn": [],
+      "progress": {
+       "done": "6",
+       "next": "7"
+      },
+      "airingIn": null,
+      "airingEpisode": null,
+      "nextEpisode": null,
+      "nextAiringIn": null,
+      "lastAired": null,
+      "resume": {
+       "position": 606.0,
+       "fraction": 0.42083333333333334
+      },
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Hoshikuzu no Tabibito",
+      "titleEnglish": "Stardust Wayfarer",
+      "titleNative": "星屑の旅人",
+      "season": "SPRING",
+      "startDate": {
+       "year": "2024",
+       "month": "4",
+       "day": "6"
+      },
+      "endDate": {
+       "year": "2024",
+       "month": "6",
+       "day": "22"
+      },
+      "source": "MANGA",
+      "adult": false,
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
+        "spoiler": false
+       }
+      ],
+      "delayedFrom": null
+     },
+     {
+      "id": "900004",
+      "title": "Stardust Wayfarer Season 2",
+      "secondary": "Hoshikuzu no Tabibito 2nd Season",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2025",
+      "score": "84",
+      "studio": "Kujaku Animation Works",
+      "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+      "coverUrl": "https://img.example/cover/900004-xl.jpg",
+      "coverColor": "#d77f4a",
+      "bannerUrl": "https://img.example/banner/900004.jpg",
+      "genres": [
+       "Adventure",
+       "Drama",
+       "Fantasy"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": null,
+      "airingEpisode": null,
+      "nextEpisode": null,
+      "nextAiringIn": null,
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+      "titleEnglish": "Stardust Wayfarer Season 2",
+      "titleNative": "星屑の旅人 第2期",
+      "season": "WINTER",
+      "startDate": {
+       "year": "2025",
+       "month": "1",
+       "day": "11"
+      },
+      "endDate": {
+       "year": "2025",
+       "month": "3",
+       "day": "29"
+      },
+      "source": "MANGA",
+      "adult": false,
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+        "spoiler": false
+       }
+      ],
+      "delayedFrom": null
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "4"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "7",
+   "activity": "loading your completed list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": [
+     {
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "coverColor": "#5d9be4",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": {
+       "done": "3",
+       "next": "4"
+      },
+      "airingIn": "184500",
+      "airingEpisode": null,
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": "WATCHING",
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ],
+      "delayedFrom": null
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "5"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": [
+     {
+      "id": "900003",
+      "title": "Moonlit Platform",
+      "secondary": "Tsukiakari no Teishajo",
+      "format": "MOVIE",
+      "episodes": "1",
+      "year": "2025",
+      "score": "85",
+      "studio": "Kujaku Animation Works",
+      "synopsis": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+      "coverUrl": "https://img.example/cover/900003-xl.jpg",
+      "coverColor": "#f1d97a",
+      "bannerUrl": "https://img.example/banner/900003.jpg",
+      "genres": [
+       "Drama",
+       "Romance"
+      ],
+      "availableOn": [],
+      "progress": {
+       "done": "0",
+       "next": "1"
+      },
+      "airingIn": null,
+      "airingEpisode": null,
+      "nextEpisode": null,
+      "nextAiringIn": null,
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": "PLANNING",
+      "titleRomaji": "Tsukiakari no Teishajo",
+      "titleEnglish": "Moonlit Platform",
+      "titleNative": "月明かりの停車場",
+      "season": "SUMMER",
+      "startDate": {
+       "year": "2025",
+       "month": "8",
+       "day": "15"
+      },
+      "endDate": {
+       "year": "2025",
+       "month": "8",
+       "day": "15"
+      },
+      "source": "ORIGINAL",
+      "adult": false,
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+        "spoiler": false
+       }
+      ],
+      "delayedFrom": null
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "8",
+   "activity": "loading your paused list"
+  },
+  {
    "@type": "Content",
    "view": {
     "@type": "Library",
@@ -1706,6 +1673,26 @@
    "@type": "Content",
    "view": {
     "@type": "Library",
+    "v1": "PAUSED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "8"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "9",
+   "activity": "loading your dropped list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
     "v1": "DROPPED"
    },
    "content": {
@@ -1716,6 +1703,20 @@
   {
    "@type": "JobDone",
    "v1": "9"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "10",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "11",
+   "activity": "loading episodes"
   },
   {
    "@type": "ShowSettings",
@@ -1781,157 +1782,8 @@
    "activity": "loading the title"
   },
   {
-   "@type": "JobStarted",
-   "job": "13",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900002",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "14",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "15",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900003",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
    "@type": "ProviderPreference",
    "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "16",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "17",
-   "activity": "loading episodes"
   },
   {
    "@type": "Detail",
@@ -2043,51 +1895,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713079413"
+       "airsAt": "1713087728"
       },
       {
        "episode": "2",
-       "airsAt": "1713684213"
+       "airsAt": "1713692528"
       },
       {
        "episode": "3",
-       "airsAt": "1714289013"
+       "airsAt": "1714297328"
       },
       {
        "episode": "4",
-       "airsAt": "1714893813"
+       "airsAt": "1714902128"
       },
       {
        "episode": "5",
-       "airsAt": "1715498613"
+       "airsAt": "1715506928"
       },
       {
        "episode": "6",
-       "airsAt": "1716103413"
+       "airsAt": "1716111728"
       },
       {
        "episode": "7",
-       "airsAt": "1716708213"
+       "airsAt": "1716716528"
       },
       {
        "episode": "8",
-       "airsAt": "1717313013"
+       "airsAt": "1717321328"
       },
       {
        "episode": "9",
-       "airsAt": "1717917813"
+       "airsAt": "1717926128"
       },
       {
        "episode": "10",
-       "airsAt": "1718522613"
+       "airsAt": "1718530928"
       },
       {
        "episode": "11",
-       "airsAt": "1719127413"
+       "airsAt": "1719135728"
       },
       {
        "episode": "12",
-       "airsAt": "1719732213"
+       "airsAt": "1719740528"
       }
      ],
      "relations": [
@@ -2219,172 +2071,6 @@
    "v1": "10"
   },
   {
-   "@type": "Episodes",
-   "id": "900001",
-   "rows": [
-    {
-     "number": "1",
-     "title": "The Lantern Road",
-     "thumbnail": "https://img.example/ep/900001/1.jpg",
-     "description": "A lamplighter wakes on the star road with a lantern and no name.",
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1713079413",
-     "delayedFrom": null
-    },
-    {
-     "number": "2",
-     "title": "A Town Without Night",
-     "thumbnail": "https://img.example/ep/900001/2.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1713684213",
-     "delayedFrom": null
-    },
-    {
-     "number": "3",
-     "title": "The Ferryman's Ledger",
-     "thumbnail": "https://img.example/ep/900001/3.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1714289013",
-     "delayedFrom": null
-    },
-    {
-     "number": "4",
-     "title": "Embers in the Snow",
-     "thumbnail": "https://img.example/ep/900001/4.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1714893813",
-     "delayedFrom": null
-    },
-    {
-     "number": "5",
-     "title": "What the Beacons Remember",
-     "thumbnail": "https://img.example/ep/900001/5.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1715498613",
-     "delayedFrom": null
-    },
-    {
-     "number": "6",
-     "title": "The Cartographer's Daughter",
-     "thumbnail": "https://img.example/ep/900001/6.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716103413",
-     "delayedFrom": null
-    },
-    {
-     "number": "7",
-     "title": "Rain over Kiriya Pass",
-     "thumbnail": "https://img.example/ep/900001/7.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.42083333333333334,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716708213",
-     "delayedFrom": null
-    },
-    {
-     "number": "8",
-     "title": "A Letter Never Sent",
-     "thumbnail": "https://img.example/ep/900001/8.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717313013",
-     "delayedFrom": null
-    },
-    {
-     "number": "9",
-     "title": "The Last Lamplighter",
-     "thumbnail": "https://img.example/ep/900001/9.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717917813",
-     "delayedFrom": null
-    },
-    {
-     "number": "10",
-     "title": "Where the Roads Cross",
-     "thumbnail": "https://img.example/ep/900001/10.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1718522613",
-     "delayedFrom": null
-    },
-    {
-     "number": "11",
-     "title": "The Sky Archive",
-     "thumbnail": "https://img.example/ep/900001/11.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719127413",
-     "delayedFrom": null
-    },
-    {
-     "number": "12",
-     "title": "Home, by Starlight",
-     "thumbnail": "https://img.example/ep/900001/12.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719732213",
-     "delayedFrom": null
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "11"
-  },
-  {
    "@type": "Detail",
    "v1": {
     "id": "900002",
@@ -2460,99 +2146,99 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1789803543"
+       "airsAt": "1789811858"
       },
       {
        "episode": "2",
-       "airsAt": "1790408343"
+       "airsAt": "1790416658"
       },
       {
        "episode": "3",
-       "airsAt": "1791013143"
+       "airsAt": "1791021458"
       },
       {
        "episode": "4",
-       "airsAt": "1791617943"
+       "airsAt": "1791626258"
       },
       {
        "episode": "5",
-       "airsAt": "1792222743"
+       "airsAt": "1792231058"
       },
       {
        "episode": "6",
-       "airsAt": "1792827543"
+       "airsAt": "1792835858"
       },
       {
        "episode": "7",
-       "airsAt": "1793432343"
+       "airsAt": "1793440658"
       },
       {
        "episode": "8",
-       "airsAt": "1794037143"
+       "airsAt": "1794045458"
       },
       {
        "episode": "9",
-       "airsAt": "1794641943"
+       "airsAt": "1794650258"
       },
       {
        "episode": "10",
-       "airsAt": "1795246743"
+       "airsAt": "1795255058"
       },
       {
        "episode": "11",
-       "airsAt": "1795851543"
+       "airsAt": "1795859858"
       },
       {
        "episode": "12",
-       "airsAt": "1796456343"
+       "airsAt": "1796464658"
       },
       {
        "episode": "13",
-       "airsAt": "1797061143"
+       "airsAt": "1797069458"
       },
       {
        "episode": "14",
-       "airsAt": "1797665943"
+       "airsAt": "1797674258"
       },
       {
        "episode": "15",
-       "airsAt": "1798270743"
+       "airsAt": "1798279058"
       },
       {
        "episode": "16",
-       "airsAt": "1798875543"
+       "airsAt": "1798883858"
       },
       {
        "episode": "17",
-       "airsAt": "1799480343"
+       "airsAt": "1799488658"
       },
       {
        "episode": "18",
-       "airsAt": "1800085143"
+       "airsAt": "1800093458"
       },
       {
        "episode": "19",
-       "airsAt": "1800689943"
+       "airsAt": "1800698258"
       },
       {
        "episode": "20",
-       "airsAt": "1801294743"
+       "airsAt": "1801303058"
       },
       {
        "episode": "21",
-       "airsAt": "1801899543"
+       "airsAt": "1801907858"
       },
       {
        "episode": "22",
-       "airsAt": "1802504343"
+       "airsAt": "1802512658"
       },
       {
        "episode": "23",
-       "airsAt": "1803109143"
+       "airsAt": "1803117458"
       },
       {
        "episode": "24",
-       "airsAt": "1803713943"
+       "airsAt": "1803722258"
       }
      ],
      "relations": [],
@@ -2627,6 +2313,177 @@
    "v1": "12"
   },
   {
+   "@type": "JobStarted",
+   "job": "13",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900001",
+   "rows": [
+    {
+     "number": "1",
+     "title": "The Lantern Road",
+     "thumbnail": "https://img.example/ep/900001/1.jpg",
+     "description": "A lamplighter wakes on the star road with a lantern and no name.",
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713087728",
+     "delayedFrom": null
+    },
+    {
+     "number": "2",
+     "title": "A Town Without Night",
+     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713692528",
+     "delayedFrom": null
+    },
+    {
+     "number": "3",
+     "title": "The Ferryman's Ledger",
+     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714297328",
+     "delayedFrom": null
+    },
+    {
+     "number": "4",
+     "title": "Embers in the Snow",
+     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714902128",
+     "delayedFrom": null
+    },
+    {
+     "number": "5",
+     "title": "What the Beacons Remember",
+     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1715506928",
+     "delayedFrom": null
+    },
+    {
+     "number": "6",
+     "title": "The Cartographer's Daughter",
+     "thumbnail": "https://img.example/ep/900001/6.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716111728",
+     "delayedFrom": null
+    },
+    {
+     "number": "7",
+     "title": "Rain over Kiriya Pass",
+     "thumbnail": "https://img.example/ep/900001/7.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.42083333333333334,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716716528",
+     "delayedFrom": null
+    },
+    {
+     "number": "8",
+     "title": "A Letter Never Sent",
+     "thumbnail": "https://img.example/ep/900001/8.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717321328",
+     "delayedFrom": null
+    },
+    {
+     "number": "9",
+     "title": "The Last Lamplighter",
+     "thumbnail": "https://img.example/ep/900001/9.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717926128",
+     "delayedFrom": null
+    },
+    {
+     "number": "10",
+     "title": "Where the Roads Cross",
+     "thumbnail": "https://img.example/ep/900001/10.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1718530928",
+     "delayedFrom": null
+    },
+    {
+     "number": "11",
+     "title": "The Sky Archive",
+     "thumbnail": "https://img.example/ep/900001/11.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719135728",
+     "delayedFrom": null
+    },
+    {
+     "number": "12",
+     "title": "Home, by Starlight",
+     "thumbnail": "https://img.example/ep/900001/12.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719740528",
+     "delayedFrom": null
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "11"
+  },
+  {
    "@type": "Episodes",
    "id": "900002",
    "rows": [
@@ -2640,7 +2497,7 @@
      "completed": true,
      "kind": null,
      "skippable": false,
-     "airsAt": "1789803543",
+     "airsAt": "1789811858",
      "delayedFrom": null
     },
     {
@@ -2653,7 +2510,7 @@
      "completed": true,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790408343",
+     "airsAt": "1790416658",
      "delayedFrom": null
     },
     {
@@ -2666,7 +2523,7 @@
      "completed": true,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791013143",
+     "airsAt": "1791021458",
      "delayedFrom": null
     },
     {
@@ -2679,7 +2536,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791617943",
+     "airsAt": "1791626258",
      "delayedFrom": null
     },
     {
@@ -2692,7 +2549,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792222743",
+     "airsAt": "1792231058",
      "delayedFrom": null
     }
    ]
@@ -2700,6 +2557,362 @@
   {
    "@type": "JobDone",
    "v1": "13"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900002",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "14",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "15",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900003",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "16",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "17",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900004",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "18",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "19",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900003",
+   "rows": [
+    {
+     "number": "1",
+     "title": "Moonlit Platform",
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "6480",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null,
+     "delayedFrom": null
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "15"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900003",
+    "title": "Moonlit Platform",
+    "secondary": "Tsukiakari no Teishajo",
+    "format": "MOVIE",
+    "episodes": "1",
+    "year": "2025",
+    "score": "85",
+    "studio": "Kujaku Animation Works",
+    "synopsis": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+    "coverUrl": "https://img.example/cover/900003-xl.jpg",
+    "coverColor": "#f1d97a",
+    "bannerUrl": "https://img.example/banner/900003.jpg",
+    "genres": [
+     "Drama",
+     "Romance"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "relation": "",
+      "format": "TV"
+     }
+    ],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Tsukiakari no Teishajo",
+    "titleEnglish": "Moonlit Platform",
+    "titleNative": "月明かりの停車場",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2025",
+     "month": "8",
+     "day": "15"
+    },
+    "endDate": {
+     "year": "2025",
+     "month": "8",
+     "day": "15"
+    },
+    "source": "ORIGINAL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Trains",
+       "rank": "88",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Setting-Scene"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "recommendations": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": "COMPLETED"
+      }
+     ],
+     "rankings": [],
+     "characters": [
+      {
+       "name": "Tsuki Hanamura",
+       "imageUrl": "https://img.example/people/tsuki-hanamura.jpg",
+       "role": "MAIN",
+       "voiceActors": [
+        {
+         "name": "Tsuki's voice",
+         "imageUrl": "https://img.example/people/voice-tsuki.jpg"
+        }
+       ]
+      }
+     ],
+     "staff": [
+      {
+       "name": "Director of Moonlit Platform",
+       "role": "Director"
+      }
+     ]
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+      "spoiler": false
+     }
+    ],
+    "delayedFrom": null
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "14"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Detail",
@@ -2795,150 +3008,6 @@
   {
    "@type": "JobDone",
    "v1": "16"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900004",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "18",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "19",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900005",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "20",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "21",
-   "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
@@ -3107,144 +3176,134 @@
    "v1": "17"
   },
   {
-   "@type": "Episodes",
-   "id": "900003",
-   "rows": [
-    {
-     "number": "1",
-     "title": "Moonlit Platform",
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "6480",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null,
-     "delayedFrom": null
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "15"
-  },
-  {
-   "@type": "Detail",
+   "@type": "ShowSettings",
    "v1": {
-    "id": "900003",
-    "title": "Moonlit Platform",
-    "secondary": "Tsukiakari no Teishajo",
-    "format": "MOVIE",
-    "episodes": "1",
-    "year": "2025",
-    "score": "85",
-    "studio": "Kujaku Animation Works",
-    "synopsis": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
-    "coverUrl": "https://img.example/cover/900003-xl.jpg",
-    "coverColor": "#f1d97a",
-    "bannerUrl": "https://img.example/banner/900003.jpg",
-    "genres": [
-     "Drama",
-     "Romance"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [
+    "id": "900005",
+    "rows": [
      {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "relation": "",
-      "format": "TV"
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
      }
     ],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Tsukiakari no Teishajo",
-    "titleEnglish": "Moonlit Platform",
-    "titleNative": "月明かりの停車場",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2025",
-     "month": "8",
-     "day": "15"
-    },
-    "endDate": {
-     "year": "2025",
-     "month": "8",
-     "day": "15"
-    },
-    "source": "ORIGINAL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Trains",
-       "rank": "88",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Setting-Scene"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "recommendations": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "coverColor": "#e4a15d",
-       "season": "SPRING",
-       "year": "2024",
-       "listStatus": "COMPLETED"
-      }
-     ],
-     "rankings": [],
-     "characters": [
-      {
-       "name": "Tsuki Hanamura",
-       "imageUrl": "https://img.example/people/tsuki-hanamura.jpg",
-       "role": "MAIN",
-       "voiceActors": [
-        {
-         "name": "Tsuki's voice",
-         "imageUrl": "https://img.example/people/voice-tsuki.jpg"
-        }
-       ]
-      }
-     ],
-     "staff": [
-      {
-       "name": "Director of Moonlit Platform",
-       "role": "Director"
-      }
-     ]
-    },
-    "status": "FINISHED",
-    "synopsisSpans": [
-     {
-      "text": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
-      "spoiler": false
-     }
-    ],
-    "delayedFrom": null
+    "remembered": [],
+    "source": null
    }
   },
   {
-   "@type": "JobDone",
-   "v1": "14"
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900006",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "DOWNLOAD_QUALITY",
+      "own": null,
+      "value": "standard",
+      "default": "standard"
+     },
+     {
+      "key": "KEEP_NEXT",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Episodes",
@@ -3476,62 +3535,118 @@
    "v1": "18"
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900006",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "DOWNLOAD_QUALITY",
-      "own": null,
-      "value": "standard",
-      "default": "standard"
-     },
-     {
-      "key": "KEEP_NEXT",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
+   "@type": "Episodes",
+   "id": "900006",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1788349358",
+     "delayedFrom": null
+    },
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1788954158",
+     "delayedFrom": null
+    },
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1789558958",
+     "delayedFrom": null
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790163758",
+     "delayedFrom": null
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790768558",
+     "delayedFrom": null
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791373358",
+     "delayedFrom": null
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 1.0,
+     "completed": true,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791978158",
+     "delayedFrom": null
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792582958",
+     "delayedFrom": null
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "21"
   },
   {
    "@type": "Detail",
@@ -3584,51 +3699,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1788341043"
+       "airsAt": "1788349358"
       },
       {
        "episode": "2",
-       "airsAt": "1788945843"
+       "airsAt": "1788954158"
       },
       {
        "episode": "3",
-       "airsAt": "1789550643"
+       "airsAt": "1789558958"
       },
       {
        "episode": "4",
-       "airsAt": "1790155443"
+       "airsAt": "1790163758"
       },
       {
        "episode": "5",
-       "airsAt": "1790760243"
+       "airsAt": "1790768558"
       },
       {
        "episode": "6",
-       "airsAt": "1791365043"
+       "airsAt": "1791373358"
       },
       {
        "episode": "7",
-       "airsAt": "1791969843"
+       "airsAt": "1791978158"
       },
       {
        "episode": "8",
-       "airsAt": "1792574643"
+       "airsAt": "1792582958"
       },
       {
        "episode": "9",
-       "airsAt": "1793179443"
+       "airsAt": "1793187758"
       },
       {
        "episode": "10",
-       "airsAt": "1793784243"
+       "airsAt": "1793792558"
       },
       {
        "episode": "11",
-       "airsAt": "1794389043"
+       "airsAt": "1794397358"
       },
       {
        "episode": "12",
-       "airsAt": "1794993843"
+       "airsAt": "1795002158"
       }
      ],
      "relations": [],
@@ -3650,120 +3765,6 @@
   {
    "@type": "JobDone",
    "v1": "20"
-  },
-  {
-   "@type": "Episodes",
-   "id": "900006",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1788341043",
-     "delayedFrom": null
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1788945843",
-     "delayedFrom": null
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789550643",
-     "delayedFrom": null
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790155443",
-     "delayedFrom": null
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790760243",
-     "delayedFrom": null
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791365043",
-     "delayedFrom": null
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 1.0,
-     "completed": true,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791969843",
-     "delayedFrom": null
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792574643",
-     "delayedFrom": null
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "21"
   }
  ]
 }

@@ -91,10 +91,21 @@ class SettingsShots {
         val now = AppClock.now().epochSecond
         store.apply(
             listOf(
-                Event.ComingEpisodes(
-                    listOf(
-                        tv.anistream.engine.model.ComingEpisode(900002u, "The Library Above the Clouds", 6u, now + 2 * 86_400 + 11_700, coverUrl = coverOf(store, 900002u)),
-                        tv.anistream.engine.model.ComingEpisode(900006u, "Summer Wind Relay", 9u, now + 6 * 86_400 + 18_000, coverUrl = coverOf(store, 900006u), switchedOn = true),
+                Event.UpcomingNotices(
+                    tv.anistream.engine.model.UpcomingNotices(
+                        enabled = false,
+                        generatedAt = now,
+                        airings = listOf(
+                            tv.anistream.engine.model.UpcomingNotice(
+                                900002u, "The Library Above the Clouds", 6u, now + 2 * 86_400 + 11_700,
+                                tv.anistream.engine.model.NoticeReason.WATCHING, 4u, coverUrl = coverOf(store, 900002u),
+                            ),
+                            tv.anistream.engine.model.UpcomingNotice(
+                                900006u, "Summer Wind Relay", 9u, now + 6 * 86_400 + 18_000,
+                                tv.anistream.engine.model.NoticeReason.SWITCHED_ON, 8u, coverUrl = coverOf(store, 900006u), notifies = true,
+                            ),
+                        ),
+                        overrides = 1u,
                     ),
                 ),
             ),
@@ -167,7 +178,9 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_join_store() = shoot("phone-join-store", settingsRoute(SettingsPane.Sources), screen = true) { store ->
         store.stores.openJoin(INVITE)
-        store.apply(listOf(Event.StorePreview(InvitePreview.Store(InvitedStore(INVITE, "Hotaru Plugins", "https://plugins.hotaru.example", "plugins.hotaru.example", "9f3c 1a2b 77de 0c41", alreadyJoined = false)))))
+        // AndroidJoinStore's preview: who runs it, its four plugins and where each stands here.
+        val invited = InvitedStore(INVITE, "Hotaru Plugins", "https://plugins.hotaru.example", "plugins.hotaru.example", "9f3c 1a2b 77de 0c41", alreadyJoined = false, owners = listOf("Ren"), plugins = HOTARU.plugins)
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
     }
 
     @Test

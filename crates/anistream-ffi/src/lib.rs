@@ -281,14 +281,15 @@ mod tests {
         crosses_intact(Event::ShowSettings(sheet));
         let view = SettingsView::default();
         assert_eq!(crossed(view.clone()), view);
+        // With the shows that switch new-episode notifications on for themselves counted.
+        let view = SettingsView { notify_switched_on: 2, ..SettingsView::default() };
+        assert_eq!(crossed(view.clone()), view);
     }
 
     #[test]
     fn notifications_and_the_widgets_record_cross_intact() {
         use anistream_model::{
-            notifications::{
-                ComingEpisode, NewEpisode, NoticeReason, UpcomingNotice, UpcomingNotices,
-            },
+            notifications::{NewEpisode, NoticeReason, UpcomingNotice, UpcomingNotices},
             show::ShowSettingKey,
             widgets::{
                 WIDGET_DATA_VERSION, WidgetAiring, WidgetContinue, WidgetData, WidgetNextAiring,
@@ -297,7 +298,6 @@ mod tests {
         let id = AnilistId::new(900_002);
         let commands = [
             Command::CheckNewEpisodes,
-            Command::ComingEpisodes,
             Command::WidgetSnapshot,
             Command::UpcomingNotices,
             Command::AppPhase {
@@ -342,17 +342,6 @@ mod tests {
         assert_eq!(crossed(said[0].clone()), said[0]);
         crosses_intact(Event::NewEpisodes(said));
         crosses_intact(Event::NewEpisodes(Vec::new()));
-        let coming = ComingEpisode {
-            id,
-            title: "The Library Above the Clouds".into(),
-            episode: 7,
-            airs_at: 1_792_768_530,
-            cover_url: Some("https://img.example/library-poster.png".into()),
-            switched_on: true,
-            translation: Some(Translation::Sub),
-        };
-        assert_eq!(crossed(coming.clone()), coming);
-        crosses_intact(Event::ComingEpisodes(vec![coming]));
 
         let week = UpcomingNotices {
             enabled: true,
@@ -367,6 +356,8 @@ mod tests {
                     next_to_watch: 4,
                     cover_url: Some("https://img.example/library-poster.png".into()),
                     banner_url: None,
+                    notifies: true,
+                    translation: Some(Translation::Dub),
                 },
                 UpcomingNotice {
                     id: AnilistId::new(900_003),
@@ -377,6 +368,8 @@ mod tests {
                     next_to_watch: 9,
                     cover_url: None,
                     banner_url: Some("https://img.example/banner/900003.jpg".into()),
+                    notifies: false,
+                    translation: None,
                 },
             ],
             watching: vec![id],
@@ -735,10 +728,37 @@ mod tests {
                 hosts: vec!["api.example".into()],
                 status: anistream_model::stores::StorePluginStatus::OtherStore("Theirs".into()),
             }],
+            open: true,
+            anonymous: true,
         })));
         crosses_intact(Event::StorePreview(InvitePreview::Failed {
             reason: "that is not a link".into(),
         }));
+    }
+
+    #[test]
+    fn who_can_join_a_store_crosses_with_its_commands() {
+        use anistream_model::stores::{AnonymousDeviceRow, OpenJoinView};
+        crosses_intact(Event::OpenJoin {
+            store: "abc".into(),
+            view: OpenJoinView {
+                open: true,
+                link: Some(Secret("https://plugins.example/join/abc?open#key".into())),
+                devices: 3,
+                recent: vec![AnonymousDeviceRow {
+                    id: "d1".into(),
+                    joined_at: 1_792_000_000,
+                    last_seen: None,
+                }],
+            },
+        });
+        for command in [
+            Command::SetOpenJoin { store: "abc".into(), open: true },
+            Command::RemoveAnonymous { store: "abc".into(), device: None },
+            Command::RemoveAnonymous { store: "abc".into(), device: Some("d1".into()) },
+        ] {
+            assert_eq!(crossed(command.clone()), command);
+        }
     }
 
     #[test]

@@ -14,8 +14,8 @@ anistream                                                                       
   Yamabiko  1.4.0                                                                                          published
 ▌ Kawasemi  2.2.0                                                                                     replaces 2.1.0
 
+                            │    open the admin page
                             │    leave this store
-                            │
                             │
                             │
                             │
@@ -67,12 +67,12 @@ r13 c116-119 fg=rule bg=ground
 r14 c00-00 fg=obi bg=ground
 r14 c01-01 fg=rule bg=ground
 r14 c02-16 fg=text bg=ground mod=BOLD
-r14 c17-32 fg=rule bg=ground
-r14 c33-48 fg=rule bg=ground mod=BOLD
-r14 c49-101 fg=rule bg=ground
+r14 c17-101 fg=rule bg=ground
 r14 c102-115 fg=text bg=ground
 r14 c116-119 fg=rule bg=ground
-r15 c00-119 fg=rule bg=ground
+r15 c00-32 fg=rule bg=ground
+r15 c33-48 fg=rule bg=ground mod=BOLD
+r15 c49-119 fg=rule bg=ground
 r16 c00-119 fg=rule
 r17 c00-119 fg=rule
 r18 c00-119 fg=rule

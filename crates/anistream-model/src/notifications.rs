@@ -1,6 +1,6 @@
 //! New episodes, as a native app notifies of them: what
-//! [`Command::CheckNewEpisodes`](crate::command::Command::CheckNewEpisodes) finds, and the ones
-//! coming up that [`Command::ComingEpisodes`](crate::command::Command::ComingEpisodes) lists.
+//! [`Command::CheckNewEpisodes`](crate::command::Command::CheckNewEpisodes) finds, and the week
+//! coming up that [`Command::UpcomingNotices`](crate::command::Command::UpcomingNotices) says.
 
 use anistream_core::{ids::AnilistId, media::Translation};
 
@@ -17,7 +17,8 @@ pub struct NewEpisode {
     pub title: String,
     /// The episode's number, as AniList counts the show's episodes.
     pub episode: u32,
-    /// When it aired, in seconds since the Unix epoch.
+    /// When it aired, in seconds since the Unix epoch: the broadcast, or for a show watched
+    /// dubbed, when the check found the dub listed, which AniList has no time for.
     pub aired_at: i64,
     /// The show's cover, for the notification's picture.
     #[cfg_attr(feature = "ffi", uniffi(default))]
@@ -27,40 +28,15 @@ pub struct NewEpisode {
     /// watched none of the show here.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub next_for_you: Option<u32>,
-    /// The translation the viewer watches the show in: its own setting, or Settings'. AniList
-    /// dates the original broadcast only, so a dub can come out after [`Self::aired_at`].
+    /// The translation the episode is out in: the one the viewer watches the show in, its own
+    /// setting or Settings'. AniList dates the original broadcast only, so an episode of a show
+    /// watched dubbed is said once the source a play would use lists it in the dub, not at the
+    /// broadcast: "Episode 9 is out, dubbed."
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub translation: Option<Translation>,
     /// The show's banner, for the notification's expanded picture, where AniList has one.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub banner_url: Option<String>,
-}
-
-/// An episode of a show the new-episode check follows, airing in the next week: what the
-/// Notifications settings list under "Coming up", whether notifications are on or not.
-///
-/// Spoiler-safe as [`NewEpisode`] is: the show, the episode's number and when it airs.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
-pub struct ComingEpisode {
-    /// The show.
-    pub id: AnilistId,
-    /// The show's title, in the form the title setting picks.
-    pub title: String,
-    /// The episode's number.
-    pub episode: u32,
-    /// When it airs, by AniList's schedule, in seconds since the Unix epoch.
-    pub airs_at: i64,
-    /// The show's cover.
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub cover_url: Option<String>,
-    /// Whether the show is followed because it turned notifications on for itself, rather than
-    /// by being watched: "On in this show's settings".
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub switched_on: bool,
-    /// The translation the viewer watches the show in: its own setting, or Settings'.
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub translation: Option<Translation>,
 }
 
 /// What will notify of new episodes in the next seven days, and what is left out and why, as
@@ -71,7 +47,8 @@ pub struct ComingEpisode {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct UpcomingNotices {
     /// Whether [`SettingKey::EpisodeNotifications`](crate::settings::SettingKey) is on, on this
-    /// device: whether the shows being watched notify.
+    /// device: whether the shows being watched notify. A show switched on for itself notifies
+    /// whether it is or not: [`UpcomingNotice::notifies`] says which do.
     pub enabled: bool,
     /// When this was made, in seconds since the Unix epoch.
     pub generated_at: i64,
@@ -115,6 +92,17 @@ pub struct UpcomingNotice {
     /// poster.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub banner_url: Option<String>,
+    /// Whether it notifies: switched on for itself, whatever Settings says, or being watched
+    /// while [`UpcomingNotices::enabled`] is on. Never one switched off. What the pane dims when
+    /// it does not, and what an app schedules.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub notifies: bool,
+    /// The translation the viewer watches the show in: its own setting, or Settings'. One
+    /// watched dubbed is not notified of at [`Self::airs_at`], which is the broadcast's: the
+    /// new-episode check says it once the source lists it in the dub, so an app that schedules
+    /// ahead leaves it to the check.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub translation: Option<Translation>,
 }
 
 /// Why a broadcast of the week notifies, or is left out.
@@ -125,7 +113,8 @@ pub enum NoticeReason {
     /// [`UpcomingNotices::enabled`] is on.
     Watching,
     /// Switched on in its own settings, which takes in a show whatever the list says of it, a
-    /// show only planned among them.
+    /// show only planned among them, and notifies whether the setting is on or not: "On in this
+    /// show's settings".
     SwitchedOn,
     /// Switched off in its own settings: left out, being watched or not.
     SwitchedOff,

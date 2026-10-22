@@ -32,7 +32,10 @@ use anistream_store::Store;
 use anistream_track::auth;
 use anistream_track::{AniListTracker, TokenStore, sync};
 
-use crate::{host::Host, outbox::Outbox};
+use crate::{
+    host::Host,
+    outbox::{Internal, Outbox},
+};
 
 /// Everything the sync loops need.
 #[derive(Clone)]
@@ -462,7 +465,10 @@ fn keep_statuses(
         .iter()
         .map(|entry| {
             let status = match entry.status {
-                W::Current | W::Repeating => "CURRENT",
+                W::Current => "CURRENT",
+                // Kept apart, as AniList's own list says it: keep next follows a rewatch from
+                // the episode rewatched, not from the last one ever watched.
+                W::Repeating => "REPEATING",
                 W::Planning => "PLANNING",
                 W::Completed => "COMPLETED",
                 W::Paused => "PAUSED",
@@ -605,6 +611,18 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
     // disagreement is reported as the conflict.
     let pulling: Vec<_> = sync.trackers.iter().filter(|t| t.is_authenticated()).collect();
     let libraries = futures::future::join_all(pulling.iter().map(|t| t.pull_library())).await;
+    // What keep next keeps follows the list: the shows being watched, and their progress.
+    let listed = sync.trackers.first().is_some_and(|tracker| tracker.is_authenticated());
+    let since = now - crate::downloads::ahead::WATCHED_WITHIN;
+    let watching = || {
+        sync.store.watching(since, listed).ok().map(|ids| {
+            let mut ids: Vec<u32> = ids.iter().map(|id| id.get()).collect();
+            ids.sort_unstable();
+            ids
+        })
+    };
+    let before = watching();
+    let mut adopted = 0;
 
     for (tracker, library) in pulling.into_iter().zip(libraries) {
         let last_pull =
@@ -619,6 +637,7 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
 
         match reconciled {
             Ok(report) => {
+                adopted += report.adopted;
                 sync.note_pull(tracker.id(), None);
                 let _ = sync.store.set_meta_i64(&pull_key(tracker.id()), now);
                 let _ = tx.send(Event::Sync(Box::new(sync.state_for(
@@ -673,6 +692,9 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
                 ))));
             }
         }
+    }
+    if adopted > 0 || watching() != before {
+        let _ = tx.internal(Internal::TopUp);
     }
 }
 

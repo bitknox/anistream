@@ -118,7 +118,13 @@ impl App {
                 self.invite_link = None;
                 return None;
             }
-            (Overlay::StoreConfirm | Overlay::InviteLink, _) => return None,
+            (Overlay::OpenLink, Action::Open) => {
+                self.nav.close_overlay();
+                return None;
+            }
+            (Overlay::StoreConfirm | Overlay::InviteLink | Overlay::OpenLink, _) => {
+                return None;
+            }
             _ => {}
         }
 

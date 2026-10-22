@@ -167,9 +167,15 @@ What the systems do with it (checked 2026-10-21, Xcode 27.1):
 
 - **iOS 27.0 Simulator:** the per-size images are used. The iPhone 17's Home Screen draws the
   64 pt @3x slot, 192 px, pixel for pixel, in light and dark.
-- **macOS 27:** the per-size images are used, a master to each size, but every Mac icon is drawn
-  inside the system's rounded square at 824/1024 of the tile, so each is resampled to 80% and
-  is soft.
+- **macOS 27:** the per-size images are used, a master to each size. So the Mac's are drawn inset:
+  macOS draws every app icon inside its rounded square, 824 of every 1024 pixels across, rounded
+  up to whole even pixels (14 at 16 px, 104 at 128), and scales an image drawn to the tile's edge,
+  or to a square a fraction smaller, to fill it, off whole pixels. The ground fills that square,
+  the corners are transparent, and Nagare is picked by the size rule against the square. Drawn
+  so, the 64, 128, 256 and 512 px images are drawn as they are (checked 2026-10-22 through
+  IconServices, which Finder and the Dock draw with): every cell edge a single-pixel step, under
+  the system's own glass. At 16 and 32 px macOS draws the art a few percent smaller inside its
+  rim, so those are near, not exact. A full-bleed image was shrunk to 80% and soft.
 
 ## The Swift packages
 
@@ -405,17 +411,25 @@ They arrive when an episode airs, as local notifications scheduled ahead, since 
 app's runs at that moment (AnistreamStore's `Notifications/`):
 
 - **The week.** The engine's `UpcomingNotices` says the next seven days' broadcasts of the shows
-  being watched or switched on for themselves, and of those switched off, each with why.
+  being watched or switched on for themselves, and of those switched off, each with why and
+  whether it notifies: with Settings' switch off, only a show switched on for itself does.
   `NoticePlan` makes one notification of each episode that notifies: `ep.<show>.<episode>.sub`,
   a `UNCalendarNotificationTrigger` at its time, at most 60. "Episode 9 is out." with Play and
   Mark watched when caught up; "Episode 10 is out. Next for you: episode 8." with Play alone when
   behind. All in the `new-episodes` thread, named in a group's summary by their show.
+- **Dubs.** AniList dates only the broadcast, so a show watched dubbed is not scheduled: the
+  background check says its episode once the source lists the dub, posted then as
+  `ep.<show>.<episode>.dub`, "Episode 9 is out, dubbed." The pane's footnote names those shows.
 - **Scheduling.** `NoticeScheduler` keeps the pending ones in step with the week: it takes back
   what no longer notifies, schedules what is new or changed with the cover attached, and remembers
   what it scheduled, so the background check never says an episode twice. Asked for at launch, on
   coming forward, after a sync or a change of progress, and when a switch changes.
 - **The background refresh.** iOS's `BGAppRefreshTask` (`tv.anistream.refresh`) and the Mac's
-  `NSBackgroundActivityScheduler`, every six hours or as the system decides: `CheckNewEpisodes`
+  `NSBackgroundActivityScheduler`, every six hours or as the system decides, kept scheduled while
+  Settings' switch is on, any show is switched on for itself (the settings' `notifySwitchedOn`) or
+  any of the widgets is placed (`WidgetCenter`'s current configurations, looked at on launch, on
+  coming forward and after each refresh), and cancelled only when none holds. With only a widget,
+  a refresh writes the widgets' record and nothing else. Otherwise: `CheckNewEpisodes`
   for what aired that no notification said, then the week, then the widgets' record, written to
   `widgets/snapshot.json` in the App Group (`ANISTREAM_APP_GROUP`). With the app not running it
   starts an engine of its own with none of the launch's background work, which the app's own
@@ -469,6 +483,7 @@ touches your own data.
 apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
 apple/scripts/shots.sh iphone watching:library watching:query=hoshi
 apple/scripts/shots.sh ipad
+apple/scripts/shots.sh ipad --landscape watching:settings
 apple/scripts/shots.sh mac player                 # every player state; or player-up-next, …
 ```
 
@@ -487,9 +502,11 @@ the main window browsing while the video plays in the floating window, for
 `player-picture-in-picture`) and the screen in the Simulator.
 
 They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
-shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use), with
-the status bar at 19:30 and the dark appearance, and are taken once the app prints
-`ANISTREAM_READY`, which it does when its store has settled.
+shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use, or the
+one `ANISTREAM_SIMULATOR` names), with a clean status bar at 9:41 and the dark appearance, and are
+taken once the app prints `ANISTREAM_READY`, which it does when its store has settled. The iPad
+runs its apps full screen, not in windows. The Simulator is shot in portrait; `--landscape` turns
+it first, with devicectl's orientation command, and names the files `<device>-landscape-<shot>.png`.
 
 The screen comes from launch arguments the app and the harness both read, which also serve for
 coming back to a screen while working on it: `-AnistreamSection calendar`, `-AnistreamSelect

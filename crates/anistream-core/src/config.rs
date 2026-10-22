@@ -205,8 +205,10 @@ pub struct DownloadsConfig {
     /// best a source offers. Read by the native apps' Downloads settings and by every download
     /// queued, the terminal's included.
     pub quality: DownloadQuality,
-    /// How many of a show's next episodes a download keeps on the device, `0` for none. A
-    /// native app's setting: the terminal reads and keeps it, and acts on nothing it says.
+    /// How many of the next episodes of each show being watched are kept downloaded, `0` for
+    /// none, where a show keeps no number of its own. Set from the native apps' Downloads
+    /// settings, and acted on by the engine wherever it runs, the terminal's included: it queues
+    /// what is missing as the viewer moves on, and deletes nothing.
     pub keep_next: u32,
     /// Whether downloads run over a cellular connection. Off by default, so a phone does not
     /// spend a data plan on its own. Only the native apps know which network they are on; the

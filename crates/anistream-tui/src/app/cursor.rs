@@ -251,7 +251,7 @@ impl App {
                 .store_view()
                 .and_then(|id| self.store(id))
                 .map_or(0, |s| self.store_lines(s).len()),
-            Rows::Members => self.store_members.len() + self.store_invites.len(),
+            Rows::Members => self.member_lines().len(),
             Rows::List => 0,
         };
         if len == 0 {

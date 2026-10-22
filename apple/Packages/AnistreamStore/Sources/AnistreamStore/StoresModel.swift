@@ -1,5 +1,5 @@
 // Plugin stores: the ones joined and their plugins, an invite link being checked or spent, and
-// what an owner manages: invites, members and plugins to publish.
+// what an owner manages: invites, members, who can join, and plugins to publish.
 
 import AnistreamKit
 import Foundation
@@ -25,6 +25,10 @@ public final class StoresModel {
         case install(store: String, plugin: String)
         case remove(plugin: String)
         case invite(store: String)
+        /// Letting anyone with the link join, or only invited people.
+        case openJoin(store: String)
+        /// Removing devices that joined with the link.
+        case removeAnonymous(store: String)
     }
 
     /// Every joined store, in the order the engine lists them.
@@ -41,6 +45,9 @@ public final class StoresModel {
     public private(set) var members: [String: (members: [StoreMemberRow], invites: [StoreInviteRow])] = [:]
     /// The local plugins an owner could publish to each store.
     public private(set) var localPlugins: [String: [LocalPluginRow]] = [:]
+    /// Who can join each store, its open link and the devices that joined with it, for its
+    /// owner. Absent for a store whose server has no open joining.
+    public private(set) var openJoin: [String: OpenJoinView] = [:]
     /// What is under way.
     public private(set) var working: [JobId: Work] = [:]
 
@@ -77,6 +84,10 @@ public final class StoresModel {
 
     func localPlugins(store: String, plugins: [LocalPluginRow]) {
         localPlugins[store] = plugins
+    }
+
+    func openJoin(store: String, view: OpenJoinView) {
+        openJoin[store] = view
     }
 
     func started(_ work: Work, job: JobId?) {
@@ -150,9 +161,43 @@ extension StorePluginRow {
         if case .update(let from, _) = status { return from }
         return version
     }
+
+    /// Where it stands on this device, in a word or two, when it is here at all: "Installed",
+    /// "1.4.0 installed", "Added by hand", "From Kumo". Nothing for one not installed.
+    public var standing: String? {
+        switch status {
+        case .available: nil
+        case .installed: "Installed"
+        case .update(let from, _): "\(from) installed"
+        case .addedByHand: "Added by hand"
+        case .otherStore(let other): "From \(other)"
+        }
+    }
 }
 
-/// What an invite link the app was handed holds: the store's own `https://…/join/{code}#{key}`.
+extension InvitedStore {
+    /// Who runs the store and where it answers: "Run by Ren · plugins.example", or the host alone
+    /// from a store that does not say who runs it.
+    public var runByLine: String {
+        owners.isEmpty ? host : "Run by \(owners.joined(separator: ", ")) · \(host)"
+    }
+}
+
+extension StoreRow {
+    /// Who runs the store and where it answers, from its signed list: "Run by Ren ·
+    /// plugins.example", or the host alone from a store that does not say who runs it.
+    public var runByLine: String {
+        owners.isEmpty ? host : "Run by \(owners.joined(separator: ", ")) · \(host)"
+    }
+
+    /// Who this device joined as: a name, or none, for one that joined with the store's link.
+    public var joinedAs: String {
+        anonymous ? "joined without a name" : "joined as \(member)"
+    }
+}
+
+/// What an invite link the app was handed holds: the store's own `https://…/join/{code}#{key}`,
+/// or its open link, the same with `?open` before the `#`.
 public enum InviteLinks {
     /// The https invite in `url`, when it is one: an https link as the store makes it, or one the
     /// app was opened with, `anistream://join?link=<the https link>` or the https link with the

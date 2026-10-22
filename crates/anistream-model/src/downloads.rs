@@ -24,6 +24,10 @@ pub struct DownloadRow {
     /// Where the file is, once it exists — so a finished download can be played.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub path: Option<String>,
+    /// Queued by keep next, to have the show's next episodes on the device, rather than asked
+    /// for: the row says "Downloaded ahead". One the viewer asks for again is theirs.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub ahead: bool,
 }
 
 /// Where a download is in its life, as its row has it.

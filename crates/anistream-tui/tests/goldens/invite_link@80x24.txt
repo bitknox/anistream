@@ -14,8 +14,8 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   opening it in a browser shows how to join and does not use it up
   enter closes
 
+   │    open the admin page
    │    leave this store
-   │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────

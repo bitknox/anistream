@@ -11,7 +11,10 @@ use anistream_meta::Meta;
 use anistream_model::{event::Event, notice::Notice};
 use anistream_store::Store;
 
-use crate::{host::Host, outbox::Outbox};
+use crate::{
+    host::Host,
+    outbox::{Internal, Outbox},
+};
 
 /// The stored-state key holding when the digest last looked.
 const SEEN_KEY: &str = "airing_digest_seen";
@@ -85,14 +88,20 @@ pub fn spawn(
         if hits.is_empty() {
             return;
         }
-
-        let text = compose(&hits);
-        // A copy for people who launch the app and switch away. The toast is the real channel.
-        if desktop {
-            host.notify("anistream", &text);
-        }
-        let _ = tx.send(Event::Toast(Notice::info(text)));
+        say(&hits, desktop, host.as_ref(), &tx);
     });
+}
+
+/// Say what aired: as a toast, and through the host too when `desktop` asks for it. Then keep
+/// next tops the shows up, since an episode out is one more it may keep.
+fn say(hits: &[(String, u32)], desktop: bool, host: &dyn Host, tx: &Outbox) {
+    let text = compose(hits);
+    // A copy for people who launch the app and switch away. The toast is the real channel.
+    if desktop {
+        host.notify("anistream", &text);
+    }
+    let _ = tx.send(Event::Toast(Notice::info(text)));
+    let _ = tx.internal(Internal::TopUp);
 }
 
 /// One line, sized to what it reports: a single episode is named, a pile is counted.
@@ -106,6 +115,17 @@ fn compose(hits: &[(String, u32)]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn what_aired_is_said_and_then_kept_next() {
+        use crate::outbox::Envelope;
+        let (tx, mut inbox) = Outbox::inbox();
+        let dir = tempfile::tempdir().unwrap();
+        let host = crate::host::QuietHost::in_dir(dir.path());
+        say(&[("Show".into(), 4)], false, &host, &tx);
+        assert!(matches!(inbox.try_recv(), Ok(Envelope::Event(Event::Toast(_)))));
+        assert!(matches!(inbox.try_recv(), Ok(Envelope::Internal(Internal::TopUp))));
+    }
 
     #[test]
     fn one_episode_is_named_rather_than_counted() {

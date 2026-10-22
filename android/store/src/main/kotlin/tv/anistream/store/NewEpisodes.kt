@@ -25,8 +25,10 @@ import tv.anistream.engine.ffi.FfiBackground
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.ffi.FfiHost
 import tv.anistream.engine.model.Command
-import tv.anistream.engine.model.ComingEpisode
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.NoticeReason
+import tv.anistream.engine.model.UpcomingNotice
+import tv.anistream.engine.model.UpcomingNotices
 import tv.anistream.engine.model.WidgetData
 
 /**
@@ -196,7 +198,7 @@ class BackgroundEngine(
     companion object {
         /**
          * Every background switch off: the work's engine answers what it is sent and nothing
-         * else, no sync loops, update check or digest of its own.
+         * else, no sync loops, update check, digest or keep next of its own.
          */
         val QUIET = FfiBackground(
             prune = false,
@@ -206,21 +208,61 @@ class BackgroundEngine(
             syncLoops = false,
             storeRefresh = false,
             playerCheck = false,
+            keepNext = false,
         )
     }
 }
 
 /**
- * The Notifications settings' "Coming up · next 7 days": the episodes of the shows the new-episode
- * check follows that air this week, as the engine lists them (`ComingEpisodes`).
+ * The Notifications settings' "Coming up · next 7 days": the week's broadcasts of the shows the
+ * new-episode check follows, and of those a show's own switch leaves out, as the engine says them
+ * (`UpcomingNotices`), each saying whether it notifies.
  */
 class ComingModel {
-    private val _episodes = MutableStateFlow<List<ComingEpisode>?>(null)
+    private val _week = MutableStateFlow<UpcomingNotices?>(null)
 
-    /** The episodes, soonest first; `null` until the engine has answered. */
-    val episodes: StateFlow<List<ComingEpisode>?> = _episodes.asStateFlow()
+    /** The week as the engine last said it; `null` until it has. */
+    val week: StateFlow<UpcomingNotices?> = _week.asStateFlow()
 
-    internal fun apply(episodes: List<ComingEpisode>) {
-        _episodes.value = episodes
+    internal fun apply(week: UpcomingNotices) {
+        _week.value = week
+    }
+
+    companion object {
+        /**
+         * The rows the pane lists, in the order they air: everything but what a show's own switch
+         * leaves out, which the footer names instead.
+         */
+        fun listed(week: UpcomingNotices): List<UpcomingNotice> = week.airings.filter { it.reason != NoticeReason.SWITCHED_OFF }
+
+        /** The shows a switch of their own leaves out, each once, by title. */
+        fun switchedOff(week: UpcomingNotices): List<String> =
+            week.airings.filter { it.reason == NoticeReason.SWITCHED_OFF }.distinctBy { it.id }.map { it.title }
+
+        /** The shows watched dubbed that notify, each once: told when the dub is out, not at the broadcast. */
+        fun dubbed(week: UpcomingNotices): List<String> =
+            week.airings.filter { it.notifies && it.translation == Translation.DUB }.distinctBy { it.id }.map { it.title }
+
+        /**
+         * The footer under the week: what notifies later than its broadcast and why, what a switch
+         * of its own leaves out, and what a row does, or that nothing airs.
+         */
+        fun footer(week: UpcomingNotices): String {
+            val dubbed = dubbed(week)
+            val off = switchedOff(week)
+            return listOfNotNull(
+                when (dubbed.size) {
+                    0 -> null
+                    1 -> "${dubbed[0]} notifies when its dub is out."
+                    else -> "${Wording.list(dubbed)} notify when their dubs are out."
+                },
+                when (off.size) {
+                    0 -> null
+                    1 -> "${off[0]} is off in its own settings."
+                    else -> "${Wording.list(off)} are off in their own settings."
+                },
+                if (listed(week).isEmpty()) "Nothing airs this week for the shows followed." else "A show opens its settings.",
+            ).joinToString(" ")
+        }
     }
 }

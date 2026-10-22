@@ -175,6 +175,7 @@ async fn a_joined_stores_key_in_a_link_to_another_address_is_refused() {
         base: "http://127.0.0.1:9".into(),
         code: anistream_plugin_store::crypto::new_code().unwrap(),
         key: invite.key,
+        open: false,
     };
     let preview = stores.preview(&elsewhere.link()).await.unwrap_err();
     assert!(preview.contains("is joined at"), "{preview}");
@@ -184,4 +185,65 @@ async fn a_joined_stores_key_in_a_link_to_another_address_is_refused() {
     let rows = stores.rows().unwrap();
     assert_eq!(rows[0].url, joined.base, "the record still points at the real store");
     assert_eq!(rows[0].state, StoreState::Ready);
+}
+
+#[tokio::test]
+async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_join() {
+    let root = tempfile::tempdir().unwrap();
+    let (listener, addr) = server::bind("127.0.0.1:0".parse().unwrap()).await.unwrap();
+    let base = format!("http://{addr}");
+    let store =
+        server::open(&Storage::Dir(root.path().join("store")), Some(&base), Some("Ours"))
+            .await
+            .unwrap();
+    let invite = store.fresh_owner_invite(&base, server::now()).await.unwrap().unwrap();
+    let server = Arc::new(Server::new(store, Some(base), None, None, false));
+    tokio::spawn(server::serve(listener, server, None, std::future::pending()));
+
+    let (_, owner) = stores(&root.path().join("owner"));
+    let id = owner.join(&invite.link()).await.unwrap().id;
+    let closed = owner.open_join(&id).await.unwrap().expect("a store with open joining");
+    assert!(!closed.open && closed.link.is_none());
+    let opened = owner.set_open(&id, true).await.unwrap();
+    let link = opened.link.expect("an open store's link").0;
+    assert!(owner.rows().unwrap()[0].open, "the owner's row says so after the change");
+
+    // Someone with only the link: the preview says it is open and joins without a name.
+    let (_, guest) = stores(&root.path().join("guest"));
+    let preview = guest.preview(&link).await.unwrap();
+    assert!(preview.open && preview.anonymous);
+    assert_eq!(preview.owners, ["Owner"]);
+    let joined = guest.join(&link).await.unwrap();
+    assert!(joined.anonymous);
+    assert_eq!(joined.member.name, "");
+    let row = &guest.rows().unwrap()[0];
+    assert!(row.open && row.anonymous);
+    assert_eq!(row.state, StoreState::Ready);
+    let another = guest.invite(&id, None).await.unwrap_err();
+    assert!(another.contains("Paste the same link"), "{another}");
+
+    // The owner pasting the store's own link changes nothing: it would trade their name and
+    // their owner rights for a member with neither.
+    let refused = owner.preview(&link).await.unwrap_err();
+    assert!(refused.contains("without your name"), "{refused}");
+    assert!(owner.join(&link).await.is_err());
+    assert!(owner.rows().unwrap()[0].owner);
+
+    let view = owner.open_join(&id).await.unwrap().unwrap();
+    assert_eq!(view.devices, 1);
+    assert_eq!(view.recent.len(), 1);
+    let (members, _) = owner.members(&id).await.unwrap();
+    assert_eq!(members.len(), 1, "counted, not listed");
+
+    // Invites only again: the link stops, the device keeps working until it is removed.
+    let closed = owner.set_open(&id, false).await.unwrap();
+    assert!(!closed.open && closed.devices == 1);
+    assert!(!owner.rows().unwrap()[0].open);
+    let (_, late) = stores(&root.path().join("late"));
+    let stopped = late.preview(&link).await.unwrap_err();
+    assert!(stopped.contains("no longer lets anyone join"), "{stopped}");
+    assert_eq!(guest.refresh().await.unwrap()[0].state, StoreState::Ready);
+    let cleared = owner.remove_anonymous(&id, None).await.unwrap();
+    assert_eq!(cleared.devices, 0);
+    assert_eq!(guest.refresh().await.unwrap()[0].state, StoreState::Revoked);
 }

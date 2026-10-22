@@ -12,10 +12,10 @@ anistream                                                                       
                             │    link another device
                             │    invite someone
                             │    members
+                            │    who can join                only people you invite
                             │    publish a plugin
                             │    open the admin page
                             │    leave this store
-                            │
                             │
                             │
                             │
@@ -94,12 +94,14 @@ r12 c33-46 fg=text
 r13 c28-28 fg=rule
 r13 c33-39 fg=text
 r14 c28-28 fg=rule
-r14 c33-48 fg=text
+r14 c33-44 fg=text
+r14 c61-82 fg=text-dim
 r15 c28-28 fg=rule
-r15 c33-51 fg=text
+r15 c33-48 fg=text
 r16 c28-28 fg=rule
-r16 c33-48 fg=text-dim
+r16 c33-51 fg=text
 r17 c28-28 fg=rule
+r17 c33-48 fg=text-dim
 r18 c28-28 fg=rule
 r19 c28-28 fg=rule
 r20 c28-28 fg=rule

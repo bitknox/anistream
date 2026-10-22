@@ -12,7 +12,8 @@
 # - apple/App/Assets.xcassets/AppIcon.appiconset: a PNG for each iPhone and iPad slot, with its
 #   Dark (the same art: the ground is already dark) and Tinted variants (the reworked layer: grey
 #   tones and a one-cell outline on black, which the system tints and works Clear out from), and
-#   the Mac's 16 to 1024;
+#   the Mac's 16 to 1024, drawn inside the Mac's rounded square (824 of 1024 across), since macOS
+#   shrinks an icon drawn to the tile's edge into it and off whole pixels;
 # - assets/icon: the terminal's PNGs, anistream.ico and anistream.iconset, which the release
 #   workflow packages;
 # - apple/App/Assets.xcassets/LaunchNagare.imageset and LaunchGround.colorset: the iPhone and iPad

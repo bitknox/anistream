@@ -15,7 +15,7 @@ use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiScene, FfiStart};
 use anistream_model::{
     command::Command,
     event::Event,
-    notifications::{ComingEpisode, NewEpisode, NoticeReason, UpcomingNotices},
+    notifications::{NewEpisode, NoticeReason, UpcomingNotices},
     settings::SettingKey,
     show::ShowSettingKey,
     widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetData, WidgetNextAiring},
@@ -127,8 +127,19 @@ fn settled(engine: &Arc<FfiEngine>, key: SettingKey, value: &'static str) {
     });
 }
 
-/// Set show `id`'s own notification switch, or with `None` have it follow Settings again.
+/// Set show `id`'s own notification switch, or with `None` have it follow Settings again, with
+/// Settings' switch on.
 fn notify_show(engine: &Arc<FfiEngine>, id: AnilistId, on: Option<bool>) -> String {
+    notify_show_with(engine, id, on, "on")
+}
+
+/// [`notify_show`], with Settings' switch saying `setting`.
+fn notify_show_with(
+    engine: &Arc<FfiEngine>,
+    id: AnilistId,
+    on: Option<bool>,
+    setting: &str,
+) -> String {
     let set = Command::SetShowSetting {
         id,
         key: ShowSettingKey::NotifyNewEpisodes,
@@ -146,7 +157,7 @@ fn notify_show(engine: &Arc<FfiEngine>, id: AnilistId, on: Option<bool>) -> Stri
         })
         .expect("the sheet has the switch");
     assert_eq!(row.own, on.map(SettingValue::Bool));
-    assert_eq!(row.default, "on", "it follows Settings, which have notifications on");
+    assert_eq!(row.default, setting, "it follows Settings");
     row.value.clone()
 }
 
@@ -294,7 +305,41 @@ fn a_show_not_being_watched_is_said_only_once_switched_on_for_itself() {
 }
 
 #[test]
-fn a_show_watched_dubbed_says_so_and_one_caught_up_has_no_next_for_you() {
+fn a_show_switched_on_is_said_with_notifications_off() {
+    let (engine, _root) = watching();
+    // Settings' switch is off, and the show is switched on for itself: counted for the app, which
+    // keeps its background check scheduled for it. The settings come after the show's sheet.
+    let switch = |on: Option<bool>, counted: u32| {
+        let set = Command::SetShowSetting {
+            id: AIRING,
+            key: ShowSettingKey::NotifyNewEpisodes,
+            value: on.map(SettingValue::Bool),
+        };
+        assert_eq!(engine.send(set), None);
+        read_until(
+            &engine,
+            move |event| matches!(event, Event::Settings(view) if view.notify_switched_on == counted),
+        );
+    };
+    switch(Some(true), 1);
+    assert_eq!(check(&engine).0, [], "a first check only notes where things stand");
+
+    // A week on, Kumo no Ue no Toshokan's episode 6 has aired, and Natsukaze Relay's 9, which
+    // follows Settings and is not said.
+    engine.testing_advance_clock(7 * DAY);
+    let said: Vec<_> = check(&engine).0.into_iter().map(|e| (e.id, e.episode)).collect();
+    assert_eq!(said, [(AIRING, 6)]);
+
+    // Following Settings again, with nothing else switched on, nothing is asked.
+    switch(None, 0);
+    engine.testing_advance_clock(7 * DAY);
+    let (said, asked) = check(&engine);
+    assert_eq!((said, asked), (vec![], vec![]));
+    engine.shutdown();
+}
+
+#[test]
+fn a_show_watched_dubbed_waits_for_the_source_to_list_its_dub() {
     let (engine, _root) = watching();
     notifications(&engine, true);
     let dubbed = Command::SetShowSetting {
@@ -304,6 +349,26 @@ fn a_show_watched_dubbed_says_so_and_one_caught_up_has_no_next_for_you() {
     };
     assert_eq!(engine.send(dubbed), None);
     read_until(&engine, |event| matches!(event, Event::ShowSettings(_)));
+    // The week says the show is watched dubbed, for an app that schedules ahead to leave its
+    // episode 6 to the check.
+    let (week, _) = upcoming(&engine);
+    let row = week.airings.iter().find(|row| row.id == AIRING).expect("episode 6 this week");
+    assert_eq!((row.episode, row.translation), (6, Some(Translation::Dub)));
+    assert_eq!(check(&engine).0, []);
+
+    // Episode 6 is broadcast, and the fixture source lists the show to episode 5, in the dub as
+    // in the sub: nothing is said, at the broadcast or after.
+    engine.testing_advance_clock(PAST_EPISODE_6);
+    assert_eq!(check(&engine).0, [], "not at the broadcast, which is the sub's");
+    engine.testing_advance_clock(10 * MINUTE);
+    assert_eq!(check(&engine).0, [], "nor while the dub listed still stops at 5");
+    engine.shutdown();
+}
+
+#[test]
+fn a_viewer_caught_up_has_no_next_for_you() {
+    let (engine, _root) = watching();
+    notifications(&engine, true);
     // Caught up to episode 5, the last aired before episode 6.
     let mark = Command::SetWatched {
         id: AIRING,
@@ -321,53 +386,38 @@ fn a_show_watched_dubbed_says_so_and_one_caught_up_has_no_next_for_you() {
     let said = check(&engine).0;
     let [episode] = &said[..] else { panic!("one episode: {said:?}") };
     assert_eq!((episode.id, episode.episode), (AIRING, 6));
-    assert_eq!(
-        episode.translation,
-        Some(Translation::Dub),
-        "its own translation, not Settings'"
-    );
+    assert_eq!(episode.translation, Some(Translation::Sub));
     assert_eq!(episode.next_for_you, None, "caught up: episode 6 is the next for them");
     engine.shutdown();
 }
 
-/// List the week's episodes coming up: what they are, and what AniList was asked.
-fn coming(engine: &Arc<FfiEngine>) -> (Vec<ComingEpisode>, Vec<String>) {
-    let before = engine.testing_anilist_requests().len();
-    assert_eq!(engine.send(Command::ComingEpisodes), None, "the list is not a job");
-    let read = read_until(engine, |event| matches!(event, Event::ComingEpisodes(_)));
-    let coming = read.into_iter().find_map(|event| match event {
-        Event::ComingEpisodes(coming) => Some(coming),
-        _ => None,
-    });
-    (coming.expect("the list"), asked_since(engine, before))
-}
-
 #[test]
-fn the_week_coming_up_lists_the_shows_followed_with_their_own_switches() {
+fn the_week_says_what_notifies_with_the_setting_off_only_what_is_switched_on() {
     let (engine, _root) = watching();
-    let shift = shift(&engine);
 
-    // Notifications are off, and the list still says what they would follow: the two airing
-    // shows being watched, their episodes this week soonest first, for one request.
-    let (listed, asked) = coming(&engine);
-    assert_eq!(asked, ["AiredSince"]);
-    let shown: Vec<_> = listed.iter().map(|e| (e.id, e.episode, e.switched_on)).collect();
-    assert_eq!(shown, [(AIRING, 6, false), (AIRING_NO_MAL, 9, false)]);
-    assert_eq!(listed[0].airs_at, fixture_airs(AIRING, 6) + shift);
-    assert_eq!(listed[0].title, "The Library Above the Clouds");
-    assert_eq!(listed[0].translation, Some(Translation::Sub));
-    assert!(listed.iter().all(|e| e.airs_at > now() && e.airs_at < now() + 7 * DAY + HOUR));
+    // Notifications are off, and the week still says what they would follow, none of it
+    // notifying: the two airing shows being watched.
+    let (week, _) = upcoming(&engine);
+    assert!(!week.enabled);
+    for id in [AIRING, AIRING_NO_MAL] {
+        assert!(week.airings.iter().any(|row| row.id == id), "{id:?} airs this week");
+    }
+    assert!(
+        week.airings.iter().all(|row| row.reason == NoticeReason::Watching && !row.notifies)
+    );
+    assert!(week.airings.iter().all(|row| row.translation == Some(Translation::Sub)));
 
-    // A show switched off is left out; one followed only by its own switch is listed, and says
-    // so.
-    notifications(&engine, true);
-    assert_eq!(notify_show(&engine, AIRING, Some(false)), "off");
+    // A show followed only by its own switch notifies, with the setting off; one switched off
+    // is left out, saying why.
+    assert_eq!(notify_show_with(&engine, AIRING, Some(false), "off"), "off");
     assert_eq!(engine.send(Command::HideFromContinue { id: AIRING_NO_MAL }), None);
-    assert_eq!(coming(&engine).0, []);
-    assert_eq!(notify_show(&engine, AIRING_NO_MAL, Some(true)), "on");
-    let shown: Vec<_> =
-        coming(&engine).0.iter().map(|e| (e.id, e.episode, e.switched_on)).collect();
-    assert_eq!(shown, [(AIRING_NO_MAL, 9, true)]);
+    assert_eq!(notify_show_with(&engine, AIRING_NO_MAL, Some(true), "off"), "on");
+    let (week, _) = upcoming(&engine);
+    let rows: Vec<_> =
+        week.airings.iter().map(|row| (row.id, row.reason, row.notifies)).collect();
+    assert!(rows.contains(&(AIRING, NoticeReason::SwitchedOff, false)));
+    assert!(rows.contains(&(AIRING_NO_MAL, NoticeReason::SwitchedOn, true)));
+    assert_eq!(week.overrides, 2);
     engine.shutdown();
 }
 

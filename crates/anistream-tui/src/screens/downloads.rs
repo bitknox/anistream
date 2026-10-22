@@ -92,7 +92,9 @@ pub(super) fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         // one show cut at the same place were five identical rows.
         // Two cells short of the state column, so the number never runs into the state.
         let room = state_x.saturating_sub(area.left() + 4) as usize;
-        let episode = format!("  ep {}", row.episode);
+        // Queued by keep next rather than asked for, said beside the episode it is.
+        let ahead = if row.ahead { " · ahead" } else { "" };
+        let episode = format!("  ep {}{ahead}", row.episode);
         let label = match room.checked_sub(episode.chars().count()) {
             Some(title_room) if title_room >= 4 => {
                 format!("{}{episode}", truncate(&row.title, title_room))
@@ -189,8 +191,25 @@ pub fn download_state_label(state: DownloadState) -> &'static str {
     }
 }
 
-/// The line under the queue for the selected download.
+/// The line under the queue for the selected download, with what becomes of one keep next
+/// queued.
 fn download_detail(app: &App, row: &anistream_model::downloads::DownloadRow) -> (String, Role) {
+    let (text, role) = download_standing(app, row);
+    match (row.ahead, role) {
+        (true, Role::TextDim) if text.is_empty() => (AHEAD.into(), role),
+        (true, Role::TextDim) => (format!("{text} · {AHEAD}"), role),
+        _ => (text, role),
+    }
+}
+
+/// What becomes of a download keep next queued.
+const AHEAD: &str = "downloaded ahead, removed a day after you watch it";
+
+/// Where the selected download stands: the path, the failure, or what it waits for.
+fn download_standing(
+    app: &App,
+    row: &anistream_model::downloads::DownloadRow,
+) -> (String, Role) {
     if let Some(error) = &row.error {
         return (error.clone(), Role::Alert);
     }
@@ -315,6 +334,38 @@ mod tests {
     }
 
     #[test]
+    fn a_download_keep_next_queued_says_it_came_ahead() {
+        let mut app = app_with(ContentList::Empty);
+        app.go_to_section(Section::Downloads);
+        let ahead = anistream_model::downloads::DownloadRow {
+            ahead: true,
+            ..download("Show", "6", DownloadState::Queued, 0)
+        };
+        app.apply(Event::Downloads(vec![
+            download("Show", "5", DownloadState::Queued, 0),
+            ahead,
+        ]));
+        let lines = lines_of(&mut app, 120, 30);
+        assert!(lines.iter().any(|l| l.contains("Show  ep 6 · ahead")), "{lines:#?}");
+        assert!(lines.iter().any(|l| l.contains("ep 5") && !l.contains("ahead")), "{lines:#?}");
+        assert!(!lines.iter().any(|l| l.contains("removed a day")), "ep 5 is selected");
+
+        // Selected, it says what becomes of it, after where it stands.
+        app.cursors.downloads.selected = 1;
+        let lines = lines_of(&mut app, 120, 30);
+        let detail = lines.iter().find(|l| l.contains("· downloaded ahead")).expect("said");
+        assert!(detail.contains("downloads need torrents"), "{detail}");
+        assert_eq!(
+            download_detail(&app, &app.downloads[1]).0,
+            format!(
+                "downloads need torrents, which are off — press {} for Settings · downloaded \
+                 ahead, removed a day after you watch it",
+                app.section_key(Section::Settings)
+            )
+        );
+    }
+
+    #[test]
     fn an_empty_download_queue_says_how_to_fill_it() {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
@@ -341,6 +392,7 @@ mod tests {
                 total: 1_400_000_000,
                 error: None,
                 path: Some("/downloads/Hoshikuzu - 05.mkv".into()),
+                ahead: false,
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
@@ -367,6 +419,7 @@ mod tests {
                 total: 0,
                 error: Some("no peers after 60s".into()),
                 path: None,
+                ahead: false,
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
@@ -392,6 +445,7 @@ mod tests {
                     total: 0,
                     error: None,
                     path: None,
+                    ahead: false,
                 })
                 .collect(),
         ));

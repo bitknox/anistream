@@ -150,6 +150,8 @@ impl Engine {
             background,
             #[cfg(feature = "testing")]
             parts,
+            #[cfg(feature = "testing")]
+            free_space,
         } = options;
 
         if background.prune {
@@ -239,7 +241,12 @@ impl Engine {
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
         // With the counts of shows that set each setting for themselves, which the rows say.
-        state.config.set_overridden(crate::show_settings::counts(&services.store));
+        crate::show_settings::count(&mut state, &services.store);
+        #[cfg(feature = "testing")]
+        let room = free_space;
+        #[cfg(not(feature = "testing"))]
+        let room = None;
+        state.ahead = crate::downloads::ahead::Ahead::new(background.keep_next, room);
         let mut launch = VecDeque::new();
         // The settings first: everything after is drawn under the config they say.
         launch.push_back(Event::Settings(state.config.view()));
@@ -292,6 +299,11 @@ impl Engine {
         }
         if background.store_refresh && joined {
             refresh_joined(services.stores.clone(), inbox.sender());
+        }
+        // Keep next, topped up from the inbox rather than now: commands are routed first, so
+        // where the app is and its network, sent as the front end starts, are in effect for it.
+        if background.keep_next {
+            let _ = inbox.sender().internal(Internal::TopUp);
         }
 
         for tracker in services.sync.initial_states() {
@@ -772,6 +784,7 @@ impl Actor {
     fn forward(&mut self, mut event: Event, played: Option<Played>) {
         // Named as the titles are shown now, before the record takes the names in.
         crate::title_language::retitle(&mut event, self.services.meta.titles().language());
+        let moved_on = crate::downloads::ahead::after(&event);
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
@@ -789,6 +802,11 @@ impl Actor {
         let after = self.follow(&mut event, played.as_ref());
         self.pass_on(event);
         after.into_iter().for_each(|said| self.pass_on(said));
+        // An episode watched: the episodes after it, kept.
+        if moved_on {
+            let tx = self.inbox.sender();
+            crate::downloads::ahead::top_up(&self.state, &self.services, &tx);
+        }
     }
 
     /// Start what a playback's event leads to — the next episode an ending rolls on to, an

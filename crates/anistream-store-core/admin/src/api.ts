@@ -9,6 +9,8 @@ import type {
 	InviteRequest,
 	Member,
 	MemberChange,
+	OpenSetting,
+	OpenState,
 	PublishRequest,
 	Role,
 	StoreInfo,
@@ -145,4 +147,7 @@ export const api = {
 	rename: (member: string, name: string) =>
 		call<void>('PATCH', `v1/members/${id(member)}`, { name } satisfies MemberChange),
 	revokeDevice: (device: string) => call<void>('DELETE', `v1/devices/${id(device)}`),
+	setOpen: (open: boolean) =>
+		call<OpenState>('PUT', 'v1/open', { open } satisfies OpenSetting),
+	removeAnonymous: () => call<OpenState>('DELETE', 'v1/open/devices'),
 };

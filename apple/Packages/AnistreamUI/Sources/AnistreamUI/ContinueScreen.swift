@@ -15,16 +15,17 @@ struct ContinueScreen: View {
     /// When the selection last moved, and whether that was quick on the heels of the one before:
     /// a run of arrow keys changes the preview at once, without the fade (M2).
     @State private var movedAt = ContinuousClock.now
-    /// The width the screen has: below 900 points, as on an iPad in portrait or a narrow Stage
-    /// Manager window, the list stands alone and a row opens its title.
+    /// The width the screen has: below 780 points, as in Split View or a narrow window, the list
+    /// stands alone, the width of the screen, and a row opens its title.
     @State private var width: CGFloat = 1_000
 
-    /// Whether the preview fits beside the list.
+    /// Whether the preview fits beside the list: the queue's 360 points and at least 380 for the
+    /// preview, as an iPad in portrait has.
     private var previewFits: Bool {
         #if os(macOS)
         true
         #else
-        width >= 900
+        width >= 780
         #endif
     }
 
@@ -77,6 +78,8 @@ struct ContinueScreen: View {
                 }
             }
         }
+        // The ground under the whole screen, however narrow the list.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .task { store.loadContinue() }
         // A watch moves the queue on: asked again once the player has gone, fresh or not.
         .onChange(of: playerUp) { _, up in if !up { store.loadContinue(force: true) } }
@@ -136,7 +139,7 @@ struct QueueColumn: View {
         }
         .scrollIndicators(.never)
         .frame(width: opensOnTap ? nil : 360)
-        .frame(maxWidth: opensOnTap ? 600 : nil, alignment: .leading)
+        .frame(maxWidth: opensOnTap ? .infinity : nil, alignment: .leading)
         .focusable()
         .listFocusEffect()
         .onKeyPress(.upArrow) { step(-1) }
@@ -295,7 +298,8 @@ struct ContinuePreview: View {
                         titleBlock(entry)
                     }
                 } else {
-                    Group {
+                    // 290 high, or 16:9 where the preview is narrower, as on an iPad in portrait.
+                    BannerFrame(maximum: 290) {
                         if navigator.titleOnMac == entry.id {
                             Color.clear
                         } else {
@@ -306,7 +310,6 @@ struct ContinuePreview: View {
                                 .onTapGesture { navigator.openTitle(entry.id, fromPreview: true) }
                         }
                     }
-                    .frame(height: 290)
                     titleBlock(entry)
                 }
 
@@ -385,6 +388,23 @@ struct ContinuePreview: View {
             Text(entry.metadataLine)
                 .groupHeaderStyle()
                 .padding(.top, 4)
+        }
+    }
+}
+
+/// The wide art's frame: the width it is given, and `maximum` high, or 16:9 of the width where
+/// that is lower, so a narrower column shows the same picture rather than a taller crop of it.
+struct BannerFrame: Layout {
+    var maximum: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? maximum * 16 / 9
+        return CGSize(width: width, height: min(maximum, (width * 9 / 16).rounded()))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for subview in subviews {
+            subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
         }
     }
 }

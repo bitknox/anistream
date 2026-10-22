@@ -59,6 +59,9 @@ impl Command {
             Self::PublishPlugin { plugin, .. } => format!("publishing {plugin}"),
             Self::UnpublishPlugin { plugin, .. } => format!("withdrawing {plugin}"),
             Self::OpenAdmin { .. } => "opening the admin page".into(),
+            Self::SetOpenJoin { open: true, .. } => "opening the store to its link".into(),
+            Self::SetOpenJoin { open: false, .. } => "limiting the store to invites".into(),
+            Self::RemoveAnonymous { .. } => "removing devices".into(),
             _ => return None,
         })
     }
@@ -423,6 +426,19 @@ pub enum Command {
     OpenAdmin {
         store: String,
     },
+    /// Let anyone with the store's link join, or only people its owners invite. Opening makes a
+    /// new link; going back to invites only stops new joins and keeps the devices that joined.
+    /// Answered with [`Event::OpenJoin`](crate::event::Event::OpenJoin) and a notice.
+    SetOpenJoin {
+        store: String,
+        open: bool,
+    },
+    /// Remove one device that joined with the store's link, or all of them when `device` is
+    /// `None`. Answered with [`Event::OpenJoin`](crate::event::Event::OpenJoin) and a notice.
+    RemoveAnonymous {
+        store: String,
+        device: Option<String>,
+    },
     /// Fetch a cover or banner the front end is about to show, from the cache when it is fresh
     /// there. Answered with [`Event::ArtworkReady`](crate::event::Event::ArtworkReady), or with
     /// [`Event::ImageFailed`](crate::event::Event::ImageFailed), and never with a job: covers
@@ -435,14 +451,21 @@ pub enum Command {
     },
     /// Look for episodes of the shows followed that aired since they were last looked at:
     /// answered with exactly one [`Event::NewEpisodes`], empty when there is nothing new, with
-    /// notifications off, or when AniList could not be asked. Never with a job.
+    /// nothing to follow, or when AniList could not be asked. Never with a job.
     ///
     /// The shows followed are those on the signed-in tracker's list as watching or rewatching,
     /// as its last pull left the list here, and those watched here in the last 30 days, unless
     /// the list has them as dropped or paused. A show planned is not, unless it turns
     /// [`ShowSettingKey::NotifyNewEpisodes`] on for itself, which takes in any show; one that
-    /// turns it off is left out. All of them are while [`SettingKey::EpisodeNotifications`] is
-    /// off.
+    /// turns it off is left out. While [`SettingKey::EpisodeNotifications`] is off, only the
+    /// shows switched on for themselves are followed, and with none of those either, the check
+    /// asks nothing and forgets what it kept.
+    ///
+    /// A show watched dubbed is said when its dub is out rather than at the broadcast, which is
+    /// all AniList dates: once a broadcast is ahead of the dub said, each check lists the show in
+    /// the dub from the source a play would use, as [`Command::LoadDubbedTo`] does, and says the
+    /// episodes it lists up to that broadcast, with [`Translation::Dub`]. One listing per such
+    /// show, cut off at 8 seconds, and none for a show whose dub has caught up.
     ///
     /// Each episode is said once, and only one that aired after its show was first followed:
     /// the first check after notifications are turned on, or after a show is first followed,
@@ -452,11 +475,14 @@ pub enum Command {
     ///
     /// It costs AniList one request at most, for every show at once, and none when nothing
     /// can have aired: when the last check was under five minutes ago, or when the metadata
-    /// cache has every show's next episode still to come. It answers within 15 seconds whatever
-    /// the network does, so it fits in a background task's time.
+    /// cache has every show's next episode still to come. It answers within 25 seconds whatever
+    /// the network does, 15 for AniList and 8 for the dubs, so it fits in a background task's
+    /// time.
     ///
     /// **In the background.** On iOS, from a `BGAppRefreshTask`; on Android, from a periodic
-    /// `WorkManager` job. Start the engine if the app is not running, with every
+    /// `WorkManager` job, scheduled while the setting is on or any show is switched on for
+    /// itself, as [`SettingsView::notify_switched_on`] counts them, and cancelled only when
+    /// neither is. Start the engine if the app is not running, with every
     /// `FfiBackground` switch off, send this, and read events until the
     /// [`Event::NewEpisodes`]. Post one notification for each episode in it, identified by the
     /// show and the episode, so that one posted twice replaces itself. Then send
@@ -465,19 +491,9 @@ pub enum Command {
     /// foreground kept, and the settings and title form the engine has on file.
     ///
     /// [`Event::NewEpisodes`]: crate::event::Event::NewEpisodes
+    /// [`SettingsView::notify_switched_on`]: crate::settings::SettingsView::notify_switched_on
+    /// [`Translation::Dub`]: anistream_core::media::Translation::Dub
     CheckNewEpisodes,
-    /// The episodes of the shows the new-episode check follows that air in the next week, for
-    /// the Notifications settings' "Coming up": answered with exactly one
-    /// [`Event::ComingEpisodes`], soonest first, and never with a job. Empty when there are none,
-    /// or when AniList could not be asked.
-    ///
-    /// The shows are the check's own, each show's switch taken into account: those being
-    /// watched, and any switched on for itself, none switched off. They are listed whether
-    /// [`SettingKey::EpisodeNotifications`] is on or not, so the settings can show what turning
-    /// it on would follow. One request to AniList for every show at once, cut off at 15 seconds.
-    ///
-    /// [`Event::ComingEpisodes`]: crate::event::Event::ComingEpisodes
-    ComingEpisodes,
     /// The record the home-screen widgets show: answered with one
     /// [`Event::WidgetSnapshot`](crate::event::Event::WidgetSnapshot), never with a job.
     ///
@@ -498,9 +514,11 @@ pub enum Command {
     /// its own running then, as Apple's local notifications do; and for its Notifications pane's
     /// list. The week's broadcasts are the widgets' record's, fetched once for both and used
     /// again for a few minutes, so asking after [`Command::WidgetSnapshot`] costs AniList
-    /// nothing. The shows are those [`Command::CheckNewEpisodes`] follows, each with why: being
-    /// watched, or switched on or off for itself. It answers with every switch, the setting on
-    /// or off, and says which the setting is; the app decides what that schedules.
+    /// nothing. The shows are those [`Command::CheckNewEpisodes`] follows with the setting on,
+    /// each with why: being watched, or switched on or off for itself; and whether it notifies,
+    /// which with the setting off only a show switched on does. Each carries the translation
+    /// the show is watched in: one watched dubbed is the check's to say, when its dub is out, and
+    /// not to schedule at the broadcast.
     ///
     /// Ask on launch, on coming to the foreground, after a sync or a change of progress, and
     /// from the background task, after [`Command::CheckNewEpisodes`].

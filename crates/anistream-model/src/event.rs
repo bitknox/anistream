@@ -11,14 +11,15 @@ use crate::{
     hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
-    notifications::{ComingEpisode, NewEpisode, UpcomingNotices},
+    notifications::{NewEpisode, UpcomingNotices},
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
     show::ShowSettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
+        InviteLinkView, InvitePreview, LocalPluginRow, OpenJoinView, StoreInviteRow,
+        StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
     widgets::WidgetData,
@@ -328,19 +329,21 @@ pub enum Event {
     ///
     /// [`Command::CheckNewEpisodes`]: crate::command::Command::CheckNewEpisodes
     NewEpisodes(Vec<NewEpisode>),
-    /// What [`Command::ComingEpisodes`] lists: the episodes of the shows the new-episode check
-    /// follows that air in the next week, soonest first. Empty when there are none, or when
-    /// AniList could not be asked.
-    ///
-    /// [`Command::ComingEpisodes`]: crate::command::Command::ComingEpisodes
-    ComingEpisodes(Vec<ComingEpisode>),
     /// The home-screen widgets' record, in answer to
     /// [`Command::WidgetSnapshot`](crate::command::Command::WidgetSnapshot): for the app to
     /// write where its widgets read it.
     WidgetSnapshot(WidgetData),
     /// The week's broadcasts that will notify and those left out, in answer to
-    /// [`Command::UpcomingNotices`](crate::command::Command::UpcomingNotices).
+    /// [`Command::UpcomingNotices`](crate::command::Command::UpcomingNotices): what an app
+    /// schedules ahead, and its Notifications pane's "Coming up".
     UpcomingNotices(UpcomingNotices),
+    /// Who can join a store, its open link, and the devices that joined with it, for its owner.
+    /// Follows a store's members, and answers every change to who can join. Never sent for a
+    /// store whose server has no open joining.
+    OpenJoin {
+        store: String,
+        view: OpenJoinView,
+    },
 }
 
 impl Event {
