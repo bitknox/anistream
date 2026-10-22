@@ -154,8 +154,11 @@ whole-number scale with its pixels repeated. The script writes a PNG for every s
 
 - iPhone and iPad, each slot with Any, Dark (the same art: the ground is already dark) and Tinted
   (grey tones and a one-cell outline on black, which the system tints and makes Clear from);
-- the Mac's 16 to 1024 at 1x and 2x. The catalogue takes no Dark or Tinted for the Mac: actool
-  drops them without a word, so the Mac gets the system's own;
+- the Mac's 16 to 1024 at 1x and 2x, drawn inset: macOS draws every app icon inside its rounded
+  square, 824 of every 1024 pixels across, and shrinks an image drawn to the tile's edge into it,
+  off whole pixels. So the ground fills that square, the corners are transparent, and Nagare is
+  picked by the size rule against the square. The catalogue takes no Dark or Tinted for the Mac:
+  actool drops them without a word, so the Mac gets the system's own;
 - the terminal's `assets/icon`, which the release workflow packages.
 
 Not Icon Composer, which scales one drawing to every size and puts the pixels on fractions.
@@ -164,9 +167,10 @@ What the systems do with it (checked 2026-10-21, Xcode 27.1):
 
 - **iOS 27.0 Simulator:** the per-size images are used. The iPhone 17's Home Screen draws the
   64 pt @3x slot, 192 px, pixel for pixel, in light and dark.
-- **macOS 27:** the per-size images are used, a master to each size, but every Mac icon is drawn
-  inside the system's rounded square at 824/1024 of the tile, so each is resampled to 80% and
-  is soft.
+- **macOS 27:** the per-size images are used, a master to each size. Drawn inset, the 256 and
+  512 px images are drawn as they are (checked 2026-10-22 through IconServices, which Finder and
+  the Dock draw with): every cell edge a single-pixel step, under the system's own glass. A
+  full-bleed image was shrunk to 80% and soft.
 
 ## The Swift packages
 

@@ -9,7 +9,7 @@ pixels, so nothing is ever smoothed. Run through apple/scripts/icon.sh:
 What it writes:
 
 - apple/App/Assets.xcassets/AppIcon.appiconset: one PNG per slot, iPhone and iPad (with Dark and
-  Tinted variants) and the Mac's 16 to 1024;
+  Tinted variants) and the Mac's 16 to 1024, drawn inside the Mac's rounded square;
 - assets/icon: the terminal's PNGs, anistream.ico and anistream.iconset.
 
 Standard library only, so it runs on any Mac's python3.
@@ -24,7 +24,7 @@ import zlib
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from nagare_icon import G, SPRITE_COL, TONE, place  # noqa: E402
+from nagare_icon import G, MASTERS, SPRITE_COL, TONE, pick, place  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 APP_ICON = os.path.join('apple', 'App', 'Assets.xcassets', 'AppIcon.appiconset')
@@ -97,6 +97,60 @@ def tile(N, appearance='any'):
     return pixels
 
 
+# --- the Mac --------------------------------------------------------------------------------------
+
+# macOS draws every app icon inside its rounded square, 824 of every 1024 pixels across, and shrinks
+# an image drawn to the tile's edge into it, which puts the cells on fractions of a pixel. So the
+# Mac's are drawn already inset: the ground in that square, transparent around it, and Nagare by the
+# size rule against the square, centred on whole pixels. macOS then draws them as they are.
+MAC_SQUARE = 824 / 1024
+# The square's corners: a superellipse this round is the system's continuous corner, near enough
+# that its own mask and edge fall on the ground.
+MAC_ROUNDNESS = 5.0
+
+
+def mac_pick(N):
+    """The master and scale for the Mac's N px tile: the size rule, against the square inside it. The
+    16 px tile's square, under 13 px, fits no figure at 87.5%: there, the 16 master at 1x."""
+    try:
+        return pick(N * MAC_SQUARE)
+    except ValueError:
+        return 16, 1, MASTERS[16]
+
+
+def mac_tile(N):
+    """The Mac's N px tile, RGBA: the sprite on the ground inside the rounded square, each edge pixel
+    as much of the square as it covers, from 8 x 8 samples."""
+    _, k, grid = mac_pick(N)
+    w, h = len(grid[0]) * k, len(grid) * k
+    ox, oy = (N - w) // 2, (N - h) // 2
+    colour = {ch: rgb(c) for ch, c in SPRITE_COL.items()}
+    pixels = [[GROUND] * N for _ in range(N)]
+    for y, row in enumerate(grid):
+        for x, ch in enumerate(row):
+            if ch == '.':
+                continue
+            for py in range(oy + y * k, oy + (y + 1) * k):
+                for px in range(ox + x * k, ox + (x + 1) * k):
+                    pixels[py][px] = colour[ch]
+
+    half, centre, n = N * MAC_SQUARE / 2, N / 2, MAC_ROUNDNESS
+
+    def inside(x, y):
+        return abs((x - centre) / half) ** n + abs((y - centre) / half) ** n <= 1
+
+    def cover(px, py):
+        corners = [inside(px + dx, py + dy) for dx in (0, 1) for dy in (0, 1)]
+        if all(corners):
+            return 255
+        if not any(corners) and not inside(px + 0.5, py + 0.5):
+            return 0
+        hits = sum(inside(px + (i + 0.5) / 8, py + (j + 0.5) / 8) for i in range(8) for j in range(8))
+        return round(255 * hits / 64)
+
+    return [[pixels[py][px] + (cover(px, py),) for px in range(N)] for py in range(N)]
+
+
 # --- the sets -------------------------------------------------------------------------------------
 
 # iPhone and iPad, the asset catalogue's All Sizes: (points, scale). 1024 is the marketing slot.
@@ -129,7 +183,7 @@ def app_icon():
             images.append(entry)
     for points, scale in MAC_SLOTS:
         name = f'mac-{points}pt@{scale}x.png'
-        files[name] = png(tile(points * scale))
+        files[name] = png(mac_tile(points * scale), alpha=True)
         images.append({'filename': name, 'idiom': 'mac', 'scale': f'{scale}x',
                        'size': f'{points}x{points}'})
     files['Contents.json'] = catalogue_json({'images': images, 'info': {'author': 'xcode', 'version': 1}})
