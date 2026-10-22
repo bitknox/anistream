@@ -292,6 +292,7 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
                 }
             },
         )
+        DownloadMenuItem(entry, row.number, onDismiss)
         DropdownMenuItem(
             text = { Text("Play from the beginning") },
             leadingIcon = { Icon(Icons.Restart, contentDescription = null) },

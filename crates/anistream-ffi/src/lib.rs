@@ -136,7 +136,12 @@ mod tests {
             }),
             platform: Some(FfiPlatform::IpadOs),
             anilist_client_id: Some("4242".into()),
+            anilist_redirect_uri: Some("https://anistream.tv/auth/anilist".into()),
             mal_client_id: Some("a-mal-client".into()),
+            mal_redirect_uri: Some("anistream://auth/mal".into()),
+            simkl_client_id: Some("a-simkl-client".into()),
+            trakt_client_id: Some("a-trakt-client".into()),
+            trakt_client_secret: Some("a-trakt-secret".into()),
             secrets: Some(SecretsMode::FollowConfig),
         };
         assert_eq!(crossed(start.clone()), start);

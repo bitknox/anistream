@@ -121,9 +121,13 @@ private fun searchDetail(entry: Entry): String? {
     return listOfNotNull(formatLabel(entry.format), season).joinToString(" · ").ifEmpty { null }
 }
 
+/**
+ * Search. [open] asks for the field to open for typing as the screen shows, as a link to Search
+ * does; [opened] says it has, so coming back later leaves the screen as it was.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(startQuery: String? = null) {
+fun SearchScreen(startQuery: String? = null, open: Boolean = false, opened: () -> Unit = {}) {
     val store = LocalAppStore.current
     val context = LocalContext.current
     val recents = remember { RecentSearches(context) }
@@ -143,6 +147,14 @@ fun SearchScreen(startQuery: String? = null) {
         }
         store.search(query.trim(), with)
         scope.launch { bar.animateToCollapsed() }
+    }
+
+    LaunchedEffect(open) {
+        // Said once it is open: saying it first would restart this and stop the opening.
+        if (open) {
+            bar.animateToExpanded()
+            opened()
+        }
     }
 
     LaunchedEffect(startQuery) {

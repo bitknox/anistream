@@ -7,20 +7,33 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.os.Environment
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.SettingKey
+import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.ffi.startLog
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.player.Device
 import tv.anistream.player.MpvBackend
 import tv.anistream.player.PlayerConnection
 import tv.anistream.player.PlayerHost
 import tv.anistream.player.PlayerModel
 import tv.anistream.store.AppHost
+import tv.anistream.store.BackgroundEngine
+import tv.anistream.store.EngineEpisodeCheck
+import tv.anistream.store.EpisodeCheck
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
 import tv.anistream.store.SealedFileSecrets
 
-class AnistreamApp : Application(), PlayerHost {
+class AnistreamApp : Application(), PlayerHost, NewEpisodesHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
@@ -44,6 +57,33 @@ class AnistreamApp : Application(), PlayerHost {
 
     val notifier: Notifier by lazy { Notifier(this) }
 
+    override val episodeNotifier: EpisodeNotifier by lazy { EpisodeNotifier(this) }
+
+    /** What the home-screen widgets show, as the engine last made it. */
+    val widgets: WidgetRecord by lazy { WidgetRecord.of(filesDir) }
+
+    /** The check for new episodes, on the engine, with the widgets' record made after it. */
+    override val episodeCheck: EpisodeCheck by lazy { EngineEpisodeCheck(background, widgets::write) }
+
+    /** The new-episode notifications switch, and the schedule it keeps. */
+    val episodeAlerts: EpisodeAlerts by lazy { EpisodeAlerts(this, store, episodeNotifier) }
+
+    /**
+     * The engine work in the background runs on: the app's own once it has started, or one of its
+     * own, quiet, while the app is not running.
+     */
+    private val background by lazy {
+        BackgroundEngine(
+            running = { store.takeIf { started && store.phase.value.let { it == AppStore.Phase.Starting || it == AppStore.Phase.Running } } },
+            launch = { Flavour.background(this) },
+            host = ::host,
+        )
+    }
+
+    override suspend fun markWatched(id: AnilistId, episode: UInt) {
+        background.use { it.setWatched(id, listOf(episode.toString())) }
+    }
+
     private var started = false
 
     /** Start the engine [launch] describes, once per process: the first activity's launch wins. */
@@ -55,7 +95,58 @@ class AnistreamApp : Application(), PlayerHost {
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
         // Before the engine, so no playback event finds no player.
         player
-        store.start(launch, host())
+        if (background.busy) {
+            // Background work has an engine of its own on the same files: it stops first.
+            scope.launch {
+                background.stop()
+                store.start(launch, host())
+            }
+        } else {
+            store.start(launch, host())
+        }
+        episodeAlerts.follow(scope)
+        ContinueShortcut(this).follow(store, scope)
+        watchNetwork()
+        // The fixtures' downloads are seeded where they are; only the app's are kept here.
+        if (!Flavour.FIXTURES) keepDownloadsInAppSpace()
+    }
+
+    /**
+     * Tell the engine the network the device is on, as it changes: cellular, and Data Saver as
+     * constrained. Either holds downloads and seeding as the settings say.
+     */
+    private fun watchNetwork() {
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return
+        var said: Pair<Boolean, Boolean>? = null
+        val say = { capabilities: NetworkCapabilities? ->
+            val cellular = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+            val constrained = connectivity.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+            val now = cellular to constrained
+            if (now != said) {
+                said = now
+                scope.launch { store.networkPath(cellular, constrained) }
+            }
+        }
+        say(connectivity.getNetworkCapabilities(connectivity.activeNetwork))
+        connectivity.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = say(capabilities)
+            override fun onLost(network: Network) = say(null)
+        })
+    }
+
+    /**
+     * Finished downloads go to the app's own space on the device, which needs no storage
+     * permission and goes with the app: set once, where Settings names no folder.
+     */
+    private fun keepDownloadsInAppSpace() {
+        val folder = (getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: filesDir.resolve("downloads")).apply { mkdirs() }
+        scope.launch {
+            val view = store.settings.view.first { it != null }
+            val row = store.settings.row(SettingKey.DOWNLOAD_DIR, view)
+            if (SettingsCatalog.typedText(row).isNullOrBlank()) {
+                store.setSetting(SettingKey.DOWNLOAD_DIR, SettingValue.Str(folder.path))
+            }
+        }
     }
 
     /** The engine's host: tokens sealed by the keystore in a private file, links, notifications. */

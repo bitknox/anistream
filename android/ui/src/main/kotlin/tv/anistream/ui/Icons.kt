@@ -115,6 +115,9 @@ internal object Icons {
 
     // Settings' pages, as AndroidSettings draws them.
     val PlaybackPage = stroked("PlaybackPage", CIRCLE_9, "M10 8.5 L15.5 12 L10 15.5 Z")
+
+    /** Notifications' bell. */
+    val NotificationsPage = stroked("NotificationsPage", "M18 16 V11 A6 6 0 0 0 6 11 V16 L4.5 18.5 H19.5 Z", "M10 21 H14")
     val DownloadsPage = stroked("DownloadsPage", "M12 4 V15 M7.5 10.5 L12 15 L16.5 10.5 M5 19.5 H19")
     val SourcesPage = stroked("SourcesPage", "M9 3 V7 M15 3 V7 M6 7 H18 V11 A6 6 0 0 1 6 11 Z M12 17 V21")
     val AccountsPage = stroked("AccountsPage", "M12 4 A4 4 0 1 1 11.99 4 Z", "M4.5 20 C5.5 15.5 18.5 15.5 19.5 20")
@@ -130,9 +133,17 @@ internal object Icons {
     val Providers = stroked("Providers", "M8.5 3 V7 M15.5 3 V7 M6 7 H18 V11 C18 14.5 15.3 17 12 17 C8.7 17 6 14.5 6 11 Z M12 17 V21")
     val Stores = stroked("Stores", "M5 8 H19 L17.8 20 H6.2 Z M8.5 8 C8.5 3.5 15.5 3.5 15.5 8")
 
+    /** Downloads' play, pause and resume. */
+    val PlayRow = stroked("PlayRow", "M8.5 6 V18 L18 12 Z")
+    val Pause = stroked("Pause", "M9 5.5 V18.5 M15 5.5 V18.5")
+    val Resume = stroked("Resume", "M12 4 V14.5 M7.5 10 L12 14.5 L16.5 10 M5 19.5 H19")
+
     /** Providers' Reorder, and the handle a source is dragged by. */
     val Reorder = stroked("Reorder", "M8 19 V5 M4 9 L8 5 L12 9 M16 5 V19 M12 15 L16 19 L20 15")
     val DragHandle = stroked("DragHandle", "M5 9.5 H19 M5 14.5 H19")
+
+    /** A store's key matching its invite. */
+    val Shield = stroked("Shield", "M12 3 L19 6 V11 C19 15.5 16 19 12 21 C8 19 5 15.5 5 11 V6 Z", "M9 12 L11.2 14.2 L15.5 9.8")
 
     /** A menu row's indicator: the filled triangle of a dropdown. */
     val DropDown = ImageVector.Builder(

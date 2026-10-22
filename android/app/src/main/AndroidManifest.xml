@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Asked for the first time a notice is posted as a notification, never at launch. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Downloads run as a user-initiated data transfer job, which Android 15's six-hour cap on
+         dataSync foreground services does not reach. -->
+    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
 
     <!-- No backup: the tokens are sealed with a key that never leaves this device's keystore, so a
          restored copy could not open them, and everything else comes back from AniList and the stores. -->
@@ -30,14 +33,55 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Where the AniList and MyAnimeList sign-ins send the browser back:
-                 anistream://auth/anilist and anistream://auth/mal. Sign-in itself comes with A2. -->
+            <!-- Where the MyAnimeList sign-in sends the browser back, anistream://auth/mal, and
+                 AniList's while its Android client is not registered, anistream://auth/anilist. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="anistream" android:host="auth" android:pathPrefix="/" />
             </intent-filter>
+            <!-- AniList's sign-in on Android comes back on a verified App Link, which no other app
+                 can claim: its implicit grant puts the token in the redirect. Verified against
+                 https://anistream.tv/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="anistream.tv" android:pathPrefix="/auth/anilist" />
+            </intent-filter>
+            <!-- Plugin store invites, which open the join sheet with the link in it:
+                 anistream://join?link=<the store's https invite>, and the store's own
+                 https://<host>/join/<code>#<key> with anistream:// in place of https://. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="anistream" android:host="join" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="anistream" android:host="*" android:pathPrefix="/join/" />
+            </intent-filter>
+            <!-- The launcher's shortcuts, Search and Downloads; Continue <title> is published as the
+                 queue changes. Each opens this activity on an anistream://open/… link, explicitly,
+                 so no filter here claims those links. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+        <!-- A new-episode notification's Mark watched, which only the app's own notifications
+             reach. -->
+        <receiver
+            android:name=".EpisodeActionReceiver"
+            android:exported="false" />
+        <!-- The download job: it keeps the process going while episodes download, with the
+             system's progress notification. -->
+        <service
+            android:name=".DownloadJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

@@ -72,6 +72,13 @@ class Navigator(private val nav: NavHostController, private val start: Destinati
         nav.navigate(titleRoute(current(), id))
     }
 
+    /** Whether [id]'s page is the one on screen. */
+    fun showing(id: AnilistId): Boolean {
+        val entry = nav.currentBackStackEntry ?: return false
+        val destination = entry.destinationOf() ?: return false
+        return entry.destination.route == titlePattern(destination) && entry.arguments?.getLong("id") == id.toLong()
+    }
+
     /**
      * Switch to [destination] as it was left; on the current one, back to its start, scrolled to
      * the top by the screen.

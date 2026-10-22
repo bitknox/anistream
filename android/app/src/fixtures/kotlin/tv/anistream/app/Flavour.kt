@@ -9,6 +9,12 @@
 //   title     a title page to open, by id
 //   query     a search to run, on Search
 //   page      a page over the destination, by its route: settings, settings/playback
+//   downloads any value: three downloads seeded, one finished, whose file is the fixtures' clip
+//             in the app's download folder, one running and one waiting
+//   notify    any value: two new-episode notifications posted for fixture titles, grouped, as the
+//             periodic check posts them (the notification permission granted first)
+//   check     seconds: the new-episode check run once that many seconds from now, as the periodic
+//             work runs it, 0 for at once; kill the app first to have it start a quiet engine
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 
@@ -16,10 +22,24 @@ package tv.anistream.app
 
 import android.content.Context
 import android.content.Intent
+import android.os.Environment
 import android.util.Log
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.UUID
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import tv.anistream.store.EngineEpisodeCheck
+import tv.anistream.store.covers
 import tv.anistream.store.AppStore
+import tv.anistream.store.EngineHome
+import tv.anistream.store.NewEpisode
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.FixtureScene
+import tv.anistream.store.fixtureDownloadClip
 import tv.anistream.store.fixtureMedia
 import tv.anistream.store.fixtures
 
@@ -33,13 +53,64 @@ internal object Flavour {
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(AnistreamApp.TAG, "no scene named $named")
         intent.getStringExtra("media")?.let { fixtureMedia = it }
+        if (intent.getStringExtra("downloads") != null) fixtureDownloadClip = downloadClip(context)
         return EngineLaunch.fixtures(scene, context.cacheDir)
     }
 
+    /**
+     * The fixtures' clip, copied out of the APK into the app's download folder, where a finished
+     * download is kept: what the seeded finished episode plays, offline.
+     */
+    private fun downloadClip(context: Context): String? = runCatching {
+        val folder = (context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir.resolve("downloads"))
+            .resolve("fixtures").apply { mkdirs() }
+        val file = folder.resolve("episode-06.mkv")
+        context.assets.open("fixture-download.mkv").use { input -> file.outputStream().use { input.copyTo(it) } }
+        file.path
+    }.onFailure { Log.w(AnistreamApp.TAG, "the fixture clip was not copied: ${it.message}") }.getOrNull()
+
+    /**
+     * The engine background work starts while the app is not running: the watching scene, in a
+     * directory of its own, never the one a launch is using.
+     */
+    fun background(context: Context): EngineLaunch {
+        val parent = context.cacheDir.resolve("fixtures-background")
+        parent.listFiles()?.forEach { it.deleteRecursively() }
+        return EngineLaunch(
+            engine = EngineLaunch.Engine.Fixtures(FixtureScene.WATCHING),
+            home = EngineHome.override(parent.resolve(UUID.randomUUID().toString())),
+        )
+    }
+
+    /**
+     * Two new-episode notifications for fixture titles, as a check posts them, with the covers the
+     * engine serves: what the `notify` extra asks for.
+     */
+    private fun notifyFixtures(store: AppStore, notifier: EpisodeNotifier) {
+        MainScope().launch {
+            val ids = listOf(900001u, 900006u)
+            val entries = withTimeoutOrNull(60_000) { store.titles.entries.first { titles -> ids.all { it in titles } } } ?: return@launch
+            val covers = store.covers(ids.mapNotNull { entries[it]?.coverUrl }, EngineEpisodeCheck.COVER_SIZE, 10_000)
+            val now = System.currentTimeMillis() / 1000
+            notifier.post(
+                listOf(900001u to 8u to 3_600L, 900006u to 3u to 600L).map { (show, ago) ->
+                    val (id, episode) = show
+                    val entry = entries.getValue(id)
+                    NewEpisode(id, entry.title, episode, now - ago, entry.coverUrl, entry.coverUrl?.let(covers::get))
+                },
+            )
+        }
+    }
+
     /** What the extras ask of the engine once it is up, once per process. */
-    fun started(store: AppStore, intent: Intent) {
+    fun started(context: Context, store: AppStore, intent: Intent, notifier: EpisodeNotifier) {
         if (marked) return
         marked = true
+        if (intent.getStringExtra("notify") != null) notifyFixtures(store, notifier)
+        intent.getStringExtra("check")?.toLongOrNull()?.let { delay ->
+            val once = OneTimeWorkRequestBuilder<NewEpisodesWorker>().setInitialDelay(delay, TimeUnit.SECONDS).build()
+            WorkManager.getInstance(context).enqueue(once)
+        }
         intent.getStringExtra("watched")?.let { watched ->
             val marks = watched.split('/').mapNotNull { mark ->
                 val parts = mark.split(':', limit = 2)

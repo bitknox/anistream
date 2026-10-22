@@ -7,24 +7,35 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.player.ui.PlayerFrame
+import tv.anistream.store.DownloadsModel
+import tv.anistream.store.InviteLinks
 import tv.anistream.ui.AppActions
+import tv.anistream.ui.AppLink
 import tv.anistream.ui.AppRoot
+import tv.anistream.ui.NotificationActions
 import tv.anistream.ui.Destination
 
 class MainActivity : ComponentActivity() {
@@ -34,8 +45,52 @@ class MainActivity : ComponentActivity() {
         app.notifier.asked()
     }
 
+    /**
+     * The permission asked for as new-episode notifications are turned on: they go on with it,
+     * and without it stay off, the switch's line saying why.
+     */
+    private val askForEpisodes = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        app.notifier.asked()
+        if (granted) app.episodeAlerts.set(true) else app.episodeAlerts.refuse()
+    }
+
+    /** New-episode notifications, on Settings' switch: on only once they can show. */
+    private fun setEpisodeNotifications(on: Boolean) {
+        val permitted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        when (EpisodeAlerts.Turn.of(on, app.episodeNotifier.canPost, permitted)) {
+            EpisodeAlerts.Turn.Off -> app.episodeAlerts.set(false)
+            EpisodeAlerts.Turn.On -> app.episodeAlerts.set(true)
+            EpisodeAlerts.Turn.Ask -> askForEpisodes.launch(Manifest.permission.POST_NOTIFICATIONS)
+            EpisodeAlerts.Turn.SystemSettings -> {
+                app.episodeAlerts.refuse()
+                openNotificationSettings()
+            }
+        }
+    }
+
+    /**
+     * The system's settings for the New episodes channel: its sound, vibration and the lock screen,
+     * and the app's notifications as a whole where those are off.
+     */
+    private fun openNotificationSettings() {
+        // The notifier makes the channel, which the page needs to be there.
+        app.episodeNotifier
+        startActivity(
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, EpisodeNotifier.CHANNEL),
+        )
+    }
+
     /** AniList's and MyAnimeList's sign-in in a Custom Tab, and the redirect that ends it. */
     private val signIn by lazy { BrowserSignIn(this, app.store) }
+
+    /**
+     * The app links the activity is opened on, launcher shortcuts and notifications, kept until
+     * the frame is there to follow them.
+     */
+    private val links = Channel<AppLink>(Channel.BUFFERED)
+    private val linkFlow = links.receiveAsFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Light icons on the dark ground, over bars the app draws itself.
@@ -49,7 +104,7 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         app.start(Flavour.launch(this, intent))
-        Flavour.started(app.store, intent)
+        Flavour.started(this, app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
             ?.let(Destination::named) ?: Destination.Continue
@@ -59,7 +114,14 @@ class MainActivity : ComponentActivity() {
 
         // Play from the title page, the Continue hero or an episode row: the engine finds the
         // stream and opens the player, which the frame then shows.
-        val actions = AppActions(play = { id, episode -> app.store.send(Command.Play(id, episode)) })
+        val actions = AppActions(
+            play = { id, episode -> app.store.send(Command.Play(id, episode)) },
+            notifications = NotificationActions(
+                turn = ::setEpisodeNotifications,
+                refused = app.episodeAlerts.refused,
+                openSystemSettings = ::openNotificationSettings,
+            ),
+        )
         val player = PlayerFrame(app.player)
         setContent {
             AnistreamTheme {
@@ -71,13 +133,57 @@ class MainActivity : ComponentActivity() {
                     startQuery = query,
                     startPage = page,
                     player = player,
+                    links = linkFlow,
                 )
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
         signIn.start()
-        signIn.handle(intent)
+        // A restored activity, or one opened again from Recents, has its navigation already.
+        val fresh = savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
+        if (!signIn.handle(intent) && !(fresh && follow(intent))) invite(intent)
+        keepDownloadsRunning()
+    }
+
+    /**
+     * While the app is in front, ask for the download job whenever an episode waits or runs: a
+     * user-initiated job is asked for from a screen the person is using.
+     */
+    private fun keepDownloadsRunning() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                app.store.downloads.rows.collect { rows ->
+                    val wifiOnly = !app.store.settings.isOn(SettingKey.DOWNLOADS_ON_CELLULAR)
+                    if (DownloadsModel.busy(rows)) app.notifier.wantPermission()
+                    DownloadJob.ensure(this@MainActivity, rows, wifiOnly)
+                }
+            }
+        }
+    }
+
+    /**
+     * An app link the activity was opened on goes to the frame to follow: a shortcut's, which the
+     * launcher is told was used, or a notification's.
+     */
+    private fun follow(intent: Intent?): Boolean {
+        val link = AppLink.parse(intent?.data?.toString()) ?: return false
+        // Taken off the intent, so a recreated activity does not follow it again.
+        intent?.data = null
+        links.trySend(link)
+        // A notification's action leaves its notification up; following it takes it away.
+        intent?.getStringExtra(EpisodeNotifier.EXTRA_NOTIFICATION)?.let(app.episodeNotifier::dismiss)
+        ContinueShortcut.shortcutOf(link)?.let { ShortcutManagerCompat.reportShortcutUsed(this, it) }
+        return true
+    }
+
+    /** An invite link the app was opened with opens the join sheet with it, checked as it opens. */
+    private fun invite(intent: Intent?): Boolean {
+        val link = intent?.data?.toString()?.let(InviteLinks::invite) ?: return false
+        app.store.stores.openJoin(link)
+        // Taken off the intent, so a recreated activity does not open the sheet again.
+        intent.data = null
+        return true
     }
 
     override fun onResume() {
@@ -136,7 +242,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         // The redirect a sign-in comes back with is the engine's, and is not kept as the
         // activity's intent.
-        if (signIn.handle(intent)) return
+        if (signIn.handle(intent) || follow(intent) || invite(intent)) return
         setIntent(intent)
     }
 

@@ -3,6 +3,15 @@
 package tv.anistream.store
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +82,7 @@ class AppStore(
     val providers = ProvidersModel()
     val showSettings = ShowSettingsModel()
     val episodeFolds = EpisodeFolds()
+    val coming = ComingModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -103,6 +113,25 @@ class AppStore(
 
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
+
+    private val _answers = MutableSharedFlow<Event>(extraBufferCapacity = 8)
+
+    /**
+     * The events that answer a command once and with no job: the new-episode check's and the
+     * widgets' record, for the background work that asked, as [ask] waits for them.
+     */
+    val answers: SharedFlow<Event> = _answers.asSharedFlow()
+
+    /**
+     * Send [command] and wait for the event that answers it, the first [answer] takes, at most
+     * [timeoutMillis]; `null` when none came. Listening starts before the command goes, so an
+     * answer that comes at once is not missed.
+     */
+    suspend fun <T : Any> ask(command: Command, timeoutMillis: Long, answer: (Event) -> T?): T? = coroutineScope {
+        val answered = async(start = CoroutineStart.UNDISPATCHED) { answers.mapNotNull(answer).first() }
+        send(command)
+        withTimeoutOrNull(timeoutMillis) { answered.await() }.also { answered.cancel() }
+    }
 
     // The engine
 
@@ -258,6 +287,53 @@ class AppStore(
         send(Command.LoadDownloads)
     }
 
+    /** Queue [episode] of [id] for download. */
+    fun downloadEpisode(id: AnilistId, episode: String) {
+        send(Command.DownloadEpisode(id, episode))
+    }
+
+    /** Pause a download, or resume it. */
+    fun toggleDownload(id: Long) {
+        send(Command.DownloadPause(id))
+    }
+
+    /** Take a download off the queue, keeping a finished file. */
+    fun cancelDownload(id: Long) {
+        send(Command.DownloadCancel(id))
+    }
+
+    /** Take a download off the queue and delete its file. */
+    fun deleteDownload(id: Long) {
+        send(Command.DownloadDelete(id))
+    }
+
+    fun clearCompletedDownloads() {
+        send(Command.DownloadClearCompleted)
+    }
+
+    /** Pause every download that runs or waits. */
+    fun pauseAllDownloads() {
+        for (row in downloads.rows.value) {
+            if (row.state == tv.anistream.engine.model.DownloadState.ACTIVE || row.state == tv.anistream.engine.model.DownloadState.QUEUED) toggleDownload(row.id)
+        }
+    }
+
+    /** Resume every paused download. */
+    fun resumeAllDownloads() {
+        for (row in downloads.rows.value) if (row.state == tv.anistream.engine.model.DownloadState.PAUSED) toggleDownload(row.id)
+    }
+
+    /** Play a finished download from its file, with the history, resume and sync a stream has. */
+    fun playDownload(row: tv.anistream.engine.model.DownloadRow) {
+        val path = row.path ?: return
+        send(Command.PlayLocal(row.anilistId, row.episode, row.title, path))
+    }
+
+    /** The device's network, as the system says it: cellular, and Data Saver as constrained. */
+    fun networkPath(cellular: Boolean, constrained: Boolean) {
+        send(Command.NetworkPath(cellular, constrained))
+    }
+
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
@@ -285,6 +361,11 @@ class AppStore(
     fun setSwitch(key: SettingKey, on: Boolean) {
         if (settings.isOn(key) == on) return
         setSetting(key, SettingValue.Bool(on))
+    }
+
+    /** The episodes coming up this week for the shows notified of: Notifications' "Coming up". */
+    fun loadComing() {
+        send(Command.ComingEpisodes)
     }
 
     /** The title language the signed-in AniList viewer reads in, for AniList's choice. */
@@ -340,6 +421,21 @@ class AppStore(
 
     // Sources
 
+    /**
+     * Protect torrent traffic with [mode], through [proxy] when it is one, and have a failed
+     * connection check do [onFailure]: written as one change, the proxy's password to the
+     * keystore-sealed secrets and never to the file. No protection and warn only need
+     * [acknowledged], the viewer having confirmed it.
+     */
+    fun setTorrentProtection(
+        mode: tv.anistream.engine.model.TorrentProtection,
+        proxy: tv.anistream.engine.model.TorrentProxy?,
+        onFailure: tv.anistream.engine.model.FailedCheck,
+        acknowledged: Boolean,
+    ) {
+        send(Command.SetTorrentProtection(mode, proxy, onFailure, acknowledged))
+    }
+
     /** Check every provider again. */
     fun checkProviders() {
         send(Command.CheckProviders)
@@ -360,12 +456,34 @@ class AppStore(
 
     /** Install [plugin] from [store], or update it. */
     fun installPlugin(store: String, plugin: String) {
-        send(Command.InstallPlugin(store, plugin))
+        stores.started(StoresModel.Work.Install(store, plugin), send(Command.InstallPlugin(store, plugin)))
     }
 
     /** Delete an installed plugin from this device. */
     fun removePlugin(plugin: String) {
-        send(Command.RemovePlugin(plugin))
+        stores.started(StoresModel.Work.Remove(plugin), send(Command.RemovePlugin(plugin)))
+    }
+
+    /** Check a pasted invite link against the store it names, before spending it. */
+    fun previewStore(link: String) {
+        val trimmed = link.trim()
+        stores.checking(trimmed)
+        send(Command.PreviewStore(trimmed))
+    }
+
+    /** Spend an invite link for a token and join. */
+    fun joinStore(link: String) {
+        stores.started(StoresModel.Work.Join, send(Command.JoinStore(link.trim())))
+    }
+
+    /** Forget [store] and revoke this device's token there. */
+    fun leaveStore(store: String) {
+        stores.started(StoresModel.Work.Leave(store), send(Command.LeaveStore(store)))
+    }
+
+    /** An invite link: for someone new with a [name], for another device of yours without. */
+    fun createInvite(store: String, name: String?) {
+        stores.started(StoresModel.Work.Invite(store), send(Command.CreateInvite(store, name)))
     }
 
     /** Pin [provider] as the source for title [id], or give the title back to automatic with `null`. */
@@ -421,6 +539,7 @@ class AppStore(
             is Event.JobDone -> {
                 jobs.done(event.v1)
                 accounts.done(event.v1)
+                stores.done(event.v1)
                 detailDone(event.v1)
             }
 
@@ -452,8 +571,14 @@ class AppStore(
             is Event.Vpn -> providers.guardSaid(event.v1)
             is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
+            is Event.StorePreview -> stores.previewed(event.v1)
+            is Event.StoreJoined -> stores.joined(event.store)
+            is Event.InviteLink -> stores.invited(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
+            is Event.Seeding -> downloads.seeding(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
+            is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
+            is Event.ComingEpisodes -> coming.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

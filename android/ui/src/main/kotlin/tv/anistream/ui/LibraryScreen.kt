@@ -174,10 +174,12 @@ private fun hasNew(entry: Entry): Boolean {
 /** The Downloads row, which opens the Downloads page (A2), with what they take on this device. */
 @Composable
 private fun DownloadsRow(detail: String, inset: Boolean = true) {
+    val navigator = LocalNavigator.current
     Row(
         Modifier
             .fillMaxWidth()
             .height(72.dp)
+            .clickable { navigator.open(DOWNLOADS_ROUTE) }
             .padding(horizontal = if (inset) 16.dp else 0.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
