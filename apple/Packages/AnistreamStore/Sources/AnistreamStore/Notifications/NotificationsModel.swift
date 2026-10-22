@@ -2,6 +2,7 @@
 // notify, each show's own switch, and turning them on, which asks for permission the first time.
 
 import AnistreamKit
+import AnistreamWidgetData
 import Foundation
 import Observation
 
@@ -17,16 +18,36 @@ public final class NotificationsModel {
     /// Each show's own switch, as its settings last said: on, off, or following Settings.
     public private(set) var showSwitch: [AnilistId: Bool?] = [:]
     /// Whether anything notifies on this device: Settings' switch on, or a show switched on for
-    /// itself. The background refresh is kept scheduled while it does, and cancelled only when
-    /// nothing does. `nil` until the engine has said its settings.
-    public private(set) var refreshes: Bool? {
-        didSet {
-            if let refreshes, refreshes != oldValue { onRefreshes?(refreshes) }
-        }
+    /// itself. `nil` until the engine has said its settings.
+    public private(set) var notifying: Bool? {
+        didSet { tellRefreshes() }
+    }
+    /// Whether any of anistream's widgets is placed, as the app last looked.
+    public private(set) var widgetsPlaced = false {
+        didSet { tellRefreshes() }
+    }
+    /// Whether the background refresh is kept scheduled: while anything notifies, or a widget is
+    /// placed, whose record it keeps fresh; cancelled only when neither holds. `nil` while that
+    /// is not known: no widget placed, and the engine's settings not said yet.
+    public var refreshes: Bool? {
+        Self.refreshes(notifying: notifying, widgetsPlaced: widgetsPlaced)
     }
     /// Told when `refreshes` is first known and when it changes: the app schedules or cancels
     /// its background refresh.
     @ObservationIgnored public var onRefreshes: (@MainActor (Bool) -> Void)?
+    /// What `onRefreshes` was last told.
+    @ObservationIgnored private var told: Bool?
+
+    /// The widgets placed, as the app found them: `kinds` are those WidgetKit says are placed.
+    public func widgetsPlaced(_ kinds: some Sequence<String>) {
+        widgetsPlaced = WidgetKinds.anyPlaced(kinds)
+    }
+
+    private func tellRefreshes() {
+        guard let refreshes, refreshes != told else { return }
+        told = refreshes
+        onRefreshes?(refreshes)
+    }
 
     /// Where notifications are scheduled: the system's, or a quiet one in the Fixtures app and
     /// the tests. Set by the app at launch; with none, nothing is scheduled.
@@ -45,7 +66,7 @@ public final class NotificationsModel {
                 Task { await scheduler.reschedule(week) }
             }
         case .settings(let view):
-            refreshes = Self.refreshes(view)
+            notifying = Self.notifies(view)
         case .showSettings(let sheet):
             let row = sheet.rows.first { $0.key == .notifyNewEpisodes }
             if let row {
@@ -68,9 +89,15 @@ public final class NotificationsModel {
 
     /// Whether the settings `view` has anything notify: the New episodes switch on, or a show
     /// switched on for itself, which notifies whatever the switch says.
-    nonisolated static func refreshes(_ view: SettingsView) -> Bool {
+    nonisolated static func notifies(_ view: SettingsView) -> Bool {
         let row = (view.rows + view.nativeRows).first { $0.key == .episodeNotifications }
         return row?.isOn == true || view.notifySwitchedOn > 0
+    }
+
+    /// Whether the background refresh is kept: a widget placed keeps it whatever notifies;
+    /// otherwise what `notifying` says, once it is known.
+    nonisolated static func refreshes(notifying: Bool?, widgetsPlaced: Bool) -> Bool? {
+        widgetsPlaced ? true : notifying
     }
 
     /// Whether `event` can change the week: an episode ended or was marked, a sync pulled the

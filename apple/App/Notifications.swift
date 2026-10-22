@@ -69,7 +69,8 @@ final class AppNotifications: NSObject {
 
     /// At launch, before it finishes: the delegate and the actions, the store's scheduler, and
     /// the background refresh, which is kept scheduled while anything notifies (Settings' switch
-    /// on, or a show switched on for itself) and cancelled once nothing does.
+    /// on, or a show switched on for itself) or any of the widgets is placed, and cancelled once
+    /// neither holds.
     func launch() {
         if real {
             UNUserNotificationCenter.current().delegate = self
@@ -81,9 +82,11 @@ final class AppNotifications: NSObject {
         #if os(iOS)
         registerRefresh()
         #endif
+        lookAtWidgets()
     }
 
-    /// Schedule the background refresh while anything notifies, and cancel it once nothing does.
+    /// Schedule the background refresh while anything notifies or a widget is placed, and cancel
+    /// it once neither holds.
     private func keepRefreshing(_ wanted: Bool) {
         #if os(iOS)
         if wanted { submitRefresh() } else { cancelRefresh() }
@@ -92,15 +95,28 @@ final class AppNotifications: NSObject {
         #endif
     }
 
-    /// The app came forward: ask again whether it may notify, and schedule the week.
+    /// The app came forward: ask again whether it may notify, schedule the week, and look at the
+    /// widgets placed meanwhile.
     func cameForward() {
         Task {
             await store.notifications.refreshPermission()
             if store.notifications.schedules { store.refreshNotices() }
         }
+        lookAtWidgets()
     }
 
-    /// The app left: ask for the next refresh, while anything notifies.
+    /// Look at which widgets are placed: while any of the app's is, the background refresh keeps
+    /// their record fresh, whether anything notifies or not. Nothing changes when WidgetKit cannot
+    /// say.
+    private func lookAtWidgets() {
+        WidgetCenter.shared.getCurrentConfigurations { [weak self] result in
+            guard case .success(let placed) = result else { return }
+            let kinds = placed.map(\.kind)
+            Task { @MainActor in self?.store.notifications.widgetsPlaced(kinds) }
+        }
+    }
+
+    /// The app left: ask for the next refresh, while anything notifies or a widget is placed.
     func wentAway() {
         #if os(iOS)
         if store.notifications.refreshes == true { submitRefresh() }
@@ -116,16 +132,20 @@ final class AppNotifications: NSObject {
 
     // MARK: The refresh
 
-    /// One refresh: what aired that no notification said, the week, and the widgets' record. On
-    /// the store's engine when the app has one, or on one started for it, with none of the
-    /// launch's own background work. True when it ran to the end.
+    /// One refresh: what aired that no notification said, the week, and the widgets' record; with
+    /// nothing notifying, the widgets' record alone. On the store's engine when the app has one,
+    /// or on one started for it, with none of the launch's own background work, whose own check
+    /// says nothing when nothing notifies. The widgets placed are looked at again after it. True
+    /// when it ran to the end.
     func refresh() async -> Bool {
+        defer { lookAtWidgets() }
         let widgets = WidgetRecordFile.shared()
         if storeStarted() {
             // An engine that failed to start, or stopped, answers nothing.
             guard store.phase == .running || store.phase == .starting else { return false }
             let outcome = await NoticeRefresh(
-                questions: store.questions, scheduler: store.notifications.scheduler, widgets: widgets
+                questions: store.questions, scheduler: store.notifications.scheduler, widgets: widgets,
+                notifying: store.notifications.notifying != false
             ).run()
             if outcome.wroteWidgets { WidgetCenter.shared.reloadAllTimelines() }
             return outcome.finished
@@ -211,8 +231,9 @@ final class AppNotifications: NSObject {
     }
 
     private func handle(_ task: SendableTask) {
-        // Asked for while something notified. The app's settings say whether that still holds;
-        // an engine of the task's own has none, and the app cancels it when it comes forward.
+        // Asked for while something notified or a widget was placed. The app's settings and the
+        // widgets say whether that still holds; with neither known yet, it is asked for again, and
+        // the app cancels it when it comes forward.
         if store.notifications.refreshes != false { submitRefresh() }
         let run = Task { @MainActor in await self.refresh() }
         task.task.expirationHandler = { run.cancel() }

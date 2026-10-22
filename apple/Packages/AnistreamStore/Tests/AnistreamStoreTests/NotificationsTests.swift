@@ -4,6 +4,7 @@
 
 @testable import AnistreamStore
 import AnistreamKit
+import AnistreamWidgetData
 import Foundation
 import Testing
 import UserNotifications
@@ -304,9 +305,9 @@ private func ledger() -> NoticeLedger {
             view.notifySwitchedOn = switchedOn
             return view
         }
-        #expect(!NotificationsModel.refreshes(view(on: false, switchedOn: 0)))
-        #expect(NotificationsModel.refreshes(view(on: true, switchedOn: 0)))
-        #expect(NotificationsModel.refreshes(view(on: false, switchedOn: 1)), "a show switched on notifies")
+        #expect(!NotificationsModel.notifies(view(on: false, switchedOn: 0)))
+        #expect(NotificationsModel.notifies(view(on: true, switchedOn: 0)))
+        #expect(NotificationsModel.notifies(view(on: false, switchedOn: 1)), "a show switched on notifies")
 
         let model = NotificationsModel()
         var told: [Bool] = []
@@ -316,6 +317,27 @@ private func ledger() -> NoticeLedger {
         model.observe(.settings(view(on: true, switchedOn: 1)))
         model.observe(.settings(view(on: false, switchedOn: 0)))
         #expect(told == [true, false], "told once known, then only when it changes")
+    }
+
+    @Test func aWidgetPlacedKeepsTheRefreshWithNothingNotifying() {
+        // On with nothing notifying and a widget placed; off with neither.
+        #expect(NotificationsModel.refreshes(notifying: false, widgetsPlaced: true) == true)
+        #expect(NotificationsModel.refreshes(notifying: false, widgetsPlaced: false) == false)
+        #expect(NotificationsModel.refreshes(notifying: nil, widgetsPlaced: true) == true, "before the settings")
+        #expect(NotificationsModel.refreshes(notifying: nil, widgetsPlaced: false) == nil)
+
+        #expect(WidgetKinds.anyPlaced(["tv.anistream.airing-today"]))
+        #expect(!WidgetKinds.anyPlaced(["com.example.weather", "tv.anistream"]))
+
+        let model = NotificationsModel()
+        var told: [Bool] = []
+        model.onRefreshes = { told.append($0) }
+        model.widgetsPlaced(["tv.anistream.continue-watching"])
+        model.observe(.settings(settingsView(order: [])))
+        #expect(told == [true], "a widget, with nothing notifying")
+        model.widgetsPlaced([])
+        #expect(told == [true, false], "neither")
+        #expect(model.refreshes == false)
     }
 
     @Test func aShowNotBeingWatchedThatFollowsSettingsSaysOff() {
@@ -362,5 +384,26 @@ struct NoticeRefreshTests {
         #expect(continuing.count == 4)
         #expect(continuing.first?["title"] as? String == "Stardust Wayfarer")
         #expect(continuing.first?["minutes_left"] as? Int == 14)
+    }
+
+    @Test func forTheWidgetsAloneARefreshOnlyWritesTheirRecord() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let launch = EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .macOs, secrets: .host)
+        let engine = try BackgroundEngine(launch, host: quietHost())
+        defer { engine.shutdown() }
+
+        let centre = CountingCentre()
+        let scheduler = NoticeScheduler(centre: centre, ledger: ledger()) { _ in nil }
+        let widgets = WidgetRecordFile(directory: root.appending(path: "group/widgets", directoryHint: .isDirectory))
+        let outcome = await NoticeRefresh(
+            questions: engine.questions, scheduler: scheduler, widgets: widgets, notifying: false
+        ).run()
+
+        #expect(outcome.finished)
+        #expect(outcome.wroteWidgets)
+        #expect(FileManager.default.fileExists(atPath: widgets.snapshotFile.path))
+        #expect(outcome.posted.isEmpty && outcome.scheduled.isEmpty, "nothing notifies")
+        #expect(centre.quiet.notices.isEmpty)
     }
 }

@@ -333,8 +333,10 @@ app's runs at that moment (AnistreamStore's `Notifications/`):
   coming forward, after a sync or a change of progress, and when a switch changes.
 - **The background refresh.** iOS's `BGAppRefreshTask` (`tv.anistream.refresh`) and the Mac's
   `NSBackgroundActivityScheduler`, every six hours or as the system decides, kept scheduled while
-  Settings' switch is on or any show is switched on for itself (the settings' `notifySwitchedOn`),
-  and cancelled only when neither holds: `CheckNewEpisodes`
+  Settings' switch is on, any show is switched on for itself (the settings' `notifySwitchedOn`) or
+  any of the widgets is placed (`WidgetCenter`'s current configurations, looked at on launch, on
+  coming forward and after each refresh), and cancelled only when none holds. With only a widget,
+  a refresh writes the widgets' record and nothing else. Otherwise: `CheckNewEpisodes`
   for what aired that no notification said, then the week, then the widgets' record, written to
   `widgets/snapshot.json` in the App Group (`ANISTREAM_APP_GROUP`). With the app not running it
   starts an engine of its own with none of the launch's background work, which the app's own
