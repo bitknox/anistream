@@ -1,5 +1,5 @@
 //! When each episode airs, as this device last saw AniList's schedule, and when it was to air
-//! before it moved: see `0009_airing_times`.
+//! before it moved: see `0010_airing_times`.
 
 use std::collections::HashMap;
 
