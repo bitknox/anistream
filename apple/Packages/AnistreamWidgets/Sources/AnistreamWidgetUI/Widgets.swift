@@ -42,7 +42,7 @@ public struct ContinueProvider: TimelineProvider {
 }
 
 public struct ContinueWatchingWidget: Widget {
-    public static let kind = "tv.anistream.continue-watching"
+    public static let kind = WidgetKinds.continueWatching
 
     public init() {}
 
@@ -156,7 +156,7 @@ public struct AiringProvider: AppIntentTimelineProvider {
 }
 
 public struct AiringTodayWidget: Widget {
-    public static let kind = "tv.anistream.airing-today"
+    public static let kind = WidgetKinds.airingToday
 
     public init() {}
 

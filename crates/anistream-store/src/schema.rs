@@ -383,6 +383,17 @@ const MIGRATIONS: &[(&str, &str)] = &[
     CREATE INDEX idx_airing_time_seen ON airing_time(seen_at);
     "#,
     ),
+    (
+        "0011_episode_notice_dub",
+        r#"
+    -- For a show watched dubbed, the newest episode whose dub the new-episode check has said, or
+    -- let go. AniList dates only the original broadcast, so a dub is said once the source a play
+    -- would use lists it, which the check asks only while a broadcast is ahead of this. NULL for a
+    -- show watched subtitled, and for one watched dubbed until its first broadcast since it was
+    -- followed, which sets where its dub is said from.
+    ALTER TABLE episode_notice ADD COLUMN dubbed INTEGER;
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.

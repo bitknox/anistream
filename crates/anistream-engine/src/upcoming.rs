@@ -2,13 +2,14 @@
 //! show's own switch leaves out, for a native app that schedules its notifications ahead to fire
 //! at air time, and lists them in its Notifications pane. See `Command::UpcomingNotices`.
 //!
-//! The shows are those the new-episode check follows (`crate::new_episodes`): being watched, or
-//! switched on for themselves, and not switched off. The broadcasts are the week the widgets'
-//! record fetches (`crate::widgets::week`), fetched once for both.
+//! The shows are those the new-episode check follows (`crate::new_episodes`) with the setting on:
+//! being watched, or switched on for themselves, and not switched off; with the setting off, only
+//! those switched on notify. The broadcasts are the week the widgets' record fetches
+//! (`crate::widgets::week`), fetched once for both.
 
 use std::collections::{HashMap, HashSet};
 
-use anistream_core::ids::AnilistId;
+use anistream_core::{config::Config, ids::AnilistId};
 use anistream_meta::{anilist::AiringEntry, titles::Titles};
 use anistream_model::{
     event::Event,
@@ -17,12 +18,15 @@ use anistream_model::{
 };
 use anistream_store::Store;
 
-use crate::{data, new_episodes, outbox::Outbox, services::Services, state::EngineState};
+use crate::{
+    data, new_episodes, outbox::Outbox, services::Services, show_settings, state::EngineState,
+};
 
 /// Make the week, off the actor, and say it as [`Event::UpcomingNotices`]: once, with only the
 /// shows' switches and none of the week when AniList could not be asked.
 pub(crate) fn answer(engine: &EngineState, services: &Services, tx: &Outbox) {
-    let enabled = engine.config.effective().notifications.episodes;
+    let config = engine.config.effective().clone();
+    let enabled = config.notifications.episodes;
     let signed_in = new_episodes::list_signed_in(services);
     let (store, meta, clock) =
         (services.store.clone(), services.meta.clone(), services.clock.clone());
@@ -32,7 +36,8 @@ pub(crate) fn answer(engine: &EngineState, services: &Services, tx: &Outbox) {
         let now = clock.now();
         let (broadcasts, end) =
             crate::widgets::week(store.clone(), meta.clone(), clock, schedule, now).await;
-        let week = Week { store: &store, titles: meta.titles(), signed_in, now, end };
+        let week =
+            Week { store: &store, titles: meta.titles(), config: &config, signed_in, now, end };
         let _ = tx.send(Event::UpcomingNotices(week.notices(enabled, &broadcasts)));
     });
 }
@@ -41,6 +46,8 @@ pub(crate) fn answer(engine: &EngineState, services: &Services, tx: &Outbox) {
 struct Week<'a> {
     store: &'a Store,
     titles: &'a Titles,
+    /// Settings, for the translation each show is watched in.
+    config: &'a Config,
     /// Whether the Library's tracker is signed in, whose list counts.
     signed_in: bool,
     now: i64,
@@ -80,6 +87,12 @@ impl Week<'_> {
                 } else {
                     return None;
                 };
+                // Settings' switch off, only a show switched on for itself notifies.
+                let notifies = match reason {
+                    NoticeReason::SwitchedOn => true,
+                    NoticeReason::Watching => enabled,
+                    NoticeReason::SwitchedOff => false,
+                };
                 let next_to_watch = *next.entry(id).or_insert_with(|| {
                     let (progress, _) = data::standing(self.store, id, row.media.episodes);
                     progress.map_or(1, |progress| progress.next)
@@ -94,6 +107,12 @@ impl Week<'_> {
                     next_to_watch,
                     cover_url: row.media.cover_image.best().map(str::to_owned),
                     banner_url: row.media.banner_image.clone(),
+                    notifies,
+                    translation: Some(
+                        show_settings::for_show(self.config, self.store, id)
+                            .playback
+                            .translation,
+                    ),
                 })
             })
             .collect();
@@ -109,6 +128,7 @@ impl Week<'_> {
 
 #[cfg(test)]
 mod tests {
+    use anistream_core::media::Translation;
     use anistream_store::WatchEvent;
 
     use super::*;
@@ -155,10 +175,15 @@ mod tests {
         store.set_show_setting(PLANNED, name, Some("true"), NOW).unwrap();
         store.set_show_setting(SWITCHED_OFF, name, Some("false"), NOW).unwrap();
 
-        let titles = Titles::default();
+        // Watched dubbed: the check says its episodes once the dub is out.
+        let translation = ShowSettingKey::Translation.name();
+        store.set_show_setting(PLANNED, translation, Some("dub"), NOW).unwrap();
+
+        let (titles, config) = (Titles::default(), Config::default());
         let week = Week {
             store: &store,
             titles: &titles,
+            config: &config,
             signed_in: true,
             now: NOW,
             end: NOW + 7 * DAY,
@@ -181,16 +206,26 @@ mod tests {
         let rows: Vec<_> = notices
             .airings
             .iter()
-            .map(|row| (row.id, row.episode, row.reason, row.next_to_watch))
+            .map(|row| (row.id, row.episode, row.reason, row.next_to_watch, row.notifies))
             .collect();
+        // With the setting off, only the show switched on for itself notifies.
         assert_eq!(
             rows,
             [
-                (WATCHED, 6, NoticeReason::Watching, 4),
-                (PLANNED, 2, NoticeReason::SwitchedOn, 1),
-                (SWITCHED_OFF, 9, NoticeReason::SwitchedOff, 1),
+                (WATCHED, 6, NoticeReason::Watching, 4, false),
+                (PLANNED, 2, NoticeReason::SwitchedOn, 1, true),
+                (SWITCHED_OFF, 9, NoticeReason::SwitchedOff, 1, false),
             ]
         );
+        let translations: Vec<_> = notices.airings.iter().map(|row| row.translation).collect();
+        assert_eq!(
+            translations,
+            [Some(Translation::Sub), Some(Translation::Dub), Some(Translation::Sub)]
+        );
+        // On, the shows being watched notify too.
+        let on: Vec<_> =
+            week.notices(true, &broadcasts).airings.iter().map(|row| row.notifies).collect();
+        assert_eq!(on, [true, true, false]);
         let first = &notices.airings[0];
         assert_eq!(first.title, "The Show 900002", "in the form the title setting picks");
         assert_eq!(first.airs_at, NOW + 2 * HOUR);
@@ -207,10 +242,11 @@ mod tests {
         for episode in 1..=6 {
             watch(&store, WATCHED, episode, NOW - HOUR);
         }
-        let titles = Titles::default();
+        let (titles, config) = (Titles::default(), Config::default());
         let week = Week {
             store: &store,
             titles: &titles,
+            config: &config,
             signed_in: false,
             now: NOW,
             end: NOW + 7 * DAY,

@@ -405,17 +405,25 @@ They arrive when an episode airs, as local notifications scheduled ahead, since 
 app's runs at that moment (AnistreamStore's `Notifications/`):
 
 - **The week.** The engine's `UpcomingNotices` says the next seven days' broadcasts of the shows
-  being watched or switched on for themselves, and of those switched off, each with why.
+  being watched or switched on for themselves, and of those switched off, each with why and
+  whether it notifies: with Settings' switch off, only a show switched on for itself does.
   `NoticePlan` makes one notification of each episode that notifies: `ep.<show>.<episode>.sub`,
   a `UNCalendarNotificationTrigger` at its time, at most 60. "Episode 9 is out." with Play and
   Mark watched when caught up; "Episode 10 is out. Next for you: episode 8." with Play alone when
   behind. All in the `new-episodes` thread, named in a group's summary by their show.
+- **Dubs.** AniList dates only the broadcast, so a show watched dubbed is not scheduled: the
+  background check says its episode once the source lists the dub, posted then as
+  `ep.<show>.<episode>.dub`, "Episode 9 is out, dubbed." The pane's footnote names those shows.
 - **Scheduling.** `NoticeScheduler` keeps the pending ones in step with the week: it takes back
   what no longer notifies, schedules what is new or changed with the cover attached, and remembers
   what it scheduled, so the background check never says an episode twice. Asked for at launch, on
   coming forward, after a sync or a change of progress, and when a switch changes.
 - **The background refresh.** iOS's `BGAppRefreshTask` (`tv.anistream.refresh`) and the Mac's
-  `NSBackgroundActivityScheduler`, every six hours or as the system decides: `CheckNewEpisodes`
+  `NSBackgroundActivityScheduler`, every six hours or as the system decides, kept scheduled while
+  Settings' switch is on, any show is switched on for itself (the settings' `notifySwitchedOn`) or
+  any of the widgets is placed (`WidgetCenter`'s current configurations, looked at on launch, on
+  coming forward and after each refresh), and cancelled only when none holds. With only a widget,
+  a refresh writes the widgets' record and nothing else. Otherwise: `CheckNewEpisodes`
   for what aired that no notification said, then the week, then the widgets' record, written to
   `widgets/snapshot.json` in the App Group (`ANISTREAM_APP_GROUP`). With the app not running it
   starts an engine of its own with none of the launch's background work, which the app's own

@@ -56,6 +56,34 @@ class MainActivity : ComponentActivity() {
         if (granted) app.episodeAlerts.set(true) else app.episodeAlerts.refuse()
     }
 
+    /** What waits on the permission a show's own switch asked for: switching it on. */
+    private var permitted: (() -> Unit)? = null
+
+    /** The permission asked for as a show is switched on for itself: on with it, left as it was without. */
+    private val askForShow = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        app.notifier.asked()
+        if (granted) permitted?.invoke()
+        permitted = null
+    }
+
+    /**
+     * Do [then] once new-episode notifications can show, as a show's own switch turns on: at once
+     * where they can, after the permission where it was never given, and where Android says no,
+     * not at all, with the system's settings open instead.
+     */
+    private fun permitNotifications(then: () -> Unit) {
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        when (EpisodeAlerts.Turn.of(true, app.episodeNotifier.canPost, granted)) {
+            EpisodeAlerts.Turn.On -> then()
+            EpisodeAlerts.Turn.Ask -> {
+                permitted = then
+                askForShow.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            EpisodeAlerts.Turn.SystemSettings -> openNotificationSettings()
+            EpisodeAlerts.Turn.Off -> {}
+        }
+    }
+
     /** New-episode notifications, on Settings' switch: on only once they can show. */
     private fun setEpisodeNotifications(on: Boolean) {
         val permitted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
@@ -121,6 +149,7 @@ class MainActivity : ComponentActivity() {
             notifications = NotificationActions(
                 turn = ::setEpisodeNotifications,
                 refused = app.episodeAlerts.refused,
+                permit = ::permitNotifications,
                 openSystemSettings = ::openNotificationSettings,
             ),
         )

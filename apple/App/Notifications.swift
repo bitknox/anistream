@@ -11,6 +11,7 @@ import AnistreamStore
 import AnistreamUI
 import Foundation
 import UserNotifications
+import WidgetKit
 #if os(iOS)
 import BackgroundTasks
 import UIKit
@@ -67,7 +68,9 @@ final class AppNotifications: NSObject {
     }
 
     /// At launch, before it finishes: the delegate and the actions, the store's scheduler, and
-    /// the background refresh.
+    /// the background refresh, which is kept scheduled while anything notifies (Settings' switch
+    /// on, or a show switched on for itself) or any of the widgets is placed, and cancelled once
+    /// neither holds.
     func launch() {
         if real {
             UNUserNotificationCenter.current().delegate = self
@@ -75,25 +78,48 @@ final class AppNotifications: NSObject {
         }
         let questions = store.questions
         store.notifications.scheduler = NoticeScheduler(centre: centre) { await questions.art($0) }
+        store.notifications.onRefreshes = { [weak self] wanted in self?.keepRefreshing(wanted) }
         #if os(iOS)
         registerRefresh()
+        #endif
+        lookAtWidgets()
+    }
+
+    /// Schedule the background refresh while anything notifies or a widget is placed, and cancel
+    /// it once neither holds.
+    private func keepRefreshing(_ wanted: Bool) {
+        #if os(iOS)
+        if wanted { submitRefresh() } else { cancelRefresh() }
         #else
-        startActivity()
+        if wanted { startActivity() } else { stopActivity() }
         #endif
     }
 
-    /// The app came forward: ask again whether it may notify, and schedule the week.
+    /// The app came forward: ask again whether it may notify, schedule the week, and look at the
+    /// widgets placed meanwhile.
     func cameForward() {
         Task {
             await store.notifications.refreshPermission()
             if store.notifications.schedules { store.refreshNotices() }
         }
+        lookAtWidgets()
     }
 
-    /// The app left: ask for the next refresh.
+    /// Look at which widgets are placed: while any of the app's is, the background refresh keeps
+    /// their record fresh, whether anything notifies or not. Nothing changes when WidgetKit cannot
+    /// say.
+    private func lookAtWidgets() {
+        WidgetCenter.shared.getCurrentConfigurations { [weak self] result in
+            guard case .success(let placed) = result else { return }
+            let kinds = placed.map(\.kind)
+            Task { @MainActor in self?.store.notifications.widgetsPlaced(kinds) }
+        }
+    }
+
+    /// The app left: ask for the next refresh, while anything notifies or a widget is placed.
     func wentAway() {
         #if os(iOS)
-        submitRefresh()
+        if store.notifications.refreshes == true { submitRefresh() }
         #endif
     }
 
@@ -106,10 +132,13 @@ final class AppNotifications: NSObject {
 
     // MARK: The refresh
 
-    /// One refresh: what aired that no notification said, the week, and the widgets' record. On
-    /// the store's engine when the app has one, or on one started for it, with none of the
-    /// launch's own background work. True when it ran to the end.
+    /// One refresh: what aired that no notification said, the week, and the widgets' record; with
+    /// nothing notifying, the widgets' record alone. On the store's engine when the app has one,
+    /// or on one started for it, with none of the launch's own background work, whose own check
+    /// says nothing when nothing notifies. The widgets placed are looked at again after it. True
+    /// when it ran to the end.
     func refresh() async -> Bool {
+        defer { lookAtWidgets() }
         // The widgets' record is the store's `WidgetFeed`'s to write, as in the foreground, so
         // the widgets reload after a background check too.
         if storeStarted() {
@@ -117,7 +146,8 @@ final class AppNotifications: NSObject {
             guard store.phase == .running || store.phase == .starting else { return false }
             let outcome = await NoticeRefresh(
                 questions: store.questions, scheduler: store.notifications.scheduler,
-                widgets: store.widgets.writer(art: store.artwork)
+                widgets: store.widgets.writer(art: store.artwork),
+                notifying: store.notifications.notifying != false
             ).run()
             return outcome.finished
         }
@@ -187,6 +217,11 @@ final class AppNotifications: NSObject {
         }
     }
 
+    private func cancelRefresh() {
+        guard registered else { return }
+        BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.refreshTask)
+    }
+
     private func submitRefresh() {
         guard registered else { return }
         let request = BGAppRefreshTaskRequest(identifier: Self.refreshTask)
@@ -199,7 +234,10 @@ final class AppNotifications: NSObject {
     }
 
     private func handle(_ task: SendableTask) {
-        submitRefresh()
+        // Asked for while something notified or a widget was placed. The app's settings and the
+        // widgets say whether that still holds; with neither known yet, it is asked for again, and
+        // the app cancels it when it comes forward.
+        if store.notifications.refreshes != false { submitRefresh() }
         let run = Task { @MainActor in await self.refresh() }
         task.task.expirationHandler = { run.cancel() }
         Task { @MainActor in
@@ -211,6 +249,7 @@ final class AppNotifications: NSObject {
     // MARK: The Mac's background activity
 
     private func startActivity() {
+        guard self.activity == nil else { return }
         let activity = NSBackgroundActivityScheduler(identifier: Self.refreshTask)
         activity.repeats = true
         activity.interval = Self.refreshEvery
@@ -223,6 +262,11 @@ final class AppNotifications: NSObject {
             }
         }
         self.activity = activity
+    }
+
+    private func stopActivity() {
+        activity?.invalidate()
+        activity = nil
     }
     #endif
 }

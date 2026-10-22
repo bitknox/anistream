@@ -27,7 +27,10 @@ let package = Package(
         ),
         .testTarget(
             name: "AnistreamStoreTests",
-            dependencies: ["AnistreamStore"],
+            dependencies: [
+                "AnistreamStore",
+                .product(name: "AnistreamWidgetData", package: "AnistreamWidgets"),
+            ],
             swiftSettings: [.define("FIXTURES")]
         ),
     ]

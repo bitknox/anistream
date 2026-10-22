@@ -120,11 +120,14 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         SheetNote("Spoiler protection blurs stills after the next episode.")
 
         SheetDivider()
-        // Whether this show's new episodes are notified of, while Settings has them on.
+        // Whether this show's new episodes are notified of: On notifies whatever Settings says, and
+        // asks for the permission to post first, as Settings' switch does.
         val continuing by store.continuing.list.state.collectAsStateWithLifecycle()
         val notify = row(ShowSettingKey.NOTIFY_NEW_EPISODES)
-        SwitchChoiceRow("New episodes", notify, "On", "Off", default = notify?.let { notifyDefault(it, beingWatched(entry, continuing.ids)) }) {
-            set(ShowSettingKey.NOTIFY_NEW_EPISODES, it)
+        val notifications = LocalNotificationActions.current
+        SwitchChoiceRow("New episodes", notify, "On", "Off", default = notify?.let { notifyDefault(it, beingWatched(entry, continuing.ids)) }) { value ->
+            val switch: () -> Unit = { set(ShowSettingKey.NOTIFY_NEW_EPISODES, value) }
+            if (value == SettingValue.Bool(true) && notifications != null) notifications.permit(switch) else switch()
         }
 
         SheetDivider()

@@ -12,14 +12,18 @@ import UserNotifications
 private let now = Date(timeIntervalSince1970: 1_800_000_000)
 private let hour: Int64 = 3_600
 
+/// A broadcast of the week. It notifies, as the engine says, unless switched off or `notifies`
+/// says otherwise.
 private func airing(
     _ id: AnilistId, _ episode: UInt32, in seconds: Int64, _ reason: NoticeReason = .watching,
-    next: UInt32? = nil, title: String? = nil, banner: String? = nil
+    next: UInt32? = nil, title: String? = nil, banner: String? = nil, notifies: Bool? = nil,
+    translation: Translation = .sub
 ) -> UpcomingNotice {
     UpcomingNotice(
         id: id, title: title ?? "Show \(id)", episode: episode,
         airsAt: Int64(now.timeIntervalSince1970) + seconds, reason: reason,
-        nextToWatch: next ?? episode, coverUrl: "https://img.example/\(id).png", bannerUrl: banner)
+        nextToWatch: next ?? episode, coverUrl: "https://img.example/\(id).png", bannerUrl: banner,
+        notifies: notifies ?? (reason != .switchedOff), translation: translation)
 }
 
 private func week(_ airings: [UpcomingNotice], enabled: Bool = true, watching: [AnilistId] = []) -> UpcomingNotices {
@@ -54,15 +58,36 @@ private func week(_ airings: [UpcomingNotice], enabled: Bool = true, watching: [
         #expect(planned.first?.playEpisode == 8)
     }
 
-    @Test func whatNotifiesFollowsTheSettingAndEachShowsSwitch() {
-        let rows = [
+    @Test func whatNotifiesIsWhatTheEngineSaysNotifies() {
+        let on = [
             airing(1, 2, in: hour, .watching),
             airing(2, 3, in: hour, .switchedOn),
             airing(3, 4, in: hour, .switchedOff),
         ]
-        #expect(NoticePlan.schedule(week(rows, enabled: true), now: now).map(\.show) == [1, 2])
-        // Off, only a show switched on for itself notifies.
-        #expect(NoticePlan.schedule(week(rows, enabled: false), now: now).map(\.show) == [2])
+        #expect(NoticePlan.schedule(week(on, enabled: true), now: now).map(\.show) == [1, 2])
+        // Off, the engine says only a show switched on for itself notifies.
+        let off = [
+            airing(1, 2, in: hour, .watching, notifies: false),
+            airing(2, 3, in: hour, .switchedOn),
+            airing(3, 4, in: hour, .switchedOff),
+        ]
+        #expect(NoticePlan.schedule(week(off, enabled: false), now: now).map(\.show) == [2])
+    }
+
+    @Test func aShowWatchedDubbedIsLeftToTheCheckWhichSaysItDubbed() {
+        let rows = [airing(1, 9, in: hour, translation: .dub), airing(2, 3, in: hour)]
+        #expect(NoticePlan.schedule(week(rows), now: now).map(\.show) == [2], "not at the broadcast")
+
+        let said = [NewEpisode(id: 1, title: "Show 1", episode: 9, airedAt: 1, coverUrl: nil, translation: .dub)]
+        let posts = NoticePlan.catchUp(said, scheduled: ["ep.1.9.sub"], week: week(rows))
+        #expect(posts.map(\.identifier) == ["ep.1.9.dub"], "its own notification, not the sub's")
+        #expect(posts.first?.body == "Episode 9 is out, dubbed.")
+        #expect(posts.first?.category == .newEpisode)
+
+        let behind = [NewEpisode(id: 4, title: "Show 4", episode: 10, airedAt: 1, coverUrl: nil, nextForYou: 8, translation: .dub)]
+        let words = NoticePlan.catchUp(behind, scheduled: [], week: nil).first
+        #expect(words?.body == "Episode 10 is out, dubbed. Next for you: episode 8.")
+        #expect(words?.playEpisode == 8)
     }
 
     @Test func noMoreThanSixtyAndEachEpisodeOnce() {
@@ -271,6 +296,50 @@ private func ledger() -> NoticeLedger {
         #expect(allowing.quiet.timesAsked == 1)
     }
 
+    @Test func theBackgroundRefreshIsWantedWhileTheSwitchOrAShowIsOn() {
+        func view(on: Bool, switchedOn: UInt32) -> SettingsView {
+            var view = settingsView(order: [])
+            view.nativeRows = [
+                SettingRow(key: .episodeNotifications, value: on ? "on" : "off", change: .steps(back: on, forward: !on)),
+            ]
+            view.notifySwitchedOn = switchedOn
+            return view
+        }
+        #expect(!NotificationsModel.notifies(view(on: false, switchedOn: 0)))
+        #expect(NotificationsModel.notifies(view(on: true, switchedOn: 0)))
+        #expect(NotificationsModel.notifies(view(on: false, switchedOn: 1)), "a show switched on notifies")
+
+        let model = NotificationsModel()
+        var told: [Bool] = []
+        model.onRefreshes = { told.append($0) }
+        #expect(model.refreshes == nil, "not known before the settings")
+        model.observe(.settings(view(on: false, switchedOn: 1)))
+        model.observe(.settings(view(on: true, switchedOn: 1)))
+        model.observe(.settings(view(on: false, switchedOn: 0)))
+        #expect(told == [true, false], "told once known, then only when it changes")
+    }
+
+    @Test func aWidgetPlacedKeepsTheRefreshWithNothingNotifying() {
+        // On with nothing notifying and a widget placed; off with neither.
+        #expect(NotificationsModel.refreshes(notifying: false, widgetsPlaced: true) == true)
+        #expect(NotificationsModel.refreshes(notifying: false, widgetsPlaced: false) == false)
+        #expect(NotificationsModel.refreshes(notifying: nil, widgetsPlaced: true) == true, "before the settings")
+        #expect(NotificationsModel.refreshes(notifying: nil, widgetsPlaced: false) == nil)
+
+        #expect(WidgetKinds.anyPlaced(["tv.anistream.airing-today"]))
+        #expect(!WidgetKinds.anyPlaced(["com.example.weather", "tv.anistream"]))
+
+        let model = NotificationsModel()
+        var told: [Bool] = []
+        model.onRefreshes = { told.append($0) }
+        model.widgetsPlaced(["tv.anistream.continue-watching"])
+        model.observe(.settings(settingsView(order: [])))
+        #expect(told == [true], "a widget, with nothing notifying")
+        model.widgetsPlaced([])
+        #expect(told == [true, false], "neither")
+        #expect(model.refreshes == false)
+    }
+
     @Test func aShowNotBeingWatchedThatFollowsSettingsSaysOff() {
         #expect(ShowNoticeChoice.followSettings.label(settingOn: true, watching: false, capitalised: false) == "Off · not watching")
         #expect(ShowNoticeChoice.followSettings.label(settingOn: true, watching: true, capitalised: true) == "Use Default · On")
@@ -321,5 +390,30 @@ struct NoticeRefreshTests {
         #expect(snapshot.continueWatching.count == 4)
         #expect(snapshot.continueWatching.first?.title == "Stardust Wayfarer")
         #expect(snapshot.continueWatching.first?.minutesLeft == 14)
+    }
+
+    @Test func forTheWidgetsAloneARefreshOnlyWritesTheirRecord() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let launch = EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .macOs, secrets: .host)
+        let engine = try BackgroundEngine(launch, host: quietHost())
+        defer { engine.shutdown() }
+
+        let centre = CountingCentre()
+        let scheduler = NoticeScheduler(centre: centre, ledger: ledger()) { _ in nil }
+        let files = WidgetFiles(directory: root.appending(path: "group/widgets", directoryHint: .isDirectory))
+        let reloads = Reloads()
+        let feed = WidgetFeed(files: files, reload: { reloads.count += 1 })
+        let outcome = await NoticeRefresh(
+            questions: engine.questions, scheduler: scheduler, widgets: feed.writer(art: engine.questions),
+            notifying: false
+        ).run()
+
+        #expect(outcome.finished)
+        #expect(outcome.wroteWidgets)
+        #expect(reloads.count == 1, "the widgets read the record again")
+        #expect(files.snapshot() != nil)
+        #expect(outcome.posted.isEmpty && outcome.scheduled.isEmpty, "nothing notifies")
+        #expect(centre.quiet.notices.isEmpty)
     }
 }

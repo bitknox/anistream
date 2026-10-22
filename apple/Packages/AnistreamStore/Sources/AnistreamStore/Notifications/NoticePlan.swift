@@ -68,28 +68,27 @@ public enum NoticePlan {
     /// What a notification says when previews are hidden.
     public static let hiddenPreview = "New episode"
 
-    /// The notification for episode `episode` of `show`. AniList's schedule is the broadcast's,
-    /// the subtitled release's, so every one is `sub` until the app knows a dub's own times.
+    /// The notification for episode `episode` of `show`: `sub` for one scheduled at the
+    /// broadcast, which is the subtitled release's, and `dub` for one the check says once the
+    /// dub is out.
     public static func identifier(show: AnilistId, episode: UInt32, translation: String = "sub") -> String {
         "\(prefix)\(show).\(episode).\(translation)"
     }
 
-    /// Whether a broadcast of the week notifies: a show switched on for itself always does, a
-    /// show being watched while the setting is on, and a show switched off never.
-    public static func notifies(_ reason: NoticeReason, enabled: Bool) -> Bool {
-        switch reason {
-        case .switchedOn: true
-        case .watching: enabled
-        case .switchedOff: false
-        }
+    /// The identifier's word for `translation`.
+    static func word(_ translation: Translation?) -> String {
+        translation == .dub ? "dub" : "sub"
     }
 
     /// The week's notifications, soonest first: each episode still to air of a show that
-    /// notifies, once, at most `limit` of them.
+    /// notifies, as the engine says (a show switched on for itself whatever the setting, one
+    /// being watched while it is on), once, at most `limit` of them. A show watched dubbed is
+    /// left to the background check, which says it once its dub is out: AniList dates only the
+    /// broadcast.
     public static func schedule(_ week: UpcomingNotices, now: Date) -> [PlannedNotice] {
         var seen = Set<String>()
         let rows = week.airings
-            .filter { notifies($0.reason, enabled: week.enabled) }
+            .filter { $0.notifies && $0.translation != .dub }
             .filter { Date(timeIntervalSince1970: TimeInterval($0.airsAt)) > now }
             .sorted { ($0.airsAt, $0.id, $0.episode) < ($1.airsAt, $1.id, $1.episode) }
         var planned: [PlannedNotice] = []
@@ -108,8 +107,9 @@ public enum NoticePlan {
     }
 
     /// What the background check found aired that no scheduled notification said, to post now:
-    /// an episode of a show followed since the last schedule, or one AniList moved earlier.
-    /// Whether the viewer is behind comes from the week, where it has the show.
+    /// an episode of a show followed since the last schedule, one AniList moved earlier, or the
+    /// dub of one watched dubbed, out now. Whether the viewer is behind comes from the week,
+    /// where it has the show.
     public static func catchUp(
         _ said: [NewEpisode], scheduled: Set<String>, week: UpcomingNotices?
     ) -> [PlannedNotice] {
@@ -119,10 +119,11 @@ public enum NoticePlan {
         }
         var seen = Set<String>()
         return said.compactMap { episode in
-            let identifier = identifier(show: episode.id, episode: episode.episode)
+            let dubbed = episode.translation == .dub
+            let identifier = identifier(show: episode.id, episode: episode.episode, translation: word(episode.translation))
             guard !scheduled.contains(identifier), seen.insert(identifier).inserted else { return nil }
-            let next = standing[episode.id]?.nextToWatch ?? episode.episode
-            let words = words(episode: episode.episode, nextToWatch: next)
+            let next = standing[episode.id]?.nextToWatch ?? episode.nextForYou ?? episode.episode
+            let words = words(episode: episode.episode, nextToWatch: next, dubbed: dubbed)
             return PlannedNotice(
                 identifier: identifier, show: episode.id, episode: episode.episode,
                 playEpisode: words.play, title: episode.title, body: words.body,
@@ -134,13 +135,15 @@ public enum NoticePlan {
 
     /// The body and actions for `episode`, by where the viewer is: caught up, "Episode 9 is
     /// out.", with Play and Mark watched; behind, "Episode 10 is out. Next for you: episode 8.",
-    /// with Play starting episode 8. Never an episode's name.
-    public static func words(episode: UInt32, nextToWatch: UInt32)
+    /// with Play starting episode 8. Out in the dub the viewer watches the show in, "Episode 9 is
+    /// out, dubbed." Never an episode's name.
+    public static func words(episode: UInt32, nextToWatch: UInt32, dubbed: Bool = false)
         -> (body: String, category: NoticeCategory, play: UInt32)
     {
+        let out = "Episode \(episode) is out\(dubbed ? ", dubbed" : "")."
         if nextToWatch < episode {
-            return ("Episode \(episode) is out. Next for you: episode \(nextToWatch).", .behind, nextToWatch)
+            return ("\(out) Next for you: episode \(nextToWatch).", .behind, nextToWatch)
         }
-        return ("Episode \(episode) is out.", .newEpisode, episode)
+        return (out, .newEpisode, episode)
     }
 }

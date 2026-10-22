@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
@@ -20,6 +21,22 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import tv.anistream.engine.model.WidgetData
 import tv.anistream.store.AppClock
+
+/**
+ * A widget's receiver: the widget drawn, and the app told as the first of its kind is placed and
+ * the last taken off (`onEnabled`, `onDisabled`), for its background refresh to follow.
+ */
+abstract class AnistreamWidgetReceiver : GlanceAppWidgetReceiver() {
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        widgetHost(context)?.widgetsChanged()
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        widgetHost(context)?.widgetsChanged()
+    }
+}
 
 object Widgets {
     private const val TAG = "anistream.widgets"

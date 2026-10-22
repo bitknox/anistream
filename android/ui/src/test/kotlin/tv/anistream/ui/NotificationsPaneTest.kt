@@ -28,7 +28,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.SettingValue
-import tv.anistream.engine.model.ComingEpisode
+import tv.anistream.engine.model.NoticeReason
+import tv.anistream.engine.model.UpcomingNotice
+import tv.anistream.engine.model.UpcomingNotices
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.SettingKey
@@ -91,16 +93,22 @@ class NotificationsPaneTest {
     }
 
     @Test
-    fun coming_up_lists_the_engines_episodes_and_says_which_a_show_switched_on_for_itself() {
+    fun coming_up_lists_the_engines_week_and_says_which_a_show_switched_on_for_itself() {
         pane(AppActions())
-        // The pane asks for the list as it opens.
-        assertTrue(Command.ComingEpisodes in store.waiting)
+        // The pane asks for the week as it opens.
+        assertTrue(Command.UpcomingNotices in store.waiting)
         compose.runOnUiThread {
             store.apply(
-                Event.ComingEpisodes(
-                    listOf(
-                        ComingEpisode(900002u, "The Library Above the Clouds", 6u, airsAt = 1_792_163_730),
-                        ComingEpisode(900006u, "Summer Wind Relay", 9u, airsAt = 1_792_515_630, switchedOn = true),
+                Event.UpcomingNotices(
+                    UpcomingNotices(
+                        enabled = false,
+                        generatedAt = 1_792_000_000,
+                        airings = listOf(
+                            UpcomingNotice(900002u, "The Library Above the Clouds", 6u, 1_792_163_730, NoticeReason.WATCHING, 4u),
+                            UpcomingNotice(900006u, "Summer Wind Relay", 9u, 1_792_515_630, NoticeReason.SWITCHED_ON, 9u, notifies = true),
+                            UpcomingNotice(900003u, "Amber Forest", 2u, 1_792_600_000, NoticeReason.SWITCHED_OFF, 2u),
+                        ),
+                        overrides = 2u,
                     ),
                 ),
             )
@@ -109,7 +117,9 @@ class NotificationsPaneTest {
         assertTrue(compose.onAllNodesWithText("Coming up · next 7 days").fetchSemanticsNodes().isNotEmpty())
         assertTrue(compose.onAllNodesWithText("E6 · ", substring = true).fetchSemanticsNodes().isNotEmpty())
         assertEquals(1, compose.onAllNodesWithText("On in this show’s settings", substring = true).fetchSemanticsNodes().size)
-        assertTrue(compose.onAllNodesWithText("A show opens its settings.").fetchSemanticsNodes().isNotEmpty())
+        // A show its own switch leaves out is named under the week, not listed.
+        assertTrue(compose.onAllNodesWithText("E2 · ", substring = true).fetchSemanticsNodes().isEmpty())
+        assertTrue(compose.onAllNodesWithText("Amber Forest is off in its own settings. A show opens its settings.").fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test

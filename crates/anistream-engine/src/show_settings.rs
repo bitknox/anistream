@@ -61,9 +61,27 @@ pub(crate) fn counts(store: &Store) -> Vec<SettingOverride> {
         .collect()
 }
 
+/// How many shows switch new-episode notifications on for themselves: none, when the database
+/// cannot say.
+pub(crate) fn notify_switched_on(store: &Store) -> u32 {
+    let name = ShowSettingKey::NotifyNewEpisodes.name();
+    match store.shows_setting(name, "true") {
+        Ok(shows) => shows.len() as u32,
+        Err(error) => {
+            tracing::warn!(%error, "could not count the shows switched on for new episodes");
+            0
+        }
+    }
+}
+
+/// Count the shows' own settings again into the settings the engine says.
+pub(crate) fn count(engine: &mut EngineState, store: &Store) {
+    engine.config.set_overridden(counts(store), notify_switched_on(store));
+}
+
 /// Count the shows' own settings again and say the settings with the new counts.
 pub(crate) fn recount(engine: &mut EngineState, services: &Services, tx: &Outbox) {
-    engine.config.set_overridden(counts(&services.store));
+    count(engine, &services.store);
     let _ = tx.send(Event::Settings(engine.config.view()));
 }
 

@@ -456,6 +456,11 @@ pub struct SettingsView {
     /// shows" says under a row. Only those at least one show sets, each once.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub overridden: Vec<SettingOverride>,
+    /// How many shows switch new-episode notifications on for themselves, which notify whether
+    /// [`SettingKey::EpisodeNotifications`] is on or not. A native app keeps its background
+    /// check scheduled while either is, and cancels it only when neither is.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub notify_switched_on: u32,
     /// How torrent traffic is kept off the viewer's own address, as the torrent sheet and
     /// Sources show it. Boxed, as the largest part of a view every settings event carries:
     /// the bindings see the view itself.
@@ -494,6 +499,7 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         native_rows: native_rows(effective, saved),
         // The shows' own are the database's, which the engine counts and puts in.
         overridden: Vec::new(),
+        notify_switched_on: 0,
         torrent: Box::new(crate::protection::view(&effective.providers.torrent.vpn)),
     }
 }

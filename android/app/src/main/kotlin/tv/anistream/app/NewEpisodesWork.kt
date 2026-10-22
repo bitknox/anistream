@@ -34,6 +34,12 @@ interface NewEpisodesHost {
 
     /** Mark [episode] of [id] watched, on the app's engine or one started for it. */
     suspend fun markWatched(id: AnilistId, episode: UInt)
+
+    /**
+     * Make the widgets' record, while a widget is placed: what a run does when no notification
+     * could show, which the check would otherwise make it after.
+     */
+    suspend fun recordWidgets() {}
 }
 
 /** When the check runs: about every six hours, on a network, with the battery not low. */
@@ -72,15 +78,20 @@ object NewEpisodesSchedule {
 }
 
 /**
- * One check: ask the engine for the episodes that aired since the last one, and post them.
- * Nothing is asked while a notification could not show, so no episode is spent on a check that
- * cannot say it; a check that fails is tried again later, three times at most.
+ * One check: ask the engine for the episodes that aired since the last one, and post them, then
+ * keep the widgets' record. Nothing is asked of the check while a notification could not show, so
+ * no episode is spent on a check that cannot say it: only the widgets' record is made then. With
+ * nothing notifying, the engine's check says nothing, and a run only keeps the widgets' record. A
+ * check that fails is tried again later, three times at most.
  */
 class NewEpisodesWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val host = applicationContext as? NewEpisodesHost ?: return Result.failure()
         val check = host.episodeCheck ?: return Result.success()
-        if (!host.episodeNotifier.canPost) return Result.success()
+        if (!host.episodeNotifier.canPost) {
+            runCatching { host.recordWidgets() }.onFailure { if (it is CancellationException) throw it }
+            return Result.success()
+        }
         val episodes = try {
             check.newEpisodes()
         } catch (e: BackgroundEngine.Yielded) {

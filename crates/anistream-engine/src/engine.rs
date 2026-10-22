@@ -239,7 +239,7 @@ impl Engine {
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
         // With the counts of shows that set each setting for themselves, which the rows say.
-        state.config.set_overridden(crate::show_settings::counts(&services.store));
+        crate::show_settings::count(&mut state, &services.store);
         let mut launch = VecDeque::new();
         // The settings first: everything after is drawn under the config they say.
         launch.push_back(Event::Settings(state.config.view()));
