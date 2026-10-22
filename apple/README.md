@@ -198,6 +198,15 @@ engine in temporary directories, and keep secrets in memory.
   engine's cache (`apple/shelf.json`), so
   a list not shown this session keeps its titles and a title that left is removed; with nothing
   saved, as on every Fixtures launch, the domain is cleared first.
+  App Intents, as native-spec/native-layer.md has them: what "Continue watching", "Open <title>"
+  and "What's airing today in anistream" do is `IntentsBridge`'s, over the same shelf, so a title
+  can be named before the engine has answered (an intent that runs first starts the engine).
+  Continue plays its hero's episode from where it was left, and with nothing out to play answers
+  without opening the app; Airing today lists everything airing today with yours marked, and
+  says your shows' times. The intents, their `TitleEntity` and the App Shortcuts are the app
+  target's (`App/Intents.swift`): Siri's phrase training reads the entity's name from the app's
+  own metadata, and with the entity in a framework it found none. Titles are suggested only
+  while "Show titles in Spotlight" is on.
 - **AnistreamPlayer**: libmpv in the app's own view, on `Mpv.xcframework` (which mpv.sh links in
   as `Mpv/`). `MpvClient` owns one mpv: every call runs on its own serial queue, so nothing waits
   on mpv from the main thread (a screenshot or a reconfigure waits on mpv's render thread, which

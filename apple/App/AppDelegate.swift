@@ -39,6 +39,16 @@ final class AppDelegate: NSObject {
         playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
+        // The App Intents reach the app here, from its first moment: an intent can be what
+        // launched it, before any window has started the engine.
+        let intents = IntentsBridge.shared
+        intents.store = store
+        intents.navigator = navigator
+        intents.start = { [weak self] in Task { await self?.start() } }
+        #if !FIXTURES
+        // The Fixtures app's home is made at its start, a new one every launch.
+        intents.shelfFile = Shelf.file(in: EngineHome.resolve())
+        #endif
         watchPlaying()
     }
 
@@ -75,8 +85,11 @@ final class AppDelegate: NSObject {
         if store.phase == .running {
             // The Fixtures app's titles go under its own domain, and its shelf in its own home.
             let spotlight = SpotlightIndexer(store: store, file: Shelf.file(in: launch.home))
+            // The titles "Open … in anistream" is offered for follow the shelf.
+            spotlight.onUpdate = { AnistreamShortcuts.updateAppShortcutParameters() }
             spotlight.start()
             self.spotlight = spotlight
+            IntentsBridge.shared.shelfFile = Shelf.file(in: launch.home)
         }
         #if FIXTURES
         store.applyWatchedArgument()
