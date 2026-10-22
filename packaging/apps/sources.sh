@@ -32,8 +32,8 @@ mpvkit=1.1.0-n9.0.2
 apple_sources=(
   "fribidi|fribidi-1.0.16.tar.xz|https://github.com/fribidi/fribidi/releases/download/v1.0.16/fribidi-1.0.16.tar.xz|1b1cde5b235d40479e91be2f0e88a309e3214c8ab470ec8a2744d82a5a9ea05c"
   "gnutls|gnutls-3.8.11.tar.xz|https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/gnutls-3.8.11.tar.xz|91bd23c4a86ebc6152e81303d20cf6ceaeb97bc8f84266d0faec6e29f17baa20"
-  "nettle|nettle-3.10.tar.gz|https://ftpmirror.gnu.org/gnu/nettle/nettle-3.10.tar.gz|b4c518adb174e484cb4acea54118f02380c7133771e7e9beb98a0787194ee47c"
-  "gmp|gmp-6.2.1.tar.xz|https://ftpmirror.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz|fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2"
+  "nettle|nettle-3.10.tar.gz|https://ftp.gnu.org/gnu/nettle/nettle-3.10.tar.gz|b4c518adb174e484cb4acea54118f02380c7133771e7e9beb98a0787194ee47c"
+  "gmp|gmp-6.2.1.tar.xz|https://ftp.gnu.org/gnu/gmp/gmp-6.2.1.tar.xz|fd4829912cddd12f84181c3451cc752be224643e87fac497b69edddadc49b4f2"
   "uchardet|uchardet-0.0.8.tar.xz|https://www.freedesktop.org/software/uchardet/releases/uchardet-0.0.8.tar.xz|e97a60cfc00a1c147a674b097bb1422abd9fa78a2d9ce3f3fdcc2e78a34ac5f0"
   "libbluray|libbluray-1.4.0.tar.xz|https://download.videolan.org/pub/videolan/libbluray/1.4.0/libbluray-1.4.0.tar.xz|77937baf07eadda4b2b311cf3af4c50269d2ea3165041f5843d96476c4c92777"
   "MPVKit|MPVKit-1.1.0-n9.0.2.tar.gz|https://github.com/mpvkit/MPVKit/archive/refs/tags/1.1.0-n9.0.2.tar.gz|a68cd08c6a18d396390370a1297a49673aec333353c7585cb30877e840082a37"
