@@ -11,7 +11,7 @@ anistream                                                                       
 ▌ LET ANYONE WITH THE LINK JOIN HEARTH PLUGINS?
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   anyone with the store's link can join it, without a name
-  the link is new each time — an earlier one stays dead
+  the link is new each time, so an earlier one stays dead
   members see that the store is open
 
   enter opens it · esc keeps it to invites
@@ -58,8 +58,8 @@ r12 c00-01 fg=rule bg=ground
 r12 c02-57 fg=text-dim bg=ground
 r12 c58-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-54 fg=text-dim bg=ground
-r13 c55-119 fg=rule bg=ground
+r13 c02-56 fg=text-dim bg=ground
+r13 c57-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
 r14 c02-32 fg=text-dim bg=ground
 r14 c33-35 fg=text-dim bg=ground mod=BOLD

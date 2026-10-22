@@ -260,7 +260,7 @@ impl Stores {
         match previous {
             Some(previous) if invite.open && !previous.anonymous && !previous.revoked => {
                 Err(format!(
-                    "you joined {} as {} — its link would join it again without your name, so \
+                    "you joined {} as {}. Its link would join it again without your name, so \
                      nothing was changed",
                     previous.name, previous.member.name
                 ))
@@ -472,7 +472,7 @@ impl Stores {
         let (joined, token) = self.joined_with_token(store)?;
         if joined.anonymous && name.is_none() {
             return Err(format!(
-                "this device joined {} with its link — paste the same link on the other device",
+                "this device joined {} with its link. Paste the same link on the other device",
                 joined.name
             ));
         }
@@ -570,7 +570,7 @@ impl Stores {
         let (joined, token) = self.joined_with_token(store)?;
         let state = self.client.set_open(&joined.base, &token, open).await.map_err(|e| match e {
             ClientError::NotOpen => format!(
-                "{} cannot let anyone join with a link — its server is older; update it first",
+                "{}'s server is older and cannot let anyone join with a link. Update it first",
                 joined.name
             ),
             e => e.to_string(),
@@ -611,7 +611,7 @@ impl Stores {
                     .map_err(|e| format!("the store made a bad link: {e}"))?;
                 if Some(link.key) != joined.public_key() || !link.open {
                     return Err(
-                        "the store made a link with a different key — check its --url".into()
+                        "the store made a link with a different key. Check its --url".into()
                     );
                 }
                 Some(Secret(link.link()))
@@ -763,7 +763,7 @@ const UNUSABLE: &str =
 
 /// What an open link that no longer joins is said as.
 const OPEN_UNUSABLE: &str =
-    "that link no longer lets anyone join — ask the store's owner for a new link or an invite";
+    "that link no longer lets anyone join. Ask the store's owner for a new link or an invite";
 
 /// A refused preview or join, in the words the link calls for.
 fn unusable(error: ClientError) -> String {

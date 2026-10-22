@@ -220,7 +220,7 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
     assert!(row.open && row.anonymous);
     assert_eq!(row.state, StoreState::Ready);
     let another = guest.invite(&id, None).await.unwrap_err();
-    assert!(another.contains("paste the same link"), "{another}");
+    assert!(another.contains("Paste the same link"), "{another}");
 
     // The owner pasting the store's own link changes nothing: it would trade their name and
     // their owner rights for a member with neither.

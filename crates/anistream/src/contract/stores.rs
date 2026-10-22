@@ -295,7 +295,7 @@ async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name(
     let link = open_view(&updates[1]).link.clone().expect("an open store's link").0;
     assert_eq!(
         toasts(&updates),
-        ["info: anyone with the store's link can join now — copy it from members"]
+        ["info: anyone with the store's link can join now. Copy it from members"]
     );
     ends(&updates, job);
 
@@ -331,7 +331,7 @@ async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name(
     assert!(!open_view(&updates[1]).open && open_view(&updates[1]).link.is_none());
     assert_eq!(
         toasts(&updates),
-        ["info: only people you invite can join now — the device that joined with the link \
+        ["info: only people you invite can join now. The device that joined with the link \
              keeps working until you remove it"]
     );
     ends(&updates, job);

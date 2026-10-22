@@ -1796,7 +1796,8 @@ fn open_link(s: &mut Screen) {
     s.app.open_link_copied = true;
 }
 
-/// What the link leads to when someone pastes it: anyone can join, without a name.
+/// What the link leads to when someone pastes it: who runs the store, what it offers and where
+/// each plugin stands here, and that anyone can join, without a name.
 fn open_link_confirm(s: &mut Screen) {
     join_store(s);
     s.press(&["enter"]);
@@ -1808,7 +1809,22 @@ fn open_link_confirm(s: &mut Screen) {
         fingerprint: "489f 49ea 0372 41ac".into(),
         already_joined: false,
         owners: vec!["Mirei".into()],
-        plugins: Vec::new(),
+        plugins: vec![
+            StorePluginRow {
+                id: "yamabiko".into(),
+                name: "Yamabiko".into(),
+                version: "1.4.0".into(),
+                hosts: vec!["api.yamabiko.example".into()],
+                status: StorePluginStatus::Installed,
+            },
+            StorePluginRow {
+                id: "hotaru".into(),
+                name: "Hotaru".into(),
+                version: "0.3.0".into(),
+                hosts: vec!["subs.example".into()],
+                status: StorePluginStatus::Available,
+            },
+        ],
         open: true,
         anonymous: true,
     })));

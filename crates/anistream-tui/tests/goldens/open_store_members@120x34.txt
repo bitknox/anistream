@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    ↵ remove this device — nothing else is known of it
+                            │    ↵ remove this device, known only by when it joined
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
 === styles ===

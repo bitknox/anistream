@@ -2,7 +2,7 @@
 //! actions, and its members and invites; the rows of the overlays that join a store, confirm a
 //! store action, act on a plugin, publish one and show an invite link.
 
-use anistream_model::stores::{StorePluginStatus, StoreRow, StoreState};
+use anistream_model::stores::{StorePluginRow, StorePluginStatus, StoreRow, StoreState};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
@@ -375,7 +375,7 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
             ("who has joined, and removing someone's access".into(), Role::TextDim)
         }
         Some(StoreLine::WhoCanJoin) if store.open => {
-            ("↵ only let people you invite join — the link stops working".into(), Role::TextDim)
+            ("↵ only let people you invite join, and stop the link".into(), Role::TextDim)
         }
         Some(StoreLine::WhoCanJoin) => {
             ("↵ let anyone with the store's link join, without a name".into(), Role::TextDim)
@@ -393,6 +393,42 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         None => (String::new(), Role::TextDim),
     };
     render_footer(buf, app, area, &footer, role);
+}
+
+/// The plugins a store a link leads to offers, a line each, with what each may contact and where
+/// it stands here: at most a handful, then how many more.
+fn offered_rows(plugins: &[StorePluginRow]) -> Vec<String> {
+    const SHOWN: usize = 5;
+    if plugins.is_empty() {
+        return Vec::new();
+    }
+    let mut rows = vec![format!(
+        "offers    {}",
+        if plugins.len() == 1 {
+            "1 plugin".to_owned()
+        } else {
+            format!("{} plugins", plugins.len())
+        }
+    )];
+    rows.extend(plugins.iter().take(SHOWN).map(|plugin| {
+        let here = match &plugin.status {
+            StorePluginStatus::Available => String::new(),
+            StorePluginStatus::Installed => " · installed".into(),
+            StorePluginStatus::Update { from, .. } => format!(" · {from} installed"),
+            StorePluginStatus::AddedByHand => " · added by hand".into(),
+            StorePluginStatus::OtherStore(other) => format!(" · from {other}"),
+        };
+        format!(
+            "          {} {}  may contact {}{here}",
+            plugin.name,
+            plugin.version,
+            hosts_text(&plugin.hosts)
+        )
+    }));
+    if plugins.len() > SHOWN {
+        rows.push(format!("          and {} more", plugins.len() - SHOWN));
+    }
+    rows
 }
 
 /// Who can join a store, in a few words.
@@ -617,7 +653,7 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
         },
         Some(MemberLine::Invite(_)) => "↵ cancel this invite",
         Some(MemberLine::OpenLink) => "↵ show the link, to copy and share",
-        Some(MemberLine::Anonymous(_)) => "↵ remove this device — nothing else is known of it",
+        Some(MemberLine::Anonymous(_)) => "↵ remove this device, known only by when it joined",
         Some(MemberLine::RemoveAnonymous) => "↵ remove every device that joined with the link",
         None => "",
     };
@@ -656,7 +692,7 @@ pub(super) fn open_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
     rows.push((
         String::new(),
         if app.open_link_copied {
-            "copied to the clipboard where the terminal allows it — or select it to copy".into()
+            "copied to the clipboard where the terminal allows it, or select it to copy".into()
         } else {
             "select it to copy".into()
         },
@@ -733,6 +769,7 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
             if !preview.owners.is_empty() {
                 rows.push(row(&format!("run by    {}", preview.owners.join(", "))));
             }
+            rows.extend(offered_rows(&preview.plugins).into_iter().map(|text| row(&text)));
             if preview.open {
                 rows.push(row("anyone with the link can join"));
             }
@@ -773,7 +810,7 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
         ],
         Some(StoreConfirm::SetOpen { open: true, .. }) => vec![
             row("anyone with the store's link can join it, without a name"),
-            row("the link is new each time — an earlier one stays dead"),
+            row("the link is new each time, so an earlier one stays dead"),
             row("members see that the store is open"),
             row(""),
             row("enter opens it · esc keeps it to invites"),

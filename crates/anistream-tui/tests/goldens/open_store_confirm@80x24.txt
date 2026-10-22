@@ -7,7 +7,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ▌ LET ANYONE WITH THE LINK JOIN HEARTH PLUGINS?
 ────────────────────────────────────────────────────────────────────────────────
   anyone with the store's link can join it, without a name
-  the link is new each time — an earlier one stays dead
+  the link is new each time, so an earlier one stays dead
   members see that the store is open
 
   enter opens it · esc keeps it to invites
@@ -42,8 +42,8 @@ r08 c00-01 fg=rule bg=ground
 r08 c02-57 fg=text-dim bg=ground
 r08 c58-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
-r09 c02-54 fg=text-dim bg=ground
-r09 c55-79 fg=rule bg=ground
+r09 c02-56 fg=text-dim bg=ground
+r09 c57-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
 r10 c02-35 fg=text-dim bg=ground
 r10 c36-79 fg=rule bg=ground

@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   https://plugins.example/join/Wd3Kp8Lq2Zx7Nv5Rt1Yb0g?open#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8
 
-  copied to the clipboard where the terminal allows it — or select it to copy
+  copied to the clipboard where the terminal allows it, or select it to copy
   anyone with it can join, without a name, as often as they like
   it works until the store goes back to invites only
   enter closes
@@ -60,8 +60,8 @@ r11 c02-85 fg=text bg=ground mod=BOLD
 r11 c86-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-76 fg=text-dim bg=ground
-r13 c77-119 fg=rule bg=ground
+r13 c02-75 fg=text-dim bg=ground
+r13 c76-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
 r14 c02-63 fg=text-dim bg=ground
 r14 c64-119 fg=rule bg=ground

@@ -181,14 +181,18 @@ impl StoreTaskContext {
                 let devices = view.devices;
                 self.send(Event::OpenJoin { store, view });
                 self.toast(Notice::info(match (open, devices) {
-                    (true, _) => "anyone with the store's link can join now — copy it from members"
-                        .to_owned(),
+                    (true, _) => {
+                        "anyone with the store's link can join now. Copy it from members"
+                            .to_owned()
+                    }
                     (false, 0) => "only people you invite can join now".to_owned(),
-                    (false, 1) => "only people you invite can join now — the device that joined \
+                    (false, 1) => {
+                        "only people you invite can join now. The device that joined \
                                    with the link keeps working until you remove it"
-                        .to_owned(),
+                            .to_owned()
+                    }
                     (false, n) => format!(
-                        "only people you invite can join now — the {n} devices that joined with \
+                        "only people you invite can join now. The {n} devices that joined with \
                          the link keep working until you remove them"
                     ),
                 }));
@@ -203,7 +207,7 @@ impl StoreTaskContext {
             Ok(view) => {
                 self.send(Event::OpenJoin { store, view });
                 self.toast(Notice::info(match device {
-                    Some(_) => "removed — that device no longer works with this store",
+                    Some(_) => "that device no longer works with this store",
                     None => "removed every device that joined with the link",
                 }));
             }

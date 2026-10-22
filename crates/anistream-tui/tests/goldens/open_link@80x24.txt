@@ -9,7 +9,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   https://plugins.example/join/Wd3Kp8Lq2Zx7Nv5Rt1Yb0g?open#Qe7Ga1Ud5Js0Lo6W
   i2Ty9Rb3Np8
 
-  copied to the clipboard where the terminal allows it — or select it to c…
+  copied to the clipboard where the terminal allows it, or select it to co…
   anyone with it can join, without a name, as often as they like
   it works until the store goes back to invites only
   enter closes
