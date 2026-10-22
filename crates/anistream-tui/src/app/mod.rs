@@ -447,6 +447,8 @@ impl App {
             Event::Settings(view) => self.take_settings(view),
             // A native app's show sheet, which the terminal has none of.
             Event::ShowSettings(_) => {}
+            // The terminal's table says what the source has in the translation it plays.
+            Event::DubbedTo { .. } => {}
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,

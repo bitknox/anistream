@@ -670,8 +670,14 @@ mod tests {
             kind: None,
             skippable: false,
             airs_at: Some(1_792_163_730),
+            delayed_from: Some(1_792_161_000),
         };
         assert_eq!(crossed(row.clone()), row);
+        crosses_intact(Event::DubbedTo {
+            id: AnilistId::new(900_001),
+            episode: Some("6".into()),
+        });
+        crosses_intact(Event::DubbedTo { id: AnilistId::new(900_001), episode: None });
     }
 
     #[test]

@@ -1127,6 +1127,7 @@ fn episode(number: u32, title: &str) -> EpisodeRow {
         kind: None,
         skippable: false,
         airs_at: None,
+        delayed_from: None,
     }
 }
 

@@ -143,8 +143,7 @@ async fn calendar_past_page(
 
     let now = now_epoch();
     // Reversed back into chronological order, so the list reads downward through time.
-    let entries =
-        page.items.iter().rev().map(|a| data::entry_from_airing(a, now, Some(store))).collect();
+    let entries = data::entries_from_airings(page.items.iter().rev(), now, store);
     Ok((entries, page.has_next))
 }
 
@@ -218,9 +217,7 @@ async fn calendar_future(
         {
             Ok(fetched) => {
                 let now = now_epoch();
-                entries.extend(
-                    fetched.items.iter().map(|a| data::entry_from_airing(a, now, Some(store))),
-                );
+                entries.extend(data::entries_from_airings(&fetched.items, now, store));
                 if !fetched.has_next {
                     break;
                 }
