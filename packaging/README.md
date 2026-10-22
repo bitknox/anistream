@@ -21,6 +21,42 @@ Terminal.app, which every Mac has.
 The Linux AppImage embeds the same `.desktop` entry and icon, and is assembled inline in the
 release workflow like the `.deb`.
 
+## How releases work
+
+Every push to main is a release, unless all it changes is under `website/` or `docs/`, or the
+Markdown files at the top of the repository. Nobody tags by hand. `.github/workflows/release.yml`
+works out the version, builds everything, and publishes the release and its tag once every build
+has succeeded.
+
+- The version comes from `next-version.sh`. The version under `[workspace.package]` in
+  Cargo.toml is the base. While it has no release, the release takes it. Once it has one, each
+  release takes the next patch after the highest tag in its series. So the pushes after `v2.0.0`
+  release `v2.0.1`, `v2.0.2` and so on, and raising Cargo.toml to `2.1.0` makes the next release
+  `v2.1.0`. Pre-release tags never count, and a base that would make a release older than the
+  newest one fails. `next-version.sh --test` checks these rules.
+- Each build sets the version in its own checkout with `set-version.sh`, which rewrites the
+  workspace's version in Cargo.toml and Cargo.lock, so `anistream --version`, the apps' engine
+  and the store's server all report it. Nothing is committed back. The apps' version and build
+  number come from it through `apps/version.sh`.
+- release.yml builds the terminal's four targets and calls `apps-release.yml` for the apps. Once
+  all of them have succeeded, `publish.sh` makes a draft release with every file and the notes,
+  then publishes it, which makes the tag `v<version>` on the pushed commit and marks the release
+  latest. Last, release.yml calls `store-image.yml`, which publishes
+  `ghcr.io/bitknox/anistream-store` at the same version.
+- A run that fails publishes nothing and makes no tag, so the next push to main tries the same
+  version again. A failed run can also be run again from the Actions tab, or release.yml
+  dispatched. A dispatch with no tag releases main's newest commit if it has no release yet; one
+  with a tag builds that tag and publishes it again.
+- The notes are the merged pull request's title and body, or for a commit pushed without one the
+  subjects of the commits since the release before. The install notes follow
+  (`release-notes.md` for the terminal, `apps/release-notes.md` for the apps), and then GitHub's
+  list of the pull requests since the release before.
+- Releases run one at a time, in order. A push that arrives during a release waits for it.
+  GitHub keeps only the newest push waiting, and its release carries the changes of the pushes
+  before it.
+- A `v*` tag pushed by hand is released as it is, with the version it names. A pre-release tag
+  such as `v2.1.0-rc.1` is published as a pre-release and is not marked latest.
+
 ## Files
 
 - `linux/anistream.desktop` — desktop entry, installed to `/usr/share/applications`
@@ -68,27 +104,26 @@ packaging/linux/glibc-floor.sh target/x86_64-unknown-linux-gnu/release/anistream
 A release carries the apps beside the terminal binaries: `anistream-<version>-android-arm64.apk`,
 `anistream-<version>-macos.dmg` and `anistream-<version>-ios-unsigned.ipa`, with
 `anistream-<version>-apps-third-party.zip` and `anistream-<version>-apps-sources.tar`, each with a
-`.sha256`. `.github/workflows/apps-release.yml` builds them, and `release.yml` calls it on a tag
-and adds what it built to the draft release after the terminal builds. A pull request that
+`.sha256`. `.github/workflows/apps-release.yml` builds them, and `release.yml` calls it for every
+release and publishes what it built with the terminal builds. A pull request that
 changes the release workflows, this directory, `apple/project.yml`, `android/app/build.gradle.kts`,
 the version catalog or the mpv and engine scripts builds them all without publishing anything,
 and so does a dispatch of apps-release.yml. CI's own jobs build the apps for everything else.
 
-- `apps/version.sh` — the version from the tag, with the build number Android and Apple need,
-  which grows with it (`v1.2.0` is 1020099, `v1.2.0-rc.2` 1020062). Gradle takes them as the
-  properties `ANISTREAM_VERSION_NAME` and `ANISTREAM_VERSION_CODE`, Xcode as `MARKETING_VERSION`
-  and `CURRENT_PROJECT_VERSION`; a local build keeps the ones in its project.
-- `apps/third-party.sh` — the notices' zip: every licence and notice for libmpv, FFmpeg and what
+- `apps/version.sh`: the version from the tag, with the build number Android and Apple need,
+  which grows with it (`v2.0.1` is 200000199, `v2.1.0-rc.2` 201000062). The patch has four
+  digits, since main raises it with every release. Gradle takes them as the properties
+  `ANISTREAM_VERSION_NAME` and `ANISTREAM_VERSION_CODE`, Xcode as `MARKETING_VERSION` and
+  `CURRENT_PROJECT_VERSION`; a local build keeps the ones in its project.
+- `apps/third-party.sh`: the notices' zip: every licence and notice for libmpv, FFmpeg and what
   is inside them, the fonts and the shaders, with the scripts and patches each library was
   built from and what each build recorded; and the release's notes for the apps.
-- `apps/sources.sh` — the source of every library in the apps' player, as the LGPL asks: each
+- `apps/sources.sh`: the source of every library in the apps' player, as the LGPL asks: each
   archive it was built from, by SHA-256, with the scripts and patches that built it. Android's
   come from `android/scripts/mpv.sh --fetch`; the Apple app's LGPL libraries from MPVKit are
   pinned in the script, for the MPVKit release `apple/scripts/mpv.sh` takes, with MPVKit's own
   build scripts and patches. None of it goes into the repository.
-- `apps/release-notes.md` — those notes' install steps, for every version.
-- `apps/publish.sh` — adds the files and the notes to the draft, replacing what an earlier run
-  added.
+- `apps/release-notes.md`: those notes' install steps, for every version.
 
 The APK is signed with the project's release key, from the repository's `ANDROID_RELEASE_*`
 secrets. The Mac app is signed ad hoc and not notarized, and the `.ipa` is signed ad hoc too, for
