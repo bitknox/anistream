@@ -4,7 +4,8 @@
 # :ui, :design, :player and :store modules, as wildcards, the way the Compose libraries write
 # theirs. So the start, every destination, a title page and its season change, Settings and the
 # player opening run compiled from the first time they are used rather than interpreted, however
-# their code moves. The rest is what a cold start, Continue, the five destinations and a title page
+# their code moves. So do the parts of Compose the first menu or sheet runs, which the libraries'
+# own profiles leave out. The rest is what a cold start, Continue, the five destinations and a title page
 # ran in the engine's bindings and the app, recorded from ART's profile of a debug build (cmd
 # package dump-profiles); D8's synthetic lambdas are left out, since their names change from build
 # to build.
@@ -12,6 +13,24 @@ HSPLtv/anistream/ui/**->**(**)**
 HSPLtv/anistream/design/**->**(**)**
 HSPLtv/anistream/player/**->**(**)**
 HSPLtv/anistream/store/**->**(**)**
+# The first menu or sheet in a process, compiled too: Compose's popup and dialog windows, the
+# dropdown menus and their placing, the modal bottom sheet, its state and the dragging that moves it.
+HSPLandroidx/compose/ui/window/**->**(**)**
+HSPLandroidx/compose/material3/AndroidMenu_androidKt**->**(**)**
+HSPLandroidx/compose/material3/MenuKt**->**(**)**
+HSPLandroidx/compose/material3/MenuDefaults**->**(**)**
+HSPLandroidx/compose/material3/MenuItemColors**->**(**)**
+HSPLandroidx/compose/material3/DropdownMenu**->**(**)**
+HSPLandroidx/compose/material3/internal/DropdownMenuPositionProvider**->**(**)**
+HSPLandroidx/compose/material3/internal/MenuPosition**->**(**)**
+HSPLandroidx/compose/material3/ModalBottomSheet**->**(**)**
+HSPLandroidx/compose/material3/BottomSheetDefaults**->**(**)**
+HSPLandroidx/compose/material3/SheetState**->**(**)**
+HSPLandroidx/compose/material3/SheetValue**->**(**)**
+HSPLandroidx/compose/material3/SheetDefaultsKt**->**(**)**
+HSPLandroidx/compose/material3/internal/DraggableAnchors**->**(**)**
+HSPLandroidx/compose/foundation/gestures/AnchoredDraggable**->**(**)**
+HSPLandroidx/compose/foundation/gestures/DraggableAnchors**->**(**)**
 HPLtv/anistream/engine/model/Entry;->equals(Ljava/lang/Object;)Z
 HSPLtv/anistream/engine/ffi/FfiConverter;->liftFromRustBuffer(Ltv/anistream/engine/ffi/RustBuffer$ByValue;)Ljava/lang/Object;
 HSPLtv/anistream/engine/ffi/FfiEngine;->send-JlBESG8(Ltv/anistream/engine/model/Command;)Lkotlin/ULong;
