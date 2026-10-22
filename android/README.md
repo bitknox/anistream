@@ -132,26 +132,33 @@ its own VPN and index has:
    device, enter the torrent index, and Turn on. Wait for Last check to say Passed.
 3. On a title page, long-press an episode and pick Download. Downloads lists it as Queued, then
    running, with its speed and the time left.
-4. The download notification is up. `adb shell dumpsys jobscheduler | grep -A4 tv.anistream.app`
-   shows the job, user-initiated, running.
+4. The download notification is up: on Android 16 a Live Update at the top of the shade and the
+   lock screen, a segment per episode and the time left in the status bar's chip; on Android 15 the
+   plain progress notification. Pause (Pause all), Resume and Cancel act on the queue; a queue
+   paused keeps the notification ten minutes for Resume. `adb shell dumpsys jobscheduler | grep -A4
+   tv.anistream.app` shows the job, user-initiated, running.
 5. Lock the phone for ten minutes, or switch to another app: the download goes on and the
    notification moves.
 6. With Wi-Fi only on (Settings › Downloads), turn Wi-Fi off: the download waits. Turn it on: it
    goes on.
-7. Once done, the row says Downloaded with its size, the job ends and its notification goes. The
+7. Once done, the row says Downloaded with its size, "Episode 8 downloaded" is posted with Play,
+   and the job ends and its own notification goes. The
    file is under `/sdcard/Android/data/tv.anistream.app/files/Movies`
    (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
 8. In flight mode, play it from Downloads.
 
-Launcher shortcuts and notifications open the activity on an app link, on an explicit intent, in
-any build: `anistream://open/search`, `…/downloads`, `…/title/<id>`, `…/continue/<id>` (the title
-page, then the episode Continue would play) and `…/play/<id>/<episode>`. The frame follows each
-through the app's own navigation (`AppLinks.kt`). Search and Downloads are static shortcuts,
-written into each variant's resources from `app/shortcuts.xml` with its package; "Continue
-<title>" is published from the Continue queue as its first playable title changes.
+Launcher shortcuts and notifications open the activity on an app link: an explicit intent, action
+`tv.anistream.action.OPEN`, with the link in its extras, never a URL (`Shortcuts.kt`):
+`tv.anistream.link.open` says what it opens (`search`, `downloads`, `title`, `continue`, `play`
+or `download`) and `tv.anistream.link.show`, `.episode` and `.download` what of. The frame
+follows each through the app's own navigation (`AppLinks.kt`). Search and Downloads are static
+shortcuts, written into each variant's resources from `app/shortcuts.xml` with its package;
+Continue ("Continue", in full "Hoshikuzu no Tabibito E7") is published from the Continue queue,
+opens the player on the episode Continue would play, and with nothing to continue is taken off
+the list, a pinned copy disabled with "Nothing to continue".
 
 ```sh
-adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
+adb shell am start -a tv.anistream.action.OPEN --es tv.anistream.link.open downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
 ```
 
 New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on

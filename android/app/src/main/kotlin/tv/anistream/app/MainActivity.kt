@@ -167,9 +167,9 @@ class MainActivity : ComponentActivity() {
      * launcher is told was used, or a notification's.
      */
     private fun follow(intent: Intent?): Boolean {
-        val link = AppLink.parse(intent?.data?.toString()) ?: return false
+        val link = intent?.appLink() ?: return false
         // Taken off the intent, so a recreated activity does not follow it again.
-        intent?.data = null
+        intent.action = null
         links.trySend(link)
         // A notification's action leaves its notification up; following it takes it away.
         intent?.getStringExtra(EpisodeNotifier.EXTRA_NOTIFICATION)?.let(app.episodeNotifier::dismiss)
