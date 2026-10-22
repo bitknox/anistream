@@ -42,6 +42,8 @@ public final class SeekPreview {
     @ObservationIgnored private var busy = false
     @ObservationIgnored private var ending: [Task<Void, Never>] = []
     @ObservationIgnored private var target: Double?
+    /// The waits in `settled()`.
+    @ObservationIgnored private var settling: [CheckedContinuation<Void, Never>] = []
 
     init(make: @escaping @MainActor () -> any PlayerBackend) {
         self.make = make
@@ -113,7 +115,11 @@ public final class SeekPreview {
 
     /// Seek to the newest target, when mpv is free.
     private func pump() {
-        guard !busy, let backend, let seconds = target else { return }
+        guard !busy else { return }
+        guard let backend, let seconds = target else {
+            settle()
+            return
+        }
         target = nil
         busy = true
         Task { @MainActor [weak self] in
@@ -128,6 +134,20 @@ public final class SeekPreview {
     func resized() {
         guard let backend else { return }
         Task { await backend.resized() }
+    }
+
+    /// Wait until mpv has opened the file and taken the newest seek asked of it, or until the
+    /// preview has closed: what the tests wait on rather than a clock, as with
+    /// `PlayerModel.handedOver()`.
+    func settled() async {
+        guard busy else { return }
+        await withCheckedContinuation { settling.append($0) }
+    }
+
+    private func settle() {
+        let waiting = settling
+        settling = []
+        for continuation in waiting { continuation.resume() }
     }
 
     /// Wait until every preview closed has shut down.
@@ -148,6 +168,7 @@ public final class SeekPreview {
         target = nil
         busy = false
         ready = false
+        settle()
     }
 }
 

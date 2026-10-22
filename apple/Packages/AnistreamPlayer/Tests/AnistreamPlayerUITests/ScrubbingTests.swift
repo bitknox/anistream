@@ -20,7 +20,7 @@ struct PreviewTests {
         ])
         rig.model.scrub(to: 30)
         let preview = try #require(rig.previews.first)
-        try await until("the preview loaded") { preview.calls.count >= 1 }
+        await rig.model.preview.settled()
         #expect(preview.begun)
         #expect(preview.calls.first == .load(url: "https://cdn.example/7.m3u8", options: [
             "http-header-fields": "Referer: https://site.example/", "start": "30.0",
@@ -30,7 +30,8 @@ struct PreviewTests {
         rig.model.scrub(to: 31)
         rig.model.scrub(to: 32)
         rig.model.scrub(to: 33)
-        try await until("the newest seek") { preview.calls.last == .seek(seconds: 33, mode: .keyframe) }
+        await rig.model.preview.settled()
+        #expect(preview.calls.last == .seek(seconds: 33, mode: .keyframe), "the newest seek")
         #expect(rig.previews.count == 1, "one preview for the file")
         #expect(!preview.calls.contains(.seek(seconds: 32, mode: .keyframe)), "\(preview.calls)")
 
@@ -51,9 +52,11 @@ struct PreviewTests {
         rig.model.hover(at: 20)
         #expect(rig.model.hovering == 20)
         let preview = try #require(rig.previews.first)
-        try await until("the preview loaded") { !preview.calls.isEmpty }
+        await rig.model.preview.settled()
+        #expect(!preview.calls.isEmpty, "the preview loaded")
         rig.model.hover(at: 25)
-        try await until("the preview there") { preview.calls.last == .seek(seconds: 25, mode: .keyframe) }
+        await rig.model.preview.settled()
+        #expect(preview.calls.last == .seek(seconds: 25, mode: .keyframe), "the preview there")
         #expect(rig.mpv.calls.count == calls, "the playback stays where it is")
         #expect(rig.controls.isEmpty, "nothing for the engine")
         rig.model.hover(at: nil)
@@ -67,7 +70,7 @@ struct PreviewTests {
         rig.ui(1, .thumbnails(url: "http://127.0.0.1:7878/torrent/abc/0"))
         rig.model.scrub(to: 12)
         let preview = try #require(rig.previews.first)
-        try await until("the preview loaded") { !preview.calls.isEmpty }
+        await rig.model.preview.settled()
         #expect(preview.calls.first == .load(url: "http://127.0.0.1:7878/torrent/abc/0", options: ["start": "12.0"]))
     }
 
@@ -140,12 +143,14 @@ struct LiftTests {
         let before = rig.mpv.calls.count
         rig.model.liftSubtitles(60.0 / 400, animated: false)
         rig.model.liftSubtitles(60.0 / 400, animated: false)
-        try await until("the lift") { rig.mpv.calls.count == before + 1 }
+        await rig.handedOver()
+        try #require(rig.mpv.calls.count == before + 1, "one lift")
         #expect(rig.mpv.calls.last == .set(property: "sub-pos", value: .double(85)))
 
         // Eased down over the controls' fade, ending where it started.
         rig.model.liftSubtitles(0, animated: true)
-        try await until("back down", timeout: .seconds(3)) { rig.mpv.calls.count == before + 9 }
+        await rig.model.subtitleTween?.value
+        await rig.handedOver()
         #expect(rig.mpv.calls.last == .set(property: "sub-pos", value: .double(100)))
         let steps = rig.mpv.calls.suffix(from: before + 1)
         #expect(steps.count == 8, "\(Array(steps))")

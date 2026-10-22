@@ -31,7 +31,7 @@ struct OpsTests {
             .audioFilter(add: false, filter: "@night"),
             .stop,
         ])
-        try await until("every call made") { rig.mpv.calls.count == 15 }
+        await rig.handedOver()
         #expect(rig.mpv.begun)
         #expect(rig.model.isPresented)
         #expect(rig.mpv.calls == [
@@ -79,9 +79,8 @@ struct OpsTests {
         try await rig.opened()
         rig.mpv.answer("chapter-list", [["title": "Opening", "time": 5.0]])
         rig.ops(1, [.restateChapters])
-        try await until("the chapters reported") {
-            rig.reports.contains { $0.1 == .property(name: "chapter-list", json: #"[{"time":5,"title":"Opening"}]"#) }
-        }
+        await rig.handedOver()
+        #expect(rig.reports.contains { $0.1 == .property(name: "chapter-list", json: #"[{"time":5,"title":"Opening"}]"#) })
     }
 }
 
@@ -97,7 +96,8 @@ struct ReportTests {
         // playback's from mpv's start-file on.
         rig.ops(1, [.stop])
         rig.ops(2, [.load(url: "/media/8.mkv", options: [])])
-        try await until("the next file loading") { rig.mpv.calls.count == 3 }
+        await rig.handedOver()
+        try #require(rig.mpv.calls.count == 3, "the next file loading")
         rig.mpv.emit(.endFile(MpvEnd(reason: "stop", error: nil)))
         rig.mpv.emit(.startFile)
         rig.mpv.emit(.fileLoaded)
@@ -124,7 +124,8 @@ struct ReportTests {
         try await rig.opened()
         rig.model.surfaceDisplay(
             DisplayInfo(width: 3024, height: 1964, scale: 2, refreshRate: 120, edrHeadroom: 4, edrPotential: 16))
-        try await until("mpv told") { !rig.mpv.state.withLock { $0.displays.isEmpty } }
+        await rig.handedOver()
+        #expect(!rig.mpv.state.withLock { $0.displays.isEmpty }, "mpv told")
         #expect(rig.reports.last! == (1, .display(width: 3024, height: 1964, scale: 2, refreshHz: 120, edrHeadroom: 4, compute: true)))
     }
 
@@ -479,7 +480,8 @@ struct CardTests {
         rig.mpv.emit(.playbackRestart)
         rig.ops(1, [.stop])
         rig.ops(2, [.load(url: "/media/8.mkv", options: [])])
-        try await until("the load") { rig.mpv.calls.count == 3 }
+        await rig.handedOver()
+        try #require(rig.mpv.calls.count == 3, "the load")
         #expect(rig.model.starting != nil)
         rig.mpv.emit(.startFile)
         rig.mpv.emit(.playbackRestart)
@@ -495,7 +497,8 @@ struct CardTests {
             try await rig.playhead(52)
             rig.ops(playback - 1, [.stop])
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
-            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            await rig.handedOver()
+            try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
             rig.mpv.emit(.startFile)
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
@@ -517,7 +520,8 @@ struct CardTests {
             rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 2))
             try await rig.playhead(52)
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
-            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            await rig.handedOver()
+            try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
             rig.mpv.emit(.startFile)
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
@@ -540,7 +544,8 @@ struct CardTests {
                 try await rig.playhead(52)
             }
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
-            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            await rig.handedOver()
+            try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
             rig.mpv.emit(.startFile)
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
@@ -558,7 +563,8 @@ struct CardTests {
             try await rig.playhead(52)
             if playback == 3 { rig.model.seek(by: 10) }
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
-            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            await rig.handedOver()
+            try #require(rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback), "the load")
             rig.mpv.emit(.startFile)
             rig.mpv.emit(.playbackRestart)
             try await rig.playhead(0.5)
@@ -651,7 +657,8 @@ struct ViewerTests {
         rig.model.scrub(to: 11)
         #expect(rig.model.controlsVisible)
         rig.model.endScrub()
-        try await until("the keyframe seeks") { rig.mpv.calls.count == 3 }
+        await rig.handedOver()
+        #expect(rig.mpv.calls.count == 3, "the keyframe seeks")
         #expect(rig.mpv.calls.suffix(2) == [.seek(seconds: 10, mode: .keyframe), .seek(seconds: 11, mode: .keyframe)])
         #expect(rig.controls.last == .seekTo(11))
     }
@@ -661,7 +668,8 @@ struct ViewerTests {
         try await rig.opened()
         rig.model.backgrounded(true)
         rig.model.backgrounded(false)
-        try await until("vid set twice") { rig.mpv.calls.count == 3 }
+        await rig.handedOver()
+        #expect(rig.mpv.calls.count == 3, "vid set twice")
         #expect(rig.mpv.calls.suffix(2) == [.set(property: "vid", value: "no"), .set(property: "vid", value: "auto")])
     }
 

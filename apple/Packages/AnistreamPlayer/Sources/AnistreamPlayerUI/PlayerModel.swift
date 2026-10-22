@@ -39,6 +39,9 @@ public final class PlayerModel {
     @ObservationIgnored private var since: ContinuousClock.Instant?
     /// mpvs shutting down, off the main thread: what `finished()` waits for.
     @ObservationIgnored private var ending: [Task<Void, Never>] = []
+    /// The waits in `handedOver()` whose marks mpv's queue has not reached, by mark.
+    @ObservationIgnored private var marks: [Int: CheckedContinuation<Void, Never>] = [:]
+    @ObservationIgnored private var lastMark = 0
     /// What mpv has warned of for this file, said once each.
     @ObservationIgnored private var mpvSaid: Set<String> = []
     @ObservationIgnored let nowPlaying = NowPlaying()
@@ -51,6 +54,8 @@ public final class PlayerModel {
         case call(MpvCall)
         case display(DisplayInfo)
         case resized
+        /// A wait in `handedOver()`: reached once mpv has had everything queued before it.
+        case mark(Int)
     }
 
     /// `send` hands the engine a command; `backend` makes the mpv for each player opened, and
@@ -213,7 +218,8 @@ public final class PlayerModel {
     public private(set) var scrubPace: Double = 1
     /// Where `sub-pos` is headed, lifting the subtitles above the controls.
     @ObservationIgnored private(set) var subtitlePosition: Double = 100
-    @ObservationIgnored private var subtitleTween: Task<Void, Never>?
+    /// The lift easing `sub-pos` there, while it runs.
+    @ObservationIgnored private(set) var subtitleTween: Task<Void, Never>?
     /// The starting screen held over the picture, for a screenshot of it.
     public var holdsCurtain = false
     /// Scrubbing, at this time: the seek line follows the finger, not mpv.
@@ -461,6 +467,8 @@ public final class PlayerModel {
                             await backend.display(display)
                         case .resized:
                             await backend.resized()
+                        case .mark(let mark):
+                            self?.marks.removeValue(forKey: mark)?.resume()
                         }
                     } catch {
                         Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
@@ -563,6 +571,9 @@ public final class PlayerModel {
         listener = nil
         worker = nil
         work = nil
+        // What was still queued never reaches mpv now: nobody waits for it.
+        for mark in marks.values { mark.resume() }
+        marks = [:]
         if let backend {
             ending.append(Task.detached { await backend.end() })
         }
@@ -844,6 +855,22 @@ public final class PlayerModel {
         work?.yield(item)
     }
 
+    /// Wait until mpv has had everything queued for it so far, or until there is no mpv to have
+    /// it. What the tests wait on rather than a clock: the queue takes a turn on the main actor
+    /// after each call, so a busy main actor can hold it up for seconds, but once the mark is
+    /// reached every call before it has gone to mpv.
+    func handedOver() async {
+        guard let work else { return }
+        lastMark += 1
+        let mark = lastMark
+        await withCheckedContinuation { continuation in
+            marks[mark] = continuation
+            if case .terminated = work.yield(.mark(mark)) {
+                marks.removeValue(forKey: mark)?.resume()
+            }
+        }
+    }
+
     /// Wait until every mpv this player closed, the preview's too, has shut down: before a
     /// process that played exits, so no mpv thread outlives it.
     public func finished() async {
@@ -930,6 +957,7 @@ public final class PlayerModel {
         case .call(let call): "\(call)".prefix(80).description
         case .display: "the display"
         case .resized: "a resize"
+        case .mark: "a mark"
         }
     }
 

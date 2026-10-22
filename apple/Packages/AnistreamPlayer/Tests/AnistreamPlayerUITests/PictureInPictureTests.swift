@@ -402,23 +402,28 @@ struct InlinePictureInPictureTests {
         let (rig, pip, system) = try await playing()
         // Home with no Picture in Picture: the audio plays on, the picture is not decoded.
         rig.model.backgrounded(true)
-        try await until("the video off") { videoTracks(rig) == ["no"] }
+        await rig.handedOver()
+        #expect(videoTracks(rig) == ["no"], "the video off")
         rig.model.backgrounded(false)
-        try await until("the video on") { videoTracks(rig) == ["no", "auto"] }
+        await rig.handedOver()
+        #expect(videoTracks(rig) == ["no", "auto"], "the video on")
 
         // Home while it plays, the system opening its window after the app said it had gone.
         rig.model.backgrounded(true)
         system.say(.systemStarting)
-        try await until("the video on for the window") { videoTracks(rig) == ["no", "auto", "no", "auto"] }
+        await rig.handedOver()
+        #expect(videoTracks(rig) == ["no", "auto", "no", "auto"], "the video on for the window")
         system.say(.started)
         // In the floating window, still in the background: on.
         system.say(.restore)
         #expect(videoTracks(rig).count == 4)
         // The window gone and the app still in the background: off again.
         system.say(.stopped)
-        try await until("the video off") { videoTracks(rig).last == "no" && videoTracks(rig).count == 5 }
+        await rig.handedOver()
+        #expect(videoTracks(rig) == ["no", "auto", "no", "auto", "no"], "the video off")
         rig.model.backgrounded(false)
-        try await until("the video on") { videoTracks(rig).last == "auto" && videoTracks(rig).count == 6 }
+        await rig.handedOver()
+        #expect(videoTracks(rig) == ["no", "auto", "no", "auto", "no", "auto"], "the video on")
         withExtendedLifetime(pip) {}
     }
 
@@ -429,11 +434,7 @@ struct InlinePictureInPictureTests {
         system.say(.started)
         rig.model.backgrounded(true)
         rig.model.backgrounded(false)
-        // Something sent to mpv after them, so anything they sent is in by the time it is.
-        rig.model.liftSubtitles(0.2, animated: false)
-        try await until("the lift sent") {
-            rig.mpv.calls.contains { if case .set(property: "sub-pos", _) = $0 { true } else { false } }
-        }
+        await rig.handedOver()
         #expect(videoTracks(rig).isEmpty)
         withExtendedLifetime(pip) {}
     }
