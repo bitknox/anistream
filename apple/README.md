@@ -362,7 +362,8 @@ the **AnistreamWidgets** extension, which the app embeds on every platform. Its 
 The app asks the engine for `Command::WidgetSnapshot` two seconds after Continue, the Calendar, a
 playback or a sync last changed, and `WidgetFeed` writes the answer, as `widgets/snapshot.json`
 with the art as small JPEGs in `widgets/art/`, into the App Group container, then reloads the
-widgets. A background task writes its own the same way, with `store.widgets.write(data, art:)`.
+widgets. The background refresh writes its own the same way, through `store.widgets.writer(art:)`,
+so the widgets reload after a background check too.
 The file keeps the engine record's field names and version, and the widgets read versions 1 and 2.
 With no snapshot, Airing today asks AniList's public schedule itself, at most every three hours.
 

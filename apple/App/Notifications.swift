@@ -11,7 +11,6 @@ import AnistreamStore
 import AnistreamUI
 import Foundation
 import UserNotifications
-import WidgetKit
 #if os(iOS)
 import BackgroundTasks
 import UIKit
@@ -111,20 +110,23 @@ final class AppNotifications: NSObject {
     /// the store's engine when the app has one, or on one started for it, with none of the
     /// launch's own background work. True when it ran to the end.
     func refresh() async -> Bool {
-        let widgets = WidgetRecordFile.shared()
+        // The widgets' record is the store's `WidgetFeed`'s to write, as in the foreground, so
+        // the widgets reload after a background check too.
         if storeStarted() {
             // An engine that failed to start, or stopped, answers nothing.
             guard store.phase == .running || store.phase == .starting else { return false }
             let outcome = await NoticeRefresh(
-                questions: store.questions, scheduler: store.notifications.scheduler, widgets: widgets
+                questions: store.questions, scheduler: store.notifications.scheduler,
+                widgets: store.widgets.writer(art: store.artwork)
             ).run()
-            if outcome.wroteWidgets { WidgetCenter.shared.reloadAllTimelines() }
             return outcome.finished
         }
         return await onOwnEngine { engine in
             let scheduler = NoticeScheduler(centre: self.centre) { await engine.questions.art($0) }
-            let outcome = await NoticeRefresh(questions: engine.questions, scheduler: scheduler, widgets: widgets).run()
-            if outcome.wroteWidgets { WidgetCenter.shared.reloadAllTimelines() }
+            let outcome = await NoticeRefresh(
+                questions: engine.questions, scheduler: scheduler,
+                widgets: self.store.widgets.writer(art: engine.questions)
+            ).run()
             return outcome.finished
         }
     }

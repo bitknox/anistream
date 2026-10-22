@@ -10,10 +10,14 @@ public struct NoticeRefresh: Sendable {
     public let questions: EngineQuestions
     /// Where notifications go; `nil` schedules none.
     public let scheduler: NoticeScheduler?
-    /// Where the widgets' record goes; `nil` writes none, as in the Fixtures app.
-    public let widgets: WidgetRecordFile?
+    /// What writes the widgets' record, and reloads them: the store's `WidgetFeed`, as in the
+    /// foreground (`WidgetFeed.writer(art:)`). `nil` writes none, as in the Fixtures app.
+    public let widgets: WidgetWriter?
 
-    public init(questions: EngineQuestions, scheduler: NoticeScheduler?, widgets: WidgetRecordFile?) {
+    /// Writes the widgets' record it is handed.
+    public typealias WidgetWriter = @MainActor @Sendable (WidgetData) async throws -> Void
+
+    public init(questions: EngineQuestions, scheduler: NoticeScheduler?, widgets: WidgetWriter?) {
         self.questions = questions
         self.scheduler = scheduler
         self.widgets = widgets
@@ -48,7 +52,7 @@ public struct NoticeRefresh: Sendable {
         guard !Task.isCancelled else { return outcome }
         if let widgets, let record = await questions.widgetRecord() {
             do {
-                try await widgets.write(record, fetch: { await questions.art($0) })
+                try await widgets(record)
                 outcome.wroteWidgets = true
             } catch {
                 AppLog.error("notices", "could not write the widgets' record: \(error.localizedDescription)")

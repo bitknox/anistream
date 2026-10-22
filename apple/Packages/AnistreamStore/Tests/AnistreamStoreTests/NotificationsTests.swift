@@ -4,6 +4,7 @@
 
 @testable import AnistreamStore
 import AnistreamKit
+import AnistreamWidgetData
 import Foundation
 import Testing
 import UserNotifications
@@ -280,6 +281,7 @@ private func ledger() -> NoticeLedger {
 
 /// A background refresh on the testing engine's Watching scene: signed in to the fake AniList,
 /// two of its four titles airing. Nothing reaches the system: the centre is quiet.
+@MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct NoticeRefreshTests {
     @Test func aRefreshSchedulesTheWeekAndWritesTheWidgetsRecord() async throws {
@@ -292,8 +294,14 @@ struct NoticeRefreshTests {
 
         let centre = CountingCentre()
         let scheduler = NoticeScheduler(centre: centre, ledger: ledger()) { _ in nil }
-        let widgets = WidgetRecordFile(directory: root.appending(path: "group/widgets", directoryHint: .isDirectory))
-        let outcome = await NoticeRefresh(questions: engine.questions, scheduler: scheduler, widgets: widgets).run()
+        // The widgets' record goes through the store's own writer, the widgets package's, which
+        // reloads the widgets once it is written.
+        let files = WidgetFiles(directory: root.appending(path: "group/widgets", directoryHint: .isDirectory))
+        let reloads = Reloads()
+        let feed = WidgetFeed(files: files, reload: { reloads.count += 1 })
+        let outcome = await NoticeRefresh(
+            questions: engine.questions, scheduler: scheduler, widgets: feed.writer(art: engine.questions)
+        ).run()
 
         #expect(outcome.finished)
         #expect(outcome.posted.isEmpty, "a first check only notes where things stand")
@@ -306,13 +314,12 @@ struct NoticeRefreshTests {
         #expect(centre.quiet.notices.map(\.identifier) == outcome.scheduled.map(\.identifier))
 
         #expect(outcome.wroteWidgets)
-        let data = try Data(contentsOf: widgets.snapshotFile)
-        let record = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(record["version"] as? Int == 2)
-        #expect(record["signed_in"] as? Bool == true)
-        let continuing = try #require(record["continue_watching"] as? [[String: Any]])
-        #expect(continuing.count == 4)
-        #expect(continuing.first?["title"] as? String == "Stardust Wayfarer")
-        #expect(continuing.first?["minutes_left"] as? Int == 14)
+        #expect(reloads.count == 1, "the widgets read the record again")
+        let snapshot = try #require(files.snapshot())
+        #expect(snapshot.version == 2)
+        #expect(snapshot.signedIn == true)
+        #expect(snapshot.continueWatching.count == 4)
+        #expect(snapshot.continueWatching.first?.title == "Stardust Wayfarer")
+        #expect(snapshot.continueWatching.first?.minutesLeft == 14)
     }
 }

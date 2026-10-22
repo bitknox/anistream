@@ -74,6 +74,13 @@ public final class WidgetFeed {
         }
     }
 
+    /// What a background refresh writes its record with: this feed, the art from `art`. `nil`
+    /// where there is nowhere to write.
+    public func writer(art: some WidgetArtSource & Sendable) -> NoticeRefresh.WidgetWriter? {
+        guard isEnabled else { return nil }
+        return { [weak self] data in try await self?.write(data, art: art) }
+    }
+
     /// Wait for the snapshot being written, if one is.
     public func finished() async {
         await writing?.value
@@ -167,6 +174,20 @@ public final class WidgetFeed {
                     id: Int($0.id), title: $0.title, episode: Int($0.episode),
                     airsAt: Date(timeIntervalSince1970: TimeInterval($0.airsAt)))
             })
+    }
+}
+
+extension EngineQuestions: WidgetArtSource {
+    /// Asks the engine for each of `urls` at once, as a background refresh on an engine of its
+    /// own does, with no `ArtworkStore` there: ten seconds at most each.
+    public func images(for urls: [String], maxPixelSize: Int) async -> [String: CGImage] {
+        let fetched = await withTaskGroup(of: (String, Data?).self) { group in
+            for url in urls { group.addTask { (url, await self.art(url)) } }
+            var fetched: [String: Data] = [:]
+            for await (url, bytes) in group { fetched[url] = bytes }
+            return fetched
+        }
+        return fetched.compactMapValues { ArtworkStore.decodeWithSource($0, maxPixelSize: maxPixelSize)?.image }
     }
 }
 
