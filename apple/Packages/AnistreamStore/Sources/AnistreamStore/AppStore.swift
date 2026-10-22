@@ -89,6 +89,8 @@ public final class AppStore {
             return true
         }
         continued.send = { [weak self] command in self?.send(command) }
+        // The downloads' Live Activity and the system's own progress for them never show at once.
+        continued.runningChanged = { [weak self] running in self?.downloadsActivity.systemShowsProgress = running }
     }
 
     // MARK: The engine

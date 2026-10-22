@@ -378,9 +378,10 @@ on the Lock Screen and in the Dynamic Island. `DownloadsActivityFeed` starts it 
 starts, updates it every three seconds and at once on a pause, a new episode or a finish, and ends
 it four minutes after the last download finishes. Pause and Resume are `LiveActivityIntent`s that
 run in the app; Play on a finished download opens `anistream://download/<id>`. It shows only while
-the app runs the downloads: set `store.downloadsActivity.systemShowsProgress` while a
-continued-processing task shows the system's own progress, and it ends. Suspended with neither, it
-goes stale after 30 seconds and says the download continues when anistream is opened.
+the app runs the downloads: the store sets `downloadsActivity.systemShowsProgress` from
+`continued.isRunning`, so while a continued-processing task is asked for or shows the system's own
+progress, it ends. Suspended with neither, it goes stale after 30 seconds and says the download
+continues when anistream is opened.
 
 ## Where the app keeps its data
 

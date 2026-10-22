@@ -4,7 +4,7 @@
 //
 // It shows only while the app itself runs the downloads. When a continued-processing task takes
 // them over in the background, the system shows its own progress, and the activity ends, so the two
-// never show together: whoever runs that task sets `systemShowsProgress`. If the app is suspended
+// never show together: the store sets `systemShowsProgress` from `ContinuedDownloads`. If the app is suspended
 // with neither, the activity goes stale and says the download continues when anistream is opened.
 
 import AnistreamKit

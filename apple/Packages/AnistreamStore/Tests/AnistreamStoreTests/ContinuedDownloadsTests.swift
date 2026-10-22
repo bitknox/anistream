@@ -140,6 +140,26 @@ private final class Harness {
         #expect(h.continued.stage == .idle)
     }
 
+    @Test func theLiveActivityStaysAwayFromTheAskUntilTheWindowCloses() {
+        let store = AppStore()
+        store.continued.ask = { _, _ in true }
+        #expect(!store.downloadsActivity.systemShowsProgress)
+        store.continued.update([row(1, .queued)])
+        #expect(store.downloadsActivity.systemShowsProgress, "asked for: the system's progress is about to show")
+        let window = FakeWindow()
+        store.continued.began(window, rows: [row(1, .active, 0.5)])
+        #expect(store.downloadsActivity.systemShowsProgress)
+        store.continued.update([row(1, .done, 1)])
+        #expect(window.ended == true)
+        #expect(!store.downloadsActivity.systemShowsProgress, "the app's own activity may show again")
+
+        // A window the system would not open lets it show again too.
+        store.continued.update([row(1, .done, 1), row(2, .queued)])
+        #expect(store.downloadsActivity.systemShowsProgress)
+        store.continued.refused()
+        #expect(!store.downloadsActivity.systemShowsProgress)
+    }
+
     @Test func withNoWindowToAskForNothingIsAsked() {
         let continued = ContinuedDownloads()
         continued.update([row(1, .queued)])

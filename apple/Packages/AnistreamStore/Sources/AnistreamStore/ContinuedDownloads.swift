@@ -41,6 +41,8 @@ public final class ContinuedDownloads {
     @ObservationIgnored public var ask: (@MainActor (_ title: String, _ subtitle: String) -> Bool)?
     /// Tell the engine where the app is.
     @ObservationIgnored var send: (@MainActor (Command) -> Void)?
+    /// `isRunning` changed: the store keeps the downloads' Live Activity out of the way with it.
+    @ObservationIgnored var runningChanged: (@MainActor (Bool) -> Void)?
     /// Whether the episode on is playing, for the phase the app goes to when it leaves.
     @ObservationIgnored public var playing: @MainActor () -> Bool = { false }
 
@@ -69,7 +71,7 @@ public final class ContinuedDownloads {
         let pending = Self.pending(rows)
         guard stage == .idle, !pending.isEmpty, let ask else { return }
         if ask(Self.title, Self.left(pending.count)) {
-            stage = .asked
+            move(to: .asked)
         }
     }
 
@@ -98,11 +100,11 @@ public final class ContinuedDownloads {
     public func began(_ window: any DownloadWindow, rows: [DownloadRow]) {
         guard !Self.pending(rows).isEmpty else {
             window.end(success: true)
-            stage = .idle
+            move(to: .idle)
             return
         }
         self.window = window
-        stage = .running
+        move(to: .running)
         counted = [:]
         if !inForeground { send?(.appPhase(phase: .backgroundDownloads)) }
         update(rows)
@@ -116,7 +118,7 @@ public final class ContinuedDownloads {
 
     /// The system would not open the window it was asked for.
     public func refused() {
-        if stage == .asked { stage = .idle }
+        if stage == .asked { move(to: .idle) }
     }
 
     /// The app came forward, or left: the phase the engine is told, and a window asked for as it
@@ -136,12 +138,18 @@ public final class ContinuedDownloads {
         want(rows)
     }
 
+    private func move(to next: Stage) {
+        let wasRunning = isRunning
+        stage = next
+        if isRunning != wasRunning { runningChanged?(isRunning) }
+    }
+
     private func finish(success: Bool) {
         window?.end(success: success)
         window = nil
         counted = [:]
         let was = stage
-        stage = .idle
+        move(to: .idle)
         if was == .running, !inForeground {
             send?(.appPhase(phase: .background(playing: playing())))
         }
