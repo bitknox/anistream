@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">anistream</string>
+    <string name="notices_channel">Notices</string>
+    <string name="notices_channel_description">Copies of the app\'s notices, for when anistream is in the background.</string>
+    <string name="downloads_channel">Downloads</string>
+    <string name="downloads_channel_description">How far the episodes being downloaded are.</string>
+    <string name="episodes_channel">New episodes</string>
+    <string name="episodes_channel_description">When a show you follow has a new episode out.</string>
+    <string name="episode_play">Play</string>
+    <string name="episode_mark_watched">Mark watched</string>
+    <!-- The launcher's shortcuts. -->
+    <string name="shortcut_search">Search</string>
+    <string name="shortcut_search_long">Search titles</string>
+    <string name="shortcut_downloads">Downloads</string>
+    <string name="shortcut_unavailable">This shortcut is no longer available.</string>
+    <!-- The Continue shortcut: the title alone where the launcher has little room, and in full. -->
+    <string name="shortcut_continue_long">Continue %1$s</string>
+</resources>

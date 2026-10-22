@@ -242,6 +242,7 @@ fn provider(id: &str) -> ProviderRow {
         last_error: None,
         usable: true,
         held_back: false,
+        ..Default::default()
     }
 }
 

@@ -5,14 +5,16 @@ use std::time::Duration;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
-    catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired},
+    catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
+    hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
-    playback::{Ending, SkipKind},
+    playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
+    show::ShowSettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
         InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
@@ -75,6 +77,15 @@ pub enum Event {
         more_past: bool,
     },
     Detail(Box<Entry>),
+    /// The title language the signed-in AniList viewer reads in, in answer to
+    /// [`Command::LoadTitleLanguage`](crate::command::Command::LoadTitleLanguage). `None` when
+    /// nobody is signed in to AniList, or AniList did not say.
+    ViewerTitleLanguage(Option<TitleLanguage>),
+    /// The form every title is named in changed, to this: the setting was changed, or the
+    /// signed-in AniList viewer it follows signed in or out. What a front end has on screen
+    /// names titles the old way, so it loads what it shows again; what arrives from now on is
+    /// named the new way.
+    TitlesChanged(TitleLanguage),
     Status(String),
     Toast(Notice),
     Providers(Vec<ProviderRow>),
@@ -83,6 +94,8 @@ pub enum Event {
     /// The config, as a front end shows it, whenever any of it changed: a setting written or
     /// refused, a session's choice, or what the player changed on its own.
     Settings(SettingsView),
+    /// One show's settings sheet: asked for, or changed.
+    ShowSettings(ShowSettingsView),
     /// The sources are being rebuilt, because a setting changed which ones should exist. Sent
     /// once the torrent stack is stood down and the chain swapped, ahead of what the rebuild
     /// reports: whatever reloads them has done so, and the screen only has to say it.
@@ -193,6 +206,17 @@ pub enum Event {
     Resumed {
         position: f64,
     },
+    /// What the player a front end hosts is to do for `playback`, in order: see
+    /// [`crate::hosted`]. Only for a front end that hosts the player.
+    PlayerOps {
+        playback: PlaybackId,
+        ops: Vec<PlayerOp>,
+    },
+    /// What a hosted player's own interface is to show for `playback`: see [`crate::hosted`].
+    PlayerUi {
+        playback: PlaybackId,
+        ui: PlayerUi,
+    },
     /// A tracker's sync state changed.
     Sync(Box<SyncState>),
     /// An episode's progress was queued for sync. Bumps the badge without waiting for a drain.
@@ -250,6 +274,19 @@ pub enum Event {
     /// task sending a status — a rate-limit notice, a finished download — would wipe it. `None`
     /// clears it when the flow ends.
     DeviceCode(Option<DeviceCodePrompt>),
+    /// Sign in to `tracker` through the system's sign-in sheet: open `url` in it, and hand back
+    /// the redirect it ends on, one with `callback_scheme` for its scheme, with
+    /// [`Command::FinishSignIn`], or say it was closed with [`Command::CancelSignIn`]. What a
+    /// native app's own sign-in clients start; the terminal's sign-in catches its redirect on
+    /// a loopback port instead.
+    ///
+    /// [`Command::FinishSignIn`]: crate::command::Command::FinishSignIn
+    /// [`Command::CancelSignIn`]: crate::command::Command::CancelSignIn
+    Authorize {
+        tracker: String,
+        url: String,
+        callback_scheme: String,
+    },
     /// Latest broadcast per title, merged into whatever is on screen.
     ///
     /// Arrives *after* the list it annotates, because it takes a second request that depends on

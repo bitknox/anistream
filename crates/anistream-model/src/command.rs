@@ -5,8 +5,11 @@ use anistream_core::ids::AnilistId;
 use crate::{
     catalog::{LibrarySegment, SearchFilters},
     episodes::EpisodeRow,
-    playback::Successor,
+    hosted::{PlayerChoice, PlayerReport},
+    playback::{PlaybackId, Successor},
+    protection::{FailedCheck, TorrentProtection, TorrentProxy},
     settings::SettingKey,
+    show::ShowSettingKey,
     stores::Secret,
 };
 
@@ -27,7 +30,9 @@ impl Command {
             Self::CheckProviders => "checking providers".into(),
             Self::LoadLibrary(segment) => format!("loading your {} list", segment.label()),
             Self::SyncNow => "syncing".into(),
-            Self::Connect { tracker } => format!("signing in to {tracker}"),
+            Self::Connect { tracker } | Self::FinishSignIn { tracker, .. } => {
+                format!("signing in to {tracker}")
+            }
             Self::ConnectKitsu { .. } => "signing in to kitsu".into(),
             Self::Play { episode, .. } | Self::PlaySource { episode, .. } => {
                 format!("starting ep {episode}")
@@ -99,6 +104,10 @@ pub enum Command {
         filter: SearchFilters,
     },
     LoadDetail(AnilistId),
+    /// Ask the signed-in AniList viewer's title language, answered by
+    /// [`Event::ViewerTitleLanguage`](crate::event::Event::ViewerTitleLanguage). Costs no request
+    /// when the viewer was already looked up for their library.
+    LoadTitleLanguage,
     LoadEpisodes(AnilistId),
     CheckProviders,
     /// Fetch one segment of the tracker's list.
@@ -132,6 +141,17 @@ pub enum Command {
     },
     /// Run a tracker's sign-in flow.
     Connect {
+        tracker: String,
+    },
+    /// Finish signing in to `tracker` with the redirect the system's sign-in sheet came back
+    /// with, after [`Event::Authorize`](crate::event::Event::Authorize): the whole URL, its query
+    /// and its fragment. A secret, since it can carry the token itself.
+    FinishSignIn {
+        tracker: String,
+        callback: Secret,
+    },
+    /// The sign-in sheet for `tracker` was closed without signing in.
+    CancelSignIn {
         tracker: String,
     },
     /// Exchange Kitsu credentials for a token, from the in-app prompt.
@@ -198,6 +218,12 @@ pub enum Command {
     },
     /// Something for the live mpv session.
     Player(PlayerCommand),
+    /// What the player a front end hosts says of `playback`: see [`crate::hosted`]. Taken in
+    /// as it is sent, ahead of the commands waiting, as mpv's reports are read off its socket.
+    PlayerReport {
+        playback: PlaybackId,
+        report: PlayerReport,
+    },
     /// Pin a title to a provider result the user picked, then load its episodes.
     FixMatch {
         id: AnilistId,
@@ -261,6 +287,60 @@ pub enum Command {
     SetTranslation {
         translation: anistream_core::media::Translation,
     },
+    /// The app moved to the foreground or the background, as the system says. In the
+    /// background torrents wait, but for the episode playing when `playing`; back in the
+    /// foreground the connection check runs again before they resume, a loopback server the
+    /// system took is bound again on its own port, and what plays is opened again where it was.
+    AppPhase {
+        phase: AppState,
+    },
+    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. Either
+    /// one holds downloads and seeding until the device is back on a network that is neither.
+    NetworkPath {
+        cellular: bool,
+        constrained: bool,
+    },
+    /// Protect torrent traffic with `mode`, through `proxy` when it is one, and have a failed
+    /// connection check do `on_failure`: written to the file as one change, the proxy's
+    /// password to the host's secret store and never to the file. No protection and warn only
+    /// need `acknowledged`, the viewer having confirmed it, unless the file holds that choice
+    /// already; asked for without it, nothing is written and a notice says why.
+    ///
+    /// Answered as [`Command::SetSetting`] is, with the torrent source brought back up on what
+    /// was written.
+    SetTorrentProtection {
+        mode: TorrentProtection,
+        proxy: Option<TorrentProxy>,
+        on_failure: FailedCheck,
+        acknowledged: bool,
+    },
+    /// Read one show's settings sheet: answered with
+    /// [`Event::ShowSettings`](crate::event::Event::ShowSettings).
+    LoadShowSettings {
+        id: AnilistId,
+    },
+    /// Set `key` for show `id` to `value`, or with `None` have it follow Settings again.
+    /// Answered with the show's sheet, and the settings with their counts of shows that set
+    /// each; a value the setting does not take changes nothing and is said.
+    SetShowSetting {
+        id: AnilistId,
+        key: ShowSettingKey,
+        value: Option<anistream_core::settings::SettingValue>,
+    },
+    /// Put show `id` back on Settings: everything it sets for itself, the source it keeps and
+    /// the tracks the player remembers for it, forgotten. Answered as
+    /// [`Command::SetShowSetting`] is.
+    ResetShowSettings {
+        id: AnilistId,
+    },
+    /// Steer the playback `playback`, and only it: a command for one that is no longer the
+    /// playback the engine started last is let go. What a hosted player sends, which names the
+    /// playback its interface shows, so a Play Now or an Undo that arrives as one episode rolls
+    /// on to the next cannot reach the next one. [`Command::Player`] steers whatever plays.
+    Control {
+        playback: PlaybackId,
+        command: PlayerCommand,
+    },
     /// Read the joined stores, then refresh each one's plugin list.
     LoadStores,
     /// Check a pasted invite link against the store it names, before spending it.
@@ -283,6 +363,13 @@ pub enum Command {
     /// Delete an installed plugin from this machine.
     RemovePlugin {
         plugin: String,
+    },
+    /// Switch the plugin `id` off, or back on, without removing it: it keeps its place and its
+    /// row, and is not tried while off. Answered with the settings, the Providers rows and a
+    /// notice; anything but a plugin is refused in words.
+    DisablePlugin {
+        id: String,
+        disabled: bool,
     },
     /// Make an invite link: for someone new with a name, for another device of yours without.
     CreateInvite {
@@ -369,6 +456,53 @@ pub enum PlayerCommand {
     /// player could not be found, so the viewer, who is looking at the player, learns why the
     /// episode they were watching is still on.
     Alert(String),
+    /// Take the skip on offer.
+    TakeSkip,
+    /// Undo an automatic skip, back to `to`, where it started.
+    UndoSkip {
+        to: f64,
+    },
+    /// Play the next episode now: Up Next's button, and what a hosted player sends when its
+    /// countdown reaches zero.
+    PlayNext,
+    /// Do not roll on when this episode ends.
+    CancelNext,
+    /// A pick in the player's menus.
+    Choose(PlayerChoice),
+    /// The stall prompt's answers: another stream, or keep waiting.
+    StallSwitch,
+    StallWait,
+    /// Night mode on or off.
+    NightMode(bool),
+    /// An upscaling look, by id: `off`, `natural` or `sharp`.
+    Upscaling(String),
+    /// The viewer picked a track by its id in the file's `track-list`, or with `None` turned
+    /// the subtitles off. The engine selects it and remembers it for the series, as it
+    /// remembers a pick made with mpv's own keys, without waiting for the player to report it.
+    ChooseTrack {
+        kind: crate::hosted::TrackKind,
+        id: Option<i64>,
+    },
+    /// The viewer set the subtitle delay to `seconds`. Remembered for the series once it stops
+    /// moving, as a delay set with mpv's own keys is.
+    SubtitleDelay {
+        seconds: f64,
+    },
+    /// Open the file again where it plays now: the loopback server it is read from was bound
+    /// again, after the system took it while the app was in the background.
+    Reload,
+}
+
+/// Where the app is, as the system has it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum AppState {
+    /// On screen.
+    #[default]
+    Foreground,
+    /// Off screen, still playing the episode on when `playing`: its audio, or a screen locked
+    /// on the player.
+    Background { playing: bool },
 }
 
 #[cfg(test)]

@@ -509,9 +509,15 @@ empty=
             let line = serde_json::json!({ "command": command }).to_string() + "\n";
             ipc.write_all(line.as_bytes()).unwrap();
         };
+        // The spawns the stand-in has finished recording. It writes its arguments a few at a
+        // time and `<end>` last, so a read can land partway through one: what follows the last
+        // `<end>` is a spawn still being written, or nothing, and is not counted.
         let invocations = || -> Vec<Vec<String>> {
             let text = fs::read_to_string(&record).unwrap_or_default();
-            text.split_terminator("<end>\n")
+            let mut finished: Vec<&str> = text.split("<end>\n").collect();
+            finished.pop();
+            finished
+                .into_iter()
                 .map(|chunk| chunk.lines().map(str::to_owned).collect())
                 .collect()
         };
@@ -537,7 +543,7 @@ empty=
         send(serde_json::json!(["set_property", key, url_1]));
         send(serde_json::json!(["loadfile", video]));
         let first = wait_for(1).remove(0);
-        assert_eq!(first.last().map(String::as_str), Some(url_1));
+        assert_eq!(first.last().map(String::as_str), Some(url_1), "{first:?}");
         for expected in [
             "--http-header-fields-append=Referer: https://cdn.example/a,b",
             "--http-header-fields-append=X-Token: one\\,two",
@@ -548,12 +554,13 @@ empty=
         }
 
         // 2. The URL changes mid-file: the running child is retired, and the next thumbnail
-        // request starts one on the new URL.
+        // request starts one on the new URL. Straight after the change: mpv runs one client's
+        // commands in order, so the request finds the new URL set, though the script's
+        // observer of it may not have run yet.
         send(serde_json::json!(["set_property", key, url_2]));
-        std::thread::sleep(Duration::from_millis(300));
         send(serde_json::json!(["script-message-to", "thumbfast", "thumb", "5", "", ""]));
         let second = wait_for(2).remove(1);
-        assert_eq!(second.last().map(String::as_str), Some(url_2));
+        assert_eq!(second.last().map(String::as_str), Some(url_2), "{second:?}");
 
         // 3. The next file has no thumbnail URL, so thumbfast opens the file itself. A
         // different frame size, because spawn_first only fires when the thumbnail size changes.
@@ -561,7 +568,7 @@ empty=
         send(serde_json::json!(["set_property", key, ""]));
         send(serde_json::json!(["loadfile", video]));
         let third = wait_for(3).remove(2);
-        assert_eq!(third.last().map(String::as_str), Some(video));
+        assert_eq!(third.last().map(String::as_str), Some(video), "{third:?}");
 
         send(serde_json::json!(["quit"]));
         drop(guard);

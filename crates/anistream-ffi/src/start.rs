@@ -1,7 +1,8 @@
 //! What a start takes beside the app's host, and how it fails: the only types that cross which
 //! are this crate's own rather than the model's.
 
-use anistream_engine::options::Background;
+use anistream_engine::options::{AppClients, Background};
+use anistream_model::playback::PlayerTheme;
 
 /// Where the engine keeps its files: directories the app chooses, such as its Application
 /// Support and Caches directories on macOS, or its container's on iOS.
@@ -87,6 +88,101 @@ impl From<FfiBackground> for Background {
     }
 }
 
+/// What the app says of itself as it starts the engine: how it dresses the player, what it runs
+/// on, the sign-in clients it ships with, and where tokens are kept.
+///
+/// Every field has a default, and [`FfiStart::default`], `FfiStart()` in Swift, is the engine as
+/// it started before there was a choice: the terminal app's palette and the app's keychain. The
+/// two enums are optional only because UniFFI cannot give an enum field a default; `None` is
+/// the default named on each.
+#[derive(Debug, Clone, Default, PartialEq, Eq, uniffi::Record)]
+pub struct FfiStart {
+    /// How the player's own interface is dressed: the app's palette. `None` for the terminal
+    /// app's immersive palette.
+    #[uniffi(default = None)]
+    pub theme: Option<PlayerTheme>,
+    /// What the app runs on. Informational for now: nothing in the engine differs by it yet.
+    #[uniffi(default = None)]
+    pub platform: Option<FfiPlatform>,
+    /// The AniList client the app registered and ships with, for signing in through its own
+    /// URL scheme. Not yet used: native sign-in (E6) reads it.
+    #[uniffi(default = None)]
+    pub anilist_client_id: Option<String>,
+    /// Where the AniList client redirects, as it was registered: an Android App Link such as
+    /// `https://anistream.tv/auth/anilist`, which no other app can claim, where the implicit
+    /// grant puts the token in the redirect. `None` for the app's scheme,
+    /// `anistream://auth/anilist`. `Event::Authorize`'s callback scheme follows it.
+    #[uniffi(default = None)]
+    pub anilist_redirect_uri: Option<String>,
+    /// The MyAnimeList client the app registered and ships with, as `anilist_client_id`.
+    #[uniffi(default = None)]
+    pub mal_client_id: Option<String>,
+    /// Where the MyAnimeList client redirects, `None` for `anistream://auth/mal`.
+    #[uniffi(default = None)]
+    pub mal_redirect_uri: Option<String>,
+    /// The Simkl client the app registered and ships with, for its device sign-in.
+    #[uniffi(default = None)]
+    pub simkl_client_id: Option<String>,
+    /// The Trakt client the app registered and ships with, for its device sign-in.
+    #[uniffi(default = None)]
+    pub trakt_client_id: Option<String>,
+    /// The Trakt client's secret, for a client that has one; `None` signs in without.
+    #[uniffi(default = None)]
+    pub trakt_client_secret: Option<String>,
+    /// Where the trackers' and the plugin stores' tokens are kept. `None` for
+    /// [`SecretsMode::Host`].
+    #[uniffi(default = None)]
+    pub secrets: Option<SecretsMode>,
+}
+
+impl FfiStart {
+    /// Where tokens are kept, the default filled in.
+    pub fn secrets_mode(&self) -> SecretsMode {
+        self.secrets.unwrap_or_default()
+    }
+
+    /// The sign-in clients, as the engine is handed them.
+    pub fn app_clients(&self) -> AppClients {
+        AppClients {
+            anilist: self.anilist_client_id.clone(),
+            anilist_redirect: self.anilist_redirect_uri.clone(),
+            mal: self.mal_client_id.clone(),
+            mal_redirect: self.mal_redirect_uri.clone(),
+            simkl: self.simkl_client_id.clone(),
+            trakt: self.trakt_client_id.clone(),
+            trakt_secret: self.trakt_client_secret.clone(),
+        }
+    }
+}
+
+/// The system an app runs on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum FfiPlatform {
+    MacOs,
+    Ios,
+    IpadOs,
+    /// An Android phone or tablet.
+    Android,
+}
+
+/// Where the engine keeps the trackers' and the plugin stores' tokens.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, uniffi::Enum)]
+pub enum SecretsMode {
+    /// Always the app's keychain, through its host: [`FfiHost::secret_get`] and the rest. An iOS
+    /// app's, whose keychain is its own.
+    ///
+    /// [`FfiHost::secret_get`]: crate::FfiHost::secret_get
+    #[default]
+    Host,
+    /// Where the terminal app keeps them, for a Mac app that shares its data: as
+    /// `trackers.token_storage` says, with `ANISTREAM_TOKEN_STORAGE` over it as the terminal
+    /// has it. `"file"` is `0600` files in `tokens` under the data directory, the terminal's own;
+    /// `"keychain"` is the app's keychain through its host, which keeps the items under service
+    /// `anistream` and the token's id, the ones the terminal keeps, with those files as the
+    /// fallback. Signing in through one app signs in the other.
+    FollowConfig,
+}
+
 /// Why [`FfiEngine::start`](crate::FfiEngine::start) could not stand the engine up, by what
 /// failed, each with words a front end can show as they are.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
@@ -115,6 +211,51 @@ pub enum FfiError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_start_an_app_names_nothing_of_is_the_engine_as_it_started_before() {
+        let start = FfiStart::default();
+        assert_eq!(start.theme, None);
+        assert_eq!(start.platform, None);
+        assert_eq!(start.secrets_mode(), SecretsMode::Host);
+        assert_eq!(start.app_clients(), AppClients::default());
+        let mac = FfiStart {
+            secrets: Some(SecretsMode::FollowConfig),
+            anilist_client_id: Some("4242".into()),
+            ..FfiStart::default()
+        };
+        assert_eq!(mac.secrets_mode(), SecretsMode::FollowConfig);
+        assert_eq!(
+            mac.app_clients(),
+            AppClients { anilist: Some("4242".into()), ..AppClients::default() }
+        );
+    }
+
+    #[test]
+    fn an_apps_redirects_and_device_clients_reach_the_engine_as_given() {
+        let android = FfiStart {
+            anilist_client_id: Some("4242".into()),
+            anilist_redirect_uri: Some("https://anistream.tv/auth/anilist".into()),
+            mal_client_id: Some("a-mal-client".into()),
+            simkl_client_id: Some("a-simkl-client".into()),
+            trakt_client_id: Some("a-trakt-client".into()),
+            ..FfiStart::default()
+        };
+        let clients = android.app_clients();
+        assert_eq!(
+            clients.anilist_redirect.as_deref(),
+            Some("https://anistream.tv/auth/anilist")
+        );
+        assert_eq!(clients.callback_scheme("anilist"), "https");
+        assert_eq!(
+            clients.redirect("mal"),
+            "anistream://auth/mal",
+            "MyAnimeList keeps its scheme"
+        );
+        assert_eq!(clients.simkl.as_deref(), Some("a-simkl-client"));
+        assert_eq!(clients.trakt.as_deref(), Some("a-trakt-client"));
+        assert_eq!(clients.trakt_secret, None);
+    }
 
     #[test]
     fn the_background_an_app_names_nothing_of_is_the_terminal_apps_launch() {

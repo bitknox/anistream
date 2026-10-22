@@ -27,6 +27,13 @@ pub struct EngineOptions {
     pub store: Store,
     /// How the player's own interface is dressed: the front end's choice, from its palette.
     pub player_theme: PlayerTheme,
+    /// Whether a play opens the player the front end hosts, driven through `Event::PlayerOps`,
+    /// rather than mpv's process: always so without the desktop feature, where there is no other
+    /// player, and on the desktop only when the front end asks.
+    pub hosted_player: bool,
+    /// The sign-in clients a native app ships with, none for the terminal app, whose user
+    /// registers their own in the config.
+    pub app_clients: AppClients,
     /// The source chain, whole, for an engine that is not to build its own: a still frame
     /// waits for every source before it starts, and a test brings sources of its own.
     ///
@@ -61,12 +68,44 @@ impl EngineOptions {
             http,
             store,
             player_theme,
+            hosted_player: !cfg!(feature = "desktop"),
+            app_clients: AppClients::default(),
             sources: None,
             background: Background::default(),
             #[cfg(feature = "testing")]
             parts: None,
         }
     }
+}
+
+/// The OAuth clients a native app registered for itself and ships with: AniList's for its
+/// implicit grant, which needs no secret, and MAL's for PKCE, each redirecting to where its client
+/// registered, the app's own URL scheme unless it says otherwise; and Simkl's and Trakt's for
+/// their device flows. Unlike `trackers.*.client_id`, which a user registers for the loopback
+/// sign-in, these are the app's, so they are never written to the config.
+///
+/// A tracker with a client here is turned on for the trackers alone. AniList and MyAnimeList sign
+/// in through `Event::Authorize` and the app's sheet ([`crate::tracking::native`]), Simkl and
+/// Trakt with a code to type on another screen.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AppClients {
+    /// The app's AniList client id.
+    pub anilist: Option<String>,
+    /// Where the app's AniList client redirects, as it was registered: an Android App Link
+    /// (`https://…/auth/anilist`), which no other app can claim, since the implicit grant puts the
+    /// token in the redirect. `None` for the app's scheme, `anistream://auth/anilist`.
+    pub anilist_redirect: Option<String>,
+    /// The app's MyAnimeList client id.
+    pub mal: Option<String>,
+    /// Where the app's MyAnimeList client redirects, `None` for `anistream://auth/mal`.
+    pub mal_redirect: Option<String>,
+    /// The app's Simkl client id.
+    pub simkl: Option<String>,
+    /// The app's Trakt client id.
+    pub trakt: Option<String>,
+    /// The app's Trakt client secret, for a client that has one. Polling for the device flow's
+    /// token goes without it when it is `None`.
+    pub trakt_secret: Option<String>,
 }
 
 /// The work the engine does on its own beside the commands, each piece on its own switch.

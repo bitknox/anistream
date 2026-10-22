@@ -36,7 +36,9 @@ mode = "socks5"                            # "socks5" | "external" | "none"
 socks_url = "socks5://10.64.0.1:1080"      # Mullvad's in-tunnel endpoint
 mullvad_exit = true                        # or require_asn_org = ["31173"]
 verify_interval_secs = 60
-on_leak = "pause"
+on_leak = "pause"                          # "pause" | "stop" | "warn"
+                                           # "warn" also needs
+                                           # i_understand_a_failed_check_keeps_torrents_running = true
 ```
 
 Streams play while they download, and you can seek in them.
@@ -65,7 +67,8 @@ pauses torrents when that check fails.
   out directly, the way peers connect, whatever `HTTPS_PROXY` says.
 - Keeps checking while it fails, so a VPN connected after launch brings torrents up without a
   restart. The interface does not wait for it.
-- Re-checks on an interval, and pauses every torrent if a check fails.
+- Re-checks on an interval, and pauses every torrent if a check fails. `on_leak = "stop"` tears
+  the session down instead; `"warn"` keeps what is running and says the check failed.
 
 The header badge says what the last check found: `vpn ●` with the exit network when it passed,
 `vpn ✕ unreachable` when the proxy or the lookup could not be reached (nothing leaves through

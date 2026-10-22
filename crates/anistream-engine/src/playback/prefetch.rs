@@ -81,7 +81,8 @@ impl Prefetch {
 /// take.
 pub fn prefetch(id: AnilistId, episode: String, engine: &EngineState, services: &Services) {
     let Services { meta, store, registry, prefetch, .. } = services;
-    let config = engine.config.effective();
+    // As the show has it: the streams found are for the translation and quality it plays in.
+    let config = &crate::show_settings::for_show(engine.config.effective(), store, id);
     let (meta, store, registry, playback, prefetch) = (
         meta.clone(),
         store.clone(),
@@ -126,6 +127,8 @@ mod tests {
             volume: None,
             next: None,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         };
         let found = || (Vec::new(), context("6"));
         let prefetch = Prefetch::default();

@@ -2,10 +2,12 @@
 //! stream's own headers and written beside the IPC socket, a track that cannot be fetched left
 //! out, and a WebVTT file mended where its conversion broke it.
 
-use anistream_core::stream::Stream;
+use std::time::Duration;
+
+use anistream_core::stream::{Stream, Subtitle};
 use anistream_net::HttpClient;
-use anistream_player::Mpv;
 use futures::StreamExt;
+use tokio::sync::mpsc;
 
 /// Download a stream's external subtitles and point it at the local copies.
 ///
@@ -22,102 +24,165 @@ use futures::StreamExt;
 /// Fetching first turns that into a track that is simply absent.
 ///
 /// Files land beside the IPC socket, in a directory the player already owns.
-pub(super) async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
+///
+/// **Playback waits for them no longer than `wait`.** A subtitle host that takes its time, or
+/// never answers, used to hold the file back for as long as every round of fetches took to time
+/// out, which with a dozen languages was a minute before the next stream opened after one that
+/// failed. What has arrived by then is pointed at; what has not is fetched on, and comes back
+/// as [`LateSubtitles`], for the player to be given each track as it is cached.
+pub(super) async fn localise_subtitles(
+    http: &HttpClient,
+    scratch: &std::path::Path,
+    stream: &mut Stream,
+    wait: Duration,
+) -> Option<LateSubtitles> {
     let soft = stream.subtitles.iter().filter(|s| !s.hard).count();
     if soft == 0 {
-        return;
+        return None;
     }
 
-    let dir = mpv.scratch_dir().join("subs");
+    let dir = scratch.join("subs");
     if tokio::fs::create_dir_all(&dir).await.is_err() {
-        return;
+        return None;
     }
 
     // Exactly what the stream declared, because that is what the subtitle host wants too.
     let headers = stream.headers.clone();
-    let (headers, dir) = (&headers, &dir);
+    let http = http.clone();
 
     // Several tracks at once: playback waits on this, and a stream listing a dozen languages
     // was a dozen round trips back to back before mpv could open. `buffered` keeps the tracks
     // in their listed order, which is the order mpv offers them in, and the bound keeps a long
     // list from opening a connection per language against the subtitle host.
     let tracks = std::mem::take(&mut stream.subtitles).into_iter().enumerate();
-    let localised = futures::stream::iter(tracks).map(|(index, mut subtitle)| async move {
-        // Already burned in, or already a local path — nothing to fetch either way.
-        if subtitle.hard || !subtitle.url.starts_with("http") {
-            return Some(subtitle);
-        }
-
-        let mut request = http.emulated().get(&subtitle.url);
-        for (name, value) in headers {
-            request = request.header(name.as_str(), value.as_str());
-        }
-
-        let fetched = match request.send().await {
-            Ok(response) if response.status().is_success() => response.bytes().await.ok(),
-            Ok(response) => {
-                tracing::debug!(url = %subtitle.url, status = %response.status(), "subtitle refused");
-                None
+    let (found, mut arriving) = mpsc::unbounded_channel();
+    tokio::spawn(async move {
+        let (http, headers, dir) = (&http, &headers, &dir);
+        let localised = futures::stream::iter(tracks)
+            .map(|(index, subtitle)| localise_one(http, headers, dir, index, subtitle))
+            .buffered(SUBTITLE_FETCHES)
+            .filter_map(std::future::ready);
+        futures::pin_mut!(localised);
+        while let Some(subtitle) = localised.next().await {
+            // Nobody waits for it any more: the attempt it was for is over.
+            if found.send(subtitle).is_err() {
+                return;
             }
-            Err(error) => {
-                tracing::debug!(url = %subtitle.url, %error, "subtitle fetch failed");
-                None
-            }
-        };
-
-        // Dropped rather than passed along. mpv would request it with the same headers and get
-        // the same refusal, so keeping it only buys the user an empty track to cycle onto.
-        let Some(body) = fetched.filter(|b| !b.is_empty()) else {
-            tracing::debug!(language = %subtitle.language, "subtitle dropped: could not be fetched");
-            return None;
-        };
-
-        // The extension is what tells mpv which parser to use — `.vtt` and `.ass` are both
-        // common and are not interchangeable. The source's own claim wins, because an
-        // API-shaped URL (`/subtitles?id=…`) carries no extension to read; the URL is the
-        // fallback, and `vtt` the guess of last resort.
-        let plausible = |ext: &String| {
-            !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric())
-        };
-        let extension = subtitle
-            .format
-            .as_deref()
-            .map(|format| format.trim_start_matches('.').to_ascii_lowercase())
-            .filter(plausible)
-            .or_else(|| {
-                subtitle
-                    .url
-                    .rsplit('/')
-                    .next()
-                    .and_then(|name| name.rsplit_once('.'))
-                    .map(|(_, ext)| ext.to_ascii_lowercase())
-                    .filter(plausible)
-            })
-            .unwrap_or_else(|| "vtt".into());
-        // Indexed rather than hashed: two tracks in the same language would otherwise collide
-        // and the second would silently replace the first.
-        let path = dir.join(format!("{index}-{}.{extension}", sanitise(&subtitle.language)));
-
-        let mended = (extension == "vtt")
-            .then(|| std::str::from_utf8(&body).ok().and_then(mend_webvtt))
-            .flatten();
-        if mended.is_some() {
-            tracing::debug!(language = %subtitle.language, "subtitle mended");
         }
-        let contents = mended.as_deref().map_or(&body[..], str::as_bytes);
-
-        match tokio::fs::write(&path, contents).await {
-            Ok(()) => {
-                tracing::debug!(language = %subtitle.language, path = %path.display(), "subtitle cached");
-                subtitle.url = path.to_string_lossy().into_owned();
-            }
-            // The fetch worked and only the write failed, so the remote URL is still good.
-            Err(error) => tracing::debug!(%error, "could not cache subtitle; using its url"),
-        }
-        Some(subtitle)
     });
-    stream.subtitles =
-        localised.buffered(SUBTITLE_FETCHES).filter_map(std::future::ready).collect().await;
+
+    let deadline = tokio::time::Instant::now() + wait;
+    loop {
+        match tokio::time::timeout_at(deadline, arriving.recv()).await {
+            Ok(Some(subtitle)) => stream.subtitles.push(subtitle),
+            // Every track in, or out.
+            Ok(None) => return None,
+            Err(_) => {
+                tracing::info!(
+                    ready = stream.subtitles.len(),
+                    "opening the file with the subtitles that have arrived; the rest follow"
+                );
+                return Some(LateSubtitles(arriving));
+            }
+        }
+    }
+}
+
+/// How long the file waits for its subtitles before it opens without the ones still coming.
+pub(super) const SUBTITLE_WAIT: Duration = Duration::from_secs(2);
+
+/// A stream's subtitle tracks still being fetched once its file opened without them, each
+/// handed over as it is cached.
+pub(super) struct LateSubtitles(mpsc::UnboundedReceiver<Subtitle>);
+
+impl LateSubtitles {
+    /// The next track to arrive, or `None` once every one has, or been left out.
+    pub(super) async fn next(&mut self) -> Option<Subtitle> {
+        self.0.recv().await
+    }
+}
+
+/// One track, fetched with the stream's `headers` and cached in `dir` as the `index`th: its
+/// local copy, or `None` for one that cannot be fetched.
+async fn localise_one(
+    http: &HttpClient,
+    headers: &[(String, String)],
+    dir: &std::path::Path,
+    index: usize,
+    mut subtitle: Subtitle,
+) -> Option<Subtitle> {
+    // Already burned in, or already a local path — nothing to fetch either way.
+    if subtitle.hard || !subtitle.url.starts_with("http") {
+        return Some(subtitle);
+    }
+
+    let mut request = http.emulated().get(&subtitle.url);
+    for (name, value) in headers {
+        request = request.header(name.as_str(), value.as_str());
+    }
+
+    let fetched = match request.send().await {
+        Ok(response) if response.status().is_success() => response.bytes().await.ok(),
+        Ok(response) => {
+            tracing::debug!(url = %subtitle.url, status = %response.status(), "subtitle refused");
+            None
+        }
+        Err(error) => {
+            tracing::debug!(url = %subtitle.url, %error, "subtitle fetch failed");
+            None
+        }
+    };
+
+    // Dropped rather than passed along. mpv would request it with the same headers and get
+    // the same refusal, so keeping it only buys the user an empty track to cycle onto.
+    let Some(body) = fetched.filter(|b| !b.is_empty()) else {
+        tracing::debug!(language = %subtitle.language, "subtitle dropped: could not be fetched");
+        return None;
+    };
+
+    // The extension is what tells mpv which parser to use — `.vtt` and `.ass` are both
+    // common and are not interchangeable. The source's own claim wins, because an
+    // API-shaped URL (`/subtitles?id=…`) carries no extension to read; the URL is the
+    // fallback, and `vtt` the guess of last resort.
+    let plausible = |ext: &String| {
+        !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric())
+    };
+    let extension = subtitle
+        .format
+        .as_deref()
+        .map(|format| format.trim_start_matches('.').to_ascii_lowercase())
+        .filter(plausible)
+        .or_else(|| {
+            subtitle
+                .url
+                .rsplit('/')
+                .next()
+                .and_then(|name| name.rsplit_once('.'))
+                .map(|(_, ext)| ext.to_ascii_lowercase())
+                .filter(plausible)
+        })
+        .unwrap_or_else(|| "vtt".into());
+    // Indexed rather than hashed: two tracks in the same language would otherwise collide
+    // and the second would silently replace the first.
+    let path = dir.join(format!("{index}-{}.{extension}", sanitise(&subtitle.language)));
+
+    let mended = (extension == "vtt")
+        .then(|| std::str::from_utf8(&body).ok().and_then(mend_webvtt))
+        .flatten();
+    if mended.is_some() {
+        tracing::debug!(language = %subtitle.language, "subtitle mended");
+    }
+    let contents = mended.as_deref().map_or(&body[..], str::as_bytes);
+
+    match tokio::fs::write(&path, contents).await {
+        Ok(()) => {
+            tracing::debug!(language = %subtitle.language, path = %path.display(), "subtitle cached");
+            subtitle.url = path.to_string_lossy().into_owned();
+        }
+        // The fetch worked and only the write failed, so the remote URL is still good.
+        Err(error) => tracing::debug!(%error, "could not cache subtitle; using its url"),
+    }
+    Some(subtitle)
 }
 
 /// Subtitle tracks fetched at once.
@@ -206,7 +271,7 @@ pub(super) fn sanitise(language: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
     use anistream_core::stream::StreamKind;
 
@@ -232,24 +297,33 @@ mod tests {
         assert_eq!(mend_webvtt(clean), None, "a sound file is left as it came");
     }
 
-    #[tokio::test]
-    async fn subtitles_are_fetched_together_and_kept_in_their_listed_order() {
-        use anistream_core::stream::Subtitle;
+    /// A subtitle host on loopback that answers each request once `release` lets it, with a
+    /// WebVTT file named for its path, or `404` for a path saying `missing`; and how many
+    /// requests it has held at once, at most.
+    async fn host(
+        release: Arc<tokio::sync::Semaphore>,
+    ) -> (String, Arc<std::sync::atomic::AtomicUsize>) {
+        use std::sync::atomic::{AtomicUsize, Ordering};
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-        // Every track takes 300 ms to answer, so three fetched in turn would take most of a
-        // second before mpv could open.
         let host =
             tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let origin = format!("http://{}", host.local_addr().unwrap());
+        let (held, most) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicUsize::new(0)));
+        let seen = Arc::clone(&most);
         tokio::spawn(async move {
             while let Ok((mut socket, _)) = host.accept().await {
+                let (release, held, most) =
+                    (Arc::clone(&release), Arc::clone(&held), Arc::clone(&most));
                 tokio::spawn(async move {
                     let mut request = [0u8; 2048];
                     let n = socket.read(&mut request).await.unwrap_or(0);
                     let head = String::from_utf8_lossy(&request[..n]).into_owned();
                     let path = head.split_whitespace().nth(1).unwrap_or("/").to_owned();
-                    tokio::time::sleep(Duration::from_millis(300)).await;
+                    let now = held.fetch_add(1, Ordering::SeqCst) + 1;
+                    most.fetch_max(now, Ordering::SeqCst);
+                    let _answer = release.acquire().await;
+                    held.fetch_sub(1, Ordering::SeqCst);
                     let response = if path.contains("missing") {
                         "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
                             .to_owned()
@@ -264,36 +338,61 @@ mod tests {
                 });
             }
         });
+        (origin, seen)
+    }
 
-        let track = |language: &str, url: String, hard| Subtitle {
-            language: language.into(),
-            url,
-            hard,
-            format: None,
-        };
-        let mut stream = Stream {
+    fn track(language: &str, url: String, hard: bool) -> Subtitle {
+        Subtitle { language: language.into(), url, hard, format: None }
+    }
+
+    fn stream_with(subtitles: Vec<Subtitle>) -> Stream {
+        Stream {
             url: "http://unused.invalid/master.m3u8".into(),
             kind: StreamKind::Hls,
             quality: None,
             headers: Vec::new(),
-            subtitles: vec![
-                track("en", format!("{origin}/en.vtt"), false),
-                track("de", format!("{origin}/missing.vtt"), false),
-                track("fr", format!("{origin}/fr.vtt"), false),
-                track("ja", "burned-in".into(), true),
-            ],
+            subtitles,
             provider_id: "test".into(),
             download_source: None,
             pick_note: None,
             thumbnail_url: None,
-        };
-        let scratch = tempfile::tempdir().unwrap();
-        let mpv = Mpv::new(scratch.path());
-        let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
+        }
+    }
 
-        let started = std::time::Instant::now();
-        localise_subtitles(&http, &mpv, &mut stream).await;
-        let took = started.elapsed();
+    fn client() -> HttpClient {
+        HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap()
+    }
+
+    #[tokio::test]
+    async fn subtitles_are_fetched_together_and_kept_in_their_listed_order() {
+        // The host holds every answer until all three requests are in: fetched in turn, the
+        // first would never be answered, and the test would wait out its own limit instead.
+        let release = Arc::new(tokio::sync::Semaphore::new(0));
+        let (origin, most) = host(Arc::clone(&release)).await;
+        let mut stream = stream_with(vec![
+            track("en", format!("{origin}/en.vtt"), false),
+            track("de", format!("{origin}/missing.vtt"), false),
+            track("fr", format!("{origin}/fr.vtt"), false),
+            track("ja", "burned-in".into(), true),
+        ]);
+        let scratch = tempfile::tempdir().unwrap();
+        let opened = tokio::spawn(async move {
+            // A wait far past the test's: this is about order and togetherness, not time.
+            let wait = Duration::from_secs(3600);
+            let late = localise_subtitles(&client(), scratch.path(), &mut stream, wait).await;
+            (stream, late, scratch)
+        });
+        let deadline = std::time::Instant::now() + Duration::from_secs(10);
+        while most.load(std::sync::atomic::Ordering::SeqCst) < 3 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "the tracks were not asked for at once"
+            );
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        release.add_permits(3);
+        let (stream, late, _scratch) = opened.await.unwrap();
+        assert!(late.is_none(), "every track in");
 
         let languages: Vec<_> = stream.subtitles.iter().map(|s| s.language.as_str()).collect();
         assert_eq!(
@@ -309,6 +408,33 @@ mod tests {
             );
             assert!(std::fs::read_to_string(&fetched.url).unwrap().starts_with("WEBVTT"));
         }
-        assert!(took < Duration::from_millis(600), "tracks were fetched in turn: {took:?}");
+    }
+
+    #[tokio::test]
+    async fn a_host_slower_than_the_wait_opens_the_file_without_its_track_which_follows() {
+        // Held until the localiser has returned: it can only have returned by giving up the
+        // wait, never by the track arriving, whatever the machine's load.
+        let release = Arc::new(tokio::sync::Semaphore::new(0));
+        let (origin, _) = host(Arc::clone(&release)).await;
+        let mut stream = stream_with(vec![
+            track("ja", "burned-in".into(), true),
+            track("en", format!("{origin}/en.vtt"), false),
+        ]);
+        let scratch = tempfile::tempdir().unwrap();
+        let late =
+            localise_subtitles(&client(), scratch.path(), &mut stream, Duration::ZERO).await;
+        let mut late = late.expect("the slow track follows");
+        let mut all: Vec<Subtitle> = stream.subtitles.clone();
+        assert!(all.iter().all(|s| s.language != "en"), "not before its host answered");
+
+        release.add_permits(1);
+        while let Some(arrived) = late.next().await {
+            all.push(arrived);
+        }
+        let languages: std::collections::BTreeSet<_> =
+            all.iter().map(|s| s.language.as_str()).collect();
+        assert_eq!(languages, ["en", "ja"].into(), "every track, in time or after");
+        let en = all.iter().find(|s| s.language == "en").unwrap();
+        assert!(!en.url.starts_with("http"), "at its local copy");
     }
 }

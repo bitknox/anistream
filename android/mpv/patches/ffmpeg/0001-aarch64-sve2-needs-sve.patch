@@ -1,0 +1,13 @@
+--- a/libavutil/aarch64/cpu.c
++++ b/libavutil/aarch64/cpu.c
+@@ -52,7 +52,9 @@
+         flags |= AV_CPU_FLAG_DOTPROD;
+     if (hwcap & HWCAP_AARCH64_SVE)
+         flags |= AV_CPU_FLAG_SVE;
+-    if (hwcap2 & HWCAP2_AARCH64_SVE2)
++    /* SVE2 outside streaming mode needs SVE too. A CPU with SME but no SVE, such as an Apple
++     * M4 under a hypervisor, can report SVE2 for streaming mode only. */
++    if ((hwcap & HWCAP_AARCH64_SVE) && (hwcap2 & HWCAP2_AARCH64_SVE2))
+         flags |= AV_CPU_FLAG_SVE2;
+     if (hwcap2 & HWCAP2_AARCH64_I8MM)
+         flags |= AV_CPU_FLAG_I8MM;

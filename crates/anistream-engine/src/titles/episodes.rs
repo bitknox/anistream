@@ -27,10 +27,15 @@ pub async fn load_episodes(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
 ) -> std::result::Result<EpisodeLoad, String> {
-    if registry.is_empty() {
+    if registry.is_empty() && !registry.is_arriving() {
         return Err("no sources configured".into());
     }
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    // Numbered by the source a play would use, which may be one still compiling.
+    crate::sources::arrived(registry, || ()).await;
+    if registry.is_empty() {
+        return Err("no sources configured".into());
+    }
     let target = media.match_target();
     let now = now_epoch();
 
@@ -79,7 +84,10 @@ pub async fn load_episodes(
     // already fetched above does, so name them before they reach the table.
     data::name_episodes(&mut episodes, &media.episode_titles(), &media.episode_thumbnails());
 
-    Ok(EpisodeLoad::Rows(data::episode_rows(&episodes, store, id)))
+    // And when each aired or airs, so an episode not out yet can be told from one that is.
+    let mut rows = data::episode_rows(&episodes, store, id);
+    data::date_episodes(&mut rows, &media.air_times());
+    Ok(EpisodeLoad::Rows(rows))
 }
 
 /// A title's episodes, from the source playback would use, or the candidates to choose
@@ -104,6 +112,10 @@ pub async fn list_episodes(lent: Lent, id: AnilistId) {
 /// Mark episodes watched, or forget that they were: in local history, and on the signed-in
 /// trackers when marking. Then the record of the titles is moved on by what the store now
 /// holds, and the title said whole, as the answer to the mark.
+///
+/// Said whether the record holds the title or not. A mark sent before any list or page showed
+/// it, as a native app can, was written and left unsaid, and the screen caught up only at the
+/// next load; such a title's standing is read from the store.
 pub fn set_watched(
     id: AnilistId,
     episodes: &[String],
@@ -145,7 +157,11 @@ pub fn set_watched(
     let held =
         |episode: &str| held.as_ref().map_or(watched, |held| held.iter().any(|e| e == episode));
     let marked = engine.cache.marked(id, episodes, watched, held);
-    if let Some(progress) = marked.and_then(|id| engine.cache.progress(id)) {
-        let _ = tx.send(progress);
-    }
+    let said = marked.and_then(|id| engine.cache.progress(id)).unwrap_or_else(|| {
+        // Without its episode count, which only its metadata has: Continue's episode is
+        // counted on from where history stands, as it is for a title of unknown length.
+        let (progress, resume) = data::standing(store, id, None);
+        engine.cache.standing(id, progress, resume)
+    });
+    let _ = tx.send(said);
 }

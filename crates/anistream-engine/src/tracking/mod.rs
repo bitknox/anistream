@@ -10,6 +10,7 @@
 //!   thread like everything else.
 
 pub mod commands;
+pub mod native;
 
 use std::sync::Arc;
 
@@ -51,6 +52,9 @@ pub struct Sync {
     /// The Kitsu tracker as its concrete type, for the same reason as `mal`: its token
     /// refreshes silently mid-call and the renewed pair has to be written back.
     pub kitsu: Option<Arc<anistream_track::KitsuTracker>>,
+    /// The Simkl tracker as its concrete type, for the same reason: a sign-in through its
+    /// OAuth 2.0 lasts a week, and the pair renewed mid-call has to be written back.
+    pub simkl: Option<Arc<anistream_track::SimklTracker>>,
     pub tokens: TokenStore,
     pub store: Store,
     pub config: Config,
@@ -63,6 +67,8 @@ pub struct Sync {
     /// the previous one whole: the next drain tick would otherwise wipe the error off the
     /// Accounts screen a minute after it appeared.
     pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, PullError>>>,
+    /// The sign-ins a native app's sheet is showing, each waiting for its redirect.
+    pub pending: native::PendingSignIns,
 }
 
 impl Sync {
@@ -101,6 +107,7 @@ impl Sync {
         let mut anilist = None;
         let mut mal = None;
         let mut kitsu = None;
+        let mut simkl = None;
 
         if config.trackers.is_enabled("anilist") {
             let token = tokens.get("anilist").ok();
@@ -124,12 +131,17 @@ impl Sync {
             if tokens_for_mal.is_none() {
                 tracing::info!("mal enabled but not signed in; queueing locally");
             }
-            let tracker = Arc::new(anistream_track::MalTracker::new(
-                client_id,
-                http.plain().clone(),
-                Arc::new(StoreMapping { store: store.clone() }),
-                tokens_for_mal,
-            ));
+            // Given the store so it stays in step with another process signed in through it,
+            // the app beside the terminal: see `anistream_track`'s `held` module.
+            let tracker = Arc::new(
+                anistream_track::MalTracker::new(
+                    client_id,
+                    http.plain().clone(),
+                    Arc::new(StoreMapping { store: store.clone() }),
+                    tokens_for_mal,
+                )
+                .with_token_store(tokens.clone()),
+            );
             trackers.push(tracker.clone());
             mal = Some(tracker);
         }
@@ -141,11 +153,14 @@ impl Sync {
             if tokens_for_kitsu.is_none() {
                 tracing::info!("kitsu enabled but not signed in; queueing locally");
             }
-            let tracker = Arc::new(anistream_track::KitsuTracker::new(
-                http.plain().clone(),
-                Arc::new(StoreMapping { store: store.clone() }),
-                tokens_for_kitsu,
-            ));
+            let tracker = Arc::new(
+                anistream_track::KitsuTracker::new(
+                    http.plain().clone(),
+                    Arc::new(StoreMapping { store: store.clone() }),
+                    tokens_for_kitsu,
+                )
+                .with_token_store(tokens.clone()),
+            );
             trackers.push(tracker.clone());
             kitsu = Some(tracker);
         }
@@ -156,12 +171,18 @@ impl Sync {
         if config.trackers.is_enabled("simkl")
             && let Some(client_id) = config.trackers.simkl.client_id.clone()
         {
-            trackers.push(Arc::new(anistream_track::SimklTracker::new(
-                client_id,
-                http.plain().clone(),
-                Arc::new(StoreMapping { store: store.clone() }),
-                tokens.get_pair("simkl").ok(),
-            )));
+            let tracker = Arc::new(
+                anistream_track::SimklTracker::new(
+                    client_id,
+                    http.plain().clone(),
+                    Arc::new(StoreMapping { store: store.clone() }),
+                    tokens.get_pair("simkl").ok(),
+                )
+                .with_client_secret(config.trackers.simkl.client_secret.clone())
+                .with_token_store(tokens.clone()),
+            );
+            trackers.push(tracker.clone());
+            simkl = Some(tracker);
         }
 
         // Trakt keys on TVDB, which the datasets cover far less completely — see the module docs.
@@ -181,11 +202,13 @@ impl Sync {
             anilist,
             mal,
             kitsu,
+            simkl,
             tokens,
             store: store.clone(),
             config: config.clone(),
             http: http.clone(),
             pull_errors: Arc::default(),
+            pending: native::PendingSignIns::default(),
         }
     }
 
@@ -358,7 +381,12 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 ///
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
-pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
+pub async fn load_library(
+    sync: &Sync,
+    store: &Store,
+    titles: &anistream_meta::titles::Titles,
+    segment: LibrarySegment,
+) -> Event {
     use anistream_model::catalog::ContentList;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
@@ -383,10 +411,18 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
 
     match anilist.library().await {
         Ok(entries) => {
+            // The whole list, every segment's, kept for the cards that say "Watched".
+            let statuses: Vec<_> =
+                entries.iter().map(|e| (e.media.id, e.status.as_str())).collect();
+            if let Err(e) =
+                store.replace_library_statuses("anilist", &statuses, anistream_store::now())
+            {
+                tracing::debug!(error = %e, "could not keep the library's statuses");
+            }
             let wanted = segment.wire();
             let mut rows = Vec::new();
             for entry in entries.iter().filter(|e| e.status == wanted) {
-                let _ = store.remember_title(entry.media.id, entry.media.title.display());
+                let _ = store.remember_title(entry.media.id, titles.pick(&entry.media.title));
                 let mut row = crate::data::entry_from(&entry.media, Some(store));
                 // The tracker's progress, not the local projection: this screen is a view of
                 // the remote list, and showing local numbers here would hide a divergence
@@ -413,6 +449,33 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
 ///
 /// Both run forever. The drain is cheap when idle — one indexed count against SQLite — so it can
 /// tick often; a pull costs a real request out of thirty a minute, so it does not.
+/// Keep where each title is on `tracker`'s list, as the tracker's words for it, in place of
+/// what was kept: see `anistream_store::library_status`.
+fn keep_statuses(
+    store: &Store,
+    tracker: &str,
+    remote: &[anistream_core::traits::TrackedEntry],
+    now: i64,
+) {
+    use anistream_core::traits::WatchStatus as W;
+    let statuses: Vec<_> = remote
+        .iter()
+        .map(|entry| {
+            let status = match entry.status {
+                W::Current | W::Repeating => "CURRENT",
+                W::Planning => "PLANNING",
+                W::Completed => "COMPLETED",
+                W::Paused => "PAUSED",
+                W::Dropped => "DROPPED",
+            };
+            (entry.anilist_id, status)
+        })
+        .collect();
+    if let Err(e) = store.replace_library_statuses(tracker, &statuses, now) {
+        tracing::debug!(error = %e, "could not keep the library's statuses");
+    }
+}
+
 pub fn spawn_loops(sync: Sync, tx: Outbox) {
     if sync.trackers.is_empty() {
         return;
@@ -446,11 +509,12 @@ pub fn spawn_loops(sync: Sync, tx: Outbox) {
     });
 }
 
-/// Write back any token a tracker renewed during a call.
+/// Write back any token a tracker renewed during a call and could not store itself.
 ///
 /// MAL's tokens last about a month and refresh silently mid-call; without this the renewed pair
 /// would live only in memory, and the next process would present the expired one — refreshing on
-/// every single run until the *refresh* token itself expired.
+/// every single run until the *refresh* token itself expired. A tracker given the store writes
+/// its renewed pair at once, so what reaches here is a write that failed then, tried again.
 async fn persist_renewed_tokens(sync: &Sync) {
     // Taken rather than peeked, so a write failure does not silently discard it: the tracker keeps
     // the in-memory copy and offers it again on the next pass.
@@ -478,6 +542,19 @@ async fn persist_renewed_tokens(sync: &Sync) {
         ) {
             Ok(_) => tracing::info!("stored the renewed kitsu token"),
             Err(e) => tracing::warn!(error = %e, "could not store the renewed kitsu token"),
+        }
+    }
+    if let Some(simkl) = sync.simkl.as_ref()
+        && let Some(pair) = simkl.take_renewed().await
+    {
+        match sync.tokens.set_pair(
+            "simkl",
+            &pair.access,
+            pair.refresh.as_deref(),
+            pair.expires_at,
+        ) {
+            Ok(_) => tracing::info!("stored the renewed simkl token"),
+            Err(e) => tracing::warn!(error = %e, "could not store the renewed simkl token"),
         }
     }
 }
@@ -533,6 +610,10 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
         let last_pull =
             sync.store.get_meta_i64(&pull_key(tracker.id())).unwrap_or(None).unwrap_or(0);
         let reconciled = library.and_then(|remote| {
+            // The Library's own tracker's list, kept for the cards that say "Watched".
+            if sync.trackers.first().is_some_and(|first| first.id() == tracker.id()) {
+                keep_statuses(&sync.store, tracker.id(), &remote, now);
+            }
             sync::reconcile(&sync.store, tracker.id(), &remote, now, last_pull)
         });
 
@@ -600,7 +681,17 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
 /// Opens a browser and waits. Everything here is best-effort and every failure is reported as a
 /// toast rather than propagated — a failed sign-in must leave the app exactly as usable as it
 /// was, because local history never needed an account.
-pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Outbox) {
+pub async fn connect(
+    sync: Sync,
+    host: Arc<dyn Host>,
+    clients: crate::options::AppClients,
+    tracker_id: String,
+    tx: Outbox,
+) {
+    // An app's own client signs in through the system's sheet, on the app's own scheme.
+    if native::begin(&sync, &clients, &tracker_id, &tx) {
+        return;
+    }
     // Simkl and Trakt use the device flow: no redirect URI to register, and it works over SSH.
     if let Some(endpoints) = device_endpoints(&tracker_id) {
         connect_device(sync, host, tracker_id, endpoints, tx).await;
@@ -654,9 +745,16 @@ fn refuse_redirect(tracker_id: &str, tx: &Outbox) {
 async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let tracker_id = "anilist";
     let auth_config = &sync.config.trackers.anilist;
+    // A token arriving in a fragment never reaches a loopback port.
+    if auth_config.flow == "implicit" {
+        let _ = tx.send(Event::Toast(Notice::alert(
+            "the implicit flow signs in from the anistream app — set trackers.anilist.flow = \"loopback\" here",
+        )));
+        return;
+    }
     let blank = |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
     if blank(&auth_config.client_id) || blank(&auth_config.client_secret) {
-        // AniList supports only the authorization code grant, so both halves are required.
+        // The terminal's grant is the authorization code, which needs both halves.
         let _ = tx.send(Event::Toast(Notice::alert(
             "set trackers.anilist.client_id and client_secret — run: anistream --login-url",
         )));
@@ -930,13 +1028,11 @@ async fn connect_device(
     endpoints: anistream_track::DeviceEndpoints,
     tx: Outbox,
 ) {
-    let (client_id, client_secret) = match tracker_id.as_str() {
-        "simkl" => (sync.config.trackers.simkl.client_id.clone(), None),
-        _ => (
-            sync.config.trackers.trakt.client_id.clone(),
-            sync.config.trackers.trakt.client_secret.clone(),
-        ),
+    let auth = match tracker_id.as_str() {
+        "simkl" => &sync.config.trackers.simkl,
+        _ => &sync.config.trackers.trakt,
     };
+    let (client_id, client_secret) = (auth.client_id.clone(), auth.client_secret.clone());
     let Some(client_id) = client_id.filter(|id| !id.trim().is_empty()) else {
         let _ = tx.send(Event::Toast(Notice::alert(format!(
             "set trackers.{tracker_id}.client_id first"
@@ -948,8 +1044,9 @@ async fn connect_device(
     let code = match anistream_track::device::request_code(&http, &endpoints, &client_id).await
     {
         Ok(code) => code,
+        // Its own sentence, naming the service and saying what it said: not its JSON.
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
             return;
         }
     };
@@ -969,7 +1066,6 @@ async fn connect_device(
 
     match anistream_track::device::poll_for_token(
         &http,
-        &endpoints,
         &client_id,
         client_secret.as_deref(),
         &code,
@@ -997,7 +1093,7 @@ async fn connect_device(
             activate(&sync, &tracker_id, &pair, &tx).await;
         }
         Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
         }
     }
     // Cleared however the flow ended — approved, refused or expired. A prompt left up after a
@@ -1299,7 +1395,8 @@ mod tests {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
-        connect(sync, host, "kitsu".into(), Outbox::from(tx)).await;
+        let clients = crate::options::AppClients::default();
+        connect(sync, host, clients, "kitsu".into(), Outbox::from(tx)).await;
         let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
         assert_eq!(notice.text, "kitsu signs in from the Accounts screen");
         assert_eq!(notice.hint, Some(NoticeHint::KitsuCredentials));
@@ -1323,7 +1420,9 @@ mod tests {
             let sync = Sync::with_tokens(&config, &store, &http, files_in(dir.path()));
             let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-            connect(sync, host, tracker.into(), Outbox::from(tx)).await;
+            // No client of the app's own, so no sheet to sign in through either.
+            let clients = crate::options::AppClients::default();
+            connect(sync, host, clients, tracker.into(), Outbox::from(tx)).await;
             let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
             assert_eq!(
                 notice.text,

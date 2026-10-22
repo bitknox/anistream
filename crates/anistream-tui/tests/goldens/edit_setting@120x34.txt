@@ -3,16 +3,17 @@ anistream                                                                       
   ▸  CONTINUE               │  APPEARANCE  ──────────────────────────────────────────────────────────────────────────
   ▤  CALENDAR               │    THEME                       adaptive
   ▦  SEASONAL               │    MOTION                      on
-  /  SEARCH                 │
-  ▥  LIBRARY                │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
-  ↓  DOWNLOADS              │    TRANSLATION                 sub
-  ◇  PROVIDERS              │    QUALITY                     1080p
-  ◎  ACCOUNTS               │  ▌ SUBTITLES                   eng
+  /  SEARCH                 │    TITLES                      AniList's choice
+  ▥  LIBRARY                │
+  ↓  DOWNLOADS              │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
+  ◇  PROVIDERS              │    TRANSLATION                 sub
+  ◎  ACCOUNTS               │    QUALITY                     1080p
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ EDIT   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   subtitles — enter saves, esc leaves it be
 
+                            │    MARK OPENING AND ENDING     on
                             │    START FULLSCREEN            off
                             │    UPSCALING                   natural · ArtCNN
                             │    PLAYER INTERFACE            anistream
@@ -27,7 +28,6 @@ anistream                                                                       
                             │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
                             │    TORRENT SOURCE              off
                             │    VPN MODE                    socks5
-                            │    SEED AFTER WATCHING         off
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    enter types a language code — too many values to cycle
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -44,12 +44,12 @@ r05 c00-119 fg=rule
 r06 c00-119 fg=rule
 r07 c00-119 fg=rule
 r08 c00-119 fg=rule
-r09 c00-60 fg=rule
-r09 c61-63 fg=rule mod=BOLD
-r09 c64-119 fg=rule
+r09 c00-119 fg=rule
 r10 c00-04 fg=rule bg=ground
 r10 c05-12 fg=rule bg=ground mod=BOLD
-r10 c13-119 fg=rule bg=ground
+r10 c13-60 fg=rule bg=ground
+r10 c61-63 fg=rule bg=ground mod=BOLD
+r10 c64-119 fg=rule bg=ground
 r11 c00-00 fg=obi bg=ground
 r11 c01-01 fg=rule bg=ground
 r11 c02-15 fg=text bg=ground mod=BOLD

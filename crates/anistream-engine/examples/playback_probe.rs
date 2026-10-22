@@ -119,6 +119,8 @@ async fn main() {
         volume: None,
         next: None,
         episodes: Vec::new(),
+        cover_url: None,
+        banner_url: None,
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
@@ -154,6 +156,11 @@ async fn main() {
 
     // No window: this runs headless, and a video window would need a display.
     let mpv = mpv.with_extra_args(vec!["--vo=null".into(), "--ao=null".into()]);
+    let machine = anistream_engine::playback::Machine::desktop(
+        mpv,
+        anistream_engine::playback::slot::PlayerSlot::default(),
+        std::sync::Arc::new(anistream_engine::host::DesktopHost::new(&config, &paths)),
+    );
 
     let store_for_play = store.clone();
     let playing = tokio::spawn(async move {
@@ -180,15 +187,15 @@ async fn main() {
             // Syncplay off, same reasoning.
             syncplay: Default::default(),
             party: false,
+            up_next_countdown: 10,
         };
         anistream_engine::playback::play(
             vec![stream],
             context,
             store_for_play,
             http,
-            mpv,
+            machine,
             settings,
-            anistream_engine::playback::slot::PlayerSlot::default(),
             tx.into(),
             command_rx,
         )

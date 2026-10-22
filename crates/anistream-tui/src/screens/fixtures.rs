@@ -62,6 +62,7 @@ pub(super) fn episode(
         completed,
         kind: None,
         skippable: false,
+        airs_at: None,
         thumbnail: None,
         description: None,
     }
@@ -81,6 +82,7 @@ pub(super) fn provider(
         last_error: None,
         usable,
         held_back: held,
+        ..Default::default()
     }
 }
 

@@ -12,6 +12,19 @@
   "episodes": 12,
   "duration": 24,
   "seasonYear": 2024,
+  "season": "SPRING",
+  "startDate": {
+    "year": 2024,
+    "month": 4,
+    "day": 6
+  },
+  "endDate": {
+    "year": 2024,
+    "month": 6,
+    "day": 22
+  },
+  "source": "MANGA",
+  "isAdult": false,
   "averageScore": 82,
   "genres": [
     "Adventure",
@@ -135,7 +148,13 @@
             "english": "Stardust Wayfarer Season 2",
             "native": "星屑の旅人 第2期"
           },
-          "format": "TV"
+          "format": "TV",
+          "coverImage": {
+            "large": "https://img.example/cover/900004.jpg",
+            "color": "#d77f4a"
+          },
+          "season": "WINTER",
+          "seasonYear": 2025
         }
       }
     ]
@@ -150,7 +169,13 @@
             "english": "The Steel Gardener",
             "native": "鋼の庭師"
           },
-          "format": "ONA"
+          "format": "ONA",
+          "coverImage": {
+            "large": "https://img.example/cover/900005.jpg",
+            "color": "#7ac47f"
+          },
+          "season": "SUMMER",
+          "seasonYear": 2023
         }
       },
       {
@@ -161,7 +186,209 @@
             "english": "Moonlit Platform",
             "native": "月明かりの停車場"
           },
-          "format": "MOVIE"
+          "format": "MOVIE",
+          "coverImage": {
+            "large": "https://img.example/cover/900003.jpg",
+            "color": "#f1d97a"
+          },
+          "season": "SUMMER",
+          "seasonYear": 2025
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "name": "Travel",
+      "rank": 94,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Other"
+    },
+    {
+      "name": "Found Family",
+      "rank": 81,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Drama"
+    },
+    {
+      "name": "Lamplighters",
+      "rank": 72,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Setting-Universe"
+    },
+    {
+      "name": "The Last Lantern",
+      "rank": 58,
+      "isMediaSpoiler": true,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Drama"
+    }
+  ],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [
+    {
+      "episode": 12,
+      "airingAt": 1719068400
+    },
+    {
+      "episode": 11,
+      "airingAt": 1718463600
+    },
+    {
+      "episode": 10,
+      "airingAt": 1717858800
+    },
+    {
+      "episode": 9,
+      "airingAt": 1717254000
+    },
+    {
+      "episode": 8,
+      "airingAt": 1716649200
+    },
+    {
+      "episode": 7,
+      "airingAt": 1716044400
+    },
+    {
+      "episode": 6,
+      "airingAt": 1715439600
+    },
+    {
+      "episode": 5,
+      "airingAt": 1714834800
+    },
+    {
+      "episode": 4,
+      "airingAt": 1714230000
+    },
+    {
+      "episode": 3,
+      "airingAt": 1713625200
+    },
+    {
+      "episode": 2,
+      "airingAt": 1713020400
+    },
+    {
+      "episode": 1,
+      "airingAt": 1712415600
+    }
+  ],
+  "rankings": [
+    {
+      "rank": 4,
+      "type": "RATED",
+      "context": "highest rated",
+      "allTime": false,
+      "season": "SPRING",
+      "year": 2024
+    },
+    {
+      "rank": 31,
+      "type": "POPULAR",
+      "context": "most popular all time",
+      "allTime": true,
+      "season": null,
+      "year": null
+    }
+  ],
+  "characters": {
+    "edges": [
+      {
+        "role": "MAIN",
+        "node": {
+          "name": {
+            "full": "Ren Amagiri"
+          },
+          "image": {
+            "medium": "https://img.example/people/ren-amagiri.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "Ren's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-ren.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "role": "MAIN",
+        "node": {
+          "name": {
+            "full": "Ito Hoshimura"
+          },
+          "image": {
+            "medium": "https://img.example/people/ito-hoshimura.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "Ito's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-ito.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "role": "SUPPORTING",
+        "node": {
+          "name": {
+            "full": "The Ferryman"
+          },
+          "image": {
+            "medium": "https://img.example/people/the-ferryman.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "The Ferryman's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-ferryman.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Stardust Wayfarer"
+          }
+        }
+      },
+      {
+        "role": "Original Creator",
+        "node": {
+          "name": {
+            "full": "Author of Stardust Wayfarer"
+          }
+        }
+      },
+      {
+        "role": "Music",
+        "node": {
+          "name": {
+            "full": "Composer of Stardust Wayfarer"
+          }
         }
       }
     ]

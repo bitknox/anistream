@@ -25,14 +25,14 @@ use anistream_core::{
     traits::{TrackOp, TrackedEntry, Tracker, WatchStatus},
 };
 
-use crate::secret::TokenPair;
+use crate::{
+    held::{Held, Renews},
+    secret::{TokenPair, TokenStore},
+};
 
 const TOKEN: &str = "https://kitsu.io/api/oauth/token";
 const API: &str = "https://kitsu.io/api/edge";
 const JSON_API: &str = "application/vnd.api+json";
-
-/// Renew this many seconds before expiry — same margin, same reasoning as MAL.
-const REFRESH_MARGIN_SECS: i64 = 24 * 3_600;
 
 /// Library pages to follow before deciding the server is not counting down.
 /// Five hundred entries a page, so this is a library nobody has.
@@ -140,11 +140,17 @@ pub trait IdMapping: Send + Sync {
 pub struct KitsuTracker {
     http: reqwest::Client,
     mapping: std::sync::Arc<dyn IdMapping>,
-    tokens: tokio::sync::RwLock<Option<TokenPair>>,
-    /// Set when a refresh produced a new pair the caller should persist.
-    pending_save: tokio::sync::RwLock<Option<TokenPair>>,
+    /// The pair, renewed before it runs out and kept in step with other processes: see
+    /// [`crate::held`].
+    held: Held,
     /// The signed-in user's id, fetched once per process. JSON:API ids are strings.
     user_id: tokio::sync::RwLock<Option<String>>,
+}
+
+impl Renews for KitsuTracker {
+    async fn renew(&self, refresh_token: &str, now: i64) -> Result<TokenPair, String> {
+        refresh(&self.http, refresh_token, now).await.map_err(|e| e.to_string())
+    }
 }
 
 impl KitsuTracker {
@@ -156,66 +162,34 @@ impl KitsuTracker {
         Self {
             http,
             mapping,
-            tokens: tokio::sync::RwLock::new(tokens),
-            pending_save: tokio::sync::RwLock::new(None),
+            held: Held::new("kitsu", "kitsu", tokens),
             user_id: tokio::sync::RwLock::new(None),
         }
     }
 
-    /// A renewed token pair the caller should write back, if a refresh happened.
-    pub async fn take_renewed(&self) -> Option<TokenPair> {
-        self.pending_save.write().await.take()
+    /// Kept in step with the other processes signed in through `store`, as MAL's is.
+    #[must_use]
+    pub fn with_token_store(mut self, store: TokenStore) -> Self {
+        self.held.share(store);
+        self
     }
 
-    /// A usable access token, refreshing first if it is close to expiry.
-    async fn access_token(&self, now: i64) -> Result<String, anistream_core::Error> {
-        {
-            let held = self.tokens.read().await;
-            let Some(pair) = held.as_ref() else {
-                return Err(anistream_core::Error::Auth("not signed in to kitsu".into()));
-            };
-            if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
-                return Ok(pair.access.clone());
-            }
-        }
-
-        // Refresh under the write lock, re-checking, for the same reason as MAL: two
-        // concurrent calls should produce one refresh, and the old refresh token dies
-        // when a new one is issued.
-        let mut held = self.tokens.write().await;
-        let Some(pair) = held.as_ref() else {
-            return Err(anistream_core::Error::Auth("not signed in to kitsu".into()));
-        };
-        if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
-            return Ok(pair.access.clone());
-        }
-        let Some(refresh_token) = pair.refresh.clone() else {
-            return Err(anistream_core::Error::Auth(
-                "kitsu token expired and there is no refresh token".into(),
-            ));
-        };
-
-        tracing::info!("refreshing the kitsu token");
-        let renewed = refresh(&self.http, &refresh_token, now)
-            .await
-            .map_err(|e| anistream_core::Error::Auth(e.to_string()))?;
-
-        let access = renewed.access.clone();
-        *self.pending_save.write().await = Some(renewed.clone());
-        *held = Some(renewed);
-        Ok(access)
+    /// A renewed token pair the caller should write back, if a refresh happened and no store
+    /// was given, or the store did not take it.
+    pub async fn take_renewed(&self) -> Option<TokenPair> {
+        self.held.take_renewed().await
     }
 
     /// The signed-in user's id, fetched once and kept.
-    async fn user_id(&self, token: &str) -> Result<String, anistream_core::Error> {
+    async fn user_id(&self, token: &mut String) -> Result<String, anistream_core::Error> {
         if let Some(id) = self.user_id.read().await.clone() {
             return Ok(id);
         }
+        let url = format!("{API}/users?filter[self]=true");
         let payload = self
-            .request(reqwest::Method::GET, &format!("{API}/users?filter[self]=true"), token)
-            .send()
-            .await
-            .map_err(|e| tracker_error(e.to_string()))?;
+            .held
+            .send(self, token, |t| self.request(reqwest::Method::GET, &url, t))
+            .await?;
         if payload.status() == reqwest::StatusCode::UNAUTHORIZED {
             return Err(anistream_core::Error::Auth("kitsu rejected the token".into()));
         }
@@ -244,7 +218,7 @@ impl KitsuTracker {
     /// The existing library entry for one anime, if the user has one.
     async fn entry_id_for(
         &self,
-        token: &str,
+        token: &mut String,
         user_id: &str,
         kitsu_id: u32,
     ) -> Result<Option<String>, anistream_core::Error> {
@@ -253,10 +227,9 @@ impl KitsuTracker {
              &fields[libraryEntries]=status&page[limit]=1"
         );
         let body: serde_json::Value = self
-            .request(reqwest::Method::GET, &url, token)
-            .send()
-            .await
-            .map_err(|e| tracker_error(e.to_string()))?
+            .held
+            .send(self, token, |t| self.request(reqwest::Method::GET, &url, t))
+            .await?
             .json()
             .await
             .map_err(|e| tracker_error(e.to_string()))?;
@@ -301,9 +274,7 @@ impl Tracker for KitsuTracker {
     }
 
     fn is_authenticated(&self) -> bool {
-        // `try_read` so the UI is never blocked by an in-flight refresh; a contended
-        // lock means a refresh is happening, which means we are signed in.
-        self.tokens.try_read().map_or(true, |held| held.is_some())
+        self.held.is_held()
     }
 
     fn can_address(&self, op: &TrackOp) -> bool {
@@ -316,24 +287,24 @@ impl Tracker for KitsuTracker {
         refresh: Option<&str>,
         expires_at: Option<i64>,
     ) {
-        *self.tokens.write().await = Some(TokenPair {
-            access: access.to_owned(),
-            refresh: refresh.map(str::to_owned),
-            expires_at,
-        });
+        self.held
+            .accept(TokenPair {
+                access: access.to_owned(),
+                refresh: refresh.map(str::to_owned),
+                expires_at,
+            })
+            .await;
     }
 
     async fn forget_credentials(&self) {
-        *self.tokens.write().await = None;
-        *self.pending_save.write().await = None;
+        self.held.forget().await;
         // The user id belongs to the account, not the process.
         *self.user_id.write().await = None;
     }
 
     async fn pull_library(&self) -> Result<Vec<TrackedEntry>, anistream_core::Error> {
-        let now = crate::now_epoch();
-        let token = self.access_token(now).await?;
-        let user_id = self.user_id(&token).await?;
+        let mut token = self.held.access(self, crate::now_epoch()).await?;
+        let user_id = self.user_id(&mut token).await?;
 
         let mut entries = Vec::new();
         // `include=anime` is what makes the relationship carry its id: JSON:API sends
@@ -360,15 +331,10 @@ impl Tracker for KitsuTracker {
             }
 
             let response = self
-                .request(reqwest::Method::GET, &url, &token)
-                .send()
-                .await
-                .map_err(|e| tracker_error(e.to_string()))?;
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                return Err(anistream_core::Error::Auth("kitsu rejected the token".into()));
-            }
-            let payload: serde_json::Value =
-                response.json().await.map_err(|e| tracker_error(e.to_string()))?;
+                .held
+                .send(self, &mut token, |t| self.request(reqwest::Method::GET, &url, t))
+                .await?;
+            let payload = crate::page_json(response, "kitsu", "kitsu").await?;
 
             for node in payload["data"].as_array().into_iter().flatten() {
                 let Some(kitsu_id) = node["relationships"]["anime"]["data"]["id"]
@@ -404,9 +370,8 @@ impl Tracker for KitsuTracker {
     }
 
     async fn push(&self, ops: &[TrackOp]) -> Result<(), anistream_core::Error> {
-        let now = crate::now_epoch();
-        let token = self.access_token(now).await?;
-        let user_id = self.user_id(&token).await?;
+        let mut token = self.held.access(self, crate::now_epoch()).await?;
+        let user_id = self.user_id(&mut token).await?;
 
         for (anilist_id, attributes) in coalesce(ops) {
             if attributes.is_empty() {
@@ -426,7 +391,7 @@ impl Tracker for KitsuTracker {
             // Kitsu has no upsert, so ask which write this is. An entry appearing
             // between the check and the POST fails as a validation error and retries
             // through the outbox — by which time this check answers PATCH.
-            let existing = self.entry_id_for(&token, &user_id, kitsu_id).await?;
+            let existing = self.entry_id_for(&mut token, &user_id, kitsu_id).await?;
             let response = match &existing {
                 Some(entry_id) => {
                     let body = serde_json::json!({ "data": {
@@ -434,14 +399,12 @@ impl Tracker for KitsuTracker {
                         "type": "libraryEntries",
                         "attributes": attributes,
                     }});
-                    self.request(
-                        reqwest::Method::PATCH,
-                        &format!("{API}/library-entries/{entry_id}"),
-                        &token,
-                    )
-                    .json(&body)
-                    .send()
-                    .await
+                    let url = format!("{API}/library-entries/{entry_id}");
+                    self.held
+                        .send(self, &mut token, |t| {
+                            self.request(reqwest::Method::PATCH, &url, t).json(&body)
+                        })
+                        .await
                 }
                 None => {
                     // Creation demands a status — Kitsu answers 422 "status can't be
@@ -461,17 +424,14 @@ impl Tracker for KitsuTracker {
                             "user": { "data": { "type": "users", "id": user_id } },
                         },
                     }});
-                    self.request(
-                        reqwest::Method::POST,
-                        &format!("{API}/library-entries"),
-                        &token,
-                    )
-                    .json(&body)
-                    .send()
-                    .await
+                    let url = format!("{API}/library-entries");
+                    self.held
+                        .send(self, &mut token, |t| {
+                            self.request(reqwest::Method::POST, &url, t).json(&body)
+                        })
+                        .await
                 }
-            }
-            .map_err(|e| tracker_error(e.to_string()))?;
+            }?;
 
             if response.status() == reqwest::StatusCode::UNAUTHORIZED {
                 return Err(anistream_core::Error::Auth("kitsu rejected the token".into()));

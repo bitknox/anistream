@@ -140,6 +140,8 @@ async fn main() -> anyhow::Result<()> {
             thumbnail: still,
         }),
         episodes,
+        cover_url: None,
+        banner_url: None,
     };
     let settings = PlaySettings {
         threshold: config.playback.commit_threshold,
@@ -157,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
         presence: Default::default(),
         syncplay: Default::default(),
         party: false,
+        up_next_countdown: 10,
     };
     // Three ways to the same file, as a library server, a folder and a plugin would offer it.
     let streams = [("jellyfin", 1080), ("local files", 1080), ("example-rust", 720)]
@@ -182,8 +185,10 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
+    let host = std::sync::Arc::new(anistream_engine::host::DesktopHost::new(&config, &paths));
+    let machine = playback::Machine::desktop(mpv, slot, host);
     let play =
-        playback::play(streams, context, store, http, mpv, settings, slot, tx.into(), commands);
+        playback::play(streams, context, store, http, machine, settings, tx.into(), commands);
     tokio::time::timeout(Duration::from_secs(3600), play).await?;
     let _ = printer.await;
     // Finished with Up Next on, the window is parked for the next episode with its loading card

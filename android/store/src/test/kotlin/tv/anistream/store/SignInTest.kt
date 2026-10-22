@@ -1,0 +1,103 @@
+package tv.anistream.store
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Test
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.ConflictRow
+import tv.anistream.engine.model.DeviceCodePrompt
+import tv.anistream.engine.model.Event
+
+/** The sign-ins as the store holds them: the browser's, a device code's, and what a pull disputes. */
+@OptIn(ExperimentalCoroutinesApi::class)
+class SignInTest {
+    private val main = UnconfinedTestDispatcher()
+    private lateinit var store: AppStore
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(main)
+        store = AppStore(scope = TestScope(main), decoder = { _, _ -> null }, clock = { 0L })
+    }
+
+    @After
+    fun tearDown() = Dispatchers.resetMain()
+
+    private val authorize = Event.Authorize(
+        tracker = "anilist",
+        url = "https://anilist.co/api/v2/oauth/authorize?client_id=54537&response_type=token",
+        callbackScheme = "anistream",
+    )
+
+    @Test
+    fun the_browser_s_redirect_goes_to_the_engine_as_it_came_and_ends_the_sign_in() {
+        store.connect("anilist")
+        store.apply(listOf(authorize))
+        val request = store.accounts.signIn.value!!
+        assertEquals("anilist", request.tracker)
+        assertEquals(authorize.url, request.url)
+
+        val callback = "anistream://auth/anilist#access_token=a.b.c&token_type=Bearer"
+        store.finishSignIn(request, callback)
+        assertNull(store.accounts.signIn.value)
+        assertEquals(listOf(Command.Connect("anilist"), Command.FinishSignIn("anilist", callback)), store.waiting)
+    }
+
+    @Test
+    fun a_tab_closed_without_signing_in_says_so() {
+        store.apply(listOf(authorize))
+        store.cancelSignIn(store.accounts.signIn.value!!)
+        assertNull(store.accounts.signIn.value)
+        assertEquals(listOf(Command.CancelSignIn("anilist")), store.waiting)
+    }
+
+    @Test
+    fun a_device_code_stays_until_the_engine_clears_it() {
+        val prompt = DeviceCodePrompt(tracker = "trakt", code = "4F2K9QX1", url = "https://trakt.example/activate")
+        store.apply(listOf(Event.DeviceCode(prompt)))
+        assertEquals(prompt, store.accounts.deviceCode.value)
+        store.apply(listOf(Event.DeviceCode(null)))
+        assertNull(store.accounts.deviceCode.value)
+    }
+
+    @Test
+    fun kitsu_s_password_goes_to_the_engine_and_a_pull_s_disputes_are_kept() {
+        store.connectKitsu("nagare", "hunter2")
+        assertEquals(listOf(Command.ConnectKitsu("nagare", "hunter2")), store.waiting)
+        val row = ConflictRow(anilistId = 900001u, title = "Hoshikuzu", field = "progress", local = "7", remote = "6")
+        store.apply(listOf(Event.Conflicts(listOf(row))))
+        assertEquals(listOf(row), store.accounts.conflicts.value)
+    }
+}
+
+/** Which AniList client the app flavour signs in with, before and after the Android one is registered. */
+class AniListClientTest {
+    @Test
+    fun until_the_android_client_is_registered_the_shared_one_comes_back_on_the_scheme() {
+        assertEquals(AniListClient("54537", null), EngineLaunch.aniListClient(null))
+        assertEquals(AniListClient("54537", null), EngineLaunch.aniListClient(" "))
+        val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")), androidAniListClientId = null)
+        assertEquals("54537", launch.record.anilistClientId)
+        assertNull(launch.record.anilistRedirectUri)
+    }
+
+    @Test
+    fun once_it_is_registered_it_comes_back_on_the_verified_app_link() {
+        assertEquals(AniListClient("61234", "https://anistream.tv/auth/anilist"), EngineLaunch.aniListClient("61234"))
+        val launch = EngineLaunch.app(EngineHome.sandbox(java.io.File("files"), java.io.File("cache")), androidAniListClientId = "61234")
+        assertEquals("61234", launch.record.anilistClientId)
+        assertEquals("https://anistream.tv/auth/anilist", launch.record.anilistRedirectUri)
+        // MyAnimeList keeps the scheme, and Simkl and Trakt their device codes.
+        assertNull(launch.record.malRedirectUri)
+        assertEquals(EngineLaunch.TRAKT_CLIENT_ID, launch.record.traktClientId)
+        assertNull(launch.record.traktClientSecret)
+    }
+}

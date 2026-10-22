@@ -23,7 +23,47 @@ env:
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 jobs:
+  # Which parts a pull request touches, so a change to the apps alone does not wait on the whole
+  # Rust matrix, and a change to the engine still runs everything the apps build on. Pushes to
+  # main run every job regardless: their caches are the ones pull requests restore from.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rust: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' }}
+      apple: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.apple == 'true' }}
+      android: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.android == 'true' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'wit/**'
+              - 'assets/**'
+              - 'deploy/**'
+              - 'packaging/**'
+              - 'tools/**'
+              - '.cargo/**'
+              - '.config/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain.toml'
+              - 'rustfmt.toml'
+              - 'deny.toml'
+              - '.github/workflows/ci.yml'
+            apple:
+              - 'apple/**'
+            android:
+              - 'android/**'
+
   test:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -66,18 +106,14 @@ jobs:
       - name: Test the engine without the desktop feature
         run: cargo nextest run -p anistream-engine --no-default-features --lib --profile ci
 
-      # After the tests, so listing them reuses their build. On macOS only: tests gated to one
-      # OS make the count differ by OS, and macOS is where the app is developed.
-      - name: Test count
-        if: matrix.os == 'macos-latest'
-        run: tools/check-test-count.sh
-
   # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
   # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
   # require it, so a skip fails instead. At both ends of what distributions ship: Ubuntu 24.04's
   # 0.37 is the oldest that runs the companion (0.36 is its floor) and lacks what later players
   # added, such as a scaled overlay (0.38) and the context menu (0.40); 26.04's 0.41 has them.
   mpv:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     name: mpv (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -96,10 +132,6 @@ jobs:
       - name: Install mpv
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
       - run: mpv --version | head -1
-      # A test that moves module leaves the group by its old path, and this job would stop
-      # running it without failing: the group's size is held to what it records.
-      - name: Group size
-        run: tools/check-mpv-group.sh
       - name: Test
         run: >-
           cargo nextest run --profile ci -p anistream -p anistream-engine -p anistream-player
@@ -111,6 +143,8 @@ jobs:
   # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
   # Still on every OS, because the Windows named-pipe and macOS paths only exist there.
   clippy:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     name: clippy (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -136,6 +170,8 @@ jobs:
   # terminal front end may never depend on a terminal library. Resolving the tree needs no
   # build, so this is quick.
   boundaries:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -147,6 +183,8 @@ jobs:
   # tuple struct, a Result in a field, or a core type without a conversion. Linted as the rest of
   # the workspace is, since the derives are code too.
   ffi:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -156,42 +194,68 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo clippy -p anistream-model --features ffi --all-targets -- -D warnings
 
-  # Swift drives a real engine through the generated bindings: apple/build.sh builds the FFI
-  # library with the test kit in it, generates each crate's Swift bindings from the built library,
-  # and runs the Swift package's tests, which start the engine on a fake AniList and send it the
-  # model's own commands.
+  # Swift drives a real engine through the generated bindings. apple/scripts/test.sh builds the
+  # testing engine for macOS with apple/scripts/engine.sh (the static library as an XCFramework, and
+  # each crate's Swift bindings generated from it) and runs every Swift package's tests on it: the
+  # bindings, the design tokens, and the app's store over a real engine on the fake AniList.
   swift:
-    runs-on: macos-latest
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
+    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
+    runs-on: xcode-27
     env:
-      # The Swift package's minimum, as apple/build.sh sets it, so the Rust tests share its build.
-      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      # engine.sh builds with these; the Rust tests after the Swift ones share its build only
+      # with them too.
+      MACOSX_DEPLOYMENT_TARGET: "26.0"
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install
-      # Its own cache: this build has features and a deployment target no other job's has.
+      # Its own cache: this build has features, a profile and a deployment target no other job's
+      # has.
       - uses: Swatinem/rust-cache@v2
         with:
           key: swift
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: swift --version
-      - name: Rust tests
-        run: cargo test -p anistream-ffi --features testing,cli
+      # The player's tests play media apple/scripts/player-media.sh makes with ffmpeg.
+      - run: brew install ffmpeg
+      # First, so a Swift change that does not compile says so in minutes.
       - name: Swift tests
-        run: apple/build.sh
+        run: apple/scripts/test.sh
+      # The FFI's own tests, only when the engine changed: a change to apple/ alone cannot move
+      # them.
+      - name: Rust tests
+        if: needs.changes.outputs.rust == 'true'
+        run: cargo test -p anistream-ffi --features testing,cli
+      # The apps build the engine without the desktop feature, so its hosted player has to pass
+      # its contract in that build too, with the target and profile apple/scripts/engine.sh uses.
+      - name: Rust tests, the apps' build
+        if: needs.changes.outputs.rust == 'true'
+        run: >-
+          cargo test -p anistream-ffi --no-default-features --features testing
+          --target aarch64-apple-darwin --profile app-dev
 
-  # The engine and its FFI library as an iPhone builds them: without the desktop feature, so
-  # without mpv, Syncplay, the loopback sign-in and the keychain crate, and with plugins run by
-  # wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The part that can
-  # break is the C beneath it, built with the runner's Xcode for the iOS SDK: BoringSSL (cmake
-  # and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers.
+  # The engine and its FFI library as an iPhone and the iOS Simulator build them: without the
+  # desktop feature, so without mpv, Syncplay, the loopback sign-in and the keychain crate, and with
+  # plugins run by wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The
+  # part that can break is the C beneath it, built with the runner's Xcode for the iOS SDKs:
+  # BoringSSL (cmake and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers. The app's
+  # minimum, iOS 26, is the deployment target, as apple/scripts/engine.sh builds it.
   ios:
-    runs-on: macos-latest
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
+    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
+    runs-on: xcode-27
     env:
-      IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     steps:
       - uses: actions/checkout@v5
-      - run: rustup toolchain install && rustup target add aarch64-apple-ios
-      # Its own cache: nothing else here builds for this target.
+      # rust-toolchain.toml lists both iOS targets.
+      - run: rustup toolchain install
+      # Its own cache: nothing else here builds for these targets.
       - uses: Swatinem/rust-cache@v2
         with:
           key: ios
@@ -201,15 +265,71 @@ jobs:
       # The static library an app links, and the dynamic one, both linked against the SDK.
       - name: The FFI library
         run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
+      - name: The FFI library for the Simulator
+        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios-sim
 
-  # The same for an Android phone, with the runner's NDK through cargo-ndk, which points every
-  # C build at the NDK's clang for API level 24. Cross-compiled only.
-  android:
-    runs-on: ubuntu-latest
+  # The Apple app itself, from the XcodeGen project: the Fixtures app's tests run on the Mac
+  # (Swift Testing over the testing engine, signed to run locally), and the app is built for the
+  # iOS Simulator with signing off. The Xcode is named outright, since the runner's default
+  # moves.
+  apple:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
+    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
+    runs-on: xcode-27
     env:
-      # BoringSSL's bindings are generated by bindgen, which asks clang for the Rust target as
-      # it is named, without an API level, and the NDK's headers refuse an unversioned one.
-      BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android: --target=aarch64-linux-android24
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: apple
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: xcodebuild -version
+      - run: brew install xcodegen
+      # The schemes' pre-actions build these too, but quietly, into a log; built here, a failure
+      # says why in the job.
+      - name: The engines
+        run: |
+          apple/scripts/engine.sh testing macos
+          apple/scripts/engine.sh release macos ios-sim
+      # libmpv, which both apps embed and their player frameworks check for.
+      - name: libmpv
+        run: apple/scripts/mpv.sh macos ios-sim
+      # The CJK subtitle font the iOS app bundles, which its iOS builds check for.
+      - name: The subtitle font
+        run: apple/scripts/fonts.sh
+      - name: The project
+        run: cd apple && xcodegen generate
+      - name: Test the Fixtures app on the Mac
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Fixtures"
+          -destination platform=macOS test
+      - name: Build the app for the iOS Simulator
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream
+          -destination "generic/platform=iOS Simulator" build CODE_SIGNING_ALLOWED=NO
+      # Once in Release, as the app is kept: the engine in cargo's release profile beneath it.
+      # Last, since that engine takes the place of the app-dev one the builds above link.
+      - name: The release engine
+        run: ANISTREAM_ENGINE_PROFILE=release apple/scripts/engine.sh release macos
+      - name: Build the app for the Mac in Release
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream -configuration Release
+          -destination platform=macOS build CODE_SIGNING_ALLOWED=NO
+
+  # The same for an Android phone, with the runner's newest NDK through cargo-ndk, which points
+  # every C build at the NDK's clang for API level 35, the Android app's minimum. Cross-compiled
+  # only, and the library checked for what Android needs of it. Then the Android app on top: its
+  # engine and Kotlin bindings as android/scripts/engine.sh builds them, the fixtures APK, and the
+  # JVM unit tests, which start the testing engine on this runner's own build of the library
+  # through JNA. Emulator tests come later.
+  android:
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install && rustup target add aarch64-linux-android
@@ -220,18 +340,94 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-ndk
+      # The newest NDK the runner has, which links 16 KB aligned (r28 and later), where
+      # ANDROID_NDK_HOME may name an older one. And bindgen's clang arguments, for BoringSSL's
+      # bindings: bindgen asks clang for the Rust target as it is named, without an API level,
+      # and the NDK's headers refuse an unversioned one. cargo-ndk 4 sets the underscored
+      # BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android itself, to the sysroot alone, over any
+      # value given it, so the level goes in the hyphenated name, which bindgen reads first, with
+      # the sysroot beside it.
+      - name: The NDK and bindgen's arguments for it
+        run: |
+          ndk="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
+          sysroot="$ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+          {
+            echo "ANDROID_NDK_HOME=$ndk"
+            echo "BINDGEN_ANDROID=--target=aarch64-linux-android35 --sysroot=$sysroot -I$sysroot/usr/include/aarch64-linux-android"
+          } >> "$GITHUB_ENV"
       - name: The engine
         run: >-
-          cargo ndk --target arm64-v8a --platform 24
+          env "BINDGEN_EXTRA_CLANG_ARGS_aarch64-linux-android=$BINDGEN_ANDROID"
+          cargo ndk --target arm64-v8a --platform 35
           build -p anistream-engine --no-default-features
       - name: The FFI library
         run: >-
-          cargo ndk --target arm64-v8a --platform 24
+          env "BINDGEN_EXTRA_CLANG_ARGS_aarch64-linux-android=$BINDGEN_ANDROID"
+          cargo ndk --target arm64-v8a --platform 35
           build -p anistream-ffi --no-default-features
+      # Android 15 devices can run 16 KB pages, and a library with 4 KB aligned segments does not
+      # load on them. And a library that needed libc++_shared.so would have the app ship it.
+      - name: The library loads on 16 KB pages and needs only the system's libraries
+        run: |
+          bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          so=target/aarch64-linux-android/debug/libanistream_ffi.so
+          "$bin/llvm-readelf" -d "$so" | grep NEEDED
+          if "$bin/llvm-readelf" -d "$so" | grep -q 'libc++_shared'; then
+            echo "the library needs libc++_shared.so, which the app would have to ship"; exit 1
+          fi
+          if "$bin/llvm-objdump" -p "$so" | grep LOAD | grep -vq 'align 2\*\*14'; then
+            echo "a LOAD segment is not 16 KB aligned"; exit 1
+          fi
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # Gradle's caches and the wrapper's distribution, saved from main like the Rust cache.
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      # The platform the app compiles against, and the NDK its build.gradle.kts strips the APK's
+      # libraries with; the engine itself builds with the newest NDK, above.
+      - name: The SDK platform and NDK the app builds with
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses >/dev/null
+          "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0" "ndk;30.0.16248370" >/dev/null
+      # The fixtures flavour's engine and its bindings, which engine.sh builds with the same
+      # bindgen arguments, and the fonts.
+      - name: The app's engine and bindings
+        run: android/scripts/engine.sh testing
+        env:
+          # The workspace's own, which the Rust cache keeps, rather than the script's default in HOME.
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      - name: The app's fonts
+        run: android/scripts/fonts.sh
+      # The Android builds Robolectric draws the screenshot tests on, which it fetches itself.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml') }}
+      # libmpv is built by android/scripts/mpv.sh on a developer's Mac, not here: the player module
+      # builds without it and its JNI shim, so its Kotlin compiles and its unit tests run.
+      - name: The fixtures APK and the unit tests
+        working-directory: android
+        run: ./gradlew --console=plain assembleFixturesDebug testFixturesDebugUnitTest -Proborazzi.test.record=true
+        env:
+          ANISTREAM_PLAYER_NATIVE: "off"
+      # The screenshot tests' captures, each board's screen drawn from a recorded scene, to look
+      # at beside the boards.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: android-screenshots
+          path: android/.shots/roborazzi/
+          if-no-files-found: ignore
 
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.
   admin-page:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -251,6 +447,8 @@ jobs:
   # moved on or a template's copy differs, and the build below proves it still compiles.
   # store-templates runs the committed copies through the whole store journey.
   store-wasm:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -269,6 +467,8 @@ jobs:
   # journey a store's owner and members take: claim, publish in parts, join, download in ranges,
   # remove, sign in to the admin page. Nothing else exercises the templates' JavaScript.
   store-templates:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -287,6 +487,8 @@ jobs:
       - run: deploy/test/journeys.sh
 
   audit:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

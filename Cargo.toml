@@ -23,6 +23,7 @@ anistream-model = { path = "crates/anistream-model" }
 # does, and a phone's build of the FFI does not. See the engine's `desktop` feature.
 anistream-engine = { path = "crates/anistream-engine", default-features = false }
 anistream-player = { path = "crates/anistream-player" }
+anistream-playback = { path = "crates/anistream-playback" }
 anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
 anistream-plugin-store = { path = "crates/anistream-plugin-store" }
 anistream-store-core = { path = "crates/anistream-store-core" }
@@ -30,7 +31,10 @@ anistream-store-server = { path = "crates/anistream-store-server" }
 anistream-store-wasm = { path = "crates/anistream-store-wasm" }
 anistream-providers = { path = "crates/anistream-providers" }
 anistream-store = { path = "crates/anistream-store" }
-anistream-track = { path = "crates/anistream-track" }
+# Without its defaults, so each crate says whether it wants the keyring crate: the binary and
+# the engine's `desktop` feature do, and a native app's build, which reaches the keychain
+# through its host, does not. See the crate's `keychain` feature.
+anistream-track = { path = "crates/anistream-track", default-features = false }
 anistream-testkit = { path = "crates/anistream-testkit" }
 anistream-tui = { path = "crates/anistream-tui" }
 
@@ -126,6 +130,15 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.wasmtime-internal-cranelift]
 opt-level = 3
+
+# The engine as the Apple app links it while it is developed: apple/scripts/engine.sh builds every
+# slice with this. Full debug info for every dependency makes the static library large and slow for
+# Xcode to link; line tables keep a backtrace readable, and opt-level 1 keeps the engine quick
+# enough to drive a screen.
+[profile.app-dev]
+inherits = "dev"
+opt-level = 1
+debug = "line-tables-only"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

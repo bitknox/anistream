@@ -11,7 +11,7 @@
 //! command line or a test, hands the work a plain event channel, made an `Outbox` with `From`.
 
 use anistream_core::ids::AnilistId;
-use anistream_model::event::Event;
+use anistream_model::{event::Event, playback::PlaybackId};
 use tokio::sync::mpsc::{self, error::SendError};
 
 /// Work a command or a task leaves for the engine side to do, in its place among the events.
@@ -52,7 +52,7 @@ pub(crate) enum Envelope {
 /// engine side knows whose they are without guessing from what was started last.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Played {
-    pub serial: u64,
+    pub serial: PlaybackId,
     pub id: AnilistId,
     pub episode: String,
 }
@@ -89,6 +89,14 @@ impl Outbox {
         match &self.0 {
             Route::Inbox(tx) | Route::Played(tx, _) => Self(Route::Played(tx.clone(), played)),
             Route::Events(_) => self.clone(),
+        }
+    }
+
+    /// The playback this outbox answers for, when it answers for one.
+    pub fn playback(&self) -> Option<PlaybackId> {
+        match &self.0 {
+            Route::Played(_, played) => Some(played.serial),
+            Route::Events(_) | Route::Inbox(_) => None,
         }
     }
 
@@ -199,7 +207,8 @@ mod tests {
     #[test]
     fn a_playback_s_events_come_named_with_it_and_in_their_place() {
         let (outbox, mut inbox) = Outbox::inbox();
-        let played = Played { serial: 3, id: AnilistId::new(7), episode: "2".into() };
+        let played =
+            Played { serial: PlaybackId::new(3), id: AnilistId::new(7), episode: "2".into() };
         let playing = outbox.for_playback(played.clone());
         outbox.send(Event::SkipCleared).unwrap();
         playing.send(Event::PlaybackKept).unwrap();

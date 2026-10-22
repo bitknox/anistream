@@ -3,7 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 
-use crate::progress::TitleProgress;
+use crate::{episodes::EpisodeAiring, progress::TitleProgress};
 
 /// A title as the list views need it.
 ///
@@ -14,23 +14,40 @@ use crate::progress::TitleProgress;
 pub struct Entry {
     pub id: AnilistId,
     pub title: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub secondary: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub format: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub episodes: Option<u32>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub year: Option<u16>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub score: Option<u32>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub studio: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub synopsis: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub cover_url: Option<String>,
+    /// The cover's own colour, as AniList gives it (`#e4a15d`): what a front end paints where the
+    /// cover has not arrived, so a placeholder is never a grey box.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub cover_color: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub banner_url: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub genres: Vec<String>,
     /// Services carrying this title, from AniList's external links.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub available_on: Vec<String>,
     /// Local progress: episodes completed, and the next episode to watch.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub progress: Option<TitleProgress>,
     /// Seconds until *this row's* broadcast — which for a calendar entry is the episode the row
     /// is about, and runs negative once that episode has aired. Everywhere else it is the same
     /// thing as [`Self::next_airing_in`].
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub airing_in: Option<i64>,
     /// The episode a calendar row is about — the one [`Self::airing_in`] dates. `None`
     /// everywhere else.
@@ -38,8 +55,10 @@ pub struct Entry {
     /// A field of its own rather than `ep 12` appended to the title. Appended, it was the first
     /// thing truncation took, so a column of one show's episodes read as identical rows, and it
     /// followed the title into the Title and Episodes headings.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub airing_episode: Option<u32>,
     /// The episode the title broadcasts next, from its own schedule.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub next_episode: Option<u32>,
     /// Seconds until [`Self::next_episode`] airs.
     ///
@@ -47,11 +66,13 @@ pub struct Entry {
     /// slot, and the two then describe different episodes — which is how a row about an episode
     /// that had just aired came to read "EP 6 in now". This one is the title's schedule and
     /// nothing else's, so the pair is always about the same episode.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub next_airing_in: Option<i64>,
     /// The most recent broadcast: episode number and how many seconds ago.
     ///
     /// Answers the question a list of airing shows is actually asked — *is there something new
     /// to watch* — which neither the total episode count nor the next countdown can.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub last_aired: Option<Aired>,
     /// An episode left part-watched, and where in it you stopped.
     ///
@@ -60,18 +81,300 @@ pub struct Entry {
     /// tracker. Picking up where you left off is a different question with a different answer:
     /// quitting halfway through an episode you fully intend to finish should be the single most
     /// visible thing on the home screen, and under the old behaviour it was invisible.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub resume: Option<ResumePoint>,
     /// Titles adjacent in the main watch order — prequels, the parent story, sequels.
     /// Present on the detail fetch only; list fetches leave it empty.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub related: Vec<RelatedTitle>,
     /// What people who liked this rated highest. Rides the detail fetch, like `related`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub recommended: Vec<RelatedTitle>,
     /// A watchable trailer URL, when AniList has one. Rides the detail fetch.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub trailer_url: Option<String>,
     /// Where the title sits on the tracker's list, when that is known: a Library row knows its
     /// segment, and a status set in this session is remembered on the entry. `None` means not
     /// known, not "on no list" — nothing outside the Library carries the tracker's answer.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub list_status: Option<LibrarySegment>,
+    /// The title in each form AniList publishes, for a front end that puts the viewer's own
+    /// [`TitleLanguage`] first. [`Self::title`] is the English-first form the terminal shows.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title_romaji: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title_english: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title_native: Option<String>,
+    /// The season it premiered in.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub season: Option<Season>,
+    /// When it began and finished airing, as far as AniList knows. `None` until AniList knows
+    /// at least the year.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub start_date: Option<FuzzyDate>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub end_date: Option<FuzzyDate>,
+    /// What it was adapted from.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub source: Option<SourceMaterial>,
+    /// AniList marks it adult. `false` when AniList did not say.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub adult: bool,
+    /// What only the title page fetches: tags, the schedule, every relation, the cast and crew.
+    /// `None` on every list fetch.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub detail: Option<TitleDetail>,
+    /// Whether it is airing, has finished, has yet to start, was cancelled or is on hiatus.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub status: Option<AiringStatus>,
+    /// [`Self::synopsis`] in runs, with what AniList marks a spoiler as runs of their own, for a
+    /// front end that hides those. Shown one after another, a space between. [`Self::synopsis`]
+    /// is the same text with the spoilers left out, which is what the terminal shows.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub synopsis_spans: Vec<SynopsisSpan>,
+}
+
+/// Where a title is in its run, as AniList says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum AiringStatus {
+    Releasing,
+    Finished,
+    NotYetReleased,
+    Cancelled,
+    Hiatus,
+}
+
+/// One run of a synopsis: plain text, and whether AniList marks it a spoiler.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct SynopsisSpan {
+    pub text: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub spoiler: bool,
+}
+
+/// The season a title premiered in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum Season {
+    Winter,
+    Spring,
+    Summer,
+    Fall,
+}
+
+/// A date AniList may know only part of: always the year, the month and day when known. A
+/// title announced for a year has no month yet.
+///
+/// Not `Date`, which would shadow the platform's own date type in the Swift bindings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct FuzzyDate {
+    pub year: u16,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub month: Option<u8>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub day: Option<u8>,
+}
+
+/// What a title was adapted from. A kind AniList adds later reads as [`Self::Other`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum SourceMaterial {
+    Original,
+    Manga,
+    LightNovel,
+    VisualNovel,
+    VideoGame,
+    Novel,
+    Doujinshi,
+    Anime,
+    WebNovel,
+    LiveAction,
+    Game,
+    Comic,
+    MultimediaProject,
+    PictureBook,
+    Other,
+}
+
+/// Which form of a title to put first, as the signed-in viewer reads AniList: see
+/// [`crate::command::Command::LoadTitleLanguage`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum TitleLanguage {
+    Romaji,
+    English,
+    Native,
+}
+
+/// What only a title's page carries, beside the [`Entry`] every list shows.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleDetail {
+    /// What the title is about, most relevant first.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub tags: Vec<TitleTag>,
+    /// When each episode aired or airs, in episode order: those already out (a long runner's
+    /// newest fifty) and every one still to come. An episode missing here is not known, which
+    /// does not mean it has not aired.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub schedule: Vec<EpisodeAiring>,
+    /// Every related anime, whatever the relation. [`Entry::related`] is the watch order alone,
+    /// which is what the terminal lists.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub relations: Vec<LinkedTitle>,
+    /// What people who liked this rated highest, with their covers. The same titles as
+    /// [`Entry::recommended`], AniList's first eight.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub recommendations: Vec<LinkedTitle>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub rankings: Vec<Ranking>,
+    /// The main and supporting cast, main first, with their Japanese voices.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub characters: Vec<CastMember>,
+    /// The people who made it, most relevant first.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub staff: Vec<StaffCredit>,
+}
+
+/// One of a title's tags.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleTag {
+    pub name: String,
+    /// How relevant it is to the title, out of 100.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub rank: Option<u32>,
+    /// It gives away something of this title's story.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub media_spoiler: bool,
+    /// It is a spoiler on any title.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub general_spoiler: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub category: Option<String>,
+}
+
+/// Another title, as a related or recommended card shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct LinkedTitle {
+    pub id: AnilistId,
+    /// The English-first form, as [`Entry::title`].
+    pub title: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title_romaji: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title_english: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub title_native: Option<String>,
+    /// How it relates to the title. `None` on a recommendation.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub relation: Option<RelationKind>,
+    /// `TV`, `MOVIE`, as [`Entry::format`].
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub format: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub cover_url: Option<String>,
+    /// The cover's own colour, as AniList gives it (`#e4a15d`): what a card paints while the
+    /// cover is missing or on its way.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub cover_color: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub season: Option<Season>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub year: Option<u16>,
+    /// Where it is on the signed-in tracker's list, as the last library pull or Library load
+    /// found it, so a card can say "Watched" or "Planning". `None` when it is on no list, or
+    /// nothing has been pulled.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub list_status: Option<LibrarySegment>,
+}
+
+/// How one title relates to another, as AniList names it. A relation AniList adds later reads
+/// as [`Self::Other`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum RelationKind {
+    Prequel,
+    Sequel,
+    Parent,
+    SideStory,
+    SpinOff,
+    Alternative,
+    Summary,
+    Compilation,
+    Contains,
+    SameUniverse,
+    Character,
+    Adaptation,
+    Source,
+    Other,
+}
+
+/// Where a title ranks: `#4 highest rated`, in a season and year or of all time.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Ranking {
+    pub rank: u32,
+    pub kind: RankingKind,
+    /// AniList's own words for the list: `highest rated all time`.
+    pub context: String,
+    pub all_time: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub season: Option<Season>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub year: Option<u16>,
+}
+
+/// Which list a [`Ranking`] is on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum RankingKind {
+    Rated,
+    Popular,
+}
+
+/// A character in a title's cast.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct CastMember {
+    pub name: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub image_url: Option<String>,
+    pub role: CastRole,
+    /// The character's Japanese voices, usually one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub voice_actors: Vec<Person>,
+}
+
+/// How big a part a character has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum CastRole {
+    Main,
+    Supporting,
+    Background,
+}
+
+/// Someone who worked on a title, with their picture when AniList has one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Person {
+    pub name: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub image_url: Option<String>,
+}
+
+/// One credit on a title: who, and what they did, in AniList's words (`Director`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct StaffCredit {
+    pub name: String,
+    pub role: String,
 }
 
 /// A title's most recent broadcast: which episode, and how long ago it aired.
@@ -100,6 +403,7 @@ pub struct RelatedTitle {
     pub title: String,
     /// `prequel`, `parent` or `sequel`, already lowercased for display.
     pub relation: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub format: Option<String>,
 }
 
@@ -110,6 +414,7 @@ pub struct ResumePoint {
     /// Seconds into the episode.
     pub position: f64,
     /// Fraction of the episode watched, when the runtime is known.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub fraction: Option<f64>,
 }
 
@@ -139,6 +444,7 @@ impl Entry {
             studio: None,
             synopsis: String::new(),
             cover_url: None,
+            cover_color: None,
             banner_url: None,
             genres: Vec::new(),
             available_on: Vec::new(),
@@ -153,6 +459,17 @@ impl Entry {
             recommended: Vec::new(),
             trailer_url: None,
             list_status: None,
+            title_romaji: None,
+            title_english: None,
+            title_native: None,
+            season: None,
+            start_date: None,
+            end_date: None,
+            source: None,
+            adult: false,
+            detail: None,
+            status: None,
+            synopsis_spans: Vec::new(),
         }
     }
 

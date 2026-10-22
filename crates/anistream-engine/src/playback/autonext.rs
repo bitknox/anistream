@@ -17,7 +17,12 @@
 use std::collections::HashMap;
 
 use anistream_core::ids::AnilistId;
-use anistream_model::{event::Event, notice::Notice, playback::Ending, progress::after_filler};
+use anistream_model::{
+    event::Event,
+    notice::Notice,
+    playback::{Ending, PlaybackId},
+    progress::after_filler,
+};
 
 use crate::{cache::TitleCache, outbox::Played};
 
@@ -25,7 +30,7 @@ use crate::{cache::TitleCache, outbox::Played};
 #[derive(Debug, Clone, PartialEq)]
 pub struct Staged {
     /// Its number, as the engine numbered it when it started.
-    pub serial: u64,
+    pub serial: PlaybackId,
     pub id: AnilistId,
     pub episode: String,
     /// The name it was staged under, which an episode that follows it goes by too.
@@ -40,7 +45,7 @@ pub struct Staging {
     front: Option<Staged>,
     /// Each staged playback still finding its stream, by number, and the one it was staged
     /// over: what Now Playing goes back to when it finds nothing and that one keeps the window.
-    over: HashMap<u64, Staged>,
+    over: HashMap<PlaybackId, Staged>,
 }
 
 impl Staging {
@@ -107,7 +112,7 @@ impl Staging {
     }
 
     /// `serial` is over: no playback staged over it goes back to it any more.
-    fn let_go(&mut self, serial: u64) {
+    fn let_go(&mut self, serial: PlaybackId) {
         self.over.retain(|_, behind| behind.serial != serial);
     }
 }
@@ -202,6 +207,7 @@ mod tests {
                 completed: false,
                 kind: None,
                 skippable: filler.contains(&n),
+                airs_at: None,
             })
             .collect();
         let mut cache = TitleCache::default();
@@ -212,7 +218,7 @@ mod tests {
     /// Episode `episode` of title `id` on screen, as playback 1, under `title`.
     fn on_screen(id: u32, title: &str, episode: &str) -> Staged {
         Staged {
-            serial: 1,
+            serial: PlaybackId::new(1),
             id: AnilistId::new(id),
             episode: episode.into(),
             title: title.into(),
@@ -310,7 +316,7 @@ mod tests {
         let cache = with_table(1, &[]);
         let mut staging = Staging::default();
         staging.staged(on_screen(1, "Title 0", "1"));
-        staging.staged(Staged { serial: 2, ..on_screen(1, "Title 0", "2") });
+        staging.staged(Staged { serial: PlaybackId::new(2), ..on_screen(1, "Title 0", "2") });
         let left = Event::EpisodeLeft {
             id: AnilistId::new(1),
             episode: "1".into(),
@@ -379,12 +385,16 @@ mod tests {
 
     /// Playback `serial`, of episode `episode` of title `id`.
     fn from_title(serial: u64, id: u32, episode: &str) -> Played {
-        Played { serial, id: AnilistId::new(id), episode: episode.into() }
+        Played {
+            serial: PlaybackId::new(serial),
+            id: AnilistId::new(id),
+            episode: episode.into(),
+        }
     }
 
     fn staged(serial: u64, episode: &str) -> Staged {
         Staged {
-            serial,
+            serial: PlaybackId::new(serial),
             id: AnilistId::new(7),
             episode: episode.into(),
             title: "Hoshikuzu no Tabibito".into(),
@@ -393,7 +403,11 @@ mod tests {
     }
 
     fn from(serial: u64, episode: &str) -> Played {
-        Played { serial, id: AnilistId::new(7), episode: episode.into() }
+        Played {
+            serial: PlaybackId::new(serial),
+            id: AnilistId::new(7),
+            episode: episode.into(),
+        }
     }
 
     fn ended() -> Event {
@@ -407,7 +421,7 @@ mod tests {
         staging.staged(staged(2, "2"));
         // Episode 1 ends while 2, staged over it, is found: the screen has moved on.
         assert_eq!(staging.observe(&ended(), Some(&from(1, "1"))), None);
-        assert_eq!(staging.front().map(|f| f.serial), Some(2));
+        assert_eq!(staging.front().map(|f| f.serial), Some(PlaybackId::new(2)));
         // A stray with no playback named says nothing of the screen.
         assert_eq!(staging.observe(&ended(), None), None);
         assert_eq!(staging.observe(&ended(), Some(&from(2, "2"))), Some(staged(2, "2")));

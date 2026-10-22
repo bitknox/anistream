@@ -10,7 +10,63 @@
 //! degrade the picture on every desktop where the probe fails.
 //!
 //! **Blocking.** macOS runs `pmset` (about 10 ms) and Linux reads sysfs. Both are fast, but
-//! neither belongs on an async worker: call [`on_battery`] from `tokio::task::spawn_blocking`.
+//! neither belongs on an async worker: call [`PowerSource::on_battery`] from
+//! `tokio::task::spawn_blocking`.
+//!
+//! Behind [`PowerSource`], since only the desktop can ask the system itself: [`SystemPower`] is
+//! the desktop's, and a native app reports what its platform says through [`ReportedPower`].
+
+use std::sync::atomic::{AtomicU8, Ordering};
+
+/// Where a playback learns whether the machine is on battery.
+pub trait PowerSource: Send + Sync {
+    /// `Some(true)` on battery, `Some(false)` on external power, `None` when unknown. May block
+    /// for a moment, so it is asked from a blocking thread.
+    fn on_battery(&self) -> Option<bool>;
+}
+
+/// The desktop's own answer, from the system: see [`on_battery`].
+#[cfg(feature = "desktop")]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SystemPower;
+
+#[cfg(feature = "desktop")]
+impl PowerSource for SystemPower {
+    fn on_battery(&self) -> Option<bool> {
+        on_battery()
+    }
+}
+
+/// What the front end last said of the power source, for a platform where only the app can
+/// ask: unknown until it says, which reads as external power.
+#[derive(Debug, Default)]
+pub struct ReportedPower(AtomicU8);
+
+impl ReportedPower {
+    const UNKNOWN: u8 = 0;
+    const MAINS: u8 = 1;
+    const BATTERY: u8 = 2;
+
+    /// What the front end says now.
+    pub fn report(&self, on_battery: Option<bool>) {
+        let value = match on_battery {
+            None => Self::UNKNOWN,
+            Some(false) => Self::MAINS,
+            Some(true) => Self::BATTERY,
+        };
+        self.0.store(value, Ordering::Relaxed);
+    }
+}
+
+impl PowerSource for ReportedPower {
+    fn on_battery(&self) -> Option<bool> {
+        match self.0.load(Ordering::Relaxed) {
+            Self::MAINS => Some(false),
+            Self::BATTERY => Some(true),
+            _ => None,
+        }
+    }
+}
 
 /// `Some(true)` on battery, `Some(false)` on external power, `None` when unknown.
 ///
@@ -24,6 +80,7 @@
 ///   already in the dependency tree, but every binding to it is an `unsafe fn` and the
 ///   workspace forbids `unsafe_code` — `forbid` cannot be lifted for one module. The safe
 ///   alternatives (PowerShell, CIM) take hundreds of milliseconds.
+#[cfg(feature = "desktop")]
 pub fn on_battery() -> Option<bool> {
     #[cfg(target_os = "macos")]
     {
@@ -48,6 +105,7 @@ pub fn on_battery() -> Option<bool> {
 /// Only the "Now drawing from" line is read: it is the system's own verdict. The
 /// per-battery lines that follow describe charge state ("charged", "AC attached; not
 /// charging") rather than where the power comes from.
+#[cfg(feature = "desktop")]
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn parse_pmset(output: &str) -> Option<bool> {
     let line = output.lines().find(|l| l.contains("drawing from"))?;
@@ -60,6 +118,7 @@ fn parse_pmset(output: &str) -> Option<bool> {
 }
 
 /// One entry of `/sys/class/power_supply`, reduced to what the verdict reads.
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct Supply {
     /// `type`: `Mains`, `Battery`, `USB`, `Wireless`, `UPS`.
@@ -72,7 +131,7 @@ struct Supply {
     scope: Option<String>,
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(feature = "desktop", target_os = "linux"))]
 fn read_supplies(root: &std::path::Path) -> Option<Vec<Supply>> {
     let read = |dir: &std::path::Path, name: &str| {
         std::fs::read_to_string(dir.join(name)).ok().map(|s| s.trim().to_owned())
@@ -95,6 +154,7 @@ fn read_supplies(root: &std::path::Path) -> Option<Vec<Supply>> {
 ///
 /// A machine with no system battery at all is a desktop, and a desktop is not on battery:
 /// `Some(false)`, not `None`. `None` is left for the case where nothing could be read.
+#[cfg(feature = "desktop")]
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 fn linux_verdict(supplies: &[Supply]) -> Option<bool> {
     let external_online = supplies.iter().any(|s| {
@@ -112,6 +172,23 @@ fn linux_verdict(supplies: &[Supply]) -> Option<bool> {
 }
 
 #[cfg(test)]
+mod reported_tests {
+    use super::*;
+
+    #[test]
+    fn what_the_app_reports_is_the_answer_and_unknown_until_it_does() {
+        let power = ReportedPower::default();
+        assert_eq!(power.on_battery(), None);
+        power.report(Some(true));
+        assert_eq!(power.on_battery(), Some(true));
+        power.report(Some(false));
+        assert_eq!(power.on_battery(), Some(false));
+        power.report(None);
+        assert_eq!(power.on_battery(), None);
+    }
+}
+
+#[cfg(all(test, feature = "desktop"))]
 mod tests {
     use super::*;
 
@@ -208,7 +285,9 @@ mod tests {
         let verdict = on_battery();
         let took = started.elapsed();
         eprintln!("on_battery() = {verdict:?} in {took:?}");
-        // Generous for a loaded CI box; the point is "not a PowerShell launch".
-        assert!(took < std::time::Duration::from_millis(500), "took {took:?}");
+        // The point is "not a PowerShell launch", which takes seconds. On macOS this spawns
+        // pmset, and a spawn on a machine running the whole suite at once has taken over half a
+        // second: two leave room for that and still tell a quick probe from a slow one.
+        assert!(took < std::time::Duration::from_secs(2), "took {took:?}");
     }
 }

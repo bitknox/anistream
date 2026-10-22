@@ -276,6 +276,74 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0006_show_settings",
+        r#"
+    -- What a show sets for itself over the Settings screen's own: sub or dub, quality, the
+    -- opening and filler skipped or not, spoiler protection. One row per setting a show sets;
+    -- a setting with no row follows Settings, so a new default reaches every show that never
+    -- chose otherwise.
+    --
+    -- The value is text, as the model's rules for each setting write and read it, and the
+    -- setting is named by the model's stable name for it. A name this build no longer knows,
+    -- or a value it no longer reads, is passed over rather than refused.
+    CREATE TABLE show_setting (
+        anilist_id INTEGER NOT NULL,
+        setting    TEXT    NOT NULL,
+        value      TEXT    NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, setting)
+    );
+    "#,
+    ),
+    (
+        "0007_server_health",
+        r#"
+    -- How each server a provider streams from has fared lately, so one that keeps failing is
+    -- tried after the ones that play rather than first every time. See `server_health.rs`.
+    --
+    -- A server is the provider and the origin of its stream's address, `scheme://host[:port]`,
+    -- never the path or query: a stream address carries signed tokens, and this table must hold
+    -- nothing that could be replayed or that names what was watched.
+    CREATE TABLE server_health (
+        provider_id          TEXT    NOT NULL,
+        origin               TEXT    NOT NULL,
+        successes            INTEGER NOT NULL DEFAULT 0,
+        -- Within the last week; older failures stop counting.
+        failures             INTEGER NOT NULL DEFAULT 0,
+        -- The run the server is on, ended by a success.
+        consecutive_failures INTEGER NOT NULL DEFAULT 0,
+        last_success_at      INTEGER,
+        last_failure_at      INTEGER,
+        -- `http-502`, `load`, `no-frames` or `stalled`.
+        last_failure         TEXT,
+        -- Smoothed over the plays it served.
+        first_frame_ms       REAL,
+        -- When it was last tried. A server not tried for 30 days is deleted.
+        seen_at              INTEGER NOT NULL,
+        PRIMARY KEY (provider_id, origin)
+    );
+    CREATE INDEX idx_server_health_seen ON server_health(seen_at);
+    "#,
+    ),
+    (
+        "0008_library_status",
+        r#"
+    -- Where each title is on the signed-in tracker's list, as its last library pull or Library
+    -- load found it: what a related title's card says ("Watched", "Planning") without asking the
+    -- tracker again. A copy of the tracker's answer, replaced whole by each new one, and only
+    -- ever the list the Library screen shows.
+    --
+    -- The status is the tracker's word for the list: CURRENT, PLANNING, COMPLETED, PAUSED or
+    -- DROPPED.
+    CREATE TABLE library_status (
+        anilist_id INTEGER PRIMARY KEY,
+        status     TEXT    NOT NULL,
+        tracker_id TEXT    NOT NULL,
+        updated_at INTEGER NOT NULL
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -389,6 +457,9 @@ mod tests {
             "episode_meta",
             "provider_preference",
             "track_memory",
+            "show_setting",
+            "server_health",
+            "library_status",
         ] {
             let found: bool = conn
                 .query_row(

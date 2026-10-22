@@ -142,6 +142,8 @@ impl App {
     fn setting_note(&self, key: SettingKey) -> Option<&'static str> {
         use SettingKey as S;
         Some(match key {
+            // What "AniList's choice" is, which the value alone cannot say.
+            S::Titles => "AniList's choice follows your AniList account; English signed out",
             S::Subtitles => "enter types a language code — too many values to cycle",
             S::MarkChapters => "chapter marks on the seek bar, where the stream has none",
             S::Fullscreen => "mpv opens fullscreen; its own f key still leaves it",
@@ -174,6 +176,8 @@ impl App {
             S::UploadLimit => "caps all torrent upload, so seeding never slows playback",
             S::TokenStorage => "use --token-to-file to move an existing token",
             S::Theme
+            // A native app's torrent sheet types it; here it is the file's.
+            | S::TorrentIndex
             | S::Motion
             | S::Translation
             | S::Quality
@@ -182,6 +186,14 @@ impl App {
             | S::SkipOpening
             | S::SkipFiller
             | S::SourceOrder => return None,
+            // The native apps' own rows, which this screen does not draw.
+            S::UpNextCountdown
+            | S::SpoilerProtection
+            | S::DownloadQuality
+            | S::KeepNextEpisodes
+            | S::DownloadsOnCellular
+            | S::TorrentsOnCellular
+            | S::VpnOnFailure => return None,
         })
     }
 

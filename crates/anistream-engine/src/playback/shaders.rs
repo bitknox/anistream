@@ -178,6 +178,11 @@ pub struct Source {
     pub width: u32,
     pub height: u32,
     pub hdr: Option<HdrKind>,
+    /// Whether the frames reach the renderer as planes, luma apart from chroma, which LUMA and
+    /// CHROMA hooks read. Software decoding and copying hardware decoders give planes; Android's
+    /// zero-copy MediaCodec (`video-params/pixelformat` `mediacodec`) gives one RGB texture,
+    /// which only MAIN hooks can work on.
+    pub planar: bool,
 }
 
 /// The monitor, in physical pixels: mpv's `display-width` × `display-height` (3024 × 1964
@@ -187,6 +192,9 @@ pub struct Source {
 pub struct Display {
     pub width: u32,
     pub height: u32,
+    /// Whether the renderer runs compute shaders, which ArtCNN C4F16's passes are: libplacebo
+    /// has none on OpenGL ES.
+    pub compute: bool,
 }
 
 /// What the machine can spend.
@@ -251,7 +259,7 @@ fn tier(source: &Source) -> Tier {
 /// Assumed when mpv cannot say. 1080p is the commonest panel and the conservative guess:
 /// it never runs a network on a 1080p source that may already be native, while SD and
 /// 720p sources need upscaling on any display that size or larger.
-const FALLBACK_DISPLAY: Display = Display { width: 1920, height: 1080 };
+const FALLBACK_DISPLAY: Display = Display { width: 1920, height: 1080, compute: true };
 
 /// Below this scale factor nothing CNN-sized runs. It is ArtCNN's own `//!WHEN` threshold,
 /// so the chooser and the shaders agree on what "needs upscaling" means.
@@ -297,6 +305,12 @@ const LEVELS: u8 = 2;
 /// 7. **Budget.** Battery starts one step down; each governor step goes one more. Past the
 ///    lightest network is chroma only. Nothing below chroma: if KrigBilateral alone drops
 ///    frames, shaders are not the problem.
+/// 8. **What the renderer can run.** Without compute shaders ArtCNN C4F16 is no rung: HD and
+///    1080p go to chroma only rather than to Anime4K, which would be another look, and SD keeps
+///    AniSD, a fragment shader. Without planar frames there is nothing for a LUMA or CHROMA
+///    hook to read, so ArtCNN, AniSD and KrigBilateral are out: Natural has nothing left but
+///    SSimDownscaler taking an oversized picture down, and Sharp, whose Anime4K hooks MAIN,
+///    runs as ever.
 pub fn choose(look: Look, source: &Source, display: Option<Display>, budget: Budget) -> Chain {
     if look == Look::Off {
         return Chain::off();
@@ -305,6 +319,7 @@ pub fn choose(look: Look, source: &Source, display: Option<Display>, budget: Bud
         Some(HdrKind::DolbyVision) => {
             return Chain::new(Vec::new(), "Dolby Vision: none", None);
         }
+        Some(_) if !source.planar => return Chain::new(Vec::new(), "HDR: none", None),
         Some(_) => return Chain::new(vec![KRIG], "HDR: chroma only", None),
         None => {}
     }
@@ -319,12 +334,13 @@ pub fn choose(look: Look, source: &Source, display: Option<Display>, budget: Bud
     let level = budget.eased.saturating_add(u8::from(budget.on_battery)).min(LEVELS);
     let tier = tier(source);
 
-    let chroma = || {
-        if scale < 1.0 {
-            Chain::new(vec![KRIG, SSIM], "Chroma only", None)
-        } else {
-            Chain::new(vec![KRIG], "Chroma only", None)
-        }
+    let chroma = || match (source.planar, scale < 1.0) {
+        (true, true) => Chain::new(vec![KRIG, SSIM], "Chroma only", None),
+        (true, false) => Chain::new(vec![KRIG], "Chroma only", None),
+        // No chroma plane for KrigBilateral to rebuild; SSimDownscaler works on the scaled
+        // picture, which there still is.
+        (false, true) => Chain::new(vec![SSIM], "Downscale only", None),
+        (false, false) => Chain::new(Vec::new(), "Zero-copy frames: none", None),
     };
 
     if scale <= CNN_MIN_SCALE {
@@ -336,10 +352,14 @@ pub fn choose(look: Look, source: &Source, display: Option<Display>, budget: Bud
 
     match look {
         Look::Off => Chain::off(),
+        // Every Natural network hooks LUMA.
+        Look::Natural if !source.planar => chroma(),
         Look::Natural => {
-            let rungs: &[(&str, &str)] = match tier {
-                Tier::Sd => &[(ANISD, "ArtCNN AniSD"), (ARTCNN_LIGHT, "ArtCNN C4F16")],
-                Tier::Hd | Tier::Fhd => &[(ARTCNN_LIGHT, "ArtCNN C4F16")],
+            let rungs: &[(&str, &str)] = match (tier, display.compute) {
+                (Tier::Sd, true) => &[(ANISD, "ArtCNN AniSD"), (ARTCNN_LIGHT, "ArtCNN C4F16")],
+                (Tier::Sd, false) => &[(ANISD, "ArtCNN AniSD")],
+                (Tier::Hd | Tier::Fhd, true) => &[(ARTCNN_LIGHT, "ArtCNN C4F16")],
+                (Tier::Hd | Tier::Fhd, false) => &[],
             };
             let Some(&(model, label)) = rungs.get(usize::from(level)) else {
                 return chroma();
@@ -457,6 +477,20 @@ fn digest() -> &'static str {
 /// Marker written last: its presence means every file before it is complete.
 const COMPLETE: &str = ".complete";
 
+/// Where the upscaling shaders were written, or `None` when anistream should leave
+/// `glsl-shaders` alone: the cache could not be written, or the user passes their own chain
+/// in `playback.mpv_args`, which our runtime writes would otherwise replace.
+pub fn shader_dir(
+    config: &anistream_core::config::Config,
+    paths: &anistream_core::config::Paths,
+) -> Option<std::path::PathBuf> {
+    let own_chain = config.playback.mpv_args.iter().any(|arg| arg.starts_with("--glsl-shader"));
+    if own_chain {
+        return None;
+    }
+    materialize(&paths.cache_dir)
+}
+
 /// Write every vendored shader to `<cache_dir>/shaders/<digest>/` and return that
 /// directory, or `None` when the cache cannot be written — playback without upscaling
 /// beats no playback.
@@ -503,6 +537,24 @@ fn write_all(dir: &Path) -> std::io::Result<()> {
     std::fs::write(dir.join(COMPLETE), digest())
 }
 
+/// The vendored file a hook belongs to, by the description libplacebo names it by in its log:
+/// a `//!DESC` line, such as `ArtCNN C4F32 (Conv2D-2-ReLU)`. `None` for a hook none of them
+/// describes.
+pub fn hook_file(hook: &str) -> Option<&'static str> {
+    let hook = hook.trim();
+    SHADERS
+        .iter()
+        .find(|shader| {
+            shader
+                .body
+                .lines()
+                .filter_map(|line| line.strip_prefix("//!DESC"))
+                .map(str::trim)
+                .any(|desc| !desc.is_empty() && hook.contains(desc))
+        })
+        .map(|shader| shader.name)
+}
+
 /// Absolute paths for `glsl-shaders`, in chain order. Set them as one native array over
 /// IPC — no list separator, so no escaping of `:` or `;` in a path.
 pub fn paths(chain: &Chain, dir: &Path) -> Vec<String> {
@@ -533,12 +585,12 @@ mod tests {
         "Anime4K_Upscale_CNN_x2_M.glsl",
     ];
 
-    const FHD: Source = Source { width: 1920, height: 1080, hdr: None };
-    const HD: Source = Source { width: 1280, height: 720, hdr: None };
-    const SD: Source = Source { width: 854, height: 480, hdr: None };
-    const MAC: Display = Display { width: 3024, height: 1964 };
-    const UHD: Display = Display { width: 3840, height: 2160 };
-    const QHD: Display = Display { width: 2560, height: 1440 };
+    const FHD: Source = Source { width: 1920, height: 1080, hdr: None, planar: true };
+    const HD: Source = Source { width: 1280, height: 720, hdr: None, planar: true };
+    const SD: Source = Source { width: 854, height: 480, hdr: None, planar: true };
+    const MAC: Display = Display { width: 3024, height: 1964, compute: true };
+    const UHD: Display = Display { width: 3840, height: 2160, compute: true };
+    const QHD: Display = Display { width: 2560, height: 1440, compute: true };
     const FULL: Budget = Budget { on_battery: false, eased: 0 };
 
     fn vendored(name: &str) -> bool {
@@ -551,10 +603,10 @@ mod tests {
             FHD,
             HD,
             SD,
-            Source { width: 720, height: 576, hdr: None },
-            Source { width: 1920, height: 800, hdr: None },
-            Source { width: 3840, height: 2160, hdr: None },
-            Source { width: 0, height: 0, hdr: None },
+            Source { width: 720, height: 576, hdr: None, planar: true },
+            Source { width: 1920, height: 800, hdr: None, planar: true },
+            Source { width: 3840, height: 2160, hdr: None, planar: true },
+            Source { width: 0, height: 0, hdr: None, planar: true },
             Source { hdr: Some(HdrKind::Hdr10), ..FHD },
             Source { hdr: Some(HdrKind::DolbyVision), ..FHD },
         ];
@@ -621,9 +673,9 @@ mod tests {
 
     #[test]
     fn a_576_line_pal_master_is_sd_and_a_scope_crop_is_1080_class() {
-        let pal = Source { width: 720, height: 576, hdr: None };
+        let pal = Source { width: 720, height: 576, hdr: None, planar: true };
         assert_eq!(choose(Look::Natural, &pal, Some(UHD), FULL).files[0], ANISD);
-        let scope = Source { width: 1920, height: 800, hdr: None };
+        let scope = Source { width: 1920, height: 800, hdr: None, planar: true };
         assert_eq!(tier(&scope), Tier::Fhd);
     }
 
@@ -643,14 +695,14 @@ mod tests {
         assert_eq!(native.files, [KRIG]);
         assert_eq!(native.upscaler, None);
         // A 4K source on a 1080p panel: downscaling, so SSimDownscaler too.
-        let big = Source { width: 3840, height: 2160, hdr: None };
+        let big = Source { width: 3840, height: 2160, hdr: None, planar: true };
         assert_eq!(
             choose(Look::Natural, &big, Some(FALLBACK_DISPLAY), FULL).files,
             [KRIG, SSIM]
         );
         assert_eq!(choose(Look::Sharp, &big, Some(FALLBACK_DISPLAY), FULL).files, [KRIG, SSIM]);
         // 900p-ish on 1080p is under the 1.3 threshold.
-        let near = Source { width: 1600, height: 900, hdr: None };
+        let near = Source { width: 1600, height: 900, hdr: None, planar: true };
         assert_eq!(choose(Look::Natural, &near, Some(FALLBACK_DISPLAY), FULL).files, [KRIG]);
     }
 
@@ -681,7 +733,7 @@ mod tests {
     fn an_unknown_display_is_treated_as_1080p() {
         assert_eq!(choose(Look::Natural, &FHD, None, FULL).files, [KRIG]);
         assert_eq!(choose(Look::Natural, &HD, None, FULL).files[0], ARTCNN_LIGHT);
-        let zero = Some(Display { width: 0, height: 0 });
+        let zero = Some(Display { width: 0, height: 0, compute: true });
         assert_eq!(
             choose(Look::Natural, &HD, zero, FULL),
             choose(Look::Natural, &HD, None, FULL)
@@ -725,6 +777,76 @@ mod tests {
         assert_eq!(sharp(0).label, "Anime4K B (HQ)");
         assert_eq!(sharp(1).label, "Anime4K B (Fast)");
         assert_eq!(sharp(2).files, [KRIG]);
+    }
+
+    #[test]
+    fn without_compute_natural_steps_to_chroma_only_and_never_to_anime4k() {
+        // A phone's GLES renderer, on its 2400 × 1080 panel.
+        let gles = Display { width: 2400, height: 1080, compute: false };
+        let at = |source: &Source, eased| {
+            choose(Look::Natural, source, Some(gles), Budget { on_battery: false, eased })
+        };
+        // HD and 1080p had ArtCNN C4F16 alone: chroma only now, said so, and no badge. 1080p
+        // on a 4K tablet, where it would have doubled.
+        let tablet = Display { width: 3840, height: 2160, compute: false };
+        for chain in [at(&HD, 0), choose(Look::Natural, &FHD, Some(tablet), FULL)] {
+            assert_eq!((chain.files.as_slice(), chain.label), (&[KRIG][..], "Chroma only"));
+            assert_eq!(chain.upscaler, None);
+        }
+        // SD keeps AniSD, a fragment shader, and its next step is chroma, not C4F16.
+        assert_eq!(at(&SD, 0).files, [ANISD, KRIG]);
+        assert_eq!(at(&SD, 1).files, [KRIG]);
+        assert!(at(&SD, 1).files.iter().all(|f| !f.starts_with("Anime4K")));
+        // Sharp's Anime4K is fragment shaders throughout, and is as it was.
+        let with_compute = Display { compute: true, ..gles };
+        assert_eq!(
+            choose(Look::Sharp, &HD, Some(gles), FULL),
+            choose(Look::Sharp, &HD, Some(with_compute), FULL)
+        );
+    }
+
+    #[test]
+    fn zero_copy_frames_leave_nothing_that_reads_planes() {
+        let zero_copy = |source: Source| Source { planar: false, ..source };
+        let hooks_planes =
+            |chain: &Chain| chain.files.iter().any(|f| [ANISD, ARTCNN_LIGHT, KRIG].contains(f));
+        // Natural has no network left, nor KrigBilateral.
+        for source in [SD, HD, FHD] {
+            for display in [MAC, UHD, FALLBACK_DISPLAY] {
+                let chain = choose(Look::Natural, &zero_copy(source), Some(display), FULL);
+                assert!(!hooks_planes(&chain), "{source:?} on {display:?}: {chain:?}");
+                assert_eq!(chain.upscaler, None);
+            }
+        }
+        assert_eq!(
+            choose(Look::Natural, &zero_copy(HD), Some(MAC), FULL).label,
+            "Zero-copy frames: none"
+        );
+        // A picture larger than the display is still taken down well.
+        let big = Source { width: 3840, height: 2160, hdr: None, planar: false };
+        let down = choose(Look::Natural, &big, Some(FALLBACK_DISPLAY), FULL);
+        assert_eq!((down.files.as_slice(), down.label), (&[SSIM][..], "Downscale only"));
+        // Sharp's Anime4K hooks the picture itself, and runs as on planes.
+        assert_eq!(
+            choose(Look::Sharp, &zero_copy(HD), Some(MAC), FULL),
+            choose(Look::Sharp, &HD, Some(MAC), FULL)
+        );
+        // And where Sharp would fall to chroma only, it falls to nothing.
+        let floor = Budget { on_battery: false, eased: 2 };
+        assert!(!hooks_planes(&choose(Look::Sharp, &zero_copy(HD), Some(MAC), floor)));
+        // HDR has no chroma pass to keep.
+        let hdr = Source { hdr: Some(HdrKind::Hdr10), ..zero_copy(FHD) };
+        assert!(choose(Look::Natural, &hdr, Some(UHD), FULL).is_empty());
+    }
+
+    #[test]
+    fn a_disabled_hook_is_traced_to_its_file_by_its_description() {
+        assert_eq!(hook_file("ArtCNN C4F32 (Conv2D-2-ReLU)"), Some(ANISD));
+        assert_eq!(hook_file("ArtCNN C4F16 (Conv2D)"), Some(ARTCNN_LIGHT));
+        // As a log line may quote it.
+        assert_eq!(hook_file("'KrigBilateral Upscaling UV'"), Some(KRIG));
+        assert_eq!(hook_file("some user shader"), None);
+        assert_eq!(hook_file(""), None);
     }
 
     #[test]

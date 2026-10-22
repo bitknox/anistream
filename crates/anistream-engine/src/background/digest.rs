@@ -76,7 +76,7 @@ pub fn spawn(
                     .items
                     .iter()
                     .filter(|e| watching.contains(&e.media.id))
-                    .map(|e| (e.media.title.display().to_owned(), e.episode)),
+                    .map(|e| (meta.titles().pick(&e.media.title).to_owned(), e.episode)),
             );
             if !batch.has_next {
                 break;

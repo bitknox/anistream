@@ -21,7 +21,10 @@ use std::{
 };
 
 /// The keyring service name. Stable, because changing it would orphan every stored token.
-#[cfg_attr(any(test, target_os = "ios", target_os = "android"), allow(dead_code))]
+#[cfg_attr(
+    any(test, not(feature = "keychain"), target_os = "ios", target_os = "android"),
+    allow(dead_code)
+)]
 const SERVICE: &str = "anistream";
 
 #[derive(Debug, thiserror::Error)]
@@ -100,6 +103,12 @@ impl TokenPair {
     pub fn needs_refresh(&self, now: i64, margin: i64) -> bool {
         self.refresh.is_some() && self.expires_at.is_some_and(|at| now + margin >= at)
     }
+
+    /// Whether the access token has run out. [`Self::needs_refresh`] is no for a pair with
+    /// nothing to renew it with, so a caller asks this too before sending a dead token.
+    pub fn is_expired(&self, now: i64) -> bool {
+        self.expires_at.is_some_and(|at| now >= at)
+    }
 }
 
 /// Somewhere secrets are kept by name: what a [`TokenStore`] reads and writes through.
@@ -176,17 +185,75 @@ impl Backend {
 ///
 /// A phone's keychain belongs to the app, not to a library reaching for it, so on iOS and Android
 /// this has no keychain to ask and keeps the file alone: a front end there offers the platform's
-/// own store through its host.
+/// own store through its host. So does a build without the `keychain` feature, a native app's on
+/// macOS among them.
 #[derive(Debug, Clone)]
 pub struct LocalSecrets {
     dir: PathBuf,
     backend: Backend,
+    /// The keychain [`Backend::Keychain`] asks first.
+    keychain: Keychain,
+}
+
+/// The keychain a [`LocalSecrets`] asks, best effort: one that does not answer is one that is not
+/// there, and the file takes the token instead.
+#[derive(Clone)]
+enum Keychain {
+    /// The OS credential store, as `keyring` reaches it.
+    System,
+    /// A store a front end reaches the keychain through: a native app's own, through its host.
+    Offered(Arc<dyn SecretStore>),
+}
+
+impl std::fmt::Debug for Keychain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::System => "System",
+            Self::Offered(_) => "Offered",
+        })
+    }
+}
+
+impl Keychain {
+    fn get(&self, id: &str) -> Option<String> {
+        match self {
+            Self::System => keychain::get(id),
+            // A keychain that cannot be read holds nothing, as with `keyring`.
+            Self::Offered(store) => store.get(id).ok().flatten(),
+        }
+    }
+
+    /// Whether the keychain took it.
+    fn set(&self, id: &str, value: &str) -> bool {
+        match self {
+            Self::System => keychain::set(id, value),
+            Self::Offered(store) => store.set(id, value).is_ok(),
+        }
+    }
+
+    fn delete(&self, id: &str) {
+        match self {
+            Self::System => keychain::delete(id),
+            Self::Offered(store) => {
+                let _ = store.delete(id);
+            }
+        }
+    }
 }
 
 impl LocalSecrets {
     /// Secrets in `dir`, or in the keychain first as `backend` says.
     pub fn new(dir: impl Into<PathBuf>, backend: Backend) -> Self {
-        Self { dir: dir.into(), backend }
+        Self { dir: dir.into(), backend, keychain: Keychain::System }
+    }
+
+    /// The same store with `keychain` as the keychain [`Backend::Keychain`] asks first, in place
+    /// of the OS's as `keyring` reaches it: what a native app hands in when it keeps tokens where
+    /// the terminal app does, reaching the system's keychain itself. Everything else is as
+    /// before, the file in `dir` included: the fallback where `keychain` refuses a token, and
+    /// read where it holds none. [`Backend::File`] never asks it.
+    pub fn with_keychain(self, keychain: Arc<dyn SecretStore>) -> Self {
+        Self { keychain: Keychain::Offered(keychain), ..self }
     }
 
     pub fn backend(&self) -> Backend {
@@ -206,7 +273,7 @@ impl LocalSecrets {
     pub fn migrate_to_file(&self, tracker_id: &str) -> Result<Storage, SecretError> {
         // Read through the keychain regardless of this store's backend: the whole point is to
         // retrieve something the *other* backend holds.
-        let Some(token) = keychain::get(tracker_id) else {
+        let Some(token) = self.keychain.get(tracker_id) else {
             // Nothing there. If a file already exists this is a no-op success, not a failure.
             return if self.path(tracker_id).exists() {
                 Ok(Storage::File)
@@ -217,7 +284,7 @@ impl LocalSecrets {
 
         self.write_file(tracker_id, &token)?;
         // Removed from the keychain, so there is one copy rather than two diverging ones.
-        keychain::delete(tracker_id);
+        self.keychain.delete(tracker_id);
         Ok(Storage::File)
     }
 
@@ -246,7 +313,7 @@ impl LocalSecrets {
 impl SecretStore for LocalSecrets {
     fn get(&self, tracker_id: &str) -> Result<Option<String>, SecretError> {
         if self.uses_keychain()
-            && let Some(token) = keychain::get(tracker_id)
+            && let Some(token) = self.keychain.get(tracker_id)
         {
             return Ok(Some(token));
         }
@@ -260,7 +327,7 @@ impl SecretStore for LocalSecrets {
     }
 
     fn set(&self, tracker_id: &str, token: &str) -> Result<Storage, SecretError> {
-        if self.uses_keychain() && keychain::set(tracker_id, token) {
+        if self.uses_keychain() && self.keychain.set(tracker_id, token) {
             // Remove any earlier file copy, or a stale token would outlive the good one and
             // could be picked up after a keychain reset.
             let _ = std::fs::remove_file(self.path(tracker_id));
@@ -280,7 +347,7 @@ impl SecretStore for LocalSecrets {
 
     fn delete(&self, tracker_id: &str) -> Result<(), SecretError> {
         if self.uses_keychain() {
-            keychain::delete(tracker_id);
+            self.keychain.delete(tracker_id);
         }
         match std::fs::remove_file(self.path(tracker_id)) {
             Ok(()) => Ok(()),
@@ -313,7 +380,7 @@ impl SecretStore for LocalSecrets {
 /// The OS credential store, as `keyring` reaches it: the macOS keychain, Windows' credential
 /// manager, or the Secret Service over D-Bus. Each call is best effort, and a keychain that does
 /// not answer is one that is not there.
-#[cfg(not(any(test, target_os = "ios", target_os = "android")))]
+#[cfg(all(feature = "keychain", not(any(test, target_os = "ios", target_os = "android"))))]
 mod keychain {
     use super::SERVICE;
 
@@ -334,8 +401,12 @@ mod keychain {
 }
 
 /// No keychain on a phone: there the system's belongs to the app, which offers it through the
-/// host it runs the engine on, so [`LocalSecrets`] keeps the file alone.
-#[cfg(all(not(test), any(target_os = "ios", target_os = "android")))]
+/// host it runs the engine on, so [`LocalSecrets`] keeps the file alone. The same without the
+/// `keychain` feature, which a native app's build leaves off on the desktop too.
+#[cfg(all(
+    not(test),
+    any(not(feature = "keychain"), target_os = "ios", target_os = "android")
+))]
 mod keychain {
     pub(super) fn get(_: &str) -> Option<String> {
         None
@@ -463,6 +534,24 @@ impl TokenStore {
         // died then with no way back but signing in again. Caught by `--example mal_probe`.
         let raw = self.get_raw(tracker_id)?;
         Ok(TokenPair::parse(&raw))
+    }
+
+    /// The pair stored now, read past this process's cache: what another process signed in
+    /// through the same store (the app beside the terminal) renewed, or signed out of, since.
+    ///
+    /// A keychain read, which can prompt, so for a token about to be renewed or just rejected, not
+    /// for every request.
+    pub fn reread_pair(&self, tracker_id: &str) -> Result<TokenPair, SecretError> {
+        match self.secrets.get(tracker_id)? {
+            Some(raw) => {
+                self.remember(tracker_id, &raw);
+                Ok(TokenPair::parse(&raw))
+            }
+            None => {
+                self.forget(tracker_id);
+                Err(SecretError::Missing(tracker_id.to_owned()))
+            }
+        }
     }
 
     /// Fetch a token, reading the keychain at most once per tracker per process.
@@ -818,11 +907,97 @@ mod tests {
         assert!(!secrets.kept.lock().unwrap().contains_key("mal"));
     }
 
+    /// A keychain that refuses everything and holds nothing: one that is locked, say.
+    struct Refusing;
+
+    impl SecretStore for Refusing {
+        fn get(&self, _: &str) -> Result<Option<String>, SecretError> {
+            Err(SecretError::Keychain("locked".into()))
+        }
+
+        fn set(&self, _: &str, _: &str) -> Result<Storage, SecretError> {
+            Err(SecretError::Keychain("locked".into()))
+        }
+
+        fn delete(&self, _: &str) -> Result<(), SecretError> {
+            Err(SecretError::Keychain("locked".into()))
+        }
+
+        fn storage_for(&self, _: &str) -> Storage {
+            Storage::Keychain
+        }
+    }
+
+    #[test]
+    fn an_offered_keychain_keeps_the_token_as_the_systems_would() {
+        // A native app sharing the terminal's data, reaching the keychain itself: the same rule
+        // as the desktop's, with its keychain asked and the system's, as `keyring` reaches it,
+        // left alone.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("anilist.token"), "stale").unwrap();
+        let offered = Arc::new(Counted::default());
+        let secrets =
+            LocalSecrets::new(dir.path(), Backend::Keychain).with_keychain(offered.clone());
+        assert_eq!(secrets.storage_for("anilist"), Storage::File, "the file holds it, for now");
+        assert_eq!(secrets.get("anilist").unwrap().as_deref(), Some("stale"));
+
+        assert_eq!(secrets.set("anilist", "fresh").unwrap(), Storage::Keychain);
+        assert!(!dir.path().join("anilist.token").exists(), "the stale copy outlived it");
+        assert_eq!(
+            offered.kept.lock().unwrap().get("anilist").map(String::as_str),
+            Some("fresh")
+        );
+        assert_eq!(keychain::get("anilist"), None, "the system's keychain was written");
+        assert_eq!(secrets.storage_for("anilist"), Storage::Keychain);
+        assert_eq!(secrets.get("anilist").unwrap().as_deref(), Some("fresh"));
+
+        secrets.delete("anilist").unwrap();
+        assert!(offered.kept.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_offered_keychain_that_refuses_leaves_the_token_in_the_file() {
+        // As a desktop whose keychain does not answer: still signed in, and told it is a file.
+        let dir = tempfile::tempdir().unwrap();
+        let secrets =
+            LocalSecrets::new(dir.path(), Backend::Keychain).with_keychain(Arc::new(Refusing));
+        assert_eq!(secrets.set("anilist", "tok").unwrap(), Storage::File);
+        assert_eq!(secrets.get("anilist").unwrap().as_deref(), Some("tok"));
+        assert_eq!(secrets.storage_for("anilist"), Storage::File);
+        secrets.delete("anilist").unwrap();
+        assert!(!dir.path().join("anilist.token").exists());
+    }
+
+    #[test]
+    fn the_file_backend_never_asks_an_offered_keychain() {
+        let dir = tempfile::tempdir().unwrap();
+        let offered = Arc::new(Counted::default());
+        offered.kept.lock().unwrap().insert("anilist".into(), "in-the-keychain".into());
+        let secrets =
+            LocalSecrets::new(dir.path(), Backend::File).with_keychain(offered.clone());
+        assert_eq!(secrets.get("anilist").unwrap(), None, "the keychain's token was read");
+        assert_eq!(secrets.set("anilist", "tok").unwrap(), Storage::File);
+        secrets.delete("anilist").unwrap();
+        assert_eq!(offered.reads.load(std::sync::atomic::Ordering::Relaxed), 0);
+        assert!(offered.kept.lock().unwrap().contains_key("anilist"), "deleted");
+    }
+
     #[test]
     fn the_degraded_storage_is_reported_as_such() {
         // Someone on a shared machine deserves to know the token is on disk rather than in a
         // keychain, so this is surfaced in the Accounts overlay.
         assert!(Storage::File.is_degraded());
         assert!(!Storage::Keychain.is_degraded());
+    }
+
+    #[test]
+    fn a_token_past_its_time_is_expired_whether_or_not_it_can_be_renewed() {
+        let dead = TokenPair { access: "a".into(), refresh: None, expires_at: Some(100) };
+        assert!(dead.is_expired(100));
+        assert!(!dead.is_expired(99));
+        let renewable = TokenPair { refresh: Some("r".into()), ..dead.clone() };
+        assert!(renewable.is_expired(101));
+        let open_ended = TokenPair { access: "a".into(), refresh: None, expires_at: None };
+        assert!(!open_ended.is_expired(i64::MAX));
     }
 }

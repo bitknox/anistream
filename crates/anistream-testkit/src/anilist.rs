@@ -11,13 +11,16 @@
 //! asked for is empty and every title is not found. It is there so the fallback can be switched
 //! on, as the default config has it, without any request leaving the machine.
 //!
+//! Asked to, it also serves the fixture titles' art ([`FakeAniList::serve_art`]), and points
+//! every image URL it answers with at itself.
+//!
 //! HTTP is spoken by hand, as the loopback servers in the app's own tests do: one request per
 //! connection, answered with `connection: close` so the client never reuses a socket this side
 //! has finished with. That is all reqwest needs, and it keeps a server framework out of the
 //! dependency tree.
 
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     net::{Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, MutexGuard},
 };
@@ -75,7 +78,8 @@ impl Operation {
     /// Tell a GraphQL document apart by what only it contains.
     ///
     /// Mutations and the authenticated queries are checked first: their documents nest the
-    /// media fields too, so the media checks would claim them.
+    /// media fields too, so the media checks would claim them. The single title comes before
+    /// the schedules, because it asks for its own broadcasts beside the title.
     pub fn of(document: &str) -> Self {
         let document = document.split_whitespace().collect::<Vec<_>>().join(" ");
         let has = |needle: &str| document.contains(needle);
@@ -87,12 +91,12 @@ impl Operation {
             Self::Library
         } else if has("Viewer") {
             Self::Viewer
+        } else if has("Media(id:") {
+            Self::Detail
         } else if has("airingSchedules(mediaId_in") {
             Self::LastAired
         } else if has("airingSchedules(") {
             Self::Schedule
-        } else if has("Media(id:") {
-            Self::Detail
         } else if has("media(id_in:") {
             Self::Many
         } else if has("media(season:") {
@@ -151,6 +155,12 @@ struct State {
     next: VecDeque<Failure>,
     always: Option<Failure>,
     now: i64,
+    /// Titles answered in other forms than the fixtures', by id: see [`FakeAniList::set_title`].
+    titles: HashMap<u64, Value>,
+    /// The viewer's own title language, in place of the fixture's.
+    viewer_language: Option<String>,
+    /// Where image URLs point once the fake serves art: its own `/art/`.
+    art: Option<String>,
 }
 
 impl FakeAniList {
@@ -165,6 +175,9 @@ impl FakeAniList {
             next: VecDeque::new(),
             always: None,
             now: FIXTURE_NOW,
+            titles: HashMap::new(),
+            viewer_language: None,
+            art: None,
         }));
         let accept = tokio::spawn({
             let state = Arc::clone(&state);
@@ -245,6 +258,20 @@ impl FakeAniList {
         state.always = None;
     }
 
+    /// Serve the fixture titles' art ([`crate::art`]) under `/art/`, and point every image URL
+    /// in an answer there instead of at [`crate::fixtures::ART_HOST`], which nothing resolves:
+    /// for a front end that shows covers, banners and stills. Off until asked, so the image
+    /// URLs a test sees are the fixtures' own.
+    pub fn serve_art(&self) {
+        lock(&self.state).art = Some(self.art_base());
+    }
+
+    /// Where [`Self::serve_art`] serves the art from, standing in for
+    /// [`crate::fixtures::ART_HOST`]: for a source's episode stills to point at too.
+    pub fn art_base(&self) -> String {
+        format!("http://{}/art/", self.addr)
+    }
+
     /// Answer as if it were `now`, rather than [`FIXTURE_NOW`].
     ///
     /// Every broadcast moves by the same amount, so the schedule keeps its shape around the new
@@ -252,6 +279,25 @@ impl FakeAniList {
     /// clock, which the calendar's window and the countdowns are taken from.
     pub fn set_now(&self, now: i64) {
         lock(&self.state).now = now;
+    }
+
+    /// Answer `id`'s title in these forms from now on, wherever the fake names it — a list, its
+    /// page, a relation's card — for a test of a title that is missing one.
+    pub fn set_title(
+        &self,
+        id: AnilistId,
+        romaji: Option<&str>,
+        english: Option<&str>,
+        native: Option<&str>,
+    ) {
+        let title = json!({ "romaji": romaji, "english": english, "native": native });
+        lock(&self.state).titles.insert(u64::from(id.get()), title);
+    }
+
+    /// The signed-in viewer reads AniList in `language` from now on: `ROMAJI`, `ENGLISH`,
+    /// `NATIVE` or a stylised form, as AniList names them.
+    pub fn set_viewer_title_language(&self, language: &str) {
+        lock(&self.state).viewer_language = Some(language.to_owned());
     }
 }
 
@@ -275,7 +321,13 @@ struct Head {
 }
 
 enum Reply {
-    Answer { status: u16, headers: Vec<(&'static str, String)>, body: Value },
+    Answer {
+        status: u16,
+        headers: Vec<(&'static str, String)>,
+        body: Value,
+    },
+    /// An image, when the fake serves art.
+    Image(&'static [u8]),
     HangUp,
 }
 
@@ -305,12 +357,22 @@ async fn serve(socket: TcpStream, state: Arc<Mutex<State>>) {
     if reader.read_exact(&mut body).await.is_err() {
         return;
     }
-    // A hang-up is the socket dropped here, unanswered.
-    let Reply::Answer { status, headers, body } = answer(&state, &head, &body) else { return };
+    let (status, headers, content_type, body) = match answer(&state, &head, &body) {
+        Reply::Answer { status, headers, body } => {
+            let mut body = body.to_string();
+            let art = lock(&state).art.clone();
+            if let Some(art) = art {
+                body = body.replace(crate::fixtures::ART_HOST, &art);
+            }
+            (status, headers, "application/json", body.into_bytes())
+        }
+        Reply::Image(bytes) => (200, Vec::new(), "image/png", bytes.to_vec()),
+        // A hang-up is the socket dropped here, unanswered.
+        Reply::HangUp => return,
+    };
 
-    let body = body.to_string();
     let mut out = format!(
-        "HTTP/1.1 {status} {}\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\
+        "HTTP/1.1 {status} {}\r\ncontent-type: {content_type}\r\ncontent-length: {}\r\n\
          connection: close\r\n",
         reason(status),
         body.len()
@@ -319,8 +381,9 @@ async fn serve(socket: TcpStream, state: Arc<Mutex<State>>) {
         out.push_str(&format!("{name}: {value}\r\n"));
     }
     out.push_str("\r\n");
-    out.push_str(&body);
-    let _ = write.write_all(out.as_bytes()).await;
+    let mut out = out.into_bytes();
+    out.extend_from_slice(&body);
+    let _ = write.write_all(&out).await;
     let _ = write.shutdown().await;
 }
 
@@ -368,7 +431,16 @@ fn reason(status: u16) -> &'static str {
 }
 
 /// Record the request, then answer it: with a failure if one is due, else from the fixtures.
+/// Art, when the fake serves it, is answered without being recorded or failed: it is not
+/// AniList's.
 fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
+    if let Some(path) = head.path.strip_prefix("/art/") {
+        let serving = lock(state).art.is_some();
+        return match crate::art::png(path).filter(|_| serving && head.method == "GET") {
+            Some(bytes) => Reply::Image(bytes),
+            None => Reply::status(404, json!({ "message": "no such image" })),
+        };
+    }
     if let Some(rest) = head.path.strip_prefix("/tenrai/v1") {
         lock(state).requests.push(Request {
             operation: Operation::Tenrai,
@@ -389,7 +461,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, now) = {
+    let (failure, now, titles, viewer_language) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -399,11 +471,43 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             authorization: head.authorization.clone(),
         });
         let failure = state.next.pop_front().or_else(|| state.always.clone());
-        (failure, state.now)
+        (failure, state.now, state.titles.clone(), state.viewer_language.clone())
     };
     match failure {
         Some(failure) => fail(failure),
-        None => respond(operation, &variables, head.authorization.is_some(), now),
+        None => {
+            let mut reply = respond(operation, &variables, head.authorization.is_some(), now);
+            if let Reply::Answer { body, .. } = &mut reply {
+                retitle(body, &titles);
+                if let Some(language) = viewer_language
+                    && let Some(viewer) =
+                        body.pointer_mut("/data/Viewer").filter(|v| v.is_object())
+                {
+                    viewer["options"] = json!({ "titleLanguage": language });
+                }
+            }
+            reply
+        }
+    }
+}
+
+/// Give every title the test set another way its forms, wherever it is in `value`.
+fn retitle(value: &mut Value, titles: &HashMap<u64, Value>) {
+    if titles.is_empty() {
+        return;
+    }
+    match value {
+        Value::Object(fields) => {
+            let id = fields.get("id").and_then(Value::as_u64);
+            if let Some(title) = id.and_then(|id| titles.get(&id))
+                && fields.contains_key("title")
+            {
+                fields.insert("title".into(), title.clone());
+            }
+            fields.values_mut().for_each(|field| retitle(field, titles));
+        }
+        Value::Array(items) => items.iter_mut().for_each(|item| retitle(item, titles)),
+        _ => {}
     }
 }
 
@@ -460,7 +564,7 @@ fn respond(operation: Operation, vars: &Value, authorized: bool, now: i64) -> Re
         Operation::Detail => {
             let id = vars["id"].as_u64().map(|id| AnilistId::new(id as u32));
             match id.and_then(fixtures::wire) {
-                Some(media) => Reply::ok(json!({ "Media": clock.media(media.clone()) })),
+                Some(media) => Reply::ok(detail(media.clone(), clock)),
                 // What AniList answers for an id it has no title for: a 404 inside GraphQL's
                 // error shape, which the client reads as an API failure rather than NotFound.
                 None => Reply::errors(404, "Not Found.", json!({ "Media": null })),
@@ -507,14 +611,44 @@ impl Clock {
 
     /// A title with its next broadcast moved, and its countdown counted from now — AniList
     /// computes `timeUntilAiring` per request, so a stored one would be wrong a second later.
+    /// Its schedule moves with it, so the two never disagree.
     fn media(self, mut media: Value) -> Value {
         if let Some(next) = media.get_mut("nextAiringEpisode").and_then(Value::as_object_mut) {
             let at = self.at(&next["airingAt"]);
             next.insert("airingAt".into(), at.into());
             next.insert("timeUntilAiring".into(), (at - self.now).into());
         }
+        if let Some(nodes) = media.pointer_mut("/upcoming/nodes").and_then(Value::as_array_mut)
+        {
+            self.broadcasts(nodes);
+        }
+        if let Some(aired) = media.get_mut("aired").and_then(Value::as_array_mut) {
+            self.broadcasts(aired);
+        }
         media
     }
+
+    /// Each broadcast's `airingAt`, moved.
+    fn broadcasts(self, rows: &mut [Value]) {
+        for row in rows {
+            let at = self.at(&row["airingAt"]);
+            row["airingAt"] = at.into();
+        }
+    }
+}
+
+/// The single-title answer, as AniList shapes it: the title, and beside it the broadcasts
+/// already out, newest first, under the alias `query::by_id` gives them. The fixture keeps them
+/// on the title, as the app's `Media` does once it has read them.
+fn detail(media: Value, clock: Clock) -> Value {
+    let mut media = clock.media(media);
+    let mut aired = media
+        .as_object_mut()
+        .and_then(|fields| fields.remove("aired"))
+        .and_then(|aired| aired.as_array().cloned())
+        .unwrap_or_default();
+    aired.sort_by_key(|row| std::cmp::Reverse(row["episode"].as_u64()));
+    json!({ "Media": media, "aired": { "airingSchedules": aired } })
 }
 
 /// The titles a search finds: every one whose title or synonyms contain the term, any case,

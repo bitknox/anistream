@@ -28,7 +28,7 @@ client_id = "…"               # that is all: MAL is a public client, PKCE cove
 # kitsu needs no section at all
 
 [trackers.simkl]
-client_id = "…"
+client_id = "…"               # an OAuth 2.0 app, or an older one that signs in by PIN
 
 [trackers.trakt]
 client_id = "…"
@@ -41,7 +41,7 @@ client_secret = "…"           # Trakt wants one on the token exchange
 | Sign-in flow | browser redirect | browser redirect | username and password, once | device code | device code |
 | Redirect URL | `http://127.0.0.1:45617/callback` | `http://127.0.0.1:45617/callback` | none needed | none needed | none needed |
 | Needs a secret | **yes** | no | no | no | **yes** |
-| Token life | ~1 year | ~31 days, refreshed automatically | ~30 days, refreshed automatically | long-lived | ~3 months, then --login again |
+| Token life | ~1 year | ~31 days, refreshed automatically | ~30 days, refreshed automatically | 7 days, refreshed automatically | ~3 months, then --login again |
 
 Then `anistream --login`, or `anistream --login --tracker mal`. Simkl and Trakt use the OAuth
 device flow, so `--login --tracker simkl` prints a code and a URL to enter it at. For Kitsu, press

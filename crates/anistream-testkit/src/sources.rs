@@ -16,7 +16,7 @@ use anistream_core::{
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
 
-use crate::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, MOVIE, SEQUEL};
+use crate::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, MOVIE, ONA, SEQUEL};
 
 /// The fixture provider's id.
 pub const PROVIDER_ID: &str = "fixture";
@@ -58,8 +58,9 @@ pub fn episode_count(id: AnilistId) -> u32 {
 /// A title's episodes as the source lists them.
 ///
 /// [`FINISHED`]'s are the full set: titles, still frames, air dates and a synopsis for the
-/// first. [`SEQUEL`] claims episode [`FILLER_EPISODE`] is filler. The rest are bare numbers
-/// and a runtime, as most sources list them.
+/// first. [`ONA`]'s have stills and nothing else, so a title with no banner still has wide art
+/// a front end can show. [`SEQUEL`] claims episode [`FILLER_EPISODE`] is filler. The rest are
+/// bare numbers and a runtime, as most sources list them.
 pub fn episodes(id: AnilistId) -> Vec<Episode> {
     let runtime = Duration::from_secs_f64(fixtures::runtime_secs(id));
     (1..=episode_count(id))
@@ -68,7 +69,7 @@ pub fn episodes(id: AnilistId) -> Vec<Episode> {
             match id {
                 FINISHED => Episode {
                     title: Some(FINISHED_TITLES[n as usize - 1].to_owned()),
-                    thumbnail: Some(format!("https://img.example/ep/{}/{n}.jpg", id.get())),
+                    thumbnail: Some(still(id, n)),
                     // Weekly from Saturday 2024-04-06.
                     air_date: Some(air_date(n)),
                     description: (n == 1).then(|| {
@@ -77,12 +78,18 @@ pub fn episodes(id: AnilistId) -> Vec<Episode> {
                     }),
                     ..bare
                 },
+                ONA => Episode { thumbnail: Some(still(id, n)), ..bare },
                 MOVIE => Episode { title: Some(fixtures::title(MOVIE)), ..bare },
                 SEQUEL => Episode { filler: (n == FILLER_EPISODE).then_some(true), ..bare },
                 _ => bare,
             }
         })
         .collect()
+}
+
+/// Where an episode's still is, under [`fixtures::ART_HOST`].
+fn still(id: AnilistId, n: u32) -> String {
+    format!("{}ep/{}/{n}.jpg", fixtures::ART_HOST, id.get())
 }
 
 fn air_date(n: u32) -> String {
@@ -128,10 +135,23 @@ pub fn clip() -> Stream {
 /// The fixture provider, before it is boxed, so a test can still make it slow, failing or
 /// withheld, or take its call counter.
 pub fn provider() -> MockProvider {
+    provider_with_art(fixtures::ART_HOST)
+}
+
+/// The fixture provider with its episode stills under `art` rather than
+/// [`fixtures::ART_HOST`]: under the fake's own address, when it serves art.
+pub fn provider_with_art(art: &str) -> MockProvider {
     let mut provider = MockProvider::new(PROVIDER_ID).with_hits(hits());
     for id in fixtures::ALL {
+        let episodes = episodes(id)
+            .into_iter()
+            .map(|e| Episode {
+                thumbnail: e.thumbnail.map(|t| t.replacen(fixtures::ART_HOST, art, 1)),
+                ..e
+            })
+            .collect();
         provider = provider
-            .with_episodes_for(key(id), episodes(id))
+            .with_episodes_for(key(id), episodes)
             .with_streams_for(key(id), vec![clip()]);
     }
     provider
@@ -140,6 +160,11 @@ pub fn provider() -> MockProvider {
 /// A registry holding only the fixture provider.
 pub fn registry() -> ProviderRegistry {
     ProviderRegistry::new(vec![provider().arc()])
+}
+
+/// A registry holding only the fixture provider, its stills under `art`.
+pub fn registry_with_art(art: &str) -> ProviderRegistry {
+    ProviderRegistry::new(vec![provider_with_art(art).arc()])
 }
 
 #[cfg(test)]
@@ -192,6 +217,34 @@ mod tests {
         let unknown =
             registry.resolve(&ProviderKey::new("nope"), "1", Translation::Sub, 0).await;
         assert!(unknown.value.is_none());
+    }
+
+    #[tokio::test]
+    async fn the_stills_follow_the_art_base() {
+        use anistream_core::traits::Provider;
+        let base = "http://127.0.0.1:9/art/";
+        let episodes = provider_with_art(base)
+            .episodes(&key(FINISHED), Translation::Sub)
+            .await
+            .expect("the finished title's episodes");
+        assert_eq!(
+            episodes[2].thumbnail.as_deref(),
+            Some("http://127.0.0.1:9/art/ep/900001/3.jpg")
+        );
+        let plain = provider()
+            .episodes(&key(FINISHED), Translation::Sub)
+            .await
+            .expect("the finished title's episodes");
+        assert_eq!(plain[2].thumbnail.as_deref(), Some("https://img.example/ep/900001/3.jpg"));
+    }
+
+    /// The two titles with no banner: one has stills to show in its place, the other nothing.
+    #[test]
+    fn of_the_bannerless_titles_one_has_stills_and_one_has_none() {
+        let ona = episodes(ONA);
+        assert_eq!(ona[0].thumbnail.as_deref(), Some("https://img.example/ep/900005/1.jpg"));
+        assert!(ona.iter().all(|e| e.thumbnail.is_some()));
+        assert!(episodes(AIRING_NO_MAL).iter().all(|e| e.thumbnail.is_none()));
     }
 
     #[test]

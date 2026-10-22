@@ -305,6 +305,21 @@ impl App {
         None
     }
 
+    /// Titles are named another way now: what is on screen names them the old way, so the
+    /// list it shows and the title page open over it are asked for again. A screen with no
+    /// list, Settings where the change is made among them, has nothing to ask for, and a list
+    /// is asked for as it is opened.
+    pub(super) fn titles_changed(&mut self) {
+        if self.fetches_list()
+            && let Some(task) = self.reload()
+        {
+            self.commands.push(task);
+        }
+        if let Some(id) = self.title_on_screen() {
+            self.commands.push(Command::LoadDetail(id));
+        }
+    }
+
     /// Fire a settled section change. Called from the idle tick.
     pub fn tick_pending_reload(&mut self) {
         let Some(remaining) = self.reload_countdown else { return };

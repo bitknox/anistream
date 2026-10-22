@@ -95,7 +95,8 @@ impl TorrentTasks {
         let _ = tx.send(Event::Vpn(Some(anistream_model::sources::GuardView::Checking)));
         let generation = self.generation;
         let (config, http, paths, store, tx, arrivals) = (
-            config.clone(),
+            // With the proxy's password, which only this copy holds.
+            crate::protection::with_proxy_password(config, services),
             services.http.clone(),
             services.paths.clone(),
             services.store.clone(),
@@ -141,7 +142,7 @@ impl TorrentTasks {
         }
         *vpn_guard = Some((up.guard, up.session));
         *self = Self { generation, ..Self::start(vpn_guard, &services.store, config, tx) };
-        let _ = tx.send(Event::Providers(data::provider_rows(registry)));
+        let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
         tracing::info!(providers = ?registry.ids(), "torrent source up");
     }
 
@@ -254,6 +255,7 @@ pub async fn reload_sources(
     let mut providers = rebuilt.all();
     providers.extend(plugins);
     registry.replace(providers);
+    registry.set_disabled(snapshot.providers.disabled.iter().cloned());
     // The plugins were carried across behind the rebuilt sources; a plugin the order names
     // ahead of one of those goes back in front of it.
     sources::arrange(registry, &snapshot);
@@ -269,6 +271,6 @@ pub async fn reload_sources(
     } else {
         "torrents are off — the session was stopped".into()
     }));
-    let _ = tx.send(Event::Providers(data::provider_rows(registry)));
+    let _ = tx.send(Event::Providers(data::provider_rows(registry, &services.stores)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
 }

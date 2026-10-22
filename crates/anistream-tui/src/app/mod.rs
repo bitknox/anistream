@@ -417,7 +417,12 @@ impl App {
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
             Event::Detail(entry) => self.apply_detail(entry),
+            // The engine names every title as the setting says; nothing here asks the viewer's.
+            Event::ViewerTitleLanguage(_) => {}
+            Event::TitlesChanged(_) => self.titles_changed(),
             Event::DeviceCode(prompt) => self.device_code = prompt,
+            // A native app's sign-in sheet: the terminal signs in on a loopback port.
+            Event::Authorize { .. } => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),
@@ -437,6 +442,8 @@ impl App {
             }
             Event::LocalPlugins { store, plugins } => self.apply_local_plugins(store, plugins),
             Event::Settings(view) => self.take_settings(view),
+            // A native app's show sheet, which the terminal has none of.
+            Event::ShowSettings(_) => {}
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
@@ -477,6 +484,9 @@ impl App {
             | Event::PlayerToneMapping(_)
             | Event::PlayerNightMode(_)
             | Event::PlaybackVolume(_) => {}
+            // For a front end that hosts the player; the terminal's is mpv, which the engine
+            // drives itself.
+            Event::PlayerOps { .. } | Event::PlayerUi { .. } => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
             //

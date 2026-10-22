@@ -5,15 +5,23 @@
 //! does, so the screen leaves its loading state whatever happened.
 
 use anistream_core::{media::SearchHit, traits::SourceCandidate};
-use anistream_model::{command::Command, event::Event};
+use anistream_model::{
+    catalog::{
+        CastRole, FuzzyDate, RankingKind, RelationKind, SearchFilters, Season, SourceMaterial,
+        TitleLanguage,
+    },
+    command::Command,
+    event::Event,
+    settings::SettingKey,
+};
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::ResolutionRung;
 use anistream_testkit::{
-    fixtures::{FINISHED, FIXTURE_NOW, MISSING},
+    fixtures::{self, AIRING, FINISHED, FIXTURE_NOW, MISSING},
     seed, sources,
 };
 
-use super::{ends, toasts};
+use super::{WITH_ANILIST, ends, toasts};
 use crate::harness::{Harness, Options, names};
 
 /// The fixture provider beside a second one, `alt`, that has only three of
@@ -37,6 +45,13 @@ fn unsure() -> ProviderRegistry {
 
 async fn harness(registry: ProviderRegistry) -> Harness {
     Harness::with(Options { registry: Some(registry), ..Options::default() }).await
+}
+
+/// How many shows keep a source of their own, as settings say it under the source order.
+fn kept_sources(update: &Event) -> u32 {
+    let Event::Settings(view) = update else { panic!("not the settings: {update:?}") };
+    let order = view.overridden.iter().find(|o| o.key == SettingKey::SourceOrder);
+    order.map_or(0, |o| o.shows)
 }
 
 /// The episode numbers a table holds.
@@ -71,14 +86,21 @@ async fn a_pin_written_inline_is_what_the_next_task_reads() {
     let updates = h.settle().await;
 
     assert!(pinned.is_none(), "a write nobody waits on");
-    assert_eq!(names(&updates), ["Toast", "ProviderPreference", "Detail", "JobDone"]);
+    // The settings first, with the shows that keep a source of their own counted again.
+    assert_eq!(
+        names(&updates),
+        ["Settings", "Toast", "ProviderPreference", "Detail", "JobDone"]
+    );
+    assert_eq!(kept_sources(&updates[0]), 1);
     assert_eq!(toasts(&updates), ["info: alt will be used for this title"]);
-    assert!(matches!(&updates[1], Event::ProviderPreference(Some(p)) if p == "alt"));
+    assert!(matches!(&updates[2], Event::ProviderPreference(Some(p)) if p == "alt"));
     ends(&updates, job);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap().as_deref(), Some("alt"));
 
     h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
     let updates = h.settle().await;
+    assert_eq!(names(&updates), ["Settings", "Toast"]);
+    assert_eq!(kept_sources(&updates[0]), 0);
     assert_eq!(toasts(&updates), ["info: back to automatic source selection"]);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap(), None);
 }
@@ -181,15 +203,15 @@ async fn a_pinned_source_lists_its_own_episodes() {
     h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[1]), ["1", "2", "3"], "alt's numbering, which Enter plays");
+    assert_eq!(names(&updates), ["Settings", "Toast", "Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[2]), ["1", "2", "3"], "alt's numbering, which Enter plays");
     ends(&updates, job);
 
     h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
     h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[1]).len(), 12, "the first source in the chain again");
+    assert_eq!(names(&updates), ["Settings", "Toast", "Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[2]).len(), 12, "the first source in the chain again");
 }
 
 #[tokio::test]
@@ -256,4 +278,166 @@ async fn a_search_in_your_own_words_offers_ranked_choices() {
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
     assert_eq!(toasts(&updates), ["alert: nothing found for \"tabibito\""]);
     ends(&updates, job);
+}
+
+#[tokio::test]
+async fn a_titles_page_carries_what_only_it_fetches_and_a_list_does_not() {
+    let mut h = Harness::new().await;
+    h.send(Command::LoadDetail(FINISHED));
+    let updates = h.settle().await;
+    let Event::Detail(entry) = &updates[1] else { panic!("the page: {updates:?}") };
+
+    // What every list carries too.
+    assert_eq!(entry.season, Some(Season::Spring));
+    assert_eq!(entry.start_date, Some(FuzzyDate { year: 2024, month: Some(4), day: Some(6) }));
+    assert_eq!(entry.end_date, Some(FuzzyDate { year: 2024, month: Some(6), day: Some(22) }));
+    assert_eq!(entry.source, Some(SourceMaterial::Manga));
+    assert_eq!(entry.title_native.as_deref(), Some("星屑の旅人"));
+    assert_eq!(entry.title_romaji.as_deref(), Some("Hoshikuzu no Tabibito"));
+    assert!(!entry.adult);
+
+    // And what only the page does.
+    let detail = entry.detail.as_ref().expect("the page's own fields");
+    assert_eq!(detail.schedule.len(), 12, "every episode's broadcast");
+    let weeks = detail.schedule.windows(2).all(|w| w[1].airs_at - w[0].airs_at == 7 * 86_400);
+    assert!(weeks && detail.schedule[0].episode == 1, "{:?}", detail.schedule);
+    assert!(detail.tags.iter().any(|tag| tag.media_spoiler), "the spoiler is marked");
+    assert_eq!(detail.characters[0].role, CastRole::Main);
+    assert_eq!(detail.characters[0].voice_actors[0].name, "Ren's voice");
+    assert_eq!(detail.relations[0].relation, Some(RelationKind::Sequel));
+    assert_eq!(detail.relations[0].season, Some(Season::Winter));
+    assert!(detail.relations[0].cover_url.is_some(), "a card has its cover");
+    assert_eq!(detail.recommendations.len(), entry.recommended.len());
+    assert_eq!(detail.rankings[0].kind, RankingKind::Rated);
+    assert_eq!(detail.staff[0].role, "Director");
+
+    h.send(Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() });
+    let updates = h.settle().await;
+    let listed = updates
+        .iter()
+        .find_map(|update| match update {
+            Event::Content { content, .. } => {
+                content.entries().iter().find(|e| e.id == FINISHED)
+            }
+            _ => None,
+        })
+        .expect("the search lists it");
+    assert_eq!(listed.season, Some(Season::Spring));
+    assert!(listed.detail.is_none(), "a list fetches none of the page");
+}
+
+#[tokio::test]
+async fn each_episode_row_says_when_it_aired() {
+    let mut h = Harness::new().await;
+    h.send(Command::LoadEpisodes(AIRING));
+    let updates = h.settle().await;
+    let rows = updates
+        .iter()
+        .find_map(|update| match update {
+            Event::Episodes { rows, .. } => Some(rows.clone()),
+            _ => None,
+        })
+        .expect("the table");
+    let times = fixtures::media(AIRING).air_times();
+    assert!(!rows.is_empty());
+    for row in &rows {
+        let number: u32 = row.number.parse().expect("numbered");
+        assert_eq!(row.airs_at, times.get(&number).copied(), "ep {number}");
+        assert!(row.airs_at.is_some_and(|at| at <= FIXTURE_NOW), "listed, so out");
+    }
+}
+
+#[tokio::test]
+async fn the_signed_in_viewers_title_language_is_said_when_asked() {
+    // Nobody signed in to AniList: there is no language to say, and nothing is asked.
+    let said = |updates: &[Event]| {
+        updates.iter().find_map(|update| match update {
+            Event::ViewerTitleLanguage(language) => Some(*language),
+            _ => None,
+        })
+    };
+    let mut h = Harness::new().await;
+    h.send(Command::LoadTitleLanguage);
+    let updates = h.settle().await;
+    assert_eq!(said(&updates), Some(None), "{updates:?}");
+    assert!(h.server().requests_for(anistream_testkit::Operation::Viewer).is_empty());
+
+    let mut h = Harness::with(Options {
+        config: Some(WITH_ANILIST.into()),
+        signed_in: vec!["anilist"],
+        ..Options::default()
+    })
+    .await;
+    for _ in 0..2 {
+        h.send(Command::LoadTitleLanguage);
+        let updates = h.settle().await;
+        assert_eq!(said(&updates), Some(Some(TitleLanguage::English)), "{updates:?}");
+    }
+    let asked = h.server().requests_for(anistream_testkit::Operation::Viewer);
+    assert_eq!(asked.len(), 1, "the viewer is looked up once and kept");
+}
+
+#[tokio::test]
+async fn a_title_says_where_it_is_in_its_run() {
+    use anistream_model::catalog::AiringStatus;
+    let mut h = Harness::new().await;
+    for (id, status) in [(AIRING, AiringStatus::Releasing), (FINISHED, AiringStatus::Finished)]
+    {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        let entry = updates.iter().find_map(|update| match update {
+            Event::Detail(entry) => Some(entry.clone()),
+            _ => None,
+        });
+        assert_eq!(entry.and_then(|e| e.status), Some(status), "{id}");
+    }
+}
+
+#[tokio::test]
+async fn related_cards_say_where_each_title_is_on_the_library_and_carry_its_colour() {
+    use anistream_model::catalog::LibrarySegment;
+    use anistream_testkit::fixtures::SEQUEL;
+    let mut h = Harness::with(Options {
+        config: Some(WITH_ANILIST.into()),
+        signed_in: vec!["anilist"],
+        ..Options::default()
+    })
+    .await;
+    let page = |updates: Vec<Event>| {
+        updates
+            .into_iter()
+            .find_map(|update| match update {
+                Event::Detail(entry) => entry.detail,
+                _ => None,
+            })
+            .expect("the page")
+    };
+
+    // Before anything is pulled, nothing is known of the library.
+    h.send(Command::LoadDetail(SEQUEL));
+    let detail = page(h.settle().await);
+    assert_eq!(detail.relations[0].list_status, None);
+    assert_eq!(detail.relations[0].cover_color.as_deref(), Some("#e4a15d"), "its own colour");
+
+    // A sync pulls the library, and its statuses are kept: the prequel was watched.
+    h.send(Command::SyncNow);
+    h.settle().await;
+    h.send(Command::LoadDetail(SEQUEL));
+    let detail = page(h.settle().await);
+    assert_eq!(detail.relations[0].list_status, Some(LibrarySegment::Completed));
+
+    // And a Library load keeps them too, every segment's: a recommendation is planned.
+    h.send(Command::LoadLibrary(LibrarySegment::Watching));
+    h.settle().await;
+    h.send(Command::LoadDetail(FINISHED));
+    let detail = page(h.settle().await);
+    let cards: Vec<_> =
+        detail.recommendations.iter().map(|card| (card.id, card.list_status)).collect();
+    assert_eq!(
+        cards,
+        [
+            (anistream_testkit::fixtures::ONA, None),
+            (anistream_testkit::fixtures::MOVIE, Some(LibrarySegment::Planning)),
+        ]
+    );
 }

@@ -28,17 +28,15 @@ use anistream_core::{
     traits::{TrackOp, TrackedEntry, Tracker, WatchStatus},
 };
 
-use crate::{auth::urlencode, secret::TokenPair};
+use crate::{
+    auth::urlencode,
+    held::{Held, Renews},
+    secret::{TokenPair, TokenStore},
+};
 
 const AUTHORIZE: &str = "https://myanimelist.net/v1/oauth2/authorize";
 const TOKEN: &str = "https://myanimelist.net/v1/oauth2/token";
 const API: &str = "https://api.myanimelist.net/v2";
-
-/// Renew this many seconds before expiry.
-///
-/// A token that dies mid-request fails as a rejected credential rather than an expired one, which
-/// sends whoever reads the log looking in the wrong place.
-const REFRESH_MARGIN_SECS: i64 = 24 * 3_600;
 
 /// How many pages of a library to follow before deciding the server is not counting down.
 ///
@@ -101,6 +99,17 @@ pub fn authorize_url(client_id: &str, pkce: &Pkce, redirect_uri: &str) -> String
     )
 }
 
+/// [`authorize_url`], with a `state` to come back with the code: what a native app's sign-in
+/// sheet opens, its redirect being the app's own URL scheme.
+pub fn authorize_url_with_state(
+    client_id: &str,
+    pkce: &Pkce,
+    redirect_uri: &str,
+    state: &str,
+) -> String {
+    format!("{}&state={}", authorize_url(client_id, pkce, redirect_uri), urlencode(state))
+}
+
 /// Exchange an authorization code for a token pair.
 pub async fn exchange_code(
     http: &reqwest::Client,
@@ -110,15 +119,25 @@ pub async fn exchange_code(
     redirect_uri: &str,
     now: i64,
 ) -> Result<TokenPair, crate::auth::AuthError> {
-    // Form-encoded, not JSON: MAL's token endpoint rejects a JSON body.
-    let form = [
+    post_token(http, &exchange_form(client_id, code, verifier, redirect_uri), now).await
+}
+
+/// What a code is exchanged with: the client, the code and its verifier, and nothing secret.
+/// A client registered as "other", as an app's is, has no secret to send; PKCE is what proves
+/// the code is this sign-in's. Form-encoded, not JSON: MAL's token endpoint rejects a JSON body.
+fn exchange_form<'a>(
+    client_id: &'a str,
+    code: &'a str,
+    verifier: &'a str,
+    redirect_uri: &'a str,
+) -> [(&'static str, &'a str); 5] {
+    [
         ("grant_type", "authorization_code"),
         ("client_id", client_id.trim()),
         ("code", code.trim()),
         ("code_verifier", verifier),
         ("redirect_uri", redirect_uri),
-    ];
-    post_token(http, &form, now).await
+    ]
 }
 
 /// Renew an access token.
@@ -214,10 +233,9 @@ pub struct MalTracker {
     client_id: String,
     http: reqwest::Client,
     mapping: std::sync::Arc<dyn IdMapping>,
-    /// `None` when not signed in. Behind a lock because a refresh replaces it mid-flight.
-    tokens: tokio::sync::RwLock<Option<TokenPair>>,
-    /// Set when a refresh produced a new pair the caller should persist.
-    pending_save: tokio::sync::RwLock<Option<TokenPair>>,
+    /// The pair, renewed before it runs out and kept in step with other processes: see
+    /// [`crate::held`].
+    held: Held,
 }
 
 impl MalTracker {
@@ -231,55 +249,34 @@ impl MalTracker {
             client_id: client_id.into(),
             http,
             mapping,
-            tokens: tokio::sync::RwLock::new(tokens),
-            pending_save: tokio::sync::RwLock::new(None),
+            held: Held::new("mal", "myanimelist", tokens),
         }
     }
 
-    /// A renewed token pair the caller should write back, if a refresh happened.
+    /// Kept in step with the other processes signed in through `store`: a pair one renews is
+    /// stored at once, and taken by the others rather than renewed again.
+    #[must_use]
+    pub fn with_token_store(mut self, store: TokenStore) -> Self {
+        self.held.share(store);
+        self
+    }
+
+    /// A renewed token pair the caller should write back, if a refresh happened and no store
+    /// was given, or the store did not take it.
     ///
-    /// Returned rather than persisted here because this crate has no opinion about where tokens
-    /// live — that is [`crate::secret::TokenStore`]'s job, and the binary owns both.
+    /// Returned rather than persisted here because without a store this crate has no opinion
+    /// about where tokens live — that is [`crate::secret::TokenStore`]'s job, and the binary
+    /// owns both.
     pub async fn take_renewed(&self) -> Option<TokenPair> {
-        self.pending_save.write().await.take()
+        self.held.take_renewed().await
     }
+}
 
-    /// A usable access token, refreshing first if it is close to expiry.
-    async fn access_token(&self, now: i64) -> Result<String, anistream_core::Error> {
-        {
-            let held = self.tokens.read().await;
-            let Some(pair) = held.as_ref() else {
-                return Err(anistream_core::Error::Auth("not signed in to myanimelist".into()));
-            };
-            if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
-                return Ok(pair.access.clone());
-            }
-        }
-
-        // Refresh under the write lock, re-checking: two concurrent calls should produce one
-        // refresh, not two, and MAL invalidates the old refresh token when it issues a new one.
-        let mut held = self.tokens.write().await;
-        let Some(pair) = held.as_ref() else {
-            return Err(anistream_core::Error::Auth("not signed in to myanimelist".into()));
-        };
-        if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
-            return Ok(pair.access.clone());
-        }
-        let Some(refresh_token) = pair.refresh.clone() else {
-            return Err(anistream_core::Error::Auth(
-                "myanimelist token expired and there is no refresh token".into(),
-            ));
-        };
-
-        tracing::info!("refreshing the myanimelist token");
-        let renewed = refresh(&self.http, &self.client_id, &refresh_token, now)
+impl Renews for MalTracker {
+    async fn renew(&self, refresh_token: &str, now: i64) -> Result<TokenPair, String> {
+        refresh(&self.http, &self.client_id, refresh_token, now)
             .await
-            .map_err(|e| anistream_core::Error::Auth(e.to_string()))?;
-
-        let access = renewed.access.clone();
-        *self.pending_save.write().await = Some(renewed.clone());
-        *held = Some(renewed);
-        Ok(access)
+            .map_err(|e| e.to_string())
     }
 }
 
@@ -290,9 +287,7 @@ impl Tracker for MalTracker {
     }
 
     fn is_authenticated(&self) -> bool {
-        // `try_read` so a UI thread asking "is this connected?" is never blocked by an in-flight
-        // refresh. A contended lock means a refresh is happening, which means we *are* signed in.
-        self.tokens.try_read().map_or(true, |held| held.is_some())
+        self.held.is_held()
     }
 
     fn can_address(&self, op: &TrackOp) -> bool {
@@ -305,23 +300,21 @@ impl Tracker for MalTracker {
         refresh: Option<&str>,
         expires_at: Option<i64>,
     ) {
-        *self.tokens.write().await = Some(TokenPair {
-            access: access.to_owned(),
-            refresh: refresh.map(str::to_owned),
-            expires_at,
-        });
+        self.held
+            .accept(TokenPair {
+                access: access.to_owned(),
+                refresh: refresh.map(str::to_owned),
+                expires_at,
+            })
+            .await;
     }
 
     async fn forget_credentials(&self) {
-        // The in-memory pair is what every call reads, so clearing the store alone would leave this
-        // tracker happily pushing with a revoked credential.
-        *self.tokens.write().await = None;
-        *self.pending_save.write().await = None;
+        self.held.forget().await;
     }
 
     async fn pull_library(&self) -> Result<Vec<TrackedEntry>, anistream_core::Error> {
-        let now = crate::now_epoch();
-        let token = self.access_token(now).await?;
+        let mut token = self.held.access(self, crate::now_epoch()).await?;
 
         let mut entries = Vec::new();
         // MAL paginates with an explicit `next` URL rather than page numbers.
@@ -347,20 +340,11 @@ impl Tracker for MalTracker {
             }
 
             let response = self
-                .http
-                .get(&url)
-                .bearer_auth(&token)
-                .send()
-                .await
-                .map_err(|e| tracker_error(e.to_string()))?;
+                .held
+                .send(self, &mut token, |t| self.http.get(&url).bearer_auth(t))
+                .await?;
 
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                return Err(anistream_core::Error::Auth(
-                    "myanimelist rejected the token".into(),
-                ));
-            }
-            let payload: serde_json::Value =
-                response.json().await.map_err(|e| tracker_error(e.to_string()))?;
+            let payload = crate::page_json(response, "mal", "myanimelist").await?;
 
             for node in payload["data"].as_array().into_iter().flatten() {
                 // A MAL entry with no mapping back to an AniList id cannot be reconciled against
@@ -390,8 +374,7 @@ impl Tracker for MalTracker {
     }
 
     async fn push(&self, ops: &[TrackOp]) -> Result<(), anistream_core::Error> {
-        let now = crate::now_epoch();
-        let token = self.access_token(now).await?;
+        let mut token = self.held.access(self, crate::now_epoch()).await?;
 
         // Coalesced per title, like the AniList tracker: `my_list_status` is a PATCH that sets
         // whichever fields are present, so three ops for one show are one request.
@@ -437,14 +420,11 @@ impl Tracker for MalTracker {
                 );
                 continue;
             };
+            let url = format!("{API}/anime/{mal_id}/my_list_status");
             let response = self
-                .http
-                .patch(format!("{API}/anime/{mal_id}/my_list_status"))
-                .bearer_auth(&token)
-                .form(&fields)
-                .send()
-                .await
-                .map_err(|e| tracker_error(e.to_string()))?;
+                .held
+                .send(self, &mut token, |t| self.http.patch(&url).bearer_auth(t).form(&fields))
+                .await?;
 
             if response.status() == reqwest::StatusCode::UNAUTHORIZED {
                 return Err(anistream_core::Error::Auth(
@@ -521,6 +501,23 @@ mod tests {
         // Weaker than S256, and worth being explicit about rather than looking like an oversight.
         let pkce = Pkce::generate();
         assert_eq!(pkce.challenge(), pkce.verifier);
+    }
+
+    #[test]
+    fn a_code_is_exchanged_with_its_verifier_and_no_secret() {
+        let form =
+            exchange_form(" app-client ", "a-code", "a-verifier", "anistream://auth/mal");
+        assert_eq!(
+            form,
+            [
+                ("grant_type", "authorization_code"),
+                ("client_id", "app-client"),
+                ("code", "a-code"),
+                ("code_verifier", "a-verifier"),
+                ("redirect_uri", "anistream://auth/mal"),
+            ]
+        );
+        assert!(form.iter().all(|(name, _)| !name.contains("secret")));
     }
 
     #[test]
@@ -633,7 +630,7 @@ mod tests {
             refresh: Some("r".into()),
             expires_at: Some(now + 31 * 24 * 3_600),
         };
-        assert!(!pair.needs_refresh(now, REFRESH_MARGIN_SECS));
+        assert!(!pair.needs_refresh(now, crate::held::MARGIN_SECS));
     }
 
     #[test]
@@ -646,13 +643,13 @@ mod tests {
             refresh: Some("r".into()),
             expires_at: Some(now + 3_600),
         };
-        assert!(pair.needs_refresh(now, REFRESH_MARGIN_SECS));
+        assert!(pair.needs_refresh(now, crate::held::MARGIN_SECS));
     }
 
     #[test]
     fn a_token_with_no_refresh_token_never_claims_to_need_refreshing() {
         // AniList's shape: nothing to refresh with, so the answer is always no.
         let pair = TokenPair { access: "tok".into(), refresh: None, expires_at: Some(0) };
-        assert!(!pair.needs_refresh(1_000_000, REFRESH_MARGIN_SECS));
+        assert!(!pair.needs_refresh(1_000_000, crate::held::MARGIN_SECS));
     }
 }

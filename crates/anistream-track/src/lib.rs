@@ -24,6 +24,7 @@
 pub mod anilist;
 pub mod auth;
 pub mod device;
+mod held;
 pub mod kitsu;
 pub mod mal;
 pub mod merge;
@@ -34,7 +35,7 @@ pub mod trakt;
 
 pub use anilist::AniListTracker;
 pub use auth::{AuthError, Flow};
-pub use device::{DeviceCode, DeviceEndpoints, DeviceError};
+pub use device::{DeviceCode, DeviceEndpoints, DeviceError, DeviceFlow};
 pub use kitsu::KitsuTracker;
 pub use mal::MalTracker;
 pub use merge::{Conflict, Field, LocalState, Merged};
@@ -42,6 +43,9 @@ pub use secret::{Storage, TokenPair, TokenStore};
 pub use simkl::SimklTracker;
 pub use sync::{DrainReport, PullReport, drain, pull, queue_progress};
 pub use trakt::{SeasonMapping, TraktTracker};
+
+/// What the project's requests call themselves, as `anistream-net`'s plain client does.
+pub(crate) const USER_AGENT: &str = concat!("anistream/", env!("CARGO_PKG_VERSION"));
 
 /// Seconds since the Unix epoch.
 ///
@@ -51,4 +55,81 @@ pub fn now_epoch() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or_default()
+}
+
+/// A tracker's answer as JSON, or the error it amounts to.
+///
+/// A 401 is an auth error, which only signing in again fixes. Any other failure (a maintenance
+/// page, a 500, a 429) is a tracker error the next sync retries. Reading a failure's body as if
+/// it were a page would find no entries in it, and an outage would pass for an empty library.
+///
+/// `tracker` is the id errors carry (`mal`), `name` what the person reads (`myanimelist`).
+pub(crate) async fn page_json(
+    response: reqwest::Response,
+    tracker: &str,
+    name: &str,
+) -> Result<serde_json::Value, anistream_core::Error> {
+    let status = response.status();
+    if status == reqwest::StatusCode::UNAUTHORIZED {
+        return Err(anistream_core::Error::Auth(format!("{name} rejected the token")));
+    }
+    let failed = |message: String| anistream_core::Error::Tracker {
+        tracker: tracker.to_owned(),
+        message,
+    };
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        // Enough of the body to say why (a maintenance notice, a rate limit), not a whole page.
+        let reason: String = body.trim().chars().take(200).collect();
+        return Err(failed(format!("{status}: {reason}")));
+    }
+    response.json().await.map_err(|e| failed(e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn answer(status: u16, body: &'static str) -> reqwest::Response {
+        http::Response::builder().status(status).body(body).unwrap().into()
+    }
+
+    #[tokio::test]
+    async fn a_maintenance_page_is_an_error_not_an_empty_library() {
+        let body = r#"{"error":"maintenance","message":"temporarily in maintenance mode"}"#;
+        let err = page_json(answer(503, body), "mal", "myanimelist").await.unwrap_err();
+        let anistream_core::Error::Tracker { tracker, message } = err else {
+            panic!("expected a tracker error, got {err:?}");
+        };
+        assert_eq!(tracker, "mal");
+        assert!(message.starts_with("503"), "{message}");
+        assert!(message.contains("maintenance"), "{message}");
+    }
+
+    #[tokio::test]
+    async fn a_rate_limit_is_an_error_too() {
+        let err = page_json(answer(429, "slow down"), "kitsu", "kitsu").await.unwrap_err();
+        assert!(matches!(err, anistream_core::Error::Tracker { .. }), "{err:?}");
+    }
+
+    #[tokio::test]
+    async fn a_rejected_token_is_an_auth_error() {
+        let err = page_json(answer(401, "{}"), "mal", "myanimelist").await.unwrap_err();
+        let anistream_core::Error::Auth(message) = err else { panic!("{err:?}") };
+        assert_eq!(message, "myanimelist rejected the token");
+    }
+
+    #[tokio::test]
+    async fn a_good_answer_is_its_json() {
+        let page = page_json(answer(200, r#"{"data":[]}"#), "simkl", "simkl").await.unwrap();
+        assert!(page["data"].as_array().is_some_and(Vec::is_empty));
+    }
+
+    #[tokio::test]
+    async fn a_long_error_body_is_cut_short() {
+        let body: &'static str = Box::leak("x".repeat(5_000).into_boxed_str());
+        let err = page_json(answer(500, body), "mal", "myanimelist").await.unwrap_err();
+        let anistream_core::Error::Tracker { message, .. } = err else { unreachable!() };
+        assert!(message.len() < 300, "{}", message.len());
+    }
 }

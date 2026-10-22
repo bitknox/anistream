@@ -26,17 +26,34 @@
 //! as Kotlin's own `List`. So no variant is named after a type it carries, nor after a Kotlin
 //! type. Where the type is the model's, the type is the one renamed, so the variant keeps the name
 //! the front ends match on.
+//!
+//! **Adding a field to a record.** Kotlin's generated constructor and Swift's memberwise init
+//! take every field, and the apps build records of their own (placeholders, previews, tests),
+//! so a new field breaks both apps' builds unless the bindings give it a default:
+//! - An `Option` or `Vec` field carries `#[cfg_attr(feature = "ffi", uniffi(default))]`, which
+//!   is `None` or empty. A test below fails on one without it.
+//! - So does a `bool` that is off until something sets it, and a meter that starts at nought.
+//! - What a record is about stays required: an id, a title, a row's value.
+//! - A new field goes last. A Kotlin call that passes arguments by position, as some tests do,
+//!   keeps compiling only then.
+//!
+//! A field with no natural default is a change to the apps, made in the same PR. Build them:
+//! `android/scripts/engine.sh testing` then `./gradlew :ui:compileFixturesDebugKotlin
+//! :store:testFixturesDebugUnitTest` in `android/`, and `apple/build.sh`.
 
 pub mod catalog;
 pub mod command;
 pub mod downloads;
 pub mod episodes;
 pub mod event;
+pub mod hosted;
 pub mod jobs;
 pub mod notice;
 pub mod playback;
 pub mod progress;
+pub mod protection;
 pub mod settings;
+pub mod show;
 pub mod sources;
 pub mod stores;
 pub mod sync;
@@ -47,3 +64,54 @@ pub mod wording;
 // and every unsafe block and exported symbol here comes out of UniFFI's.
 #[cfg(feature = "ffi")]
 uniffi::setup_scaffolding!();
+
+#[cfg(test)]
+mod tests {
+    use std::{fs, path::Path};
+
+    /// The rule in the crate's docs, read from the sources: every module's, so a new one is held
+    /// to it too. The attribute goes right before its field, under the field's docs.
+    #[test]
+    fn every_option_and_vec_field_of_a_record_has_a_default_in_the_bindings() {
+        let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+        let mut files: Vec<_> = fs::read_dir(&src)
+            .expect("the crate's sources")
+            .map(|entry| entry.expect("a source file").path())
+            .filter(|path| path.extension().is_some_and(|ext| ext == "rs"))
+            .collect();
+        files.sort();
+        assert!(files.len() > 10, "found the modules: {files:?}");
+
+        let mut missing = Vec::new();
+        for path in &files {
+            let source = fs::read_to_string(path).expect("a readable source");
+            let file = path.file_name().unwrap().to_string_lossy();
+            let lines: Vec<&str> = source.lines().collect();
+            let (mut derived, mut record) = (false, None);
+            for (i, line) in lines.iter().enumerate() {
+                if line.contains("derive(uniffi::Record)") {
+                    derived = true;
+                } else if let Some(rest) = line.strip_prefix("pub struct ") {
+                    record =
+                        derived.then(|| rest.split([' ', '{', '<']).next().unwrap_or(rest));
+                    derived = false;
+                } else if *line == "}" {
+                    record = None;
+                } else if let (Some(name), Some(field)) =
+                    (record, line.strip_prefix("    pub "))
+                {
+                    let Some((field, ty)) = field.split_once(": ") else { continue };
+                    let defaulted = lines[i - 1].contains("uniffi(default");
+                    if (ty.starts_with("Option<") || ty.starts_with("Vec<")) && !defaulted {
+                        missing.push(format!("{file}: {name}.{field}"));
+                    }
+                }
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "these fields need #[cfg_attr(feature = \"ffi\", uniffi(default))], or the apps that \
+             build their records stop compiling: {missing:#?}"
+        );
+    }
+}

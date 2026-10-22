@@ -43,6 +43,12 @@ function Ctx:px(value)
     return value * self.s
 end
 
+-- The same canvas at another scale. The control row's pieces draw at uosc's scale, which a
+-- small window does not shrink, so they stay level with its buttons.
+function Ctx:at_scale(s)
+    return setmetatable({ s = s }, { __index = self })
+end
+
 function Ctx:rect(x0, y0, x1, y1, color, opacity, radius, corners, clip)
     draw.rect(self.out, x0, y0, x1, y1, color, opacity * self.alpha, radius, corners, clip)
 end
@@ -130,6 +136,11 @@ local function fade_value(el, now)
     return f.from + (f.target - f.from) * t
 end
 
+-- Told when the fades under way have all landed, on the frame that lands the last of them.
+local settle_listeners = {}
+-- An element set off towards a new state since the screen was last still.
+local settle_due = false
+
 function M.show(el, visible)
     local target = visible and 1 or 0
     if el.fade.target == target then
@@ -139,11 +150,28 @@ function M.show(el, visible)
     el.fade.from = fade_value(el, now)
     el.fade.target = target
     el.fade.t0 = now
+    settle_due = true
     M.request()
 end
 
 function M.visible(el)
     return el.fade.target == 1
+end
+
+-- Whether any element is still on its way to where it was sent, as the last frame drew it.
+function M.fading()
+    for _, el in ipairs(elements) do
+        if el.fade.value ~= el.fade.target then
+            return true
+        end
+    end
+    return false
+end
+
+-- Call `fn` each time the screen comes to rest: every fade landed, nothing more to draw for it.
+-- What is published from a frame (the volume's form) is then the last frame's, for good.
+function M.on_settle(fn)
+    settle_listeners[#settle_listeners + 1] = fn
 end
 
 -- Things that move with the overlay's fades without being drawn by it — the subtitles lifting
@@ -283,7 +311,7 @@ function M.render()
     end
 
     local s = screen.scale()
-    local insets = screen.insets(s)
+    local insets = screen.insets()
     local now = mp.get_time()
     local out = {}
     zones = {}
@@ -338,6 +366,15 @@ function M.render()
     end
 
     update_hover()
+
+    -- At rest, after something was set moving: said, even when the move took no frame at all
+    -- because the first frame came after its whole fade.
+    if not animating and settle_due then
+        settle_due = false
+        for _, fn in ipairs(settle_listeners) do
+            fn()
+        end
+    end
 
     if animating and not frame_timer then
         frame_timer = mp.add_timeout(1 / 60, function()

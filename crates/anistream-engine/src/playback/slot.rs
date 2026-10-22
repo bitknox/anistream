@@ -18,8 +18,10 @@ use std::{
 };
 
 use anistream_core::{ids::AnilistId, media::Translation};
-use anistream_player::{MpvSession, PlaybackEvent, TrackPolicy, TrackPreferences};
+use anistream_playback::{PlaybackEvent, TrackPolicy, TrackPreferences};
 use tokio::sync::mpsc::UnboundedReceiver;
+
+use crate::playback::link::PlayerLink;
 
 /// How long a parked window waits for the next playback.
 ///
@@ -29,7 +31,7 @@ const PARK_LIMIT: Duration = Duration::from_secs(120);
 
 /// A live player and the events it is reporting.
 pub struct Player {
-    pub session: MpvSession,
+    pub link: Box<dyn PlayerLink>,
     pub events: UnboundedReceiver<PlaybackEvent>,
     /// The track policy travels with the process rather than the episode: mpv carries an
     /// explicit track id and the subtitle delay from one file into the next, so whatever
@@ -42,10 +44,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(session: MpvSession, events: UnboundedReceiver<PlaybackEvent>) -> Self {
+    pub fn new(link: Box<dyn PlayerLink>, events: UnboundedReceiver<PlaybackEvent>) -> Self {
         let preferences = TrackPreferences { translation: Translation::Sub, language: None };
         Self {
-            session,
+            link,
             events,
             tracks: TrackPolicy::new(preferences, None),
             tracks_for: None,
@@ -67,7 +69,7 @@ impl PlayerSlot {
         let token = self.generation.fetch_add(1, Ordering::Relaxed);
         let replaced = self.lock().replace((token, player));
         if let Some((_, old)) = replaced {
-            tokio::spawn(old.session.shutdown());
+            tokio::spawn(old.link.shutdown());
         }
 
         // The backstop. Matched on the token so a timer from an earlier park cannot close a
@@ -85,7 +87,7 @@ impl PlayerSlot {
             };
             if let Some((_, player)) = expired {
                 tracing::info!("no playback claimed the waiting player; closing it");
-                player.session.shutdown().await;
+                player.link.shutdown().await;
             }
         });
     }
@@ -93,7 +95,7 @@ impl PlayerSlot {
     /// Claim the parked player, if there is one and the viewer has not closed it meanwhile.
     pub fn take(&self) -> Option<Player> {
         let (_, mut player) = self.lock().take()?;
-        if !player.session.is_alive() {
+        if !player.link.is_alive() {
             return None;
         }
         // What arrived while it waited belongs to no playback: the tail of the last file, keys
@@ -105,7 +107,7 @@ impl PlayerSlot {
     /// Close the parked player: the playback it was waiting for is not coming.
     pub fn release(&self) {
         if let Some((_, player)) = self.lock().take() {
-            tokio::spawn(player.session.shutdown());
+            tokio::spawn(player.link.shutdown());
         }
     }
 

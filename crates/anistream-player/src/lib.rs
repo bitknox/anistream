@@ -13,9 +13,9 @@ pub mod ipc;
 pub mod mpv;
 pub mod presence;
 pub mod protocol;
-pub mod skip;
-pub mod tracker;
-pub mod tracks;
+
+/// The pure half of playback, which anistream-playback holds, at the paths it had here.
+pub use anistream_playback::{skip, tracker, tracks};
 
 pub use bundle::Bundle;
 pub use companion::{Choice, ScriptEvent};

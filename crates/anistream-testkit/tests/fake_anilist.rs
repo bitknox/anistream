@@ -9,6 +9,8 @@ use anistream_testkit::{
     },
 };
 
+use std::time::Duration;
+
 const DAY: i64 = 86_400;
 
 fn ids(page: &[anistream_meta::Media]) -> Vec<u32> {
@@ -69,11 +71,69 @@ async fn a_detail_lookup_carries_the_detail_fields() {
     assert_eq!(media.watch_order()[0].id, SEQUEL);
     assert_eq!(media.recommended().len(), 2);
     assert_eq!(media, fixtures::media(FINISHED), "what the server sent is the fixture");
+    // The richer page: the broadcasts asked for beside the title came back onto it, newest
+    // first, with the tags, the cast and crew, and covers on what it relates to.
+    assert_eq!(media.aired.len(), 12);
+    assert_eq!(media.aired.first().map(|b| b.episode), Some(12));
+    assert_eq!(media.season, Some(Season::Spring));
+    assert!(!media.tags.is_empty() && !media.characters.edges.is_empty());
+    assert!(!media.staff.edges.is_empty() && !media.rankings.is_empty());
+    assert!(media.relations.edges[0].node.cover_image.best().is_some());
 
     let asked = kit.server.requests_for(Operation::Detail);
     assert_eq!(asked[0].variables["id"], FINISHED.get());
     // The fetch was written through to the cache, as every fresh one is.
     assert_eq!(kit.store.cached_media_count().unwrap(), 1);
+}
+
+#[tokio::test]
+async fn a_title_asked_for_again_within_minutes_is_not_asked_of_anilist_again() {
+    let kit = MetaKit::start().await;
+    let first = kit.meta.media(FINISHED).await.unwrap();
+    // Its episodes, and then the play, a moment after its page.
+    let again = kit.meta.media(FINISHED).await.unwrap();
+    assert_eq!(again, first);
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 1);
+
+    // Another title is its own ask.
+    kit.meta.media(AIRING).await.unwrap();
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 2);
+}
+
+#[tokio::test]
+async fn asks_for_one_title_made_together_are_asked_once() {
+    let kit = MetaKit::start().await;
+    // A title's page and its episode table, opened together.
+    let (page, table) = tokio::join!(kit.meta.media(FINISHED), kit.meta.media(FINISHED));
+    assert_eq!(page.unwrap(), table.unwrap());
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 1);
+
+    // So is a failure: one walk down the ladder, which both are told of.
+    kit.server.fail_always(Failure::Status(503));
+    let (page, table) = tokio::join!(kit.meta.media(MOVIE), kit.meta.media(MOVIE));
+    assert!(page.is_err() && table.is_err(), "{page:?} {table:?}");
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 2);
+}
+
+#[tokio::test]
+async fn a_failed_ask_is_asked_again() {
+    let kit = MetaKit::start().await;
+    kit.server.fail_next(Failure::Status(500));
+    assert!(kit.meta.media(FINISHED).await.is_err());
+    // Nothing was cached for it either, so the next ask is AniList's again.
+    assert_eq!(kit.meta.media(FINISHED).await.unwrap(), fixtures::media(FINISHED));
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 2);
+}
+
+#[tokio::test]
+async fn a_title_from_a_list_is_still_asked_for_its_page() {
+    let kit = MetaKit::start().await;
+    // The Continue rail's batch has none of a title page's detail.
+    kit.meta.media_many(&[FINISHED, MOVIE]).await.unwrap();
+    let page = kit.meta.media(FINISHED).await.unwrap();
+    assert_eq!(page.streaming_episodes.len(), 12);
+    assert_eq!(page.recommended().len(), 2);
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 1);
 }
 
 #[tokio::test]
@@ -86,16 +146,24 @@ async fn an_unknown_title_is_refused_as_anilist_refuses_one() {
 #[tokio::test]
 async fn countdowns_follow_the_fakes_clock() {
     let kit = MetaKit::start().await;
-    let next = kit.meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
+    // Asked of the fake every time, for what it answers.
+    let meta = kit.meta.clone().reusing_for(Duration::ZERO);
+    let next = meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
     assert_eq!((next.episode, next.time_until_airing), (6, 2 * DAY + 3 * 3_600 + 15 * 60));
     assert_eq!(next.airing_at, FIXTURE_NOW + next.time_until_airing);
 
     // Against another clock the schedule moves with it, the same distance away.
+    let before = meta.media(AIRING).await.unwrap().air_times();
     let now = FIXTURE_NOW + 40 * DAY + 17;
     kit.server.set_now(now);
-    let moved = kit.meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
+    let moved_media = meta.media(AIRING).await.unwrap();
+    let moved = moved_media.next_airing_episode.unwrap();
     assert_eq!(moved.airing_at, now + next.time_until_airing);
     assert_eq!(moved.time_until_airing, next.time_until_airing);
+    // Every broadcast with it, those out and those to come.
+    let after = moved_media.air_times();
+    assert_eq!(after.len(), before.len());
+    assert!(before.iter().all(|(episode, at)| after[episode] == at + (now - FIXTURE_NOW)));
 }
 
 #[tokio::test]
@@ -141,6 +209,16 @@ async fn signed_in_calls_send_the_token_and_read_the_library() {
     let server = FakeAniList::start().await;
     let anilist = server.anilist(&anistream_testkit::http()).with_token(Some("tok".into()));
     assert_eq!(anilist.viewer_id().await.unwrap(), fixtures::VIEWER_ID);
+    let viewer = anilist.viewer().await.unwrap();
+    // AniList's stylised English, read as English.
+    assert_eq!(viewer.title_language, Some(anistream_meta::anilist::TitleLanguage::English));
+    server.set_viewer_title_language("NATIVE");
+    let reading = anilist.viewer().await.unwrap().title_language;
+    assert_eq!(
+        reading,
+        Some(anistream_meta::anilist::TitleLanguage::Native),
+        "as the test sets it"
+    );
 
     let library = anilist.library(fixtures::VIEWER_ID).await.unwrap();
     let rows: Vec<_> =
@@ -213,8 +291,10 @@ async fn an_outage_walks_the_ladder_down_to_the_cache() {
     kit.meta.media(FINISHED).await.unwrap();
 
     kit.server.fail_always(Failure::Status(503));
-    // Tenrai is empty: it finds no such title, so the cached copy answers.
-    let cached = kit.meta.media(FINISHED).await.unwrap();
+    // Tenrai is empty: it finds no such title, so the cached copy answers. Asked for again at
+    // once, AniList's answer of a moment ago would, so this asks as if minutes had gone by.
+    let later = kit.meta.clone().reusing_for(Duration::ZERO);
+    let cached = later.media(FINISHED).await.unwrap();
     assert_eq!(cached.title.display(), "Stardust Wayfarer");
     let notice = kit.meta.take_notice().unwrap_or_default();
     assert!(notice.contains("cached"), "{notice}");
@@ -241,4 +321,41 @@ async fn with_the_fallback_off_an_outage_names_every_rung() {
     assert!(error.to_string().contains("tenrai is off"), "{error}");
     assert_eq!(kit.meta.health()[0].state, "unreachable");
     assert!(kit.server.requests_for(Operation::Tenrai).is_empty());
+}
+
+/// The bytes at `url`, when it answers with a success.
+async fn fetch(url: &str) -> Option<Vec<u8>> {
+    let response = anistream_testkit::http().plain().get(url).send().await.ok()?;
+    response.status().is_success().then_some(())?;
+    Some(response.bytes().await.ok()?.to_vec())
+}
+
+#[tokio::test]
+async fn art_is_served_only_when_asked_and_then_every_image_points_at_it() {
+    let plain = MetaKit::start().await;
+    let media = plain.meta.media(FINISHED).await.unwrap();
+    assert_eq!(
+        media.cover_image.extra_large.as_deref(),
+        Some("https://img.example/cover/900001-xl.jpg"),
+        "the fixtures' own URLs, until the fake is asked to serve art"
+    );
+    let art = format!("{}cover/900001-xl.jpg", plain.server.art_base());
+    assert!(fetch(&art).await.is_none(), "no art until asked");
+
+    let kit = MetaKit::start().await;
+    kit.server.serve_art();
+    let media = kit.meta.media(FINISHED).await.unwrap();
+    let base = kit.server.art_base();
+    let cover = media.cover_image.extra_large.clone().unwrap();
+    let banner = media.banner_image.clone().unwrap();
+    let still = media.streaming_episodes[0].thumbnail.clone().unwrap();
+    for url in [&cover, &banner, &still] {
+        assert!(url.starts_with(&base), "{url} is under {base}");
+        let bytes = fetch(url).await.unwrap_or_else(|| panic!("{url} answers"));
+        assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"), "{url} is a PNG");
+    }
+    assert_ne!(fetch(&cover).await, fetch(&banner).await, "a poster and a banner differ");
+    assert!(fetch(&format!("{base}cover/900999.jpg")).await.is_none());
+    // Art is not AniList's: nothing about it is recorded as a request.
+    assert!(kit.server.requests().iter().all(|r| !r.path.starts_with("/art/")));
 }

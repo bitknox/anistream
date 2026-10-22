@@ -806,6 +806,16 @@ fn sample_menus() -> Value {
     })
 }
 
+/// The drawn menu's cursor, as the script publishes it: the open list, and the row's title.
+fn menu_at(ui: &Value, menu: &str, focus: &str) -> bool {
+    ui["menu"] == menu && ui["menu_focus"] == focus
+}
+
+/// Whether the open list shows a row with this title.
+fn menu_lists(ui: &Value, title: &str) -> bool {
+    ui["menu_items"].as_array().is_some_and(|rows| rows.iter().any(|row| row == title))
+}
+
 #[tokio::test]
 async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     require_mpv!();
@@ -813,12 +823,25 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
     player.state("menus", sample_menus()).await;
     player.binding("menu").await;
-    player.wait_ui("the menu", |ui| ui["menu"] == "root").await;
-    // Episodes, then Sources; into it, past the current source, and pick.
+    // The menus reach the script as a property change, which mpv delivers only after events
+    // already queued, the binding among them. So the root can open without the host's lists
+    // (Subtitles, Audio, …) and gain them a moment later, the cursor staying on its row. Wait
+    // for the lists, then put the cursor on the first row rather than assume it is there.
+    player
+        .wait_ui("the root with the host's lists", |ui| {
+            ui["menu"] == "root" && menu_lists(ui, "Sources")
+        })
+        .await;
+    player.key("HOME").await;
+    player.wait_ui("the cursor on Episodes", |ui| menu_at(ui, "root", "Episodes")).await;
+    // Each key moves the cursor once; wait for it there before the next.
     player.key("DOWN").await;
+    player.wait_ui("the cursor on Sources", |ui| menu_at(ui, "root", "Sources")).await;
     player.key("ENTER").await;
-    player.wait_ui("the source list", |ui| ui["menu"] == "sources").await;
+    // Into the list, on the current source; past it to the other, and pick.
+    player.wait_ui("the source list", |ui| menu_at(ui, "sources", "Source A")).await;
     player.key("DOWN").await;
+    player.wait_ui("the cursor on Source B", |ui| menu_at(ui, "sources", "Source B")).await;
     player.key("ENTER").await;
     assert_eq!(player.event("choose").await, json!({"menu": "source", "value": "b"}));
     player.wait_ui("the menu to close", |ui| ui["menu"].is_null()).await;
@@ -830,6 +853,36 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     player.wait_ui("the root", |ui| ui["menu"] == "root").await;
     player.key("ESC").await;
     player.wait_ui("closed", |ui| ui["menu"].is_null()).await;
+    player.finish().await;
+}
+
+/// The host rewrites the menus while one is open (here the episode list arrives, a row above
+/// the cursor): the cursor stays on the row it was on, not on whatever moved into its place.
+#[tokio::test]
+async fn a_rewritten_menu_keeps_the_cursor_on_its_row() {
+    require_mpv!();
+    let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
+    let mut without_episodes = sample_menus();
+    without_episodes["episodes"] = json!([]);
+    player.state("menus", without_episodes).await;
+    player.binding("menu").await;
+    player
+        .wait_ui("the root with the host's lists", |ui| {
+            ui["menu"] == "root" && menu_lists(ui, "Sources")
+        })
+        .await;
+    // Sources first, then Sub / Dub.
+    player.key("HOME").await;
+    player.wait_ui("the cursor on Sources", |ui| menu_at(ui, "root", "Sources")).await;
+    player.key("DOWN").await;
+    player.wait_ui("the cursor on Sub / Dub", |ui| menu_at(ui, "root", "Sub / Dub")).await;
+    // Episodes now come first, a row above.
+    player.state("menus", sample_menus()).await;
+    let ui =
+        player.wait_ui("the episode list in the root", |ui| menu_lists(ui, "Episodes")).await;
+    assert_eq!(ui["menu_focus"], "Sub / Dub", "the cursor moved off its row: {ui}");
+    player.key("ENTER").await;
+    player.wait_ui("the translation list", |ui| ui["menu"] == "translation").await;
     player.finish().await;
 }
 
@@ -884,6 +937,46 @@ async fn the_context_menu_gains_an_entry_without_losing_the_users() {
 }
 
 #[tokio::test]
+async fn a_server_that_has_been_failing_says_so_in_the_sources_menu() {
+    require_mpv!();
+    // Read where every rendering's rows can be read, mpv's own context menu, which came in 0.40.
+    let version = mpv_version().await;
+    if version < (MpvVersion { major: 0, minor: 40 }) {
+        eprintln!(
+            "skipping the sources note: mpv {version} has no context menu (0.40 added it)"
+        );
+        return;
+    }
+    let mut player = Player::start(None, &[]).await;
+    let mut menus = sample_menus();
+    menus["sources"][1]["health"] = json!("failed the last 2 times · 12 min ago");
+    player.state("menus", menus).await;
+
+    // The Sources rows, as the context menu lists them under the script's entry.
+    let rows = |v: &Value| -> Vec<String> {
+        let ours = v.as_array().into_iter().flatten().find(|i| i["title"] == "anistream");
+        let sources = ours
+            .and_then(|i| i["submenu"].as_array())
+            .into_iter()
+            .flatten()
+            .find(|i| i["title"] == "Sources");
+        sources
+            .and_then(|i| i["submenu"].as_array())
+            .into_iter()
+            .flatten()
+            .filter_map(|i| i["title"].as_str().map(str::to_owned))
+            .collect()
+    };
+    let menu = player.wait_property("menu-data", |v| !rows(v).is_empty()).await;
+    assert_eq!(
+        rows(&menu),
+        ["Source A  ·  1080p", "Source B  ·  720p · failed the last 2 times · 12 min ago"],
+        "a source with nothing against it reads as it always has"
+    );
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
     require_mpv!();
     let mut player = Player::start(
@@ -893,6 +986,10 @@ async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
     .await;
     // At rest: nothing.
     assert_eq!(player.ui().await["timeline"], false);
+    // The bar needs the file's duration as well as the controls, and mpv can report a position
+    // before it has one. Known before the wake, it reaches the script within the controls'
+    // 300 ms, and the bar comes up with them.
+    player.wait_property("duration", |v| v.as_f64().is_some_and(|d| d > 0.0)).await;
     // A pause toggle brings the bar up; it leaves on its own, paused or not.
     player.set("pause", json!(false)).await;
     player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
@@ -900,6 +997,32 @@ async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
     player.set("pause", json!(true)).await;
     player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
     player.wait_ui("the bar to leave while paused", |ui| ui["timeline"] == false).await;
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn the_bar_leaves_with_the_pointer_as_uoscs_row_does() {
+    // uosc fades its row as soon as the pointer leaves the window. The bar used to wait out
+    // the idle time instead, so the buttons went and the bar stayed.
+    require_mpv!();
+    // An idle time far longer than the wait: only the pointer leaving can take the bar down.
+    let mut player = Player::start(
+        Some(&clip(30)),
+        &["--pause", "--cursor-autohide=30000", "--script-opts-append=anistream-uosc=yes"],
+    )
+    .await;
+    // With no window, mpv counts the pointer as over it only after an enter, which a real
+    // window sends by itself.
+    player.key("MOUSE_ENTER").await;
+    player.command(json!(["mouse", 100, 100])).await;
+    player.command(json!(["mouse", 140, 120])).await;
+    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
+    player.key("MOUSE_LEAVE").await;
+    player.wait_ui("the bar to leave with the pointer", |ui| ui["timeline"] == false).await;
+    // Back in, it comes up again.
+    player.key("MOUSE_ENTER").await;
+    player.command(json!(["mouse", 160, 140])).await;
+    player.wait_ui("the bar again", |ui| ui["timeline"] == true).await;
     player.finish().await;
 }
 
@@ -920,12 +1043,16 @@ async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
     )
     .await;
     player.set("pause", json!(false)).await;
-    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
-    player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
-    // Past the fade, then any change republishes what the last frame drew.
-    tokio::time::sleep(Duration::from_millis(400)).await;
-    player.message("toast", json!({"text": "ping", "level": "info", "duration": 1})).await;
-    let ui = player.wait_ui("a republish", |ui| ui["toast"] == "ping").await;
+    // The controls were drawn: the form is kept once drawn. Not the bar, which needs the
+    // duration besides and may never come up in the controls' few hundred milliseconds.
+    player.wait_ui("the row", |ui| ui["volume"] == "row").await;
+    // The screen at rest with the controls gone is published as the last fade lands, so its
+    // `volume` is the fade-out's last frame.
+    let ui = player
+        .wait_ui("the controls to leave and the screen to settle", |ui| {
+            ui["controls"] == false && ui["fading"] == false
+        })
+        .await;
     assert_eq!(ui["volume"], "row", "the fade-out drew the pill: {ui}");
 
     // A change while the controls are down is what the pill is for.

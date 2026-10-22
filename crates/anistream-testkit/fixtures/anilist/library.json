@@ -1,7 +1,10 @@
 {
   "viewer": {
     "id": 5150,
-    "name": "fixture-viewer"
+    "name": "fixture-viewer",
+    "options": {
+      "titleLanguage": "ENGLISH_STYLISED"
+    }
   },
   "entries": [
     {

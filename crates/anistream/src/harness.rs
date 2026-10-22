@@ -112,6 +112,9 @@ pub struct Options {
     pub size: (u16, u16),
     /// The moment the app's clock is stopped at, which the fake answers as of too.
     pub now: i64,
+    /// The title language the signed-in AniList viewer reads in, as AniList names it, in place
+    /// of the fixture viewer's English: set before launch, which asks it.
+    pub viewer_title_language: Option<&'static str>,
 }
 
 impl Default for Options {
@@ -122,6 +125,7 @@ impl Default for Options {
             registry: None,
             size: (120, 34),
             now: FIXTURE_NOW,
+            viewer_title_language: None,
         }
     }
 }
@@ -184,6 +188,9 @@ impl Harness {
         let store = anistream_testkit::store();
         let server = FakeAniList::start().await;
         server.set_now(options.now);
+        if let Some(language) = options.viewer_title_language {
+            server.set_viewer_title_language(language);
+        }
         // `build_meta`, pointed at the fake.
         let meta = Meta::new(
             server.anilist(&http),
@@ -703,11 +710,15 @@ pub fn name(update: &Event) -> &'static str {
         Event::CalendarWindow { .. } => "CalendarWindow",
         Event::CalendarBackfill { .. } => "CalendarBackfill",
         Event::Detail(_) => "Detail",
+        Event::ViewerTitleLanguage(_) => "ViewerTitleLanguage",
+        Event::TitlesChanged(_) => "TitlesChanged",
         Event::Status(_) => "Status",
         Event::Toast(_) => "Toast",
         Event::Providers(_) => "Providers",
         Event::MetaStatus(_) => "MetaStatus",
         Event::Settings(_) => "Settings",
+        Event::Authorize { .. } => "Authorize",
+        Event::ShowSettings(_) => "ShowSettings",
         Event::SourcesChanged => "SourcesChanged",
         Event::ProviderNote(_) => "ProviderNote",
         Event::ProviderPreference(_) => "ProviderPreference",
@@ -730,6 +741,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::PlaybackEnded { .. } => "PlaybackEnded",
         Event::PlaybackStaged { .. } => "PlaybackStaged",
         Event::Resumed { .. } => "Resumed",
+        Event::PlayerOps { .. } => "PlayerOps",
+        Event::PlayerUi { .. } => "PlayerUi",
         Event::Sync(_) => "Sync",
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
@@ -784,11 +797,19 @@ fn copy(update: &Event) -> Event {
             more_past: *more_past,
         },
         Event::Detail(entry) => Event::Detail(entry.clone()),
+        Event::ViewerTitleLanguage(language) => Event::ViewerTitleLanguage(*language),
+        Event::TitlesChanged(language) => Event::TitlesChanged(*language),
         Event::Status(text) => Event::Status(text.clone()),
         Event::Toast(toast) => Event::Toast(toast.clone()),
         Event::Providers(rows) => Event::Providers(rows.clone()),
         Event::MetaStatus(rows) => Event::MetaStatus(rows.clone()),
         Event::Settings(view) => Event::Settings(view.clone()),
+        Event::Authorize { tracker, url, callback_scheme } => Event::Authorize {
+            tracker: tracker.clone(),
+            url: url.clone(),
+            callback_scheme: callback_scheme.clone(),
+        },
+        Event::ShowSettings(view) => Event::ShowSettings(view.clone()),
         Event::SourcesChanged => Event::SourcesChanged,
         Event::ProviderNote(text) => Event::ProviderNote(text.clone()),
         Event::ProviderPreference(provider) => Event::ProviderPreference(provider.clone()),
@@ -841,6 +862,12 @@ fn copy(update: &Event) -> Event {
             }
         }
         Event::Resumed { position } => Event::Resumed { position: *position },
+        Event::PlayerOps { playback, ops } => {
+            Event::PlayerOps { playback: *playback, ops: ops.clone() }
+        }
+        Event::PlayerUi { playback, ui } => {
+            Event::PlayerUi { playback: *playback, ui: ui.clone() }
+        }
         Event::Sync(state) => Event::Sync(state.clone()),
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),

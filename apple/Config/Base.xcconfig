@@ -1,0 +1,23 @@
+// Settings every target of the Xcode project shares. project.yml names this file for both
+// configurations; the targets' own settings are in project.yml.
+
+MACOSX_DEPLOYMENT_TARGET = 26.0
+IPHONEOS_DEPLOYMENT_TARGET = 26.0
+SWIFT_VERSION = 6.0
+// Mac and iPhone and iPad from one target each; no Mac Catalyst, no Vision Pro.
+SUPPORTED_PLATFORMS = macosx iphoneos iphonesimulator
+TARGETED_DEVICE_FAMILY = 1,2
+SUPPORTS_MACCATALYST = NO
+SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO
+// Apple silicon only: engine.sh builds the engine for arm64 Macs and arm64 Simulators, so a
+// build for any destination, a Release one or a generic Simulator one, leaves Intel out.
+EXCLUDED_ARCHS = x86_64
+
+// Signing is automatic. With no team, a Mac build is signed to run locally and a Simulator build
+// needs no more; Local.xcconfig names the team for signed builds, which also keep the keychain's
+// "allow" across rebuilds.
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = -
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

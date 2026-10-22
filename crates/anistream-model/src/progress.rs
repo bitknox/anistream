@@ -23,7 +23,9 @@ pub struct TitleProgress {
 pub struct EpisodeProgress {
     pub number: String,
     /// The meter: how far through it, from nought to one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub watched: f64,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub completed: bool,
 }
 
@@ -223,6 +225,7 @@ mod tests {
                 completed: false,
                 kind: None,
                 skippable: false,
+                airs_at: None,
             })
             .collect()
     }

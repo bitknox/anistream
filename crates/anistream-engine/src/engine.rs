@@ -35,10 +35,11 @@ use tokio::{
 };
 
 #[cfg(feature = "desktop")]
+use crate::playback::player::{launch_notice, player};
 use crate::playback::{
     autonext::Follow,
-    player::{launch_notice, player},
-    start::play_following,
+    link::hosted::HostedPlayers,
+    start::{opener_for, play_following},
 };
 use crate::{
     background::{datasets::keep_datasets_current, digest, prune},
@@ -71,6 +72,10 @@ const TORRENT_CLOSE: Duration = Duration::from_secs(1);
 /// the runtime it runs on ends, as it always has when the app quits.
 pub struct Engine {
     commands: mpsc::UnboundedSender<Message>,
+    /// The players a front end hosts, which what they report goes straight to, as mpv's
+    /// reports are read off its socket: not behind the commands waiting, nor held up by an
+    /// engine winding down, which waits on the player for the episode's last position.
+    hosted: Arc<HostedPlayers>,
     /// Jobs numbered so far, here as well as in the actor so [`Self::send`] can say at once
     /// which number the actor will announce. The actor numbers the jobs it starts on its own
     /// from the same count: see [`Jobs`].
@@ -139,6 +144,8 @@ impl Engine {
             http,
             store,
             player_theme,
+            hosted_player,
+            app_clients,
             sources: given,
             background,
             #[cfg(feature = "testing")]
@@ -184,38 +191,54 @@ impl Engine {
                 (registry, Some(loading))
             }
         };
+        // A chain given whole too: a plugin switched off by name is in it, and not tried.
+        registry.set_disabled(config.providers.disabled.iter().cloned());
 
+        // The trackers as an app's own sign-in clients turn them on; the file keeps none of it.
+        let tracked = crate::tracking::native::with_app_clients(&config, &app_clients);
         // What every task is lent, built around that chain, or from a test's parts.
         #[cfg(feature = "testing")]
         let trace = parts.is_some();
         #[cfg(feature = "testing")]
         let services = match parts {
-            Some(parts) => Services {
-                paths,
-                http,
-                store,
-                meta: parts.meta,
-                registry,
-                sync: parts.sync,
-                stores: parts.stores,
-                #[cfg(feature = "desktop")]
-                slot: Default::default(),
-                prefetch: Default::default(),
-                player_theme,
-                host,
-            },
-            None => Services::build(&config, paths, http, store, registry, player_theme, host)
+            Some(parts) => {
+                let (power, hosted) = crate::services::players(&paths);
+                Services {
+                    power,
+                    hosted,
+                    hosted_player,
+                    paths,
+                    http,
+                    store,
+                    meta: parts.meta,
+                    registry,
+                    sync: parts.sync,
+                    stores: parts.stores,
+                    slot: Default::default(),
+                    prefetch: Default::default(),
+                    player_theme,
+                    app_clients: Default::default(),
+                    host,
+                }
+            }
+            None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?,
         };
         #[cfg(not(feature = "testing"))]
         let services =
-            Services::build(&config, paths, http, store, registry, player_theme, host)
+            Services::build(&tracked, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?;
+        // The player a play opens, mpv's process or the one the front end hosts, and the app's
+        // own sign-in clients, where signing in will read them (E6).
+        let services = Services { hosted_player, app_clients, ..services };
+        let hosted = Arc::clone(&services.hosted);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
+        // With the counts of shows that set each setting for themselves, which the rows say.
+        state.config.set_overridden(crate::show_settings::counts(&services.store));
         let mut launch = VecDeque::new();
         // The settings first: everything after is drawn under the config they say.
         launch.push_back(Event::Settings(state.config.view()));
@@ -234,7 +257,8 @@ impl Engine {
         };
         // A chain given whole is final, so its rows are what launch says of it.
         if !own_chain {
-            launch.push_back(Event::Providers(data::provider_rows(&services.registry)));
+            let rows = data::provider_rows(&services.registry, &services.stores);
+            launch.push_back(Event::Providers(rows));
         }
 
         // Background work reports through this, each piece holding its own sender, and the
@@ -271,6 +295,12 @@ impl Engine {
 
         for tracker in services.sync.initial_states() {
             launch.push_back(Event::Sync(Box::new(tracker)));
+        }
+        // How titles are named: the setting, and under `anilist` the signed-in viewer's own
+        // choice, which comes with the viewer lookup the library pull makes anyway.
+        services.meta.titles().choose(state.config.effective().meta.title_language);
+        if services.meta.titles().choice() == anistream_core::config::TitleChoice::Anilist {
+            crate::title_language::follow_viewer(&services, &inbox.sender());
         }
         if background.sync_loops {
             tracking::spawn_loops(services.sync.clone(), inbox.sender());
@@ -317,7 +347,6 @@ impl Engine {
             commands,
             arrivals,
             out,
-            #[cfg(feature = "desktop")]
             jobs: jobs.clone(),
             #[cfg(feature = "testing")]
             routed: 0,
@@ -331,6 +360,7 @@ impl Engine {
         let engine = Self {
             commands: commands_tx,
             jobs,
+            hosted,
             #[cfg(feature = "testing")]
             sent: AtomicU64::new(0),
         };
@@ -348,6 +378,10 @@ impl Engine {
     ///
     /// `None` too once the engine has stopped, when nothing would announce the job.
     pub fn send(&self, command: Command) -> Option<JobId> {
+        if let Command::PlayerReport { playback, report } = command {
+            self.hosted.report(playback, report);
+            return None;
+        }
         let job = command.activity().map(|activity| (self.jobs.next(), activity));
         let id = job.as_ref().map(|(id, _)| *id);
         #[cfg(feature = "testing")]
@@ -403,7 +437,11 @@ impl Engine {
         event: Event,
     ) {
         self.sent.fetch_add(1, Ordering::Relaxed);
-        let played = Played { serial: playback, id, episode: episode.to_owned() };
+        let played = Played {
+            serial: anistream_model::playback::PlaybackId::new(playback),
+            id,
+            episode: episode.to_owned(),
+        };
         let _ = self.commands.send(Message::InjectFrom(played, event));
     }
 
@@ -613,9 +651,8 @@ struct Actor {
     commands: mpsc::UnboundedReceiver<Message>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
     out: mpsc::UnboundedSender<Out>,
-    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only the
-    /// desktop's player leads it to start any.
-    #[cfg(feature = "desktop")]
+    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
+    /// that rolls on leads it to start any.
     jobs: Jobs,
     /// Commands routed so far.
     #[cfg(feature = "testing")]
@@ -625,7 +662,7 @@ struct Actor {
     trace: bool,
     /// The playbacks a test has spoken for, by number: see [`Engine::inject_from`].
     #[cfg(feature = "testing")]
-    injected: std::collections::HashSet<u64>,
+    injected: std::collections::HashSet<anistream_model::playback::PlaybackId>,
 }
 
 impl Actor {
@@ -732,6 +769,8 @@ impl Actor {
     /// is said whole just before it, so that whatever the event brings up, the screen a
     /// finished episode drops back to among them, shows the title as it now stands.
     fn forward(&mut self, mut event: Event, played: Option<Played>) {
+        // Named as the titles are shown now, before the record takes the names in.
+        crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
@@ -764,7 +803,15 @@ impl Actor {
             prefetch(*id, episode.clone(), &self.state, &self.services);
             return Vec::new();
         }
-        let skip_filler = self.state.config.effective().playback.skip_filler;
+        // As the show that ended has it: a show can skip filler, or not, for itself.
+        let effective = self.state.config.effective();
+        let skip_filler = match &finished {
+            Some(staged) => {
+                let store = &self.services.store;
+                crate::show_settings::for_show(effective, store, staged.id).playback.skip_filler
+            }
+            None => effective.playback.skip_filler,
+        };
         let (mut said, follow) = autonext::follow(
             event,
             finished,
@@ -779,8 +826,11 @@ impl Actor {
 
     /// Play what `event` led to, as `follow` says, and return what it was staged as. An ending
     /// that rolls on is said to.
-    #[cfg(feature = "desktop")]
+    ///
+    /// Where this build has no player to open, nothing rolls on: what the rules would follow
+    /// with is let go, and nothing is said of it.
     fn roll_on(&mut self, follow: Follow, event: &mut Event) -> Option<Event> {
+        let opener = opener_for(&self.state, &self.services)?;
         if let Event::PlaybackEnded { rolling_on, .. } = event {
             *rolling_on = true;
         }
@@ -788,14 +838,7 @@ impl Actor {
         let play = Command::Play { id: follow.id, episode: follow.episode.clone() };
         let job =
             play.activity().map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
-        Some(play_following(follow, job, &mut self.state, &self.services, &tx))
-    }
-
-    /// Without the desktop's player nothing plays, so nothing ends to roll on from: what the
-    /// rules would follow with is let go, and nothing is said of it.
-    #[cfg(not(feature = "desktop"))]
-    fn roll_on(&mut self, _: autonext::Follow, _: &mut Event) -> Option<Event> {
-        None
+        Some(play_following(follow, opener, job, &mut self.state, &self.services, &tx))
     }
 
     /// Whether a playback is under way: the one Now Playing shows has started playing, and
@@ -826,6 +869,7 @@ impl Actor {
     /// The torrent source is up, or will not come up; only the latest bring-up counts.
     fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, String>) {
         let tx = self.inbox.sender();
+        let hold = crate::phases::hold_now(&self.state);
         let EngineState { torrent_tasks, vpn_guard, shared_config, .. } = &mut self.state;
         torrent_tasks.arrived(
             generation,
@@ -835,9 +879,18 @@ impl Actor {
             shared_config,
             &tx,
         );
+        // Up while the app is away or on a metered network: what waits, waits from the start.
+        if hold != anistream_providers::torrent::session::Hold::Nothing
+            && let Some((_, session)) = vpn_guard.clone()
+        {
+            tokio::spawn(async move {
+                let _ = session.set_hold(hold).await;
+            });
+        }
     }
 
-    fn pass_on(&self, event: Event) {
+    fn pass_on(&self, mut event: Event) {
+        crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let _ = self.out.send(Out::Event(event));
     }
 
@@ -946,6 +999,15 @@ mod tests {
 
     /// [`quiet_engine`], on `host`.
     async fn engine_on(dir: &std::path::Path, host: Arc<dyn Host>) -> (Engine, EventStream) {
+        engine_with(dir, host, |_| {}).await
+    }
+
+    /// [`engine_on`], with its options changed as `change` says.
+    async fn engine_with(
+        dir: &std::path::Path,
+        host: Arc<dyn Host>,
+        change: impl FnOnce(&mut EngineOptions),
+    ) -> (Engine, EventStream) {
         let paths = Paths {
             config_file: dir.join("config.toml"),
             data_dir: dir.join("data"),
@@ -966,6 +1028,7 @@ mod tests {
         let mut options = EngineOptions::new(paths, config, http, store, theme);
         options.sources = Some(ProviderRegistry::new(Vec::new()));
         options.background = crate::options::Background::none();
+        change(&mut options);
         Engine::start(options, host).await.unwrap()
     }
 
@@ -1016,6 +1079,82 @@ mod tests {
         fn storage_for(&self, _: &str) -> Storage {
             Storage::Keychain
         }
+    }
+
+    #[tokio::test]
+    async fn an_apps_own_mal_client_signs_in_through_its_sheet_with_pkce_and_a_state() {
+        use anistream_model::{notice::NoticeKind, stores::Secret};
+        let dir = tempfile::tempdir().unwrap();
+        let kept = Arc::new(Kept::default());
+        let clients = crate::options::AppClients {
+            mal: Some("a-mal-client".into()),
+            ..crate::options::AppClients::default()
+        };
+        let host = Arc::new(Keeping(kept.clone()));
+        let (engine, mut events) =
+            engine_with(dir.path(), host, |options| options.app_clients = clients).await;
+        let launch = launch_states(&mut events).await;
+        assert!(launch.iter().any(|state| state.tracker == "mal"), "turned on for the app");
+
+        // Each a job: what it says comes before it is done.
+        let said = |seen: &[Event]| {
+            let toast = seen.iter().find_map(|e| match e {
+                Event::Toast(notice) => Some(notice.clone()),
+                _ => None,
+            });
+            toast.expect("a notice")
+        };
+        engine.send(Command::Connect { tracker: "mal".into() });
+        let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+        let Some(Event::Authorize { tracker, url, callback_scheme }) =
+            seen.iter().find(|e| matches!(e, Event::Authorize { .. }))
+        else {
+            panic!("the sign-in sheet: {seen:?}")
+        };
+        assert_eq!((tracker.as_str(), callback_scheme.as_str()), ("mal", "anistream"));
+        assert!(url.starts_with("https://myanimelist.net/v1/oauth2/authorize?"), "{url}");
+        assert!(url.contains("client_id=a-mal-client"), "{url}");
+        assert!(url.contains("code_challenge_method=plain"), "{url}");
+        assert!(url.contains("redirect_uri=anistream%3A%2F%2Fauth%2Fmal"), "{url}");
+        let state = url.split("&state=").nth(1).expect("a state");
+
+        // A code with no state is not this sign-in's: only AniList's token is taken without.
+        let bare = Secret("anistream://auth/mal?code=a-code".into());
+        engine.send(Command::FinishSignIn { tracker: "mal".into(), callback: bare });
+        let refused = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
+        assert_eq!(refused.text, "that sign-in to mal did not come back from this request");
+
+        // The code comes back with the state; its exchange, which asks MyAnimeList itself,
+        // cannot leave this test, and nothing is kept.
+        let callback = Secret(format!("anistream://auth/mal?code=a-code&state={state}"));
+        engine.send(Command::FinishSignIn { tracker: "mal".into(), callback });
+        let failed = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
+        assert_eq!(failed.kind, NoticeKind::Alert);
+        assert!(failed.text.starts_with("token exchange failed"), "{}", failed.text);
+        assert_eq!(kept.get("mal").unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn an_anilist_client_registered_on_an_app_link_asks_the_sheet_to_watch_for_https() {
+        let dir = tempfile::tempdir().unwrap();
+        let clients = crate::options::AppClients {
+            anilist: Some("4242".into()),
+            anilist_redirect: Some("https://anistream.tv/auth/anilist".into()),
+            ..crate::options::AppClients::default()
+        };
+        let host = Arc::new(Keeping(Arc::new(Kept::default())));
+        let (engine, mut events) =
+            engine_with(dir.path(), host, |options| options.app_clients = clients).await;
+        launch_states(&mut events).await;
+        engine.send(Command::Connect { tracker: "anilist".into() });
+        let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+        let Some(Event::Authorize { tracker, url, callback_scheme }) =
+            seen.iter().find(|e| matches!(e, Event::Authorize { .. }))
+        else {
+            panic!("the sign-in sheet: {seen:?}")
+        };
+        assert_eq!((tracker.as_str(), callback_scheme.as_str()), ("anilist", "https"));
+        assert!(url.contains("client_id=4242&response_type=token"), "{url}");
     }
 
     #[tokio::test]
@@ -1195,12 +1334,230 @@ mod tests {
         assert!(!dir.path().join("config.toml").exists(), "the file is the saved choice's");
     }
 
+    #[tokio::test]
+    async fn a_show_sets_a_setting_for_itself_and_the_settings_count_it() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{
+            settings::{SettingKey, SettingOverride},
+            show::ShowSettingKey,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        let launch = events.launch().await;
+        let Some(Event::Settings(view)) = launch.first() else { panic!("{launch:?}") };
+        assert!(view.overridden.is_empty(), "no show sets anything yet");
+        let id = anistream_core::ids::AnilistId::new(900_001);
+
+        let key = ShowSettingKey::SkipOpening;
+        engine.send(Command::SetShowSetting {
+            id,
+            key,
+            value: Some(SettingValue::Bool(false)),
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::ShowSettings(sheet), Event::Settings(view)] = &seen[..] else {
+            panic!("the sheet, then the settings: {seen:?}")
+        };
+        assert_eq!(sheet.id, id);
+        let row = sheet.rows.iter().find(|row| row.key == key).unwrap();
+        assert_eq!(row.own, Some(SettingValue::Bool(false)));
+        assert_eq!((row.value.as_str(), row.default.as_str()), ("off", "on"));
+        assert_eq!(
+            view.overridden,
+            [SettingOverride { key: SettingKey::SkipOpening, shows: 1 }]
+        );
+        assert!(!dir.path().join("config.toml").exists(), "Settings' own value is untouched");
+
+        // Asked for again, as a sheet opening does.
+        engine.send(Command::LoadShowSettings { id });
+        let seen = until(&mut events, |e| matches!(e, Event::ShowSettings(_))).await;
+        let [Event::ShowSettings(again)] = &seen[..] else {
+            panic!("the sheet alone: {seen:?}")
+        };
+        assert_eq!(again, sheet);
+
+        engine.send(Command::SetShowSetting { id, key, value: None });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::ShowSettings(sheet), Event::Settings(view)] = &seen[..] else {
+            panic!("the sheet, then the settings: {seen:?}")
+        };
+        assert!(sheet.rows.iter().all(|row| row.own.is_none()), "following Settings again");
+        assert!(view.overridden.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_value_a_show_setting_does_not_take_is_refused_in_words() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{notice::NoticeKind, show::ShowSettingKey};
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let id = anistream_core::ids::AnilistId::new(900_001);
+
+        let value = Some(SettingValue::Str("hd".into()));
+        engine.send(Command::SetShowSetting { id, key: ShowSettingKey::Quality, value });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Toast(refusal)] = &seen[..] else { panic!("the refusal alone: {seen:?}") };
+        assert_eq!(refusal.kind, NoticeKind::Alert);
+        assert_eq!(refusal.text, "not saved: \u{201c}hd\u{201d} is not a quality");
+    }
+
+    #[tokio::test]
+    async fn a_reset_puts_the_show_back_on_settings_with_the_source_it_kept() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{settings::SettingKey, show::ShowSettingKey};
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let id = anistream_core::ids::AnilistId::new(900_001);
+
+        let dub = Some(SettingValue::Str("dub".into()));
+        engine.send(Command::SetShowSetting {
+            id,
+            key: ShowSettingKey::Translation,
+            value: dub,
+        });
+        until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        engine.send(Command::SetProviderPreference { id, provider: Some("yamabiko".into()) });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(_)] = &seen[..] else {
+            panic!("the settings, counted again, then the notice: {seen:?}")
+        };
+        let counted: Vec<_> = view.overridden.iter().map(|o| (o.key, o.shows)).collect();
+        assert_eq!(counted, [(SettingKey::SourceOrder, 1), (SettingKey::Translation, 1)]);
+        engine.send(Command::LoadShowSettings { id });
+        let seen = until(&mut events, |e| matches!(e, Event::ShowSettings(_))).await;
+        let [Event::ShowSettings(sheet)] = &seen[..] else { panic!("{seen:?}") };
+        assert_eq!(sheet.source.as_deref(), Some("yamabiko"));
+
+        engine.send(Command::ResetShowSettings { id });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::ShowSettings(sheet), Event::Settings(view)] = &seen[..] else {
+            panic!("the sheet, then the settings: {seen:?}")
+        };
+        assert!(sheet.rows.iter().all(|row| row.own.is_none()));
+        assert_eq!(sheet.source, None, "back to trying the sources in order");
+        assert!(sheet.remembered.is_empty());
+        assert!(view.overridden.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_proxy_is_written_as_one_change_and_its_password_kept_apart() {
+        use anistream_model::{
+            protection::{
+                FailedCheck, PROXY_SECRET, ProxyView, TorrentProtection, TorrentProxy,
+            },
+            stores::Secret,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let kept = Arc::new(Kept::default());
+        let (engine, mut events) = engine_on(dir.path(), Arc::new(Keeping(kept.clone()))).await;
+        events.launch().await;
+
+        let proxy = TorrentProxy {
+            host: "10.64.0.1".into(),
+            port: 1080,
+            user: Some("mika".into()),
+            password: Some(Secret("lantern".into())),
+        };
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::Proxy,
+            proxy: Some(proxy.clone()),
+            on_failure: FailedCheck::Stop,
+            acknowledged: false,
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(saved)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, None);
+        assert_eq!(saved.text, "saved · torrent protection");
+        assert_eq!(view.torrent.protection, TorrentProtection::Proxy);
+        assert_eq!(view.torrent.on_failure, FailedCheck::Stop);
+        let user = Some("mika".to_owned());
+        let shown = ProxyView { host: "10.64.0.1".into(), port: 1080, user };
+        assert_eq!(view.torrent.proxy, Some(shown));
+        let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+        assert!(file.contains("socks_url = \"socks5://mika@10.64.0.1:1080\""), "{file}");
+        assert!(file.contains("on_leak = \"stop\""), "{file}");
+        assert!(!file.contains("lantern"), "the password stays out of the file:\n{file}");
+        assert_eq!(kept.get(PROXY_SECRET).unwrap().as_deref(), Some("lantern"));
+
+        // The VPN on this device: the proxy's password is not kept for nothing.
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::Device,
+            proxy: None,
+            on_failure: FailedCheck::Pause,
+            acknowledged: false,
+        });
+        until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        assert_eq!(kept.get(PROXY_SECRET).unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn what_needs_confirming_is_refused_unconfirmed_and_nothing_written() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{
+            notice::NoticeKind,
+            protection::{FailedCheck, TorrentProtection},
+            settings::SettingKey,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::None,
+            proxy: None,
+            on_failure: FailedCheck::Pause,
+            acknowledged: false,
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(refusal)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, Some(SettingKey::VpnMode));
+        assert_eq!(view.torrent.protection, TorrentProtection::Proxy, "as the file has it");
+        assert_eq!(refusal.kind, NoticeKind::Alert);
+        assert_eq!(refusal.text, "not saved: no protection needs your confirmation first");
+
+        // Warn only, as a setting, which cannot carry the confirmation.
+        let warn = SettingValue::Str("warn".into());
+        engine.send(Command::SetSetting { key: SettingKey::VpnOnFailure, value: warn });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(refusal)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, Some(SettingKey::VpnOnFailure));
+        assert_eq!(refusal.text, "not saved: warn only needs your confirmation first");
+        assert!(!dir.path().join("config.toml").exists(), "nothing written");
+
+        // Confirmed, it is.
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::None,
+            proxy: None,
+            on_failure: FailedCheck::Warn,
+            acknowledged: true,
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(_)] = &seen[..] else { panic!("{seen:?}") };
+        assert_eq!(view.torrent.protection, TorrentProtection::None);
+        let row = view.native_rows.iter().find(|r| r.key == SettingKey::VpnOnFailure).unwrap();
+        assert_eq!(row.value, "warn only");
+        let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+        assert!(file.contains("i_understand_my_ip_is_exposed = true"), "{file}");
+        assert!(file.contains("i_understand_a_failed_check_keeps_torrents_running = true"));
+    }
+
     #[cfg(not(feature = "desktop"))]
     #[tokio::test]
     async fn without_a_player_a_play_is_refused_in_words_and_nothing_is_staged() {
         use anistream_model::{command::PlayerCommand, notice::NoticeKind};
         let dir = tempfile::tempdir().unwrap();
-        let (engine, mut events) = quiet_engine(dir.path()).await;
+        // A front end that hosts no player, with no mpv to fall back on.
+        let host = Arc::new(QuietHost::in_dir(&dir.path().join("tokens")));
+        let (engine, mut events) =
+            engine_with(dir.path(), host, |options| options.hosted_player = false).await;
         events.launch().await;
         let id = anistream_core::ids::AnilistId::new(1);
 
@@ -1229,6 +1586,33 @@ mod tests {
             matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
             "{seen:?}"
         );
+
+        // A release picked by hand the same, and a watch party for want of Syncplay: refused
+        // before anything is staged.
+        let episode = || "1".to_owned();
+        for (play, refusal) in [
+            (
+                Command::PlaySource {
+                    id,
+                    episode: episode(),
+                    provider_id: "yamabiko".into(),
+                    source_id: "a".into(),
+                },
+                crate::playback::NO_PLAYER,
+            ),
+            (Command::PlayParty { id, episode: episode() }, crate::playback::NO_PARTY),
+        ] {
+            engine.send(play);
+            let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+            assert!(
+                seen.iter().any(|e| matches!(e, Event::Toast(n) if n.text == refusal)),
+                "{seen:?}"
+            );
+            assert!(
+                !seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })),
+                "{seen:?}"
+            );
+        }
     }
 
     #[tokio::test]

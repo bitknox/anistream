@@ -15,7 +15,7 @@ use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
 };
-use anistream_model::command::PlayerCommand;
+use anistream_model::{command::PlayerCommand, playback::PlaybackId};
 use anistream_providers::{torrent::TorrentSession, vpn::VpnGuard};
 use tokio::sync::mpsc;
 
@@ -60,6 +60,11 @@ pub struct EngineState {
     pub cache: TitleCache,
     /// Which playback Now Playing shows, and what it goes back to: see [`Staging`].
     pub staging: Staging,
+    /// Where the app is, as the front end last said: in the background torrents wait.
+    pub phase: anistream_model::command::AppState,
+    /// Whether the network is metered, cellular or Low Data Mode, as the front end last said:
+    /// downloads and seeding wait on one.
+    pub metered: bool,
 }
 
 impl EngineState {
@@ -82,15 +87,16 @@ impl EngineState {
             playbacks: 0,
             cache: TitleCache::default(),
             staging: Staging::default(),
+            phase: Default::default(),
+            metered: false,
         }
     }
 
     /// The next playback, of `episode` of `id`, numbered, and the record told it is starting.
-    /// Only the desktop's player starts one.
-    #[cfg_attr(not(feature = "desktop"), allow(dead_code))]
     pub(crate) fn next_playback(&mut self, id: AnilistId, episode: &str) -> Played {
         self.playbacks += 1;
-        let played = Played { serial: self.playbacks, id, episode: episode.to_owned() };
+        let played =
+            Played { serial: PlaybackId::new(self.playbacks), id, episode: episode.to_owned() };
         self.cache.started(&played);
         played
     }

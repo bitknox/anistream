@@ -314,6 +314,17 @@ impl Governor {
         Some(Ease { to: self.eased })
     }
 
+    /// Step down now, without the evidence of drops: the renderer said a hook of the chain
+    /// does not run. As [`Self::sample`] steps, short of the cap.
+    pub fn step_down(&mut self) -> Option<Ease> {
+        if self.eased >= self.cap {
+            return None;
+        }
+        self.eased += 1;
+        self.restart(self.last);
+        Some(Ease { to: self.eased })
+    }
+
     fn restart(&mut self, at: Option<(f64, u64)>) {
         self.last = at;
         self.paused = false;
@@ -327,6 +338,17 @@ impl Governor {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn a_step_down_asked_for_takes_one_step_up_to_the_cap() {
+        let mut governor = Governor::new(2);
+        assert_eq!(governor.step_down().map(|ease| ease.to), Some(1));
+        assert_eq!(governor.step_down().map(|ease| ease.to), Some(2));
+        assert!(governor.step_down().is_none(), "nothing below the cap");
+        assert_eq!(governor.eased(), 2);
+        governor.reset();
+        assert_eq!(governor.eased(), 0);
+    }
 
     // --- HDR ---------------------------------------------------------------------------
 

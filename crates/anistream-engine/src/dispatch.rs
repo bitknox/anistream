@@ -10,8 +10,9 @@ use anistream_model::{command::Command, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-#[cfg(feature = "desktop")]
-use crate::playback::start::{control_player, play, play_local, play_party, play_source};
+use crate::playback::start::{
+    control_playback, control_player, play, play_local, play_party, play_source,
+};
 use crate::{
     artwork,
     catalog::{
@@ -32,9 +33,15 @@ use crate::{
     outbox::{Internal, Outbox},
     playback::{prefetch::prefetch, resolve::load_sources},
     plugin_stores::tasks::{StoreTaskContext, store_task},
+    protection::set_torrent_protection,
     services::Services,
     settings::{set_setting, set_translation, step_setting},
-    sources::{self, commands::check_providers, torrent::reload_sources},
+    show_settings::{load_show_settings, reset_show_settings, set_show_setting},
+    sources::{
+        self,
+        commands::{check_providers, disable_plugin},
+        torrent::reload_sources,
+    },
     state::EngineState,
     titles::{
         episodes::{list_episodes, set_watched},
@@ -42,7 +49,10 @@ use crate::{
     },
     tracking::{
         self,
-        commands::{connect, connect_kitsu, load_library, set_score, set_status, sync_now},
+        commands::{
+            cancel_sign_in, connect, connect_kitsu, finish_sign_in, load_library,
+            load_title_language, set_score, set_status, sync_now,
+        },
     },
 };
 
@@ -52,6 +62,8 @@ pub struct Lent {
     pub meta: Meta,
     pub store: Store,
     pub registry: ProviderRegistry,
+    /// The plugin stores joined, which say where each plugin came from.
+    pub stores: crate::plugin_stores::Stores,
     pub tx: Outbox,
 }
 
@@ -65,6 +77,7 @@ where
     let meta = services.meta.clone();
     let store = services.store.clone();
     let registry = services.registry.clone();
+    let stores = services.stores.clone();
     let tx = tx.clone();
 
     tokio::spawn(async move {
@@ -87,7 +100,7 @@ where
                 }
             }
         }
-        work(Lent { meta, store, registry, tx }).await;
+        work(Lent { meta, store, registry, stores, tx }).await;
     });
 }
 
@@ -120,6 +133,7 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| search(lent, query, filter))
         }
         Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
+        Command::LoadTitleLanguage => load_title_language(services, tx),
         Command::PlayTrailer { url, title } => {
             play_trailer(url, title, job, engine, services, tx)
         }
@@ -142,38 +156,36 @@ pub(crate) fn dispatch(
             manual_search(id, query, job, engine, services, tx)
         }
         Command::SetProviderPreference { id, provider } => {
-            set_provider_preference(id, provider, services, tx)
+            set_provider_preference(id, provider, engine, services, tx)
         }
 
         // Playback.
         Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
-        #[cfg(feature = "desktop")]
+        // Each refused where this build has no player to play in: see `playback::refuse`.
         Command::Play { id, episode } => play(id, episode, job, engine, services, tx),
-        #[cfg(feature = "desktop")]
         Command::PlaySource { id, episode, provider_id, source_id } => {
             play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
-        #[cfg(feature = "desktop")]
         Command::PlayParty { id, episode } => {
             play_party(id, episode, job, engine, services, tx)
         }
-        #[cfg(feature = "desktop")]
         Command::PlayLocal { id, episode, title, path } => {
             play_local(id, episode, title, path, job, engine, services, tx)
         }
-        // Without the desktop's player there is nothing to play in, and nothing to steer.
-        #[cfg(not(feature = "desktop"))]
-        Command::Play { .. }
-        | Command::PlaySource { .. }
-        | Command::PlayParty { .. }
-        | Command::PlayLocal { .. } => crate::playback::refuse(job, tx),
         Command::LoadSources { id, episode } => {
             load_sources(id, episode, job, engine, services, tx)
         }
-        #[cfg(feature = "desktop")]
+        // Nothing to steer where nothing plays: no playback has left its controls.
         Command::Player(command) => control_player(command, engine),
-        #[cfg(not(feature = "desktop"))]
-        Command::Player(_) => {}
+        // The same, aimed: let go when another playback has followed the one it names.
+        Command::Control { playback, command } => control_playback(playback, command, engine),
+        // Where the app is and its network: which torrents wait.
+        Command::AppPhase { phase } => crate::phases::app_phase(phase, engine, tx),
+        Command::NetworkPath { cellular, constrained } => {
+            crate::phases::network_path(cellular, constrained, engine, tx)
+        }
+        // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
+        Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
 
         // The sources.
         Command::CheckProviders => spawn(job, services, tx, check_providers),
@@ -181,10 +193,19 @@ pub(crate) fn dispatch(
         // The trackers.
         Command::SyncNow => sync_now(job, services, tx),
         Command::Connect { tracker } => connect(tracker, job, services, tx),
+        Command::FinishSignIn { tracker, callback } => {
+            finish_sign_in(tracker, callback, job, services, tx)
+        }
+        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services),
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }
-        Command::Disconnect { tracker } => tracking::disconnect(&services.sync, &tracker, tx),
+        Command::Disconnect { tracker } => {
+            tracking::disconnect(&services.sync, &tracker, tx);
+            if tracker == "anilist" {
+                crate::title_language::signed_out(services, tx);
+            }
+        }
         Command::SetStatus { id, status } => set_status(id, status, services, tx),
         Command::SetScore { id, score } => set_score(id, score, services, tx),
         Command::ResolveConflict { id, keep_local } => {
@@ -209,6 +230,14 @@ pub(crate) fn dispatch(
         Command::StepSetting { key, delta } => step_setting(key, delta, engine, services, tx),
         Command::SetSetting { key, value } => set_setting(key, value, engine, services, tx),
         Command::SetTranslation { translation } => set_translation(translation, engine, tx),
+        Command::SetTorrentProtection { mode, proxy, on_failure, acknowledged } => {
+            set_torrent_protection(mode, proxy, on_failure, acknowledged, engine, services, tx)
+        }
+        Command::LoadShowSettings { id } => load_show_settings(id, engine, services, tx),
+        Command::SetShowSetting { id, key, value } => {
+            set_show_setting(id, key, value, engine, services, tx)
+        }
+        Command::ResetShowSettings { id } => reset_show_settings(id, engine, services, tx),
 
         // Off the loop, with no job: covers report back on their own.
         Command::FetchArtwork { url } => artwork::spawn_fetch(
@@ -238,6 +267,9 @@ pub(crate) fn dispatch(
         }
         Command::RemovePlugin { plugin } => {
             store_task(job, engine, services, tx, move |context| context.remove_plugin(plugin))
+        }
+        Command::DisablePlugin { id, disabled } => {
+            disable_plugin(id, disabled, engine, services, tx)
         }
         Command::CreateInvite { store, name } => {
             store_task(job, engine, services, tx, move |context| {
@@ -331,7 +363,10 @@ pub(crate) async fn handle_internal(
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
             sources::arrange(&services.registry, engine.config.effective());
-            said.push(Event::Providers(data::provider_rows(&services.registry)));
+            said.push(Event::Providers(data::provider_rows(
+                &services.registry,
+                &services.stores,
+            )));
         }
         // Awaited rather than spawned: this owns the session and the guard, and two
         // rebuilds racing would leave one of their sessions running with nothing holding

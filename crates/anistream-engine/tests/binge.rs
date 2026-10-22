@@ -5,15 +5,16 @@
 //! playback loop's decision to park all have to agree, and each can be right on its own while
 //! the binge still opens a new window every episode.
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use anistream_core::{
     ids::AnilistId,
     media::Translation,
     stream::{Stream, StreamKind},
 };
-use anistream_engine::playback::{
-    self, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot,
+use anistream_engine::{
+    host::Host,
+    playback::{self, Machine, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot},
 };
 use anistream_model::{
     command::PlayerCommand,
@@ -27,6 +28,23 @@ use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt},
     sync::mpsc,
 };
+
+/// The host a test plays under: it opens nothing and shows nothing. No playback here hands a
+/// stream to the browser.
+struct NoLinks;
+
+impl Host for NoLinks {
+    fn open_url(&self, _: &str) -> Result<(), String> {
+        Err("a test opens nothing".into())
+    }
+
+    fn notify(&self, _: &str, _: &str) {}
+}
+
+/// mpv's process, on the desktop as it is, with `slot` for its window.
+fn machine(mpv: &Mpv, slot: &PlayerSlot) -> Machine {
+    Machine::desktop(mpv.clone(), slot.clone(), Arc::new(NoLinks))
+}
 
 fn clip(seconds: u32) -> Stream {
     Stream {
@@ -52,6 +70,8 @@ fn context(episode: &str, next: Option<&str>) -> PlaybackContext {
         volume: None,
         next: next.map(|n| NextEpisode { number: n.into(), title: None, thumbnail: None }),
         episodes: Vec::new(),
+        cover_url: None,
+        banner_url: None,
     }
 }
 
@@ -72,6 +92,7 @@ fn settings(auto_next: bool) -> PlaySettings {
         presence: Default::default(),
         syncplay: Default::default(),
         party: false,
+        up_next_countdown: 10,
     }
 }
 
@@ -124,9 +145,8 @@ async fn run_streams(
             context,
             store,
             http,
-            mpv.clone(),
+            machine(mpv, slot),
             settings,
-            slot.clone(),
             tx.into(),
             commands,
         ),
@@ -193,6 +213,8 @@ fn successor(episode: &str) -> Successor {
         title: "Test".into(),
         episode: episode.into(),
         translation: Translation::Sub,
+        cover_url: None,
+        banner_url: None,
     }
 }
 
@@ -373,6 +395,7 @@ fn row(number: &str) -> anistream_model::episodes::EpisodeRow {
         completed: false,
         kind: None,
         skippable: false,
+        airs_at: None,
     }
 }
 
@@ -411,9 +434,8 @@ fn start(
         context,
         store,
         http,
-        mpv.clone(),
+        machine(mpv, slot),
         settings,
-        slot.clone(),
         tx.into(),
         commands,
     ));

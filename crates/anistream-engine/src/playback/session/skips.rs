@@ -3,7 +3,7 @@
 //! to the end of the file.
 
 use anistream_net::HttpClient;
-use anistream_player::{SkipInterval, SkipKind, skip};
+use anistream_playback::{SkipInterval, SkipKind, skip};
 
 /// Fetch skip intervals for an episode.
 ///
@@ -56,11 +56,6 @@ pub const fn offered(kind: SkipKind) -> anistream_model::playback::SkipKind {
         SkipKind::Opening => anistream_model::playback::SkipKind::Opening,
         SkipKind::Ending => anistream_model::playback::SkipKind::Ending,
     }
-}
-
-/// The skip kind as the companion names it.
-pub(super) const fn kind_id(kind: SkipKind) -> &'static str {
-    kind.label()
 }
 
 /// How far short of the end a skip lands when its segment runs to the end of the file.

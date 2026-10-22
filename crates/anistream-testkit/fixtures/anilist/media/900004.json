@@ -12,6 +12,19 @@
   "episodes": 12,
   "duration": 24,
   "seasonYear": 2025,
+  "season": "WINTER",
+  "startDate": {
+    "year": 2025,
+    "month": 1,
+    "day": 11
+  },
+  "endDate": {
+    "year": 2025,
+    "month": 3,
+    "day": 29
+  },
+  "source": "MANGA",
+  "isAdult": false,
   "averageScore": 84,
   "genres": [
     "Adventure",
@@ -62,12 +75,30 @@
             "english": "Stardust Wayfarer",
             "native": "星屑の旅人"
           },
-          "format": "TV"
+          "format": "TV",
+          "coverImage": {
+            "large": "https://img.example/cover/900001.jpg",
+            "color": "#e4a15d"
+          },
+          "season": "SPRING",
+          "seasonYear": 2024
         }
       }
     ]
   },
   "recommendations": {
     "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": []
   }
 }

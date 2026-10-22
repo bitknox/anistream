@@ -8,7 +8,8 @@ thumbnails, a skip button, an Up Next card and menus, in the same colours and fo
 terminal. One mpv window carries a whole binge. The next episode loads into the window the last
 one played in, so fullscreen and window position stay put.
 
-The controls appear when you move the mouse, pause or seek, and leave about a second later.
+The controls appear when you move the mouse, pause or seek, and leave about a second after the
+mouse stops, wherever it rests, or as soon as it leaves the window.
 While they are up, the bottom of the picture is shaded so they read over a bright scene, and
 subtitles move up out of their way and settle back when they go. When they are hidden the screen
 shows the video and nothing else.

@@ -101,8 +101,12 @@ local CORNER = { stall, skipped, up_next, skip }
 ---------------------------------------------------------------------------------------------
 
 local last_ui = nil
+-- Whether the controls were up for activity at the last refresh, the volume's row with them.
+-- Kept from the refresh rather than read at publishing, so it matches where the fades were sent.
+local controls_up = false
 
 local function publish()
+    local menu_items, menu_focus = menu_view.rows()
     local ui = {
         skip = { visible = overlay.visible(skip), label = skip.label() },
         skipped = { visible = overlay.visible(skipped) },
@@ -120,12 +124,21 @@ local function publish()
         sync = subsync.step(),
         -- Also beyond the brief: our own menu and seek bar, in anistream mode.
         menu = menu_view.view(),
+        -- And what it lists, by title, with the row its cursor is on: what Enter would pick.
+        menu_items = menu_items,
+        menu_focus = menu_focus,
         -- And the keys overlay, with what it lists while open (`label -> keys`).
         keys = help.is_open(),
         keys_listed = help.is_open() and help.listed() or nil,
         timeline = overlay.visible(timeline),
+        -- Whether the controls are up. The seek bar needs a duration besides, so the controls
+        -- can come and go with `timeline` false throughout when the duration arrives after.
+        controls = controls_up,
         -- Which form the volume control last drew, "row" or "pill": what a fade showed.
         volume = volume.drawn(),
+        -- Whether anything is mid-fade. Published again as the last fade lands, so `false`
+        -- with the rest is what the screen came to rest on.
+        fading = overlay.fading(),
     }
     local json = util.format_json(ui)
     if json ~= last_ui then
@@ -184,6 +197,7 @@ local function refresh()
     overlay.show(help, help.wants())
     -- The controls give way to anything that takes the middle of the window.
     local covered = menu_view.is_open() or help.is_open() or loading.card_visible()
+    controls_up = timeline.awake()
     local seekbar = timeline.wants() and not covered
     overlay.show(timeline, seekbar)
     timeline.observe(seekbar)
@@ -223,6 +237,8 @@ local function refresh()
 end
 
 app.changed = refresh
+-- The form a fade drew is only known once it has drawn, so the screen at rest is said too.
+overlay.on_settle(publish)
 
 ---------------------------------------------------------------------------------------------
 -- Host state
@@ -284,8 +300,15 @@ mp.observe_property("idle-active", "bool", function(_, value)
 end)
 
 mp.observe_property("duration", "number", function(_, value)
+    local had = (p.duration or 0) > 0
     p.duration = value
     up_next.evaluate()
+    -- The seek bar needs a duration. One that arrives while the controls are up brings the bar
+    -- up with them; until it did, a wake before the script knew the duration (a file just
+    -- started, a machine under load) left the controls up without the bar until the next.
+    if ((value or 0) > 0) ~= had then
+        refresh()
+    end
 end)
 
 mp.observe_property("speed", "number", function(_, value)
@@ -366,31 +389,39 @@ end)
 --
 -- In anistream mode the resting state is just the video. uosc's control row and our seek bar
 -- come up when the pointer moves (anywhere, not only near the bottom), the video pauses or a
--- seek lands, and fade out once mpv hides the cursor again. uosc's `flash-elements` shows its
--- row for its `flash_duration`, which uosc-opts.conf sets to mpv's default cursor-hide delay.
+-- seek lands, and fade out together once the cursor has been still for mpv's cursor-hide
+-- delay, wherever it rests, or as soon as it leaves the window.
+--
+-- uosc shows its row only when it is flashed (uosc-opts.conf takes its distance-based showing
+-- away), and each flash lasts its `flash_duration`, kept here at the bar's delay. Every wake
+-- flashes it, so both leave at the same moment. When the pointer leaves the window uosc fades
+-- its row at once, flash or no flash, and the bar follows.
 ---------------------------------------------------------------------------------------------
 
 if config.opts.uosc then
-    local last_flash = -math.huge
+    mp.observe_property("cursor-autohide", "native", function()
+        local ms = math.floor(timeline.hide_delay() * 1000 + 0.5)
+        mp.commandv("change-list", "script-opts", "append", "uosc-flash_duration=" .. ms)
+    end)
     local function wake()
         local covered = menu_view.is_open() or help.is_open() or loading.card_visible()
         if p.idle or app.modal or covered then
             return
         end
         timeline.poke()
-        local now = mp.get_time()
-        if now - last_flash > 0.25 then
-            last_flash = now
-            screen.to_uosc("flash-elements", "controls")
-        end
+        screen.to_uosc("flash-elements", "controls")
     end
     local seen_pointer = false
+    local was_inside = false
     overlay.on_mouse_move(function(mouse)
         -- The first report is where the pointer already was, not a movement.
         if seen_pointer and mouse.inside then
             wake()
+        elseif seen_pointer and was_inside then
+            timeline.rest()
         end
         seen_pointer = true
+        was_inside = mouse.inside
     end)
     -- Compared with the value at start-up rather than "skip the first report": a pause toggled
     -- before the first report arrives would otherwise be taken for the starting state.
