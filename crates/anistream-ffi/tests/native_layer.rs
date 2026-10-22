@@ -734,3 +734,31 @@ fn the_notifications_week_for_the_watching_scene() {
     assert!(!reasons.is_empty() && reasons.iter().all(|r| *r == NoticeReason::SwitchedOff));
     engine.shutdown();
 }
+
+/// Check Now on an engine that cannot reach GitHub: it says it is checking, then that it could
+/// not, with no job.
+#[test]
+fn check_now_says_it_is_checking_and_why_it_could_not() {
+    use anistream_model::updates::UpdateStatus;
+    let (engine, _root) = watching();
+    assert_eq!(engine.send(Command::CheckForUpdates), None, "a check is not a job");
+    let read = read_until(
+        &engine,
+        |event| matches!(event, Event::Update(status) if *status != UpdateStatus::Checking),
+    );
+    let said: Vec<_> = read
+        .into_iter()
+        .filter_map(|event| match event {
+            Event::Update(status) => Some(status),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        said,
+        [
+            UpdateStatus::Checking,
+            UpdateStatus::Failed { reason: "GitHub could not be reached".into() }
+        ]
+    );
+    engine.shutdown();
+}

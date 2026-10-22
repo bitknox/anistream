@@ -778,6 +778,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::WidgetSnapshot(_) => "WidgetSnapshot",
         Event::UpcomingNotices(_) => "UpcomingNotices",
         Event::OpenJoin { .. } => "OpenJoin",
+        Event::Update(_) => "Update",
     }
 }
 
@@ -927,5 +928,6 @@ fn copy(update: &Event) -> Event {
         Event::OpenJoin { store, view } => {
             Event::OpenJoin { store: store.clone(), view: view.clone() }
         }
+        Event::Update(status) => Event::Update(status.clone()),
     }
 }

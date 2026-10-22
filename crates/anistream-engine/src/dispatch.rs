@@ -282,6 +282,10 @@ pub(crate) fn dispatch(
         Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
         Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
         Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
+        // Settings' Check Now, off the loop, with no job: the check says where it stands.
+        Command::CheckForUpdates => {
+            crate::updates::check_now(&services.paths.cache_dir, &services.http, tx)
+        }
 
         // The plugin stores.
         Command::LoadStores => {

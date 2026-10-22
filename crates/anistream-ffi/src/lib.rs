@@ -287,6 +287,38 @@ mod tests {
     }
 
     #[test]
+    fn the_update_check_crosses_with_each_apps_file() {
+        use anistream_model::updates::{Release, ReleaseAsset, UpdateStatus};
+        assert_eq!(crossed(Command::CheckForUpdates), Command::CheckForUpdates);
+        let file = |name: &str, size: u64| ReleaseAsset {
+            name: name.into(),
+            url: format!(
+                "https://github.com/bitknox/anistream/releases/download/v2.0.3/{name}"
+            ),
+            sha256: "0f".repeat(32),
+            size,
+        };
+        let release = Release {
+            version: "2.0.3".into(),
+            published_at: 1_792_664_639,
+            page_url: "https://github.com/bitknox/anistream/releases/tag/v2.0.3".into(),
+            notes: "Smoother calendar\n\nThe calendar scrolls without dropping frames.".into(),
+            macos: Some(file("anistream-2.0.3-macos.dmg", 56_208_258)),
+            ios: None,
+            android: Some(file("anistream-2.0.3-android-arm64.apk", 5_000_000_000)),
+        };
+        for status in [
+            UpdateStatus::Checking,
+            UpdateStatus::UpToDate,
+            UpdateStatus::Available { release: Box::new(release.clone()), notify: true },
+            UpdateStatus::Failed { reason: "GitHub could not be reached".into() },
+        ] {
+            assert_eq!(crossed(status.clone()), status);
+            crosses_intact(Event::Update(status));
+        }
+    }
+
+    #[test]
     fn notifications_and_the_widgets_record_cross_intact() {
         use anistream_model::{
             notifications::{NewEpisode, NoticeReason, UpcomingNotice, UpcomingNotices},
