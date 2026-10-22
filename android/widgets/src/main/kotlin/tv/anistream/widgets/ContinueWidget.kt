@@ -17,7 +17,6 @@ import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
@@ -92,12 +91,12 @@ internal fun drawing(context: Context, host: WidgetHost?) = Drawing(
 )
 
 /** The picker's 2 × 2 Continue watching. */
-class ContinueSmallReceiver : GlanceAppWidgetReceiver() {
+class ContinueSmallReceiver : AnistreamWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ContinueWidget()
 }
 
 /** The picker's 4 × 2 Continue watching: the same widget, placed wider. */
-class ContinueWideReceiver : GlanceAppWidgetReceiver() {
+class ContinueWideReceiver : AnistreamWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = ContinueWidget()
 }
 

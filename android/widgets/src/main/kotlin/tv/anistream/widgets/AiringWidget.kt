@@ -19,7 +19,6 @@ import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.Alignment
@@ -78,12 +77,12 @@ class AiringWidget(private val hostOf: (Context) -> WidgetHost? = ::widgetHost) 
 }
 
 /** The picker's 2 × 2 Airing today. */
-class AiringSmallReceiver : GlanceAppWidgetReceiver() {
+class AiringSmallReceiver : AnistreamWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = AiringWidget()
 }
 
 /** The picker's 4 × 2 Airing today: the same widget, placed wider. */
-class AiringWideReceiver : GlanceAppWidgetReceiver() {
+class AiringWideReceiver : AnistreamWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = AiringWidget()
 }
 

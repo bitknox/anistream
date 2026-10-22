@@ -33,6 +33,12 @@ interface WidgetHost {
      * on its way does nothing.
      */
     fun refreshWidgetRecord()
+
+    /**
+     * A widget was placed on a home screen, or the last of one taken off: the app keeps its
+     * background refresh while any is placed, so the widgets never go stale.
+     */
+    fun widgetsChanged() {}
 }
 
 /** The host the app's widgets run in: the application, when it is one. */

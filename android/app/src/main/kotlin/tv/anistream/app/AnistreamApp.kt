@@ -95,12 +95,23 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
         background.use { widgetKeeper.make(it) }
     }
 
+    override suspend fun recordWidgets() {
+        if (Widgets.placed(this)) makeWidgetRecord()
+    }
+
+    /** A widget placed or the last of one removed: the background check follows whether any is. */
+    override fun widgetsChanged() {
+        scope.launch { episodeAlerts.widgetsPlaced(Widgets.placed(this@AnistreamApp)) }
+    }
+
     override fun onCreate() {
         super.onCreate()
         // Every process draws the widgets again when a record lands: the app's, and one started
         // for the background check alone.
         widgetKeeper.follow(scope)
         scope.launch { Widgets.publishPreviews(this@AnistreamApp) }
+        // Whether a widget is placed, which keeps the background check, as the app starts.
+        widgetsChanged()
     }
 
     /** The new-episode notifications switch, and the schedule it keeps. */

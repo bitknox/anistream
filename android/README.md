@@ -167,8 +167,10 @@ adb shell am start -a tv.anistream.action.OPEN --es tv.anistream.link.open downl
 New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on
 a network with the battery not low, while Settings › Notifications' New episodes switch (the
 engine's `EpisodeNotifications`) is on or any show is switched on in its own settings sheet, which
-notifies whatever the switch says (the settings' `notifySwitchedOn`); it is cancelled only when
-neither holds. Turning a switch on, Settings' or a show's, is when the app asks to post
+notifies whatever the switch says (the settings' `notifySwitchedOn`), or while a widget is on a
+home screen (looked at on start and as a widget's receiver is enabled or disabled), and is
+cancelled only when none holds. With only a widget, a run keeps the widgets' record and notifies of
+nothing. Turning a switch on, Settings' or a show's, is when the app asks to post
 notifications, and each show can turn its own off too. A show watched dubbed is said when the
 engine finds its source lists the dub, "Episode 9 is out, dubbed.", not at the broadcast. The
 Notifications pane's "Coming up" is the engine's `UpcomingNotices`, each row saying whether it
