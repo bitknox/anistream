@@ -8,17 +8,30 @@ use crate::{
     state::EngineState,
 };
 
-/// A title's page, with the source chosen for it sent ahead.
+/// A title's page, with the source chosen for it sent ahead, and its franchise's seasons on it.
+///
+/// The seasons are the same from every one of them, which takes a walk along the franchise the
+/// first time one of its pages is opened: see [`anistream_meta::Meta::seasons`]. The page waits
+/// a moment for it, so it arrives whole; past that it is sent without its seasons, which come
+/// on a second page once the walk is done. Never seasons that a later page renumbers.
 pub async fn load_detail(lent: Lent, id: AnilistId) {
     let Lent { meta, store, tx, .. } = lent;
     // Sent before the detail itself, so the picker knows the current choice the
     // moment the title is on screen rather than only after it is opened once.
     let _ = tx.send(Event::ProviderPreference(store.provider_preference(id).ok().flatten()));
-    let update = match meta.media(id).await {
-        Ok(media) => Event::Detail(Box::new(data::entry_with_detail(&media, Some(&store)))),
-        Err(e) => Event::Toast(Notice::alert(format!("could not load title: {e}"))),
+    let (media, fresh) = match meta.media_answered(id).await {
+        Ok(answered) => answered,
+        Err(e) => {
+            let _ = tx.send(Event::Toast(Notice::alert(format!("could not load title: {e}"))));
+            return;
+        }
     };
-    let _ = tx.send(update);
+    meta.seasons(&media, fresh, |seasons| {
+        // Each page read as it is sent, so a second one is no older than the first.
+        let page = data::entry_with_detail(&media, Some(&store), seasons.as_deref());
+        let _ = tx.send(Event::Detail(Box::new(page)));
+    })
+    .await;
 }
 
 /// Play a title's trailer in mpv, or open it in the browser when mpv cannot stream it.

@@ -381,6 +381,7 @@ impl Tenrai {
                                 cover_image: Default::default(),
                                 season: None,
                                 season_year: None,
+                                relations: None,
                             },
                         })
                     })

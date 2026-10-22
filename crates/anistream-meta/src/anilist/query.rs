@@ -60,6 +60,14 @@ const LINKED_FIELDS: &str = r"
     id title { romaji english native } format coverImage { large color } season seasonYear
 ";
 
+/// A related title's own relations, by id and format alone: what the season walk needs to see
+/// one step further along the prequel and sequel chain (see [`relations`]).
+///
+/// AniList answers relations two levels deep and no further: asked for a third, it sends every
+/// one empty (measured 2026-10-23). So this goes inside a related title, and nothing goes
+/// inside it.
+const NEIGHBOURS: &str = r"relations { edges { relationType node { id format } } }";
+
 pub fn search() -> String {
     format!(
         r"query ($search: String, $page: Int, $perPage: Int) {{
@@ -112,11 +120,16 @@ pub fn by_ids() -> String {
 ///
 /// Measured against AniList's query complexity limit with every field here, on a popular
 /// airing title and on a long runner: answered in full, so no second detail query is needed.
+///
+/// Each related title comes with its own relations ([`NEIGHBOURS`]), so the page sees two steps
+/// along its prequel and sequel chain: a franchise of three seasons is known whole from its
+/// middle one, and one of two from either end. Measured again with them (2026-10-23): answered
+/// in full, a long runner's 65 relations bringing 248 more edges and 21 KB.
 pub fn by_id() -> String {
     format!(
         r"query ($id: Int) {{
             Media(id: $id, type: ANIME) {{ {MEDIA_FIELDS} {MEDIA_DETAIL_FIELDS}
-                relations {{ edges {{ relationType node {{ {LINKED_FIELDS} }} }} }}
+                relations {{ edges {{ relationType node {{ {LINKED_FIELDS} {NEIGHBOURS} }} }} }}
                 recommendations(perPage: 8, sort: RATING_DESC) {{
                     nodes {{ mediaRecommendation {{ {LINKED_FIELDS} }} }}
                 }}
@@ -125,6 +138,25 @@ pub fn by_id() -> String {
                 airingSchedules(mediaId: $id, notYetAired: false, sort: EPISODE_DESC) {{
                     episode
                     airingAt
+                }}
+            }}
+        }}"
+    )
+}
+
+/// Several titles' relations at once, two levels deep: the season walk's question of what
+/// comes before and after each title at the edge of what it knows (see `crate::franchise`).
+///
+/// Each title comes with its relations, and each related title with its own ([`NEIGHBOURS`]),
+/// so one request takes the walk two steps further in both directions. Opened at the first of
+/// five seasons, the franchise is known whole after two of these; from the third, after one.
+/// Cards only: what the season picker shows of a title, and nothing a page would.
+pub fn relations() -> String {
+    format!(
+        r"query ($ids: [Int], $perPage: Int) {{
+            Page(perPage: $perPage) {{
+                media(id_in: $ids, type: ANIME) {{ {LINKED_FIELDS}
+                    relations {{ edges {{ relationType node {{ {LINKED_FIELDS} {NEIGHBOURS} }} }} }}
                 }}
             }}
         }}"
@@ -295,6 +327,7 @@ mod tests {
             ("search_filtered", search_filtered()),
             ("by_ids", by_ids()),
             ("by_id", by_id()),
+            ("relations", relations()),
             ("seasonal", seasonal()),
             ("airing_schedule", airing_schedule()),
             ("last_aired", LAST_AIRED.to_string()),
@@ -304,6 +337,22 @@ mod tests {
             ("save_progress", SAVE_PROGRESS.to_string()),
             ("delete_entry", DELETE_ENTRY.to_string()),
         ]
+    }
+
+    #[test]
+    fn the_season_walk_asks_two_levels_of_relations_for_cards_and_no_more() {
+        // Two levels, as far as AniList answers: the titles asked and what they relate to, and
+        // what those relate to by id and format. The page asks its own relations' the same way.
+        let walk = relations();
+        assert_eq!(walk.matches("relations {").count(), 2, "{walk}");
+        assert!(walk.contains("media(id_in: $ids"), "every title at the walk's edge at once");
+        assert_eq!(by_id().matches("relations {").count(), 2, "the page sees two steps");
+        // A card's fields, for the picker; nothing only a page shows.
+        for heavy in
+            ["description", "streamingEpisodes", "tags {", "characters(", "bannerImage"]
+        {
+            assert!(!walk.contains(heavy), "{heavy} in:\n{walk}");
+        }
     }
 
     #[test]

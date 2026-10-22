@@ -237,7 +237,9 @@ impl App {
             Some(Overlay::Disambiguate) => self.match_candidates.len(),
             Some(Overlay::Sources) => self.sources.len(),
             Some(Overlay::SourceProvider) => self.provider_choices().len(),
-            Some(Overlay::WatchOrder) => self.target().map_or(0, |e| e.related.len()),
+            Some(Overlay::WatchOrder) => {
+                self.target().map_or(0, |e| super::watch_order(e).len())
+            }
             Some(Overlay::Recommendations) => self.target().map_or(0, |e| e.recommended.len()),
             Some(Overlay::PluginAction) => self.plugin_choices().len(),
             Some(Overlay::PublishPick) => self.local_plugins.len(),

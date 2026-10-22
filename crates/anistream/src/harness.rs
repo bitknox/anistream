@@ -120,6 +120,9 @@ pub struct Options {
     pub keep_next: bool,
     /// What the database holds when the engine starts, written before it does.
     pub before_start: Option<fn(&Store)>,
+    /// How long a title page waits for the season walk before it is sent without its seasons,
+    /// or `None` for as long as the app waits.
+    pub season_hold: Option<Duration>,
 }
 
 impl Default for Options {
@@ -133,6 +136,7 @@ impl Default for Options {
             viewer_title_language: None,
             keep_next: false,
             before_start: None,
+            season_hold: None,
         }
     }
 }
@@ -199,11 +203,14 @@ impl Harness {
             server.set_viewer_title_language(language);
         }
         // `build_meta`, pointed at the fake.
-        let meta = Meta::new(
+        let mut meta = Meta::new(
             server.anilist(&http),
             config.meta.fallback.then(|| server.tenrai(&http, &store)),
             store.clone(),
         );
+        if let Some(hold) = options.season_hold {
+            meta = meta.holding_seasons_for(hold);
+        }
 
         // The host's store, which the engine's own parts are built over below: files in the
         // temporary directory.

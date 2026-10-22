@@ -664,6 +664,26 @@ mod tests {
                 year: Some(2025),
                 list_status: Some(LibrarySegment::Completed),
             }],
+            // The franchise's seasons, which cross as cards with no relation of their own.
+            seasons: Some(
+                [(900_001, "Stardust Wayfarer"), (900_004, "Stardust Wayfarer Season 2")]
+                    .into_iter()
+                    .map(|(id, title)| LinkedTitle {
+                        id: AnilistId::new(id),
+                        title: title.into(),
+                        title_romaji: None,
+                        title_english: Some(title.into()),
+                        title_native: None,
+                        relation: None,
+                        format: Some("TV".into()),
+                        cover_url: None,
+                        cover_color: None,
+                        season: None,
+                        year: None,
+                        list_status: None,
+                    })
+                    .collect(),
+            ),
             recommendations: Vec::new(),
             rankings: vec![Ranking {
                 rank: 4,

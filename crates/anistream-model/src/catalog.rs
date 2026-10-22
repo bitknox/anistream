@@ -233,6 +233,23 @@ pub struct TitleDetail {
     /// which is what the terminal lists.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub relations: Vec<LinkedTitle>,
+    /// The franchise's seasons, for the season picker, in watch order: "Season 1" first. The
+    /// same list on every one of their pages, whichever the viewer opened first.
+    ///
+    /// The TV, TV short and ONA titles along the prequel and sequel chain, which the engine
+    /// walks past what this title's own relations say. The title is among them when it is a
+    /// season; a film or an OVA has the seasons it hangs off, and is not one of them. Empty
+    /// when there is no other season to go to. Each card's `relation` is `None`: a season's
+    /// place is its position here, whichever page it is on.
+    ///
+    /// `None` while the walk is still under way, which a franchise opened for the first time
+    /// can be for a moment: the picker waits for it rather than numbering what this page alone
+    /// knows, which would renumber when the rest arrived. A second [`Event::Detail`] brings
+    /// it. Every franchise walked before has it from the first.
+    ///
+    /// [`Event::Detail`]: crate::event::Event::Detail
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub seasons: Option<Vec<LinkedTitle>>,
     /// What people who liked this rated highest, with their covers. The same titles as
     /// [`Entry::recommended`], AniList's first eight.
     #[cfg_attr(feature = "ffi", uniffi(default))]
