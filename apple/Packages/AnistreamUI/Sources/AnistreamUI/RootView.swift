@@ -25,6 +25,8 @@ public struct RootView: View {
                 #endif
             }
         }
+        // The widgets' taps: a title, an episode, the Calendar, Accounts.
+        .opensWidgetLinks()
         // The Mac's controls in amber, the accent. On iPhone and iPad toolbar text actions are
         // silk, as the brief has it: amber is only ever the one primary action, which sets its
         // own, and a switch that is on.

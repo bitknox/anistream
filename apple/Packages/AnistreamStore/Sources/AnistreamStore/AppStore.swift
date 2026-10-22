@@ -44,6 +44,8 @@ public final class AppStore {
     public let continued = ContinuedDownloads()
     /// The week's ask, waiting a moment in case more ask at once.
     @ObservationIgnored var noticeRefresh: Task<Void, Never>?
+    /// The home-screen widgets' snapshot, kept current as what they show changes.
+    @ObservationIgnored public let widgets: WidgetFeed
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
@@ -71,9 +73,12 @@ public final class AppStore {
     /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
 
-    public init(jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel()) {
+    public init(
+        jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed()
+    ) {
         self.jobs = jobs
         self.notices = notices
+        self.widgets = widgets
         artwork = ArtworkStore { [weak self] url in
             guard let client = self?.client else { return false }
             client.send(.fetchArtwork(url: url))
@@ -344,6 +349,8 @@ public final class AppStore {
 
         case .content(let view, let content):
             self.content(content, for: view)
+            if case .continue = view { widgetsChanged() }
+            if case .calendar = view { widgetsChanged() }
         case .caption(let view, let text):
             caption(text, for: view)
         case .calendarWindow(let anchor, let pages, let morePast):
@@ -354,6 +361,7 @@ public final class AppStore {
             titles.merge(detail: entry)
         case .progress(let id, let progress, let resume, let episodes):
             titles.progress(id: id, progress: progress, resume: resume, episodes: episodes)
+            widgetsChanged()
         case .lastAired(let rows):
             titles.lastAired(rows)
         case .episodes(let id, let rows):
@@ -371,6 +379,7 @@ public final class AppStore {
 
         case .sync(let state):
             accounts.apply(state)
+            widgetsChanged()
         case .progressQueued:
             accounts.progressQueued()
         case .conflicts(let rows):
@@ -430,8 +439,12 @@ public final class AppStore {
         case .playbackEnded(let watched, let ending, let rollingOn):
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
+            widgetsChanged()
         case .playerOps, .playerUi, .playbackKept, .sources:
             onPlayback?(event)
+
+        case .widgetSnapshot(let data):
+            widgets.received(data, art: artwork)
 
         case .viewerTitleLanguage(let language):
             accounts.viewerTitleLanguage = language
@@ -442,6 +455,11 @@ public final class AppStore {
             // Everything else is said in the events above, or has no screen.
             break
         }
+    }
+
+    /// What the widgets show may have changed: ask for their snapshot once things settle.
+    private func widgetsChanged() {
+        widgets.changed { [weak self] in self?.send(.widgetSnapshot) }
     }
 
     private func content(_ content: ContentList, for view: ContentFor) {

@@ -20,4 +20,10 @@ CODE_SIGN_STYLE = Automatic
 CODE_SIGN_IDENTITY = -
 DEVELOPMENT_TEAM =
 
+// The App Group the app writes the widgets' snapshot into and the widget extension reads it
+// from. iPhone and iPad: group.tv.anistream. The Mac: the team-prefixed form, which builds and
+// signs with no provisioning profile. Change it here, or for one machine in Local.xcconfig.
+ANISTREAM_APP_GROUP = group.tv.anistream
+ANISTREAM_APP_GROUP[sdk=macosx*] = $(DEVELOPMENT_TEAM).tv.anistream
+
 #include? "Local.xcconfig"
