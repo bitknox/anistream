@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,6 +46,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -52,6 +59,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -302,7 +310,7 @@ internal fun ConnectedChoice(choices: List<String>, selected: Int, onSelect: (In
                 onClick = { onSelect(index) },
                 gap = 8.dp,
             ) { color ->
-                Text(choice, style = MaterialTheme.typography.labelLarge, color = color)
+                BasicText(choice, style = MaterialTheme.typography.labelLarge, color = color)
             }
         }
     }
@@ -310,10 +318,11 @@ internal fun ConnectedChoice(choices: List<String>, selected: Int, onSelect: (In
 
 /**
  * One button of a connected group, [content] beside its check: fully round outside and all round
- * once chosen, 8 between, on primaryContainer once chosen, [chosenWeight] wide against the others'
- * 1. A new choice morphs its corners and width on the motion scheme's spatial spring and its
- * colours on its effects spring, as a ToggleButton's do; the check fades in on fade-in as its room
- * opens on standard, and the old one's leaves on quick (T7).
+ * once chosen, 8 between, on primaryContainer once chosen, [weight] wide against the others. A new
+ * choice morphs its corners on the motion scheme's spatial spring and its colours on its effects
+ * spring, as a ToggleButton's do, read as the button is drawn, so the morph recomposes nothing;
+ * the check fades in on fade-in as its room opens on standard, and the old one's leaves on quick
+ * (T7). [content] draws in the colour it is handed, as it stands at each frame.
  */
 @Composable
 internal fun RowScope.ConnectedButton(
@@ -322,34 +331,60 @@ internal fun RowScope.ConnectedButton(
     last: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** As the finger lands, before it is known to be a tap. */
+    onPress: (() -> Unit)? = null,
+    /** As it lifts or the touch is taken away, a tap or not. */
+    onRelease: (() -> Unit)? = null,
     enabled: Boolean = true,
-    chosenWeight: Float = 1f,
+    weight: Float = 1f,
     gap: Dp = 6.dp,
-    content: @Composable RowScope.(color: Color) -> Unit,
+    content: @Composable RowScope.(color: ColorProducer) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val motion = MaterialTheme.motionScheme
-    // How far chosen, 0 to 1: one spring for the shape and width, one for the colours.
-    val shape by animateFloatAsState(if (chosen) 1f else 0f, motion.defaultSpatialSpec(), label = "shape")
-    val tone by animateFloatAsState(if (chosen) 1f else 0f, motion.defaultEffectsSpec(), label = "tone")
-    val start = lerp(if (first) 20.dp else 8.dp, 20.dp, shape)
-    val end = lerp(if (last) 20.dp else 8.dp, 20.dp, shape)
-    val color = lerp(colors.onSurface, colors.onPrimaryContainer, tone)
+    // How far chosen, 0 to 1: one spring for the shape, one for the colours.
+    val shape = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultSpatialSpec(), label = "shape")
+    val tone = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultEffectsSpec(), label = "tone")
+    val color = remember(colors, tone) { ColorProducer { lerp(colors.onSurface, colors.onPrimaryContainer, tone.value) } }
     Row(
         modifier
-            .weight(1f + (chosenWeight - 1f) * shape)
+            .weight(weight)
             .heightIn(min = 40.dp)
-            .clip(RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end))
-            .background(lerp(colors.surfaceContainer, colors.primaryContainer, tone))
+            .graphicsLayer {
+                val start = lerp(if (first) 20.dp else 8.dp, 20.dp, shape.value)
+                val end = lerp(if (last) 20.dp else 8.dp, 20.dp, shape.value)
+                this.shape = RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end)
+                clip = true
+            }
+            .drawBehind { drawRect(lerp(colors.surfaceContainer, colors.primaryContainer, tone.value)) }
+            .then(if (onPress == null || !enabled) Modifier else Modifier.pressWatch(onPress, onRelease))
             .clickable(enabled = enabled, onClick = onClick)
             .semantics { selected = chosen },
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AnimatedVisibility(chosen, enter = markIn, exit = markOut) {
-            Icon(Icons.Check, contentDescription = null, tint = color, modifier = Modifier.padding(end = gap).size(18.dp))
+            Icon(Icons.Check, contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.padding(end = gap).size(18.dp))
         }
         content(color)
+    }
+}
+
+/**
+ * [onPress] as a finger lands and [onRelease] as it lifts or the touch is taken away, watched
+ * ahead of the button's own handling and consuming nothing.
+ */
+@Composable
+private fun Modifier.pressWatch(onPress: () -> Unit, onRelease: (() -> Unit)?): Modifier {
+    val press by rememberUpdatedState(onPress)
+    val release by rememberUpdatedState(onRelease)
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            press()
+            waitForUpOrCancellation(PointerEventPass.Initial)
+            release?.invoke()
+        }
     }
 }
 
