@@ -3,7 +3,8 @@
 A plugin store is a small server that shares provider plugins with a group of people. Someone runs
 one, invites the people they want, and everyone who joins can install and update the store's
 plugins from the Providers screen. anistream ships no store and lists none. Every store is run by
-someone you know, for the people they invite.
+someone, for the people they invite or, if they choose, for anyone they give its link. There is no
+directory of stores: a store is reached only through a link its owner gave out.
 
 This page covers using a store, running one, and the protocol a store speaks, so another server
 can be written against it.
@@ -27,6 +28,29 @@ with it. An unused link expires after seven days.
 To use the same store on a second computer, open the store and choose **link another device**. That
 gives you a new one-time link for yourself.
 
+### Joining an open store
+
+An owner can let anyone with the store's link join, without inviting each person. That link looks
+like an invite with `?open` before the `#`:
+
+```
+https://plugins.example/join/Wd3Kp8Lq2Zx7Nv5Rt1Yb0g?open#Gv8s0qYH3rKj2m5WzT1nB6cXe4fLd9aP7uQiR0sMw8E
+```
+
+Paste it where you would paste an invite. anistream checks it against the store as it checks an
+invite, and the confirmation says that anyone with the link can join. You join without a name:
+anistream sends nothing about you or your device, and the store keeps nothing about you. The link
+works for anyone, as often as they like, until the owner turns it off. To use the store on another
+device, paste the same link there.
+
+If you already joined a store with an invite, its open link does not replace that: joining again
+through it would trade your name, and an owner's rights, for a member with neither, so anistream
+refuses.
+
+A version of anistream from before open stores reads the link as an invite, and the store tells it
+to update. A store from before open stores, or another server without them, answers that it does
+not accept open joins.
+
 ## Running a store
 
 ```sh
@@ -38,7 +62,7 @@ anistream and you become the store's owner. From then on the store is run from i
 or from its admin page in a browser.
 
 The store's page in the app has what an owner needs day to day: invite someone, see who has joined,
-remove someone, and publish a plugin you have installed locally.
+remove someone, decide who can join, and publish a plugin you have installed locally.
 
 The admin page has all of that and a little more room: rename people, make someone an owner, revoke
 one lost device without removing its owner, and publish by dropping `.wasm` files onto the page. To
@@ -48,6 +72,23 @@ sign-in link instead. A sign-in link works once, for ten minutes, and a session 
 
 `--url` is the address people will reach the store at, and it is what invite links are built from.
 The server listens on `127.0.0.1:7878` unless `--listen` says otherwise.
+
+### Who can join
+
+A store starts out letting in only the people its owners invite. An owner can change that to anyone
+with the store's link: on the store's page in the terminal app ("who can join", with the link and
+the devices under "members"), from the store's menu on a Mac or an iPad ("Who Can Join…"), or on
+the admin page. The Android and iPhone apps have no owner screens, so an owner there uses the admin
+page. Each of these shows the link to copy, how many devices joined with it, and the newest of them
+by when they joined and were last seen. An owner can remove one of them, or all of them at once.
+
+Opening a store makes a new link. Going back to invites only stops the link at once, and a new one
+is made the next time the store opens, so an earlier link stays dead: that is also how an owner
+replaces a link that reached further than they meant. Devices that joined with a link keep working
+after the store closes, until the owner removes them.
+
+Members who joined by invite see on the store's page that anyone with the link can join, since it
+changes who else is there.
 
 ### Deploying one
 
@@ -119,7 +160,10 @@ It is what the container image runs, and it takes the same commands: `anistream-
 ## What a store protects
 
 Invites and tokens decide who can download from a store. Nobody without a token or an unspent
-invite can list its plugins, and nobody without a token can fetch them.
+invite can list its plugins, and nobody without a token can fetch them. For an open store, the
+link takes the invite's place: anyone holding it can list the plugins and join, and nobody without
+it can. Knowing the store's address is not enough, because the link carries a code the address
+does not.
 
 Everyone who joins does get the plugins themselves. A plugin is a `.wasm` file on each member's
 machine, and a member can read it or watch what it contacts. A store keeps its plugins away from
@@ -137,6 +181,24 @@ the store's machine, or its database on a platform that keeps the key there.
 Removing a member stops their updates and new installs straight away. Plugins they already
 downloaded stay on their machine.
 
+### What an open store protects, and what it doesn't
+
+An open store keeps everything above that does not depend on knowing who joined. The link still
+carries the store's key, so the plugin list is checked against it, a different server at the same
+address is refused, and a list older than one already seen is refused. Downloads are checked, and
+plugins run in the same sandbox. Each device that joins gets its own token, which the owner can
+revoke, and the store counts joins per address, ten an hour, so a script cannot fill it with
+devices quickly. It counts them by a digest of the address, kept for the hour and tied to no
+device.
+
+It does not keep the link private. Whoever has it can pass it on, and so can whoever they pass it
+to, and the store cannot tell them apart: it keeps no names, labels or anything else about who
+joined, only when each device joined and was last seen. The owner can turn the link off and remove
+the devices that joined with it, but not remove one particular person, since none of them is known
+by name. The limit per address slows a script down without stopping someone with many addresses.
+Every plugin in an open store reaches whoever has the link, so an owner should only offer plugins
+they are content for that many people to have.
+
 ## Protocol
 
 Version 1. Everything is JSON over HTTPS except plugin downloads. A store lives at a base URL,
@@ -152,6 +214,18 @@ which may include a path (`https://example.com/anistream`), and every path below
 public key, 32 bytes in unpadded base64url. The key travels in the fragment so it never reaches
 the server or its logs.
 
+An open store's link is the same with `?open` after the code:
+
+```
+{base}/join/{code}?open#{key}
+```
+
+Its code is the store's open code, also 16 random bytes, which works for anyone as often as they
+like while the store is open. A client that reads the link as an invite, because it predates open
+links, sends the code to `/v1/redeem` or `/v1/preview`, and is answered with `open_link`, which
+counts toward nothing. The `GET` of an open link's join path answers with a page that says anyone
+with the link can join.
+
 A `GET` of the join path must never use up the invite. Chat apps fetch links to build previews, and
 an invite that redeemed on `GET` would be spent before the person it was sent to saw it. The
 reference server answers it with a page explaining how to paste the link into anistream.
@@ -160,9 +234,11 @@ A client accepts plain `http` only for loopback hosts.
 
 ### Authentication
 
-`POST /v1/redeem` trades an invite code for a token. Every other authenticated request carries that
-token as `Authorization: Bearer {token}`. A token belongs to one device of one member. Servers store
-a hash of each token and each invite code, never the value.
+`POST /v1/redeem` trades an invite code for a token, and `POST /v1/open/join` trades an open code
+for one. Every other authenticated request carries that token as `Authorization: Bearer {token}`. A
+token belongs to one device of one member. Servers store a hash of each token and each invite code,
+never the value. The open code is kept as it is, because the owner can copy the link again at any
+time, and it grants nothing beyond what the link openly offers.
 
 A request with a missing, unknown or revoked token gets `401`. A member asking for an owner action
 gets `403`.
@@ -196,15 +272,17 @@ Every error body has the same shape:
 | ------ | ----------------- | ---------------------------------------------- |
 | 400    | `bad_request`     | The body or path could not be understood       |
 | 400    | `invalid_plugin`  | An upload is not a loadable plugin             |
+| 400    | `open_link`       | An open link's code sent as an invite          |
 | 401    | `unauthorized`    | No token, or one the store does not accept     |
 | 403    | `forbidden`       | The action needs the owner role                |
 | 404    | `not_found`       | No such plugin, version, member or invite      |
 | 404    | `invite_unusable` | The invite was used, cancelled or has expired  |
+| 404    | `open_unusable`   | The store is not open with that code           |
 | 404    | `link_unusable`   | A sign-in link was used or has expired         |
 | 409    | `conflict`        | That version is already published, differently |
 | 409    | `conflict`        | A store with an owner was sent a setup code    |
 | 413    | `too_large`       | The body is over the server's limit            |
-| 429    | `rate_limited`    | Too many failed attempts from this address     |
+| 429    | `rate_limited`    | Too many failures or joins from this address   |
 
 A used, cancelled and unknown invite all get the same answer, so a guess learns nothing.
 
@@ -215,12 +293,17 @@ A used, cancelled and unknown invite all get the same answer, so a guess learns 
 | `GET`    | `/v1/store`                  | anyone | Name, protocol version and public key     |
 | `POST`   | `/v1/redeem`                 | anyone | Trade an invite code for a token          |
 | `POST`   | `/v1/preview`                | anyone | What an invite leads to, without spending |
+| `POST`   | `/v1/open/preview`           | anyone | What an open link leads to                |
+| `POST`   | `/v1/open/join`              | anyone | Trade an open code for a token            |
 | `GET`    | `/v1/me`                     | member | Who this token belongs to                 |
 | `DELETE` | `/v1/me`                     | member | Revoke this device's token                |
 | `GET`    | `/v1/index`                  | member | The signed plugin list                    |
 | `GET`    | `/v1/plugins/{id}/{version}` | member | One plugin's `.wasm`                      |
 | `POST`   | `/v1/invites`                | member | A device invite for yourself (owner: any) |
 | `GET`    | `/v1/members`                | owner  | Members and pending invites               |
+| `GET`    | `/v1/open`                   | owner  | Who can join, the open link, its devices  |
+| `PUT`    | `/v1/open`                   | owner  | Change who can join                       |
+| `DELETE` | `/v1/open/devices`           | owner  | Remove every device that joined openly    |
 | `DELETE` | `/v1/members/{id}`           | owner  | Remove a member and all their devices     |
 | `DELETE` | `/v1/invites/{id}`           | owner  | Cancel a pending invite                   |
 | `POST`   | `/v1/uploads`                | owner  | Start sending a plugin in parts           |
@@ -281,6 +364,46 @@ link.
 - A store from before the preview answers `404` with `not_found`, and anistream joins it without
   one.
 
+`POST /v1/open/preview` takes `{ "code": "…" }` and answers as `POST /v1/preview` does, with the
+signed index. A code that is not the store's open code, or a store that is not open, answers `404`
+with `open_unusable` and counts toward the same limit as a failed redeem. A server without open
+joining answers `404` with `not_found`, and anistream says that the store does not accept open
+joins.
+
+`POST /v1/open/join` takes `{ "code": "…" }`, and nothing else: no device label. It answers as
+`POST /v1/redeem` does, with a member whose name is empty:
+
+```json
+{ "token": "ast1_…", "member": { "id": "2b7e0c41d95f8a36", "name": "", "role": "member" } }
+```
+
+The member is added only while the code is still the store's open code, by one statement. The
+reference server counts open joins per address, ten an hour, and an IPv6 address by its /64,
+answering `429` past that. A member with no name cannot be renamed or made an owner, and asks for
+no device invites: another device joins with the same link.
+
+`GET /v1/open` answers with who can join and the devices that joined with a link:
+
+```json
+{
+  "open": true,
+  "link": "https://plugins.example/join/…?open#…",
+  "devices": 14,
+  "device_list": [
+    { "id": "e41a9c0d27b35f68", "label": "", "created_at": 1792300000, "last_seen": 1792390000 }
+  ]
+}
+```
+
+`link` is there only while the store is open. `devices` counts the devices that joined with a link
+and still work, open or not, and `device_list` is the newest hundred of them. `PUT /v1/open` takes
+`{ "open": true }` or `{ "open": false }` and answers the same way. Opening a store that is closed
+makes a new code; opening one that is open keeps it. `DELETE /v1/open/devices` removes every member
+with no name and their devices, and answers the same way; `DELETE /v1/devices/{id}` removes one. A
+member with no name is not kept as removed: their row is deleted with their last working device, in
+the same batch, whether the owner revoked it or the device left. Members with no name are counted
+here and left out of `GET /v1/members`.
+
 `POST /v1/invites` takes `{ "kind": "device" }` from anyone, for themselves, or
 `{ "kind": "member", "name": "Alex", "role": "member" }` from an owner. `role` may be `owner`.
 Both answer with the link:
@@ -308,10 +431,10 @@ An owner cannot remove themselves, so a store always keeps one. Removing a membe
 their devices and cancels every unused invite they made or asked for, and an invite whose maker has
 been removed is refused even if it was missed.
 
-The reference server limits failed redemptions, sign-ins and setup codes per address. When a
-request comes from loopback, which is what a proxy on the same machine looks like, or the server
-was told to trust a proxy, it uses the last entry of `X-Forwarded-For` instead: that entry is the
-one the proxy added, so a client cannot choose it. On Cloudflare the address is
+The reference server limits failed redemptions, sign-ins, setup codes and open joins per address.
+When a request comes from loopback, which is what a proxy on the same machine looks like, or the
+server was told to trust a proxy, it uses the last entry of `X-Forwarded-For` instead: that entry is
+the one the proxy added, so a client cannot choose it. On Cloudflare the address is
 `CF-Connecting-IP`, and on Vercel and Netlify it is the one the platform reports.
 
 ### Publishing
@@ -391,7 +514,8 @@ The document inside:
       "published_at": 1792300000
     }
   ],
-  "owners": ["Alex"]
+  "owners": ["Alex"],
+  "open": true
 }
 ```
 
@@ -403,6 +527,10 @@ hand back an older list to keep someone on an old version.
 describes the store as it is now, so neither moves `sequence`. A store from before it leaves it
 out.
 
+`open` is there, and true, while anyone with the store's link can join. It describes the store as
+it is now too, and moves no `sequence`. An invite-only store leaves it out, so it signs the same
+bytes it did before open stores existed.
+
 A plugin's `.wasm` is at `/v1/plugins/{id}/{version}`. A published version never changes, so a
 client can verify the download against `sha256` and `size` and then trust it.
 
@@ -413,8 +541,8 @@ limit still arrives.
 
 ### What the client checks
 
-Before joining, anistream checks that the store's `GET /v1/store` key is the one in the invite, and
-that the preview's index is signed with it.
+Before joining, anistream checks that the store's `GET /v1/store` key is the one in the invite or
+the open link, and that the preview's index is signed with it.
 After redeeming, and before keeping the token, it fetches the index and checks its signature. Anyone
 can repeat a store's public key; only the store can sign with it, so a server that does the first
 and not the second is not joined. A link to a store already joined must name the address it was

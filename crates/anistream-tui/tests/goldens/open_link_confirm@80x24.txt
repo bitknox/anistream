@@ -1,0 +1,81 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  PLUGIN STORES
+  ▤│
+────────────────────────────────────────────────────────────────────────────────
+▌ JOIN HEARTH PLUGINS?
+────────────────────────────────────────────────────────────────────────────────
+  address   https://plugins.example
+  key       489f 49ea 0372 41ac  — matches the link
+  run by    Mirei
+  offers    2 plugins
+            Yamabiko 1.4.0  may contact api.yamabiko.example · installed
+            Hotaru 0.3.0  may contact subs.example
+  anyone with the link can join
+  you join without a name, and another device joins with the same link
+
+  enter joins · esc cancels
+
+   │
+   │
+   │  ────────────────────────────────────────────────────────────────────────
+   │    paste the invite or store link you were given
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                     ↵ confirm   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-05 fg=rule
+r02 c06-18 fg=rule mod=BOLD
+r02 c19-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule bg=ground
+r05 c00-00 fg=obi bg=ground
+r05 c01-01 fg=rule bg=ground
+r05 c02-21 fg=text bg=ground mod=BOLD
+r05 c22-79 fg=rule bg=ground
+r06 c00-79 fg=rule bg=ground
+r07 c00-01 fg=rule bg=ground
+r07 c02-34 fg=text-dim bg=ground
+r07 c35-79 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-50 fg=text-dim bg=ground
+r08 c51-79 fg=rule bg=ground
+r09 c00-01 fg=rule bg=ground
+r09 c02-07 fg=text-dim bg=ground
+r09 c08-16 fg=text-dim bg=ground mod=BOLD
+r09 c17-21 fg=rule bg=ground mod=BOLD
+r09 c22-79 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-20 fg=text-dim bg=ground
+r10 c21-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-71 fg=text-dim bg=ground
+r11 c72-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-49 fg=text-dim bg=ground
+r12 c50-79 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-30 fg=text-dim bg=ground
+r13 c31-79 fg=rule bg=ground
+r14 c00-01 fg=rule bg=ground
+r14 c02-69 fg=text-dim bg=ground
+r14 c70-79 fg=rule bg=ground
+r15 c00-79 fg=rule bg=ground
+r16 c00-01 fg=rule bg=ground
+r16 c02-26 fg=text-dim bg=ground
+r16 c27-79 fg=rule bg=ground
+r17 c00-79 fg=rule bg=ground
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-57 fg=rule
+r23 c58-58 fg=text
+r23 c59-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

@@ -53,6 +53,25 @@ export interface PendingInvite {
 	expires_at: number;
 }
 
+/**
+ * `GET /v1/open`, and the answer to `PUT /v1/open` and `DELETE /v1/open/devices`: who can join,
+ * the link anyone can join with while the store is open, and the devices that joined with it.
+ */
+export interface OpenState {
+	open: boolean;
+	/** `{base}/join/{code}?open#{key}`, while the store is open. */
+	link?: string;
+	/** Devices that joined with a link and still work here. */
+	devices: number;
+	/** The most recently joined of them, newest first, up to 100. Their labels are empty. */
+	device_list: DeviceRow[];
+}
+
+/** `PUT /v1/open`. */
+export interface OpenSetting {
+	open: boolean;
+}
+
 /** `GET /v1/admin/overview`. */
 export interface AdminOverview {
 	store: StoreInfo;
@@ -61,8 +80,10 @@ export interface AdminOverview {
 	me: Member;
 	sequence: number;
 	plugins: IndexEntry[];
+	/** The people. Devices that joined with the open link are counted in `open`, not here. */
 	members: MemberRow[];
 	invites: PendingInvite[];
+	open: OpenState;
 }
 
 /** `POST /v1/admin/session`, answered with the `Member` signed in. */

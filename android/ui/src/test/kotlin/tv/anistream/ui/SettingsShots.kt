@@ -178,7 +178,9 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_join_store() = shoot("phone-join-store", settingsRoute(SettingsPane.Sources), screen = true) { store ->
         store.stores.openJoin(INVITE)
-        store.apply(listOf(Event.StorePreview(InvitePreview.Store(InvitedStore(INVITE, "Hotaru Plugins", "https://plugins.hotaru.example", "plugins.hotaru.example", "9f3c 1a2b 77de 0c41", alreadyJoined = false)))))
+        // AndroidJoinStore's preview: who runs it, its four plugins and where each stands here.
+        val invited = InvitedStore(INVITE, "Hotaru Plugins", "https://plugins.hotaru.example", "plugins.hotaru.example", "9f3c 1a2b 77de 0c41", alreadyJoined = false, owners = listOf("Ren"), plugins = HOTARU.plugins)
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
     }
 
     @Test

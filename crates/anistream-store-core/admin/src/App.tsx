@@ -6,6 +6,7 @@ import { Eyecatch } from './components/Eyecatch';
 import { Footer, Nav } from './components/Chrome';
 import { Hero } from './components/Hero';
 import { Invites } from './components/Invites';
+import { Joining } from './components/Joining';
 import { Members } from './components/Members';
 import { Plugins } from './components/Plugins';
 import { SignedOut } from './components/SignedOut';
@@ -148,6 +149,7 @@ export function App() {
 							<Hero data={data} />
 							<Plugins plugins={data.plugins} act={act} onPublish={publish} />
 							<Members members={data.members} me={data.me} act={act} />
+							<Joining state={data.open} act={act} say={say} />
 							<Invites invites={data.invites} act={act} say={say} />
 						</>
 					)}

@@ -322,6 +322,16 @@ pub(crate) fn dispatch(
         Command::OpenAdmin { store } => {
             store_task(job, engine, services, tx, move |context| context.open_admin(store))
         }
+        Command::SetOpenJoin { store, open } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.set_open_join(store, open)
+            })
+        }
+        Command::RemoveAnonymous { store, device } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.remove_anonymous(store, device)
+            })
+        }
     }
 }
 

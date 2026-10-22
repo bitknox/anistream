@@ -190,7 +190,7 @@ fn overlay_hints(
     match overlay {
         O::Help if help_pages > 1 => vec![hint("↑↓", "page"), hint("esc", "close")],
         O::Help => vec![hint("esc", "close")],
-        O::InviteLink => vec![hint("↵", "close")],
+        O::InviteLink | O::OpenLink => vec![hint("↵", "close")],
         O::Logs if app.logs.is_empty() => vec![hint("esc", "close")],
         O::Logs => vec![hint("↑↓", "move"), hint("esc", "close")],
         O::SearchFilters => {

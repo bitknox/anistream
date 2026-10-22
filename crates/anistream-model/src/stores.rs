@@ -30,6 +30,14 @@ pub struct StoreRow {
     /// not say.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub owners: Vec<String>,
+    /// Anyone with the store's link can join it, not only people its owners invite: "Anyone with
+    /// the link can join". From its signed list, so as of the last refresh.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub open: bool,
+    /// This machine joined with the store's link, as a member with no name: `member` is empty,
+    /// and another device joins with the link rather than an invite.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub anonymous: bool,
 }
 
 impl StoreRow {
@@ -116,6 +124,14 @@ pub struct InvitedStore {
     /// Both empty from a store that predates the preview, which the link joins all the same.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub plugins: Vec<StorePluginRow>,
+    /// Anyone with the store's link can join it, not only people its owners invite: "Anyone with
+    /// the link can join". True for an open link, and for an invite to a store that is open.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub open: bool,
+    /// The link is the store's open link, which joins as a member with no name. An invite joins
+    /// as the person it was made for.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub anonymous: bool,
 }
 
 /// A freshly made invite link.
@@ -128,6 +144,38 @@ pub struct InviteLinkView {
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub for_whom: Option<String>,
     pub expires_at: i64,
+}
+
+/// Who can join a store, for its owner: only people they invite, or anyone with its link, and the
+/// devices that joined with the link. Carried by
+/// [`Event::OpenJoin`](crate::event::Event::OpenJoin).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct OpenJoinView {
+    /// Anyone with the link can join. Otherwise only people the owners invite.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub open: bool,
+    /// The link to copy and share, while the store is open.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub link: Option<Secret>,
+    /// How many devices that joined with a link still work here. They stay when the store goes
+    /// back to invites only, until the owner removes them.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub devices: u32,
+    /// The most recently joined of them, newest first, at most a hundred.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub recent: Vec<AnonymousDeviceRow>,
+}
+
+/// A device that joined with a store's link. Nothing about who uses it is kept, so it is known
+/// by when it joined and when it was last seen.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct AnonymousDeviceRow {
+    pub id: String,
+    pub joined_at: i64,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub last_seen: Option<i64>,
 }
 
 /// One member of a store, for its owner.

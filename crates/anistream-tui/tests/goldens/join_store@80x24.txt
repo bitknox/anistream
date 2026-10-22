@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ JOIN A STORE   …ple/join/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
 ────────────────────────────────────────────────────────────────────────────────
-  paste the invite link the store's owner sent you — enter checks it, esc …
+  paste the invite or store link you were given — enter checks it, esc can…
 
    │
    │
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    paste the invite link a store's owner sent you
+   │    paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                       ↵ check   esc cancel
 === styles ===

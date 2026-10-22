@@ -728,10 +728,37 @@ mod tests {
                 hosts: vec!["api.example".into()],
                 status: anistream_model::stores::StorePluginStatus::OtherStore("Theirs".into()),
             }],
+            open: true,
+            anonymous: true,
         })));
         crosses_intact(Event::StorePreview(InvitePreview::Failed {
             reason: "that is not a link".into(),
         }));
+    }
+
+    #[test]
+    fn who_can_join_a_store_crosses_with_its_commands() {
+        use anistream_model::stores::{AnonymousDeviceRow, OpenJoinView};
+        crosses_intact(Event::OpenJoin {
+            store: "abc".into(),
+            view: OpenJoinView {
+                open: true,
+                link: Some(Secret("https://plugins.example/join/abc?open#key".into())),
+                devices: 3,
+                recent: vec![AnonymousDeviceRow {
+                    id: "d1".into(),
+                    joined_at: 1_792_000_000,
+                    last_seen: None,
+                }],
+            },
+        });
+        for command in [
+            Command::SetOpenJoin { store: "abc".into(), open: true },
+            Command::RemoveAnonymous { store: "abc".into(), device: None },
+            Command::RemoveAnonymous { store: "abc".into(), device: Some("d1".into()) },
+        ] {
+            assert_eq!(crossed(command.clone()), command);
+        }
     }
 
     #[test]

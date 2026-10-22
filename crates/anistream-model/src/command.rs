@@ -59,6 +59,9 @@ impl Command {
             Self::PublishPlugin { plugin, .. } => format!("publishing {plugin}"),
             Self::UnpublishPlugin { plugin, .. } => format!("withdrawing {plugin}"),
             Self::OpenAdmin { .. } => "opening the admin page".into(),
+            Self::SetOpenJoin { open: true, .. } => "opening the store to its link".into(),
+            Self::SetOpenJoin { open: false, .. } => "limiting the store to invites".into(),
+            Self::RemoveAnonymous { .. } => "removing devices".into(),
             _ => return None,
         })
     }
@@ -422,6 +425,19 @@ pub enum Command {
     /// Ask a store for a one-time sign-in link and open its admin page in the browser.
     OpenAdmin {
         store: String,
+    },
+    /// Let anyone with the store's link join, or only people its owners invite. Opening makes a
+    /// new link; going back to invites only stops new joins and keeps the devices that joined.
+    /// Answered with [`Event::OpenJoin`](crate::event::Event::OpenJoin) and a notice.
+    SetOpenJoin {
+        store: String,
+        open: bool,
+    },
+    /// Remove one device that joined with the store's link, or all of them when `device` is
+    /// `None`. Answered with [`Event::OpenJoin`](crate::event::Event::OpenJoin) and a notice.
+    RemoveAnonymous {
+        store: String,
+        device: Option<String>,
     },
     /// Fetch a cover or banner the front end is about to show, from the cache when it is fresh
     /// there. Answered with [`Event::ArtworkReady`](crate::event::Event::ArtworkReady), or with

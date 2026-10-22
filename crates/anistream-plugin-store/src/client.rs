@@ -14,9 +14,9 @@ use crate::{
     invite::{self, Invite},
     protocol::{
         AdminLink, ErrorBody, Index, IndexEntry, InviteCreated, InviteRequest,
-        MAX_PLUGIN_BYTES, Me, MemberList, PART_SIZE, PROTOCOL, PreviewRequest, PublishRequest,
-        RedeemRequest, RedeemResponse, SignedIndex, StoreInfo, UploadRequest, UploadStarted,
-        is_valid_id, is_valid_version,
+        MAX_PLUGIN_BYTES, Me, MemberList, OpenJoinRequest, OpenSetting, OpenState, PART_SIZE,
+        PROTOCOL, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse, SignedIndex,
+        StoreInfo, UploadRequest, UploadStarted, is_valid_id, is_valid_version,
     },
 };
 
@@ -43,6 +43,10 @@ pub enum ClientError {
     Malformed(String),
     #[error("the download does not match the store's list: {0}")]
     Integrity(String),
+    /// An open link to a store whose server has no open joining: one from before it, or another
+    /// server that leaves it out.
+    #[error("this store does not accept open joins. Ask its owner for an invite")]
+    NotOpen,
 }
 
 impl ClientError {
@@ -108,12 +112,29 @@ impl StoreClient {
         Ok(info)
     }
 
-    /// The plugin list an invite leads to, verified against the key the invite carries, before
-    /// it is spent: who runs the store and what it offers, for the confirmation. Spends nothing.
+    /// The plugin list an invite or an open link leads to, verified against the key the link
+    /// carries, before anything is spent: who runs the store and what it offers, for the
+    /// confirmation. Joins nothing.
     ///
-    /// `None` from a store that predates the preview, which answers that it has no such
-    /// endpoint: the confirmation goes without. Any sequence is taken, since nothing is kept.
+    /// For an invite, `None` from a store that predates the preview, which answers that it has
+    /// no such endpoint: the confirmation goes without. An open link has no such store, since
+    /// open joining came after the preview, so one without the endpoint is [`ClientError::NotOpen`].
+    /// Any sequence is taken, since nothing is kept.
     pub async fn preview_index(&self, invite: &Invite) -> Result<Option<Index>, ClientError> {
+        if invite.open {
+            let body = OpenJoinRequest { code: invite.code.clone() };
+            let signed: SignedIndex = self
+                .send_json(
+                    reqwest::Method::POST,
+                    &invite.base,
+                    "v1/open/preview",
+                    None,
+                    Some(&body),
+                )
+                .await
+                .map_err(not_open)?;
+            return verify_index(&signed, &invite.key, 0).map(Some);
+        }
         let body = PreviewRequest { invite: invite.code.clone() };
         let answer: Result<SignedIndex, _> = self
             .send_json(reqwest::Method::POST, &invite.base, "v1/preview", None, Some(&body))
@@ -128,12 +149,28 @@ impl StoreClient {
         }
     }
 
-    /// Spend an invite for a token.
+    /// Spend an invite for a token, or join with an open link.
+    ///
+    /// An open join sends no device label, or anything else about who is joining: the member it
+    /// makes has no name.
     pub async fn redeem(
         &self,
         invite: &Invite,
         device: &str,
     ) -> Result<RedeemResponse, ClientError> {
+        if invite.open {
+            let body = OpenJoinRequest { code: invite.code.clone() };
+            return self
+                .send_json(
+                    reqwest::Method::POST,
+                    &invite.base,
+                    "v1/open/join",
+                    None,
+                    Some(&body),
+                )
+                .await
+                .map_err(not_open);
+        }
         let body = RedeemRequest { invite: invite.code.clone(), device: device.to_owned() };
         self.send_json(reqwest::Method::POST, &invite.base, "v1/redeem", None, Some(&body))
             .await
@@ -269,6 +306,58 @@ impl StoreClient {
         self.send_empty(reqwest::Method::DELETE, base, &path, Some(token)).await
     }
 
+    /// Who can join the store, its open link while it has one, and the devices that joined with
+    /// it. Owners only.
+    pub async fn open_state(&self, base: &str, token: &str) -> Result<OpenState, ClientError> {
+        self.get_json(base, "v1/open", Some(token)).await.map_err(not_open)
+    }
+
+    /// Let anyone with the link join, or only people the owners invite. Opening makes a new link.
+    pub async fn set_open(
+        &self,
+        base: &str,
+        token: &str,
+        open: bool,
+    ) -> Result<OpenState, ClientError> {
+        self.send_json(
+            reqwest::Method::PUT,
+            base,
+            "v1/open",
+            Some(token),
+            Some(&OpenSetting { open }),
+        )
+        .await
+        .map_err(not_open)
+    }
+
+    /// Remove every device that joined with the open link.
+    pub async fn remove_anonymous(
+        &self,
+        base: &str,
+        token: &str,
+    ) -> Result<OpenState, ClientError> {
+        self.send_json::<(), OpenState>(
+            reqwest::Method::DELETE,
+            base,
+            "v1/open/devices",
+            Some(token),
+            None,
+        )
+        .await
+        .map_err(not_open)
+    }
+
+    /// Revoke one device of anyone's, keeping its member. Owners only.
+    pub async fn revoke_device(
+        &self,
+        base: &str,
+        token: &str,
+        device: &str,
+    ) -> Result<(), ClientError> {
+        let path = format!("v1/devices/{}", segment(device)?);
+        self.send_empty(reqwest::Method::DELETE, base, &path, Some(token)).await
+    }
+
     pub async fn cancel_invite(
         &self,
         base: &str,
@@ -394,6 +483,17 @@ impl StoreClient {
             request = request.bearer_auth(token);
         }
         build(request).send().await.map_err(|e| ClientError::Network(describe(&e)))
+    }
+}
+
+/// A store without open joining's answer to a request about it, said as such. Its routing answers
+/// `not_found` for a path it does not have; an open link that stopped working is `open_unusable`.
+fn not_open(error: ClientError) -> ClientError {
+    match error {
+        ClientError::Server { status: 404, code, .. } if code == "not_found" => {
+            ClientError::NotOpen
+        }
+        e => e,
     }
 }
 
@@ -548,6 +648,7 @@ mod tests {
                 })
                 .collect(),
             owners: Vec::new(),
+            open: false,
         };
         let index = serde_json::to_string(&index).unwrap();
         SignedIndex { signature: key.sign_index(&index), index }

@@ -20,8 +20,8 @@ use super::{
     episodes::{candidate_rows, source_rows},
     line,
     stores::{
-        invite_link_chunks, invite_link_rows, link_width, plugin_action_rows, publish_rows,
-        store_confirm_heading, store_confirm_rows,
+        invite_link_chunks, invite_link_rows, link_width, open_link_chunks, open_link_rows,
+        plugin_action_rows, publish_rows, store_confirm_heading, store_confirm_rows,
     },
     title::{
         rate_rows, recommendation_rows, source_provider_rows, status_rows, watch_order_rows,
@@ -163,7 +163,7 @@ pub(super) fn render_overlay(
         )],
         Overlay::JoinStore => vec![(
             String::new(),
-            "paste the invite link the store's owner sent you — enter checks it, esc cancels"
+            "paste the invite or store link you were given — enter checks it, esc cancels"
                 .into(),
         )],
         Overlay::InviteName => vec![(
@@ -173,6 +173,7 @@ pub(super) fn render_overlay(
         Overlay::StoreConfirm => store_confirm_rows(app),
         Overlay::PluginAction => plugin_action_rows(app).0,
         Overlay::InviteLink => invite_link_rows(app, link_width(area.width)),
+        Overlay::OpenLink => open_link_rows(app, link_width(area.width)),
         Overlay::PublishPick => publish_rows(app),
     };
 
@@ -206,6 +207,7 @@ pub(super) fn render_overlay(
     // like the notes under it.
     let emphasised = match overlay {
         Overlay::InviteLink => invite_link_chunks(app, link_width(area.width)).len(),
+        Overlay::OpenLink => open_link_chunks(app, link_width(area.width)).len(),
         _ => 0,
     };
 
@@ -341,6 +343,10 @@ pub(super) fn render_overlay(
         {
             Some(name) => format!("{}   for {name}", glyph::eyebrow(overlay.title())),
             None => glyph::eyebrow("link another device"),
+        },
+        Overlay::OpenLink => match app.open_join.as_ref().and_then(|(id, _)| app.store(id)) {
+            Some(store) => format!("{}   of {}", glyph::eyebrow(overlay.title()), store.name),
+            None => glyph::eyebrow(overlay.title()),
         },
         Overlay::PublishPick => match app.publish_for.as_deref().and_then(|id| app.store(id)) {
             Some(store) => format!("{}   to {}", glyph::eyebrow(overlay.title()), store.name),

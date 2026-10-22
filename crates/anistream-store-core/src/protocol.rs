@@ -85,6 +85,47 @@ pub struct PreviewRequest {
     pub invite: String,
 }
 
+/// `POST /v1/open/preview` and `POST /v1/open/join`: the code from a store's open link, which
+/// anyone holding the link may use as often as they like while the store lets anyone join.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OpenJoinRequest {
+    pub code: String,
+}
+
+/// The code is what lets anyone in, so it never reaches a log line through `{:?}`.
+impl std::fmt::Debug for OpenJoinRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("OpenJoinRequest(«redacted»)")
+    }
+}
+
+/// `PUT /v1/open`: who can join. `false`, the default, is only people the owners invite.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct OpenSetting {
+    pub open: bool,
+}
+
+/// `GET /v1/open`, and the answer to every change of it: who can join, the link anyone can join
+/// with while it is open, and the devices that joined that way.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct OpenState {
+    /// Whether anyone with the link can join. Otherwise only people the owners invite can.
+    pub open: bool,
+    /// `{base}/join/{code}?open#{key}`, while the store is open.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<String>,
+    /// How many devices that joined with a link still work here, whether or not the store is
+    /// still open.
+    pub devices: u32,
+    /// The most recently joined of them, newest first, up to [`OPEN_DEVICES_LISTED`]. Their
+    /// labels are empty: nothing about who joined is kept.
+    #[serde(default)]
+    pub device_list: Vec<DeviceRow>,
+}
+
+/// How many anonymous devices [`OpenState::device_list`] lists at most.
+pub const OPEN_DEVICES_LISTED: u32 = 100;
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RedeemResponse {
     pub token: String,
@@ -199,6 +240,10 @@ pub struct AdminOverview {
     pub plugins: Vec<IndexEntry>,
     pub members: Vec<MemberRow>,
     pub invites: Vec<PendingInvite>,
+    /// Who can join, and the devices that joined with the open link. Absent from servers that
+    /// predate open joining, which read as invite-only.
+    #[serde(default)]
+    pub open: OpenState,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -255,6 +300,12 @@ pub struct Index {
     /// plugin list. Left out by a store from before it was, and then read as none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub owners: Vec<String>,
+    /// Whether anyone with the store's link can join it, rather than only people its owners
+    /// invite: something a member should know about who else is there. Like `owners`, it
+    /// describes the store as it is now and moves no `sequence`. Left out while it is false, and
+    /// by a store from before it was.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub open: bool,
 }
 
 impl Index {
@@ -401,6 +452,33 @@ mod tests {
             member: Member { id: "1".into(), name: "Alex".into(), role: Role::Member },
         };
         assert!(!format!("{response:?}").contains("secret"));
+    }
+
+    #[test]
+    fn an_index_says_it_is_open_only_when_it_is() {
+        // Left out while false, so an invite-only store signs the same bytes it did before open
+        // joining existed, and an index from such a store reads as invite-only.
+        let index = Index {
+            protocol: PROTOCOL,
+            store: "Ours".into(),
+            key: String::new(),
+            sequence: 1,
+            issued_at: 0,
+            plugins: Vec::new(),
+            owners: Vec::new(),
+            open: false,
+        };
+        let closed = serde_json::to_string(&index).unwrap();
+        assert!(!closed.contains("open"), "{closed}");
+        assert!(!serde_json::from_str::<Index>(&closed).unwrap().open);
+        let open = serde_json::to_string(&Index { open: true, ..index }).unwrap();
+        assert!(serde_json::from_str::<Index>(&open).unwrap().open);
+    }
+
+    #[test]
+    fn an_open_code_never_prints() {
+        let request = OpenJoinRequest { code: "k3TzQe9WbA1xLr7uVn2c0g".into() };
+        assert!(!format!("{request:?}").contains("k3Tz"));
     }
 
     #[test]

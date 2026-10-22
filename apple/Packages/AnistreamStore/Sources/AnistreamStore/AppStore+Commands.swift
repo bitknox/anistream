@@ -197,6 +197,16 @@ extension AppStore {
         send(.openAdmin(store: store))
     }
 
+    /// Let anyone with the store's link join, or only people you invite. Opening makes a new link.
+    public func setOpenJoin(_ store: String, open: Bool) {
+        stores.started(.openJoin(store: store), job: send(.setOpenJoin(store: store, open: open)))
+    }
+
+    /// Remove one device that joined with the store's link, or all of them when `device` is nil.
+    public func removeAnonymous(_ device: String?, from store: String) {
+        stores.started(.removeAnonymous(store: store), job: send(.removeAnonymous(store: store, device: device)))
+    }
+
     // MARK: Downloads
 
     public func loadDownloads() {

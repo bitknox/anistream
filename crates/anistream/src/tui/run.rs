@@ -112,6 +112,11 @@ pub async fn run(
     // Until when the screen waits on the engine's word: see `ENGINE_WAIT`.
     let mut engine_due: Option<std::time::Instant> = None;
     let result = loop {
+        // A link the screen asked to copy with no event to carry it, as the store's open link
+        // is: handed over before the frame that says whether it went.
+        if let Some(text) = app.take_clipboard() {
+            app.open_link_copied = copy_to_clipboard(terminal.backend_mut(), &text);
+        }
         let now = std::time::Instant::now();
         // A mark is the engine's to make: the table shows it once the engine has written it
         // and said where the title stands, which it does at once. Until then the next frame

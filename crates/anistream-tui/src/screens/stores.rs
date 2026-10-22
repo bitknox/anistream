@@ -2,11 +2,11 @@
 //! actions, and its members and invites; the rows of the overlays that join a store, confirm a
 //! store action, act on a plugin, publish one and show an invite link.
 
-use anistream_model::stores::{StorePluginStatus, StoreRow, StoreState};
+use anistream_model::stores::{StorePluginRow, StorePluginStatus, StoreRow, StoreState};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
-    app::{App, PluginChoice, StoreConfirm, StoreLine},
+    app::{App, MemberLine, PluginChoice, StoreConfirm, StoreLine},
     clock::Clock,
     nav::Focus,
     theme::{Role, glyph},
@@ -175,12 +175,16 @@ pub(super) fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
                 glyph::dotted(&[
                     &store.url,
                     &format!("key {}", store.fingerprint),
-                    &format!("joined as {}", store.member),
+                    &if store.anonymous {
+                        "joined without a name".to_owned()
+                    } else {
+                        format!("joined as {}", store.member)
+                    },
                 ]),
                 Role::TextDim,
             ),
         },
-        None => ("paste the invite link a store's owner sent you".to_owned(), Role::TextDim),
+        None => ("paste the invite or store link you were given".to_owned(), Role::TextDim),
     };
     render_footer(buf, app, area, &footer, role);
 }
@@ -212,6 +216,14 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         );
     }
     let (note, role) = match &store.state {
+        StoreState::Ready if store.open => (
+            glyph::dotted(&[
+                &store.url,
+                &format!("key {}", store.fingerprint),
+                "anyone with the link can join",
+            ]),
+            Role::TextDim,
+        ),
         StoreState::Ready => {
             (glyph::dotted(&[&store.url, &format!("key {}", store.fingerprint)]), Role::TextDim)
         }
@@ -326,6 +338,18 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                     style
                 };
                 line(buf, area.left() + COL_PROVIDER, y, action.label(), style);
+                if matches!(action, StoreLine::WhoCanJoin) && COL_PLUGIN_VERSION < area.width {
+                    line(
+                        buf,
+                        area.left() + COL_PLUGIN_VERSION,
+                        y,
+                        truncate(
+                            who_can_join(store.open),
+                            area.width.saturating_sub(COL_PLUGIN_VERSION + 1) as usize,
+                        ),
+                        app.palette.style(Role::TextDim),
+                    );
+                }
             }
         }
         y += 1;
@@ -350,6 +374,12 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         Some(StoreLine::Members) => {
             ("who has joined, and removing someone's access".into(), Role::TextDim)
         }
+        Some(StoreLine::WhoCanJoin) if store.open => {
+            ("↵ only let people you invite join, and stop the link".into(), Role::TextDim)
+        }
+        Some(StoreLine::WhoCanJoin) => {
+            ("↵ let anyone with the store's link join, without a name".into(), Role::TextDim)
+        }
         Some(StoreLine::Publish) => {
             ("offer a plugin from this machine's plugin directory".into(), Role::TextDim)
         }
@@ -363,6 +393,47 @@ pub(super) fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         None => (String::new(), Role::TextDim),
     };
     render_footer(buf, app, area, &footer, role);
+}
+
+/// The plugins a store a link leads to offers, a line each, with what each may contact and where
+/// it stands here: at most a handful, then how many more.
+fn offered_rows(plugins: &[StorePluginRow]) -> Vec<String> {
+    const SHOWN: usize = 5;
+    if plugins.is_empty() {
+        return Vec::new();
+    }
+    let mut rows = vec![format!(
+        "offers    {}",
+        if plugins.len() == 1 {
+            "1 plugin".to_owned()
+        } else {
+            format!("{} plugins", plugins.len())
+        }
+    )];
+    rows.extend(plugins.iter().take(SHOWN).map(|plugin| {
+        let here = match &plugin.status {
+            StorePluginStatus::Available => String::new(),
+            StorePluginStatus::Installed => " · installed".into(),
+            StorePluginStatus::Update { from, .. } => format!(" · {from} installed"),
+            StorePluginStatus::AddedByHand => " · added by hand".into(),
+            StorePluginStatus::OtherStore(other) => format!(" · from {other}"),
+        };
+        format!(
+            "          {} {}  may contact {}{here}",
+            plugin.name,
+            plugin.version,
+            hosts_text(&plugin.hosts)
+        )
+    }));
+    if plugins.len() > SHOWN {
+        rows.push(format!("          and {} more", plugins.len() - SHOWN));
+    }
+    rows
+}
+
+/// Who can join a store, in a few words.
+fn who_can_join(open: bool) -> &'static str {
+    if open { "anyone with the link" } else { "only people you invite" }
 }
 
 fn hosts_text(hosts: &[String]) -> String {
@@ -430,11 +501,15 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
         line(buf, area.left() + COL_PROVIDER, y, "loading…", app.palette.style(Role::TextDim));
         return;
     }
+    let lines = app.member_lines();
+    let selected = lines.get(app.cursors.members.selected).copied();
+    let at = |line: MemberLine| lines.iter().position(|l| *l == line);
+    let dim = app.palette.style(Role::TextDim);
     for (i, member) in app.store_members.iter().enumerate() {
         if y >= last_row {
             break;
         }
-        let style = focus_row(buf, app, area, y, i == app.cursors.members.selected);
+        let style = focus_row(buf, app, area, y, selected == Some(MemberLine::Member(i)));
         let label =
             if member.you { format!("{} (you)", member.name) } else { member.name.clone() };
         line(
@@ -444,7 +519,6 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
             truncate(&label, (COL_STORE_COUNT - COL_PROVIDER - 2) as usize),
             style,
         );
-        let dim = app.palette.style(Role::TextDim);
         line(
             buf,
             area.left() + COL_STORE_COUNT,
@@ -467,20 +541,13 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
 
     if !app.store_invites.is_empty() && y + 2 < last_row {
         y += 1;
-        line(
-            buf,
-            area.left(),
-            y,
-            glyph::eyebrow("invites not used yet"),
-            app.palette.style(Role::TextDim),
-        );
+        line(buf, area.left(), y, glyph::eyebrow("invites not used yet"), dim);
         y += 1;
         for (i, invite) in app.store_invites.iter().enumerate() {
             if y >= last_row {
                 break;
             }
-            let at = app.store_members.len() + i;
-            let style = focus_row(buf, app, area, y, at == app.cursors.members.selected);
+            let style = focus_row(buf, app, area, y, selected == Some(MemberLine::Invite(i)));
             let label = if invite.device {
                 format!("{}, another device", invite.name)
             } else {
@@ -501,19 +568,94 @@ pub(super) fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: 
                     &until(&app.clock, invite.expires_at),
                     area.width.saturating_sub(COL_STORE_STATE + 1) as usize,
                 ),
-                app.palette.style(Role::TextDim),
+                dim,
             );
             y += 1;
         }
     }
 
-    let footer = if app.cursors.members.selected < app.store_members.len() {
-        match app.store_members.get(app.cursors.members.selected) {
+    // The store's link and the devices that joined with it: counted, never named.
+    if let Some(view) = app.open_join_view()
+        && (view.open || view.devices > 0)
+        && y + 2 < last_row
+    {
+        y += 1;
+        let joined = match view.devices {
+            1 => "1 device".to_owned(),
+            n => format!("{n} devices"),
+        };
+        let heading = if view.open {
+            format!("anyone with the link can join · {joined} joined with it")
+        } else {
+            format!("joined with the link before it was closed · {joined}")
+        };
+        line(
+            buf,
+            area.left(),
+            y,
+            truncate(&glyph::eyebrow(&heading), area.width as usize),
+            dim,
+        );
+        y += 1;
+        let mut row = |y: &mut u16, line_at: Option<usize>, label: String, note: String| {
+            if *y >= last_row {
+                return;
+            }
+            let style =
+                focus_row(buf, app, area, *y, line_at == Some(app.cursors.members.selected));
+            line(
+                buf,
+                area.left() + COL_PROVIDER,
+                *y,
+                truncate(&label, (COL_STORE_STATE - COL_PROVIDER - 2) as usize),
+                style,
+            );
+            line(
+                buf,
+                area.left() + COL_STORE_STATE,
+                *y,
+                truncate(&note, area.width.saturating_sub(COL_STORE_STATE + 1) as usize),
+                dim,
+            );
+            *y += 1;
+        };
+        if view.open {
+            row(
+                &mut y,
+                at(MemberLine::OpenLink),
+                "the store's link".into(),
+                "show and copy".into(),
+            );
+        }
+        for (i, device) in view.recent.iter().enumerate() {
+            let seen =
+                device.last_seen.map_or_else(|| "never".to_owned(), |at| ago(&app.clock, at));
+            row(
+                &mut y,
+                at(MemberLine::Anonymous(i)),
+                format!("joined {}", ago(&app.clock, device.joined_at)),
+                format!("seen {seen}"),
+            );
+        }
+        if view.devices > 0 {
+            let all = match view.devices {
+                1 => "remove it".to_owned(),
+                n => format!("remove all {n}"),
+            };
+            row(&mut y, at(MemberLine::RemoveAnonymous), all, String::new());
+        }
+    }
+
+    let footer = match selected {
+        Some(MemberLine::Member(i)) => match app.store_members.get(i) {
             Some(member) if member.you => "you — a store always keeps its owner",
             _ => "↵ remove their access",
-        }
-    } else {
-        "↵ cancel this invite"
+        },
+        Some(MemberLine::Invite(_)) => "↵ cancel this invite",
+        Some(MemberLine::OpenLink) => "↵ show the link, to copy and share",
+        Some(MemberLine::Anonymous(_)) => "↵ remove this device, known only by when it joined",
+        Some(MemberLine::RemoveAnonymous) => "↵ remove every device that joined with the link",
+        None => "",
     };
     render_footer(buf, app, area, footer, Role::TextDim);
 }
@@ -524,14 +666,44 @@ pub(super) fn link_width(band_width: u16) -> usize {
     (band_width as usize).saturating_sub(7).max(16)
 }
 
-/// The invite link in row-sized pieces.
+/// A link in row-sized pieces.
 ///
 /// Cut at fixed widths rather than wrapped at words: a link has no words, and a selection across
 /// the rows pastes back as one link because the join prompt drops whitespace.
-pub(super) fn invite_link_chunks(app: &App, width: usize) -> Vec<String> {
-    let Some(link) = &app.invite_link else { return Vec::new() };
-    let chars: Vec<char> = link.link.0.chars().collect();
+fn link_chunks(link: &str, width: usize) -> Vec<String> {
+    let chars: Vec<char> = link.chars().collect();
     chars.chunks(width.max(1)).map(|chunk| chunk.iter().collect()).collect()
+}
+
+/// The invite link in row-sized pieces.
+pub(super) fn invite_link_chunks(app: &App, width: usize) -> Vec<String> {
+    app.invite_link.as_ref().map_or_else(Vec::new, |link| link_chunks(&link.link.0, width))
+}
+
+/// The store's open link in row-sized pieces.
+pub(super) fn open_link_chunks(app: &App, width: usize) -> Vec<String> {
+    app.open_link().map_or_else(Vec::new, |link| link_chunks(link, width))
+}
+
+pub(super) fn open_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
+    let mut rows: Vec<(String, String)> =
+        open_link_chunks(app, width).into_iter().map(|chunk| (String::new(), chunk)).collect();
+    rows.push((String::new(), String::new()));
+    rows.push((
+        String::new(),
+        if app.open_link_copied {
+            "copied to the clipboard where the terminal allows it, or select it to copy".into()
+        } else {
+            "select it to copy".into()
+        },
+    ));
+    rows.push((
+        String::new(),
+        "anyone with it can join, without a name, as often as they like".into(),
+    ));
+    rows.push((String::new(), "it works until the store goes back to invites only".into()));
+    rows.push((String::new(), "enter closes".into()));
+    rows
 }
 
 pub(super) fn invite_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
@@ -567,6 +739,19 @@ pub(super) fn store_confirm_heading(app: &App) -> String {
             format!("cancel the invite for {name}?")
         }
         Some(StoreConfirm::Unpublish { name, .. }) => format!("stop offering {name}?"),
+        Some(StoreConfirm::SetOpen { name, open: true, .. }) => {
+            format!("let anyone with the link join {name}?")
+        }
+        Some(StoreConfirm::SetOpen { name, open: false, .. }) => {
+            format!("only let people you invite join {name}?")
+        }
+        Some(StoreConfirm::RemoveAnonymous { device: Some(_), .. }) => {
+            "remove this device?".into()
+        }
+        Some(StoreConfirm::RemoveAnonymous { devices, .. }) => match devices {
+            1 => "remove the device that joined with the link?".into(),
+            n => format!("remove all {n} devices that joined with the link?"),
+        },
         None => "confirm".into(),
     };
     glyph::eyebrow(&question)
@@ -576,10 +761,23 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
     let row = |text: &str| (String::new(), text.to_owned());
     match &app.store_confirm {
         Some(StoreConfirm::Join(preview)) => {
+            let from = if preview.anonymous { "the link" } else { "the invite" };
             let mut rows = vec![
                 row(&format!("address   {}", preview.url)),
-                row(&format!("key       {}  — matches the invite", preview.fingerprint)),
+                row(&format!("key       {}  — matches {from}", preview.fingerprint)),
             ];
+            if !preview.owners.is_empty() {
+                rows.push(row(&format!("run by    {}", preview.owners.join(", "))));
+            }
+            rows.extend(offered_rows(&preview.plugins).into_iter().map(|text| row(&text)));
+            if preview.open {
+                rows.push(row("anyone with the link can join"));
+            }
+            if preview.anonymous {
+                rows.push(row(
+                    "you join without a name, and another device joins with the same link",
+                ));
+            }
             if preview.already_joined {
                 rows.push(row("already joined — joining again gives this device a new token"));
             }
@@ -609,6 +807,30 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
             row("members who installed it keep it, and it stops updating"),
             row(""),
             row("enter withdraws it · esc keeps it"),
+        ],
+        Some(StoreConfirm::SetOpen { open: true, .. }) => vec![
+            row("anyone with the store's link can join it, without a name"),
+            row("the link is new each time, so an earlier one stays dead"),
+            row("members see that the store is open"),
+            row(""),
+            row("enter opens it · esc keeps it to invites"),
+        ],
+        Some(StoreConfirm::SetOpen { open: false, .. }) => vec![
+            row("the link stops working, and no one new joins without an invite"),
+            row("devices that joined with it keep working until you remove them in members"),
+            row(""),
+            row("enter limits it to invites · esc keeps it open"),
+        ],
+        Some(StoreConfirm::RemoveAnonymous { device, .. }) => vec![
+            row(if device.is_some() {
+                "it stops working with this store at once"
+            } else {
+                "they stop working with this store at once"
+            }),
+            row("plugins already installed stay where they are"),
+            row("while the store is open, the link still joins anyone"),
+            row(""),
+            row("enter removes · esc keeps"),
         ],
         None => Vec::new(),
     }
@@ -700,6 +922,8 @@ mod tests {
                 host: "plugins.example".into(),
                 checked_at: None,
                 owners: Vec::new(),
+                open: false,
+                anonymous: false,
                 fingerprint: "9f3c 1a2b 77de 0c41".into(),
                 member: "Johan".into(),
                 owner: true,
@@ -725,6 +949,8 @@ mod tests {
                 host: "sam.example".into(),
                 checked_at: None,
                 owners: Vec::new(),
+                open: false,
+                anonymous: false,
                 fingerprint: "0000 1111 2222 3333".into(),
                 member: "Johan".into(),
                 owner: false,
@@ -738,6 +964,8 @@ mod tests {
                 host: "down.example".into(),
                 checked_at: None,
                 owners: Vec::new(),
+                open: false,
+                anonymous: false,
                 fingerprint: "4444 5555 6666 7777".into(),
                 member: "Johan".into(),
                 owner: false,
@@ -789,6 +1017,8 @@ mod tests {
             already_joined: true,
             owners: Vec::new(),
             plugins: Vec::new(),
+            open: false,
+            anonymous: false,
         }));
         app.show_plugin("aaaa", "three");
         app.nav.close_overlay();

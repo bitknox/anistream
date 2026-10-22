@@ -10,7 +10,7 @@ use std::sync::Arc;
 use anistream_model::{
     command::Command,
     event::Event,
-    stores::{InvitePreview, Secret, StoreState},
+    stores::{InvitePreview, OpenJoinView, Secret, StoreState},
 };
 use anistream_plugin_store::server::{self, Server, Storage};
 
@@ -166,9 +166,13 @@ async fn an_owner_invites_someone_lists_them_and_takes_their_access_away() {
     let mut alex = Harness::new().await;
     joined(&mut alex, &link(&updates[0])).await;
 
+    // The people, then who can join: only they, until the owner says otherwise.
     let job = owner.send(Command::LoadMembers { store: id.clone() });
     let updates = owner.settle().await;
-    assert_eq!(names(&updates), ["StoreMembers", "JobDone"]);
+    assert_eq!(names(&updates), ["StoreMembers", "OpenJoin", "JobDone"]);
+    assert!(
+        matches!(&updates[1], Event::OpenJoin { view, .. } if !view.open && view.devices == 0)
+    );
     assert_eq!(people(&updates[0]), (vec!["Alex".into(), "Owner".into()], vec![]));
     ends(&updates, job);
     let Event::StoreMembers { members, .. } = &updates[0] else { unreachable!() };
@@ -268,4 +272,76 @@ async fn leaving_sends_the_rows_then_says_the_plugins_stay() {
     assert!(matches!(&updates[0], Event::Stores(rows) if rows.is_empty()));
     assert_eq!(toasts(&updates), ["info: left Ours — its plugins stay installed"]);
     ends(&updates, job);
+}
+
+fn open_view(update: &Event) -> &OpenJoinView {
+    match update {
+        Event::OpenJoin { view, .. } => view,
+        other => panic!("not who can join: {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name() {
+    let store = StoreServer::start().await;
+    let mut owner = Harness::new().await;
+    let id = joined(&mut owner, &store.owner_link).await;
+
+    // Opened: the row says so before the toast does, then the link to share.
+    let job = owner.send(Command::SetOpenJoin { store: id.clone(), open: true });
+    let updates = owner.settle().await;
+    assert_eq!(names(&updates), ["Stores", "OpenJoin", "Toast", "JobDone"]);
+    assert!(matches!(&updates[0], Event::Stores(rows) if rows[0].open));
+    let link = open_view(&updates[1]).link.clone().expect("an open store's link").0;
+    assert_eq!(
+        toasts(&updates),
+        ["info: anyone with the store's link can join now. Copy it from members"]
+    );
+    ends(&updates, job);
+
+    // Someone with the link, on another machine: the preview says it is open, and the join
+    // keeps no name.
+    let mut guest = Harness::new().await;
+    guest.send(Command::PreviewStore { link: Secret(link.clone()) });
+    let updates = guest.settle().await;
+    let Event::StorePreview(InvitePreview::Store(preview)) = &updates[0] else {
+        panic!("{updates:?}")
+    };
+    assert!(preview.open && preview.anonymous);
+    assert_eq!(preview.owners, ["Owner"]);
+    let job = guest.send(Command::JoinStore { link: Secret(link.clone()) });
+    let updates = guest.settle().await;
+    assert_eq!(names(&updates), ["Stores", "StoreJoined", "Toast", "JobDone"]);
+    assert_eq!(toasts(&updates), ["info: joined Ours without a name"]);
+    assert!(matches!(&updates[0], Event::Stores(rows) if rows[0].anonymous && rows[0].open));
+    ends(&updates, job);
+
+    // Counted for the owner, not listed among the people.
+    owner.send(Command::LoadMembers { store: id.clone() });
+    let updates = owner.settle().await;
+    assert_eq!(people(&updates[0]), (vec!["Owner".into()], vec![]));
+    let view = open_view(&updates[1]);
+    assert_eq!((view.devices, view.recent.len()), (1, 1));
+    let device = view.recent[0].id.clone();
+
+    // Invites only again: the device stays, then goes when the owner removes it.
+    let job = owner.send(Command::SetOpenJoin { store: id.clone(), open: false });
+    let updates = owner.settle().await;
+    assert_eq!(names(&updates), ["Stores", "OpenJoin", "Toast", "JobDone"]);
+    assert!(!open_view(&updates[1]).open && open_view(&updates[1]).link.is_none());
+    assert_eq!(
+        toasts(&updates),
+        ["info: only people you invite can join now. The device that joined with the link \
+             keeps working until you remove it"]
+    );
+    ends(&updates, job);
+    let job = owner.send(Command::RemoveAnonymous { store: id, device: Some(device) });
+    let updates = owner.settle().await;
+    assert_eq!(names(&updates), ["OpenJoin", "Toast", "JobDone"]);
+    assert_eq!(open_view(&updates[0]).devices, 0);
+    ends(&updates, job);
+
+    guest.send(Command::LoadStores);
+    let updates = guest.settle().await;
+    assert!(matches!(&updates[1], Event::Stores(rows) if rows[0].state == StoreState::Revoked));
 }

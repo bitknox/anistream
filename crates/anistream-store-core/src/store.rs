@@ -6,8 +6,13 @@
 //!
 //! The database offers single statements and atomic batches, nothing more, so every decision is
 //! made by one statement: an invite is claimed by an `UPDATE … RETURNING` that only matches an
-//! unused one, a version is published by an upsert that only applies to a new version. Two
+//! unused one, a version is published by an upsert that only applies to a new version, and an
+//! open join adds its member only while the code it came with is the store's open code. Two
 //! requests racing for the same invite cannot both win, whatever runs underneath.
+//!
+//! A member who joined with the open link has no name: that is what makes them anonymous, and
+//! every name anyone is given otherwise is one to 64 characters. Nothing else about them is kept,
+//! and their row goes with their last device.
 
 use crate::{
     blobs::{BlobError, Blobs},
@@ -18,8 +23,8 @@ use crate::{
     manifest::{self, PluginInfo},
     protocol::{
         DeviceRow, INVITE_LIFETIME_SECS, Index, IndexEntry, InviteKind, MAX_PLUGIN_BYTES,
-        Member, MemberRow, PART_SIZE, PROTOCOL, PendingInvite, RESERVED_IDS, Role, SignedIndex,
-        StoreInfo, is_valid_id, is_valid_version,
+        Member, MemberRow, OPEN_DEVICES_LISTED, OpenState, PART_SIZE, PROTOCOL, PendingInvite,
+        RESERVED_IDS, Role, SignedIndex, StoreInfo, is_valid_id, is_valid_version,
     },
     sql,
 };
@@ -51,6 +56,15 @@ pub enum StoreError {
     InvalidPlugin(String),
     #[error("{0}")]
     BadRequest(String),
+    /// The store does not let anyone join, or not with that code any more: closed, or opened
+    /// again since with a new link. One error for both, like [`Self::InviteUnusable`].
+    #[error(
+        "this link no longer lets anyone join. Ask the store's owner for a new link or an invite"
+    )]
+    OpenUnusable,
+    /// Too many devices joined with the open link from one address lately.
+    #[error("too many devices joined from this address lately. Wait an hour and try again")]
+    TooManyJoins,
 }
 
 /// How stale `last_seen` may get before a request refreshes it. Writing it on every request
@@ -73,6 +87,12 @@ const UPLOAD_SECS: i64 = 60 * 60;
 /// anything.
 pub const ALLOWED_FAILURES: i64 = 10;
 pub const FAILURE_WINDOW_SECS: i64 = 10 * 60;
+
+/// Devices allowed to join with the open link per address per window. A household joining
+/// together fits; a script filling the members table does not. IPv6 addresses count by their
+/// /64, which is what one connection is usually handed.
+pub const OPEN_JOINS_ALLOWED: i64 = 10;
+pub const OPEN_JOIN_WINDOW_SECS: i64 = 60 * 60;
 
 /// A store name nobody chose.
 pub const DEFAULT_NAME: &str = "Plugin store";
@@ -111,6 +131,9 @@ fn schema(dialect: Dialect) -> Vec<String> {
             id TEXT PRIMARY KEY, member_id TEXT NOT NULL, size {int} NOT NULL,
             created_at {int} NOT NULL)",
         "CREATE TABLE IF NOT EXISTS failures (
+            key TEXT PRIMARY KEY, window_start {int} NOT NULL, attempts {int} NOT NULL)",
+        // Open joins per address, counted like failures but over their own window.
+        "CREATE TABLE IF NOT EXISTS open_joins (
             key TEXT PRIMARY KEY, window_start {int} NOT NULL, attempts {int} NOT NULL)",
     ]
     .iter()
@@ -323,7 +346,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
             expires_at
         ))
         .await?;
-        Ok((id, Invite { base: base.to_owned(), code, key: self.key.public() }))
+        Ok((id, Invite { base: base.to_owned(), code, key: self.key.public(), open: false }))
     }
 
     /// The default expiry for an invite created `now`.
@@ -521,6 +544,195 @@ impl<D: Database, B: Blobs> Store<D, B> {
         Ok(())
     }
 
+    // --- open joining -----------------------------------------------------------------------
+
+    /// The open link's code while anyone may join, `None` while only invited people may.
+    ///
+    /// Kept as it is rather than as a digest, unlike every other code: the owner copies the link
+    /// again whenever they like, and the code grants nothing but what the link openly offers.
+    pub async fn open_code(&self) -> Result<Option<String>, StoreError> {
+        Ok(self.meta("open_code").await?.filter(|code| crypto::is_code(code)))
+    }
+
+    /// The open link, built on `base`, while the store has one.
+    pub async fn open_link(&self, base: &str) -> Result<Option<Invite>, StoreError> {
+        Ok(self.open_code().await?.map(|code| Invite {
+            base: base.to_owned(),
+            code,
+            key: self.key.public(),
+            open: true,
+        }))
+    }
+
+    /// Whether `code` is the open link's: how a request from a client that predates open links,
+    /// which takes the link for an invite, is told apart from a spent invite.
+    pub async fn is_open_code(&self, code: &str) -> Result<bool, StoreError> {
+        Ok(self.open_code().await?.is_some_and(|open| codes_match(&open, code)))
+    }
+
+    /// Let anyone with the link join, or only people the owners invite.
+    ///
+    /// Opening makes a new link, so a link from an earlier time the store was open stays dead:
+    /// switching to invites only and back is also how an owner replaces a link that went further
+    /// than they meant. Opening a store that is already open keeps its link. Closing stops new
+    /// joins and leaves the devices that joined, which the owner removes when they choose.
+    pub async fn set_open(&self, open: bool) -> Result<(), StoreError> {
+        if open {
+            self.exec(sql!(
+                "INSERT INTO meta (key, value) VALUES ('open_code', ?1)
+                 ON CONFLICT(key) DO NOTHING",
+                crypto::new_code()?
+            ))
+            .await?;
+        } else {
+            self.exec(sql!("DELETE FROM meta WHERE key = 'open_code'")).await?;
+        }
+        Ok(())
+    }
+
+    /// Whether `code` would join now, checked as [`Self::join_open`] checks it but adding no
+    /// one: for a preview of what the link leads to.
+    pub async fn check_open(&self, code: &str) -> Result<(), StoreError> {
+        if crypto::is_code(code) && self.is_open_code(code).await? {
+            Ok(())
+        } else {
+            Err(StoreError::OpenUnusable)
+        }
+    }
+
+    /// Whether `client` has had as many devices join from it lately as it may.
+    pub async fn joins_blocked(&self, client: &str, now: i64) -> Result<bool, StoreError> {
+        let rows = self
+            .query(sql!(
+                "SELECT window_start, attempts FROM open_joins WHERE key = ?1",
+                join_key(client)
+            ))
+            .await?;
+        let Some(row) = rows.first() else { return Ok(false) };
+        Ok(now - row.int(0)? < OPEN_JOIN_WINDOW_SECS && row.int(1)? >= OPEN_JOINS_ALLOWED)
+    }
+
+    /// Join with the open link: a new member with no name, one device, and its token.
+    ///
+    /// The member is added by one statement that only adds them while `code` is still the store's
+    /// open code, so a join racing the owner closing the store, or opening it again with a new
+    /// link, does not get in on the old one. The device and the count for `client` go in the same
+    /// batch, so a join is all of them or none.
+    pub async fn join_open(
+        &self,
+        code: &str,
+        client: &str,
+        now: i64,
+    ) -> Result<(String, Member), StoreError> {
+        self.check_open(code).await?;
+        if self.joins_blocked(client, now).await? {
+            return Err(StoreError::TooManyJoins);
+        }
+        let member = Member { id: crypto::new_id()?, name: String::new(), role: Role::Member };
+        let token = crypto::new_token()?;
+        // Each value is cast to its column's type: Postgres cannot infer a parameter's type from
+        // the column an `INSERT … SELECT` fills.
+        let changed = self
+            .batch(vec![
+                sql!(
+                    "INSERT INTO members (id, name, role, joined_at)
+                     SELECT CAST(?1 AS TEXT), '', 'member', CAST(?2 AS BIGINT)
+                     WHERE EXISTS (SELECT 1 FROM meta
+                                   WHERE key = 'open_code' AND value = CAST(?3 AS TEXT))",
+                    member.id.as_str(),
+                    now,
+                    code
+                ),
+                sql!(
+                    "INSERT INTO devices (id, member_id, label, token_hash, created_at, last_seen)
+                     SELECT CAST(?1 AS TEXT), CAST(?2 AS TEXT), '', CAST(?3 AS TEXT),
+                            CAST(?4 AS BIGINT), CAST(?4 AS BIGINT)
+                     WHERE EXISTS (SELECT 1 FROM members WHERE id = CAST(?2 AS TEXT))",
+                    crypto::new_id()?,
+                    member.id.as_str(),
+                    crypto::hash_secret(&token),
+                    now
+                ),
+                sql!(
+                    "INSERT INTO open_joins (key, window_start, attempts) VALUES (?1, ?2, 1)
+                     ON CONFLICT(key) DO UPDATE SET
+                        window_start = CASE WHEN ?2 - open_joins.window_start >= ?3
+                                            THEN ?2 ELSE open_joins.window_start END,
+                        attempts = CASE WHEN ?2 - open_joins.window_start >= ?3
+                                        THEN 1 ELSE open_joins.attempts + 1 END",
+                    join_key(client),
+                    now,
+                    OPEN_JOIN_WINDOW_SECS
+                ),
+                sql!(
+                    "DELETE FROM open_joins WHERE window_start < ?1",
+                    now - OPEN_JOIN_WINDOW_SECS
+                ),
+            ])
+            .await?;
+        if changed.first().copied().unwrap_or(0) == 0 {
+            // Closed, or a new link made, between the check and the join.
+            return Err(StoreError::OpenUnusable);
+        }
+        Ok((token, member))
+    }
+
+    /// Who can join, the link while anyone can, and the devices that joined with a link.
+    pub async fn open_state(&self, base: &str) -> Result<OpenState, StoreError> {
+        let count = self
+            .query(sql!(
+                "SELECT COUNT(*) FROM devices d JOIN members m ON m.id = d.member_id
+                 WHERE d.revoked_at IS NULL AND m.removed_at IS NULL AND m.name = ''"
+            ))
+            .await?;
+        let devices = count.first().map(|row| row.int(0)).transpose()?.unwrap_or(0);
+        let rows = self
+            .query(sql!(
+                "SELECT d.id, d.created_at, d.last_seen
+                 FROM devices d JOIN members m ON m.id = d.member_id
+                 WHERE d.revoked_at IS NULL AND m.removed_at IS NULL AND m.name = ''
+                 ORDER BY d.created_at DESC, d.id LIMIT ?1",
+                i64::from(OPEN_DEVICES_LISTED)
+            ))
+            .await?;
+        let device_list = rows
+            .iter()
+            .map(|row| {
+                Ok(DeviceRow {
+                    id: row.text(0)?,
+                    label: String::new(),
+                    created_at: row.int(1)?,
+                    last_seen: row.opt_int(2)?,
+                })
+            })
+            .collect::<Result<_, StoreError>>()?;
+        let link = self.open_link(base).await?;
+        Ok(OpenState {
+            open: link.is_some(),
+            link: link.map(|invite| invite.link()),
+            devices: u32::try_from(devices.max(0)).unwrap_or(u32::MAX),
+            device_list,
+        })
+    }
+
+    /// Remove every member who joined with a link, and so every device they joined on: the
+    /// devices are revoked and the members' rows deleted, together. Answers how many devices
+    /// stopped working. Whether anyone can join is left as it is.
+    pub async fn remove_anonymous(&self, now: i64) -> Result<u64, StoreError> {
+        let changed = self
+            .batch(vec![
+                sql!(
+                    "UPDATE devices SET revoked_at = ?1
+                     WHERE revoked_at IS NULL AND member_id IN (
+                         SELECT id FROM members WHERE name = '')",
+                    now
+                ),
+                sql!("DELETE FROM members WHERE name = ''"),
+            ])
+            .await?;
+        Ok(changed.first().copied().unwrap_or(0))
+    }
+
     // --- members and devices ----------------------------------------------------------------
 
     /// Who a token belongs to, if it is still good.
@@ -555,26 +767,18 @@ impl<D: Database, B: Blobs> Store<D, B> {
         Ok(Some((member, device)))
     }
 
+    /// Revoke a device: the one a request came from, as it leaves. An anonymous member goes
+    /// with their last device, in the same batch.
     pub async fn revoke_device(&self, device_id: &str, now: i64) -> Result<(), StoreError> {
-        self.exec(sql!(
-            "UPDATE devices SET revoked_at = ?1 WHERE id = ?2 AND revoked_at IS NULL",
-            now,
-            device_id
-        ))
-        .await?;
+        self.batch(revoke(device_id, now)).await?;
         Ok(())
     }
 
-    /// Revoke one device of anyone's, for an owner. The member stays.
+    /// Revoke one device of anyone's, for an owner. A member with a name stays; an anonymous one
+    /// goes with their last device, in the same batch.
     pub async fn revoke_any_device(&self, device_id: &str, now: i64) -> Result<(), StoreError> {
-        let changed = self
-            .exec(sql!(
-                "UPDATE devices SET revoked_at = ?1 WHERE id = ?2 AND revoked_at IS NULL",
-                now,
-                device_id
-            ))
-            .await?;
-        if changed == 0 {
+        let changed = self.batch(revoke(device_id, now)).await?;
+        if changed.first().copied().unwrap_or(0) == 0 {
             return Err(StoreError::NotFound("no device with that id".into()));
         }
         Ok(())
@@ -583,8 +787,10 @@ impl<D: Database, B: Blobs> Store<D, B> {
     pub async fn members(&self) -> Result<Vec<MemberRow>, StoreError> {
         let devices = self
             .query(sql!(
-                "SELECT member_id, id, label, created_at, last_seen FROM devices
-                 WHERE revoked_at IS NULL ORDER BY created_at"
+                "SELECT d.member_id, d.id, d.label, d.created_at, d.last_seen
+                 FROM devices d JOIN members m ON m.id = d.member_id
+                 WHERE d.revoked_at IS NULL AND m.removed_at IS NULL AND m.name <> ''
+                 ORDER BY d.created_at"
             ))
             .await?;
         let mut by_member: std::collections::HashMap<String, Vec<DeviceRow>> =
@@ -597,10 +803,11 @@ impl<D: Database, B: Blobs> Store<D, B> {
                 last_seen: row.opt_int(4)?,
             });
         }
+        // Anonymous members are counted, never listed: see `open_state`.
         let rows = self
             .query(sql!(
                 "SELECT id, name, role, joined_at FROM members
-                 WHERE removed_at IS NULL ORDER BY joined_at, id"
+                 WHERE removed_at IS NULL AND name <> '' ORDER BY joined_at, id"
             ))
             .await?;
         rows.iter()
@@ -621,7 +828,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
     }
 
     /// Change a member's role. Not your own: an owner making themselves a member could leave a
-    /// store with nobody to run it.
+    /// store with nobody to run it. Not an anonymous member's either, who has no name to run it by.
     pub async fn set_role(&self, id: &str, role: Role, by: &str) -> Result<(), StoreError> {
         if id == by {
             return Err(StoreError::Forbidden(
@@ -630,7 +837,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
         }
         let changed = self
             .exec(sql!(
-                "UPDATE members SET role = ?1 WHERE id = ?2 AND removed_at IS NULL",
+                "UPDATE members SET role = ?1 WHERE id = ?2 AND removed_at IS NULL AND name <> ''",
                 role.as_str(),
                 id
             ))
@@ -641,7 +848,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
         Ok(())
     }
 
-    /// Change the name a member is shown by.
+    /// Change the name a member is shown by. An anonymous member has none to change.
     pub async fn rename(&self, id: &str, name: &str) -> Result<(), StoreError> {
         let name = name.trim();
         if name.is_empty() || name.chars().count() > 64 {
@@ -649,7 +856,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
         }
         let changed = self
             .exec(sql!(
-                "UPDATE members SET name = ?1 WHERE id = ?2 AND removed_at IS NULL",
+                "UPDATE members SET name = ?1 WHERE id = ?2 AND removed_at IS NULL AND name <> ''",
                 name,
                 id
             ))
@@ -700,6 +907,8 @@ impl<D: Database, B: Blobs> Store<D, B> {
                     id
                 ),
                 sql!("DELETE FROM sessions WHERE member_id = ?1", id),
+                // An anonymous member is not kept as removed: nothing of them is kept at all.
+                sql!("DELETE FROM members WHERE id = ?1 AND name = ''", id),
             ])
             .await?;
         if changed.first().copied().unwrap_or(0) == 0 {
@@ -910,6 +1119,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
             issued_at,
             plugins,
             owners: self.owner_names().await?,
+            open: self.open_code().await?.is_some(),
         };
         let index = serde_json::to_string(&index)
             .map_err(|e| StoreError::Setup(format!("encoding the index: {e}")))?;
@@ -1239,9 +1449,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
         base: &str,
         now: i64,
     ) -> Result<(Invite, i64), StoreError> {
-        // Compared as digests: equal-length, so the comparison's timing says nothing about where
-        // a guess went wrong.
-        if crypto::hash_secret(given) != crypto::hash_secret(configured) {
+        if !codes_match(given, configured) {
             return Err(StoreError::Forbidden("that is not this store's setup code".into()));
         }
         match self.fresh_owner_invite(base, now).await? {
@@ -1250,6 +1458,54 @@ impl<D: Database, B: Blobs> Store<D, B> {
                 "this store already has an owner — ask them for an invite".into(),
             )),
         }
+    }
+}
+
+/// Revoke one device, and delete its member when the member is anonymous and this was their
+/// last working device: one batch, so no member with no name is left with no way in.
+fn revoke(device_id: &str, now: i64) -> Vec<Statement> {
+    vec![
+        sql!(
+            "UPDATE devices SET revoked_at = ?1 WHERE id = ?2 AND revoked_at IS NULL",
+            now,
+            device_id
+        ),
+        sql!(
+            "DELETE FROM members
+             WHERE name = '' AND id IN (SELECT member_id FROM devices WHERE id = ?1)
+               AND NOT EXISTS (SELECT 1 FROM devices d
+                               WHERE d.member_id = members.id AND d.revoked_at IS NULL)",
+            device_id
+        ),
+    ]
+}
+
+/// Two codes compared as digests: equal-length, so the comparison's timing says nothing about
+/// where a guess went wrong.
+fn codes_match(a: &str, b: &str) -> bool {
+    crypto::hash_secret(a) == crypto::hash_secret(b)
+}
+
+/// What open joins from `client` are counted under: a digest of the address, or of an IPv6
+/// address's /64, which one connection is usually handed whole. A digest, so the table never
+/// holds an address as it is; and nothing ties a count to the device that joined.
+fn join_key(client: &str) -> String {
+    crypto::hash_secret(&join_address(client))
+}
+
+/// The address an open join is counted by, before it is digested. Anything that is not an
+/// address is counted as it is.
+fn join_address(client: &str) -> String {
+    match client.trim().parse::<std::net::IpAddr>() {
+        Ok(std::net::IpAddr::V6(ip)) => match ip.to_ipv4_mapped() {
+            Some(v4) => v4.to_string(),
+            None => {
+                let [a, b, c, d, ..] = ip.segments();
+                format!("{a:x}:{b:x}:{c:x}:{d:x}::/64")
+            }
+        },
+        Ok(ip) => ip.to_string(),
+        Err(_) => client.trim().to_owned(),
     }
 }
 

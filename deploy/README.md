@@ -2,7 +2,10 @@
 
 A plugin store is a small private server for sharing anistream provider plugins with people you
 invite. Each folder here sets one up somewhere different. Pick one, deploy it, [claim
-it](#claim-your-store), then invite people from the store's page in anistream.
+it](#claim-your-store), then invite people from the store's page in anistream. An owner can also
+let anyone with the store's link join, without a name; see
+[who can join](../docs/plugin-stores.md#who-can-join). The costs below are for a group of
+friends, and an open store whose link travels further can outgrow a free plan.
 
 | Where | How | Keeps its data in | Cost |
 | --- | --- | --- | --- |
