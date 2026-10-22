@@ -25,6 +25,8 @@ public struct RootView: View {
                 #endif
             }
         }
+        // The widgets' taps: a title, an episode, the Calendar, Accounts.
+        .opensWidgetLinks()
         .tint(.amber)
         .preferredColorScheme(.dark)
     }

@@ -2,8 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- The App Group the widgets' snapshot is written into, from ANISTREAM_APP_GROUP
+	     (Config/Base.xcconfig). The Fixtures app has none, so it never writes over the app's. -->
+	<key>AnistreamAppGroup</key>
+	<string>$(ANISTREAM_APP_GROUP)</string>
 	<!-- What Xcode does not generate from the INFOPLIST_KEY settings: the anistream:// links the
-	     app opens, for store invites and the trackers' sign-in. The Fixtures app has none. -->
+	     app opens, for store invites, the trackers' sign-in and the widgets. The Fixtures app has
+	     none. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -29,9 +34,5 @@
 	<array>
 		<string>tv.anistream.refresh</string>
 	</array>
-	<!-- The App Group the app writes the widgets' record into, from ANISTREAM_APP_GROUP. The
-	     Fixtures app has none, so it never writes over the app's. -->
-	<key>AnistreamAppGroup</key>
-	<string>$(ANISTREAM_APP_GROUP)</string>
 </dict>
 </plist>
