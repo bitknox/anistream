@@ -131,10 +131,7 @@ jobs:
 
   # The workspace's tests on Linux, built once and archived for the mpv jobs below, which run
   # theirs from the archive rather than compiling the workspace each. On 24.04, the older of the
-  # images those jobs run on. No Rust cache: the repository's caches share 10 GB, and every cache
-  # past it pushes out the one used longest ago, which had been the Apple and Windows ones pull
-  # requests wait on, while this builds cold in about six minutes, inside what the macOS jobs
-  # take.
+  # images those jobs run on. With a Rust cache, since the mpv jobs wait on this build.
   linux:
     needs: changes
     if: needs.changes.outputs.rust == 'true'
@@ -142,7 +139,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - run: rustup toolchain install
+      - run: tools/ci-toolchain.sh
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
@@ -186,8 +186,37 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-nextest
+      # mpv from the image's Ubuntu, its packages cached by the image and by exactly what apt
+      # would fetch, saved from main: one run had the mirror send mpv's 68 MB at 98 kB/s for
+      # eleven minutes. apt first fetches into the folder whatever the cache lacks and then
+      # installs from the folder, so a run with the cache and one without take the same path.
+      - name: mpv's packages
+        id: debs
+        env:
+          IMAGE: ${{ matrix.os }}
+        run: |
+          sudo apt-get update
+          list="$(sudo apt-get install -qq --no-install-recommends --print-uris mpv | awk '{print $2, $3, $4}')"
+          echo "$list"
+          echo "key=mpv-debs-$IMAGE-$(sha256sum <<<"$list" | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore mpv's packages
+        id: debs-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/apt-archives/*.deb
+          key: ${{ steps.debs.outputs.key }}
       - name: Install mpv
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
+        run: |
+          mkdir -p ~/apt-archives/partial
+          archives=(-o Dir::Cache::archives="$HOME/apt-archives")
+          sudo apt-get install -y --no-install-recommends --download-only "${archives[@]}" mpv
+          sudo apt-get install -y --no-install-recommends "${archives[@]}" mpv
+      - name: Keep mpv's packages
+        if: github.ref == 'refs/heads/main' && steps.debs-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/apt-archives/*.deb
+          key: ${{ steps.debs-cache.outputs.cache-primary-key }}
       - run: mpv --version | head -1
       - uses: actions/download-artifact@v8
         with:
