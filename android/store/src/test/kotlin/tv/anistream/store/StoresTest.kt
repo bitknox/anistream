@@ -17,6 +17,8 @@ import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.InvitePreview
 import tv.anistream.engine.model.InvitedStore
+import tv.anistream.engine.model.StorePluginRow
+import tv.anistream.engine.model.StorePluginStatus
 
 /** Invite links as the app is handed them, and joining a store with one. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -63,6 +65,19 @@ class StoresTest {
         store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
         val shown = (store.stores.preview.value as StoresModel.Preview.Store).store
         assertTrue(shown.open && shown.anonymous)
+    }
+
+    @Test
+    fun a_preview_says_who_runs_the_store_and_where_each_plugin_stands() {
+        val invited = InvitedStore(link = https, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false)
+        assertEquals("plugins.example", invited.runByLine)
+        assertEquals("Run by Ren, Sora · plugins.example", invited.copy(owners = listOf("Ren", "Sora")).runByLine)
+        val row = StorePluginRow(id = "a", name = "A", version = "2.0.0", hosts = listOf("a.example"), status = StorePluginStatus.Available)
+        assertNull(row.standing)
+        assertEquals("Installed", row.copy(status = StorePluginStatus.Installed).standing)
+        assertEquals("1.4.0 installed", row.copy(status = StorePluginStatus.Update("1.4.0", emptyList())).standing)
+        assertEquals("Added by hand", row.copy(status = StorePluginStatus.AddedByHand).standing)
+        assertEquals("From Kumo", row.copy(status = StorePluginStatus.OtherStore("Kumo")).standing)
     }
 
     @Test

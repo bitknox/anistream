@@ -161,9 +161,35 @@ extension StorePluginRow {
         if case .update(let from, _) = status { return from }
         return version
     }
+
+    /// Where it stands on this device, in a word or two, when it is here at all: "Installed",
+    /// "1.4.0 installed", "Added by hand", "From Kumo". Nothing for one not installed.
+    public var standing: String? {
+        switch status {
+        case .available: nil
+        case .installed: "Installed"
+        case .update(let from, _): "\(from) installed"
+        case .addedByHand: "Added by hand"
+        case .otherStore(let other): "From \(other)"
+        }
+    }
+}
+
+extension InvitedStore {
+    /// Who runs the store and where it answers: "Run by Ren · plugins.example", or the host alone
+    /// from a store that does not say who runs it.
+    public var runByLine: String {
+        owners.isEmpty ? host : "Run by \(owners.joined(separator: ", ")) · \(host)"
+    }
 }
 
 extension StoreRow {
+    /// Who runs the store and where it answers, from its signed list: "Run by Ren ·
+    /// plugins.example", or the host alone from a store that does not say who runs it.
+    public var runByLine: String {
+        owners.isEmpty ? host : "Run by \(owners.joined(separator: ", ")) · \(host)"
+    }
+
     /// Who this device joined as: a name, or none, for one that joined with the store's link.
     public var joinedAs: String {
         anonymous ? "joined without a name" : "joined as \(member)"

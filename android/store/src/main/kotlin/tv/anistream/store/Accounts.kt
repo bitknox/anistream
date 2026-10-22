@@ -279,6 +279,23 @@ val StorePluginRow.contactsLine: String
 val StorePluginRow.installedVersion: String
     get() = (status as? StorePluginStatus.Update)?.from ?: version
 
+/**
+ * Where a plugin stands on this device, in a word or two, when it is here at all: "Installed",
+ * "1.4.0 installed", "Added by hand", "From Kumo". Null for one not installed.
+ */
+val StorePluginRow.standing: String?
+    get() = when (val status = status) {
+        StorePluginStatus.Available -> null
+        StorePluginStatus.Installed -> "Installed"
+        is StorePluginStatus.Update -> "${status.from} installed"
+        StorePluginStatus.AddedByHand -> "Added by hand"
+        is StorePluginStatus.OtherStore -> "From ${status.v1}"
+    }
+
+/** Who runs a store a link leads to and where it answers: "Run by Ren · plugins.example", or its host. */
+val InvitedStore.runByLine: String
+    get() = if (owners.isEmpty()) host else "Run by ${owners.joinToString(", ")} · $host"
+
 /** What an invite link the app was handed holds: the store's own `https://…/join/{code}#{key}`. */
 object InviteLinks {
     /**

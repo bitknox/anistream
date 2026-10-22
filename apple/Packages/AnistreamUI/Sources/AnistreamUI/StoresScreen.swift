@@ -160,7 +160,6 @@ struct StoreDetail: View {
                             .macLineHeight(28)
                             .foregroundStyle(.silk)
                             .accessibilityAddTraits(.isHeader)
-                        // "Run by" and when it was last checked wait on E9's fields on `StoreRow`.
                         Text(StoreWords.meta(row))
                             .font(.mac(13))
                             .foregroundStyle(.haze)
@@ -364,9 +363,16 @@ struct StoreMenu: View {
 }
 
 enum StoreWords {
-    /// Where the store is: its host.
+    /// Who runs the store and where it is: "Run by Ren · plugins.example", or its host alone.
     static func meta(_ row: StoreRow) -> String {
-        URL(string: row.url)?.host ?? row.url
+        row.runByLine
+    }
+
+    /// When the store's list was last fetched and checked: "checked 2 minutes ago".
+    static func checked(_ row: StoreRow) -> String? {
+        row.checkedAt.map {
+            "checked " + Date(timeIntervalSince1970: TimeInterval($0)).formatted(.relative(presentation: .named))
+        }
     }
 }
 
@@ -471,15 +477,15 @@ struct JoinStoreSheet: View {
             Text("Join a Plugin Store")
                 .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
-            Text("Paste the invite or the store's link you were given.")
+            Text("Paste the invite link the store's owner sent you.")
                 .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
-            Text("Link")
+            Text("Invite link")
                 .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 18)
-            TextField("Link", text: $link, prompt: Text("https://…/join/…"))
+            TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
                 .textFieldStyle(.plain)
                 .font(.mac(13))
                 .padding(.horizontal, 12)
@@ -544,24 +550,48 @@ struct JoinStoreSheet: View {
                 .font(.mac(13))
                 .foregroundStyle(.vermilion)
         case .store(let invited)?:
-            VStack(alignment: .leading, spacing: 6) {
-                // The plugin count, who runs it and its plugins wait on E9's fields on `InvitedStore`.
-                Text(invited.name)
-                    .font(.mac(15, weight: .semibold))
-                    .foregroundStyle(.silk)
-                Text(URL(string: invited.url)?.host ?? invited.url)
-                    .font(.mac(13))
+            JoinPreview(invited: invited)
+        case nil:
+            EmptyView()
+        }
+    }
+}
+
+/// What a link leads to, before anything is joined: the store, who runs it and how many plugins it
+/// offers, its key against the link's, and each plugin with its version, what it may contact and
+/// where it stands here. From the store's signed list; a store from before the preview shows only
+/// its name and key.
+struct JoinPreview: View {
+    let invited: InvitedStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text(invited.name)
+                        .font(.mac(15, weight: .semibold))
+                        .foregroundStyle(.silk)
+                    Spacer(minLength: 0)
+                    if !invited.plugins.isEmpty {
+                        Text(Wording.plural(invited.plugins.count, "plugin"))
+                            .font(.mac(12))
+                            .monospacedDigit()
+                            .foregroundStyle(.haze)
+                    }
+                }
+                Text(invited.runByLine)
+                    .font(.mac(12))
                     .foregroundStyle(.haze)
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
-                    Text("Key \(Text(invited.fingerprint).font(.mac(13, design: .monospaced)).foregroundStyle(.silk)) matches the \(invited.anonymous ? "link" : "invite")")
-                        .font(.mac(13))
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark").font(.mac(10, weight: .semibold)).foregroundStyle(.water)
+                    Text("Key \(Text(invited.fingerprint).font(.mac(12, design: .monospaced)).foregroundStyle(.silk)) matches the \(invited.anonymous ? "link" : "invite")")
+                        .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
                 if invited.open {
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.2").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
-                        Text("Anyone with the link can join").font(.mac(13)).foregroundStyle(.silk)
+                    HStack(spacing: 5) {
+                        Image(systemName: "person.2").font(.mac(10, weight: .semibold)).foregroundStyle(.haze)
+                        Text("Anyone with the link can join").font(.mac(12)).foregroundStyle(.silk)
                     }
                 }
                 if invited.anonymous {
@@ -575,12 +605,42 @@ struct JoinStoreSheet: View {
                         .foregroundStyle(.haze)
                 }
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.ground, in: .rect(cornerRadius: 10))
-        case nil:
-            EmptyView()
+            .padding(EdgeInsets(top: 12, leading: 12, bottom: 10, trailing: 12))
+            if !invited.plugins.isEmpty {
+                Rectangle().fill(.faintRule).frame(height: 1)
+                ForEach(Array(invited.plugins.enumerated()), id: \.element.id) { index, plugin in
+                    if index > 0 { Rectangle().fill(.faintRule).frame(height: 1) }
+                    HStack(spacing: 8) {
+                        Text(plugin.name)
+                            .font(.mac(13, weight: .medium))
+                            .foregroundStyle(.silk)
+                            .lineLimit(1)
+                            .layoutPriority(1)
+                        Text(plugin.version)
+                            .font(.mac(12))
+                            .monospacedDigit()
+                            .foregroundStyle(.haze)
+                        if let standing = plugin.standing {
+                            Text(standing)
+                                .font(.mac(12))
+                                .foregroundStyle(.water)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 8)
+                        Text(plugin.contactsLine)
+                            .font(.mac(12))
+                            .foregroundStyle(.haze)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .accessibilityElement(children: .combine)
+                }
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ground, in: .rect(cornerRadius: 10))
     }
 }
 

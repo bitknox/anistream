@@ -163,9 +163,11 @@ struct PhoneStorePage: View {
                         .fontWeight(.semibold)
                         .listRowBackground(Palette.raised)
                 } footer: {
-                    // Who runs it, and when it was checked, wait on E9's fields on `StoreRow`.
                     // Who can join is changed on the Mac, an iPad or the store's admin page.
-                    Text("\(StoreWords.meta(row))\(row.open ? " · anyone with the link can join" : "")\nKey \(row.fingerprint) · \(row.joinedAs)")
+                    let about = [StoreWords.meta(row), row.open ? "anyone with the link can join" : nil]
+                    let key = ["Key \(row.fingerprint)", row.joinedAs, StoreWords.checked(row)]
+                    Text(about.compactMap { $0 }.joined(separator: " · ") + "\n"
+                         + key.compactMap { $0 }.joined(separator: " · "))
                 }
             }
             .navigationTitle(row.name)
@@ -308,15 +310,15 @@ struct PhoneJoinStoreSheet: View {
         NavigationStack {
             PhoneList {
                 Section {
-                    TextField("Link", text: $link, prompt: Text("https://…/join/…"))
+                    TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
                         .listRowBackground(Palette.raised)
                 } header: {
-                    PhoneSectionHeader("Link")
+                    PhoneSectionHeader("Invite link")
                 } footer: {
-                    Text("Paste the invite or the store's link you were given. An anistream:// link opened from Messages fills this sheet in directly.")
+                    Text("Paste the link the store's owner sent you. An anistream:// invite link opened from Messages fills this sheet in directly.")
                 }
                 preview
             }
@@ -371,17 +373,23 @@ struct PhoneJoinStoreSheet: View {
             }
         case .store(let invited)?:
             Section {
-                VStack(alignment: .leading, spacing: 2) {
-                    // The plugin count, who runs it and its plugins wait on E9's fields on `InvitedStore`.
-                    Text(invited.name).font(.ui(20, weight: .semibold)).foregroundStyle(.silk)
-                    Text(URL(string: invited.url)?.host ?? invited.url).font(.ui(15)).foregroundStyle(.haze)
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(invited.name).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+                        Text(invited.runByLine).font(.ui(13)).foregroundStyle(.haze)
+                    }
+                    Spacer(minLength: 0)
+                    if !invited.plugins.isEmpty {
+                        Text(Wording.plural(invited.plugins.count, "plugin"))
+                            .font(.ui(15)).monospacedDigit().foregroundStyle(.haze)
+                    }
                 }
                 .listRowBackground(Palette.raised)
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "checkmark").foregroundStyle(.water)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Key matches the \(invited.anonymous ? "link" : "invite")").font(.ui(17)).foregroundStyle(.silk)
-                        Text(invited.fingerprint).font(.ui(15, design: .monospaced)).foregroundStyle(.haze)
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark").font(.ui(15, weight: .semibold)).foregroundStyle(.water)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Key matches the \(invited.anonymous ? "link" : "invite")").font(.ui(15)).foregroundStyle(.silk)
+                        Text(invited.fingerprint).font(.ui(13, design: .monospaced)).foregroundStyle(.haze)
                     }
                 }
                 .listRowBackground(Palette.raised)
@@ -395,6 +403,19 @@ struct PhoneJoinStoreSheet: View {
                             }
                         }
                     }
+                    .listRowBackground(Palette.raised)
+                }
+                ForEach(invited.plugins, id: \.id) { plugin in
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(plugin.name).font(.ui(17)).foregroundStyle(.silk).lineLimit(1)
+                            Text(([plugin.contactsLine] + [plugin.standing].compactMap { $0 }).joined(separator: " · "))
+                                .font(.ui(13)).foregroundStyle(.haze).lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                        Text(plugin.version).font(.ui(15)).monospacedDigit().foregroundStyle(.haze)
+                    }
+                    .accessibilityElement(children: .combine)
                     .listRowBackground(Palette.raised)
                 }
             } footer: {

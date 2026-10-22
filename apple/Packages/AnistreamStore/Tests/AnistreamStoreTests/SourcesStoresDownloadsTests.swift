@@ -163,6 +163,24 @@ struct StoresTests {
         store.removeAnonymous(nil, from: "hotaru")
     }
 
+    @Test func aPreviewSaysWhoRunsTheStoreAndWhereEachPluginStands() {
+        var invited = InvitedStore(link: "https://plugins.example/join/abc#key", name: "Hotaru Plugins",
+                                   url: "https://plugins.example", host: "plugins.example", fingerprint: "9f3c 1a2b",
+                                   alreadyJoined: false)
+        #expect(invited.runByLine == "plugins.example", "a store that does not say")
+        invited.owners = ["Ren", "Sora"]
+        #expect(invited.runByLine == "Run by Ren, Sora · plugins.example")
+        #expect(plugin("a", .available).standing == nil)
+        #expect(plugin("a", .installed).standing == "Installed")
+        #expect(plugin("a", .update(from: "1.4.0", newHosts: [])).standing == "1.4.0 installed")
+        #expect(plugin("a", .addedByHand).standing == "Added by hand")
+        #expect(plugin("a", .otherStore("Kumo")).standing == "From Kumo")
+        var row = storeRow("hotaru", [])
+        #expect(row.runByLine == "hotaru.example")
+        row.owners = ["Ren"]
+        #expect(row.runByLine == "Run by Ren · hotaru.example")
+    }
+
     @Test func aDeviceThatJoinedWithTheLinkHasNoName() {
         var row = storeRow("hotaru", [])
         #expect(row.joinedAs == "joined as Mika")
