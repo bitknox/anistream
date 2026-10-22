@@ -226,7 +226,8 @@ mod tests {
         let away = gate_for(AppState::Background { playing: true }, CELL, &Config::default());
         assert_eq!(away.hold, Hold::EVERYTHING);
         // And in a downloads window the queue runs on cellular only as its setting says.
-        let window = |config: &Config| gate_for(AppState::BackgroundDownloads, CELL, config).hold;
+        let window =
+            |config: &Config| gate_for(AppState::BackgroundDownloads, CELL, config).hold;
         assert_eq!(window(&on_cellular(true, false)), Hold::ALL_BUT_STREAMING);
         assert_eq!(window(&on_cellular(true, true)), Hold::ALL_BUT_DOWNLOADS);
     }
