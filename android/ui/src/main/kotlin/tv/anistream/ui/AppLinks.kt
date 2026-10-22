@@ -1,6 +1,7 @@
-// The links the system opens the app on from outside its screens: launcher shortcuts and
-// notifications. Each is an explicit intent to the activity with the link's fields in its extras,
-// not a URL, which the activity hands to the frame to follow through the app's own navigation.
+// The links the system opens the app on from outside its screens: launcher shortcuts,
+// notifications and the home-screen widgets. Each is an explicit intent to the activity with the
+// link's fields in its extras, not a URL, which the activity hands to the frame to follow through
+// the app's own navigation.
 
 package tv.anistream.ui
 
@@ -20,6 +21,12 @@ sealed interface AppLink {
 
     /** Downloads, over Library, as Library's row opens it. */
     data object Downloads : AppLink
+
+    /** The Calendar, on today: Airing today's header. */
+    data object Calendar : AppLink
+
+    /** Settings › Accounts, to sign in: Continue watching's, signed out. */
+    data object Accounts : AppLink
 
     /** A title's page, in Continue's back stack. */
     data class Title(val id: AnilistId) : AppLink
@@ -42,6 +49,8 @@ sealed interface AppLink {
         get() = when (this) {
             Search -> mapOf(OPEN to "search")
             Downloads -> mapOf(OPEN to "downloads")
+            Calendar -> mapOf(OPEN to "calendar")
+            Accounts -> mapOf(OPEN to "accounts")
             is Title -> mapOf(OPEN to "title", SHOW to "$id")
             is Continue -> mapOf(OPEN to "continue", SHOW to "$id")
             is Play -> mapOf(OPEN to "play", SHOW to "$id", EPISODE to episode)
@@ -52,7 +61,10 @@ sealed interface AppLink {
     val key: String get() = listOf(OPEN, SHOW, EPISODE, DOWNLOAD).mapNotNull(fields::get).joinToString("/")
 
     companion object {
-        /** What the link opens: `search`, `downloads`, `title`, `continue`, `play` or `download`. */
+        /**
+         * What the link opens: `search`, `downloads`, `calendar`, `accounts`, `title`, `continue`,
+         * `play` or `download`.
+         */
         const val OPEN = "open"
 
         /** The show, by its AniList id. */
@@ -70,6 +82,8 @@ sealed interface AppLink {
             return when (field(OPEN)) {
                 "search" -> Search
                 "downloads" -> Downloads
+                "calendar" -> Calendar
+                "accounts" -> Accounts
                 "title" -> show?.let(::Title)
                 "continue" -> show?.let(::Continue)
                 "play" -> field(EPISODE)?.takeIf { it.isNotBlank() }?.let { episode -> show?.let { Play(it, episode) } }
@@ -96,6 +110,8 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
             go(Destination.Library)
             open(DOWNLOADS_ROUTE)
         }
+        AppLink.Calendar -> go(Destination.Calendar)
+        AppLink.Accounts -> openSettings(SettingsPane.Accounts)
         is AppLink.Title -> openTitleFromLink(link.id)
         is AppLink.Play -> {
             openTitleFromLink(link.id)

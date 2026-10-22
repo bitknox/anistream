@@ -11,7 +11,11 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.Environment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.anistream.engine.core.SettingValue
@@ -32,8 +36,13 @@ import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
 import tv.anistream.store.SealedFileSecrets
+import tv.anistream.engine.model.WidgetData
+import tv.anistream.ui.AppLink
+import tv.anistream.widgets.WidgetArt
+import tv.anistream.widgets.WidgetHost
+import tv.anistream.widgets.Widgets
 
-class AnistreamApp : Application(), PlayerHost, NewEpisodesHost {
+class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
@@ -62,8 +71,37 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost {
     /** What the home-screen widgets show, as the engine last made it. */
     val widgets: WidgetRecord by lazy { WidgetRecord.of(filesDir) }
 
-    /** The check for new episodes, on the engine, with the widgets' record made after it. */
-    override val episodeCheck: EpisodeCheck by lazy { EngineEpisodeCheck(background, widgets::write) }
+    /** The widgets' record and art, kept as each check or visit makes them. */
+    private val widgetKeeper by lazy { WidgetKeeper(this, widgets, WidgetArt.of(filesDir)) }
+
+    /** The check for new episodes, on the engine, with the widgets' record and its art made after it. */
+    override val episodeCheck: EpisodeCheck by lazy {
+        EngineEpisodeCheck(background, widgets = { store, data -> widgetKeeper.keep(store, data) })
+    }
+
+    override val widgetRecord: StateFlow<WidgetData?> get() = widgets.latest
+
+    override val widgetArt: WidgetArt get() = widgetKeeper.art
+
+    /** A widget's tap: the activity on [link], explicitly, or as the launcher opens it. */
+    override fun widgetIntent(link: AppLink?): Intent =
+        (link?.let(::linkIntent) ?: Intent(this, MainActivity::class.java).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    override fun refreshWidgetRecord() = WidgetRecordWork.ask(this)
+
+    /** Make the widgets' record now, on the app's engine while it runs or a quiet one of its own. */
+    suspend fun makeWidgetRecord() {
+        background.use { widgetKeeper.make(it) }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        // Every process draws the widgets again when a record lands: the app's, and one started
+        // for the background check alone.
+        widgetKeeper.follow(scope)
+        scope.launch { Widgets.publishPreviews(this@AnistreamApp) }
+    }
 
     /** The new-episode notifications switch, and the schedule it keeps. */
     val episodeAlerts: EpisodeAlerts by lazy { EpisodeAlerts(this, store, episodeNotifier) }
@@ -106,9 +144,27 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost {
         }
         episodeAlerts.follow(scope)
         ContinueShortcut(this).follow(store, scope)
+        recordWidgetsOnLeaving()
         watchNetwork()
         // The fixtures' downloads are seeded where they are; only the app's are kept here.
         if (!Flavour.FIXTURES) keepDownloadsInAppSpace()
+    }
+
+    /**
+     * Make the widgets' record again each time the app leaves the screen, while a widget is
+     * placed: what was watched, marked or synced on this visit is on the home screen as the person
+     * gets there.
+     */
+    private fun recordWidgetsOnLeaving() {
+        ProcessLifecycleOwner.get().lifecycle.addObserver(
+            LifecycleEventObserver { _, event ->
+                if (event != Lifecycle.Event.ON_STOP) return@LifecycleEventObserver
+                scope.launch {
+                    if (!Widgets.placed(this@AnistreamApp)) return@launch
+                    runCatching { makeWidgetRecord() }.onFailure { Log.w(TAG, "the widgets' record was not made: ${it.message}") }
+                }
+            },
+        )
     }
 
     /**

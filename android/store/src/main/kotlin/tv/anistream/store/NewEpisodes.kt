@@ -75,18 +75,19 @@ fun interface EpisodeCheck {
  * The check on the engine, run as `CheckNewEpisodes` says to run it in the background: on the
  * app's engine while it runs, or on a quiet one of the check's own. It takes the episodes the
  * check says, fetches each one's cover for its notification, and then asks for the widgets' record
- * and hands it to [widgets] to keep, so the widgets are as fresh as the check.
+ * and hands it to [widgets] to keep, so the widgets are as fresh as the check: with the store
+ * whose engine made it, for its art to be fetched while that engine is up.
  */
 class EngineEpisodeCheck(
     private val engine: BackgroundEngine,
-    private val widgets: (WidgetData) -> Unit,
+    private val widgets: suspend (AppStore, WidgetData) -> Unit,
     private val coverSize: Int = COVER_SIZE,
 ) : EpisodeCheck {
     override suspend fun newEpisodes(): List<NewEpisode> = engine.use { store ->
         val said = store.ask(Command.CheckNewEpisodes, CHECK_MILLIS) { (it as? Event.NewEpisodes)?.v1 }
             ?: throw Unanswered("the check for new episodes")
         val art = store.covers(said.flatMap { listOfNotNull(it.coverUrl, it.bannerUrl) }.distinct(), coverSize, COVERS_MILLIS)
-        store.ask(Command.WidgetSnapshot, SNAPSHOT_MILLIS) { (it as? Event.WidgetSnapshot)?.v1 }?.let(widgets)
+        store.ask(Command.WidgetSnapshot, SNAPSHOT_MILLIS) { (it as? Event.WidgetSnapshot)?.v1 }?.let { widgets(store, it) }
         said.map {
             NewEpisode(
                 id = it.id,

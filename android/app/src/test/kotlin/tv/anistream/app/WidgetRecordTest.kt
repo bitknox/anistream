@@ -59,6 +59,23 @@ class WidgetRecordTest {
     }
 
     @Test
+    fun a_record_of_the_first_shape_still_reads_with_its_version() {
+        // As a build before the second shape wrote it: no sign-in, no week, no time left.
+        root.resolve("widgets").mkdirs()
+        root.resolve("widgets/record.json").writeText(
+            """{"version":1,"generated_at":1792000000,
+               "continue_watching":[{"id":900001,"title":"Stardust Wayfarer","episode":7,"watched":6,"episodes":12,"fraction":0.42}],
+               "airing_today":[{"id":900002,"title":"The Library Above the Clouds","episode":6,"airs_at":1792163730,"on_list":true}]}""",
+        )
+        val read = WidgetRecord.of(root).latest.value!!
+        assertEquals(1u, read.version)
+        assertEquals("Stardust Wayfarer", read.continueWatching.single().title)
+        assertNull(read.continueWatching.single().minutesLeft)
+        assertEquals(true, read.airingToday.single().onList)
+        assertEquals(emptyList<WidgetAiring>(), read.nextDays)
+    }
+
+    @Test
     fun a_record_of_another_shape_reads_as_none() {
         val record = WidgetRecord.of(root)
         record.write(data.copy(version = 3u))

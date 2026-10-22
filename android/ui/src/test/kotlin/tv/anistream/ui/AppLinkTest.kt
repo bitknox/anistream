@@ -8,6 +8,8 @@ class AppLinkTest {
     private val links = listOf(
         AppLink.Search,
         AppLink.Downloads,
+        AppLink.Calendar,
+        AppLink.Accounts,
         AppLink.Title(900001u),
         AppLink.Continue(900002u),
         AppLink.Play(900003u, "7"),
@@ -28,6 +30,12 @@ class AppLinkTest {
         assertEquals(mapOf("open" to "downloads"), AppLink.Downloads.fields)
         assertEquals("play/900001/7", AppLink.Play(900001u, "7").key)
         assertEquals(links.size, links.map { it.key }.distinct().size)
+    }
+
+    @Test
+    fun the_widgets_links_name_the_calendar_and_accounts() {
+        assertEquals(mapOf("open" to "calendar"), AppLink.Calendar.fields)
+        assertEquals(mapOf("open" to "accounts"), AppLink.Accounts.fields)
     }
 
     @Test
