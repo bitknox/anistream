@@ -37,10 +37,12 @@ pub struct TorrentProxy {
     pub host: String,
     pub port: u16,
     /// The user name, when the proxy asks for one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub user: Option<String>,
     /// The password: kept in the host's secret store, never in `config.toml`. `None` keeps the
     /// one already kept, so a sheet that leaves the field alone need not ask for it again; an
     /// empty one forgets it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub password: Option<Secret>,
 }
 
@@ -73,6 +75,7 @@ pub struct ProtectionView {
     pub protection: TorrentProtection,
     /// The proxy, when one is set: the sheet's fields, filled. Without its password, which
     /// stays where it is kept.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub proxy: Option<ProxyView>,
     pub on_failure: FailedCheck,
 }
@@ -83,6 +86,7 @@ pub struct ProtectionView {
 pub struct ProxyView {
     pub host: String,
     pub port: u16,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub user: Option<String>,
 }
 

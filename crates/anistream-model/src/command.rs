@@ -109,6 +109,10 @@ pub enum Command {
     /// when the viewer was already looked up for their library.
     LoadTitleLanguage,
     LoadEpisodes(AnilistId),
+    /// How far a title's dub goes, from the source a play would use: answered by
+    /// [`Event::DubbedTo`](crate::event::Event::DubbedTo). One more listing of that source's,
+    /// in the dub, so a front end asks when it shows the answer.
+    LoadDubbedTo(AnilistId),
     CheckProviders,
     /// Fetch one segment of the tracker's list.
     LoadLibrary(LibrarySegment),

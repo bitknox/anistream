@@ -136,6 +136,45 @@ async fn a_matched_titles_episodes_are_named_and_carry_its_history() {
 }
 
 #[tokio::test]
+async fn how_far_a_dub_goes_is_the_sources_own_listing_in_the_dub() {
+    let mut h = Harness::new().await;
+    h.send(Command::LoadDubbedTo(FINISHED));
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["DubbedTo"]);
+    let Event::DubbedTo { id, episode } = &updates[0] else { unreachable!() };
+    let last = sources::episodes(FINISHED).last().unwrap().number.as_str().to_owned();
+    assert_eq!((*id, episode.as_deref()), (FINISHED, Some(last.as_str())));
+
+    // A title no source has: nothing to say of its dub.
+    h.send(Command::LoadDubbedTo(MISSING));
+    let updates = h.settle().await;
+    assert!(matches!(&updates[..], [Event::DubbedTo { id: MISSING, episode: None }]));
+}
+
+#[tokio::test]
+async fn an_episode_the_schedule_moved_later_says_when_it_was_to_air() {
+    let mut h = Harness::new().await;
+    h.send(Command::LoadEpisodes(AIRING));
+    let updates = h.settle().await;
+    let Event::Episodes { rows, .. } = &updates[0] else {
+        unreachable!("{:?}", names(&updates))
+    };
+    let row = rows.iter().find(|row| row.airs_at.is_some()).expect("a dated episode");
+    assert!(rows.iter().all(|row| row.delayed_from.is_none()), "nothing seen move yet");
+    let (number, airs_at) = (row.number.clone(), row.airs_at.unwrap());
+
+    // As if this device had seen it an hour earlier on the schedule, before AniList moved it.
+    let episode = number.parse().unwrap();
+    h.store().remember_airings(&[(AIRING, episode, airs_at - 3_600)], FIXTURE_NOW).unwrap();
+    h.send(Command::LoadEpisodes(AIRING));
+    let updates = h.settle().await;
+    let Event::Episodes { rows, .. } = &updates[0] else { unreachable!() };
+    let moved: Vec<_> =
+        rows.iter().filter_map(|row| Some((row.number.as_str(), row.delayed_from?))).collect();
+    assert_eq!(moved, [(number.as_str(), airs_at - 3_600)]);
+}
+
+#[tokio::test]
 async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
     let mut h = harness(unsure()).await;
     let job = h.send(Command::LoadEpisodes(FINISHED));

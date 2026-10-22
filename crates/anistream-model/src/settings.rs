@@ -416,9 +416,11 @@ pub fn redefines_sources(setting: SettingKey) -> bool {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SettingsView {
     /// The Settings screen's rows, in display order.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub rows: Vec<SettingRow>,
     /// The setting whose write was just refused and put back to what the file holds: on the
     /// view that answers the refusal, and on no other. The notice saying why comes after it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub refused: Option<SettingKey>,
     /// Sub or dub, in effect: what the status line says, and what `t` turns over.
     pub translation: Translation,
@@ -432,14 +434,17 @@ pub struct SettingsView {
     /// The speed a playback starts at, when one is remembered: what Now Playing shows of a
     /// playback the front end stages as it asks for it, until the player says. One the engine
     /// starts on its own comes staged with it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub speed: Option<f64>,
     /// Whether Discord presence has a client to publish under, which its row's note depends on.
     pub presence_client: bool,
     /// The native apps' own rows, in [`SettingKey::NATIVE_ROWS`] order. The terminal draws
     /// none of them.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub native_rows: Vec<SettingRow>,
     /// The settings some shows set for themselves, and for how many: what "Overridden for 3
     /// shows" says under a row. Only those at least one show sets, each once.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub overridden: Vec<SettingOverride>,
     /// How torrent traffic is kept off the viewer's own address, as the torrent sheet and
     /// Sources show it. Boxed, as the largest part of a view every settings event carries:

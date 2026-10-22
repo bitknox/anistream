@@ -71,7 +71,9 @@ pub struct Successor {
     pub translation: anistream_core::media::Translation,
     /// The title's art by URL, where the engine knows it, for the starting screen the window
     /// shows while the successor is found.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub cover_url: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub banner_url: Option<String>,
 }
 
@@ -80,8 +82,10 @@ pub struct Successor {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct NextEpisode {
     pub number: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub title: Option<String>,
     /// The episode's still, by URL, for the Up Next card.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub thumbnail: Option<String>,
 }
 
@@ -96,8 +100,11 @@ impl NextEpisode {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct EpisodeEntry {
     pub number: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub title: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub watched: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub filler: bool,
 }
 
@@ -147,11 +154,14 @@ pub struct PlayableStream {
     pub url: String,
     pub kind: PlayableKind,
     /// Vertical resolution, when known: `1080`, `720`, …
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub quality: Option<u32>,
     /// The headers the player must send with every request for the stream. Many CDNs are
     /// referer-locked, so a player that drops these gets a 403.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub headers: Vec<HttpHeader>,
     /// The subtitle tracks beside the stream, in the order the source listed them.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub subtitles: Vec<SubtitleTrack>,
     /// The source that found it.
     pub provider_id: String,
@@ -161,6 +171,7 @@ pub struct PlayableStream {
     pub label: String,
     /// Where a seekbar thumbnailer reads the stream instead of `url`, when that matters: a
     /// torrent's, so the thumbnailer does not pull the swarm away from the playback head.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub thumbnail_url: Option<String>,
 }
 
@@ -235,8 +246,10 @@ pub struct SubtitleTrack {
     pub language: String,
     pub url: String,
     /// Burned into the video, so it cannot be turned off and is no file to load.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hard: bool,
     /// The track's format when its URL does not say: `vtt`, `srt`, `ass`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub format: Option<String>,
 }
 

@@ -132,13 +132,16 @@ pub fn apply(config: &mut Config, own: &[(ShowSettingKey, SettingValue)]) {
 pub struct ShowSettingsView {
     pub id: AnilistId,
     /// Each setting a show can set, in [`ShowSettingKey::ALL`] order.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub rows: Vec<ShowSettingRow>,
     /// The tracks the player remembers for the show, for each translation it remembers any
     /// for: "Remembered from your last episode." None of them is a setting, and none is
     /// counted as one; resetting the show forgets them.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub remembered: Vec<RememberedTracks>,
     /// The source the show keeps, chosen from its title page, or `None` for trying the sources
     /// in order.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub source: Option<String>,
 }
 
@@ -148,6 +151,7 @@ pub struct ShowSettingsView {
 pub struct ShowSettingRow {
     pub key: ShowSettingKey,
     /// What the show sets for itself, or `None` when it follows Settings.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub own: Option<SettingValue>,
     /// The value in effect for the show, in the Settings row's words: `on`, `dub`, `720p`.
     pub value: String,
@@ -161,10 +165,13 @@ pub struct ShowSettingRow {
 pub struct RememberedTracks {
     pub translation: Translation,
     /// The audio track switched to, if one was.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub audio: Option<RememberedTrack>,
     /// The subtitles chosen, if any were.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub subtitles: Option<RememberedSubtitles>,
     /// The subtitle delay settled on, in seconds, if it was moved.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub sub_delay: Option<f64>,
 }
 
@@ -173,10 +180,13 @@ pub struct RememberedTracks {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct RememberedTrack {
     /// Its language, lowercase, as the file declared it: `jpn`, `eng`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub language: Option<String>,
     /// Its title, as lowercase words: `english signs`.
     pub title: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub forced: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hearing_impaired: bool,
 }
 

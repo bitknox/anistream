@@ -1,6 +1,6 @@
 //! A title's episodes: listed from the source playback would use, and marked watched or not.
 
-use anistream_core::ids::AnilistId;
+use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_meta::Meta;
 use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
@@ -36,25 +36,8 @@ pub async fn load_episodes(
     if registry.is_empty() {
         return Err("no sources configured".into());
     }
-    let target = media.match_target();
     let now = now_epoch();
-
-    // From the source playback would use: the one pinned for this title, or else the first in
-    // the order that has it, so the table's numbering is the one Enter plays.
-    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
-    let registry = pinned.as_ref().unwrap_or(registry);
-    let answer = anistream_providers::first_answer(
-        store,
-        registry,
-        id,
-        &target,
-        anistream_core::media::Translation::Sub,
-        now,
-        |source, key| async move {
-            source.episodes(&key, anistream_core::media::Translation::Sub, now).await
-        },
-    )
-    .await;
+    let answer = listed(&media, store, registry, id, Translation::Sub, now).await;
 
     let mut episodes = match answer {
         anistream_providers::Answer::Answered { value, .. } => value,
@@ -84,10 +67,75 @@ pub async fn load_episodes(
     // already fetched above does, so name them before they reach the table.
     data::name_episodes(&mut episodes, &media.episode_titles(), &media.episode_thumbnails());
 
-    // And when each aired or airs, so an episode not out yet can be told from one that is.
+    // And when each aired or airs, so an episode not out yet can be told from one that is, and
+    // when one the schedule has moved later was to air before.
     let mut rows = data::episode_rows(&episodes, store, id);
     data::date_episodes(&mut rows, &media.air_times());
+    data::mark_delays(&mut rows, store, id, now);
     Ok(EpisodeLoad::Rows(rows))
+}
+
+/// A title's episodes in `translation`, from the source playback would use: the one pinned for
+/// this title, or else the first in the order that has it, so the table's numbering is the one
+/// Enter plays.
+async fn listed(
+    media: &anistream_meta::anilist::Media,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+    translation: Translation,
+    now: i64,
+) -> anistream_providers::Answer<Vec<anistream_core::media::Episode>> {
+    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
+    let registry = pinned.as_ref().unwrap_or(registry);
+    anistream_providers::first_answer(
+        store,
+        registry,
+        id,
+        &media.match_target(),
+        translation,
+        now,
+        |source, key| async move { source.episodes(&key, translation, now).await },
+    )
+    .await
+}
+
+/// How far title `id`'s dub goes, from the source a play would use: [`Event::DubbedTo`]. Said
+/// as `None` when that source has no dub of it, and when it could not say.
+pub async fn dubbed_to(lent: Lent, id: AnilistId) {
+    let Lent { meta, store, registry, tx, .. } = lent;
+    let episode = dub_reach(&meta, &store, &registry, id).await;
+    let _ = tx.send(Event::DubbedTo { id, episode });
+}
+
+async fn dub_reach(
+    meta: &Meta,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+) -> Option<String> {
+    if registry.is_empty() && !registry.is_arriving() {
+        return None;
+    }
+    let media = meta.media(id).await.ok()?;
+    crate::sources::arrived(registry, || ()).await;
+    // A source the ladder cannot match confidently in the dub is not asked about: the question
+    // of which title is meant belongs to the episode table, which asks it in the sub.
+    match listed(&media, store, registry, id, Translation::Dub, now_epoch()).await {
+        anistream_providers::Answer::Answered { value, .. } => last_episode(&value),
+        _ => None,
+    }
+}
+
+/// The episode a listing reaches: the highest numbered one, or the last listed when none is
+/// numbered.
+fn last_episode(episodes: &[anistream_core::media::Episode]) -> Option<String> {
+    let numbered = episodes
+        .iter()
+        .filter_map(|episode| Some((episode.number.as_number()?, episode)))
+        .max_by(|(a, _), (b, _)| a.total_cmp(b))
+        .map(|(_, episode)| episode);
+    numbered.or(episodes.last()).map(|episode| episode.number.as_str().to_owned())
 }
 
 /// A title's episodes, from the source playback would use, or the candidates to choose
@@ -164,4 +212,22 @@ pub fn set_watched(
         engine.cache.standing(id, progress, resume)
     });
     let _ = tx.send(said);
+}
+
+#[cfg(test)]
+mod tests {
+    use anistream_core::media::Episode;
+
+    use super::*;
+
+    #[test]
+    fn a_listing_reaches_its_highest_numbered_episode() {
+        let listed = |numbers: &[&str]| -> Vec<Episode> {
+            numbers.iter().map(|n| Episode::new(*n)).collect()
+        };
+        assert_eq!(last_episode(&listed(&["1", "2", "12", "3"])).as_deref(), Some("12"));
+        assert_eq!(last_episode(&listed(&["5", "5.5"])).as_deref(), Some("5.5"));
+        assert_eq!(last_episode(&listed(&["OVA", "Special"])).as_deref(), Some("Special"));
+        assert_eq!(last_episode(&[]), None);
+    }
 }

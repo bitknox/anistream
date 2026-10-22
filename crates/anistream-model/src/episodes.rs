@@ -5,37 +5,51 @@
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct EpisodeRow {
     pub number: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub title: Option<String>,
     /// Still frame for this episode, when one was published.
     ///
     /// Only ever drawn for the selected row: the table is dense, and one image that follows the
     /// cursor costs a single fetch per move rather than one per visible row.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub thumbnail: Option<String>,
     /// One-paragraph synopsis, when the source has one.
     ///
     /// Shown for the selected row only, under its still, for the same reason the still is:
     /// the table is a timing sheet, and a paragraph per row would drown it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub description: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub duration_secs: Option<u64>,
     /// How far through this episode the local history says we are.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub watched: f64,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub completed: bool,
     /// Filler, mixed or canon — from AnimeFillerList, when the show is covered.
     ///
     /// `None` means unknown, which is the common case: most shows have no filler and are not in the
     /// index at all. Rendered only when present, so an uncovered show shows no column rather than a
     /// column of blanks.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub kind: Option<EpisodeKind>,
     /// Whether offering to skip this whole episode is reasonable.
     ///
     /// Only pure filler. `mixed` episodes contain filler *and* canon, so skipping one loses story —
     /// the distinction is the whole reason this is a separate field rather than `kind == "filler"`
     /// at every call site.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub skippable: bool,
     /// When the episode airs or aired, in Unix seconds, from AniList's schedule. Later than now
     /// means it has not aired yet. `None` when the schedule does not say, which is not the same
     /// as unaired: a long runner's oldest episodes, and titles AniList keeps no schedule for.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub airs_at: Option<i64>,
+    /// When the episode was to air before AniList's schedule moved it later, in Unix seconds:
+    /// "Delayed (was 23:00)". Known only when this device saw the schedule before the move;
+    /// `None` when it has not moved since it was first seen here.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub delayed_from: Option<i64>,
 }
 
 /// One episode's broadcast, from AniList's schedule: [`EpisodeRow::airs_at`] by number, and

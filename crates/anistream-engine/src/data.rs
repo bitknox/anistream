@@ -306,6 +306,55 @@ pub fn date_episodes(rows: &mut [EpisodeRow], times: &std::collections::BTreeMap
     }
 }
 
+/// Mark each row the schedule has moved later with when it was to air before, as this device
+/// saw it: see [`EpisodeRow::delayed_from`]. Only rows [`date_episodes`] dated.
+pub fn mark_delays(
+    rows: &mut [EpisodeRow],
+    store: &Store,
+    id: anistream_core::ids::AnilistId,
+    now: i64,
+) {
+    let numbered = |row: &EpisodeRow| row.number.trim().parse::<u32>().ok();
+    let airings: Vec<_> =
+        rows.iter().filter_map(|row| Some((id, numbered(row)?, row.airs_at?))).collect();
+    let moved = remember_airings(store, &airings, now);
+    for row in rows {
+        row.delayed_from = numbered(row).and_then(|n| moved.get(&(id, n)).copied());
+    }
+}
+
+/// Calendar rows for `airings`, each marked with when it was to air before the schedule moved
+/// it later, as this device saw it: see [`Entry::delayed_from`].
+pub fn entries_from_airings<'a>(
+    airings: impl IntoIterator<Item = &'a AiringEntry>,
+    now: i64,
+    store: &Store,
+) -> Vec<Entry> {
+    let airings: Vec<&AiringEntry> = airings.into_iter().collect();
+    let seen: Vec<_> = airings.iter().map(|a| (a.media.id, a.episode, a.airing_at)).collect();
+    let moved = remember_airings(store, &seen, now);
+    airings
+        .into_iter()
+        .map(|airing| Entry {
+            delayed_from: moved.get(&(airing.media.id, airing.episode)).copied(),
+            ..entry_from_airing(airing, now, Some(store))
+        })
+        .collect()
+}
+
+/// [`Store::remember_airings`], or no delays when the database cannot say: a schedule shown
+/// without its delays is still the schedule.
+fn remember_airings(
+    store: &Store,
+    airings: &[(anistream_core::ids::AnilistId, u32, i64)],
+    now: i64,
+) -> std::collections::HashMap<(anistream_core::ids::AnilistId, u32), i64> {
+    store.remember_airings(airings, now).unwrap_or_else(|error| {
+        tracing::warn!(%error, "could not keep the schedule's times");
+        Default::default()
+    })
+}
+
 /// Where a title stands in local history: episodes done and the one Continue offers, of
 /// `total` when its episode count is known, and where that episode was left.
 pub fn standing(
@@ -597,6 +646,7 @@ pub fn episode_rows_with_filler(
                 skippable: classified.is_some_and(|(_, skippable)| skippable),
                 // Dated from the schedule by the caller, which has the title: `date_episodes`.
                 airs_at: None,
+                delayed_from: None,
             }
         })
         .collect()
@@ -922,6 +972,7 @@ mod tests {
                 kind: None,
                 skippable: false,
                 airs_at: Some(1),
+                delayed_from: None,
             })
             .collect();
         date_episodes(&mut rows, &[(1, 100), (2, 200)].into_iter().collect());
@@ -1082,6 +1133,19 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(entry_from(&media, None).available_on, vec!["Streamer", "Other"]);
+    }
+
+    #[test]
+    fn a_calendar_row_the_schedule_moved_later_says_when_it_was_to_air() {
+        let store = Store::open_in_memory().unwrap();
+        let airing = |at| AiringEntry { episode: 12, airing_at: at, media: media() };
+        let first = entries_from_airings([&airing(1_000_600)], 1_000_000, &store);
+        assert_eq!(first[0].delayed_from, None, "first seen");
+        // Forty-five minutes later than this device saw it.
+        let moved = entries_from_airings([&airing(1_003_300)], 1_000_100, &store);
+        assert_eq!(moved[0].delayed_from, Some(1_000_600));
+        assert_eq!(moved[0].airing_in, Some(3_200), "counted to the new time");
+        assert_eq!(moved[0].airing_episode, Some(12));
     }
 
     /// Reported as "EP 5 out · EP 6 in now": the row's slot was paired with the *media's* next
