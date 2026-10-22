@@ -135,7 +135,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 8] = [
+    pub const NATIVE_ROWS: [Self; 9] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
