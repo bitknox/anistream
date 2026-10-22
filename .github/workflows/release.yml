@@ -198,7 +198,7 @@ jobs:
       # and the cache keeps none of those.
       - name: The version
         shell: bash
-        run: packaging/set-version.sh "$VERSION"
+        run: bash packaging/set-version.sh "$VERSION"
 
       # aws-lc-sys assembles its own crypto primitives and needs NASM on Windows.
       - name: Install NASM
