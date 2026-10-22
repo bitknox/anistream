@@ -106,10 +106,12 @@ struct CaptionStylePlayerTests {
         // The viewer picks yellow in the system's settings, which say so.
         style.text = CaptionStyle.Colour(red: 1, green: 1, blue: 0, alpha: 1)
         rig.model.captionStyleChanged()
-        try await until("the colour set") { sets(rig, "sub-color") == ["#FFFFFF00"] }
-        // And turns the setting off: mpv's own look again.
+        await rig.handedOver()
+        #expect(sets(rig, "sub-color") == ["#FFFFFF00"])
+        // And turns the setting off: mpv's own look again, every option of it.
         rig.model.followsSystemCaptions = false
-        try await until("mpv's own colour") { sets(rig, "sub-color") == ["#FFFFFF00", "#FFFFFFFF"] }
+        await rig.handedOver()
+        #expect(sets(rig, "sub-color") == ["#FFFFFF00", "#FFFFFFFF"])
         #expect(sets(rig, "sub-border-style").last == "outline-and-shadow")
         #expect(sets(rig, "sub-font").last == PlayerModel.defaultSubtitleFont)
     }

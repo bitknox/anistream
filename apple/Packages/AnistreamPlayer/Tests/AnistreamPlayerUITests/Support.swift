@@ -148,12 +148,20 @@ final class Rig {
         }
     }
 
+    /// Wait until mpv has had every call the model has queued for it so far. Not with `until`:
+    /// each call takes a turn on the main actor that every test running shares, which CI's
+    /// cold start can hold for a second at a time.
+    func handedOver() async {
+        await model.handedOver()
+    }
+
     /// Open a player for `playback` and load a file into it, which mpv starts.
     func opened(
         _ playback: PlaybackId = 1, url: String = "/media/episode.mkv", options: [MpvOption] = []
     ) async throws {
         ops(playback, [.open(fullscreen: false, speed: nil, volume: nil), .load(url: url, options: options)])
-        try await until("the file loaded") { self.mpv.calls.contains { if case .load = $0 { true } else { false } } }
+        await handedOver()
+        try #require(mpv.calls.contains { if case .load = $0 { true } else { false } }, "the file loaded")
         mpv.emit(.startFile)
         mpv.emit(.fileLoaded)
         try await until("the load reported") { self.reports.contains { $0 == (playback, .fileLoaded) } }
@@ -169,7 +177,11 @@ final class Rig {
     }
 }
 
-/// Wait, a few milliseconds at a time, until `condition` holds; fail after two seconds.
+/// Wait, a few milliseconds at a time, until `condition` holds; fail after two seconds. For what
+/// stays on the main actor, such as mpv's events taken: they wait there ahead of the next look,
+/// so a busy main actor delays both alike. Calls the model queues for mpv go off it and back
+/// once each, which a busy main actor can stretch past any timeout: `Rig.handedOver()` waits
+/// for those.
 @MainActor
 func until(
     _ what: String, timeout: Duration = .seconds(2), _ condition: @MainActor () -> Bool,
