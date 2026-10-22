@@ -78,6 +78,13 @@ pub struct RedeemRequest {
     pub device: String,
 }
 
+/// `POST /v1/preview`: what an invite leads to, before it is spent. Answered with the
+/// [`SignedIndex`], which holding the invite entitles one to see.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewRequest {
+    pub invite: String,
+}
+
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RedeemResponse {
     pub token: String,
@@ -243,6 +250,11 @@ pub struct Index {
     pub sequence: u64,
     pub issued_at: i64,
     pub plugins: Vec<IndexEntry>,
+    /// Who runs the store: its owners' names, the longest-standing first, for "Run by …". Like
+    /// `store`, it describes the store as it is now and moves no `sequence`, which counts the
+    /// plugin list. Left out by a store from before it was, and then read as none.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub owners: Vec<String>,
 }
 
 impl Index {

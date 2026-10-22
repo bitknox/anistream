@@ -399,6 +399,7 @@ mod tests {
             sequence: 1,
             issued_at: 0,
             plugins,
+            owners: Vec::new(),
         };
         state.accept_index("a", index("a", vec![entry("one", "1.1.0", &[])]), 10);
         state.accept_index("b", index("b", vec![entry("two", "2.0.0", &[])]), 10);
@@ -434,6 +435,7 @@ mod tests {
             sequence: 12,
             issued_at: 0,
             plugins: Vec::new(),
+            owners: Vec::new(),
         };
         state.accept_index("abc", index, 0);
         state.remove_store("abc");

@@ -472,6 +472,7 @@ mod tests {
             url: "https://plugins.example".into(),
             host: "plugins.example".into(),
             checked_at: None,
+            owners: Vec::new(),
             fingerprint: "9f3c 1a2b 77de 0c41".into(),
             member: "Johan".into(),
             owner,
@@ -525,6 +526,8 @@ mod tests {
             host: "plugins.example".into(),
             fingerprint: "9f3c".into(),
             already_joined: false,
+            owners: Vec::new(),
+            plugins: Vec::new(),
         })));
         assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
         assert_eq!(
@@ -944,6 +947,8 @@ mod tests {
             host: "other.example".into(),
             fingerprint: "0000".into(),
             already_joined: false,
+            owners: Vec::new(),
+            plugins: Vec::new(),
         })));
         assert_eq!(a.store_confirm, leave);
         assert_eq!(
