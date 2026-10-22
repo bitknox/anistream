@@ -50,9 +50,9 @@ struct TabShell: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        // The brief's navy glass on the iPad's sidebar. The bar is empty; it is where the tint
-        // finds the sidebar's glass from, and unlike a header it moves no row.
-        .tabViewSidebarBottomBar { SidebarGlassTint() }
+        // The iPad's sidebar as the brief draws it (PadSidebarStyle). The bar is empty; it is
+        // where the style reaches the sidebar from, and unlike a header it moves no row.
+        .tabViewSidebarBottomBar { PadSidebarStyle(selection: navigator.section) }
         .overlay(alignment: .top) {
             NoticeCapsule(here: navigator.phoneSettings == nil).padding(.top, 8)
         }
@@ -188,26 +188,41 @@ struct TabStack<Screen: View>: View {
     }
 }
 
-/// Tints the glass the iPad's sidebar sits in to the brief's navy. UIKit draws that glass a
-/// neutral grey and has no tint for it, so this view, in the sidebar's bottom bar, finds the glass
-/// around it and tints it whenever the sidebar is put on screen or laid out again. It draws
-/// nothing, and takes no room.
-struct SidebarGlassTint: UIViewRepresentable {
+/// The iPad's sidebar as the brief draws it: the brief's navy glass, and its rows with the
+/// selection tint under an amber label and icon, every other row silk with a haze icon, and the
+/// Sources header in haze. UIKit draws the sidebar itself, grey glass with a solid capsule in the
+/// tint under white text, and gives no style for either; this view, in the sidebar's bottom bar,
+/// reaches both from there. It draws nothing, and takes no room.
+///
+/// - The glass: it finds the glass around it and tints it, whenever the sidebar is put on screen
+///   or laid out again.
+/// - The rows: it styles each row as UIKit asks the sidebar's delegate for it (`SidebarRows`,
+///   which hands everything else on to SwiftUI's own delegate), and has them asked again when the
+///   section changes, since UIKit moves the selection without asking.
+struct PadSidebarStyle: UIViewRepresentable {
+    let selection: AppSection
+
     final class Hook: UIView {
         private static let navy = UIColor(Palette.glassOverGround)
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            tint()
+            apply()
         }
 
         override func layoutSubviews() {
             super.layoutSubviews()
-            tint()
+            apply()
         }
 
-        private func tint() {
+        private func apply() {
             guard window != nil else { return }
+            tintGlass()
+            guard let controller = tabBarController else { return }
+            if SidebarRows.install(on: controller) { restyle() }
+        }
+
+        private func tintGlass() {
             var view = superview
             while let current = view {
                 if let glass = current as? UIVisualEffectView, let effect = glass.effect as? UIGlassEffect {
@@ -219,13 +234,117 @@ struct SidebarGlassTint: UIViewRepresentable {
                 view = current.superview
             }
         }
+
+        private var tabBarController: UITabBarController? {
+            var responder: UIResponder? = self
+            while let current = responder {
+                if let controller = current as? UITabBarController { return controller }
+                responder = current.next
+            }
+            return nil
+        }
+
+        /// Has UIKit ask for every row again, so each is styled as it now stands.
+        func restyle() {
+            guard let controller = tabBarController else { return }
+            func all(_ tabs: [UITab]) -> [UITab] {
+                tabs.flatMap { [$0] + (($0 as? UITabGroup).map { all($0.children) } ?? []) }
+            }
+            for tab in all(controller.tabs) { controller.sidebar.reconfigureItem(for: tab) }
+        }
     }
 
     func makeUIView(context: Context) -> Hook { Hook() }
-    func updateUIView(_ uiView: Hook, context: Context) {}
+
+    func updateUIView(_ uiView: Hook, context: Context) {
+        // After this update, once the tab bar controller has the section selected.
+        Task { @MainActor in uiView.restyle() }
+    }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: Hook, context: Context) -> CGSize? {
         .zero
+    }
+}
+
+/// The sidebar's delegate: styles each row UIKit asks for, and hands every other call on to the
+/// delegate it replaced, SwiftUI's own.
+@MainActor
+final class SidebarRows: NSObject, UITabBarController.Sidebar.Delegate {
+    private static var key: UInt8 = 0
+    /// SwiftUI's delegate, which SwiftUI keeps.
+    nonisolated(unsafe) private weak var original: (any UITabBarController.Sidebar.Delegate)?
+
+    /// Puts the styling delegate on `controller`'s sidebar, kept with the controller, in front of
+    /// whatever delegate is there. True when it was not there already.
+    static func install(on controller: UITabBarController) -> Bool {
+        let rows: SidebarRows
+        if let kept = objc_getAssociatedObject(controller, &key) as? SidebarRows {
+            rows = kept
+        } else {
+            rows = SidebarRows()
+            objc_setAssociatedObject(controller, &key, rows, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+        let sidebar = controller.sidebar
+        guard sidebar.delegate !== rows else { return false }
+        rows.original = sidebar.delegate
+        sidebar.delegate = rows
+        return true
+    }
+
+    override nonisolated func responds(to selector: Selector!) -> Bool {
+        super.responds(to: selector) || (original?.responds(to: selector) ?? false)
+    }
+
+    override nonisolated func forwardingTarget(for selector: Selector!) -> Any? {
+        if let original, original.responds(to: selector) { return original }
+        return super.forwardingTarget(for: selector)
+    }
+
+    func tabBarController(
+        _ tabBarController: UITabBarController, sidebar: UITabBarController.Sidebar,
+        itemFor request: UITabSidebarItem.Request
+    ) -> UITabSidebarItem {
+        let item = original?.tabBarController?(tabBarController, sidebar: sidebar, itemFor: request)
+            ?? UITabSidebarItem(request: request)
+        style(item, in: tabBarController)
+        return item
+    }
+
+    func tabBarController(
+        _ tabBarController: UITabBarController, sidebar: UITabBarController.Sidebar,
+        update item: UITabSidebarItem
+    ) {
+        original?.tabBarController?(tabBarController, sidebar: sidebar, update: item)
+        style(item, in: tabBarController)
+    }
+
+    private func style(_ item: UITabSidebarItem, in controller: UITabBarController) {
+        guard case .tab(let tab) = item.content,
+              var content = item.contentConfiguration as? UIListContentConfiguration else { return }
+        content.textProperties.colorTransformer = nil
+        if tab is UITabGroup {
+            // A section's header, Sources.
+            content.textProperties.color = UIColor(Palette.haze)
+            item.contentConfiguration = content
+            return
+        }
+        // The controller's selected tab, which is current before the row's own state is.
+        let selected = controller.selectedTab.map { $0.identifier == tab.identifier }
+            ?? item.configurationState.isSelected
+        content.textProperties.color = UIColor(selected ? Palette.amber : Palette.silk)
+        content.imageProperties.tintColorTransformer = nil
+        content.imageProperties.tintColor = UIColor(selected ? Palette.amber : Palette.haze)
+        if selected {
+            let font = content.textProperties.font
+            let medium = font.fontDescriptor.addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: UIFont.Weight.medium]])
+            content.textProperties.font = UIFont(descriptor: medium, size: 0)
+        }
+        item.contentConfiguration = content
+        var background = item.defaultBackgroundConfiguration()
+        background.backgroundColorTransformer = nil
+        background.backgroundColor = selected ? UIColor(Palette.selection) : .clear
+        background.cornerRadius = 12
+        item.backgroundConfiguration = background
     }
 }
 #endif
