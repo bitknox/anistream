@@ -556,6 +556,14 @@ mod tests {
             host: "plugins.example".into(),
             fingerprint: "ab12 cd34".into(),
             already_joined: false,
+            owners: vec!["Alex".into(), "Sam".into()],
+            plugins: vec![anistream_model::stores::StorePluginRow {
+                id: "example".into(),
+                name: "Example".into(),
+                version: "1.4.0".into(),
+                hosts: vec!["api.example".into()],
+                status: anistream_model::stores::StorePluginStatus::OtherStore("Theirs".into()),
+            }],
         })));
         crosses_intact(Event::StorePreview(InvitePreview::Failed {
             reason: "that is not a link".into(),
