@@ -9,8 +9,8 @@ export default defineConfig({
 		starlight({
 			title: 'anistream',
 			description:
-				'An open-source anime client for browsing, watching, tracking and syncing, with sources as plugins. anistream hosts no content.',
-			logo: { src: './src/assets/logo.svg', alt: '', replacesTitle: false },
+				'An open-source anime client for Mac, iPhone, iPad, Android and the terminal, for browsing, watching, tracking and syncing, with sources as plugins. anistream hosts no content.',
+			logo: { src: './src/assets/icon-32.svg', alt: '', replacesTitle: false },
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/bitknox/anistream' }],
 			customCss: ['./src/styles/theme.css'],
 			components: {
@@ -18,6 +18,8 @@ export default defineConfig({
 				Footer: './src/components/starlight/Footer.astro',
 			},
 			head: [
+				{ tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '16x16 32x32 48x48' } },
+				{ tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
 				{
 					tag: 'meta',
 					attrs: {

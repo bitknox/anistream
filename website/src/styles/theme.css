@@ -188,7 +188,7 @@ html {
 
 /* ── Header ────────────────────────────────────────────────────────────── */
 .site-title {
-	gap: 8px;
+	gap: 10px;
 	font-family: var(--ani-font-display);
 	font-size: 1.25rem;
 	font-weight: 500;
@@ -196,9 +196,10 @@ html {
 	color: var(--ani-text);
 }
 
+/* The app icon, on whole pixels: its 32 px tile at one CSS pixel a cell. */
 .site-title img {
-	width: 20px;
-	height: 20px;
+	width: 32px;
+	height: 32px;
 }
 
 button[data-open-modal] {
@@ -277,8 +278,8 @@ starlight-theme-select .caret {
 	}
 
 	.site-title img {
-		width: 18px;
-		height: 18px;
+		width: 32px;
+		height: 32px;
 	}
 
 	button[data-open-modal] {
