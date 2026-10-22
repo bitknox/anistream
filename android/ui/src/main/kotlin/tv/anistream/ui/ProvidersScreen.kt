@@ -6,7 +6,7 @@
 
 package tv.anistream.ui
 
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -186,18 +187,15 @@ private fun SourceList(rows: List<ProviderRow>, editing: Boolean, move: (id: Str
                 from > target && index in target until from -> (heights[dragging] ?: 0) + gap
                 else -> 0f
             }
-            val shiftDp by animateDpAsState(
-                with(androidx.compose.ui.platform.LocalDensity.current) { shift.toDp() },
-                animationSpec = tv.anistream.design.Motion.standard(),
-                label = "shift",
-            )
+            // Read where it is placed, not here, so making way moves the row and composes nothing.
+            val shiftPx = animateFloatAsState(shift, animationSpec = tv.anistream.design.Motion.standard(), label = "shift")
             val lifted = dragging == row.id
             Box(
                 Modifier
                     .zIndex(if (lifted) 1f else 0f)
                     .onSizeChanged { heights[row.id] = it.height }
                     .graphicsLayer { translationY = if (lifted) offset else 0f }
-                    .offset(y = if (lifted) 0.dp else shiftDp)
+                    .offset { IntOffset(0, if (lifted) 0 else shiftPx.value.roundToInt()) }
                     .then(if (lifted) Modifier.shadow(6.dp, MaterialTheme.shapes.large) else Modifier)
                     .semantics {
                         customActions = listOfNotNull(
