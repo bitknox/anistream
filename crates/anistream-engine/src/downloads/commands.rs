@@ -26,9 +26,8 @@ pub fn download_episode(
         let _job = job;
         // Resolving needs the provider chain, so this is a task rather than inline — the
         // same walk playback does, which is the point: a download is "play it, to disk".
-        let update = match downloads::enqueue(&store, &registry, &meta, id, &episode, wanted)
-            .await
-        {
+        let queued = downloads::enqueue(&store, &registry, &meta, id, &episode, wanted, false);
+        let update = match queued.await {
             Ok((row, downloads::Queued::New)) => {
                 Event::Toast(Notice::info(format!("queued {} ep {}", row.title, row.episode)))
             }
@@ -66,7 +65,8 @@ pub fn download_many(
             let (store, registry, meta, tx) = (&store, &registry, &meta, &tx);
             async move {
                 let (_, queued) =
-                    downloads::enqueue(store, registry, meta, id, &episode, wanted).await?;
+                    downloads::enqueue(store, registry, meta, id, &episode, wanted, false)
+                        .await?;
                 // Each row as it lands, so the Downloads screen fills while the rest
                 // resolve rather than saying nothing is queued until the end.
                 downloads::publish_now(store, tx);

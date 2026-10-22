@@ -31,6 +31,37 @@ impl Store {
         })
     }
 
+    /// The shows being watched: on the list as watching or rewatching, when `listed` says the
+    /// list is a signed-in tracker's, and watched here since `since`, unless the list has them
+    /// dropped or paused, or they were taken off Continue. The most recently watched here
+    /// first, then by id. The new-episode check follows the same shows.
+    pub fn watching(&self, since: i64, listed: bool) -> Result<Vec<AnilistId>> {
+        self.with_conn(|c| {
+            let mut statement = c.prepare(
+                "SELECT id FROM (
+                     SELECT s.anilist_id AS id, COALESCE(p.updated_at, 0) AS at
+                       FROM library_status s
+                       LEFT JOIN watch_progress p ON p.anilist_id = s.anilist_id
+                      WHERE ?2 AND s.status IN ('CURRENT', 'REPEATING')
+                     UNION ALL
+                     SELECT p.anilist_id, p.updated_at FROM watch_progress p
+                      WHERE p.hidden = 0 AND p.updated_at >= ?1
+                        AND NOT (?2 AND EXISTS (
+                            SELECT 1 FROM library_status s
+                             WHERE s.anilist_id = p.anilist_id
+                               AND s.status IN ('DROPPED', 'PAUSED')))
+                 )
+                 GROUP BY id
+                 ORDER BY MAX(at) DESC, id",
+            )?;
+            let ids = statement
+                .query_map(rusqlite::params![since, listed], |r| r.get::<_, u32>(0))?
+                .map(|id| id.map(AnilistId::new))
+                .collect::<rusqlite::Result<_>>()?;
+            Ok(ids)
+        })
+    }
+
     /// Where `id` is on the list, as the tracker words it, when it is on it.
     pub fn library_status(&self, id: AnilistId) -> Result<Option<String>> {
         self.with_conn(|c| {
@@ -60,6 +91,40 @@ mod tests {
             .unwrap();
         assert_eq!(store.library_status(ONE).unwrap().as_deref(), Some("COMPLETED"));
         assert_eq!(store.library_status(TWO).unwrap().as_deref(), Some("PLANNING"));
+    }
+
+    #[test]
+    fn the_shows_being_watched_are_the_lists_and_the_ones_watched_here_lately() {
+        let store = Store::open_in_memory().unwrap();
+        const THREE: AnilistId = AnilistId::new(900_005);
+        const FOUR: AnilistId = AnilistId::new(900_006);
+        const FIVE: AnilistId = AnilistId::new(900_002);
+        store
+            .replace_library_statuses(
+                "anilist",
+                &[(ONE, "CURRENT"), (TWO, "REPEATING"), (THREE, "PAUSED"), (FOUR, "COMPLETED")],
+                10,
+            )
+            .unwrap();
+        assert_eq!(store.watching(100, true).unwrap(), [ONE, TWO], "by id, nothing watched");
+        assert!(store.watching(100, false).unwrap().is_empty(), "nobody signed in to it");
+
+        let watch = |id, at| {
+            let mut event = crate::WatchEvent::new(id, "1", 30.0);
+            event.at = at;
+            store.record_event(&event).unwrap();
+        };
+        watch(TWO, 150);
+        // Watched here lately: one paused on the list, one completed, one not on it at all.
+        watch(THREE, 200);
+        watch(FOUR, 210);
+        watch(FIVE, 220);
+        // And one watched too long ago.
+        watch(AnilistId::new(900_003), 50);
+        assert_eq!(store.watching(100, true).unwrap(), [FIVE, FOUR, TWO, ONE]);
+        assert_eq!(store.watching(100, false).unwrap(), [FIVE, FOUR, THREE, TWO]);
+        store.hide_from_continue(FIVE).unwrap();
+        assert_eq!(store.watching(100, false).unwrap(), [FOUR, THREE, TWO]);
     }
 
     #[test]

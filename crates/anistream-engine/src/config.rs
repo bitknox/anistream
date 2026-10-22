@@ -76,6 +76,14 @@ impl ConfigState {
         self.notify_switched_on = notify_switched_on;
     }
 
+    /// How many shows set `key` for themselves.
+    pub fn shows_setting(&self, key: SettingKey) -> u32 {
+        self.overridden
+            .iter()
+            .find(|counted| counted.key == key)
+            .map_or(0, |counted| counted.shows)
+    }
+
     /// Write `value` at `table`.`key`, then read the file back, whatever the write did: what
     /// the file holds is what the Settings screen shows. A refused write — torrents on with no
     /// VPN, a file that did not load, a disk that said no — puts that one setting in effect

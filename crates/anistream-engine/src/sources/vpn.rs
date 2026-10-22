@@ -5,7 +5,10 @@ use std::sync::Arc;
 use anistream_model::event::Event;
 use anistream_providers::vpn::VpnGuard;
 
-use crate::{outbox::Outbox, sources};
+use crate::{
+    outbox::{Internal, Outbox},
+    sources,
+};
 
 /// The kill-switch half of the guard: a tunnel that drops mid-episode has to stop
 /// torrenting, not merely be noticed at the next launch.
@@ -66,6 +69,10 @@ pub async fn vpn_watch(
             && let Err(e) = session.resume().await
         {
             tracing::warn!(error = %e, "could not resume after recovery");
+        }
+        // Passing again: downloads may run, so keep next tops the shows up for what it waited.
+        if !leaking && was_leaking {
+            let _ = tx.internal(Internal::TopUp);
         }
         was_leaking = leaking;
 

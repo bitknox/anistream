@@ -79,6 +79,9 @@ pub struct EngineState {
     pub episode_check: Arc<tokio::sync::Mutex<()>>,
     /// The week's broadcasts as the widgets' record last fetched them: see [`Schedule`].
     pub widget_schedule: Schedule,
+    /// Keep next: whether it runs, and the top-up asked for while one runs. See
+    /// [`crate::downloads::ahead`].
+    pub ahead: crate::downloads::ahead::Ahead,
 }
 
 impl EngineState {
@@ -107,6 +110,7 @@ impl EngineState {
             gated: None,
             episode_check: Arc::default(),
             widget_schedule: Schedule::default(),
+            ahead: Default::default(),
         }
     }
 

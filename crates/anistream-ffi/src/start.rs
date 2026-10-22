@@ -49,6 +49,10 @@ pub struct FfiBackground {
     /// Check that mpv is there to play, and say so at launch.
     #[uniffi(default = true)]
     pub player_check: bool,
+    /// Keep next: queue the next episodes of each show being watched, at launch and as the
+    /// viewer moves on. Off for a background task's engine, which has seconds to do its work.
+    #[uniffi(default = true)]
+    pub keep_next: bool,
 }
 
 impl Default for FfiBackground {
@@ -68,8 +72,18 @@ impl From<Background> for FfiBackground {
             sync_loops,
             store_refresh,
             player_check,
+            keep_next,
         } = background;
-        Self { prune, update_check, digest, datasets, sync_loops, store_refresh, player_check }
+        Self {
+            prune,
+            update_check,
+            digest,
+            datasets,
+            sync_loops,
+            store_refresh,
+            player_check,
+            keep_next,
+        }
     }
 }
 
@@ -83,8 +97,18 @@ impl From<FfiBackground> for Background {
             sync_loops,
             store_refresh,
             player_check,
+            keep_next,
         } = background;
-        Self { prune, update_check, digest, datasets, sync_loops, store_refresh, player_check }
+        Self {
+            prune,
+            update_check,
+            digest,
+            datasets,
+            sync_loops,
+            store_refresh,
+            player_check,
+            keep_next,
+        }
     }
 }
 
@@ -277,6 +301,7 @@ mod tests {
                 sync_loops: false,
                 store_refresh: false,
                 player_check: false,
+                keep_next: false,
             }
         );
     }
