@@ -372,9 +372,7 @@ const MIGRATIONS: &[(&str, &str)] = &[
     -- `was` is the time the episode stood at before it moved later, kept while it stands later
     -- than that by more than a nudge, and cleared once it is back. Rows not seen for 120 days are
     -- deleted.
-    --
-    -- `IF NOT EXISTS`: a build from before the merge train ran this as `0009_airing_times`.
-    CREATE TABLE IF NOT EXISTS airing_time (
+    CREATE TABLE airing_time (
         anilist_id INTEGER NOT NULL,
         episode    INTEGER NOT NULL,
         airs_at    INTEGER NOT NULL,
@@ -382,7 +380,7 @@ const MIGRATIONS: &[(&str, &str)] = &[
         seen_at    INTEGER NOT NULL,
         PRIMARY KEY (anilist_id, episode)
     );
-    CREATE INDEX IF NOT EXISTS idx_airing_time_seen ON airing_time(seen_at);
+    CREATE INDEX idx_airing_time_seen ON airing_time(seen_at);
     "#,
     ),
 ];
