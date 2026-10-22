@@ -167,9 +167,15 @@ What the systems do with it (checked 2026-10-21, Xcode 27.1):
 
 - **iOS 27.0 Simulator:** the per-size images are used. The iPhone 17's Home Screen draws the
   64 pt @3x slot, 192 px, pixel for pixel, in light and dark.
-- **macOS 27:** the per-size images are used, a master to each size, but every Mac icon is drawn
-  inside the system's rounded square at 824/1024 of the tile, so each is resampled to 80% and
-  is soft.
+- **macOS 27:** the per-size images are used, a master to each size. So the Mac's are drawn inset:
+  macOS draws every app icon inside its rounded square, 824 of every 1024 pixels across, rounded
+  up to whole even pixels (14 at 16 px, 104 at 128), and scales an image drawn to the tile's edge,
+  or to a square a fraction smaller, to fill it, off whole pixels. The ground fills that square,
+  the corners are transparent, and Nagare is picked by the size rule against the square. Drawn
+  so, the 64, 128, 256 and 512 px images are drawn as they are (checked 2026-10-22 through
+  IconServices, which Finder and the Dock draw with): every cell edge a single-pixel step, under
+  the system's own glass. At 16 and 32 px macOS draws the art a few percent smaller inside its
+  rim, so those are near, not exact. A full-bleed image was shrunk to 80% and soft.
 
 ## The Swift packages
 
