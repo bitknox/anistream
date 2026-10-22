@@ -179,8 +179,19 @@ jobs:
           ref: ${{ needs.version.outputs.commit }}
 
       # The toolchain rust-toolchain.toml pins, with the target added to it: the Intel macOS
-      # build is cross-compiled, so its target is not the runner's own.
-      - run: rustup toolchain install && rustup target add ${{ matrix.target }}
+      # build is cross-compiled, so its target is not the runner's own. tools/ci-toolchain.sh
+      # also removes the toolchains the runner image came with, as in ci.yml: the Rust cache's
+      # key hashes every toolchain installed, and the image's own stable moves with each image
+      # update. A tag from before the script installs as it did then.
+      - shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          if [[ -f tools/ci-toolchain.sh ]]; then
+            tools/ci-toolchain.sh "$TARGET"
+          else
+            rustup toolchain install && rustup target add "$TARGET"
+          fi
 
       - uses: Swatinem/rust-cache@v2
         with:
