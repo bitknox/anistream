@@ -314,6 +314,7 @@ touches your own data.
 apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
 apple/scripts/shots.sh iphone watching:library watching:query=hoshi
 apple/scripts/shots.sh ipad
+apple/scripts/shots.sh ipad --landscape watching:settings
 apple/scripts/shots.sh mac player                 # every player state; or player-up-next, …
 ```
 
@@ -332,9 +333,11 @@ the main window browsing while the video plays in the floating window, for
 `player-picture-in-picture`) and the screen in the Simulator.
 
 They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
-shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use), with
-the status bar at 19:30 and the dark appearance, and are taken once the app prints
-`ANISTREAM_READY`, which it does when its store has settled.
+shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use, or the
+one `ANISTREAM_SIMULATOR` names), with a clean status bar at 9:41 and the dark appearance, and are
+taken once the app prints `ANISTREAM_READY`, which it does when its store has settled. The iPad
+runs its apps full screen, not in windows. The Simulator is shot in portrait; `--landscape` turns
+it first, with devicectl's orientation command, and names the files `<device>-landscape-<shot>.png`.
 
 The screen comes from launch arguments the app and the harness both read, which also serve for
 coming back to a screen while working on it: `-AnistreamSection calendar`, `-AnistreamSelect

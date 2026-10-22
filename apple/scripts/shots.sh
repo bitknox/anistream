@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Screenshots of the Fixtures app, for comparing with the design boards.
 #
-#   apple/scripts/shots.sh <mac|iphone|ipad> [shot…]
+#   apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [shot…]
 #
 # A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default)
 # or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
@@ -24,8 +24,12 @@
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
 #   settled. It needs no Screen Recording permission.
 # - iphone, ipad: the Anistream Fixtures app, built for the Simulator and run on a device of its own
-#   ("anistream iPhone", "anistream iPad", made on first use), with the status bar at 19:30 and the
-#   dark appearance. The app prints ANISTREAM_READY once settled; the shot is taken then.
+#   ("anistream iPhone", "anistream iPad", made on first use, or the one ANISTREAM_SIMULATOR names),
+#   with a clean status bar at 9:41 and the dark appearance. The iPad runs its apps full screen, not
+#   in windows. The app prints ANISTREAM_READY once settled; the shot is taken then.
+#
+# The Simulator is shot in portrait. --landscape turns the device first (devicectl's orientation
+# command), and the files are named <device>-landscape-<shot>.png.
 #
 # ANISTREAM_DERIVED_DATA picks where xcodebuild builds, apple/.derived unless it says otherwise.
 set -euo pipefail
@@ -36,13 +40,19 @@ players=(player-starting player-playing player-skip player-up-next player-still-
   player-buffering player-scrubbing player-picture-in-picture)
 
 usage() {
-  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [<watching|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
+  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
   exit 2
 }
 
 device="${1:-}"
 case "$device" in mac | iphone | ipad) ;; *) usage ;; esac
 shift
+orientation=portrait
+if [[ "${1:-}" == --landscape ]]; then
+  [[ "$device" != mac ]] || usage
+  orientation=landscape
+  shift
+fi
 shots=("$@")
 (( ${#shots[@]} )) || shots=(watching)
 # "player" is every player state.
@@ -119,6 +129,7 @@ case "$device" in
   iphone) name="anistream iPhone" type="com.apple.CoreSimulator.SimDeviceType.iPhone-17" ;;
   ipad) name="anistream iPad" type="com.apple.CoreSimulator.SimDeviceType.iPad-Pro-11-inch-M5-12GB" ;;
 esac
+name="${ANISTREAM_SIMULATOR:-$name}"
 udid="$(xcrun simctl list devices -j | /usr/bin/python3 -I -c '
 import json, sys
 name = sys.argv[1]
@@ -154,11 +165,35 @@ app="$derived/Build/Products/Debug-fixtures-iphonesimulator/Anistream Fixtures.a
 
 xcrun simctl boot "$udid" 2>/dev/null || true
 xcrun simctl bootstatus "$udid" -b >/dev/null
+# The iPad's apps full screen: neither Stage Manager nor windowed apps, which put the app in a
+# window of its own size and its name in the status bar. SpringBoard reads them as it starts.
+if [[ "$device" == ipad ]]; then
+  windowing() { xcrun simctl spawn "$udid" defaults read com.apple.springboard "$1" 2>/dev/null || true; }
+  if [[ "$(windowing SBChamoisWindowingEnabled)" != 0 || "$(windowing SBMedusaMultitaskingEnabled)" != 0 ]]; then
+    xcrun simctl spawn "$udid" defaults write com.apple.springboard SBChamoisWindowingEnabled -bool NO
+    xcrun simctl spawn "$udid" defaults write com.apple.springboard SBMedusaMultitaskingEnabled -bool NO
+    xcrun simctl shutdown "$udid"
+    xcrun simctl boot "$udid"
+    xcrun simctl bootstatus "$udid" -b >/dev/null
+  fi
+fi
 xcrun simctl ui "$udid" appearance dark
-xcrun simctl status_bar "$udid" override --time 19:30 --dataNetwork wifi --wifiMode active \
-  --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+# Apple's clean status bar: 9:41, full Wi-Fi and battery, no carrier.
+xcrun simctl status_bar "$udid" override --time 9:41 --dataNetwork wifi --wifiMode active \
+  --wifiBars 3 --cellularMode active --cellularBars 4 --operatorName '' \
+  --batteryState discharging --batteryLevel 100
 xcrun simctl install "$udid" "$app"
+# Held as the shots ask: the device stays as the last run left it otherwise.
+case "$orientation" in landscape) turn=landscapeLeft ;; *) turn=portrait ;; esac
+if ! xcrun devicectl --quiet device orientation set --device "$udid" "$turn" >/dev/null 2>&1; then
+  [[ "$orientation" == portrait ]] || {
+    echo "shots.sh: devicectl could not turn the Simulator to landscape" >&2
+    exit 1
+  }
+fi
 
+prefix="$device"
+[[ "$orientation" == portrait ]] || prefix="$device-$orientation"
 for shot in "${shots[@]}"; do
   log="$(mktemp -t anistream-shot)"
   args=()
@@ -175,8 +210,8 @@ for shot in "${shots[@]}"; do
   (( ready )) || echo "shots.sh: the app did not say it was ready; taking the shot anyway" >&2
   # The art's and the preview's fade-ins.
   sleep 0.5
-  xcrun simctl io "$udid" screenshot --type=png "$out/$device-$(name "$shot").png" >/dev/null
-  echo "shots.sh: wrote $out/$device-$(name "$shot").png"
+  xcrun simctl io "$udid" screenshot --type=png "$out/$prefix-$(name "$shot").png" >/dev/null
+  echo "shots.sh: wrote $out/$prefix-$(name "$shot").png"
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
   wait
   rm -f "$log"
