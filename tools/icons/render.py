@@ -9,7 +9,7 @@ pixels, so nothing is ever smoothed. Run through apple/scripts/icon.sh:
 What it writes:
 
 - apple/App/Assets.xcassets/AppIcon.appiconset: one PNG per slot, iPhone and iPad (with Dark and
-  Tinted variants) and the Mac's 16 to 1024, drawn inside the Mac's rounded square;
+  Tinted variants) and the Mac's 16 to 1024;
 - assets/icon: the terminal's PNGs, anistream.ico and anistream.iconset.
 
 Standard library only, so it runs on any Mac's python3.
@@ -24,7 +24,7 @@ import zlib
 sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from nagare_icon import G, MASTERS, SPRITE_COL, TONE, pick, place  # noqa: E402
+from nagare_icon import G, SPRITE_COL, TONE, place  # noqa: E402
 
 ROOT = os.path.normpath(os.path.join(HERE, '..', '..'))
 APP_ICON = os.path.join('apple', 'App', 'Assets.xcassets', 'AppIcon.appiconset')
@@ -98,6 +98,8 @@ def tile(N, appearance='any'):
 
 
 # --- the Mac --------------------------------------------------------------------------------------
+
+from nagare_icon import MASTERS, pick  # noqa: E402
 
 # macOS draws every app icon inside its rounded square, 824 of every 1024 pixels across, and shrinks
 # an image drawn to the tile's edge into it, which puts the cells on fractions of a pixel. So the
