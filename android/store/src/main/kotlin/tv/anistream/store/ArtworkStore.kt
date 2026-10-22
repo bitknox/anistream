@@ -75,10 +75,20 @@ class ArtworkStore(
     private val main: CoroutineDispatcher = Dispatchers.Main,
     private val fetch: (String) -> Boolean,
 ) {
-    private val _arrivals = MutableStateFlow<Map<String, Int>>(emptyMap())
+    /**
+     * Each URL's arrivals, bumped each time its art lands: what the screen showing it observes,
+     * and only that screen's image, so a cover landing never redraws every other one on screen.
+     * Read and written on the main thread.
+     */
+    private val arrivals = mutableMapOf<String, MutableStateFlow<Int>>()
 
-    /** Bumped for a URL each time its art lands, which is what a screen reading it observes. */
-    val arrivals: StateFlow<Map<String, Int>> = _arrivals.asStateFlow()
+    private val _landed = MutableStateFlow(0)
+
+    /** How many times art has landed in all, for a test waiting until it stops. */
+    val landed: StateFlow<Int> = _landed.asStateFlow()
+
+    /** Bumped each time [url]'s art lands, which is what a screen showing it observes. */
+    fun arrivals(url: String): StateFlow<Int> = arrivals.getOrPut(url) { MutableStateFlow(0) }
 
     private val cache = object : LinkedHashMap<String, Artwork>(64, 0.75f, true) {}
     private var cost = 0L
@@ -133,7 +143,8 @@ class ArtworkStore(
         // The largest decode is the one kept: a smaller one answering late changes nothing.
         if (cached == null || cached.longSide < decoded.longSide) {
             keep(url, decoded)
-            _arrivals.value = _arrivals.value + (url to ((_arrivals.value[url] ?: 0) + 1))
+            arrivals[url]?.let { it.value += 1 }
+            _landed.value += 1
         }
         // A screen asked for more while these bytes were decoding.
         val wanted = sizes[url]
