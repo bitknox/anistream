@@ -68,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -784,6 +785,25 @@ internal fun CaughtUp(action: TitleAction, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * The synopsis cuts worked out, kept past the page that asked for them: a fold, an unfold or a
+ * turn back to a width the synopsis was set at before takes the cut it had (AT3) instead of laying
+ * the text out again. The most recent few, on the main thread.
+ */
+internal object SynopsisCuts {
+    private data class Key(val text: String, val width: Int, val style: androidx.compose.ui.text.TextStyle, val density: Float, val fontScale: Float)
+
+    /** A cut, or that the whole text fits. */
+    private class Cut(val text: String?)
+
+    private val cuts = object : LinkedHashMap<Key, Cut>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, Cut>?) = size > 48
+    }
+
+    fun get(text: String, width: Int, style: androidx.compose.ui.text.TextStyle, density: androidx.compose.ui.unit.Density, cut: () -> String?): String? =
+        cuts.getOrPut(Key(text, width, style, density.density, density.fontScale)) { Cut(cut()) }.text
+}
+
 /** What a cut synopsis ends with to be measured: the ellipsis and More, set a little wider. */
 private const val SYNOPSIS_ENDING = "\u2026 More "
 
@@ -859,7 +879,10 @@ private fun Synopsis(text: String) {
             .padding(vertical = 4.dp),
     ) {
         val width = constraints.maxWidth
-        val cut = remember(text, width, style) { synopsisCut(text, width, style, measurer) }
+        val density = LocalDensity.current
+        val cut = remember(text, width, style, density) {
+            SynopsisCuts.get(text, width, style, density) { synopsisCut(text, width, style, measurer) }
+        }
         Text(
             buildAnnotatedString {
                 if (expanded || cut == null) {

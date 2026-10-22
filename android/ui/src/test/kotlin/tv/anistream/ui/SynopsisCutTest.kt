@@ -63,4 +63,21 @@ class SynopsisCutTest {
         }
         assert(compared > 0)
     }
+
+    /** A fold, an unfold or a turn back to a width set before takes the cut kept, laying out nothing. */
+    @Test
+    fun a_cut_is_kept_for_its_text_width_and_type() {
+        val style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp)
+        val density = Density(2.625f, 1f)
+        var worked = 0
+        val first = SynopsisCuts.get("A synopsis kept", 380, style, density) { worked++; "A synopsis\u2026" }
+        val again = SynopsisCuts.get("A synopsis kept", 380, style, density) { worked++; "another" }
+        assertEquals("A synopsis\u2026", first)
+        assertEquals(first, again)
+        assertEquals(1, worked)
+        // Another width, or the system's text larger, is another cut.
+        SynopsisCuts.get("A synopsis kept", 640, style, density) { worked++; null }
+        SynopsisCuts.get("A synopsis kept", 380, style, Density(2.625f, 1.3f)) { worked++; null }
+        assertEquals(3, worked)
+    }
 }
