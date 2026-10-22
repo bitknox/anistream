@@ -67,26 +67,6 @@ struct SettingsScreen: View {
             .scrollIndicators(.never)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        #if os(iOS)
-        // The board's small title at the top's leading edge, in either orientation: not a large
-        // title, and not the bar's own inline one, which sits in the middle in landscape and gives
-        // way to the tab bar in portrait.
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(removing: .title)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Text(AppSection.settings.title)
-                    .font(.ui(17, weight: .semibold))
-                    .foregroundStyle(.silk)
-                    .fixedSize()
-                    // In line with the tabs and the cards, 24 points in, where the bar starts it
-                    // at 10.
-                    .padding(.leading, 14)
-                    .accessibilityAddTraits(.isHeader)
-            }
-            .sharedBackgroundVisibility(.hidden)
-        }
-        #endif
     }
 
     @ViewBuilder

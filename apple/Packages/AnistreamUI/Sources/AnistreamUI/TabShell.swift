@@ -167,6 +167,7 @@ struct TabStack<Screen: View>: View {
         )) {
             screen()
                 .navigationTitle(section.title.capitalizedSentence)
+                .boardTitle(section.title.capitalizedSentence)
                 .background(.ground)
                 // The ground under the whole stack, edge to edge, however narrow the screen in
                 // it: never the window's black at its sides.
