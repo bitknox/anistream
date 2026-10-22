@@ -1,0 +1,219 @@
+---
+import '../styles/theme.css';
+import '../styles/landing.css';
+import '../styles/apps.css';
+import iconUrl from '../assets/icon-32.svg?url';
+import Shot from '../components/Shot.astro';
+import SiteFooter from '../components/site/SiteFooter.astro';
+import SiteHead from '../components/site/SiteHead.astro';
+import SiteNav from '../components/site/SiteNav.astro';
+import { APP_DOWNLOADS, INSTALL_APPS, LATEST, LEGAL } from '../data/site';
+
+const everywhere: [string, string][] = [
+	['Widgets', 'Continue watching and Airing today, on the home screen.'],
+	['New-episode notifications', 'An alert when a new episode of a show you watch comes out. They stay off until you turn them on, and each show has its own switch.'],
+	['Picture in Picture', 'The episode keeps playing in a small window while you browse or use another app.'],
+	['Downloads', 'Episodes download to the device and play offline, with the same history and resume as a stream.'],
+	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app, as in the terminal app.'],
+	['Handoff, Spotlight and Shortcuts', 'On Apple devices, pick up a title on another of your devices, find your shows in Spotlight, and ask Siri to continue watching.'],
+];
+---
+
+<html lang="en">
+	<head>
+		<SiteHead
+			title="anistream apps · Mac, iPhone, iPad and Android"
+			description="The anistream apps for Mac, iPhone, iPad and Android: the same client as the terminal app, with each platform’s own navigation and controls. They ship no sources of their own and host no content."
+		/>
+	</head>
+	<body class="landing apps-page">
+		<SiteNav current="apps" />
+
+		<main>
+			<header class="wrap apps-head">
+				<img class="apps-icon" src={iconUrl} width="96" height="96" alt="The anistream app icon: Nagare, the mascot, on the dusk ground" />
+				<h1>anistream for Mac, iPhone, iPad and Android</h1>
+				<p class="lede">
+					The apps are the same client as the terminal app, on the same engine, with each platform’s
+					own navigation and controls. They browse AniList with no account, play in a built-in mpv,
+					keep your history on the device and sync it to your trackers. Sources come from plugins,
+					and anistream ships none of its own.
+				</p>
+				<div class="actions">
+					<a class="btn btn-primary" href={LATEST}>Download</a>
+					<a class="btn" href={INSTALL_APPS}>Installation steps</a>
+				</div>
+				<p class="hero-note">
+					From GitHub, not the App Store or Google Play<span data-release-tag=" · Latest release {tag}" hidden></span>
+				</p>
+			</header>
+
+			<section class="wrap apps-sect" aria-labelledby="mac-h">
+				<div class="apps-text">
+					<h2 id="mac-h">Mac</h2>
+					<p>
+						A sidebar for Continue, the calendar, seasonal charts, search, your library and
+						downloads, with Settings in the same window. Play turns the window into the player, and
+						Picture in Picture keeps the episode going while you browse. On a Mac, the app and the
+						terminal app share one history and one config.
+					</p>
+					<p class="apps-needs">macOS 26 or later, on Apple silicon</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Mac app on Continue: a banner for the show in progress with a button to resume its episode, and the other shows in progress beside it" />
+					<div class="apps-pair">
+						<Shot name="mac-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Mac app on a title page: the poster, a button to resume episode 7, the seasons and the episode list" />
+						<Shot name="mac-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Mac app’s calendar, with the week’s episodes laid out by day" />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="iphone-h">
+				<div class="apps-text">
+					<h2 id="iphone-h">iPhone</h2>
+					<p>
+						Tabs for Continue, the calendar, seasonal charts, your library and search. A title page
+						opens from its cover, and the player turns to landscape when an episode starts.
+					</p>
+					<p class="apps-needs">iOS 26 or later</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="iphone-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The iPhone app on Continue, with the show in progress at the top" />
+					<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
+					<Shot name="iphone-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The iPhone app’s calendar for the week" />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="ipad-h">
+				<div class="apps-text">
+					<h2 id="ipad-h">iPad</h2>
+					<p>
+						The same app with a sidebar for its sections, and room beside it: a title page shows
+						the episode list next to the show’s details, and the calendar lays out the whole week.
+					</p>
+					<p class="apps-needs">iPadOS 26 or later</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="ipad-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt="The iPad app on Continue, with the sidebar open" />
+					<div class="apps-pair">
+						<Shot name="ipad-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The iPad app on a title page, with the episode list beside the show’s details" />
+						<Shot name="ipad-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The iPad app’s calendar for the week" />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="android-h">
+				<div class="apps-text">
+					<h2 id="android-h">Android phones</h2>
+					<p>
+						A navigation bar for Continue, the calendar, seasonal charts, your library and search,
+						with predictive back throughout. Episodes play in landscape.
+					</p>
+					<p class="apps-needs">Android 15 or later, on 64-bit ARM</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The Android app on Continue" />
+					<Shot name="android-title" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The Android app on a title page" />
+					<Shot name="android-calendar" frame="phone" sizes="(min-width: 1200px) 250px, 30vw" alt="The Android app’s calendar for the week" />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect apps-side" aria-labelledby="tablet-h">
+				<div class="apps-text">
+					<h2 id="tablet-h">Android tablets and foldables</h2>
+					<p>
+						On a tablet or an unfolded phone the navigation moves to a rail at the side, and a title
+						page sets the show’s details beside its banner, with the episodes in two columns.
+					</p>
+					<p class="apps-needs">Android 15 or later, on 64-bit ARM</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="tablet-continue" frame="tablet" sizes="(min-width: 1200px) 780px, calc(100vw - 32px)" alt="The Android app on a tablet, on Continue" />
+					<div class="apps-pair">
+						<Shot name="tablet-title" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The Android app on a tablet, on a title page" />
+						<Shot name="tablet-calendar" frame="tablet" sizes="(min-width: 1200px) 378px, 48vw" alt="The Android app’s calendar on a tablet" />
+					</div>
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="player-h">
+				<div class="apps-text">
+					<h2 id="player-h">The player</h2>
+					<p>
+						mpv is built into each app and draws into the app’s own view, with controls that fade
+						away while you watch. It plays MKV files with their styled subtitles, offers to skip
+						the opening, brings up the next episode at the ending, and upscales with ArtCNN or
+						Anime4K as the terminal app does.
+					</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="mac-player" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Mac app’s player, with its controls over the picture" />
+					<div class="ratio-row">
+						<Shot name="iphone-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt="The iPhone app’s player in landscape" />
+						<Shot name="android-player" frame="phone" sizes="(min-width: 1200px) 588px, 48vw" alt="The Android app’s player in landscape" />
+					</div>
+				</div>
+				<p class="apps-credit">
+					The player shows{' '}
+					<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
+					by OPAP-JP contributors, licensed{' '}
+					<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Every other title and
+					picture on this page is made up.
+				</p>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="every-h">
+				<h2 id="every-h">In every app</h2>
+				<dl class="rows apps-rows">
+					{
+						everywhere.map(([name, text]) => (
+							<div class="row">
+								<dt>{name}</dt>
+								<dd>{text}</dd>
+							</div>
+						))
+					}
+				</dl>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="get-h">
+				<h2 id="get-h">Getting the apps</h2>
+				<p class="lede">
+					Every release on GitHub has the apps beside the terminal app, each file with a .sha256 to
+					check it against. They are not in the App Store or on Google Play, so the first install
+					takes one extra step, which the installation guide walks through.
+				</p>
+				<ul class="downloads">
+					{
+						APP_DOWNLOADS.map((a) => (
+							<li>
+								<div class="dl-name">
+									<span class="dl-platform">{a.platform}</span>
+									<span class="dl-needs">{a.needs}</span>
+								</div>
+								<code class="dl-file">{a.file}</code>
+								<p class="dl-first">
+									{a.first} <a href={a.guide}>How&nbsp;to&nbsp;install</a>
+								</p>
+								<a class="btn dl-btn" href={LATEST} data-asset={a.suffix}>
+									Download <span class="dl-size" data-asset-size></span>
+								</a>
+							</li>
+						))
+					}
+				</ul>
+				<p class="legal-lead apps-legal">{LEGAL}</p>
+				<p class="lede">
+					The apps come with no sources. Plugins and sources are yours to add, and what you point
+					them at is your decision, at your own risk, under the laws that apply to you.
+				</p>
+			</section>
+		</main>
+
+		<SiteFooter />
+
+		<script>
+			import '../scripts/latest-release.ts';
+		</script>
+	</body>
+</html>
