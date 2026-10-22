@@ -57,17 +57,9 @@ struct SettingsScreen: View {
             SettingsTabs(selection: $navigator.settingsPane)
                 .padding(EdgeInsets(top: 4, leading: 24, bottom: 0, trailing: 24))
             ScrollView {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 76) {
-                        pane.frame(width: 600)
-                        SettingsAside(pane: navigator.settingsPane)
-                            .frame(width: 320)
-                            .padding(.top, 20)
-                    }
-                    VStack(alignment: .leading, spacing: 24) {
-                        pane.frame(maxWidth: 600)
-                        SettingsAside(pane: navigator.settingsPane).frame(maxWidth: 600)
-                    }
+                SettingsColumns {
+                    pane
+                    SettingsAside(pane: navigator.settingsPane)
                 }
                 .padding(EdgeInsets(top: 20, leading: 24, bottom: 24, trailing: 24))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -75,6 +67,26 @@ struct SettingsScreen: View {
             .scrollIndicators(.never)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        #if os(iOS)
+        // The board's small title at the top's leading edge, in either orientation: not a large
+        // title, and not the bar's own inline one, which sits in the middle in landscape and gives
+        // way to the tab bar in portrait.
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(removing: .title)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Text(AppSection.settings.title)
+                    .font(.ui(17, weight: .semibold))
+                    .foregroundStyle(.silk)
+                    .fixedSize()
+                    // In line with the tabs and the cards, 24 points in, where the bar starts it
+                    // at 10.
+                    .padding(.leading, 14)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            .sharedBackgroundVisibility(.hidden)
+        }
+        #endif
     }
 
     @ViewBuilder
@@ -91,6 +103,81 @@ struct SettingsScreen: View {
             case .advanced: AdvancedPane()
                 }
             }
+        }
+    }
+}
+
+/// Settings' two columns: the pane's cards, and beside them the column that shows what the pane
+/// is about. The column is 280 to 320 points and the pane at least 440. On iPad the pane takes
+/// whatever width the column leaves, 32 points from it, so no strip is left empty beside it. The
+/// Mac keeps its board's pane of 600, with the gap opening to 76 as the window allows. Where even
+/// the narrowest pair does not fit, as in Split View or a small window, the pane takes the width
+/// and the column comes under it, as wide.
+struct SettingsColumns: Layout {
+    static let paneMinimum: CGFloat = 440
+    #if os(macOS)
+    static let paneMaximum: CGFloat = 600
+    static let gapMaximum: CGFloat = 76
+    #else
+    static let paneMaximum: CGFloat = .infinity
+    static let gapMaximum: CGFloat = 32
+    #endif
+    /// The column's narrowest and widest.
+    static let aside: ClosedRange<CGFloat> = 280...320
+    static let gap: CGFloat = 32
+    /// Beside the pane, the column starts this far down, level with the first group's card.
+    static let asideTop: CGFloat = 20
+    /// Under the pane, the column starts this far below it.
+    static let stackedGap: CGFloat = 24
+
+    struct Columns: Equatable {
+        var pane: CGFloat
+        var gap: CGFloat
+        var aside: CGFloat
+    }
+
+    /// The columns side by side in `width`, or nil when the column goes under the pane.
+    static func columns(in width: CGFloat) -> Columns? {
+        guard width >= paneMinimum + gap + aside.lowerBound else { return nil }
+        let asideWidth = min(aside.upperBound, width - gap - paneMinimum)
+        let pane = min(paneMaximum, width - gap - asideWidth)
+        return Columns(pane: pane, gap: min(gapMaximum, width - pane - asideWidth), aside: asideWidth)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard subviews.count == 2 else { return .zero }
+        let width = proposal.width ?? Self.paneMinimum + Self.gap + Self.aside.upperBound
+        let (pane, aside) = (subviews[0], subviews[1])
+        if let columns = Self.columns(in: width) {
+            let height = max(
+                pane.sizeThatFits(ProposedViewSize(width: columns.pane, height: nil)).height,
+                Self.asideTop + aside.sizeThatFits(ProposedViewSize(width: columns.aside, height: nil)).height
+            )
+            return CGSize(width: width, height: height)
+        }
+        let whole = ProposedViewSize(width: width, height: nil)
+        return CGSize(
+            width: width,
+            height: pane.sizeThatFits(whole).height + Self.stackedGap + aside.sizeThatFits(whole).height
+        )
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 2 else { return }
+        let (pane, aside) = (subviews[0], subviews[1])
+        if let columns = Self.columns(in: bounds.width) {
+            pane.place(at: bounds.origin, proposal: ProposedViewSize(width: columns.pane, height: nil))
+            aside.place(
+                at: CGPoint(x: bounds.minX + columns.pane + columns.gap, y: bounds.minY + Self.asideTop),
+                proposal: ProposedViewSize(width: columns.aside, height: nil)
+            )
+        } else {
+            let whole = ProposedViewSize(width: bounds.width, height: nil)
+            pane.place(at: bounds.origin, proposal: whole)
+            aside.place(
+                at: CGPoint(x: bounds.minX, y: bounds.minY + pane.sizeThatFits(whole).height + Self.stackedGap),
+                proposal: whole
+            )
         }
     }
 }

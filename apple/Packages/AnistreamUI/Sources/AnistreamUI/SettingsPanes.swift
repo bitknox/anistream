@@ -45,6 +45,8 @@ struct DownloadsPane: View {
             SettingsRow(title: "Watched downloads", note: watched.line) {
                 Button("Delete Watched Downloads…") { confirmDelete = true }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    // Whole in a narrow pane, as on an iPad in portrait: the label wraps instead.
+                    .fixedSize()
                     .disabled(watched.rows.isEmpty)
             }
         }

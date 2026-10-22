@@ -170,27 +170,31 @@ struct TitleLanguageRow: View {
 }
 
 /// The column beside the pane while the row is selected: three covers with their titles as the
-/// current choice names them, and what the choice does.
+/// current choice names them, and what the choice does. The covers are 88 points wide, narrower
+/// when the column is, so the three always fit.
 struct TitleLanguagePreview: View {
     @Environment(AppStore.self) private var store
+    /// The column's width inside its padding.
+    @State private var width: CGFloat = 288
 
     var body: some View {
         let choice = store.titleChoice
         let examples = store.titleLanguageExamples
         let viewer = store.accounts.viewerTitleLanguage
+        let cover = min(88, ((width - 24) / 3).rounded(.down))
         VStack(alignment: .leading, spacing: 12) {
             Text("Title language").groupHeaderStyle().macLineHeight(14)
                 .accessibilityAddTraits(.isHeader)
             HStack(alignment: .top, spacing: 12) {
                 ForEach(examples, id: \.id) { entry in
                     VStack(alignment: .leading, spacing: 6) {
-                        CoverArt(entry: entry, width: 88)
+                        CoverArt(entry: entry, width: cover)
                         Text(TitleLanguageWords.example(entry, choice, signedIn: store.anilistSignedIn, viewer: viewer))
                             .font(.macShowTitle(size: 12))
                             .foregroundStyle(.silk)
                             .lineLimit(2)
                     }
-                    .frame(width: 88, alignment: .leading)
+                    .frame(width: cover, alignment: .leading)
                 }
             }
             Text(TitleLanguageWords.note(choice, signedIn: store.anilistSignedIn, viewer: viewer, examples: examples))
@@ -199,6 +203,8 @@ struct TitleLanguagePreview: View {
                 .foregroundStyle(.silk)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
         // The examples are what Continue lists, asked for when Settings opens first.
         .task { store.loadContinue() }
     }
