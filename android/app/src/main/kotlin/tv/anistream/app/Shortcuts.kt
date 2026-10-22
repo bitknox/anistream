@@ -97,7 +97,7 @@ class ContinueShortcut(private val context: Context) {
             AppLink.Search -> "search"
             AppLink.Downloads -> "downloads"
             is AppLink.Continue -> PREFIX + link.id
-            is AppLink.Title, is AppLink.Play, is AppLink.Download -> null
+            AppLink.Calendar, AppLink.Accounts, is AppLink.Title, is AppLink.Play, is AppLink.Download -> null
         }
     }
 }

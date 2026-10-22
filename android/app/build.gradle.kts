@@ -92,6 +92,7 @@ androidComponents {
 dependencies {
     implementation(project(":ui"))
     implementation(project(":player"))
+    implementation(project(":widgets"))
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.process)

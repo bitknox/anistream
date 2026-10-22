@@ -1,5 +1,5 @@
-// The links the system opens the app on from outside its screens: launcher shortcuts and
-// notifications. Each is an `anistream://open/…` URI on an explicit intent to the activity, which
+// The links the system opens the app on from outside its screens: launcher shortcuts,
+// notifications and the home-screen widgets. Each is an `anistream://open/…` URI on an explicit intent to the activity, which
 // hands it to the frame to follow through the app's own navigation.
 
 package tv.anistream.ui
@@ -24,6 +24,12 @@ sealed interface AppLink {
     /** Downloads, over Library, as Library's row opens it. */
     data object Downloads : AppLink
 
+    /** The Calendar, on today: Airing today's header. */
+    data object Calendar : AppLink
+
+    /** Settings › Accounts, to sign in: Continue watching's, signed out. */
+    data object Accounts : AppLink
+
     /** A title's page, in Continue's back stack. */
     data class Title(val id: AnilistId) : AppLink
 
@@ -45,6 +51,8 @@ sealed interface AppLink {
         get() = PREFIX + when (this) {
             Search -> "search"
             Downloads -> "downloads"
+            Calendar -> "calendar"
+            Accounts -> "settings/accounts"
             is Title -> "title/$id"
             is Continue -> "continue/$id"
             is Play -> "play/$id/${URLEncoder.encode(episode, Charsets.UTF_8)}"
@@ -64,6 +72,8 @@ sealed interface AppLink {
             return when (parts.first()) {
                 "search" -> Search.takeIf { parts.size == 1 }
                 "downloads" -> Downloads.takeIf { parts.size == 1 }
+                "calendar" -> Calendar.takeIf { parts.size == 1 }
+                "settings" -> Accounts.takeIf { parts.size == 2 && parts[1] == "accounts" }
                 "title" -> id?.takeIf { parts.size == 2 }?.let(::Title)
                 "continue" -> id?.takeIf { parts.size == 2 }?.let(::Continue)
                 "download" -> parts.getOrNull(1)?.toLongOrNull()?.takeIf { parts.size == 2 }?.let(::Download)
@@ -93,6 +103,8 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
             go(Destination.Library)
             open(DOWNLOADS_ROUTE)
         }
+        AppLink.Calendar -> go(Destination.Calendar)
+        AppLink.Accounts -> openSettings(SettingsPane.Accounts)
         is AppLink.Title -> openTitleFromLink(link.id)
         is AppLink.Play -> {
             openTitleFromLink(link.id)
