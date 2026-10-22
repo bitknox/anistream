@@ -109,7 +109,16 @@ pub enum Command {
     /// when the viewer was already looked up for their library.
     LoadTitleLanguage,
     LoadEpisodes(AnilistId),
+    /// How far a title's dub goes, from the source a play would use: answered by
+    /// [`Event::DubbedTo`](crate::event::Event::DubbedTo). One more listing of that source's,
+    /// in the dub, so a front end asks when it shows the answer.
+    LoadDubbedTo(AnilistId),
     CheckProviders,
+    /// Check where torrent traffic leaves from now, as Sources' Check Now asks, rather than at
+    /// the next of the guard's own checks. Answered with
+    /// [`Event::Vpn`](crate::event::Event::Vpn): `Checking`, then the verdict, or `None` when
+    /// torrents are off. A failed check does what any of the guard's does.
+    CheckConnection,
     /// Fetch one segment of the tracker's list.
     LoadLibrary(LibrarySegment),
     /// Drain the outbox and pull the library now, rather than waiting for the interval.
@@ -294,8 +303,10 @@ pub enum Command {
     AppPhase {
         phase: AppState,
     },
-    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. Either
-    /// one holds downloads and seeding until the device is back on a network that is neither.
+    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. On
+    /// cellular, torrents and downloads run only as `TorrentsOnCellular` and
+    /// `DownloadsOnCellular` let them, the torrent source being unavailable there while the
+    /// first is off; in Low Data Mode downloads and seeding wait, whatever those say.
     NetworkPath {
         cellular: bool,
         constrained: bool,
@@ -422,6 +433,78 @@ pub enum Command {
     FetchArtwork {
         url: String,
     },
+    /// Look for episodes of the shows followed that aired since they were last looked at:
+    /// answered with exactly one [`Event::NewEpisodes`], empty when there is nothing new, with
+    /// notifications off, or when AniList could not be asked. Never with a job.
+    ///
+    /// The shows followed are those on the signed-in tracker's list as watching or rewatching,
+    /// as its last pull left the list here, and those watched here in the last 30 days, unless
+    /// the list has them as dropped or paused. A show planned is not, unless it turns
+    /// [`ShowSettingKey::NotifyNewEpisodes`] on for itself, which takes in any show; one that
+    /// turns it off is left out. All of them are while [`SettingKey::EpisodeNotifications`] is
+    /// off.
+    ///
+    /// Each episode is said once, and only one that aired after its show was first followed:
+    /// the first check after notifications are turned on, or after a show is first followed,
+    /// only notes where things stand and says nothing, so a new install never fires a backlog.
+    /// An episode already watched here is not said, and nor is one that aired more than a week
+    /// ago, after a long time without a check.
+    ///
+    /// It costs AniList one request at most, for every show at once, and none when nothing
+    /// can have aired: when the last check was under five minutes ago, or when the metadata
+    /// cache has every show's next episode still to come. It answers within 15 seconds whatever
+    /// the network does, so it fits in a background task's time.
+    ///
+    /// **In the background.** On iOS, from a `BGAppRefreshTask`; on Android, from a periodic
+    /// `WorkManager` job. Start the engine if the app is not running, with every
+    /// `FfiBackground` switch off, send this, and read events until the
+    /// [`Event::NewEpisodes`]. Post one notification for each episode in it, identified by the
+    /// show and the episode, so that one posted twice replaces itself. Then send
+    /// [`Command::WidgetSnapshot`] and write what it answers for the widgets, before completing
+    /// the task. Nothing else needs to run: the check reads the list the last pull in the
+    /// foreground kept, and the settings and title form the engine has on file.
+    ///
+    /// [`Event::NewEpisodes`]: crate::event::Event::NewEpisodes
+    CheckNewEpisodes,
+    /// The episodes of the shows the new-episode check follows that air in the next week, for
+    /// the Notifications settings' "Coming up": answered with exactly one
+    /// [`Event::ComingEpisodes`], soonest first, and never with a job. Empty when there are none,
+    /// or when AniList could not be asked.
+    ///
+    /// The shows are the check's own, each show's switch taken into account: those being
+    /// watched, and any switched on for itself, none switched off. They are listed whether
+    /// [`SettingKey::EpisodeNotifications`] is on or not, so the settings can show what turning
+    /// it on would follow. One request to AniList for every show at once, cut off at 15 seconds.
+    ///
+    /// [`Event::ComingEpisodes`]: crate::event::Event::ComingEpisodes
+    ComingEpisodes,
+    /// The record the home-screen widgets show: answered with one
+    /// [`Event::WidgetSnapshot`](crate::event::Event::WidgetSnapshot), never with a job.
+    ///
+    /// Continue's first five titles, from local history, with their titles and art from the
+    /// metadata cache, asking AniList only for one the cache does not have; and the broadcasts
+    /// from the start of today in the device's time zone to a week on, a request for each page
+    /// of fifty, used again for five minutes. What could not be fetched is left out rather than
+    /// failing the rest.
+    ///
+    /// Ask after anything that changes Continue, such as an episode ending, as the app goes to
+    /// the background, and from the background task after [`Command::CheckNewEpisodes`].
+    WidgetSnapshot,
+    /// What will notify of new episodes in the next seven days, and what is left out and why:
+    /// answered with one [`Event::UpcomingNotices`](crate::event::Event::UpcomingNotices), never
+    /// with a job.
+    ///
+    /// For an app that schedules its notifications ahead, to fire at air time with no code of
+    /// its own running then, as Apple's local notifications do; and for its Notifications pane's
+    /// list. The week's broadcasts are the widgets' record's, fetched once for both and used
+    /// again for a few minutes, so asking after [`Command::WidgetSnapshot`] costs AniList
+    /// nothing. The shows are those [`Command::CheckNewEpisodes`] follows, each with why: being
+    /// watched, or switched on or off for itself. It answers with every switch, the setting on
+    /// or off, and says which the setting is; the app decides what that schedules.
+    ///
+    /// Ask on launch, on coming to the foreground, after a sync or a change of progress, and
+    /// from the background task, after [`Command::CheckNewEpisodes`].
+    UpcomingNotices,
 }
 
 /// A control sent to whatever is currently playing.
@@ -512,6 +595,10 @@ pub enum AppState {
     /// Off screen, still playing the episode on when `playing`: its audio, or a screen locked
     /// on the player.
     Background { playing: bool },
+    /// Off screen while the system lets the app's downloads go on, as iOS's continued-processing
+    /// task does: downloads and what plays go on, seeding waits. Downloads on a metered network
+    /// wait, as on screen. Sent when the window opens, and `Background` again when it ends.
+    BackgroundDownloads,
 }
 
 #[cfg(test)]

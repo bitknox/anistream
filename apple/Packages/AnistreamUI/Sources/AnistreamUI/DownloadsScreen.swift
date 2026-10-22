@@ -26,6 +26,15 @@ struct DownloadsScreen: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
+                        #if os(iOS)
+                        if store.continued.ask != nil,
+                           store.downloads.rows.contains(where: { $0.state == .queued || $0.state == .active }) {
+                            Text("Downloads continue after you leave anistream.")
+                                .font(.mac(12))
+                                .foregroundStyle(.haze)
+                                .padding(EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 0))
+                        }
+                        #endif
                         ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                             if index > 0 { Rectangle().fill(.faintRule).frame(height: 1) }
                             DownloadGroupView(group: group, rotor: rotor)
@@ -115,16 +124,8 @@ struct DownloadGroupView: View {
                         .foregroundStyle(.haze)
                 }
                 Spacer()
-                // E8: `KeepNextEpisodes` and `DownloadQuality` are not settings the engine has yet.
-                HStack(spacing: 10) {
-                    DeferredSwitch(title: "Keep next", on: false, waitsOn: "E8")
-                    Text("Keep next").font(.mac(13)).foregroundStyle(.silk)
-                    DeferredMenu(text: "3", waitsOn: "E8")
-                    Text("episodes").font(.mac(13)).foregroundStyle(.silk)
-                    Text("Quality").font(.mac(13)).foregroundStyle(.haze).padding(.leading, 12)
-                    DeferredMenu(text: "Standard", waitsOn: "E8")
-                }
-                .opacity(0.6)
+                // Keep next and Quality are the engine's for every show alike, so they are set
+                // once, in Settings › Downloads, and not per show here.
             }
             .padding(.vertical, 12)
             ForEach(group.rows, id: \.id) { row in
@@ -133,7 +134,11 @@ struct DownloadGroupView: View {
             }
         }
         .padding(.bottom, 8)
-        .task(id: group.id) { if store.titles[group.id] == nil { store.loadDetail(group.id) } }
+        .task(id: group.id) {
+            if store.titles[group.id] == nil { store.loadDetail(group.id) }
+            // The episodes' own titles, for "Episode 8 · A Town Without Night".
+            if store.titles.episodes[group.id] == nil { store.loadEpisodes(group.id) }
+        }
     }
 
     private var summary: String {
@@ -271,7 +276,7 @@ struct DownloadLine: View {
                 icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
             case .queued:
                 Menu {
-                    // E8: starting one ahead of the queue, and its quality, wait on the engine.
+                    // Starting one ahead of the queue, and its quality, are no command the engine has.
                     Button("Start Now") {}.disabled(true)
                     Divider()
                     Button("Remove from Queue") { store.cancelDownload(row.id) }

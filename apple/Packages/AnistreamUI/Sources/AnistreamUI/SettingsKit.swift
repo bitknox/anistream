@@ -124,6 +124,13 @@ struct SettingSwitch: View {
     }
 }
 
+extension SettingsModel {
+    /// "Overridden for 3 shows", under a row some shows set for themselves.
+    func overriddenNote(_ key: SettingKey) -> String? {
+        overriddenShows(key).map { "Overridden for \(Wording.plural(Int($0), "show"))" }
+    }
+}
+
 /// A switch the engine cannot set yet: drawn as the board has it, and disabled.
 struct DeferredSwitch: View {
     let title: String
@@ -138,6 +145,26 @@ struct DeferredSwitch: View {
             .labelsHidden()
             .disabled(true)
             .help("Comes with engine step \(waitsOn)")
+    }
+}
+
+/// A menu's label: the capsule on the Mac and iPad, the plain value with chevrons in an iPhone's
+/// list row.
+struct MenuValue: View {
+    let text: String
+    let phone: Bool
+    var fill = false
+
+    var body: some View {
+        #if os(iOS)
+        if phone {
+            PhoneMenuValue(text: text)
+        } else {
+            MenuCapsule(text: text, fill: fill)
+        }
+        #else
+        MenuCapsule(text: text, fill: fill)
+        #endif
     }
 }
 
@@ -222,6 +249,20 @@ extension SettingKey {
     var title: String {
         switch self {
         case .titles: "Title language"
+        case .upNextCountdown: "Up Next countdown"
+        case .spoilerProtection: "Spoiler protection"
+        case .downloadQuality: "Quality"
+        case .keepNextEpisodes: "Keep next"
+        case .downloadsOnCellular: "Download on cellular"
+        case .torrentsOnCellular: "Torrents on cellular"
+        case .vpnOnFailure: "If a check fails"
+        case .torrentIndex: "Torrent index"
+        case .syncplay: "Syncplay parties"
+        case .syncplayServer: "Syncplay server"
+        case .syncplayRoom: "Syncplay room"
+        case .presence: "Discord presence"
+        case .presenceTitle: "Presence shows the title"
+        case .updateCheck: "Check for updates"
         case .translation: "Translation"
         case .subtitles: "Subtitles"
         case .quality: "Quality"

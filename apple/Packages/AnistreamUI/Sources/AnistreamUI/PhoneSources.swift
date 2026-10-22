@@ -66,11 +66,13 @@ struct PhoneProviderRow: View {
                 .labelsHidden()
                 .tint(.amber)
             } else {
-                // E9: `DisablePlugin` turns one plugin off.
-                Toggle(info.name, isOn: .constant(true))
-                    .labelsHidden()
-                    .tint(.amber)
-                    .disabled(true)
+                // Off without removing it: its source leaves the chain until it is on again.
+                Toggle(info.name, isOn: Binding(
+                    get: { !store.isPluginDisabled(info.row.id) },
+                    set: { store.setPluginDisabled(info.row.id, !$0) }
+                ))
+                .labelsHidden()
+                .tint(.amber)
             }
         }
         .listRowBackground(Palette.raised)
@@ -269,8 +271,9 @@ struct PhonePluginPage: View {
                 Text("\(listing?.row.name ?? id) can contact only these hosts and cannot read your files.")
             }
             Section {
-                // E9: `DisablePlugin`.
-                Button("Disable") {}.disabled(true).listRowBackground(Palette.raised)
+                let disabled = store.isPluginDisabled(id)
+                Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(id, !disabled) }
+                    .listRowBackground(Palette.raised)
                 Button("Remove", role: .destructive) { removing = true }
                     .fontWeight(.semibold)
                     .listRowBackground(Palette.raised)
@@ -335,7 +338,7 @@ struct PhoneJoinStoreSheet: View {
                 .padding(.bottom, 8)
             }
         }
-        .tint(.amber)
+        .tint(.silk)
         .task(id: link) {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
@@ -394,13 +397,18 @@ struct PhoneJoinStoreSheet: View {
     }
 }
 
-/// Turning torrents on, on iPhone: as the Mac's sheet, in a list.
+/// Turning torrents on, on iPhone: as the Mac's sheet, in a list. And the same, asking for a
+/// proxy once torrents are on.
 struct PhoneTorrentSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    var turningOn = true
+    var start: TorrentProtection?
+    @State private var draft: TorrentDraft?
+    @State private var confirmingNone = false
 
     var body: some View {
-        let mode = store.settings.value(.vpnMode) ?? "socks5"
+        let draft = Binding(get: { self.draft ?? TorrentDraft(store) }, set: { self.draft = $0 })
         NavigationStack {
             PhoneList {
                 Section {
@@ -410,45 +418,87 @@ struct PhoneTorrentSheet: View {
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                 }
-                Section {
-                    // E9: `rss_url`.
-                    TextField("Torrent index", text: .constant(""), prompt: Text("https://…/?q={query}"))
-                        .disabled(true)
-                        .listRowBackground(Palette.raised)
-                } header: {
-                    PhoneSectionHeader("Torrent index")
-                } footer: {
-                    Text("The RSS search address anistream asks for torrents. anistream ships none.")
+                if turningOn {
+                    Section {
+                        TextField("Torrent index", text: draft.index, prompt: Text("https://…/?q={query}"))
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .listRowBackground(Palette.raised)
+                    } header: {
+                        PhoneSectionHeader("Torrent index")
+                    } footer: {
+                        Text("The RSS search address anistream asks for torrents. anistream ships none.")
+                    }
                 }
                 Section {
-                    // E8: `SetTorrentProtection`; the config file's choice is ticked.
-                    choice("SOCKS5 proxy", on: mode == "socks5")
-                    choice("VPN on this device", on: mode == "external")
-                    choice("No protection", on: mode == "none")
+                    ForEach(ProtectionWords.order, id: \.self) { choice in
+                        Button { draft.wrappedValue.protection = choice } label: {
+                            self.choice(ProtectionWords.label(choice), on: draft.wrappedValue.protection == choice)
+                        }
+                        .listRowBackground(Palette.raised)
+                    }
                 } header: {
                     PhoneSectionHeader("Protect with")
                 } footer: {
-                    Text("anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.")
+                    Text(ProtectionWords.checkNote)
+                }
+                if draft.wrappedValue.protection == .proxy {
+                    Section {
+                        TextField("Host", text: draft.host, prompt: Text("Host"))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        TextField("Port", text: draft.port, prompt: Text("Port")).keyboardType(.numberPad)
+                        TextField("User name", text: draft.user, prompt: Text("User name"))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        SecureField("Password", text: draft.password, prompt: Text("Password"))
+                    } header: {
+                        PhoneSectionHeader("Proxy")
+                    }
+                    .listRowBackground(Palette.raised)
                 }
             }
-            .navigationTitle("Turn on torrents")
+            .navigationTitle(turningOn ? "Turn on torrents" : "Protect torrents")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
-                    store.setSwitch(.torrents, on: true)
-                    dismiss()
+                    if draft.wrappedValue.protection == TorrentProtection.none {
+                        confirmingNone = true
+                    } else {
+                        send(draft.wrappedValue)
+                    }
                 } label: {
-                    Text("Turn on").frame(maxWidth: .infinity)
+                    Text(turningOn ? "Turn on" : "Save").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
+                .disabled(!draft.wrappedValue.complete)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
             }
         }
-        .tint(.amber)
+        .tint(.silk)
+        .onAppear {
+            var first = TorrentDraft(store)
+            if let start { first.protection = start }
+            self.draft = first
+        }
+        .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
+            Button(turningOn ? "Turn on without protection" : "Use no protection", role: .destructive) {
+                send(draft.wrappedValue)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(ProtectionWords.noneMessage)
+        }
+    }
+
+    private func send(_ draft: TorrentDraft) {
+        store.apply(draft, turningOn: turningOn)
+        dismiss()
     }
 
     private func choice(_ title: String, on: Bool) -> some View {
@@ -457,8 +507,8 @@ struct PhoneTorrentSheet: View {
             Spacer()
             if on { Image(systemName: "checkmark").foregroundStyle(.amber) }
         }
-        .opacity(0.6)
-        .listRowBackground(Palette.raised)
+        .contentShape(.rect)
+        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 #endif

@@ -93,6 +93,7 @@ fn settings(auto_next: bool) -> PlaySettings {
         syncplay: Default::default(),
         party: false,
         up_next_countdown: 10,
+        mpv_options: Vec::new(),
     }
 }
 
@@ -396,6 +397,7 @@ fn row(number: &str) -> anistream_model::episodes::EpisodeRow {
         kind: None,
         skippable: false,
         airs_at: None,
+        delayed_from: None,
     }
 }
 

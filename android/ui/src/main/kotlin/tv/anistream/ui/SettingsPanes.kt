@@ -11,28 +11,37 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.Instant
 import java.util.Locale
 import tv.anistream.design.Nagare
 import tv.anistream.design.tabular
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.ComingEpisode
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
@@ -42,6 +51,8 @@ import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
 import tv.anistream.store.AccountsModel
+import tv.anistream.store.AirTime
+import tv.anistream.store.DevicePreferences
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
 import tv.anistream.store.SettingsCatalog
@@ -113,14 +124,124 @@ private fun Pane(content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
 }
 
+// Notifications
+
+/**
+ * Notifications, as AndroidSettingsNotify draws it: the New episodes switch for this device on a
+ * card of its own, with the shows that set their own, and the note that the permission is asked
+ * then; then the system's settings for the channel. Turning the switch on goes through the app,
+ * which asks for the permission to post then, and only then; where Android says no, the switch
+ * stays off and its line says why. Under it, "Coming up · next 7 days": the episodes of the shows
+ * the check follows, dimmed while the switch is off, each opening its show's settings, where its
+ * own switch is.
+ */
+@Composable
+internal fun NotificationsPane(actions: AppActions) {
+    val store = LocalAppStore.current
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val key = SettingKey.EPISODE_NOTIFICATIONS
+    val row = store.settings.row(key, view)
+    val app = actions.notifications
+    val refused = app?.refused?.collectAsStateWithLifecycle()?.value == true
+    val coming by store.coming.episodes.collectAsStateWithLifecycle()
+    var opened by remember { mutableStateOf<AnilistId?>(null) }
+    LaunchedEffect(Unit) { store.loadComing() }
+    Pane {
+        SettingsGroup(
+            footer = "anistream asks for permission the first time you turn this on.",
+            rows = listOf(
+                { place ->
+                    SwitchRow(
+                        place = place,
+                        title = "New episodes",
+                        checked = SettingsCatalog.isOn(row),
+                        note = listOfNotNull(
+                            if (refused) NOTIFICATIONS_REFUSED else "For shows in your Watching list",
+                            store.settings.overridden(key, view),
+                        ).joinToString("\n"),
+                        enabled = SettingsCatalog.editable(row),
+                    ) { on -> app?.turn?.invoke(on) ?: store.setSwitch(key, on) }
+                },
+            ),
+        )
+        coming?.let { episodes ->
+            SettingsGroup(
+                title = "Coming up · next 7 days",
+                footer = if (episodes.isEmpty()) "Nothing airs this week for the shows followed." else "A show opens its settings.",
+                rows = episodes.map { episode ->
+                    @Composable { place: Place -> ComingRow(place, episode, dimmed = !SettingsCatalog.isOn(row)) { opened = episode.id } }
+                },
+            )
+        }
+        if (app != null) {
+            SettingsGroup(
+                modifier = Modifier.padding(top = 8.dp),
+                rows = listOf(
+                    { place ->
+                        InfoRow(
+                            place,
+                            "Notification settings",
+                            "Sound, vibration and the lock screen",
+                            onClick = app.openSystemSettings,
+                            trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        )
+                    },
+                ),
+            )
+        }
+    }
+
+    // A show's settings, over the pane; its own switch may change what is coming up.
+    opened?.let { id ->
+        val titles by store.titles.entries.collectAsStateWithLifecycle()
+        val entry = titles[id]
+        if (entry == null) {
+            LaunchedEffect(id) { store.loadDetail(id) }
+        } else {
+            ShowSettingsSheet(entry) {
+                opened = null
+                store.loadComing()
+            }
+        }
+    }
+}
+
+/**
+ * One episode coming up: the show's cover, its title, "E4 · Today 22:00", and "On in this show's
+ * settings" for a show followed by its own switch. Dimmed while new-episode notifications are off.
+ */
+@Composable
+private fun ComingRow(place: Place, episode: ComingEpisode, dimmed: Boolean, onClick: () -> Unit) {
+    val note = if (episode.switchedOn) "On in this show’s settings" else null
+    InfoRow(
+        place,
+        episode.title,
+        "E${episode.episode} · ${AirTime.coming(Instant.ofEpochSecond(episode.airsAt))}",
+        note = note,
+        onClick = onClick,
+        leading = {
+            ArtworkImage(
+                episode.coverUrl,
+                plate = null,
+                maxPixelSize = pixels(60.dp),
+                modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(RoundedCornerShape(6.dp)),
+            )
+        },
+        trailing = { Icon(Icons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        modifier = Modifier.alpha(if (dimmed) 0.4f else 1f),
+    )
+}
+
+/** What the switch's line says once Android has not let notifications go on. */
+internal const val NOTIFICATIONS_REFUSED = "Off: Android isn’t allowing anistream’s notifications"
+
 // Playback
 
 @Composable
-internal fun PlaybackPane(actions: AppActions = AppActions()) {
+internal fun PlaybackPane() {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val autoNext = store.settings.isOn(SettingKey.AUTO_NEXT, view)
-    val notifications = actions.episodeNotifications
     Pane {
         SettingsGroup(
             title = "Language",
@@ -129,20 +250,20 @@ internal fun PlaybackPane(actions: AppActions = AppActions()) {
                 { place -> TitleLanguageRow(place) },
                 { place -> SettingMenu(place, SettingKey.TRANSLATION, "Translation", label = ::translationWords) },
                 { place -> SubtitlesRow(place) },
+                { place -> FollowCaptionsRow(place) },
                 { place -> SettingMenu(place, SettingKey.QUALITY, "Quality") },
             ),
         )
         SettingsGroup(
             title = "Episodes",
-            rows = listOfNotNull(
-                @Composable { place: Place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
+            rows = listOf(
+                { place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
                 { place -> SettingMenu(place, SettingKey.UP_NEXT_COUNTDOWN, "Up Next countdown", enabled = autoNext) },
                 { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, "Skip opening automatically") },
                 { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, "Skip filler automatically") },
                 { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, "Mark opening and ending") },
                 { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, "Counts as watched at", note = "Or when the ending starts, if it is marked") },
                 { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, "Spoiler protection", note = "Blurs stills of unwatched episodes after the next one") },
-                if (notifications != null) @Composable { place: Place -> EpisodeNotificationsRow(place, notifications) } else null,
             ),
         )
         SettingsGroup(
@@ -155,14 +276,20 @@ internal fun PlaybackPane(actions: AppActions = AppActions()) {
     }
 }
 
-/**
- * New-episode notifications. Turning them on goes through the app, which asks for the permission
- * to post them first, and only then.
- */
+/** Kept on this device (DevicePreferences): the caption style it follows is this device's. */
 @Composable
-private fun EpisodeNotificationsRow(place: Place, switch: AppSwitch) {
-    val on by switch.on.collectAsStateWithLifecycle()
-    SwitchRow(place, "New episode notifications", checked = on, note = "When a show you follow has a new episode out") { switch.set(it) }
+private fun FollowCaptionsRow(place: Place) {
+    val context = LocalContext.current
+    var follow by remember { mutableStateOf(DevicePreferences.followsSystemCaptions(context)) }
+    SwitchRow(
+        place,
+        "Subtitles follow your system caption style",
+        follow,
+        note = "From Caption preferences in Accessibility, while captions are on there. Styled subtitles keep their own look",
+    ) {
+        follow = it
+        DevicePreferences.of(context).edit().putBoolean(DevicePreferences.FOLLOW_SYSTEM_CAPTIONS, it).apply()
+    }
 }
 
 /** The three forms a title can be named in, as the settings file names them. */

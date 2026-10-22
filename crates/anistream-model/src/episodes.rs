@@ -45,6 +45,11 @@ pub struct EpisodeRow {
     /// as unaired: a long runner's oldest episodes, and titles AniList keeps no schedule for.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub airs_at: Option<i64>,
+    /// When the episode was to air before AniList's schedule moved it later, in Unix seconds:
+    /// "Delayed (was 23:00)". Known only when this device saw the schedule before the move;
+    /// `None` when it has not moved since it was first seen here.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub delayed_from: Option<i64>,
 }
 
 /// One episode's broadcast, from AniList's schedule: [`EpisodeRow::airs_at`] by number, and

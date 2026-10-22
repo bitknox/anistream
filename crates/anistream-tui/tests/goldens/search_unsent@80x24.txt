@@ -2,14 +2,14 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
   ▸│  FIND hoshikuzu▏
   ▤│
-  ▦│         ▀▀▄
-▌ /│       ▄▄▀▀▄▄
-  ▥│     ▄▀▀▀▀▀▀▀▀▄
-  ↓│    ▄▀▀▀▀▀▀▀▀▀▀▀
-  ◇│    ▀▀▀▀▀▀▀▀▀▀▀▀
-  ◎│  ▄▄▀▀▀▀▀▀▀▀▀▀▀
-  ⚙│  ▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄
-   │   ▀ ▀▀▀▀▀    ▀▀▀▀
+  ▦│         ▄
+▌ /│      ▄▀▀▀▀▀▄
+  ▥│      ▀▀▀▀▀▀▀▀
+  ↓│    ▀▄▀▀▀▀▀▀▀ ▄▄
+  ◇│    ▀▀▀▀▀▀▀   ▀▀
+  ◎│    ▀▀▀▀▀▀▀▀▄
+  ⚙│    ▀▀▀▀▀▀▀▀▀▄
+   │    ▀ ▀▀   ▀▀
    │
    │  ↵ TO SEARCH
    │
@@ -39,73 +39,61 @@ r03 c02-02 fg=text-dim
 r03 c03-03 fg=rule
 r04 c02-02 fg=text-dim
 r04 c03-03 fg=rule
-r04 c13-13 fg=#c6bea9
-r04 c14-14 fg=#e8e2d4 bg=#e8e2d4
-r04 c15-15 fg=#c6bea9
+r04 c13-13 fg=#e8e2d4
 r05 c00-00 fg=text-dim
 r05 c02-02 fg=text
 r05 c03-03 fg=rule
-r05 c11-11 fg=#c6bea9
-r05 c12-12 fg=#e8e2d4
-r05 c13-13 fg=#c6bea9 bg=#e8e2d4
-r05 c14-14 fg=#e8e2d4 bg=#e8e2d4
-r05 c15-15 fg=#e8e2d4
+r05 c10-10 fg=#c6bea9
+r05 c11-11 fg=#c6bea9 bg=#e8e2d4
+r05 c12-14 fg=#e8e2d4 bg=#e8e2d4
+r05 c15-15 fg=#c6bea9 bg=#e8e2d4
 r05 c16-16 fg=#c6bea9
 r06 c02-02 fg=text-dim
 r06 c03-03 fg=rule
-r06 c09-09 fg=#c6bea9
-r06 c10-10 fg=#c6bea9 bg=#e8e2d4
-r06 c11-16 fg=#e8e2d4 bg=#e8e2d4
-r06 c17-17 fg=#c6bea9 bg=#e8e2d4
-r06 c18-18 fg=#c6bea9
+r06 c10-10 fg=#e8e2d4 bg=#efcfac
+r06 c11-11 fg=#efcfac bg=#232842
+r06 c12-13 fg=#efcfac bg=#efcfac
+r06 c14-14 fg=#c6bea9 bg=#c6bea9
+r06 c15-16 fg=#e8e2d4 bg=#e8e2d4
+r06 c17-17 fg=#c6bea9 bg=#c6bea9
 r07 c02-02 fg=text-dim
 r07 c03-03 fg=rule
-r07 c08-08 fg=#c6bea9
-r07 c09-09 fg=#e8e2d4 bg=#e8e2d4
-r07 c10-13 fg=#e8e2d4 bg=#efcfac
-r07 c14-14 fg=#e8e2d4 bg=#c6bea9
-r07 c15-18 fg=#e8e2d4 bg=#e8e2d4
-r07 c19-19 fg=#c6bea9 bg=#c6bea9
+r07 c08-08 fg=#dff5fb bg=state
+r07 c09-09 fg=obi
+r07 c10-10 fg=#d0a883 bg=obi
+r07 c11-12 fg=#efcfac bg=obi
+r07 c13-13 fg=#d0a883 bg=obi
+r07 c14-14 fg=#e8e2d4 bg=obi
+r07 c15-15 fg=#e8e2d4 bg=#e8e2d4
+r07 c16-16 fg=#c6bea9 bg=#c6bea9
+r07 c18-18 fg=#c57c2c
+r07 c19-19 fg=obi
 r08 c02-02 fg=text-dim
 r08 c03-03 fg=rule
-r08 c08-08 fg=#e8e2d4 bg=#e8e2d4
-r08 c09-09 fg=#efcfac bg=#efcfac
-r08 c10-10 fg=#efcfac bg=#232842
-r08 c11-14 fg=#efcfac bg=#efcfac
-r08 c15-15 fg=#c6bea9 bg=#c6bea9
-r08 c16-18 fg=#e8e2d4 bg=#e8e2d4
-r08 c19-19 fg=#c6bea9 bg=#c6bea9
+r08 c08-08 fg=#8a6844 bg=#8a6844
+r08 c09-09 fg=#c57c2c bg=#68729e
+r08 c10-13 fg=obi bg=#464e7c
+r08 c14-14 fg=#c57c2c bg=#2e345c
+r08 c18-18 fg=#c57c2c
+r08 c19-19 fg=obi
 r09 c02-02 fg=text-dim
 r09 c03-03 fg=rule
-r09 c06-07 fg=#dff5fb
-r09 c08-08 fg=#c6bea9
-r09 c09-09 fg=#efcfac bg=#d0a883
-r09 c10-12 fg=#efcfac bg=#efcfac
-r09 c13-13 fg=#efcfac bg=#d0a883
-r09 c14-14 fg=#d0a883 bg=#c6bea9
-r09 c15-15 fg=#c6bea9 bg=#e8e2d4
-r09 c16-16 fg=#e8e2d4 bg=#e8e2d4
-r09 c17-17 fg=#e8e2d4 bg=#c6bea9
-r09 c18-18 fg=#c6bea9
+r09 c08-08 fg=#8a6844 bg=#8a6844
+r09 c09-09 fg=#68729e bg=#68729e
+r09 c10-14 fg=#464e7c bg=#464e7c
+r09 c15-15 fg=#2e345c bg=#464e7c
+r09 c16-16 fg=#2e345c
 r10 c02-02 fg=text-dim
 r10 c03-03 fg=rule
-r10 c06-06 fg=#dff5fb bg=#dff5fb
-r10 c07-07 fg=state bg=state
-r10 c08-08 fg=state bg=#c57c2c
-r10 c09-14 fg=obi bg=obi
-r10 c15-15 fg=#e8e2d4 bg=#c57c2c
-r10 c16-16 fg=#e8e2d4
-r10 c17-17 fg=#c6bea9
-r10 c18-18 fg=#c57c2c
-r10 c19-20 fg=obi
+r10 c08-08 fg=#8a6844 bg=#8a6844
+r10 c09-09 fg=#68729e bg=#68729e
+r10 c10-15 fg=#464e7c bg=#464e7c
+r10 c16-16 fg=#2e345c bg=#464e7c
+r10 c17-17 fg=#2e345c
 r11 c03-03 fg=rule
-r11 c07-07 fg=#dff5fb
-r11 c09-09 fg=#c57c2c
-r11 c10-12 fg=obi
-r11 c13-13 fg=#c57c2c
-r11 c18-18 fg=#c57c2c
-r11 c19-20 fg=obi
-r11 c21-21 fg=#c57c2c
+r11 c08-08 fg=#8a6844
+r11 c10-11 fg=#232842
+r11 c15-16 fg=#232842
 r12 c03-03 fg=rule
 r13 c03-03 fg=rule
 r13 c06-16 fg=text-dim

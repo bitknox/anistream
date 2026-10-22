@@ -46,7 +46,7 @@ use crate::{
     },
     state::EngineState,
     titles::{
-        episodes::{list_episodes, set_watched},
+        episodes::{dubbed_to, list_episodes, set_watched},
         matching::{clear_match, fix_match, manual_search, set_provider_preference},
     },
     tracking::{
@@ -142,6 +142,7 @@ pub(crate) fn dispatch(
         Command::OpenExternal { url } => open_external(url, services, tx),
 
         // A title's episodes, and the source match they come from.
+        Command::LoadDubbedTo(id) => spawn(job, services, tx, move |lent| dubbed_to(lent, id)),
         Command::LoadEpisodes(id) => {
             spawn(job, services, tx, move |lent| list_episodes(lent, id))
         }
@@ -196,6 +197,9 @@ pub(crate) fn dispatch(
 
         // The sources.
         Command::CheckProviders => spawn(job, services, tx, check_providers),
+        Command::CheckConnection => {
+            engine.torrent_tasks.check_now(engine.config.effective(), services, tx);
+        }
 
         // The trackers.
         Command::SyncNow => sync_now(job, services, tx),
@@ -272,6 +276,13 @@ pub(crate) fn dispatch(
             services.http.clone(),
             tx.clone(),
         ),
+
+        // What a native app shows outside itself: notifications, and its widgets. Off the loop,
+        // with no job, each answered with one event.
+        Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
+        Command::ComingEpisodes => crate::new_episodes::coming(engine, services, tx),
+        Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
+        Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
 
         // The plugin stores.
         Command::LoadStores => {
@@ -385,7 +396,8 @@ pub(crate) async fn handle_internal(
         *shared = engine.config.effective().clone();
     }
     match message {
-        Internal::SettingsSaved => {}
+        // What runs on cellular may have changed with it.
+        Internal::SettingsSaved => crate::phases::settings_saved(engine, tx),
         Internal::TopUp => ahead::top_up(engine, services, tx),
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {

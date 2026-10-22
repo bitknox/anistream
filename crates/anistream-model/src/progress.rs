@@ -226,6 +226,7 @@ mod tests {
                 kind: None,
                 skippable: false,
                 airs_at: None,
+                delayed_from: None,
             })
             .collect()
     }

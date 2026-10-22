@@ -104,6 +104,7 @@ async fn main() -> anyhow::Result<()> {
             syncplay: Default::default(),
             party: false,
             up_next_countdown: 10,
+            mpv_options: Vec::new(),
         };
         let stream = Stream {
             provider_id: "preview".into(),

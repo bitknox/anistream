@@ -12,8 +12,10 @@
 //   a stray byte in a track title cannot abort the VM the way NewStringUTF would).
 // - Commands and properties that take a node (loadfile's per-file options, a list of shaders,
 //   the engine's chapter-list) go in as JSON, read into an mpv_node here.
-// - mpv's log goes to logcat under the tag "mpv"; its warnings and errors also go to the
-//   listener, where the player reads the shader hooks libplacebo gave up on.
+// - mpv's log goes to the listener, at the level asked for, and from there to logcat under the tag
+//   "mpv" with every address in it cut to its scheme and host (MpvLog.kt): a stream's carries its
+//   signed token. The player reads the shader hooks libplacebo gave up on from it too. Nothing here
+//   logs a value it was handed, which can be an address.
 
 #include <jni.h>
 #include <android/log.h>
@@ -443,23 +445,6 @@ static void deliver(JNIEnv *env, struct client *c, int id, const char *name, con
         (*env)->DeleteLocalRef(env, jdata);
 }
 
-static void log_message(const mpv_event_log_message *msg) {
-    int priority = ANDROID_LOG_VERBOSE;
-    switch (msg->log_level) {
-    case MPV_LOG_LEVEL_FATAL: priority = ANDROID_LOG_FATAL; break;
-    case MPV_LOG_LEVEL_ERROR: priority = ANDROID_LOG_ERROR; break;
-    case MPV_LOG_LEVEL_WARN: priority = ANDROID_LOG_WARN; break;
-    case MPV_LOG_LEVEL_INFO: priority = ANDROID_LOG_INFO; break;
-    case MPV_LOG_LEVEL_V: priority = ANDROID_LOG_DEBUG; break;
-    default: break;
-    }
-    // mpv's lines end in a newline, which logcat adds again.
-    size_t len = strlen(msg->text);
-    if (len && msg->text[len - 1] == '\n')
-        len--;
-    __android_log_print(priority, TAG, "[%s] %.*s", msg->prefix, (int)len, msg->text);
-}
-
 static void *event_thread(void *arg) {
     struct client *c = arg;
     JNIEnv *env = NULL;
@@ -475,22 +460,21 @@ static void *event_thread(void *arg) {
         data.len = 0;
         switch (event->event_id) {
         case MPV_EVENT_LOG_MESSAGE: {
+            // Every line at the level asked for, to the listener, which logs it with its addresses
+            // cut: a shader hook libplacebo disabled among them. mpv's lines end in a newline,
+            // which logcat adds again.
             mpv_event_log_message *msg = event->data;
-            log_message(msg);
-            // Warnings and worse reach the player too: a shader hook libplacebo disabled among them.
-            if (msg->log_level <= MPV_LOG_LEVEL_WARN) {
-                size_t len = strlen(msg->text);
-                if (len && msg->text[len - 1] == '\n')
-                    len--;
-                char *text = strndup(msg->text, len);
-                buf_str(&data, "{\"level\":");
-                json_string(&data, msg->level);
-                buf_str(&data, ",\"text\":");
-                json_string(&data, text ? text : "");
-                buf_str(&data, "}");
-                free(text);
-                deliver(env, c, event->event_id, msg->prefix, &data);
-            }
+            size_t len = strlen(msg->text);
+            if (len && msg->text[len - 1] == '\n')
+                len--;
+            char *text = strndup(msg->text, len);
+            buf_str(&data, "{\"level\":");
+            json_string(&data, msg->level);
+            buf_str(&data, ",\"text\":");
+            json_string(&data, text ? text : "");
+            buf_str(&data, "}");
+            free(text);
+            deliver(env, c, event->event_id, msg->prefix, &data);
             break;
         }
         case MPV_EVENT_PROPERTY_CHANGE: {
@@ -564,7 +548,7 @@ static jint n_set_option(JNIEnv *env, jclass cls, jlong handle, jstring jname, j
     const char *value = (*env)->GetStringUTFChars(env, jvalue, NULL);
     int r = mpv_set_option_string(c->mpv, name, value);
     if (r < 0)
-        LOGW("option %s=%s: %s", name, value, mpv_error_string(r));
+        LOGW("option %s: %s", name, mpv_error_string(r));
     (*env)->ReleaseStringUTFChars(env, jname, name);
     (*env)->ReleaseStringUTFChars(env, jvalue, value);
     return r;
@@ -612,7 +596,7 @@ static jint n_set_property(JNIEnv *env, jclass cls, jlong handle, jstring jname,
     const char *value = (*env)->GetStringUTFChars(env, jvalue, NULL);
     int r = mpv_set_property_string(c->mpv, name, value);
     if (r < 0)
-        LOGW("property %s=%s: %s", name, value, mpv_error_string(r));
+        LOGW("property %s: %s", name, mpv_error_string(r));
     (*env)->ReleaseStringUTFChars(env, jname, name);
     (*env)->ReleaseStringUTFChars(env, jvalue, value);
     return r;

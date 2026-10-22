@@ -6,15 +6,16 @@ import AnistreamStore
 import SwiftUI
 
 extension Entry {
-    /// The title as the screens head it: the romaji when AniList has an English title beside it,
-    /// as the boards set it ("Hoshikuzu no Tabibito"), and the one title there is otherwise.
+    /// The title as the screens head it: the engine's, already in the form Settings › Title
+    /// language chose (romaji, English, or as the AniList account reads).
     public var showTitle: String {
-        secondary ?? title
+        title
     }
 
-    /// The other title, beneath the first: the English one ("Stardust Wayfarer").
+    /// The other form, beneath the first: romaji under English, English under romaji. `nil` when
+    /// it would only repeat the title.
     public var alternateTitle: String? {
-        secondary == nil ? nil : title
+        secondary.flatMap { $0.isEmpty || $0 == title ? nil : $0 }
     }
 
     /// The metadata line under the title, set in spaced capitals: "TV · 24 episodes · Summer 2026 ·

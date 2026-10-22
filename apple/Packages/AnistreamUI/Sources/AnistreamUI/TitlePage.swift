@@ -11,11 +11,32 @@ struct TitleAction: Equatable {
     let resume: ResumePoint?
     /// Whether the episode is out, by the title's broadcasts.
     let airing: EpisodeAvailability
+    /// The episode another device handed over, which the action resumes where it was there.
+    let handedOff: HandedOff?
 
-    init(_ entry: Entry) {
+    init(_ entry: Entry, handedOff: HandedOff? = nil) {
+        if let handedOff, handedOff.id == entry.id, let number = UInt32(handedOff.episode) {
+            episode = number
+            resume = ResumePoint(position: handedOff.position, fraction: nil)
+            airing = .aired
+            self.handedOff = handedOff
+            return
+        }
         episode = entry.progress?.next ?? 1
         resume = entry.resume
         airing = resume == nil ? entry.airing(of: episode) : .aired
+        self.handedOff = nil
+    }
+
+    /// Play it: from the handed-over place, which is then used up, or as the engine would.
+    @MainActor
+    func play(_ id: AnilistId, store: AppStore, navigator: Navigator) {
+        if let handedOff {
+            store.play(id, episode: handedOff.episode, at: handedOff.position)
+            navigator.handedOff = nil
+        } else {
+            store.send(.play(id: id, episode: String(episode)))
+        }
     }
 
     /// Whether there is an episode to play: never one still to air, which nothing could find.
@@ -121,10 +142,13 @@ struct TitlePage: View {
         .ignoresSafeArea(edges: .top)
         .background(.ground)
         .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
+        .handsOff(title: entry)
         .task(id: id) {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            // What the show sets for itself, its spoiler protection among it: from the database.
+            store.loadShowSettings(id)
         }
     }
 }
@@ -160,10 +184,18 @@ extension EnvironmentValues {
 /// The cover, the title block and the actions.
 struct TitleHero: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let entry: Entry
 
+    /// On an iPad the page speaks in sentence case and its actions are touch-sized (PadTitleMeta).
+    #if os(iOS)
+    static let pad = true
+    #else
+    static let pad = false
+    #endif
+
     var body: some View {
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, handedOff: navigator.handedOff)
         HStack(alignment: .bottom, spacing: 28) {
             ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 460)
                 .frame(width: 150, height: 225)
@@ -185,26 +217,39 @@ struct TitleHero: View {
                 HStack(spacing: 10) {
                     if action.playable {
                         Button {
-                            store.send(.play(id: entry.id, episode: String(action.episode)))
+                            action.play(entry.id, store: store, navigator: navigator)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.mac(10))
-                                Text(action.title)
+                                Text(Self.pad ? action.sentence : action.title)
                             }
                         }
-                        .buttonStyle(PrimaryCapsuleStyle())
+                        .buttonStyle(PrimaryCapsuleStyle(height: Self.pad ? 48 : 34, fontSize: Self.pad ? 17 : 13))
                         .keyboardShortcut(.defaultAction)
                     } else {
-                        AirsStatus(text: action.title)
+                        AirsStatus(text: Self.pad ? action.sentence : action.title)
                     }
                     if let trailer = entry.trailerUrl {
                         Button("Trailer") {
                             store.send(.playTrailer(url: trailer, title: entry.title))
                         }
-                        .buttonStyle(SecondaryCapsuleStyle())
+                        .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
                     }
+                    #if os(iOS)
+                    // The list's menu, in the header where a narrow window's bar has no room.
+                    Menu {
+                        StatusItems(id: entry.id)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
+                            Image(systemName: "chevron.up.chevron.down").font(.ui(13, weight: .semibold))
+                        }
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(SecondaryCapsuleStyle(height: 48, fontSize: 17))
+                    #endif
                 }
-                .padding(.top, 12)
+                .padding(.top, Self.pad ? 16 : 12)
             }
             .padding(.bottom, 4)
         }
@@ -379,7 +424,6 @@ struct TitleFamilyRow: View {
 struct EpisodeList: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @State private var unwatchedOnly = false
     let entry: Entry
     /// Where the page's Unwatched episodes rotor finds the rows.
@@ -419,7 +463,7 @@ struct EpisodeList: View {
     }
 
     private func row(_ row: EpisodeRow) -> some View {
-        EpisodeRowView(entry: entry, row: row, spoilers: spoilers)
+        EpisodeRowView(entry: entry, row: row, spoilers: store.spoilerProtection(for: entry.id))
             .accessibilityRotorEntry(id: row.number, in: rotor)
     }
 

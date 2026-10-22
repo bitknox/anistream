@@ -7,6 +7,7 @@ import AnistreamStore
 import CoreGraphics
 import Foundation
 import Observation
+import QuartzCore
 import os
 
 /// The app's one player, on the main actor.
@@ -68,12 +69,14 @@ public final class PlayerModel {
     }
 
     /// The app's mpv: audio and video as the platform plays them, keeping the shaders libplacebo
-    /// compiles in `shaderCache`, so upscaling does not compile its chain again on every start.
-    public static func mpv(shaderCache: URL? = nil) -> MpvClient {
+    /// compiles in `shaderCache`, so upscaling does not compile its chain again on every start,
+    /// with `options` besides (the caption style's).
+    public static func mpv(shaderCache: URL? = nil, options: [String: String] = [:]) -> MpvClient {
         var configuration = MpvConfiguration()
         if let shaderCache, (try? FileManager.default.createDirectory(at: shaderCache, withIntermediateDirectories: true)) != nil {
             configuration.shaderCache = shaderCache
         }
+        configuration.options = options
         return MpvClient(configuration: configuration)
     }
 
@@ -104,6 +107,14 @@ public final class PlayerModel {
     public private(set) var thumbnails: String?
     /// Every playback up to this one is over: its ops are refused.
     @ObservationIgnored private var closedThrough: PlaybackId?
+    /// The viewer closed the player: every op is refused until the engine stages a playback
+    /// again, so one it was still finding cannot bring the player back up.
+    @ObservationIgnored private var closedByViewer = false
+    /// A playback has been staged that has said nothing yet: the one on screen, if any, is older,
+    /// and stopping is for the staged one, which only a Stop for whatever plays reaches.
+    @ObservationIgnored private var stagedAhead = false
+    /// The playbacks the engine has been told this player closed for.
+    @ObservationIgnored private var closedSaid: Set<PlaybackId> = []
 
     // MARK: What the engine says
 
@@ -169,17 +180,23 @@ public final class PlayerModel {
     public private(set) var holds: Set<String> = []
     /// Up for a screenshot, whatever else says.
     public var pinnedControls = false
-    /// The Mac's Picture in Picture: the picture in the system's floating window while the main
-    /// window browses. Set by `PictureInPicture` as the picture leaves the window and returns.
+    /// Picture in Picture: the picture in the system's floating window while the app browses.
+    /// Set by `PictureInPicture` as the picture leaves the player and returns.
     public internal(set) var pictureInPicture = false
     /// Where Picture in Picture is, for the button and the menu.
-    public internal(set) var pictureInPicturePhase: PictureInPicturePhase = .inline
-    /// What toggles Picture in Picture, where the player has it (the Mac).
+    public internal(set) var pictureInPicturePhase: PictureInPicturePhase = .inline {
+        didSet { if pictureInPicturePhase != oldValue { followVideoTrack() } }
+    }
+    /// On iPhone and iPad, the layer Picture in Picture shows, which the player keeps beneath the
+    /// picture.
+    public internal(set) var pictureInPictureLayer: CALayer?
+    /// What toggles Picture in Picture, where the device has it.
     @ObservationIgnored var pictureInPictureToggle: (@MainActor () -> Void)?
     /// The last frame Picture in Picture's window was given, for a capture of it.
     @ObservationIgnored public internal(set) var pictureInPictureFrame: (@MainActor () -> CGImage?)?
 
-    /// The player has the main window: up, and not in Picture in Picture.
+    /// The player has the main window, or the screen on iPhone and iPad: up, and not in Picture
+    /// in Picture.
     public var inMainWindow: Bool { isPresented && !pictureInPicture }
 
     /// Picture in Picture can be asked for: there is a picture to put in it.
@@ -223,6 +240,8 @@ public final class PlayerModel {
             apply(ui, for: playback)
         case .playbackStaged(let id, let title, let episode, let episodeTitle, _):
             since = .now
+            closedByViewer = false
+            stagedAhead = true
             failure = nil
             choosingSource = false
             sourceChoices = nil
@@ -231,7 +250,8 @@ public final class PlayerModel {
             present()
         case .playbackEnded(_, let ending, let rollingOn):
             if rollingOn {
-                rollPending = true
+                // Not when the viewer sought into the ending: someone was there.
+                rollPending = !(upNext?.sought ?? false)
             } else if backend == nil, ending == .failed, isPresented, let episode = startingEpisode {
                 // It never played: no stream was found, or none showed a frame. Say so where the
                 // viewer is looking, with another source to choose, rather than vanish.
@@ -257,11 +277,15 @@ public final class PlayerModel {
 
     func apply(_ op: PlayerOp, for playback: PlaybackId) {
         guard accepts(playback) else {
-            Self.note(.warn, "#\(playback) refused \(Self.describe(op)): that playback is over")
+            Self.note(.warn, "#\(playback) refused \(Self.describe(op)): \(closedByViewer ? "the viewer closed the player" : "that playback is over")")
+            sayClosed(playback)
             return
         }
         enter(playback)
         Self.note(Self.loud(op) ? .info : .debug, "#\(playback) \(Self.describe(op))\(elapsed)")
+        if case .seek(let seconds, let absolute) = op {
+            restartCountdown(at: absolute ? seconds : playhead + seconds)
+        }
         switch HostedStep(op) {
         case .open(let fullScreen, let speed, let volume):
             open(for: playback, fullScreen: fullScreen, speed: speed, volume: volume)
@@ -288,7 +312,10 @@ public final class PlayerModel {
     }
 
     func apply(_ ui: PlayerUi, for playback: PlaybackId) {
-        guard accepts(playback) else { return }
+        guard accepts(playback) else {
+            sayClosed(playback)
+            return
+        }
         enter(playback)
         let now = ContinuousClock.now
         switch ui {
@@ -322,6 +349,8 @@ public final class PlayerModel {
             if let before = upNext, before.next.number == next.number {
                 card.cancelled = before.cancelled
                 card.played = before.played
+                card.restartedAt = before.restartedAt
+                card.sought = before.sought
             }
             upNext = card
         case .upNextCleared:
@@ -346,16 +375,28 @@ public final class PlayerModel {
         }
     }
 
-    /// Whether ops and interface for `playback` are still taken: not once it is over.
+    /// Whether ops and interface for `playback` are still taken: not once it is over, nor any
+    /// at all once the viewer has closed the player, until a playback is staged again.
     private func accepts(_ playback: PlaybackId) -> Bool {
+        guard !closedByViewer else { return false }
         guard let closedThrough else { return true }
         return playback > closedThrough
+    }
+
+    /// Tell the engine this player is closed for `playback`, once: what it says to a player that
+    /// is gone is refused, and a playback that opened one here, as the next episode found after
+    /// the viewer closed it can, ends as closed rather than waiting on it.
+    private func sayClosed(_ playback: PlaybackId) {
+        guard closedSaid.insert(playback).inserted else { return }
+        Self.logReport(.closed, for: playback)
+        send(.playerReport(playback: playback, report: .closed))
     }
 
     /// The engine speaks of `playback`: a newer one starts with none of the last one's cards.
     private func enter(_ playback: PlaybackId) {
         guard self.playback.map({ playback > $0 }) ?? true else { return }
         self.playback = playback
+        stagedAhead = false
         skip = nil
         undo = nil
         upNext = nil
@@ -381,7 +422,7 @@ public final class PlayerModel {
 
     private func open(for playback: PlaybackId, fullScreen: Bool, speed: Double?, volume: Double?) {
         if backend == nil {
-            let backend = makeBackend?() ?? Self.mpv(shaderCache: shaderCache)
+            let backend = makeBackend?() ?? Self.mpv(shaderCache: shaderCache, options: captionOptions())
             if makeBackend == nil {
                 Self.note(.info, "mpv shader cache \(shaderCache.map { $0.path(percentEncoded: false) } ?? "none")")
             }
@@ -422,7 +463,7 @@ public final class PlayerModel {
                             await backend.resized()
                         }
                     } catch {
-                        Self.note(.warn, "mpv refused \(Self.describe(item)): \(error)")
+                        Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
                     }
                 }
             }
@@ -453,8 +494,13 @@ public final class PlayerModel {
     }
 
     /// The viewer closed the player: its close button, the swipe down, the window's close.
+    ///
+    /// Nothing the engine says brings it back up until it stages another playback: a playback
+    /// still being found, the first or the next after Play Now or an Episodes pick, is stopped,
+    /// and should its player open all the same, it is told the player closed.
     public func viewerClosed() {
         input()
+        closedByViewer = true
         if failure != nil {
             // Nothing is playing: the screen only said so.
             dismiss()
@@ -463,12 +509,25 @@ public final class PlayerModel {
         guard backend != nil else {
             if isPresented {
                 // Nothing opened yet: stop what is being found.
-                control(.stop)
+                stopFinding()
                 dismiss()
             }
             return
         }
         close(reporting: true)
+        // The file on screen is closed; the next one staged since is still being found.
+        if stagedAhead { send(.player(.stop)) }
+    }
+
+    /// Stop what the engine is finding for this player: aimed at the playback on screen, unless
+    /// one has been staged since that has said nothing yet. Aimed at the one before, a Stop would
+    /// miss it, so it goes to whatever plays, which is the one staged last.
+    private func stopFinding() {
+        if stagedAhead || playback == nil {
+            send(.player(.stop))
+        } else {
+            control(.stop)
+        }
     }
 
     /// Close mpv and the player. `reporting`: say the file ended by quitting, and that the
@@ -540,6 +599,8 @@ public final class PlayerModel {
         layer = nil
         fullScreen = false
         pictureInPicture = false
+        // The next playback's mpv starts with its video on.
+        videoOff = false
         subtitleTween?.cancel()
         subtitlePosition = 100
         staged = nil
@@ -597,10 +658,10 @@ public final class PlayerModel {
             Self.note(.info, "#\(current.map(String.init) ?? "?") file loaded\(elapsed)")
         case .endFile(let end):
             Self.note(end.reason == "error" ? .warn : .info,
-                "#\(current.map(String.init) ?? "?") file ended: \(end.reason)\(end.error.map { ", \($0)" } ?? "")")
+                "#\(current.map(String.init) ?? "?") file ended: \(end.reason)\(end.error.map { ", \(AppLog.redacting($0))" } ?? "")")
         case .log(let line) where ["fatal", "error", "warn"].contains(line.level):
             // mpv's warnings and errors, each said once a file: a stream can repeat one per segment.
-            let text = "\(line.prefix): \(line.text)"
+            let text = Self.said(line)
             if mpvSaid.insert(text).inserted {
                 Self.note(line.level == "warn" ? .info : .warn, "mpv \(line.level) \(text)")
             }
@@ -679,14 +740,17 @@ public final class PlayerModel {
         }
     }
 
-    /// The playhead moved: the cards that run on playback time.
+    /// The playhead moved: the cards that run on playback time. Not Up Next's countdown while
+    /// the viewer scrubs, whose keyframe seeks move the playhead under the finger.
     private func played() {
-        if var card = upNext, !card.played,
+        if scrubbing == nil, var card = upNext, !card.played,
             let left = card.remaining(at: playhead, duration: duration), left <= 0
         {
             card.played = true
             upNext = card
-            rollPending = true
+            // Asked for by someone there when they sought into the ending: not one in a row
+            // with nobody watching.
+            rollPending = !card.sought
             control(.playNext)
         }
         if var note = undo {
@@ -700,6 +764,21 @@ public final class PlayerModel {
         if let note = resume, playhead >= note.position + PlayerTiming.resumePlayback || playhead < note.position - 1 {
             resume = nil
         }
+    }
+
+    /// A seek, the viewer's or the engine's, to `target`: an Up Next countdown it lands in or past
+    /// runs again from its full length there, rather than playing the next episode at once.
+    private func restartCountdown(at target: Double) {
+        guard var card = upNext, !card.played, let start = card.showsAt(duration: duration) else { return }
+        card.restartedAt = target >= start ? target : nil
+        upNext = card
+    }
+
+    /// The viewer sought: Up Next, if it is up, plays next for someone who is there.
+    private func sought() {
+        guard var card = upNext, !card.played else { return }
+        card.sought = true
+        upNext = card
     }
 
     // MARK: Commands
@@ -723,6 +802,7 @@ public final class PlayerModel {
             Self.note(.debug, "no playback to report \(report) for")
             return
         }
+        if report == .closed { closedSaid.insert(target) }
         Self.logReport(report, for: target)
         send(.playerReport(playback: target, report: report))
     }
@@ -790,6 +870,12 @@ public final class PlayerModel {
     }
 
     enum Level { case error, warn, info, debug }
+
+    /// One of mpv's lines as the log says it: its addresses as `AppLog.address` says them, scheme
+    /// and host, since a stream's carries its signed token in the path or the query.
+    nonisolated static func said(_ line: MpvLogLine) -> String {
+        "\(line.prefix): \(AppLog.redacting(line.text))"
+    }
 
     /// What the log says of a report back to the engine: each one but the playhead's and the
     /// other properties that change every frame, values cut short.
@@ -1024,13 +1110,22 @@ public final class PlayerModel {
         control(.togglePause)
     }
 
+    /// Pause the playing session, if it plays: another device took the episode over. Nothing
+    /// while paused already, where a toggle would play it.
+    public func pause() {
+        guard isPresented, !paused else { return }
+        control(.togglePause)
+    }
+
     public func seek(by seconds: Double) {
         input()
+        sought()
         control(.seek(seconds))
     }
 
     public func seek(to seconds: Double) {
         input()
+        sought()
         control(.seekTo(seconds))
     }
 
@@ -1099,6 +1194,7 @@ public final class PlayerModel {
 
     public func takeSkip() {
         input()
+        sought()
         skipsTaken += 1
         skip = nil
         control(.takeSkip)
@@ -1215,10 +1311,63 @@ public final class PlayerModel {
         }
     }
 
-    /// The app went to the background, or came back: the audio plays on, the video track is off
-    /// meanwhile.
+    /// In the background, on iPhone and iPad.
+    @ObservationIgnored private var inBackground = false
+    /// Whether mpv's video track is off, as last asked.
+    @ObservationIgnored private var videoOff = false
+
+    /// The app went to the background, or came back: the audio plays on, and the video track is
+    /// off meanwhile unless Picture in Picture shows it.
     public func backgrounded(_ background: Bool) {
-        enqueue(.call(.set(property: "vid", value: .string(background ? "no" : "auto"))))
+        inBackground = background
+        followVideoTrack()
+    }
+
+    /// The video track off in the background with no Picture in Picture, and on otherwise: no
+    /// decoding for a picture nobody sees, and the frames for the floating window when it is
+    /// up. Picture in Picture may begin as the app leaves, before or after the app says it has
+    /// gone, so both changes come here.
+    private func followVideoTrack() {
+        let off = inBackground && pictureInPicturePhase == .inline
+        guard off != videoOff else { return }
+        videoOff = off
+        Self.note(.info, "video track \(off ? "off" : "on"): \(inBackground ? "in the background" : "in front"), picture in picture \(pictureInPicturePhase)")
+        enqueue(.call(.set(property: "vid", value: .string(off ? "no" : "auto"))))
+    }
+
+    // MARK: Caption style
+
+    /// Plain-text subtitles follow the system's caption style: the viewer's setting, on by
+    /// default (`DevicePreferences.followSystemCaptions`).
+    @ObservationIgnored public var followsSystemCaptions = true {
+        didSet { if followsSystemCaptions != oldValue { captionStyleChanged() } }
+    }
+    /// The system's caption style as it is now; a made-up one in the tests.
+    @ObservationIgnored var systemCaptionStyle: @MainActor () -> CaptionStyle = { CaptionStyle.system() }
+
+    /// `sub-font` where the style names none: the font the iOS app bundles, which has the Han
+    /// glyphs iOS lacks (see `MpvConfiguration.subtitleFallback`), and mpv's own on the Mac.
+    static var defaultSubtitleFont: String { SubtitleFont.bundled?.family ?? "sans-serif" }
+
+    /// mpv's options for plain-text subtitles, as the setting and the system's style have them.
+    func captionOptions() -> [String: String] {
+        if followsSystemCaptions {
+            return systemCaptionStyle().mpvOptions(defaultFont: Self.defaultSubtitleFont)
+        }
+        var options = CaptionStyle.mpvDefaults
+        options["sub-font"] = Self.defaultSubtitleFont
+        return options
+    }
+
+    /// The setting or the system's caption style changed: the mpv playing now takes the new
+    /// look; the next one starts with it.
+    public func captionStyleChanged() {
+        guard backend != nil else { return }
+        let options = captionOptions()
+        Self.note(.info, "caption style: \(followsSystemCaptions ? "the system's" : "mpv's own"), \(options["sub-border-style"] ?? "")")
+        for (name, value) in options.sorted(by: { $0.key < $1.key }) {
+            enqueue(.call(.set(property: name, value: .string(value))))
+        }
     }
 
     #if FIXTURES

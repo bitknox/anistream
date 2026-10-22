@@ -21,6 +21,11 @@ public protocol SecretBackend: Sendable {
 ///
 /// On macOS these are in the login keychain, where the terminal's are. An item the terminal made
 /// trusts the terminal, so the first read from the app asks the user to allow it.
+///
+/// On iOS each is readable from the first unlock after a restart until the next: a token is read
+/// and renewed while the phone is locked, as it is through an episode's audio in the background,
+/// and with the system's default an item is out of reach the moment the screen locks. An item an
+/// earlier build kept with that default is kept again with this on its first read.
 public struct KeychainSecrets: SecretBackend {
     /// The keyring crate's service name, which the terminal never changes.
     public static let anistream = "anistream"
@@ -41,26 +46,65 @@ public struct KeychainSecrets: SecretBackend {
         ]
     }
 
+    /// Whether this is the phone's or the iPad's keychain, which keeps items by when they can be
+    /// read, rather than the Mac's.
+    static var phone: Bool {
+        #if os(iOS)
+        true
+        #else
+        false
+        #endif
+    }
+
+    /// What an item is kept with beyond its service and account: on iOS, readable from the first
+    /// unlock until the next restart. Nothing on the Mac, whose login keychain the terminal
+    /// shares, and whose items stay as the terminal's `keyring` crate makes them.
+    static func protection(phone: Bool) -> [CFString: Any] {
+        phone ? [kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock] : [:]
+    }
+
+    /// Whether an item read with `attributes` is to be kept again with `protection(phone:)`: on
+    /// iOS, one kept readable only while unlocked, as every item was before.
+    static func keptAgain(_ attributes: [CFString: Any], phone: Bool) -> Bool {
+        guard phone else { return false }
+        let accessible = attributes[kSecAttrAccessible] as? String
+        return accessible != (kSecAttrAccessibleAfterFirstUnlock as String)
+    }
+
     public func secret(for id: String) -> String? {
         var query = query(id)
         query[kSecReturnData] = true
+        query[kSecReturnAttributes] = true
         query[kSecMatchLimit] = kSecMatchLimitOne
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data
+              let item = result as? [CFString: Any],
+              let data = item[kSecValueData] as? Data,
+              let value = String(data: data, encoding: .utf8)
         else { return nil }
-        return String(data: data, encoding: .utf8)
+        if Self.keptAgain(item, phone: Self.phone) {
+            // Added again rather than updated, so the item is made afresh with the protection.
+            if SecItemDelete(self.query(id) as CFDictionary) == errSecSuccess, !add(data, for: id) {
+                AppLog.warn("keychain", "could not keep \(id) again for reading while locked")
+            }
+        }
+        return value
     }
 
     public func setSecret(_ value: String, for id: String) -> Bool {
         let data = Data(value.utf8)
-        let updated = SecItemUpdate(
-            query(id) as CFDictionary, [kSecValueData: data] as CFDictionary
-        )
+        var changes: [CFString: Any] = [kSecValueData: data]
+        changes.merge(Self.protection(phone: Self.phone)) { _, protection in protection }
+        let updated = SecItemUpdate(query(id) as CFDictionary, changes as CFDictionary)
         if updated == errSecSuccess { return true }
         guard updated == errSecItemNotFound else { return false }
+        return add(data, for: id)
+    }
+
+    private func add(_ data: Data, for id: String) -> Bool {
         var item = query(id)
         item[kSecValueData] = data
+        item.merge(Self.protection(phone: Self.phone)) { _, protection in protection }
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
 

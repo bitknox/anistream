@@ -17,9 +17,28 @@ struct SettingsWordsTests {
     }
 
     @Test func theProtectionIsNamedAsTheTurnOnSheetNamesIt() {
-        #expect(Protection.label("socks5") == "SOCKS5 proxy")
-        #expect(Protection.label("external") == "VPN on this device")
-        #expect(Protection.label("none") == "No protection")
+        #expect(ProtectionWords.label(TorrentProtection.proxy) == "SOCKS5 proxy")
+        #expect(ProtectionWords.label(TorrentProtection.device) == "VPN on this device")
+        #expect(ProtectionWords.label(TorrentProtection.none) == "No protection")
+        #expect(ProtectionWords.label(Optional<TorrentProtection>.none) == "–", "nothing said yet")
+        #expect(ProtectionWords.failedChecks.map { ProtectionWords.label($0) }
+                == ["Pause torrents", "Stop torrents", "Warn only"])
+    }
+
+    @Test func aProxyNeedsItsHostAndPortAndKeepsThePasswordItHasWhenLeftEmpty() {
+        let store = AppStore()
+        var draft = TorrentDraft(store)
+        draft.protection = .proxy
+        #expect(!draft.complete, "no host yet")
+        draft.host = " proxy.example "
+        draft.port = "1080"
+        #expect(draft.complete)
+        #expect(draft.proxy == TorrentProxy(host: "proxy.example", port: 1080, user: nil, password: nil),
+                "an empty password keeps the one kept")
+        draft.port = "eighty"
+        #expect(!draft.complete)
+        draft.protection = .device
+        #expect(draft.complete && draft.proxy == nil)
     }
 
     @Test func theGuardSaysWhereTrafficLeftAndHowLongAgo() {
@@ -45,9 +64,26 @@ struct SettingsWordsTests {
         #expect(AccountWords.tokens(store.accounts).contains("in a file"))
     }
 
-    @Test func aShowsSourceSaysTheDefaultItFollows() {
+    @Test func aShowsRowSaysTheDefaultItFollowsOrWhatItSets() {
+        let follows = ShowSettingRow(key: .skipOpening, own: nil, value: "on", default: "on")
+        #expect(ShowWords.useDefault(follows, titleCase: true) == "Use Default · On")
+        #expect(ShowWords.useDefault(follows, titleCase: false) == "Use default · On")
+        #expect(ShowWords.shown(.translation, "dub") == "English")
+        #expect(ShowWords.shown(.translation, "sub · dub this session") == "Japanese")
+        #expect(ShowWords.choices(.spoilerProtection).map(\.label) == ["On", "Off"])
+    }
+
+    @Test func aRememberedTrackIsNamedByItsLanguageAndItsOwnWords() {
+        #expect(ShowWords.trackWords(RememberedTrack(language: "en", title: "english signs", forced: false,
+                                                     hearingImpaired: false)) == "English (Signs)")
+        #expect(ShowWords.trackWords(RememberedTrack(language: "ja", title: "", forced: false,
+                                                     hearingImpaired: false)) == "Japanese")
+        #expect(ShowWords.trackWords(RememberedTrack(language: nil, title: "", forced: false,
+                                                     hearingImpaired: false)) == "Unnamed track")
+    }
+
+    @Test func aSettingSomeShowsSetSaysForHowMany() {
         let store = AppStore()
-        #expect(ShowDefaults.spoilers(true) == "Use Default · On")
-        #expect(ShowDefaults.skipOpening(store) == "Use Default · Off", "a row it does not have reads off")
+        #expect(store.settings.overriddenNote(.skipOpening) == nil)
     }
 }

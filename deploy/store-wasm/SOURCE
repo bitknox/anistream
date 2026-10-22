@@ -126,13 +126,13 @@ crates/anistream-store-core/src/admin.rs a408481c51d69923870d0661b11767c8084e9ed
 crates/anistream-store-core/src/blobs.rs 376eef24a5794663f44b85e051e85b9edbabaef2
 crates/anistream-store-core/src/crypto.rs 050b8beff37f4dae4870ab6622a5df375a21297d
 crates/anistream-store-core/src/db.rs 0e667ae526ba8a7984c2ceb0674154506f186c6c
-crates/anistream-store-core/src/http.rs 1aee1b38b825df14b8bca5964e6d8b9c519a3c5e
+crates/anistream-store-core/src/http.rs 71fc1ed223c863a875bd7d34cb59d7f5c1ce8aa7
 crates/anistream-store-core/src/inspect.rs 86d9eb0a45c29fd587702d6f2844e88d188b57a2
 crates/anistream-store-core/src/invite.rs 55e5b9d5898675503064e911596ef916dffffd68
 crates/anistream-store-core/src/lib.rs f53378d7a4e56b88764264ce94e395c0dfb54a3c
 crates/anistream-store-core/src/manifest.rs df57dc9f16e3a042f0e75ba6430a632d4e876366
-crates/anistream-store-core/src/protocol.rs ee7bce7dcab51cc30f02742ac8c672a8d3b0161a
-crates/anistream-store-core/src/store.rs d08d38085420e9fa37596fb5b5e6a78e956b6649
+crates/anistream-store-core/src/protocol.rs af59d6106ee40095087e24aab2a11f12fa393f5f
+crates/anistream-store-core/src/store.rs adced937126e0f86f99fa9d2d74925594cadfa0f
 crates/anistream-store-wasm/Cargo.toml 5fe0b78c46877f0e2ac77d7f07edcbc14935d695
 crates/anistream-store-wasm/src/lib.rs f49b5f2404d75237bd836eb514e2116681426a08
 rust-toolchain.toml e52259440c7b6494ac19c338ec616dc303368cdc

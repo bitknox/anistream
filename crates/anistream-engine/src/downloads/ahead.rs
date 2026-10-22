@@ -20,13 +20,15 @@
 //! the episodes ahead were watched long ago and are about to be again.
 //!
 //! **When it runs.** On start; after an episode is marked watched, counts as watched in the
-//! player, or plays to its end; after the airing digest finds a new episode; when the number to
+//! player, or plays to its end; after the new-episode check or the airing digest finds a new
+//! episode; when the number to
 //! keep changes; when the network, the app's phase or the connection check lets downloads run
 //! again; and after a list sync moves a show's progress or where it is on the list. Asked for
 //! again while a top-up runs, the latest ask runs once it is done.
 //!
-//! **What it waits for.** Nothing is topped up while downloads wait: off screen, on a metered
-//! network, or while the connection check that guards torrents fails. And it stops before the
+//! **What it waits for.** Nothing is topped up while downloads wait: off screen but for a
+//! downloads window, on cellular unless downloads may run there, in Low Data Mode, or while the
+//! connection check that guards torrents fails. And it stops before the
 //! device would be full: what is free, less what the queue still has to fetch and an episode
 //! more, has to leave [`KEEP_FREE`]. It says so once, until there is room again.
 
@@ -41,7 +43,7 @@ use std::{
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_meta::{Media, Meta};
 use anistream_model::{event::Event, notice::Notice, settings::SettingKey};
-use anistream_providers::{ProviderRegistry, torrent::session::Hold};
+use anistream_providers::ProviderRegistry;
 use anistream_store::{Download, DownloadState, Store};
 
 use crate::{
@@ -111,7 +113,7 @@ pub(crate) struct Viewer {
 impl Viewer {
     /// The viewer as `services` have them now.
     fn now(services: &Services) -> Self {
-        Self { now: anistream_store::now(), listed: listed(services) }
+        Self { now: services.clock.now(), listed: listed(services) }
     }
 }
 
@@ -145,7 +147,7 @@ impl Ahead {
             cache_dir: services.paths.cache_dir.clone(),
             free: inner.free,
         };
-        let tx = tx.clone();
+        let (clock, tx) = (services.clock.clone(), tx.clone());
         tokio::spawn(async move {
             loop {
                 let (config, listed) = {
@@ -158,7 +160,7 @@ impl Ahead {
                         }
                     }
                 };
-                let viewer = Viewer { now: anistream_store::now(), listed };
+                let viewer = Viewer { now: clock.now(), listed };
                 run(&config, viewer, &live, &live.store, &inner.said_full, &tx).await;
             }
         });
@@ -191,22 +193,25 @@ pub fn top_up(engine: &EngineState, services: &Services, tx: &Outbox) {
     engine.ahead.ask(config.clone(), viewer.listed, services, tx);
 }
 
-/// Whether downloads wait now, as the torrent session is told: off screen, on a metered
-/// network, or while the connection check that guards torrents fails.
+/// Whether downloads wait now, as the torrent session is told: off screen but for a downloads
+/// window, on cellular unless downloads may run there, in Low Data Mode, or while the
+/// connection check that guards torrents fails.
 pub(crate) fn downloads_wait(engine: &EngineState) -> bool {
-    // With the merge train's gate, this is the gate's `hold.downloads`.
-    let held = crate::phases::hold_now(engine) != Hold::Nothing;
+    let config = engine.config.effective();
+    let held = crate::phases::gate_for(engine.phase, engine.network, config).hold.downloads;
     let refused = engine.vpn_guard.as_ref().is_some_and(|(guard, _)| guard.permit().is_err());
     held || refused
 }
 
-/// Whether `event` moves where a viewer is in a show: an episode that counts as watched in the
-/// player, or one played to its end.
-///
-/// With the merge train's new-episode check, `Event::NewEpisodes` with any episode in it is one
-/// too.
+/// Whether `event` moves where a viewer is in a show, or what is out of one: an episode that
+/// counts as watched in the player, one played to its end, or the new-episode check finding
+/// one.
 pub fn after(event: &Event) -> bool {
-    matches!(event, Event::ProgressQueued | Event::PlaybackEnded { watched: true, .. })
+    match event {
+        Event::ProgressQueued | Event::PlaybackEnded { watched: true, .. } => true,
+        Event::NewEpisodes(found) => !found.is_empty(),
+        _ => false,
+    }
 }
 
 /// Whether a change to setting `key` can change what keep next keeps, or whether it may run.
@@ -945,6 +950,7 @@ mod tests {
 
     #[test]
     fn downloads_wait_off_screen_and_on_a_metered_network() {
+        use crate::phases::Network;
         let dir = tempfile::tempdir().unwrap();
         let paths = anistream_core::config::Paths {
             config_file: dir.path().join("config.toml"),
@@ -954,13 +960,20 @@ mod tests {
         let (arrivals, _) = mpsc::unbounded_channel();
         let mut engine = EngineState::new(Config::default(), None, &paths, arrivals);
         assert!(!downloads_wait(&engine), "on screen, on Wi-Fi");
-        engine.metered = true;
-        assert!(downloads_wait(&engine), "on cellular or Low Data Mode");
-        engine.metered = false;
+        let cellular = Network { cellular: true, constrained: false };
+        engine.network = cellular;
+        assert!(downloads_wait(&engine), "Wi-Fi only");
+        engine.config.effective_mut().downloads.on_cellular = true;
+        assert!(!downloads_wait(&engine), "downloads on cellular");
+        engine.network = Network { cellular: false, constrained: true };
+        assert!(downloads_wait(&engine), "Low Data Mode");
+        engine.network = Network::default();
         engine.phase = AppState::Background { playing: true };
         assert!(downloads_wait(&engine));
         engine.phase = AppState::Background { playing: false };
         assert!(downloads_wait(&engine));
+        engine.phase = AppState::BackgroundDownloads;
+        assert!(!downloads_wait(&engine), "a downloads window");
     }
 
     #[test]
@@ -970,6 +983,18 @@ mod tests {
         assert!(after(&Event::playback_ended(true, Ending::Complete { next: None })));
         assert!(!after(&Event::playback_ended(false, Ending::Stopped)));
         assert!(!after(&Event::Downloads(Vec::new())));
+        assert!(!after(&Event::NewEpisodes(Vec::new())), "nothing new");
+        let new = anistream_model::notifications::NewEpisode {
+            id: AIRING,
+            title: "Show".into(),
+            episode: 6,
+            aired_at: NOW,
+            cover_url: None,
+            next_for_you: None,
+            translation: None,
+            banner_url: None,
+        };
+        assert!(after(&Event::NewEpisodes(vec![new])));
         assert!(follows(SettingKey::KeepNextEpisodes));
         assert!(follows(SettingKey::DownloadsOnCellular));
         assert!(!follows(SettingKey::DownloadQuality));

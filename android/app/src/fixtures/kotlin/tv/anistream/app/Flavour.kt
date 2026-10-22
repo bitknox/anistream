@@ -13,16 +13,32 @@
 //             in the app's download folder, one running and one waiting
 //   notify    any value: two new-episode notifications posted for fixture titles, grouped, as the
 //             periodic check posts them (the notification permission granted first)
+//   check     seconds: the new-episode check run once that many seconds from now, as the periodic
+//             work runs it, 0 for at once; kill the app first to have it start a quiet engine
+//   widgets   which widgets to offer the launcher to pin, joined by commas: continue-small,
+//             continue-wide, airing-small, airing-wide (the launcher asks before each); and the
+//             widgets' record made at once, with its art
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 
 package tv.anistream.app
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Environment
 import android.util.Log
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import tv.anistream.store.EngineEpisodeCheck
+import tv.anistream.store.covers
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineHome
 import tv.anistream.store.NewEpisode
@@ -31,6 +47,10 @@ import tv.anistream.store.FixtureScene
 import tv.anistream.store.fixtureDownloadClip
 import tv.anistream.store.fixtureMedia
 import tv.anistream.store.fixtures
+import tv.anistream.widgets.AiringSmallReceiver
+import tv.anistream.widgets.AiringWideReceiver
+import tv.anistream.widgets.ContinueSmallReceiver
+import tv.anistream.widgets.ContinueWideReceiver
 
 internal object Flavour {
     const val FIXTURES = true
@@ -71,18 +91,64 @@ internal object Flavour {
         )
     }
 
-    /** What the extras ask of the engine once it is up, once per process. */
-    fun started(store: AppStore, intent: Intent, notifier: EpisodeNotifier) {
-        if (marked) return
-        marked = true
-        if (intent.getStringExtra("notify") != null) {
+    /**
+     * Two new-episode notifications for fixture titles, as a check posts them, with the covers the
+     * engine serves: what the `notify` extra asks for.
+     */
+    private fun notifyFixtures(store: AppStore, notifier: EpisodeNotifier) {
+        MainScope().launch {
+            val ids = listOf(900001u, 900006u)
+            val entries = withTimeoutOrNull(60_000) { store.titles.entries.first { titles -> ids.all { it in titles } } } ?: return@launch
+            val covers = store.covers(ids.mapNotNull { entries[it]?.coverUrl }, EngineEpisodeCheck.COVER_SIZE, 10_000)
             val now = System.currentTimeMillis() / 1000
             notifier.post(
-                listOf(
-                    NewEpisode(900001u, "Stardust Wayfarer", 8u, now - 3_600),
-                    NewEpisode(900006u, "Summer Wind Relay", 3u, now - 600),
-                ),
+                listOf(900001u to 8u to 3_600L, 900006u to 3u to 600L).map { (show, ago) ->
+                    val (id, episode) = show
+                    val entry = entries.getValue(id)
+                    NewEpisode(id, entry.title, episode, now - ago, entry.coverUrl, entry.coverUrl?.let(covers::get))
+                },
             )
+        }
+    }
+
+    /**
+     * Offer the launcher the widgets [names] names, for a look at them on a home screen, and make
+     * their record now rather than at the next check.
+     */
+    private fun pinWidgets(context: Context, names: String) {
+        val receivers = mapOf(
+            "continue-small" to ContinueSmallReceiver::class.java,
+            "continue-wide" to ContinueWideReceiver::class.java,
+            "airing-small" to AiringSmallReceiver::class.java,
+            "airing-wide" to AiringWideReceiver::class.java,
+        )
+        val manager = context.getSystemService(AppWidgetManager::class.java)
+        for (name in names.split(',').map(String::trim).filter(String::isNotEmpty)) {
+            val receiver = receivers[name] ?: run {
+                Log.w(AnistreamApp.TAG, "no widget named $name: ${receivers.keys.joinToString()}")
+                null
+            } ?: continue
+            if (manager?.isRequestPinAppWidgetSupported != true) {
+                Log.w(AnistreamApp.TAG, "this launcher pins no widgets")
+                break
+            }
+            manager.requestPinAppWidget(ComponentName(context, receiver), null, null)
+        }
+        val app = context.applicationContext as? AnistreamApp ?: return
+        MainScope().launch {
+            runCatching { app.makeWidgetRecord() }.onFailure { Log.w(AnistreamApp.TAG, "no widgets' record: ${it.message}") }
+        }
+    }
+
+    /** What the extras ask of the engine once it is up, once per process. */
+    fun started(context: Context, store: AppStore, intent: Intent, notifier: EpisodeNotifier) {
+        if (marked) return
+        marked = true
+        if (intent.getStringExtra("notify") != null) notifyFixtures(store, notifier)
+        intent.getStringExtra("widgets")?.let { pinWidgets(context, it) }
+        intent.getStringExtra("check")?.toLongOrNull()?.let { delay ->
+            val once = OneTimeWorkRequestBuilder<NewEpisodesWorker>().setInitialDelay(delay, TimeUnit.SECONDS).build()
+            WorkManager.getInstance(context).enqueue(once)
         }
         intent.getStringExtra("watched")?.let { watched ->
             val marks = watched.split('/').mapNotNull { mark ->

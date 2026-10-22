@@ -208,6 +208,7 @@ mod tests {
                 kind: None,
                 skippable: filler.contains(&n),
                 airs_at: None,
+                delayed_from: None,
             })
             .collect();
         let mut cache = TitleCache::default();

@@ -10,8 +10,10 @@ android {
     // The NDK strips the engine's library as the APK is packaged.
     ndkVersion = libs.versions.ndk.get()
     defaultConfig {
-        versionCode = 1
-        versionName = "1.1.0"
+        // A release takes both from its tag (packaging/apps/version.sh), which CI passes as the
+        // properties ANISTREAM_VERSION_CODE and ANISTREAM_VERSION_NAME; a local build keeps these.
+        versionCode = providers.gradleProperty("ANISTREAM_VERSION_CODE").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse("1.1.0")
         ndk { abiFilters += "arm64-v8a" }
     }
     // The release key, from Gradle properties (~/.gradle/gradle.properties on the machine that
@@ -90,6 +92,7 @@ androidComponents {
 dependencies {
     implementation(project(":ui"))
     implementation(project(":player"))
+    implementation(project(":widgets"))
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.process)
@@ -100,6 +103,8 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.work.testing)
+    // The scenes the engine recorded, for the settings it says.
+    testImplementation(project(":testkit"))
 }
 
 tasks.withType<Test>().configureEach {

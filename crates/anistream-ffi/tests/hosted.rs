@@ -255,6 +255,47 @@ impl App {
         self.ops.iter().any(|(_, told)| told == op)
     }
 
+    /// How the playback that ends next ended, or the playback a player was shown for first,
+    /// whichever comes first.
+    fn ended_or_shown(&mut self) -> Result<Ending, PlaybackId> {
+        self.until("an ending, or a player shown", |event| match event {
+            Event::PlaybackEnded { ending, .. } => Some(Ok(ending.clone())),
+            Event::PlayerOps { playback, ops }
+                if ops.iter().any(|op| matches!(op, PlayerOp::Open { .. })) =>
+            {
+                Some(Err(*playback))
+            }
+            _ => None,
+        })
+    }
+
+    /// Read whatever the engine says for a moment, for what should not come to have the chance.
+    fn settle(&mut self) {
+        let until = Instant::now() + Duration::from_millis(750);
+        while let Ok(event) =
+            self.events.recv_timeout(until.saturating_duration_since(Instant::now()))
+        {
+            self.read.push(format!("{event:?}"));
+            if let Event::PlayerOps { playback, ops } = &event {
+                self.ops.extend(ops.iter().map(|op| (*playback, op.clone())));
+            }
+        }
+    }
+
+    /// The players shown so far.
+    fn shown(&self) -> usize {
+        self.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Open { .. })).count()
+    }
+
+    /// The viewer closes the player showing `playback`'s file, as the app closes it: the file
+    /// ended by quitting, the player closed, and what is being found is stopped, aimed at the
+    /// playback it showed, which is all the app knows of.
+    fn close(&self, playback: PlaybackId) {
+        self.report(playback, PlayerReport::Ended { reason: PlayerEnd::Quit });
+        self.report(playback, PlayerReport::Closed);
+        self.aim(playback, PlayerCommand::Stop);
+    }
+
     fn shutdown(self) {
         self.engine.shutdown();
     }
@@ -464,6 +505,118 @@ fn a_late_command_for_the_episode_before_is_let_go() {
     assert!(!app.ops.iter().any(|(p, op)| *p == next.playback && *op == PlayerOp::Stop));
     app.stop();
     app.shutdown();
+}
+
+/// The engine with sources that are still loading, so a play waits for them for as long as the
+/// test says: a lookup the viewer can walk away from. The chain, for the test to fill.
+fn finding() -> (App, ProviderRegistry) {
+    let chain = ProviderRegistry::new(Vec::new());
+    chain.expect_arrivals();
+    (App::start(chain.clone(), ""), chain)
+}
+
+/// Wait until the play under way says it is waiting for its sources.
+fn waiting(app: &mut App) {
+    app.until("the wait, said", |event| match event {
+        Event::JobNote { note, .. } if note == "loading sources" => Some(()),
+        _ => None,
+    });
+}
+
+#[test]
+fn a_stop_while_the_episode_is_found_shows_no_player() {
+    // The viewer closing the starting screen of a first play, which has nothing to aim at:
+    // read only once the file loaded, the Stop let the player come up first.
+    let (mut app, chain) = finding();
+    app.play(FINISHED, "12");
+    waiting(&mut app);
+    app.control(PlayerCommand::Stop);
+    assert_eq!(app.ended_or_shown(), Ok(Ending::Stopped), "{}", app.read.join("\n"));
+
+    // The sources arriving after it change nothing.
+    chain.extend(vec![sources::provider().arc()]);
+    chain.arrivals_done();
+    app.settle();
+    assert_eq!(app.shown(), 0, "{:?}", app.ops);
+    assert!(
+        !app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Load { .. })),
+        "{:?}",
+        app.ops
+    );
+    app.shutdown();
+}
+
+#[test]
+fn a_stop_aimed_at_the_playback_before_still_stops_the_one_being_found() {
+    // What an app aims at when it has only heard of the playback before: the one it last
+    // played, whose player it closed.
+    let (mut app, chain) = finding();
+    chain.extend(vec![sources::provider().arc()]);
+    chain.arrivals_done();
+    app.play(FINISHED, "12");
+    let before = app.load().playback;
+    app.opened(before, &[]);
+    app.stop();
+
+    chain.expect_arrivals();
+    app.play(FINISHED, "11");
+    waiting(&mut app);
+    app.aim(before, PlayerCommand::Stop);
+    assert_eq!(app.ended_or_shown(), Ok(Ending::Stopped), "{}", app.read.join("\n"));
+    chain.arrivals_done();
+    app.settle();
+    assert_eq!(app.shown(), 1, "only the first play's: {:?}", app.ops);
+    app.shutdown();
+}
+
+/// The viewer closes the player on the next episode's starting screen, while it is found:
+/// after Play Now, or a pick from the Episodes menu. `ask` is what the first episode's player
+/// sent for the next.
+fn closed_while_the_next_is_found(ask: PlayerCommand, next: &str) {
+    let chain = sources::registry();
+    let mut app = App::start(chain.clone(), "");
+    let first = up_next(&mut app);
+    app.tick(first, 31, 40);
+    // The next episode's lookup takes as long as the test says.
+    chain.expect_arrivals();
+    app.aim(first, ask);
+    app.until("the next episode staged", |event| match event {
+        Event::PlaybackStaged { episode, .. } if episode == next => Some(()),
+        _ => None,
+    });
+    waiting(&mut app);
+    app.close(first);
+
+    // The first episode ends as its player closed (or as stopped, the Stop reaching it first),
+    // and the next as stopped, without a player of its own.
+    for _ in 0..2 {
+        let ending = app.ended_or_shown();
+        assert!(
+            matches!(ending, Ok(Ending::Closed | Ending::Stopped)),
+            "{ending:?}: {}",
+            app.read.join("\n")
+        );
+    }
+    chain.arrivals_done();
+    app.settle();
+    assert_eq!(app.shown(), 1, "only the first episode's player: {:?}", app.ops);
+    let loads: Vec<_> =
+        app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Load { .. })).collect();
+    assert_eq!(loads.len(), 1, "only the first episode's file: {loads:?}");
+    app.shutdown();
+}
+
+#[test]
+fn closing_the_player_after_play_next_shows_no_other() {
+    closed_while_the_next_is_found(PlayerCommand::PlayNext, "2");
+}
+
+#[test]
+fn closing_the_player_after_an_episode_is_picked_shows_no_other() {
+    closed_while_the_next_is_found(
+        PlayerCommand::Choose(PlayerChoice::Episode("3".into())),
+        "3",
+    );
 }
 
 #[test]

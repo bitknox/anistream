@@ -699,6 +699,7 @@ mod tests {
                 url: "https://plugins.example/with/a/long/path".into(),
                 host: "plugins.example".into(),
                 checked_at: None,
+                owners: Vec::new(),
                 fingerprint: "9f3c 1a2b 77de 0c41".into(),
                 member: "Johan".into(),
                 owner: true,
@@ -723,6 +724,7 @@ mod tests {
                 url: "https://sam.example".into(),
                 host: "sam.example".into(),
                 checked_at: None,
+                owners: Vec::new(),
                 fingerprint: "0000 1111 2222 3333".into(),
                 member: "Johan".into(),
                 owner: false,
@@ -735,6 +737,7 @@ mod tests {
                 url: "https://down.example".into(),
                 host: "down.example".into(),
                 checked_at: None,
+                owners: Vec::new(),
                 fingerprint: "4444 5555 6666 7777".into(),
                 member: "Johan".into(),
                 owner: false,
@@ -784,6 +787,8 @@ mod tests {
             host: "plugins.example".into(),
             fingerprint: "9f3c 1a2b 77de 0c41".into(),
             already_joined: true,
+            owners: Vec::new(),
+            plugins: Vec::new(),
         }));
         app.show_plugin("aaaa", "three");
         app.nav.close_overlay();

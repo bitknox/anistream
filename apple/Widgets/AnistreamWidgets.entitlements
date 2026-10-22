@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The App Group the app writes the snapshot into. On the Mac the extension is sandboxed
+	     too, with outgoing connections for AniList's public schedule: ENABLE_APP_SANDBOX and
+	     ENABLE_OUTGOING_NETWORK_CONNECTIONS in project.yml. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>$(ANISTREAM_APP_GROUP)</string>
+	</array>
+</dict>
+</plist>

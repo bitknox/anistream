@@ -56,6 +56,7 @@ class MpvClient(private val name: String) {
         check(handle == 0L) { "mpv $name has already started" }
         val h = MpvNative.create { id, prop, data ->
             val event = MpvEvent(id, prop, data?.toString(Charsets.UTF_8))
+            if (id == MpvNative.Event.LOG_MESSAGE) MpvLog.said(event)?.let { (priority, line) -> Log.println(priority, MpvLog.TAG, line) }
             main.post { listener?.invoke(event) }
         }
         check(h != 0L) { "mpv_create failed" }

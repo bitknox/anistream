@@ -254,7 +254,7 @@ impl Harness {
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = Background { keep_next: options.keep_next, ..Background::none() };
-        start.parts = Some(Parts { meta, sync, stores });
+        start.parts = Some(Parts { meta, sync, stores, clock: Default::default() });
         start.free_space = Some(1_000_000_000_000);
         if let Some(seed) = options.before_start {
             seed(&store);
@@ -759,6 +759,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
         Event::Episodes { .. } => "Episodes",
+        Event::DubbedTo { .. } => "DubbedTo",
         Event::Progress { .. } => "Progress",
         Event::Vpn(_) => "Vpn",
         Event::ArtworkReady { .. } => "ArtworkReady",
@@ -773,6 +774,10 @@ pub fn name(update: &Event) -> &'static str {
         Event::InviteLink(_) => "InviteLink",
         Event::StoreMembers { .. } => "StoreMembers",
         Event::LocalPlugins { .. } => "LocalPlugins",
+        Event::NewEpisodes(_) => "NewEpisodes",
+        Event::ComingEpisodes(_) => "ComingEpisodes",
+        Event::WidgetSnapshot(_) => "WidgetSnapshot",
+        Event::UpcomingNotices(_) => "UpcomingNotices",
     }
 }
 
@@ -884,6 +889,9 @@ fn copy(update: &Event) -> Event {
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),
         Event::Episodes { id, rows } => Event::Episodes { id: *id, rows: rows.clone() },
+        Event::DubbedTo { id, episode } => {
+            Event::DubbedTo { id: *id, episode: episode.clone() }
+        }
         Event::Progress { id, progress, resume, episodes } => Event::Progress {
             id: *id,
             progress: *progress,
@@ -913,5 +921,9 @@ fn copy(update: &Event) -> Event {
         Event::LocalPlugins { store, plugins } => {
             Event::LocalPlugins { store: store.clone(), plugins: plugins.clone() }
         }
+        Event::NewEpisodes(episodes) => Event::NewEpisodes(episodes.clone()),
+        Event::ComingEpisodes(episodes) => Event::ComingEpisodes(episodes.clone()),
+        Event::WidgetSnapshot(data) => Event::WidgetSnapshot(data.clone()),
+        Event::UpcomingNotices(week) => Event::UpcomingNotices(week.clone()),
     }
 }

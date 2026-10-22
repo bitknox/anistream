@@ -284,6 +284,156 @@ mod tests {
     }
 
     #[test]
+    fn notifications_and_the_widgets_record_cross_intact() {
+        use anistream_model::{
+            notifications::{
+                ComingEpisode, NewEpisode, NoticeReason, UpcomingNotice, UpcomingNotices,
+            },
+            show::ShowSettingKey,
+            widgets::{
+                WIDGET_DATA_VERSION, WidgetAiring, WidgetContinue, WidgetData, WidgetNextAiring,
+            },
+        };
+        let id = AnilistId::new(900_002);
+        let commands = [
+            Command::CheckNewEpisodes,
+            Command::ComingEpisodes,
+            Command::WidgetSnapshot,
+            Command::UpcomingNotices,
+            Command::AppPhase {
+                phase: anistream_model::command::AppState::BackgroundDownloads,
+            },
+            Command::SetSetting {
+                key: SettingKey::EpisodeNotifications,
+                value: SettingValue::Bool(true),
+            },
+            Command::SetShowSetting {
+                id,
+                key: ShowSettingKey::NotifyNewEpisodes,
+                value: Some(SettingValue::Bool(false)),
+            },
+        ];
+        for command in commands {
+            assert_eq!(crossed(command.clone()), command);
+        }
+
+        let said = vec![
+            NewEpisode {
+                id,
+                title: "The Library Above the Clouds".into(),
+                episode: 6,
+                aired_at: 1_792_163_730,
+                cover_url: Some("https://img.example/library-poster.png".into()),
+                next_for_you: Some(4),
+                translation: Some(Translation::Dub),
+                banner_url: Some("https://img.example/library-banner.png".into()),
+            },
+            NewEpisode {
+                id: AnilistId::new(900_006),
+                title: "Summer Wind Relay".into(),
+                episode: 9,
+                aired_at: 1_792_515_630,
+                cover_url: None,
+                next_for_you: None,
+                translation: None,
+                banner_url: None,
+            },
+        ];
+        assert_eq!(crossed(said[0].clone()), said[0]);
+        crosses_intact(Event::NewEpisodes(said));
+        crosses_intact(Event::NewEpisodes(Vec::new()));
+        let coming = ComingEpisode {
+            id,
+            title: "The Library Above the Clouds".into(),
+            episode: 7,
+            airs_at: 1_792_768_530,
+            cover_url: Some("https://img.example/library-poster.png".into()),
+            switched_on: true,
+            translation: Some(Translation::Sub),
+        };
+        assert_eq!(crossed(coming.clone()), coming);
+        crosses_intact(Event::ComingEpisodes(vec![coming]));
+
+        let week = UpcomingNotices {
+            enabled: true,
+            generated_at: 1_792_000_000,
+            airings: vec![
+                UpcomingNotice {
+                    id,
+                    title: "The Library Above the Clouds".into(),
+                    episode: 6,
+                    airs_at: 1_792_163_730,
+                    reason: NoticeReason::Watching,
+                    next_to_watch: 4,
+                    cover_url: Some("https://img.example/library-poster.png".into()),
+                    banner_url: None,
+                },
+                UpcomingNotice {
+                    id: AnilistId::new(900_003),
+                    title: "Summer Wind Relay".into(),
+                    episode: 9,
+                    airs_at: 1_792_515_630,
+                    reason: NoticeReason::SwitchedOff,
+                    next_to_watch: 9,
+                    cover_url: None,
+                    banner_url: Some("https://img.example/banner/900003.jpg".into()),
+                },
+            ],
+            watching: vec![id],
+            overrides: 1,
+        };
+        assert_eq!(crossed(week.clone()), week);
+        crosses_intact(Event::UpcomingNotices(week));
+        crosses_intact(Event::UpcomingNotices(UpcomingNotices::default()));
+
+        let data = WidgetData {
+            version: WIDGET_DATA_VERSION,
+            generated_at: 1_792_000_000,
+            continue_watching: vec![WidgetContinue {
+                id: AnilistId::new(900_001),
+                title: "Stardust Wayfarer".into(),
+                episode: 7,
+                watched: 6,
+                episodes: Some(12),
+                fraction: Some(0.42),
+                cover_url: Some("https://img.example/stardust-poster.png".into()),
+                episode_title: Some("The Lantern Market".into()),
+                resume: true,
+                position_secs: Some(606),
+                duration_secs: Some(1_440),
+                minutes_left: Some(14),
+                next_airing: None,
+                next_airing_episode: None,
+                banner_url: Some("https://img.example/banner/900001.jpg".into()),
+                cover_color: Some("#e4a15d".into()),
+            }],
+            airing_today: vec![WidgetAiring {
+                id,
+                title: "The Library Above the Clouds".into(),
+                episode: 6,
+                airs_at: 1_792_163_730,
+                on_list: true,
+                cover_url: None,
+                watched: false,
+                translation: Some(Translation::Dub),
+                banner_url: None,
+                cover_color: Some("#5d9be4".into()),
+            }],
+            signed_in: true,
+            tracker: Some("anilist".into()),
+            next_airing: Some(WidgetNextAiring {
+                id,
+                title: "The Library Above the Clouds".into(),
+                episode: 6,
+                airs_at: 1_792_163_730,
+            }),
+            next_days: Vec::new(),
+        };
+        assert_eq!(crossed(data.clone()), data);
+        crosses_intact(Event::WidgetSnapshot(data));
+    }
+
+    #[test]
     fn a_secret_crosses_as_itself_and_still_prints_as_a_placeholder() {
         let command = Command::ConnectKitsu {
             username: "nagare".into(),
@@ -558,8 +708,14 @@ mod tests {
             kind: None,
             skippable: false,
             airs_at: Some(1_792_163_730),
+            delayed_from: Some(1_792_161_000),
         };
         assert_eq!(crossed(row.clone()), row);
+        crosses_intact(Event::DubbedTo {
+            id: AnilistId::new(900_001),
+            episode: Some("6".into()),
+        });
+        crosses_intact(Event::DubbedTo { id: AnilistId::new(900_001), episode: None });
     }
 
     #[test]
@@ -571,6 +727,14 @@ mod tests {
             host: "plugins.example".into(),
             fingerprint: "ab12 cd34".into(),
             already_joined: false,
+            owners: vec!["Alex".into(), "Sam".into()],
+            plugins: vec![anistream_model::stores::StorePluginRow {
+                id: "example".into(),
+                name: "Example".into(),
+                version: "1.4.0".into(),
+                hosts: vec!["api.example".into()],
+                status: anistream_model::stores::StorePluginStatus::OtherStore("Theirs".into()),
+            }],
         })));
         crosses_intact(Event::StorePreview(InvitePreview::Failed {
             reason: "that is not a link".into(),

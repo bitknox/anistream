@@ -11,6 +11,7 @@ generates for `crates/anistream-ffi`.
 | `scripts/test.sh` | Runs every Swift package's tests with SwiftPM |
 | `scripts/player-media.sh` | Makes the player's synthetic media: the tests', and the Fixtures app's episode |
 | `scripts/fonts.sh` | Fetches the CJK subtitle font the iOS app bundles |
+| `scripts/icon.sh` | Draws the app icon and the terminal's icon from Nagare's masters |
 | `scripts/notices.sh` | Writes `ThirdParty/NOTICES-libmpv.txt` and `NOTICES-fonts.txt` |
 | `scripts/shots.sh` | Screenshots of the Fixtures app, on the Mac and in the Simulator |
 | `Packages/AnistreamKit` | The bindings over the engine's XCFramework, and ports of the model's helpers |
@@ -140,6 +141,36 @@ only, and their first build phase fails an iOS build without it. On iOS
 `MpvConfiguration.subtitleFallback` defaults to it (`SubtitleFont.bundled`), which makes it
 libass's first fallback, before Core Text's; the Mac app bundles nothing and gets none.
 
+## The icon
+
+```sh
+apple/scripts/icon.sh            # redraw App/Assets.xcassets/AppIcon.appiconset and assets/icon
+apple/scripts/icon.sh --check    # fail when a committed image is not what the masters draw
+```
+
+The icon is Nagare on whole pixels: three masters, at 16, 32 and 64 px, in
+`tools/icons/nagare_icon.py` (the grids the design boards draw), and every size is one of them at a
+whole-number scale with its pixels repeated. The script writes a PNG for every slot, committed:
+
+- iPhone and iPad, each slot with Any, Dark (the same art: the ground is already dark) and Tinted
+  (grey tones and a one-cell outline on black, which the system tints and makes Clear from);
+- the Mac's 16 to 1024 at 1x and 2x. The catalogue takes no Dark or Tinted for the Mac: actool
+  drops them without a word, so the Mac gets the system's own;
+- the terminal's `assets/icon`, which the release workflow packages;
+- the iPhone and iPad launch screen's `LaunchNagare`, the whole sprite at 4 pt a cell (8 and 12 px
+  at @2x and @3x), and `LaunchGround`, which `UILaunchScreen` in both apps' Info.plist names. No
+  storyboard, no text, nothing animated; the Mac has no launch screen.
+
+Not Icon Composer, which scales one drawing to every size and puts the pixels on fractions.
+
+What the systems do with it (checked 2026-10-21, Xcode 27.1):
+
+- **iOS 27.0 Simulator:** the per-size images are used. The iPhone 17's Home Screen draws the
+  64 pt @3x slot, 192 px, pixel for pixel, in light and dark.
+- **macOS 27:** the per-size images are used, a master to each size, but every Mac icon is drawn
+  inside the system's rounded square at 824/1024 of the tile, so each is resampled to 80% and
+  is soft.
+
 ## The Swift packages
 
 ```sh
@@ -174,6 +205,15 @@ engine in temporary directories, and keep secrets in memory.
   settings and the trackers' sync. Artwork is asked for once per URL (`FetchArtwork`), and
   `ArtworkReady` is downsampled with ImageIO off the main thread into an `NSCache`.
   `EngineLaunch` holds what a start takes, `FfiStart` among it.
+  Handoff: the title page on screen, and while the player is up the episode at its place, are
+  the app's activities (`Handoff`, `tv.anistream.title` and `tv.anistream.playing`, which
+  Info.plist lists; the Fixtures app's are `tv.anistream.fixtures.*`, so they never reach the
+  app). Continued on another device, either opens the title's page; an episode is offered there
+  as "Resume Episode 7 · 12:40", never started by itself, and played from that place
+  (`AppStore.play(_:episode:at:)` moves the player there once the file is open). The episode's
+  activity is the app's own (`PlayingActivity`, from `PlayerModel.playingActivity`), not
+  SwiftUI's, so it hears `userActivityWasContinued`: when another device takes the episode
+  over, the playing session here is paused.
 - **AnistreamUI**: the screens over the store: Continue (with the setup card on a first launch),
   Calendar, Seasonal, Search, the Library and a title's page with AniList's metadata and its More
   About This Show sheet, the Mac's menu bar and ⌘K palette, the notice capsule and Messages;
@@ -181,6 +221,23 @@ engine in temporary directories, and keep secrets in memory.
   Downloads, a show's own settings, and the sign-in sheets. A `Navigator` holds where the app is. Settings' menus offer the engine's own choices, from
   `AnistreamKit`'s ports of the setting ladders and their words, which a test holds to the
   engine's.
+  Spotlight has the titles on the Library's lists and on Continue (`SpotlightIndexer`), as
+  native-spec/native-layer.md has them: each under its list's domain (`watching`, `continue`;
+  `fixtures.watching` in the Fixtures app, so its titles never mix with the app's), with its other
+  names, "Watching · Episode 7 of 24" beneath it, its genres, format and year as keywords, and its
+  cover at 120 by 180. A result opens the title's page. The shelf it last indexed is saved in the
+  engine's cache (`apple/shelf.json`), so
+  a list not shown this session keeps its titles and a title that left is removed; with nothing
+  saved, as on every Fixtures launch, the domain is cleared first.
+  App Intents, as native-spec/native-layer.md has them: what "Continue watching", "Open <title>"
+  and "What's airing today in anistream" do is `IntentsBridge`'s, over the same shelf, so a title
+  can be named before the engine has answered (an intent that runs first starts the engine).
+  Continue plays its hero's episode from where it was left, and with nothing out to play answers
+  without opening the app; Airing today lists everything airing today with yours marked, and
+  says your shows' times. The intents, their `TitleEntity` and the App Shortcuts are the app
+  target's (`App/Intents.swift`): Siri's phrase training reads the entity's name from the app's
+  own metadata, and with the entity in a framework it found none. Titles are suggested only
+  while "Show titles in Spotlight" is on.
 - **AnistreamPlayer**: libmpv in the app's own view, on `Mpv.xcframework` (which mpv.sh links in
   as `Mpv/`). `MpvClient` owns one mpv: every call runs on its own serial queue, so nothing waits
   on mpv from the main thread (a screenshot or a reconfigure waits on mpv's render thread, which
@@ -214,21 +271,40 @@ engine in temporary directories, and keep secrets in memory.
   Back in its top bar, Esc or ⌘[ returns to the title page and stops the playback. Pointer,
   scroll wheel and the companion's keys. `PhonePlayerView` is the iPhone's and iPad's full-screen cover (PhonePlayer,
   T2 to T5): tap, double tap, long press for 2×, pinch, swipe down to close, landscape on iPhone,
-  the audio on in the background with `vid=no`. While the controls are up the subtitles rise
+  the audio on in the background with `vid=no` (unless Picture in Picture shows the video). While
+  the controls are up the subtitles rise
   above them (`sub-pos`, which libass applies to ASS dialogue and not to placed signs).
+  Plain-text subtitles (SRT, WebVTT and the rest) follow the system's caption style while
+  Settings › Playback › "Subtitles follow your system caption style" is on, as it is unless the
+  viewer turns it off (kept on the device, `DevicePreferences`): `CaptionStyle` reads
+  MediaAccessibility's font, size, colours, background, the box behind the lines and the edge,
+  and maps them to mpv's `sub-*` options, at mpv's start and again whenever the system says the
+  style changed. ASS subtitles keep their own look: mpv applies those options only to subtitles
+  without a style at its default `sub-ass-override=scale`, which the player leaves as it is (`no`
+  would also stop `sub-pos` lifting ASS dialogue). The system's own interface font has no name
+  libass can find, so the default caption style keeps the player's font. On iOS that is the
+  bundled CJK font; a caption font the viewer picks takes its place, and simplified-only Han
+  characters then come out as boxes, as iOS has no other font with them.
   Scrubbing shows the frame under the finger from a second, hidden mpv (`SeekPreview`, off in
   Low Power Mode) with the time and the chapter, slows to half and quarter speed as the finger
   lifts (⌥ on the Mac), and ticks across opening and ending marks; on the Mac hovering the seek
-  line shows it too. Picture in Picture (the button, ⌥⌘P, the Window menu, or by itself when
-  the window is minimised or the app hidden while it plays) puts the same playback in the
-  system's floating window, which has play and pause and 10 s either way: the picture's layer
-  leaves the main window, which browses meanwhile, and renders unseen at the floating window's
-  size and the video's shape while `PictureFeed` hands its frames over. Returning puts it back
-  in the main window's player, out of the Dock or out of hiding; closing the floating window
-  stops the playback as the player's own close does. `PictureInPictureMachine` holds the steps,
-  and the display layer sits in a plain window of its own while it runs, as AVKit adds a view
-  beside it that a SwiftUI hosting view does not take. One mpv throughout: its layer moves
-  between them. The player sets Now Playing and the remote commands and keeps the display awake
+  line shows it too. Picture in Picture puts the same playback in the system's floating window,
+  which has play and pause and 10 s either way: the picture's layer leaves the player, the app
+  browses meanwhile, and it renders unseen at the floating window's size and the video's shape
+  while `PictureFeed` copies its frames, shaders and subtitles in, into the window's
+  `AVSampleBufferDisplayLayer`. Returning puts it back in the player; closing the floating window
+  stops the playback as the player's own close does, which keeps the place.
+  `PictureInPictureMachine` holds the steps. On the Mac it starts from the button, ⌥⌘P, the
+  Window menu, or by itself when the window is minimised or the app hidden while it plays;
+  returning brings the window out of the Dock or out of hiding; and the display layer sits in a
+  plain window of its own while it runs, as AVKit adds a view beside it that a SwiftUI hosting
+  view does not take. On iPhone and iPad it starts from the button in the player's top bar (the
+  Mac's, until the PhonePlayer board draws one) or by itself when the viewer goes home while it
+  plays: the system does that from a display layer it sees playing where the picture is, so the
+  feed runs while the player is up, cut to the video and no larger than 960×540, into a display
+  layer beneath the picture. The full-screen cover goes down while the picture floats and comes
+  back with it. In the background the video track stays on while the window is up and goes off
+  (`vid=no`) when it closes. One mpv throughout: its layer moves between them. The player sets Now Playing and the remote commands and keeps the display awake
   while playing. `View.hostsPlayer(_:)` opens it with the model. Its
   tests run the model on a scripted mpv, and one plays the Fixtures app's episode end to end on
   the testing engine and a real mpv.
@@ -271,6 +347,42 @@ ignores, and put your team id in it (Xcode › Settings › Accounts shows it). 
 is signed to run locally and a Simulator build needs nothing. The Mac app is not sandboxed, so it
 reads the terminal's directories, and has no hardened runtime, which the plugins' compiler needs.
 
+## The widgets
+
+Continue watching and Airing today, on the Home Screen, the Lock Screen and the Mac desktop, are
+the **AnistreamWidgets** extension, which the app embeds on every platform. Its sources are in
+`Packages/AnistreamWidgets`:
+
+- **AnistreamWidgetData**: the snapshot and its files, the stale rules, the timelines' dates, what
+  each size shows in each state, the `anistream://` links, the small widget's play intent and
+  AniList's public schedule. It knows no engine, so the store and the extension both link it.
+- **AnistreamWidgetUI**: the layouts and the timeline providers, compiled into the extension.
+- **WidgetShots**: `swift run WidgetShots <dir>` draws every size and state from fixture snapshots.
+
+The app asks the engine for `Command::WidgetSnapshot` two seconds after Continue, the Calendar, a
+playback or a sync last changed, and `WidgetFeed` writes the answer, as `widgets/snapshot.json`
+with the art as small JPEGs in `widgets/art/`, into the App Group container, then reloads the
+widgets. The background refresh writes its own the same way, through `store.widgets.writer(art:)`,
+so the widgets reload after a background check too.
+The file keeps the engine record's field names and version, and the widgets read versions 1 and 2.
+With no snapshot, Airing today asks AniList's public schedule itself, at most every three hours.
+
+The App Group is one setting, `ANISTREAM_APP_GROUP` in `Config/Base.xcconfig`: `group.tv.anistream`
+on iPhone and iPad, and `<team>.tv.anistream` on the Mac, which signs with no provisioning profile.
+Without a team the Mac's has no group, and nothing is written. The Fixtures app names no group, so
+it never writes over the app's. Taps open `anistream://title/<id>`, `anistream://play/<id>/<episode>`,
+`anistream://calendar` and `anistream://settings/accounts`, which `opensWidgetLinks()` routes.
+
+On iPhone the extension also draws the downloads' Live Activity: one activity for the whole queue,
+on the Lock Screen and in the Dynamic Island. `DownloadsActivityFeed` starts it when a download
+starts, updates it every three seconds and at once on a pause, a new episode or a finish, and ends
+it four minutes after the last download finishes. Pause and Resume are `LiveActivityIntent`s that
+run in the app; Play on a finished download opens `anistream://download/<id>`. It shows only while
+the app runs the downloads: the store sets `downloadsActivity.systemShowsProgress` from
+`continued.isRunning`, so while a continued-processing task is asked for or shows the system's own
+progress, it ends. Suspended with neither, it goes stale after 30 seconds and says the download
+continues when anistream is opened.
+
 ## Where the app keeps its data
 
 - **Mac**: the terminal app's own directories, so both apps share one config, one database and one
@@ -286,6 +398,49 @@ The keychain items are the terminal's: generic passwords under the service `anis
 secret's id as the account, in the login keychain where the `keyring` crate keeps them on macOS
 (never the data protection keychain, which is another one). The first time the app reads an item
 the terminal made, macOS asks whether to allow it. A signed build keeps that answer across rebuilds.
+
+## New-episode notifications
+
+They arrive when an episode airs, as local notifications scheduled ahead, since no code of the
+app's runs at that moment (AnistreamStore's `Notifications/`):
+
+- **The week.** The engine's `UpcomingNotices` says the next seven days' broadcasts of the shows
+  being watched or switched on for themselves, and of those switched off, each with why.
+  `NoticePlan` makes one notification of each episode that notifies: `ep.<show>.<episode>.sub`,
+  a `UNCalendarNotificationTrigger` at its time, at most 60. "Episode 9 is out." with Play and
+  Mark watched when caught up; "Episode 10 is out. Next for you: episode 8." with Play alone when
+  behind. All in the `new-episodes` thread, named in a group's summary by their show.
+- **Scheduling.** `NoticeScheduler` keeps the pending ones in step with the week: it takes back
+  what no longer notifies, schedules what is new or changed with the cover attached, and remembers
+  what it scheduled, so the background check never says an episode twice. Asked for at launch, on
+  coming forward, after a sync or a change of progress, and when a switch changes.
+- **The background refresh.** iOS's `BGAppRefreshTask` (`tv.anistream.refresh`) and the Mac's
+  `NSBackgroundActivityScheduler`, every six hours or as the system decides: `CheckNewEpisodes`
+  for what aired that no notification said, then the week, then the widgets' record, written to
+  `widgets/snapshot.json` in the App Group (`ANISTREAM_APP_GROUP`). With the app not running it
+  starts an engine of its own with none of the launch's background work, which the app's own
+  start waits out.
+- **Actions.** Play opens the app into the player; Mark watched runs in the background through the
+  engine's mark, which queues for the trackers when offline; the notification itself opens the
+  title page (`NoticeRoute`).
+- **Permission** is asked only when a switch is turned on, the setting's or a show's.
+- **Never a real banner from a test.** Everything goes through `NoticeCentre`. The tests and the
+  Fixtures app use `QuietNoticeCentre`, which shows nothing and asks nothing; the Fixtures app
+  reaches the system's only on iOS, and only when launched with `-AnistreamRealNotifications`.
+
+## Downloads after the app leaves (iPhone and iPad)
+
+iOS 26's continued-processing task keeps the app running for downloads the person started, with
+the system's own progress line (AnistreamStore's `ContinuedDownloads`, the app's
+`BackgroundDownloads`). A window is asked for when a download starts, or as the app leaves with
+some queued; each has an identifier of its own under `<bundle>.downloads.*`. While it is open the
+engine is told `AppPhase(BackgroundDownloads)`: the downloads and what plays go on, seeding waits,
+and the connection check runs as on screen. When nothing is left, when the window runs out or the
+person stops it, the engine is told `Background` and the torrents wait where they got to.
+`SystemPhases` alone tells the engine where the app is, the window among it with the scene and the
+player, so the two never say different things. `ContinuedDownloads.isRunning` says whether the
+system's progress is showing, and the app's own Live Activity stays out of its way meanwhile. The
+Mac has no such window.
 
 ## The dev harness
 
@@ -437,10 +592,33 @@ mpv, in mpv's own vocabulary:
 Each names its playback: one player can carry a binge, and the playback driving it changes as an
 episode rolls on to the next. See `anistream_model::hosted` for the whole protocol.
 
+Picture in Picture on iPhone and iPad, checked on the iPad Simulator with
+`apple/scripts/pip-check.sh`: in by the toggle, the window over the browsing and over another app
+with the video on, back in the app with the window still up, and back into the player on the same
+playback. What the Simulator cannot show, and a device has to:
+
+- The iPhone Simulator has no Picture in Picture (`isPictureInPictureSupported` is false), so
+  there the button is not shown; iPhones have it.
+- Starting by itself on the home gesture. Opening another app from `simctl` is not that gesture:
+  AVKit and SpringBoard both log the app as ready to start on it, and SpringBoard then declines for
+  a scene that does not match.
+- The window's own buttons (play and pause, 10 s, return, close), which the Simulator cannot
+  press; the tests call AVKit's delegate for them.
+- The copy as a device makes it. The Simulator's drawables have no presented handler, so there
+  each is copied as mpv takes the next one, unordered against mpv's queue (`PictureFeed`).
+- mpv drawing in the background. iOS refuses GPU work from apps in the background, and whether
+  an app whose Picture in Picture is up may render into a layer of its own there is not
+  documented; the Simulator does not enforce it. If a device refuses, the floating window keeps
+  its last frame while the audio plays on.
+- HDR10 in the floating window, as on the Mac: the copy is 8-bit.
+
 ## Not yet
 
-- The player: Picture in Picture and Sync subtitles, and telling the engine of a shader hook
+- The player: Sync subtitles, and telling the engine of a shader hook
   libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's merged Audio and subtitles
   sheet also holds Speed, Upscaling, Night mode and Sources, for want of a More menu on its board.
+- Settings' "Show titles in Spotlight" switch, which waits for the design: Settings has no
+  Privacy pane. The indexer already honours `anistream.showInSpotlight` in the app's defaults,
+  on unless set off. The Library's lists are indexed as they are shown, not asked for at launch.
 - Settings, Providers, Plugin Stores and Downloads: what the engine cannot set yet (E8's settings,
   E9's fields, `DisablePlugin`) is drawn as the boards have it and disabled.

@@ -112,10 +112,11 @@ data class AppActions(
      */
     val hint: (NoticeHint) -> Unit = {},
     /**
-     * New-episode notifications, on or off: the app's, which asks for the permission to post as
-     * they are turned on. `null` leaves their row out, where the engine has no check for them.
+     * What Settings' Notifications pane asks of the app: turning new-episode notifications on,
+     * which asks for the permission to post first, and the system's own settings for them. `null`
+     * turns the setting itself, as the screenshots do.
      */
-    val episodeNotifications: AppSwitch? = null,
+    val notifications: NotificationActions? = null,
 )
 
 /**
@@ -138,8 +139,15 @@ interface PlayerSlot {
 /** The player's route: outside the destinations' graphs, over whichever is on screen. */
 const val PLAYER_ROUTE = "player"
 
-/** A switch the app keeps, rather than the engine's settings: what it says, and turning it. */
-class AppSwitch(val on: StateFlow<Boolean>, val set: (Boolean) -> Unit)
+/** The app's side of the Notifications pane. */
+class NotificationActions(
+    /** Turn new-episode notifications on, once they can show, or off. */
+    val turn: (Boolean) -> Unit,
+    /** Whether Android did not let them go on, or stay on: the switch's line says so. */
+    val refused: StateFlow<Boolean>,
+    /** The system's settings for the channel: sound, vibration and the lock screen. */
+    val openSystemSettings: () -> Unit,
+)
 
 /** Whether the window is wide enough for the rail: 600 dp and up, a tablet or an unfolded foldable. */
 @Composable

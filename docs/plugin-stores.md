@@ -118,8 +118,8 @@ It is what the container image runs, and it takes the same commands: `anistream-
 
 ## What a store protects
 
-Invites and tokens decide who can download from a store. Nobody without a token can list or fetch
-its plugins.
+Invites and tokens decide who can download from a store. Nobody without a token or an unspent
+invite can list its plugins, and nobody without a token can fetch them.
 
 Everyone who joins does get the plugins themselves. A plugin is a `.wasm` file on each member's
 machine, and a member can read it or watch what it contacts. A store keeps its plugins away from
@@ -214,6 +214,7 @@ A used, cancelled and unknown invite all get the same answer, so a guess learns 
 | -------- | ---------------------------- | ------ | ----------------------------------------- |
 | `GET`    | `/v1/store`                  | anyone | Name, protocol version and public key     |
 | `POST`   | `/v1/redeem`                 | anyone | Trade an invite code for a token          |
+| `POST`   | `/v1/preview`                | anyone | What an invite leads to, without spending |
 | `GET`    | `/v1/me`                     | member | Who this token belongs to                 |
 | `DELETE` | `/v1/me`                     | member | Revoke this device's token                |
 | `GET`    | `/v1/index`                  | member | The signed plugin list                    |
@@ -270,6 +271,15 @@ and counts toward the same limit as a failed invite. A store deployed without a 
 ```
 
 `GET /v1/me` answers with the same `member` object plus `"device": { "id": "…", "label": "laptop" }`.
+
+`POST /v1/preview` takes `{ "invite": "…" }` and answers with the signed index the invite would give
+access to, without spending it, so the confirmation can say who runs the store and what it offers.
+The answer is the same envelope as `GET /v1/index`, and anistream checks it against the key in the
+link.
+- A code that would not join answers `404` with `invite_unusable`, and counts toward the same limit
+  as a failed redeem.
+- A store from before the preview answers `404` with `not_found`, and anistream joins it without
+  one.
 
 `POST /v1/invites` takes `{ "kind": "device" }` from anyone, for themselves, or
 `{ "kind": "member", "name": "Alex", "role": "member" }` from an owner. `role` may be `owner`.
@@ -380,13 +390,18 @@ The document inside:
       "size": 104233,
       "published_at": 1792300000
     }
-  ]
+  ],
+  "owners": ["Alex"]
 }
 ```
 
-`sequence` goes up by at least one every time the index changes. A client remembers the highest it
+`sequence` goes up by at least one every time the plugin list changes. A client remembers the highest it
 has accepted, including after leaving a store, and refuses a lower one, so a server cannot quietly
 hand back an older list to keep someone on an old version.
+
+`owners` names the store's owners, the longest-standing first, for "Run by …". Like `store`, it
+describes the store as it is now, so neither moves `sequence`. A store from before it leaves it
+out.
 
 A plugin's `.wasm` is at `/v1/plugins/{id}/{version}`. A published version never changes, so a
 client can verify the download against `sha256` and `size` and then trust it.
@@ -398,7 +413,8 @@ limit still arrives.
 
 ### What the client checks
 
-Before joining, anistream checks that the store's `GET /v1/store` key is the one in the invite.
+Before joining, anistream checks that the store's `GET /v1/store` key is the one in the invite, and
+that the preview's index is signed with it.
 After redeeming, and before keeping the token, it fetches the index and checks its signature. Anyone
 can repeat a store's public key; only the store can sign with it, so a server that does the first
 and not the second is not joined. A link to a store already joined must name the address it was

@@ -354,8 +354,9 @@ fun InfoRow(
     onClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
-    RowFrame(place, onClick = onClick, focus = focus, modifier = Modifier.heightIn(min = if (value != null) 72.dp else 56.dp)) { selected ->
+    RowFrame(place, onClick = onClick, focus = focus, modifier = modifier.heightIn(min = if (value != null) 72.dp else 56.dp)) { selected ->
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             leading?.invoke()
             RowText(title, value, note, selected, Modifier.weight(1f))

@@ -1,5 +1,8 @@
 name: Release
 
+# A tag publishes the terminal binaries built here and the apps apps-release.yml builds, in one
+# draft release: the terminal builds make it, and the apps join it after them.
+#
 # A tag's run can restore only caches saved on that tag or on main, so a cache saved by one
 # release is never seen by the next. Main therefore builds the same targets whenever what they
 # compile changes, and saves the cache a release restores, leaving a release only the workspace
@@ -21,6 +24,7 @@ on:
       - rust-toolchain.toml
       - .github/workflows/release.yml
       - packaging/linux/glibc-floor.sh
+      - packaging/rust-licences/**
   # GitHub drops a cache nobody has read for seven days, and releases are further apart than
   # that, so a weekly build reads it and keeps it.
   schedule:
@@ -154,6 +158,16 @@ jobs:
             echo "::endgroup::"
           done
 
+      # The licences of every Rust crate in this target's binary, which each package carries in
+      # its third-party folder (packaging/third-party.sh). On every run, so a pull request finds a
+      # crate under a licence packaging/rust-licences/about.toml does not accept before a tag does.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.2
+      - name: The Rust crates' licences
+        shell: bash
+        run: bash packaging/rust-licences/generate.sh terminal target/THIRD-PARTY-rust.txt ${{ matrix.target }}
+
       # Archive format follows what each platform's users expect to double-click.
       # On workflow_dispatch GITHUB_REF_NAME is the branch, not the tag, so take the input first
       # or the archives come out named after `main`.
@@ -188,6 +202,7 @@ jobs:
           Copy-Item assets/THIRD-PARTY.md "dist/$name/third-party/"
           Copy-Item assets/shaders/THIRD-PARTY.md "dist/$name/third-party/THIRD-PARTY-shaders.md"
           Copy-Item assets/mpv/licenses/*,assets/shaders/LICENSE-* "dist/$name/third-party/"
+          Copy-Item target/THIRD-PARTY-rust.txt "dist/$name/third-party/"
           Compress-Archive -Path "dist/$name" -DestinationPath "dist/$name.zip"
           (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower() +
             "  $name.zip" | Out-File "dist/$name.zip.sha256" -Encoding ascii
@@ -338,10 +353,21 @@ jobs:
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run "$appdir" "$appimage"
           sha256sum "$appimage" > "$appimage.sha256"
 
+      # One file for the release beside the packages: every Rust crate in any of the four
+      # binaries, with its licence. The targets are the matrix's.
+      - name: The Rust crates' licences, for the release
+        if: env.PACKAGE == 'true' && runner.os == 'Linux'
+        shell: bash
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: >-
+          packaging/rust-licences/generate.sh terminal "dist/anistream-${TAG#v}-rust-licences.txt"
+          x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-msvc
+
       - uses: actions/upload-artifact@v4
         if: env.PACKAGE == 'true'
         with:
-          name: ${{ matrix.target }}
+          name: terminal-${{ matrix.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
@@ -350,6 +376,7 @@ jobs:
             dist/*.AppImage
             dist/*setup.exe
             dist/*.sha256
+            dist/*-rust-licences.txt
 
   publish:
     needs: build
@@ -358,8 +385,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Only the terminal's: the apps' may be in the run already, and are added by publish-apps.
       - uses: actions/download-artifact@v4
         with:
+          pattern: terminal-*
           path: dist
           merge-multiple: true
 
@@ -376,6 +405,7 @@ jobs:
             dist/*.AppImage
             dist/*setup.exe
             dist/*.sha256
+            dist/*-rust-licences.txt
           body: |
             ## Install
 
@@ -399,5 +429,49 @@ jobs:
 
             Verify a download against its `.sha256` before running it.
 
+            Every package carries the licences of what it is built from in a `third-party`
+            folder, the Rust crates' among them; `rust-licences.txt` has those for all four
+            builds.
+
             anistream hosts no content and ships no sources of its own. What you point any source
             at is your own decision, at your own risk.
+
+  # The apps, built beside the terminal binaries, on a tag or a dispatch only: main and the
+  # schedule build here for the cache, which the apps do not share. A pull request that changes
+  # how they are built runs apps-release.yml itself, as a dry run.
+  apps:
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/apps-release.yml
+    with:
+      tag: ${{ github.event.inputs.tag || github.ref_name }}
+    secrets:
+      ANDROID_RELEASE_KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+      ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+      ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+      ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+
+  # Into the draft publish made, once it has: the APK, the .dmg, the .ipa, the notices and a
+  # .sha256 for each, with the apps' install notes added to the release's own. With gh rather
+  # than the release action above, which cannot find a draft by its tag (packaging/apps/publish.sh).
+  publish-apps:
+    needs: [publish, apps]
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          sparse-checkout: packaging/apps
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: apps-*
+          path: dist
+          merge-multiple: true
+      - name: Add the apps to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: packaging/apps/publish.sh "$TAG" dist

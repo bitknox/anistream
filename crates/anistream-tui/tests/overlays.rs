@@ -108,6 +108,7 @@ fn at_episodes() -> App {
             kind: None,
             skippable: false,
             airs_at: None,
+            delayed_from: None,
             thumbnail: None,
             description: None,
         })

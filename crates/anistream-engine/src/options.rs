@@ -193,6 +193,8 @@ pub struct Parts {
     pub sync: crate::tracking::Sync,
     /// The plugin stores, built with the test's token store.
     pub stores: crate::plugin_stores::Stores,
+    /// The clock the new-episode check and the widgets go by, which the test can move on.
+    pub clock: crate::clock::Clock,
 }
 
 #[cfg(test)]

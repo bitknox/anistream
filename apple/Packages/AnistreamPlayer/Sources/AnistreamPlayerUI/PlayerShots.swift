@@ -25,8 +25,9 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// Scrubbing at half speed, with the frame there from the hidden mpv, the time and the
     /// chapter.
     case scrubbing
-    /// The Mac's Picture in Picture: the main window browsing, and the frame the system's
-    /// floating window shows, as the feed copied it.
+    /// Picture in Picture: the app browsing, with the system's floating window over it on
+    /// iPhone and iPad; on the Mac the main window, and the frame the floating window shows, as
+    /// the feed copied it.
     case pictureInPicture = "picture-in-picture"
     /// "Couldn't play episode 7", with Choose source and Close.
     case couldntPlay = "couldnt-play"
@@ -112,6 +113,18 @@ extension PlayerModel {
         // The fades.
         try? await Task.sleep(for: .milliseconds(700))
         return there
+    }
+
+    /// Out of Picture in Picture by the player's own toggle, 10 s after it is in it (within
+    /// `seconds`), as the floating window's return button does: whether the picture came back
+    /// into the player on the same playback within 10 s. For apple/scripts/pip-check.sh, which
+    /// cannot press the window's buttons in the Simulator, and shoots the window meanwhile.
+    public func returnFromPictureInPicture(within seconds: Int) async -> Bool {
+        guard await waited(seconds, { self.pictureInPicturePhase == .active }) else { return false }
+        try? await Task.sleep(for: .seconds(10))
+        guard pictureInPicturePhase == .active else { return false }
+        togglePictureInPicture()
+        return await waited(10) { self.pictureInPicturePhase == .inline && self.inMainWindow && self.hasPicture }
     }
 
     private func waited(_ seconds: Int, _ condition: @MainActor () -> Bool) async -> Bool {

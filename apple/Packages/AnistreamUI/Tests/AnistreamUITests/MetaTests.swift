@@ -33,13 +33,22 @@ struct MetaTests {
     }()
 
     @Test func theLineUnderTheTitleHoldsTheOtherFormsInOrder() {
+        // The engine names the title in the chosen form, here romaji.
         let e = entry {
+            $0.title = "Hoshikuzu no Tabibito"
             $0.titleRomaji = "Hoshikuzu no Tabibito"
             $0.titleEnglish = "Stardust Wayfarer"
             $0.titleNative = "星屑の旅人"
         }
         #expect(e.otherTitles == ["Stardust Wayfarer", "星屑の旅人"])
+        let english = entry {
+            $0.titleRomaji = "Hoshikuzu no Tabibito"
+            $0.titleEnglish = "Stardust Wayfarer"
+            $0.titleNative = "星屑の旅人"
+        }
+        #expect(english.otherTitles == ["Hoshikuzu no Tabibito", "星屑の旅人"], "English chosen, romaji first beneath")
         let same = entry {
+            $0.title = "Hoshikuzu no Tabibito"
             $0.titleRomaji = "Hoshikuzu no Tabibito"
             $0.titleEnglish = "Hoshikuzu no Tabibito"
             $0.titleNative = nil
@@ -119,7 +128,7 @@ struct MetaTests {
         #expect(cards.map(\.id) == [6, 5, 3, 4, 7])
         #expect(cards[1].relationLine == "Side story · OVA · 2024")
         #expect(cards.last?.relationLine == "Related · Music · 2026")
-        #expect(cards[0].shownTitle == "Romaji 6")
+        #expect(cards[0].shownTitle == "Title 6", "the engine's, in the chosen form")
     }
 
     @Test func rankingsGoSeasonThenYearThenAllTime() {

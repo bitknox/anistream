@@ -423,6 +423,12 @@ impl App {
             Event::DeviceCode(prompt) => self.device_code = prompt,
             // A native app's sign-in sheet: the terminal signs in on a loopback port.
             Event::Authorize { .. } => {}
+            // A native app's notifications and widgets, which the terminal never asks for: what
+            // aired while it was closed is the digest's to say, at launch.
+            Event::NewEpisodes(_)
+            | Event::ComingEpisodes(_)
+            | Event::WidgetSnapshot(_)
+            | Event::UpcomingNotices(_) => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),
@@ -444,6 +450,8 @@ impl App {
             Event::Settings(view) => self.take_settings(view),
             // A native app's show sheet, which the terminal has none of.
             Event::ShowSettings(_) => {}
+            // The terminal's table says what the source has in the translation it plays.
+            Event::DubbedTo { .. } => {}
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,

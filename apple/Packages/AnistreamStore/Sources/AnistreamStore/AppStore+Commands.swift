@@ -24,6 +24,43 @@ extension AppStore {
         setSetting(key, to: .bool(on))
     }
 
+    /// How torrent traffic is protected, and what a failed check does. No protection and warning
+    /// only are each asked for with `acknowledged`, once the viewer has confirmed the risk; the
+    /// proxy left `nil` keeps the one the file has.
+    public func setTorrentProtection(
+        _ mode: TorrentProtection, proxy: TorrentProxy? = nil, onFailure: FailedCheck? = nil,
+        acknowledged: Bool = false
+    ) {
+        let current = settings.torrent
+        let proxy = proxy ?? current?.proxy.map { TorrentProxy(host: $0.host, port: $0.port, user: $0.user, password: nil) }
+        send(.setTorrentProtection(
+            mode: mode, proxy: mode == .proxy ? proxy : nil, onFailure: onFailure ?? current?.onFailure ?? .pause,
+            acknowledged: acknowledged))
+    }
+
+    // MARK: A show's own settings
+
+    /// Ask for `id`'s settings sheet: what it sets for itself, and what it remembers.
+    public func loadShowSettings(_ id: AnilistId) {
+        send(.loadShowSettings(id: id))
+    }
+
+    /// Set `key` for `id` alone, or with `nil` have it follow Settings again.
+    public func setShowSetting(_ id: AnilistId, _ key: ShowSettingKey, to value: SettingValue?) {
+        send(.setShowSetting(id: id, key: key, value: value))
+    }
+
+    /// Put `id` back on Settings: its own settings, the source it keeps and the remembered tracks.
+    public func resetShowSettings(_ id: AnilistId) {
+        send(.resetShowSettings(id: id))
+    }
+
+    /// Whether `id`'s unwatched stills are blurred: as the show sets it, else as Settings does.
+    public func spoilerProtection(for id: AnilistId) -> Bool {
+        if let row = showSettings.row(.spoilerProtection, of: id) { return row.value == "on" }
+        return settings.row(.spoilerProtection).map(\.isOn) ?? true
+    }
+
     // MARK: Accounts
 
     public func syncNow() {
@@ -115,6 +152,16 @@ extension AppStore {
     /// Install a store's plugin, or update it.
     public func installPlugin(_ plugin: String, from store: String) {
         stores.started(.install(store: store, plugin: plugin), job: send(.installPlugin(store: store, plugin: plugin)))
+    }
+
+    /// Turn a plugin off without removing it, or back on: its source leaves the chain until then.
+    public func setPluginDisabled(_ plugin: String, _ disabled: Bool) {
+        send(.disablePlugin(id: plugin, disabled: disabled))
+    }
+
+    /// Whether a plugin is turned off, as its row or the config says.
+    public func isPluginDisabled(_ plugin: String) -> Bool {
+        providers.row(plugin)?.disabled ?? settings.sources.disabled.contains(plugin)
     }
 
     public func removePlugin(_ plugin: String) {
