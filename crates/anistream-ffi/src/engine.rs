@@ -40,7 +40,8 @@ pub struct FfiEngine {
     /// The runtime the engine runs on, until [`Self::shutdown`] stops it.
     runtime: Mutex<Option<Runtime>>,
     /// What the engine's parts lean on, kept for as long as the engine: the fake AniList of an
-    /// engine started for a test. Read only by the testing build's accessors.
+    /// engine started for a test, and the clock it goes by. Read only by the testing build's
+    /// accessors.
     #[cfg_attr(not(feature = "testing"), allow(dead_code))]
     kept: Option<Box<dyn Any + Send + Sync>>,
 }
@@ -132,7 +133,8 @@ impl FfiEngine {
 
     /// The engine `started` on `runtime`, held for the app, with `kept` beside it; or, when it
     /// did not start, the runtime stopped and why.
-    /// What [`Self::hold`] kept beside the engine, as a `T`: the fake AniList of a test's engine.
+    /// What [`Self::hold`] kept beside the engine, as a `T`: the fake AniList and the clock of a
+    /// test's engine.
     #[cfg(feature = "testing")]
     pub(crate) fn kept<T: 'static>(&self) -> Option<&T> {
         self.kept.as_ref()?.downcast_ref()

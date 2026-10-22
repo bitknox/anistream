@@ -133,6 +133,13 @@ pub struct Entry {
     /// is the same text with the spoilers left out, which is what the terminal shows.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub synopsis_spans: Vec<SynopsisSpan>,
+    /// On a calendar row, when its episode was to air before AniList's schedule moved it later,
+    /// in Unix seconds: "Delayed (was 23:00)", as [`EpisodeRow::delayed_from`] has it. `None`
+    /// everywhere else.
+    ///
+    /// [`EpisodeRow::delayed_from`]: crate::episodes::EpisodeRow::delayed_from
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub delayed_from: Option<i64>,
 }
 
 /// Where a title is in its run, as AniList says.
@@ -470,6 +477,7 @@ impl Entry {
             detail: None,
             status: None,
             synopsis_spans: Vec::new(),
+            delayed_from: None,
         }
     }
 

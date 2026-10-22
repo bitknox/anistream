@@ -2,7 +2,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
   ▸│  FIND    Comedy · 2026 · fall · tv · airing · score
   ▤│
-  ▦│         ▀▀▄
+  ▦│         ▄
 ────────────────────────────────────────────────────────────────────────────────
 ▌ FILTERS   ←/→ pick · enter searches · esc keeps them
 ────────────────────────────────────────────────────────────────────────────────
@@ -29,9 +29,7 @@ r00 c09-79 fg=rule
 r01 c00-79 fg=rule
 r02 c00-79 fg=rule
 r03 c00-79 fg=rule
-r04 c00-13 fg=rule
-r04 c14-14 fg=rule bg=#e8e2d4
-r04 c15-79 fg=rule
+r04 c00-79 fg=rule
 r05 c00-79 fg=rule bg=ground
 r06 c00-00 fg=obi bg=ground
 r06 c01-01 fg=rule bg=ground

@@ -49,6 +49,7 @@ pub mod event;
 pub mod hosted;
 pub mod jobs;
 pub mod notice;
+pub mod notifications;
 pub mod playback;
 pub mod progress;
 pub mod protection;
@@ -57,6 +58,7 @@ pub mod show;
 pub mod sources;
 pub mod stores;
 pub mod sync;
+pub mod widgets;
 pub mod wording;
 
 // What the types' UniFFI derives register with, under the `ffi` feature only. It compiles under the

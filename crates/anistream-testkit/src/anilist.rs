@@ -59,6 +59,8 @@ pub enum Operation {
     Schedule,
     /// `query::LAST_AIRED`.
     LastAired,
+    /// `query::AIRED_SINCE`: what aired for the titles followed, for the new-episode check.
+    AiredSince,
     /// `query::user_library`.
     Library,
     /// `query::VIEWER`.
@@ -93,6 +95,8 @@ impl Operation {
             Self::Viewer
         } else if has("Media(id:") {
             Self::Detail
+        } else if has("airingSchedules(mediaId_in: $ids, airingAt_greater") {
+            Self::AiredSince
         } else if has("airingSchedules(mediaId_in") {
             Self::LastAired
         } else if has("airingSchedules(") {
@@ -155,6 +159,9 @@ struct State {
     next: VecDeque<Failure>,
     always: Option<Failure>,
     now: i64,
+    /// How far the clock has moved on past `now` without the broadcasts moving with it: see
+    /// [`FakeAniList::advance`].
+    ahead: i64,
     /// Titles answered in other forms than the fixtures', by id: see [`FakeAniList::set_title`].
     titles: HashMap<u64, Value>,
     /// The viewer's own title language, in place of the fixture's.
@@ -175,6 +182,7 @@ impl FakeAniList {
             next: VecDeque::new(),
             always: None,
             now: FIXTURE_NOW,
+            ahead: 0,
             titles: HashMap::new(),
             viewer_language: None,
             art: None,
@@ -278,7 +286,16 @@ impl FakeAniList {
     /// clock: the next episode is still 2d 3h 15m away. For a test that runs against the real
     /// clock, which the calendar's window and the countdowns are taken from.
     pub fn set_now(&self, now: i64) {
-        lock(&self.state).now = now;
+        let mut state = lock(&self.state);
+        state.now = now;
+        state.ahead = 0;
+    }
+
+    /// Let `secs` pass: the clock moves on and the broadcasts stay where they are, so an
+    /// episode due in an hour has aired once an hour has passed. For a test of what airs while
+    /// the app is away, with the engine's own clock moved on as far.
+    pub fn advance(&self, secs: i64) {
+        lock(&self.state).ahead += secs;
     }
 
     /// Answer `id`'s title in these forms from now on, wherever the fake names it — a list, its
@@ -461,7 +478,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, now, titles, viewer_language) = {
+    let (failure, (now, ahead), titles, viewer_language) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -471,12 +488,14 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             authorization: head.authorization.clone(),
         });
         let failure = state.next.pop_front().or_else(|| state.always.clone());
-        (failure, state.now, state.titles.clone(), state.viewer_language.clone())
+        let clock = (state.now, state.ahead);
+        (failure, clock, state.titles.clone(), state.viewer_language.clone())
     };
     match failure {
         Some(failure) => fail(failure),
         None => {
-            let mut reply = respond(operation, &variables, head.authorization.is_some(), now);
+            let clock = Clock { shift: now - FIXTURE_NOW, now: now + ahead };
+            let mut reply = respond(operation, &variables, head.authorization.is_some(), clock);
             if let Reply::Answer { body, .. } = &mut reply {
                 retitle(body, &titles);
                 if let Some(language) = viewer_language
@@ -545,8 +564,7 @@ fn tenrai(path: &str) -> Reply {
     Reply::status(200, json!({ "data": [], "pagination": { "has_next_page": false } }))
 }
 
-fn respond(operation: Operation, vars: &Value, authorized: bool, now: i64) -> Reply {
-    let clock = Clock { shift: now - FIXTURE_NOW, now };
+fn respond(operation: Operation, vars: &Value, authorized: bool, clock: Clock) -> Reply {
     let needs_token = matches!(
         operation,
         Operation::Library | Operation::Viewer | Operation::SaveEntry | Operation::DeleteEntry
@@ -584,6 +602,7 @@ fn respond(operation: Operation, vars: &Value, authorized: bool, now: i64) -> Re
         }
         Operation::Schedule => Reply::ok(schedule(vars, clock)),
         Operation::LastAired => Reply::ok(last_aired(vars, clock)),
+        Operation::AiredSince => Reply::ok(aired_since(vars, clock)),
         Operation::Viewer => Reply::ok(json!({ "Viewer": fixtures::library_wire()["viewer"] })),
         Operation::Library => Reply::ok(library(clock)),
         Operation::SaveEntry => Reply::ok(save_entry(vars)),
@@ -597,7 +616,8 @@ fn respond(operation: Operation, vars: &Value, authorized: bool, now: i64) -> Re
     }
 }
 
-/// The fake's clock: how far the fixtures move, and the moment countdowns are counted from.
+/// The fake's clock: how far the fixtures move, and the moment countdowns are counted from,
+/// which is that far on and as far again as [`FakeAniList::advance`] has moved it.
 #[derive(Clone, Copy)]
 struct Clock {
     shift: i64,
@@ -765,6 +785,42 @@ fn last_aired(vars: &Value, clock: Clock) -> Value {
     json!({ "Page": { "airingSchedules": rows } })
 }
 
+/// What aired for these titles strictly inside `from`..`to`, oldest first, a page of them: each
+/// with its title's forms and cover.
+fn aired_since(vars: &Value, clock: Clock) -> Value {
+    let asked = ids(&vars["ids"]);
+    let from = vars["from"].as_i64().unwrap_or(i64::MIN);
+    let to = vars["to"].as_i64().unwrap_or(i64::MAX);
+    let mut rows: Vec<(i64, &Value)> = fixtures::schedule_wire()
+        .iter()
+        .filter(|row| {
+            row["mediaId"].as_u64().is_some_and(|id| asked.contains(&AnilistId::new(id as u32)))
+        })
+        .map(|row| (clock.at(&row["airingAt"]), row))
+        .filter(|(at, _)| *at > from && *at < to)
+        .collect();
+    rows.sort_by_key(|(at, _)| *at);
+    let (rows, more) = paged(rows, vars);
+    let rows: Vec<Value> = rows
+        .into_iter()
+        .filter_map(|(at, row)| {
+            let id = AnilistId::new(row["mediaId"].as_u64()? as u32);
+            let media = fixtures::wire(id)?;
+            Some(json!({
+                "episode": row["episode"],
+                "airingAt": at,
+                "media": {
+                    "id": media["id"],
+                    "title": media["title"],
+                    "coverImage": media["coverImage"],
+                    "bannerImage": media["bannerImage"],
+                },
+            }))
+        })
+        .collect();
+    json!({ "Page": { "pageInfo": { "hasNextPage": more }, "airingSchedules": rows } })
+}
+
 fn sort_is(vars: &Value, wanted: &str) -> bool {
     match &vars["sort"] {
         Value::Array(sorts) => sorts.first().and_then(Value::as_str) == Some(wanted),
@@ -842,6 +898,7 @@ mod tests {
             (query::seasonal(), Operation::Seasonal),
             (query::airing_schedule(), Operation::Schedule),
             (query::LAST_AIRED.to_owned(), Operation::LastAired),
+            (query::AIRED_SINCE.to_owned(), Operation::AiredSince),
             (query::user_library(), Operation::Library),
             (query::VIEWER.to_owned(), Operation::Viewer),
             (query::SAVE_PROGRESS.to_owned(), Operation::SaveEntry),

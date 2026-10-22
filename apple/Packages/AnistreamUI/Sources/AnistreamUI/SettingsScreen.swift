@@ -8,7 +8,7 @@ import SwiftUI
 
 /// Settings' panes. Integrations stays out of v1.
 public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case playback, downloads, sources, accounts, advanced
+    case playback, downloads, notifications, sources, accounts, integrations, advanced
 
     public var id: String { rawValue }
 
@@ -16,24 +16,39 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
         switch self {
         case .playback: "Playback"
         case .downloads: "Downloads"
+        case .notifications: "Notifications"
         case .sources: "Sources"
         case .accounts: "Accounts"
+        case .integrations: "Integrations"
         case .advanced: "Advanced"
         }
+    }
+
+    /// The panes this device shows. Integrations is the Mac's: Syncplay, Discord and the update
+    /// check are desktop programs, none of which an iPad or iPhone runs.
+    static var shown: [SettingsPane] {
+        #if os(macOS)
+        allCases
+        #else
+        allCases.filter { $0 != .integrations }
+        #endif
     }
 }
 
 /// A page of the iPhone's Settings sheet.
 public enum PhoneSettingsPage: Hashable, Sendable {
-    case root, playback, downloads, sources, accounts, providers, stores, about, acknowledgements
+    case root, playback, downloads, notifications, sources, accounts, providers, stores, about, acknowledgements
     case store(String)
     case plugin(String)
+    /// A show's own new-episode switch, from a row of the Notifications page's week.
+    case showNotices(AnilistId)
 
     /// The page a launch argument names: a Settings pane's name, or providers or stores.
     static func named(_ name: String) -> PhoneSettingsPage? {
         switch name {
         case "playback": .playback
         case "downloads": .downloads
+        case "notifications": .notifications
         case "sources": .sources
         case "accounts": .accounts
         case "providers": .providers
@@ -86,8 +101,10 @@ struct SettingsScreen: View {
                 switch navigator.settingsPane {
             case .playback: PlaybackPane()
             case .downloads: DownloadsPane()
+            case .notifications: NotificationsPane()
             case .sources: SourcesPane()
             case .accounts: AccountsPane()
+            case .integrations: IntegrationsPane()
             case .advanced: AdvancedPane()
                 }
             }
@@ -110,13 +127,17 @@ struct SettingsResults: View {
         ("Start fullscreen", .playback),
         ("Download folder", .downloads), ("Download quality", .downloads), ("Merge subtitles in", .downloads),
         ("Keep seeding", .downloads), ("After each download", .downloads), ("Watched downloads", .downloads),
+        ("New episodes", .notifications), ("Notification settings", .notifications),
         ("Source order", .sources), ("Torrent source", .sources), ("Torrent index", .sources),
         ("Protect with", .sources), ("Last check", .sources), ("If a check fails", .sources),
         ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
         ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
         ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts),
+        ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
+        ("Syncplay room", .integrations), ("Discord presence", .integrations),
+        ("Presence shows the title", .integrations), ("Check for updates", .integrations),
         ("mpv options", .advanced),
-    ]
+    ].filter { SettingsPane.shown.contains($0.pane) }
 
     var body: some View {
         let words = query.lowercased().split(separator: " ")
@@ -150,7 +171,7 @@ struct SettingsTabs: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(SettingsPane.allCases) { pane in
+            ForEach(SettingsPane.shown) { pane in
                 let selected = pane == selection
                 Button {
                     selection = pane
@@ -185,6 +206,8 @@ struct SettingsAside: View {
                 if navigator.playbackFocus == .titleLanguage { TitleLanguagePreview() } else { UpscalingPreview() }
             case .downloads:
                 StorageAside()
+            case .notifications:
+                NotificationsAside()
             case .sources:
                 if store.settings.isOn(.torrents) {
                     aside("Connection check", "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.")
@@ -193,6 +216,8 @@ struct SettingsAside: View {
                 }
             case .accounts:
                 aside("Accounts", "anistream works without an account. Your watch history stays on this \(Device.name) when you sign out.")
+            case .integrations:
+                PresencePreview()
             case .advanced:
                 aside("Advanced", "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.")
             }
@@ -230,33 +255,40 @@ enum Device {
 struct PlaybackPane: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
+    @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
 
     var body: some View {
+        let overridden = store.settings.overriddenNote
         SettingsGroup(title: "Language") {
             TitleLanguageRow()
-            // "Overridden for 3 shows" waits on E8's override counts.
-            SettingsRow(title: SettingKey.translation.title) { SettingMenu(key: .translation) }
+            SettingsRow(title: SettingKey.translation.title, note: overridden(.translation)) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
-            SettingsRow(title: SettingKey.quality.title) { SettingMenu(key: .quality) }
+            // Kept on this device: the style it follows is this device's.
+            SettingsRow(
+                title: "Subtitles follow your system caption style",
+                note: "Plain subtitles take the font, size, colours and edges set in System Settings › Accessibility › Captions. Styled subtitles keep their own look."
+            ) {
+                Toggle("Subtitles follow your system caption style", isOn: $followCaptions)
+                    .toggleStyle(.switch)
+                    .tint(.amber)
+                    .labelsHidden()
+            }
+            SettingsRow(title: SettingKey.quality.title, note: overridden(.quality)) { SettingMenu(key: .quality) }
         }
         SettingsGroup(title: "Episodes") {
             SettingsRow(title: SettingKey.autoNext.title) { SettingSwitch(key: .autoNext) }
-            // E8: `UpNextCountdown` is not a setting the engine has yet.
-            SettingsRow(title: "Up Next countdown") { DeferredMenu(text: "10 s", waitsOn: "E8") }
+            SettingsRow(title: SettingKey.upNextCountdown.title) { SettingMenu(key: .upNextCountdown) }
+                .disabled(!store.settings.isOn(.autoNext))
                 .opacity(store.settings.isOn(.autoNext) ? 1 : 0.45)
-            SettingsRow(title: SettingKey.skipOpening.title) { SettingSwitch(key: .skipOpening) }
-            SettingsRow(title: SettingKey.skipFiller.title) { SettingSwitch(key: .skipFiller) }
+            SettingsRow(title: SettingKey.skipOpening.title, note: overridden(.skipOpening)) { SettingSwitch(key: .skipOpening) }
+            SettingsRow(title: SettingKey.skipFiller.title, note: overridden(.skipFiller)) { SettingSwitch(key: .skipFiller) }
             SettingsRow(title: SettingKey.markChapters.title) { SettingSwitch(key: .markChapters) }
             SettingsRow(title: SettingKey.commitThreshold.title, note: "Or when the ending starts, if it is marked.") {
                 SettingMenu(key: .commitThreshold)
             }
-            // Kept on this device until E8's `SpoilerProtection` moves it into the engine.
-            SettingsRow(title: "Spoiler protection", note: "Blurs stills of unwatched episodes after the next one.") {
-                Toggle("Spoiler protection", isOn: $spoilers)
-                    .toggleStyle(.switch)
-                    .tint(.amber)
-                    .labelsHidden()
+            SettingsRow(title: SettingKey.spoilerProtection.title,
+                        note: "Blurs stills of unwatched episodes after the next one.") {
+                SettingSwitch(key: .spoilerProtection)
             }
         }
         SettingsGroup(title: "Picture and sound") {

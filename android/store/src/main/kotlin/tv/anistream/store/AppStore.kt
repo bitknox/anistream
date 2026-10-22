@@ -3,6 +3,15 @@
 package tv.anistream.store
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -73,6 +82,7 @@ class AppStore(
     val providers = ProvidersModel()
     val showSettings = ShowSettingsModel()
     val episodeFolds = EpisodeFolds()
+    val coming = ComingModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -103,6 +113,25 @@ class AppStore(
 
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
+
+    private val _answers = MutableSharedFlow<Event>(extraBufferCapacity = 8)
+
+    /**
+     * The events that answer a command once and with no job: the new-episode check's and the
+     * widgets' record, for the background work that asked, as [ask] waits for them.
+     */
+    val answers: SharedFlow<Event> = _answers.asSharedFlow()
+
+    /**
+     * Send [command] and wait for the event that answers it, the first [answer] takes, at most
+     * [timeoutMillis]; `null` when none came. Listening starts before the command goes, so an
+     * answer that comes at once is not missed.
+     */
+    suspend fun <T : Any> ask(command: Command, timeoutMillis: Long, answer: (Event) -> T?): T? = coroutineScope {
+        val answered = async(start = CoroutineStart.UNDISPATCHED) { answers.mapNotNull(answer).first() }
+        send(command)
+        withTimeoutOrNull(timeoutMillis) { answered.await() }.also { answered.cancel() }
+    }
 
     // The engine
 
@@ -341,6 +370,11 @@ class AppStore(
         setSetting(key, SettingValue.Bool(on))
     }
 
+    /** The episodes coming up this week for the shows notified of: Notifications' "Coming up". */
+    fun loadComing() {
+        send(Command.ComingEpisodes)
+    }
+
     /** The title language the signed-in AniList viewer reads in, for AniList's choice. */
     fun loadTitleLanguage() {
         send(Command.LoadTitleLanguage)
@@ -369,6 +403,21 @@ class AppStore(
     fun finishSignIn(request: SignInRequest, callback: String) {
         accounts.signInEnded(request)
         accounts.started(request.tracker, send(Command.FinishSignIn(request.tracker, callback)))
+    }
+
+    /**
+     * The browser came back to the app for [tracker] with [callback], the redirect that carries
+     * the code or the token: handed to the engine as it came, which checks it against the sign-in
+     * it waits on. It ends the open sign-in only when it is that one's own, for its tracker and
+     * with its state, as the engine goes on waiting for any other: the two stay in step, and the
+     * tab's own redirect, still to come, finishes it. Says whether it ended the open one.
+     */
+    fun redirected(tracker: String, callback: String): Boolean {
+        accounts.leftForTab = false
+        val request = accounts.signIn.value?.takeIf { it.answeredBy(tracker, callback) }
+        if (request != null) accounts.signInEnded(request)
+        accounts.started(tracker, send(Command.FinishSignIn(tracker, callback)))
+        return request != null
     }
 
     /** The browser for [request] was closed without signing in. */
@@ -550,6 +599,8 @@ class AppStore(
             is Event.Downloads -> downloads.apply(event.v1)
             is Event.Seeding -> downloads.seeding(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
+            is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
+            is Event.ComingEpisodes -> coming.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

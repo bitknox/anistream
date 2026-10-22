@@ -11,6 +11,7 @@ use crate::{
     hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
+    notifications::{ComingEpisode, NewEpisode, UpcomingNotices},
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
@@ -20,6 +21,7 @@ use crate::{
         InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
+    widgets::WidgetData,
 };
 
 /// A computed change, applied on the UI thread.
@@ -229,6 +231,13 @@ pub enum Event {
         id: AnilistId,
         rows: Vec<EpisodeRow>,
     },
+    /// How far title `id`'s dub goes, as the source a play would use lists it: its last
+    /// episode in the dub, "Dub to episode 6", or `None` when that source has no dub of it or
+    /// could not say. A dub that has caught up names the same episode as the sub.
+    DubbedTo {
+        id: AnilistId,
+        episode: Option<String>,
+    },
     /// Where a title stands now, whole, after something moved it: a mark, the playhead of an
     /// episode playing, or how one ended. Sent ahead of the event that moved it, when an event
     /// did, so that whatever that event brings up shows the title as it now stands.
@@ -314,6 +323,24 @@ pub enum Event {
         store: String,
         plugins: Vec<LocalPluginRow>,
     },
+    /// What [`Command::CheckNewEpisodes`] found: the episodes to notify of, in the order they
+    /// aired, each said once and never again. Empty when there is nothing new.
+    ///
+    /// [`Command::CheckNewEpisodes`]: crate::command::Command::CheckNewEpisodes
+    NewEpisodes(Vec<NewEpisode>),
+    /// What [`Command::ComingEpisodes`] lists: the episodes of the shows the new-episode check
+    /// follows that air in the next week, soonest first. Empty when there are none, or when
+    /// AniList could not be asked.
+    ///
+    /// [`Command::ComingEpisodes`]: crate::command::Command::ComingEpisodes
+    ComingEpisodes(Vec<ComingEpisode>),
+    /// The home-screen widgets' record, in answer to
+    /// [`Command::WidgetSnapshot`](crate::command::Command::WidgetSnapshot): for the app to
+    /// write where its widgets read it.
+    WidgetSnapshot(WidgetData),
+    /// The week's broadcasts that will notify and those left out, in answer to
+    /// [`Command::UpcomingNotices`](crate::command::Command::UpcomingNotices).
+    UpcomingNotices(UpcomingNotices),
 }
 
 impl Event {

@@ -366,6 +366,7 @@ pub async fn bring_up_torrent(
     paths: Paths,
     store: anistream_store::Store,
     tx: crate::outbox::Outbox,
+    check: std::sync::Arc<tokio::sync::Notify>,
 ) -> std::result::Result<TorrentUp, String> {
     use anistream_model::event::Event;
     use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};
@@ -409,7 +410,11 @@ pub async fn bring_up_torrent(
         if matches!(state, GuardState::Leaking { .. }) {
             wait = ceiling;
         }
-        tokio::time::sleep(wait.min(ceiling)).await;
+        // Or sooner, when Check Now asks.
+        tokio::select! {
+            () = tokio::time::sleep(wait.min(ceiling)) => {}
+            () = check.notified() => {}
+        }
         wait = (wait * 2).min(ceiling);
     }
 

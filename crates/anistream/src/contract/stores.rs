@@ -104,6 +104,12 @@ async fn an_invite_is_previewed_then_joined() {
         Event::StorePreview(InvitePreview::Store(preview))
             if preview.name == "Ours" && !preview.already_joined && preview.host == "127.0.0.1"
     ));
+    // From the store's signed list: nobody runs it until this link makes its owner, and it
+    // offers nothing yet.
+    let Event::StorePreview(InvitePreview::Store(preview)) = &updates[0] else {
+        unreachable!()
+    };
+    assert!(preview.owners.is_empty() && preview.plugins.is_empty(), "{preview:?}");
     ends(&updates, job);
 
     let job = h.send(Command::JoinStore { link: Secret(store.owner_link.clone()) });
@@ -123,6 +129,7 @@ async fn an_invite_is_previewed_then_joined() {
     let Event::Stores(rows) = &updates[1] else { unreachable!() };
     assert_eq!(rows[0].host, "127.0.0.1");
     assert!(rows[0].checked_at.is_some(), "checked");
+    assert_eq!(rows[0].owners, ["Owner"], "run by whoever the owner link made");
     ends(&updates, job);
 }
 

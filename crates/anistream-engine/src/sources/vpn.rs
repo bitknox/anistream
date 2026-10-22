@@ -13,6 +13,7 @@ pub async fn vpn_watch(
     guard: VpnGuard,
     session: Arc<anistream_providers::torrent::TorrentSession>,
     tx: Outbox,
+    check: Arc<tokio::sync::Notify>,
 ) {
     let mut ticker = tokio::time::interval(guard.verify_interval());
     // The first tick fires immediately; the guard was already verified at startup.
@@ -21,7 +22,11 @@ pub async fn vpn_watch(
     let mut log = anistream_providers::vpn::GuardLog::after_passing();
 
     loop {
-        ticker.tick().await;
+        // The next check, or one now that Check Now asks for.
+        tokio::select! {
+            _ = ticker.tick() => {}
+            () = check.notified() => {}
+        }
         let state = guard.verify().await;
         let leaking = !state.is_protected();
 

@@ -219,6 +219,7 @@ impl Engine {
                     player_theme,
                     app_clients: Default::default(),
                     host,
+                    clock: parts.clock,
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
@@ -869,7 +870,7 @@ impl Actor {
     /// The torrent source is up, or will not come up; only the latest bring-up counts.
     fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, String>) {
         let tx = self.inbox.sender();
-        let hold = crate::phases::hold_now(&self.state);
+        let crate::phases::Gate { hold, refusal } = crate::phases::gate_now(&mut self.state);
         let EngineState { torrent_tasks, vpn_guard, shared_config, .. } = &mut self.state;
         torrent_tasks.arrived(
             generation,
@@ -879,13 +880,15 @@ impl Actor {
             shared_config,
             &tx,
         );
-        // Up while the app is away or on a metered network: what waits, waits from the start.
-        if hold != anistream_providers::torrent::session::Hold::Nothing
-            && let Some((_, session)) = vpn_guard.clone()
-        {
-            tokio::spawn(async move {
-                let _ = session.set_hold(hold).await;
-            });
+        // Up while the app is away, on cellular or in Low Data Mode: what waits, waits from the
+        // start, and what may not start does not.
+        if let Some((_, session)) = vpn_guard.clone() {
+            session.refuse_on_this_network(refusal);
+            if hold != anistream_providers::torrent::session::Hold::NOTHING {
+                tokio::spawn(async move {
+                    let _ = session.set_hold(hold).await;
+                });
+            }
         }
     }
 
@@ -1118,7 +1121,7 @@ mod tests {
         assert!(url.contains("redirect_uri=anistream%3A%2F%2Fauth%2Fmal"), "{url}");
         let state = url.split("&state=").nth(1).expect("a state");
 
-        // A code with no state is not this sign-in's: only AniList's token is taken without.
+        // A code with no state is not this sign-in's, as nothing without one is.
         let bare = Secret("anistream://auth/mal?code=a-code".into());
         engine.send(Command::FinishSignIn { tracker: "mal".into(), callback: bare });
         let refused = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);

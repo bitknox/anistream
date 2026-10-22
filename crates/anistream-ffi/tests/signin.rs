@@ -178,14 +178,19 @@ fn a_redirect_that_does_not_carry_the_state_back_is_refused_and_the_sign_in_wait
 }
 
 #[test]
-fn a_token_with_no_state_is_taken_from_anilist_and_a_bare_redirect_is_not() {
-    // AniList's implicit grant may not carry the state back: its token is taken all the same.
+fn a_token_with_no_state_is_refused_and_the_sign_in_waits_on() {
+    // A token sent to the app's scheme from anyone's page, with no state: taken, it would sign
+    // the app in to whoever's account it is, a login forged across sites.
     let mut app = App::start();
-    app.authorize();
-    // With neither a state nor a token, nothing to take.
+    let (_, state) = app.authorize();
+    app.finish("anistream://auth/anilist#access_token=fake-token&token_type=Bearer".into());
+    assert_eq!(app.alert(), "that sign-in to anilist did not come back from this request");
+    // With neither a state nor a token, nothing to take either.
     app.finish("anistream://auth/anilist#token_type=Bearer".into());
     assert_eq!(app.alert(), "that sign-in to anilist did not come back from this request");
-    app.finish("anistream://auth/anilist#access_token=fake-token&token_type=Bearer".into());
+
+    // The sheet's own redirect, with the token and the state beside it, still finishes it.
+    app.finish(redirect(&state));
     app.until("AniList signed in", |event| match event {
         Event::Sync(sync) if sync.tracker == "anilist" && sync.connected => Some(()),
         _ => None,

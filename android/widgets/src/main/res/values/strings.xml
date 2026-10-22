@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_continue">Continue watching</string>
+    <string name="widget_continue_description">The next episode of what you’re watching, with your progress.</string>
+    <string name="widget_airing">Airing today</string>
+    <string name="widget_airing_description">Today’s broadcasts, with the shows in your list marked.</string>
+</resources>

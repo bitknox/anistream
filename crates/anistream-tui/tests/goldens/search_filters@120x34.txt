@@ -2,10 +2,10 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ▸  CONTINUE               │  FIND    Comedy · 2026 · fall · tv · airing · score
   ▤  CALENDAR               │
-  ▦  SEASONAL               │         ▀▀▄
-▌ /  SEARCH                 │       ▄▄▀▀▄▄
-  ▥  LIBRARY                │     ▄▀▀▀▀▀▀▀▀▄
-  ↓  DOWNLOADS              │    ▄▀▀▀▀▀▀▀▀▀▀▀
+  ▦  SEASONAL               │         ▄
+▌ /  SEARCH                 │      ▄▀▀▀▀▀▄
+  ▥  LIBRARY                │      ▀▀▀▀▀▀▀▀
+  ↓  DOWNLOADS              │    ▀▄▀▀▀▀▀▀▀ ▄▄
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ FILTERS   ←/→ pick · enter searches · esc keeps them
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -39,24 +39,27 @@ r00 c09-119 fg=rule
 r01 c00-119 fg=rule
 r02 c00-119 fg=rule
 r03 c00-119 fg=rule
-r04 c00-38 fg=rule
-r04 c39-39 fg=rule bg=#e8e2d4
-r04 c40-119 fg=rule
+r04 c00-119 fg=rule
 r05 c00-04 fg=rule
 r05 c05-10 fg=rule mod=BOLD
-r05 c11-37 fg=rule
-r05 c38-39 fg=rule bg=#e8e2d4
-r05 c40-119 fg=rule
+r05 c11-35 fg=rule
+r05 c36-40 fg=rule bg=#e8e2d4
+r05 c41-119 fg=rule
 r06 c00-34 fg=rule
-r06 c35-42 fg=rule bg=#e8e2d4
+r06 c35-35 fg=rule bg=#efcfac
+r06 c36-36 fg=rule bg=#232842
+r06 c37-38 fg=rule bg=#efcfac
+r06 c39-39 fg=rule bg=#c6bea9
+r06 c40-41 fg=rule bg=#e8e2d4
+r06 c42-42 fg=rule bg=#c6bea9
 r06 c43-119 fg=rule
-r07 c00-33 fg=rule
-r07 c34-34 fg=rule bg=#e8e2d4
-r07 c35-38 fg=rule bg=#efcfac
-r07 c39-39 fg=rule bg=#c6bea9
-r07 c40-43 fg=rule bg=#e8e2d4
-r07 c44-44 fg=rule bg=#c6bea9
-r07 c45-119 fg=rule
+r07 c00-32 fg=rule
+r07 c33-33 fg=rule bg=state
+r07 c34-34 fg=rule
+r07 c35-39 fg=rule bg=obi
+r07 c40-40 fg=rule bg=#e8e2d4
+r07 c41-41 fg=rule bg=#c6bea9
+r07 c42-119 fg=rule
 r08 c00-119 fg=rule bg=ground
 r09 c00-00 fg=obi bg=ground
 r09 c01-01 fg=rule bg=ground

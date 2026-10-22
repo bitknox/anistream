@@ -12,7 +12,9 @@ object MpvSetup {
     /**
      * mpv-android's fonts.conf (Utils.writeFontsConf): fontconfig over the system's fonts, with
      * Android's own families for the generic names, and its cache in the app's cache dir. mpv
-     * passes `~~/fonts.conf` to libass, so it goes in mpv's `config-dir`.
+     * passes `~~/fonts.conf` to libass, so it goes in mpv's `config-dir`. The names the caption
+     * settings' typefaces go by (CaptionStyle.FAMILIES) are there too, as Android's fonts.xml has
+     * them.
      */
     fun writeFontsConf(configDir: File, cacheDir: File) {
         val conf = """
@@ -25,6 +27,12 @@ object MpvSetup {
               <alias><family>serif</family><prefer><family>Noto Serif</family></prefer></alias>
               <alias><family>sans-serif</family><prefer><family>Roboto</family><family>Noto Sans</family></prefer></alias>
               <alias><family>monospace</family><prefer><family>Droid Sans Mono</family></prefer></alias>
+              <alias><family>sans-serif-condensed</family><prefer><family>Roboto Condensed</family><family>Roboto</family></prefer></alias>
+              <alias><family>sans-serif-monospace</family><prefer><family>Droid Sans Mono</family></prefer></alias>
+              <alias><family>serif-monospace</family><prefer><family>Cutive Mono</family><family>Droid Sans Mono</family></prefer></alias>
+              <alias><family>casual</family><prefer><family>Coming Soon</family></prefer></alias>
+              <alias><family>cursive</family><prefer><family>Dancing Script</family></prefer></alias>
+              <alias><family>sans-serif-smallcaps</family><prefer><family>Carrois Gothic SC</family></prefer></alias>
             </fontconfig>
         """.trimIndent()
         val file = File(configDir, "fonts.conf")

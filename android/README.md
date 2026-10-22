@@ -16,6 +16,7 @@ anistream ships no sources of its own and hosts no content. Every source is exte
 | `:design` | The Obi & Silk colour scheme, type, shapes, motion tokens, Nagare, the cover plate | AnistreamDesign |
 | `:ui` | The navigation bar and the screens | AnistreamUI |
 | `:player` | libmpv behind the engine's hosted player protocol: the JNI shim, `MpvClient`, `PlayerModel`, the media session | AnistreamPlayer |
+| `:widgets` | The home-screen widgets, Continue watching and Airing today, in Glance | the widget extension |
 | `:app` | The activity, the application, and each flavour's launch | the app target |
 | `:testkit` | For tests only: the engine's scenes recorded as JSON, and the fixture titles' art | – |
 
@@ -89,8 +90,21 @@ notification and the lock screen carry back 10 s, play or pause and forward 10 s
 foreground and background, and the network it is on, go to the engine as `AppPhase` and
 `NetworkPath` (`app/SystemPhases.kt`).
 
-CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
-shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
+Plain-text subtitles (SRT, WebVTT and the rest) follow the system's caption style while Settings ›
+Playback › "Subtitles follow your system caption style" is on, as it is unless the viewer turns it
+off (kept on the device, `DevicePreferences`), and while captions are on in Accessibility › Caption
+preferences: with them off, Android's style is its stock white-on-black preset, which nobody chose,
+so the player keeps its own look, as ExoPlayer does. `CaptionStyle` reads `CaptioningManager`'s
+typeface, size, colours, window and edge and maps them to mpv's `sub-*` options at mpv's start;
+`CaptionStyleWatch` sends them again when the style or the setting changes. ASS subtitles keep
+their own look: mpv applies those options only to subtitles without a style at its default
+`sub-ass-override=scale`, which the player leaves as it is (`no` would also stop `sub-pos` lifting
+ASS dialogue). fonts.conf names the caption settings' typefaces as Android's fonts.xml has them.
+
+CI's checks do not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv
+and the shim, so its Kotlin compiles and its unit tests run, and that APK cannot play. A release
+does run it, on Linux (`.github/workflows/apps-release.yml`), where it also needs `gperf` and
+`python3-venv`.
 
 The instrumented tests drive the protocol on the testing engine's Playing scene against a real mpv
 in the emulator, with the episode `android/scripts/player-media.sh` makes:
@@ -113,7 +127,11 @@ arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing
 open, by id), `query` (a search to run), `page` (a page over the destination, by its route:
 `settings`, `settings/playback`, `settings/sources`, `downloads`), `watched` (`900006:8`, or
 several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), `notify`
-(any value: two new-episode notifications posted), and
+(any value: two new-episode notifications posted, with the fixtures' covers), `check` (seconds: the
+new-episode check run once that many seconds on, as the periodic work runs it; kill the app first
+for it to start an engine of its own), `widgets` (`continue-small`, `continue-wide`,
+`airing-small`, `airing-wide`, joined by commas: those widgets offered to the launcher to pin, and
+their record made at once), and
 `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
@@ -139,40 +157,64 @@ its own VPN and index has:
    device, enter the torrent index, and Turn on. Wait for Last check to say Passed.
 3. On a title page, long-press an episode and pick Download. Downloads lists it as Queued, then
    running, with its speed and the time left.
-4. The download notification is up. `adb shell dumpsys jobscheduler | grep -A4 tv.anistream.app`
-   shows the job, user-initiated, running.
+4. The download notification is up: on Android 16 a Live Update at the top of the shade and the
+   lock screen, a segment per episode and the time left in the status bar's chip; on Android 15 the
+   plain progress notification. Pause (Pause all), Resume and Cancel act on the queue; a queue
+   paused keeps the notification ten minutes for Resume. `adb shell dumpsys jobscheduler | grep -A4
+   tv.anistream.app` shows the job, user-initiated, running.
 5. Lock the phone for ten minutes, or switch to another app: the download goes on and the
    notification moves.
 6. With Wi-Fi only on (Settings › Downloads), turn Wi-Fi off: the download waits. Turn it on: it
    goes on.
-7. Once done, the row says Downloaded with its size, the job ends and its notification goes. The
+7. Once done, the row says Downloaded with its size, "Episode 8 downloaded" is posted with Play,
+   and the job ends and its own notification goes. The
    file is under `/sdcard/Android/data/tv.anistream.app/files/Movies`
    (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
 8. In flight mode, play it from Downloads.
 
-Launcher shortcuts and notifications open the activity on an app link, on an explicit intent, in
-any build: `anistream://open/search`, `…/downloads`, `…/title/<id>`, `…/continue/<id>` (the title
-page, then the episode Continue would play) and `…/play/<id>/<episode>`. The frame follows each
-through the app's own navigation (`AppLinks.kt`). Search and Downloads are static shortcuts,
-written into each variant's resources from `app/shortcuts.xml` with its package; "Continue
-<title>" is published from the Continue queue as its first playable title changes.
+Launcher shortcuts and notifications open the activity on an app link: an explicit intent, action
+`tv.anistream.action.OPEN`, with the link in its extras, never a URL (`Shortcuts.kt`):
+`tv.anistream.link.open` says what it opens (`search`, `downloads`, `title`, `continue`, `play`
+or `download`) and `tv.anistream.link.show`, `.episode` and `.download` what of. The frame
+follows each through the app's own navigation (`AppLinks.kt`). Search and Downloads are static
+shortcuts, written into each variant's resources from `app/shortcuts.xml` with its package;
+Continue ("Continue", in full "Hoshikuzu no Tabibito E7") is published from the Continue queue,
+opens the player on the episode Continue would play, and with nothing to continue is taken off
+the list, a pinned copy disabled with "Nothing to continue".
 
 ```sh
-adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
+adb shell am start -a tv.anistream.action.OPEN --es tv.anistream.link.open downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
 ```
 
 New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on
-a network with the battery not low, while Settings' "New episode notifications" is on; turning it
-on is the one time the app asks to post notifications. The job asks the engine for what aired
-(`CheckNewEpisodes`), on the app's engine when it runs and otherwise on one started for the job
-with every background switch off (`BackgroundEngine`), and posts one notification per episode on
-the "New episodes" channel, grouped under a summary when there are several, with Play (an app
-link) and Mark watched (the app's own receiver). Until the engine has the check, the row is left
-out and the job does nothing. The fixtures' `notify` extra posts two, for a look at the shade:
+a network with the battery not low, while Settings › Notifications' New episodes switch (the
+engine's `EpisodeNotifications`) is on; turning it on is the one time the app asks to post
+notifications, and each show can turn its own off in its settings sheet. The job asks the engine
+for what aired (`CheckNewEpisodes`), on the app's engine when it runs and otherwise on one started
+for the job with every background switch off (`BackgroundEngine`), fetches each episode's cover, and
+posts one notification per episode on the "New episodes" channel, grouped under a summary when
+there are several, with Play (an app link) and Mark watched (the app's own receiver). Then it asks
+for the widgets' record (`WidgetSnapshot`) and keeps it in `files/widgets/record.json`
+(`WidgetRecord`), where the widgets read it. The fixtures' `notify` extra posts two, for a look at
+the shade:
 
 ```sh
 adb shell pm grant tv.anistream.fixtures android.permission.POST_NOTIFICATIONS
 adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es notify 1
+```
+
+The home-screen widgets, Continue watching and Airing today (`:widgets`), are Glance's, drawn
+from that record in the app's own process. The app keeps the record's art beside it in
+`files/widgets/art/`, fetched through the engine like every other picture, and makes the record
+again each time it leaves the screen while a widget is placed. Each record written draws both
+widgets again, and a `widgets-redraw` work redraws them at the next moment what they show changes on
+its own: a broadcast airing, the record turning a day old, midnight. A widget with no record for
+today asks for one (`widgets-record`). The picker offers each at 2 × 2 and 4 × 2, with previews the
+app generates. `./gradlew :widgets:recordRoborazziFixturesDebug` draws them on the JVM at the
+boards' sizes, into `.shots/roborazzi/widget-*.png`.
+
+```sh
+adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es widgets continue-wide,airing-wide
 ```
 
 ## On your own phone

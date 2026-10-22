@@ -2,8 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- The App Group the widgets' snapshot is written into, from ANISTREAM_APP_GROUP
+	     (Config/Base.xcconfig). The Fixtures app has none, so it never writes over the app's. -->
+	<key>AnistreamAppGroup</key>
+	<string>$(ANISTREAM_APP_GROUP)</string>
 	<!-- What Xcode does not generate from the INFOPLIST_KEY settings: the anistream:// links the
-	     app opens, for store invites and the trackers' sign-in. The Fixtures app has none. -->
+	     app opens, for store invites, the trackers' sign-in and the widgets. The Fixtures app has
+	     none. -->
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -20,6 +25,37 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<!-- The app refresh task that keeps new-episode notifications scheduled. -->
+		<string>fetch</string>
+		<!-- Downloads going on after the app leaves, in a continued-processing task. -->
+		<string>processing</string>
+	</array>
+	<!-- Handoff: a title's page, and the episode playing (native-spec/native-layer.md). The
+	     Fixtures app has types of its own, so it and the app never take each other's. -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>tv.anistream.title</string>
+		<string>tv.anistream.playing</string>
+	</array>
+	<!-- iPhone and iPad: the launch screen, the ground with Nagare whole at 4 pt a cell
+	     (LaunchNagare, drawn on whole pixels by scripts/icon.sh), nothing animated. The Mac has
+	     none and ignores this. -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchGround</string>
+		<key>UIImageName</key>
+		<string>LaunchNagare</string>
+		<key>UIImageRespectsSafeAreaInsets</key>
+		<false/>
+	</dict>
+	<!-- iPhone and iPad: the background refresh, which checks for new episodes, schedules the
+	     week's notifications and writes the widgets' record. -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>tv.anistream.refresh</string>
+		<!-- Downloads after the app leaves: each window's identifier has a suffix of its own. -->
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER).downloads.*</string>
 	</array>
 </dict>
 </plist>

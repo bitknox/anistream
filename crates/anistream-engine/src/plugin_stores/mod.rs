@@ -253,6 +253,15 @@ impl Stores {
         let invite = Invite::parse(link).map_err(|e| e.to_string())?;
         let already = self.same_address(&invite)?.is_some();
         let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
+        // Who runs it and what it offers, signed by the key the link carries: nothing, from a
+        // store that predates the preview. A link that would not join is said now, not after
+        // the viewer has said yes to it.
+        let index = self.client.preview_index(&invite).await.map_err(|e| match e.code() {
+            Some("invite_unusable") => UNUSABLE.to_owned(),
+            _ => e.to_string(),
+        })?;
+        let state = self.load()?;
+        let id = invite.key.id();
         Ok(InvitedStore {
             link: Secret(invite.link()),
             name: info.name,
@@ -260,6 +269,11 @@ impl Stores {
             host: anistream_model::stores::host(&invite.base),
             fingerprint: invite.key.fingerprint(),
             already_joined: already,
+            owners: index.as_ref().map(|index| index.owners.clone()).unwrap_or_default(),
+            plugins: index
+                .as_ref()
+                .map(|index| plugin_rows(&state, &id, index, &self.plugin_dir))
+                .unwrap_or_default(),
         })
     }
 
@@ -272,10 +286,7 @@ impl Stores {
         let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
         let redeemed =
             self.client.redeem(&invite, &device_label()).await.map_err(|e| match e.code() {
-                Some("invite_unusable") => {
-                    "that invite was already used, cancelled or has expired — ask for a new one"
-                        .to_owned()
-                }
+                Some("invite_unusable") => UNUSABLE.to_owned(),
                 _ => e.to_string(),
             })?;
 
@@ -637,6 +648,10 @@ enum Fetch {
     Failed(String),
 }
 
+/// What an invite that would not join is said as.
+const UNUSABLE: &str =
+    "that invite was already used, cancelled or has expired — ask for a new one";
+
 /// Flatten the state file into the screens' rows.
 pub fn rows(
     state: &LocalState,
@@ -666,26 +681,40 @@ pub fn rows(
             checked_at: joined.checked_at,
             plugins: joined
                 .index
-                .iter()
-                .flat_map(|index| index.plugins.iter())
-                .map(|entry| StorePluginRow {
-                    id: entry.id.clone(),
-                    name: entry.name.clone(),
-                    version: entry.version.clone(),
-                    hosts: entry.allowed_hosts.clone(),
-                    status: match state.status(&joined.id, entry, plugin_dir) {
-                        PluginStatus::Available => StorePluginStatus::Available,
-                        PluginStatus::Installed => StorePluginStatus::Installed,
-                        PluginStatus::Update { from, new_hosts } => {
-                            StorePluginStatus::Update { from, new_hosts }
-                        }
-                        PluginStatus::AddedByHand => StorePluginStatus::AddedByHand,
-                        PluginStatus::OtherStore(other) => StorePluginStatus::OtherStore(
-                            state.store(&other).map_or(other, |s| s.name.clone()),
-                        ),
-                    },
-                })
-                .collect(),
+                .as_ref()
+                .map(|index| plugin_rows(state, &joined.id, index, plugin_dir))
+                .unwrap_or_default(),
+            owners: joined.index.as_ref().map(|index| index.owners.clone()).unwrap_or_default(),
+        })
+        .collect()
+}
+
+/// Store `store`'s list as its screens show it, each plugin with where it stands here.
+fn plugin_rows(
+    state: &LocalState,
+    store: &str,
+    index: &Index,
+    plugin_dir: &Path,
+) -> Vec<StorePluginRow> {
+    index
+        .plugins
+        .iter()
+        .map(|entry| StorePluginRow {
+            id: entry.id.clone(),
+            name: entry.name.clone(),
+            version: entry.version.clone(),
+            hosts: entry.allowed_hosts.clone(),
+            status: match state.status(store, entry, plugin_dir) {
+                PluginStatus::Available => StorePluginStatus::Available,
+                PluginStatus::Installed => StorePluginStatus::Installed,
+                PluginStatus::Update { from, new_hosts } => {
+                    StorePluginStatus::Update { from, new_hosts }
+                }
+                PluginStatus::AddedByHand => StorePluginStatus::AddedByHand,
+                PluginStatus::OtherStore(other) => StorePluginStatus::OtherStore(
+                    state.store(&other).map_or(other, |s| s.name.clone()),
+                ),
+            },
         })
         .collect()
 }
@@ -780,6 +809,7 @@ mod tests {
                 sequence: 1,
                 issued_at: 0,
                 plugins: vec![entry("new", "1.0.0"), entry("old", "2.0.0")],
+                owners: vec!["Alex".into(), "Sam".into()],
             }),
             checked_at: Some(1_760_000_000),
             revoked: false,
@@ -812,6 +842,7 @@ mod tests {
         assert_eq!(row.updates(), 1);
         assert_eq!(row.host, "plugins.example");
         assert_eq!(row.checked_at, Some(1_760_000_000));
+        assert_eq!(row.owners, ["Alex", "Sam"], "who runs it, from its signed list");
 
         // What the Providers rows say of the plugin installed from it, and of its update.
         let store = ProviderOrigin::Store { id: "abc".into(), name: Some("Ours".into()) };

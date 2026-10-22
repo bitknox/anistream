@@ -23,7 +23,7 @@ extension SettingKey {
         switch self {
         case .motion, .autoNext, .skipOpening, .skipFiller, .markChapters, .fullscreen, .nightMode,
              .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .torrents, .syncplay,
-             .updateCheck:
+             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular:
             true
         default:
             false
@@ -67,6 +67,18 @@ extension SettingKey {
                 .map { SettingOption(value: .str($0.0), label: $0.1) }
         case .playerUi:
             [("anistream", "anistream"), ("mpv", "your mpv setup")]
+                .map { SettingOption(value: .str($0.0), label: $0.1) }
+        case .upNextCountdown:
+            [0, 5, 10, 15, 20, 30].map { SettingOption(value: .int(Int64($0)), label: $0 == 0 ? "off" : "\($0) s") }
+        case .downloadQuality:
+            ["standard", "higher"].map { SettingOption(value: .str($0), label: $0) }
+        case .keepNextEpisodes:
+            [0, 1, 2, 3, 5, 10].map {
+                SettingOption(value: .int(Int64($0)), label: $0 == 0 ? "off" : Wording.plural($0, "episode"))
+            }
+        case .vpnOnFailure:
+            // Warn only is asked for with its acknowledgement, through `SetTorrentProtection`.
+            [("pause", "pause torrents"), ("stop", "stop torrents")]
                 .map { SettingOption(value: .str($0.0), label: $0.1) }
         default:
             isSwitch

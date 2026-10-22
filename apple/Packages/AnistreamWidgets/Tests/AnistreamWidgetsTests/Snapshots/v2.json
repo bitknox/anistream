@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "generated_at": 1792516200,
+  "signed_in": true,
+  "tracker": "anilist",
+  "continue_watching": [
+    {"id": 900001, "title": "Hoshikuzu no Tabibito", "episode": 7, "watched": 6, "episodes": 12, "fraction": 0.42,
+     "episode_title": "The Lantern Road", "resume": true, "position_secs": 600, "duration_secs": 1440,
+     "minutes_left": 14, "art": {"wide": "wide-1.jpg", "poster": "poster-1.jpg", "color": "#e4a15d"}},
+    {"id": 900002, "title": "Kumo no Ue no Toshokan", "episode": 4, "watched": 3, "resume": false,
+     "minutes_left": 24, "next_airing": 1792679400, "next_airing_episode": 6}
+  ],
+  "airing_today": [
+    {"id": 900006, "title": "Natsukaze Relay", "episode": 9, "airs_at": 1792522800, "on_list": true,
+     "watched": false, "translation": "dub", "art": {"poster": "poster-6.jpg"}},
+    {"id": 900003, "title": "Tsukiakari no Teishajo", "episode": 2, "airs_at": 1792528200, "translation": "raw"}
+  ],
+  "next_days": [
+    {"id": 900002, "title": "Kumo no Ue no Toshokan", "episode": 6, "airs_at": 1792679400, "on_list": true}
+  ],
+  "next_airing": {"id": 900006, "title": "Natsukaze Relay", "episode": 9, "airs_at": 1792522800}
+}

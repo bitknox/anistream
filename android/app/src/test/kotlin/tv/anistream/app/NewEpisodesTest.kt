@@ -16,6 +16,10 @@ import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.TestListenableWorkerBuilder
 import androidx.work.testing.WorkManagerTestInitHelper
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,6 +33,12 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.SettingRow
+import tv.anistream.store.AppStore
+import tv.anistream.testkit.Scene
 import tv.anistream.store.EpisodeCheck
 import tv.anistream.store.NewEpisode
 import tv.anistream.ui.AppLink
@@ -101,20 +111,33 @@ class NewEpisodesTest {
     }
 
     @Test
-    fun at_launch_the_switch_goes_off_where_notifications_can_no_longer_show_and_asks_nothing() {
+    fun the_switch_is_the_engines_setting_and_goes_off_where_notifications_can_no_longer_show() {
         WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().setExecutor(SynchronousExecutor()).build())
-        val alerts = EpisodeAlerts(context, host.episodeNotifier, available = true)
+        val main = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        val store = AppStore(main)
+        val alerts = EpisodeAlerts(context, store, host.episodeNotifier)
+        val work = { WorkManager.getInstance(context).getWorkInfosForUniqueWork(NewEpisodesSchedule.NAME).get().single().state }
+
         alerts.set(true)
-        assertTrue(alerts.on.value)
+        assertTrue(Command.SetSetting(EpisodeAlerts.KEY, SettingValue.Bool(true)) in store.waiting)
+        assertEquals(WorkInfo.State.ENQUEUED, work())
+
+        // The engine has it on; at the next launch the permission has been taken back.
         shadowOf(host).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
-        alerts.reconcile()
-        assertFalse(alerts.on.value)
-        val work = WorkManager.getInstance(context).getWorkInfosForUniqueWork(NewEpisodesSchedule.NAME).get()
-        assertEquals(WorkInfo.State.CANCELLED, work.single().state)
-        // Where the engine has no check, it never goes on.
-        val none = EpisodeAlerts(context, host.episodeNotifier, available = false)
-        none.set(true)
-        assertFalse(none.on.value)
+        alerts.follow(main)
+        store.apply(listOf(settings(on = true)))
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(alerts.refused.value)
+        assertTrue(Command.SetSetting(EpisodeAlerts.KEY, SettingValue.Bool(false)) in store.waiting)
+        assertEquals(WorkInfo.State.CANCELLED, work())
+        main.cancel()
+    }
+
+    /** The watching scene's settings, with new-episode notifications [on] or off. */
+    private fun settings(on: Boolean): Event.Settings {
+        val view = Scene.named("watching").events.filterIsInstance<Event.Settings>().last().v1
+        val said = { row: SettingRow -> if (row.key == EpisodeAlerts.KEY) row.copy(value = if (on) "on" else "off") else row }
+        return Event.Settings(view.copy(rows = view.rows.map(said), nativeRows = view.nativeRows.map(said)))
     }
 
     // The work
@@ -131,9 +154,14 @@ class NewEpisodesTest {
         val summary = summary()!!
         assertEquals("3 new episodes", summary.extras.getString(Notification.EXTRA_TITLE))
         assertEquals(
-            listOf("The Library Above the Clouds · Episode 11", "Summer Wind Relay · Episode 3", "Stardust Wayfarer · Episode 8"),
+            "The Library Above the Clouds, Summer Wind Relay and Stardust Wayfarer",
+            summary.extras.getCharSequence(Notification.EXTRA_TEXT).toString(),
+        )
+        assertEquals(
+            listOf("The Library Above the Clouds  Episode 11", "Summer Wind Relay  Episode 3", "Stardust Wayfarer  Episode 8"),
             summary.extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)!!.map(CharSequence::toString),
         )
+        assertEquals(EpisodeNotifier.GROUP, summary.group)
     }
 
     @Test
@@ -142,7 +170,11 @@ class NewEpisodesTest {
         run()
         val notification = posted(tag(wayfarer))
         assertEquals("Stardust Wayfarer", notification.extras.getString(Notification.EXTRA_TITLE))
-        assertEquals("Episode 8 is out", notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+        assertEquals("Episode 8 is out.", notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
+        // With previews hidden, the lock screen names neither the show nor the episode.
+        val hidden = notification.publicVersion!!
+        assertEquals("anistream", hidden.extras.getString(Notification.EXTRA_TITLE)?.removeSuffix(" fixtures"))
+        assertEquals("New episode", hidden.extras.getCharSequence(Notification.EXTRA_TEXT).toString())
         assertEquals(wayfarer.airedAt * 1000, notification.`when`)
         assertEquals(EpisodeNotifier.CHANNEL, notification.channelId)
         assertNull(summary())
@@ -199,7 +231,29 @@ class NewEpisodesTest {
 
         val beside = EpisodePlan.of(listOf(relay), shown)
         assertEquals(listOf(true), beside.posts.map { it.alert })
-        assertEquals(listOf("Summer Wind Relay · Episode 3", "Stardust Wayfarer · Episode 8"), beside.summary?.lines)
+        assertEquals(listOf(EpisodePlan.lineOf(relay), EpisodePlan.lineOf(wayfarer)), beside.summary?.lines)
+        assertEquals("Summer Wind Relay and Stardust Wayfarer", beside.summary?.text)
+    }
+
+    // The words
+
+    @Test
+    fun the_words_say_dubbed_and_the_next_one_for_a_viewer_behind_never_an_episode_name() {
+        assertEquals("Episode 9 is out.", EpisodePlan.textOf(relay.copy(episode = 9u)))
+        assertEquals("Episode 9 is out, dubbed.", EpisodePlan.textOf(relay.copy(episode = 9u, dubbed = true)))
+        assertEquals("Episode 10 is out. Next for you: episode 8.", EpisodePlan.textOf(wayfarer.copy(episode = 10u, nextForYou = 8u)))
+        assertEquals("Episode 10 is out, dubbed. Next for you: episode 8.", EpisodePlan.textOf(wayfarer.copy(episode = 10u, nextForYou = 8u, dubbed = true)))
+    }
+
+    @Test
+    fun a_viewer_behind_gets_play_for_their_next_and_no_mark_watched() {
+        host.episodeCheck = EpisodeCheck { listOf(wayfarer.copy(episode = 10u, nextForYou = 8u)) }
+        run()
+        val notification = manager.activeNotifications.single { it.id == EpisodeNotifier.EPISODE_ID }.notification
+        val play = notification.actions.single()
+        assertEquals("Play", play.title.toString())
+        // Play starts episode 8; marking 10 watched would skip the two between.
+        assertEquals(AppLink.Play(900001u, "8"), shadowOf(play.actionIntent).savedIntent.appLink())
     }
 
     // The actions
@@ -212,7 +266,7 @@ class NewEpisodesTest {
 
         val open = shadowOf(notification.contentIntent)
         assertTrue(open.isActivityIntent)
-        assertEquals(AppLink.Title(900001u), AppLink.parse(open.savedIntent.dataString))
+        assertEquals(AppLink.Title(900001u), open.savedIntent.appLink())
         assertEquals(MainActivity::class.java.name, open.savedIntent.component?.className)
         assertTrue(open.savedIntent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
         assertEquals(tag(wayfarer), open.savedIntent.getStringExtra(EpisodeNotifier.EXTRA_NOTIFICATION))
@@ -221,14 +275,14 @@ class NewEpisodesTest {
         assertEquals("Play", play.title.toString())
         val playing = shadowOf(play.actionIntent)
         assertTrue(playing.isActivityIntent)
-        assertEquals(AppLink.Play(900001u, "8"), AppLink.parse(playing.savedIntent.dataString))
+        assertEquals(AppLink.Play(900001u, "8"), playing.savedIntent.appLink())
 
         assertEquals("Mark watched", mark.title.toString())
         val marking = shadowOf(mark.actionIntent)
         assertTrue(marking.isBroadcastIntent)
         assertEquals(EpisodeNotifier.ACTION_MARK_WATCHED, marking.savedIntent.action)
         assertEquals(EpisodeActionReceiver::class.java.name, marking.savedIntent.component?.className)
-        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(marking.savedIntent.dataString))
+        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(marking.savedIntent))
 
         // Each episode's actions are intents of their own, by their data.
         val other = shadowOf(posted(tag(relay)).actions[0].actionIntent).savedIntent
@@ -256,12 +310,12 @@ class NewEpisodesTest {
     }
 
     @Test
-    fun a_mark_watched_uri_names_its_episode_and_nothing_else_does() {
-        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(EpisodeNotifier.watchedUri(900001u, 8u).toString()))
-        assertNull(EpisodeNotifier.watchedOf("anistream://open/title/900001"))
-        assertNull(EpisodeNotifier.watchedOf("anistream://watched/900001"))
-        assertNull(EpisodeNotifier.watchedOf("anistream://watched/900001/8/9"))
-        assertNull(EpisodeNotifier.watchedOf(null))
+    fun a_mark_watched_intent_names_its_episode_and_nothing_else_does() {
+        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(EpisodeNotifier.watchedIntent(context, 900001u, 8u)))
+        assertNull(EpisodeNotifier.watchedOf(context.linkIntent(AppLink.Title(900001u))))
+        assertNull(EpisodeNotifier.watchedOf(Intent(EpisodeNotifier.ACTION_MARK_WATCHED)))
+        // Two episodes' intents are two intents to the system.
+        assertFalse(EpisodeNotifier.watchedIntent(context, 900001u, 8u).filterEquals(EpisodeNotifier.watchedIntent(context, 900001u, 9u)))
     }
 
     private fun tag(episode: NewEpisode) = EpisodePlan.tagOf(episode)

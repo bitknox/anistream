@@ -6,13 +6,17 @@
 //! sheet answered from a task could arrive after the change that followed it.
 
 use anistream_core::{
-    config::Config, ids::AnilistId, media::Translation, settings::SettingValue,
+    config::Config,
+    ids::AnilistId,
+    media::Translation,
+    settings::SettingValue,
+    track_memory::{SubtitleChoice, SubtitleMemory, TrackMemory},
 };
 use anistream_model::{
     event::Event,
     notice::Notice,
     settings::{SettingKey, SettingOverride},
-    show::{self, RememberedTracks, ShowSettingKey, ShowValues},
+    show::{self, RememberedSubtitles, RememberedTracks, ShowSettingKey, ShowValues},
 };
 use anistream_store::Store;
 
@@ -134,6 +138,80 @@ pub fn reset_show_settings(
     recount(engine, services, tx);
 }
 
+/// Have show `id` play with `subtitles` in `translation`, or with `None` forget the subtitles
+/// remembered there, then say its sheet. The audio and delay remembered stay as they are.
+///
+/// A choice is one the show remembers, in either translation, so what is kept is the player's
+/// own print of the track rather than the sheet's few words for it. It applies over the audio
+/// the show is known to play in `translation`, and otherwise over the audio it was chosen over,
+/// until the next choice in the player replaces it.
+pub fn set_show_subtitles(
+    id: AnilistId,
+    translation: Translation,
+    subtitles: Option<RememberedSubtitles>,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let store = &services.store;
+    let memory = |translation| store.track_memory(id, translation).ok().flatten();
+    let mut kept = memory(translation).unwrap_or_default();
+    kept.subtitles = match subtitles {
+        None => None,
+        Some(wanted) => {
+            let others = [Translation::Sub, Translation::Dub]
+                .into_iter()
+                .filter(|other| *other != translation)
+                .filter_map(memory);
+            match remembered(&wanted, &kept, others) {
+                Some(choice) => Some(choice),
+                None => {
+                    let refusal = "not saved: the show remembers no such subtitles";
+                    let _ = tx.send(Event::Toast(Notice::alert(refusal)));
+                    load_show_settings(id, engine, services, tx);
+                    return;
+                }
+            }
+        }
+    };
+    if let Err(error) = store.remember_tracks(id, translation, &kept) {
+        let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {error}"))));
+    }
+    load_show_settings(id, engine, services, tx);
+}
+
+/// The subtitles `wanted` names, as the memory to keep for a translation that remembers `kept`
+/// already: found in `kept` itself or in `others`, the other translations' memories. Off needs
+/// finding nowhere.
+fn remembered(
+    wanted: &RememberedSubtitles,
+    kept: &TrackMemory,
+    others: impl Iterator<Item = TrackMemory>,
+) -> Option<SubtitleMemory> {
+    // The audio this translation is known to play in: what its subtitles were chosen over, or
+    // the audio track the viewer switched to.
+    let known = kept
+        .subtitles
+        .as_ref()
+        .map(|subtitles| subtitles.audio_lang.clone())
+        .or_else(|| kept.audio.as_ref().map(|audio| audio.lang.clone()));
+    let found = kept
+        .subtitles
+        .iter()
+        .cloned()
+        .chain(others.filter_map(|memory| memory.subtitles))
+        .find(|subtitles| RememberedSubtitles::of(&subtitles.choice) == *wanted);
+    match (found, known) {
+        (Some(found), Some(audio_lang)) => Some(SubtitleMemory { audio_lang, ..found }),
+        (Some(found), None) => Some(found),
+        (None, audio_lang) if *wanted == RememberedSubtitles::Off => Some(SubtitleMemory {
+            choice: SubtitleChoice::Off,
+            audio_lang: audio_lang.flatten(),
+        }),
+        (None, _) => None,
+    }
+}
+
 /// A value as a refusal names it.
 fn words(value: &SettingValue) -> String {
     match value {
@@ -161,9 +239,14 @@ mod tests {
         store.set_show_setting(SHOW, "skip_filler", Some("true"), 1).unwrap();
         // Kept by some other build, and passed over.
         store.set_show_setting(SHOW, "quality", Some("best"), 1).unwrap();
+        store.set_show_setting(SHOW, "download_quality", Some("higher"), 1).unwrap();
+        store.set_show_setting(SHOW, "keep_next", Some("2"), 1).unwrap();
         let played = for_show(&config, &store, SHOW);
         assert_eq!(played.playback.translation, Translation::Dub);
         assert!(played.playback.skip_filler);
+        // What its downloads ask for, which the Downloads screen's row under it sets.
+        assert_eq!(played.downloads.quality, anistream_core::config::DownloadQuality::Higher);
+        assert_eq!(played.downloads.keep_next, 2);
         assert_eq!(played.playback.quality, config.playback.quality);
         assert_eq!(for_show(&config, &store, AnilistId::new(900_002)), config, "its own alone");
     }

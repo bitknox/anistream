@@ -11,13 +11,12 @@ struct PhoneTitle: View {
     @Environment(Navigator.self) private var navigator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @Namespace private var rotor
     let id: AnilistId
 
     var body: some View {
         let entry = store.titles[id] ?? Entry.placeholder(id)
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, handedOff: navigator.handedOff)
         let art = store.heroArt(entry)
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -63,7 +62,7 @@ struct PhoneTitle: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if action.playable {
                         Button {
-                            store.send(.play(id: entry.id, episode: String(action.episode)))
+                            action.play(entry.id, store: store, navigator: navigator)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.ui(13))
@@ -178,7 +177,7 @@ struct PhoneTitle: View {
                         }
                     }
 
-                    PhoneEpisodes(entry: entry, spoilers: spoilers, rotor: rotor)
+                    PhoneEpisodes(entry: entry, spoilers: store.spoilerProtection(for: id), rotor: rotor)
                 }
                 .accessibilityElement(children: .contain)
                 .padding(.horizontal, 16)
@@ -191,6 +190,7 @@ struct PhoneTitle: View {
         .scrollIndicators(.never)
         .background(.ground)
         .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
+        .handsOff(title: entry)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -205,6 +205,8 @@ struct PhoneTitle: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            // What the show sets for itself, its spoiler protection among it: from the database.
+            store.loadShowSettings(id)
         }
     }
 
