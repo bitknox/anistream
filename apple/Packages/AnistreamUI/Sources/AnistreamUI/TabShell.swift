@@ -50,6 +50,9 @@ struct TabShell: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        // The brief's navy glass on the iPad's sidebar. The bar is empty; it is where the tint
+        // finds the sidebar's glass from, and unlike a header it moves no row.
+        .tabViewSidebarBottomBar { SidebarGlassTint() }
         .overlay(alignment: .top) {
             NoticeCapsule(here: navigator.phoneSettings == nil).padding(.top, 8)
         }
@@ -182,6 +185,47 @@ struct TabStack<Screen: View>: View {
                 }
         }
         .environment(\.zoomNamespace, zoom)
+    }
+}
+
+/// Tints the glass the iPad's sidebar sits in to the brief's navy. UIKit draws that glass a
+/// neutral grey and has no tint for it, so this view, in the sidebar's bottom bar, finds the glass
+/// around it and tints it whenever the sidebar is put on screen or laid out again. It draws
+/// nothing, and takes no room.
+struct SidebarGlassTint: UIViewRepresentable {
+    final class Hook: UIView {
+        private static let navy = UIColor(Palette.glassOverGround)
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            tint()
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            tint()
+        }
+
+        private func tint() {
+            guard window != nil else { return }
+            var view = superview
+            while let current = view {
+                if let glass = current as? UIVisualEffectView, let effect = glass.effect as? UIGlassEffect {
+                    guard effect.tintColor != Self.navy, let tinted = effect.copy() as? UIGlassEffect else { return }
+                    tinted.tintColor = Self.navy
+                    glass.effect = tinted
+                    return
+                }
+                view = current.superview
+            }
+        }
+    }
+
+    func makeUIView(context: Context) -> Hook { Hook() }
+    func updateUIView(_ uiView: Hook, context: Context) {}
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: Hook, context: Context) -> CGSize? {
+        .zero
     }
 }
 #endif

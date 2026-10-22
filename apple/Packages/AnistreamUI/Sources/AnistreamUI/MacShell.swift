@@ -18,6 +18,11 @@ struct MacShell: View {
             Sidebar(selection: $navigator.section)
                 .navigationSplitViewColumnWidth(220)
                 .toolbar(removing: .sidebarToggle)
+                // The brief's navy glass. macOS draws its sidebar glass a slate of its own, grey
+                // in an inactive window, and has no tint for it: `.navigationSplitView` container
+                // backgrounds are iOS only, and a tint on the sidebar's NSGlassEffectView lifts it
+                // to a light grey. So the column lays its tint over that glass, inside its shape.
+                .background(.sidebarFill)
         } detail: {
             ZStack {
                 SectionView(section: navigator.section)

@@ -92,6 +92,14 @@ public enum Palette {
     public static let glass = Color(rgb: 0x282D44, opacity: 0.72)
     /// The inside edge glass chrome draws over the ground.
     public static let glassEdge = Color(rgb: 0xE4E0D6, opacity: 0.08)
+    /// Glass chrome as it lands on the ground, `glass` over `ground`: the sidebar the boards draw.
+    /// What the iPad's sidebar glass is tinted to, since UIKit tints its glass towards a colour
+    /// rather than laying one over it.
+    public static let glassOverGround = Color(rgb: 0x23283E)
+    /// The Mac sidebar's tint. macOS draws its sidebar glass a slate of its own over the ground
+    /// (#1D243A in a key window and #1E2533 in an inactive one, on macOS 27), and this, laid over
+    /// that glass, lands on `glassOverGround` in both.
+    public static let sidebarTint = Color(rgb: 0x252941, opacity: 0.72)
     /// Glass over video or art, which needs more of the ground behind it.
     public static let glassOverArt = Color(rgb: 0x161A2E, opacity: 0.68)
     /// The inside edge of glass over video or art.
@@ -132,6 +140,19 @@ public struct GlassFill: ShapeStyle {
     public func resolve(in environment: EnvironmentValues) -> Color {
         environment.accessibilityReduceTransparency ? Palette.raised : Palette.glass
     }
+}
+
+/// The Mac sidebar's tint over the system's sidebar glass, or solid Raised under Reduce
+/// Transparency, where that glass turns opaque.
+public struct SidebarFill: ShapeStyle {
+    public func resolve(in environment: EnvironmentValues) -> Color {
+        environment.accessibilityReduceTransparency ? Palette.raised : Palette.sidebarTint
+    }
+}
+
+extension ShapeStyle where Self == SidebarFill {
+    /// The Mac sidebar's tint, solid Raised under Reduce Transparency.
+    public static var sidebarFill: SidebarFill { SidebarFill() }
 }
 
 extension ShapeStyle where Self == OverVideoFill {
