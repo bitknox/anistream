@@ -8,10 +8,18 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'anistream',
-			description: 'An anime streaming TUI. Real image rendering, mpv for playback, pluggable everything.',
+			description:
+				'An open-source anime client for Mac, iPhone, iPad, Android and the terminal, for browsing, watching, tracking and syncing, with sources as plugins. anistream hosts no content.',
+			logo: { src: './src/assets/icon-32.svg', alt: '', replacesTitle: false },
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/bitknox/anistream' }],
 			customCss: ['./src/styles/theme.css'],
+			components: {
+				PageTitle: './src/components/starlight/PageTitle.astro',
+				Footer: './src/components/starlight/Footer.astro',
+			},
 			head: [
+				{ tag: 'link', attrs: { rel: 'icon', href: '/favicon.ico', sizes: '16x16 32x32 48x48' } },
+				{ tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
 				{
 					tag: 'meta',
 					attrs: {
@@ -43,10 +51,10 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Configuration', link: 'docs/guides/configuration' },
-						{ label: 'Keybindings & CLI', link: 'docs/guides/keybindings-cli' },
+						{ label: 'Keys and command line', link: 'docs/guides/keybindings-cli' },
 						{ label: 'The player', link: 'docs/guides/player' },
-						{ label: 'Torrents & the VPN guard', link: 'docs/guides/torrents-vpn' },
-						{ label: 'Trackers & sync', link: 'docs/guides/trackers-sync' },
+						{ label: 'Torrents and the VPN guard', link: 'docs/guides/torrents-vpn' },
+						{ label: 'Trackers and sync', link: 'docs/guides/trackers-sync' },
 						{ label: 'Troubleshooting', link: 'docs/guides/troubleshooting' },
 					],
 				},
@@ -56,7 +64,7 @@ export default defineConfig({
 						{ label: 'Plugin stores', link: 'docs/plugins/stores' },
 						{ label: 'Running a store', link: 'docs/plugins/running-a-store' },
 						{ label: 'Writing a provider plugin', link: 'docs/plugins/authoring' },
-						{ label: 'Sandbox & guarantees', link: 'docs/plugins/sandbox' },
+						{ label: 'The plugin sandbox', link: 'docs/plugins/sandbox' },
 					],
 				},
 				{

@@ -16,7 +16,8 @@ at, out = float(sys.argv[1]), OUT
 def mpv(*commands):
     return call(SOCK, *commands)
 
-mpv(["set_property", "geometry", "2560x1440"], ["set_property", "sid", "no"],
+# The window is the 1080p original's size, so the captures and the original line up pixel for pixel.
+mpv(["set_property", "geometry", "1920x1080"], ["set_property", "sid", "no"],
     ["set_property", "pause", True], ["seek", at, "absolute+exact"])
 time.sleep(1.5)
 import hashlib

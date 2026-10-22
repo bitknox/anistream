@@ -1,6 +1,6 @@
 ---
 title: The player
-description: What anistream adds inside mpv, and how to change it.
+description: anistream’s controls, skip button, Up Next, menus and upscaling inside mpv, and the settings for each.
 ---
 
 anistream plays everything in mpv and gives it the app's look: its own controls, seekbar
@@ -36,8 +36,8 @@ your mpv version, which interface is in use and where its files were written.
 
 ## Keys inside the player
 
-Keys are written as the `?` list in the player writes them, by the key you press: `S` is the S
-key on its own, and `Shift+N` is N with Shift held.
+Keys are written the way the player’s `?` list writes them: `S` is the S key on its own, and
+`Shift+N` is N with Shift held.
 
 | Key | Action |
 |---|---|

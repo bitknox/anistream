@@ -1,0 +1,40 @@
+---
+// Nagare at a whole number of CSS pixels per sprite pixel, drawn as crisp SVG rects, so the
+// figure needs no script and stays sharp at any zoom.
+import { NAGARE_LABEL, SPRITE, SPRITE_COLORS, SPRITE_H, SPRITE_W } from '../data/nagare';
+
+interface Props {
+	/** CSS pixels per sprite pixel: 4, 5, 6 or 8. */
+	cell?: number;
+	class?: string;
+}
+
+const { cell = 5, class: className } = Astro.props;
+const hex = ([r, g, b]: [number, number, number]) =>
+	'#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('');
+
+// One rect per horizontal run of a colour.
+const runs: { x: number; y: number; w: number; fill: string }[] = [];
+SPRITE.forEach((row, y) => {
+	let x = 0;
+	while (x < SPRITE_W) {
+		const key = row[x];
+		let end = x + 1;
+		while (end < SPRITE_W && row[end] === key) end++;
+		if (SPRITE_COLORS[key]) runs.push({ x, y, w: end - x, fill: hex(SPRITE_COLORS[key]) });
+		x = end;
+	}
+});
+---
+
+<svg
+	class={className}
+	width={SPRITE_W * cell}
+	height={SPRITE_H * cell}
+	viewBox={`0 0 ${SPRITE_W} ${SPRITE_H}`}
+	shape-rendering="crispEdges"
+	role="img"
+	aria-label={NAGARE_LABEL}
+>
+	{runs.map((r) => <rect x={r.x} y={r.y} width={r.w} height="1" fill={r.fill} />)}
+</svg>

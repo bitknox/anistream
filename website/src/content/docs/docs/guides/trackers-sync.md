@@ -1,6 +1,6 @@
 ---
-title: Trackers & sync
-description: Local history needs no account. Sync is opt-in, durable, and honest about conflicts.
+title: Trackers and sync
+description: History is kept locally with no account; sync to five trackers is opt-in and queues changes while you are offline.
 ---
 
 Local history needs no account. SQLite is the source of truth and sync is a projection of it.
@@ -51,9 +51,11 @@ run `anistream --login --tracker kitsu` on a machine without the interface. Chec
 
 ## How sync behaves
 
-Updates go through a **durable outbox**: watch offline for a week and everything is pushed, in
-order, when a connection returns. The merge logic is pure and heavily tested, and when local and
-remote genuinely disagree the conflict gets its own screen instead of a silent overwrite.
+Updates go through a durable outbox: watch offline for a week and everything is pushed, in
+order, when a connection returns. Progress only moves forward: a pull adopts a
+tracker's count when it is ahead of yours and never lowers it. When a status or a score disagrees
+with the tracker's and yours is not known to be newer, the conflict gets its own screen and
+neither side is overwritten.
 
 An episode is pushed when it crosses `commit_threshold`, 85% of runtime by default. It is set high
 so that opening an episode to check the subtitles does not mark it seen.

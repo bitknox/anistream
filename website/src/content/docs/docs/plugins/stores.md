@@ -29,7 +29,7 @@ contact a host the old version could not reach says which before you accept it.
 
 ## Leaving a store
 
-**leave this store** on the store's page gives up your access. Plugins you installed from it stay
+Choose **leave this store** on the store’s page to give up your access. Plugins you installed from it stay
 on your machine and stop updating. To remove one, choose it on the store's page and pick
 **remove** before you leave.
 

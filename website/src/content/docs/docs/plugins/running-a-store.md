@@ -14,7 +14,7 @@ what you already have: an account on a hosting platform, a server, or a computer
 | Vercel | [Deploy button](https://github.com/bitknox/anistream/tree/main/deploy/vercel) | Fits the Hobby plan and Neon's free plan |
 | Netlify | [Deploy button](https://github.com/bitknox/anistream/tree/main/deploy/netlify) | Fits the Free plan |
 | Render | [Deploy button](https://github.com/bitknox/anistream/tree/main/deploy#render) | The smallest paid instance, because the store needs a disk |
-| Heroku | [Deploy button](https://github.com/bitknox/anistream/tree/main/deploy#heroku) | A Basic dyno and Postgres Essential 0, about $12 a month |
+| Heroku | [Deploy button](https://github.com/bitknox/anistream/tree/main/deploy#heroku) | A Basic dyno and Postgres Essential 0 |
 | Fly.io | [`fly launch`](https://github.com/bitknox/anistream/tree/main/deploy#flyio) | Billed by use. The machine stops while nobody uses the store |
 | Railway | [A template](https://github.com/bitknox/anistream/tree/main/deploy/railway) | Billed by use |
 | A server or a computer of yours | [`anistream store serve`](#on-a-machine-of-your-own), or [Docker](https://github.com/bitknox/anistream/tree/main/deploy/docker) | Nothing more |
@@ -61,8 +61,8 @@ The store's page in anistream has what an owner needs day to day: **invite someo
 **members**, where you can remove someone's access, and **publish a plugin** from your plugin
 directory. Choose a plugin you published to stop offering it.
 
-**open the admin page** opens the store in your browser, already signed in. It has the same and
-a little more room: rename people, make someone an owner, revoke one lost device without removing
+Choose **open the admin page** to open the store in your browser, already signed in. It has the
+same controls and a few more: rename people, make someone an owner, revoke one lost device without removing
 its owner, and publish by dropping `.wasm` files onto the page. A sign-in link works once, for ten
 minutes, and a session lasts twelve hours.
 

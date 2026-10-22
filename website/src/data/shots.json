@@ -1,0 +1,146 @@
+{
+	"mac-continue": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
+	"mac-title": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
+	"mac-calendar": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
+	"mac-player": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
+	"iphone-continue": {
+		"w": 1206,
+		"h": 2622,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"iphone-title": {
+		"w": 1206,
+		"h": 2622,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"iphone-calendar": {
+		"w": 1206,
+		"h": 2622,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"iphone-player": {
+		"w": 2622,
+		"h": 1206,
+		"widths": [
+			1200,
+			2400
+		]
+	},
+	"ipad-continue": {
+		"w": 2420,
+		"h": 1668,
+		"widths": [
+			1280,
+			2420
+		]
+	},
+	"ipad-title": {
+		"w": 2420,
+		"h": 1668,
+		"widths": [
+			1280,
+			2420
+		]
+	},
+	"ipad-calendar": {
+		"w": 2420,
+		"h": 1668,
+		"widths": [
+			1280,
+			2420
+		]
+	},
+	"android-continue": {
+		"w": 1080,
+		"h": 2400,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"android-title": {
+		"w": 1080,
+		"h": 2400,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"android-calendar": {
+		"w": 1080,
+		"h": 2400,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"android-player": {
+		"w": 2400,
+		"h": 1080,
+		"widths": [
+			1200,
+			2400
+		]
+	},
+	"tablet-continue": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
+	"tablet-title": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
+	"tablet-calendar": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	}
+}

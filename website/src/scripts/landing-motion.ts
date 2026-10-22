@@ -1,238 +1,106 @@
 /**
- * Landing choreography — all timing and easing lives here.
- * Everything derives from motion the app actually has: the eyecatch band
- * wipe, skeleton shimmer, the obi focus bar, halfblock rendering, and the
- * meter ramp.
+ * The landing page's motion. The page paints finished: nothing waits to be revealed, and the only
+ * thing that arrives is the hero scene, which fades in once its planes are drawn. Depth comes from
+ * scroll, as parallax: the scene's four planes, the faint glyph field, the katakana spine and a
+ * slight drift on each section. The band drifts on its own, and the terminal demo further down
+ * plays its session while it is on screen. With reduced motion, everything rests.
  */
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { PLANE_RATES, liveScene, renderScene, sceneConfig, type PlaneName, type SceneState } from './scene';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const RAMP = '▏▎▍▌▋▊▉█';
 const METER_CELLS = 28;
 const EPISODE_SECS = 23 * 60 + 40;
+const PLANES: PlaneName[] = ['sky', 'far', 'near', 'front'];
 
 const $ = <T extends HTMLElement>(sel: string, root: ParentNode = document) =>
 	root.querySelector<T>(sel);
 const $$ = (sel: string, root: ParentNode = document) =>
 	Array.from(root.querySelectorAll<HTMLElement>(sel));
 
-/* ── Nagare (流) — anistream's mascot, an original mascot ─────────────
-   A hand-authored pixel sprite: silk-cream bob with an ahoge, amber
-   scarf, indigo cloak, staff with a water charm. Facing the sky. */
-const SPRITE_W = 20;
-const SPRITE = [
-	'........hH..........',
-	'.........Hh.........',
-	'........hH..........',
-	'......hHHHHh........',
-	'.....hHHHHHHh.......',
-	'....hHHHHHHHHh......',
-	'....HHHHHHHHHHh.....',
-	'...hHFFFFhHHHHh.....',
-	'...HFFFFFFhHHHh.....',
-	'...HFEFFFFhHHHh.....',
-	'...hFFFFFfhHHh......',
-	'.ww.fFFFfhHHh.......',
-	'.wWWAAAAAAHHh.......',
-	'.wWaAAAAAAa..aAA....',
-	'..w.aAAAa....aAAa...',
-	'..SRCCCCCCc.........',
-	'..SRCCCCCCCc........',
-	'..SRCCCCCCCc........',
-	'..SfFCCCCCCCc.......',
-	'..SRCCCCCCCCc.......',
-	'..SRCCCCCCCCc.......',
-	'..SRCCCCCCCCcc......',
-	'..SRCCCCCCCCCc......',
-	'..SRCCCCCCCCCc......',
-	'..SRCCCCCCCCCcc.....',
-	'..SRCCCCCCCCCCc.....',
-	'..SRCCCCCCCCCCc.....',
-	'..SRCCCCCCCCCCcc....',
-	'..SRCCCCCCCCCCCc....',
-	'..S.BB......BB......',
-	'....BB......BB......',
-	'...BBB.....BBB......',
-].map((r) => r.padEnd(SPRITE_W, '.'));
-const SPRITE_COLORS: Record<string, [number, number, number]> = {
-	H: [232, 226, 212],
-	h: [198, 190, 169],
-	F: [239, 207, 172],
-	f: [208, 168, 131],
-	E: [35, 40, 66],
-	C: [70, 78, 124],
-	c: [46, 52, 92],
-	R: [104, 114, 158],
-	A: [242, 166, 75],
-	a: [197, 124, 44],
-	S: [138, 104, 68],
-	W: [127, 199, 217],
-	w: [223, 245, 251],
-	B: [35, 40, 66],
-};
-
-/* ── Halfblock cover art: a dusk sky, rendered the way the app renders
-      covers in a terminal without a graphics protocol ──────────────────── */
-type Cell = { x: number; y: number; top: string; bottom: string };
-
-function buildCoverCells(cols: number, rows: number): Cell[] {
-	const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-	const stops: [number, [number, number, number]][] = [
-		[0.0, [13, 16, 36]],
-		[0.35, [26, 30, 62]],
-		[0.6, [58, 44, 86]],
-		[0.82, [122, 72, 92]],
-		[1.0, [201, 126, 92]],
-	];
-	const skyAt = (t: number): [number, number, number] => {
-		for (let i = 1; i < stops.length; i++) {
-			if (t <= stops[i][0]) {
-				const [t0, c0] = stops[i - 1];
-				const [t1, c1] = stops[i];
-				const k = (t - t0) / (t1 - t0);
-				return [lerp(c0[0], c1[0], k), lerp(c0[1], c1[1], k), lerp(c0[2], c1[2], k)];
-			}
-		}
-		return stops[stops.length - 1][1];
+/** A seeded generator, so the glyph field is the same on every load. */
+function rng(seed: number) {
+	let s = seed >>> 0;
+	return () => {
+		s = (s + 0x6d2b79f5) >>> 0;
+		let t = s;
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 	};
-	const css = (c: [number, number, number], j: number) =>
-		`rgb(${Math.round(c[0] * j)} ${Math.round(c[1] * j)} ${Math.round(c[2] * j)})`;
-	const mix = (a: [number, number, number], b: [number, number, number], k: number): [number, number, number] =>
-		[lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
-
-	/* The scene: a meteor shower across the dusk sky — an original halfblock
-	   rendering, with no character and no copied artwork. */
-	/* The setting: a rooftop at dusk over a lit city — modern, streaming-
-	   coded (every window a glowing screen), still nobody's IP. */
-	const hash = (n: number) => (((Math.sin(n) * 43758.5453) % 1) + 1) % 1;
-	const SKY_H = 0.55; // where the dusk glow meets the skyline
-	const RAIL_TOP = 0.725;
-	const ROOF_Y = 0.8;
-	const MOON = { x: 0.8, y: 0.14, r: 0.075 };
-	// Two skyline layers: a hazy far row and a near row with lit windows
-	const farTop = (x01: number) => 0.5 - 0.16 * hash(Math.floor(x01 * 14) * 12.9898 + 4.1);
-	const nearTop = (x01: number) => 0.58 - 0.22 * hash(Math.floor(x01 * 7) * 7.7 + 9.3);
-
-	/* Nagare stands in the left foreground; the sprite is blitted at cell
-	   resolution so the figure reads as crisp pixel art against the
-	   dithered halfblock scenery. */
-	const ax = Math.max(1, Math.round(cols / 2) - 12);
-	const ay = rows - 34;
-	const CHARM = { x: (ax + 2) / cols, y: (ay + 12.5) / rows };
-
-	// The meteor shower: parallel streaks falling toward the lower right
-	const DIR = { x: 0.567, y: 0.824 };
-	const LEN = 0.17;
-	const METEORS: [number, number][] = [
-		[0.08, 0.06],
-		[0.34, 0.02],
-		[0.56, 0.09],
-	];
-	const WATER: [number, number, number] = [127, 199, 217];
-	const CORE: [number, number, number] = [240, 251, 253];
-	const meteorAt = (x01: number, y01: number): number => {
-		let glow = 0;
-		for (const [sx, sy] of METEORS) {
-			const px = (x01 - sx) * 0.82;
-			const py = y01 - sy;
-			const t = Math.max(0, Math.min(LEN, px * DIR.x + py * DIR.y));
-			const d = Math.hypot(px - t * DIR.x, py - t * DIR.y);
-			const w = 0.006 + 0.009 * (t / LEN); // widest at the head
-			if (d < w) glow = Math.max(glow, 0.55 + 0.45 * (t / LEN));
-			else if (d < w * 2.4) glow = Math.max(glow, 0.32 * (t / LEN) * (1 - d / (w * 2.4)));
-		}
-		return glow;
-	};
-
-	const cells: Cell[] = [];
-	for (let y = 0; y < rows; y++) {
-		for (let x = 0; x < cols; x++) {
-			const x01 = x / (cols - 1);
-			const color = (y01: number, seed: number) => {
-				// Nagare stands in the foreground, over everything
-				const sy = Math.floor(y01 * rows) - ay;
-				const sx = x - ax;
-				if (sy >= 0 && sy < SPRITE.length && sx >= 0 && sx < SPRITE_W) {
-					const pc = SPRITE_COLORS[SPRITE[sy][sx]];
-					if (pc) return css(pc, 1 - 0.05 * seed);
-				}
-				// The rooftop floor, with a lit edge
-				if (y01 >= ROOF_Y) {
-					if (y01 < ROOF_Y + 0.018) return css([44, 50, 82], 1 - 0.06 * seed);
-					return css(mix([28, 32, 56], [18, 20, 38], (y01 - ROOF_Y) * 4), 1 - 0.06 * seed);
-				}
-				// The railing Nagare leans on, in silhouette
-				if (y01 > RAIL_TOP && y01 < RAIL_TOP + 0.016) return css([15, 17, 32], 1);
-				if (y01 >= RAIL_TOP && Math.floor(x01 * 24) % 4 === 0) return css([15, 17, 32], 1);
-				// The near skyline: dark towers full of watching windows
-				if (y01 > nearTop(x01)) {
-					const wx = Math.floor(x01 * 52);
-					const wy = Math.floor(y01 * 64);
-					const litSeed = hash(wx * 13.37 + wy * 71.7);
-					if (wx % 2 === 1 && wy % 3 === 1 && litSeed > 0.45) {
-						const warm = litSeed < 0.85;
-						return css(warm ? [242, 166, 75] : [127, 199, 217], 0.45 + 0.5 * hash(wx * 3.1 + wy));
-					}
-					return css([21, 24, 46], 1 - 0.05 * seed);
-				}
-				// The far skyline, hazy with distance
-				if (y01 > farTop(x01)) return css([38, 44, 78], 1 - 0.04 * seed);
-				// The moon, full and silk-coloured
-				const dm = Math.hypot((x01 - MOON.x) * 0.82, y01 - MOON.y);
-				if (dm < MOON.r) return css(mix([232, 226, 212], [198, 190, 169], dm / MOON.r), 1 - 0.04 * seed);
-				// Sky: dusk into night, streaked by the shower
-				let sky = skyAt(Math.min(y01 / SKY_H, 1));
-				const g = meteorAt(x01, y01);
-				if (g > 0.5) return css(mix(WATER, CORE, (g - 0.5) * 2), 1 - 0.04 * seed);
-				if (g > 0) sky = mix(sky, WATER, g);
-				const dCharm = Math.hypot((x01 - CHARM.x) * 0.82, y01 - CHARM.y);
-				if (dCharm < 0.06) sky = mix(sky, WATER, 0.5 * (1 - dCharm / 0.06));
-				if (seed > 0.986 && y01 < 0.5) return css([210, 208, 204], 0.45 + 0.3 * seed);
-				return css(sky, 1 - 0.045 * seed);
-			};
-			cells.push({
-				x,
-				y,
-				top: color((y + 0.25) / rows, Math.random()),
-				bottom: color((y + 0.75) / rows, Math.random()),
-			});
-		}
-	}
-	return cells;
 }
 
-function makeCoverRenderer() {
-	const canvas = $('#cover-canvas') as HTMLCanvasElement | null;
-	if (!canvas) return null;
-	const ctx = canvas.getContext('2d');
-	if (!ctx) return null;
-	const COLS = 40;
-	const ROWS = 52;
-	const cw = canvas.width / COLS;
-	const ch = canvas.height / ROWS;
-	const cells = buildCoverCells(COLS, ROWS);
-	// Assemble in shuffled order, the way a slow image decode fills in
-	const order = cells.map((_, i) => i);
-	for (let i = order.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[order[i], order[j]] = [order[j], order[i]];
-	}
-	let drawn = 0;
-	const drawTo = (count: number) => {
-		count = Math.min(count, order.length);
-		for (; drawn < count; drawn++) {
-			const c = cells[order[drawn]];
-			const px = c.x * cw;
-			const py = c.y * ch;
-			ctx.fillStyle = c.top;
-			ctx.fillRect(px, py, Math.ceil(cw), Math.ceil(ch / 2));
-			ctx.fillStyle = c.bottom;
-			ctx.fillRect(px, py + ch / 2, Math.ceil(cw), Math.ceil(ch / 2));
+const isPhone = () => window.matchMedia('(max-width: 899px)').matches;
+
+/* ── The hero scene ─────────────────────────────────────────────────────── */
+type Scene = {
+	box: HTMLElement;
+	canvases: Record<PlaneName, HTMLCanvasElement>;
+	cell: number;
+	extra: number;
+	state: SceneState | null;
+};
+
+function drawScene(): Scene | null {
+	const box = $('[data-scene]');
+	if (!box) return null;
+	const canvases = Object.fromEntries(
+		PLANES.map((p) => [p, box.querySelector<HTMLCanvasElement>(`[data-plane="${p}"]`)!])
+	) as Record<PlaneName, HTMLCanvasElement>;
+	if (PLANES.some((p) => !canvases[p])) return null;
+
+	let drawnFor = '';
+	const scene: Scene = { box, canvases, cell: 8, extra: 0, state: null };
+	const draw = () => {
+		// One scene pixel is a whole number of CSS pixels, so the art stays crisp: 6 on a phone, and
+		// on a wider screen as many as keep the scene to about half the window's height, from 6 to 8.
+		const cell = isPhone() ? 6 : Math.min(8, Math.max(6, Math.floor((window.innerHeight * 0.5) / 70)));
+		const width = box.clientWidth;
+		const W = Math.ceil(width / cell);
+		// The nav sits over the top of the scene, so the art starts below it.
+		const nav = $('.l-nav');
+		const lift = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
+		const left = Math.floor((width - W * cell) / 2);
+		const cfg = sceneConfig(W);
+		// From 1200 px the Mac window stands beside the copy with its top on the rooftop's edge, and
+		// Nagare stands on it, a little right of its middle, rather than on the floor behind it.
+		const mac = window.matchMedia('(min-width: 1200px)').matches ? $('.hero-mac img') : null;
+		if (mac) {
+			const t = mac.getBoundingClientRect();
+			const from = t.left - box.getBoundingClientRect().left - left;
+			cfg.nagareX = Math.round((from + t.width * 0.62) / cell);
+			cfg.feetRow = cfg.roofY - 1;
 		}
+		const key = `${W}:${cell}:${lift}:${cfg.nagareX}:${cfg.feetRow}`;
+		if (key === drawnFor) return;
+		drawnFor = key;
+		scene.state = renderScene(cfg, canvases);
+		for (const p of PLANES) {
+			const c = canvases[p];
+			c.style.width = `${W * cell}px`;
+			c.style.height = `${c.height * cell}px`;
+			c.style.left = `${left}px`;
+			// The sky extends above the frame by the rows it may sink, so no gap opens.
+			c.style.top = `${(p === 'sky' ? -cfg.extra * cell : 0) + lift}px`;
+		}
+		box.style.height = `${cfg.H * cell + lift}px`;
+		scene.cell = cell;
+		scene.extra = cfg.extra;
+		box.classList.add('is-drawn');
 	};
-	return { total: order.length, drawTo };
+	draw();
+	let pending = 0;
+	window.addEventListener('resize', () => {
+		window.clearTimeout(pending);
+		pending = window.setTimeout(() => {
+			draw();
+			ScrollTrigger.refresh();
+		}, 150);
+	});
+	return scene;
 }
 
 /* ── Terminal demo helpers ──────────────────────────────────────────────── */
@@ -251,42 +119,22 @@ function renderMeter(p: number) {
 	clockEl.textContent = `${mm}:${ss}`;
 }
 
-/* The home screen's cover slot shows a real halfblock-rendered image */
+/** The home screen's cover: the Hoshikuzu poster, drawn into 28 by 44 halfblock pixels. */
 function paintTermCover() {
 	const canvas = $('.term-cover') as HTMLCanvasElement | null;
 	const ctx = canvas?.getContext('2d');
-	if (!canvas || !ctx) return;
-	const COLS = 25;
-	const ROWS = 40;
-	const cw = canvas.width / COLS;
-	const ch = canvas.height / ROWS;
-	for (const c of buildCoverCells(COLS, ROWS)) {
-		const px = c.x * cw;
-		const py = c.y * ch;
-		ctx.fillStyle = c.top;
-		ctx.fillRect(px, py, Math.ceil(cw), Math.ceil(ch / 2));
-		ctx.fillStyle = c.bottom;
-		ctx.fillRect(px, py + ch / 2, Math.ceil(cw), Math.ceil(ch / 2));
-	}
-}
-
-/* Nagare's bust (head, scarf, charm) as a standalone sprite */
-function paintMascotBust() {
-	const canvas = $('.mascot-bust') as HTMLCanvasElement | null;
-	const ctx = canvas?.getContext('2d');
-	if (!canvas || !ctx) return;
-	const CW = 17;
-	const CH = 16;
-	const pw = canvas.width / CW;
-	const ph = canvas.height / CH;
-	for (let sy = 0; sy < CH; sy++) {
-		for (let sx = 0; sx < CW; sx++) {
-			const pc = SPRITE_COLORS[SPRITE[sy][sx]];
-			if (!pc) continue;
-			ctx.fillStyle = `rgb(${pc[0]} ${pc[1]} ${pc[2]})`;
-			ctx.fillRect(sx * pw, sy * ph, Math.ceil(pw), Math.ceil(ph));
-		}
-	}
+	const src = canvas?.dataset.cover;
+	if (!canvas || !ctx || !src) return;
+	const image = new Image();
+	image.onload = () => {
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = 'high';
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+	};
+	image.src = src;
+	canvas.style.visibility = 'visible';
+	canvas.style.opacity = '1';
 }
 
 function buildDemo() {
@@ -297,7 +145,6 @@ function buildDemo() {
 	const searchRows = $$('[data-screen="search"] .sr');
 	const ecTerm = $('.eyecatch-term');
 	const termCover = $('.term-cover');
-	paintTermCover();
 
 	const tl = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 2.6 });
 
@@ -305,42 +152,45 @@ function buildDemo() {
 		tl.call(() => {
 			for (const s of Object.values(screens)) gsap.set(s, { autoAlpha: 0 });
 			gsap.set(screens[name], { autoAlpha: 1 });
-			// The cover image belongs to the home screen; fade it in like a decode
+			// The cover belongs to the home screen and arrives like a decoded image.
 			if (termCover) {
-				if (name === 'home') gsap.fromTo(termCover, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.45 });
+				if (name === 'home') gsap.fromTo(termCover, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' });
 				else gsap.set(termCover, { autoAlpha: 0 });
 			}
 		});
 
+	// The key that was just pressed: a chip that fades in and out, with no scale.
 	const key = (label: string) => {
 		tl.call(() => {
 			if (keyEl) keyEl.textContent = label;
 		});
-		tl.fromTo(keyEl, { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.14 });
-		tl.to(keyEl, { opacity: 0, duration: 0.25, delay: 0.55 });
+		tl.to(keyEl, { opacity: 1, duration: 0.2, ease: 'power1.out' });
+		tl.to(keyEl, { opacity: 0, duration: 0.3, ease: 'power1.in', delay: 0.5 });
 	};
 
 	const focusRow = (idx: number) =>
 		tl.call(() => epsRows.forEach((r, i) => r.classList.toggle('on', i === idx)));
 
-	// Reset — re-runs at the top of every loop.
+	// Reset at the top of every loop.
 	tl.call(() => {
 		if (typeEl) typeEl.textContent = '';
 		gsap.set(searchRows, { autoAlpha: 0 });
 		epsRows.forEach((r) => r.classList.remove('on'));
-		renderMeter(0);
+		renderMeter(0.42);
 	});
 
-	// Boot: skeleton shimmer, then the home screen resolves.
+	// Boot: the skeleton, then the home screen. The page opens on the home screen, so the first
+	// pass starts there and the boot plays from the second.
 	swap('skel');
 	tl.to({}, { duration: 1.5 });
+	tl.addLabel('home');
 	swap('home');
 	tl.to({}, { duration: 1.8 });
 
-	// Search: `/`, the query types itself, results land.
+	// Search: `/`, the query types itself, the results arrive together.
 	key('/');
 	swap('search');
-	const query = 'stardust';
+	const query = typeEl?.dataset.type ?? 'hoshikuzu';
 	const typing = { n: 0 };
 	tl.to(typing, {
 		n: query.length,
@@ -351,18 +201,18 @@ function buildDemo() {
 		},
 	});
 	tl.to({}, { duration: 0.35 });
-	tl.fromTo(searchRows, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.22, stagger: 0.16 });
+	tl.to(searchRows, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' });
 	tl.to({}, { duration: 0.9 });
 
-	// Episodes: the obi bar steps to the next unwatched episode.
+	// Episodes: the obi steps down to the episode in progress.
 	key('e');
 	swap('eps');
-	focusRow(2);
+	focusRow(1);
 	tl.to({}, { duration: 0.7 });
-	focusRow(3);
+	focusRow(2);
 	tl.to({}, { duration: 0.8 });
 
-	// Play: the eyecatch covers stream resolution, exactly as in the app.
+	// Play: the eyecatch covers stream resolution, as in the app, and it resumes where it was.
 	key('↵');
 	tl.set(ecTerm, { transformOrigin: 'left', scaleX: 0 });
 	tl.to(ecTerm, { scaleX: 1, duration: 0.28, ease: 'power2.in' });
@@ -370,9 +220,9 @@ function buildDemo() {
 	tl.set(ecTerm, { transformOrigin: 'right' });
 	tl.to(ecTerm, { scaleX: 0, duration: 0.34, ease: 'power2.out' });
 
-	const playback = { p: 0 };
+	const playback = { p: 0.42 };
 	tl.to(playback, {
-		p: 0.3,
+		p: 0.5,
 		duration: 3.4,
 		ease: 'none',
 		onUpdate: () => renderMeter(playback.p),
@@ -382,108 +232,114 @@ function buildDemo() {
 	return tl;
 }
 
-/* ── Full-motion experience ─────────────────────────────────────────────── */
-function full() {
-	const cover = makeCoverRenderer();
-	paintMascotBust();
+/* ── Full motion ────────────────────────────────────────────────────────── */
+let stopLive: (() => void) | null = null;
 
-	/* Ambient halfblock field across the whole page. Each bit lives on its
-	   own depth plane: nearer bits are larger, slightly brighter, and climb
-	   faster as you scroll — real multi-plane parallax, not one layer. */
-	const ambient = $('.ambient');
-	if (ambient) {
-		const chars = '▘▝▖▗▚▞▀▄▐▌';
-		for (let i = 0; i < 46; i++) {
-			const depth = Math.random(); // 0 = far, 1 = near
-			const s = document.createElement('span');
-			s.className = 'amb';
-			s.textContent = chars[Math.floor(Math.random() * chars.length)];
-			s.style.left = `${Math.random() * 100}%`;
-			s.style.top = `${Math.random() * 100}%`;
-			s.style.fontSize = `${0.5 + depth * 1.7}rem`;
-			s.style.opacity = String(0.018 + depth * 0.05);
-			ambient.appendChild(s);
-			// Slow autonomous drift…
-			gsap.to(s, {
-				x: gsap.utils.random(-30, 30),
-				duration: gsap.utils.random(14, 28),
-				repeat: -1,
-				yoyo: true,
-				ease: 'sine.inOut',
-			});
-			// …plus depth-scaled travel against the scroll.
-			gsap.to(s, {
-				y: -(140 + depth * 420),
+function full() {
+	const scene = drawScene();
+	paintTermCover();
+
+	// While the scene is on screen it stays alive: stars breathe, a shooting star crosses now and
+	// then, and windows in the city switch on and off.
+	if (scene) {
+		const live = liveScene(() => scene.state);
+		const seen = new IntersectionObserver(([e]) => (e.isIntersecting ? live.start() : live.stop()));
+		seen.observe(scene.box);
+		stopLive = () => {
+			seen.disconnect();
+			live.stop();
+		};
+	}
+
+	// The scene's planes sink at their own rates inside the scene's box: the sky barely moves,
+	// the city sinks behind the rooftop, and the rooftop with Nagare moves with the page.
+	if (scene) {
+		const sceneBottom = () => scene.box.offsetTop + scene.box.offsetHeight;
+		for (const p of PLANES) {
+			const k = PLANE_RATES[p];
+			if (k >= 1) continue;
+			gsap.to(scene.canvases[p], {
+				y: () => (1 - k) * sceneBottom(),
 				ease: 'none',
-				scrollTrigger: {
-					trigger: document.body,
-					start: 'top top',
-					end: 'bottom bottom',
-					scrub: 0.4 + (1 - depth) * 1.2,
-				},
+				scrollTrigger: { start: 0, end: sceneBottom, scrub: true, invalidateOnRefresh: true },
 			});
 		}
 	}
 
-	/* Layered hero parallax — the centrepiece of the scroll feel. Every
-	   plane moves at a clearly different rate: the spine climbs fastest,
-	   the ambient field falls behind, the cover plate floats up past the
-	   copy, and the terminal sinks slightly as it leaves. */
-	const heroScrub = {
-		trigger: '.hero',
-		start: 'top top',
-		end: 'bottom top',
-		scrub: true,
-	} as const;
-	gsap.to('.hero-spine', {
-		y: -420,
-		ease: 'none',
-		scrollTrigger: { trigger: '.hero', start: 'top top', end: '+=180%', scrub: true },
-	});
-	gsap.to('.cover-plate', { y: -130, ease: 'none', scrollTrigger: heroScrub });
-	gsap.to('.hero-copy', { y: 70, ease: 'none', scrollTrigger: heroScrub });
-	gsap.to('.term', {
-		scale: 0.96,
-		yPercent: 8,
-		ease: 'none',
-		scrollTrigger: {
-			trigger: '.term',
-			start: 'top 20%',
-			end: 'bottom top',
-			scrub: true,
-		},
-	});
+	// The ambient field: faint halfblock glyphs, each on its own far plane, moving at 0.2 to 0.6
+	// of the page. A glyph is placed where it will cross the viewport somewhere in the page's
+	// scroll, so the field is there all the way down.
+	const ambient = $('.ambient');
+	if (ambient) {
+		const r = rng(5);
+		const chars = '▘▝▖▗▚▞▀▄▐▌';
+		const count = isPhone() ? 16 : 34;
+		const maxScroll = () => Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+		for (let i = 0; i < count; i++) {
+			const depth = r();
+			const rate = 0.2 + 0.4 * depth;
+			const place = r();
+			const s = document.createElement('span');
+			s.className = 'amb';
+			s.textContent = chars[Math.floor(r() * chars.length)];
+			s.style.left = `${(r() * 96).toFixed(2)}%`;
+			s.style.fontSize = `${(8 + depth * 27).toFixed(0)}px`;
+			s.style.opacity = (0.02 + depth * 0.05).toFixed(3);
+			ambient.appendChild(s);
+			// Below the hero, as the boards have it: the field starts where the scene's copy ends.
+			const offset = () => ($('.hero')?.offsetTop ?? 0) + ($('.hero')?.offsetHeight ?? 0);
+			const top = () => offset() + place * Math.max(0, window.innerHeight + rate * maxScroll() - offset());
+			gsap.set(s, { top });
+			gsap.fromTo(
+				s,
+				{ y: 0 },
+				{
+					y: () => (1 - rate) * maxScroll(),
+					ease: 'none',
+					scrollTrigger: {
+						start: 0,
+						end: 'max',
+						scrub: 0.4,
+						invalidateOnRefresh: true,
+						onRefresh: () => gsap.set(s, { top: top() }),
+					},
+				}
+			);
+		}
+	}
 
-	/* Gentle depth on every section: each drifts against the scroll as it
-	   crosses the viewport. (The reveal tweens own their children's y.) */
+	// The katakana spine moves at 0.6 of the page while the feature list is on screen.
+	const spine = $('.spine');
+	const featList = $('.feat-list');
+	if (spine && featList) {
+		const travel = () => 0.4 * (featList.offsetHeight + window.innerHeight);
+		gsap.fromTo(
+			spine,
+			{ y: () => -travel() / 2 },
+			{
+				y: () => travel() / 2,
+				ease: 'none',
+				scrollTrigger: { trigger: featList, start: 'top bottom', end: 'bottom top', scrub: true, invalidateOnRefresh: true },
+			}
+		);
+	}
+
+	// Each section drifts a little against the scroll as it crosses the viewport.
 	for (const sect of $$('.sect')) {
 		gsap.fromTo(
 			sect,
-			{ y: 40 },
+			{ y: 24 },
 			{
-				y: -40,
+				y: -24,
 				ease: 'none',
 				scrollTrigger: { trigger: sect, start: 'top bottom', end: 'bottom top', scrub: true },
 			}
 		);
 	}
 
-	// Obi scroll marker: the focus bar travels the page edge.
-	gsap.to('.obi-progress-thumb', {
-		y: () => window.innerHeight - 56,
-		ease: 'none',
-		scrollTrigger: {
-			trigger: document.body,
-			start: 'top top',
-			end: 'bottom bottom',
-			scrub: 0.4,
-			invalidateOnRefresh: true,
-		},
-	});
 
-	/* Obi band: a slow marquee that leans on scroll velocity — scrolling
-	   faster pulls the strip a little faster, nothing more. */
-	const track = $('.obi-track');
+	// The band: a slow marquee that scrolling pulls a little faster.
+	const track = $('.band-track');
 	if (track) {
 		const drift = gsap.to(track, { xPercent: -50, duration: 34, ease: 'none', repeat: -1 });
 		ScrollTrigger.create({
@@ -493,110 +349,110 @@ function full() {
 		});
 	}
 
-	// Scroll reveals, kept quiet: rules draw themselves, content rises once.
-	for (const rule of $$('.rule')) {
-		gsap.fromTo(
-			rule,
-			{ scaleX: 0 },
-			{
-				scaleX: 1,
-				duration: 0.7,
-				ease: 'power2.out',
-				scrollTrigger: { trigger: rule, start: 'top 88%', once: true },
-			}
-		);
-	}
-	for (const el of $$('.reveal')) {
-		gsap.fromTo(
-			el,
-			{ y: 26, autoAlpha: 0 },
-			{
-				y: 0,
-				autoAlpha: 1,
-				duration: 0.65,
-				ease: 'power2.out',
-				scrollTrigger: { trigger: el, start: 'top 84%', once: true },
-			}
-		);
-	}
-
-	// Provider-health dots that breathe.
-	gsap.to('.pulse', {
-		opacity: 0.35,
-		duration: 0.9,
-		repeat: -1,
-		yoyo: true,
-		ease: 'sine.inOut',
-		stagger: 0.3,
-	});
-
-	// Load sequence: eyecatch wipe → headline rises per character →
-	// the cover assembles like a slow image decode → the demo boots.
+	// The demo plays while the terminal is on screen, and waits while someone drags it sideways.
 	const demo = buildDemo();
-	let introDone = false;
-	const intro = gsap.timeline();
-	const ec = $('.eyecatch-page');
-	intro.set(ec, { display: 'block', transformOrigin: 'left', scaleX: 0 });
-	intro.to(ec, { scaleX: 1, duration: 0.3, ease: 'power2.in' });
-	intro.set(ec, { transformOrigin: 'right' });
-	intro.to(ec, { scaleX: 0, duration: 0.38, ease: 'power2.out' });
-	intro.set(ec, { display: 'none' });
-	intro.to(
-		'.hero-h1 .hch',
-		{ opacity: 1, y: 0, duration: 0.55, stagger: 0.026, ease: 'power3.out' },
-		'-=0.1'
-	);
-	intro.fromTo(
-		'.prefade',
-		{ y: 18, autoAlpha: 0 },
-		{ y: 0, autoAlpha: 1, duration: 0.6, ease: 'power2.out', stagger: 0.08 },
-		'-=0.45'
-	);
-	if (cover) {
-		const assemble = { n: 0 };
-		intro.to(
-			assemble,
-			{
-				n: cover.total,
-				duration: 1.6,
-				ease: 'power1.inOut',
-				onUpdate: () => cover.drawTo(Math.round(assemble.n)),
-			},
-			'-=0.7'
-		);
-	}
-	intro.call(() => {
-		introDone = true;
-		demo.play();
-	});
-
-	// Pause the demo whenever the terminal is off-screen.
+	let visible = false;
+	let dragging = false;
+	let started = false;
+	const update = () => {
+		if (!visible || dragging) return demo.pause();
+		if (started) return demo.play();
+		started = true;
+		demo.play('home');
+	};
 	ScrollTrigger.create({
 		trigger: '.term',
 		start: 'top bottom',
 		end: 'bottom top',
 		onToggle: (self) => {
-			if (!introDone) return;
-			self.isActive ? demo.play() : demo.pause();
+			visible = self.isActive;
+			update();
 		},
 	});
+	const body = $('[data-term-body]');
+	if (body) {
+		let resume = 0;
+		const hold = () => {
+			window.clearTimeout(resume);
+			dragging = true;
+			update();
+		};
+		const release = () => {
+			window.clearTimeout(resume);
+			resume = window.setTimeout(() => {
+				dragging = false;
+				update();
+			}, 1200);
+		};
+		body.addEventListener('pointerdown', hold);
+		body.addEventListener('pointerup', release);
+		body.addEventListener('pointercancel', release);
+		body.addEventListener('scroll', () => {
+			hold();
+			release();
+		}, { passive: true });
+	}
 }
 
-/* ── Reduced motion: the finished state, still ──────────────────────────── */
+/* ── Reduced motion: the resting frame ──────────────────────────────────── */
 function reduced() {
-	gsap.set('.eyecatch-page', { display: 'none' });
-	const ambient = $('.ambient');
-	if (ambient) ambient.style.display = 'none';
-	makeCoverRenderer()?.drawTo(Number.MAX_SAFE_INTEGER);
+	stopLive?.();
+	stopLive = null;
+	drawScene();
 	paintTermCover();
-	paintMascotBust();
-	for (const s of $$('.term .screen'))
-		gsap.set(s, { autoAlpha: s.dataset.screen === 'home' ? 1 : 0 });
+	for (const s of $$('.term .screen')) gsap.set(s, { autoAlpha: s.dataset.screen === 'home' ? 1 : 0 });
 	gsap.set('.term-cover', { autoAlpha: 1 });
-	// The band stays legible and still.
-	const track = $('.obi-track');
+	const track = $('.band-track');
 	if (track) track.style.transform = 'none';
 }
+
+/* ── Nav: clear over the scene, solid once the scene has scrolled away ───── */
+function navOverScene() {
+	const nav = $('.l-nav');
+	const scene = $('[data-scene]');
+	if (!nav || !scene) return;
+	// The nav turns solid while 160 px of the scene are still below it, so its links never sit over
+	// the last thin strip of the picture.
+	const SOLID_AT = 160;
+	let observer: IntersectionObserver | null = null;
+	const watch = () => {
+		observer?.disconnect();
+		observer = new IntersectionObserver(
+			([entry]) => nav.classList.toggle('is-solid', !entry.isIntersecting),
+			{ rootMargin: `-${nav.offsetHeight + SOLID_AT}px 0px 0px 0px` }
+		);
+		observer.observe(scene);
+	};
+	watch();
+	// The nav is 56 px on a phone and 64 px wider, so the line it watches moves with it.
+	window.matchMedia('(max-width: 599px)').addEventListener('change', watch);
+
+	// Once solid, the nav goes away while you scroll down and comes back as soon as you scroll up.
+	// Over the scene, or with focus inside it, it always shows.
+	let lastY = window.scrollY;
+	let queued = false;
+	const onScroll = () => {
+		queued = false;
+		const y = window.scrollY;
+		const dy = y - lastY;
+		if (Math.abs(dy) < 6) return;
+		lastY = y;
+		const past = scene.getBoundingClientRect().bottom <= nav.offsetHeight + SOLID_AT;
+		const hide = dy > 0 && past && !nav.matches(':focus-within');
+		nav.classList.toggle('is-hidden', hide);
+	};
+	window.addEventListener(
+		'scroll',
+		() => {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(onScroll);
+		},
+		{ passive: true }
+	);
+	nav.addEventListener('focusin', () => nav.classList.remove('is-hidden'));
+}
+navOverScene();
 
 const mm = gsap.matchMedia();
 mm.add('(prefers-reduced-motion: no-preference)', full);

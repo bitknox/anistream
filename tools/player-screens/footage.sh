@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
-# The footage the player screenshots are taken from, both CC BY 4.0:
+# The footage the player screenshots are taken from, all CC BY 4.0 (OPAP-JP contributors):
 #
-#   こうしす！ #3.1 (OPAP-JP contributors), with its English and Japanese subtitles muxed in as
-#   titled tracks and chapters marking the opening, the ending and the preview; and the Up Next
-#   still from the episode's own preview card for Part 2.
+#   こうしす！ #3.1, with its English and Japanese subtitles muxed in as titled tracks and
+#   chapters marking the opening, the ending and the preview; and the Up Next still from the
+#   episode's own preview card for Part 2.
 #
-#   Sol Levante (Netflix, Production I.G): eight seconds of its 4K master around a close-up, read
-#   over HTTP ranges rather than downloading all 16 GB, a 720p encode of them for the player to
-#   upscale (looped, so a playback lasts long enough to be driven), and the master's own frame at
-#   the window's size to compare against.
+#   こうしす！ #3.2 for the upscaling comparison, because it was released at 1080p (#3.1 only at
+#   720p): eight seconds around a close-up encoded at 480p for the player to upscale (looped, so
+#   a playback lasts long enough to be driven), and the release's own frame to compare against.
 #
 #   tools/player-screens/footage.sh [DIR]      (default: ./footage)
 set -euo pipefail
@@ -19,10 +18,21 @@ mkdir -p "$dir/subs" "$dir/www"
 cd "$dir"
 agent="anistream-screenshots/1.0 (https://github.com/bitknox/anistream)"
 
+# A file name as Commons writes it in URLs: spaces as underscores, then percent-encoded.
+quoted() {
+  python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1].replace(" ", "_")))' "$1"
+}
+# Its upload URL, which files it under the MD5 of that name.
+upload() {
+  python3 -c 'import hashlib, sys, urllib.parse
+name = sys.argv[1].replace(" ", "_")
+h = hashlib.md5(name.encode()).hexdigest()
+print(f"https://upload.wikimedia.org/wikipedia/commons/{h[0]}/{h[:2]}/{urllib.parse.quote(name)}")' "$1"
+}
+
 episode="こうしす！ -3.1「セキュリティに完璧を求めるのは間違っているだろうか」(Part1-4).webm"
-encoded="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$episode")"
-[[ -f kosys-3.1.webm ]] || curl -fL -A "$agent" -o kosys-3.1.webm \
-  "https://upload.wikimedia.org/wikipedia/commons/1/1c/$encoded"
+encoded="$(quoted "$episode")"
+[[ -f kosys-3.1.webm ]] || curl -fL -A "$agent" -o kosys-3.1.webm "$(upload "$episode")"
 for lang in en ja; do
   [[ -f "subs/kosys-3.1.$lang.srt" ]] || curl -fsL -A "$agent" -o "subs/kosys-3.1.$lang.srt" \
     "https://commons.wikimedia.org/w/index.php?title=TimedText:$encoded.$lang.srt&action=raw"
@@ -73,13 +83,12 @@ ffmpeg -v error -y -i kosys-3.1.webm -i chapters.txt -i subs/kosys-3.1.en.srt -i
 ffmpeg -v error -y -ss 475 -i kosys-3.1.webm -frames:v 1 -q:v 3 www/still-3.2.jpg
 cp "$here/scenario.json" scenario.json
 
-master="http://download.opencontent.netflix.com.s3.amazonaws.com/SolLevante/sdr/SolLevante_SDR_UHD_24fps.mov"
-[[ -f sol-clip-4k.mov ]] || ffmpeg -v error -y -rw_timeout 30000000 -ss 24 -t 8 -i "$master" \
-  -map 0:v -c copy sol-clip-4k.mov
-ffmpeg -v error -y -i sol-clip-4k.mov -vf "scale=1280:720:flags=lanczos,format=yuv420p" \
-  -c:v libx264 -crf 16 -preset slow -an sol-720p.mkv
-ffmpeg -v error -y -stream_loop 4 -i sol-720p.mkv -c copy sol-720p-loop.mkv
-# 4.0 s into the clip, 0:28 into the film: her eye, the tattoo and the magic circles.
-ffmpeg -v error -y -ss 4.0 -i sol-clip-4k.mov -frames:v 1 -vf "scale=2560:1440:flags=lanczos" \
-  reference-1440.png
+part2="こうしす！ -3.2「セキュリティに完璧を求めるのは間違っているだろうか (Part2-4)」.webm"
+[[ -f kosys-3.2.webm ]] || curl -fL -A "$agent" -o kosys-3.2.webm "$(upload "$part2")"
+ffmpeg -v error -y -ss 80 -i kosys-3.2.webm -t 8 -map 0:v \
+  -vf "scale=854:480:flags=bicubic,format=yuv420p" -c:v libx264 -crf 20 -preset slow kosys-3.2-480p.mkv
+ffmpeg -v error -y -stream_loop 4 -i kosys-3.2-480p.mkv -c copy kosys-3.2-480p-loop.mkv
+# 4.25 s into the clip, 1:24.25 into the episode: her face, close up, after the sponsor credits
+# and before the title card.
+ffmpeg -v error -y -ss 84.25 -i kosys-3.2.webm -frames:v 1 reference-1080.png
 echo "footage ready in $dir"

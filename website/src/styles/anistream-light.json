@@ -1,0 +1,76 @@
+{
+	"name": "anistream-light",
+	"type": "light",
+	"colors": {
+		"editor.background": "#e9e6de",
+		"editor.foreground": "#1e2033"
+	},
+	"tokenColors": [
+		{
+			"settings": {
+				"foreground": "#1e2033"
+			}
+		},
+		{
+			"scope": [
+				"comment",
+				"punctuation.definition.comment"
+			],
+			"settings": {
+				"foreground": "#4f546e"
+			}
+		},
+		{
+			"scope": [
+				"string",
+				"punctuation.definition.string"
+			],
+			"settings": {
+				"foreground": "#1f5d6e"
+			}
+		},
+		{
+			"scope": [
+				"constant.numeric",
+				"constant.language",
+				"constant.character",
+				"constant.other.option",
+				"constant.other.option.dash",
+				"variable.parameter",
+				"keyword.other.unit"
+			],
+			"settings": {
+				"foreground": "#7a4309"
+			}
+		},
+		{
+			"scope": [
+				"support.type.property-name",
+				"entity.name.tag",
+				"entity.other.attribute-name",
+				"meta.object-literal.key",
+				"keyword",
+				"storage",
+				"storage.type",
+				"entity.name.type",
+				"support.type",
+				"entity.name.section"
+			],
+			"settings": {
+				"foreground": "#2a2e45"
+			}
+		},
+		{
+			"scope": [
+				"entity.name.function",
+				"support.function",
+				"variable",
+				"punctuation",
+				"meta.embedded"
+			],
+			"settings": {
+				"foreground": "#1e2033"
+			}
+		}
+	]
+}

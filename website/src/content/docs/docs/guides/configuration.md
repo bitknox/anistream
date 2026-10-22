@@ -1,12 +1,13 @@
 ---
 title: Configuration
-description: Every section of config.toml is optional. The defaults are the recommendation.
+description: Every section of config.toml is optional, and the defaults are the recommended settings.
 ---
 
-`~/.config/anistream/config.toml` on Linux, `~/Library/Application Support/anistream/config.toml`
-on macOS and `%APPDATA%\anistream\config\config.toml` on Windows. Every section is optional, and a
-missing file is a valid configuration. The Settings screen
-edits the same file in place, format-preserving, so hand-written comments survive.
+The config file is `~/.config/anistream/config.toml` on Linux,
+`~/Library/Application Support/anistream/config.toml` on macOS and
+`%APPDATA%\anistream\config\config.toml` on Windows. Every section is optional, and a missing file
+is a valid configuration. The Settings screen edits the same file in place, format-preserving, so
+hand-written comments survive.
 
 ```toml
 [theme]
@@ -45,15 +46,15 @@ screen with its position, since quitting halfway is a clear signal you mean to c
 
 ## Providers
 
-`providers.order` is the failover chain. Sources are external — anistream ships none of its own
-content and none of the entries are on until you configure them:
+`providers.order` is the failover chain. Sources are external: anistream ships no sources of its
+own, and no entry does anything until you configure it.
 
-- `"torrent"` — the BitTorrent transport, pointed at an indexer you configure and gated
-  behind the [VPN guard](/docs/guides/torrents-vpn/)
-- `"plugins"` — any [provider plugins](/docs/plugins/authoring/) you have installed, by hand or
-  from a [plugin store](/docs/plugins/stores/)
-- `"remote"` — a Consumet-shaped API you host yourself, which does nothing until
-  `providers.remote_url` names it
+- `"torrent"` is the BitTorrent transport, pointed at an indexer you configure and gated behind
+  the [VPN guard](/docs/guides/torrents-vpn/).
+- `"plugins"` is every [provider plugin](/docs/plugins/authoring/) you have installed, by hand or
+  from a [plugin store](/docs/plugins/stores/).
+- `"remote"` is a JSON API you host yourself, answering `search/<query>`, `info/<id>` and
+  `watch/<id>-episode-<n>` under `providers.remote_url`. It does nothing until that is set.
 
 Plugins compile in the background and are cached, so they never hold up the first frame. An
 installed plugin is only used while `"plugins"` is in the order; drop it if you use none.
@@ -77,8 +78,8 @@ Each source is matched to the title on its own, and asked in order. A source tha
 the title or the episode, or fails, hands over to the next. A source that finds several possible
 matches and cannot choose asks you which is right, once, before the next is tried.
 
-The order is a default, not a rule: `P` on a title pins one source for that title, and `s` on an
-episode picks an exact release. Pinned sources do not fail over.
+The order is a default. `P` on a title pins one source for that title, and `s` on an episode picks
+an exact release; pinned sources do not fail over.
 
 A plugin that needs an API key or similar reads it from its own settings table:
 
@@ -106,7 +107,7 @@ choice. What a watched episode does is set under
 
 :::caution
 Every section is validated with unknown keys rejected, and a config that fails to load is not used
-at all: anistream runs on the defaults **wholesale**, without your VPN mode, indexer and tracker
+at all: anistream runs entirely on the defaults, without your VPN mode, indexer and tracker
 credentials, until the file is fixed. It says so on every screen, naming the file and the line,
 and the Settings screen saves nothing until the file loads again, so a broken file is never
 written over.
@@ -128,7 +129,7 @@ Past the limit the least recently watched go first, at launch and every couple o
 anistream runs. Downloads count toward the limit but are never removed by it; set
 `downloads.directory` to move finished downloads out of the cache altogether.
 
-The rest of the cache directory looks after itself: logs are kept for two weeks, cover art for a
+The rest of the cache directory is trimmed on its own: logs are kept for two weeks, cover art for a
 month, and what the player leaves behind for a day.
 
 ## Notifications, metadata and updates
@@ -173,6 +174,6 @@ Syncplay installed; `syncplay.binary` points at it if it is not on your `PATH`.
 ## Everything else
 
 `[providers.torrent]` and `[providers.torrent.vpn]` are covered in
-[Torrents & the VPN guard](/docs/guides/torrents-vpn/); `[trackers]` in
-[Trackers & sync](/docs/guides/trackers-sync/); `[keys]` in
-[Keybindings & CLI](/docs/guides/keybindings-cli/).
+[Torrents and the VPN guard](/docs/guides/torrents-vpn/); `[trackers]` in
+[Trackers and sync](/docs/guides/trackers-sync/); `[keys]` in
+[Keys and command line](/docs/guides/keybindings-cli/).

@@ -1,23 +1,21 @@
 ---
-title: Torrents & the VPN guard
-description: Off by default, external by nature, and unreachable without a fail-closed VPN guard.
+title: Torrents and the VPN guard
+description: The torrent source is off by default, has no indexer of its own, and pauses whenever the VPN check fails.
 ---
 
-:::caution[Bring your own indexer]
-anistream hosts no content, ships no indexer, and has no default endpoint — the torrent source is
-a transport with nothing to search until you configure one. What you point it at, and the
-responsibility that comes with that, is yours, under the laws that apply to you. The source is
-**off by default**, gated behind the VPN guard, and a config edit away from being removed
-entirely.
+:::caution[No indexer included]
+anistream hosts no content, ships no indexer and has no default endpoint. The torrent source is a
+transport with nothing to search until you configure one. What you point it at is your decision
+and your responsibility, under the laws that apply to you. The source is off by default, gated
+behind the VPN guard, and a config edit away from being removed.
 :::
 
-anistream provides the torrent **transport** — a librqbit session behind the VPN guard,
-streaming over loopback HTTP — and **no index of what to fetch**. There is no built-in indexer
-and no default endpoint: the search URL, the trackers and any curation service are yours to
-supply, and the source stays inert until they are set.
+anistream provides the torrent transport, a librqbit session behind the VPN guard that streams
+over loopback HTTP. The search URL, the trackers and any curation service are yours to supply, and
+the source does nothing until they are set.
 
-Torrent traffic also exposes your IP to every peer in the swarm, so this is **off until you
-choose a VPN mode** and the guard passes.
+Torrent traffic also exposes your IP to every peer in the swarm, so the source stays off until
+you choose a VPN mode and the guard passes.
 
 ```toml
 [providers.torrent]
@@ -43,13 +41,13 @@ on_leak = "pause"                          # "pause" | "stop" | "warn"
                                            # i_understand_a_failed_check_keeps_torrents_running = true
 ```
 
-Streams are pulled through librqbit, playing while downloading, seekable.
+Streams play while they download, and you can seek in them.
 
 ## What the feed has to look like
 
 Any RSS feed whose `<item>`s carry a title, a link and an info hash works. Tag names are matched
-by *local* name, so `<seeders>`, `<idx:seeders>` and `<torznab:seeders>` are all understood —
-the namespace is irrelevant. Seeder counts drive ranking, so a feed without them still works but
+by *local* name, so `<seeders>`, `<idx:seeders>` and `<torznab:seeders>` are all understood,
+whatever their namespace. Seeder counts drive ranking, so a feed without them still works but
 ranks worse.
 
 Curation, if configured, is expected to answer in a PocketBase-shaped collection
@@ -59,8 +57,11 @@ account cannot be played.
 
 ## What the guard does
 
+Your VPN or proxy is what protects you. The guard checks where torrent traffic leaves from and
+pauses torrents when that check fails.
+
 - Routes the session through your VPN's SOCKS5 proxy.
-- **Forces DHT off.** SOCKS5 UDP-associate is unreliable and librqbit does not document whether
+- Turns DHT off. SOCKS5 UDP-associate is unreliable and librqbit does not document whether
   DHT is tunnelled, so it is treated as a leak.
 - Verifies egress *through the proxy* before any session starts. In `external` mode the check goes
   out directly, the way peers connect, whatever `HTTPS_PROXY` says.
@@ -70,14 +71,14 @@ account cannot be played.
   the session down instead; `"warn"` keeps what is running and says the check failed.
 
 The header badge says what the last check found: `vpn ●` with the exit network when it passed,
-`vpn ✕ unreachable` when the proxy or the lookup could not be reached — nothing can leave through
-a proxy that is down — and `vpn ✕ LEAK` when traffic was seen leaving through the wrong network.
+`vpn ✕ unreachable` when the proxy or the lookup could not be reached (nothing leaves through
+a proxy that is down), and `vpn ✕ LEAK` when traffic was seen leaving through the wrong network.
 
 ## Its limits
 
 This is application-level containment, not kernel-enforced: librqbit has no bind-to-interface
-option, so the guard stops anistream leaking and nothing else on your machine. Add your VPN's kill
-switch if you want a real guarantee:
+option, so the guard stops anistream leaking and nothing else on your machine. Turn on your VPN’s
+kill switch as well:
 
 ```sh
 mullvad lockdown-mode set on
@@ -93,8 +94,9 @@ Playing while downloading means an episode can *count* before its file is comple
 [Watched versus resumable](/docs/guides/configuration/#watched-versus-resumable) keeps those ideas
 apart: `commit_threshold` decides when it is watched, and resume state is its own thing.
 
-Seeding is off by default, which is a privacy choice. Completed downloads get subtitles muxed in
-with a stream copy.
+Seeding after an episode is watched, and after a download finishes, is off by default, which is a
+privacy choice. An episode still uploads to its swarm while it plays, as [Seeding](#seeding)
+describes. Completed downloads get subtitles muxed in with a stream copy.
 
 ## Seeding
 
@@ -117,7 +119,7 @@ The upload limit covers all torrent traffic, playback included. On a slow uplink
 from crowding out the requests the episode you are watching needs.
 
 Seeding after watching is off by default for the same reason finished downloads stop seeding:
-it advertises you as a source for as long as it runs, and that is your call to make.
+it advertises you as a source for as long as it runs, and that is your decision.
 
 What streamed episodes leave on disk, and the limit on it, is covered under
 [Disk space](/docs/guides/configuration/#disk-space).

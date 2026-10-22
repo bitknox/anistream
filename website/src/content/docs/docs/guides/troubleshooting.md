@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Telling a playback failure from an anistream one, and what the player and plugin stores need when they misbehave.
+description: Commands that show where playback fails, and fixes for missing images, the player, plugins and plugin stores.
 ---
 
 Two commands cover most of it:
@@ -18,7 +18,7 @@ roll daily under the cache directory (see
 [where things live](/docs/getting-started/installation/#where-things-live)) at `info`, and
 `ANISTREAM_LOG=debug` turns up the detail.
 
-## Plugins arriving late
+## Plugins that load late
 
 Plugins load after the first frame, so they never hold up the interface. They are compiled in the
 background and join your sources when they are ready, and the compiled code is cached for later

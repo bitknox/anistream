@@ -52,9 +52,15 @@ const { alt, off, looks, width, height } = Astro.props;
 			loading="lazy"
 			decoding="async"
 		/>
-		<span class="compare-tag compare-tag-off" aria-hidden="true">off</span>
+		<span class="compare-tag compare-tag-off" aria-hidden="true">Off</span>
 		<span class="compare-tag compare-tag-look" aria-hidden="true">{looks[0].label}</span>
-		<span class="compare-divider" aria-hidden="true"></span>
+		<span class="compare-divider" aria-hidden="true">
+			<span class="compare-handle">
+				<svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M5 2 L1.5 6 L5 10 M11 2 L14.5 6 L11 10"></path>
+				</svg>
+			</span>
+		</span>
 		<input
 			class="compare-range"
 			type="range"
@@ -71,44 +77,59 @@ const { alt, off, looks, width, height } = Astro.props;
 <style>
 	.compare {
 		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
 		--pos: 50%;
 	}
+
+	/* The look picker is the segmented capsule the docs' tabs use. */
 	.compare-choice {
-		display: flex;
-		gap: 0.25rem;
-		margin-bottom: 0.75rem;
-		font-family: var(--ani-font-mono);
-		font-size: 0.8rem;
+		display: inline-flex;
+		align-self: flex-start;
+		height: 36px;
+		padding: 2px;
+		border-radius: 18px;
+		background: var(--ani-raised);
 	}
+
 	.compare-choice button {
+		height: 32px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: 16px;
+		background: transparent;
+		color: var(--ani-dim);
 		font: inherit;
-		color: var(--ani-dim);
-		background: none;
-		border: 1px solid var(--ani-rule-faint);
-		padding: 0.35rem 0.75rem;
+		font-size: 14px;
+		white-space: nowrap;
 		cursor: pointer;
+		transition:
+			background-color var(--ani-quick) var(--ani-spring),
+			color var(--ani-quick) var(--ani-spring);
 	}
+
 	.compare-choice button[aria-checked='true'] {
+		background: var(--ani-raised-selected);
 		color: var(--ani-text);
-		border-color: var(--ani-obi);
-		box-shadow: inset 3px 0 0 var(--ani-obi);
+		font-weight: 600;
 	}
-	.compare-choice button:focus-visible {
-		outline: 2px solid var(--ani-obi);
-		outline-offset: 2px;
-	}
+
 	.compare-note {
+		margin-left: 6px;
+		font-weight: 400;
 		color: var(--ani-dim);
-		margin-left: 0.35rem;
 	}
+
 	.compare-frame {
 		position: relative;
 		overflow: hidden;
-		border: 1px solid var(--ani-rule);
+		border-radius: var(--ani-r-banner);
 		background: var(--ani-raised);
 		user-select: none;
 		touch-action: pan-y;
 	}
+
 	.compare-frame img {
 		position: absolute;
 		inset: 0;
@@ -116,9 +137,12 @@ const { alt, off, looks, width, height } = Astro.props;
 		height: 100%;
 		display: block;
 	}
+
 	.compare-look {
 		clip-path: inset(0 0 0 var(--pos));
 	}
+
+	/* A picture: the line, the handle and the chips keep their dark-mode colours in both modes. */
 	.compare-divider {
 		position: absolute;
 		top: 0;
@@ -126,35 +150,50 @@ const { alt, off, looks, width, height } = Astro.props;
 		left: var(--pos);
 		width: 2px;
 		margin-left: -1px;
-		background: var(--ani-obi);
+		background: #e4e0d6;
 		pointer-events: none;
 	}
-	.compare-divider::after {
-		content: '';
+
+	.compare-handle {
 		position: absolute;
 		top: 50%;
 		left: 50%;
-		width: 0.9rem;
-		height: 2.6rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 16px;
 		transform: translate(-50%, -50%);
-		background: var(--ani-obi);
+		background: var(--ani-obi-fill);
+		color: #161a2e;
 	}
+
 	.compare-tag {
 		position: absolute;
-		top: 0.6rem;
-		font-family: var(--ani-font-mono);
-		font-size: 0.75rem;
+		top: 14px;
+		display: flex;
+		align-items: center;
+		height: 26px;
+		padding: 0 11px;
+		box-sizing: border-box;
+		border: 1px solid var(--ani-over-art-edge);
+		border-radius: 13px;
+		background: var(--ani-over-art);
 		color: #e4e0d6;
-		background: rgb(22 26 46 / 0.78);
-		padding: 0.2rem 0.5rem;
+		font-size: 13px;
+		font-weight: 500;
 		pointer-events: none;
 	}
+
 	.compare-tag-off {
-		left: 0.6rem;
+		left: 14px;
 	}
+
 	.compare-tag-look {
-		right: 0.6rem;
+		right: 14px;
 	}
+
 	.compare-range {
 		position: absolute;
 		inset: 0;
@@ -164,14 +203,39 @@ const { alt, off, looks, width, height } = Astro.props;
 		opacity: 0;
 		cursor: ew-resize;
 	}
+
 	.compare-frame:has(.compare-range:focus-visible) {
 		outline: 2px solid var(--ani-obi);
-		outline-offset: 3px;
+		outline-offset: 2px;
 	}
+
 	figcaption {
-		margin-top: 0.6rem;
-		font-size: 0.85rem;
+		max-width: 792px;
+		font-size: 14px;
+		line-height: 20px;
 		color: var(--ani-dim);
+	}
+
+	@media (max-width: 599px) {
+		.compare-choice button {
+			padding: 0 16px;
+		}
+
+		.compare-note {
+			display: none;
+		}
+
+		.compare-tag {
+			top: 10px;
+		}
+
+		.compare-tag-off {
+			left: 10px;
+		}
+
+		.compare-tag-look {
+			right: 10px;
+		}
 	}
 </style>
 

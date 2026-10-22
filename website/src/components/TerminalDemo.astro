@@ -1,12 +1,15 @@
 ---
 /**
- * The hero terminal: a simulated anistream session, sequenced by GSAP in
- * landing-motion.ts. Screens are stacked <pre> frames; colour comes from
- * token markup — {a|…} amber, {d|…} dim, {w|…} water, {r|…} vermilion.
+ * The terminal demo: a simulated anistream session, sequenced by GSAP in landing-motion.ts.
+ * Screens are stacked <pre> frames; colour comes from token markup: {a|…} amber, {d|…} haze,
+ * {w|…} water, {r|…} vermilion, {k|…} a loading skeleton. Every title is invented.
  */
+import coverUrl from '../assets/covers/hoshikuzu.svg?url';
+
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mk = (src: string) =>
 	esc(src).replace(/\{(\w+)\|([^}]*)\}/g, (_m, c, t) => `<span class="c-${c}">${t}</span>`);
+const pad = (s: string, col: number) => s + ' '.repeat(Math.max(1, col - s.length));
 
 const RULE = `{d|${'─'.repeat(82)}}`;
 const HEADER = `anistream                                              sources {a|●}  vpn {a|●}  anilist {w|⇅}`;
@@ -30,49 +33,54 @@ const skel = [
 	'                  │',
 	RULE,
 	'{d|loading…}',
-].map(mk).join('\n');
+]
+	.map(mk)
+	.join('\n');
 
 const home = [
 	HEADER,
 	RULE,
-	'{a|▌} ▸  CONTINUE   {a|4} │  {a|▌} Stardust Wayfarer',
-	'  ▤  CALENDAR     │    {d|Hoshikuzu no Tabibito}',
+	'{a|▌} ▸  CONTINUE   {a|4} │  {a|▌} Hoshikuzu no Tabibito',
+	'  ▤  CALENDAR     │    {d|Stardust Wayfarer}',
 	'  ▦  SEASONAL     │',
-	'  /  SEARCH       │    {d|TV · 28 EP · 2023 · 91 · KUMORIYA}',
-	'  ▥  LIBRARY      │    {d|ADVENTURE · DRAMA · FANTASY}',
+	'  /  SEARCH       │    {d|TV · 24 EP · SUMMER 2026 · 79%}',
+	'  ▥  LIBRARY      │    {d|ADVENTURE · FANTASY}',
 	'  ↓  DOWNLOADS  {a|2} │',
-	'  ◇  PROVIDERS    │    {d|EP 12 out 2d ago · EP 13 in 4d 6h}',
+	'  ◇  PROVIDERS    │    {d|EP 9 out 5d ago · EP 10 in 1d 21h}',
 	'  ⚙  SETTINGS     │',
-	'                  │    {a|▌▌▌▌▌▌▌▏}{d|░░░░░░░░░}  12 / 28',
 	'                  │',
-	'                  │    {d|next up · EP 13 · airs in 4d 6h}',
+	'                  │    {a|▌▌▌▌▏}{d|░░░░░░░░░░░░}  6 / 24',
 	'                  │',
+	'                  │    {d|resume · EP 7 · 14 min left}',
 	'                  │',
 	'                  │',
 	RULE,
 	'{d|sub · 1080p}                                   {a|↵} play   {a|e} episodes   {a|?} keys',
-].map(mk).join('\n');
+]
+	.map(mk)
+	.join('\n');
 
-// Search: the query is typed live into [data-type]; result rows fade in staggered.
+// Search: the query is typed live into [data-type]; the result rows fade in together.
 const searchTop = [HEADER, RULE].map(mk).join('\n');
 const searchRows = [
-	'{a|▌} Stardust Wayfarer                       {d|TV · 28 EP · 2023 · 91}',
-	'  Stardust Wayfarer Shorts                {d|ONA · 24 EP · 2023 · 74}',
-	'  Tomoshibi                               {d|MUSIC · 1 EP · 2023 · 78}',
+	// The first row's marker markup is four characters longer than the cell it draws.
+	pad('{a|▌} Hoshikuzu no Tabibito', 42 + 4) + '{d|TV · 24 EP · 2026 · 79%}',
+	pad('  Hoshikuzu no Tabibito: Ferry Days', 42) + '{d|ONA · 6 EP · 2026}',
+	pad('  Tsukiakari no Teishajo', 42) + '{d|TV · 12 EP · 2025}',
 ].map(mk);
 const searchBottom = [RULE, '{a|↵} open   {a|e} episodes   {a|esc} back'].map(mk).join('\n');
 
-// Episodes: the obi cell (.oc) is always a ▌ glyph, transparent until .on.
+// Episodes: the obi cell (.oc) is always a ▌ glyph, transparent until its row is .on.
 const epsRow = (ep: string, title: string, tail: string) =>
-	`<span class="row"><span class="oc">▌</span>${mk(`  EP ${ep}  ${title}${tail}`)}</span>`;
+	`<span class="row"><span class="oc">▌</span>${mk(pad(`  EP ${ep.padEnd(2)}  ${title}`, 48) + tail)}</span>`;
 const eps = [
-	mk('anistream                                                      {d|Stardust Wayfarer}'),
+	mk(pad('anistream', 59) + '{d|Hoshikuzu no Tabibito}'),
 	mk(RULE),
-	epsRow('10', 'The Lamplighter’s Oath', '                 {d|24m}   {d|● watched}'),
-	epsRow('11', 'Snow on the Beacon Road', '                {d|24m}   {d|● watched}'),
-	epsRow('12', 'A Town That Forgot Her', '                 {d|24m}   {w|▲ 61%}'),
-	epsRow('13', 'What the Lanterns Keep', '                 {d|24m}'),
-	epsRow('14', 'The Ferry Across the Dark', '              {d|24m}'),
+	epsRow('5', 'The Ferryman’s Ledger', '{d|24m}   {d|● watched}'),
+	epsRow('6', 'Where the Roads Cross', '{d|24m}   {d|● watched}'),
+	epsRow('7', 'The Lantern Road', '{d|24m}   {w|▲ 42%}'),
+	epsRow('8', 'A Town Without Night', '{d|24m}'),
+	epsRow('9', 'The Sky Archive', '{d|24m}'),
 	'',
 	mk(RULE),
 	mk('{d|sub · 1080p}                                    {a|↵} play   {a|s} sources   {a|f} filler'),
@@ -82,44 +90,43 @@ const playTop = [
 	HEADER,
 	RULE,
 	'',
-	'    {a|▶}  Stardust Wayfarer — EP 13',
-	'       {d|What the Lanterns Keep}',
+	'    {a|▶}  Hoshikuzu no Tabibito · EP 7',
+	'       {d|The Lantern Road}',
 	'',
-].map(mk).join('\n');
+]
+	.map(mk)
+	.join('\n');
 const playBottom = [
 	'       {d|remote source · hls · sub · 1080p}',
 	'',
 	'       {d|resume saved · aniskip armed · auto-next on}',
 	RULE,
 	'{a|space} pause   {a|S} skip opening   {a|q} detach',
-].map(mk).join('\n');
+]
+	.map(mk)
+	.join('\n');
 ---
 
-<div class="term" role="img" aria-label="anistream running in a terminal: browsing, searching, and streaming an episode over a VPN-guarded torrent">
-	<div class="term-chrome" aria-hidden="true">
-		<span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
-		<span class="term-title">anistream — ghostty</span>
-	</div>
-	<div class="term-body" aria-hidden="true">
-		<pre class="screen" data-screen="skel" set:html={skel} />
-		<pre class="screen" data-screen="home" set:html={home} />
-		<pre class="screen" data-screen="search"><Fragment set:html={searchTop} />
-{'  '}/  <span data-type="stardust"></span><span class="cursor c-a">▊</span>
+<div class="term" role="img" aria-label="anistream running in a terminal: the home screen, a search, an episode list and an episode playing">
+	<div class="term-chrome" aria-hidden="true">anistream · ghostty</div>
+	<div class="term-body" aria-hidden="true" data-term-body>
+		<div class="term-canvas">
+			<pre class="screen" data-screen="skel" set:html={skel} />
+			<pre class="screen" data-screen="home" set:html={home} />
+			<pre class="screen" data-screen="search"><Fragment set:html={searchTop} />
+{'  '}/  <span data-type="hoshikuzu"></span><span class="cursor c-a">▊</span>
 <Fragment set:html={mk(RULE)} />
-<span class="row sr">{''}<Fragment set:html={searchRows[0]} /></span>
+<span class="row sr"><Fragment set:html={searchRows[0]} /></span>
 <span class="row sr"><Fragment set:html={searchRows[1]} /></span>
 <span class="row sr"><Fragment set:html={searchRows[2]} /></span>
 <Fragment set:html={searchBottom} /></pre>
-		<pre class="screen" data-screen="eps" set:html={eps} />
-		<pre class="screen" data-screen="play"><Fragment set:html={playTop} />
+			<pre class="screen" data-screen="eps" set:html={eps} />
+			<pre class="screen" data-screen="play"><Fragment set:html={playTop} />
 {'       '}<span data-meter>░░░░░░░░░░░░░░░░░░░░░░░░░░░░</span>  <span data-clock>00:00</span> {'/'} 23:40
 <Fragment set:html={playBottom} /></pre>
-		<canvas
-			class="term-cover"
-			width="200"
-			height="320"
-			aria-hidden="true"></canvas>
-		<div class="eyecatch-term" aria-hidden="true"></div>
-		<span class="demo-key" aria-hidden="true"></span>
+			<canvas class="term-cover" width="28" height="44" data-cover={coverUrl}></canvas>
+			<div class="eyecatch-term"></div>
+		</div>
 	</div>
+	<span class="demo-key" aria-hidden="true"></span>
 </div>

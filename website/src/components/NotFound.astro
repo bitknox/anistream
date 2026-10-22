@@ -1,0 +1,107 @@
+---
+// The 404 page's empty state: Nagare, the search field and the way back to the overview.
+import Nagare from './Nagare.astro';
+---
+
+<div class="ani-not-found not-content">
+	<Nagare cell={5} class="ani-not-found-nagare" />
+	<div class="ani-not-found-actions">
+		<button type="button" class="ani-not-found-search" data-ani-open-search>
+			<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+				<circle cx="7" cy="7" r="4.5"></circle>
+				<path d="M10.5 10.5 L14 14"></path>
+			</svg>
+			<span>Search docs</span>
+		</button>
+		<a class="ani-not-found-overview" href="/docs/">
+			Start from the overview
+			<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M6 3.5 L10.5 8 L6 12.5"></path>
+			</svg>
+		</a>
+	</div>
+</div>
+
+<style>
+	.ani-not-found {
+		display: flex;
+		align-items: flex-end;
+		gap: 28px;
+		margin-top: 40px;
+	}
+
+	.ani-not-found-nagare {
+		flex-shrink: 0;
+	}
+
+	.ani-not-found-actions {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 16px;
+		padding-bottom: 6px;
+	}
+
+	.ani-not-found-search {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: min(320px, 100%);
+		height: 36px;
+		padding: 0 12px;
+		border: 1px solid var(--ani-rule-faint);
+		border-radius: 18px;
+		background: var(--ani-raised);
+		color: var(--ani-dim);
+		font: inherit;
+		font-size: 14px;
+		cursor: pointer;
+		transition: border-color var(--ani-quick) var(--ani-spring), color var(--ani-quick) var(--ani-spring);
+	}
+
+	.ani-not-found-search:hover {
+		border-color: var(--ani-rule);
+		color: var(--ani-text);
+	}
+
+	.ani-not-found-overview {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		font-size: 15px;
+		font-weight: 600;
+		color: var(--ani-text);
+		text-decoration: none;
+	}
+
+	.ani-not-found-overview svg {
+		color: var(--ani-text);
+	}
+
+	@media (max-width: 30em) {
+		.ani-not-found {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 20px;
+		}
+
+		.ani-not-found-search {
+			width: 100%;
+		}
+
+		.ani-not-found-actions {
+			align-self: stretch;
+		}
+	}
+</style>
+
+<script>
+	// The header's search opens the dialog; this field is a second way to it.
+	for (const button of document.querySelectorAll<HTMLButtonElement>('[data-ani-open-search]')) {
+		button.addEventListener('click', (event) => {
+			event.stopPropagation();
+			document.querySelector<HTMLButtonElement>('site-search button[data-open-modal]')?.click();
+		});
+	}
+</script>

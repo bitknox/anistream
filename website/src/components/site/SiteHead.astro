@@ -1,0 +1,37 @@
+---
+// The <head> the landing page and the apps page share: their title and description, the icons,
+// the theme colours, and the theme the docs remember, set before the first paint.
+interface Props {
+	title: string;
+	description: string;
+}
+
+const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{title}</title>
+<meta name="description" content={description} />
+<link rel="canonical" href={canonical} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:type" content="website" />
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161a2e" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0ede4" />
+<script is:inline>
+	document.documentElement.classList.add('js');
+	try {
+		var t = localStorage.getItem('starlight-theme');
+		var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+		document.documentElement.dataset.theme =
+			t === 'light' || t === 'dark' ? t : dark ? 'dark' : 'light';
+	} catch (e) {
+		document.documentElement.dataset.theme = 'dark';
+	}
+</script>

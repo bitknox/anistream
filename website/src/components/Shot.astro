@@ -1,0 +1,39 @@
+---
+/**
+ * One of the apps' screenshots, at the widths scripts/app-shots.ts made of it. A phone or a
+ * tablet gets a slim dark bezel with the screen's own rounded corners; a Mac window is the window
+ * as the app draws it.
+ */
+import shots from '../data/shots.json';
+
+interface Props {
+	name: keyof typeof shots;
+	alt: string;
+	/** The width the picture takes on the page, for the browser's pick of a file. */
+	sizes: string;
+	frame: 'window' | 'phone' | 'tablet';
+	class?: string;
+	loading?: 'lazy' | 'eager';
+}
+
+const { name, alt, sizes, frame, class: className, loading = 'lazy' } = Astro.props;
+const shot = shots[name];
+const srcset = shot.widths.map((w) => `/apps/${name}-${w}.webp ${w}w`).join(', ');
+const landscape = shot.w > shot.h;
+---
+
+<span
+	class:list={['shot', `shot-${frame}`, `shot-${name.split('-')[0]}`, { 'shot-landscape': landscape }, className]}
+	style={`--ratio: ${(shot.w / shot.h).toFixed(4)}`}
+>
+	<span class="shot-frame"><img
+		src={`/apps/${name}-${shot.widths[0]}.webp`}
+		srcset={srcset}
+		sizes={sizes}
+		width={shot.w}
+		height={shot.h}
+		alt={alt}
+		loading={loading}
+		decoding="async"
+	/></span>
+</span>

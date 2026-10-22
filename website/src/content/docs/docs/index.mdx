@@ -1,10 +1,12 @@
 ---
 title: Overview
-description: What anistream is, what is in the app today, and what is coming next.
+description: 'An anime client for Mac, iPhone, iPad, Android and the terminal: browsing with no account, playback in mpv, sync to five trackers and sources as plugins.'
 ---
 
-anistream is an anime streaming TUI written in Rust. Real image rendering in the terminal,
-mpv for playback, pluggable everything.
+anistream is an anime client for Mac, iPhone, iPad and Android, and for the terminal on macOS,
+Linux and Windows, written in Rust. It browses AniList with no account, plays episodes in mpv,
+keeps your history locally and syncs it to five trackers. Sources are plugins or services you set
+up, and anistream ships none of its own.
 
 :::note[Sources are external]
 anistream hosts no content and ships no sources of its own, not even an index. The torrent side
@@ -12,9 +14,17 @@ is a transport with nothing to search until you supply an endpoint. Everything e
 API or plugin you configure. What you point any of it at is your own decision, at your own risk.
 :::
 
-## Today
+## The apps
 
-anistream is under active development. What is in the app now:
+The [apps](/apps/) for Mac, iPhone, iPad and Android run the same engine as the terminal app, with
+each platform's own navigation and controls and mpv built in. They have widgets, new-episode
+notifications, Picture in Picture and downloads, and they install from the releases on GitHub, as
+[installation](/docs/getting-started/installation/#the-apps) describes. On a Mac, the app and the
+terminal app share one history and one config.
+
+## The terminal app
+
+anistream is under active development. What is in the terminal app now:
 
 - Browsing, search and seasonal lists from AniList, with no account. When AniList cannot answer,
   metadata falls back to Tenrai and then to what was last cached (`[meta] fallback`). `Ctrl-F`
@@ -24,8 +34,8 @@ anistream is under active development. What is in the app now:
   next unwatched episode.
 - The airing calendar spans a week back and a week forward, and on launch one toast says what
   aired for shows you watch since you were last here.
-- Torrent streaming plays while downloading, is seekable, and sits behind the VPN guard. You bring
-  the indexer.
+- Torrent streaming plays while downloading, can seek, and sits behind the VPN guard, with an
+  indexer you supply.
 - [Playback](/docs/guides/player/) runs in mpv with the app's own controls, seekbar thumbnails, a
   skip button, Up Next and menus, and one window carries a whole binge. Upscaling uses ArtCNN by
   default or Anime4K if you ask for it, and how much runs is decided per file. `y` plays an episode
@@ -51,15 +61,16 @@ anistream is under active development. What is in the app now:
 
 - More sources, as plugins. The [plugin system](/docs/plugins/authoring/) is the path for new
   providers.
-- Licensed services stay links. anistream will not circumvent DRM, so a licensed stream can only
-  ever open in its own service. The title screen already lists where AniList says a title is
+- Licensed services open in their own apps. anistream does not circumvent DRM, so a licensed
+  stream only opens in its own service. The title screen already lists where AniList says a title is
   available, and a provider can return a link that opens in that service rather than a stream for
   mpv.
 
 ## Where to go next
 
 - [Requirements](/docs/getting-started/requirements/) and
-  [installation](/docs/getting-started/installation/): prebuilt binaries, or build from source.
+  [installation](/docs/getting-started/installation/): the apps, prebuilt binaries for the
+  terminal, or a build from source.
 - [Quick start](/docs/getting-started/quick-start/): browsing needs no account and no config.
 - [Configuration](/docs/guides/configuration/): every section of `config.toml` is optional.
 - [Writing a provider plugin](/docs/plugins/authoring/): WebAssembly components in Rust,
