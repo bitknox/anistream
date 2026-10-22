@@ -83,6 +83,9 @@ class AppStore(
     val showSettings = ShowSettingsModel()
     val episodeFolds = EpisodeFolds()
     val coming = ComingModel()
+
+    /** The app's own update: the newer release, and the download and install the viewer started. */
+    val updates = UpdateModel(notices)
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -381,6 +384,17 @@ class AppStore(
     /** The title language the signed-in AniList viewer reads in, for AniList's choice. */
     fun loadTitleLanguage() {
         send(Command.LoadTitleLanguage)
+    }
+
+    // The app's update
+
+    /**
+     * Update, as the notice's button and Settings' row press it: the download and install where
+     * this build updates itself and the release has an APK, else the release's page.
+     */
+    fun takeUpdate() {
+        val offer = updates.state.value.offer ?: return
+        if (updates.installs(offer)) updates.press() else if (offer.page.isNotEmpty()) openExternal(offer.page)
     }
 
     // Accounts

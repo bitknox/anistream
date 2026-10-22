@@ -233,6 +233,7 @@ fun AppRoot(
         LocalNotificationActions provides actions.notifications,
     ) {
         EngineNotices(onHint = routed.hint)
+        UpdatePrompts()
         AccountSheets()
         JoinStoreSheetHost()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
@@ -258,7 +259,14 @@ fun AppRoot(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
             // The player says its own notices on the video; the snackbars wait for it to close.
-            snackbarHost = { if (!onPlayer) SnackbarHost(snackbars.host) },
+            snackbarHost = {
+                if (!onPlayer) {
+                    androidx.compose.foundation.layout.Column {
+                        UpdateNotice(hidden = entry?.destination?.route?.startsWith(SETTINGS_ROUTE) == true)
+                        SnackbarHost(snackbars.host) { NoticeSnackbar(it) }
+                    }
+                }
+            },
             bottomBar = { if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go) },
         ) { padding ->
             Row(Modifier.padding(padding).consumeWindowInsets(padding)) {

@@ -163,6 +163,7 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
     val working by store.accounts.working.collectAsStateWithLifecycle()
     val downloads by store.downloads.rows.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
+    val update by store.updates.state.collectAsStateWithLifecycle()
     AccountCard(trackers["anilist"], AccountWords.status(trackers["anilist"], syncedAt, working)) { open(SettingsPane.Accounts) }
     val panes = listOf(
         SettingsPane.Playback to playbackSummary(view),
@@ -178,7 +179,8 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
     )
     SettingsGroup(
         rows = listOf({ place ->
-            LinkRow(place, SettingsPane.About.title, "Version ${appVersion()}", SettingsPane.About.icon, selected = selected == SettingsPane.About) {
+            val version = listOfNotNull("Version ${appVersion()}", update.offer?.let { "${it.name} is out" }).joinToString(" · ")
+            LinkRow(place, SettingsPane.About.title, version, SettingsPane.About.icon, selected = selected == SettingsPane.About) {
                 open(SettingsPane.About)
             }
         }),
