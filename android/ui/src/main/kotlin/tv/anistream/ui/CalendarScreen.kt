@@ -3,6 +3,12 @@
 
 package tv.anistream.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -19,9 +25,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +38,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -39,30 +45,45 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorProducer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import tv.anistream.design.ArtShape
+import tv.anistream.design.Motion
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
+import tv.anistream.store.CalendarModel
 import tv.anistream.store.ListState
 import tv.anistream.store.Wording
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
@@ -70,6 +91,9 @@ import tv.anistream.engine.model.LibrarySegment
 /** Whether a title is yours: under way here, or on your Watching or Planning list. */
 fun Entry.isMine(): Boolean =
     progress != null || listStatus == LibrarySegment.WATCHING || listStatus == LibrarySegment.PLANNING
+
+/** Calendar's two choices: the titles of yours, or everything airing. */
+private val SHOW_CHOICES = listOf("My list", "All airing")
 
 private val dayHeading = DateTimeFormatter.ofPattern("EEEE d MMMM", AirTime.locale)
 private val clock = DateTimeFormatter.ofPattern("HH:mm", AirTime.locale)
@@ -82,6 +106,80 @@ private fun dayName(day: LocalDate, today: LocalDate): String = when (day) {
     else -> dayHeading.format(day)
 }
 
+/**
+ * The page as it stands: the broadcasts by day, every day with a heading, where each heading is in
+ * the list and which day each of its items belongs to, read against [now].
+ */
+@androidx.compose.runtime.Immutable
+internal class CalendarPage(
+    val now: Instant,
+    val today: LocalDate,
+    /** This week's days, Monday first, for the strip. */
+    val week: List<LocalDate>,
+    /** Every day the page heads, in order. */
+    val days: List<LocalDate>,
+    val byDay: Map<LocalDate, List<Broadcast>>,
+    /** Whether any broadcast is of a title of yours, which picks My list when nothing else has. */
+    val anyMine: Boolean,
+    /** Where each day's heading is in the list. */
+    val headings: Map<LocalDate, Int>,
+    /** The day each of the list's items belongs to, by its index. */
+    val dayOf: List<LocalDate>,
+) {
+    companion object {
+        /** A page and what it was worked out from. */
+        private class Made(
+            val window: CalendarModel.Window,
+            val titles: Map<AnilistId, Entry>,
+            val mine: Boolean?,
+            val minute: Long,
+            val zone: ZoneId,
+            val page: CalendarPage,
+        )
+
+        /** The last page worked out, kept from one visit to the next. */
+        private var last: Made? = null
+
+        /**
+         * The page for [window] as [titles] now stand, read at [now]: the last one again while
+         * nothing it was made from has changed within the minute, so a return to Calendar does
+         * none of this work in the frame it opens on.
+         */
+        fun of(window: CalendarModel.Window, titles: Map<AnilistId, Entry>, mine: Boolean?, now: Instant, zone: ZoneId): CalendarPage {
+            val minute = now.epochSecond / 60
+            last?.let {
+                if (it.window === window && it.titles === titles && it.mine == mine && it.minute == minute && it.zone == zone) return it.page
+            }
+            return make(window, titles, mine, now, zone).also { last = Made(window, titles, mine, minute, zone, it) }
+        }
+
+        private fun make(window: CalendarModel.Window, titles: Map<AnilistId, Entry>, mine: Boolean?, now: Instant, zone: ZoneId): CalendarPage {
+            val today = LocalDate.ofInstant(now, zone)
+            // The titles as they now stand: progress may have moved since the calendar came.
+            val broadcasts = window.broadcasts(now).map { b ->
+                val known = titles[b.entry.id]
+                if (known == null || known.progress == b.entry.progress && known.listStatus == b.entry.listStatus) b
+                else b.copy(entry = b.entry.copy(progress = known.progress, listStatus = known.listStatus))
+            }
+            val anyMine = broadcasts.any { it.entry.isMine() }
+            val shown = if (mine ?: anyMine) broadcasts.filter { it.entry.isMine() } else broadcasts
+            val byDay = shown.groupBy { LocalDate.ofInstant(it.airs, zone) }.toSortedMap()
+            val week = (0L until 7L).map { today.with(DayOfWeek.MONDAY).plusDays(it) }
+            // Every day of this week and the next seven has a heading, so today can stand at the top
+            // of the page, and so does every other day with something on it.
+            val ahead = (0L..7L).map { today.plusDays(it) }
+            val days = (byDay.keys + week + ahead).toSortedSet().toList()
+            val headings = mutableMapOf<LocalDate, Int>()
+            val dayOf = mutableListOf<LocalDate>()
+            for (day in days) {
+                headings[day] = dayOf.size
+                repeat(1 + maxOf(1, byDay[day]?.size ?: 0)) { dayOf += day }
+            }
+            return CalendarPage(now, today, week, days, byDay, anyMine, headings, dayOf)
+        }
+    }
+}
+
 @Composable
 fun CalendarScreen() {
     val store = LocalAppStore.current
@@ -91,61 +189,32 @@ fun CalendarScreen() {
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadCalendar() }
 
-    val zone = AppClock.zone
-    val now = AppClock.now()
-    val today = LocalDate.ofInstant(now, zone)
-    // The titles as they now stand: progress may have moved since the calendar came.
-    val broadcasts = window.broadcasts(now).map { b ->
-        titles[b.entry.id]?.let { b.copy(entry = b.entry.copy(progress = it.progress, listStatus = it.listStatus)) } ?: b
-    }
-    val anyMine = broadcasts.any { it.entry.isMine() }
     var mine by rememberSaveable { mutableStateOf<Boolean?>(null) }
-    val showMine = mine ?: anyMine
-    val shown = if (showMine) broadcasts.filter { it.entry.isMine() } else broadcasts
-    val byDay = shown.groupBy { LocalDate.ofInstant(it.airs, zone) }.toSortedMap()
-    val week = (0L until 7L).map { today.with(DayOfWeek.MONDAY).plusDays(it) }
-    // Every day of this week and the next seven has a heading, so today can stand at the top of
-    // the page, and so does every other day with something on it.
-    val ahead = (0L..7L).map { today.plusDays(it) }
-    val days = (byDay.keys + week + ahead).toSortedSet().toList()
+    // Worked out once each time the calendar, the titles or the choice changes, never again on a
+    // frame of a scroll or a transition. The time the rows read their words off is taken then too.
+    val page = remember(window, titles, mine) { CalendarPage.of(window, titles, mine, AppClock.now(), AppClock.zone) }
+    val showMine = mine ?: page.anyMine
+    val answered = state is ListState.Loaded || state is ListState.Empty || state is ListState.Failed
 
-    val list = rememberLazyListState()
+    // The list opens on today: it is made once the calendar is here, with today's heading at its
+    // top, so the page never draws another day first and then jumps. It is kept with the
+    // destination, so a later visit comes back where the last one left it.
+    val list = rememberSaveable(answered, saver = LazyListState.Saver) {
+        LazyListState(if (answered) page.headings[page.today] ?: 0 else 0)
+    }
     val scope = rememberCoroutineScope()
-    // Where each day's heading is in the list, and which day each row belongs to.
-    val layout = remember(days, byDay) {
-        val headings = mutableMapOf<LocalDate, Int>()
-        val dayOf = mutableListOf<LocalDate>()
-        for (day in days) {
-            headings[day] = dayOf.size
-            repeat(1 + maxOf(1, byDay[day]?.size ?: 0)) { dayOf += day }
-        }
-        headings to dayOf
+    // The strip follows the page: the day at its top is selected. Read by the strip alone, so a
+    // new day at the top redraws the strip and nothing else.
+    val selected = remember(list, page, answered) {
+        derivedStateOf { if (answered) page.dayOf.getOrNull(list.firstVisibleItemIndex) ?: page.today else page.today }
     }
-    val (headings, dayOf) = layout
-    var placed by rememberSaveable { mutableStateOf(false) }
-    // The strip follows the page once it has opened on today: the day at its top is selected.
-    val selected by remember(dayOf) {
-        derivedStateOf { if (placed) dayOf.getOrNull(list.firstVisibleItemIndex) ?: today else today }
-    }
-    // Open on today, by its heading's key once the list has laid it out, so a list still taking
-    // its shape never leaves the page on another day.
-    val latestHeadings by rememberUpdatedState(headings)
-    LaunchedEffect(state is ListState.Loaded) {
-        if (placed || state !is ListState.Loaded) return@LaunchedEffect
-        val key = "day-$today"
-        snapshotFlow { list.layoutInfo.totalItemsCount }.first { it > 0 }
-        repeat(3) {
-            val index = latestHeadings[today] ?: return@repeat
-            list.scrollToItem(index)
-            if (list.layoutInfo.visibleItemsInfo.firstOrNull()?.key == key) return@repeat
-        }
-        placed = true
-    }
-    // Earlier broadcasts, as the page reaches its top.
-    LaunchedEffect(list.firstVisibleItemIndex, window.morePast, placed) {
-        val anchor = window.anchor
-        if (placed && list.firstVisibleItemIndex == 0 && window.morePast && anchor != null) {
-            store.send(Command.LoadCalendarPast(anchor, window.pages))
+    // Earlier broadcasts, as the page reaches its top: watched in a flow, so a scroll never
+    // recomposes the page.
+    LaunchedEffect(list, answered) {
+        if (!answered) return@LaunchedEffect
+        snapshotFlow { list.firstVisibleItemIndex == 0 && window.morePast }.collect { top ->
+            val anchor = window.anchor
+            if (top && anchor != null) store.send(Command.LoadCalendarPast(anchor, window.pages))
         }
     }
 
@@ -153,40 +222,73 @@ fun CalendarScreen() {
         Column(Modifier.padding(top = padding.calculateTopPadding())) {
             // Pinned above the days: which broadcasts, and the week's days to jump to.
             ConnectedChoice(
-                choices = listOf("My list", "All airing"),
+                choices = SHOW_CHOICES,
                 selected = if (showMine) 0 else 1,
                 onSelect = { mine = it == 0 },
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            WeekStrip(week, today, selected, aired = byDay.keys) { day ->
-                headings[day]?.let { scope.launch { list.animateScrollToItem(it) } }
+            WeekStrip(page.week, page.today, { selected.value }, aired = page.byDay.keys) { day ->
+                page.headings[day]?.let { scope.launch { list.animateScrollToItem(it) } }
             }
+            // Nothing for the first 600 ms, then placeholders, then the days in one crossfade (T8).
             // The gap above the days is outside the list, so a day scrolled to the top leaves
             // nothing of the one before it showing under the strip.
-            LazyColumn(state = list, modifier = Modifier.padding(top = 8.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
-                for (day in days) {
-                    item(key = "day-$day") {
-                        Text(
-                            dayName(day, today),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).semantics { heading() },
-                        )
-                    }
-                    val rows = byDay[day].orEmpty()
-                    if (rows.isEmpty()) {
-                        item(key = "none-$day") {
-                            Text(
-                                "Nothing airing",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
-                            )
-                        }
-                    } else {
-                        items(rows, key = { "row-${it.entry.id}-${it.episode}-${it.airs.epochSecond}" }) { broadcast ->
-                            Box(itemMotion()) { BroadcastRow(broadcast, now) { navigator.openTitle(broadcast.entry.id, "calendar") } }
-                        }
-                    }
+            Loading(page.takeIf { answered }, Modifier.padding(top = 8.dp), placeholders = { CalendarPlaceholders() }) {
+                CalendarDays(page, list) { navigator.openTitle(it, "calendar") }
+            }
+        }
+    }
+}
+
+/**
+ * Every day's broadcasts under its heading. Headings, rows and "Nothing airing" all move together
+ * as the rows change, each with its kind for the list to reuse.
+ */
+@Composable
+private fun CalendarDays(page: CalendarPage, list: LazyListState, onOpen: (AnilistId) -> Unit) {
+    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
+        for (day in page.days) {
+            item(key = "day-$day", contentType = "day") {
+                Text(
+                    dayName(day, page.today),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = itemMotion().padding(horizontal = 16.dp, vertical = 8.dp).semantics { heading() },
+                )
+            }
+            val rows = page.byDay[day].orEmpty()
+            if (rows.isEmpty()) {
+                item(key = "none-$day", contentType = "none") {
+                    Text(
+                        "Nothing airing",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = itemMotion().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                    )
+                }
+            } else {
+                items(rows, key = { "row-${it.entry.id}-${it.episode}-${it.airs.epochSecond}" }, contentType = { "row" }) { broadcast ->
+                    Box(itemMotion()) { BroadcastRow(broadcast, page.now) { onOpen(broadcast.entry.id) } }
+                }
+            }
+        }
+    }
+}
+
+/** The days before the calendar arrives: a heading and rows as flat shapes, at their real sizes (T8). */
+@Composable
+private fun CalendarPlaceholders() {
+    Column {
+        TextPlaceholder(0.25f, 24.dp, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        repeat(6) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)).background(MaterialTheme.colorScheme.surfaceContainer))
+                Column(Modifier.weight(1f)) {
+                    TextPlaceholder(0.7f, 24.dp)
+                    TextPlaceholder(0.45f, 20.dp)
                 }
             }
         }
@@ -199,54 +301,119 @@ fun CalendarScreen() {
  */
 @Composable
 internal fun ConnectedChoice(choices: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    val colors = MaterialTheme.colorScheme
     Row(modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         choices.forEachIndexed { index, choice ->
-            val chosen = index == selected
-            val shape = when {
-                chosen -> RoundedCornerShape(20.dp)
-                index == 0 -> RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp, topEnd = 8.dp, bottomEnd = 8.dp)
-                index == choices.lastIndex -> RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp, topEnd = 20.dp, bottomEnd = 20.dp)
-                else -> RoundedCornerShape(8.dp)
-            }
-            val content = if (chosen) colors.onPrimaryContainer else colors.onSurface
-            Row(
-                Modifier
-                    .weight(1f)
-                    .heightIn(min = 40.dp)
-                    .clip(shape)
-                    .background(if (chosen) colors.primaryContainer else colors.surfaceContainer)
-                    .clickable { onSelect(index) },
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (chosen) {
-                    Icon(Icons.Check, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(choice, style = MaterialTheme.typography.labelLarge, color = content)
+            ConnectedButton(
+                chosen = index == selected,
+                first = index == 0,
+                last = index == choices.lastIndex,
+                onClick = { onSelect(index) },
+                gap = 8.dp,
+            ) { color ->
+                BasicText(choice, style = MaterialTheme.typography.labelLarge, color = color)
             }
         }
     }
 }
 
+/**
+ * One button of a connected group, [content] beside its check: fully round outside and all round
+ * once chosen, 8 between, on primaryContainer once chosen, [weight] wide against the others. A new
+ * choice morphs its corners on the motion scheme's spatial spring and its colours on its effects
+ * spring, as a ToggleButton's do, read as the button is drawn, so the morph recomposes nothing;
+ * the check fades in on fade-in as its room opens on standard, and the old one's leaves on quick
+ * (T7). [content] draws in the colour it is handed, as it stands at each frame.
+ */
+@Composable
+internal fun RowScope.ConnectedButton(
+    chosen: Boolean,
+    first: Boolean,
+    last: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** As the finger lands, before it is known to be a tap. */
+    onPress: (() -> Unit)? = null,
+    /** As it lifts or the touch is taken away, a tap or not. */
+    onRelease: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    weight: Float = 1f,
+    gap: Dp = 6.dp,
+    content: @Composable RowScope.(color: ColorProducer) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    val motion = MaterialTheme.motionScheme
+    // How far chosen, 0 to 1: one spring for the shape, one for the colours.
+    val shape = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultSpatialSpec(), label = "shape")
+    val tone = animateFloatAsState(if (chosen) 1f else 0f, motion.defaultEffectsSpec(), label = "tone")
+    val color = remember(colors, tone) { ColorProducer { lerp(colors.onSurface, colors.onPrimaryContainer, tone.value) } }
+    Row(
+        modifier
+            .weight(weight)
+            .heightIn(min = 40.dp)
+            .graphicsLayer {
+                val start = lerp(if (first) 20.dp else 8.dp, 20.dp, shape.value)
+                val end = lerp(if (last) 20.dp else 8.dp, 20.dp, shape.value)
+                this.shape = RoundedCornerShape(topStart = start, bottomStart = start, topEnd = end, bottomEnd = end)
+                clip = true
+            }
+            .drawBehind { drawRect(lerp(colors.surfaceContainer, colors.primaryContainer, tone.value)) }
+            .then(if (onPress == null || !enabled) Modifier else Modifier.pressWatch(onPress, onRelease))
+            .clickable(enabled = enabled, onClick = onClick)
+            .semantics { selected = chosen },
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AnimatedVisibility(chosen, enter = markIn, exit = markOut) {
+            Icon(Icons.Check, contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.padding(end = gap).size(18.dp))
+        }
+        content(color)
+    }
+}
+
+/**
+ * [onPress] as a finger lands and [onRelease] as it lifts or the touch is taken away, watched
+ * ahead of the button's own handling and consuming nothing.
+ */
+@Composable
+private fun Modifier.pressWatch(onPress: () -> Unit, onRelease: (() -> Unit)?): Modifier {
+    val press by rememberUpdatedState(onPress)
+    val release by rememberUpdatedState(onRelease)
+    return pointerInput(Unit) {
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            press()
+            waitForUpOrCancellation(PointerEventPass.Initial)
+            release?.invoke()
+        }
+    }
+}
+
+/** A connected button's check, or anything else that comes with the choice: in as its room opens. */
+internal val markIn = fadeIn(Motion.fadeIn()) + expandHorizontally(Motion.standard())
+
+/** The old choice's check leaving: out on quick as its room closes. */
+internal val markOut = fadeOut(Motion.quick()) + shrinkHorizontally(Motion.standard())
+
 /** The week, Monday first: each day a 48 × 64 pill, today's selected, a water dot where something airs. */
 @Composable
-private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: LocalDate, aired: Set<LocalDate>, onDay: (LocalDate) -> Unit) {
+private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> LocalDate, aired: Set<LocalDate>, onDay: (LocalDate) -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val chosenDay = selected()
     Row(
         Modifier.padding(top = 8.dp).padding(horizontal = 16.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         for (day in week) {
-            val chosen = day == selected
             val name = day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale).uppercase(Locale.ROOT)
+            // The pill moves from day to day on quick, as the page scrolls past them or one is
+            // tapped: drawn, so it redraws the pill alone.
+            val on by animateFloatAsState(if (day == chosenDay) 1f else 0f, Motion.quick(), label = "day")
             Column(
                 Modifier
                     .widthIn(min = 48.dp)
                     .heightIn(min = 64.dp)
                     .clip(RoundedCornerShape(24.dp))
-                    .background(if (chosen) colors.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
+                    .drawBehind { drawRect(colors.primaryContainer.copy(alpha = on)) }
                     .clickable { onDay(day) }
                     .semantics {
                         contentDescription = dayHeading.format(day) + (if (day == today) ", today" else "") +
@@ -255,18 +422,20 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: LocalDa
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
             ) {
-                // One line however large the text: the day's name shrinks to fit before it wraps.
+                // One line however large the text: three letters fit the pill at every size the
+                // system's font scale reaches, so the name never wraps and nothing has to measure
+                // it again at smaller sizes.
                 Text(
                     name,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (chosen) colors.onPrimaryContainer else colors.onSurfaceVariant,
+                    color = lerp(colors.onSurfaceVariant, colors.onPrimaryContainer, on),
                     maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = MaterialTheme.typography.labelSmall.fontSize),
+                    softWrap = false,
                 )
                 Text(
                     day.dayOfMonth.toString(),
                     style = MaterialTheme.typography.bodyLarge.tabular(),
-                    color = if (chosen) colors.onPrimaryContainer else colors.onSurface,
+                    color = lerp(colors.onSurface, colors.onPrimaryContainer, on),
                 )
                 Box(Modifier.size(4.dp).background(if (day in aired) colors.secondary else androidx.compose.ui.graphics.Color.Transparent, CircleShape))
             }

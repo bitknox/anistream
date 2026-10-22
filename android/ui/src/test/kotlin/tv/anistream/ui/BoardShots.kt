@@ -212,7 +212,7 @@ class BoardShots {
     /** The title page scrolled to the row its watched episodes fold under. */
     private fun toEpisodes() {
         compose.onNode(hasScrollToKeyAction() and hasAnyDescendant(hasText("More about this show")))
-            .performScrollToKey(WATCHED_FOLD)
+            .performScrollToKey(watchedFold(900001u))
         compose.waitForIdle()
     }
 
@@ -285,7 +285,7 @@ class BoardShots {
         var still = System.currentTimeMillis()
         while (System.currentTimeMillis() < deadline) {
             compose.waitForIdle()
-            val now = store.artwork.arrivals.value.size
+            val now = store.artwork.landed.value
             if (now != landed) {
                 landed = now
                 still = System.currentTimeMillis()

@@ -26,6 +26,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import tv.anistream.design.ArtShape
 import tv.anistream.design.CoverPlate
 import tv.anistream.design.Motion
@@ -42,8 +44,10 @@ val LocalAppStore = staticCompositionLocalOf<AppStore> { error("no AppStore in t
 @Composable
 fun ArtworkImage(url: String?, plate: Color?, maxPixelSize: Int, modifier: Modifier = Modifier) {
     val store = LocalAppStore.current
-    val arrivals by store.artwork.arrivals.collectAsStateWithLifecycle()
-    val art = url?.let { arrivals[it]; store.artwork.image(it) }
+    // This URL's arrivals alone: another cover landing leaves this one be.
+    val arrived = remember(url) { url?.let(store.artwork::arrivals) ?: NONE_ARRIVED }
+    val arrivals by arrived.collectAsStateWithLifecycle()
+    val art = url?.let { arrivals; store.artwork.image(it) }
     LaunchedEffect(url, maxPixelSize) {
         if (url != null) store.artwork.request(url, maxPixelSize)
     }
@@ -65,6 +69,9 @@ fun ArtworkImage(url: String?, plate: Color?, maxPixelSize: Int, modifier: Modif
         }
     }
 }
+
+/** What a box with no URL observes: nothing ever lands. */
+private val NONE_ARRIVED: StateFlow<Int> = MutableStateFlow(0)
 
 /** The pixels a box [dp] wide or high needs. */
 @Composable
