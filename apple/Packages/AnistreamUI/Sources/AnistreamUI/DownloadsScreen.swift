@@ -124,6 +124,8 @@ struct DownloadGroupView: View {
                     Text("Quality").font(.mac(13)).foregroundStyle(.haze).padding(.leading, 12)
                     DeferredMenu(text: "Standard", waitsOn: "E8")
                 }
+                // Whole, however narrow the window: the name wraps instead.
+                .fixedSize()
                 .opacity(0.6)
             }
             .padding(.vertical, 12)
