@@ -86,7 +86,22 @@ class SettingsShots {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_settings_notifications() = shoot("phone-settings-notifications", settingsRoute(SettingsPane.Notifications))
+    fun phone_settings_notifications() = shoot("phone-settings-notifications", settingsRoute(SettingsPane.Notifications)) { store ->
+        // The week coming up, as the engine lists it for the watching scene's shows.
+        val now = AppClock.now().epochSecond
+        store.apply(
+            listOf(
+                Event.ComingEpisodes(
+                    listOf(
+                        tv.anistream.engine.model.ComingEpisode(900002u, "The Library Above the Clouds", 6u, now + 2 * 86_400 + 11_700, coverUrl = coverOf(store, 900002u)),
+                        tv.anistream.engine.model.ComingEpisode(900006u, "Summer Wind Relay", 9u, now + 6 * 86_400 + 18_000, coverUrl = coverOf(store, 900006u), switchedOn = true),
+                    ),
+                ),
+            ),
+        )
+    }
+
+    private fun coverOf(store: AppStore, id: UInt): String? = store.titles[id]?.coverUrl
 
     @Test
     @Config(qualifiers = PHONE)

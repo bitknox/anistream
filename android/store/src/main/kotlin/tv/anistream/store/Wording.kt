@@ -87,6 +87,21 @@ object AirTime {
     private val time = DateTimeFormatter.ofPattern("HH:mm", locale)
     private val date = DateTimeFormatter.ofPattern("d MMMM", locale)
 
+    /**
+     * A time coming up this week, as Notifications' "Coming up" says it: "Today 22:00",
+     * "Tomorrow 16:30", "Thursday 16:30".
+     */
+    fun coming(at: Instant, now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): String {
+        val local = at.atZone(zone)
+        val today = now.atZone(zone).toLocalDate()
+        val day = when (local.toLocalDate()) {
+            today -> "Today"
+            today.plusDays(1) -> "Tomorrow"
+            else -> local.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+        }
+        return "$day ${time.format(local)}"
+    }
+
     fun words(at: Instant, now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): String {
         val local = at.atZone(zone)
         val days = (at.epochSecond - now.epochSecond) / 86_400.0

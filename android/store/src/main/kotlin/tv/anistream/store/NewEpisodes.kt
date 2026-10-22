@@ -13,14 +13,19 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.withContext
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.ffi.FfiBackground
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.ffi.FfiHost
 import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.ComingEpisode
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.WidgetData
 
@@ -41,6 +46,15 @@ data class NewEpisode(
     val coverUrl: String? = null,
     /** That cover, fetched for the notification while the check's engine was up. */
     val art: Bitmap? = null,
+    /**
+     * The episode the viewer is up to, when that is before this one: "Next for you: episode 8",
+     * and the one Play starts.
+     */
+    val nextForYou: UInt? = null,
+    /** Whether the viewer watches the show dubbed. */
+    val dubbed: Boolean = false,
+    /** The show's banner, fetched like the cover, for the expanded picture. */
+    val banner: Bitmap? = null,
 )
 
 /**
@@ -70,9 +84,21 @@ class EngineEpisodeCheck(
     override suspend fun newEpisodes(): List<NewEpisode> = engine.use { store ->
         val said = store.ask(Command.CheckNewEpisodes, CHECK_MILLIS) { (it as? Event.NewEpisodes)?.v1 }
             ?: throw Unanswered("the check for new episodes")
-        val covers = store.covers(said.mapNotNull { it.coverUrl }.distinct(), coverSize, COVERS_MILLIS)
+        val art = store.covers(said.flatMap { listOfNotNull(it.coverUrl, it.bannerUrl) }.distinct(), coverSize, COVERS_MILLIS)
         store.ask(Command.WidgetSnapshot, SNAPSHOT_MILLIS) { (it as? Event.WidgetSnapshot)?.v1 }?.let { widgets(store, it) }
-        said.map { NewEpisode(it.id, it.title, it.episode, it.airedAt, it.coverUrl, it.coverUrl?.let(covers::get)) }
+        said.map {
+            NewEpisode(
+                id = it.id,
+                title = it.title,
+                episode = it.episode,
+                airedAt = it.airedAt,
+                coverUrl = it.coverUrl,
+                art = it.coverUrl?.let(art::get),
+                nextForYou = it.nextForYou,
+                dubbed = it.translation == Translation.DUB,
+                banner = it.bannerUrl?.let(art::get),
+            )
+        }
     }
 
     /** The engine did not answer [what] in time. */
@@ -181,5 +207,20 @@ class BackgroundEngine(
             storeRefresh = false,
             playerCheck = false,
         )
+    }
+}
+
+/**
+ * The Notifications settings' "Coming up · next 7 days": the episodes of the shows the new-episode
+ * check follows that air this week, as the engine lists them (`ComingEpisodes`).
+ */
+class ComingModel {
+    private val _episodes = MutableStateFlow<List<ComingEpisode>?>(null)
+
+    /** The episodes, soonest first; `null` until the engine has answered. */
+    val episodes: StateFlow<List<ComingEpisode>?> = _episodes.asStateFlow()
+
+    internal fun apply(episodes: List<ComingEpisode>) {
+        _episodes.value = episodes
     }
 }

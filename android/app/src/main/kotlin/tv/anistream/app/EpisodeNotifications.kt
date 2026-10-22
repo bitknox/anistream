@@ -75,8 +75,20 @@ data class EpisodePlan(val posts: List<Post>, val summary: Summary?) {
 
         fun tagOf(id: AnilistId, episode: UInt): String = "episode/$id/$episode"
 
-        /** What the notification says under the show's title: "Episode 9 is out." Never the episode's name. */
-        fun textOf(episode: NewEpisode): String = "Episode ${episode.episode} is out."
+        /**
+         * What the notification says under the show's title, never the episode's name: "Episode 9
+         * is out.", "Episode 9 is out, dubbed." for a show watched dubbed, and for a viewer behind,
+         * "Episode 10 is out. Next for you: episode 8."
+         */
+        fun textOf(episode: NewEpisode): String = buildString {
+            append("Episode ${episode.episode} is out")
+            if (episode.dubbed) append(", dubbed")
+            append(".")
+            episode.nextForYou?.let { append(" Next for you: episode $it.") }
+        }
+
+        /** The episode Play starts: the viewer's next where they are behind, else the new one. */
+        fun playOf(episode: NewEpisode): UInt = episode.nextForYou ?: episode.episode
 
         /** The summary's line for it. */
         fun lineOf(episode: NewEpisode): Line = Line(episode.title, episode.episode)
@@ -169,11 +181,15 @@ class EpisodeNotifier(private val context: Context) {
                 },
             )
             .setContentIntent(openIntent(context, AppLink.Title(episode.id), tag))
-            .addAction(0, context.getString(R.string.episode_play), openIntent(context, AppLink.Play(episode.id, episode.episode.toString()), tag))
-            .addAction(0, context.getString(R.string.episode_mark_watched), markWatchedIntent(context, episode.id, episode.episode))
-        // The cover on the right, and expanded, the art in full in its place.
-        episode.art?.let { art ->
-            builder.setLargeIcon(art).setStyle(NotificationCompat.BigPictureStyle().bigPicture(art).bigLargeIcon(null as Bitmap?))
+            .addAction(0, context.getString(R.string.episode_play), openIntent(context, AppLink.Play(episode.id, EpisodePlan.playOf(episode).toString()), tag))
+        // Behind, marking the new one watched would skip the ones between: no Mark watched.
+        if (episode.nextForYou == null) {
+            builder.addAction(0, context.getString(R.string.episode_mark_watched), markWatchedIntent(context, episode.id, episode.episode))
+        }
+        // The cover on the right, and expanded, the banner in full where there is one.
+        episode.art?.let(builder::setLargeIcon)
+        (episode.banner ?: episode.art)?.let { picture ->
+            builder.setStyle(NotificationCompat.BigPictureStyle().bigPicture(picture).bigLargeIcon(null as Bitmap?))
         }
         return builder.build()
     }
