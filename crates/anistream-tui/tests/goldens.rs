@@ -468,6 +468,7 @@ scenarios! {
     sources,
     source_provider,
     watch_order,
+    watch_order_long,
     recommendations,
     download_range,
     edit_setting,
@@ -1512,6 +1513,53 @@ fn source_provider(s: &mut Screen) {
 /// The watch order around a title: its prequel and sequel.
 fn watch_order(s: &mut Screen) {
     on_kaze(s);
+    s.act(Action::WatchOrder);
+}
+
+/// The watch order on the ninth season of a twelve-season franchise: the other eleven, numbered as
+/// every one of their pages numbers them, then the OVA, opened on the season after this one.
+fn watch_order_long(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![hoshikuzu(), kaze(), yoru()]);
+    s.press(&["j", "enter"]);
+    let season = |n: u32| anistream_model::catalog::LinkedTitle {
+        id: if n == 9 { id(102) } else { id(120 + n) },
+        title: if n == 1 {
+            "Kaze no Tegami".into()
+        } else {
+            format!("Kaze no Tegami Season {n}")
+        },
+        title_romaji: None,
+        title_english: None,
+        title_native: None,
+        relation: None,
+        format: Some("TV".into()),
+        cover_url: None,
+        cover_color: None,
+        season: None,
+        year: Some(2017 + n as u16),
+        list_status: None,
+    };
+    let mut page = kaze_detail();
+    // Its own prequel and sequel are the eighth and the tenth, which the picker has; the OVA is not.
+    page.related.retain(|related| related.format.as_deref() != Some("TV"));
+    page.related.push(RelatedTitle {
+        id: id(128),
+        title: "Kaze no Tegami Season 8".into(),
+        relation: "prequel".into(),
+        format: Some("TV".into()),
+    });
+    page.related.push(RelatedTitle {
+        id: id(130),
+        title: "Kaze no Tegami Season 10".into(),
+        relation: "sequel".into(),
+        format: Some("TV".into()),
+    });
+    page.detail = Some(anistream_model::catalog::TitleDetail {
+        seasons: Some((1..=12).map(season).collect()),
+        ..Default::default()
+    });
+    s.apply(Event::Detail(Box::new(page)));
     s.act(Action::WatchOrder);
 }
 

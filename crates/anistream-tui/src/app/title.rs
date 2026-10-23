@@ -50,6 +50,18 @@ pub(crate) fn watch_order(entry: &Entry) -> Vec<WatchStep> {
     steps
 }
 
+/// Where the watch order opens on `entry`'s page: on the season after it, the one to watch next,
+/// so a long franchise's later seasons open on their own place in it, not the first season's.
+/// The season before it on the last, and the first row for a title that is none of them.
+pub(crate) fn watch_from(entry: &Entry) -> usize {
+    let seasons = entry.detail.as_ref().and_then(|d| d.seasons.as_deref()).unwrap_or_default();
+    let Some(at) = seasons.iter().position(|season| season.id == entry.id) else {
+        return 0;
+    };
+    // The others are listed first, in order, this one left out: the one after it takes its place.
+    at.min(seasons.len().saturating_sub(2))
+}
+
 /// A title page left for one of its relations or recommendations.
 ///
 /// Opening a related title replaces `detail` and, once its episodes are asked for, the episode
@@ -234,7 +246,7 @@ impl App {
             self.push_toast(Notice::info(why));
             return None;
         }
-        self.cursors.overlay.selected = 0;
+        self.cursors.overlay.selected = watch_from(entry);
         self.nav.open_overlay(Overlay::WatchOrder);
         None
     }
@@ -958,5 +970,25 @@ mod tests {
         a.handle(Action::WatchOrder, 10);
         a.handle(Action::Down, 10);
         assert_eq!(a.handle(Action::Open, 10), Some(Command::LoadDetail(AnilistId::new(3))));
+    }
+
+    #[test]
+    fn the_watch_order_opens_on_the_season_after_this_one() {
+        let on = |this: u32, of: u32| {
+            let mut page = Entry::new(AnilistId::new(this), "This");
+            page.detail = Some(anistream_model::catalog::TitleDetail {
+                seasons: Some((1..=of).map(season).collect()),
+                ..Default::default()
+            });
+            let order = watch_order(&page);
+            order[watch_from(&page)].place.clone()
+        };
+        assert_eq!(on(9, 12), "season 10");
+        assert_eq!(on(1, 12), "season 2");
+        // The last has none after it: the one before.
+        assert_eq!(on(12, 12), "season 11");
+        assert_eq!(on(2, 2), "season 1");
+        // A film, which is none of the seasons, opens on the first row.
+        assert_eq!(on(40, 3), "season 1");
     }
 }
