@@ -54,6 +54,10 @@ updates:
     # A release has a week to show a problem before it is proposed. Security updates do not wait.
     cooldown:
       default-days: 7
+    # librqbit 9 pulls in ringbuf 0.4.8 via librqbit-utp (RUSTSEC-2026-0293); revisit when librqbit-utp uses ringbuf >= 0.5.2.
+    ignore:
+      - dependency-name: librqbit
+        versions: [">= 9"]
     groups:
       cargo-security:
         applies-to: security-updates
