@@ -788,14 +788,28 @@ internal fun ActionRow(place: Place, title: String, enabled: Boolean = true, onC
 
 // About
 
+/**
+ * About: Nagare, the name and the version; Updates, with the newer release's row while there is
+ * one and the daily check's switch; then the licences.
+ */
 @Composable
 internal fun AboutPane() {
+    val store = LocalAppStore.current
+    val update by store.updates.state.collectAsStateWithLifecycle()
     Pane {
         Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Nagare(cell = 6)
             Text("anistream", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 16.dp))
             Text("Version ${appVersion()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        SettingsGroup(
+            title = "Updates",
+            rows = listOfNotNull(
+                if (update.offer != null) @Composable { place: Place -> UpdateRow(place) } else null,
+                { place -> CheckNowRow(place) },
+                { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, "Check for updates", note = "Once a day. Nothing downloads until you choose to update.") },
+            ),
+        )
         SettingsGroup(
             footer = LEGAL_LINE,
             rows = listOf(

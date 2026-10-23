@@ -55,6 +55,9 @@ import tv.anistream.widgets.ContinueWideReceiver
 internal object Flavour {
     const val FIXTURES = true
 
+    /** The fixtures flavour never installs anything: it has no permission to. */
+    const val UPDATES = false
+
     private var marked = false
 
     fun launch(context: Context, intent: Intent): EngineLaunch {

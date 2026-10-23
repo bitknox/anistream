@@ -83,6 +83,9 @@ class AppStore(
     val showSettings = ShowSettingsModel()
     val episodeFolds = EpisodeFolds()
     val coming = ComingModel()
+
+    /** The app's own update: the newer release, and the download and install the viewer started. */
+    val updates = UpdateModel(notices)
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -383,6 +386,22 @@ class AppStore(
         send(Command.LoadTitleLanguage)
     }
 
+    // The app's update
+
+    /**
+     * Update, as the notice's button and Settings' row press it: the download and install where
+     * this build updates itself and the release has an APK, else the release's page.
+     */
+    fun takeUpdate() {
+        val offer = updates.state.value.offer ?: return
+        if (updates.installs(offer)) updates.press() else if (offer.page.isNotEmpty()) openExternal(offer.page)
+    }
+
+    /** Settings' Check now: GitHub asked whatever the daily check's switch says. */
+    fun checkForUpdates() {
+        send(Command.CheckForUpdates)
+    }
+
     // Accounts
 
     /** Send what waits and pull the library now, rather than at the next interval. */
@@ -604,6 +623,7 @@ class AppStore(
             is Event.ShowSettings -> showSettings.apply(event.v1)
             is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
             is Event.UpcomingNotices -> coming.apply(event.v1)
+            is Event.Update -> updates.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

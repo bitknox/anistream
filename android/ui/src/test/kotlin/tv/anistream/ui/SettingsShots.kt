@@ -20,7 +20,10 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -45,7 +48,15 @@ import tv.anistream.engine.model.StoreState
 import tv.anistream.engine.model.ProviderRow
 import tv.anistream.engine.model.ProviderUpdate
 import tv.anistream.store.AppClock
+import tv.anistream.engine.model.Release
+import tv.anistream.engine.model.ReleaseAsset
+import tv.anistream.engine.model.UpdateStatus
+import tv.anistream.store.ApkFacts
 import tv.anistream.store.AppStore
+import tv.anistream.store.UpdateFiles
+import tv.anistream.store.UpdateHost
+import tv.anistream.store.UpdateOffer
+import tv.anistream.store.UpdateState
 import tv.anistream.store.HAS_TESTING_ENGINE
 import tv.anistream.testkit.FixtureArt
 import tv.anistream.testkit.Scene
@@ -191,6 +202,75 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_downloads() = shoot("phone-downloads", DOWNLOADS_ROUTE) { it.apply(listOf(Event.Downloads(DOWNLOADS))) }
 
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_about_update() = shoot("phone-settings-about-update", settingsRoute(SettingsPane.About)) { offerUpdate(it) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_about_downloading() = shoot("phone-settings-about-downloading", settingsRoute(SettingsPane.About)) { store ->
+        offerUpdate(store)
+        downloadUpdate(store)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_about_failed() = shoot("phone-settings-about-failed", settingsRoute(SettingsPane.About)) { store ->
+        offerUpdate(store)
+        store.updates.press()
+        // A file that is not the release's.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) { store.updates.run { _, into, _, _ -> into.parentFile?.mkdirs(); into.writeText("not the release") } }
+        val deadline = System.currentTimeMillis() + 5_000
+        while (store.updates.state.value !is UpdateState.Failed && System.currentTimeMillis() < deadline) Thread.sleep(10)
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_update_allow() = shoot("phone-update-allow", settingsRoute(SettingsPane.About), screen = true) { store ->
+        offerUpdate(store, allowed = false)
+        store.updates.press()
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_update_notice() = shoot("phone-update-notice", DOWNLOADS_ROUTE, screen = true) { store ->
+        store.apply(listOf(Event.Downloads(DOWNLOADS)))
+        offerUpdate(store)
+        downloadUpdate(store)
+    }
+
+    /** Android, as the update sees it in a shot: it allows the install, or not, and does nothing. */
+    private class ShotHost(private val allowed: Boolean) : UpdateHost {
+        override fun canInstall() = allowed
+        override fun openInstallSettings(offer: UpdateOffer) {}
+        override fun returnedFromSettings() {}
+        override fun startDownload(offer: UpdateOffer) = true
+        override fun stopDownload() {}
+        override fun inspect(file: java.io.File): ApkFacts? = null
+        override fun installed() = ApkFacts("tv.anistream.app", 200000099, emptySet())
+        override fun install(file: java.io.File, offer: UpdateOffer) {}
+        override fun abandonInstall() {}
+    }
+
+    /** v2.0.3, as the engine reports it, in a build that installs it. */
+    private fun offerUpdate(store: AppStore, allowed: Boolean = true) {
+        store.updates.attach(ShotHost(allowed), UpdateFiles(compose.activity.cacheDir.resolve("updates")))
+        store.apply(listOf(Event.Update(UpdateStatus.Available(RELEASE, notify = false))))
+    }
+
+    /** Update pressed, and the download a third of the way. */
+    private fun downloadUpdate(store: AppStore) {
+        store.updates.press()
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            store.updates.run { _, _, expected, progress ->
+                progress(expected * 34 / 100, expected)
+                awaitCancellation()
+            }
+        }
+        val deadline = System.currentTimeMillis() + 5_000
+        while ((store.updates.state.value as? UpdateState.Downloading)?.done == 0L && System.currentTimeMillis() < deadline) Thread.sleep(10)
+    }
+
     /**
      * [scene] replayed into a store, the app drawn with [page] open over Continue, and captured
      * once the art has landed. [tap] taps the node with that text first ([tapIndex] of them), and
@@ -281,6 +361,13 @@ class SettingsShots {
     }
 
     private companion object {
+        val RELEASE = Release(
+            version = "2.0.3",
+            publishedAt = 1_792_664_639,
+            pageUrl = "https://github.com/bitknox/anistream/releases/tag/v2.0.3",
+            android = ReleaseAsset("anistream-2.0.3-android-arm64.apk", "https://github.com/bitknox/anistream/releases/download/v2.0.3/anistream-2.0.3-android-arm64.apk", "0f".repeat(32), 61_400_000uL),
+        )
+
         const val PHONE = "w412dp-h915dp-port-420dpi"
         const val TABLET = "w1280dp-h800dp-land-xhdpi"
         val ZONE: ZoneId = ZoneId.of("Europe/Copenhagen")

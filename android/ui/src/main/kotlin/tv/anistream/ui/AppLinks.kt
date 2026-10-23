@@ -44,6 +44,9 @@ sealed interface AppLink {
     /** Play a finished download from its file, over Downloads, by the download's id. */
     data class Download(val id: Long) : AppLink
 
+    /** A destination, as it was left: the Updated notification's, back where the update was taken. */
+    data class Section(val destination: Destination) : AppLink
+
     /** The link's fields, as an intent's extras carry them: what it opens, and what of. */
     val fields: Map<String, String>
         get() = when (this) {
@@ -55,15 +58,16 @@ sealed interface AppLink {
             is Continue -> mapOf(OPEN to "continue", SHOW to "$id")
             is Play -> mapOf(OPEN to "play", SHOW to "$id", EPISODE to episode)
             is Download -> mapOf(OPEN to "download", DOWNLOAD to "$id")
+            is Section -> mapOf(OPEN to "section", SECTION to destination.route)
         }
 
     /** A key of the link's own, "play/900001/8": two links are one intent only when they are equal. */
-    val key: String get() = listOf(OPEN, SHOW, EPISODE, DOWNLOAD).mapNotNull(fields::get).joinToString("/")
+    val key: String get() = listOf(OPEN, SHOW, EPISODE, DOWNLOAD, SECTION).mapNotNull(fields::get).joinToString("/")
 
     companion object {
         /**
          * What the link opens: `search`, `downloads`, `calendar`, `accounts`, `title`, `continue`,
-         * `play` or `download`.
+         * `play`, `download` or `section`.
          */
         const val OPEN = "open"
 
@@ -75,6 +79,9 @@ sealed interface AppLink {
 
         /** The download, by its id. */
         const val DOWNLOAD = "download"
+
+        /** The destination, by its route. */
+        const val SECTION = "section"
 
         /** The link [field] spells out, or `null` when it is not one of the app's. */
         fun of(field: (String) -> String?): AppLink? {
@@ -88,6 +95,7 @@ sealed interface AppLink {
                 "continue" -> show?.let(::Continue)
                 "play" -> field(EPISODE)?.takeIf { it.isNotBlank() }?.let { episode -> show?.let { Play(it, episode) } }
                 "download" -> field(DOWNLOAD)?.toLongOrNull()?.let(::Download)
+                "section" -> field(SECTION)?.let(Destination::named)?.let(::Section)
                 else -> null
             }
         }
@@ -111,6 +119,7 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
             open(DOWNLOADS_ROUTE)
         }
         AppLink.Calendar -> go(Destination.Calendar)
+        is AppLink.Section -> go(link.destination)
         AppLink.Accounts -> openSettings(SettingsPane.Accounts)
         is AppLink.Title -> openTitleFromLink(link.id)
         is AppLink.Play -> {

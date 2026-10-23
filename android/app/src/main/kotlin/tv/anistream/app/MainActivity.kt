@@ -134,6 +134,8 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         traced("launch") { app.start(Flavour.launch(this, intent)) }
+        // Where Android stopped the app as "Install unknown apps" turned on, the press goes on.
+        app.appUpdates?.kept()?.let(app.store.updates::returning)
         Flavour.started(this, app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
@@ -165,6 +167,7 @@ class MainActivity : ComponentActivity() {
                     startPage = page,
                     player = player,
                     links = linkFlow,
+                    onSection = { section -> app.appUpdates?.section = section },
                 )
             }
         } }
@@ -175,6 +178,26 @@ class MainActivity : ComponentActivity() {
         val fresh = savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
         if (!signIn.handle(intent) && !(fresh && follow(intent))) invite(intent)
         keepDownloadsRunning()
+        startUpdateActivities()
+    }
+
+    /**
+     * What the update asks to be started from an activity the viewer is looking at: Android's
+     * "Install unknown apps" page for the app, and the installer's confirmation.
+     */
+    private fun startUpdateActivities() {
+        val updates = app.appUpdates ?: return
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                updates.launch.collect { intent ->
+                    intent ?: return@collect
+                    val started = runCatching { startActivity(intent) }
+                        .onFailure { Log.w(AnistreamApp.TAG, "update: ${intent.action} did not open: ${it.message}") }
+                        .isSuccess
+                    updates.launched(intent, started)
+                }
+            }
+        }
     }
 
     /**
@@ -220,6 +243,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         signIn.resumed()
+        // Back from Android's "Install unknown apps" page: the update goes on, if it may.
+        app.store.updates.resumed()
     }
 
     /**

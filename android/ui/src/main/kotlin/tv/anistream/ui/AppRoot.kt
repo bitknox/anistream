@@ -196,6 +196,8 @@ fun AppRoot(
     player: PlayerSlot? = null,
     /** The links the system opens the app on, followed as they come: shortcuts, notifications. */
     links: Flow<AppLink> = emptyFlow(),
+    /** The destination on screen, each time it changes: where the Updated notification comes back to. */
+    onSection: (Destination) -> Unit = {},
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
@@ -218,6 +220,8 @@ fun AppRoot(
     }
     val entry by nav.currentBackStackEntryAsState()
     val current = entry?.destinationOf()
+    val sectionChanged by rememberUpdatedState(onSection)
+    androidx.compose.runtime.LaunchedEffect(current) { current?.let(sectionChanged) }
     val onPage = entry?.isPage == true
     val fullWindow = entry?.isFullWindow == true
     val onPlayer = entry?.destination?.route == PLAYER_ROUTE
@@ -233,6 +237,7 @@ fun AppRoot(
         LocalNotificationActions provides actions.notifications,
     ) {
         EngineNotices(onHint = routed.hint)
+        UpdatePrompts()
         AccountSheets()
         JoinStoreSheetHost()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
@@ -258,7 +263,14 @@ fun AppRoot(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
             // The player says its own notices on the video; the snackbars wait for it to close.
-            snackbarHost = { if (!onPlayer) SnackbarHost(snackbars.host) },
+            snackbarHost = {
+                if (!onPlayer) {
+                    androidx.compose.foundation.layout.Column {
+                        UpdateNotice(hidden = entry?.destination?.route?.startsWith(SETTINGS_ROUTE) == true)
+                        SnackbarHost(snackbars.host) { NoticeSnackbar(it) }
+                    }
+                }
+            },
             bottomBar = { if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go) },
         ) { padding ->
             Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
