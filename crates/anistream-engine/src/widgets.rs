@@ -104,7 +104,7 @@ struct Make {
 impl Make {
     async fn run(&self) -> WidgetData {
         let now = self.clock.now();
-        let days = Days::of(now);
+        let days = Days::of(now, &self.clock.zone());
         let (continue_watching, broadcasts) =
             tokio::join!(self.continuing(now), self.broadcasts(&days));
         let followed: HashSet<AnilistId> =
@@ -306,9 +306,9 @@ impl Make {
     }
 }
 
-/// The days the record is of, in the device's time zone as the system has it: the start of
-/// today, of tomorrow, and of the day a week on. A day is 23 or 25 hours where the clocks change,
-/// and 24 hours from `now` when the zone cannot be read.
+/// The days the record is of, in `zone`, the clock's: the device's as the system has it, outside
+/// a test. The start of today, of tomorrow, and of the day a week on. A day is 23 or 25 hours
+/// where the clocks change, and 24 hours from `now` when the zone cannot be read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Days {
     today: i64,
@@ -317,8 +317,7 @@ struct Days {
 }
 
 impl Days {
-    fn of(now: i64) -> Self {
-        let zone = jiff::tz::TimeZone::system();
+    fn of(now: i64, zone: &jiff::tz::TimeZone) -> Self {
         let start = |date: jiff::civil::Date| {
             date.to_zoned(zone.clone()).ok().map(|zoned| zoned.timestamp().as_second())
         };
@@ -350,7 +349,7 @@ pub(crate) async fn week(
     schedule: Schedule,
     now: i64,
 ) -> (Vec<AiringEntry>, i64) {
-    let days = Days::of(now);
+    let days = Days::of(now, &clock.zone());
     let make = Make { store, meta, tracker: None, clock, schedule };
     (make.broadcasts(&days).await, days.week_end)
 }
@@ -361,12 +360,22 @@ mod tests {
 
     #[test]
     fn the_days_are_the_zones_from_midnight_to_midnight() {
-        // 2026-10-14 12:00:30 UTC, the fixtures' moment.
+        use jiff::tz::{TimeZone, offset};
+
+        // 2026-10-14 12:00:30 UTC, the fixtures' moment: Wednesday midday in UTC, and Thursday
+        // already fourteen hours east.
         let now = 1_791_979_230;
-        let days = Days::of(now);
-        assert!(days.today <= now && now < days.tomorrow, "{days:?}");
-        let hours = |secs: i64| secs as f64 / 3_600.0;
-        assert!((23.0..=25.0).contains(&hours(days.tomorrow - days.today)), "{days:?}");
-        assert!((167.0..=169.0).contains(&hours(days.week_end - days.today)), "{days:?}");
+        let utc = Days::of(now, &TimeZone::UTC);
+        assert_eq!(utc.today, now - (12 * 3_600 + 30), "{utc:?}");
+        assert_eq!((utc.tomorrow - utc.today, utc.week_end - utc.today), (DAY, 7 * DAY));
+        let east = Days::of(now, &TimeZone::fixed(offset(14)));
+        assert_eq!(east.today, utc.tomorrow - 14 * 3_600, "{east:?}");
+
+        // A week on, central Europe's clocks go back on the Sunday, so that week is an hour
+        // longer.
+        let europe = TimeZone::posix("CET-1CEST,M3.5.0,M10.5.0/3").expect("a POSIX zone");
+        let days = Days::of(now + 7 * DAY, &europe);
+        assert_eq!(days.tomorrow - days.today, DAY, "{days:?}");
+        assert_eq!(days.week_end - days.today, 7 * DAY + 3_600, "{days:?}");
     }
 }
