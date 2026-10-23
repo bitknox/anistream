@@ -76,6 +76,15 @@ gridview.posters { background: none; padding: 8px 24px 24px 24px; }
 gridview.posters > child { padding: 8px; border-radius: 12px; }
 gridview.posters > child:hover { background: alpha(var(--silk), 0.05); }
 
+/* Calendar: today's column on raised from heading to foot. */
+.calendar-day { padding: 8px 6px; border-radius: 12px; }
+.calendar-day.today { background: var(--raised); }
+.calendar-heading { padding: 0 4px 4px 4px; }
+.broadcast { padding: 4px; border-radius: 8px; }
+.broadcast:hover { background: alpha(var(--silk), 0.05); }
+.banner.small { border-radius: 6px; }
+.today-heading { color: var(--water); }
+
 .genre-tile { border-radius: 12px; padding: 18px; background: var(--raised); }
 .genre-tile:hover { background: var(--raised-selected); }
 

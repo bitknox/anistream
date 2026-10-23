@@ -145,6 +145,7 @@ impl Shell {
         for dest in Dest::ALL {
             let root = match dest {
                 Dest::Continue => pages::continue_page::build(&ctx),
+                Dest::Calendar => pages::calendar::build(&ctx),
                 Dest::Seasonal => pages::seasonal::build(&ctx),
                 Dest::Search => search.page.clone(),
                 Dest::Library => pages::library::build(&ctx),

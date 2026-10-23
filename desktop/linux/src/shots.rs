@@ -19,8 +19,9 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 11] = [
+pub const ALL: [&str; 12] = [
     "home",
+    "calendar",
     "seasonal",
     "search",
     "search-results",
@@ -66,6 +67,10 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "home" => {
             shell.go(Dest::Continue);
             1.0
+        }
+        "calendar" => {
+            shell.go(Dest::Calendar);
+            3.0
         }
         "seasonal" => {
             shell.go(Dest::Seasonal);

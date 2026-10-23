@@ -5,7 +5,8 @@
 #
 #   OUT=/some/dir desktop/linux/scripts/docker.sh desktop/linux/scripts/shots.sh
 #
-# SHOTS picks the wide run's shots (comma-separated, default all); SIZES picks the runs.
+# SHOTS picks every run's shots (comma-separated; the wide run takes all by default), and SIZES
+# picks the runs.
 set -euo pipefail
 mkdir -p "$HOME/.config/gtk-4.0" /out/media
 printf '[Settings]\ngtk-font-name=Inter 11\n' \
@@ -33,8 +34,8 @@ export GTK_A11Y=none DISPLAY=:99 GDK_BACKEND=x11 GSK_RENDERER=ngl LIBGL_ALWAYS_S
 # name, size, shots
 runs=(
   "wide 1280x800 ${SHOTS:-all}"
-  "medium 900x720 home,title,settings"
-  "narrow 400x780 home,title,library,settings"
+  "medium 900x720 ${SHOTS:-home,calendar,title,settings}"
+  "narrow 400x780 ${SHOTS:-home,calendar,title,library,settings}"
 )
 for run in "${runs[@]}"; do
   read -r name size shots <<<"$run"
