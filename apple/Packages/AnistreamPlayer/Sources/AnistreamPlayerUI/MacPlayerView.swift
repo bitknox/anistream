@@ -325,28 +325,41 @@ public struct MacPlayerView: View {
         Color.clear
             .contentShape(.rect)
             .onTapGesture { panel = nil }
-        VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    switch which {
-                    case .tracks: TrackLists(model: model, metrics: metrics)
-                    case .episodes: EpisodeList(model: model, metrics: metrics)
-                    case .more: MoreLists(model: model, metrics: metrics)
+        MenuPanelFrame {
+            ScrollViewReader { list in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        switch which {
+                        case .tracks: TrackLists(model: model, metrics: metrics)
+                        case .episodes: EpisodeList(model: model, metrics: metrics)
+                        case .more: MoreLists(model: model, metrics: metrics)
+                        }
                     }
+                    .padding(5)
                 }
-                .padding(5)
+                .scrollBounceBehavior(.basedOnSize)
+                .onAppear {
+                    if let row = selectedRow(which) { list.scrollTo(row, anchor: .center) }
+                }
             }
-            .scrollBounceBehavior(.basedOnSize)
         }
         .frame(width: 264)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxHeight: 420)
         .background(.glassFill, in: .rect(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
         .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
-        .padding(which == .more ? EdgeInsets(top: 0, leading: 0, bottom: 60, trailing: 84) : EdgeInsets(top: 50, leading: 0, bottom: 0, trailing: 16))
+        // Below the title strip and above the control row, whichever end it hangs from.
+        .padding(EdgeInsets(top: 50, leading: 0, bottom: 60, trailing: which == .more ? 84 : 16))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: which == .more ? .bottomTrailing : .topTrailing)
         .transition(.opacity)
+    }
+
+    /// The row in use in a panel, which a list too long for the window scrolls to as it opens.
+    private func selectedRow(_ which: Panel) -> String? {
+        switch which {
+        case .tracks: TrackLists.selectedRow(model)
+        case .episodes: EpisodeList.selectedRow(model)
+        case .more: nil
+        }
     }
 
     // MARK: Keys

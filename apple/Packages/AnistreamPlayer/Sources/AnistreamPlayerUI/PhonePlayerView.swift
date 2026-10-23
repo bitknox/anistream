@@ -237,19 +237,26 @@ public struct PhonePlayerView: View {
 
     @ViewBuilder
     private func sheetContent(_ sheet: Sheet) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                switch sheet {
-                case .tracks:
-                    TrackLists(model: model, metrics: metrics)
-                    MenuDivider()
-                    MoreLists(model: model, metrics: metrics)
-                case .episodes:
-                    EpisodeList(model: model, metrics: metrics)
+        ScrollViewReader { list in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    switch sheet {
+                    case .tracks:
+                        TrackLists(model: model, metrics: metrics)
+                        MenuDivider()
+                        MoreLists(model: model, metrics: metrics)
+                    case .episodes:
+                        EpisodeList(model: model, metrics: metrics)
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .onAppear {
+                // The row in use, in view however long the list.
+                let row = sheet == .tracks ? TrackLists.selectedRow(model) : EpisodeList.selectedRow(model)
+                if let row { list.scrollTo(row, anchor: .center) }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationBackground(Palette.ground)
