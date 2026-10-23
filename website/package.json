@@ -11,7 +11,7 @@
     "diagrams": "bun scripts/export-architecture.ts"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.41.11",
+    "@astrojs/starlight": "^0.42.6",
     "@fontsource/zen-kaku-gothic-new": "^5.3.1",
     "astro": "~7.3.8",
     "gsap": "^3.15.0",
