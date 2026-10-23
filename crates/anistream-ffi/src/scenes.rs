@@ -16,7 +16,7 @@ use anistream_testkit::{
 use anistream_track::secret::{Backend, TokenStore};
 
 use crate::{
-    engine::{FfiEngine, Opened, runtime},
+    engine::{FfiEngine, Opened, RemoteHome, runtime},
     host::{Adapter, FfiHost},
     start::{FfiDirs, FfiError, FfiStart, SecretsMode},
     testing,
@@ -108,6 +108,7 @@ impl FfiEngine {
                 .map_err(|e| FfiError::Engine { reason: e.to_string() })?;
         }
         let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
+        let home = RemoteHome::of(&host, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             let server = FakeAniList::start().await;
@@ -121,8 +122,8 @@ impl FfiEngine {
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing))),
-            Err(e) => Self::hold(runtime, Err(e), None),
+            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing)), home),
+            Err(e) => Self::hold(runtime, Err(e), None, home),
         }
     }
 }

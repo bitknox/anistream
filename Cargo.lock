@@ -171,6 +171,7 @@ dependencies = [
  "anistream-model",
  "anistream-net",
  "anistream-providers",
+ "anistream-remote",
  "anistream-store",
  "anistream-testkit",
  "anistream-track",

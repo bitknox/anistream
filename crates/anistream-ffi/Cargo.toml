@@ -38,6 +38,9 @@ testing = [
     "dep:anistream-providers",
     "dep:anistream-track",
 ]
+# `FfiEngine::start_remote`: the remote a TV runs for phones on its network to drive it. On in
+# Android's builds, which the TV app shares with the phone's.
+remote = ["anistream-engine/remote", "dep:anistream-remote"]
 # The `uniffi-bindgen` binary. With cargo metadata, which is how it finds each crate's own
 # `uniffi.toml`: the workspace takes uniffi without its default features, and without this the
 # Kotlin bindings came out under uniffi's default packages whatever the files said.
@@ -59,6 +62,8 @@ tracing.workspace = true
 tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 uniffi.workspace = true
+# The remote's protocol, for `start_remote`.
+anistream-remote = { workspace = true, optional = true }
 # What `start_testing` builds the engine's parts from.
 anistream-meta = { workspace = true, optional = true }
 anistream-testkit = { workspace = true, optional = true }

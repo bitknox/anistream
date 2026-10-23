@@ -252,6 +252,9 @@ pub enum FfiError {
     /// The engine itself did not start.
     #[error("{reason}")]
     Engine { reason: String },
+    /// A TV's remote could not start listening, or could not forget a phone.
+    #[error("{reason}")]
+    Remote { reason: String },
 }
 
 #[cfg(test)]

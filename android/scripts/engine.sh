@@ -6,7 +6,8 @@
 #   android/scripts/engine.sh [--check] <release|testing>
 #
 #   release   the engine the app flavour ships: --no-default-features, so without mpv's child
-#             process
+#             process, and with the TV's remote (`startRemote`), which the TV app shares the
+#             build with the phone's for
 #   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
 #             the fixtures flavour and the unit tests
 #
@@ -61,8 +62,8 @@ for arg in "$@"; do
   esac
 done
 case "$flavour" in
-  release) features="" ;;
-  testing) features="testing" ;;
+  release) features="remote" ;;
+  testing) features="testing,remote" ;;
   *) usage ;;
 esac
 

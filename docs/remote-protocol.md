@@ -214,7 +214,7 @@ becomes one engine `Command` or one request to the TV front end (`RemoteCommand:
 | Next, previous | `{"name":"next"}`, `{"name":"previous"}` | `PlayerCommand::Step(1)`, `Step(-1)` |
 | Skip opening or ending | `{"name":"skip"}` | `PlayerCommand::TakeSkip` |
 | Stop | `{"name":"stop"}` | `PlayerCommand::Stop` |
-| Volume | `{"name":"volume","step":5}` | `PlayerCommand::Volume` |
+| Volume | `{"name":"volume","step":5}` | front end steps the system volume |
 | Speed | `{"name":"speed","speed":1.5}` | `PlayerCommand::SpeedTo` |
 | Track | `{"name":"track","kind":"subtitle","id":2}` | `PlayerCommand::ChooseTrack` |
 | Search text | `{"name":"text","text":"harbour","submit":false}` | front end sets the focused field |
@@ -223,7 +223,7 @@ becomes one engine `Command` or one request to the TV front end (`RemoteCommand:
 The model's own enums are not put on the wire for three reasons. The model has no serde, and its
 shape follows the engine, while the wire has to stay readable by a TV a release older than the
 phone. A phone must reach only playing and controlling, never a sign-in, a setting, a store or a
-download. And typing and focus belong to the TV front end, not the engine. `route` is the one
+download. And typing, focus and the system volume belong to the TV front end, not the engine. `route` is the one
 place the two vocabularies meet, and values are clamped there (speed 0.25 to 4, volume steps to
 plus or minus 100).
 
@@ -342,37 +342,45 @@ not a backlog.
   client): `DnsServiceBrowse`. Each behind `Browser`. Until those exist, the terminal takes an
   address or a pairing link.
 
-## FFI surface (proposed, not built)
+## FFI surface
 
-Nothing below exists in `anistream-ffi` yet. The remote crate would gain an `ffi` feature that
-derives UniFFI records and enums on its types, as the model does: `RemoteCommand`, `Track`, `Key`,
-`RemoteState`, `Screen`, `NowPlaying`, `TrackInfo`, `SkipOffer`, `FrontIntent`, `PairedDevice`,
-`LinkStatus`, `Advert` and `FoundTv`. A fingerprint crosses as its hex string.
+### On the TV (built)
 
-### On the TV
+`anistream-ffi` has it behind its `remote` feature, which Android's builds turn on. A fingerprint
+crosses as its hex string, and the TV's types cross as records of the FFI's own (`FfiAdvert`,
+`FfiPairedPhone`, `FfiScreen`) rather than through an `ffi` feature on the remote crate.
 
 ```
-FfiEngine.start_remote(name: String, port: u16) -> FfiTvRemote     throws FfiError
-FfiTvRemote.advert() -> Advert                 // for NsdManager
-FfiTvRemote.pair_link(code: String) -> String  // for the QR code
-FfiTvRemote.set_screen(screen: Screen)
-FfiTvRemote.paired() -> [PairedDevice]
-FfiTvRemote.revoke(fingerprint: String) -> bool
-FfiTvRemote.stop()
+FfiEngine.start_remote(name: String, port: u16) async -> FfiTvRemote   throws FfiError
+FfiTvRemote.advert() -> FfiAdvert                          // for NsdManager
+FfiTvRemote.port() -> u16
+FfiTvRemote.short_fingerprint() -> String
+FfiTvRemote.pair_link(address: String, code: String?) -> String?   // for the QR code
+FfiTvRemote.set_screen(screen: FfiScreen)
+FfiTvRemote.set_volume(percent: f64)                       // the system's, for the state
+FfiTvRemote.paired() -> [FfiPairedPhone]
+FfiTvRemote.revoke(fingerprint: String) -> bool            throws FfiError
+FfiTvRemote.is_running() -> bool
+FfiTvRemote.stop() async
 ```
 
-`start_remote` takes the TV's key from the host's secrets (making it the first time) and its
-paired phones from the data directory, and from then on `FfiEngine` hands every event it returns
-from `next_events`, and every player report sent through `send`, to the remote itself. The app
-changes nothing in how it reads events.
+`start_remote` takes the TV's key from the host's secrets (making it the first time, under
+`remote-identity`) and its paired phones from the data directory, and from then on `FfiEngine`
+hands every event it returns from `next_events`, and every player report sent through `send`, to
+the remote itself. The app changes nothing in how it reads events. Port 0, or a port that is
+taken, listens on any port, which the advert and `port` say.
 
-What the remote asks of the TV front end crosses as one new event, `Event::Remote(FrontIntent)`,
-in the stream the app already reads: show or hide a pairing code, open a title, set the focused
-field's text, move the focus. The engine module `anistream_engine::remote` (feature `remote`)
-already sends commands through the engine's channel and hands these intents out on a receiver;
-the FFI would forward that receiver into the event stream.
+What the remote asks of the TV front end crosses as one event, `Event::Remote(FrontIntent)`, in
+the stream the app already reads: show or hide a pairing code, open a title, set the focused
+field's text, move the focus, step the system volume. `FrontIntent` and its `RemoteKey` are the
+model's, so they cross as the rest of the events do.
 
-### On a phone, Mac or terminal
+`pair_link` takes the TV's address on the local network, which the platform knows and the
+engine does not, and the code on screen when a phone has asked for one. Before that, the QR code
+carries the address and the key alone: a phone that scans it connects with the key pinned and
+then asks for a code.
+
+### On a phone, Mac or terminal (proposed, not built)
 
 ```
 callback FfiBrowser { start(sink: FfiDiscoverySink); stop() }
@@ -396,11 +404,10 @@ lists them.
 
 ## Decided (2026-10-23)
 
-These are decided and not yet built: the crate still does what the sections above describe.
-
 - Volume is the TV's system volume, through `AudioManager`, which on many TVs reaches the TV set
-  over HDMI-CEC. It is not the player's own volume. The `volume` command will go to the TV front
-  end rather than to `PlayerCommand::Volume`, and the state's `volume` will be the system's.
+  over HDMI-CEC. It is not the player's own volume. The `volume` command goes to the TV front
+  end as `FrontIntent::Volume` rather than to `PlayerCommand::Volume`, needs nothing playing,
+  and the state's `volume` is the system's once the front end reports it with `set_volume`.
 - The TV listens while the app runs and for 10 minutes after it goes to the background, as the
   TV brief says, and then stops listening and withdraws its advert.
 - Pairing keeps SPAKE2 for the six-digit code and offers the QR code as well. A scanned code
@@ -408,7 +415,7 @@ These are decided and not yet built: the crate still does what the sections abov
 - On Android 17 phones, the app requests `ACCESS_LOCAL_NETWORK` the first time "Play on TV" is
   used. It does not use the system picker.
 - What the remote asks of the TV front end crosses the FFI as a new event, `Event::Remote`,
-  in the stream the app already reads, as the FFI section proposes.
+  in the stream the app already reads, as the FFI section describes.
 
 ## Open decisions
 
