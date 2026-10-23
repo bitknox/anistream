@@ -129,6 +129,19 @@ class MetadataTest {
     }
 
     @Test
+    fun the_picker_holds_the_franchises_seasons_as_the_engine_walked_them() {
+        // The scene's page for the first season, whose sequel is the second: both, this one first.
+        val family = TitleFamily.of(entry)
+        assertEquals(listOf(900001u, 900004u), family.seasons.map { it.id })
+        assertEquals(listOf(true, false), family.seasons.map { it.isThis })
+        // The sequel's own page has the same seasons, numbered the same.
+        assertEquals(listOf(false, true), TitleFamily.of(entry.copy(id = 900004u)).seasons.map { it.isThis })
+        // While the engine is still walking them: no picker, rather than one it would renumber.
+        val walking = entry.copy(detail = entry.detail!!.copy(seasons = null))
+        assertEquals(emptyList<TitleFamily.Season>(), TitleFamily.of(walking).seasons)
+    }
+
+    @Test
     fun rankings_go_season_year_all_time_rated_before_popular() {
         val rankings = listOf(
             Ranking(31u, RankingKind.POPULAR, "", true, null, null),

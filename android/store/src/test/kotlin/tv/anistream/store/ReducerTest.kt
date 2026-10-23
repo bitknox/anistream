@@ -21,6 +21,7 @@ import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.ResumePoint
@@ -29,6 +30,7 @@ import tv.anistream.engine.model.ShowSettingKey
 import tv.anistream.engine.model.ShowSettingRow
 import tv.anistream.engine.model.ShowSettingsView
 import tv.anistream.engine.model.TitleAired
+import tv.anistream.engine.model.TitleDetail
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TitleProgress
 
@@ -131,6 +133,25 @@ class ReducerTest {
         // A list arriving again keeps the broadcast its follow-up brought.
         store.apply(Event.Content(ContentFor.Seasonal, ContentList.Entries(listOf(entry(900002u, "Kumo")))))
         assertEquals(5u, store.titles[900002u]?.lastAired?.episode)
+    }
+
+    @Test
+    fun a_pages_seasons_stay_when_a_list_brings_its_title_again() {
+        fun season(id: UInt) = LinkedTitle(
+            id, "Season of $id", null, null, null, null, "TV", coverUrl = null, coverColor = null, season = null,
+            year = null, listStatus = null,
+        )
+        val page = entry(900001u, "Stardust Wayfarer").copy(
+            detail = TitleDetail(
+                tags = emptyList(), schedule = emptyList(), relations = emptyList(),
+                seasons = listOf(season(900001u), season(900004u)), recommendations = emptyList(),
+                rankings = emptyList(), characters = emptyList(), staff = emptyList(),
+            ),
+        )
+        store.apply(Event.Detail(page))
+        // Continue loads again under the open page, as it does after every watch.
+        store.apply(Event.Content(ContentFor.Continue, ContentList.Entries(listOf(entry(900001u, "Stardust Wayfarer")))))
+        assertEquals(listOf(900001u, 900004u), store.titles[900001u]?.detail?.seasons?.map { it.id })
     }
 
     @Test

@@ -63,8 +63,12 @@ struct TitleAction: Equatable {
     }
 }
 
-/// A title's seasons, from AniList's relations in watch order, and what else it has: films, OVAs
-/// and specials.
+/// A title's seasons, and what else it has: films, OVAs and specials.
+///
+/// The seasons are the franchise's, as the engine walks them along the prequel and sequel chain:
+/// the same list, numbered the same, on every one of their pages. Until the engine has walked
+/// them there are none, rather than seasons numbered from what this page alone knows, which
+/// would renumber as the rest arrived.
 struct TitleFamily {
     struct Season: Identifiable, Equatable {
         let id: AnilistId
@@ -73,16 +77,20 @@ struct TitleFamily {
     }
 
     let seasons: [Season]
+    /// What the picker holds, or will once the engine has walked the seasons: this title's own
+    /// series prequels and sequels meanwhile, kept out of Related so that none moves from there
+    /// into the picker.
+    let picked: Set<AnilistId>
     let related: [RelatedTitle]
 
     init(_ entry: Entry) {
         let series: Set<String> = ["TV", "TV SHORT", "ONA"]
-        let before = entry.related.filter { $0.relation == "prequel" && series.contains($0.format ?? "") }
-        let after = entry.related.filter { $0.relation == "sequel" && series.contains($0.format ?? "") }
-        let all = before.map { Season(id: $0.id, title: $0.title, isThis: false) }
-            + [Season(id: entry.id, title: entry.title, isThis: true)]
-            + after.map { Season(id: $0.id, title: $0.title, isThis: false) }
-        seasons = all.count > 1 ? all : []
+        let franchise = entry.detail?.seasons
+        seasons = (franchise ?? []).map { Season(id: $0.id, title: $0.title, isThis: $0.id == entry.id) }
+        let waiting: [RelatedTitle] = franchise != nil ? [] : entry.related.filter {
+            ($0.relation == "prequel" || $0.relation == "sequel") && series.contains($0.format ?? "")
+        }
+        picked = Set(seasons.map(\.id) + waiting.map(\.id))
         related = entry.related.filter { !series.contains($0.format ?? "") }
     }
 }
@@ -325,7 +333,7 @@ struct TitleFamilyRow: View {
                 }
             }
             if entry.detail != nil {
-                let cards = entry.relatedCards(excluding: Set(family.seasons.map(\.id)))
+                let cards = entry.relatedCards(excluding: family.picked)
                 if !cards.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Related").groupHeaderStyle().padding(.horizontal, 4)
@@ -369,8 +377,8 @@ struct TitleFamilyRow: View {
             return "\(done) / \(of.total)"
         }
         if let known = store.titles[season.id], let words = known.seasonWords { return words }
-        // The page's relations date a season the app has not loaded: "Spring 2027".
-        if let linked = entry.detail?.relations.first(where: { $0.id == season.id }), let year = linked.year {
+        // The page's own card dates a season the app has not loaded: "Spring 2027".
+        if let linked = card(season.id), let year = linked.year {
             return linked.season.map { "\(TitleWords.season($0)) \(year)" } ?? String(year)
         }
         return season.isThis ? "This season" : "TV"
@@ -384,7 +392,7 @@ struct TitleFamilyRow: View {
         } label: {
             HStack(spacing: 10) {
                 let known = store.titles[id]
-                let linked = entry.detail?.relations.first { $0.id == id }
+                let linked = card(id)
                 ArtworkView(url: known?.coverUrl ?? linked?.coverUrl, color: known?.plateColor, maxPixelSize: 108)
                     .frame(width: 36, height: 54)
                     .clipShape(.rect(cornerRadius: 6))
@@ -415,8 +423,13 @@ struct TitleFamilyRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        // The cover, where the page's relations do not carry it.
-        .task { if store.titles[id] == nil, entry.detail?.relations.contains(where: { $0.id == id }) != true { store.loadDetail(id) } }
+        // The cover, where the page's seasons and relations do not carry it.
+        .task { if store.titles[id] == nil, card(id) == nil { store.loadDetail(id) } }
+    }
+
+    /// The page's own card for `id`: a season's, which every season has, or a relation's.
+    private func card(_ id: AnilistId) -> LinkedTitle? {
+        entry.detail?.seasons?.first { $0.id == id } ?? entry.detail?.relations.first { $0.id == id }
     }
 }
 

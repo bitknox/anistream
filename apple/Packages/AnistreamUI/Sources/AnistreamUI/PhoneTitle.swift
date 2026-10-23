@@ -136,7 +136,7 @@ struct PhoneTitle: View {
                         .padding(.horizontal, -16)
                     }
                     if entry.detail != nil {
-                        let cards = entry.relatedCards(excluding: Set(family.seasons.map(\.id)))
+                        let cards = entry.relatedCards(excluding: family.picked)
                         if !cards.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Related").font(.ui(15)).foregroundStyle(.haze)

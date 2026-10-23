@@ -194,15 +194,14 @@ pub(super) fn watch_order_rows(app: &App) -> Vec<(String, String)> {
     let Some(detail) = app.target() else {
         return Vec::new();
     };
-    detail
-        .related
-        .iter()
-        .map(|related| {
-            let mut label = related.title.clone();
-            if let Some(format) = &related.format {
+    crate::app::watch_order(detail)
+        .into_iter()
+        .map(|step| {
+            let mut label = step.title;
+            if let Some(format) = &step.format {
                 label.push_str(&format!("  ·  {format}"));
             }
-            (related.relation.clone(), label)
+            (step.place, label)
         })
         .collect()
 }

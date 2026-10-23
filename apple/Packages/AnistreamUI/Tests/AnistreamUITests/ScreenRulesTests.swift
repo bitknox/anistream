@@ -72,18 +72,31 @@ struct ScreenRulesTests {
         #expect(TitleAction(resuming).playable)
     }
 
-    @Test func seasonsAreTheSeriesInWatchOrderAndTheRestIsRelated() {
-        let first = entry {
+    @Test func seasonsAreTheFranchisesAsTheEngineWalkedThemAndTheRestIsRelated() {
+        var first = entry {
             $0.related = [
                 RelatedTitle(id: 900_004, title: "Stardust Wayfarer Season 2", relation: "sequel", format: "TV"),
                 RelatedTitle(id: 900_010, title: "Wayfarer's Long Road", relation: "sequel", format: "MOVIE"),
             ]
+            $0.detail = detail()
         }
-        let family = TitleFamily(first)
+        // While the engine walks the franchise: nothing numbered, and the sequel kept for the picker.
+        var family = TitleFamily(first)
+        #expect(family.seasons.isEmpty)
+        #expect(family.picked == [900_004])
+        #expect(family.related.map(\.id) == [900_010])
+        // Walked: the engine's seasons, in its order, this one marked.
+        first.detail?.seasons = [linked(900_001, nil, "TV", 2024), linked(900_004, nil, "TV", 2025)]
+        family = TitleFamily(first)
         #expect(family.seasons.map(\.id) == [900_001, 900_004])
         #expect(family.seasons.map(\.isThis) == [true, false])
-        #expect(family.related.map(\.id) == [900_010])
-        #expect(TitleFamily(entry { _ in }).seasons.isEmpty, "one season is no picker")
+        #expect(family.picked == [900_001, 900_004])
+        // The sequel's own page has the same seasons, numbered the same.
+        var second = first
+        second.id = 900_004
+        #expect(TitleFamily(second).seasons.map(\.id) == [900_001, 900_004])
+        #expect(TitleFamily(second).seasons.map(\.isThis) == [false, true])
+        #expect(TitleFamily(entry { $0.detail = detail(seasons: []) }).seasons.isEmpty, "one season is no picker")
     }
 
     @Test func aTitlesPageSaysItsScore() {

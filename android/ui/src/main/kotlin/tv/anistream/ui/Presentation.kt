@@ -143,8 +143,13 @@ fun watchedRangeWords(folded: List<EpisodeRow>): String =
     "Episodes ${folded.first().number}\u2013${folded.last().number} watched"
 
 /**
- * A title's seasons, from AniList's relations in watch order, and what else it has: films, OVAs
- * and specials.
+ * A title's seasons, and what else it has: films, OVAs and specials.
+ *
+ * The seasons are the franchise's, as the engine walks them along the prequel and sequel chain:
+ * the same list, numbered the same, on every one of their pages. Until the engine has walked them
+ * there are none, rather than seasons numbered from what this page alone knows, which would
+ * renumber as the rest arrived. The related cards leave this title's series prequels and sequels
+ * to the picker either way.
  */
 data class TitleFamily(val seasons: List<Season>, val related: List<RelatedTitle>) {
     data class Season(val id: AnilistId, val title: String, val isThis: Boolean)
@@ -152,17 +157,10 @@ data class TitleFamily(val seasons: List<Season>, val related: List<RelatedTitle
     companion object {
         private val series = setOf("TV", "TV_SHORT", "TV SHORT", "ONA")
 
-        fun of(entry: Entry): TitleFamily {
-            val before = entry.related.filter { it.relation == "prequel" && it.format in series }
-            val after = entry.related.filter { it.relation == "sequel" && it.format in series }
-            val all = before.map { Season(it.id, it.title, false) } +
-                Season(entry.id, entry.title, true) +
-                after.map { Season(it.id, it.title, false) }
-            return TitleFamily(
-                seasons = if (all.size > 1) all else emptyList(),
-                related = entry.related.filter { it.format !in series },
-            )
-        }
+        fun of(entry: Entry): TitleFamily = TitleFamily(
+            seasons = entry.detail?.seasons.orEmpty().map { Season(it.id, it.title, it.id == entry.id) },
+            related = entry.related.filter { it.format !in series },
+        )
     }
 }
 

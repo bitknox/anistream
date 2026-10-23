@@ -154,7 +154,18 @@
             "color": "#d77f4a"
           },
           "season": "WINTER",
-          "seasonYear": 2025
+          "seasonYear": 2025,
+          "relations": {
+            "edges": [
+              {
+                "relationType": "PREQUEL",
+                "node": {
+                  "id": 900001,
+                  "format": "TV"
+                }
+              }
+            ]
+          }
         }
       }
     ]

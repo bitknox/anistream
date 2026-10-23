@@ -12,6 +12,44 @@ use anistream_model::{
 use super::App;
 use crate::nav::{Overlay, StageView};
 
+/// One row of a title's watch order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct WatchStep {
+    pub id: AnilistId,
+    pub title: String,
+    pub format: Option<String>,
+    /// What it is to the title here: "season 2", as every one of the franchise's pages numbers
+    /// it, or the relation, "prequel", "parent" or "sequel".
+    pub place: String,
+}
+
+/// The watch order around `entry`: the franchise's seasons, numbered as on every one of their
+/// pages and without the title itself, then the other prequels, sequels and the parent story.
+/// Until the engine has walked the seasons, the title's own relations alone, as they were.
+pub(crate) fn watch_order(entry: &Entry) -> Vec<WatchStep> {
+    let seasons = entry.detail.as_ref().and_then(|d| d.seasons.as_deref()).unwrap_or_default();
+    let numbered = seasons.iter().enumerate().filter(|(_, season)| season.id != entry.id);
+    let mut steps: Vec<WatchStep> = numbered
+        .map(|(at, season)| WatchStep {
+            id: season.id,
+            title: season.title.clone(),
+            format: season.format.clone(),
+            place: format!("season {}", at + 1),
+        })
+        .collect();
+    let rest = entry
+        .related
+        .iter()
+        .filter(|r| r.id != entry.id && !seasons.iter().any(|s| s.id == r.id));
+    steps.extend(rest.map(|related| WatchStep {
+        id: related.id,
+        title: related.title.clone(),
+        format: related.format.clone(),
+        place: related.relation.clone(),
+    }));
+    steps
+}
+
 /// A title page left for one of its relations or recommendations.
 ///
 /// Opening a related title replaces `detail` and, once its episodes are asked for, the episode
@@ -187,7 +225,7 @@ impl App {
             self.push_toast(Notice::info("nothing selected"));
             return None;
         };
-        if entry.related.is_empty() {
+        if watch_order(entry).is_empty() {
             // Empty on list rows too — the relations ride the detail fetch. From a
             // list this still answers after opening the title once.
             let why = self
@@ -203,7 +241,7 @@ impl App {
 
     /// Into the connected title picked, with this page kept to come back to.
     pub(super) fn confirm_watch_order(&mut self) -> Option<Command> {
-        let related = self.target()?.related.get(self.cursors.overlay.selected)?.clone();
+        let related = watch_order(self.target()?).get(self.cursors.overlay.selected)?.clone();
         self.nav.close_overlay();
         self.cursors.overlay.selected = 0;
         // Kept, so Back shows this page again rather than the one about to open.
@@ -846,5 +884,78 @@ mod tests {
             matches!(a.nav.current(), StageView::Title(id) if *id == AnilistId::new(9)),
             "the picked title's view must be up"
         );
+    }
+
+    fn season(id: u32) -> anistream_model::catalog::LinkedTitle {
+        anistream_model::catalog::LinkedTitle {
+            id: AnilistId::new(id),
+            title: format!("Season of {id}"),
+            title_romaji: None,
+            title_english: None,
+            title_native: None,
+            relation: None,
+            format: Some("TV".into()),
+            cover_url: None,
+            cover_color: None,
+            season: None,
+            year: None,
+            list_status: None,
+        }
+    }
+
+    #[test]
+    fn the_watch_order_numbers_the_franchises_seasons_as_every_one_of_their_pages_does() {
+        // The third of five seasons, which itself relates to the second, the fourth and a film.
+        let mut page = Entry::new(AnilistId::new(3), "Season of 3");
+        page.related = vec![
+            RelatedTitle {
+                relation: "prequel".into(),
+                format: Some("TV".into()),
+                ..related(2, "2")
+            },
+            RelatedTitle {
+                relation: "prequel".into(),
+                format: Some("MOVIE".into()),
+                ..related(11, "Film")
+            },
+            RelatedTitle {
+                relation: "sequel".into(),
+                format: Some("TV".into()),
+                ..related(4, "4")
+            },
+        ];
+        let places = |entry: &Entry| -> Vec<(u32, String)> {
+            watch_order(entry).into_iter().map(|step| (step.id.get(), step.place)).collect()
+        };
+        // Before the engine has walked the franchise: its own relations, as they were.
+        page.detail = Some(anistream_model::catalog::TitleDetail::default());
+        assert_eq!(
+            places(&page),
+            [(2, "prequel".into()), (11, "prequel".into()), (4, "sequel".into())]
+        );
+        // Walked: the five, numbered from the first, this one left out, then the film.
+        page.detail.as_mut().unwrap().seasons = Some((1..=5).map(season).collect());
+        assert_eq!(
+            places(&page),
+            [
+                (1, "season 1".into()),
+                (2, "season 2".into()),
+                (4, "season 4".into()),
+                (5, "season 5".into()),
+                (11, "prequel".into()),
+            ]
+        );
+
+        // Picked from the overlay on the first season's page, a season opens as a relation does.
+        let mut a = app_at_episodes();
+        if let Some(first) = a.detail.as_mut() {
+            first.detail = Some(anistream_model::catalog::TitleDetail {
+                seasons: Some((1..=5).map(season).collect()),
+                ..Default::default()
+            });
+        }
+        a.handle(Action::WatchOrder, 10);
+        a.handle(Action::Down, 10);
+        assert_eq!(a.handle(Action::Open, 10), Some(Command::LoadDetail(AnilistId::new(3))));
     }
 }

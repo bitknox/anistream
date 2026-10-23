@@ -55,6 +55,7 @@ mod title;
 
 pub(crate) use self::lists::air_date;
 use self::title::TitleFrame;
+pub(crate) use self::title::watch_order;
 pub use self::{
     accounts::sync_badge,
     cursor::{Cursor, Cursors},
