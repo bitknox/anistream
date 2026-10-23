@@ -20,7 +20,7 @@ use crate::{
     pages::{self, Dest},
     player::PlayerView,
     prefs::{CloseChoice, Prefs},
-    widgets,
+    widgets, words,
 };
 
 /// How wide the window is, by the brief's breakpoints.
@@ -694,7 +694,10 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
             let known = hub.known.borrow();
             match known.anilist() {
                 Some(state) => {
-                    let user = state.user.clone().unwrap_or_else(|| "Signed in".into());
+                    let user = state
+                        .user
+                        .clone()
+                        .unwrap_or_else(|| words::tracker_name(&state.tracker).into());
                     avatar.set_text(Some(&user));
                     name.set_label(&user);
                     let waiting = state.outbox;

@@ -247,6 +247,16 @@ pub fn cover_caption(entry: &Entry) -> String {
     parts.join(" · ")
 }
 
+/// A tracker's name as the app shows it: "AniList" for `anilist`.
+pub fn tracker_name(id: &str) -> &str {
+    match id {
+        "anilist" => "AniList",
+        "kitsu" => "Kitsu",
+        "mal" | "myanimelist" => "MyAnimeList",
+        other => other,
+    }
+}
+
 /// A playhead as people read it: "4:05", "1:02:03".
 pub fn clock(seconds: f64) -> String {
     let s = seconds.max(0.0) as u64;

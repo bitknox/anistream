@@ -22,6 +22,7 @@ use crate::{
     prefs::CloseChoice,
     widgets,
     window::{Ctx, Size},
+    words,
 };
 
 use SettingKey as K;
@@ -559,7 +560,10 @@ impl Inner {
         let row = adw::ActionRow::builder().title("AniList").build();
         match known.anilist() {
             Some(state) => {
-                let user = state.user.clone().unwrap_or_else(|| "Signed in".into());
+                let user = state
+                    .user
+                    .clone()
+                    .unwrap_or_else(|| words::tracker_name(&state.tracker).into());
                 let avatar = adw::Avatar::new(32, Some(&user), true);
                 row.add_prefix(&avatar);
                 row.set_title(&user);
