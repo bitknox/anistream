@@ -5,7 +5,7 @@ Kotlin bindings UniFFI generates from `crates/anistream-ffi`. Phones, tablets an
 Android 15 (API 35) and up, built to the boards in `docs/android-design-brief.md` and the motion
 spec in `docs/motion-android.md`.
 
-anistream ships no sources of its own and hosts no content. Every source is external.
+anistream hosts no content.
 
 ## Modules
 

@@ -58,7 +58,7 @@ const bandItems = [
 	'Plugin stores by invite',
 	'ArtCNN and Anime4K upscaling',
 	'AniList, MyAnimeList, Kitsu, Simkl and Trakt',
-	'No hosted content; every source is external',
+	'No hosted content',
 	'Open source under the MIT licence',
 ];
 
@@ -101,7 +101,7 @@ const installHtml = [
 	<head>
 		<SiteHead
 			title="anistream · an open-source anime client"
-			description="anistream is an open-source anime client for Mac, iPhone, iPad, Android and the terminal, for browsing, watching, tracking and syncing. It ships no sources of its own and hosts no content."
+			description="anistream is an open-source anime client for Mac, iPhone, iPad, Android and the terminal, for browsing, watching, tracking and syncing, with sources as plugins you add. It hosts no content."
 		/>
 	</head>
 	<body class="landing">
@@ -127,7 +127,7 @@ const installHtml = [
 					<div class="hero-side">
 						<p class="hero-sub">
 							anistream runs on Mac, iPhone, iPad and Android, and in your terminal on macOS, Linux
-							and Windows. Sources come from plugins, and anistream ships none of its own.
+							and Windows. Sources come from plugins you add.
 						</p>
 						<div class="actions">
 							<a class="btn btn-primary" href={APPS}>Get the apps</a>
@@ -320,8 +320,8 @@ const installHtml = [
 				</dl>
 				<p class="lede">
 					Torrent support exists too, off by default and unreachable until you set up the VPN guard.
-					What you point any external source at is your decision, at your own risk, under the laws that
-					apply to you, and every source is a config edit away from being removed.
+					What you point any source at is your decision, at your own risk, under the laws that apply to
+					you, and every source is a config edit away from being removed.
 				</p>
 			</section>
 

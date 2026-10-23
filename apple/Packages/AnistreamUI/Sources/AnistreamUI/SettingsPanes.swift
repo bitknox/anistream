@@ -269,7 +269,7 @@ struct SourcesPane: View {
 
     var body: some View {
         let on = store.settings.isOn(.torrents)
-        SettingsGroup(title: "Sources", footnote: "anistream ships no sources of its own and hosts no content. Every source is external.") {
+        SettingsGroup(title: "Sources", footnote: "anistream hosts no content.") {
             Button {
                 navigator.open(.providers)
             } label: {

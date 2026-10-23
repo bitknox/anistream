@@ -432,9 +432,9 @@ cargo run -p anistream-engine --example continue_probe           # resume vs. sy
 ## Scope
 
 The metadata, mapping, player, tracker and plugin layers use documented public APIs. anistream
-hosts no content and ships no catalogue of its own. The torrent source is a transport; what you
-point any source at is your configuration, and the responsibility that comes with it is yours.
-Torrenting is off by default and gated behind the VPN guard, and every source is a config edit away
-from being removed. anistream will not circumvent DRM.
+hosts no content. The torrent source is a transport; what you point any source at is your
+configuration, and the responsibility that comes with it is yours. Torrenting is off by default and
+gated behind the VPN guard, and every source is a config edit away from being removed. anistream
+will not circumvent DRM.
 
 MIT.

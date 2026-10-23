@@ -257,7 +257,7 @@ struct PhoneSettingsRoot: View {
             Section {
                 link(.about, "About", "info.circle", value: AppVersion.short)
             } footer: {
-                Text("anistream ships no sources of its own and hosts no content. Every source is external.")
+                Text("anistream hosts no content.")
             }
         }
         .navigationTitle("Settings")

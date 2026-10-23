@@ -68,7 +68,7 @@ import tv.anistream.store.Wording
 import tv.anistream.engine.model.Entry
 
 /** The legal line, everywhere it appears. */
-const val LEGAL_LINE = "anistream ships no sources of its own and hosts no content. Every source is external."
+const val LEGAL_LINE = "anistream hosts no content."
 
 /** Whether the setup card has been hidden on this device. */
 private const val SETUP_HIDDEN = "setupHidden"
@@ -373,7 +373,7 @@ private fun SetupCard(actions: AppActions, hide: () -> Unit) {
                 }
             }
         }
-        Text(LEGAL_LINE, style = type.bodySmall, color = colors.onSurfaceVariant)
+        Text("Episodes play from the plugins you add. $LEGAL_LINE", style = type.bodySmall, color = colors.onSurfaceVariant)
     }
 }
 
