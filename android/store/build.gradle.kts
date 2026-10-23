@@ -10,6 +10,8 @@ plugins {
 
 android {
     namespace = "tv.anistream.store"
+    // Shared with the TV app.
+    defaultConfig { minSdk = AnistreamSdk.TV_MIN }
 }
 
 dependencies {

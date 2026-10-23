@@ -7,6 +7,8 @@ plugins {
 
 android {
     namespace = "tv.anistream.design"
+    // Shared with the TV app.
+    defaultConfig { minSdk = AnistreamSdk.TV_MIN }
     sourceSets {
         named("main") {
             // The two typefaces and their licences, from android/scripts/fonts.sh.

@@ -20,7 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import tv.anistream.player.PlayerModel
-import tv.anistream.player.R
+import tv.anistream.player.ui.R
 
 /**
  * The window's parameters while the player is up: the video's aspect, its bounds in the window as
