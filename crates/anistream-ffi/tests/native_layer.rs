@@ -1,17 +1,18 @@
 //! What a native app shows outside itself, as the testing engine answers it: the new-episode
 //! check its background task runs, and the record its home-screen widgets read. On the Watching
 //! scene, with the fake AniList at the real time and the clock let run on to when an episode
-//! airs.
+//! airs, and the days read in a zone where the scene starts at midday (see [`ZONE`]).
 #![cfg(feature = "testing")]
 
 use std::{
-    sync::{Arc, mpsc},
+    sync::{Arc, LazyLock, mpsc},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use anistream_core::{ids::AnilistId, media::Translation, settings::SettingValue};
-use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiScene, FfiStart};
+use anistream_engine::clock::Clock;
+use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiScene};
 use anistream_model::{
     command::Command,
     event::Event,
@@ -20,7 +21,8 @@ use anistream_model::{
     show::ShowSettingKey,
     widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetData, WidgetNextAiring},
 };
-use anistream_testkit::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, ONA};
+use anistream_testkit::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, FIXTURE_NOW, ONA};
+use jiff::tz::{Offset, TimeZone};
 
 /// How long a test waits for what it is waiting on before failing. Everything is on loopback,
 /// so a wait this long is a bug.
@@ -57,15 +59,31 @@ impl FfiHost for Quiet {
     }
 }
 
+/// The zone the scene reads days in: the one where these tests start at the time of day the
+/// fixtures' moment has in UTC, 12:00:30, whatever the time is where and when they run.
+///
+/// The scene runs at the real time, which the engine dates what it keeps by, with the fixtures'
+/// broadcasts moved to it. What is today and what airs this week then depend only on where in
+/// its day the scene starts: at midday, Natsukaze Relay's episode 9, 6 d 5 h on, airs this week,
+/// and its episode 8, 19 hours before, aired yesterday. Read in the system's zone, the week lost
+/// episode 9 to any run from 19:00 on. A fixed offset has no daylight saving, so the date the
+/// tests run on cannot move a day either.
+static ZONE: LazyLock<TimeZone> = LazyLock::new(|| {
+    let ahead = (FIXTURE_NOW - now()).rem_euclid(DAY);
+    let offset = if ahead > DAY / 2 { ahead - DAY } else { ahead };
+    let offset = i32::try_from(offset).ok().and_then(|secs| Offset::from_seconds(secs).ok());
+    TimeZone::fixed(offset.expect("half a day either side of UTC is an offset"))
+});
+
 /// The Watching scene, in a temporary directory it is kept beside: signed in to the fake
-/// AniList, with four titles under way, two of them airing.
+/// AniList, with four titles under way, two of them airing, its days read in [`ZONE`].
 fn watching() -> (Arc<FfiEngine>, tempfile::TempDir) {
     let root = tempfile::tempdir().expect("a temporary directory");
     let dir = |name: &str| root.path().join(name).display().to_string();
     let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
-    let engine =
-        FfiEngine::start_scene(dirs, Arc::new(Quiet), FfiScene::Watching, FfiStart::default())
-            .expect("the engine starts");
+    let clock = Clock::in_zone(ZONE.clone());
+    let engine = FfiEngine::start_scene_on(dirs, Arc::new(Quiet), FfiScene::Watching, clock)
+        .expect("the engine starts");
     (engine, root)
 }
 
@@ -505,9 +523,9 @@ fn nothing_is_asked_while_the_cache_shows_nothing_can_have_aired() {
 }
 
 /// The starts of the day `at` is in, of the next, and of the day a week on, in the zone the
-/// engine reads days in: the system's.
+/// engine reads days in: its clock's, [`ZONE`].
 fn days_of(at: i64) -> (i64, i64, i64) {
-    let zone = jiff::tz::TimeZone::system();
+    let zone = &*ZONE;
     let date = jiff::Timestamp::from_second(at).unwrap().to_zoned(zone.clone()).date();
     let start =
         |date: jiff::civil::Date| date.to_zoned(zone.clone()).unwrap().timestamp().as_second();

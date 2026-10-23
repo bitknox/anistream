@@ -64,10 +64,10 @@ import tv.anistream.ui.pixels
 /**
  * The corner, right 48 and bottom 88: one card at a time. Skip shows only while the controls are
  * hidden; the others stay with the controls up. [throughGround] is the fade through the ground at
- * Up Next's zero, which the card fades with.
+ * Up Next's zero, which the card fades with, read as it draws.
  */
 @Composable
-fun CornerCard(model: PlayerModel, chromeVisible: Boolean, throughGround: Float, modifier: Modifier = Modifier) {
+fun CornerCard(model: PlayerModel, chromeVisible: Boolean, throughGround: () -> Float, modifier: Modifier = Modifier) {
     val corner = model.corner
     val shown = when (corner) {
         Corner.Skip -> !chromeVisible
@@ -76,7 +76,7 @@ fun CornerCard(model: PlayerModel, chromeVisible: Boolean, throughGround: Float,
     }
     AnimatedContent(
         if (shown) corner else null,
-        modifier = modifier.graphicsLayer { alpha = 1f - throughGround },
+        modifier = modifier.graphicsLayer { alpha = 1f - throughGround() },
         contentAlignment = Alignment.BottomEnd,
         transitionSpec = {
             fadeIn(Motion.standard()) togetherWith fadeOut(if (targetState == null) Motion.quick() else Motion.standard())

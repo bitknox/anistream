@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -200,7 +201,9 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
     val trackHeight by animateDpAsState(if (active) 24.dp else 16.dp, Motion.quick(), label = "track")
     val handleWidth by animateDpAsState(if (active) 2.dp else 4.dp, label = "handle")
     val duration = model.duration?.takeIf { it > 0 } ?: 1.0
-    val segments = model.segments
+    // The stretches as a value that changes only with the chapters or the length, not with each
+    // tick of the position, so the tick below is not started again and the track can skip.
+    val segments by remember(model) { derivedStateOf { model.segments } }
     // A tick each time the stretch under the handle changes while it is dragged.
     LaunchedEffect(segments) {
         snapshotFlow { segments.firstOrNull { model.position >= it.start && model.position < it.end }?.kind }

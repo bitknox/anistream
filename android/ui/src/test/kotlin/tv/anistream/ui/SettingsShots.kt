@@ -255,7 +255,7 @@ class SettingsShots {
         var still = System.currentTimeMillis()
         while (System.currentTimeMillis() < deadline) {
             compose.waitForIdle()
-            val now = store.artwork.arrivals.value.size
+            val now = store.artwork.landed.value
             if (now != landed) {
                 landed = now
                 still = System.currentTimeMillis()

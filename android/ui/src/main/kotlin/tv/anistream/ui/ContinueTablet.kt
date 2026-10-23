@@ -191,18 +191,19 @@ private fun QueueList(
     actions: AppActions,
 ) {
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
-        item(key = "title") {
-            Box(Modifier.heightIn(min = 64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+        // The headings move with the rows, so a row never slides over a heading that snapped.
+        item(key = "title", contentType = "title") {
+            Box(itemMotion().heightIn(min = 64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Text("Continue", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
             }
         }
         if (queue.inProgress.isNotEmpty()) {
-            item(key = "progress") { ListHeading("In progress") }
-            items(queue.inProgress, key = { "p-${it.id}" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
+            item(key = "progress", contentType = "heading") { ListHeading("In progress", itemMotion()) }
+            items(queue.inProgress, key = { "p-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
         if (queue.newThisWeek.isNotEmpty()) {
-            item(key = "new") { ListHeading("New this week", Modifier.padding(top = 16.dp)) }
-            items(queue.newThisWeek, key = { "n-${it.id}" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
+            item(key = "new", contentType = "heading") { ListHeading("New this week", itemMotion().padding(top = 16.dp)) }
+            items(queue.newThisWeek, key = { "n-${it.id}" }, contentType = { "row" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
     }
 }

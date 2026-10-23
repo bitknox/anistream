@@ -26,7 +26,9 @@ manifest="$root/Cargo.toml"
 lock="$root/Cargo.lock"
 
 # Every awk below reads a line without its CR, if it has one, and writes it back with it.
-old="$(awk '
+# BINMODE=3 keeps gawk on Windows (Git Bash) from dropping or adding CRs itself, and the checks
+# compare without trailing CRs, since cargo reads either line ending.
+old="$(awk -v BINMODE=3 '
   { sub(/\r$/, "") }
   /^\[/ { section = $0 }
   section == "[workspace.package]" && /^version *= *"/ {
@@ -42,7 +44,7 @@ fi
 # The workspace's crates, crates/* in Cargo.toml, each of which takes the workspace's version.
 names=()
 for crate in "$root"/crates/*/Cargo.toml; do
-  name="$(awk '
+  name="$(awk -v BINMODE=3 '
     { sub(/\r$/, "") }
     /^\[/ { section = $0 }
     section == "[package]" && /^name *= *"/ { sub(/^name *= *"/, ""); sub(/".*$/, ""); print; exit }
@@ -56,7 +58,7 @@ done
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-awk -v new="$new" '
+awk -v BINMODE=3 -v new="$new" '
   { cr = sub(/\r$/, "") }
   /^\[/ { section = $0 }
   section == "[workspace.package]" && !done && /^version *= *"/ { $0 = "version = \"" new "\""; done = 1 }
@@ -64,7 +66,7 @@ awk -v new="$new" '
 ' "$manifest" >"$work/Cargo.toml"
 
 # Each crate's [[package]] entry in the lock file: its name, then its version.
-awk -v old="$old" -v new="$new" -v names="${names[*]}" '
+awk -v BINMODE=3 -v old="$old" -v new="$new" -v names="${names[*]}" '
   BEGIN { n = split(names, list, " "); for (i = 1; i <= n; i++) member[list[i]] = 1 }
   { cr = sub(/\r$/, "") }
   /^\[\[package\]\]$/ { name = "" }
@@ -83,9 +85,9 @@ for name in "${names[@]}"; do
   [[ "$(grep -c -x 'name = ".*"' <<<"$entry")" == 1 ]] || fail "Cargo.lock has no single entry for $name"
   grep -q -F -x "version = \"$new\"" <<<"$entry" || fail "Cargo.lock's entry for $name is not at $old"
 done
-changed="$(diff "$manifest" "$work/Cargo.toml" | grep -c '^>' || true)"
+changed="$(diff --strip-trailing-cr "$manifest" "$work/Cargo.toml" | grep -c '^>' || true)"
 [[ "$changed" == 1 ]] || fail "setting the version changed $changed lines of Cargo.toml"
-changed="$(diff "$lock" "$work/Cargo.lock" | grep -c '^>' || true)"
+changed="$(diff --strip-trailing-cr "$lock" "$work/Cargo.lock" | grep -c '^>' || true)"
 [[ "$changed" == "${#names[@]}" ]] ||
   fail "changing ${#names[@]} crates changed $changed lines of Cargo.lock"
 

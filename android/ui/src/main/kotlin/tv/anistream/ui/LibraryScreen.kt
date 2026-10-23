@@ -133,26 +133,30 @@ fun LibraryScreen(actions: AppActions) {
             }
         }
         PosterGrid(PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 24.dp)) {
-            item(span = { GridItemSpan(maxLineSpan) }, key = "downloads") {
-                DownloadsRow(storageLine(store.downloads.bytes(downloads)), inset = false)
+            // Every item moves with the rest, the rows above the posters too, so switching lists
+            // never slides a poster over a line that snapped into place.
+            item(span = { GridItemSpan(maxLineSpan) }, key = "downloads", contentType = "downloads") {
+                DownloadsRow(storageLine(store.downloads.bytes(downloads)), inset = false, modifier = itemMotion())
             }
-            item(span = { GridItemSpan(maxLineSpan) }, key = "lists") {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(LibraryModel.order) { each ->
+            item(span = { GridItemSpan(maxLineSpan) }, key = "lists", contentType = "lists") {
+                LazyRow(itemMotion(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(LibraryModel.order, key = { it.name }) { each ->
                         val count = states.getValue(each).value.ids.size
                         SegmentChip(each, count, selected = each == segment) { segment = each }
                     }
                 }
             }
             when (val list = state) {
-                is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }) { Quiet(list.reason) }
-                ListState.Empty -> item(span = { GridItemSpan(maxLineSpan) }) {
-                    Quiet("Nothing on your ${segment.label} list")
+                is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
+                    Box(itemMotion()) { Quiet(list.reason) }
                 }
-                is ListState.Loaded -> items(entries, key = { it.id.toLong() }) { entry ->
+                ListState.Empty -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
+                    Box(itemMotion()) { Quiet("Nothing on your ${segment.label} list") }
+                }
+                is ListState.Loaded -> items(entries, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
                     PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
                 }
-                else -> items(9) { AfterWait { PosterPlaceholder() } }
+                else -> items(9, key = { "placeholder-$it" }, contentType = { "placeholder" }) { Box(itemMotion()) { AfterWait { PosterPlaceholder() } } }
             }
         }
     }
@@ -173,10 +177,10 @@ private fun hasNew(entry: Entry): Boolean {
 
 /** The Downloads row, which opens the Downloads page (A2), with what they take on this device. */
 @Composable
-private fun DownloadsRow(detail: String, inset: Boolean = true) {
+private fun DownloadsRow(detail: String, inset: Boolean = true, modifier: Modifier = Modifier) {
     val navigator = LocalNavigator.current
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
             .clickable { navigator.open(DOWNLOADS_ROUTE) }

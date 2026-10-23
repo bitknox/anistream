@@ -2,12 +2,10 @@
 //! database, and the fake AniList answering at the real time, for the Apple app's Fixtures build
 //! to show its screens filled.
 
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::sync::Arc;
 
 use anistream_core::stream::{Stream, StreamKind};
+use anistream_engine::clock::Clock;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anistream_testkit::{
@@ -62,13 +60,39 @@ impl FfiEngine {
         scene: FfiScene,
         start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
+        Self::start_scene_from(dirs, host, scene, &start, Clock::default())
+    }
+}
+
+impl FfiEngine {
+    /// [`FfiEngine::start_scene`] on `clock` rather than the system's own: the scene seeded, and
+    /// the fake AniList answering, as of the moment it reads, and today and the week read in its
+    /// zone. For a Rust test that reads days in a zone of its own (`Clock::in_zone`), so that its
+    /// today and its week come out the same on any date, at any hour and in any zone it runs in;
+    /// `testing_advance_clock` moves the clock on. Not in the bindings.
+    pub fn start_scene_on(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        scene: FfiScene,
+        clock: Clock,
+    ) -> Result<Arc<Self>, FfiError> {
+        Self::start_scene_from(dirs, host, scene, &FfiStart::default(), clock)
+    }
+
+    fn start_scene_from(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        scene: FfiScene,
+        start: &FfiStart,
+        clock: Clock,
+    ) -> Result<Arc<Self>, FfiError> {
         match scene {
             FfiScene::Watching => sign_in_config(&dirs)?,
             FfiScene::Playing { .. } => offer_skips(&dirs)?,
             FfiScene::Fresh => {}
         }
         let opened = Opened::open(&dirs)?;
-        let now = now();
+        let now = clock.now();
         seed_scene(&opened.store, &scene, now);
         if scene == FfiScene::Watching {
             // Where the testing engine keeps tokens: files under the data directory.
@@ -82,8 +106,8 @@ impl FfiEngine {
             let server = FakeAniList::start().await;
             server.set_now(now);
             let sources = scene_sources(&scene, &server.art_base());
-            let testing = testing::Testing { server, clock: Default::default() };
-            let options = testing::options(opened, &testing, &start, sources)?;
+            let testing = testing::Testing { server, clock };
+            let options = testing::options(opened, &testing, start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
@@ -171,11 +195,6 @@ fn offer_skips(dirs: &FfiDirs) -> Result<(), FfiError> {
         .map_err(|e| FfiError::Dirs {
             reason: format!("{} cannot be written: {e}", file.display()),
         })
-}
-
-/// Seconds since the epoch, now.
-fn now() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64)
 }
 
 /// The history `scene` describes, the newest watch an hour before `now`.

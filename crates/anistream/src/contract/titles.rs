@@ -72,7 +72,12 @@ async fn searched(h: &mut Harness, query: &str) -> Vec<String> {
 }
 
 /// The titles the calendar names `AIRING` by.
+///
+/// The calendar's window is taken from the real clock, ninety days back to a week on, so the
+/// fake's broadcasts are moved to it first: left at the fixtures' moment, a run from 21 January
+/// 2027 on would find none of them in it.
 async fn calendar(h: &mut Harness) -> Vec<String> {
+    h.server().set_now(anistream_store::now());
     h.send(Command::LoadCalendar);
     let updates = h.settle().await;
     updates

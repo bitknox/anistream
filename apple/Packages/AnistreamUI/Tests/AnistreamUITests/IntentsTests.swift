@@ -240,10 +240,12 @@ struct IntentsEngineTests {
             Task { await store.start(launch, host: AppHost(secrets: MemorySecrets())) }
         }
 
-        let rows = try #require(await bridge.airingToday())
+        // One moment for both lists: read twice, a run across midnight compared two days.
+        let now = Date.now
+        let rows = try #require(await bridge.airingToday(now: now))
         #expect(started.count == 1)
         #expect(store.calendar.list.state.isAnswered)
-        let today = TodaysBroadcasts.rows(store.broadcasts(mine: false), on: .now)
+        let today = TodaysBroadcasts.rows(store.broadcasts(mine: false), on: now)
         #expect(rows == today)
         _ = try #require(await bridge.airingToday())
         #expect(started.count == 1, "started once")

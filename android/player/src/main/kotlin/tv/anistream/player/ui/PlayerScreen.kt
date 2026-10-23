@@ -50,6 +50,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,8 +68,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onLayoutRectChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -152,7 +152,9 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
     var through by remember { mutableStateOf(false) }
     LaunchedEffect(model.upNext?.played) { if (model.upNext?.played == true) through = true }
     LaunchedEffect(model.hasPicture, model.playback) { if (model.hasPicture) through = false }
-    val ground by animateFloatAsState(if (through) 1f else 0f, if (through) ThroughGround else Motion.fadeIn(), label = "ground")
+    // Read in the layers that draw it, so the fade redraws them and composes nothing.
+    val ground = animateFloatAsState(if (through) 1f else 0f, if (through) ThroughGround else Motion.fadeIn(), label = "ground")
+    val groundUp by remember { derivedStateOf { ground.value > 0f } }
 
     Immersive()
     KeepAwake(playing = model.hasPicture && !model.paused)
@@ -210,6 +212,9 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         val density = LocalDensity.current
         val pip = model.inPip
         val chromeVisible = model.controlsVisible && model.hasPicture && !closing && still.frame == null && !pip
+        // Where the video sits in the window, the hint the window grows from. Said once it has
+        // settled: while the player grows (T2), closes (T3) or turns, it changes every frame, and
+        // each change would set the window's parameters again across the binder.
         var videoBounds by remember { mutableStateOf<android.graphics.Rect?>(null) }
         PictureInPicture(model, videoBounds)
         // In the window the video shows alone: what was open closes, at once.
@@ -217,16 +222,16 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
 
         // The picture, where mpv draws it.
         Box(
-            Modifier.offset(rect.x, rect.y).size(rect.width, rect.height).onGloballyPositioned { coordinates ->
-                val bounds = coordinates.boundsInWindow()
-                videoBounds = android.graphics.Rect(bounds.left.toInt(), bounds.top.toInt(), bounds.right.toInt(), bounds.bottom.toInt())
+            Modifier.offset(rect.x, rect.y).size(rect.width, rect.height).onLayoutRectChanged(throttleMillis = 0, debounceMillis = BOUNDS_SETTLE_MS) { layout ->
+                val bounds = layout.boundsInWindow
+                videoBounds = android.graphics.Rect(bounds.left, bounds.top, bounds.right, bounds.bottom)
             },
         ) {
             video(model, Modifier.fillMaxSize()) { surfaceView = it }
         }
 
         // The ground the picture fades through between episodes.
-        if (ground > 0f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ground }.background(ObiSilk.Ground))
+        if (groundUp) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ground.value }.background(ObiSilk.Ground))
 
         // Waiting for data mid-episode: the thin amber line along the video's top edge, from 1 s
         // in until playback goes on. The stall prompt comes at 8 s, as ever.
@@ -310,7 +315,7 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         }
 
         if (still.frame == null && !pip) {
-            CornerCard(model, chromeVisible, ground, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 88.dp))
+            CornerCard(model, chromeVisible, { ground.value }, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 88.dp))
             ResumeNote(model, Modifier.align(Alignment.BottomStart).padding(start = 48.dp, bottom = 88.dp))
             AlertNote(model, Modifier.align(Alignment.TopCenter).padding(top = 80.dp))
             StillWatching(model)
@@ -318,15 +323,18 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         PlayerSheets(model, sheet) { sheet = null }
 
         // A drag or a back gesture moves a still of the frame over the ground, the bars with it.
+        // The gesture is read in the layer alone, so following the finger redraws the still and
+        // composes nothing.
         still.frame?.let { frame ->
             Box(Modifier.fillMaxSize().background(ObiSilk.Ground))
-            val k = (drag.value / DISMISS_DP).coerceIn(0f, 1f)
-            val p = back.value
-            val edge = if (backEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
+            val image = remember(frame) { frame.asImageBitmap() }
             Box(
                 Modifier
                     .fillMaxSize()
                     .graphicsLayer {
+                        val k = (drag.value / DISMISS_DP).coerceIn(0f, 1f)
+                        val p = back.value
+                        val edge = if (backEdge == BackEventCompat.EDGE_LEFT) 1f else -1f
                         val scale = (1f - 0.1f * k) * (1f - 0.1f * p)
                         scaleX = scale
                         scaleY = scale
@@ -338,7 +346,7 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
                     .background(Color.Black),
             ) {
                 Image(
-                    frame.asImageBitmap(),
+                    image,
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.offset(rect.x, rect.y).size(rect.width, rect.height),
@@ -349,6 +357,9 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
 }
 
 private enum class Third { Start, Middle, End }
+
+/** How long the video's bounds hold still before the window's source-rect hint follows them. */
+private const val BOUNDS_SETTLE_MS = 100L
 
 /** The drag down that closes the player, and the fling that does, in dp and dp/s (T3). */
 private const val DISMISS_DP = 120f
