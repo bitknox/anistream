@@ -1,0 +1,154 @@
+# Dependabot's version updates. Security updates are a repository setting and stay on; the
+# security groups below only bundle them, one pull request per ecosystem and directory.
+#
+# Every push to main is a release unless it only changes the website, the docs or the Markdown at
+# the top (release.yml), so each merged pull request from here ships one. Every ecosystem runs on
+# the same Monday morning, so a week's updates arrive together and can go into one merge train
+# and one release.
+#
+# Minor and patch updates are grouped. A major update gets a pull request of its own.
+#
+# There is no rust-toolchain entry: rust-toolchain.toml is moved by hand, together with the
+# container's RUST_VERSION and the store's WebAssembly (deploy/sync.sh hashes the toolchain file).
+#
+# There is no swift entry either. The packages under apple/Packages depend only on each other, by
+# path, and the one remote package, MPVKit, is pinned by checksum in apple/scripts/mpv.sh, which
+# Dependabot cannot read. The spikes under apple/Spikes and android/Spikes are left out too.
+#
+# Two kinds of pull request need a push from someone before CI passes, since Dependabot runs no
+# build of its own:
+#   the admin page's (crates/anistream-store-core/admin): `bun run build` there, so the committed
+#     build matches its source;
+#   any that moves a dependency the store compiles, the admin page's included: `deploy/sync.sh`,
+#     so deploy/store-wasm is current.
+version: 2
+
+updates:
+  - package-ecosystem: cargo
+    directories:
+      - /
+      - /plugins/example-rust
+      - /plugins/test-hostile
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    # A release has a week to show a problem before it is proposed. Security updates do not wait.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      cargo-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      cargo-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # The JavaScript reference plugin is built with npm, per docs/plugins.md.
+  - package-ecosystem: npm
+    directory: /plugins/example-ts
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: bun
+    directories:
+      - /website
+      - /crates/anistream-store-core/admin
+      - /deploy/cloudflare
+      - /deploy/netlify
+      - /deploy/vercel
+      - /deploy/test
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    ignore:
+      # Astro 7.4 needs Node 22.23.4, and Cloudflare Pages builds the website on Node 22.16 unless
+      # the project sets NODE_VERSION. Once it does, drop this and widen astro to ^7 in
+      # website/package.json.
+      - dependency-name: astro
+        versions: [">=7.4.0"]
+    groups:
+      bun-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      bun-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: /android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      gradle-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+      gradle-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  # The workflows name actions by major tag, so nearly every update here is a major one.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /deploy/container
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Copenhagen
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    ignore:
+      # The build stage's rust image follows rust-toolchain.toml, by hand, through RUST_VERSION.
+      - dependency-name: rust
+    groups:
+      docker-minor-and-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
