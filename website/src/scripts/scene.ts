@@ -1,7 +1,7 @@
 /**
  * The hero scene: a rooftop at dusk over a lit city, meteors crossing the sky, and Nagare looking
  * up at them, drawn the way the terminal app draws a cover without a graphics protocol. One pixel
- * here is one half of a halfblock cell, and the page shows it at 8 or 6 CSS pixels.
+ * here is one half of a halfblock cell, and the page shows it at 5 to 8 CSS pixels.
  *
  * The scene is four planes, so each can move at its own rate as the page scrolls: the sky with its
  * stars, moon and meteors; the far skyline; the near skyline with its lit windows; and the rooftop
@@ -35,6 +35,16 @@ export type PlaneName = 'sky' | 'far' | 'near' | 'front';
 
 /** How fast each plane moves against the page: 1 is the page itself. */
 export const PLANE_RATES: Record<PlaneName, number> = { sky: 0.35, far: 0.55, near: 0.75, front: 1 };
+
+/**
+ * How far each plane moves with the pointer, in scene pixels either way. The rooftop holds still,
+ * since the copy and the Mac window stand on it, and the planes behind it move more the further
+ * back they are.
+ */
+export const PLANE_SWAY: Record<PlaneName, number> = { sky: 3, far: 2, near: 1, front: 0 };
+
+/** Columns drawn past each side of the frame, so a plane can sway without opening a gap. */
+export const SWAY_MARGIN = 4;
 
 const H = 70;
 const WIDE_W = 180;
@@ -106,6 +116,9 @@ const STAR: RGB = [210, 208, 204];
 /** A tower's wall, and a window that is off. */
 const WINDOW_OFF: RGB = [21, 24, 46];
 
+/** The sky later in the evening: the same gradient, with the dusk sunk lower toward the horizon. */
+const LATE = 0.68;
+
 function skyAt(t: number): RGB {
 	const stops: [number, RGB][] = [
 		[0.0, [13, 16, 36]],
@@ -125,23 +138,86 @@ function skyAt(t: number): RGB {
 	return stops[stops.length - 1][1];
 }
 
-/** What the live layer needs from a drawn scene: the sky as drawn, its stars and the city's windows. */
+/** How Nagare stands in a frame: eyes shut, the scarf's tail lifted by the wind, the charm lit. */
+export interface Pose {
+	blink: boolean;
+	/** 0 is the scarf at rest; 1 and 2 are the tail lifting and streaming out. */
+	scarf: 0 | 1 | 2;
+	glint: boolean;
+}
+
+const REST: Pose = { blink: false, scarf: 0, glint: false };
+
+/** The scarf's tail, rows 13 and 14 from column 13, in each of its three positions. */
+const SCARF_TAIL = [
+	['aAA', 'aAAa'],
+	['aAAA', '.aA'],
+	['aAAAa', 'a'],
+];
+
+/** Nagare's pixels for a pose, as sprite column, row and colour. */
+function nagarePixels(pose: Pose): [number, number, RGB][] {
+	const rows = SPRITE.map((r) => r.split(''));
+	if (pose.blink) rows[9][5] = 'f';
+	if (pose.scarf) {
+		for (const y of [13, 14]) for (let x = 13; x < SPRITE_W; x++) rows[y][x] = '.';
+		SCARF_TAIL[pose.scarf].forEach((run, i) => {
+			for (let k = 0; k < run.length; k++) rows[13 + i][13 + k] = run[k];
+		});
+	}
+	const out: [number, number, RGB][] = [];
+	for (let sy = 0; sy < SPRITE_H; sy++) {
+		for (let sx = 0; sx < SPRITE_W; sx++) {
+			let ch = rows[sy][sx];
+			if (pose.glint && ch === 'W') ch = 'w';
+			const pc = SPRITE_COLORS[ch];
+			if (!pc) continue;
+			const dim = 1 - 0.04 * hash(sx * 7.3 + sy * 3.1);
+			out.push([sx, sy, [pc[0] * dim, pc[1] * dim, pc[2] * dim]]);
+		}
+	}
+	return out;
+}
+
+/** What the live layer needs from a drawn scene: the sky, its stars, the windows and Nagare. */
 export interface SceneState {
 	cfg: SceneConfig;
 	sky: CanvasRenderingContext2D;
-	/** The sky as drawn, and a copy each frame's twinkles and shooting star are drawn into. */
+	/** The sky without its meteors, the same sky later in the evening, and a copy each frame is drawn into. */
 	base: ImageData;
+	late: ImageData;
 	work: ImageData;
 	near: CanvasRenderingContext2D;
+	front: CanvasRenderingContext2D;
+	/** The rooftop as drawn before Nagare, so a pose can be drawn over a clean patch. */
+	frontBare: ImageData;
 	stars: { i: number; dim: number; period: number; phase: number }[];
 	windows: { x: number; y: number; on: string; off: string; lit: boolean }[];
 }
 
-/** The shower's angle, which the shooting stars share. */
+/** The shower's angle, which every meteor shares. */
 const DX = 0.567;
 const DY = 0.824;
 
-/** Draws the four planes into the given canvases, sizing each to its plane first. */
+/**
+ * How bright a meteor is at a point `px`, `py` from its start, when the part from `a` to `b` along
+ * its length shows. The head is the brightest and widest part, as the boards draw it.
+ */
+function meteorGlow(px: number, py: number, len: number, a: number, b: number) {
+	const t = Math.max(a, Math.min(b, px * DX + py * DY));
+	const d = Math.hypot(px - t * DX, py - t * DY);
+	const k = 1 - (b - t) / len;
+	const w = 0.45 + 0.75 * k;
+	if (d < w) return 0.55 + 0.45 * k;
+	if (d < w * 2.2) return 0.3 * k * (1 - d / (w * 2.2));
+	return 0;
+}
+
+/**
+ * Draws the four planes into the given canvases, sizing each to its plane first. The sky starts
+ * clear of meteors: with motion the live layer sends one across it now and then, and a page that
+ * stays still keeps just the stars.
+ */
 export function renderScene(
 	cfg: SceneConfig,
 	canvases: Record<PlaneName, HTMLCanvasElement>
@@ -160,6 +236,8 @@ export function renderScene(
 	const near = plane(canvases.near, H);
 	const front = plane(canvases.front, H);
 	if (!sky || !far || !near || !front) return null;
+	const base = { img: new ImageData(W, H + extra) };
+	const late = { img: new ImageData(W, H + extra) };
 	const stars: SceneState['stars'] = [];
 	const windows: SceneState['windows'] = [];
 	const css = (c: RGB, dim: number) =>
@@ -173,37 +251,23 @@ export function renderScene(
 		p.img.data[i + 3] = 255;
 	};
 
-	// Sky: night into dusk, stars, the moon and the meteor shower. Rows above the frame stay night.
-	const dx = 0.567;
-	const dy = 0.824;
+	// Sky: night into dusk, stars and the moon. Rows above the frame stay night. The live layer draws
+	// over the sky, blending it toward the later sky as the page scrolls.
 	for (let yy = 0; yy < H + extra; yy++) {
 		const y = yy - extra;
 		for (let x = 0; x < W; x++) {
 			const seed = r();
-			let col = skyAt(y / cfg.horizon);
+			const dusk = skyAt(y / cfg.horizon);
+			const later = skyAt((y / cfg.horizon) * LATE);
 			const dm = Math.hypot(x - cfg.moon.x, y - cfg.moon.y);
 			if (dm < cfg.moon.r) {
-				put(sky, x, yy, mix([232, 226, 212], [198, 190, 169], dm / cfg.moon.r), 1 - 0.04 * seed);
+				const c = mix([232, 226, 212], [198, 190, 169], dm / cfg.moon.r);
+				for (const p of [sky, base, late]) put(p, x, yy, c, 1 - 0.04 * seed);
 				continue;
 			}
-			let glow = 0;
-			for (const [sx, sy] of cfg.meteors) {
-				const px = x - sx;
-				const py = y - sy;
-				const t = Math.max(0, Math.min(cfg.len, px * dx + py * dy));
-				const d = Math.hypot(px - t * dx, py - t * dy);
-				const w = 0.45 + 0.75 * (t / cfg.len);
-				if (d < w) glow = Math.max(glow, 0.55 + 0.45 * (t / cfg.len));
-				else if (d < w * 2.2) glow = Math.max(glow, 0.3 * (t / cfg.len) * (1 - d / (w * 2.2)));
-			}
-			if (glow > 0.5) {
-				put(sky, x, yy, mix(WATER, CORE, (glow - 0.5) * 2), 1 - 0.04 * seed);
-				continue;
-			}
-			if (glow > 0) col = mix(col, WATER, glow);
 			if (seed > 0.988 && y < cfg.horizon * 0.8) {
 				const dim = 0.45 + 0.3 * r();
-				put(sky, x, yy, STAR, dim);
+				for (const p of [sky, base, late]) put(p, x, yy, STAR, dim);
 				stars.push({
 					i: (yy * W + x) * 4,
 					dim,
@@ -212,7 +276,9 @@ export function renderScene(
 				});
 				continue;
 			}
-			put(sky, x, yy, col, 1 - 0.045 * seed);
+			put(sky, x, yy, dusk, 1 - 0.045 * seed);
+			put(base, x, yy, dusk, 1 - 0.045 * seed);
+			put(late, x, yy, later, 1 - 0.045 * seed);
 		}
 	}
 
@@ -264,27 +330,56 @@ export function renderScene(
 			else if (y >= cfg.railTop && x % 6 === 0) put(front, x, y, [15, 17, 32]);
 		}
 	}
+	const frontBare = new ImageData(new Uint8ClampedArray(front.img.data), W, H);
 	const ax = cfg.nagareX;
 	const ay = cfg.feetRow - (SPRITE_H - 1);
-	for (let sy = 0; sy < SPRITE_H; sy++) {
-		for (let sx = 0; sx < SPRITE_W; sx++) {
-			const pc = SPRITE_COLORS[SPRITE[sy][sx]];
-			if (pc && ay + sy >= 0 && ay + sy < H && ax + sx < W) put(front, ax + sx, ay + sy, pc, 1 - 0.04 * r());
-		}
+	for (const [sx, sy, c] of nagarePixels(REST)) {
+		if (ay + sy >= 0 && ay + sy < H && ax + sx < W) put(front, ax + sx, ay + sy, c);
 	}
 
 	for (const p of [sky, far, near, front]) p.ctx.putImageData(p.img, 0, 0);
-	const work = new ImageData(new Uint8ClampedArray(sky.img.data), W, H + extra);
-	return { cfg, sky: sky.ctx, base: sky.img, work, near: near.ctx, stars, windows };
+	const work = new ImageData(new Uint8ClampedArray(base.img.data), W, H + extra);
+	return {
+		cfg,
+		sky: sky.ctx,
+		base: base.img,
+		late: late.img,
+		work,
+		near: near.ctx,
+		front: front.ctx,
+		frontBare,
+		stars,
+		windows,
+	};
+}
+
+/** Draws Nagare in a pose over the rooftop as it was before she was drawn. */
+function paintNagare(s: SceneState, pose: Pose) {
+	const { W, H, nagareX: ax, feetRow } = s.cfg;
+	const ay = feetRow - (SPRITE_H - 1);
+	const top = Math.max(0, ay);
+	s.front.putImageData(s.frontBare, 0, 0, ax, top, Math.min(SPRITE_W, W - ax), Math.min(SPRITE_H, H - top));
+	for (const [sx, sy, c] of nagarePixels(pose)) {
+		if (ay + sy < 0 || ay + sy >= H || ax + sx >= W) continue;
+		s.front.fillStyle = `rgb(${Math.round(c[0])} ${Math.round(c[1])} ${Math.round(c[2])})`;
+		s.front.fillRect(ax + sx, ay + sy, 1, 1);
+	}
 }
 
 /**
- * Keeps the scene alive without changing its composition. One star in four breathes on its own
- * slow cycle, a small shooting star crosses the upper sky every few seconds at the shower's angle,
- * and now and then a window in the city switches on or off. It draws at the scene's own resolution,
- * 30 times a second.
+ * Keeps the scene alive without changing its composition.
+ *
+ * Every 6 to 12 seconds a meteor of the shower crosses the sky, from close to where the boards
+ * draw one, and is gone in under a second; Nagare's charm catches its light as it goes. Between
+ * them a small shooting star crosses the upper sky now and then. One star in four breathes on its
+ * own slow cycle, and a window in the city switches on or off. Nagare blinks, and the wind lifts
+ * her scarf.
+ *
+ * `evening` runs from 0 to 1 as the scene scrolls away: the dusk sinks toward the horizon and more
+ * of the city's windows come on, and both go back on the way up. It draws at the scene's own
+ * resolution, 30 times a second.
  */
-export function liveScene(state: () => SceneState | null) {
+export function liveScene(state: () => SceneState | null, evening: () => number = () => 0) {
 	let raf = 0;
 	let last = 0;
 	let nextShoot = 0;
@@ -293,19 +388,53 @@ export function liveScene(state: () => SceneState | null) {
 	let shoot: { x: number; y: number; t0: number; dur: number; travel: number } | null = null;
 	const TAIL = 8;
 
+	let seen: SceneState | null = null;
+	let meteor: { sx: number; sy: number; t0: number; dur: number } | null = null;
+	let nextMeteor = 0;
+	let litAtStart = 0;
+	let pose: Pose = { ...REST };
+	let nextBlink = 0;
+	let blinkUntil = 0;
+	let nextGust = 0;
+	let gustAt = 0;
+	let glintUntil = 0;
+
+	const begin = (s: SceneState, now: number) => {
+		seen = s;
+		meteor = null;
+		nextMeteor = now + 2400;
+		litAtStart = s.windows.filter((w) => w.lit).length;
+		pose = { ...REST };
+		nextBlink = now + 2200;
+		nextGust = now + 4200;
+		gustAt = 0;
+	};
+
 	const frame = (now: number) => {
 		raf = requestAnimationFrame(frame);
 		if (now - last < 33) return;
 		last = now;
 		const s = state();
 		if (!s) return;
+		if (s !== seen) begin(s, now);
 		if (!nextShoot) {
 			nextShoot = now + 1400;
 			nextWindow = now + 2600;
 		}
-		const { W, H, extra, moon, horizon } = s.cfg;
+		const { W, H, extra, moon, horizon, len } = s.cfg;
 		const d = s.work.data;
-		d.set(s.base.data);
+		const night = Math.max(0, Math.min(1, evening()));
+		if (night <= 0) d.set(s.base.data);
+		else {
+			const a = s.base.data;
+			const b = s.late.data;
+			for (let i = 0; i < d.length; i += 4) {
+				d[i] = a[i] + (b[i] - a[i]) * night;
+				d[i + 1] = a[i + 1] + (b[i + 1] - a[i + 1]) * night;
+				d[i + 2] = a[i + 2] + (b[i + 2] - a[i + 2]) * night;
+				d[i + 3] = 255;
+			}
+		}
 
 		for (let k = 0; k < s.stars.length; k += 4) {
 			const st = s.stars[k];
@@ -315,7 +444,46 @@ export function liveScene(state: () => SceneState | null) {
 			d[st.i + 2] = Math.min(255, STAR[2] * a);
 		}
 
-		if (!shoot && now >= nextShoot) {
+		// A meteor of the shower: the head runs half again its length past where the boards draw it,
+		// the tail follows at its length, and it fades as it goes.
+		if (!meteor && !shoot && now >= nextMeteor) {
+			const [ox, oy] = s.cfg.meteors[Math.floor(Math.random() * s.cfg.meteors.length)];
+			let sx = ox + Math.round((Math.random() - 0.5) * 14);
+			const sy = oy + Math.round((Math.random() - 0.5) * 6);
+			if (Math.hypot(sx - moon.x, sy - moon.y) < moon.r + 8) sx = ox;
+			meteor = { sx, sy, t0: now, dur: 650 + 200 * Math.random() };
+		}
+		if (meteor) {
+			const u = (now - meteor.t0) / meteor.dur;
+			if (u >= 1) {
+				meteor = null;
+				glintUntil = now + 260;
+				nextMeteor = now + 6000 + 6000 * Math.random();
+				nextShoot = Math.max(nextShoot, now + 2000);
+			} else {
+				const head = 1.5 * len * (1 - (1 - u) * (1 - u));
+				const a = Math.max(0, head - len);
+				const env = Math.min(1, u / 0.1) * Math.min(1, (1 - u) / 0.45);
+				const { sx, sy } = meteor;
+				const x0 = Math.max(0, Math.floor(sx + a * DX - 3));
+				const x1 = Math.min(W - 1, Math.ceil(sx + head * DX + 3));
+				const y0 = Math.max(0, Math.floor(extra + sy + a * DY - 3));
+				const y1 = Math.min(H + extra - 1, Math.ceil(extra + sy + head * DY + 3));
+				for (let yy = y0; yy <= y1; yy++) {
+					for (let x = x0; x <= x1; x++) {
+						const g = meteorGlow(x - sx, yy - extra - sy, len, a, head) * env;
+						if (g <= 0) continue;
+						const i = (yy * W + x) * 4;
+						const c: RGB = g > 0.5 ? mix(WATER, CORE, (g - 0.5) * 2) : mix([d[i], d[i + 1], d[i + 2]], WATER, g);
+						d[i] = c[0];
+						d[i + 1] = c[1];
+						d[i + 2] = c[2];
+					}
+				}
+			}
+		}
+
+		if (!shoot && !meteor && now >= nextShoot) {
 			let x = W * (0.06 + 0.88 * Math.random());
 			const y = extra + horizon * (0.02 + 0.3 * Math.random());
 			if (Math.hypot(x - moon.x, y - extra - moon.y) < moon.r + 12) x = (x + W * 0.4) % W;
@@ -325,7 +493,7 @@ export function liveScene(state: () => SceneState | null) {
 			const p = (now - shoot.t0) / shoot.dur;
 			if (p >= 1) {
 				shoot = null;
-				nextShoot = now + 2800 + 5200 * Math.random();
+				nextShoot = now + 4000 + 6000 * Math.random();
 			} else {
 				const env = Math.min(1, p / 0.15) * Math.min(1, (1 - p) / 0.4);
 				const head = shoot.travel * p;
@@ -347,17 +515,45 @@ export function liveScene(state: () => SceneState | null) {
 		}
 		s.sky.putImageData(s.work, 0, 0);
 
+		// The city: later in the evening more windows are on. Away from that count a window switches
+		// every tenth of a second until the city gets there; at it, one goes off and one comes on in
+		// turn, every few seconds.
+		const lit = s.windows.reduce((n, w) => n + (w.lit ? 1 : 0), 0);
+		const target = Math.round(litAtStart + night * 0.4 * (s.windows.length - litAtStart));
 		if (now >= nextWindow && s.windows.length) {
-			// Off, then on, in turn, so the city stays as lit as it was drawn.
-			const pool = s.windows.filter((w) => w.lit !== turnOn);
+			const on = lit === target ? turnOn : lit < target;
+			const pool = s.windows.filter((w) => w.lit !== on);
 			const w = pool[Math.floor(Math.random() * pool.length)];
 			if (w) {
-				w.lit = turnOn;
+				w.lit = on;
 				s.near.fillStyle = w.lit ? w.on : w.off;
 				s.near.fillRect(w.x, w.y, 1, 1);
 			}
-			turnOn = !turnOn;
-			nextWindow = now + 1600 + 3400 * Math.random();
+			if (lit === target) {
+				turnOn = !turnOn;
+				nextWindow = now + 1600 + 3400 * Math.random();
+			} else nextWindow = now + 90;
+		}
+
+		// Nagare: a blink every few seconds, sometimes two, and a gust that lifts the scarf's tail
+		// and lets it fall back.
+		if (now >= nextBlink) {
+			blinkUntil = now + 130;
+			nextBlink = now + (Math.random() < 0.2 ? 300 : 2800 + 3600 * Math.random());
+		}
+		if (now >= nextGust) {
+			gustAt = now;
+			nextGust = now + 6000 + 5000 * Math.random();
+		}
+		const gust = gustAt ? Math.floor((now - gustAt) / 120) : -1;
+		const next: Pose = {
+			blink: now < blinkUntil,
+			scarf: ([1, 2, 2, 2, 1] as const)[gust] ?? 0,
+			glint: now < glintUntil,
+		};
+		if (next.blink !== pose.blink || next.scarf !== pose.scarf || next.glint !== pose.glint) {
+			pose = next;
+			paintNagare(s, pose);
 		}
 	};
 
