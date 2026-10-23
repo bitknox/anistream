@@ -61,6 +61,8 @@ pub enum Command {
     Cycle(&'static str),
     /// Step a numeric property by a delta, clamped by mpv itself.
     Add(&'static str, f64),
+    /// Multiply a numeric property by a factor, clamped by mpv itself.
+    Multiply(&'static str, f64),
     ObserveProperty(u64, &'static str),
     /// Relative or absolute seek, in seconds.
     ///
@@ -133,6 +135,9 @@ impl Command {
             Self::Cycle(name) => vec!["cycle".into(), (*name).into()],
             Self::Add(name, delta) => {
                 vec!["add".into(), (*name).into(), (*delta).into()]
+            }
+            Self::Multiply(name, factor) => {
+                vec!["multiply".into(), (*name).into(), (*factor).into()]
             }
             Self::ObserveProperty(id, name) => {
                 vec!["observe_property".into(), (*id).into(), (*name).into()]

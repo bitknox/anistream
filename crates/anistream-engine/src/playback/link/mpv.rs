@@ -60,6 +60,10 @@ impl PlayerLink for MpvSession {
         Ok(self.send(Command::Add(property, delta)).await?)
     }
 
+    async fn multiply(&self, property: &'static str, factor: f64) -> Result<(), LinkError> {
+        Ok(self.send(Command::Multiply(property, factor)).await?)
+    }
+
     async fn seek(&self, seconds: f64, absolute: bool) -> Result<(), LinkError> {
         Ok(self.send(Command::Seek { seconds, absolute }).await?)
     }

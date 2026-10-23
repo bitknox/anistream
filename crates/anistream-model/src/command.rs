@@ -537,8 +537,12 @@ pub enum PlayerCommand {
     Seek(f64),
     /// Seek to an absolute position — how the skip prompt is taken.
     SeekTo(f64),
-    /// Multiply the current speed, clamped by the player.
+    /// Multiply the current speed by this factor, clamped by the player: a step faster or
+    /// slower, as the terminal's `]` and `[` take it (1.1 and 1/1.1, mpv's own steps).
     Speed(f64),
+    /// Set the speed, clamped by the player: what a player's menu of speeds picks, 1.5 for 1.5×,
+    /// whatever the speed was.
+    SpeedTo(f64),
     /// Step volume by a relative amount.
     Volume(f64),
     /// Leave mpv running and return to browsing.

@@ -164,9 +164,12 @@ pub(super) async fn apply_command(link: &dyn PlayerLink, command: PlayerCommand)
         PlayerCommand::SeekTo(position) => {
             let _ = link.seek(position, true).await;
         }
-        // Stepped by a delta, which the player clamps.
-        PlayerCommand::Speed(delta) => {
-            let _ = link.add("speed", delta).await;
+        // Multiplied, or set outright, and clamped by the player.
+        PlayerCommand::Speed(factor) => {
+            let _ = link.multiply("speed", factor).await;
+        }
+        PlayerCommand::SpeedTo(speed) => {
+            let _ = link.set("speed", serde_json::json!(speed)).await;
         }
         PlayerCommand::Volume(delta) => {
             let _ = link.add("volume", delta).await;
@@ -200,5 +203,35 @@ pub(super) async fn apply_command(link: &dyn PlayerLink, command: PlayerCommand)
         PlayerCommand::Stop => {
             let _ = link.quit().await;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anistream_core::traits::PlaybackRequest;
+    use anistream_model::command::PlayerCommand;
+
+    use super::apply_command;
+    use crate::playback::link::{
+        PlayerOpener,
+        fake::{Call, ScriptedOpener},
+    };
+
+    /// A speed step multiplies what plays, as the model has it, and a speed from a menu is set
+    /// outright: the apps' 1.5× from 1× once came out 2.5×, the factor added.
+    #[tokio::test]
+    async fn a_speed_is_multiplied_or_set_never_added() {
+        let scratch = tempfile::tempdir().unwrap();
+        let opener = ScriptedOpener::new(scratch.path(), Vec::new());
+        let (link, _events) = opener.open(&PlaybackRequest::default()).await.unwrap();
+        apply_command(link.as_ref(), PlayerCommand::Speed(1.1)).await;
+        apply_command(link.as_ref(), PlayerCommand::SpeedTo(1.5)).await;
+        assert_eq!(
+            opener.calls()[1..],
+            [
+                Call::Multiply { property: "speed", factor: 1.1 },
+                Call::Set { property: "speed", value: serde_json::json!(1.5) },
+            ]
+        );
     }
 }

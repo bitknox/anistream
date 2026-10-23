@@ -643,10 +643,22 @@ struct ViewerTests {
         #expect(!rig.mpv.calls.contains { if case .set(let property, _) = $0 { ["aid", "sid"].contains(property) } else { false } })
         #expect(rig.controls == [
             .chooseTrack(kind: .audio, id: 2), .chooseTrack(kind: .subtitle, id: nil),
-            .speed(1.5), .choose(.episode("3")), .upscaling("sharp"), .nightMode(true), .step(1),
+            .speedTo(1.5), .choose(.episode("3")), .upscaling("sharp"), .nightMode(true), .step(1),
         ])
         #expect(rig.model.audioTracks.map(\.id) == [1, 2])
         #expect(rig.model.subtitleTracks.first?.title == "Full")
+    }
+
+    @Test func aSpeedIsSetOutrightWhateverPlays() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        rig.mpv.emit(.property(name: "speed", value: .double(1.25)))
+        try await until("the speed") { rig.model.speed == 1.25 }
+        // 1.5× from 1.25×: the speed itself, not the factor between them, which the engine
+        // multiplies by whatever plays then.
+        rig.model.setSpeed(1.5)
+        rig.model.setSpeed(1)
+        #expect(rig.controls == [.speedTo(1.5), .speedTo(1)])
     }
 
     @Test func scrubbingSeeksByKeyframesThenExactlyOnRelease() async throws {

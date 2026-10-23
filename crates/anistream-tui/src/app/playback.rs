@@ -28,6 +28,9 @@ pub struct NowPlaying {
     pub skip: Option<(SkipKind, f64)>,
 }
 
+/// How far `[` and `]` step the speed.
+const SPEED_STEP: f64 = 0.25;
+
 impl NowPlaying {
     pub fn fraction(&self) -> f64 {
         match self.duration {
@@ -88,8 +91,8 @@ impl App {
             Action::SeekForward => P::Seek(5.0),
             Action::SeekBackFar => P::Seek(-30.0),
             Action::SeekForwardFar => P::Seek(30.0),
-            Action::SpeedDown => P::Speed(-0.25),
-            Action::SpeedUp => P::Speed(0.25),
+            Action::SpeedDown => P::SpeedTo(self.speed_step(false)),
+            Action::SpeedUp => P::SpeedTo(self.speed_step(true)),
             Action::VolumeDown => P::Volume(-5.0),
             Action::VolumeUp => P::Volume(5.0),
             Action::Fullscreen => P::Fullscreen,
@@ -301,6 +304,22 @@ impl App {
         if let Some(playing) = &mut self.playing {
             playing.speed = speed;
         }
+    }
+
+    /// The speed a step faster (`up`) or slower from what plays now goes to: the next quarter
+    /// that way, within ¼× and 4×. Kept as the speed at once, so a second press before the
+    /// player has said so steps on from it.
+    fn speed_step(&mut self, up: bool) -> f64 {
+        let current = self.playing.as_ref().map_or(1.0, |playing| playing.speed);
+        // A hair of slack, for a speed that is a quarter but not quite in binary.
+        let quarters = current / SPEED_STEP;
+        let target =
+            if up { (quarters + 1e-6).floor() + 1.0 } else { (quarters - 1e-6).ceil() - 1.0 };
+        let target = (target * SPEED_STEP).clamp(SPEED_STEP, 4.0);
+        if let Some(playing) = &mut self.playing {
+            playing.speed = target;
+        }
+        target
     }
 
     /// The playback staged over the one in the window found nothing to play, so the one in the
@@ -648,7 +667,7 @@ mod tests {
             (Action::PlayPause, PlayerCommand::TogglePause),
             (Action::SeekForward, PlayerCommand::Seek(5.0)),
             (Action::SeekBackFar, PlayerCommand::Seek(-30.0)),
-            (Action::SpeedUp, PlayerCommand::Speed(0.25)),
+            (Action::SpeedUp, PlayerCommand::SpeedTo(1.25)),
             (Action::StopPlayback, PlayerCommand::Stop),
         ] {
             assert_eq!(
@@ -695,6 +714,27 @@ mod tests {
         a.apply(a.content_here(entries(3)));
         assert_eq!(a.handle(Action::NextEpisode, 20), None);
         assert!(a.playing.is_none());
+    }
+
+    #[test]
+    fn the_speed_keys_step_to_the_next_quarter_from_what_plays() {
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        a.apply(Event::PlaybackSpeed(1.0));
+        let to = |speed| Some(Command::Player(PlayerCommand::SpeedTo(speed)));
+        assert_eq!(a.handle(Action::SpeedUp, 20), to(1.25));
+        // A second press before the player has said so steps on from the first.
+        assert_eq!(a.handle(Action::SpeedUp, 20), to(1.5));
+        // From a speed between quarters, to the next quarter that way.
+        a.apply(Event::PlaybackSpeed(1.1));
+        assert_eq!(a.handle(Action::SpeedDown, 20), to(1.0));
+        a.apply(Event::PlaybackSpeed(1.1));
+        assert_eq!(a.handle(Action::SpeedUp, 20), to(1.25));
+        // Never below a quarter, nor past four.
+        a.apply(Event::PlaybackSpeed(0.25));
+        assert_eq!(a.handle(Action::SpeedDown, 20), to(0.25));
+        a.apply(Event::PlaybackSpeed(4.0));
+        assert_eq!(a.handle(Action::SpeedUp, 20), to(4.0));
     }
 
     #[test]
