@@ -48,7 +48,7 @@ export const APP_DOWNLOADS: AppDownload[] = [
 		needs: 'iOS or iPadOS 26 or later',
 		file: 'anistream-<version>-ios-unsigned.ipa',
 		suffix: '-ios-unsigned.ipa',
-		first: 'Install it with AltStore or SideStore and your Apple ID.',
+		first: 'Add anistream’s source to SideStore or AltStore and install it from there.',
 		guide: `${INSTALL_GUIDE}#iphone-and-ipad`,
 	},
 	{
