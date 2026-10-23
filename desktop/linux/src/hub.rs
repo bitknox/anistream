@@ -19,6 +19,8 @@ use anistream_model::{
     downloads::{DownloadRow, DownloadState, SeedRow},
     event::Event,
     settings::{SettingKey, SettingRow, SettingsView},
+    sources::{ProviderOrigin, ProviderRow},
+    stores::{StorePluginRow, StorePluginStatus, StoreRow},
     sync::SyncState,
 };
 use gtk::{gdk, gio, glib};
@@ -32,6 +34,8 @@ pub struct Known {
     pub sync: HashMap<String, SyncState>,
     pub downloads: Vec<DownloadRow>,
     pub seeding: Vec<SeedRow>,
+    pub providers: Vec<ProviderRow>,
+    pub stores: Vec<StoreRow>,
 }
 
 impl Known {
@@ -43,6 +47,43 @@ impl Known {
     /// The AniList account, when signed in.
     pub fn anilist(&self) -> Option<&SyncState> {
         self.sync.get("anilist").filter(|s| s.connected)
+    }
+
+    /// The sources in the order failover tries them: by where each stands in the order setting,
+    /// a plugin it does not name where `"plugins"` stands, or last.
+    pub fn ordered_providers(&self) -> Vec<ProviderRow> {
+        let order = self.settings.as_ref().map(|s| s.sources.order.clone()).unwrap_or_default();
+        sorted(&self.providers, &order)
+    }
+
+    /// The order setting as it stands.
+    pub fn source_order(&self) -> Vec<String> {
+        self.settings.as_ref().map(|s| s.sources.order.clone()).unwrap_or_default()
+    }
+
+    /// Where an installed plugin came from: the store that keeps it updated and its row there,
+    /// or the first store that lists it as added by hand.
+    pub fn origin(&self, plugin: &str) -> Option<(StoreRow, StorePluginRow)> {
+        let mut by_hand = None;
+        for store in &self.stores {
+            let Some(row) = store.plugins.iter().find(|p| p.id == plugin) else { continue };
+            match row.status {
+                StorePluginStatus::Installed | StorePluginStatus::Update { .. } => {
+                    return Some((store.clone(), row.clone()));
+                }
+                StorePluginStatus::AddedByHand if by_hand.is_none() => {
+                    by_hand = Some((store.clone(), row.clone()));
+                }
+                _ => {}
+            }
+        }
+        by_hand.or_else(|| {
+            // A plugin from a store the list has not come back from yet.
+            let row = self.providers.iter().find(|p| p.id == plugin)?;
+            let ProviderOrigin::Store { id, .. } = &row.origin else { return None };
+            let store = self.stores.iter().find(|s| &s.id == id)?;
+            Some((store.clone(), store.plugins.iter().find(|p| p.id == plugin)?.clone()))
+        })
     }
 
     /// Episodes downloading or waiting to, and those seeding: what closing the window stops.
@@ -84,9 +125,28 @@ impl Known {
             }
             Event::Downloads(rows) => self.downloads = rows.clone(),
             Event::Seeding(rows) => self.seeding = rows.clone(),
+            Event::Providers(rows) => self.providers = rows.clone(),
+            Event::Stores(rows) => self.stores = rows.clone(),
             _ => {}
         }
     }
+}
+
+/// `rows` in the order failover tries them, by `order`.
+pub fn sorted(rows: &[ProviderRow], order: &[String]) -> Vec<ProviderRow> {
+    let rank = |row: &ProviderRow| {
+        order
+            .iter()
+            .position(|entry| *entry == row.id)
+            .or_else(|| {
+                (row.kind == "plugin").then(|| order.iter().position(|e| e == "plugins"))?
+            })
+            .unwrap_or(order.len())
+    };
+    let mut ranked: Vec<_> =
+        rows.iter().enumerate().map(|(at, row)| (rank(row), at, row)).collect();
+    ranked.sort_by_key(|(rank, at, _)| (*rank, *at));
+    ranked.into_iter().map(|(_, _, row)| row.clone()).collect()
 }
 
 type Listener = Rc<dyn Fn(&Event)>;
@@ -98,6 +158,9 @@ pub struct Hub {
     listeners: RefCell<Vec<(u64, Listener)>>,
     next: Cell<u64>,
     art: Art,
+    /// Kinds of event the engine's own are set aside for, while a showcase shows its own.
+    #[cfg(feature = "fixtures")]
+    held: RefCell<Vec<&'static str>>,
 }
 
 impl Hub {
@@ -108,6 +171,8 @@ impl Hub {
             listeners: RefCell::default(),
             next: Cell::new(1),
             art: Art::default(),
+            #[cfg(feature = "fixtures")]
+            held: RefCell::default(),
         })
     }
 
@@ -149,6 +214,10 @@ impl Hub {
                 }
                 _ => {}
             }
+            #[cfg(feature = "fixtures")]
+            if showcase_kind(&event).is_some_and(|kind| self.held.borrow().contains(&kind)) {
+                continue;
+            }
             self.known.borrow_mut().take(&event);
             // Cloned out, so a listener may listen or forget as it hears.
             let listeners: Vec<_> =
@@ -157,6 +226,16 @@ impl Hub {
                 listener(&event);
             }
         }
+    }
+
+    /// Show `events` in place of the engine's own of their kinds, from now on: rows the fixture
+    /// engine has none of, for the screens that show them.
+    #[cfg(feature = "fixtures")]
+    pub fn show_instead(self: &Rc<Self>, events: Vec<Event>) {
+        let kinds: Vec<_> = events.iter().filter_map(showcase_kind).collect();
+        self.held.borrow_mut().retain(|kind| !kinds.contains(kind));
+        self.take(events);
+        self.held.borrow_mut().extend(kinds);
     }
 
     /// The title as it last stood, when it has been seen.
@@ -226,6 +305,18 @@ fn decode(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
     let image = image::load_from_memory(bytes).ok()?.into_rgba8();
     let (w, h) = image.dimensions();
     Some((w, h, image.into_raw()))
+}
+
+/// The kind of event a showcase sets the engine's own aside by.
+#[cfg(feature = "fixtures")]
+fn showcase_kind(event: &Event) -> Option<&'static str> {
+    Some(match event {
+        Event::Providers(_) => "providers",
+        Event::Stores(_) => "stores",
+        Event::Seeding(_) => "seeding",
+        Event::StorePreview(_) => "store-preview",
+        _ => return None,
+    })
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@
 //! over a channel; the window only ever queues commands, so nothing on the loop waits for it.
 //!
 //!   anistream-desktop [--hwdec <mode>] [--ao <output>]
-//!   anistream-desktop --fixtures [--data <dir>] [--media <file>] [--downloading]
+//!   anistream-desktop --fixtures [--data <dir>] [--media <file>] [--downloading] [--showcase]
 //!                     [--shots <dir> [--shot <a,b,...>] [--prefix <name>]] [--size <w>x<h>]
 
 mod catalog;
@@ -18,6 +18,8 @@ mod player;
 mod portal;
 mod prefs;
 mod shots;
+#[cfg(feature = "fixtures")]
+mod showcase;
 mod style;
 mod video;
 mod widgets;
@@ -44,6 +46,8 @@ struct Args {
     data: Option<PathBuf>,
     media: Option<String>,
     downloading: bool,
+    /// Plugin stores, their providers and episodes seeding, which the fixture engine has none of.
+    showcase: bool,
     shots: Option<PathBuf>,
     shot: Option<String>,
     prefix: String,
@@ -61,6 +65,7 @@ fn args() -> Args {
             "--data" => args.data = it.next().map(PathBuf::from),
             "--media" => args.media = it.next(),
             "--downloading" => args.downloading = true,
+            "--showcase" => args.showcase = true,
             "--shots" => args.shots = it.next().map(PathBuf::from),
             "--shot" => args.shot = it.next(),
             "--prefix" => args.prefix = it.next().unwrap_or_default(),
@@ -235,6 +240,10 @@ fn build(
         shell.ctx.window.set_default_size(width, height);
     }
     hub.send(Command::LoadDownloads);
+    #[cfg(feature = "fixtures")]
+    if args.fixtures && args.showcase {
+        hub.show_instead(showcase::events());
+    }
 
     glib::spawn_future_local({
         let hub = Rc::clone(&hub);
