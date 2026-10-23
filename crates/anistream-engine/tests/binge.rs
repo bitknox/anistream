@@ -80,6 +80,7 @@ fn settings(auto_next: bool) -> PlaySettings {
         threshold: 0.85,
         auto_skip: false,
         mark_chapters: false,
+        skip_button: false,
         fullscreen: false,
         subtitle_language: None,
         auto_next,

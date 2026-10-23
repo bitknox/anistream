@@ -344,6 +344,7 @@ struct PhonePlaybackPage: View {
                 PhoneSettingSwitch(key: .skipOpening, note: overridden(.skipOpening))
                 PhoneSettingSwitch(key: .skipFiller, note: overridden(.skipFiller))
                 PhoneSettingSwitch(key: .markChapters)
+                PhoneSettingSwitch(key: .skipButton, note: "While the opening or ending plays, when it isn't skipped automatically")
                 PhoneSettingPicker(key: .commitThreshold)
                 PhoneSettingSwitch(key: .spoilerProtection, note: "Blurs stills after the next episode")
             } header: {

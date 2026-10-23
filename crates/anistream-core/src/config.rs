@@ -535,6 +535,11 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
+    /// Offer a skip button while the opening or ending plays, where the skip is not automatic.
+    ///
+    /// With this, `skip_opening` and `mark_chapters` all off, nothing uses the opening and
+    /// ending times, so aniskip is not asked for them.
+    pub skip_button: bool,
     /// How many seconds Up Next counts down before the next episode plays, `0` for no
     /// countdown: the card waits for Play now. The native apps' player reads it; the terminal's
     /// companion keeps its own ten seconds.
@@ -606,6 +611,7 @@ impl Default for PlaybackConfig {
             tone_mapping: "auto".into(),
             skip_opening: true,
             mark_chapters: true,
+            skip_button: true,
             skip_filler: false,
             up_next_countdown: 10,
             spoiler_protection: true,

@@ -266,6 +266,7 @@ internal fun PlaybackPane() {
                 { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, "Skip opening automatically") },
                 { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, "Skip filler automatically") },
                 { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, "Mark opening and ending") },
+                { place -> SettingSwitch(place, SettingKey.SKIP_BUTTON, "Show skip button", note = "While the opening or ending plays, when it isn't skipped automatically") },
                 { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, "Counts as watched at", note = "Or when the ending starts, if it is marked") },
                 { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, "Spoiler protection", note = "Blurs stills of unwatched episodes after the next one") },
             ),

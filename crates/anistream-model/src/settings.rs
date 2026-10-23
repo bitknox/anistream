@@ -35,6 +35,8 @@ pub enum SettingKey {
     SkipOpening,
     SkipFiller,
     MarkChapters,
+    /// Offer a skip button while the opening or ending plays, where the skip is not automatic.
+    SkipButton,
     Fullscreen,
     Upscaling,
     PlayerUi,
@@ -98,7 +100,7 @@ impl SettingKey {
     /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
     /// renderer draws a heading each time the category changes, so rows of one category must
     /// be contiguous here.
-    pub const ROWS: [Self; 31] = [
+    pub const ROWS: [Self; 32] = [
         Self::Theme,
         Self::Motion,
         Self::Titles,
@@ -110,6 +112,7 @@ impl SettingKey {
         Self::SkipOpening,
         Self::SkipFiller,
         Self::MarkChapters,
+        Self::SkipButton,
         Self::Fullscreen,
         Self::Upscaling,
         Self::PlayerUi,
@@ -163,6 +166,7 @@ impl SettingKey {
             Self::SkipOpening => (&["playback"], "skip_opening"),
             Self::SkipFiller => (&["playback"], "skip_filler"),
             Self::MarkChapters => (&["playback"], "mark_chapters"),
+            Self::SkipButton => (&["playback"], "skip_button"),
             Self::Fullscreen => (&["playback"], "fullscreen"),
             Self::Upscaling => (&["playback"], "upscaling"),
             Self::PlayerUi => (&["playback"], "player_ui"),
@@ -239,6 +243,7 @@ impl SettingKey {
             Self::SkipOpening => dst.skip_opening = src.skip_opening,
             Self::SkipFiller => dst.skip_filler = src.skip_filler,
             Self::MarkChapters => dst.mark_chapters = src.mark_chapters,
+            Self::SkipButton => dst.skip_button = src.skip_button,
             Self::Fullscreen => dst.fullscreen = src.fullscreen,
             Self::Upscaling => dst.upscaling = src.upscaling,
             Self::PlayerUi => dst.player_ui = src.player_ui,
@@ -305,6 +310,7 @@ impl SettingKey {
             | Self::SkipOpening
             | Self::SkipFiller
             | Self::MarkChapters
+            | Self::SkipButton
             | Self::Fullscreen
             | Self::Upscaling
             | Self::PlayerUi
@@ -354,6 +360,7 @@ impl SettingKey {
             Self::SkipOpening => "skip opening automatically",
             Self::SkipFiller => "skip filler automatically",
             Self::MarkChapters => "mark opening and ending",
+            Self::SkipButton => "show skip button",
             Self::Fullscreen => "start fullscreen",
             Self::Upscaling => "upscaling",
             Self::PlayerUi => "player interface",
@@ -634,6 +641,7 @@ pub fn step(
         SettingKey::SkipOpening => V::Bool(!playback.skip_opening),
         SettingKey::SkipFiller => V::Bool(!playback.skip_filler),
         SettingKey::MarkChapters => V::Bool(!playback.mark_chapters),
+        SettingKey::SkipButton => V::Bool(!playback.skip_button),
         SettingKey::Fullscreen => V::Bool(!playback.fullscreen),
         SettingKey::Presence => V::Bool(!effective.presence.enabled),
         SettingKey::PresenceTitle => V::Bool(!effective.presence.show_title),
@@ -740,6 +748,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::SkipOpening, V::Bool(on)) => playback.skip_opening = *on,
         (SettingKey::SkipFiller, V::Bool(on)) => playback.skip_filler = *on,
         (SettingKey::MarkChapters, V::Bool(on)) => playback.mark_chapters = *on,
+        (SettingKey::SkipButton, V::Bool(on)) => playback.skip_button = *on,
         (SettingKey::Fullscreen, V::Bool(on)) => playback.fullscreen = *on,
         (SettingKey::Upscaling, V::Str(name)) => {
             let Some(mode) = Upscaling::from_name(name) else { return false };
@@ -873,6 +882,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::SkipOpening => on_off(playback.skip_opening),
         SettingKey::SkipFiller => on_off(playback.skip_filler),
         SettingKey::MarkChapters => on_off(playback.mark_chapters),
+        SettingKey::SkipButton => on_off(playback.skip_button),
         SettingKey::Fullscreen => on_off(playback.fullscreen),
         SettingKey::Upscaling => upscaling_label(playback.upscaling).into(),
         SettingKey::PlayerUi => match playback.player_ui {
@@ -986,6 +996,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::SkipOpening => c.playback.skip_opening,
         S::SkipFiller => c.playback.skip_filler,
         S::MarkChapters => c.playback.mark_chapters,
+        S::SkipButton => c.playback.skip_button,
         S::Fullscreen => c.playback.fullscreen,
         S::NightMode => c.playback.night_mode,
         S::MergeSubtitles => c.downloads.merge_subtitles,

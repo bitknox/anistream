@@ -168,6 +168,7 @@ async fn main() {
             threshold: config.playback.commit_threshold,
             auto_skip: config.playback.skip_opening,
             mark_chapters: config.playback.mark_chapters,
+            skip_button: config.playback.skip_button,
             // Windowless run — fullscreen would be meaningless with `--vo=null`.
             fullscreen: false,
             subtitle_language: Some(config.playback.subtitle_language.clone()),

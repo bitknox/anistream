@@ -146,6 +146,7 @@ impl App {
             S::Titles => "AniList's choice follows your AniList account; English signed out",
             S::Subtitles => "enter types a language code — too many values to cycle",
             S::MarkChapters => "chapter marks on the seek bar, where the stream has none",
+            S::SkipButton => "a button over the opening and ending, where the skip isn't automatic",
             S::Fullscreen => "mpv opens fullscreen; its own f key still leaves it",
             // Read per playback, so the next episode uses this; the player's own menu changes
             // the one playing.

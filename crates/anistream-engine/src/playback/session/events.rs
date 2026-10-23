@@ -507,9 +507,12 @@ impl Run<'_> {
                             let _ = link.seek(to, true).await;
                             let _ = link.overlay(Overlay::Skipped { kind, from, to }).await;
                             last_skip = Some(kind);
-                        } else {
+                        } else if settings.skip_button {
                             // On the video, not the terminal: the viewer is looking at it.
                             let _ = link.overlay(Overlay::SkipOffer { kind, to }).await;
+                        } else {
+                            // No button wanted, and no skip on its own: nothing to say.
+                            continue;
                         }
                         let _ = tx.send(Event::SkipAvailable { kind: offered(kind), to });
                     }
