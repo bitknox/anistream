@@ -55,6 +55,16 @@ struct LayoutTests {
         #expect(size(of: panel(rows: 3), in: CGSize(width: 264, height: 900)).height == 72)
     }
 
+    /// The fade shows at an edge only while there are rows past it.
+    @Test func aMenuFadesOnlyWhereItScrollsOn() {
+        #expect(ScrollRoom(top: 0, bottom: 420, height: 600) == { var r = ScrollRoom(); r.below = true; return r }())
+        #expect(ScrollRoom(top: 180, bottom: 600, height: 600) == { var r = ScrollRoom(); r.above = true; return r }())
+        let middle = ScrollRoom(top: 90, bottom: 510, height: 600)
+        #expect(middle.above && middle.below)
+        let all = ScrollRoom(top: 0, bottom: 72, height: 72)
+        #expect(!all.above && !all.below)
+    }
+
     @Test func aMenuPanelIsItsRowsUpToTheRoomAndTheCap() {
         #expect(MenuPanelFrame.height(rows: 1000, room: 240) == 240)
         #expect(MenuPanelFrame.height(rows: 1000, room: 2000) == MenuPanelFrame.cap)

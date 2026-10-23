@@ -869,6 +869,48 @@ struct MenuPanelFrame: Layout {
     }
 }
 
+/// Whether a menu's rows go on past the top or the bottom of what its panel shows.
+struct ScrollRoom: Equatable {
+    var above = false
+    var below = false
+
+    init() {}
+
+    /// From the part of the rows in view, `top` to `bottom`, of rows `height` tall.
+    init(top: CGFloat, bottom: CGFloat, height: CGFloat) {
+        above = top > 0.5
+        below = bottom < height - 0.5
+    }
+
+    init(_ scroll: ScrollGeometry) {
+        self.init(top: scroll.visibleRect.minY, bottom: scroll.visibleRect.maxY, height: scroll.contentSize.height)
+    }
+}
+
+/// A menu's rows in a scroll view, faded into the panel at an edge while there are more rows
+/// past it, and sharp at an end the list has reached.
+struct MenuScroll<Rows: View>: View {
+    @ViewBuilder let rows: Rows
+    @State private var room = ScrollRoom()
+    static var fade: CGFloat { 28 }
+
+    var body: some View {
+        ScrollView { rows }
+            .scrollBounceBehavior(.basedOnSize)
+            .onScrollGeometryChange(for: ScrollRoom.self, of: { ScrollRoom($0) }) { _, now in room = now }
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(colors: [.black.opacity(0.15), .black], startPoint: .top, endPoint: .bottom)
+                        .frame(height: room.above ? Self.fade : 0)
+                    Color.black
+                    LinearGradient(colors: [.black, .black.opacity(0.15)], startPoint: .top, endPoint: .bottom)
+                        .frame(height: room.below ? Self.fade : 0)
+                }
+                .animation(.easeOut(duration: 0.15), value: room)
+            }
+    }
+}
+
 /// What a viewer's pick sends: the engine's menus as rows.
 struct MenuRow: View {
     let title: String

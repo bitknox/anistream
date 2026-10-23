@@ -327,7 +327,7 @@ public struct MacPlayerView: View {
             .onTapGesture { panel = nil }
         MenuPanelFrame {
             ScrollViewReader { list in
-                ScrollView {
+                MenuScroll {
                     VStack(alignment: .leading, spacing: 0) {
                         switch which {
                         case .tracks: TrackLists(model: model, metrics: metrics)
@@ -337,7 +337,6 @@ public struct MacPlayerView: View {
                     }
                     .padding(5)
                 }
-                .scrollBounceBehavior(.basedOnSize)
                 .onAppear {
                     if let row = selectedRow(which) { list.scrollTo(row, anchor: .center) }
                 }
