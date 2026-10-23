@@ -99,7 +99,7 @@ cargo clippy --workspace --all-targets
 | `deploy/` | Ways to run a plugin store: containers and serverless hosts |
 | `packaging/` | Release builds, installers and the release scripts |
 | `website/` | The website and docs, in Astro and Starlight |
-| `docs/` | Design notes for plugins, plugin stores and Android |
+| `docs/` | Notes on plugins and plugin stores |
 | `assets/` | Icons, shaders and the images used in the docs |
 | `tools/` | Checks and helper scripts for the workspace |
 
@@ -114,5 +114,5 @@ cargo clippy --workspace --all-targets
 
 ## Licence
 
-anistream is open source under the [MIT licence](LICENSE), for non-commercial use. Notices for
+anistream is open source under the [MIT licence](LICENSE). Notices for
 what it bundles are in [assets/THIRD-PARTY.md](assets/THIRD-PARTY.md) and ship with each release.
