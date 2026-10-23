@@ -85,7 +85,7 @@ jobs:
     steps:
       # `inputs.tag` is empty on anything but a dispatch with a tag, and checkout then takes the
       # commit that started the run.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
 
@@ -174,7 +174,7 @@ jobs:
             target: x86_64-pc-windows-msvc
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.commit }}
 
@@ -509,7 +509,7 @@ jobs:
       contents: write
       pull-requests: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.commit }}
           sparse-checkout: packaging
