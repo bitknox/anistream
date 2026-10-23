@@ -407,7 +407,7 @@ A week as day tabs, and one day's schedule as a list, so text stays large.
 - Empty list: "Nothing in Paused." in haze, no Nagare, focus stays on the tab.
 - Sync state: a quiet line under the tabs only when something waits, "2 changes waiting to
   sync". A good sync shows nothing.
-- No Downloads on TV (see the open questions), so the Library has no Downloads tab.
+- No Downloads on TV (decided), so the Library has no Downloads tab.
 
 ### Title page (TVTitle, TVShowSettings)
 
@@ -559,7 +559,7 @@ Over a 35 % dim of the ground colour, fading in on fade-in and out on fade-out, 
 Scrubbing (TVPlayerSeek): with the seek bar focused, Left and Right move a scrub head without
 seeking. Steps are 10 s, 30 s after holding 1 s, 60 s after 3 s. The head stops once on the
 opening's and the ending's edges, so a few presses land right after the opening. The time under the
-head shows in labelLarge above it. On boxes that allow it (see the budgets), a 192 × 108 frame
+head shows in labelLarge above it. On boxes with 64-bit userspace and at least 3 GB, a 192 × 108 frame
 preview sits above the head; elsewhere only the time. Center jumps there; Back, Up or Down leave the
 head and playback carries on where it was. Playback never pauses for a scrub.
 
@@ -618,7 +618,8 @@ fixes what people see on the TV and what the protocol must give it.
 
 ### Pairing
 
-- The TV is findable on the local network while the app runs (Settings › Remotes can turn that off).
+- The TV is findable on the local network while the app runs and for 10 minutes after it goes to
+  the background (Settings › Remotes can turn that off).
 - From the phone: the phone's Play on TV lists TVs on the network by name ("Living room TV"); the
   person picks one. The TV, wherever it is in the browse UI, shows a dialog (TVPairRequest): "Pair
   with Mika's phone?" with the 6-digit code in displaySmall and "Enter this code on the phone",
@@ -660,7 +661,8 @@ fixes what people see on the TV and what the protocol must give it.
   segment offers.
 - The sender's name on every command, for the notices.
 - Hand-overs: a tracker sign-in (the phone confirms) and plugin store links.
-- Waking the TV app when it is closed is not in the first release (open question).
+- Waking the TV app when it is closed is not in the first release. The TV listens while the app
+  runs and for 10 minutes after it goes to the background.
 
 ## Home screen integration
 
@@ -681,7 +683,7 @@ fixes what people see on the TV and what the protocol must give it.
 - This TV › "Show anistream on the home screen" turns it off and removes our entries.
 - No app channels (preview rows). Google TV's home does not show them for apps outside its
   partner programme, and Google plans to retire Watch Next itself in the second half of 2027 in
-  favour of the Engage SDK, which needs enrolment. See the open questions.
+  favour of the Engage SDK, which needs enrolment. See Decided.
 - On Fire OS the launcher reads none of this; the writes are skipped there.
 
 ## Motion on TV
@@ -772,48 +774,20 @@ Shared data is the main brief's: now is Tuesday 20 October 2026, 19:30; Mika on 
 no Tabibito with episode 7 in progress (14 min left of 24); the four stores and Hotaru Open
 Archive; Ren's fingerprint. The TV is "Living room TV"; the phone is "Mika's phone".
 
-## Open questions
+## Decided (2026-10-23)
 
-Each with a recommendation. They go to Johan as decisions.
+Johan took the recommendation on all twelve open questions.
 
-1. Navigation: a left rail that expands over the content, or top tabs like Google TV's own home?
-   Options: left rail (modal drawer); top tabs; a standard drawer that pushes the content.
-   Recommendation: the left rail. It is Google's current TV guidance for an app's structure, it
-   costs no vertical space on a 540-high screen of poster rows, and the overlay avoids re-laying out
-   rows as it opens.
-2. Search keyboard: our own grid, or the system keyboard? Options: our grid with a System keyboard
-   key; the system keyboard only. Recommendation: our grid. Results stay in view while typing, it
-   looks the same on every box, and the system keyboard is one press away for kana and voice.
-3. Voice search: Options: a mic key when the device has a speech recogniser, asking for the
-   microphone on first use; no voice in the first release beyond the system keyboard's own.
-   Recommendation: the mic key when available, after checking on the Chromecast that the
-   recogniser answers third-party apps (the box could not be reached from this session).
-4. Waking a closed TV app from a phone: Options: the TV listens only while the app runs; a
-   background service that keeps listening; later, launching the app through Android TV's own
-   remote service. Recommendation: only while the app runs, plus 10 minutes after it goes to the
-   background. A service that stays up is killed first on 2 GB boxes anyway. Revisit the
-   launch route after the first release.
-5. Pairing: a QR code with a 6-digit code beside it, or a code only? Recommendation: both on the
-   TV's pairing screen, and the code alone when the phone starts the pairing.
-6. Sign-in without an anistream phone: Options: the TV serves a one-time sign-in page on the local
-   network (AniList's PIN code, Kitsu's form); phone hand-over and device codes only.
-   Recommendation: serve the page. Without it, AniList, the default tracker, needs the phone app.
-7. Home screen: Options: Watch Next now; enrol in the Engage SDK; nothing. Recommendation: Watch
-   Next behind its setting, checked on the Chromecast first, since Google TV may only show
-   approved apps in its Continue watching row. Engage needs enrolment with Google, which does not
-   fit an app outside the Play Store. Revisit before Watch Next's 2027 retirement.
-8. Seek preview frames: Options: off on every TV; on where the box has 64-bit userspace and at least
-   3 GB; on everywhere. Recommendation: off on 32-bit or under 3 GB, and on above that only after
-   measuring the second decoder on a Google TV Streamer or Shield.
-9. Upscaling on stronger boxes: Options: hidden on every TV; offered on boxes that pass a
-   measurement. Recommendation: hidden on every TV in the first release, as decided for the
-   Chromecast, and measured on a Shield later.
-10. Downloads and torrents on TV: Options: neither; torrents for streaming only; both.
-    Recommendation: neither in the first release. Boxes have about 8 GB of storage and 2 GB of
-    memory, and nothing on a TV can tell people their traffic is protected.
-11. Back in the player with the chrome showing: close the player, or hide the chrome first?
-    Recommendation: close the player (after any panel, scrub or Up Next). One rule is easier to
-    learn, and Resume brings people back to the second.
-12. Phone as a D-pad: should the phone also offer arrow keys for the TV's menus? Recommendation:
-    no. The phone sends meaningful commands and search text; Google's own phone remote already
-    covers arrow keys.
+1. Navigation is the left rail, expanding over the content.
+2. Search uses our own keyboard grid, with a key for the system keyboard.
+3. The mic key shows only where the box has speech recognition (check it on the Chromecast).
+4. The TV listens for phones while the app runs and for 10 minutes after it goes to the
+   background. Launching a closed app through Android TV's own remote service comes later.
+5. Pairing shows a QR code and a 6-digit code; a pairing started on the phone shows the code.
+6. The TV serves a one-time sign-in page on the local network (AniList's PIN code, Kitsu's form).
+7. Home screen integration is Watch Next, behind its setting; no Engage SDK.
+8. Seek preview frames are off on 32-bit boxes or under 3 GB.
+9. Upscaling is hidden on every TV.
+10. No downloads and no torrents on TV.
+11. Back in the player closes it, after any panel, scrub or Up Next.
+12. The phone is not a D-pad; it sends commands and search text.
