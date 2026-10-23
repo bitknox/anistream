@@ -53,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -170,7 +171,10 @@ fun TvPlayerScreen(
     }
 
     // Focus follows the chrome: on what asked for it as it comes up, back on the root as it goes.
-    LaunchedEffect(chrome, wanted) {
+    // Whether the root itself holds focus, as it does while the chrome is hidden.
+    var onRoot by remember { mutableStateOf(false) }
+
+    LaunchedEffect(chrome, wanted, onRoot) {
         if (!chrome) {
             repeat(3) {
                 androidx.compose.runtime.withFrameNanos { }
@@ -178,7 +182,10 @@ fun TvPlayerScreen(
             }
             return@LaunchedEffect
         }
-        val target = when (wanted ?: return@LaunchedEffect) {
+        // Up with nothing asked for (paused by a media key, or at the end of an episode): on
+        // play/pause, so the D-pad is never left on the hidden root while the chrome shows.
+        val asked = wanted ?: if (onRoot) ChromeFocus.Play else return@LaunchedEffect
+        val target = when (asked) {
             ChromeFocus.Play -> playFocus
             ChromeFocus.SeekBar -> barFocus
             ChromeFocus.Episodes -> episodesFocus
@@ -245,6 +252,7 @@ fun TvPlayerScreen(
             }
             .focusRequester(root)
             .onKeyEvent { event -> if (!chrome && !starting) hiddenKey(event) else false }
+            .onFocusChanged { onRoot = it.isFocused }
             .focusable(),
     ) {
         video(Modifier.fillMaxSize())

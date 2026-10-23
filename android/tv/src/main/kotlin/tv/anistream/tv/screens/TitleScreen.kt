@@ -210,7 +210,8 @@ private fun Episodes(
                 line = row.cardLine(entry.resume, playsNext),
                 progress = if (playsNext) entry.resume?.fraction?.toFloat() else null,
                 // Unwatched stills after the next one keep their colours and none of their detail.
-                spoiler = spoilers && index > next && !row.completed,
+                // Only an episode's own still can spoil; the show's banner in its place cannot.
+                spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
                 onClick = { row.number.toUIntOrNull()?.let { onPlay(entry.id, it) } },
                 modifier = Modifier
                     .then(if (playsNext) Modifier.focusRequester(nextRequester) else Modifier)

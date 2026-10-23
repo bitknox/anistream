@@ -124,8 +124,10 @@ fun BrowseRow(
                 state = state,
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Cards scrolled past end at the rail's edge, so its icons stay on the ground.
-                    .drawWithContent { clipRect(left = Canvas.Rail.toPx()) { this@drawWithContent.drawContent() } }
+                    // Cards scrolled past end before the keyline, so the rail's icons stay on the
+                    // ground and no sliver of the card before shows; the focused card's ring and
+                    // scale still fit.
+                    .drawWithContent { clipRect(left = (Canvas.Keyline - Canvas.CardGap + 4.dp).toPx()) { this@drawWithContent.drawContent() } }
                     .focusRestorer(fallback)
                     .focusGroup(),
                 contentPadding = PaddingValues(start = Canvas.Keyline, end = Canvas.SafeX, top = Canvas.FocusRoom, bottom = Canvas.FocusRoom),
