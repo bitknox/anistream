@@ -124,16 +124,21 @@ struct PhoneTitle: View {
 
                     let family = TitleFamily(entry)
                     if !family.seasons.isEmpty {
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 8) {
-                                ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
-                                    seasonChip(index: index, season: season, entry: entry)
+                        // The season on screen in the middle as the page opens, so a long
+                        // franchise's later seasons open with their own chip in view.
+                        ScrollViewReader { proxy in
+                            ScrollView(.horizontal) {
+                                HStack(spacing: 8) {
+                                    ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
+                                        seasonChip(index: index, season: season, entry: entry).id(season.id)
+                                    }
                                 }
+                                .padding(.horizontal, 16)
                             }
-                            .padding(.horizontal, 16)
+                            .scrollIndicators(.never)
+                            .padding(.horizontal, -16)
+                            .onAppear { proxy.scrollTo(entry.id, anchor: .center) }
                         }
-                        .scrollIndicators(.never)
-                        .padding(.horizontal, -16)
                     }
                     if entry.detail != nil {
                         let cards = entry.relatedCards(excluding: family.picked)
