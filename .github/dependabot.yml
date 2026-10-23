@@ -113,11 +113,11 @@ updates:
     cooldown:
       default-days: 7
     ignore:
-      # gradle/actions 6 moved setup-gradle's caching into a proprietary component, and taking it
-      # means accepting Gradle's terms of use (blog.gradle.org/github-actions-for-gradle-v6). Held
-      # at 5 until that is decided; drop this to take 6.
+      # Staying on gradle/actions 5 (Johan, 2026-10-23): 6 moved setup-gradle's caching into a
+      # proprietary component, which means accepting Gradle's terms of use
+      # (blog.gradle.org/github-actions-for-gradle-v6). Its minor and patch releases still come.
       - dependency-name: gradle/actions
-        versions: [">=6"]
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /deploy/container
