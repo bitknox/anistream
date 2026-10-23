@@ -325,7 +325,7 @@ pub fn long_franchise() -> Vec<Value> {
                     format: "TV",
                     year: 2013 + n as u16,
                     season: if n % 2 == 1 { "SPRING" } else { "FALL" },
-                    episodes: if n % 3 == 0 { 13 } else { 12 },
+                    episodes: if n.is_multiple_of(3) { 13 } else { 12 },
                     colour: COLOURS[n as usize - 1],
                 }
             }

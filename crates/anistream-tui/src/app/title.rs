@@ -430,6 +430,7 @@ impl App {
 
 #[cfg(test)]
 mod tests {
+    use super::watch_from;
     use crate::app::fixtures::*;
 
     #[test]
