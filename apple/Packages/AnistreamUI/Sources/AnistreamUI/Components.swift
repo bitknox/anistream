@@ -232,22 +232,23 @@ struct CapsuleLines: ViewModifier {
 }
 
 extension View {
-    /// The pointer's highlight on iPad over a row, a cell or a chip drawn plain. Nothing on the
-    /// Mac, whose rows show their own hover and selection.
+    /// The pointer over a row, a cell or a chip drawn plain: its highlight on iPad, and on the
+    /// Mac the pointing hand, with no highlight, since Mac rows light on press and selection only
+    /// (motion.md).
     func pointerHover() -> some View {
         #if os(iOS)
         hoverEffect(.highlight)
         #else
-        self
+        pointingHand()
         #endif
     }
 
-    /// The pointer's lift on iPad over a capsule button.
+    /// The pointer over a capsule button: its lift on iPad, and the pointing hand on the Mac.
     func pointerLift() -> some View {
         #if os(iOS)
         hoverEffect(.lift)
         #else
-        self
+        pointingHand()
         #endif
     }
 }
