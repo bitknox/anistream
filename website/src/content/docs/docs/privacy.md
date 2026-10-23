@@ -232,4 +232,7 @@ reporting asks browsers to tell Cloudflare when a connection to the site fails.
 
 ## Questions
 
-Ask on [GitHub issues](https://github.com/bitknox/anistream/issues).
+Ask on [GitHub issues](https://github.com/bitknox/anistream/issues). If an app sends or keeps
+something this page doesn't say, or a token or your history can be read where it shouldn't be,
+report it privately instead, as
+[SECURITY.md](https://github.com/bitknox/anistream/blob/main/SECURITY.md) describes.

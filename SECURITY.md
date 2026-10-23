@@ -31,8 +31,9 @@ You'll get a reply in the advisory, and the discussion and the fix are worked ou
   [What a store protects](docs/plugin-stores.md#what-a-store-protects) says a store protects is in
   scope. The limits that section states, such as a member being able to read the plugins they
   downloaded, are not vulnerabilities.
-- Releases: the workflows that build and publish them, the Android release signing, and the
-  SHA-256 checksums published beside every file.
+- Releases: the workflows that build and publish them, the Android release signing, the
+  SHA-256 checksums published beside every file, and the apps' updates: the Mac's signed appcast,
+  the SideStore source, and the Android app's installer.
 
 ## Out of scope
 
@@ -49,7 +50,7 @@ You'll get a reply in the advisory, and the discussion and the fix are worked ou
 
 Every merge to main that changes more than the website or the docs builds and publishes a
 release: the terminal builds, the apps and the store's container image. So a fix ships as soon as it is merged, and only the newest release gets fixes.
-Update to it to get the fix.
+Update to it to get the fix. While **Check for updates** is on, each app offers it within a day.
 
 A store you run yourself gets the fix when you update it: pull the new `anistream-store` image, or
 update your copy of the deploy template.
