@@ -124,6 +124,7 @@ public struct PhonePlayerView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: drag > 120) { _, crossed in crossed }
         .sheet(item: $sheet) { sheet in sheetContent(sheet) }
         .onChange(of: sheet) { _, open in model.hold("sheet", open != nil) }
+        .onChange(of: model.trackMenuRequests) { sheet = .tracks }
         .onChange(of: held) { _, on in speedHeld(on) }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in

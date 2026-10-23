@@ -94,6 +94,7 @@ public struct MacPlayerView: View {
         .onChange(of: visible, initial: true) { _, on in titleBar(on) }
         .onChange(of: window) { _, window in if let window { opened(window) } }
         .onChange(of: model.backRequests) { back() }
+        .onChange(of: model.trackMenuRequests) { panel = .tracks }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
             guard let window, (note.object as? NSWindow) === window else { return }
             PlayerModel.note(.info, "player window full screen, \(Self.describe(window))")
