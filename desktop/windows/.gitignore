@@ -1,0 +1,4 @@
+# The engine's library and its generated bindings: scripts/bindings.sh writes them.
+/.engine/
+bin/
+obj/
