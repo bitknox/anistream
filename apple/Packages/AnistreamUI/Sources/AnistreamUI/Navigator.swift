@@ -90,6 +90,18 @@ public final class Navigator {
         self.section = section
     }
 
+    /// Providers, where a source is added: its section on the Mac and iPad, its page of the
+    /// Settings sheet on iPhone.
+    public func openProviders() {
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            phoneSettings = .providers
+            return
+        }
+        #endif
+        open(.providers)
+    }
+
     /// Open Settings at `pane`: the section on the Mac and iPad.
     public func openSettings(_ pane: SettingsPane) {
         settingsPane = pane

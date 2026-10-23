@@ -177,6 +177,47 @@ struct AirsStatus: View {
     }
 }
 
+/// In the main button's place when no source has the title, so its episodes are AniList's alone:
+/// "Add a Source to Play", which opens Providers. In the secondary style, since nothing on the
+/// page can play yet and amber would promise it could.
+struct AddSourceButton: View {
+    @Environment(Navigator.self) private var navigator
+    /// Sentence case, as iPhone and iPad say it, rather than the Mac's title case.
+    var sentence = false
+    var height: CGFloat = 34
+    var fontSize: CGFloat = 13
+    /// Whether it spans its row, as the iPhone's main button does.
+    var fills = false
+
+    var body: some View {
+        Button {
+            navigator.openProviders()
+        } label: {
+            Text(AddSourceWords.play(sentence: sentence))
+                .frame(maxWidth: fills ? .infinity : nil)
+        }
+        .buttonStyle(SecondaryCapsuleStyle(height: height, fontSize: fontSize))
+        .accessibilityHint("Opens Providers")
+    }
+}
+
+/// What a title no source has offers in place of Play.
+enum AddSourceWords {
+    /// "Add a Source to Play", as a Mac button or menu says it, or "Add a source to play".
+    static func play(sentence: Bool) -> String {
+        sentence ? "Add a source to play" : "Add a Source to Play"
+    }
+
+    /// As the platform's menus say it: title case on the Mac, sentence case on iPhone and iPad.
+    static var menu: String {
+        #if os(macOS)
+        play(sentence: false)
+        #else
+        play(sentence: true)
+        #endif
+    }
+}
+
 /// A capsule's text: one line, and up to three at the accessibility sizes, where one would be
 /// cut off.
 struct CapsuleLines: ViewModifier {

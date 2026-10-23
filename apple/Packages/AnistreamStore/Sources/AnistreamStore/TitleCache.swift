@@ -86,6 +86,17 @@ public final class TitleCache {
         episodes[id] = rows
     }
 
+    /// Whether title `id`'s episodes, as last loaded, are AniList's alone: no source set up has
+    /// it, so it can be marked watched but there is nothing to play or download it from.
+    public func unlisted(_ id: AnilistId) -> Bool {
+        episodes[id]?.first?.metadataOnly == true
+    }
+
+    /// The titles whose episodes, as last loaded, are AniList's alone.
+    var unlistedTitles: [AnilistId] {
+        episodes.compactMap { id, rows in rows.first?.metadataOnly == true ? id : nil }
+    }
+
     /// A title put on a list here, ahead of the tracker's word.
     public func setStatus(_ id: AnilistId, _ segment: LibrarySegment) {
         entries[id]?.listStatus = segment

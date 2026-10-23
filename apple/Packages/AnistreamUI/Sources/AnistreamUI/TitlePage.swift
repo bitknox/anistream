@@ -215,7 +215,12 @@ struct TitleHero: View {
                     .macLineHeight(14)
                     .padding(.top, 4)
                 HStack(spacing: 10) {
-                    if action.playable {
+                    // No source has it: nothing to play, and the way to one in Play's place.
+                    if action.playable, store.titles.unlisted(entry.id) {
+                        AddSourceButton(
+                            sentence: Self.pad, height: Self.pad ? 48 : 34, fontSize: Self.pad ? 17 : 13
+                        )
+                    } else if action.playable {
                         Button {
                             action.play(entry.id, store: store, navigator: navigator)
                         } label: {
@@ -493,57 +498,79 @@ struct EpisodeRowView: View {
         }
     }
 
+    @ViewBuilder
     private var airedRow: some View {
         let number = UInt32(row.number) ?? 0
+        let current = number == (entry.progress?.next ?? 1)
+        // One no source has: nothing to play, so a click offers what can be done, adding a
+        // source among it, rather than playing.
+        if row.metadataOnly {
+            Menu {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            } label: {
+                rowLabel(number: number, current: current)
+            }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
+            .pointerHover()
+            .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            }
+        } else {
+            Button {
+                store.send(.play(id: entry.id, episode: row.number))
+            } label: {
+                rowLabel(number: number, current: current)
+            }
+            .buttonStyle(.plain)
+            .pointerHover()
+            .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            }
+            .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
+        }
+    }
+
+    private func rowLabel(number: UInt32, current: Bool) -> some View {
         let next = entry.progress?.next ?? 1
-        let current = number == next
-        return Button {
-            store.send(.play(id: entry.id, episode: row.number))
-        } label: {
-            HStack(spacing: 14) {
-                Text(row.number)
-                    .font(.mac(13, weight: current ? .semibold : .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(current ? .amber : .haze)
-                    .animation(.quick, value: current)
-                    .frame(width: 22, alignment: .trailing)
-                EpisodeStill(
-                    entry: entry, row: row,
-                    hidden: spoilers && number > next && !row.completed,
-                    unaired: false
-                )
-                .opacity(row.completed ? 0.7 : 1)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(row.title ?? "Episode \(row.number)")
-                            .foregroundStyle(row.completed ? .haze : .silk)
-                            .lineLimit(1)
-                            .animation(.quick, value: row.completed)
-                        if row.kind == .filler {
-                            Text("Filler").groupHeaderStyle()
-                        }
-                    }
-                    if current, let fraction = entry.resume?.fraction {
-                        Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 200) }
+        return HStack(spacing: 14) {
+            Text(row.number)
+                .font(.mac(13, weight: current ? .semibold : .regular))
+                .monospacedDigit()
+                .foregroundStyle(current ? .amber : .haze)
+                .animation(.quick, value: current)
+                .frame(width: 22, alignment: .trailing)
+            EpisodeStill(
+                entry: entry, row: row,
+                hidden: spoilers && number > next && !row.completed,
+                unaired: false
+            )
+            .opacity(row.completed ? 0.7 : 1)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(row.title ?? "Episode \(row.number)")
+                        .foregroundStyle(row.completed ? .haze : .silk)
+                        .lineLimit(1)
+                        .animation(.quick, value: row.completed)
+                    if row.kind == .filler {
+                        Text("Filler").groupHeaderStyle()
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                trailing(current: current)
-                WatchedCheck(watched: row.completed, size: 11)
-                    .frame(width: 14)
+                if current, let fraction = entry.resume?.fraction {
+                    Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 200) }
+                }
             }
-            .font(.mac(13))
-            .padding(.horizontal, 8)
-            .frame(height: 44)
-            .background(current ? Palette.selection : .clear, in: .rect(cornerRadius: 8))
-            .contentShape(.rect(cornerRadius: 8))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            trailing(current: current)
+            WatchedCheck(watched: row.completed, size: 11)
+                .frame(width: 14)
         }
-        .buttonStyle(.plain)
-        .pointerHover()
-        .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
-            EpisodeMenu(entry: entry, number: number, row: row)
-        }
-        .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
+        .font(.mac(13))
+        .padding(.horizontal, 8)
+        .frame(height: 44)
+        .background(current ? Palette.selection : .clear, in: .rect(cornerRadius: 8))
+        .contentShape(.rect(cornerRadius: 8))
     }
 
     @ViewBuilder
