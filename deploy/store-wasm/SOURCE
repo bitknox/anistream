@@ -3,11 +3,15 @@ anistream-store-wasm (./crates/anistream-store-wasm)
 async-trait v0.1.92 (proc-macro) 
 base64 v0.23.1 alloc,default,simd-unsafe,std
 block-buffer v0.10.4 
+block-buffer v0.12.1 
 bumpalo v3.20.3 default
 cfg-if v1.0.4 
+const-oid v0.10.2 
 crypto-common v0.1.7 std
+crypto-common v0.2.2 
 curve25519-dalek v4.1.3 alloc,digest,zeroize
 digest v0.10.7 alloc,block-buffer,core-api,default,std
+digest v0.11.3 alloc,block-api,default,oid
 displaydoc v0.2.6 (proc-macro) 
 ed25519 v2.2.3 alloc,std
 ed25519-dalek v2.2.0 alloc,std,zeroize
@@ -17,6 +21,7 @@ futures-task v0.3.34 alloc,std
 futures-util v0.3.34 alloc,slab,std
 generic-array v0.14.7 more_lengths
 getrandom v0.2.17 js,js-sys,wasm-bindgen
+hybrid-array v0.4.15 
 icu_collections v2.2.0 
 icu_locale_core v2.2.0 zerovec
 icu_normalizer v2.2.0 compiled_data
@@ -43,7 +48,8 @@ serde v1.0.229 default,derive,serde_derive,std
 serde_core v1.0.229 result,std
 serde_derive v1.0.229 (proc-macro) default
 serde_json v1.0.154 default,std
-sha2 v0.10.9 default,std
+sha2 v0.10.9 std
+sha2 v0.11.1 alloc,default,oid
 signature v2.2.0 alloc,std
 slab v0.4.12 std
 smallvec v1.15.2 const_generics
@@ -58,7 +64,7 @@ tinystr v0.8.3 zerovec
 tracing v0.1.44 attributes,default,std,tracing-attributes
 tracing-attributes v0.1.31 (proc-macro) 
 tracing-core v0.1.36 once_cell,std
-typenum v1.20.1 
+typenum v1.20.1 const-generics
 unicode-ident v1.0.24 
 url v2.5.8 default,std
 utf8_iter v1.0.4 
@@ -79,7 +85,7 @@ zerovec v0.11.6 derive,yoke
 zerovec-derive v0.11.3 (proc-macro) 
 zmij v1.0.23 
 .cargo/config.toml 761d510346b6861c9338f5ace254699175ee40e8
-crates/anistream-store-core/Cargo.toml a9f86c917eaf991307ac62ae680d3c839f2da320
+crates/anistream-store-core/Cargo.toml 5f85d4e7a465702a64bb5c33e26f123853dc5b84
 crates/anistream-store-core/admin/.gitignore c2658d7d1b31848c3b71960543cb0368e56cd4c7
 crates/anistream-store-core/admin/README.md 2e4239d73d1b97eb21df70df5287a29af07266ec
 crates/anistream-store-core/admin/bun.lock 0ea037adba2b7fd372cba8ee9bf8e77d0f2a800a

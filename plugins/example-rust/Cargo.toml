@@ -15,7 +15,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-wit-bindgen = "0.60"
+wit-bindgen = "0.63"
 
 [profile.release]
 # A plugin is a parser, so size matters more than speed: it runs a handful of times per search
