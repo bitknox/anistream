@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: anistream <noreply@anistream.example>
+Date: Fri, 23 Oct 2026 22:11:40 +0200
+Subject: [PATCH 5/6] Give defaults C# accepts as parameter defaults
+
+A string field defaults to "" rather than string.Empty, which is not a compile-time constant
+(CS1736). A record defaults to null, and an argument whose default is its record's own, such as
+FfiEngine.start's `start` with #[uniffi::constructor(default(start))], is nullable and lowered
+as a new record when null. Without this, generation panicked: "Unimplemented for FfiStart".
+---
+ bindgen/src/gen_cs/filters.rs    | 9 +++++++++
+ bindgen/src/gen_cs/primitives.rs | 2 +-
+ bindgen/src/gen_cs/record.rs     | 4 ++++
+ bindgen/templates/macros.cs      | 7 ++++++-
+ 4 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/bindgen/src/gen_cs/filters.rs b/bindgen/src/gen_cs/filters.rs
+index 0286a5e..e80aa60 100644
+--- a/bindgen/src/gen_cs/filters.rs
++++ b/bindgen/src/gen_cs/filters.rs
+@@ -161,6 +161,15 @@ pub(super) fn array_new_expr(inner_type_name: &str) -> Result<String, askama::Er
+ /// True if any argument is a `[ByRef] bytes` / `&[u8]`, which crosses the FFI as a
+ /// borrowed `ForeignBytes` rather than an owned `RustBuffer`. Such calls must pin the
+ /// managed array for the duration of the call.
++/// True for an argument whose default is its record's own default, such as `start: Start` with
++/// `#[uniffi::constructor(default(start))]`. C# takes no new object as a parameter's default, so
++/// the parameter is nullable and defaults to `null`, and the call lowers a `null` as a new record,
++/// every field of which has a default (UniFFI requires that of a record's default).
++pub(super) fn defaults_to_new_record(arg: &Argument) -> Result<bool, askama::Error> {
++    Ok(matches!(arg.default_value(), Some(DefaultValue::Default))
++        && matches!(arg.as_type(), Type::Record { .. }))
++}
++
+ pub(super) fn has_borrowed_bytes(args: Vec<&Argument>) -> Result<bool, askama::Error> {
+     Ok(args.iter().any(|arg| arg.is_borrowed_bytes()))
+ }
+diff --git a/bindgen/src/gen_cs/primitives.rs b/bindgen/src/gen_cs/primitives.rs
+index 62c0d25..39840b0 100644
+--- a/bindgen/src/gen_cs/primitives.rs
++++ b/bindgen/src/gen_cs/primitives.rs
+@@ -80,7 +80,7 @@ macro_rules! impl_code_type_for_primitive {
+ }
+ 
+ impl_code_type_for_primitive!(BooleanCodeType, "bool", "Boolean", "false");
+-impl_code_type_for_primitive!(StringCodeType, "string", "String", "string.Empty");
++impl_code_type_for_primitive!(StringCodeType, "string", "String", "\"\"");
+ impl_code_type_for_primitive!(Int8CodeType, "sbyte", "Int8", "0");
+ impl_code_type_for_primitive!(Int16CodeType, "short", "Int16", "0");
+ impl_code_type_for_primitive!(Int32CodeType, "int", "Int32", "0");
+diff --git a/bindgen/src/gen_cs/record.rs b/bindgen/src/gen_cs/record.rs
+index eb5764b..4362c6b 100644
+--- a/bindgen/src/gen_cs/record.rs
++++ b/bindgen/src/gen_cs/record.rs
+@@ -28,4 +28,8 @@ impl CodeType for RecordCodeType {
+     fn literal(&self, _literal: &Literal, _ci: &ComponentInterface) -> String {
+         unreachable!();
+     }
++
++    fn default_value(&self, _ci: &ComponentInterface) -> String {
++        "null".into()
++    }
+ }
+diff --git a/bindgen/templates/macros.cs b/bindgen/templates/macros.cs
+index 6189df1..b838b8a 100644
+--- a/bindgen/templates/macros.cs
++++ b/bindgen/templates/macros.cs
+@@ -152,6 +152,7 @@
+ {%- macro lower_arg_list(func) %}
+     {%- for arg in func.arguments() %}
+         {%- if arg.is_borrowed_bytes() %}_fb_{{ arg.name() }}.Bytes
++        {%- else if arg|defaults_to_new_record %}{{ arg|lower_fn }}({{ arg.name()|var_name }} ?? new {{ arg|type_name(ci) }}())
+         {%- else %}{{ arg|lower_fn }}({{ arg.name()|var_name }})
+         {%- endif %}
+         {%- if !loop.last %}, {% endif %}
+@@ -165,11 +166,15 @@
+ 
+ {% macro arg_list_decl(func) %}
+     {%- for arg in func.arguments() -%}
+-        {{ arg|type_name(ci) }} {{ arg.name()|var_name -}}
++        {%- if arg|defaults_to_new_record %}
++        {{- arg|type_name(ci) }}? {{ arg.name()|var_name }} = null
++        {%- else %}
++        {{- arg|type_name(ci) }} {{ arg.name()|var_name -}}
+         {%- match arg.default_value() %}
+         {%- when Some with(literal) %} = {{ literal|render_literal(arg, ci) }}
+         {%- else %}
+         {%- endmatch %}
++        {%- endif %}
+         {%- if !loop.last %}, {% endif -%}
+     {%- endfor %}
+ {%- endmacro %}

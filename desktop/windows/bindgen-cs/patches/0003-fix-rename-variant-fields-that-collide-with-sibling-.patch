@@ -1,0 +1,164 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jack Lavigne <jacklavigne00@gmail.com>
+Date: Tue, 20 Oct 2026 15:10:58 +0200
+Subject: [PATCH 3/6] fix: rename variant fields that collide with sibling
+ variant records
+
+Upstream: https://github.com/NordSecurity/uniffi-bindgen-cs/pull/190 (open), cherry-picked.
+Needed for variants such as Event::Episodes { episodes }.
+
+Signed-off-by: Jack Lavigne <jacklavigne00@gmail.com>
+---
+ bindgen/src/gen_cs/filters.rs                  | 18 ++++++++++++++++++
+ bindgen/templates/EnumTemplate.cs              |  8 ++++----
+ bindgen/templates/macros.cs                    | 13 -------------
+ .../TestEnumVariantFieldNameConflict.cs        |  9 +++++++++
+ .../src/lib.rs                                 |  8 ++++++++
+ 5 files changed, 39 insertions(+), 17 deletions(-)
+
+diff --git a/bindgen/src/gen_cs/filters.rs b/bindgen/src/gen_cs/filters.rs
+index 73fb8db..cb5e700 100644
+--- a/bindgen/src/gen_cs/filters.rs
++++ b/bindgen/src/gen_cs/filters.rs
+@@ -131,6 +131,24 @@ pub(super) fn method_name(nm: &str, class_name: &str) -> Result<String, askama::
+     }
+ }
+ 
++/// Rename a variant field to avoid CS8866 when its name matches any variant record name.
++/// Variant records are nested in the enum's record, so sibling variants collide too.
++pub(super) fn enum_field_name(
++    field_name: &str,
++    e: &Enum,
++    ci: &ComponentInterface,
++) -> Result<String, askama::Error> {
++    let collides = e
++        .variants()
++        .iter()
++        .any(|variant| oracle().class_name(variant.name(), ci) == field_name);
++    if collides {
++        Ok(format!("{}Value", field_name))
++    } else {
++        Ok(field_name.to_string())
++    }
++}
++
+ /// Generate a correct array allocation expression for potentially jagged arrays.
+ /// Transforms e.g. "byte[]" → "new byte[length][]" to avoid the invalid "new byte[][length]" form.
+ pub(super) fn array_new_expr(inner_type_name: &str) -> Result<String, askama::Error> {
+diff --git a/bindgen/templates/EnumTemplate.cs b/bindgen/templates/EnumTemplate.cs
+index 3218791..40dacec 100644
+--- a/bindgen/templates/EnumTemplate.cs
++++ b/bindgen/templates/EnumTemplate.cs
+@@ -78,7 +78,7 @@ class {{ e|ffi_converter_name }}: FfiConverterRustBuffer<{{ type_name }}> {
+     public record {{ variant.name()|class_name(ci) }} (
+         {%- for field in variant.fields() %}
+         {%- let field_name = field.name()|or_pos_var(loop.index)|property_name %}
+-        {% call cs::enum_parameter_type_name(field|type_name(ci), variant.name()|class_name(ci)) %} {% call cs::enum_field_name(field_name, variant.name()|class_name(ci)) %}{% if !loop.last %},{% endif %}
++        {% call cs::enum_parameter_type_name(field|type_name(ci), variant.name()|class_name(ci)) %} {{ field_name|enum_field_name(e, ci) }}{% if !loop.last %},{% endif %}
+         {%- endfor %}
+     ) : {{ type_name }} {}
+     {%- endif %}
+@@ -93,7 +93,7 @@ class {{ e|ffi_converter_name }}: FfiConverterRustBuffer<{{ type_name }}> {
+                 FFIObjectUtil.DisposeAll(
+                     {%- for field in variant.fields() %}
+                     {%- let field_name = field.name()|or_pos_var(loop.index)|property_name %}
+-                    variant_value.{% call cs::enum_field_name(field_name, variant.name()|class_name(ci)) %}{% if !loop.last %},{% endif %}
++                    variant_value.{{ field_name|enum_field_name(e, ci) }}{% if !loop.last %},{% endif %}
+                     {%- endfor %});
+                 {%- endif %}
+                 break;
+@@ -138,7 +138,7 @@ class {{ e|ffi_converter_name }} : FfiConverterRustBuffer<{{ type_name }}>{
+                 return 4
+                     {%- for field in variant.fields() %}
+                     {%- let field_name = field.name()|or_pos_var(loop.index)|property_name %}
+-                    + {{ field|allocation_size_fn }}(variant_value.{% call cs::enum_field_name(field_name, variant.name()|class_name(ci)) %})
++                    + {{ field|allocation_size_fn }}(variant_value.{{ field_name|enum_field_name(e, ci) }})
+                     {%- endfor %};
+             {%- endfor %}
+             default:
+@@ -153,7 +153,7 @@ class {{ e|ffi_converter_name }} : FfiConverterRustBuffer<{{ type_name }}>{
+                 stream.WriteInt({{ loop.index }});
+                 {%- for field in variant.fields() %}
+                 {%- let field_name = field.name()|or_pos_var(loop.index)|property_name %}
+-                {{ field|write_fn }}(variant_value.{% call cs::enum_field_name(field_name, variant.name()|class_name(ci)) %}, stream);
++                {{ field|write_fn }}(variant_value.{{ field_name|enum_field_name(e, ci) }}, stream);
+                 {%- endfor %}
+                 break;
+             {%- endfor %}
+diff --git a/bindgen/templates/macros.cs b/bindgen/templates/macros.cs
+index f05b1f0..6189df1 100644
+--- a/bindgen/templates/macros.cs
++++ b/bindgen/templates/macros.cs
+@@ -252,19 +252,6 @@ void
+ {%- endif %}
+ {%- endmacro %}
+ 
+-{#
+-// Break the following collision, where a field name after PascalCase conversion
+-// matches the variant record name (CS8866).
+-// https://github.com/nicktomlin/uniffi-bindgen-cs/issues/152
+-//     public record S(string S) : UdlEnum {}  // CS8866
+-//     public record S(string @S) : UdlEnum {} // OK — '@' prefix disambiguates
+-#}
+-{%- macro enum_field_name(field_name, variant_name) %}
+-{%- if field_name == variant_name %}{{ field_name }}Value
+-{%- else %}{{ field_name }}
+-{%- endif %}
+-{%- endmacro %}
+-
+ {%- macro docstring(defn, indent_spaces) %}
+ {%- call docstring_value(defn.docstring(), indent_spaces) %}
+ {%- endmacro %}
+diff --git a/dotnet-tests/UniffiCS.BindingTests/TestEnumVariantFieldNameConflict.cs b/dotnet-tests/UniffiCS.BindingTests/TestEnumVariantFieldNameConflict.cs
+index c3586ad..c03da8c 100644
+--- a/dotnet-tests/UniffiCS.BindingTests/TestEnumVariantFieldNameConflict.cs
++++ b/dotnet-tests/UniffiCS.BindingTests/TestEnumVariantFieldNameConflict.cs
+@@ -16,6 +16,15 @@ public class TestEnumVariantFieldNameConflict
+         Assert.Equal("hello", ins.InsertValue);
+     }
+ 
++    [Fact]
++    public void MakeReplaceExposesRenamedProperties()
++    {
++        var c = EnumVariantFieldNameConflictMethods.MakeReplace("old", "new");
++        var replace = Assert.IsType<Change.Replace>(c);
++        Assert.Equal("old", replace.DeleteValue);
++        Assert.Equal("new", replace.InsertValue);
++    }
++
+     [Fact]
+     public void GetInsertValueOnInsertReturnsValue()
+     {
+diff --git a/fixtures/regressions/enum-variant-field-name-conflict/src/lib.rs b/fixtures/regressions/enum-variant-field-name-conflict/src/lib.rs
+index 3a9ecd7..5464d9f 100644
+--- a/fixtures/regressions/enum-variant-field-name-conflict/src/lib.rs
++++ b/fixtures/regressions/enum-variant-field-name-conflict/src/lib.rs
+@@ -7,6 +7,8 @@
+ // class (e.g. variant "Insert" with field "insert"), the generated record used to
+ // declare `string Insert` inside `record Insert(...)` which is CS8866.
+ // The fix renames the property to "InsertValue".
++// A field named after a sibling variant collides the same way, since variant records
++// are nested in the enum's record (variant "Replace" with field "insert").
+ //
+ // Also tests that Dispose() on enum variants with object-reference fields correctly
+ // references the renamed property ("InsertValue", not "Insert").
+@@ -16,6 +18,7 @@ pub enum Change {
+     Insert { insert: String },
+     Delete { delete: String },
+     Move { from: u32, to: u32 },
++    Replace { delete: String, insert: String },
+ }
+ 
+ #[uniffi::export]
+@@ -28,6 +31,11 @@ pub fn make_delete(s: String) -> Change {
+     Change::Delete { delete: s }
+ }
+ 
++#[uniffi::export]
++pub fn make_replace(delete: String, insert: String) -> Change {
++    Change::Replace { delete, insert }
++}
++
+ #[uniffi::export]
+ pub fn get_insert_value(c: Change) -> Option<String> {
+     match c {

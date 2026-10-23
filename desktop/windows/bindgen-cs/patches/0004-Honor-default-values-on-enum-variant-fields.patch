@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Dennis Ameling <dennis@dennisameling.com>
+Date: Wed, 14 Oct 2026 13:08:45 +0200
+Subject: [PATCH 4/6] Honor default values on enum variant fields
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Upstream: https://github.com/NordSecurity/uniffi-bindgen-cs/pull/189 (open), cherry-picked and
+merged with #190 in EnumTemplate.cs. The model gives variant fields #[uniffi(default)].
+
+`#[uniffi(default = …)]` on a field of an enum variant was silently
+dropped: the variant's positional record took every field as a required
+parameter. Records already emit these defaults, as do the upstream
+Kotlin and Python generators.
+
+Emit the default on variant fields too, moving defaulted fields after
+the required ones as `order_fields` does for records (CS1737). The
+converter's `Read` now passes named arguments so the wire order is
+unaffected by that reordering. Unnamed tuple fields keep the `v{pos}`
+name of their original position.
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+Signed-off-by: Dennis Ameling <dennis@dennisameling.com>
+---
+ bindgen/src/gen_cs/filters.rs                 | 16 +++++++++++
+ bindgen/templates/EnumTemplate.cs             | 22 ++++++++++++---
+ .../OptionalParameterTests.cs                 | 23 +++++++++++++++
+ fixtures/optional-parameters/src/lib.rs       | 28 +++++++++++++++++++
+ 4 files changed, 85 insertions(+), 4 deletions(-)
+
+diff --git a/bindgen/src/gen_cs/filters.rs b/bindgen/src/gen_cs/filters.rs
+index cb5e700..0286a5e 100644
+--- a/bindgen/src/gen_cs/filters.rs
++++ b/bindgen/src/gen_cs/filters.rs
+@@ -242,6 +242,22 @@ pub(super) fn order_fields(fields: &[Field]) -> Result<(Vec<Field>, bool), askam
+     Ok((fields, is_reordered))
+ }
+ 
++/// Like `order_fields`, but pairs each field with its original 1-based position, so that unnamed
++/// (tuple) variant fields keep the `v{pos}` name `or_pos_var` gives them everywhere else.
++pub(super) fn order_variant_fields(
++    fields: &[Field],
++) -> Result<(Vec<(usize, Field)>, bool), askama::Error> {
++    let mut fields: Vec<_> = fields
++        .iter()
++        .cloned()
++        .enumerate()
++        .map(|(i, f)| (i + 1, f))
++        .collect();
++    fields.sort_by_key(|(_, field)| field.default_value().is_some());
++    let is_reordered = fields.iter().enumerate().any(|(i, (pos, _))| i + 1 != *pos);
++    Ok((fields, is_reordered))
++}
++
+ /// If the name is empty create one based on position of the variable
+ pub(super) fn or_pos_var(nm: &str, pos: &usize) -> Result<String, askama::Error> {
+     if nm.is_empty() {
+diff --git a/bindgen/templates/EnumTemplate.cs b/bindgen/templates/EnumTemplate.cs
+index 40dacec..67cb78e 100644
+--- a/bindgen/templates/EnumTemplate.cs
++++ b/bindgen/templates/EnumTemplate.cs
+@@ -75,10 +75,23 @@ class {{ e|ffi_converter_name }}: FfiConverterRustBuffer<{{ type_name }}> {
+     {% if !variant.has_fields() -%}
+     public record {{ variant.name()|class_name(ci) }}: {{ type_name }} {}
+     {% else -%}
++    {%- let (ordered_fields, is_reordered) = variant.fields()|order_variant_fields %}
++    {%- if is_reordered %}
++    /// <remarks>
++    /// <b>UniFFI Warning:</b> Optional parameters have been reordered because
++    /// of a C# syntax limitation. Use named parameters for compatibility with
++    /// future ordering changes.
++    /// </remarks>
++    {% endif -%}
+     public record {{ variant.name()|class_name(ci) }} (
+-        {%- for field in variant.fields() %}
+-        {%- let field_name = field.name()|or_pos_var(loop.index)|property_name %}
+-        {% call cs::enum_parameter_type_name(field|type_name(ci), variant.name()|class_name(ci)) %} {{ field_name|enum_field_name(e, ci) }}{% if !loop.last %},{% endif %}
++        {%- for (pos, field) in ordered_fields %}
++        {%- let field_name = field.name()|or_pos_var(pos)|property_name %}
++        {% call cs::enum_parameter_type_name(field|type_name(ci), variant.name()|class_name(ci)) %} {{ field_name|enum_field_name(e, ci) }}
++        {%- match field.default_value() %}
++            {%- when Some with(literal) %} = {{ literal|render_literal(field, ci) }}
++            {%- else %}
++        {%- endmatch -%}
++        {% if !loop.last %},{% endif %}
+         {%- endfor %}
+     ) : {{ type_name }} {}
+     {%- endif %}
+@@ -122,7 +135,8 @@ class {{ e|ffi_converter_name }} : FfiConverterRustBuffer<{{ type_name }}>{
+             case {{ loop.index }}:
+                 return new {{ type_name }}.{{ variant.name()|class_name(ci) }}(
+                     {%- for field in variant.fields() %}
+-                    {{ field|read_fn }}(stream){% if !loop.last %},{% endif %}
++                    {%- let field_name = field.name()|or_pos_var(loop.index)|property_name %}
++                    {{ field_name|enum_field_name(e, ci) }}: {{ field|read_fn }}(stream){% if !loop.last %},{% endif %}
+                     {%- endfor %}
+                 );
+             {%- endfor %}
+diff --git a/dotnet-tests/UniffiCS.BindingTests/OptionalParameterTests.cs b/dotnet-tests/UniffiCS.BindingTests/OptionalParameterTests.cs
+index c6dab80..720b110 100644
+--- a/dotnet-tests/UniffiCS.BindingTests/OptionalParameterTests.cs
++++ b/dotnet-tests/UniffiCS.BindingTests/OptionalParameterTests.cs
+@@ -24,4 +24,27 @@ public class OptionalParameterTests
+         string message = Hello(person);
+         Assert.Equal("Hello John Connor!", message);
+     }
++
++    [Fact]
++    public void EnumVariantDefault_CanBeOmitted()
++    {
++        Assert.Equal("Hello stranger!", Greet(new Greeting.Hello(IsSpecial: false)));
++        Assert.Equal("Waving 1 time(s)", Greet(new Greeting.Wave()));
++        Assert.Equal("Nodding at John 2 time(s)", Greet(new Greeting.Nod("John")));
++    }
++
++    [Fact]
++    public void EnumVariantDefault_CanBeSpecified()
++    {
++        Assert.Equal("Hello John Connor! You are special!", Greet(new Greeting.Hello(Name: "John Connor", IsSpecial: true)));
++        Assert.Equal("Waving 3 time(s)", Greet(new Greeting.Wave(3)));
++        Assert.Equal("Nodding at John 4 time(s)", Greet(new Greeting.Nod("John", 4)));
++    }
++
++    [Fact]
++    public void EnumVariantWithReorderedFields_RoundTrips()
++    {
++        var greeting = new Greeting.Hello(Name: "John Connor", IsSpecial: true);
++        Assert.Equal(greeting, EchoGreeting(greeting));
++    }
+ }
+diff --git a/fixtures/optional-parameters/src/lib.rs b/fixtures/optional-parameters/src/lib.rs
+index f82ff89..a1f28a7 100644
+--- a/fixtures/optional-parameters/src/lib.rs
++++ b/fixtures/optional-parameters/src/lib.rs
+@@ -20,3 +20,31 @@ fn hello(person: Person) -> String {
+         format!("Hello {name}!")
+     }
+ }
++
++#[derive(uniffi::Enum)]
++pub enum Greeting {
++    Hello {
++        #[uniffi(default = None)]
++        name: Option<String>,
++        is_special: bool,
++    },
++    Wave {
++        #[uniffi(default = 1)]
++        times: u32,
++    },
++    Nod(String, #[uniffi(default = 2)] u32),
++}
++
++#[uniffi::export]
++fn greet(greeting: Greeting) -> String {
++    match greeting {
++        Greeting::Hello { name, is_special } => hello(Person { name, is_special }),
++        Greeting::Wave { times } => format!("Waving {times} time(s)"),
++        Greeting::Nod(name, times) => format!("Nodding at {name} {times} time(s)"),
++    }
++}
++
++#[uniffi::export]
++fn echo_greeting(greeting: Greeting) -> Greeting {
++    greeting
++}
