@@ -662,6 +662,7 @@ mod tests {
                 skippable: false,
                 airs_at: None,
                 delayed_from: None,
+                metadata_only: false,
             })
             .collect();
         assert_eq!(following(&rows, "1").as_deref(), Some("2"));

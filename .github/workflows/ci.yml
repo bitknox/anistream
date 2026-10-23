@@ -363,6 +363,34 @@ jobs:
         run: >-
           xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Fixtures"
           -destination platform=macOS test
+      # The Mac player's controls clicked as a person clicks them (apple/MacPlayerTests): XCUITest
+      # moves the pointer and presses through the window server, where the window's title bar can
+      # take a click before a control does. XCTest drives apps only in automation mode, which the
+      # runner's image turns on without a password; where it has not, it is turned on here, and
+      # where it cannot be, the step fails saying so rather than waiting on a password prompt.
+      # Time-boxed all the same: a run that hangs ends with the step, not the job.
+      - name: Click the Mac player's controls
+        timeout-minutes: 20
+        run: |
+          if automationmodetool | grep -q "requires user authentication"; then
+            sudo -n automationmodetool enable-automationmode-without-authentication || {
+              echo "::error::automation mode needs a password on this runner, so XCTest cannot drive the app"
+              exit 1
+            }
+          fi
+          xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Mac Player" \
+            -destination platform=macOS -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 240 -maximum-test-execution-time-allowance 420 \
+            -resultBundlePath "$RUNNER_TEMP/mac-player.xcresult" test
+      # What a failed click saw: XCTest keeps a screenshot of the screen at each failure in the
+      # result bundle, which Xcode opens.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: mac-player-clicks
+          path: ${{ runner.temp }}/mac-player.xcresult
+          if-no-files-found: ignore
+          retention-days: 7
       # The apps build the engine without the desktop feature, so its hosted player has to pass
       # its contract in that build too: the FFI's own tests in the build test.sh just made, with
       # the features, target and profile engine.sh gives the Mac's slice, so nothing beneath the

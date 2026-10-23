@@ -448,6 +448,7 @@ scenarios! {
     title_not_started,
     episodes,
     episodes_long_filtered,
+    episodes_from_anilist,
     now_playing,
     now_playing_paused_skip,
     eyecatch_starting,
@@ -468,6 +469,7 @@ scenarios! {
     sources,
     source_provider,
     watch_order,
+    watch_order_long,
     recommendations,
     download_range,
     edit_setting,
@@ -1139,6 +1141,7 @@ fn episode(number: u32, title: &str) -> EpisodeRow {
         skippable: false,
         airs_at: None,
         delayed_from: None,
+        metadata_only: false,
     }
 }
 
@@ -1513,6 +1516,53 @@ fn source_provider(s: &mut Screen) {
 /// The watch order around a title: its prequel and sequel.
 fn watch_order(s: &mut Screen) {
     on_kaze(s);
+    s.act(Action::WatchOrder);
+}
+
+/// The watch order on the ninth season of a twelve-season franchise: the other eleven, numbered as
+/// every one of their pages numbers them, then the OVA, opened on the season after this one.
+fn watch_order_long(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![hoshikuzu(), kaze(), yoru()]);
+    s.press(&["j", "enter"]);
+    let season = |n: u32| anistream_model::catalog::LinkedTitle {
+        id: if n == 9 { id(102) } else { id(120 + n) },
+        title: if n == 1 {
+            "Kaze no Tegami".into()
+        } else {
+            format!("Kaze no Tegami Season {n}")
+        },
+        title_romaji: None,
+        title_english: None,
+        title_native: None,
+        relation: None,
+        format: Some("TV".into()),
+        cover_url: None,
+        cover_color: None,
+        season: None,
+        year: Some(2017 + n as u16),
+        list_status: None,
+    };
+    let mut page = kaze_detail();
+    // Its own prequel and sequel are the eighth and the tenth, which the picker has; the OVA is not.
+    page.related.retain(|related| related.format.as_deref() != Some("TV"));
+    page.related.push(RelatedTitle {
+        id: id(128),
+        title: "Kaze no Tegami Season 8".into(),
+        relation: "prequel".into(),
+        format: Some("TV".into()),
+    });
+    page.related.push(RelatedTitle {
+        id: id(130),
+        title: "Kaze no Tegami Season 10".into(),
+        relation: "sequel".into(),
+        format: Some("TV".into()),
+    });
+    page.detail = Some(anistream_model::catalog::TitleDetail {
+        seasons: Some((1..=12).map(season).collect()),
+        ..Default::default()
+    });
+    s.apply(Event::Detail(Box::new(page)));
     s.act(Action::WatchOrder);
 }
 
@@ -1930,14 +1980,41 @@ fn episodes_loading(s: &mut Screen) {
     s.idle(5);
 }
 
-/// No source is ready to list episodes from, and an alert says the load failed.
+/// No source is ready, and AniList lists none of the title's episodes yet either.
 fn episodes_no_source(s: &mut Screen) {
     s.apply(anilist_signed_in());
     s.act(Action::JumpSection(1));
     s.list(vec![kaze(), hoshikuzu()]);
     s.press(&["j", "e"]);
     s.episodes(vec![]);
-    s.apply(Event::Toast(Notice::alert("no source could list episodes for this title")));
+}
+
+/// No source is set up: the episodes are AniList's, watched as any are, the next one to air
+/// with when it airs, and Enter goes to add a source rather than playing.
+fn episodes_from_anilist(s: &mut Screen) {
+    s.apply(anilist_signed_in());
+    s.act(Action::JumpSection(1));
+    s.list(vec![kaze(), hoshikuzu()]);
+    s.press(&["e"]);
+    let rows = (1..=10)
+        .map(|n| {
+            let row = EpisodeRow {
+                duration_secs: Some(24 * 60),
+                metadata_only: true,
+                ..episode(n, &format!("Letter No. {n}"))
+            };
+            match n {
+                1..=6 => watched(row),
+                10 => EpisodeRow {
+                    title: None,
+                    airs_at: Some(NOW + 3 * HOUR + 2 * MINUTE),
+                    ..row
+                },
+                _ => row,
+            }
+        })
+        .collect();
+    s.episodes(rows);
 }
 
 /// A source answered and listed nothing.

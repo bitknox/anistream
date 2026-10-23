@@ -63,8 +63,12 @@ struct TitleAction: Equatable {
     }
 }
 
-/// A title's seasons, from AniList's relations in watch order, and what else it has: films, OVAs
-/// and specials.
+/// A title's seasons, and what else it has: films, OVAs and specials.
+///
+/// The seasons are the franchise's, as the engine walks them along the prequel and sequel chain:
+/// the same list, numbered the same, on every one of their pages. Until the engine has walked
+/// them there are none, rather than seasons numbered from what this page alone knows, which
+/// would renumber as the rest arrived.
 struct TitleFamily {
     struct Season: Identifiable, Equatable {
         let id: AnilistId
@@ -73,16 +77,20 @@ struct TitleFamily {
     }
 
     let seasons: [Season]
+    /// What the picker holds, or will once the engine has walked the seasons: this title's own
+    /// series prequels and sequels meanwhile, kept out of Related so that none moves from there
+    /// into the picker.
+    let picked: Set<AnilistId>
     let related: [RelatedTitle]
 
     init(_ entry: Entry) {
         let series: Set<String> = ["TV", "TV SHORT", "ONA"]
-        let before = entry.related.filter { $0.relation == "prequel" && series.contains($0.format ?? "") }
-        let after = entry.related.filter { $0.relation == "sequel" && series.contains($0.format ?? "") }
-        let all = before.map { Season(id: $0.id, title: $0.title, isThis: false) }
-            + [Season(id: entry.id, title: entry.title, isThis: true)]
-            + after.map { Season(id: $0.id, title: $0.title, isThis: false) }
-        seasons = all.count > 1 ? all : []
+        let franchise = entry.detail?.seasons
+        seasons = (franchise ?? []).map { Season(id: $0.id, title: $0.title, isThis: $0.id == entry.id) }
+        let waiting: [RelatedTitle] = franchise != nil ? [] : entry.related.filter {
+            ($0.relation == "prequel" || $0.relation == "sequel") && series.contains($0.format ?? "")
+        }
+        picked = Set(seasons.map(\.id) + waiting.map(\.id))
         related = entry.related.filter { !series.contains($0.format ?? "") }
     }
 }
@@ -215,7 +223,12 @@ struct TitleHero: View {
                     .macLineHeight(14)
                     .padding(.top, 4)
                 HStack(spacing: 10) {
-                    if action.playable {
+                    // No source has it: nothing to play, and the way to one in Play's place.
+                    if action.playable, store.titles.unlisted(entry.id) {
+                        AddSourceButton(
+                            sentence: Self.pad, height: Self.pad ? 48 : 34, fontSize: Self.pad ? 17 : 13
+                        )
+                    } else if action.playable {
                         Button {
                             action.play(entry.id, store: store, navigator: navigator)
                         } label: {
@@ -305,59 +318,95 @@ struct TitleFamilyRow: View {
         #endif
     }
 
+    /// How wide Related keeps itself beside the seasons: a card and part of the next, cut by the
+    /// edge to say the row scrolls.
+    static let relatedRoom: CGFloat = 240
+
     var body: some View {
-        HStack(alignment: .top, spacing: 32) {
-            if !family.seasons.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Seasons").groupHeaderStyle().padding(.horizontal, 4)
-                        .accessibilityAddTraits(.isHeader)
-                    HStack(spacing: 8) {
-                        ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
-                            familyCell(
-                                id: season.id,
-                                name: "Season \(index + 1)",
-                                detail: seasonDetail(season),
-                                fraction: season.isThis ? entry.watchedFraction : nil,
-                                selected: season.isThis
-                            )
-                        }
-                    }
-                }
-            }
-            if entry.detail != nil {
-                let cards = entry.relatedCards(excluding: Set(family.seasons.map(\.id)))
-                if !cards.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Related").groupHeaderStyle().padding(.horizontal, 4)
-                            .accessibilityAddTraits(.isHeader)
-                        // A row that scrolls sideways, its last card cut by the edge to say so.
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 8) {
-                                ForEach(cards, id: \.id) { linked in
-                                    RelatedCard(linked: linked, cover: Self.cover)
-                                        .frame(height: 62)
-                                }
+        // Side by side, as MacTitle and PadTitle have them, while the seasons fit with room for
+        // Related beside them. A long franchise's seasons scroll sideways on a line of their own
+        // instead, the season on screen in view, with Related under them.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 32) {
+                if !family.seasons.isEmpty {
+                    seasonsGroup {
+                        HStack(spacing: 8) {
+                            ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
+                                seasonCell(index, season)
                             }
                         }
-                        .scrollIndicators(.never)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            } else if !family.related.isEmpty {
+                if hasRelated {
+                    related.frame(minWidth: Self.relatedRoom, idealWidth: Self.relatedRoom, maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            VStack(alignment: .leading, spacing: 20) {
+                if !family.seasons.isEmpty {
+                    seasonsGroup { SeasonScroller(family: family) { index, season in seasonCell(index, season) } }
+                }
+                related
+            }
+        }
+    }
+
+    /// Whether there is anything under Related.
+    private var hasRelated: Bool {
+        entry.detail != nil ? !entry.relatedCards(excluding: family.picked).isEmpty : !family.related.isEmpty
+    }
+
+    private func seasonsGroup(@ViewBuilder _ row: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Seasons").groupHeaderStyle().padding(.horizontal, 4)
+                .accessibilityAddTraits(.isHeader)
+            row()
+        }
+    }
+
+    private func seasonCell(_ index: Int, _ season: TitleFamily.Season) -> some View {
+        familyCell(
+            id: season.id,
+            name: "Season \(index + 1)",
+            detail: seasonDetail(season),
+            fraction: season.isThis ? entry.watchedFraction : nil,
+            selected: season.isThis
+        )
+    }
+
+    @ViewBuilder private var related: some View {
+        if entry.detail != nil {
+            let cards = entry.relatedCards(excluding: family.picked)
+            if !cards.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Related").groupHeaderStyle().padding(.horizontal, 4)
                         .accessibilityAddTraits(.isHeader)
-                    HStack(spacing: 8) {
-                        ForEach(family.related, id: \.id) { related in
-                            familyCell(
-                                id: related.id,
-                                name: related.title,
-                                detail: [related.format?.capitalizedSentence, related.relation.capitalizedSentence]
-                                    .compactMap { $0 }.joined(separator: " · "),
-                                fraction: nil,
-                                selected: false
-                            )
+                    // A row that scrolls sideways, its last card cut by the edge to say so.
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 8) {
+                            ForEach(cards, id: \.id) { linked in
+                                RelatedCard(linked: linked, cover: Self.cover)
+                                    .frame(height: 62)
+                            }
                         }
+                    }
+                    .scrollIndicators(.never)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if !family.related.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Related").groupHeaderStyle().padding(.horizontal, 4)
+                    .accessibilityAddTraits(.isHeader)
+                HStack(spacing: 8) {
+                    ForEach(family.related, id: \.id) { related in
+                        familyCell(
+                            id: related.id,
+                            name: related.title,
+                            detail: [related.format?.capitalizedSentence, related.relation.capitalizedSentence]
+                                .compactMap { $0 }.joined(separator: " · "),
+                            fraction: nil,
+                            selected: false
+                        )
                     }
                 }
             }
@@ -369,8 +418,8 @@ struct TitleFamilyRow: View {
             return "\(done) / \(of.total)"
         }
         if let known = store.titles[season.id], let words = known.seasonWords { return words }
-        // The page's relations date a season the app has not loaded: "Spring 2027".
-        if let linked = entry.detail?.relations.first(where: { $0.id == season.id }), let year = linked.year {
+        // The page's own card dates a season the app has not loaded: "Spring 2027".
+        if let linked = card(season.id), let year = linked.year {
             return linked.season.map { "\(TitleWords.season($0)) \(year)" } ?? String(year)
         }
         return season.isThis ? "This season" : "TV"
@@ -384,7 +433,7 @@ struct TitleFamilyRow: View {
         } label: {
             HStack(spacing: 10) {
                 let known = store.titles[id]
-                let linked = entry.detail?.relations.first { $0.id == id }
+                let linked = card(id)
                 ArtworkView(url: known?.coverUrl ?? linked?.coverUrl, color: known?.plateColor, maxPixelSize: 108)
                     .frame(width: 36, height: 54)
                     .clipShape(.rect(cornerRadius: 6))
@@ -415,8 +464,39 @@ struct TitleFamilyRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        // The cover, where the page's relations do not carry it.
-        .task { if store.titles[id] == nil, entry.detail?.relations.contains(where: { $0.id == id }) != true { store.loadDetail(id) } }
+        // The cover, where the page's seasons and relations do not carry it.
+        .task { if store.titles[id] == nil, card(id) == nil { store.loadDetail(id) } }
+    }
+
+    /// The page's own card for `id`: a season's, which every season has, or a relation's.
+    private func card(_ id: AnilistId) -> LinkedTitle? {
+        entry.detail?.seasons?.first { $0.id == id } ?? entry.detail?.relations.first { $0.id == id }
+    }
+}
+
+/// A long franchise's seasons in a row that scrolls sideways, its last cell cut by the edge to say
+/// so: lazy, so only the seasons in view are made and only their covers asked for, and the season
+/// on screen in the middle as the page opens and as it changes.
+struct SeasonScroller<Cell: View>: View {
+    let family: TitleFamily
+    @ViewBuilder let cell: (Int, TitleFamily.Season) -> Cell
+
+    var body: some View {
+        let chosen = family.seasons.first(where: \.isThis)?.id
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 8) {
+                    ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
+                        cell(index, season).id(season.id)
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .onAppear { if let chosen { proxy.scrollTo(chosen, anchor: .center) } }
+            .onChange(of: chosen) { _, now in
+                if let now { withAnimation(.standard) { proxy.scrollTo(now, anchor: .center) } }
+            }
+        }
     }
 }
 
@@ -493,57 +573,79 @@ struct EpisodeRowView: View {
         }
     }
 
+    @ViewBuilder
     private var airedRow: some View {
         let number = UInt32(row.number) ?? 0
+        let current = number == (entry.progress?.next ?? 1)
+        // One no source has: nothing to play, so a click offers what can be done, adding a
+        // source among it, rather than playing.
+        if row.metadataOnly {
+            Menu {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            } label: {
+                rowLabel(number: number, current: current)
+            }
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .buttonStyle(.plain)
+            .pointerHover()
+            .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            }
+        } else {
+            Button {
+                store.send(.play(id: entry.id, episode: row.number))
+            } label: {
+                rowLabel(number: number, current: current)
+            }
+            .buttonStyle(.plain)
+            .pointerHover()
+            .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            }
+            .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
+        }
+    }
+
+    private func rowLabel(number: UInt32, current: Bool) -> some View {
         let next = entry.progress?.next ?? 1
-        let current = number == next
-        return Button {
-            store.send(.play(id: entry.id, episode: row.number))
-        } label: {
-            HStack(spacing: 14) {
-                Text(row.number)
-                    .font(.mac(13, weight: current ? .semibold : .regular))
-                    .monospacedDigit()
-                    .foregroundStyle(current ? .amber : .haze)
-                    .animation(.quick, value: current)
-                    .frame(width: 22, alignment: .trailing)
-                EpisodeStill(
-                    entry: entry, row: row,
-                    hidden: spoilers && number > next && !row.completed,
-                    unaired: false
-                )
-                .opacity(row.completed ? 0.7 : 1)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text(row.title ?? "Episode \(row.number)")
-                            .foregroundStyle(row.completed ? .haze : .silk)
-                            .lineLimit(1)
-                            .animation(.quick, value: row.completed)
-                        if row.kind == .filler {
-                            Text("Filler").groupHeaderStyle()
-                        }
-                    }
-                    if current, let fraction = entry.resume?.fraction {
-                        Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 200) }
+        return HStack(spacing: 14) {
+            Text(row.number)
+                .font(.mac(13, weight: current ? .semibold : .regular))
+                .monospacedDigit()
+                .foregroundStyle(current ? .amber : .haze)
+                .animation(.quick, value: current)
+                .frame(width: 22, alignment: .trailing)
+            EpisodeStill(
+                entry: entry, row: row,
+                hidden: spoilers && number > next && !row.completed,
+                unaired: false
+            )
+            .opacity(row.completed ? 0.7 : 1)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(row.title ?? "Episode \(row.number)")
+                        .foregroundStyle(row.completed ? .haze : .silk)
+                        .lineLimit(1)
+                        .animation(.quick, value: row.completed)
+                    if row.kind == .filler {
+                        Text("Filler").groupHeaderStyle()
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                trailing(current: current)
-                WatchedCheck(watched: row.completed, size: 11)
-                    .frame(width: 14)
+                if current, let fraction = entry.resume?.fraction {
+                    Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 200) }
+                }
             }
-            .font(.mac(13))
-            .padding(.horizontal, 8)
-            .frame(height: 44)
-            .background(current ? Palette.selection : .clear, in: .rect(cornerRadius: 8))
-            .contentShape(.rect(cornerRadius: 8))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            trailing(current: current)
+            WatchedCheck(watched: row.completed, size: 11)
+                .frame(width: 14)
         }
-        .buttonStyle(.plain)
-        .pointerHover()
-        .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
-            EpisodeMenu(entry: entry, number: number, row: row)
-        }
-        .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
+        .font(.mac(13))
+        .padding(.horizontal, 8)
+        .frame(height: 44)
+        .background(current ? Palette.selection : .clear, in: .rect(cornerRadius: 8))
+        .contentShape(.rect(cornerRadius: 8))
     }
 
     @ViewBuilder

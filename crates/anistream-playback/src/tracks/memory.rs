@@ -132,7 +132,6 @@ pub(super) fn best_match<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::tracks::fixtures::*;
 
     fn subtitles_memory(choice: SubtitleChoice, audio_lang: &str) -> TrackMemory {

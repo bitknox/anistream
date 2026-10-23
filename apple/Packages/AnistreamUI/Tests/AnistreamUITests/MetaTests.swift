@@ -7,11 +7,11 @@ import Testing
 
 func detail(
     tags: [TitleTag] = [], schedule: [EpisodeAiring] = [], relations: [LinkedTitle] = [],
-    recommendations: [LinkedTitle] = [], rankings: [Ranking] = [], characters: [CastMember] = [],
-    staff: [StaffCredit] = []
+    seasons: [LinkedTitle]? = nil, recommendations: [LinkedTitle] = [], rankings: [Ranking] = [],
+    characters: [CastMember] = [], staff: [StaffCredit] = []
 ) -> TitleDetail {
-    TitleDetail(tags: tags, schedule: schedule, relations: relations, recommendations: recommendations,
-                rankings: rankings, characters: characters, staff: staff)
+    TitleDetail(tags: tags, schedule: schedule, relations: relations, seasons: seasons,
+                recommendations: recommendations, rankings: rankings, characters: characters, staff: staff)
 }
 
 func linked(_ id: AnilistId, _ relation: RelationKind?, _ format: String, _ year: UInt16?) -> LinkedTitle {

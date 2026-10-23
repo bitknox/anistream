@@ -4,6 +4,7 @@
 //! first frame. An episode table that cannot be filled still arrives, empty, before the reason
 //! does, so the screen leaves its loading state whatever happened.
 
+use anistream_core::ids::AnilistId;
 use anistream_core::{media::SearchHit, traits::SourceCandidate};
 use anistream_model::{
     catalog::{
@@ -17,12 +18,36 @@ use anistream_model::{
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::ResolutionRung;
 use anistream_testkit::{
-    fixtures::{self, AIRING, FINISHED, FIXTURE_NOW, MISSING},
+    Operation,
+    fixtures::{
+        self, AIRING, FINISHED, FIXTURE_NOW, FRANCHISE_FILM, FRANCHISE_OVA, FRANCHISE_SEASONS,
+        FRANCHISE_SIDE_STORY, LONG_FRANCHISE_FILM, LONG_FRANCHISE_SEASONS, MISSING, SEQUEL,
+    },
     seed, sources,
 };
 
 use super::{WITH_ANILIST, ends, toasts};
 use crate::harness::{Harness, Options, names};
+
+/// The seasons each page said, in the order the pages came: `None` for one sent while the walk
+/// along its franchise was still under way.
+fn seasons_said(updates: &[Event]) -> Vec<Option<Vec<AnilistId>>> {
+    let said = |update: &Event| match update {
+        Event::Detail(page) => {
+            let seasons = page.detail.as_ref().and_then(|detail| detail.seasons.as_ref());
+            Some(seasons.map(|seasons| seasons.iter().map(|season| season.id).collect()))
+        }
+        _ => None,
+    };
+    updates.iter().filter_map(said).collect()
+}
+
+/// The app on the default config, with the made-up franchise beside the fixtures.
+async fn with_franchise(options: Options) -> Harness {
+    let h = Harness::with(options).await;
+    h.server().add_titles(fixtures::franchise());
+    h
+}
 
 /// The fixture provider beside a second one, `alt`, that has only three of
 /// [`FINISHED`]'s episodes up.
@@ -74,6 +99,101 @@ async fn a_title_says_its_pinned_source_before_it_arrives() {
     assert_eq!((entry.id, entry.title.as_str()), (FINISHED, "Stardust Wayfarer"));
     assert!(!entry.related.is_empty(), "the detail-only fields came with it");
     ends(&updates, job);
+}
+
+#[tokio::test]
+async fn a_franchises_seasons_are_the_same_from_every_one_of_them() {
+    let [first, _, third, _, last] = FRANCHISE_SEASONS;
+    // Each the first page opened, as on a launch: the page waits for the walk along the
+    // franchise and comes once, with all five, two steps further for every request.
+    for (start, walked) in [(first, 2), (third, 1), (last, 2)] {
+        let mut h = with_franchise(Options::default()).await;
+        let job = h.send(Command::LoadDetail(start));
+        let updates = h.settle().await;
+        assert_eq!(names(&updates), ["ProviderPreference", "Detail", "JobDone"], "{start}");
+        assert_eq!(seasons_said(&updates), [Some(FRANCHISE_SEASONS.to_vec())], "{start}");
+        assert_eq!(h.server().requests_for(Operation::Relations).len(), walked, "{start}");
+        ends(&updates, job);
+    }
+}
+
+#[tokio::test]
+async fn a_franchise_walked_once_is_known_on_every_page_without_asking() {
+    let mut h = with_franchise(Options::default()).await;
+    h.send(Command::LoadDetail(FRANCHISE_SEASONS[0]));
+    h.settle().await;
+    let walked = h.server().requests_for(Operation::Relations).len();
+    // Every season, and the film between the second and the third, which is none of them.
+    for id in FRANCHISE_SEASONS.into_iter().chain([FRANCHISE_FILM]) {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        assert_eq!(seasons_said(&updates), [Some(FRANCHISE_SEASONS.to_vec())], "{id}");
+    }
+    assert_eq!(h.server().requests_for(Operation::Relations).len(), walked, "nothing asked");
+    // The OVA and the side story are no prequel or sequel of a season: none to pick.
+    for id in [FRANCHISE_OVA, FRANCHISE_SIDE_STORY] {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        assert_eq!(seasons_said(&updates), [Some(Vec::new())], "{id}");
+    }
+}
+
+#[tokio::test]
+async fn a_long_franchise_has_all_twelve_seasons_on_every_page() {
+    // The ninth season's page first, as a link to it would open. It sees the seventh to the
+    // eleventh itself; the walk asks after the seventh and the eleventh, then the fifth, the
+    // third and the first, whose own relations say the chain ends there.
+    let mut h = Harness::with(Options::default()).await;
+    h.server().add_titles(fixtures::long_franchise());
+    let ninth = LONG_FRANCHISE_SEASONS[8];
+    let job = h.send(Command::LoadDetail(ninth));
+    let updates = h.settle().await;
+    assert_eq!(seasons_said(&updates), [Some(LONG_FRANCHISE_SEASONS.to_vec())]);
+    assert_eq!(h.server().requests_for(Operation::Relations).len(), 4);
+    ends(&updates, job);
+    for id in [LONG_FRANCHISE_SEASONS[0], LONG_FRANCHISE_SEASONS[11]] {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        assert_eq!(seasons_said(&updates), [Some(LONG_FRANCHISE_SEASONS.to_vec())], "{id}");
+    }
+    assert_eq!(h.server().requests_for(Operation::Relations).len(), 4, "nothing asked again");
+    // The film is a side story of the sixth, no prequel or sequel of a season: none to pick.
+    h.send(Command::LoadDetail(LONG_FRANCHISE_FILM));
+    assert_eq!(seasons_said(&h.settle().await), [Some(Vec::new())]);
+}
+
+#[tokio::test]
+async fn a_page_whose_seasons_take_long_comes_without_them_and_never_renumbers() {
+    let mut h = with_franchise(Options {
+        season_hold: Some(std::time::Duration::from_millis(50)),
+        ..Options::default()
+    })
+    .await;
+    h.server().answer_slowly(Operation::Relations, std::time::Duration::from_millis(400));
+    let job = h.send(Command::LoadDetail(FRANCHISE_SEASONS[2]));
+    let updates = h.settle().await;
+    // The page first, without seasons, then with all five. Never what the third season's page
+    // alone knows, the second to the fourth, which would have numbered it Season 2.
+    assert_eq!(names(&updates), ["ProviderPreference", "Detail", "Detail", "JobDone"]);
+    assert_eq!(seasons_said(&updates), [None, Some(FRANCHISE_SEASONS.to_vec())]);
+    ends(&updates, job);
+}
+
+#[tokio::test]
+async fn a_title_and_its_sequel_have_both_seasons_from_their_own_pages() {
+    let mut h = Harness::new().await;
+    for id in [FINISHED, SEQUEL] {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        assert_eq!(seasons_said(&updates), [Some(vec![FINISHED, SEQUEL])], "{id}");
+    }
+    assert!(
+        h.server().requests_for(Operation::Relations).is_empty(),
+        "a page sees two steps along the chain itself"
+    );
+    // A title with no prequel or sequel has no seasons to pick.
+    h.send(Command::LoadDetail(AIRING));
+    assert_eq!(seasons_said(&h.settle().await), [Some(Vec::new())]);
 }
 
 #[tokio::test]
@@ -212,31 +332,6 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
 }
 
 #[tokio::test]
-async fn a_title_no_source_has_gets_an_empty_table_and_then_the_reason() {
-    let mut h = harness(ProviderRegistry::new(vec![MockProvider::new("fixture").arc()])).await;
-    let job = h.send(Command::LoadEpisodes(FINISHED));
-    let updates = h.settle().await;
-
-    assert_eq!(names(&updates), ["Episodes", "Toast", "JobDone"]);
-    assert!(numbers(&updates[0]).is_empty());
-    assert_eq!(toasts(&updates), ["alert: could not list episodes: fixture found no matches"]);
-    ends(&updates, job);
-}
-
-#[tokio::test]
-async fn with_no_sources_at_all_the_table_is_refused_before_asking_anyone() {
-    let mut h = harness(ProviderRegistry::new(Vec::new())).await;
-    let job = h.send(Command::LoadEpisodes(FINISHED));
-    let updates = h.settle().await;
-
-    assert_eq!(names(&updates), ["Episodes", "Toast", "JobDone"]);
-    assert!(numbers(&updates[0]).is_empty());
-    assert_eq!(toasts(&updates), ["alert: no sources configured"]);
-    ends(&updates, job);
-    assert!(h.server().requests().is_empty());
-}
-
-#[tokio::test]
 async fn a_pinned_source_lists_its_own_episodes() {
     let mut h = harness(with_alt()).await;
     h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
@@ -285,7 +380,7 @@ async fn releases_that_cannot_be_listed_are_a_toast() {
     let job = h.send(Command::LoadSources { id: FINISHED, episode: "1".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: no sources configured — see the Providers screen"]);
+    assert_eq!(toasts(&updates), ["alert: no sources configured: see the Providers screen"]);
     ends(&updates, job);
 
     let mut h = harness(unsure()).await;

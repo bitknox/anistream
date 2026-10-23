@@ -25,6 +25,9 @@ public struct MacPlayerView: View {
     @State private var enteredFullScreen = false
     /// Grown to the window from the banner; false while it is the banner's size.
     @State private var grown = false
+    /// The top bar's control under the pointer, as the title bar strip says it: where the
+    /// controls' own hover cannot see it.
+    @State private var pointed: String?
     @FocusState private var focused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.playerZoom) private var zoom
@@ -45,6 +48,14 @@ public struct MacPlayerView: View {
         ZStack {
             Color.black
             PlayerPicture(model: model)
+            // Clicks on the video, beneath the controls: on the player's root they came before
+            // every button's own, and a click on Full Screen paused instead.
+            Color.clear
+                .contentShape(.rect)
+                .gesture(
+                    TapGesture(count: 2).onEnded { model.fullScreen.toggle() }
+                        .exclusively(before: TapGesture().onEnded { model.togglePause() })
+                )
             StartingCurtain(model: model, metrics: metrics)
                 .opacity(curtain ? 1 : 0)
                 .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
@@ -72,10 +83,6 @@ public struct MacPlayerView: View {
             if case .active = phase { model.poke() }
         }
         .pointerVisibility(visible ? .automatic : .hidden)
-        .gesture(
-            TapGesture(count: 2).onEnded { model.fullScreen.toggle() }
-                .exclusively(before: TapGesture().onEnded { model.togglePause() })
-        )
         .contextMenu { contextMenu }
         .playerAccessibility(model)
         .focusable()
@@ -187,7 +194,10 @@ public struct MacPlayerView: View {
         HStack(spacing: 12) {
             // The window's own buttons sit here, outside full screen.
             Color.clear.frame(width: model.fullScreen ? 0 : 60, height: 12)
-            icon("chevron.backward", "Back") { back() }
+            // In the window's title bar strip outside full screen, where each of the bar's
+            // controls takes its clicks this way and the rest of the strip drags the window.
+            icon("chevron.backward", "Back", lit: pointed == "Back") { back() }
+                .titleBarControl(active: visible, pointed: { point("Back", $0) }) { back() }
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(model.showTitle)
                     .font(.showTitle(size: 15))
@@ -219,21 +229,25 @@ public struct MacPlayerView: View {
             PlayerTime(seconds: model.position, metrics: metrics)
                 .frame(width: 44, alignment: .leading)
                 .padding(.leading, 8)
+                .accessibilityIdentifier("Elapsed")
             SeekLine(model: model, metrics: metrics)
                 .padding(.horizontal, 8)
             PlayerTime(seconds: max(0, (model.duration ?? 0) - model.position), remaining: true, metrics: metrics)
                 .frame(width: 48, alignment: .trailing)
-            HStack(spacing: 6) {
+            // The speaker on a 28 pt circle that lights, and the line where the board has them:
+            // the speaker's centre 22 pt in, the line 38 pt in.
+            HStack(spacing: 2) {
                 Button { model.toggleMute() } label: {
                     Image(systemName: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .font(.system(size: 13))
-                        .frame(width: 20, height: 28)
+                        .frame(width: 28, height: 28)
+                        .contentShape(.circle)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(OverVideoButtonStyle())
                 .accessibilityLabel(model.muted ? "Unmute" : "Mute")
                 VolumeLine(model: model)
             }
-            .padding(.leading, 12)
+            .padding(.leading, 8)
             Button { toggle(.more) } label: {
                 HStack(spacing: 5) {
                     Text(speedLabel(model.speed)).monospacedDigit()
@@ -241,10 +255,9 @@ public struct MacPlayerView: View {
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 28)
-                .background(Palette.silk.opacity(panel == .more ? 0.16 : 0), in: .capsule)
                 .contentShape(.capsule)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(OverVideoButtonStyle(on: panel == .more))
             .padding(.leading, 8)
             .accessibilityLabel("Playback speed, \(speedLabel(model.speed))")
             icon("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
@@ -261,14 +274,16 @@ public struct MacPlayerView: View {
         .frame(height: 36 + 16)
     }
 
-    private func icon(_ symbol: String, _ label: String, action: @escaping () -> Void) -> some View {
+    private func icon(
+        _ symbol: String, _ label: String, lit: Bool = false, action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .medium))
                 .frame(width: 32, height: 32)
                 .contentShape(.circle)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(OverVideoButtonStyle(lit: lit))
         .accessibilityLabel(label)
         .voiceControlLabels(label)
         .help(label)
@@ -279,13 +294,22 @@ public struct MacPlayerView: View {
             Image(systemName: symbol)
                 .font(.system(size: 15))
                 .frame(width: 32, height: 32)
-                .background(Palette.silk.opacity(on ? 0.16 : 0), in: .circle)
                 .contentShape(.circle)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(OverVideoButtonStyle(on: on, lit: pointed == label))
         .accessibilityLabel(label)
         .voiceControlLabels(label)
         .help(label)
+        .titleBarControl(active: visible, pointed: { point(label, $0) }, action: action)
+    }
+
+    /// The pointer came onto the top bar's `label`, or left it.
+    private func point(_ label: String, _ over: Bool) {
+        if over {
+            pointed = label
+        } else if pointed == label {
+            pointed = nil
+        }
     }
 
     // MARK: Panels
@@ -471,6 +495,39 @@ public struct MacPlayerView: View {
             for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
                 window.standardWindowButton(kind)?.animator().alphaValue = visible ? 1 : 0
             }
+        }
+    }
+}
+
+/// A button over the video: its symbol or words on silk that lights at 10% under the pointer,
+/// and at the board's 16% pressed and while its menu is open, with the pointing hand. `lit`
+/// says the pointer is over it where its own hover cannot see, in the title bar strip.
+struct OverVideoButtonStyle: ButtonStyle {
+    var on = false
+    var lit = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Lit(configuration: configuration, on: on, lit: lit)
+    }
+
+    private struct Lit: View {
+        let configuration: Configuration
+        let on: Bool
+        let lit: Bool
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            configuration.label
+                .background(Palette.silk.opacity(fill), in: .capsule)
+                .animation(.quick, value: hovering || lit)
+                .onHover { hovering = $0 }
+                .pointingHand(enabled)
+        }
+
+        private var fill: Double {
+            if configuration.isPressed || on { return 0.16 }
+            return (hovering || lit) && enabled ? 0.1 : 0
         }
     }
 }

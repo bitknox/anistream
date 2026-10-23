@@ -4,8 +4,8 @@ anistream                                   torrent ○  plugins ·  ·  anilist
  ▤ │
  ▦ │  NO EPISODES YET
  / │
- ▥ │  no source is ready yet — press 7 for the Providers screen
- ↓ │
+ ▥ │  AniList lists none for this title yet, and no source is ready: press 7
+ ↓ │  for the Providers screen
  ◇ │
  ◎ │
  ⚙ │
@@ -20,7 +20,7 @@ anistream                                   torrent ○  plugins ·  ·  anilist
    │
    │
    │
-─────────────────────────────── ▌ no source could list episodes for this title ─
+────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                       ↵ play   u watched   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -43,9 +43,10 @@ r05 c01-01 fg=text-dim
 r05 c03-03 fg=rule
 r06 c01-01 fg=text-dim
 r06 c03-03 fg=rule
-r06 c06-62 fg=text-dim
+r06 c06-75 fg=text-dim
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
+r07 c06-29 fg=text-dim
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r09 c01-01 fg=text-dim
@@ -63,11 +64,7 @@ r18 c03-03 fg=rule
 r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
-r22 c00-30 fg=rule
-r22 c31-31 fg=text
-r22 c32-32 fg=alert
-r22 c33-78 fg=text
-r22 c79-79 fg=rule
+r22 c00-79 fg=rule
 r23 c00-20 fg=text-dim
 r23 c44-44 fg=text
 r23 c45-52 fg=text-dim

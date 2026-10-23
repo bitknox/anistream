@@ -1,0 +1,11 @@
+# Cargo's configuration for every build in the repository: CI's, engine.sh's (whose clean
+# environment cargo still applies this to) and anyone's by hand.
+
+[env]
+# BoringSSL's libssl, which btls-sys builds for wreq, is C++ and needs the C++ runtime. On Android
+# btls-sys links the NDK's shared one (`-lc++`, which is libc++_shared.so), and the app would have
+# to ship it. This links it statically instead: `-bundle` makes rustc pass it at the final link
+# as `-Bstatic -lc++`, which finds the NDK's libc++.a, INPUT(-lc++_static -lc++abi). Named for the
+# one target, so no other build reads it. CI's android job checks the library needs only libc,
+# libm and libdl.
+BORING_BSSL_RUST_CPPLIB_aarch64_linux_android = "static:-bundle=c++"

@@ -38,6 +38,7 @@ use crate::{
     anilist::{
         AiringEntry, AniList, AniListError, BrowseFilter, LastAired, Media, Page, Season,
     },
+    franchise,
     tenrai::{Tenrai, TenraiError},
 };
 
@@ -236,6 +237,11 @@ pub struct Meta {
     recent: Arc<Mutex<Recent>>,
     /// How long one of AniList's answers for a title is used again: [`REUSE_FOR`].
     reuse_for: Duration,
+    /// Every prequel and sequel learned so far, which the season walk goes along: see
+    /// [`Self::seasons`].
+    relations: Arc<Mutex<franchise::Relations>>,
+    /// How long a page waits for the season walk: [`franchise::HOLD`].
+    season_hold: Duration,
 }
 
 impl Meta {
@@ -251,6 +257,8 @@ impl Meta {
             breakers: std::sync::Arc::new(Mutex::new(Breakers::default())),
             recent: Arc::default(),
             reuse_for: REUSE_FOR,
+            relations: Arc::default(),
+            season_hold: franchise::HOLD,
         }
     }
 
@@ -266,6 +274,14 @@ impl Meta {
     #[must_use]
     pub fn reusing_for(self, reuse_for: Duration) -> Self {
         Self { reuse_for, ..self }
+    }
+
+    /// This source, with a title page waiting `hold` for the season walk rather than
+    /// [`franchise::HOLD`] before it is shown without its seasons: for a test of what a page
+    /// says while the walk is still under way.
+    #[must_use]
+    pub fn holding_seasons_for(self, hold: Duration) -> Self {
+        Self { season_hold: hold, ..self }
     }
 
     /// Every rung's condition, for the Providers screen: is the ladder standing on the
@@ -530,6 +546,12 @@ impl Meta {
     /// From AniList's answer of the last few minutes when there is one, and otherwise asked,
     /// once for everyone asking at the same time: see [`Recent`].
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
+        self.media_answered(id).await.map(|(media, _)| media)
+    }
+
+    /// [`Self::media`], and whether AniList itself answered: `false` for an answer from the
+    /// fallback or the cache, which may be a list's row with none of the page's fields.
+    pub async fn media_answered(&self, id: AnilistId) -> Result<(Media, bool)> {
         let flight = self.flight(id);
         let answered = flight
             .get_or_init(|| async {
@@ -537,7 +559,37 @@ impl Meta {
                 Answered { at: Instant::now(), outcome, fresh }
             })
             .await;
-        answered.as_of(Instant::now())
+        answered.as_of(Instant::now()).map(|media| (media, answered.fresh))
+    }
+
+    /// The cards of these titles, at most fifty, each with its relations two levels deep: one
+    /// step of the season walk. AniList only: nothing else knows the chain.
+    pub async fn relations(
+        &self,
+        ids: &[AnilistId],
+    ) -> Result<Vec<crate::anilist::model::RelationNode>> {
+        self.weathered(self.anilist.relations(ids)).await
+    }
+
+    /// The seasons of `media`'s franchise, the same from every one of them, said through `say`
+    /// as its page should show them: at once when the chain is known, and otherwise once the
+    /// walk along it has asked AniList what it needs to, or `None` first when that takes
+    /// longer than a page should wait. See [`franchise`].
+    ///
+    /// `fresh` is what [`Self::media_answered`] said of `media`.
+    pub async fn seasons(
+        &self,
+        media: &Media,
+        fresh: bool,
+        say: impl FnMut(Option<Vec<crate::anilist::model::RelationNode>>),
+    ) {
+        // A spent budget would hold the page for the walk's every request: it is shown at once.
+        let hold = match self.anilist.rate_limit_wait().await {
+            Some(_) => Duration::ZERO,
+            None => self.season_hold,
+        };
+        let ask = |ids: Vec<AnilistId>| async move { self.relations(&ids).await };
+        franchise::seasons(&self.relations, media, fresh, hold, ask, say).await;
     }
 
     /// The ask for `id` to join: one under way, or an answer that still serves, or else a

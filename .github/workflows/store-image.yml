@@ -115,7 +115,13 @@ jobs:
       # The Actions cache holds layers, not the cargo cache mounts, so it saves the compile only
       # when the source is unchanged, as on a re-run. Pull requests read it but never write it,
       # for the same reason as in ci.yml: their entries would push the release builds' out of the
-      # repository's cache quota.
+      # repository's cache quota. Each platform reads and writes a scope of its own.
+      #
+      # Writing the cache may fail without failing the build, since a failed export cancels the
+      # push and leaves the release without an image. Layer blobs are keyed by their digest alone,
+      # whatever the scope, and a write the cache service cut off stays reserved and unfinished:
+      # every re-run of the same source built the same layer and was refused it again ("failed to
+      # reserve cache", from BuildKit's v2 cache client). A new source's layers are new, and cache.
       - name: Build, and push by digest
         id: build
         uses: docker/build-push-action@v7
@@ -127,7 +133,7 @@ jobs:
           tags: ${{ env.IMAGE }}
           outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=image,push-by-digest=true,name-canonical=true,push=true' }}
           cache-from: type=gha,scope=store-image-${{ env.PLATFORM_PAIR }}
-          cache-to: ${{ github.event_name != 'pull_request' && format('type=gha,mode=max,scope=store-image-{0}', env.PLATFORM_PAIR) || '' }}
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=gha,mode=max,scope=store-image-{0},ignore-error=true', env.PLATFORM_PAIR) || '' }}
 
       - name: Export digest
         if: github.event_name != 'pull_request'

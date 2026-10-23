@@ -53,6 +53,8 @@ pub enum Operation {
     Detail,
     /// `query::by_ids`: several titles at once, for the Continue rail.
     Many,
+    /// `query::relations`: several titles' relations, two levels deep, for the season walk.
+    Relations,
     /// `query::seasonal`.
     Seasonal,
     /// `query::airing_schedule`: broadcasts in a window, for the Calendar.
@@ -101,6 +103,8 @@ impl Operation {
             Self::LastAired
         } else if has("airingSchedules(") {
             Self::Schedule
+        } else if has("media(id_in:") && has("relations {") {
+            Self::Relations
         } else if has("media(id_in:") {
             Self::Many
         } else if has("media(season:") {
@@ -166,6 +170,10 @@ struct State {
     titles: HashMap<u64, Value>,
     /// The viewer's own title language, in place of the fixture's.
     viewer_language: Option<String>,
+    /// Titles beside the fixtures, by id, which a test made up: see [`FakeAniList::add_titles`].
+    extra: HashMap<u64, Value>,
+    /// How long each operation's answers are held back: see [`FakeAniList::answer_slowly`].
+    slow: HashMap<Operation, std::time::Duration>,
     /// Where image URLs point once the fake serves art: its own `/art/`.
     art: Option<String>,
 }
@@ -185,6 +193,8 @@ impl FakeAniList {
             ahead: 0,
             titles: HashMap::new(),
             viewer_language: None,
+            extra: HashMap::new(),
+            slow: HashMap::new(),
             art: None,
         }));
         let accept = tokio::spawn({
@@ -316,6 +326,23 @@ impl FakeAniList {
     pub fn set_viewer_title_language(&self, language: &str) {
         lock(&self.state).viewer_language = Some(language.to_owned());
     }
+
+    /// Hold every answer to `operation` back by `wait` from now on, as a slow AniList would: for
+    /// a test of what the app shows while it waits.
+    pub fn answer_slowly(&self, operation: Operation, wait: std::time::Duration) {
+        lock(&self.state).slow.insert(operation, wait);
+    }
+
+    /// Answer these titles too, each in the shape of a fixture under `fixtures/anilist/media/`,
+    /// wherever a title page or the season walk asks after one: titles a test made up beside
+    /// the fixtures, such as [`fixtures::franchise`]. No list, search or schedule has them.
+    pub fn add_titles(&self, titles: impl IntoIterator<Item = Value>) {
+        let mut state = lock(&self.state);
+        for title in titles {
+            let id = title["id"].as_u64().expect("a title has an id");
+            state.extra.insert(id, title);
+        }
+    }
 }
 
 impl Drop for FakeAniList {
@@ -374,7 +401,15 @@ async fn serve(socket: TcpStream, state: Arc<Mutex<State>>) {
     if reader.read_exact(&mut body).await.is_err() {
         return;
     }
-    let (status, headers, content_type, body) = match answer(&state, &head, &body) {
+    let reply = answer(&state, &head, &body);
+    // Held back as a slow AniList would be, once the request is on the record.
+    let payload: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
+    let operation = Operation::of(payload["query"].as_str().unwrap_or_default());
+    let slow = lock(&state).slow.get(&operation).copied();
+    if let Some(wait) = slow {
+        tokio::time::sleep(wait).await;
+    }
+    let (status, headers, content_type, body) = match reply {
         Reply::Answer { status, headers, body } => {
             let mut body = body.to_string();
             let art = lock(&state).art.clone();
@@ -478,7 +513,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, (now, ahead), titles, viewer_language) = {
+    let (failure, (now, ahead), titles, viewer_language, extra) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -489,13 +524,16 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         });
         let failure = state.next.pop_front().or_else(|| state.always.clone());
         let clock = (state.now, state.ahead);
-        (failure, clock, state.titles.clone(), state.viewer_language.clone())
+        let extra = state.extra.clone();
+        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra)
     };
     match failure {
         Some(failure) => fail(failure),
         None => {
             let clock = Clock { shift: now - FIXTURE_NOW, now: now + ahead };
-            let mut reply = respond(operation, &variables, head.authorization.is_some(), clock);
+            let catalogue = Catalogue { extra: &extra };
+            let mut reply =
+                respond(operation, &variables, head.authorization.is_some(), clock, catalogue);
             if let Reply::Answer { body, .. } = &mut reply {
                 retitle(body, &titles);
                 if let Some(language) = viewer_language
@@ -564,7 +602,68 @@ fn tenrai(path: &str) -> Reply {
     Reply::status(200, json!({ "data": [], "pagination": { "has_next_page": false } }))
 }
 
-fn respond(operation: Operation, vars: &Value, authorized: bool, clock: Clock) -> Reply {
+/// Every title the fake can name by id: the fixtures, and those a test added.
+#[derive(Clone, Copy)]
+struct Catalogue<'a> {
+    extra: &'a HashMap<u64, Value>,
+}
+
+impl Catalogue<'_> {
+    /// `id` as the single-title query answers it.
+    fn get(self, id: u64) -> Option<Value> {
+        let fixture = || fixtures::wire(AnilistId::new(id as u32)).cloned();
+        self.extra.get(&id).cloned().or_else(fixture)
+    }
+
+    /// `id`'s own relations, as a related title carries them a level out: the kind, and the
+    /// title by id and format. None for a title the fake does not have, as AniList would have
+    /// some.
+    fn neighbours(self, id: u64) -> Value {
+        let edges: Vec<Value> = self
+            .get(id)
+            .and_then(|title| title["relations"]["edges"].as_array().cloned())
+            .unwrap_or_default()
+            .into_iter()
+            .map(|edge| {
+                json!({ "relationType": edge["relationType"],
+                        "node": { "id": edge["node"]["id"], "format": edge["node"]["format"] } })
+            })
+            .collect();
+        json!({ "edges": edges })
+    }
+
+    /// `media`'s relations with each related title's own, as the title page and the season walk
+    /// ask for them.
+    fn with_neighbours(self, mut media: Value) -> Value {
+        if let Some(edges) = media.pointer_mut("/relations/edges").and_then(Value::as_array_mut)
+        {
+            for edge in edges {
+                let id = edge["node"]["id"].as_u64().unwrap_or_default();
+                edge["node"]["relations"] = self.neighbours(id);
+            }
+        }
+        media
+    }
+
+    /// One title as the season walk is answered: its card, and its relations two levels deep.
+    fn relations(self, id: u64) -> Option<Value> {
+        let title = self.get(id)?;
+        let mut card = json!({ "relations": title["relations"].clone() });
+        for field in ["id", "title", "format", "season", "seasonYear"] {
+            card[field] = title[field].clone();
+        }
+        card["coverImage"] = json!({ "large": title["coverImage"]["large"], "color": title["coverImage"]["color"] });
+        Some(self.with_neighbours(card))
+    }
+}
+
+fn respond(
+    operation: Operation,
+    vars: &Value,
+    authorized: bool,
+    clock: Clock,
+    catalogue: Catalogue<'_>,
+) -> Reply {
     let needs_token = matches!(
         operation,
         Operation::Library | Operation::Viewer | Operation::SaveEntry | Operation::DeleteEntry
@@ -580,9 +679,8 @@ fn respond(operation: Operation, vars: &Value, authorized: bool, clock: Clock) -
             Reply::ok(media_page(found.copied().collect(), vars, clock))
         }
         Operation::Detail => {
-            let id = vars["id"].as_u64().map(|id| AnilistId::new(id as u32));
-            match id.and_then(fixtures::wire) {
-                Some(media) => Reply::ok(detail(media.clone(), clock)),
+            match vars["id"].as_u64().and_then(|id| catalogue.get(id)) {
+                Some(media) => Reply::ok(detail(catalogue.with_neighbours(media), clock)),
                 // What AniList answers for an id it has no title for: a 404 inside GraphQL's
                 // error shape, which the client reads as an API failure rather than NotFound.
                 None => Reply::errors(404, "Not Found.", json!({ "Media": null })),
@@ -597,6 +695,13 @@ fn respond(operation: Operation, vars: &Value, authorized: bool, clock: Clock) -
                 .filter(|id| asked.contains(id))
                 .filter_map(|id| fixtures::listed_wire(*id))
                 .map(|m| clock.media(m))
+                .collect();
+            Reply::ok(json!({ "Page": { "media": media } }))
+        }
+        Operation::Relations => {
+            let media: Vec<Value> = ids(&vars["ids"])
+                .into_iter()
+                .filter_map(|id| catalogue.relations(u64::from(id.get())))
                 .collect();
             Reply::ok(json!({ "Page": { "media": media } }))
         }
@@ -895,6 +1000,7 @@ mod tests {
             (query::search_filtered(), Operation::Search),
             (query::by_id(), Operation::Detail),
             (query::by_ids(), Operation::Many),
+            (query::relations(), Operation::Relations),
             (query::seasonal(), Operation::Seasonal),
             (query::airing_schedule(), Operation::Schedule),
             (query::LAST_AIRED.to_owned(), Operation::LastAired),

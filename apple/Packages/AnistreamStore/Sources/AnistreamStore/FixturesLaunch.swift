@@ -5,8 +5,8 @@ import AnistreamKit
 import Foundation
 
 extension EngineLaunch {
-    /// The launch argument that names the scene: `-AnistreamScene watching`, `fresh` or
-    /// `playing`.
+    /// The launch argument that names the scene: `-AnistreamScene watching`, `fresh`,
+    /// `sourceless` (Watching with no source set up) or `playing`.
     public static let sceneArgument = "-AnistreamScene"
 
     /// The launch argument that names what the Playing scene streams: `-AnistreamMedia <path>`.
@@ -26,6 +26,7 @@ extension EngineLaunch {
         switch arguments[index + 1].lowercased() {
         case "watching": return .watching
         case "fresh": return .fresh
+        case "sourceless": return .sourceless
         case "playing": return .playing(media: media(arguments: arguments))
         default: return nil
         }

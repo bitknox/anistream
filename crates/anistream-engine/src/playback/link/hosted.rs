@@ -76,6 +76,9 @@ struct Window {
     closed: AtomicBool,
     /// The player said the file ended because it was told to quit, or the viewer closed it.
     quit: AtomicBool,
+    /// The numeric properties as the player last reported them, `speed` among them: what a
+    /// property is multiplied from, since the host's player is told values, not mpv commands.
+    numbers: Mutex<HashMap<String, f64>>,
 }
 
 impl HostedPlayers {
@@ -143,13 +146,20 @@ impl Window {
     fn take(&self, report: PlayerReport) {
         let read = match report {
             PlayerReport::FileLoaded => self.read(protocol::Event::FileLoaded),
-            PlayerReport::Property { name, json } => match serde_json::from_str(&json) {
-                Ok(value) => self.read(protocol::property_change(Some(&name), Some(value))),
-                Err(e) => {
-                    tracing::debug!(%name, error = %e, "a property that is not JSON");
-                    None
+            PlayerReport::Property { name, json } => {
+                match serde_json::from_str::<serde_json::Value>(&json) {
+                    Ok(value) => {
+                        if let Some(number) = value.as_f64() {
+                            lock(&self.numbers).insert(name.clone(), number);
+                        }
+                        self.read(protocol::property_change(Some(&name), Some(value)))
+                    }
+                    Err(e) => {
+                        tracing::debug!(%name, error = %e, "a property that is not JSON");
+                        None
+                    }
                 }
-            },
+            }
             PlayerReport::Ended { reason } => {
                 let reason = end_reason(reason);
                 // Before the ending is read, so whoever reads it knows the window goes with it.
@@ -261,6 +271,15 @@ impl PlayerLink for HostedLink {
 
     async fn add(&self, property: &'static str, delta: f64) -> Result<(), LinkError> {
         self.op(PlayerOp::Add { property: property.to_owned(), delta })
+    }
+
+    /// Set from the value the player last reported: the host is told values.
+    async fn multiply(&self, property: &'static str, factor: f64) -> Result<(), LinkError> {
+        let current = lock(&self.window.numbers).get(property).copied();
+        let Some(current) = current else {
+            return Err(LinkError(format!("the player has not reported {property} yet")));
+        };
+        self.set(property, serde_json::json!(current * factor)).await
     }
 
     async fn seek(&self, seconds: f64, absolute: bool) -> Result<(), LinkError> {
@@ -515,6 +534,27 @@ mod tests {
         };
         assert!(matches!(ops[0], PlayerOp::Open { .. }), "{ops:?}");
         assert_eq!(ops[1..], [set("sub-font-size", "40"), set("osc", "no")], "in one batch");
+    }
+
+    #[tokio::test]
+    async fn a_speed_is_multiplied_from_what_the_player_last_reported() {
+        let players = HostedPlayers::new("scratch", Arc::default());
+        let (link, _events) = players.open(&PlaybackRequest::default()).await.unwrap();
+        let (tx, mut said) = mpsc::unbounded_channel();
+        link.attach(&tx.into());
+        let Some(Event::PlayerOps { .. }) = said.recv().await else { panic!("the opening") };
+        assert!(link.multiply("speed", 1.1).await.is_err(), "nothing reported to multiply yet");
+
+        players.report(
+            PlaybackId::new(0),
+            PlayerReport::Property { name: "speed".into(), json: "1.25".into() },
+        );
+        link.multiply("speed", 2.0).await.unwrap();
+        let Some(Event::PlayerOps { ops, .. }) = said.recv().await else { panic!("the step") };
+        assert_eq!(
+            ops,
+            [PlayerOp::Set { property: "speed".into(), value: MpvValue::Double(2.5) }]
+        );
     }
 
     #[tokio::test]

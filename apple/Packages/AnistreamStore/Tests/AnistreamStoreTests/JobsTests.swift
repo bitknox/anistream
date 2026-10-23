@@ -56,11 +56,12 @@ struct JobsTests {
         #expect(held.waitUntil == clock.now + .milliseconds(1500))
     }
 
-    @Test func aScheduledJobShowsWithoutBeingAsked() async throws {
+    @Test func aScheduledJobShowsWithoutBeingAsked() async {
         let store = AppStore()
         store.apply(.jobStarted(job: 1, activity: "loading continue watching"))
         #expect(store.jobs.shown.isEmpty)
-        try await Task.sleep(for: .milliseconds(900))
+        // The recheck the job scheduled, however late a busy machine runs it.
+        await store.jobs.rechecked()
         #expect(store.jobs.shown.map(\.id) == [1])
     }
 }

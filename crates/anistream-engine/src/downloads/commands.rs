@@ -8,6 +8,19 @@ use crate::{
     downloads, jobs::JobGuard, outbox::Outbox, services::Services, state::EngineState,
 };
 
+/// Why title `id` cannot be downloaded at all, said before any source is asked: none is set up,
+/// or none could list it when its episodes were last loaded, so they are AniList's alone.
+fn refused(id: AnilistId, engine: &EngineState, services: &Services) -> Option<Notice> {
+    let registry = &services.registry;
+    if registry.is_empty() && !registry.is_arriving() {
+        return Some(Notice::alert(crate::playback::resolve::NO_SOURCES));
+    }
+    engine
+        .ahead
+        .unlisted(id)
+        .then(|| Notice::alert("no source could list this show, so it can't be downloaded"))
+}
+
 /// Queue one episode for download.
 pub fn download_episode(
     id: AnilistId,
@@ -17,6 +30,10 @@ pub fn download_episode(
     services: &Services,
     tx: &Outbox,
 ) {
+    if let Some(notice) = refused(id, engine, services) {
+        let _ = tx.send(Event::Toast(notice));
+        return;
+    }
     let Services { meta, store, registry, .. } = services;
     let config = &crate::show_settings::for_show(engine.config.effective(), store, id);
     let (store, registry, meta, tx) =
@@ -52,6 +69,10 @@ pub fn download_many(
     services: &Services,
     tx: &Outbox,
 ) {
+    if let Some(notice) = refused(id, engine, services) {
+        let _ = tx.send(Event::Toast(notice));
+        return;
+    }
     let Services { meta, store, registry, .. } = services;
     let config = &crate::show_settings::for_show(engine.config.effective(), store, id);
     let (store, registry, meta, tx) =

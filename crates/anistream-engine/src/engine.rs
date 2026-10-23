@@ -788,6 +788,8 @@ impl Actor {
         // Named as the titles are shown now, before the record takes the names in.
         crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let moved_on = crate::downloads::ahead::after(&event);
+        // A table no source could list: its show is not one to download ahead.
+        self.state.ahead.observe(&event);
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));

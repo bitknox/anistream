@@ -17,7 +17,7 @@ for target in "$@"; do
   rustup target add "$target"
 done
 
-# The name rustup gives the pinned toolchain here, such as 1.97.1-x86_64-unknown-linux-gnu. The
+# The name rustup gives the pinned toolchain here, such as 1.99.1-x86_64-unknown-linux-gnu. The
 # default too, so nothing outside the checkout falls back to a toolchain this removes.
 pinned="$(rustup show active-toolchain | cut -d' ' -f1)"
 rustup default "$pinned"

@@ -157,6 +157,33 @@ pub fn provider_with_art(art: &str) -> MockProvider {
     provider
 }
 
+/// `provider` with the test kit's long franchise beside the six ([`fixtures::long_franchise`]):
+/// a hit for each of its titles, named as the fixtures' are, and bare episodes, so its pages have
+/// episode tables where a scene's fake AniList has the franchise.
+pub fn with_long_franchise(provider: MockProvider) -> MockProvider {
+    let titles = fixtures::long_franchise_media();
+    let mut every = hits();
+    every.extend(titles.iter().map(|media| SearchHit {
+        key: key(media.id),
+        title: media.title.romaji.clone().unwrap_or_default(),
+        synonyms: media.title.english.iter().cloned().collect(),
+        episode_count: media.episodes,
+        year: media.season_year,
+        format: media.format,
+    }));
+    let mut provider = provider.with_hits(every);
+    for media in &titles {
+        let runtime = Duration::from_secs(u64::from(media.duration.unwrap_or(24)) * 60);
+        let episodes = (1..=media.episodes.unwrap_or(1))
+            .map(|n| Episode { duration: Some(runtime), ..Episode::new(n) })
+            .collect();
+        provider = provider
+            .with_episodes_for(key(media.id), episodes)
+            .with_streams_for(key(media.id), vec![clip()]);
+    }
+    provider
+}
+
 /// A registry holding only the fixture provider.
 pub fn registry() -> ProviderRegistry {
     ProviderRegistry::new(vec![provider().arc()])
@@ -206,6 +233,32 @@ mod tests {
             };
             assert_eq!((provider_id.as_str(), &matched), (PROVIDER_ID, &key(id)), "{id}");
             assert_eq!(value.len() as u32, episode_count(id), "{id}");
+        }
+    }
+
+    #[tokio::test]
+    async fn the_long_franchise_beside_them_matches_each_season_to_its_own_entry() {
+        let store = crate::store();
+        let registry = ProviderRegistry::new(vec![with_long_franchise(provider()).arc()]);
+        let titles = fixtures::long_franchise_media();
+        for media in titles.iter().chain([fixtures::media(FINISHED)].iter()) {
+            let answer = first_answer(
+                &store,
+                &registry,
+                media.id,
+                &media.match_target(),
+                Translation::Sub,
+                fixtures::FIXTURE_NOW,
+                |source, key| async move {
+                    source.episodes(&key, Translation::Sub, fixtures::FIXTURE_NOW).await
+                },
+            )
+            .await;
+            let Answer::Answered { key: matched, value, .. } = answer else {
+                panic!("{} was not answered: {}", media.id, answer.explain());
+            };
+            assert_eq!(matched, key(media.id), "{}", media.id);
+            assert_eq!(Some(value.len() as u32), media.episodes, "{}", media.id);
         }
     }
 

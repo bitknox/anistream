@@ -241,7 +241,7 @@ pub(super) async fn fetch_still(
             .to_rgba8()
             .into_raw();
         // mpv's overlays are BGRA; swap red and blue in place.
-        for pixel in pixels.chunks_exact_mut(4) {
+        for pixel in pixels.as_chunks_mut::<4>().0 {
             pixel.swap(0, 2);
         }
         let name = format!("upnext-{}.bgra", anistream_core::hash::stable_hash(&url));

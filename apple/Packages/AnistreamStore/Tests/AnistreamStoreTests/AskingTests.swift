@@ -50,6 +50,28 @@ struct AskingTests {
         #expect(store.sentLog == ["loadEpisodes"])
     }
 
+    @Test func aSourceReadyWhereNoneWasAsksAgainForEpisodesThatWereAniListsAlone() {
+        let store = AppStore()
+        let row = { (metadataOnly: Bool) in
+            EpisodeRow(number: "1", title: nil, thumbnail: nil, description: nil, durationSecs: nil, watched: 0,
+                       completed: false, kind: nil, skippable: false, airsAt: nil, delayedFrom: nil,
+                       metadataOnly: metadataOnly)
+        }
+        store.loadEpisodes(900_001)
+        store.loadEpisodes(900_005)
+        store.apply(.episodes(id: 900_001, rows: [row(true)]))
+        store.apply(.episodes(id: 900_005, rows: [row(false)]))
+        #expect(store.titles.unlisted(900_001))
+        #expect(!store.titles.unlisted(900_005), "a source listed it")
+        store.apply(.providers([provider("fixture", usable: false)]))
+        #expect(store.sentLog.count == 2, "none ready yet")
+        // Ready now: asked again at once, though it was asked a moment ago.
+        store.apply(.providers([provider("fixture")]))
+        #expect(store.sentLog == ["loadEpisodes", "loadEpisodes", "loadEpisodes"])
+        store.apply(.providers([provider("fixture")]))
+        #expect(store.sentLog.count == 3, "ready already: nothing new")
+    }
+
     @Test func theSystemsSignInSheetOpensWhenTheEngineAsksAndItsAnswerGoesBack() throws {
         let store = AppStore()
         store.apply(.authorize(tracker: "anilist", url: "https://anilist.co/api/v2/oauth/authorize?client_id=1",

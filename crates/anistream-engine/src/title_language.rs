@@ -44,7 +44,10 @@ fn retitle_entry(entry: &mut Entry, language: TitleLanguage) {
     }
     let Entry { related, recommended, detail, .. } = entry;
     let Some(detail) = detail else { return };
-    for linked in detail.relations.iter_mut().chain(detail.recommendations.iter_mut()) {
+    let seasons = detail.seasons.iter_mut().flatten();
+    for linked in
+        detail.relations.iter_mut().chain(detail.recommendations.iter_mut()).chain(seasons)
+    {
         retitle_linked(linked, language);
     }
     // The watch order and the recommended rows carry one form; the page's own cards for the

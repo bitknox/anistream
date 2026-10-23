@@ -91,8 +91,11 @@ pub trait PlayerLink: Send + Sync {
         self.cycle("fullscreen").await
     }
 
-    /// Step a numeric property, such as `speed`, by `delta`, clamped by the player.
+    /// Step a numeric property, such as `volume`, by `delta`, clamped by the player.
     async fn add(&self, property: &'static str, delta: f64) -> Result<(), LinkError>;
+
+    /// Multiply a numeric property, such as `speed`, by `factor`, clamped by the player.
+    async fn multiply(&self, property: &'static str, factor: f64) -> Result<(), LinkError>;
 
     /// Seek to `seconds`, or by them when not `absolute`; exactly, in either case.
     async fn seek(&self, seconds: f64, absolute: bool) -> Result<(), LinkError>;

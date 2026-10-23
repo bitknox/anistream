@@ -247,9 +247,10 @@ async fn read_body(response: wreq::Response) -> Result<Fetched, String> {
         ));
     }
 
-    let mut response = response;
+    let mut chunks = std::pin::pin!(response.bytes_stream());
     let mut body: Vec<u8> = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+    while let Some(chunk) = futures::StreamExt::next(&mut chunks).await {
+        let chunk = chunk.map_err(|e| e.to_string())?;
         if body.len() + chunk.len() > MAX_BODY {
             return Err(format!("a body beyond {MAX_BODY} bytes is more than this proxies"));
         }

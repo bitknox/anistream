@@ -1,12 +1,13 @@
 # Pinned per-project so the workspace builds reproducibly without touching the
 # machine's default `stable`.
 #
-# 1.97.1 is the floor because libsqlite3-sys 0.38 (via rusqlite 0.40) uses `cfg_select!`,
-# stabilised after 1.91. Several other pinned dependencies — wreq, wasmtime, librqbit —
-# track recent toolchains too, so pinning one dependency backwards would only defer the
-# same problem.
+# 1.98 is the floor because wreq 0.16, the first wreq past RUSTSEC-2026-0002 (the unsound lru
+# its connection pool used), requires it; libsqlite3-sys 0.38 (via rusqlite 0.40) already needed
+# `cfg_select!`, stabilised after 1.91. Several other pinned dependencies — wasmtime, librqbit —
+# track recent toolchains too, so pinning one dependency backwards would only defer the same
+# problem. 1.99.1 is the stable release at the time of that move.
 [toolchain]
-channel = "1.97.1"
+channel = "1.99.1"
 components = ["clippy", "rustfmt"]
 # The Apple app's engine slices beside the host: an iPhone and the iOS Simulator on Apple silicon.
 # apple/scripts/engine.sh builds them, and the ios CI job checks the iPhone one.

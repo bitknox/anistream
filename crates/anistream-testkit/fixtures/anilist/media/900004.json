@@ -81,7 +81,18 @@
             "color": "#e4a15d"
           },
           "season": "SPRING",
-          "seasonYear": 2024
+          "seasonYear": 2024,
+          "relations": {
+            "edges": [
+              {
+                "relationType": "SEQUEL",
+                "node": {
+                  "id": 900004,
+                  "format": "TV"
+                }
+              }
+            ]
+          }
         }
       }
     ]

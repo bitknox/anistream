@@ -1,6 +1,6 @@
 anistream-store-core (./crates/anistream-store-core) 
 anistream-store-wasm (./crates/anistream-store-wasm) 
-async-trait v0.1.91 (proc-macro) 
+async-trait v0.1.92 (proc-macro) 
 base64 v0.22.1 alloc,default,std
 block-buffer v0.10.4 
 bumpalo v3.20.3 default
@@ -78,6 +78,7 @@ zerotrie v0.2.4 yoke,zerofrom
 zerovec v0.11.6 derive,yoke
 zerovec-derive v0.11.3 (proc-macro) 
 zmij v1.0.23 
+.cargo/config.toml 761d510346b6861c9338f5ace254699175ee40e8
 crates/anistream-store-core/Cargo.toml 7feb38b2892b7e4ab1d9c33f02127e5e86bb932f
 crates/anistream-store-core/admin/.gitignore c2658d7d1b31848c3b71960543cb0368e56cd4c7
 crates/anistream-store-core/admin/README.md 2e4239d73d1b97eb21df70df5287a29af07266ec
@@ -136,4 +137,4 @@ crates/anistream-store-core/src/protocol.rs 9f966353b823929e2f509ccba0d9829a7869
 crates/anistream-store-core/src/store.rs c3e12cdcf91783beedd10206ae110c195ff90c3d
 crates/anistream-store-wasm/Cargo.toml 5fe0b78c46877f0e2ac77d7f07edcbc14935d695
 crates/anistream-store-wasm/src/lib.rs f49b5f2404d75237bd836eb514e2116681426a08
-rust-toolchain.toml e52259440c7b6494ac19c338ec616dc303368cdc
+rust-toolchain.toml 581aaf71800dbaa5b016e5c8f471eb925d3878e8
