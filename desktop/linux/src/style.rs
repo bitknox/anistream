@@ -62,23 +62,34 @@ fn font_files() -> Vec<PathBuf> {
         .collect()
 }
 
+/// The app's icon at each size the hicolor theme takes, from `assets/icon`.
+const ICONS: [(u32, &[u8]); 7] = [
+    (16, include_bytes!("../../../assets/icon/16x16.png")),
+    (32, include_bytes!("../../../assets/icon/32x32.png")),
+    (48, include_bytes!("../../../assets/icon/48x48.png")),
+    (64, include_bytes!("../../../assets/icon/64x64.png")),
+    (128, include_bytes!("../../../assets/icon/128x128.png")),
+    (256, include_bytes!("../../../assets/icon/256x256.png")),
+    (512, include_bytes!("../../../assets/icon/512x512.png")),
+];
+
 /// The app's icon, for the About dialog and the window list, when no installed copy is in the
-/// icon theme: written once under `cache` and added to the theme's search path.
+/// icon theme: written under `cache` as a hicolor tree and added to the theme's search path.
 pub fn app_icon(display: &gtk::gdk::Display, name: &str, cache: &std::path::Path) {
-    const ICON: &[u8] =
-        include_bytes!("../../../assets/icon/anistream.iconset/icon_256x256@2x.png");
     let theme = gtk::IconTheme::for_display(display);
     if theme.has_icon(name) {
         return;
     }
     let root = cache.join("icons");
-    let dir = root.join("hicolor/512x512/apps");
-    let file = dir.join(format!("{name}.png"));
-    let written = std::fs::metadata(&file).is_ok_and(|m| m.len() == ICON.len() as u64)
-        || std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&file, ICON)).is_ok();
+    let written = ICONS.iter().all(|(size, png)| {
+        let dir = root.join(format!("hicolor/{size}x{size}/apps"));
+        let file = dir.join(format!("{name}.png"));
+        std::fs::metadata(&file).is_ok_and(|m| m.len() == png.len() as u64)
+            || std::fs::create_dir_all(&dir).and_then(|()| std::fs::write(&file, png)).is_ok()
+    });
     if written {
         theme.add_search_path(&root);
     } else {
-        tracing::warn!(path = %file.display(), "the app icon could not be written");
+        tracing::warn!(path = %root.display(), "the app icon could not be written");
     }
 }
