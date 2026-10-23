@@ -24,7 +24,7 @@ final class MacPlayerClickTests: XCTestCase {
         let app = launch()
         defer { app.terminate() }
         click(app, "Back")
-        XCTAssertTrue(gone(app, "Enter Full Screen"), "the player stayed up after Back")
+        XCTAssertTrue(browsing(app), "the player stayed up after Back")
         XCTAssertFalse(isFullScreen(app))
     }
 
@@ -53,10 +53,9 @@ final class MacPlayerClickTests: XCTestCase {
     func testTheBarsControlsTakeClicks() throws {
         let app = launch()
         defer { app.terminate() }
+        // Paused first, so the minute-long episode stays where it is while the rest is clicked.
         click(app, "Pause")
         XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 5), "Pause did not pause")
-        click(app, "Play")
-        XCTAssertTrue(button(app, "Pause").waitForExistence(timeout: 5), "Play did not play")
 
         let position = app.descendants(matching: .any)["Position"]
         let before = position.value as? String
@@ -68,8 +67,17 @@ final class MacPlayerClickTests: XCTestCase {
         click(app, "Unmute")
         XCTAssertTrue(button(app, "Mute").waitForExistence(timeout: 5))
 
-        // The menus: subtitles and audio, episodes, and the speed's, with upscaling and night
-        // mode.
+        // The speed's menu, with upscaling and night mode: the speed set outright.
+        click(app, "Playback speed, 1.0×")
+        XCTAssertTrue(app.staticTexts["Upscaling"].waitForExistence(timeout: 5), "no speed menu")
+        click(app, "1.5×")
+        XCTAssertTrue(button(app, "Playback speed, 1.5×").waitForExistence(timeout: 5), "1.5× was not picked")
+        click(app, "Night mode")
+        XCTAssertTrue(waitFor { self.button(app, "Night mode").isSelected }, "night mode did not go on")
+        click(app, "Playback speed, 1.5×")
+        XCTAssertTrue(gone(app, "Upscaling", in: app.staticTexts), "the speed menu stayed open")
+
+        // The top bar's menus: subtitles and audio, and episodes.
         click(app, "Subtitles and audio")
         XCTAssertTrue(app.staticTexts["Remembered for this show"].waitForExistence(timeout: 5), "no subtitles menu")
         click(app, "Off")
@@ -77,15 +85,13 @@ final class MacPlayerClickTests: XCTestCase {
         click(app, "Subtitles and audio")
         XCTAssertTrue(gone(app, "Remembered for this show", in: app.staticTexts))
         click(app, "Episodes")
-        XCTAssertTrue(app.staticTexts["Episodes"].waitForExistence(timeout: 5), "no episodes menu")
+        let last = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Episode 12'")).firstMatch
+        XCTAssertTrue(last.waitForExistence(timeout: 5), "no episodes menu")
         click(app, "Episodes")
-        let speed = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Playback speed'")).firstMatch
-        speed.click()
-        XCTAssertTrue(app.staticTexts["Upscaling"].waitForExistence(timeout: 5), "no speed menu")
-        click(app, "1.5×")
-        XCTAssertTrue(button(app, "Playback speed, 1.5×").waitForExistence(timeout: 5), "1.5× was not picked")
-        click(app, "Night mode")
-        XCTAssertTrue(waitFor { self.button(app, "Night mode").isSelected }, "night mode did not go on")
+        XCTAssertTrue(waitFor { !last.exists }, "the episodes menu stayed open")
+
+        click(app, "Play")
+        XCTAssertTrue(button(app, "Pause").waitForExistence(timeout: 5), "Play did not play")
     }
 
     func testSkipAndUpNextTakeClicks() throws {
@@ -108,7 +114,7 @@ final class MacPlayerClickTests: XCTestCase {
         waitForTheControlsToFade(app)
         wakeTheControls(app)
         click(app, "Back")
-        XCTAssertTrue(gone(app, "Enter Full Screen"), "the player stayed up after Back")
+        XCTAssertTrue(browsing(app), "the player stayed up after Back")
     }
 
     func testFullScreenAfterTheControlsFade() throws {
@@ -157,15 +163,12 @@ final class MacPlayerClickTests: XCTestCase {
         click(app, "Picture in Picture")
         XCTAssertTrue(waitFor { self.floatingWindow() != nil }, "no Picture in Picture window")
         returnFromPictureInPicture(app)
-        XCTAssertTrue(button(app, "Enter Full Screen").waitForExistence(timeout: 10), "the picture did not come back")
-
-        wakeTheControls(app)
-        click(app, "Enter Full Screen")
-        XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the window did not go full screen again")
+        // The picture comes back as it left, full screen.
+        XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the picture did not come back full screen")
         waitForTheControlsToFade(app)
         wakeTheControls(app)
         click(app, "Back")
-        XCTAssertTrue(gone(app, "Exit Full Screen"), "the player stayed up after Back in full screen")
+        XCTAssertTrue(browsing(app), "the player stayed up after Back in full screen")
         XCTAssertTrue(waitFor { !self.isFullScreen(app) }, "the window stayed full screen after the player")
     }
 
@@ -186,9 +189,15 @@ final class MacPlayerClickTests: XCTestCase {
         }
         app.launch()
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
-        // The player's controls, there once the shot has played the episode to its place.
-        let first = shot == "skip" ? "Skip Opening" : shot == "up-next" ? "Play Now" : "Enter Full Screen"
-        XCTAssertTrue(button(app, first).waitForExistence(timeout: 90), "the player did not come up")
+        // The player's controls, there once the shot has played the episode to its place: the
+        // pointer brings them up, should they have faded by then.
+        let first = button(app, shot == "skip" ? "Skip Opening" : shot == "up-next" ? "Play Now" : "Enter Full Screen")
+        let up = waitFor(timeout: 90) {
+            if first.exists { return true }
+            if shot == "fading", self.mainWindow(app).exists { self.wakeTheControls(app) }
+            return first.exists
+        }
+        XCTAssertTrue(up, "the player did not come up")
         // The shot's own pauses: its fades, and the first frames.
         Thread.sleep(forTimeInterval: 1.5)
         return app
@@ -209,6 +218,12 @@ final class MacPlayerClickTests: XCTestCase {
     private func gone(_ app: XCUIApplication, _ label: String, in query: XCUIElementQuery? = nil) -> Bool {
         let element = (query ?? app.buttons)[label].firstMatch
         return waitFor { !element.exists }
+    }
+
+    /// The main window back to browsing: its toolbar's search field, which the player hides.
+    /// Not the player's buttons gone, which they are too while its controls are faded.
+    private func browsing(_ app: XCUIApplication) -> Bool {
+        app.searchFields.firstMatch.waitForExistence(timeout: 10)
     }
 
     /// Two seconds without input, and the controls fade (M5).
@@ -246,12 +261,13 @@ final class MacPlayerClickTests: XCTestCase {
         }
     }
 
-    /// The system's Picture in Picture window, wherever it is: drawn by its own process.
+    /// The system's Picture in Picture window, wherever it is: drawn by its own process, named
+    /// so.
     private func floatingWindow() -> CGRect? {
         let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
             as? [[String: Any]] ?? []
         for window in windows {
-            guard (window[kCGWindowOwnerName as String] as? String)?.contains("PIP") == true,
+            guard (window[kCGWindowOwnerName as String] as? String) == "Picture in Picture",
                 let bounds = window[kCGWindowBounds as String] as? [String: CGFloat],
                 let width = bounds["Width"], let height = bounds["Height"], width > 100, height > 60
             else { continue }
