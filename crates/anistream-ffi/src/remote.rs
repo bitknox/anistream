@@ -286,7 +286,8 @@ impl FfiTvRemote {
         lock(&self.running).as_ref().map(TvRemote::open_code)
     }
 
-    /// Close the code `open_pairing` opened, as the screen closes.
+    /// Close the code on screen, as its screen or dialog closes: the one `open_pairing` opened,
+    /// or one a phone asked for, which is then abandoned.
     pub fn close_pairing(&self) {
         if let Some(remote) = lock(&self.running).as_ref() {
             remote.close_code();

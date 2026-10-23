@@ -93,7 +93,7 @@ impl TvRemote {
         self.server.open_code()
     }
 
-    /// Close the code [`Self::open_code`] opened, as its screen closes.
+    /// Close the code on screen, as its screen or dialog closes: see [`RemoteServer::close_code`].
     pub fn close_code(&self) {
         self.server.close_code();
     }

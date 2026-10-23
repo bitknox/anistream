@@ -212,12 +212,10 @@ impl RemoteServer {
         digits
     }
 
-    /// Close the code the TV opened, as its screen closes. A code a phone asked for is left.
+    /// Close the code on screen, as its screen or dialog closes: the TV's own, or one a phone
+    /// asked for, which is then abandoned and pairs nobody.
     pub fn close_code(&self) {
-        let mut code = lock(&self.shared.code);
-        if code.as_ref().is_some_and(|c| c.session.is_none()) {
-            *code = None;
-        }
+        *lock(&self.shared.code) = None;
     }
 
     /// The phones paired with this TV, for its settings.

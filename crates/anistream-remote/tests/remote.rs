@@ -213,6 +213,12 @@ async fn a_phone_pairs_with_a_code_the_tv_opened_itself_without_asking() {
     let mut client =
         RemoteClient::connect(tv.addr(), &other, None, &hello("Late phone")).await.unwrap();
     assert!(client.pair(&late).await.is_err());
+
+    // A code a phone asked for is abandoned when the TV's dialog is cancelled.
+    client.request_code().await.unwrap();
+    let asked = tv.shown_code().await;
+    tv.server.close_code();
+    assert!(client.pair(&asked).await.is_err());
 }
 
 #[tokio::test]
