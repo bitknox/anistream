@@ -12,7 +12,7 @@
 # This tag only picks the image the build starts from. rust-toolchain.toml decides the compiler:
 # the `rustup toolchain install` below installs whatever it pins, so a bump there costs one
 # download until this line catches up, never a build with the wrong toolchain.
-ARG RUST_VERSION=1.97.1
+ARG RUST_VERSION=1.99.1
 
 FROM rust:${RUST_VERSION}-slim-trixie AS build
 WORKDIR /src

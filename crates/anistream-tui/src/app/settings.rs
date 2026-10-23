@@ -261,7 +261,6 @@ impl App {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::app::fixtures::*;
 
     /// An app launched on `config`, as both what is in effect and what the file holds.
