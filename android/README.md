@@ -250,6 +250,52 @@ in the release profile, which takes a while; later runs reuse it.
 - A phone with a build signed by another key, a debug build for instance, refuses the update. The
   script says so, and leaves the uninstall to you.
 
+## Updating itself
+
+The app flavour installs its own new releases. The engine checks GitHub's newest release once a
+day while Settings › About › "Check for updates" is on, and whenever Check now asks
+(`Event.Update`). The notice says a release is out, the first time and then as the engine says to,
+with "Update to v2.0.3" as its button; Settings › About offers the same row whenever a newer
+release is known.
+
+Nothing downloads or installs until the viewer presses Update. Then:
+
+1. The first time, one sentence asks for Android's "Install unknown apps" for anistream and opens
+   its page (`ACTION_MANAGE_UNKNOWN_APP_SOURCES`). The download starts as the viewer comes back
+   with the switch on. Where Android stops the app as the switch turns on, the press is kept for
+   15 minutes and goes on once the app is back on screen.
+2. The APK downloads as a user-initiated data transfer job, as episodes do, with its notification
+   and Cancel, into `files/updates`. A notice with a progress line follows it outside Settings,
+   whose row says "Downloading 34 %".
+3. Its SHA-256 has to be the one the release publishes in its `.sha256`, and PackageManager has to
+   read it as `tv.anistream.app`, signed with the certificate the installed app is (the release
+   key, `4D:66:4A:AB:…:9F:95`, as in `website/public/.well-known/assetlinks.json`), and newer.
+   Anything else is refused with a plain notice before the installer sees it.
+4. It is written into a `PackageInstaller` session, and Android asks the viewer to confirm.
+   Installed, the new version starts the next time the app opens; said no to, the file is kept
+   for another press; failed, the notice gives Android's message.
+
+The APK is deleted after an install, a failure, a cancel and at every start, with any session
+left. A release without an APK, or without a `.sha256` that reads, opens its page instead, as the
+fixtures flavour always does: it has no `REQUEST_INSTALL_PACKAGES`, which only the app flavour's
+manifest asks for.
+
+### The update on an emulator
+
+```sh
+android/scripts/update-test.sh build         # two keys of the test's own, 2.0.0 and 2.0.1
+android/scripts/update-test.sh install       # 2.0.0 on emulator-5640 (SERIAL picks another)
+android/scripts/update-test.sh serve         # in a second shell; --slow to have time to cancel
+android/scripts/update-test.sh offer update  # or other-key, bad-checksum
+```
+
+`build` makes two throwaway keys in `android/build/update-test`, which git ignores, and builds the
+app flavour's release twice with `ANISTREAM_UPDATE_TEST_KEYSTORE`: signed with the test key and
+never reading the release key, with a receiver that offers a release as the engine would, and
+plain HTTP to this Mac through `adb reverse`. Then it signs 2.0.1 again with the other key, which
+the app has to refuse. Those builds are never for real use. `offer` posts the release's notice in
+the app; its button starts the real flow, through to Android's own dialog.
+
 ## Tests
 
 ```sh

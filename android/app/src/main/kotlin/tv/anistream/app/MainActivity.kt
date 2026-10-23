@@ -134,7 +134,7 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         traced("launch") { app.start(Flavour.launch(this, intent)) }
-        // Android stops the app as "Install unknown apps" turns on: the press goes on as it comes back.
+        // Where Android stopped the app as "Install unknown apps" turned on, the press goes on.
         app.appUpdates?.kept()?.let(app.store.updates::returning)
         Flavour.started(this, app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.anistream.design.Motion
 import tv.anistream.design.tabular
+import tv.anistream.store.UpdateCheck
 import tv.anistream.store.UpdateOffer
 import tv.anistream.store.UpdateState
 import tv.anistream.store.Wording
@@ -76,6 +77,18 @@ internal object UpdateWords {
         else -> null
     }
 
+    /**
+     * What the last check said: "Checking", "anistream is up to date", or why it did not. A release
+     * it found is the row above it.
+     */
+    fun check(check: UpdateCheck): String? = when (check) {
+        UpdateCheck.Unknown -> null
+        UpdateCheck.Checking -> "Checking"
+        UpdateCheck.UpToDate -> "anistream is up to date"
+        UpdateCheck.Found -> null
+        is UpdateCheck.Failed -> "Not checked: ${check.reason.trimEnd('.')}"
+    }
+
     /** The notice that a release is out. */
     fun out(offer: UpdateOffer): String = "anistream ${offer.name} is out."
 
@@ -91,7 +104,7 @@ internal object UpdateWords {
 }
 
 /**
- * Settings' row for the update, in the group under About while a newer release is known: the
+ * Settings' row for the update, in About's Updates group while a newer release is known: the
  * glyph in amber while pressing it starts the update, the bar in water while it downloads, and
  * Cancel while it is under way. A failure says why under it, in vermilion.
  */
@@ -111,7 +124,7 @@ internal fun UpdateRow(place: Place) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Icon(Icons.Downloads, contentDescription = null, tint = if (pressable) colors.primary else colors.onSurfaceVariant)
-            Column(Modifier.weight(1f).semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }) {
+            Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
                 Text(UpdateWords.title(state).orEmpty(), style = MaterialTheme.typography.titleMedium.tabular())
                 UpdateWords.line(state, installs)?.let {
                     Text(it, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
@@ -124,6 +137,21 @@ internal fun UpdateRow(place: Place) {
             if (state.busy && state !is UpdateState.Allowing) QuietButton("Cancel", onClick = store.updates::cancel)
         }
     }
+}
+
+/** Check now, and what the last check said under it. */
+@Composable
+internal fun CheckNowRow(place: Place) {
+    val store = LocalAppStore.current
+    val check by store.updates.check.collectAsStateWithLifecycle()
+    val checking = check == UpdateCheck.Checking
+    InfoRow(
+        place,
+        "Check now",
+        UpdateWords.check(check),
+        onClick = if (checking) null else store::checkForUpdates,
+        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 /** The download's bar: water on the rule, 4 high, moving on the standard spring. */
@@ -170,7 +198,7 @@ internal fun UpdateNotice(hidden: Boolean, modifier: Modifier = Modifier) {
                     Text(
                         last,
                         style = MaterialTheme.typography.bodyMedium.tabular(),
-                        modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+                        modifier = Modifier.weight(1f),
                     )
                     QuietButton("Cancel", onClick = store.updates::cancel)
                 }

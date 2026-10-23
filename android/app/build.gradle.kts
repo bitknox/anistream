@@ -33,7 +33,8 @@ android {
         .associateWith { providers.gradleProperty("ANISTREAM_RELEASE_$it").orNull }
     val signsReleases = release.values.all { !it.isNullOrBlank() }
     signingConfigs {
-        if (signsReleases) {
+        // An update test's build never reads the release key.
+        if (signsReleases && updateTestKey == null) {
             create("release") {
                 storeFile = file(release.getValue("STORE_FILE")!!.replaceFirst("~", System.getProperty("user.home")))
                 storePassword = release.getValue("STORE_PASSWORD")

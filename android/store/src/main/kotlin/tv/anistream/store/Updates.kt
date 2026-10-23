@@ -18,6 +18,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
+import tv.anistream.engine.model.Release
+import tv.anistream.engine.model.UpdateStatus
 
 /**
  * A newer release of the app, as the engine found it: its APK, the APK's SHA-256 and its size,
@@ -40,6 +42,17 @@ data class UpdateOffer(
 
     /** Whether there is an APK to download and check; without one, Update opens [page]. */
     val installable: Boolean get() = url.isNotEmpty() && ApkChecksum.expected(sha256) != null
+
+    companion object {
+        /** What [release] offers this app: its APK, or its page alone where it has none. */
+        fun of(release: Release): UpdateOffer = UpdateOffer(
+            version = release.version,
+            url = release.android?.url.orEmpty(),
+            sha256 = release.android?.sha256.orEmpty(),
+            bytes = release.android?.size?.toLong() ?: 0,
+            page = release.pageUrl,
+        )
+    }
 }
 
 /** What the last check for a newer release said, for Settings' Check now. */
@@ -167,7 +180,7 @@ interface UpdateHost {
 
     /**
      * Open Android's "Install unknown apps" page for the app, keeping [offer] until
-     * [returnedFromSettings]: Android stops the app as the switch turns on, and the activity it
+     * [returnedFromSettings]: where Android stops the app as the switch turns on, the activity it
      * starts again finds it there ([UpdateModel.returning]).
      */
     fun openInstallSettings(offer: UpdateOffer)
@@ -258,6 +271,20 @@ class UpdateModel(
         _notice.value = if (tell) offer else _notice.value?.takeIf { it == offer }
     }
 
+    /**
+     * What the engine's check said: at launch, from its day-old answer or one request, and for
+     * Check now. A release is offered whenever it is the newest, and told as a notice only when
+     * the engine says to.
+     */
+    fun apply(status: UpdateStatus) {
+        when (status) {
+            is UpdateStatus.Checking -> checking()
+            is UpdateStatus.UpToDate -> offer(null)
+            is UpdateStatus.Available -> offer(UpdateOffer.of(status.release), tell = status.notify)
+            is UpdateStatus.Failed -> checkFailed(status.reason)
+        }
+    }
+
     /** The notice for [offer] is shown. */
     fun told(offer: UpdateOffer) {
         if (_notice.value == offer) _notice.value = null
@@ -296,7 +323,7 @@ class UpdateModel(
     }
 
     /**
-     * The app started again while Android's page was open for [offer], as Android does when the
+     * The app started again while Android's page was open for [offer], as Android may when the
      * switch turns on: the press goes on where it was, once the app is on screen ([resumed]).
      */
     fun returning(offer: UpdateOffer) {

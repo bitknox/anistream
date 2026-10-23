@@ -155,7 +155,7 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
         // Whether a widget is placed, which keeps the background check, as the app starts.
         widgetsChanged()
         // An update's APK and installer session a stopped process left go at every start.
-        appUpdates?.let { updates -> scope.launch(Dispatchers.IO) { updates.clearLeftovers() } }
+        if (Flavour.UPDATES) appUpdates?.let { updates -> scope.launch(Dispatchers.IO) { updates.clearLeftovers() } }
     }
 
     /** The new-episode notifications switch, and the schedule it keeps. */

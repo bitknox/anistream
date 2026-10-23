@@ -42,7 +42,12 @@ class UpdateJob : JobService() {
             // A job started again after the process went finds nothing pressed, and ends.
             updates.run(HttpApkFetch(plainHttp = BuildConfig.UPDATE_TEST))
             shown.cancel()
-            Log.i(AnistreamApp.TAG, "update: the job ends at ${updates.state.value::class.simpleName}")
+            val end = when (val state = updates.state.value) {
+                is UpdateState.Installing -> "with the installer"
+                is UpdateState.Failed -> "failed: ${state.failure}"
+                else -> "cancelled"
+            }
+            Log.i(AnistreamApp.TAG, "update: the job ends, $end")
             jobFinished(params, false)
         }
         return true

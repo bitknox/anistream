@@ -69,7 +69,8 @@ internal fun NoticeSnackbar(data: SnackbarData) {
         actionColor = colors.onSurface,
         actionContentColor = colors.onSurface,
         dismissActionContentColor = colors.onSurface,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        // Material's snackbar keeps 12 around itself: 16 from the sides, 12 above the bar.
+        modifier = Modifier.padding(horizontal = 4.dp),
     )
 }
 

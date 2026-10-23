@@ -34,6 +34,10 @@ import tv.anistream.design.AnistreamTheme
 import tv.anistream.store.ApkFacts
 import tv.anistream.store.ApkFetch
 import tv.anistream.store.AppStore
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.UpdateStatus
+import tv.anistream.store.UpdateCheck
 import tv.anistream.store.UpdateFiles
 import tv.anistream.store.UpdateHost
 import tv.anistream.store.UpdateOffer
@@ -245,5 +249,20 @@ class AppUpdateTest {
         assertEquals("Installing", UpdateWords.title(UpdateState.Installing(offer)))
         assertEquals("Installing v2.0.3", UpdateWords.notice(UpdateState.Installing(offer)))
         assertEquals("Open release", UpdateWords.action(offer, installs = false))
+        assertEquals("Checking", UpdateWords.check(UpdateCheck.Checking))
+        assertEquals("anistream is up to date", UpdateWords.check(UpdateCheck.UpToDate))
+        assertEquals(null, UpdateWords.check(UpdateCheck.Found))
+        assertEquals("Not checked: GitHub could not be reached", UpdateWords.check(UpdateCheck.Failed("GitHub could not be reached.")))
+    }
+
+    @Test
+    fun check_now_asks_the_engine_and_says_what_it_found() {
+        aboutPane()
+        compose.onNodeWithText("Check now").performClick()
+        compose.runOnIdle { assertEquals(listOf(Command.CheckForUpdates), store.waiting) }
+        compose.runOnIdle { store.apply(Event.Update(UpdateStatus.Checking)) }
+        compose.onNodeWithText("Checking").assertIsDisplayed()
+        compose.runOnIdle { store.apply(Event.Update(UpdateStatus.UpToDate)) }
+        compose.onNodeWithText("anistream is up to date").assertIsDisplayed()
     }
 }

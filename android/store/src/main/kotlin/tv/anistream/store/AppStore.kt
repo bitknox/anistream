@@ -397,6 +397,11 @@ class AppStore(
         if (updates.installs(offer)) updates.press() else if (offer.page.isNotEmpty()) openExternal(offer.page)
     }
 
+    /** Settings' Check now: GitHub asked whatever the daily check's switch says. */
+    fun checkForUpdates() {
+        send(Command.CheckForUpdates)
+    }
+
     // Accounts
 
     /** Send what waits and pull the library now, rather than at the next interval. */
@@ -618,6 +623,7 @@ class AppStore(
             is Event.ShowSettings -> showSettings.apply(event.v1)
             is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
             is Event.UpcomingNotices -> coming.apply(event.v1)
+            is Event.Update -> updates.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

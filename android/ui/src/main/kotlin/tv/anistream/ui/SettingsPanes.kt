@@ -806,6 +806,7 @@ internal fun AboutPane() {
             title = "Updates",
             rows = listOfNotNull(
                 if (update.offer != null) @Composable { place: Place -> UpdateRow(place) } else null,
+                { place -> CheckNowRow(place) },
                 { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, "Check for updates", note = "Once a day. Nothing downloads until you choose to update.") },
             ),
         )

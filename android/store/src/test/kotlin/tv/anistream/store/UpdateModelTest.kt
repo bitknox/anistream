@@ -18,7 +18,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.NoticeKind
+import tv.anistream.engine.model.Release
+import tv.anistream.engine.model.ReleaseAsset
+import tv.anistream.engine.model.UpdateStatus
 
 /**
  * The update's steps: available, downloading, verifying, installing, then done or failed, and
@@ -187,7 +192,7 @@ class UpdateModelTest {
 
     @Test
     fun started_again_by_android_while_its_page_was_open_it_goes_on_when_back_on_screen() = runTest {
-        // Android stops the app as the switch turns on; the new process is told what was pressed.
+        // Where Android stops the app as the switch turns on, the new process is told what was pressed.
         val host = FakeHost()
         val model = UpdateModel(notices, io = StandardTestDispatcher(testScheduler)).apply { attach(host, files) }
         model.returning(offer)
@@ -404,6 +409,64 @@ class UpdateModelTest {
         assertEquals(UpdateCheck.Failed("GitHub did not answer"), model.check.value)
         // What was offered stands.
         assertEquals(UpdateState.Available(offer), model.state.value)
+    }
+
+    private val release = Release(
+        version = "2.0.3",
+        publishedAt = 1_792_664_639,
+        pageUrl = "https://github.com/bitknox/anistream/releases/tag/v2.0.3",
+        notes = "Smoother calendar",
+        android = ReleaseAsset(
+            name = "anistream-2.0.3-android-arm64.apk",
+            url = "https://github.com/bitknox/anistream/releases/download/v2.0.3/anistream-2.0.3-android-arm64.apk",
+            sha256 = "0f".repeat(32),
+            size = 61_400_000uL,
+        ),
+    )
+
+    @Test
+    fun the_engine_s_release_is_offered_with_its_apk_and_told_only_when_it_says() = runTest {
+        val store = AppStore(this)
+        store.apply(Event.Update(UpdateStatus.Available(release, notify = false)))
+        val offered = UpdateOffer(
+            version = "2.0.3",
+            url = "https://github.com/bitknox/anistream/releases/download/v2.0.3/anistream-2.0.3-android-arm64.apk",
+            sha256 = "0f".repeat(32),
+            bytes = 61_400_000,
+            page = "https://github.com/bitknox/anistream/releases/tag/v2.0.3",
+        )
+        assertEquals(UpdateState.Available(offered), store.updates.state.value)
+        assertTrue(offered.installable)
+        assertNull(store.updates.notice.value)
+        store.apply(Event.Update(UpdateStatus.Available(release, notify = true)))
+        assertEquals(offered, store.updates.notice.value)
+        // Up to date, nothing is offered any more.
+        store.apply(Event.Update(UpdateStatus.UpToDate))
+        assertEquals(UpdateState.None, store.updates.state.value)
+        assertNull(store.updates.notice.value)
+    }
+
+    @Test
+    fun a_release_without_an_apk_offers_its_page() = runTest {
+        val store = AppStore(this)
+        store.apply(Event.Update(UpdateStatus.Available(release.copy(android = null), notify = true)))
+        val offer = store.updates.state.value.offer!!
+        assertFalse(offer.installable)
+        assertEquals("https://github.com/bitknox/anistream/releases/tag/v2.0.3", offer.page)
+    }
+
+    @Test
+    fun check_now_s_answers_say_where_it_stands() = runTest {
+        val store = AppStore(this)
+        store.apply(Event.Update(UpdateStatus.Checking))
+        assertEquals(UpdateCheck.Checking, store.updates.check.value)
+        store.apply(Event.Update(UpdateStatus.Failed("GitHub could not be reached")))
+        assertEquals(UpdateCheck.Failed("GitHub could not be reached"), store.updates.check.value)
+        store.apply(Event.Update(UpdateStatus.UpToDate))
+        assertEquals(UpdateCheck.UpToDate, store.updates.check.value)
+        // Check now goes to the engine whatever the switch says.
+        store.checkForUpdates()
+        assertEquals(listOf(Command.CheckForUpdates), store.waiting)
     }
 
     companion object {

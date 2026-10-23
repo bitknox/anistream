@@ -4,7 +4,6 @@
 
 package tv.anistream.app
 
-import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -40,7 +39,7 @@ import tv.anistream.store.Wording
  * The update's side in Android. What needs an activity, Android's page for the switch and the
  * installer's confirmation, waits in [launch] for the app's own to start it once it is on screen.
  */
-class AppUpdates(private val app: Application, private val model: UpdateModel) : UpdateHost {
+class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) : UpdateHost {
     /** Where the APK is kept: the app's own files, which nothing else can read. */
     val files = UpdateFiles(app.filesDir.resolve("updates"))
 
@@ -80,7 +79,7 @@ class AppUpdates(private val app: Application, private val model: UpdateModel) :
 
     /**
      * The offer Update was pressed for as Android's page opened, when the app starts again within
-     * [KEEP_MILLIS] of it, as it does once the switch turns on. Read once.
+     * [KEEP_MILLIS] of it, as it may once the switch turns on. Read once.
      */
     fun kept(): UpdateOffer? {
         val saved = preferences
@@ -98,7 +97,11 @@ class AppUpdates(private val app: Application, private val model: UpdateModel) :
         return offer?.takeIf { System.currentTimeMillis() - at in 0..KEEP_MILLIS }
     }
 
-    override fun startDownload(offer: UpdateOffer): Boolean = UpdateJob.schedule(app, offer)
+    override fun startDownload(offer: UpdateOffer): Boolean {
+        // The job's notification needs the permission, which is asked for the first time one does.
+        app.notifier.wantPermission()
+        return UpdateJob.schedule(app, offer)
+    }
 
     override fun stopDownload() = UpdateJob.cancel(app)
 
