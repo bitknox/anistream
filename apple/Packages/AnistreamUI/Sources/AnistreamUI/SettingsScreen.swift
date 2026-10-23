@@ -199,7 +199,7 @@ struct SettingsResults: View {
         ("Protect with", .sources), ("Last check", .sources), ("If a check fails", .sources),
         ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
         ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
-        ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts),
+        ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts), ("Privacy", .accounts),
         ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
         ("Syncplay room", .integrations), ("Discord presence", .integrations),
         ("Presence shows the title", .integrations), ("Check for updates", .integrations),
