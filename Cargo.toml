@@ -24,6 +24,7 @@ anistream-model = { path = "crates/anistream-model" }
 anistream-engine = { path = "crates/anistream-engine", default-features = false }
 anistream-player = { path = "crates/anistream-player" }
 anistream-playback = { path = "crates/anistream-playback" }
+anistream-mpv-host = { path = "crates/anistream-mpv-host" }
 anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
 anistream-plugin-store = { path = "crates/anistream-plugin-store" }
 anistream-store-core = { path = "crates/anistream-store-core" }

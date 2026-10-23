@@ -211,6 +211,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "anistream-mpv-host"
+version = "2.0.0"
+dependencies = [
+ "anistream-model",
+ "pkg-config",
+ "serde_json",
+ "tempfile",
+ "tracing",
+]
+
+[[package]]
 name = "anistream-net"
 version = "2.0.0"
 dependencies = [
