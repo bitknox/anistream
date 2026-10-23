@@ -46,8 +46,7 @@ screen with its position, since quitting halfway is a clear signal you mean to c
 
 ## Providers
 
-`providers.order` is the failover chain. Sources are external: anistream ships no sources of its
-own, and no entry does anything until you configure it.
+`providers.order` is the failover chain. No entry does anything until you configure it.
 
 - `"torrent"` is the BitTorrent transport, pointed at an indexer you configure and gated behind
   the [VPN guard](/docs/guides/torrents-vpn/).

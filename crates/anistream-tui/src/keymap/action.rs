@@ -25,6 +25,8 @@ pub enum Action {
     ShowAccounts,
     ShowConflicts,
     ShowLogs,
+    /// The website's privacy page, in the browser: what anistream sends, and what it keeps.
+    OpenPrivacy,
 
     // Movement
     Up,
@@ -125,6 +127,7 @@ impl Action {
         Self::ShowAccounts,
         Self::ShowConflicts,
         Self::ShowLogs,
+        Self::OpenPrivacy,
         Self::JumpSection(1),
         Self::JumpSection(2),
         Self::JumpSection(3),
@@ -210,6 +213,7 @@ impl Action {
             Self::ShowAccounts => "Accounts and sync",
             Self::ShowConflicts => "Resolve sync conflicts",
             Self::ShowLogs => "Recent messages",
+            Self::OpenPrivacy => "Open the privacy page",
             Self::Up => "Move up",
             Self::Down => "Move down",
             Self::Left => "Move left",
@@ -304,7 +308,8 @@ impl Action {
             | Self::FocusSearch
             | Self::ShowAccounts
             | Self::ShowConflicts
-            | Self::ShowLogs => Scope::Global,
+            | Self::ShowLogs
+            | Self::OpenPrivacy => Scope::Global,
 
             Self::Up
             | Self::Down

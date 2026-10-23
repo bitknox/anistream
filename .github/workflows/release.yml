@@ -416,7 +416,7 @@ jobs:
            Browse, track and watch anime from the terminal. Real image rendering,
            mpv for playback, pluggable sources.
            .
-           anistream hosts no content and ships no sources of its own.
+           anistream hosts no content.
           EOF
 
           deb="dist/anistream-${version}-amd64.deb"

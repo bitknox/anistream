@@ -256,8 +256,16 @@ struct PhoneSettingsRoot: View {
             }
             Section {
                 link(.about, "About", "info.circle", value: AppVersion.short)
+                Link(destination: AppVersion.privacy) {
+                    HStack {
+                        Label("Privacy", systemImage: "hand.raised").font(.ui(17)).foregroundStyle(.silk)
+                        Spacer()
+                        Image(systemName: "arrow.up.forward").font(.ui(15)).foregroundStyle(.haze)
+                    }
+                }
+                .listRowBackground(Palette.raised)
             } footer: {
-                Text("anistream ships no sources of its own and hosts no content. Every source is external.")
+                Text("anistream hosts no content.")
             }
         }
         .navigationTitle("Settings")

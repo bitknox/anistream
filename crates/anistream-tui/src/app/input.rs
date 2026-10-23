@@ -10,6 +10,9 @@ use crate::{
     nav::{Focus, Overlay, Section, StageView},
 };
 
+/// The website's privacy page, which the palette's "Open the privacy page" opens.
+pub const PRIVACY_URL: &str = "https://anistream.tv/docs/privacy/";
+
 impl App {
     /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
     ///
@@ -126,6 +129,7 @@ impl App {
             Action::ShowAccounts => return self.go_to_section(Section::Accounts),
             Action::ShowLogs => self.show_logs(),
             Action::ShowConflicts => self.show_conflicts(),
+            Action::OpenPrivacy => return Some(Command::OpenExternal { url: PRIVACY_URL.into() }),
             Action::CommandPalette => self.open_palette(),
             // Out of the search results is back into the query they answered, one step short
             // of the rail — the same order the two were entered in.
@@ -405,6 +409,20 @@ mod tests {
 
     fn setting_row(id: SettingKey) -> usize {
         SettingKey::ROWS.iter().position(|s| *s == id).expect("a settings row")
+    }
+
+    #[test]
+    fn the_privacy_page_opens_in_the_browser_from_anywhere() {
+        let mut a = app();
+        let opened = Some(Command::OpenExternal { url: "https://anistream.tv/docs/privacy/".into() });
+        assert_eq!(a.handle(Action::OpenPrivacy, 5), opened);
+        // From the palette, which is where an action with no key is found.
+        assert!(
+            a.keymap
+                .palette_entries("privacy", crate::keymap::Context::Browsing)
+                .first()
+                .is_some_and(|(action, _)| *action == Action::OpenPrivacy)
+        );
     }
 
     #[test]

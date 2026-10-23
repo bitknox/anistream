@@ -28,6 +28,6 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>MIT licensed. anistream hosts no content and ships no sources of its own.</string>
+	<string>MIT licensed. anistream hosts no content.</string>
 </dict>
 </plist>
