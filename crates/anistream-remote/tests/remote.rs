@@ -13,7 +13,7 @@ use anistream_model::{
 use anistream_remote::{
     Error,
     client::{Hello, Link, LinkOptions, LinkStatus, RemoteClient},
-    command::{FrontIntent, Key, RemoteCommand},
+    command::{FrontIntent, Key, RemoteCommand, RemoteKey},
     discovery::{Advertiser, Browser, Discovery, DiscoverySink, MemoryNetwork},
     identity::Identity,
     server::{CommandSink, RemoteServer, ServerOptions},
@@ -247,7 +247,7 @@ async fn commands_reach_the_engine_and_the_front_end_in_order() {
     let text = timeout(WAIT, tv.front.recv()).await.unwrap().unwrap();
     assert_eq!(text, FrontIntent::Text { text: "orchard".into(), submit: false });
     let key = timeout(WAIT, tv.front.recv()).await.unwrap().unwrap();
-    assert_eq!(key, FrontIntent::Navigate(Key::Down));
+    assert_eq!(key, FrontIntent::Navigate { key: RemoteKey::Down });
 }
 
 #[tokio::test]

@@ -5,12 +5,13 @@
 //! enums on the wire for three reasons. The model has no serde and its shape follows the engine,
 //! while the wire has to stay readable by a TV a release older than the phone. A phone must reach
 //! only the part of the engine a remote should: playing and controlling, never a sign-in, a
-//! setting, a store or a download. And two things a remote does are not the engine's at all, but
-//! the TV front end's: typing into the field on screen and moving its focus.
+//! setting, a store or a download. And a few things a remote does are not the engine's at all, but
+//! the TV front end's: typing into the field on screen, moving its focus, and the TV's own volume.
 //!
 //! [`RemoteCommand::route`] is that boundary, and the only place the two meet.
 
 use anistream_core::ids::AnilistId;
+pub use anistream_model::remote::{FrontIntent, RemoteKey};
 use anistream_model::{
     command::{Command, PlayerCommand},
     hosted::TrackKind,
@@ -39,7 +40,8 @@ pub enum RemoteCommand {
     Skip,
     /// [`PlayerCommand::Stop`].
     Stop,
-    /// [`PlayerCommand::Volume`], a step: the player's own volume, not the TV's.
+    /// A step of the TV's own volume, the system's, which the TV front end sets: not the
+    /// player's volume, so it works with nothing playing.
     Volume { step: f64 },
     /// [`PlayerCommand::SpeedTo`].
     Speed { speed: f64 },
@@ -69,7 +71,8 @@ pub enum Track {
     Subtitle,
 }
 
-/// The keys of a TV's own remote.
+/// The keys of a TV's own remote, as the wire names them: the model's [`RemoteKey`] once on the
+/// TV.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Key {
@@ -91,24 +94,18 @@ pub enum Routed {
     Front(FrontIntent),
 }
 
-/// What the TV front end is asked to do by a remote: the part of a remote that is not the
-/// engine's. A front end that is not a TV ignores it.
-#[derive(Debug, Clone, PartialEq)]
-pub enum FrontIntent {
-    /// Show the title's page.
-    Open(AnilistId),
-    /// Set the focused field's text, and submit it when asked.
-    Text {
-        text: String,
-        submit: bool,
-    },
-    Navigate(Key),
-    /// Show a pairing code, for the phone named, until [`FrontIntent::HidePairingCode`].
-    ShowPairingCode {
-        code: String,
-        phone: String,
-    },
-    HidePairingCode,
+impl From<Key> for RemoteKey {
+    fn from(key: Key) -> Self {
+        match key {
+            Key::Up => Self::Up,
+            Key::Down => Self::Down,
+            Key::Left => Self::Left,
+            Key::Right => Self::Right,
+            Key::Select => Self::Select,
+            Key::Back => Self::Back,
+            Key::Home => Self::Home,
+        }
+    }
 }
 
 impl RemoteCommand {
@@ -116,7 +113,7 @@ impl RemoteCommand {
         let player = |command| Routed::Engine(Command::Player(command));
         match self {
             Self::Play { id, episode } => Routed::Engine(Command::Play { id, episode }),
-            Self::Open { id } => Routed::Front(FrontIntent::Open(id)),
+            Self::Open { id } => Routed::Front(FrontIntent::Open { id }),
             Self::TogglePause => player(PlayerCommand::TogglePause),
             Self::Seek { by } => player(PlayerCommand::Seek(by)),
             Self::SeekTo { position } => player(PlayerCommand::SeekTo(position.max(0.0))),
@@ -124,7 +121,7 @@ impl RemoteCommand {
             Self::Previous => player(PlayerCommand::Step(-1)),
             Self::Skip => player(PlayerCommand::TakeSkip),
             Self::Stop => player(PlayerCommand::Stop),
-            Self::Volume { step } => player(PlayerCommand::Volume(step.clamp(-100.0, 100.0))),
+            Self::Volume { step } => Routed::Front(FrontIntent::Volume { step: step.clamp(-100.0, 100.0) }),
             Self::Speed { speed } => player(PlayerCommand::SpeedTo(speed.clamp(0.25, 4.0))),
             Self::Track { kind, id } => player(PlayerCommand::ChooseTrack {
                 kind: match kind {
@@ -134,7 +131,7 @@ impl RemoteCommand {
                 id,
             }),
             Self::Text { text, submit } => Routed::Front(FrontIntent::Text { text, submit }),
-            Self::Navigate { key } => Routed::Front(FrontIntent::Navigate(key)),
+            Self::Navigate { key } => Routed::Front(FrontIntent::Navigate { key: key.into() }),
         }
     }
 
@@ -143,7 +140,11 @@ impl RemoteCommand {
     pub fn needs_playback(&self) -> bool {
         !matches!(
             self,
-            Self::Play { .. } | Self::Open { .. } | Self::Text { .. } | Self::Navigate { .. }
+            Self::Play { .. }
+                | Self::Open { .. }
+                | Self::Text { .. }
+                | Self::Navigate { .. }
+                | Self::Volume { .. }
         )
     }
 }
@@ -175,6 +176,13 @@ mod tests {
             routed,
             Routed::Front(FrontIntent::Text { text: "moon".into(), submit: true })
         );
+    }
+
+    #[test]
+    fn volume_is_the_tvs_own_and_needs_nothing_playing() {
+        let command = RemoteCommand::Volume { step: 500.0 };
+        assert!(!command.needs_playback());
+        assert_eq!(command.route(), Routed::Front(FrontIntent::Volume { step: 100.0 }));
     }
 
     #[test]

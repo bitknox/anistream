@@ -114,6 +114,9 @@ pub struct StateFolder {
     replaced: Option<NowPlaying>,
     /// The playhead and pause last told, which the next position is weighed against.
     told: Option<(f64, bool)>,
+    /// The TV's own volume, once its front end has said it: what a remote's volume shows in
+    /// place of the player's.
+    system_volume: Option<f64>,
 }
 
 impl StateFolder {
@@ -143,11 +146,20 @@ impl StateFolder {
         true
     }
 
+    /// The TV's own volume, out of 100, as its front end reads it from the system. From then on
+    /// it is the volume a remote shows, not the player's. True when a remote should hear of it.
+    pub fn volume(&mut self, percent: f64) -> bool {
+        self.system_volume = Some(percent);
+        self.with_now(|now| replace(&mut now.volume, Some(percent)))
+    }
+
     /// An engine event, as the TV front end reads it. True when a remote should hear of it.
     pub fn event(&mut self, event: &Event) -> bool {
         match event {
             Event::PlaybackStaged { id, title, episode, episode_title, speed } => {
-                let carried = self.state.now_playing.as_ref().and_then(|now| now.volume);
+                let carried = self
+                    .system_volume
+                    .or_else(|| self.state.now_playing.as_ref().and_then(|now| now.volume));
                 self.replaced = self.state.now_playing.take();
                 self.told = None;
                 self.state.now_playing = Some(NowPlaying {
@@ -194,7 +206,7 @@ impl StateFolder {
                 true
             }),
             Event::PlaybackSpeed(speed) => self.with_now(|now| replace(&mut now.speed, *speed)),
-            Event::PlaybackVolume(volume) => {
+            Event::PlaybackVolume(volume) if self.system_volume.is_none() => {
                 self.with_now(|now| replace(&mut now.volume, Some(*volume)))
             }
             Event::SkipAvailable { kind, to } => self.with_now(|now| {
@@ -314,6 +326,17 @@ mod tests {
         assert!(folder.state().now_playing.is_some());
         assert!(folder.event(&ended(false)));
         assert!(folder.state().now_playing.is_none());
+    }
+
+    #[test]
+    fn the_tvs_own_volume_is_shown_over_the_players() {
+        let mut folder = StateFolder::new();
+        folder.volume(30.0);
+        folder.event(&staged());
+        assert_eq!(folder.state().now_playing.as_ref().unwrap().volume, Some(30.0));
+        assert!(!folder.event(&Event::PlaybackVolume(100.0)));
+        assert!(folder.volume(35.0));
+        assert_eq!(folder.state().now_playing.as_ref().unwrap().volume, Some(35.0));
     }
 
     #[test]

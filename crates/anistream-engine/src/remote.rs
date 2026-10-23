@@ -1,8 +1,8 @@
 //! The remote, as a TV runs it beside its engine: phones on the local network pair with the TV
 //! and drive it. The protocol is `anistream-remote`'s, written up in `docs/remote-protocol.md`.
 //!
-//! Built with the `remote` feature only, and wired to nothing yet: no front end starts it, and
-//! the FFI does not offer it. When it is wired, the TV app's FFI build turns the feature on and:
+//! Built with the `remote` feature only. The FFI's `remote` feature turns it on, as Android's
+//! builds do, and `FfiEngine::start_remote` wires it as a TV front end needs:
 //!
 //! - starts a [`TvRemote`] after the engine, with the TV's identity from the host's secrets and
 //!   its paired phones in the data directory;
@@ -12,7 +12,8 @@
 //!   stream to read;
 //! - says what its screen shows with [`TvRemote::set_screen`];
 //! - reads [`FrontIntent`]s off the receiver [`TvRemote::start`] returns: a pairing code to show
-//!   or hide, a title to open, text for the focused field, a key to move the focus by;
+//!   or hide, a title to open, text for the focused field, a key to move the focus by, a step of
+//!   the TV's own volume, which it reports back with [`TvRemote::set_volume`];
 //! - registers [`TvRemote::advert`] with the platform's DNS-SD (NsdManager on Android TV) and
 //!   withdraws it when the remote is switched off.
 //!
@@ -50,8 +51,20 @@ impl TvRemote {
         trust: Arc<dyn TrustStore>,
         options: ServerOptions,
     ) -> Result<(Self, mpsc::UnboundedReceiver<FrontIntent>), Error> {
+        Self::start_with(&engine.remote_sender(), addr, identity, trust, options).await
+    }
+
+    /// [`Self::start`], sending through `sender`: for a holder that keeps the engine behind a
+    /// lock it cannot hold across the bind.
+    pub async fn start_with(
+        sender: &RemoteSender,
+        addr: SocketAddr,
+        identity: Identity,
+        trust: Arc<dyn TrustStore>,
+        options: ServerOptions,
+    ) -> Result<(Self, mpsc::UnboundedReceiver<FrontIntent>), Error> {
         let (front, intents) = mpsc::unbounded_channel();
-        let sink = Arc::new(EngineSink { sender: engine.remote_sender(), front });
+        let sink = Arc::new(EngineSink { sender: sender.clone(), front });
         let server = RemoteServer::bind(addr, identity, trust, sink, options).await?;
         Ok((Self { server }, intents))
     }
@@ -66,6 +79,12 @@ impl TvRemote {
 
     pub fn set_screen(&self, screen: Screen) {
         self.server.set_screen(screen);
+    }
+
+    /// The TV's own volume, out of 100, as the system has it: what phones show in place of the
+    /// player's.
+    pub fn set_volume(&self, percent: f64) {
+        self.server.set_volume(percent);
     }
 
     pub fn advert(&self) -> Advert {

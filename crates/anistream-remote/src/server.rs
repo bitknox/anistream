@@ -178,6 +178,11 @@ impl RemoteServer {
         self.fold(|folder| folder.screen(screen));
     }
 
+    /// The TV's own volume, out of 100, as the system has it now: what remotes show.
+    pub fn set_volume(&self, percent: f64) {
+        self.fold(|folder| folder.volume(percent));
+    }
+
     fn fold(&self, change: impl FnOnce(&mut StateFolder) -> bool) {
         let mut folder = lock(&self.shared.folder);
         if change(&mut folder) {
