@@ -38,6 +38,9 @@ pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
     glib::spawn_future_local(async move {
         // The first page, its lists and their covers.
         wait(4.0).await;
+        if let Some(child) = shell.ctx.window.content() {
+            wide_widgets(&child, 0, shell.ctx.window.width());
+        }
         for shot in &shots {
             let settle = stage(&shell, shot);
             wait(settle).await;
@@ -176,5 +179,26 @@ mod tests {
     fn shots_are_named_or_all() {
         assert_eq!(named(Some("home, title")), ["home", "title"]);
         assert_eq!(named(None).len(), ALL.len());
+    }
+}
+
+/// Warn of each widget whose minimum width is over `limit`, the narrowest of a branch that is:
+/// what keeps a window from fitting its size.
+fn wide_widgets(widget: &gtk::Widget, depth: usize, limit: i32) {
+    let (min, ..) = widget.measure(gtk::Orientation::Horizontal, -1);
+    if min <= limit {
+        return;
+    }
+    let mut over = false;
+    let mut child = widget.first_child();
+    while let Some(c) = child {
+        if c.measure(gtk::Orientation::Horizontal, -1).0 > limit {
+            over = true;
+        }
+        wide_widgets(&c, depth + 1, limit);
+        child = c.next_sibling();
+    }
+    if !over {
+        tracing::warn!(depth, min, kind = %widget.type_(), name = %widget.widget_name(), css = ?widget.css_classes(), "too wide");
     }
 }
