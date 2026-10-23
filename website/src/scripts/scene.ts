@@ -213,10 +213,15 @@ function meteorGlow(px: number, py: number, len: number, a: number, b: number) {
 	return 0;
 }
 
-/** Draws the four planes into the given canvases, sizing each to its plane first. */
+/**
+ * Draws the four planes into the given canvases, sizing each to its plane first. `still` draws the
+ * shower into the sky, as the boards have it, for a page that stays still; with motion the sky
+ * starts clear and the live layer sends a meteor across it now and then.
+ */
 export function renderScene(
 	cfg: SceneConfig,
-	canvases: Record<PlaneName, HTMLCanvasElement>
+	canvases: Record<PlaneName, HTMLCanvasElement>,
+	still = false
 ): SceneState | null {
 	const { W, H, extra } = cfg;
 	const r = rng(cfg.seed);
@@ -247,9 +252,9 @@ export function renderScene(
 		p.img.data[i + 3] = 255;
 	};
 
-	// Sky: night into dusk, stars, the moon and the meteor shower. Rows above the frame stay night.
-	// The canvas gets the boards' frame, meteors and all; the live layer draws its meteors over the
-	// sky without them, which it blends toward the later sky as the page scrolls.
+	// Sky: night into dusk, stars, the moon and, when still, the meteor shower. Rows above the frame
+	// stay night. The live layer draws over the sky without meteors, which it blends toward the
+	// later sky as the page scrolls.
 	for (let yy = 0; yy < H + extra; yy++) {
 		const y = yy - extra;
 		for (let x = 0; x < W; x++) {
@@ -263,7 +268,9 @@ export function renderScene(
 				continue;
 			}
 			let glow = 0;
-			for (const [sx, sy] of cfg.meteors) glow = Math.max(glow, meteorGlow(x - sx, y - sy, cfg.len, 0, cfg.len));
+			if (still) {
+				for (const [sx, sy] of cfg.meteors) glow = Math.max(glow, meteorGlow(x - sx, y - sy, cfg.len, 0, cfg.len));
+			}
 			if (glow > 0.5) {
 				put(sky, x, yy, mix(WATER, CORE, (glow - 0.5) * 2), 1 - 0.04 * seed);
 				put(base, x, yy, dusk, 1 - 0.045 * seed);
@@ -371,28 +378,14 @@ function paintNagare(s: SceneState, pose: Pose) {
 	}
 }
 
-/** One of the shower's meteors through its cycle: it falls, holds, fades from the tail and waits. */
-interface Fall {
-	sx: number;
-	sy: number;
-	t0: number;
-	hold: number;
-	gap: number;
-	landed: boolean;
-}
-
-const FALL = 380;
-const FADE = 950;
-
 /**
  * Keeps the scene alive without changing its composition.
  *
- * The shower falls: each meteor fades from its tail, waits, then falls again from close to where
- * the boards drew it, so the sky keeps two or three of them at a time. The page opens on the drawn
- * frame, with all of them in the sky, and they start fading one by one. One star in four breathes
- * on its own slow cycle, a small shooting star crosses the upper sky every few seconds, and now and
- * then a window in the city switches on or off. Nagare blinks, the wind lifts her scarf, and her
- * charm catches the light when the meteor nearest her lands.
+ * Every 6 to 12 seconds a meteor of the shower crosses the sky, from close to where the boards
+ * draw one, and is gone in under a second; Nagare's charm catches its light as it goes. Between
+ * them a small shooting star crosses the upper sky now and then. One star in four breathes on its
+ * own slow cycle, and a window in the city switches on or off. Nagare blinks, and the wind lifts
+ * her scarf.
  *
  * `evening` runs from 0 to 1 as the scene scrolls away: the dusk sinks toward the horizon and more
  * of the city's windows come on, and both go back on the way up. It draws at the scene's own
@@ -408,8 +401,8 @@ export function liveScene(state: () => SceneState | null, evening: () => number 
 	const TAIL = 8;
 
 	let seen: SceneState | null = null;
-	let falls: Fall[] = [];
-	let nearest = 0;
+	let meteor: { sx: number; sy: number; t0: number; dur: number } | null = null;
+	let nextMeteor = 0;
 	let litAtStart = 0;
 	let pose: Pose = { ...REST };
 	let nextBlink = 0;
@@ -420,31 +413,13 @@ export function liveScene(state: () => SceneState | null, evening: () => number 
 
 	const begin = (s: SceneState, now: number) => {
 		seen = s;
-		const { meteors, nagareX } = s.cfg;
-		// Every meteor starts partway through its hold, so the first frame is the drawn one.
-		falls = meteors.map(([sx, sy], i) => ({
-			sx,
-			sy,
-			t0: now - FALL,
-			hold: 1600 + i * 1100 + 500 * Math.random(),
-			gap: 0,
-			landed: true,
-		}));
-		nearest = meteors.reduce((best, [sx], i) => (Math.abs(sx - nagareX) < Math.abs(meteors[best][0] - nagareX) ? i : best), 0);
+		meteor = null;
+		nextMeteor = now + 2400;
 		litAtStart = s.windows.filter((w) => w.lit).length;
 		pose = { ...REST };
 		nextBlink = now + 2200;
 		nextGust = now + 4200;
 		gustAt = 0;
-	};
-
-	const relaunch = (f: Fall, i: number, now: number, s: SceneState) => {
-		const [ox, oy] = s.cfg.meteors[i];
-		const { moon } = s.cfg;
-		let sx = ox + Math.round((Math.random() - 0.5) * 14);
-		const sy = oy + Math.round((Math.random() - 0.5) * 6);
-		if (Math.hypot(sx - moon.x, sy - moon.y) < moon.r + 8) sx = ox;
-		Object.assign(f, { sx, sy, t0: now, hold: 1400 + 1400 * Math.random(), gap: 400 + 1600 * Math.random(), landed: false });
 	};
 
 	const frame = (now: number) => {
@@ -481,48 +456,46 @@ export function liveScene(state: () => SceneState | null, evening: () => number 
 			d[st.i + 2] = Math.min(255, STAR[2] * a);
 		}
 
-		// The shower.
-		falls.forEach((f, idx) => {
-			let e = now - f.t0;
-			if (e > FALL + f.hold + FADE + f.gap) {
-				relaunch(f, idx, now, s);
-				e = 0;
-			}
-			let a = 0;
-			let b = len;
-			let env = 1;
-			if (e < FALL) {
-				const u = e / FALL;
-				b = len * (1 - (1 - u) * (1 - u));
-			} else if (e < FALL + f.hold) {
-				if (!f.landed) {
-					f.landed = true;
-					if (idx === nearest) glintUntil = now + 260;
-				}
-			} else if (e < FALL + f.hold + FADE) {
-				const u = (e - FALL - f.hold) / FADE;
-				a = len * u * u;
-				env = 1 - 0.7 * u;
-			} else return;
-			if (b - a < 0.5) return;
-			const x0 = Math.max(0, Math.floor(f.sx + a * DX - 3));
-			const x1 = Math.min(W - 1, Math.ceil(f.sx + b * DX + 3));
-			const y0 = Math.max(0, Math.floor(extra + f.sy + a * DY - 3));
-			const y1 = Math.min(H + extra - 1, Math.ceil(extra + f.sy + b * DY + 3));
-			for (let yy = y0; yy <= y1; yy++) {
-				for (let x = x0; x <= x1; x++) {
-					const g = meteorGlow(x - f.sx, yy - extra - f.sy, len, a, b) * env;
-					if (g <= 0) continue;
-					const i = (yy * W + x) * 4;
-					const c: RGB = g > 0.5 ? mix(WATER, CORE, (g - 0.5) * 2) : mix([d[i], d[i + 1], d[i + 2]], WATER, g);
-					d[i] = c[0];
-					d[i + 1] = c[1];
-					d[i + 2] = c[2];
+		// A meteor of the shower: the head runs half again its length past where the boards draw it,
+		// the tail follows at its length, and it fades as it goes.
+		if (!meteor && !shoot && now >= nextMeteor) {
+			const [ox, oy] = s.cfg.meteors[Math.floor(Math.random() * s.cfg.meteors.length)];
+			let sx = ox + Math.round((Math.random() - 0.5) * 14);
+			const sy = oy + Math.round((Math.random() - 0.5) * 6);
+			if (Math.hypot(sx - moon.x, sy - moon.y) < moon.r + 8) sx = ox;
+			meteor = { sx, sy, t0: now, dur: 650 + 200 * Math.random() };
+		}
+		if (meteor) {
+			const u = (now - meteor.t0) / meteor.dur;
+			if (u >= 1) {
+				meteor = null;
+				glintUntil = now + 260;
+				nextMeteor = now + 6000 + 6000 * Math.random();
+				nextShoot = Math.max(nextShoot, now + 2000);
+			} else {
+				const head = 1.5 * len * (1 - (1 - u) * (1 - u));
+				const a = Math.max(0, head - len);
+				const env = Math.min(1, u / 0.1) * Math.min(1, (1 - u) / 0.45);
+				const { sx, sy } = meteor;
+				const x0 = Math.max(0, Math.floor(sx + a * DX - 3));
+				const x1 = Math.min(W - 1, Math.ceil(sx + head * DX + 3));
+				const y0 = Math.max(0, Math.floor(extra + sy + a * DY - 3));
+				const y1 = Math.min(H + extra - 1, Math.ceil(extra + sy + head * DY + 3));
+				for (let yy = y0; yy <= y1; yy++) {
+					for (let x = x0; x <= x1; x++) {
+						const g = meteorGlow(x - sx, yy - extra - sy, len, a, head) * env;
+						if (g <= 0) continue;
+						const i = (yy * W + x) * 4;
+						const c: RGB = g > 0.5 ? mix(WATER, CORE, (g - 0.5) * 2) : mix([d[i], d[i + 1], d[i + 2]], WATER, g);
+						d[i] = c[0];
+						d[i + 1] = c[1];
+						d[i + 2] = c[2];
+					}
 				}
 			}
-		});
+		}
 
-		if (!shoot && now >= nextShoot) {
+		if (!shoot && !meteor && now >= nextShoot) {
 			let x = W * (0.06 + 0.88 * Math.random());
 			const y = extra + horizon * (0.02 + 0.3 * Math.random());
 			if (Math.hypot(x - moon.x, y - extra - moon.y) < moon.r + 12) x = (x + W * 0.4) % W;
