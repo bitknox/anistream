@@ -28,6 +28,7 @@ internal fun startScene(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start
 private fun FixtureScene.ffi(): FfiScene = when (this) {
     FixtureScene.FRESH -> FfiScene.Fresh
     FixtureScene.WATCHING -> FfiScene.Watching
+    FixtureScene.SOURCELESS -> FfiScene.Sourceless
     // What it streams is the player's business, which comes with A3: a path or URL on the device.
     FixtureScene.PLAYING -> FfiScene.Playing(media = fixtureMedia)
 }
