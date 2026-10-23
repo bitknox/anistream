@@ -19,7 +19,7 @@ that is the [source of truth](/docs/reference/architecture/), so none of it need
 
 To play anything you need a source. [Torrent streaming](/docs/guides/torrents-vpn/) is off until
 you choose a VPN mode and the guard passes. A self-hosted API or a plugin are the other routes.
-Sources are external to anistream: nothing is hosted, and using them is your own decision.
+anistream hosts no content, and which sources you use is your own decision.
 
 Sync to AniList, MyAnimeList, Kitsu, Simkl or Trakt is opt-in. Kitsu is on by default and needs
 one sign-in on the Accounts screen. The others need an app you register. See

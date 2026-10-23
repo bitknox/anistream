@@ -131,6 +131,10 @@ class SettingsShots {
     fun phone_settings_downloads() = shoot("phone-settings-downloads", settingsRoute(SettingsPane.Downloads))
 
     @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_about() = shoot("phone-settings-about", settingsRoute(SettingsPane.About))
+
+    @Test
     @Config(qualifiers = TABLET)
     fun tablet_settings() = shoot("tablet-settings", settingsRoute(SettingsPane.Playback))
 

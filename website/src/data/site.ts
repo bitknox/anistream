@@ -14,7 +14,9 @@ export const INSTALL_GUIDE = '/docs/getting-started/installation/';
 export const INSTALL_APPS = `${INSTALL_GUIDE}#the-apps`;
 export const APPS = '/apps/';
 
-export const LEGAL = 'anistream ships no sources of its own and hosts no content. Every source is external.';
+export const LEGAL = 'anistream hosts no content.';
+
+export const PRIVACY = '/docs/privacy/';
 
 export interface AppDownload {
 	/** The id the page's elements carry, and the docs heading's anchor. */

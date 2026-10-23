@@ -788,8 +788,12 @@ internal fun ActionRow(place: Place, title: String, enabled: Boolean = true, onC
 
 // About
 
+/** The privacy page: what anistream sends, where, and what it keeps on the device. */
+internal const val PRIVACY_URL = "https://anistream.tv/docs/privacy/"
+
 @Composable
 internal fun AboutPane() {
+    val store = LocalAppStore.current
     Pane {
         Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Nagare(cell = 6)
@@ -799,6 +803,15 @@ internal fun AboutPane() {
         SettingsGroup(
             footer = LEGAL_LINE,
             rows = listOf(
+                { place ->
+                    InfoRow(
+                        place,
+                        "Privacy",
+                        "What anistream sends, and what stays on this device",
+                        onClick = { store.openExternal(PRIVACY_URL) },
+                        trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    )
+                },
                 { place -> InfoRow(place, "Licence", "MIT, open source and non-commercial") },
                 { place -> InfoRow(place, "Typefaces", "Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1") },
                 { place -> InfoRow(place, "Libraries", "JNA and AndroidX, under the Apache License 2.0") },
