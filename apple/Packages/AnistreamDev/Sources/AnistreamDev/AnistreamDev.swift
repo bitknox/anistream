@@ -1,6 +1,7 @@
 // The Mac dev harness: the app's own window, on the testing engine, from `swift run`.
 
 import AnistreamDesign
+import AnistreamPlayer
 import AnistreamPlayerUI
 import AnistreamStore
 import AnistreamUI
@@ -67,8 +68,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
         // A process started from a terminal is not an app until it says so: no Dock icon, no
         // key window. A snapshot stays out of the Dock; macOS does not let either take focus from
         // what you are doing, so a snapshot shows the window as it looks when it is not key.
-        NSApp.setActivationPolicy(options.snapshot == nil ? .regular : .accessory)
-        if options.snapshot == nil { NSApp.activate() }
+        // Only an app in the Dock goes full screen, so `--full-screen` runs as one.
+        let regular = options.snapshot == nil || options.fullScreenCycles > 0
+        NSApp.setActivationPolicy(regular ? .regular : .accessory)
+        if regular { NSApp.activate() }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -119,6 +122,9 @@ final class Delegate: NSObject, NSApplicationDelegate {
         try? await Task.sleep(for: .milliseconds(400))
         if let motion = MotionDemo.from(), !options.frames.isEmpty, let window = Snapshot.window {
             await frames(of: motion, in: window, to: url)
+        }
+        if options.fullScreenCycles > 0, let window = Snapshot.window {
+            await fullScreenCycles(window: window, url: url)
         }
         do {
             guard let window = Snapshot.window else { throw Snapshot.Problem.noWindow }
@@ -230,6 +236,104 @@ final class Delegate: NSObject, NSApplicationDelegate {
             }
         }
         print("AnistreamDev: one playback throughout: \(player.isPresented), at \(Int(player.position)) s")
+    }
+
+    /// In and out of full screen `--full-screen` times, playing for the first half and paused for
+    /// the rest, with the window shot at each end. Each step says where the picture and the
+    /// window's content view are against the window, which they must fill.
+    private func fullScreenCycles(window: NSWindow, url: URL) async {
+        func waited(_ condition: @MainActor () -> Bool) async -> Bool {
+            let deadline = ContinuousClock.now + .seconds(10)
+            while !condition() {
+                guard ContinuousClock.now < deadline else { return false }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            return true
+        }
+        let cycles = options.fullScreenCycles
+        var misplaced = 0
+        // The ways in and out a viewer mixes: the player's own toggle (its button, F), the
+        // window's green button, which AppKit starts and the player hears of afterwards, a double
+        // click on the video and one in the title bar strip, and the window resized by hand on
+        // the way out.
+        enum Way: String, CaseIterable { case player, window, doubleClick, doubleClickTop, resizedAfter }
+        // ANISTREAM_FULL_SCREEN_WAYS=doubleClick,window picks some, in that order.
+        let ways = ProcessInfo.processInfo.environment["ANISTREAM_FULL_SCREEN_WAYS"].map {
+            $0.split(separator: ",").compactMap { Way(rawValue: String($0)) }
+        } ?? Way.allCases
+        func check(_ name: String, _ there: Bool) {
+            let file = url.deletingPathExtension().appendingPathExtension("\(name).png")
+            try? Snapshot.write(window, to: file)
+            let fits = Self.pictureFillsContent(of: window)
+            if !fits.fills { misplaced += 1 }
+            print(
+                "AnistreamDev: full screen \(name)\(there ? "" : " (did not get there)")\(player.paused ? ", paused" : ""): "
+                    + "picture \(fits.picture), content \(fits.content)\(fits.fills ? "" : ", MISPLACED")")
+        }
+        for cycle in 1...cycles {
+            if cycle > cycles / 2, cycles > 1, !player.paused { player.togglePause() }
+            for on in [true, false] {
+                let way = ways[((cycle - 1) * 2 + (on ? 0 : 1)) % ways.count]
+                switch way {
+                case .player, .resizedAfter: player.fullScreen = on
+                case .window: window.toggleFullScreen(nil)
+                case .doubleClick, .doubleClickTop:
+                    // A double click on the video, as AppKit hands it to the window: posted to
+                    // the app's own queue, so the pointer never moves.
+                    let size = window.contentView?.bounds.size ?? .zero
+                    let point = NSPoint(x: size.width / 2, y: way == .doubleClickTop ? size.height - 20 : size.height / 2)
+                    for count in 1...2 {
+                        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                            if let event = NSEvent.mouseEvent(
+                                with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: count, pressure: 1)
+                            {
+                                NSApp.postEvent(event, atStart: false)
+                            }
+                        }
+                    }
+                }
+                // The pointer moving while the window changes: the controls, and the window's
+                // own buttons with them, fade in and out again during the transition.
+                player.poke()
+                try? await Task.sleep(for: .milliseconds(150))
+                player.hideControls()
+                let there = await waited { window.styleMask.contains(.fullScreen) == on }
+                if way == .resizedAfter, !on {
+                    // Dragged a little larger as soon as the window is back.
+                    var frame = window.frame
+                    frame.size.width += 60
+                    frame.size.height += 40
+                    window.setFrame(frame, display: true)
+                }
+                // The transition's own animation, and the layout after it.
+                try? await Task.sleep(for: .milliseconds(1200))
+                check("\(on ? "in" : "out")-\(cycle)-\(way.rawValue)", there)
+            }
+        }
+        print("AnistreamDev: full screen round trips: \(cycles), misplaced \(misplaced)")
+    }
+
+    /// The picture's frame in the window and the window's content size: the player fills the
+    /// content, in full screen and out of it.
+    private static func pictureFillsContent(of window: NSWindow) -> (fills: Bool, picture: String, content: String) {
+        func host(in view: NSView) -> NSView? {
+            if view is PlayerHostView { return view }
+            for sub in view.subviews { if let found = host(in: sub) { return found } }
+            return nil
+        }
+        guard let content = window.contentView else { return (false, "none", "none") }
+        // Where the content should be: all of the window less its frame, in the window's
+        // coordinates, which the content view's own bounds cannot say when it is the one off.
+        let expected = CGRect(origin: .zero, size: window.contentRect(forFrameRect: window.frame).size)
+        let describe = { (r: CGRect) in "\(Int(r.width))×\(Int(r.height)) at (\(Int(r.minX)), \(Int(r.minY)))" }
+        func same(_ a: CGRect, _ b: CGRect) -> Bool {
+            abs(a.minX - b.minX) < 1 && abs(a.minY - b.minY) < 1 && abs(a.width - b.width) < 1 && abs(a.height - b.height) < 1
+        }
+        let contentFrame = content.convert(content.bounds, to: nil)
+        guard let picture = host(in: content) else { return (false, "none", describe(contentFrame)) }
+        let frame = picture.convert(picture.bounds, to: nil)
+        return (same(frame, expected) && same(contentFrame, expected), describe(frame), "\(describe(contentFrame)) of \(describe(expected))")
     }
 
     /// The frame the floating window was last given, beside the main window's shot.

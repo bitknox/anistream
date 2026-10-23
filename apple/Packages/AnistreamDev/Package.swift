@@ -21,6 +21,7 @@ let package = Package(
                 .product(name: "AnistreamStore", package: "AnistreamStore"),
                 .product(name: "AnistreamDesign", package: "AnistreamDesign"),
                 .product(name: "AnistreamPlayerUI", package: "AnistreamPlayer"),
+                .product(name: "AnistreamPlayer", package: "AnistreamPlayer"),
             ],
             swiftSettings: [.define("FIXTURES")]
         ),
