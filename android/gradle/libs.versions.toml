@@ -37,6 +37,9 @@ ndk = "30.0.16248370"
 cmake = "4.1.2"
 androidx-test-runner = "1.7.0"
 androidx-test-junit = "1.3.0"
+# Compose for TV's components: the navigation drawer, cards, buttons, tabs, chips and lists the TV
+# app is built from. Its lazy layouts were removed; rows and grids are Compose foundation's.
+tv-material = "1.1.0"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -82,4 +85,5 @@ roborazzi-gradle-plugin = { module = "io.github.takahirom.roborazzi:roborazzi-gr
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+tv-material = { module = "androidx.tv:tv-material", version.ref = "tv-material" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
