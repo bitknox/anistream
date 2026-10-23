@@ -1,4 +1,4 @@
-// The TV app's first screen, until the real ones: the player on a stream it is given, with what
+// A player probe beside the TV app: the player on a stream it is given, with what
 // the box makes of it on screen and in logcat, to see what a TV box can play and how.
 
 package tv.anistream.tv

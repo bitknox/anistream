@@ -9,26 +9,36 @@
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <application
+        android:name=".TvApp"
         android:allowBackup="false"
         android:banner="@drawable/banner"
         android:icon="@drawable/banner"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen">
+        android:theme="@style/Theme.Anistream.Tv">
 
         <profileable android:shell="true" />
 
-        <!-- The player probe, for now: plays the stream it is given and reports how. -->
+        <!-- The app: Continue first, the rail beside it. A TV is landscape, so no orientation is
+             fixed. -->
         <activity
-            android:name=".ProbeActivity"
+            android:name=".TvActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation|uiMode"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:screenOrientation="landscape">
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- The player probe beside it, started from adb: plays the stream it is given and
+             reports how. -->
+        <activity
+            android:name=".ProbeActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboard|keyboardHidden|navigation|uiMode"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen" />
     </application>
 </manifest>
