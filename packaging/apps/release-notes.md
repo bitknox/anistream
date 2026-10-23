@@ -11,7 +11,9 @@ your own decision, at your own risk.
 Open the APK on the device. Android asks once whether the app you opened it from, your browser or
 file manager, may install apps: allow it, then choose Install. The APK is signed with anistream's
 release key, so each release installs over the one before and keeps your data. It is not on
-Google Play, and Play Protect may offer to scan it.
+Google Play, and Play Protect may offer to scan it. Once it is installed, the app updates itself
+when you choose Update in its notice or in Settings › About. The first time, Android asks you to
+allow it for anistream too.
 
 ### Mac
 
