@@ -494,6 +494,7 @@ jobs:
       ANDROID_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
       ANDROID_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
       ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+      MAC_UPDATE_ED25519_KEY: ${{ secrets.MAC_UPDATE_ED25519_KEY }}
 
   # Once every build has succeeded: the terminal's files and the apps', with the notes, as a
   # draft, which publishing turns into the release and its tag, marked latest

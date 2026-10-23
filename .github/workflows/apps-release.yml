@@ -7,10 +7,16 @@ name: Apps release
 # and with the tag it will make, and publishes what it built once every build has succeeded.
 # This workflow never publishes anything itself.
 #
+# Each release also carries how the apps update: the Mac's appcast, which offers its .dmg signed
+# with the Mac update key for Sparkle in the app, and the source SideStore and AltStore install
+# the iPhone and iPad app from. Both are named without a version, so releases/latest/download/
+# always has the newest.
+#
 # Its own runs are dry runs, which build everything a release would and keep the files on the run
 # for a week: a pull request that changes how the apps are built or packaged, and a dispatch.
-# A dry run uses the Android release key when the repository's secrets reach it, and leaves the
-# APK unsigned, saying so, when they do not, as on a pull request from a fork.
+# A dry run uses the Android release key and the Mac update key when the repository's secrets
+# reach it, and leaves the APK unsigned and makes no appcast, saying so, when they do not, as on a
+# pull request from a fork.
 #
 # Nothing here is cached by cargo. Each engine is kept by engine.sh's own cache, keyed by the Rust
 # sources with the version a release sets in Cargo.toml, and libmpv by its build script and
@@ -35,6 +41,10 @@ on:
         required: true
       ANDROID_RELEASE_KEY_PASSWORD:
         required: true
+      # The Ed25519 key the Mac app's update and its appcast are signed with: the 32-byte seed in
+      # base64, whose public half is SUPublicEDKey in apple/App/Info.plist.
+      MAC_UPDATE_ED25519_KEY:
+        required: true
   # What decides how a release is built and packaged. CI's own jobs already build the apps for
   # everything else, in Debug and for the Simulator. The patches and libmpv.map count as mpv's
   # build script, which reads them.
@@ -44,6 +54,7 @@ on:
       - .github/workflows/release.yml
       - packaging/**
       - apple/project.yml
+      - apple/App/Info.plist
       - apple/scripts/engine.sh
       - apple/scripts/mpv.sh
       - apple/scripts/adhoc-sign.sh
@@ -454,7 +465,13 @@ jobs:
             check "$plist" CFBundleVersion "$BUILD_NUMBER"
             check "$plist" CFBundleIdentifier tv.anistream.app.widgets
           done
+          # The Mac's updater, and the key and feed it trusts.
+          check "$APP_MAC/Contents/Info.plist" SUFeedURL \
+            "https://github.com/bitknox/anistream/releases/latest/download/appcast.xml"
+          check "$APP_MAC/Contents/Info.plist" SUEnableAutomaticChecks false
+          /usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$APP_MAC/Contents/Info.plist" >/dev/null
           for file in "$APP_MAC/Contents/Frameworks/Mpv.framework/Versions/A/Mpv" \
+            "$APP_MAC/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle" \
             "$APP_MAC/Contents/Resources/NOTICES-libmpv.txt" \
             "$APP_IOS/Frameworks/Mpv.framework/Mpv" "$APP_IOS/NOTICES-libmpv.txt" \
             "$APP_IOS/NOTICES-fonts.txt" "$APP_IOS/SubtitleFonts/NotoSansCJKsc-Regular.otf"; do
@@ -484,6 +501,41 @@ jobs:
 
           cd dist
           for file in "$dmg" "$ipa"; do shasum -a 256 "$file" > "$file.sha256"; done
+
+      # The key goes to a file of the runner's, never into the environment the other steps share.
+      - name: The Mac update key
+        env:
+          KEY: ${{ secrets.MAC_UPDATE_ED25519_KEY }}
+        run: |
+          if [[ -z "$KEY" ]]; then
+            if [[ "$RELEASE" == true ]]; then
+              echo "::error::A release needs the MAC_UPDATE_ED25519_KEY secret, and this run has none."
+              exit 1
+            fi
+            echo "::warning::No Mac update key reaches this run, so it makes no appcast."
+            exit 0
+          fi
+          key="$RUNNER_TEMP/mac-update.key"
+          (umask 077 && printf '%s' "$KEY" > "$key")
+          echo "MAC_UPDATE_KEY_FILE=$key" >> "$GITHUB_ENV"
+
+      # The Mac's appcast, with the .dmg's EdDSA signature, checked against the key the app
+      # carries, and the iPhone and iPad source, with the .ipa's size, checksum and permissions
+      # (packaging/apps/mac-update.sh, packaging/apps/sidestore-source.sh).
+      - name: The appcast and the SideStore source
+        run: |
+          packaging/apps/sidestore-source.sh "$TAG" "$APP_IOS" "dist/anistream-$VERSION-ios-unsigned.ipa" dist
+          if [[ -n "${MAC_UPDATE_KEY_FILE:-}" ]]; then
+            # Sparkle's tools, from the package the Mac build resolved, checked by its checksum.
+            bin="$RUNNER_TEMP/mac/SourcePackages/artifacts/sparkle/Sparkle/bin"
+            if [[ -x "$bin/sign_update" ]]; then export SPARKLE_BIN="$bin"; fi
+            packaging/apps/mac-update.sh "$TAG" "$APP_MAC" "dist/anistream-$VERSION-macos.dmg" \
+              "$MAC_UPDATE_KEY_FILE" dist
+          fi
+
+      - name: Forget the Mac update key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/mac-update.key"
 
       - name: The build's record
         run: |

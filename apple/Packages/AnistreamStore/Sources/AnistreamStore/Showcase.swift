@@ -8,9 +8,10 @@ import Foundation
 #if FIXTURES
 
 /// What a screenshot can ask the Fixtures app to show beside the testing engine's own data, with
-/// `-AnistreamShowcase <name>`: `sources`, `stores`, `downloads`, `invite`, or `all`.
+/// `-AnistreamShowcase <name>`: `sources`, `stores`, `downloads`, `invite`, or `all`; and
+/// `update`, a newer release with its notice, which `all` leaves out.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, all
+    case sources, stores, downloads, invite, update, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -49,6 +50,9 @@ public enum Showcase: String, CaseIterable, Sendable {
                     fingerprint: "9f3c 1a2b 77de 0c41", alreadyJoined: false
                 ))))
                 held.insert("storePreview")
+            case .update:
+                events.append(.update(.available(release: Self.release, notify: true)))
+                held.insert("update")
             case .all:
                 break
             }
@@ -74,6 +78,22 @@ public enum Showcase: String, CaseIterable, Sendable {
                     heldBack: false, name: "Torrent source", version: nil, hosts: [], origin: .builtIn,
                     disabled: false, update: nil),
     ]
+
+    /// A release newer than any build, with a file for each app.
+    static let release: Release = {
+        let file = { (name: String, size: UInt64) in
+            ReleaseAsset(
+                name: name, url: "https://github.com/bitknox/anistream/releases/download/v9.9.0/\(name)",
+                sha256: String(repeating: "0f", count: 32), size: size)
+        }
+        return Release(
+            version: "9.9.0", publishedAt: 1_792_664_639,
+            pageUrl: "https://github.com/bitknox/anistream/releases/tag/v9.9.0",
+            notes: "Smoother calendar\n\nThe calendar scrolls without dropping frames, and the week starts on the day you choose.",
+            macos: file("anistream-9.9.0-macos.dmg", 56_208_258),
+            ios: file("anistream-9.9.0-ios-unsigned.ipa", 59_624_502),
+            android: file("anistream-9.9.0-android-arm64.apk", 81_836_978))
+    }()
 
     static let storeRows: [StoreRow] = [
         StoreRow(id: "hotaru", name: "Hotaru Plugins", url: "https://plugins.hotaru.example", host: "plugins.hotaru.example",
@@ -160,6 +180,7 @@ extension Event {
         case .downloads: "downloads"
         case .seeding: "seeding"
         case .storePreview: "storePreview"
+        case .update: "update"
         default: nil
         }
     }

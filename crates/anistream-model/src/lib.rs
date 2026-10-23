@@ -58,6 +58,7 @@ pub mod show;
 pub mod sources;
 pub mod stores;
 pub mod sync;
+pub mod updates;
 pub mod widgets;
 pub mod wording;
 

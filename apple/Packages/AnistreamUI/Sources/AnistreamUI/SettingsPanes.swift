@@ -565,12 +565,7 @@ struct IntegrationsPane: View {
                 .disabled(!presence)
                 .opacity(presence ? 1 : 0.45)
         }
-        SettingsGroup(title: "Updates") {
-            SettingsRow(title: SettingKey.updateCheck.title, note: "Once a day. Nothing is downloaded until you choose to update.") {
-                SettingSwitch(key: .updateCheck)
-            }
-            SettingsRow(title: AppVersion.long) { EmptyView() }
-        }
+        UpdatesGroup()
     }
 }
 

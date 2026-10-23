@@ -56,9 +56,15 @@ struct NoticeCapsule: View {
                     }
                     withAnimation(.fadeOut) { store.notices.dismiss(item) }
                 }
+            } else if here, let release = store.updates.notice {
+                // A newer release, told by the update check's rules: in the capsule's place
+                // while nothing else is said, until Update or Not Now. Settings keeps offering it.
+                UpdateNotice(release: release)
+                    .transition(.opacity)
             }
         }
         .animation(.fadeIn, value: store.notices.current?.id)
+        .animation(.fadeIn, value: store.updates.notice?.version)
         .modifier(NoticeAnnouncer(enabled: here))
     }
 }

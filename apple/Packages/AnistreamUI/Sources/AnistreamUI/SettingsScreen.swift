@@ -24,8 +24,8 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
         }
     }
 
-    /// The panes this device shows. Integrations is the Mac's: Syncplay, Discord and the update
-    /// check are desktop programs, none of which an iPad or iPhone runs.
+    /// The panes this device shows. Integrations is the Mac's: Syncplay and Discord are desktop
+    /// programs, neither of which an iPad or iPhone runs. The iPad has Updates under Advanced.
     static var shown: [SettingsPane] {
         #if os(macOS)
         allCases
@@ -202,9 +202,18 @@ struct SettingsResults: View {
         ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts),
         ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
         ("Syncplay room", .integrations), ("Discord presence", .integrations),
-        ("Presence shows the title", .integrations), ("Check for updates", .integrations),
+        ("Presence shows the title", .integrations), ("Check for updates", updatesPane),
         ("mpv options", .advanced),
     ].filter { SettingsPane.shown.contains($0.pane) }
+
+    /// Where Updates is: Integrations on the Mac, Advanced on the iPad.
+    static var updatesPane: SettingsPane {
+        #if os(macOS)
+        .integrations
+        #else
+        .advanced
+        #endif
+    }
 
     var body: some View {
         let words = query.lowercased().split(separator: " ")
@@ -513,6 +522,11 @@ struct AdvancedPane: View {
             .opacity(0.6)
             .help("Waits on an engine setting for the player's options")
             SettingsFootnote("Passed to the player as written, after anistream’s own options, so a value here wins. Reset removes them all.")
+            #if os(iOS)
+            // The iPad's: the Mac has these under Integrations, which an iPad does not show.
+            UpdatesGroup()
+                .padding(.top, 24)
+            #endif
         }
     }
 }
