@@ -69,6 +69,10 @@ object TvIcons {
             "M7 10 H7.01 M11 10 H11.01 M15 10 H15.01 M17 10 H17.01 M8 14 H16",
         ),
     )
+    val Phone = icon(
+        "Phone",
+        listOf("M9 3 H15 A2 2 0 0 1 17 5 V19 A2 2 0 0 1 15 21 H9 A2 2 0 0 1 7 19 V5 A2 2 0 0 1 9 3 Z", "M11 18 H13"),
+    )
     val Delete = icon("Delete", listOf("M9 6 H20 V18 H9 L3.5 12 Z", "M12.5 9.5 L16.5 13.5 M16.5 9.5 L12.5 13.5"))
 
     // The player.

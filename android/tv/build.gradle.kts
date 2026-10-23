@@ -43,6 +43,9 @@ dependencies {
     implementation(libs.tv.material)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.lifecycle.process)
+    // The pairing screen's QR code.
+    implementation(libs.zxing.core)
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
 

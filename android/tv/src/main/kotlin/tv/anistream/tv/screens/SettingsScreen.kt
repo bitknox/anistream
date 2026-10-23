@@ -35,12 +35,15 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.launch
 import tv.anistream.design.ObiSilk
+import tv.anistream.engine.ffi.FfiPairedPhone
 import tv.anistream.engine.model.SettingChange
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.SettingsView
 import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AppStore
 import tv.anistream.store.SettingsCatalog
+import tv.anistream.tv.remote.LocalRemoteHost
+import tv.anistream.tv.remote.RemovePhoneDialog
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.EnterFocus
@@ -48,6 +51,7 @@ import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.SafeSpec
 import tv.anistream.tv.ui.ScrollRule
+import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.TvListRow
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.remembered
@@ -233,23 +237,64 @@ fun accountLine(state: SyncState?): String = when {
 
 private fun LazyListScope.remotes(memory: FocusMemory) {
     item(key = "remotes", contentType = "list") {
+        val remote = LocalRemoteHost.current
         val context = LocalContext.current
         val name = remember {
-            runCatching { SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME) }.getOrNull()
+            remote?.name
+                ?: runCatching { SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME) }.getOrNull()
                 ?: "This TV"
         }
+        var removing by remember { mutableStateOf<FfiPairedPhone?>(null) }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             TvListRow("This TV's name for phones", onClick = {}, value = name, modifier = Modifier.remembered(memory, "remote/name"))
-            TvListRow("Pair a phone", onClick = {}, enabled = false, modifier = Modifier.remembered(memory, "remote/pair"))
+            TvListRow(
+                "Pair a phone",
+                onClick = { remote?.openPairing() },
+                enabled = remote != null,
+                modifier = Modifier.remembered(memory, "remote/pair"),
+            )
             TvListRow(
                 "Let phones on this network find this TV",
-                onClick = {},
-                switch = true,
-                enabled = false,
+                onClick = { remote?.let { it.allowFinding(!it.findable) } },
+                switch = remote?.findable ?: false,
+                enabled = remote != null,
                 modifier = Modifier.remembered(memory, "remote/find"),
+            )
+            remote?.phones?.forEach { phone ->
+                TvListRow(
+                    phone.name,
+                    onClick = { removing = phone },
+                    supporting = phoneLine(phone, System.currentTimeMillis() / 1000),
+                    icon = TvIcons.Phone,
+                    modifier = Modifier.remembered(memory, "remote/phone/${phone.fingerprint}"),
+                )
+            }
+        }
+        removing?.let { phone ->
+            RemovePhoneDialog(
+                phone.name,
+                onRemove = {
+                    remote?.remove(phone)
+                    removing = null
+                    memory.focus("remote/pair")
+                },
+                onCancel = { removing = null },
             )
         }
     }
+}
+
+/** "Used today", "Used 3 days ago", or when it paired if it never connected again. */
+fun phoneLine(phone: FfiPairedPhone, now: Long): String {
+    val days = { at: Long -> ((now - at).coerceAtLeast(0) / 86_400).toInt() }
+    val ago = { d: Int ->
+        when (d) {
+            0 -> "today"
+            1 -> "yesterday"
+            else -> "$d days ago"
+        }
+    }
+    return phone.lastSeen?.let { "Used ${ago(days(it))}" } ?: "Paired ${ago(days(phone.pairedAt))}"
 }
 
 private fun LazyListScope.thisTv(memory: FocusMemory) {

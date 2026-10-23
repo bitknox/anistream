@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The remote: the TV's address for the pairing QR code, and its advert on the network, which
+         Android 12 and older drop on Wi-Fi without a multicast lock. Android 17 asks the user
+         before an app reaches the local network. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <!-- A TV app: driven by the remote's D-pad, never a touchscreen, and listed by the leanback
          launcher. Not required, so a phone can install it to test. -->

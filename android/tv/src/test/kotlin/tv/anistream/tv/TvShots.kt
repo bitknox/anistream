@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import java.time.Clock
 import java.time.Instant
@@ -58,6 +59,9 @@ import tv.anistream.testkit.FixtureArt
 import tv.anistream.testkit.Scene
 import tv.anistream.tv.player.CHROME_HIDE
 import tv.anistream.tv.player.TvPlayerScreen
+import tv.anistream.tv.remote.PairPage
+import tv.anistream.tv.remote.PairRequest
+import tv.anistream.tv.remote.PairRequestDialog
 import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
@@ -160,6 +164,28 @@ class TvShots {
     /** The chrome gone again, the skip offer holding Center in the bottom right. */
     @Test
     fun player_skip() = playerShot("tv-player-skip") { time = CHROME_HIDE + 1_000 }
+
+    /** Settings › Remotes › Pair a phone: the QR code, the code beside it, and Done. */
+    @Test
+    fun pair() {
+        compose.setContent {
+            TvTheme {
+                PairPage(name = "Den", code = "042917", link = PAIR_LINK, address = "192.168.1.20:47811", onClose = {})
+            }
+        }
+        compose.waitForIdle()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-pair.png")
+    }
+
+    /** A phone asked to pair: its code over the browse UI, Cancel focused. */
+    @Test
+    fun pair_request() {
+        compose.setContent {
+            TvTheme { PairRequestDialog(PairRequest("042917", "Mika's phone"), onCancel = {}) }
+        }
+        compose.waitForIdle()
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-pair-request.png")
+    }
 
     /** The model's clock, held where a shot puts it. */
     private var time = 0L
@@ -291,6 +317,10 @@ class TvShots {
         const val TV = "w960dp-h540dp-land-television-xhdpi"
 
         const val WATCHING = "watching"
+
+        /** A pairing link as the engine writes one, with a made-up key. */
+        const val PAIR_LINK = "anistream-remote://pair?addr=192.168.1.20:47811&fp=" +
+            "3f9a0c4e7b1d28e5a6c3f0b9d4e7a1c2b5f8e3d6a9c0b7e4f1a2d5c8b3e6f9a0&code=042917"
 
         val ZONE: ZoneId = ZoneId.of("Europe/Copenhagen")
 

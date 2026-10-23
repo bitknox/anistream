@@ -25,10 +25,12 @@ import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiTvRemote
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
@@ -124,6 +126,9 @@ class AppStore(
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
 
+    /** What a phone's remote asks of a TV's front end, once the TV started its remote. */
+    var onRemote: ((FrontIntent) -> Unit)? = null
+
     private val _answers = MutableSharedFlow<Event>(extraBufferCapacity = 8)
 
     /**
@@ -164,6 +169,20 @@ class AppStore(
                 _phase.value = Phase.Failed(e.reason)
                 early.clear()
             }
+        }
+    }
+
+    /**
+     * Start a TV's remote under [name] on [port], off the main thread: `null` with no engine, or
+     * when it could not listen, and why in the log. What it asks comes to [onRemote].
+     */
+    suspend fun startRemote(name: String, port: Int): FfiTvRemote? {
+        val engine = client?.engine ?: return null
+        return try {
+            engine.startRemote(name, port.toUShort())
+        } catch (e: FfiException) {
+            android.util.Log.w("anistream", "the remote did not start: ${e.reason}")
+            null
         }
     }
 
@@ -661,6 +680,7 @@ class AppStore(
             is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
             is Event.UpcomingNotices -> coming.apply(event.v1)
             is Event.Update -> updates.apply(event.v1)
+            is Event.Remote -> onRemote?.invoke(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)
