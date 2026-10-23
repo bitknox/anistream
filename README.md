@@ -106,7 +106,7 @@ macOS:
 
 ```sh
 brew install mpv ffmpeg cmake      # cmake is for wreq's BoringSSL
-rustup toolchain install 1.97.1    # pinned by rust-toolchain.toml
+rustup toolchain install 1.99.1    # pinned by rust-toolchain.toml
 ```
 
 Windows:

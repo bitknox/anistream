@@ -54,15 +54,31 @@ trap 'rm -f "$body"' EXIT
 "$about" generate --locked --fail -c "$here/about.toml" "${args[@]}" -o "$body" "$here/about.hbs"
 
 # The vendored C's notices, which only the clarifications add.
+stale() {
+  echo "generate.sh: $1 is in the build without its vendored code's $2;" >&2
+  echo "generate.sh: its clarification in packaging/rust-licences/about.toml no longer matches" >&2
+  exit 1
+}
+# A notice found by its own words.
 require() {
   local krate="$1" text="$2"
   if grep -q "^  $krate " "$body" && ! grep -qF "$text" "$body"; then
-    echo "generate.sh: $krate is in the build without its vendored code's notice (\"$text\");" >&2
-    echo "generate.sh: its clarification in packaging/rust-licences/about.toml no longer matches" >&2
-    exit 1
+    stale "$krate" "notice (\"$text\")"
   fi
 }
-require boring-sys2 "The OpenSSL Project"
+# A notice in a licence's stock words, which other crates ship too, so found by the licence the
+# crate is listed under: without its clarification, the crate is under its own licence alone.
+require_licence() {
+  local krate="$1" licence="$2"
+  grep -q "^  $krate " "$body" || return 0
+  awk -v krate="  $krate " -v licence="$licence" '
+    previous ~ /^-+$/ { heading = $0 }
+    { previous = $0 }
+    index($0, krate) == 1 && heading == licence { found = 1 }
+    END { exit !found }
+  ' "$body" || stale "$krate" "licence ($licence)"
+}
+require_licence btls-sys "Apache License 2.0"
 require zstd-sys "For Zstandard software"
 
 commit="$(git rev-parse HEAD 2>/dev/null || echo unknown)"

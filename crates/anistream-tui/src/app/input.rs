@@ -410,7 +410,6 @@ impl App {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::app::fixtures::*;
 
     fn setting_row(id: SettingKey) -> usize {
