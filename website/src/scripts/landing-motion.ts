@@ -53,7 +53,7 @@ type Scene = {
 	state: SceneState | null;
 };
 
-function drawScene(still: boolean): Scene | null {
+function drawScene(): Scene | null {
 	const box = $('[data-scene]');
 	if (!box) return null;
 	const canvases = Object.fromEntries(
@@ -88,7 +88,7 @@ function drawScene(still: boolean): Scene | null {
 		const key = `${W}:${cell}:${lift}:${cfg.nagareX}:${cfg.feetRow}`;
 		if (key === drawnFor) return;
 		drawnFor = key;
-		scene.state = renderScene(cfg, canvases, still);
+		scene.state = renderScene(cfg, canvases);
 		for (const p of PLANES) {
 			const c = canvases[p];
 			c.style.width = `${W * cell}px`;
@@ -247,7 +247,7 @@ function buildDemo() {
 let stopLive: (() => void) | null = null;
 
 function full() {
-	const scene = drawScene(false);
+	const scene = drawScene();
 	paintTermCover();
 
 	// While the scene is on screen it stays alive: the shower falls, stars breathe, windows in the
@@ -436,7 +436,7 @@ function full() {
 function reduced() {
 	stopLive?.();
 	stopLive = null;
-	drawScene(true);
+	drawScene();
 	paintTermCover();
 	for (const s of $$('.term .screen')) gsap.set(s, { autoAlpha: s.dataset.screen === 'home' ? 1 : 0 });
 	gsap.set('.term-cover', { autoAlpha: 1 });

@@ -214,14 +214,13 @@ function meteorGlow(px: number, py: number, len: number, a: number, b: number) {
 }
 
 /**
- * Draws the four planes into the given canvases, sizing each to its plane first. `still` draws the
- * shower into the sky, as the boards have it, for a page that stays still; with motion the sky
- * starts clear and the live layer sends a meteor across it now and then.
+ * Draws the four planes into the given canvases, sizing each to its plane first. The sky starts
+ * clear of meteors: with motion the live layer sends one across it now and then, and a page that
+ * stays still keeps just the stars.
  */
 export function renderScene(
 	cfg: SceneConfig,
-	canvases: Record<PlaneName, HTMLCanvasElement>,
-	still = false
+	canvases: Record<PlaneName, HTMLCanvasElement>
 ): SceneState | null {
 	const { W, H, extra } = cfg;
 	const r = rng(cfg.seed);
@@ -252,9 +251,8 @@ export function renderScene(
 		p.img.data[i + 3] = 255;
 	};
 
-	// Sky: night into dusk, stars, the moon and, when still, the meteor shower. Rows above the frame
-	// stay night. The live layer draws over the sky without meteors, which it blends toward the
-	// later sky as the page scrolls.
+	// Sky: night into dusk, stars and the moon. Rows above the frame stay night. The live layer draws
+	// over the sky, blending it toward the later sky as the page scrolls.
 	for (let yy = 0; yy < H + extra; yy++) {
 		const y = yy - extra;
 		for (let x = 0; x < W; x++) {
@@ -265,16 +263,6 @@ export function renderScene(
 			if (dm < cfg.moon.r) {
 				const c = mix([232, 226, 212], [198, 190, 169], dm / cfg.moon.r);
 				for (const p of [sky, base, late]) put(p, x, yy, c, 1 - 0.04 * seed);
-				continue;
-			}
-			let glow = 0;
-			if (still) {
-				for (const [sx, sy] of cfg.meteors) glow = Math.max(glow, meteorGlow(x - sx, y - sy, cfg.len, 0, cfg.len));
-			}
-			if (glow > 0.5) {
-				put(sky, x, yy, mix(WATER, CORE, (glow - 0.5) * 2), 1 - 0.04 * seed);
-				put(base, x, yy, dusk, 1 - 0.045 * seed);
-				put(late, x, yy, later, 1 - 0.045 * seed);
 				continue;
 			}
 			if (seed > 0.988 && y < cfg.horizon * 0.8) {
@@ -288,7 +276,7 @@ export function renderScene(
 				});
 				continue;
 			}
-			put(sky, x, yy, glow > 0 ? mix(dusk, WATER, glow) : dusk, 1 - 0.045 * seed);
+			put(sky, x, yy, dusk, 1 - 0.045 * seed);
 			put(base, x, yy, dusk, 1 - 0.045 * seed);
 			put(late, x, yy, later, 1 - 0.045 * seed);
 		}
