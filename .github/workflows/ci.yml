@@ -27,8 +27,11 @@ env:
 
 jobs:
   # Which parts a pull request touches, so a change to the apps alone does not wait on the whole
-  # Rust matrix, and a change to the engine still runs everything the apps build on. Pushes to
-  # main run every job regardless: their caches are the ones pull requests restore from.
+  # Rust matrix, and a change to the engine still runs everything the apps build on.
+  #
+  # A push to main tests nothing: the pull request tested the merge already. It builds what the
+  # jobs with caches build, so their caches, which pull requests restore from, are main's, and
+  # the checks without a cache do not run at all.
   changes:
     runs-on: ubuntu-latest
     permissions:
@@ -64,10 +67,12 @@ jobs:
             android:
               - 'android/**'
 
-  # The workspace's tests on the Mac and on Windows; Linux's are the linux job's, below. Each
-  # builds once and runs every test from that build: compiling is nearly all of the time (the
-  # 2,300 tests run in half a minute), so splitting the run across runners would only compile
-  # the same code again on each.
+  # The workspace's tests and lint on the Mac and on Windows; Linux's are the linux job's, below.
+  # Each builds once and runs every test from that build: compiling is nearly all of the time
+  # (the 2,300 tests run in half a minute), so splitting the run across runners would only
+  # compile the same code again on each. Clippy follows in the same job rather than one of its
+  # own: it checks dependencies in a different mode and cannot reuse the test build, but a job
+  # of its own waited for a runner of its own, and macOS runners are five at a time.
   test:
     needs: changes
     if: needs.changes.outputs.rust == 'true'
@@ -108,8 +113,11 @@ jobs:
 
       # nextest builds every test target and runs the binaries in parallel, where `cargo test`
       # runs them one after another; a separate build step only compiled the same code twice.
+      # On main, `cargo test --no-run` builds what nextest builds, for the cache, and runs none.
       - name: Test
-        run: cargo nextest run --workspace --profile ci
+        run: >-
+          ${{ github.event_name == 'push' && 'cargo test --workspace --no-run'
+          || 'cargo nextest run --workspace --profile ci' }}
 
       # The engine as the apps build it, without the desktop feature, run here where it can be:
       # what a play and a sign-in through a redirect answer when there is no mpv and no
@@ -119,7 +127,9 @@ jobs:
       # again for it.
       - name: Test the engine without the desktop feature
         if: matrix.os == 'macos-latest'
-        run: cargo nextest run -p anistream-engine --no-default-features --lib --profile ci
+        run: >-
+          ${{ github.event_name == 'push' && 'cargo test -p anistream-engine --no-default-features --lib --no-run'
+          || 'cargo nextest run -p anistream-engine --no-default-features --lib --profile ci' }}
 
       # The FFI's own tests with the test kit, which the workspace above leaves off, on the Mac
       # the Swift packages' engine is built on. Here rather than in the swift job, so the
@@ -127,7 +137,19 @@ jobs:
       # not the apps'.
       - name: The FFI's tests with the test kit
         if: matrix.os == 'macos-latest'
-        run: cargo test -p anistream-ffi --features testing,cli
+        run: cargo test -p anistream-ffi --features testing,cli${{ github.event_name == 'push' && ' --no-run' || '' }}
+
+      # After the tests, and even when they failed, so one run reports both. Still on every OS,
+      # because the Windows named-pipe and macOS paths only exist there. Not on main.
+      - name: Clippy
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      # The engine without its desktop parts, as the apps' builds compile it: a `cfg` the desktop
+      # build never sees can still leave something unused there. Not on Windows, where nothing is
+      # built so.
+      - name: Clippy, the engine without the desktop feature
+        if: ${{ !cancelled() && github.event_name == 'pull_request' && matrix.os == 'macos-latest' }}
+        run: cargo clippy -p anistream-engine --no-default-features --all-targets -- -D warnings
 
   # The workspace's tests on Linux, built once and archived for the mpv jobs below, which run
   # theirs from the archive rather than compiling the workspace each. On 24.04, the older of the
@@ -149,6 +171,7 @@ jobs:
       - name: Build the tests
         run: cargo nextest archive --workspace --archive-file "$RUNNER_TEMP/linux-tests.tar.zst"
       - uses: actions/upload-artifact@v7
+        if: github.event_name == 'pull_request'
         with:
           name: linux-tests
           path: ${{ runner.temp }}/linux-tests.tar.zst
@@ -156,11 +179,22 @@ jobs:
           retention-days: 1
           # Already zstd.
           compression-level: 0
-      # The build above, which cargo finds current.
+      # The build above, which cargo finds current. On main, only built, for the cache.
       - name: Test
+        if: github.event_name == 'pull_request'
         run: cargo nextest run --workspace --profile ci
       - name: Test the engine without the desktop feature
-        run: cargo nextest run -p anistream-engine --no-default-features --lib --profile ci
+        run: >-
+          ${{ github.event_name == 'push' && 'cargo test -p anistream-engine --no-default-features --lib --no-run'
+          || 'cargo nextest run -p anistream-engine --no-default-features --lib --profile ci' }}
+      # Last, and after failed tests too. The mpv jobs start after it, still well inside what the
+      # macOS jobs take.
+      - name: Clippy
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Clippy, the engine without the desktop feature
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: cargo clippy -p anistream-engine --no-default-features --all-targets -- -D warnings
 
   # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
   # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
@@ -170,7 +204,7 @@ jobs:
   #
   # They compile nothing: each runs its tests from the linux job's archive of the workspace's
   # tests, which is built on 24.04, the older image, since what links against its glibc runs on
-  # 26.04's too.
+  # 26.04's too. On main, only mpv's packages are fetched, for their cache.
   mpv:
     needs: [changes, linux]
     if: needs.changes.outputs.rust == 'true'
@@ -219,10 +253,12 @@ jobs:
           key: ${{ steps.debs-cache.outputs.cache-primary-key }}
       - run: mpv --version | head -1
       - uses: actions/download-artifact@v8
+        if: github.event_name == 'pull_request'
         with:
           name: linux-tests
           path: ${{ runner.temp }}
       - name: Test
+        if: github.event_name == 'pull_request'
         run: >-
           cargo nextest run --archive-file "$RUNNER_TEMP/linux-tests.tar.zst"
           --workspace-remap "$GITHUB_WORKSPACE" --profile ci
@@ -230,46 +266,12 @@ jobs:
         env:
           ANISTREAM_REQUIRE_MPV: "1"
 
-  # Its own job rather than a step after the tests, so it runs beside them instead of adding
-  # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
-  # Still on every OS, because the Windows named-pipe and macOS paths only exist there.
-  clippy:
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
-    name: clippy (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-
-    steps:
-      - uses: actions/checkout@v7
-      - run: tools/ci-toolchain.sh
-        shell: bash
-      # On macOS only, whose runners every macOS job queues for: Linux and Windows lint cold in
-      # five and eight minutes, inside what the macOS jobs take, and their caches would push the
-      # ones those jobs need out of the repository's 10 GB.
-      - uses: Swatinem/rust-cache@v2
-        if: matrix.os == 'macos-latest'
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: Install NASM
-        if: matrix.os == 'windows-latest'
-        uses: ilammy/setup-nasm@v1
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      # The engine without its desktop parts, as the apps' builds below compile it: a `cfg` the
-      # desktop build never sees can still leave something unused there. Not on Windows, where
-      # nothing is built so.
-      - if: matrix.os != 'windows-latest'
-        run: cargo clippy -p anistream-engine --no-default-features --all-targets -- -D warnings
-
   # The engine has to run under front ends that are not a terminal, so the layers beneath the
   # terminal front end may never depend on a terminal library. Resolving the tree needs no
   # build, so this is quick.
   boundaries:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -282,7 +284,7 @@ jobs:
   # the workspace is, since the derives are code too.
   ffi:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     # No Rust cache: it held 200 MB for a lint of one crate that takes half a minute without it.
     steps:
@@ -311,41 +313,56 @@ jobs:
       # with them too.
       MACOSX_DEPLOYMENT_TARGET: "26.0"
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      # A push to main builds the testing engine for its cache, if the cache lacks it, and tests
+      # nothing.
+      CHECKS: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@v7
-      - run: tools/ci-toolchain.sh
       # engine.sh's own cache of the slice it built (~/.cache/anistream-engine), by the sources
-      # engine.sh hashes. Saved below, from main only.
+      # engine.sh hashes. Saved below, from main only. Main only looks, since it builds nothing
+      # when the cache has it.
       - name: Restore the engine
         id: engine
         uses: actions/cache/restore@v6
         with:
           path: ~/.cache/anistream-engine/apple
           key: ci-apple-engine-testing-xcode${{ env.XCODE }}-${{ hashFiles('crates/**', 'wit/**', 'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', '.cargo/**', 'apple/scripts/engine.sh') }}
+          lookup-only: ${{ github.event_name == 'push' }}
+      - if: env.CHECKS == 'true' || steps.engine.outputs.cache-hit != 'true'
+        run: tools/ci-toolchain.sh
       # The apple job's cache, read and never written: its release engine for the Mac has every
       # dependency this testing one has, with the same features, profile and target, and only
       # the workspace's own crates differ, which no Rust cache keeps. Not even read when the
       # engine came from its cache and the Rust tests below are skipped, since nothing compiles.
       - uses: Swatinem/rust-cache@v2
-        if: needs.changes.outputs.rust == 'true' || steps.engine.outputs.cache-hit != 'true'
+        if: (env.CHECKS == 'true' && needs.changes.outputs.rust == 'true') || steps.engine.outputs.cache-hit != 'true'
         with:
           shared-key: apple
           save-if: false
       # Mpv.framework, as the apple job built it for the Mac and the Simulator; mpv.sh takes a
       # build with more slices than it is asked for as current.
       - name: libmpv's pin
+        if: env.CHECKS == 'true'
         run: echo "MPV_PIN=$(sed -n 's/^mpvkit=//p' apple/scripts/mpv.sh)" >> "$GITHUB_ENV"
       - name: Restore libmpv
+        if: env.CHECKS == 'true'
         uses: actions/cache/restore@v6
         with:
           path: apple/.mpv/${{ env.MPV_PIN }}
           key: ci-apple-mpv-xcode${{ env.XCODE }}-${{ hashFiles('apple/scripts/mpv.sh', 'apple/patches/**') }}
-      - run: swift --version
+      - if: env.CHECKS == 'true'
+        run: swift --version
       # The player's tests play media apple/scripts/player-media.sh makes with ffmpeg.
-      - run: brew install ffmpeg
+      - if: env.CHECKS == 'true'
+        run: brew install ffmpeg
       # First, so a Swift change that does not compile says so in minutes.
       - name: Swift tests
+        if: env.CHECKS == 'true'
         run: apple/scripts/test.sh
+      # What test.sh builds first, for the cache.
+      - name: The testing engine
+        if: env.CHECKS != 'true' && steps.engine.outputs.cache-hit != 'true'
+        run: apple/scripts/engine.sh testing macos
       - name: Keep the engine
         if: github.ref == 'refs/heads/main' && steps.engine.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
@@ -356,10 +373,13 @@ jobs:
       # testing engine test.sh built, signed to run locally), with the libmpv and subtitle font
       # test.sh made for the player's tests. The Xcode is named outright, since the runner's
       # default moves.
-      - run: brew install xcodegen
+      - if: env.CHECKS == 'true'
+        run: brew install xcodegen
       - name: The project
+        if: env.CHECKS == 'true'
         run: cd apple && xcodegen generate
       - name: Test the Fixtures app on the Mac
+        if: env.CHECKS == 'true'
         run: >-
           xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Fixtures"
           -destination platform=macOS test
@@ -370,6 +390,7 @@ jobs:
       # where it cannot be, the step fails saying so rather than waiting on a password prompt.
       # Time-boxed all the same: a run that hangs ends with the step, not the job.
       - name: Click the Mac player's controls
+        if: env.CHECKS == 'true'
         timeout-minutes: 20
         run: |
           if automationmodetool | grep -q "requires user authentication"; then
@@ -398,53 +419,25 @@ jobs:
       # them. Without the image's ANDROID_NDK_HOME, as engine.sh's clean environment has it:
       # BoringSSL's build script watches it, and seeing it change built BoringSSL again.
       - name: Rust tests, the apps' build
-        if: needs.changes.outputs.rust == 'true'
+        if: env.CHECKS == 'true' && needs.changes.outputs.rust == 'true'
         run: >-
           env -u ANDROID_NDK_HOME
           cargo test -p anistream-ffi --no-default-features --features testing,cli
           --target aarch64-apple-darwin --profile app-dev
 
-  # The engine and its FFI library as an iPhone and the iOS Simulator build them: without the
-  # desktop feature, so without mpv, Syncplay, the loopback sign-in and the keychain crate, and with
-  # plugins run by wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The
-  # part that can break is the C beneath it, built with the runner's Xcode for the iOS SDKs:
-  # BoringSSL (cmake and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers. The app's
-  # minimum, iOS 26, is the deployment target, as apple/scripts/engine.sh builds it.
-  #
-  # Only when the Rust changed: nothing under apple/ goes into these builds, and every macOS job
-  # waits for one of the five macOS runners an account gets at a time.
-  ios:
-    needs: changes
-    if: needs.changes.outputs.rust == 'true'
-    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
-    runs-on: xcode-27
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
-      IPHONEOS_DEPLOYMENT_TARGET: "26.0"
-    steps:
-      - uses: actions/checkout@v7
-      # rust-toolchain.toml lists both iOS targets.
-      - run: tools/ci-toolchain.sh
-      # Its own cache: nothing else here builds for these targets.
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: ios
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-      - name: The engine
-        run: cargo build -p anistream-engine --no-default-features --target aarch64-apple-ios
-      # The static library an app links, and the dynamic one, both linked against the SDK.
-      - name: The FFI library
-        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
-      - name: The FFI library for the Simulator
-        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios-sim
-
   # The Apple app itself, from the XcodeGen project, on the release engine: built for the iOS
   # Simulator with signing off, and for the Mac in Release. The Xcode is named outright, since
   # the runner's default moves. (The Fixtures app, on the testing engine, is the swift job's.)
   #
+  # The engine for an iPhone is built too, though nothing here builds the app for one: the part
+  # that can break there is the C beneath the engine, built with the runner's Xcode for the
+  # iPhone's SDK (BoringSSL with cmake and bindgen, aws-lc, SQLite, zstd and wasmtime's own
+  # helpers). Here rather than in a job of its own, which waited for a macOS runner of its own.
+  #
   # Its engine slices and libmpv are saved from main, for the next pull request and, libmpv, for
   # the swift job, keyed by what their scripts build them from: a pull request that leaves the
-  # Rust alone takes the engines from there and compiles no Rust at all.
+  # Rust alone takes the engines from there and compiles no Rust at all. A push to main builds
+  # only what those caches lack, and no app.
   apple:
     needs: changes
     if: needs.changes.outputs.apple == 'true'
@@ -454,31 +447,40 @@ jobs:
       XCODE: "27.1"
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      CHECKS: ${{ github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@v7
-      - run: tools/ci-toolchain.sh
       # engine.sh's own cache of each slice it built (~/.cache/anistream-engine), by the sources
-      # engine.sh hashes. Saved below, from main only.
+      # engine.sh hashes. Saved below, from main only, which only looks.
       - name: Restore the engines
         id: engine
         uses: actions/cache/restore@v6
         with:
           path: ~/.cache/anistream-engine/apple
-          key: ci-apple-engine-release-xcode${{ env.XCODE }}-${{ hashFiles('crates/**', 'wit/**', 'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', '.cargo/**', 'apple/scripts/engine.sh') }}
-      # Shared with the swift job, which only reads it: what it compiles is a part of this. On a
-      # pull request, not read when every engine came from the cache above, since nothing here
-      # compiles but engine.sh.
+          key: ci-apple-engine-release-ios-xcode${{ env.XCODE }}-${{ hashFiles('crates/**', 'wit/**', 'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', '.cargo/**', 'apple/scripts/engine.sh') }}
+          lookup-only: ${{ github.event_name == 'push' }}
+      - name: Whether the engines are built
+        id: engines
+        run: echo "build=${{ env.CHECKS == 'true' || steps.engine.outputs.cache-hit != 'true' }}" >> "$GITHUB_OUTPUT"
+      - if: steps.engines.outputs.build == 'true'
+        run: tools/ci-toolchain.sh
+      # Shared with the swift job, which only reads it: what it compiles is a part of this. Not
+      # read when every engine came from the cache above, since nothing here compiles but
+      # engine.sh.
       - uses: Swatinem/rust-cache@v2
-        if: github.ref == 'refs/heads/main' || steps.engine.outputs.cache-hit != 'true'
+        if: steps.engine.outputs.cache-hit != 'true'
         with:
           shared-key: apple
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - run: xcodebuild -version
-      - run: brew install xcodegen
+      - if: env.CHECKS == 'true'
+        run: xcodebuild -version
+      - if: env.CHECKS == 'true'
+        run: brew install xcodegen
       # The schemes' pre-actions build these too, but quietly, into a log; built here, a failure
       # says why in the job.
       - name: The engines
-        run: apple/scripts/engine.sh release macos ios-sim
+        if: steps.engines.outputs.build == 'true'
+        run: apple/scripts/engine.sh release macos ios ios-sim
       # libmpv, which both apps embed and their player frameworks check for, kept by what
       # mpv.sh's stamp is made from.
       - name: libmpv's pin
@@ -489,7 +491,9 @@ jobs:
         with:
           path: apple/.mpv/${{ env.MPV_PIN }}
           key: ci-apple-mpv-xcode${{ env.XCODE }}-${{ hashFiles('apple/scripts/mpv.sh', 'apple/patches/**') }}
+          lookup-only: ${{ github.event_name == 'push' }}
       - name: libmpv
+        if: env.CHECKS == 'true' || steps.mpv.outputs.cache-hit != 'true'
         run: apple/scripts/mpv.sh macos ios-sim
       - name: Keep libmpv
         if: github.ref == 'refs/heads/main' && steps.mpv.outputs.cache-hit != 'true'
@@ -499,16 +503,20 @@ jobs:
           key: ${{ steps.mpv.outputs.cache-primary-key }}
       # The CJK subtitle font the iOS app bundles, which its iOS builds check for.
       - name: The subtitle font
+        if: env.CHECKS == 'true'
         run: apple/scripts/fonts.sh
       - name: The project
+        if: env.CHECKS == 'true'
         run: cd apple && xcodegen generate
       - name: Build the app for the iOS Simulator
+        if: env.CHECKS == 'true'
         run: >-
           xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream
           -destination "generic/platform=iOS Simulator" build CODE_SIGNING_ALLOWED=NO
       # Once in Release, as the app is kept: the engine in cargo's release profile beneath it.
       # Last, since that engine takes the place of the app-dev one the builds above link.
       - name: The release engine
+        if: steps.engines.outputs.build == 'true'
         run: ANISTREAM_ENGINE_PROFILE=release apple/scripts/engine.sh release macos
       # Every slice above, for the swift job and the pull requests after this push.
       - name: Keep the engines
@@ -518,6 +526,7 @@ jobs:
           path: ~/.cache/anistream-engine/apple
           key: ${{ steps.engine.outputs.cache-primary-key }}
       - name: Build the app for the Mac in Release
+        if: env.CHECKS == 'true'
         run: >-
           xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream -configuration Release
           -destination platform=macOS build CODE_SIGNING_ALLOWED=NO
@@ -588,7 +597,7 @@ jobs:
       # Android 15 devices can run 16 KB pages, and a library with 4 KB aligned segments does not
       # load on them. And a library that needed libc++_shared.so would have the app ship it.
       - name: The library loads on 16 KB pages and needs only the system's libraries
-        if: needs.changes.outputs.rust == 'true'
+        if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
         run: |
           bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
           so=target/aarch64-linux-android/debug/libanistream_ffi.so
@@ -637,11 +646,21 @@ jobs:
         with:
           path: ~/.m2/repository/org/robolectric
           key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml') }}
+          lookup-only: ${{ github.event_name == 'push' }}
       # libmpv is built by android/scripts/mpv.sh on a developer's Mac, not here: the player module
-      # builds without it and its JNI shim, so its Kotlin compiles and its unit tests run.
+      # builds without it and its JNI shim, so its Kotlin compiles and its unit tests run. On main
+      # only when Robolectric's builds have to be fetched for its cache, which the tests do.
       - name: The fixtures APK and the unit tests
+        if: github.event_name == 'pull_request' || steps.robolectric.outputs.cache-hit != 'true'
         working-directory: android
         run: ./gradlew --console=plain assembleFixturesDebug testFixturesDebugUnitTest -Proborazzi.test.record=true
+        env:
+          ANISTREAM_PLAYER_NATIVE: "off"
+      # Otherwise main builds the same, tests and all, and runs none, for Gradle's cache.
+      - name: The fixtures APK and the unit tests' build
+        if: github.event_name == 'push' && steps.robolectric.outputs.cache-hit == 'true'
+        working-directory: android
+        run: ./gradlew --console=plain assembleFixturesDebug compileFixturesDebugUnitTestKotlin
         env:
           ANISTREAM_PLAYER_NATIVE: "off"
       - name: Keep Robolectric's Android builds
@@ -653,7 +672,7 @@ jobs:
       # The screenshot tests' captures, each board's screen drawn from a recorded scene, to look
       # at beside the boards.
       - uses: actions/upload-artifact@v7
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         with:
           name: android-screenshots
           path: android/.shots/roborazzi/
@@ -663,7 +682,7 @@ jobs:
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.
   admin-page:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -684,7 +703,7 @@ jobs:
   # store-templates runs the committed copies through the whole store journey.
   store-wasm:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -704,7 +723,7 @@ jobs:
   # remove, sign in to the admin page. Nothing else exercises the templates' JavaScript.
   store-templates:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -723,7 +742,7 @@ jobs:
 
   audit:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -742,7 +761,7 @@ jobs:
   # licence cannot be read, fails here rather than in a release.
   licences:
     needs: changes
-    if: needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
