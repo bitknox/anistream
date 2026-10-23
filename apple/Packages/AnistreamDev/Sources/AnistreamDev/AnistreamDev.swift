@@ -91,6 +91,8 @@ final class Delegate: NSObject, NSApplicationDelegate {
             secrets: options.shared ? KeychainSecrets() : MemorySecrets(),
             open: { NSWorkspace.shared.open($0) }
         )
+        // The Mac's updater, rehearsed: it goes through a download and installs nothing.
+        store.updates.installer = RehearsedInstaller()
         await store.start(launch, host: host)
         store.applyWatchedArgument()
 
@@ -101,6 +103,12 @@ final class Delegate: NSObject, NSApplicationDelegate {
         _ = player
         let settled = await store.settle()
         store.applyShowcase()
+        // `-AnistreamUpdating YES`: Update pressed on the showcase's release, for a shot of the
+        // download under way.
+        if ProcessInfo.processInfo.arguments.contains("-AnistreamUpdating") {
+            store.updates.update()
+            try? await Task.sleep(for: .milliseconds(1800))
+        }
         print(settled ? "ANISTREAM_READY" : "AnistreamDev: did not settle; going on")
         if let shot = options.playerShot {
             let there = await player.stage(shot, store: store)

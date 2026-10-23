@@ -72,6 +72,15 @@ final class AppDelegate: NSObject {
         store.continued.send = { [weak phases = self.phases] _ in phases?.downloadsWindowChanged() }
         BackgroundDownloads.install(in: store)
         #endif
+        #if os(macOS)
+        // The Mac updates in place, when the viewer presses Update (MacUpdater). The Fixtures
+        // app goes through the steps and installs nothing.
+        #if FIXTURES
+        store.updates.installer = RehearsedInstaller()
+        #else
+        store.updates.installer = MacUpdater()
+        #endif
+        #endif
         watchPlaying()
     }
 

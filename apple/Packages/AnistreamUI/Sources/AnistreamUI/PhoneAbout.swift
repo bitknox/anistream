@@ -1,9 +1,11 @@
 // About on iPhone, from Settings: what MacAbout's window says, as a page of the settings stack.
-// Nagare, the name, the version, the licence, and the acknowledgements and the website.
+// Nagare, the name, the version, the licence, and the acknowledgements and the website; then
+// updates: the daily check's switch, what it found, and the action.
 
 #if os(iOS)
 import AnistreamDesign
 import AnistreamKit
+import AnistreamStore
 import SwiftUI
 
 struct PhoneAboutPage: View {
@@ -37,6 +39,8 @@ struct PhoneAboutPage: View {
                         .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 17))
                 }
                 .padding(.top, 28)
+                PhoneUpdatesCard()
+                    .padding(.top, 32)
             }
             .frame(maxWidth: .infinity)
             .padding(EdgeInsets(top: 48, leading: 16, bottom: 32, trailing: 16))
