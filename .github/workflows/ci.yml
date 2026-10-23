@@ -39,7 +39,7 @@ jobs:
       apple: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.apple == 'true' }}
       android: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.android == 'true' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -79,7 +79,7 @@ jobs:
         os: [macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       # Installs exactly what rust-toolchain.toml pins. Installing `stable` first only
       # downloaded a second toolchain that the pinned one then replaced. And removes the image's
@@ -138,7 +138,7 @@ jobs:
     name: ubuntu-24.04
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: tools/ci-toolchain.sh
       - uses: Swatinem/rust-cache@v2
         with:
@@ -181,7 +181,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04, ubuntu-26.04]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: rustup toolchain install
       - uses: taiki-e/install-action@v2
         with:
@@ -244,7 +244,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: tools/ci-toolchain.sh
         shell: bash
       # On macOS only, whose runners every macOS job queues for: Linux and Windows lint cold in
@@ -272,7 +272,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: rustup toolchain install
       - run: tools/check-boundaries.sh
 
@@ -286,7 +286,7 @@ jobs:
     runs-on: ubuntu-latest
     # No Rust cache: it held 200 MB for a lint of one crate that takes half a minute without it.
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: rustup toolchain install
       - run: cargo clippy -p anistream-model --features ffi --all-targets -- -D warnings
 
@@ -312,7 +312,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: "26.0"
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: tools/ci-toolchain.sh
       # engine.sh's own cache of the slice it built (~/.cache/anistream-engine), by the sources
       # engine.sh hashes. Saved below, from main only.
@@ -422,7 +422,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # rust-toolchain.toml lists both iOS targets.
       - run: tools/ci-toolchain.sh
       # Its own cache: nothing else here builds for these targets.
@@ -455,7 +455,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: tools/ci-toolchain.sh
       # engine.sh's own cache of each slice it built (~/.cache/anistream-engine), by the sources
       # engine.sh hashes. Saved below, from main only.
@@ -537,7 +537,7 @@ jobs:
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: tools/ci-toolchain.sh aarch64-linux-android
       # The newest NDK the runner has, which links 16 KB aligned (r28 and later), where
       # ANDROID_NDK_HOME may name an older one. And bindgen's clang arguments, for BoringSSL's
@@ -669,7 +669,7 @@ jobs:
       run:
         working-directory: crates/anistream-store-core/admin
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build
@@ -687,7 +687,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: rustup toolchain install && rustup target add wasm32-unknown-unknown
       - name: The committed package matches its sources
         run: deploy/sync.sh --check
@@ -707,7 +707,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: rustup toolchain install
       # No Rust cache: one was 300 MB for a build of one crate's test that takes under two
       # minutes without it.
@@ -726,7 +726,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # A prebuilt binary: compiling cargo-audit from source took two minutes per run.
       - uses: taiki-e/install-action@v2
         with:
@@ -745,7 +745,7 @@ jobs:
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: rustup toolchain install
       - uses: taiki-e/install-action@v2
         with:

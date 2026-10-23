@@ -113,7 +113,7 @@ jobs:
 
       # `inputs.ref` is release.yml's commit. A dispatch has none, and builds its tag, or with no
       # tag either, like a pull request, the ref that started the run.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
 
@@ -347,7 +347,7 @@ jobs:
           echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
 
@@ -580,7 +580,7 @@ jobs:
         run: |
           echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
       - name: The version
@@ -616,7 +616,7 @@ jobs:
     needs: [android, apple, sources]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
       - name: The version
