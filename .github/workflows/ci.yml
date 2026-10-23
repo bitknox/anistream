@@ -686,7 +686,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       # Vercel's functions run on Node 24, and the Netlify and test hosts run on whatever node is
       # first on the path.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       - name: Install each template's dependencies
