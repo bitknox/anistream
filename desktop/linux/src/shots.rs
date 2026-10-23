@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 18] = [
+pub const ALL: [&str; 20] = [
     "home",
     "calendar",
     "seasonal",
@@ -37,6 +37,8 @@ pub const ALL: [&str; 18] = [
     "settings-accounts",
     "about",
     "player",
+    "player-marks",
+    "mini",
     "close",
 ];
 
@@ -52,7 +54,9 @@ pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
             let settle = stage(&shell, shot);
             wait(settle).await;
             let path = dir.join(format!("{prefix}{shot}.png"));
-            match capture(&shell.ctx.window, &path) {
+            let over = if shot == "player-marks" { shell.player.shot_popover() } else { None };
+            let taken = capture(&shell.ctx.window, &path, over);
+            match taken {
                 Ok(()) => tracing::info!(path = %path.display(), "a shot"),
                 Err(e) => tracing::error!(shot, error = %e, "a shot did not save"),
             }
@@ -140,17 +144,28 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             1.5
         }
         "player" => {
-            let (id, episode) = PLAYING;
-            let _ = WidgetExt::activate_action(
-                window,
-                "win.play",
-                Some(&(id, episode.to_owned()).to_variant()),
-            );
-            // Paused once it plays, so the controls stay up.
-            let hub = Rc::clone(&shell.ctx.hub);
-            glib::timeout_add_local_once(Duration::from_secs(7), move || {
-                hub.send(Command::Player(anistream_model::command::PlayerCommand::TogglePause));
-            });
+            play(shell);
+            9.0
+        }
+        "player-marks" => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_secs(4), move || {
+                    player.shot_marks("/out/media/lantern-road.srt");
+                });
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_millis(8500), move || {
+                    player.shot_preview(0.4);
+                });
+            }
+            10.0
+        }
+        "mini" => {
+            play(shell);
+            let player = Rc::clone(&shell.player);
+            glib::timeout_add_local_once(Duration::from_secs(5), move || player.set_mini(true));
             9.0
         }
         "close" => {
@@ -176,9 +191,23 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
                 nav.pop();
             }
         }
-        "player" => shell.player.close(),
+        "player" | "player-marks" | "mini" => shell.player.close(),
         _ => {}
     }
+}
+
+/// Play the player shots' episode, paused once it plays so the controls stay up.
+fn play(shell: &Rc<Shell>) {
+    let (id, episode) = PLAYING;
+    let _ = WidgetExt::activate_action(
+        &shell.ctx.window,
+        "win.play",
+        Some(&(id, episode.to_owned()).to_variant()),
+    );
+    let hub = Rc::clone(&shell.ctx.hub);
+    glib::timeout_add_local_once(Duration::from_secs(7), move || {
+        hub.send(Command::Player(anistream_model::command::PlayerCommand::TogglePause));
+    });
 }
 
 /// The join dialog with an invite pasted, and the showcase's answer to checking it.
@@ -203,7 +232,11 @@ fn close_dialogs(window: &adw::ApplicationWindow) {
 }
 
 /// Draw the window, dialogs and all, into a PNG at its own scale.
-fn capture(window: &adw::ApplicationWindow, path: &std::path::Path) -> Result<(), String> {
+fn capture(
+    window: &adw::ApplicationWindow,
+    path: &std::path::Path,
+    over: Option<(gtk::Widget, f32, f32)>,
+) -> Result<(), String> {
     let (width, height) = (window.width(), window.height());
     if width <= 0 || height <= 0 {
         return Err("the window has no size".into());
@@ -211,7 +244,21 @@ fn capture(window: &adw::ApplicationWindow, path: &std::path::Path) -> Result<()
     let paintable = gtk::WidgetPaintable::new(Some(window));
     let snapshot = gtk::Snapshot::new();
     paintable.snapshot(&snapshot, f64::from(width), f64::from(height));
-    let node = snapshot.to_node().ok_or("nothing drawn")?;
+    // A popover is a surface of its own, which the window's drawing leaves out: drawn on top.
+    if let Some((widget, x, y)) = over {
+        let popover = gtk::WidgetPaintable::new(Some(&widget));
+        snapshot.save();
+        snapshot.translate(&gtk::graphene::Point::new(x, y));
+        popover.snapshot(&snapshot, f64::from(widget.width()), f64::from(widget.height()));
+        snapshot.restore();
+    }
+    let node = snapshot.to_node().ok_or_else(|| {
+        format!(
+            "nothing drawn: {width}x{height}, mapped {}, decorated {}",
+            window.is_mapped(),
+            window.is_decorated()
+        )
+    })?;
     let renderer = window.renderer().ok_or("no renderer")?;
     let bounds = gtk::graphene::Rect::new(0.0, 0.0, width as f32, height as f32);
     let texture = renderer.render_texture(&node, Some(&bounds));

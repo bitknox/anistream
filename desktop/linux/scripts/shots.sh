@@ -25,6 +25,10 @@ if [ ! -f "$media" ]; then
     -t 60 -c:v libx264 -preset veryfast -pix_fmt yuv420p -c:a aac "$media"
 fi
 
+# A subtitle over the whole pattern, for the shot that shows it raised above the controls.
+printf '1\n00:00:00,000 --> 00:01:00,000\nThe lantern road runs on past the last town.\n' \
+  >/out/media/lantern-road.srt
+
 Xvfb :99 -screen 0 1600x1000x24 -nolisten tcp >/out/xvfb.log 2>&1 &
 xvfb=$!
 trap 'kill $xvfb 2>/dev/null || true' EXIT
