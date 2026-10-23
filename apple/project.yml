@@ -427,6 +427,22 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.audit-tests
         TEST_TARGET_NAME: Anistream Fixtures
 
+  # The Mac player's controls, clicked as a person clicks them (MacPlayerTests): XCUITest's
+  # clicks go through the window server, where the window's title bar and background can take
+  # them before the controls do. The Mac only; run with the Mac Player scheme.
+  AnistreamMacPlayerTests:
+    type: bundle.ui-testing
+    supportedDestinations: [macOS]
+    templates: [Fixtures]
+    sources: [MacPlayerTests]
+    dependencies:
+      - target: Anistream Fixtures
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.mac-player-tests
+        TEST_TARGET_NAME: Anistream Fixtures
+
 schemes:
   Anistream:
     build:
@@ -488,3 +504,20 @@ schemes:
       config: Debug
       targets:
         - AnistreamAuditTests
+
+  # xcodebuild -scheme "Anistream Mac Player" -destination platform=macOS test
+  Anistream Mac Player:
+    build:
+      targets:
+        Anistream Fixtures: all
+        AnistreamMacPlayerTests: [test]
+      preActions:
+        - name: Build the engine
+          settingsTarget: Anistream Fixtures
+          script: |
+            mkdir -p "$PROJECT_DIR/.engine"
+            "$PROJECT_DIR/scripts/engine.sh" testing "$ANISTREAM_SLICE" > "$PROJECT_DIR/.engine/testing.log" 2>&1
+    test:
+      config: Debug
+      targets:
+        - AnistreamMacPlayerTests

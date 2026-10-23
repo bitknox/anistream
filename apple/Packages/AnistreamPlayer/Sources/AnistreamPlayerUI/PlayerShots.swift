@@ -12,6 +12,9 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     case starting
     /// Playing, with the controls up (MacPlayer, PhonePlayer).
     case playing
+    /// Playing, with the controls left to fade 2 s after the last input, as they do: for the
+    /// Mac's click test (apple/MacPlayerTests), which brings them back with the pointer.
+    case fading
     /// The opening's skip, with the controls hidden (PhonePlayerSkip).
     case skip
     /// Up Next counting down from the ending (MacPlayer, PhonePlayerUpNext).
@@ -67,6 +70,9 @@ extension PlayerModel {
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
             pinnedControls = true
+        case .fading:
+            seek(to: 31)
+            there = await waited(10) { self.position >= 31.5 }
         case .skip:
             seek(to: 7)
             there = await waited(10) { self.skip != nil && self.position >= 7.5 }
