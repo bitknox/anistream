@@ -67,9 +67,6 @@ no store and lists none, so every store you see is one someone sent you. See
 [running a store](https://anistream.tv/docs/plugins/running-a-store/) and
 [writing a plugin](https://anistream.tv/docs/plugins/authoring/).
 
-anistream hosts no content. Which sources you use, and what you point them at, is your own
-decision.
-
 ## Build from source
 
 The Rust toolchain version is pinned in `rust-toolchain.toml`, and `rustup` installs it. For the
@@ -94,7 +91,7 @@ cargo clippy --workspace --all-targets
 
 | Folder | What it holds |
 | --- | --- |
-| `crates/` | The Rust workspace: the engine, the terminal app, the trackers, the plugin sandbox, the plugin store and the FFI layer the apps use. See [crates/CLAUDE.md](crates/CLAUDE.md). |
+| `crates/` | The Rust workspace: the engine, the terminal app, the trackers, the plugin sandbox, the plugin store and the FFI layer the apps use |
 | `apple/` | The SwiftUI app for Mac, iPhone and iPad |
 | `android/` | The Kotlin and Compose app for Android |
 | `plugins/` | Example plugins in Rust and TypeScript |
