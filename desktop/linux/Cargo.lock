@@ -109,17 +109,25 @@ version = "0.0.0"
 dependencies = [
  "anistream-core",
  "anistream-engine",
+ "anistream-meta",
  "anistream-model",
  "anistream-mpv-host",
  "anistream-net",
+ "anistream-providers",
  "anistream-store",
+ "anistream-testkit",
+ "anistream-track",
  "async-channel",
  "gdk4-wayland",
  "gdk4-wayland-sys",
  "gdk4-x11",
  "gdk4-x11-sys",
  "gtk4",
+ "image",
  "libadwaita",
+ "pango",
+ "pangocairo",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -312,6 +320,19 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "anistream-testkit"
+version = "2.0.0"
+dependencies = [
+ "anistream-core",
+ "anistream-meta",
+ "anistream-net",
+ "anistream-providers",
+ "anistream-store",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -3578,6 +3599,31 @@ dependencies = [
  "glib-sys",
  "gobject-sys",
  "libc",
+ "system-deps 9.0.1",
+]
+
+[[package]]
+name = "pangocairo"
+version = "0.22.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd199a0fef965b3ebda91a929a1ab5e7729538882c68e8de38e1904d2e094757"
+dependencies = [
+ "cairo-rs",
+ "glib",
+ "pango",
+ "pangocairo-sys",
+]
+
+[[package]]
+name = "pangocairo-sys"
+version = "0.22.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a649a616d67ae68539bc85f00fb45d36fba742ed20fc20e6712a15d8ee52bd3f"
+dependencies = [
+ "cairo-sys-rs",
+ "glib-sys",
+ "libc",
+ "pango-sys",
  "system-deps 9.0.1",
 ]
 
