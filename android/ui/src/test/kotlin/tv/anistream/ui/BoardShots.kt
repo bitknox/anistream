@@ -13,6 +13,10 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollToKeyAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -191,6 +195,41 @@ class BoardShots {
     @Config(qualifiers = TABLET)
     fun tablet_title() = shoot("tablet-title", WATCHING, title = 900001u)
 
+    // A title no source has: its episodes AniList's alone, marked watched as any are, and the way
+    // to a source in Play's place.
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_no_sources() = shoot("phone-title-no-sources", WATCHING, title = 900001u, sourceless = true)
+
+    /** Its rows as any are, but a tap opens their options rather than playing. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_episodes_no_sources() =
+        shoot("phone-title-episodes-no-sources", WATCHING, title = 900001u, sourceless = true) {
+            toEpisodes()
+            val rows = compose.onAllNodes(hasClickAction() and hasAnyDescendant(hasText("E8 \u00b7", substring = true)), useUnmergedTree = true)
+            rows.onFirst().assert(SemanticsMatcher("opens its options on a tap") { it.config.getOrNull(SemanticsActions.OnClick)?.label == "Episode options" })
+        }
+
+    /** A row's options offer to add a source, which opens Providers. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_no_sources_to_providers() =
+        shoot("phone-title-no-sources-to-providers", WATCHING, title = 900001u, sourceless = true) {
+            toEpisodes()
+            compose.onAllNodesWithText("E8 \u00b7", substring = true).onFirst().performClick()
+            compose.waitForIdle()
+            // The page's own button, scrolled away, and the menu's item, which is the last.
+            compose.onAllNodesWithText(ADD_A_SOURCE).onLast().performClick()
+            compose.waitForIdle()
+            compose.onAllNodesWithText(ADD_A_SOURCE).assertCountEquals(0)
+        }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_title_no_sources() = shoot("tablet-title-no-sources", WATCHING, title = 900001u, sourceless = true)
+
     // The episodes from the last one watched, the watched ones before it folded, and unfolded.
 
     @Test
@@ -291,13 +330,14 @@ class BoardShots {
         query: String? = null,
         /** Whether every transition runs to its end before the capture; else it is taken where [then] left the clock. */
         settle: Boolean = true,
+        sourceless: Boolean = false,
         then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         // The art the screens ask for, as the fake AniList serves it.
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
-        val events = recorded.events.filter(::replayed)
+        val events = recorded.events.filter(::replayed).map { if (sourceless) withoutSources(it) else it }
         store.apply(events)
 
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
@@ -381,6 +421,17 @@ class BoardShots {
 
         /** The zone the shots read their days and times in, wherever they run. */
         val ZONE: ZoneId = ZoneId.of("Europe/Copenhagen")
+
+        /**
+         * [event] as the engine says it with no source set up: no providers, and every table from
+         * AniList's data alone. The fixtures' source lists the same numbers, titles and stills as
+         * AniList's listings, so its tables stand in for AniList's, marked so.
+         */
+        fun withoutSources(event: Event): Event = when (event) {
+            is Event.Providers -> Event.Providers(emptyList())
+            is Event.Episodes -> Event.Episodes(event.id, event.rows.map { it.copy(metadataOnly = true) })
+            else -> event
+        }
 
         /** What a screenshot replays: not the jobs, whose progress line would show half-run. */
         fun replayed(event: Event): Boolean = when (event) {

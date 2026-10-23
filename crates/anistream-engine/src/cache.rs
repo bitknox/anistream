@@ -235,7 +235,7 @@ impl TitleCache {
         skip_filler: bool,
         kind: PlayKind,
     ) -> PlayHints {
-        let rows = self.rows(id).unwrap_or_default();
+        let rows = self.listed(id).unwrap_or_default();
         let next = progress::next_up(rows, episode, skip_filler).map(|row| NextEpisode {
             number: row.number.clone(),
             title: row.title.clone(),
@@ -317,11 +317,19 @@ impl TitleCache {
         self.table.as_ref().filter(|(table, _)| *table == id).map(|(_, rows)| rows.as_slice())
     }
 
-    /// An episode's own name, from the table loaded last when it is this title's: what Now
-    /// Playing shows under the title. `None` for any other title's, rather than another
-    /// show's episode name.
+    /// [`Self::rows`], when a source listed them: what a play takes of a title's episodes, its
+    /// next one, its filler and its names. A table from AniList's data alone lists what no
+    /// source here has, and numbers it as no source may, so a play is told of none of it and
+    /// loads its own, as for a title with no table.
+    pub(crate) fn listed(&self, id: AnilistId) -> Option<&[EpisodeRow]> {
+        self.rows(id).filter(|rows| !rows.iter().any(|row| row.metadata_only))
+    }
+
+    /// An episode's own name, from the table loaded last when it is this title's and a source
+    /// listed it: what Now Playing shows under the title. `None` for any other title's, rather
+    /// than another show's episode name.
     pub fn episode_title(&self, id: AnilistId, episode: &str) -> Option<String> {
-        let row = self.rows(id)?.iter().find(|row| row.number == episode)?;
+        let row = self.listed(id)?.iter().find(|row| row.number == episode)?;
         row.title.clone()
     }
 
@@ -476,6 +484,7 @@ mod tests {
             skippable: false,
             airs_at: None,
             delayed_from: None,
+            metadata_only: false,
         }
     }
 
@@ -540,6 +549,30 @@ mod tests {
             cache.hints(id, "3", false, PlayKind::Staged).title,
             "Hoshikuzu (downloaded)"
         );
+    }
+
+    #[test]
+    fn a_table_from_anilist_alone_is_marked_on_but_tells_a_play_nothing() {
+        let id = AnilistId::new(7);
+        let mut cache = TitleCache::default();
+        cache.observe(&Event::Detail(Box::new(Entry::new(id, "Hoshikuzu no Tabibito"))), None);
+        let table: Vec<_> = rows(1..=3)
+            .into_iter()
+            .map(|row| EpisodeRow { metadata_only: true, ..row })
+            .collect();
+        cache.observe(&Event::Episodes { id, rows: table }, None);
+        // No Up Next, no Episodes menu and no names from it: no source numbers it so.
+        let PlayHints { next, episodes, .. } = cache.hints(id, "1", false, PlayKind::Staged);
+        assert_eq!((next, episodes.len()), (None, 0));
+        assert_eq!(cache.episode_title(id, "2"), None);
+        // Marked on all the same, and said whole with the title.
+        let marked = cache.marked(id, &["1".into()], true, |_| true);
+        let Some(Event::Progress { episodes, .. }) = marked.and_then(|id| cache.progress(id))
+        else {
+            panic!("the mark is answered")
+        };
+        let done: Vec<_> = episodes.iter().map(|e| (e.number.as_str(), e.completed)).collect();
+        assert_eq!(done, [("1", true), ("2", false), ("3", false)]);
     }
 
     /// Moved from the App's `another_titles_rows_never_speak_for_the_one_opened_after_them`:

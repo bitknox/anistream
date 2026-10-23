@@ -332,31 +332,6 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
 }
 
 #[tokio::test]
-async fn a_title_no_source_has_gets_an_empty_table_and_then_the_reason() {
-    let mut h = harness(ProviderRegistry::new(vec![MockProvider::new("fixture").arc()])).await;
-    let job = h.send(Command::LoadEpisodes(FINISHED));
-    let updates = h.settle().await;
-
-    assert_eq!(names(&updates), ["Episodes", "Toast", "JobDone"]);
-    assert!(numbers(&updates[0]).is_empty());
-    assert_eq!(toasts(&updates), ["alert: could not list episodes: fixture found no matches"]);
-    ends(&updates, job);
-}
-
-#[tokio::test]
-async fn with_no_sources_at_all_the_table_is_refused_before_asking_anyone() {
-    let mut h = harness(ProviderRegistry::new(Vec::new())).await;
-    let job = h.send(Command::LoadEpisodes(FINISHED));
-    let updates = h.settle().await;
-
-    assert_eq!(names(&updates), ["Episodes", "Toast", "JobDone"]);
-    assert!(numbers(&updates[0]).is_empty());
-    assert_eq!(toasts(&updates), ["alert: no sources configured"]);
-    ends(&updates, job);
-    assert!(h.server().requests().is_empty());
-}
-
-#[tokio::test]
 async fn a_pinned_source_lists_its_own_episodes() {
     let mut h = harness(with_alt()).await;
     h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
@@ -405,7 +380,7 @@ async fn releases_that_cannot_be_listed_are_a_toast() {
     let job = h.send(Command::LoadSources { id: FINISHED, episode: "1".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
-    assert_eq!(toasts(&updates), ["alert: no sources configured — see the Providers screen"]);
+    assert_eq!(toasts(&updates), ["alert: no sources configured: see the Providers screen"]);
     ends(&updates, job);
 
     let mut h = harness(unsure()).await;

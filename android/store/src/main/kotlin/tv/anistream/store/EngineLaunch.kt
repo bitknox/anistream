@@ -193,6 +193,9 @@ enum class FixtureScene {
     /** Signed in to the fake AniList, with four titles under way. */
     WATCHING,
 
+    /** [WATCHING] with no source set up: every title's episodes are AniList's alone. */
+    SOURCELESS,
+
     /** A scene that plays, with the first six episodes of the first fixture watched. */
     PLAYING;
 

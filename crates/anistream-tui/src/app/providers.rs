@@ -58,7 +58,11 @@ impl App {
 
     /// The Providers table as it stands.
     pub(super) fn apply_providers(&mut self, rows: Vec<ProviderRow>) {
+        let had = self.providers.iter().any(|row| row.usable);
         self.providers = rows;
+        if !had && self.providers.iter().any(|row| row.usable) {
+            self.sources_arrived();
+        }
         // The cursor stays in range: a removed plugin shortens the table under it.
         let last = self.providers.len().saturating_sub(1);
         self.cursors.providers.selected = self.cursors.providers.selected.min(last);

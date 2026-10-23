@@ -3,8 +3,8 @@
 #
 #   apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [shot…]
 #
-# A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default)
-# or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
+# A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default),
+# sourceless (watching with no source set up) or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
 # palette=<words>, with more joined by +: pane=<Settings pane>, sheet=<torrent|join|kitsu|update|
 # show|about>, showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`, and
@@ -40,7 +40,7 @@ players=(player-starting player-playing player-skip player-up-next player-still-
   player-buffering player-scrubbing player-picture-in-picture)
 
 usage() {
-  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
+  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
   exit 2
 }
 
@@ -62,7 +62,7 @@ for shot in "${shots[@]}"; do
 done
 shots=("${expanded[@]}")
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | fresh) ;; player-*) ;; *) usage ;; esac
+  case "${shot%%:*}" in watching | sourceless | fresh) ;; player-*) ;; *) usage ;; esac
   if [[ "$shot" == player-* && ! " ${players[*]} " == *" $shot "* ]]; then usage; fi
 done
 

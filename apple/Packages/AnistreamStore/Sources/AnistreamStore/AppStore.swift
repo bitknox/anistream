@@ -249,6 +249,15 @@ public final class AppStore {
         send(.loadEpisodes(id))
     }
 
+    /// Sources are ready where none were: each title whose episodes are AniList's alone is asked
+    /// for them again, however lately it was, so its list takes its source's numbering.
+    private func sourcesArrived() {
+        for id in titles.unlistedTitles {
+            asked[.episodes(id)] = nil
+            loadEpisodes(id)
+        }
+    }
+
     /// A question about one title.
     private enum TitleQuestion: Hashable {
         case detail(AnilistId)
@@ -411,7 +420,9 @@ public final class AppStore {
             providers.meta(rows)
 
         case .providers(let rows):
+            let had = providers.rows.contains { $0.usable }
             providers.apply(rows)
+            if !had, rows.contains(where: { $0.usable }) { sourcesArrived() }
         case .providerNote(let text):
             providers.note(text)
         case .sourcesChanged:

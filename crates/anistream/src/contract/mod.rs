@@ -7,8 +7,9 @@
 //! more than one test reads them. Nothing compares `Debug` output, which would churn at every
 //! change of a field's type.
 //!
-//! Grouped by feature: the lists and loads, a title's page and its sources, settings, watching
-//! and the trackers, downloads and keep next, plugin stores, and the rules every job keeps. Playback is here
+//! Grouped by feature: the lists and loads, a title's page and its sources, a title no source
+//! lists, settings, watching and the trackers, downloads and keep next, plugin stores, and the
+//! rules every job keeps. Playback is here
 //! as far as it goes without a player: what a playback says moves a title on, and leads the
 //! engine to the next play, which a source with no stream lets it start and look up. The
 //! player itself needs mpv, and the engine's `tests/binge.rs` covers it.
@@ -25,6 +26,7 @@ mod stores;
 mod title;
 mod titles;
 mod watch;
+mod without_sources;
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{catalog::ContentList, event::Event, jobs::JobId, notice::NoticeKind};

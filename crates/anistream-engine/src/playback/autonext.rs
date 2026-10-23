@@ -151,7 +151,7 @@ pub fn follow(
     let follow = match event {
         Event::PlaybackEnded { ending: Ending::Complete { next: Some(next) }, .. } => finished
             .map(|finished| {
-                let rows = cache.rows(finished.id).unwrap_or_default();
+                let rows = cache.listed(finished.id).unwrap_or_default();
                 let episode = after_filler(rows, next.clone(), skip_filler);
                 if episode != *next {
                     said.push(Event::Toast(Notice::info(format!(
@@ -209,6 +209,7 @@ mod tests {
                 skippable: filler.contains(&n),
                 airs_at: None,
                 delayed_from: None,
+                metadata_only: false,
             })
             .collect();
         let mut cache = TitleCache::default();

@@ -734,7 +734,8 @@ private fun SeasonPage(
                 }
             }
             if (loaded) {
-                item(key = "actions", contentType = "actions") { Box(itemMotion()) { TitleActions(entry, actions) } }
+                val unlisted = episodes?.firstOrNull()?.metadataOnly == true
+                item(key = "actions", contentType = "actions") { Box(itemMotion()) { TitleActions(entry, actions, unlisted) } }
                 val synopsis = synopsisWithoutSpoilers(entry.synopsis)
                 if (synopsis.isNotEmpty()) item(key = "synopsis", contentType = "synopsis") { Box(itemMotion()) { Synopsis(synopsis) } }
                 item(key = "facts", contentType = "facts") { Box(itemMotion()) { FactsLines(entry) } }
@@ -1048,14 +1049,19 @@ private fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVect
     }
 }
 
-/** The one amber action, then the list it is on and its trailer. */
+/**
+ * The one amber action, then the list it is on and its trailer. With the episodes AniList's alone,
+ * [unlisted], there is nothing to play: the way to a source in the action's place.
+ */
 @Composable
-private fun TitleActions(entry: Entry, actions: AppActions) {
+private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
     val store = LocalAppStore.current
     val action = TitleAction.of(entry)
     val colors = MaterialTheme.colorScheme
     Column(Modifier.padding(horizontal = 16.dp).padding(top = 16.dp)) {
-        if (action.playable) {
+        if (action.playable && unlisted) {
+            AddSourceButton(Modifier.fillMaxWidth().heightIn(min = 56.dp))
+        } else if (action.playable) {
             Button(
                 onClick = { actions.play(entry.id, action.episode.toString()) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
@@ -1111,6 +1117,22 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
         }
     }
 }
+
+/**
+ * In the amber action's place when no source has the title, so its episodes are AniList's alone:
+ * "Add a source to play", which opens Providers. Tonal, as a secondary action is, since nothing on
+ * the page can play yet and amber would promise it could.
+ */
+@Composable
+internal fun AddSourceButton(modifier: Modifier = Modifier) {
+    val navigator = LocalNavigator.current
+    FilledTonalButton(onClick = { navigator.open(PROVIDERS_ROUTE) }, modifier = modifier, contentPadding = PaddingValues(horizontal = 24.dp)) {
+        Text(ADD_A_SOURCE, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+    }
+}
+
+/** What a title no source has offers in Play's place. */
+internal const val ADD_A_SOURCE = "Add a source to play"
 
 /** "Episode 10 airs Thursday 16:30": a haze line with a water dot. */
 @Composable
@@ -1452,6 +1474,10 @@ private fun LazyListScope.episodeRows(
     }
     val next = entry.progress?.next ?: 1u
     val listed = entry.listedEpisodes(episodes)
+    if (listed.isEmpty()) {
+        item(key = "no-episodes", contentType = "no-episodes") { NoEpisodes(itemMotion().padding(horizontal = 16.dp)) }
+        return
+    }
     val folded = entry.foldedEpisodes(listed)
     if (folded.isNotEmpty()) {
         val anchor = episodeKey(entry.id, listed[folded.size])
@@ -1461,6 +1487,20 @@ private fun LazyListScope.episodeRows(
     items(shown, key = { episodeKey(entry.id, it) }, contentType = { "episode" }) { row ->
         Box(itemMotion()) { EpisodeRowView(entry, row, next, actions) }
     }
+}
+
+/**
+ * Said plainly when a title has no episodes to list: none a source has, and none AniList knows of
+ * yet either.
+ */
+@Composable
+private fun NoEpisodes(modifier: Modifier = Modifier) {
+    Text(
+        "No episodes yet",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(vertical = 16.dp),
+    )
 }
 
 /**
@@ -1577,7 +1617,10 @@ private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: A
             current = current,
             unaired = unaired,
             hidden = hidden,
-            onPlay = { if (!unaired) actions.play(entry.id, row.number) },
+            // One no source has plays nothing: a tap offers what can be done, adding a source among it.
+            onPlay = {
+                if (row.metadataOnly) menu = true else if (!unaired) actions.play(entry.id, row.number)
+            },
             onMenu = { menu = true },
         )
         EpisodeMenu(entry, row, expanded = menu, onDismiss = { menu = false }, actions = actions)
@@ -1665,7 +1708,7 @@ private fun TabletTitle(
                                 if (entry.capsLine.isNotEmpty()) {
                                     Text(entry.capsLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                                 }
-                                TabletActions(entry, actions, Modifier.padding(top = 4.dp))
+                                TabletActions(entry, actions, episodes?.firstOrNull()?.metadataOnly == true, Modifier.padding(top = 4.dp))
                             }
                           }
                             if (!aboutOpen) TitleFacts(entry, Modifier.padding(top = below).width(376.dp)) { aboutOpen = true }
@@ -1686,6 +1729,7 @@ private fun TabletTitle(
                     items(4) { AfterWait { EpisodePlaceholder() } }
                 } else {
                     val listed = entry.listedEpisodes(episodes)
+                    if (listed.isEmpty()) fullWidth("no-episodes") { NoEpisodes(itemMotion().padding(start = 16.dp)) }
                     // Folded in pairs, so the last watched keeps its column.
                     val folded = entry.foldedEpisodes(listed, columns = 2)
                     if (folded.isNotEmpty()) {
@@ -1764,14 +1808,19 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidth(
     item(key = key, span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { content() }
 }
 
-/** The tablet's actions in one row: the amber action sized to its words, the list, the trailer. */
+/**
+ * The tablet's actions in one row: the amber action sized to its words, or with the episodes
+ * AniList's alone, [unlisted], the way to a source; the list; the trailer.
+ */
 @Composable
-private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier = Modifier) {
+private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, modifier: Modifier = Modifier) {
     val store = LocalAppStore.current
     val action = TitleAction.of(entry)
     var open by remember { mutableStateOf(false) }
     Row(modifier.heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (action.playable) {
+        if (action.playable && unlisted) {
+            AddSourceButton(Modifier.heightIn(min = 56.dp))
+        } else if (action.playable) {
             Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.heightIn(min = 56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))

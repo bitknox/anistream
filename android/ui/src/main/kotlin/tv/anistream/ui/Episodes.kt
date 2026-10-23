@@ -155,7 +155,13 @@ internal fun EpisodeLine(
                     }
                 } else {
                     Modifier
-                        .combinedClickable(onClickLabel = "Play", onLongClickLabel = "Episode options", onClick = onPlay, onLongClick = onMenu)
+                        .combinedClickable(
+                            // One no source has opens its options, which offer to add a source.
+                            onClickLabel = if (row.metadataOnly) "Episode options" else "Play",
+                            onLongClickLabel = "Episode options",
+                            onClick = onPlay,
+                            onLongClick = onMenu,
+                        )
                         // A keyboard opens the same menu with its menu key, or Shift and F10.
                         .onPreviewKeyEvent { event ->
                             val opens = event.key == Key.Menu || (event.key == Key.F10 && event.isShiftPressed)
@@ -286,12 +292,16 @@ internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaire
     }
 }
 
-/** The row's long-press menu: mark it watched or not, or play it from the start. */
+/**
+ * The row's long-press menu: mark it watched or not, or play it from the start. One no source has,
+ * AniList's alone, offers to add a source in place of downloading and playing it.
+ */
 @Composable
 internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDismiss: () -> Unit, actions: AppActions) {
     val store = LocalAppStore.current
     val marks = LocalUserMarks.current
     val snackbars = LocalSnackbars.current
+    val navigator = LocalNavigator.current
     Menu(expanded = expanded, onDismissRequest = onDismiss) {
         val watched = row.completed
         DropdownMenuItem(
@@ -309,15 +319,26 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
                 }
             },
         )
-        DownloadMenuItem(entry, row.number, onDismiss)
-        DropdownMenuItem(
-            text = { Text("Play from the beginning") },
-            leadingIcon = { Icon(Icons.Restart, contentDescription = null) },
-            onClick = {
-                onDismiss()
-                actions.play(entry.id, row.number)
-            },
-        )
+        if (row.metadataOnly) {
+            DropdownMenuItem(
+                text = { Text(ADD_A_SOURCE) },
+                leadingIcon = { Icon(Icons.Providers, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    navigator.open(PROVIDERS_ROUTE)
+                },
+            )
+        } else {
+            DownloadMenuItem(entry, row.number, onDismiss)
+            DropdownMenuItem(
+                text = { Text("Play from the beginning") },
+                leadingIcon = { Icon(Icons.Restart, contentDescription = null) },
+                onClick = {
+                    onDismiss()
+                    actions.play(entry.id, row.number)
+                },
+            )
+        }
     }
 }
 

@@ -762,6 +762,7 @@ mod tests {
             skippable: false,
             airs_at: None,
             delayed_from: None,
+            metadata_only: false,
             thumbnail: None,
             description: None,
         };
