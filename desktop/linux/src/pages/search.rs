@@ -148,6 +148,18 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .build();
     let recent_group = section("Recent Searches", &recent);
     recent_group.set_visible(false);
+    let clear = gtk::Button::with_label("Clear");
+    clear.add_css_class("flat");
+    clear.set_halign(gtk::Align::End);
+    clear.set_tooltip_text(Some("Clear Recent Searches"));
+    if let Some(heading) = recent_group.first_child() {
+        let line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+        recent_group.remove(&heading);
+        heading.set_hexpand(true);
+        line.append(&heading);
+        line.append(&clear);
+        recent_group.prepend(&line);
+    }
     let season = PosterGrid::new(&ctx.hub);
     season.widget.set_vexpand(false);
     let genres = gtk::FlowBox::builder()
@@ -231,10 +243,19 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         filters,
         genre: RefCell::default(),
         asked: RefCell::default(),
-        searches: RefCell::default(),
+        searches: RefCell::new(ctx.prefs.recent_searches()),
         capture: Cell::new(false),
     });
 
+    inner.show_recent();
+    clear.connect_clicked({
+        let inner = Rc::downgrade(&inner);
+        move |_| {
+            if let Some(inner) = inner.upgrade() {
+                inner.forget_searches();
+            }
+        }
+    });
     entry.connect_search_changed({
         let inner = Rc::downgrade(&inner);
         move |_| {
@@ -454,13 +475,27 @@ impl Inner {
         if query.is_empty() {
             return;
         }
-        let mut searches = self.searches.borrow_mut();
-        searches.retain(|s| s != query);
-        searches.insert(0, query.to_owned());
-        searches.truncate(RECENT);
+        {
+            let mut searches = self.searches.borrow_mut();
+            searches.retain(|s| s != query);
+            searches.insert(0, query.to_owned());
+            searches.truncate(RECENT);
+            self.ctx.prefs.set_recent_searches(&searches);
+        }
+        self.show_recent();
+    }
+
+    fn forget_searches(&self) {
+        self.searches.borrow_mut().clear();
+        self.ctx.prefs.set_recent_searches(&[]);
+        self.show_recent();
+    }
+
+    fn show_recent(&self) {
         while let Some(child) = self.recent.first_child() {
             self.recent.remove(&child);
         }
+        let searches = self.searches.borrow();
         for search in searches.iter() {
             let chip = gtk::Button::with_label(search);
             chip.add_css_class("pill");
@@ -469,7 +504,7 @@ impl Inner {
             chip.connect_clicked(move |chip| entry.set_text(&chip.label().unwrap_or_default()));
             self.recent.append(&chip);
         }
-        self.recent_group.set_visible(true);
+        self.recent_group.set_visible(!searches.is_empty());
     }
 }
 

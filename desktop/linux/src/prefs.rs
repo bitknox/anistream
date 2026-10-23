@@ -1,6 +1,6 @@
 //! What only this app keeps, beside the engine's config: the window's size and whether it was
-//! maximised (Wayland lets no app place its window), and what closing the window does while
-//! downloads run. A key file, `desktop.ini`, next to the engine's `config.toml`.
+//! maximised (Wayland lets no app place its window), what closing the window does while
+//! downloads run, and the recent searches. A key file, `desktop.ini`, next to the engine's `config.toml`.
 
 use std::{cell::RefCell, path::PathBuf};
 
@@ -83,6 +83,20 @@ impl Prefs {
         self.save();
     }
 
+    /// The searches made last, newest first.
+    pub fn recent_searches(&self) -> Vec<String> {
+        // One per line: a search is one line of the search entry.
+        self.keys.borrow().string("search", "recent").map_or_else(
+            |_| Vec::new(),
+            |text| text.lines().filter(|l| !l.is_empty()).map(str::to_owned).collect(),
+        )
+    }
+
+    pub fn set_recent_searches(&self, searches: &[String]) {
+        self.keys.borrow().set_string("search", "recent", &searches.join("\n"));
+        self.save();
+    }
+
     /// Keep the window's size for the next launch.
     pub fn remember_window(&self, window: &impl IsA<gtk::Window>) {
         let window = window.as_ref();
@@ -121,5 +135,15 @@ mod tests {
         assert_eq!((prefs.width(), prefs.height()), (1280, 800));
         prefs.set_close_choice(CloseChoice::KeepGoing);
         assert_eq!(Prefs::open(file).close_choice(), CloseChoice::KeepGoing);
+    }
+
+    #[test]
+    fn recent_searches_are_kept_in_order() {
+        let dir = tempfile::tempdir().expect("a scratch directory");
+        let file = dir.path().join("desktop.ini");
+        assert!(Prefs::open(file.clone()).recent_searches().is_empty());
+        let searches = vec!["hoshikuzu".to_owned(), "a, b; c".to_owned()];
+        Prefs::open(file.clone()).set_recent_searches(&searches);
+        assert_eq!(Prefs::open(file).recent_searches(), searches);
     }
 }
