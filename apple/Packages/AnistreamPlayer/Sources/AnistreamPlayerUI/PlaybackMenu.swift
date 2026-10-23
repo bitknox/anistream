@@ -102,10 +102,7 @@ public struct PlaybackMenu: View {
         Button(model.fullScreen ? "Exit Full Screen" : "Enter Full Screen") { model.fullScreen.toggle() }
             .keyboardShortcut("f", modifiers: [.command, .control])
             .disabled(!playing)
-        // Picture in Picture is still to come.
-        Button("Picture in Picture") {}
-            .keyboardShortcut("p", modifiers: [.command, .option])
-            .disabled(true)
+        // Picture in Picture is the Window menu's, PictureInPictureMenuItem below.
     }
 
     /// The next speed on the ladder toward `by`'s sign, from wherever `speed` is.

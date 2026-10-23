@@ -278,8 +278,9 @@ final class MacPlayerClickTests: XCTestCase {
 
     /// Window › Picture in Picture, clicked in the menu bar.
     private func returnFromPictureInPicture(_ app: XCUIApplication) {
-        app.menuBars.menuBarItems["Window"].click()
-        let item = app.menuBars.menuItems["Picture in Picture"]
+        let window = app.menuBars.menuBarItems["Window"]
+        window.click()
+        let item = window.menuItems["Picture in Picture"]
         XCTAssertTrue(item.waitForExistence(timeout: 5))
         item.click()
     }
