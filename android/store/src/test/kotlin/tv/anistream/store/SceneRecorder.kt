@@ -82,6 +82,12 @@ class SceneRecorder {
                 store.loadEpisodes(id)
                 store.loadShowSettings(id)
             }
+            // The long franchise's pages the shots open, and some of their neighbours': the rest
+            // are seasons whose title has not arrived.
+            for (id in LONG_FRANCHISE_IDS) {
+                store.loadDetail(id)
+                store.loadEpisodes(id)
+            }
         }
         withTimeout(60_000) {
             store.phase.first { it == AppStore.Phase.Running }
@@ -95,6 +101,12 @@ class SceneRecorder {
     companion object {
         /** The test kit's titles, 900001 to 900006. */
         val FIXTURE_IDS = (900001u..900006u).toList()
+
+        /**
+         * Seasons 1, 2, 8, 9, 10 and 12 of the test kit's long franchise, Cloudcutter Airship, 920001
+         * to 920012, which every scene's fake AniList has beside the six.
+         */
+        val LONG_FRANCHISE_IDS = listOf(920001u, 920002u, 920008u, 920009u, 920010u, 920012u)
 
         /**
          * What a replay keeps: everything but art, which the test kit's files answer, and the

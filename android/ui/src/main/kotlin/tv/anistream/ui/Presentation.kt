@@ -14,6 +14,7 @@ import tv.anistream.store.clock
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
+import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.engine.model.RelatedTitle
 import tv.anistream.engine.model.ResumePoint
 
@@ -152,15 +153,35 @@ fun watchedRangeWords(folded: List<EpisodeRow>): String =
  * to the picker either way.
  */
 data class TitleFamily(val seasons: List<Season>, val related: List<RelatedTitle>) {
-    data class Season(val id: AnilistId, val title: String, val isThis: Boolean)
+    /** A season, with the card the engine sent for it: what a page shows of it before its own title has come. */
+    data class Season(val id: AnilistId, val title: String, val isThis: Boolean, val card: LinkedTitle? = null)
+
+    /** The card the engine sent for season [id], if it is one of these. */
+    fun card(id: AnilistId): LinkedTitle? = seasons.firstOrNull { it.id == id }?.card
+
+    /** The seasons either side of [id] in the picker, the one before first: one or none at the ends. */
+    fun neighbours(id: AnilistId): List<AnilistId> {
+        val at = seasons.indexOfFirst { it.id == id }
+        if (at < 0) return emptyList()
+        return listOfNotNull(seasons.getOrNull(at - 1)?.id, seasons.getOrNull(at + 1)?.id)
+    }
 
     companion object {
         private val series = setOf("TV", "TV_SHORT", "TV SHORT", "ONA")
 
-        fun of(entry: Entry): TitleFamily = TitleFamily(
-            seasons = entry.detail?.seasons.orEmpty().map { Season(it.id, it.title, it.id == entry.id) },
-            related = entry.related.filter { it.format !in series },
-        )
+        /**
+         * [entry]'s family. Its seasons are its own once the engine has walked them; before that, or
+         * for a season whose page has not come yet, the [known] seasons of another of the
+         * franchise's pages, when [entry] is among them, since every season has the same ones.
+         */
+        fun of(entry: Entry, known: List<LinkedTitle>? = null): TitleFamily {
+            val own = entry.detail?.seasons
+            val seasons = own ?: known?.takeIf { cards -> cards.any { it.id == entry.id } }.orEmpty()
+            return TitleFamily(
+                seasons = seasons.map { Season(it.id, it.title, it.id == entry.id, it) },
+                related = entry.related.filter { it.format !in series },
+            )
+        }
     }
 }
 

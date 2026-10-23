@@ -339,6 +339,24 @@ internal fun RowScope.ConnectedButton(
     weight: Float = 1f,
     gap: Dp = 6.dp,
     content: @Composable RowScope.(color: ColorProducer) -> Unit,
+) = ConnectedButtonContent(chosen, first, last, onClick, modifier.weight(weight), onPress, onRelease, enabled, gap, content)
+
+/**
+ * [ConnectedButton] as wide as its parent measures it, for a group that lays its buttons out
+ * itself, as the season picker does.
+ */
+@Composable
+internal fun ConnectedButtonContent(
+    chosen: Boolean,
+    first: Boolean,
+    last: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    onPress: (() -> Unit)? = null,
+    onRelease: (() -> Unit)? = null,
+    enabled: Boolean = true,
+    gap: Dp = 6.dp,
+    content: @Composable RowScope.(color: ColorProducer) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val motion = MaterialTheme.motionScheme
@@ -348,7 +366,6 @@ internal fun RowScope.ConnectedButton(
     val color = remember(colors, tone) { ColorProducer { lerp(colors.onSurface, colors.onPrimaryContainer, tone.value) } }
     Row(
         modifier
-            .weight(weight)
             .heightIn(min = 40.dp)
             .graphicsLayer {
                 val start = lerp(if (first) 20.dp else 8.dp, 20.dp, shape.value)

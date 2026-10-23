@@ -209,6 +209,54 @@ class BoardShots {
     @Config(qualifiers = TABLET)
     fun tablet_title_episodes_unfolded() = shoot("tablet-title-episodes-unfolded", WATCHING, title = 900001u) { unfoldInPlace() }
 
+    // A long franchise's picker: twelve seasons of Cloudcutter Airship, more than fit across, so
+    // it scrolls, the season on screen in the middle.
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_long() = shoot("phone-title-long", WATCHING, title = 920009u)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_long_first() = shoot("phone-title-long-first", WATCHING, title = 920001u)
+
+    /** A jump from the ninth season to the twelfth, whose page was not laid out: settled on its own page. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_long_jump() = shoot("phone-title-long-jump", WATCHING, title = 920009u) { pickSeason("Season 12") }
+
+    /**
+     * The same jump halfway through its crossfade: the stand-in, with the twelfth season's name and
+     * cover and T8's placeholders, fading in over the ninth.
+     */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_long_jump_halfway() = shoot("phone-title-long-jump-halfway", WATCHING, title = 920009u, settle = false) {
+        compose.onNodeWithText("Season 12").performScrollTo()
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
+        compose.onNodeWithText("Season 12").performClick()
+        compose.mainClock.advanceTimeBy(120)
+    }
+
+    /** A jump to a season whose title has not arrived: its card's name and cover, and T8's placeholders. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_long_waiting() = shoot("phone-title-long-waiting", WATCHING, title = 920009u) { pickSeason("Season 5") }
+
+    @Test
+    @Config(qualifiers = PHONE, fontScale = 2.0f)
+    fun phone_title_long_large_text() = shoot("phone-title-long-large-text", WATCHING, title = 920009u)
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_title_long() = shoot("tablet-title-long", WATCHING, title = 920009u)
+
+    /** Tap the season [label] names in the picker, scrolled to first. */
+    private fun pickSeason(label: String) {
+        compose.onNodeWithText(label).performScrollTo().performClick()
+    }
+
     /** The title page scrolled to the row its watched episodes fold under. */
     private fun toEpisodes() {
         compose.onNode(hasScrollToKeyAction() and hasAnyDescendant(hasText("More about this show")))
@@ -241,6 +289,8 @@ class BoardShots {
         start: Destination = Destination.Continue,
         title: AnilistId? = null,
         query: String? = null,
+        /** Whether every transition runs to its end before the capture; else it is taken where [then] left the clock. */
+        settle: Boolean = true,
         then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
@@ -263,11 +313,15 @@ class BoardShots {
         awaitArt(store)
         then?.let {
             it()
-            compose.waitForIdle()
-            awaitArt(store)
+            if (settle) {
+                compose.waitForIdle()
+                awaitArt(store)
+            }
         }
-        compose.mainClock.advanceTimeBy(3_000)
-        compose.waitForIdle()
+        if (settle) {
+            compose.mainClock.advanceTimeBy(3_000)
+            compose.waitForIdle()
+        }
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
     }
 

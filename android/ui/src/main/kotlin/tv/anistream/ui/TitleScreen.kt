@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -68,6 +69,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -85,6 +87,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.anistream.design.ArtShape
@@ -95,6 +99,7 @@ import tv.anistream.design.tabular
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
+import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.store.AppClock
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
@@ -114,6 +119,47 @@ private fun placeholderEntry(id: AnilistId) = Entry(
     status = null, synopsisSpans = emptyList(),
 )
 
+/**
+ * What a page shows of a season whose title has not arrived: the card its family carries, so its
+ * name and cover are there at once, and nothing that would have to be taken back.
+ */
+private fun cardEntry(id: AnilistId, card: LinkedTitle?): Entry {
+    val blank = placeholderEntry(id)
+    card ?: return blank
+    return blank.copy(
+        title = card.title, titleRomaji = card.titleRomaji, titleEnglish = card.titleEnglish,
+        titleNative = card.titleNative, format = card.format, coverUrl = card.coverUrl,
+        coverColor = card.coverColor, season = card.season, year = card.year, listStatus = card.listStatus,
+    )
+}
+
+/**
+ * The franchise's seasons as the last of its pages that had them said. Every season has the same
+ * ones, so a season whose own page has not come yet keeps the picker, numbered as it was, and its
+ * card.
+ */
+private class KnownSeasons {
+    private var cards: List<LinkedTitle>? = null
+
+    fun familyOf(entry: Entry): TitleFamily {
+        entry.detail?.seasons?.takeIf { it.isNotEmpty() }?.let { cards = it }
+        return TitleFamily.of(entry, cards)
+    }
+}
+
+/**
+ * The page a season change fades into when the season picked has no page laid out yet, as after a
+ * jump along a long picker: the season's name and cover from its card, with T8's placeholders in
+ * place of the rest. It is composed and laid out beneath ahead of time like the seasons' own pages,
+ * so the tap changes only what is drawn; the season's own page is composed beneath it once the
+ * change has settled, and fades in over it when laid out.
+ */
+private val STAND_IN: AnilistId = 0u
+
+/** The season the stand-in shows, and whether it crossfades to it: only while it is on screen. */
+@androidx.compose.runtime.Immutable
+private data class StandIn(val season: AnilistId, val crossfade: Boolean)
+
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun TitleScreen(id: AnilistId, actions: AppActions) {
@@ -129,15 +175,27 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     // so it still closes into the cover or banner it grew from.
     var picked by rememberSaveable(id) { mutableLongStateOf(id.toLong()) }
     val shown: AnilistId = picked.toUInt()
-    val entry = rememberTitle(titlesState, shown) ?: placeholderEntry(shown)
+    val known = remember(id) { KnownSeasons() }
+    val own = rememberTitle(titlesState, shown)
+    val family = known.familyOf(own ?: placeholderEntry(shown))
+    val entry = own ?: cardEntry(shown, family.card(shown))
+    // Each title's page asked for once while this screen is up, whoever asks: the page itself, or
+    // the seasons either side of it ahead of a pick.
+    val asked = remember(id) { mutableSetOf<AnilistId>() }
+    val ask: (AnilistId) -> Unit = remember(id) {
+        { season ->
+            if (season !in store.titles.detailed && (asked.add(season) || season in store.titles.failed.value)) store.loadDetail(season)
+        }
+    }
     LaunchedEffect(shown) {
-        if (shown !in store.titles.detailed) store.loadDetail(shown)
+        ask(shown)
         store.loadEpisodes(shown)
     }
-    val family = TitleFamily.of(entry)
+    // The season the pickers mark: the one picked last, ahead of the page while it changes.
+    val marked = remember(id) { mutableLongStateOf(picked) }
     val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val wide = wideWindow()
-    PrefetchSeasons(family, wide)
+    PrefetchSeasons(family, marked, wide, ask)
     // A page a fold opened goes back to the list and detail once the window is wide again (AT3).
     LaunchedEffect(wide) {
         if (wide && navigator.openedByFold == id) {
@@ -152,39 +210,68 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
         val episodes by remember(familyIds) {
             derivedStateOf(structuralEqualityPolicy()) { episodesState.value.filterKeys { it in familyIds } }
         }
-        TabletTitle(id, entry, family, episodes, actions) { picked = it.toLong() }
+        TabletTitle(id, entry, family, episodes, actions) {
+            picked = it.toLong()
+            marked.longValue = it.toLong()
+        }
         return
     }
 
-    // Each season in the picker has a page of its own. The one on screen is on top. Each other
-    // season's page is composed ahead in the frames' idle time, a row at a time, by its list's
-    // prefetch, and once the page comes to rest it is laid out beneath, unseen, its picker where the
-    // one on screen has its own. A pick then changes only what is drawn: the picked page fades in
-    // over the other on standard while the pickers morph, and once it has, the season becomes the
-    // page's own: its top bar, its sheets and what flies into a player or back to where the page
-    // was opened from.
+    // Each season near the one on screen has a page of its own: the one on screen on top, the
+    // seasons either side of it, and the stand-in for any other. Each page beneath is composed
+    // ahead in the frames' idle time, a row at a time, by its list's prefetch, and once the page
+    // comes to rest it is laid out beneath, unseen, its picker where the one on screen has its
+    // own. A pick then changes only what is drawn: the picked page fades in over the other on
+    // standard while the pickers morph, and once it has, the season becomes the page's own: its
+    // top bar, its sheets and what flies into a player or back to where the page was opened from.
+    // As the season on screen moves along the picker, the pages follow it, one a frame once it
+    // is at rest; a long franchise never has more than these few.
     var aboutOpen by rememberSaveable(id) { mutableStateOf(false) }
-    val pickedState = remember(id) { mutableLongStateOf(picked) }
+    // The page drawn on top, fading in, and the one beneath it at full strength: the season on
+    // screen's own, or the stand-in for it. The same at rest.
     val top = remember(id) { mutableLongStateOf(picked) }
+    val base = remember(id) { mutableLongStateOf(picked) }
+    val standIn = remember(id) { mutableStateOf(StandIn(shown, crossfade = false)) }
     val fade = remember(id) { androidx.compose.runtime.mutableFloatStateOf(1f) }
     val shift = remember(id) { androidx.compose.runtime.mutableFloatStateOf(0f) }
     val lists = remember(id) { androidx.compose.runtime.mutableStateMapOf<AnilistId, LazyListState>() }
     // Each season laid out beneath, by where its picker stands.
     val ready = remember(id) { androidx.compose.runtime.mutableStateMapOf<AnilistId, Int>() }
+    // The pages composed long enough ago for their lists' prefetch to have composed their rows in
+    // the frames' idle time, so laying one out beneath composes nothing more.
+    val grown = remember(id) { androidx.compose.runtime.mutableStateSetOf<AnilistId>() }
+    // The pages composed, the one on screen first: see the effect below.
+    val composed = remember(id) { androidx.compose.runtime.mutableStateListOf(shown) }
+    // The season the pages beneath are composed around: the one on screen, once its change is done.
+    val around = remember(id) { mutableLongStateOf(picked) }
     val scope = rememberCoroutineScope()
     var fading by remember(id) { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     // The season a finger is on in the picker, until it lifts and, for a pick, the fade is done.
     val pressed = remember(id) { mutableStateOf<AnilistId?>(null) }
-    SideEffect { pickedState.longValue = picked }
-    val seasons = (family.seasons.map { it.id } + shown).distinct()
-    // Line [season]'s page up with the one on screen, its picker [at] this one's place.
-    val lineUp: (AnilistId, Int) -> Unit = { season, at ->
-        val target = titlesState.value[season]
-        if (target != null) {
-            lists[season]?.requestScrollToItem(seasonsIndex(target), -at)
-            ready[season] = at
-        }
+    // The stand-in's list, made ahead of its page, so a pick before the page was composed can
+    // line it up all the same.
+    val standInList = remember(id) { LazyListState(prefetchStrategy = AheadPrefetch()) }
+    val families = rememberUpdatedState(family)
+    val geometry = rememberSeasonGeometry(family.seasons.size, LocalConfiguration.current.screenWidthDp.dp - 32.dp)
+    val viewport = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.roundToPx() }
+    // One scroll for every page's picker, so the picker fading in stands where the one it
+    // replaces does; the season on screen in the middle as the page opens.
+    val pickerScroll = rememberSaveable(id, saver = androidx.compose.foundation.ScrollState.Saver) {
+        androidx.compose.foundation.ScrollState(geometry.centred(family.seasons.indexOfFirst { it.id == shown }, viewport))
     }
+    FollowChosen(pickerScroll, geometry, family, marked, viewport)
+    // What a page shows of [season], its title or its card: the stand-in's, the season it stands for.
+    val pageEntry: (AnilistId) -> Entry = { season ->
+        val of = if (season == STAND_IN) standIn.value.season else season
+        titlesState.value[of]?.takeIf { season != STAND_IN } ?: cardEntry(of, families.value.card(of))
+    }
+    // Line [season]'s page up with the one on screen, its picker [at] this one's place.
+    val lineUp: (AnilistId, Int) -> Unit = lineUp@{ season, at ->
+        val list = lists[season] ?: return@lineUp
+        list.requestScrollToItem(seasonsIndex(pageEntry(season)), -at)
+        ready[season] = at
+    }
+    val standInShown = { top.longValue == STAND_IN.toLong() || base.longValue == STAND_IN.toLong() }
     // The pages beneath follow the one on screen each time it comes to rest with its picker in
     // view, after the page's own opening has settled.
     LaunchedEffect(id) {
@@ -194,47 +281,147 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
             val at = lists[onTop]?.takeIf { !it.isScrollInProgress && fade.floatValue >= 1f }
                 ?.layoutInfo?.visibleItemsInfo?.firstOrNull { it.key == SEASONS }?.offset
             // Where each page beneath has its picker now: a title's details arriving move it.
-            at?.let { it to lists.filterKeys { season -> season != onTop }.mapValues { (season, list) -> pickerAt(list).takeIf { season in ready } } }
+            at?.let { it to lists.filterKeys { season -> season != onTop && season in grown }.mapValues { (season, list) -> pickerAt(list).takeIf { season in ready } } }
         }.collect { found ->
             val (at, beneath) = found ?: return@collect
             for ((season, now) in beneath) if (now != at) lineUp(season, at)
         }
     }
-    val pick: (AnilistId) -> Unit = pick@{ next ->
-        val from = top.longValue.toUInt()
-        if (next == from) return@pick
-        fading?.cancel()
-        if (next == picked.toUInt()) {
-            // Back to the season under the fade: it is there already.
-            fade.floatValue = 1f
-            top.longValue = picked
-            return@pick
+    // The pages composed follow the season on screen: it, and once the page's own opening has
+    // settled, the stand-in and the seasons either side of it. One is added or let go a frame,
+    // the season on screen's own first, and only while nothing moves, so none of it lands in a
+    // frame that draws motion.
+    var opened by remember(id) { mutableStateOf(false) }
+    LaunchedEffect(id) {
+        kotlinx.coroutines.delay(LINE_UP_AFTER)
+        opened = true
+    }
+    LaunchedEffect(id) {
+        snapshotFlow {
+            val seasons = families.value
+            val near = around.longValue.toUInt()
+            val want = buildList {
+                add(near)
+                if (opened && seasons.seasons.isNotEmpty()) add(STAND_IN)
+                if (opened) addAll(seasons.neighbours(near))
+            }
+            val still = fade.floatValue >= 1f && lists[top.longValue.toUInt()]?.isScrollInProgress != true
+            want.takeIf { still }
+        }.collectLatest { want ->
+            want ?: return@collectLatest
+            for (season in want) {
+                if (season !in composed) {
+                    androidx.compose.runtime.withFrameNanos { }
+                    composed.add(season)
+                }
+            }
+            val kept = setOf(top.longValue.toUInt(), base.longValue.toUInt(), picked.toUInt())
+            for (season in composed.toList()) {
+                if (season !in want && season !in kept) {
+                    androidx.compose.runtime.withFrameNanos { }
+                    composed.remove(season)
+                }
+            }
         }
-        val at = lists[from]?.let(::pickerAt)
-        // Not laid out yet, as when picked straight after the page opened: lined up now.
-        if (ready[next] == null && at != null) lineUp(next, at)
+    }
+    LaunchedEffect(picked) {
+        kotlinx.coroutines.delay(AROUND_AFTER)
+        around.longValue = picked
+    }
+    // The fade on standard that brings [page] in over the one beneath, then makes the season
+    // marked the page's own.
+    val fadeIn: (AnilistId, Int?) -> Unit = { page, at ->
+        val from = top.longValue.toUInt()
+        val there = lists[page]?.let(::pickerAt)
         // Near the top of the page the two pickers may stand apart, the content above them of
         // different heights: the pages then move together on the fade's spring, from the old
         // picker's place to the new one's.
-        val there = lists[next]?.let(::pickerAt)
         shift.floatValue = if (at != null && there != null) (at - there).toFloat() else 0f
         fade.floatValue = 0f
-        top.longValue = next.toLong()
+        top.longValue = page.toLong()
         fading = scope.launch {
             androidx.compose.animation.core.animate(0f, 1f, animationSpec = Motion.standard()) { value, _ -> fade.floatValue = value }
             aboutOpen = false
-            // The season left stays laid out beneath, lined up where it was.
+            // The page left stays laid out beneath, lined up where it was.
             if (at != null) ready[from] = at
-            picked = next.toLong()
+            base.longValue = top.longValue
+            picked = marked.longValue
             pressed.value = null
         }
     }
-    val press: (AnilistId) -> Unit = { season -> if (season != top.longValue.toUInt()) pressed.value = season }
+    val pick: (AnilistId) -> Unit = pick@{ next ->
+        if (next.toLong() == marked.longValue) return@pick
+        val onTop = top.longValue.toUInt()
+        val laidOut = ready[next] != null && lists[next] != null
+        if (!laidOut && onTop == STAND_IN) {
+            // The stand-in is on screen, or fading in: it stands for this season instead, its
+            // head crossfading, and the change goes on as it was.
+            standIn.value = StandIn(next, crossfade = true)
+            marked.longValue = next.toLong()
+            if (fading?.isActive != true) {
+                fading = scope.launch {
+                    kotlinx.coroutines.delay(STANDARD_MILLIS)
+                    picked = marked.longValue
+                    pressed.value = null
+                }
+            }
+            return@pick
+        }
+        fading?.cancel()
+        marked.longValue = next.toLong()
+        val page = if (laidOut) next else STAND_IN
+        if (page == STAND_IN) {
+            standIn.value = StandIn(next, crossfade = standInShown())
+            // Picked before the stand-in was composed, straight after the page opened: composed
+            // now, its list lined up ahead of its first frame.
+            if (STAND_IN !in composed) {
+                composed.add(STAND_IN)
+                lists[STAND_IN] = standInList
+            }
+        }
+        if (page.toLong() == base.longValue) {
+            // Back to the page under the fade: it is there already.
+            fade.floatValue = 1f
+            top.longValue = base.longValue
+            picked = next.toLong()
+            pressed.value = null
+            return@pick
+        }
+        val at = lists[onTop]?.let(::pickerAt)
+        // Not laid out yet, as when picked straight after the page opened: lined up now.
+        if (ready[page] == null && at != null) lineUp(page, at)
+        fadeIn(page, at)
+    }
+    // The stand-in on screen hands over to the season's own page once that is laid out beneath,
+    // in one more crossfade: T8's placeholders to the rows, or to its own placeholders, which
+    // look the same.
+    LaunchedEffect(id) {
+        snapshotFlow {
+            val season = picked.toUInt()
+            val standing = lists[STAND_IN]
+            val onScreen = base.longValue == STAND_IN.toLong() && top.longValue == base.longValue && fade.floatValue >= 1f
+            val list = lists[season]
+            if (!onScreen || standing == null || list == null || standing.isScrollInProgress || ready[season] == null) return@snapshotFlow null
+            // Laid out beneath with its picker in view, wherever the content above it let it stand.
+            season.takeIf { pickerAt(standing) != null && pickerAt(list) != null }
+        }.collect { season ->
+            if (season != null && season.toLong() == marked.longValue) fadeIn(season, lists[STAND_IN]?.let(::pickerAt))
+        }
+    }
+    val press: (AnilistId) -> Unit = { season ->
+        if (season.toLong() != marked.longValue) {
+            pressed.value = season
+            // A season with no page laid out: the stand-in takes its card now, unseen, ready for
+            // the tap, and its title is asked for.
+            if ((ready[season] == null || lists[season] == null) && !standInShown()) standIn.value = StandIn(season, crossfade = false)
+            if (store.titles[season] == null) ask(season)
+        }
+    }
     // The finger lifted: unless that was a pick, the season it was on is let go.
     val lift: () -> Unit = {
         scope.launch {
             androidx.compose.runtime.withFrameNanos { }
-            if (pressed.value != null && pressed.value != top.longValue.toUInt()) pressed.value = null
+            if (pressed.value != null && pressed.value?.toLong() != marked.longValue) pressed.value = null
         }
     }
     // What every page reads of the pick, through state: a pick recomposes the pickers alone and
@@ -247,73 +434,48 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     val onPress = remember(id) { { season: AnilistId -> presses.value(season) } }
     val onLift = remember(id) { { lifts.value() } }
     val onAbout = remember(id) { { aboutOpen = true } }
+    val onScreenPage = base.longValue.toUInt()
     Box(Modifier.fillMaxSize().shared(Shared.Page, id).background(MaterialTheme.colorScheme.surface)) {
-        for (season in seasons) {
+        for (season in composed) {
             key(season) {
-                val onScreen = season == shown
-                val list = rememberLazyListState(prefetchStrategy = remember { AheadPrefetch() })
+                val onScreen = season == onScreenPage
+                val list = if (season == STAND_IN) standInList else rememberLazyListState(prefetchStrategy = remember { AheadPrefetch() })
                 DisposableEffect(list) {
                     lists[season] = list
                     onDispose {
                         lists.remove(season)
                         ready.remove(season)
+                        grown.remove(season)
                     }
                 }
-                val pageEntry = rememberTitle(titlesState, season) ?: placeholderEntry(season)
-                HeldRows(season, episodesState, top, pickedState, pressed) { rows ->
-                    SeasonPage(
-                        entry = pageEntry,
-                        episodes = rows,
-                        hasSeasons = family.seasons.isNotEmpty(),
-                        family = onScreenFamily,
-                        chosen = top,
-                        titles = titlesState,
-                        // Only the page on screen flies into a page or a player.
-                        shared = onScreen,
-                        list = list,
-                        inset = inset,
-                        actions = actions,
-                        onPick = onPick,
-                        onPress = onPress,
-                        onLift = onLift,
-                        onAbout = onAbout,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(if (onScreen || season in ready) Modifier.fillMaxHeight() else Modifier.height(0.dp))
-                            // The picked page over the one it replaces over the rest, which are
-                            // laid out but not drawn: read as they are placed and drawn, so a pick
-                            // recomposes none of them.
-                            .layout { measurable, constraints ->
-                                val placeable = measurable.measure(constraints)
-                                layout(placeable.width, placeable.height) {
-                                    val z = when (season.toLong()) {
-                                        top.longValue -> 2f
-                                        pickedState.longValue -> 1f
-                                        else -> 0f
-                                    }
-                                    placeable.place(0, 0, zIndex = z)
-                                }
-                            }
-                            .graphicsLayer {
-                                val moving = top.longValue != pickedState.longValue
-                                when (season.toLong()) {
-                                    top.longValue -> {
-                                        alpha = fade.floatValue
-                                        translationY = if (moving) shift.floatValue * (1f - fade.floatValue) else 0f
-                                    }
-                                    pickedState.longValue -> {
-                                        alpha = 1f
-                                        translationY = if (moving) -shift.floatValue * fade.floatValue else 0f
-                                    }
-                                    else -> {
-                                        alpha = 0f
-                                        translationY = 0f
-                                    }
-                                }
-                            }
-                            .then(if (onScreen) Modifier else Modifier.clearAndSetSemantics {}),
-                    )
+                LaunchedEffect(list) {
+                    kotlinx.coroutines.delay(COMPOSE_AHEAD)
+                    grown += season
                 }
+                PageSlot(
+                    season = season,
+                    onScreen = onScreen,
+                    list = list,
+                    standIn = standIn,
+                    family = onScreenFamily,
+                    titles = titlesState,
+                    episodes = episodesState,
+                    top = top,
+                    base = base,
+                    fade = fade,
+                    shift = shift,
+                    ready = ready,
+                    pressed = pressed,
+                    marked = marked,
+                    geometry = geometry,
+                    pickerScroll = pickerScroll,
+                    inset = inset,
+                    actions = actions,
+                    onPick = onPick,
+                    onPress = onPress,
+                    onLift = onLift,
+                    onAbout = onAbout,
+                )
             }
         }
         TitleTopBar(entry, onBack = navigator::back, modifier = Modifier.padding(top = inset).zIndex(3f))
@@ -333,11 +495,117 @@ private fun rememberTitle(titles: androidx.compose.runtime.State<Map<AnilistId, 
     return title
 }
 
+/**
+ * [season]'s page in the title screen's stack, or the stand-in's: drawn on top, beneath, or laid
+ * out unseen, as [top] and [base] say, read as it is placed and drawn, so a pick recomposes none
+ * of the pages. Its own scope, so what one page reads recomposes that page alone.
+ */
+@Composable
+private fun PageSlot(
+    season: AnilistId,
+    onScreen: Boolean,
+    list: LazyListState,
+    standIn: androidx.compose.runtime.State<StandIn>,
+    family: androidx.compose.runtime.State<TitleFamily>,
+    titles: androidx.compose.runtime.State<Map<AnilistId, Entry>>,
+    episodes: androidx.compose.runtime.State<Map<AnilistId, List<EpisodeRow>>>,
+    top: androidx.compose.runtime.LongState,
+    base: androidx.compose.runtime.LongState,
+    fade: androidx.compose.runtime.FloatState,
+    shift: androidx.compose.runtime.FloatState,
+    ready: Map<AnilistId, Int>,
+    pressed: androidx.compose.runtime.State<AnilistId?>,
+    marked: androidx.compose.runtime.LongState,
+    geometry: SeasonGeometry,
+    pickerScroll: androidx.compose.foundation.ScrollState,
+    inset: Dp,
+    actions: AppActions,
+    onPick: (AnilistId) -> Unit,
+    onPress: (AnilistId) -> Unit,
+    onLift: () -> Unit,
+    onAbout: () -> Unit,
+) {
+    // Composed beneath, not on screen: its placeholders are drawn from the start, so a change
+    // into it shows them inside the crossfade.
+    val ahead = remember { !onScreen }
+    val title = if (season == STAND_IN) null else rememberTitle(titles, season)
+    val shows = if (season == STAND_IN) standIn.value.season else season
+    val card = family.value.card(shows)
+    val page = title ?: remember(shows, card) { cardEntry(shows, card) }
+    HeldRows(season, episodes, top, base, pressed) { rows ->
+        SeasonPage(
+            entry = page,
+            episodes = if (season == STAND_IN) null else rows,
+            loaded = title != null,
+            ahead = ahead,
+            crossfadeHead = if (season == STAND_IN) ({ standIn.value.crossfade }) else null,
+            hasSeasons = family.value.seasons.isNotEmpty(),
+            family = family,
+            chosen = marked,
+            titles = titles,
+            geometry = geometry,
+            pickerScroll = pickerScroll,
+            // Only the page on screen flies into a page or a player.
+            shared = onScreen && season != STAND_IN,
+            list = list,
+            inset = inset,
+            actions = actions,
+            onPick = onPick,
+            onPress = onPress,
+            onLift = onLift,
+            onAbout = onAbout,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (onScreen || season in ready) Modifier.fillMaxHeight() else Modifier.height(0.dp))
+                // The picked page over the one it replaces over the rest, which are laid out but
+                // not drawn.
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    layout(placeable.width, placeable.height) {
+                        val z = when (season.toLong()) {
+                            top.longValue -> 2f
+                            base.longValue -> 1f
+                            else -> 0f
+                        }
+                        placeable.place(0, 0, zIndex = z)
+                    }
+                }
+                .graphicsLayer {
+                    val moving = top.longValue != base.longValue
+                    when (season.toLong()) {
+                        top.longValue -> {
+                            alpha = fade.floatValue
+                            translationY = if (moving) shift.floatValue * (1f - fade.floatValue) else 0f
+                        }
+                        base.longValue -> {
+                            alpha = 1f
+                            translationY = if (moving) -shift.floatValue * fade.floatValue else 0f
+                        }
+                        else -> {
+                            alpha = 0f
+                            translationY = 0f
+                        }
+                    }
+                }
+                .then(if (onScreen) Modifier else Modifier.clearAndSetSemantics {}),
+        )
+    }
+}
+
 /** Where [list]'s season picker stands in its viewport, when it is in view. */
 private fun pickerAt(list: LazyListState): Int? = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == SEASONS }?.offset
 
 /** How long a title page waits after it opens before laying its other seasons out beneath. */
 private const val LINE_UP_AFTER = 500L
+
+/** How long a page composed beneath is given to compose its rows ahead before it is laid out. */
+private const val COMPOSE_AHEAD = 300L
+
+/** How long after a season change settles the pages beneath move on around it. */
+private const val AROUND_AFTER = 120L
+
+/** About how long [Motion.standard] takes to settle, for a change that has no fade of its own to wait on. */
+private const val STANDARD_MILLIS = 300L
 
 /**
  * [content] with [season]'s episodes as they are, except while a finger is on its season in the
@@ -350,13 +618,13 @@ private fun HeldRows(
     season: AnilistId,
     allEpisodes: androidx.compose.runtime.State<Map<AnilistId, List<EpisodeRow>>>,
     top: androidx.compose.runtime.LongState,
-    picked: androidx.compose.runtime.LongState,
+    base: androidx.compose.runtime.LongState,
     pressed: androidx.compose.runtime.State<AnilistId?>,
     content: @Composable (List<EpisodeRow>?) -> Unit,
 ) {
     val episodes by remember(season) { derivedStateOf { allEpisodes.value[season] } }
     var held by remember(season) { mutableStateOf(episodes) }
-    val fadingIn = top.longValue == season.toLong() && picked.longValue != season.toLong()
+    val fadingIn = top.longValue == season.toLong() && base.longValue != season.toLong()
     if (!fadingIn && pressed.value != season) held = episodes
     content(held)
 }
@@ -411,17 +679,25 @@ private class AheadPrefetch : androidx.compose.foundation.lazy.LazyListPrefetchS
 
 /**
  * One season's page: its head, actions, synopsis and facts, the picker, what is related, and its
- * episodes. [shown] is the season on screen, which the picker of every page marks, so a pick
- * morphs the same picker on both pages as one fades over the other.
+ * episodes. [chosen] is the season the pickers mark, which the picker of every page reads, so a
+ * pick morphs the same picker on both pages as one fades over the other. A season whose title has
+ * not arrived ([loaded] false) shows its card's name and cover, and T8's placeholders for the rest.
  */
 @Composable
 private fun SeasonPage(
     entry: Entry,
     episodes: List<EpisodeRow>?,
+    loaded: Boolean,
+    /** Composed beneath, off screen: its placeholders show from the start, with no wait. */
+    ahead: Boolean,
+    /** Whether a new season in the head crossfades in, as on the stand-in while it is on screen. */
+    crossfadeHead: (() -> Boolean)?,
     hasSeasons: Boolean,
     family: androidx.compose.runtime.State<TitleFamily>,
     chosen: androidx.compose.runtime.LongState,
     titles: androidx.compose.runtime.State<Map<AnilistId, Entry>>,
+    geometry: SeasonGeometry,
+    pickerScroll: androidx.compose.foundation.ScrollState,
     shared: Boolean,
     list: LazyListState,
     inset: Dp,
@@ -438,23 +714,76 @@ private fun SeasonPage(
     val fold = rememberEpisodeFold(entry.id, list)
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
         // Every item moves as one when another comes or goes, as the title's details arrive: the
-        // synopsis, the facts and Related fade in above the episodes as they make room.
+        // synopsis, the facts and Related fade in above the episodes as they make room, and the
+        // placeholders of a season that had not arrived crossfade with what replaces them (T8).
         LazyColumn(state = list, modifier = modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 24.dp)) {
-            item(key = "head", contentType = "head") { TitleHead(entry, episodes, list, inset, shared) }
-            item(key = "actions", contentType = "actions") { Box(itemMotion()) { TitleActions(entry, actions) } }
-            val synopsis = synopsisWithoutSpoilers(entry.synopsis)
-            if (synopsis.isNotEmpty()) item(key = "synopsis", contentType = "synopsis") { Box(itemMotion()) { Synopsis(synopsis) } }
-            item(key = "facts", contentType = "facts") { Box(itemMotion()) { FactsLines(entry) } }
-            item(key = "more-about", contentType = "more-about") { Box(itemMotion()) { MoreAboutRow(onAbout) } }
+            item(key = "head", contentType = "head") {
+                if (crossfadeHead == null) {
+                    TitleHead(entry, episodes, list, inset, shared)
+                } else {
+                    androidx.compose.animation.AnimatedContent(
+                        entry,
+                        transitionSpec = {
+                            if (crossfadeHead()) fadeIn(Motion.standard()) togetherWith fadeOut(Motion.standard())
+                            else androidx.compose.animation.EnterTransition.None togetherWith androidx.compose.animation.ExitTransition.None
+                        },
+                        contentAlignment = Alignment.TopStart,
+                        label = "stand-in",
+                        contentKey = { it.id },
+                    ) { TitleHead(it, episodes, list, inset, shared) }
+                }
+            }
+            if (loaded) {
+                item(key = "actions", contentType = "actions") { Box(itemMotion()) { TitleActions(entry, actions) } }
+                val synopsis = synopsisWithoutSpoilers(entry.synopsis)
+                if (synopsis.isNotEmpty()) item(key = "synopsis", contentType = "synopsis") { Box(itemMotion()) { Synopsis(synopsis) } }
+                item(key = "facts", contentType = "facts") { Box(itemMotion()) { FactsLines(entry) } }
+                item(key = "more-about", contentType = "more-about") { Box(itemMotion()) { MoreAboutRow(onAbout) } }
+            } else {
+                // In the layout of what replaces them, so the picker stands where it will.
+                item(key = "actions-placeholder", contentType = "actions-placeholder") { Box(itemMotion()) { ActionsPlaceholder() } }
+                item(key = "facts-placeholder", contentType = "facts-placeholder") { Box(itemMotion()) { FactsPlaceholder() } }
+                item(key = "more-about-placeholder", contentType = "more-about-placeholder") { Box(itemMotion()) { MoreAboutPlaceholder() } }
+            }
             if (hasSeasons) item(key = SEASONS, contentType = SEASONS) {
                 val picked = chosen.longValue.toUInt()
                 val pickedEntry by remember(picked) { derivedStateOf { titles.value[picked] } }
-                Seasons(picked, pickedEntry, family.value, onPick, itemMotion(), onPress = onPress, onLift = onLift)
+                Seasons(picked, pickedEntry, family.value, geometry, pickerScroll, onPick, itemMotion(), onPress = onPress, onLift = onLift)
             }
             val related = entry.relatedCards()
             if (related.isNotEmpty()) item(key = "related", contentType = "related") { Box(itemMotion()) { RelatedRail(related) } }
-            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold)
+            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead)
         }
+    }
+}
+
+/** The actions' places while a season's title is on its way: the main button's, then the list's and the trailer's. */
+@Composable
+private fun ActionsPlaceholder() {
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.padding(horizontal = 16.dp).padding(top = 16.dp)) {
+        Box(Modifier.fillMaxWidth().height(56.dp).clip(CircleShape).background(colors.surfaceContainer))
+        Row(Modifier.padding(top = 4.dp).height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f).height(40.dp).clip(CircleShape).background(colors.surfaceContainer))
+            Box(Modifier.weight(1f).height(40.dp).border(1.dp, colors.outlineVariant, CircleShape))
+        }
+    }
+}
+
+/** The facts' two lines while a season's title is on its way. */
+@Composable
+private fun FactsPlaceholder() {
+    Column(Modifier.padding(horizontal = 16.dp).padding(top = 4.dp)) {
+        TextPlaceholder(0.62f, 20.dp)
+        TextPlaceholder(0.4f, 20.dp)
+    }
+}
+
+/** More about this show's row while a season's title is on its way: its place, its words as a bar. */
+@Composable
+private fun MoreAboutPlaceholder() {
+    Box(Modifier.padding(top = 4.dp).fillMaxWidth().heightIn(min = 48.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+        TextPlaceholder(0.42f, 20.dp)
     }
 }
 
@@ -480,24 +809,32 @@ private fun SeasonFade(entry: Entry, modifier: Modifier = Modifier, content: @Co
 }
 
 /**
- * The other seasons' titles and art, asked for as the page opens, so a pick in the season picker
- * hands over to a season that is already here: its words at once, its art from the cache. Only a
- * title the app has not seen is asked of AniList, as the Mac's picker does.
+ * The titles and art of the seasons either side of the one [around] marks, asked for ahead of a
+ * pick, so a pick in the season picker hands over to a season that is already here: its words at
+ * once, its art from the cache. Only a title the app has not seen is asked of AniList, as the
+ * Mac's picker does, and only these two: as the season on screen moves along the picker, the ones
+ * next to it are asked for in turn, never the whole franchise at once.
  */
 @Composable
-private fun PrefetchSeasons(family: TitleFamily, wide: Boolean) {
+private fun PrefetchSeasons(family: TitleFamily, around: androidx.compose.runtime.State<Long>, wide: Boolean, ask: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
     val titles = store.titles.entries.collectAsStateWithLifecycle()
-    val others = family.seasons.filterNot { it.isThis }.map { it.id }
-    LaunchedEffect(others) {
-        for (other in others) if (store.titles[other] == null) store.loadDetail(other)
+    val near = family.neighbours(around.value.toUInt())
+    LaunchedEffect(near) {
+        // Past the frame of the pick that moved them.
+        androidx.compose.runtime.withFrameNanos { }
+        for (other in near) if (store.titles[other] == null) ask(other)
     }
     val banner = if (wide) 1600 else pixels(412.dp)
     val cover = if (wide) 500 else 300
-    // Read through the seasons alone: another title changing asks for nothing again.
-    val art by remember(others, banner, cover) {
+    // Read through these seasons alone: another title changing asks for nothing again.
+    val art by remember(near, family, banner, cover) {
         derivedStateOf(structuralEqualityPolicy()) {
-            others.mapNotNull { titles.value[it] }.flatMap { listOfNotNull(it.bannerUrl?.to(banner), it.coverUrl?.to(cover)) }
+            near.flatMap { other ->
+                val title = titles.value[other]
+                if (title != null) listOfNotNull(title.bannerUrl?.to(banner), title.coverUrl?.to(cover))
+                else listOfNotNull(family.card(other)?.coverUrl?.to(cover))
+            }
         }
     }
     LaunchedEffect(art) {
@@ -900,15 +1237,111 @@ private fun Synopsis(text: String) {
 }
 
 /**
- * The seasons as a connected group: the one on screen selected with its count, the others a tap
+ * How a season picker of [count] seasons lays out. Side by side across the room it has when they
+ * fit, the season chosen [CHOSEN] wide against 1 for the rest (T7), [unit] px each; else as a row
+ * that scrolls sideways, each season as wide as its name and the chosen one's check and count
+ * need, [pad] px at either end and the season chosen kept in view.
+ */
+@androidx.compose.runtime.Immutable
+internal class SeasonGeometry(
+    val count: Int,
+    val unit: Float,
+    val gap: Float,
+    val pad: Float,
+    val scrolls: Boolean,
+    /** Whether the chosen season has room for its count beside its name and check. */
+    val countFits: Boolean,
+) {
+    /** The row's width when it scrolls, its ends' padding with it. */
+    val width: Float get() = 2 * pad + unit * (count - 1 + CHOSEN) + gap * (count - 1).coerceAtLeast(0)
+
+    /** The scroll that puts the season at [index], chosen, in the middle of a [viewport] px wide, as far as the row's ends allow. */
+    fun centred(index: Int, viewport: Int): Int {
+        if (!scrolls || index < 0) return 0
+        val middle = pad + index * (unit + gap) + unit * CHOSEN / 2
+        return (middle - viewport / 2f).coerceIn(0f, (width - viewport).coerceAtLeast(0f)).roundToInt()
+    }
+
+    override fun equals(other: Any?): Boolean = other is SeasonGeometry && other.count == count && other.unit == unit &&
+        other.gap == gap && other.pad == pad && other.scrolls == scrolls && other.countFits == countFits
+
+    override fun hashCode(): Int = java.util.Objects.hash(count, unit, gap, pad, scrolls, countFits)
+
+    companion object {
+        /** The chosen season's width against the others'. */
+        const val CHOSEN = 1.4f
+    }
+}
+
+/**
+ * The picker's layout for [count] seasons in [available] across, from its labels as set in
+ * labelLarge at the current font scale: side by side while every name fits with room around it
+ * and the chosen one's check beside its name, else a row that scrolls.
+ */
+@Composable
+private fun rememberSeasonGeometry(count: Int, available: Dp): SeasonGeometry {
+    val density = LocalDensity.current
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    return remember(count, available, density, style) {
+        with(density) {
+            fun width(text: String, of: androidx.compose.ui.text.TextStyle = style) =
+                measurer.measure(text, of, maxLines = 1, softWrap = false).size.width.toFloat()
+            val label = (1..count).maxOfOrNull { width("Season $it") } ?: 0f
+            val count2 = width("00/00", style.tabular().copy(fontWeight = FontWeight.Normal))
+            val check = (18.dp + 6.dp).toPx()
+            val gap = 2.dp.toPx()
+            // Side by side, a name needs 8 dp clear either side; a row that scrolls gives it 16.
+            val tight = 2 * 8.dp.toPx()
+            val roomy = 2 * 16.dp.toPx()
+            val fit = if (count > 0) (available.toPx() - gap * (count - 1)) / (count - 1 + SeasonGeometry.CHOSEN) else 0f
+            if (count > 0 && fit >= label + tight && fit * SeasonGeometry.CHOSEN >= check + label + tight) {
+                val counted = check + label + 6.dp.toPx() + count2 + tight
+                SeasonGeometry(count, fit, gap, pad = 0f, scrolls = false, countFits = fit * SeasonGeometry.CHOSEN >= counted)
+            } else {
+                val counted = check + label + 6.dp.toPx() + count2 + roomy
+                val unit = maxOf(label + roomy, counted / SeasonGeometry.CHOSEN)
+                SeasonGeometry(count, unit, gap, pad = 16.dp.toPx(), scrolls = true, countFits = true)
+            }
+        }
+    }
+}
+
+/**
+ * Keep the season [marked] in the middle of a picker that scrolls, as far as its ends allow: where
+ * it stands as the picker first lays out, and on standard as a pick moves it, as a scrollable tab
+ * row does. [viewport] is how wide the picker is on screen.
+ */
+@Composable
+private fun FollowChosen(scroll: androidx.compose.foundation.ScrollState, geometry: SeasonGeometry, family: TitleFamily, marked: androidx.compose.runtime.State<Long>, viewport: Int) {
+    val index = family.seasons.indexOfFirst { it.id.toLong() == marked.value }
+    var placed by remember(geometry, viewport) { mutableStateOf(false) }
+    LaunchedEffect(geometry, index, viewport) {
+        if (!geometry.scrolls || index < 0) return@LaunchedEffect
+        val target = geometry.centred(index, viewport)
+        if (!placed) {
+            scroll.scrollTo(target)
+            placed = true
+        } else if (scroll.value != target) {
+            scroll.animateScrollTo(target, Motion.standard())
+        }
+    }
+}
+
+/**
+ * The seasons as a connected group: the one chosen selected with its count, the others a tap
  * away. A pick changes the page in place (T7): the selection morphs as [ConnectedButton]'s does,
- * and the count comes and goes with the check.
+ * its width on the same spring as its corners, and the count comes and goes with the check. When
+ * they do not fit across, the group scrolls sideways under [scroll], the season at the edge cut
+ * to say so.
  */
 @Composable
 private fun Seasons(
     chosenId: AnilistId,
     entry: Entry?,
     family: TitleFamily,
+    geometry: SeasonGeometry,
+    scroll: androidx.compose.foundation.ScrollState,
     onPick: (AnilistId) -> Unit,
     modifier: Modifier = Modifier,
     inset: Boolean = true,
@@ -916,56 +1349,83 @@ private fun Seasons(
     onLift: () -> Unit = {},
 ) {
     val store = LocalAppStore.current
-    Row(
-        modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth().heightIn(min = 48.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        family.seasons.forEachIndexed { index, season ->
-            androidx.compose.runtime.key(season.id) {
-                val chosen = season.id == chosenId
-                ConnectedButton(
-                    chosen = chosen,
-                    first = index == 0,
-                    last = index == family.seasons.lastIndex,
-                    onClick = { onPick(season.id) },
-                    // The season's episodes are asked for as the finger lands, ahead of the pick.
-                    onPress = {
-                        store.loadEpisodes(season.id)
-                        onPress(season.id)
-                    },
-                    onRelease = onLift,
-                    enabled = !chosen,
-                    // The first a little wider, for its count: the widths stay as a pick morphs
-                    // the selection (T7).
-                    weight = if (index == 0) 1.4f else 1f,
-                ) { color ->
-                    androidx.compose.foundation.text.BasicText(
-                        "Season ${index + 1}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = color,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                    val done = entry?.progress?.done?.toInt()
-                    val total = entry?.episodes?.takeIf { it > 0u }
-                    val count = if (chosen && done != null && total != null) done to total else null
-                    // The count as it last read, while it leaves with the selection.
-                    var last by remember { mutableStateOf(count) }
-                    if (count != null) last = count
-                    AnimatedVisibility(count != null, enter = markIn, exit = markOut) {
-                        last?.let { (watched, of) ->
-                            Row(Modifier.padding(start = 6.dp)) {
-                                val style = MaterialTheme.typography.labelLarge.tabular().copy(fontWeight = FontWeight.Normal)
-                                // Only the changed digit moves as an episode is marked (T9).
-                                val countColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                RollingCount(watched, style, countColor)
-                                Text("/$of", style = style, color = countColor)
+    val motion = MaterialTheme.motionScheme
+    val seasons = family.seasons
+    // How far each season is chosen, on the shape's spring: its width follows, read as the group
+    // is laid out, so the morph recomposes nothing.
+    val chosen = seasons.map { season ->
+        key(season.id) { androidx.compose.animation.core.animateFloatAsState(if (season.id == chosenId) 1f else 0f, motion.defaultSpatialSpec(), label = "width") }
+    }
+    val row = if (geometry.scrolls) {
+        Modifier.fillMaxWidth().horizontalScroll(scroll).padding(horizontal = with(LocalDensity.current) { geometry.pad.toDp() })
+    } else {
+        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth()
+    }
+    androidx.compose.ui.layout.Layout(
+        modifier = modifier.then(row).heightIn(min = 48.dp),
+        content = {
+            seasons.forEachIndexed { index, season ->
+                key(season.id) {
+                    val isChosen = season.id == chosenId
+                    ConnectedButtonContent(
+                        chosen = isChosen,
+                        first = index == 0,
+                        last = index == seasons.lastIndex,
+                        onClick = { onPick(season.id) },
+                        // The season's episodes are asked for as the finger lands, ahead of the pick.
+                        onPress = {
+                            store.loadEpisodes(season.id)
+                            onPress(season.id)
+                        },
+                        onRelease = onLift,
+                        enabled = !isChosen,
+                    ) { color ->
+                        androidx.compose.foundation.text.BasicText(
+                            "Season ${index + 1}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = color,
+                            maxLines = 1,
+                            softWrap = false,
+                        )
+                        val done = entry?.progress?.done?.toInt()
+                        val total = entry?.episodes?.takeIf { it > 0u }
+                        val count = if (isChosen && geometry.countFits && done != null && total != null) done to total else null
+                        // The count as it last read, while it leaves with the selection.
+                        var last by remember { mutableStateOf(count) }
+                        if (count != null) last = count
+                        AnimatedVisibility(count != null, enter = markIn, exit = markOut) {
+                            last?.let { (watched, of) ->
+                                Row(Modifier.padding(start = 6.dp)) {
+                                    val style = MaterialTheme.typography.labelLarge.tabular().copy(fontWeight = FontWeight.Normal)
+                                    // Only the changed digit moves as an episode is marked (T9).
+                                    val countColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                    RollingCount(watched, style, countColor)
+                                    Text("/$of", style = style, color = countColor)
+                                }
                             }
                         }
                     }
                 }
             }
+        },
+    ) { measurables, constraints ->
+        val weights = FloatArray(measurables.size) { 1f + (SeasonGeometry.CHOSEN - 1f) * (chosen.getOrNull(it)?.value ?: 0f) }
+        val gap = geometry.gap
+        // Side by side, the seasons share the width as their weights say, whatever the springs
+        // stand at; scrolling, each is its own width.
+        val scale = if (geometry.scrolls) geometry.unit else (constraints.maxWidth - gap * (measurables.size - 1)).coerceAtLeast(0f) / weights.sum().coerceAtLeast(1f)
+        var x = 0f
+        val placed = measurables.mapIndexed { i, measurable ->
+            val left = x.roundToInt()
+            x += weights[i] * scale
+            val width = (x.roundToInt() - left).coerceAtLeast(0)
+            x += gap
+            left to measurable.measure(Constraints(minWidth = width, maxWidth = width, minHeight = 0, maxHeight = constraints.maxHeight))
+        }
+        val height = maxOf(placed.maxOfOrNull { it.second.height } ?: 0, constraints.minHeight)
+        val width = if (geometry.scrolls) (x - gap).roundToInt().coerceAtLeast(0) else constraints.maxWidth
+        layout(width, height) {
+            for ((left, placeable) in placed) placeable.place(left, (height - placeable.height) / 2)
         }
     }
 }
@@ -980,10 +1440,14 @@ private fun LazyListScope.episodeRows(
     actions: AppActions,
     unfolded: Boolean,
     onFold: (anchor: String) -> Unit,
+    /** Whether the placeholders wait 600 ms first (T8): not on a page composed ahead, off screen. */
+    wait: Boolean = true,
 ) {
     if (episodes == null) {
         // Crossfading with the rows as they arrive (T8), as every item comes and goes.
-        items(4, key = { "placeholder-$it" }, contentType = { "placeholder" }) { Box(itemMotion()) { AfterWait { EpisodePlaceholder() } } }
+        items(4, key = { "placeholder-$it" }, contentType = { "placeholder" }) {
+            Box(itemMotion()) { if (wait) AfterWait { EpisodePlaceholder() } else EpisodePlaceholder() }
+        }
         return
     }
     val next = entry.progress?.next ?: 1u
@@ -1211,9 +1675,7 @@ private fun TabletTitle(
                 }
                 if (family.seasons.isNotEmpty() || family.related.isNotEmpty()) {
                     fullWidth("family") {
-                        Row(Modifier.padding(start = 16.dp, top = 24.dp), horizontalArrangement = Arrangement.spacedBy(32.dp), verticalAlignment = Alignment.CenterVertically) {
-                            if (family.seasons.isNotEmpty()) Box(Modifier.width(520.dp)) { Seasons(entry.id, entry, family, onPick, inset = false) }
-                        }
+                        if (family.seasons.isNotEmpty()) TabletSeasons(entry, family, onPick) else Spacer(Modifier.height(24.dp))
                     }
                 }
                 if (entry.relatedCards().isNotEmpty()) {
@@ -1247,6 +1709,28 @@ private fun TabletTitle(
                 navigator.openTitle(other, "recommendation")
             }
         }
+        }
+    }
+}
+
+/**
+ * The tablet's season picker, 520 wide as AndroidTabletTitle has it while the seasons fit, else
+ * across the page, scrolling sideways with the season on screen kept in the middle.
+ */
+@Composable
+private fun TabletSeasons(entry: Entry, family: TitleFamily, onPick: (AnilistId) -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 24.dp)) {
+        val geometry = rememberSeasonGeometry(family.seasons.size, minOf(520.dp, maxWidth - 16.dp))
+        val viewport = constraints.maxWidth
+        val chosen = rememberUpdatedState(entry.id.toLong())
+        val scroll = rememberSaveable(saver = androidx.compose.foundation.ScrollState.Saver) {
+            androidx.compose.foundation.ScrollState(geometry.centred(family.seasons.indexOfFirst { it.id == entry.id }, viewport))
+        }
+        FollowChosen(scroll, geometry, family, chosen, viewport)
+        if (geometry.scrolls) {
+            Seasons(entry.id, entry, family, geometry, scroll, onPick)
+        } else {
+            Box(Modifier.padding(start = 16.dp).width(520.dp)) { Seasons(entry.id, entry, family, geometry, scroll, onPick, inset = false) }
         }
     }
 }

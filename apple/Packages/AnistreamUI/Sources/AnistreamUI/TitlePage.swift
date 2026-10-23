@@ -313,59 +313,95 @@ struct TitleFamilyRow: View {
         #endif
     }
 
+    /// How wide Related keeps itself beside the seasons: a card and part of the next, cut by the
+    /// edge to say the row scrolls.
+    static let relatedRoom: CGFloat = 240
+
     var body: some View {
-        HStack(alignment: .top, spacing: 32) {
-            if !family.seasons.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Seasons").groupHeaderStyle().padding(.horizontal, 4)
-                        .accessibilityAddTraits(.isHeader)
-                    HStack(spacing: 8) {
-                        ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
-                            familyCell(
-                                id: season.id,
-                                name: "Season \(index + 1)",
-                                detail: seasonDetail(season),
-                                fraction: season.isThis ? entry.watchedFraction : nil,
-                                selected: season.isThis
-                            )
-                        }
-                    }
-                }
-            }
-            if entry.detail != nil {
-                let cards = entry.relatedCards(excluding: family.picked)
-                if !cards.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Related").groupHeaderStyle().padding(.horizontal, 4)
-                            .accessibilityAddTraits(.isHeader)
-                        // A row that scrolls sideways, its last card cut by the edge to say so.
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 8) {
-                                ForEach(cards, id: \.id) { linked in
-                                    RelatedCard(linked: linked, cover: Self.cover)
-                                        .frame(height: 62)
-                                }
+        // Side by side, as MacTitle and PadTitle have them, while the seasons fit with room for
+        // Related beside them. A long franchise's seasons scroll sideways on a line of their own
+        // instead, the season on screen in view, with Related under them.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 32) {
+                if !family.seasons.isEmpty {
+                    seasonsGroup {
+                        HStack(spacing: 8) {
+                            ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
+                                seasonCell(index, season)
                             }
                         }
-                        .scrollIndicators(.never)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-            } else if !family.related.isEmpty {
+                if hasRelated {
+                    related.frame(minWidth: Self.relatedRoom, idealWidth: Self.relatedRoom, maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            VStack(alignment: .leading, spacing: 20) {
+                if !family.seasons.isEmpty {
+                    seasonsGroup { SeasonScroller(family: family) { index, season in seasonCell(index, season) } }
+                }
+                related
+            }
+        }
+    }
+
+    /// Whether there is anything under Related.
+    private var hasRelated: Bool {
+        entry.detail != nil ? !entry.relatedCards(excluding: family.picked).isEmpty : !family.related.isEmpty
+    }
+
+    private func seasonsGroup(@ViewBuilder _ row: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Seasons").groupHeaderStyle().padding(.horizontal, 4)
+                .accessibilityAddTraits(.isHeader)
+            row()
+        }
+    }
+
+    private func seasonCell(_ index: Int, _ season: TitleFamily.Season) -> some View {
+        familyCell(
+            id: season.id,
+            name: "Season \(index + 1)",
+            detail: seasonDetail(season),
+            fraction: season.isThis ? entry.watchedFraction : nil,
+            selected: season.isThis
+        )
+    }
+
+    @ViewBuilder private var related: some View {
+        if entry.detail != nil {
+            let cards = entry.relatedCards(excluding: family.picked)
+            if !cards.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Related").groupHeaderStyle().padding(.horizontal, 4)
                         .accessibilityAddTraits(.isHeader)
-                    HStack(spacing: 8) {
-                        ForEach(family.related, id: \.id) { related in
-                            familyCell(
-                                id: related.id,
-                                name: related.title,
-                                detail: [related.format?.capitalizedSentence, related.relation.capitalizedSentence]
-                                    .compactMap { $0 }.joined(separator: " · "),
-                                fraction: nil,
-                                selected: false
-                            )
+                    // A row that scrolls sideways, its last card cut by the edge to say so.
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 8) {
+                            ForEach(cards, id: \.id) { linked in
+                                RelatedCard(linked: linked, cover: Self.cover)
+                                    .frame(height: 62)
+                            }
                         }
+                    }
+                    .scrollIndicators(.never)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if !family.related.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Related").groupHeaderStyle().padding(.horizontal, 4)
+                    .accessibilityAddTraits(.isHeader)
+                HStack(spacing: 8) {
+                    ForEach(family.related, id: \.id) { related in
+                        familyCell(
+                            id: related.id,
+                            name: related.title,
+                            detail: [related.format?.capitalizedSentence, related.relation.capitalizedSentence]
+                                .compactMap { $0 }.joined(separator: " · "),
+                            fraction: nil,
+                            selected: false
+                        )
                     }
                 }
             }
@@ -430,6 +466,32 @@ struct TitleFamilyRow: View {
     /// The page's own card for `id`: a season's, which every season has, or a relation's.
     private func card(_ id: AnilistId) -> LinkedTitle? {
         entry.detail?.seasons?.first { $0.id == id } ?? entry.detail?.relations.first { $0.id == id }
+    }
+}
+
+/// A long franchise's seasons in a row that scrolls sideways, its last cell cut by the edge to say
+/// so: lazy, so only the seasons in view are made and only their covers asked for, and the season
+/// on screen in the middle as the page opens and as it changes.
+struct SeasonScroller<Cell: View>: View {
+    let family: TitleFamily
+    @ViewBuilder let cell: (Int, TitleFamily.Season) -> Cell
+
+    var body: some View {
+        let chosen = family.seasons.first(where: \.isThis)?.id
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 8) {
+                    ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
+                        cell(index, season).id(season.id)
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .onAppear { if let chosen { proxy.scrollTo(chosen, anchor: .center) } }
+            .onChange(of: chosen) { _, now in
+                if let now { withAnimation(.standard) { proxy.scrollTo(now, anchor: .center) } }
+            }
+        }
     }
 }
 
