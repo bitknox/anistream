@@ -20,8 +20,8 @@
 
 use std::{net::SocketAddr, sync::Arc};
 
-pub use anistream_remote as protocol;
 use anistream_model::{command::Command, event::Event, hosted::PlayerReport};
+pub use anistream_remote as protocol;
 use anistream_remote::{
     Error,
     command::FrontIntent,
