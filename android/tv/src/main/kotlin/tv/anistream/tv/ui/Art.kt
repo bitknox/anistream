@@ -36,6 +36,9 @@ import tv.anistream.store.ArtworkDecoder
 /** The store the screens read and send through. */
 val LocalAppStore = staticCompositionLocalOf<AppStore> { error("no AppStore in this composition") }
 
+/** How many bytes of decoded art the TV keeps: 40 MB, as a 2 GB box shares the rest with the video. */
+const val TV_ART_BUDGET = 40L shl 20
+
 /**
  * The TV's decoder: opaque art (covers, cards, stills) in RGB_565, half the memory, and banners,
  * whose skies band in 565, in ARGB_8888. A banner is told by its shape, wider than 2.5 : 1.
@@ -75,7 +78,8 @@ fun ArtImage(url: String?, plate: Color?, maxPixelSize: Int, modifier: Modifier 
     val arrived = remember(url) { url?.let(store.artwork::arrivals) ?: NONE_ARRIVED }
     val arrivals by arrived.collectAsStateWithLifecycle()
     val art = url?.let { arrivals; store.artwork.image(it) }
-    LaunchedEffect(url, maxPixelSize) {
+    // Asked again when the art goes, as when the image cache is cleared under it.
+    LaunchedEffect(url, maxPixelSize, art == null) {
         if (url != null) store.artwork.request(url, maxPixelSize)
     }
     // Art already here when the box first draws shows at once; art that arrives fades in.

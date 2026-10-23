@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import kotlinx.coroutines.launch
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.model.SettingChange
 import tv.anistream.engine.model.SettingKey
@@ -261,15 +263,38 @@ private fun LazyListScope.thisTv(memory: FocusMemory) {
                 enabled = false,
                 modifier = Modifier.remembered(memory, "tv/watch-next"),
             )
-            TvListRow(
-                "Clear the image cache",
-                onClick = {},
-                enabled = false,
-                modifier = Modifier.remembered(memory, "tv/cache"),
-            )
+            ImageCacheRow(memory)
         }
     }
 }
+
+/** "Clear the image cache", with what it holds now; clearing it shows the new size once done. */
+@Composable
+private fun ImageCacheRow(memory: FocusMemory) {
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
+    var bytes by remember { mutableStateOf<Long?>(null) }
+    var clearing by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { bytes = store.imageCacheBytes() }
+    TvListRow(
+        "Clear the image cache",
+        onClick = {
+            if (!clearing) {
+                clearing = true
+                scope.launch {
+                    store.clearImageCache()
+                    bytes = store.imageCacheBytes()
+                    clearing = false
+                }
+            }
+        },
+        value = if (clearing) "Clearing" else bytes?.let(::megabytes),
+        modifier = Modifier.remembered(memory, "tv/cache"),
+    )
+}
+
+/** "84 MB", to the nearest megabyte. */
+fun megabytes(bytes: Long): String = "${(bytes + (1L shl 19)) shr 20} MB"
 
 private fun LazyListScope.about(memory: FocusMemory) {
     item(key = "about", contentType = "list") {

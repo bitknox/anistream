@@ -61,6 +61,7 @@ import tv.anistream.tv.player.TvPlayerScreen
 import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
+import tv.anistream.tv.ui.TV_ART_BUDGET
 import tv.anistream.tv.ui.TvArtDecoder
 import tv.anistream.tv.ui.TvTheme
 
@@ -165,7 +166,7 @@ class TvShots {
 
     private fun playerShot(name: String, then: () -> Unit) {
         AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
-        val store = AppStore(scope, decoder = TvArtDecoder, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         var mpv: ScriptedMpv? = null
         val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { time }, hwdec = "no")
         compose.runOnUiThread {
@@ -224,7 +225,7 @@ class TvShots {
     ) {
         val recorded = Scene.named(WATCHING)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
-        val store = AppStore(scope, decoder = TvArtDecoder, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         val events = recorded.events.filter(::replayed)
         store.apply(events)
         val player = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { 0L }, hwdec = "no")

@@ -25,13 +25,14 @@ import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
 import tv.anistream.store.SealedFileSecrets
 import tv.anistream.store.traced
+import tv.anistream.tv.ui.TV_ART_BUDGET
 import tv.anistream.tv.ui.TvArtDecoder
 
 class TvApp : Application(), PlayerHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
-    val store: AppStore by lazy { AppStore(scope, decoder = TvArtDecoder) }
+    val store: AppStore by lazy { AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET) }
 
     /** The player, for the life of the process: mpv and the media session outlive the activity. */
     override val player: PlayerModel by lazy {

@@ -2,6 +2,7 @@
 
 package tv.anistream.store
 
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -47,6 +48,8 @@ import tv.anistream.engine.model.ShowSettingKey
  * @param artworkWithoutEngine where art comes from when there is no engine behind the store, as
  *   in the screenshot tests: a URL's bytes, answered as the engine would answer them, or `null`
  *   for none. Unset, art waits for the engine.
+ * @param artworkBudget how many bytes of decoded art are kept in memory: [ArtworkStore.DEFAULT_BUDGET]
+ *   on a phone, less on a TV.
  */
 class AppStore(
     private val scope: CoroutineScope,
@@ -55,6 +58,7 @@ class AppStore(
     decoder: ArtworkDecoder = BitmapDecoder,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
     private val artworkWithoutEngine: ((String) -> ByteArray?)? = null,
+    artworkBudget: Long = ArtworkStore.DEFAULT_BUDGET,
 ) {
     /** Where the engine stands. */
     sealed interface Phase {
@@ -86,7 +90,7 @@ class AppStore(
 
     /** The app's own update: the newer release, and the download and install the viewer started. */
     val updates = UpdateModel(notices)
-    val artwork = ArtworkStore(scope, decoder) { url ->
+    val artwork = ArtworkStore(scope, decoder, costLimit = artworkBudget) { url ->
         val client = client
         val files = artworkWithoutEngine
         when {
@@ -104,6 +108,9 @@ class AppStore(
     }
 
     private var client: EngineClient? = null
+
+    /** Where the engine keeps the art it fetched, once a launch says: its cache's `img`. */
+    private var imageFiles: File? = null
 
     /** What the screens asked for before the engine was there, sent once it is. */
     private val early = mutableListOf<Command>()
@@ -145,6 +152,7 @@ class AppStore(
      */
     fun start(launch: EngineLaunch, host: FfiHost, prepare: () -> Unit = {}) {
         _phase.value = Phase.Starting
+        imageFiles = launch.home.cache.resolve("img")
         scope.launch {
             try {
                 val engine = withContext(Dispatchers.IO) {
@@ -197,6 +205,23 @@ class AppStore(
     // Asking
 
     /** What you were watching, unless it was answered within [LIST_FRESH_MILLIS]; [force] asks anyway. */
+    /**
+     * How many bytes of art are kept: the decoded art in memory and the files the engine fetched,
+     * read off the main thread.
+     */
+    suspend fun imageCacheBytes(): Long {
+        val files = withContext(Dispatchers.IO) {
+            imageFiles?.listFiles()?.sumOf { if (it.isFile) it.length() else 0L } ?: 0L
+        }
+        return files + artwork.held.value
+    }
+
+    /** Drop the art kept in memory and the files the engine fetched, which it fetches again as asked. */
+    suspend fun clearImageCache() {
+        artwork.clear()
+        withContext(Dispatchers.IO) { imageFiles?.listFiles()?.forEach { if (it.isFile) it.delete() } }
+    }
+
     fun loadContinue(force: Boolean = false) {
         if (!force && continuing.list.answered(LIST_FRESH_MILLIS)) return
         continuing.list.asked()
@@ -685,4 +710,5 @@ val FfiException.reason: String
         is FfiException.Client -> reason
         is FfiException.Runtime -> reason
         is FfiException.Engine -> reason
+        is FfiException.Remote -> reason
     }
