@@ -15,37 +15,25 @@ accepted = [
     "Unicode-3.0",
     "MPL-2.0",
     "CDLA-Permissive-2.0",
-    "OpenSSL",
 ]
 ignore-dev-dependencies = true
 
-# wreq-util is GPL-3.0, alone among the crates here, and the browser profiles anistream-net takes
-# from it are compiled into the terminal binary and the apps' engine alike. Accepted for this one
-# crate, so the notices say so and any other GPL crate still fails.
-[wreq-util]
-accepted = ["GPL-3.0"]
-
 # MIT itself, and it builds the BoringSSL it vendors into the binary, under BoringSSL's own terms:
-# the OpenSSL and SSLeay licences for what came from OpenSSL, ISC for Google's own code.
-[boring-sys2.clarify]
-license = "MIT AND OpenSSL AND ISC"
+# Apache-2.0, which BoringSSL moved its code to from the OpenSSL, SSLeay and ISC licences. The
+# test suite's Go licence, after it in the same file, covers nothing compiled in.
+[btls-sys.clarify]
+license = "MIT AND Apache-2.0"
 
-[[boring-sys2.clarify.files]]
+[[btls-sys.clarify.files]]
 path = "LICENSE-MIT"
 license = "MIT"
-checksum = "ad2e7bdef7c00b92eaf4f657a472c7d3f8b36aac3cdc270e65bb0c287eec0d4e"
+checksum = "2f55c7cce4da9f8334dce14d53e35410f67973510bc9793ac2dafa5e8cddd3c3"
 
-[[boring-sys2.clarify.files]]
+[[btls-sys.clarify.files]]
 path = "deps/boringssl/LICENSE"
-license = "OpenSSL"
-checksum = "3c3f6f4f69eeab19a92f3952f7cd8b9b78f9c5c8b0da6f788dbb50f1f60c9515"
-end = "[including the GNU Public Licence.]\n */"
-
-[[boring-sys2.clarify.files]]
-path = "deps/boringssl/LICENSE"
-license = "ISC"
-checksum = "1d65b25531c4153575ff604cf4082ed192cd5835b19b6358cb340e6b05528d52"
-start = "/* Copyright (c) 2015, Google Inc."
+license = "Apache-2.0"
+checksum = "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+end = "   limitations under the License.\n"
 
 # MIT or Apache-2.0 itself, and it builds the zstd it vendors in, which is BSD-3-Clause.
 [zstd-sys.clarify]
