@@ -23,8 +23,25 @@ Gothic New, cover art as the hero, amber as the only accent, and Nagare.
   `SwapChainPanel` fed by mpv's d3d11 composition mode; on Linux it is a `GtkGLArea` under
   `GtkGraphicsOffload`. Both put real native controls over the video.
 - Feature parity with the Android and Apple apps, not pixel replication.
-- Dark first, as on the other apps. Light follows the system (see "Light, dark and high contrast").
-  The Obi & Silk palette stays fixed: no accent colour taken from Windows or from GNOME.
+- Dark only at v1, as the other apps are today, whatever the system's theme. The Obi & Silk
+  palette stays fixed: no accent colour taken from Windows or from GNOME. A light palette is kept
+  for later in the appendix.
+
+The brief's open questions, answered the same day:
+
+- Light mode: dark only at v1, not following the system (see "Dark and high contrast").
+- Windows backdrop: Mica tinted to the ground, on the title bar and navigation pane only.
+- Linux narrow navigation: the sidebar collapses into an overlay; no bottom view switcher bar.
+- Linux selection: libadwaita's neutral fill, not the Mac's amber tint.
+- Linux settings: a Settings page in the sidebar, as on the Mac and Windows, not a preferences
+  dialog.
+- Closing the window while downloads or seeding run: the app asks first, keep going or stop (see
+  "Closing the window while downloads run").
+- Linux mini player: offered, though Wayland cannot keep it on top.
+- Windows search: in the title bar only, with no Search item in the pane.
+- The Windows jump list and a GNOME Shell search provider: after v1, with widgets.
+- Subtitle style on Windows: follows the system's caption settings until the user sets one in the
+  app.
 
 ## What carries over and what each platform replaces
 
@@ -246,9 +263,9 @@ the title page) so they follow the text scale. The font file ships in the Flatpa
 | Segmented choice | `AdwToggleGroup`; `AdwInlineViewSwitcher` where the choice swaps a view | Segmented capsule |
 | Choice of one from many | `GtkDropDown`, or `AdwComboRow` in forms | Pop-up menu |
 | Context menus | `GtkPopoverMenu` on right-click, long press, Shift+F10 and the Menu key | Context menus |
-| Primary menu | A `GtkMenuButton` with `open-menu-symbolic` at the sidebar header's end: Sync Now, Join Store…, Export Lists and History…, Preferences, Keyboard Shortcuts, About anistream | Mac menu bar |
+| Primary menu | A `GtkMenuButton` with `open-menu-symbolic` at the sidebar header's end: Sync Now, Join Store…, Export Lists and History…, Keyboard Shortcuts, About anistream | Mac menu bar |
 | Dialogs | `AdwDialog` and `AdwAlertDialog`, which turn into bottom sheets on a narrow window | Sheets |
-| Settings | `AdwPreferencesDialog` with its pages, groups, `AdwSwitchRow`, `AdwComboRow`, `AdwSpinRow`, `AdwEntryRow`, `AdwExpanderRow` | Settings forms |
+| Settings | A sidebar destination: `AdwPreferencesPage`s in the main window, with groups, `AdwSwitchRow`, `AdwComboRow`, `AdwSpinRow`, `AdwEntryRow`, `AdwExpanderRow` | Settings forms |
 | Notices in the window | `AdwToast` for passing ones; `AdwBanner` under the header bar for lasting states (offline, an update) | Notice capsule |
 | Progress | `GtkProgressBar` and `GtkLevelBar` (the storage meter) | Progress bar |
 | Loading | Static placeholders in the cover's colour; `AdwSpinner` only in the player's starting screen and inside a button | Spinner |
@@ -260,40 +277,23 @@ the title page) so they follow the text scale. The font file ships in the Flatpa
 
 The sidebar lists Continue, Calendar, Seasonal, Search, Library, Downloads, then a "Sources" header
 over Providers and Plugin Stores. Its foot holds the account row ("Mika", "AniList synced" with a
-water dot), which opens Preferences on the Accounts page. Preferences is not in the sidebar: GNOME
-apps open it from the primary menu and Ctrl+,.
+water dot), which opens Settings on the Accounts pane, and under it Settings alone, as the Mac's
+sidebar ends. Settings is a page of the main window, not a preferences dialog, so the primary menu
+has no Preferences item; Ctrl+, selects Settings in the sidebar.
 
 Under 600 sp the sidebar collapses into an overlay that slides in from the start edge, behind a
 sidebar button at the start of every content header bar. Picking a destination closes it. Inner
 split views collapse first (at the medium size), so a narrow window shows one column with pushed
 pages.
 
-## Light, dark and high contrast
+## Dark and high contrast
 
-Dark is the design. Light follows the system on both platforms: Windows' app mode, and GNOME's
-colour scheme through `AdwStyleManager` (`ADW_COLOR_SCHEME_DEFAULT`). The player is always dark,
-whatever the system says. Boards draw dark first; one light board per platform shows the mapping.
-
-The light tokens, checked for contrast against the light ground (body text 4.5:1, graphics 3:1):
-
-| Token | Dark | Light | Light contrast on ground |
-|---|---|---|---|
-| ground | #161A2E | #F4F1EA | |
-| raised | #222638 | #FFFFFF | |
-| raised selected | #343A57 | #E6E1D6 | |
-| faint rule | #2F3242 | #DCD7CB | |
-| rule (progress track) | #434653 | #8F8A7D | 3.1 |
-| text (silk, then ink) | #E4E0D6 | #161A2E | 15.2 |
-| haze | #9298B5 | #575D7C | 5.7 |
-| amber fill, with ground-ink text on it | #F2A64B | #F2A64B | ink on amber 8.5 |
-| amber as a line, check or timeline | #F2A64B | #A35C0C | 4.6 |
-| water | #7FC7D9 | #2B7488 | 4.7 |
-| vermilion | #E06B54 | #B0412C | 5.1 |
-
-On Windows, the light `ThemeDictionary` takes these values, with `SystemAccentColorDark1` at
-#F2A64B (accent fill in light) and `SystemAccentColorDark2` at #A35C0C (accent text). Mica's tint
-moves to #F4F1EA. On Linux, the app's stylesheet sets the light values under
-`@media (prefers-color-scheme: light)`, with `--accent-color` at #A35C0C.
+Dark only at v1, whatever the system's theme. Windows sets `Application.RequestedTheme` to Dark
+and the app's dark `ThemeDictionary` applies everywhere; the title bar's caption buttons follow it.
+Linux sets `AdwStyleManager`'s colour scheme to `ADW_COLOR_SCHEME_FORCE_DARK`. The player is dark
+on both, as it would be in any case. Boards draw dark only. Colours are still defined as theme
+resources and CSS variables, never hard-coded in screens, so the light palette in the appendix can
+come later without touching them.
 
 High contrast replaces the palette, it does not adjust it:
 
@@ -371,7 +371,7 @@ are a poster grid with filters for format, season, genre and status. No results 
 - Linux: Search is a sidebar destination and also the header bar's search button. Typing anywhere
   in the window opens the `GtkSearchBar` and searches. The Search page shows the before-typing
   state, then the grid with the filters as a row of `GtkDropDown`s under the search bar. Matching
-  Preferences rows show at the end under "Settings".
+  Settings rows show at the end under "Settings".
 - Grids: covers 140 to 180 wide, columns as many as fit with 16 between; on narrow, three columns
   at 360.
 
@@ -493,10 +493,14 @@ the Mac.
   stream against its 1080p original; subtitles show a caption sample). Medium: the pane list and
   cards, the preview drops under the selected card. Narrow: the pane list is a page; a pane is a
   sub-page with a `BreadcrumbBar`. Ctrl+, opens Settings.
-- Linux: an `AdwPreferencesDialog` (Ctrl+, and the primary menu), with its pages as icons in the
-  dialog's view switcher and its built-in search. The Mac's preview column does not exist; rows
-  whose effect needs a picture (upscaling, subtitle style, night mode) open a subpage that holds
-  it. Narrow windows get the dialog as a full-window sheet, as libadwaita does by itself.
+- Linux: Settings is the sidebar's last destination (Ctrl+, selects it), laid out as Windows
+  lays it out. Wide: an inner `AdwNavigationSplitView` with the panes as a `.navigation-sidebar`
+  list (220 wide, icons and names in header capitalisation), the pane as an `AdwPreferencesPage`
+  in an `AdwClamp` of 640, and, at 1280 and wider, the Mac's preview column on the end. Medium:
+  the pane list and the pane; rows whose effect needs a picture (upscaling, subtitle style, night
+  mode) open a subpage that holds it. Narrow: the pane list is a page and a pane is pushed over
+  it, with the header bar's back button. Settings search is the window's own search, which lists
+  matching rows under "Settings".
 - Both: turning on the torrent source opens a confirmation dialog first, with the main brief's
   connection-check copy; No protection and Warn only sit behind the same kind of acknowledgement.
 - The download folder: Windows `Videos\anistream` by default, picked with the system folder
@@ -613,7 +617,7 @@ media session (below).
 | Destinations | Ctrl+1 to Ctrl+7 | Ctrl+1 to Ctrl+7 |
 | Search | Ctrl+F, Ctrl+E | Ctrl+F, or start typing |
 | Back | Alt+Left, mouse back | Alt+Left, mouse back |
-| Settings | Ctrl+, | Ctrl+, (Preferences) |
+| Settings | Ctrl+, | Ctrl+, |
 | Sync now | Ctrl+R, F5 | Ctrl+R |
 | Mark watched | Ctrl+Shift+M | Ctrl+Shift+M |
 | Hide from Continue | Delete | Delete |
@@ -672,7 +676,7 @@ The periods give the same stiffness as Android's `spring(1f, 1000f)` and `spring
   Accessibility › Captions: font, size, colour, background), mapped to mpv's subtitle options,
   unless the user sets a style in the app. Linux has no system caption style, so the app's own
   subtitle settings apply.
-- Contrast: see "Light, dark and high contrast". Text over art always has the dim or solid ground
+- Contrast: see "Dark and high contrast". Text over art always has the dim or solid ground
   behind it.
 - Pointer targets: 32 epx (Windows) and 32 px (Linux) at least; 40 for player buttons and the
   title page's action.
@@ -686,7 +690,7 @@ The periods give the same stiffness as Android's `spring(1f, 1000f)` and `spring
 | Taskbar or dock | A thumbnail toolbar on the taskbar preview (previous episode, play and pause, next episode); taskbar progress for downloads (paused and failed states too) | Nothing beyond MPRIS; GNOME has no dock badges |
 | Notifications | App notifications: "Episode 10 is out" with the show as body, the banner as hero image, buttons Play and Open | `GNotification` through the portal: the same text, the cover as icon, a Play button; the default action opens the title |
 | Keeping awake | A display request while playing | `gtk_application_inhibit` for idle and suspend while playing |
-| Running with the window closed | While downloads or seeding run: a notification area icon (Open anistream, Pause all downloads, Quit) | The Background portal, so GNOME lists anistream under Background Apps; on KDE a StatusNotifierItem with the same menu |
+| Running with the window closed | Only after the user chooses Keep going (below): a notification area icon (Open anistream, Pause all downloads, Quit) | Only after Keep going: the Background portal, so GNOME lists anistream under Background Apps; on KDE a StatusNotifierItem with the same menu |
 | Single instance | `AppInstance` key, later launches redirect their arguments | `GApplication` over D-Bus |
 | Deep links | `anistream://` registered under `HKCU\Software\Classes` by the installer | `x-scheme-handler/anistream` in the `.desktop` file |
 | Updates | Velopack: an `InfoBar` "Version 1.4 is ready. Restart to update." and a row in About | Flathub updates the app; the engine's check only says "Version 1.4 is out" in About |
@@ -708,9 +712,34 @@ Tracker sign-in, both platforms:
 5. A tracker that cannot take a custom scheme uses the engine's `127.0.0.1` listener instead; the
    browser page it serves says the sign-in is done and the tab can be closed.
 
-Where the Apple apps have Spotlight, the Linux app can offer a GNOME Shell search provider for
-titles in the user's lists, and the Windows app a jump list with the Continue queue. Both are
-listed in the open questions.
+### Closing the window while downloads run
+
+Closing the window with nothing running quits. Closing it while episodes download or seed asks
+first; the app never keeps running without saying so.
+
+- Windows: `AppWindow.Closing` is cancelled and a `ContentDialog` opens. Title "Downloads are still
+  running". Body "2 episodes are downloading and 1 is seeding. Keep them going after the window
+  closes, or stop them?" Buttons: Keep going (primary, amber), Stop and close, Cancel. A check box
+  under the body, "Don't ask again", off by default. Keep going closes the window and adds the
+  notification area icon; the first time, a notification says "anistream is still downloading.
+  It's in the notification area." Stop and close pauses everything and quits; the downloads
+  resume at the next launch.
+- Linux: the window's `close-request` is stopped and an `AdwAlertDialog` opens, which is a bottom
+  sheet on a narrow window. Heading "Keep Downloads Going?". Body as on Windows. Responses: Cancel,
+  Stop and Close, Keep Going (suggested, amber). A "Don't ask again" check button as the dialog's
+  extra child. Keep Going asks the Background portal; if the user or the desktop refuses, a toast
+  in the still-open window says "anistream can't keep running in the background here" and the
+  dialog's choice falls back to Stop and Close. On KDE the StatusNotifierItem appears.
+- Both: the choice can be changed later in Settings › Downloads, "When the window closes with
+  downloads running": Ask, Keep going, Stop. Ask is the default. Quitting (the notification area
+  icon's Quit, or Ctrl+Q on Linux) stops everything without asking, since quitting is the
+  answer.
+
+### After v1
+
+Where the Apple apps have Spotlight, the Linux app gets a GNOME Shell search provider for titles in
+the user's lists, and the Windows app a jump list with the Continue queue. Both come after v1,
+with widgets.
 
 ## Board names
 
@@ -720,40 +749,38 @@ WindowsTitle, WindowsTitleNarrow (560×800), WindowsShowSettings, WindowsSearch,
 WindowsSearchSuggestions, WindowsSeasonal, WindowsCalendar, WindowsCalendarMedium (960×720),
 WindowsLibrary, WindowsDownloads, WindowsProviders, WindowsStore, WindowsSettings,
 WindowsSettingsPlayback, WindowsSettingsSources, WindowsTorrentDialog, WindowsAbout, WindowsPlayer
-(1280×720), WindowsPlayerUpNext (1280×720), WindowsMiniPlayer (480×270), WindowsLight,
+(1280×720), WindowsPlayerUpNext (1280×720), WindowsMiniPlayer (480×270), WindowsCloseDialog,
 WindowsHighContrast, WindowsMotion.
 
 Linux (1280×800 unless noted): LinuxFoundations, LinuxHome, LinuxHomeMedium (860×680),
 LinuxHomeNarrow (360×720), LinuxWelcome, LinuxJoinStore, LinuxTitle, LinuxTitleNarrow (360×720),
 LinuxShowSettings, LinuxSearch, LinuxSeasonal, LinuxCalendar, LinuxCalendarNarrow (360×720),
-LinuxLibrary, LinuxDownloads, LinuxProviders, LinuxStore, LinuxPreferences,
-LinuxPreferencesPlayback, LinuxPreferencesSources, LinuxTorrentDialog, LinuxAbout, LinuxPlayer
-(1280×720), LinuxPlayerUpNext (1280×720), LinuxMiniPlayer (480×270), LinuxLight,
+LinuxLibrary, LinuxDownloads, LinuxProviders, LinuxStore, LinuxSettings, LinuxSettingsPlayback,
+LinuxSettingsSources, LinuxSettingsNarrow (360×720), LinuxTorrentDialog, LinuxAbout, LinuxPlayer
+(1280×720), LinuxPlayerUpNext (1280×720), LinuxMiniPlayer (480×270), LinuxCloseDialog,
 LinuxHighContrast, LinuxMotion.
 
-## Open questions
+## Appendix: the light palette (later)
 
-1. Light appearance at v1? Follow the system with the light tokens above, or ship dark only as the
-   other apps do today. Recommended: follow the system, player always dark. Both platforms flip
-   theme often and the theme dictionaries are needed for high contrast anyway.
-2. Windows backdrop? Mica tinted to the ground on the title bar and pane, untinted Mica Alt, or a
-   solid ground everywhere. Recommended: tinted Mica, which keeps the window Windows 11's own
-   without letting the wallpaper change the brand blue.
-3. Linux narrow navigation? An overlay sidebar, or a bottom view switcher bar with five
-   destinations as on Android. Recommended: the overlay sidebar. A narrow desktop window is a
-   tiled window more often than a phone, and one structure at every width is simpler.
-4. Linux selection colour? libadwaita's neutral fill, or the amber tint the Mac uses. Recommended:
-   neutral. An amber sidebar reads as a theme on GNOME.
-5. Linux settings? `AdwPreferencesDialog`, or Settings in the main window as on Windows and the
-   Mac. Recommended: the dialog, as GNOME apps do, with subpages for the previews.
-6. Keep running after the window closes while downloads or seeding run? On by default with a
-   setting, quit on close, or leave it until after v1. Recommended: on by default, only while
-   something is running, with a one-time notice saying where anistream went.
-7. Mini player on Linux, where it cannot keep itself on top? Offer it and rely on the window
-   menu's Always on Top, or leave it out. Recommended: offer it.
-8. Search on Windows? Only the title bar box, or also a Search item in the pane. Recommended: the
-   title bar only, as Windows 11's own apps do; Ctrl+1 to 7 skip it.
-9. Windows jump list and GNOME Shell search provider? In v1, or after v1 with widgets.
-   Recommended: after v1, with widgets, so v1 stays at parity and no further.
-10. Subtitle style on Windows? Follow the system's caption settings until the user sets one in the
-    app, or always the app's own. Recommended: follow the system first.
+Not in v1. Kept so a light appearance can follow the system later without new design work. The
+light tokens, checked for contrast against the light ground (body text 4.5:1, graphics 3:1):
+
+| Token | Dark | Light | Light contrast on ground |
+|---|---|---|---|
+| ground | #161A2E | #F4F1EA | |
+| raised | #222638 | #FFFFFF | |
+| raised selected | #343A57 | #E6E1D6 | |
+| faint rule | #2F3242 | #DCD7CB | |
+| rule (progress track) | #434653 | #8F8A7D | 3.1 |
+| text (silk, then ink) | #E4E0D6 | #161A2E | 15.2 |
+| haze | #9298B5 | #575D7C | 5.7 |
+| amber fill, with ground-ink text on it | #F2A64B | #F2A64B | ink on amber 8.5 |
+| amber as a line, check or timeline | #F2A64B | #A35C0C | 4.6 |
+| water | #7FC7D9 | #2B7488 | 4.7 |
+| vermilion | #E06B54 | #B0412C | 5.1 |
+
+On Windows, the light `ThemeDictionary` takes these values, with `SystemAccentColorDark1` at
+#F2A64B (accent fill in light) and `SystemAccentColorDark2` at #A35C0C (accent text). Mica's tint
+moves to #F4F1EA. On Linux, the app's stylesheet sets the light values under
+`@media (prefers-color-scheme: light)`, with `--accent-color` at #A35C0C. The player stays dark
+in a light appearance.
