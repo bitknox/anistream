@@ -495,6 +495,9 @@ struct JoinStoreSheet: View {
                 .labelsHidden()
                 .padding(.top, 6)
             preview.padding(.top, 14)
+            if case .store(let invited)? = store.stores.preview, !invited.anonymous {
+                deviceName.padding(.top, 14)
+            }
             Text("Plugins come from the store's owner, not from anistream. You can leave a store at any time.")
                 .font(.mac(12))
                 .macLineHeight(17)
@@ -535,6 +538,31 @@ struct JoinStoreSheet: View {
     private var canJoin: Bool {
         if case .store(let invited) = store.stores.preview { return !invited.alreadyJoined }
         return false
+    }
+
+    /// What the store will call this Mac: its kind, offered with the preview, to change before
+    /// joining. Never the Mac's own name, which is often its owner's.
+    private var deviceName: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Device name")
+                .font(.mac(12))
+                .foregroundStyle(.haze)
+            TextField("Device name",
+                      text: Binding(get: { store.stores.deviceName }, set: { store.stores.deviceName = $0 }),
+                      prompt: Text(Device.name))
+                .textFieldStyle(.plain)
+                .font(.mac(13))
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background(.ground, in: .rect(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.glassRule, lineWidth: 1))
+                .labelsHidden()
+                .padding(.top, 6)
+            Text("The store's owner sees this \(Device.name) by this name.")
+                .font(.mac(12))
+                .foregroundStyle(.haze)
+                .padding(.top, 6)
+        }
     }
 
     @ViewBuilder

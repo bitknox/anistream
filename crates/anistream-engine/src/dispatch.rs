@@ -290,8 +290,10 @@ pub(crate) fn dispatch(
         Command::PreviewStore { link } => {
             store_task(job, engine, services, tx, move |context| context.preview_store(link))
         }
-        Command::JoinStore { link } => {
-            store_task(job, engine, services, tx, move |context| context.join_store(link))
+        Command::JoinStore { link, label } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.join_store(link, label)
+            })
         }
         Command::LeaveStore { store } => {
             store_task(job, engine, services, tx, move |context| context.leave_store(store))

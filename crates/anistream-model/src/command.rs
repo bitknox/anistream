@@ -373,6 +373,13 @@ pub enum Command {
     /// Spend an invite link for a token and join.
     JoinStore {
         link: Secret,
+        /// What the store's owner sees this device called: the confirmation's field, which
+        /// starts as [`InvitedStore::device_label`]. `None`, or only spaces, for that kind of
+        /// device. An open link sends no name, and this is not sent with it.
+        ///
+        /// [`InvitedStore::device_label`]: crate::stores::InvitedStore::device_label
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        label: Option<String>,
     },
     /// Forget a store and revoke this device's token there.
     LeaveStore {

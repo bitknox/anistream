@@ -4,6 +4,9 @@
 
 import AnistreamKit
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 #if FIXTURES
 
@@ -20,7 +23,7 @@ public enum Showcase: String, CaseIterable, Sendable {
     }
 
     /// The events to apply, and which of the engine's own to set aside so they stay on screen.
-    func events(settings: SettingsView?) -> (events: [Event], held: Set<String>) {
+    @MainActor func events(settings: SettingsView?) -> (events: [Event], held: Set<String>) {
         var events: [Event] = []
         var held: Set<String> = []
         let parts: [Showcase] = self == .all ? [.sources, .stores, .downloads, .invite] : [self]
@@ -46,7 +49,7 @@ public enum Showcase: String, CaseIterable, Sendable {
                 events.append(.storePreview(.store(InvitedStore(
                     link: "https://plugins.hotaru.example/join/fixture#key", name: "Hotaru Plugins",
                     url: "https://plugins.hotaru.example", host: "plugins.hotaru.example",
-                    fingerprint: "9f3c 1a2b 77de 0c41", alreadyJoined: false
+                    fingerprint: "9f3c 1a2b 77de 0c41", alreadyJoined: false, deviceLabel: Self.deviceKind
                 ))))
                 held.insert("storePreview")
             case .all:
@@ -54,6 +57,15 @@ public enum Showcase: String, CaseIterable, Sendable {
             }
         }
         return (events, held)
+    }
+
+    /// What the engine offers a store to call this device: its kind.
+    @MainActor static var deviceKind: String {
+        #if os(macOS)
+        "Mac"
+        #else
+        UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "iPhone"
+        #endif
     }
 
     static let providerRows: [ProviderRow] = [

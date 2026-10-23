@@ -324,6 +324,19 @@ struct PhoneJoinStoreSheet: View {
                     Text("Paste the link the store's owner sent you. An anistream:// invite link opened from Messages fills this sheet in directly.")
                 }
                 preview
+                if case .store(let invited)? = store.stores.preview, !invited.anonymous {
+                    Section {
+                        TextField("Device name",
+                                  text: Binding(get: { store.stores.deviceName }, set: { store.stores.deviceName = $0 }),
+                                  prompt: Text(Device.name))
+                            .autocorrectionDisabled()
+                            .listRowBackground(Palette.raised)
+                    } header: {
+                        PhoneSectionHeader("Device name")
+                    } footer: {
+                        Text("The store's owner sees this \(Device.name) by this name.")
+                    }
+                }
             }
             .navigationTitle("Join a plugin store")
             .navigationBarTitleDisplayMode(.inline)

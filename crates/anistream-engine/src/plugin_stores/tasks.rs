@@ -77,9 +77,9 @@ impl StoreTaskContext {
         self.send(Event::StorePreview(preview));
     }
 
-    /// Spend an invite link, and join its store.
-    pub async fn join_store(self, link: Secret) {
-        match self.stores.join(&link.0).await {
+    /// Spend an invite link, and join its store, calling this device `label` there.
+    pub async fn join_store(self, link: Secret, label: Option<String>) {
+        match self.stores.join(&link.0, label.as_deref()).await {
             Ok(joined) => {
                 self.rows();
                 self.send(Event::StoreJoined { store: joined.id.clone() });

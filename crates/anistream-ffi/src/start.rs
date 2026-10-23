@@ -125,7 +125,9 @@ pub struct FfiStart {
     /// app's immersive palette.
     #[uniffi(default = None)]
     pub theme: Option<PlayerTheme>,
-    /// What the app runs on. Informational for now: nothing in the engine differs by it yet.
+    /// What the app runs on, which a plugin store calls this device when it joins with an
+    /// invite, unless the person joining names it otherwise: [`FfiPlatform::device_label`].
+    /// `None` for "Computer".
     #[uniffi(default = None)]
     pub platform: Option<FfiPlatform>,
     /// The AniList client the app registered and ships with, for signing in through its own
@@ -185,8 +187,25 @@ pub enum FfiPlatform {
     MacOs,
     Ios,
     IpadOs,
-    /// An Android phone or tablet.
+    /// An Android phone.
     Android,
+    /// An Android tablet: a screen at least 600 dp wide the short way.
+    AndroidTablet,
+}
+
+impl FfiPlatform {
+    /// What a plugin store calls a device of this kind that joins with an invite, unless the
+    /// person joining names it otherwise. The kind of device, never its own name, which is
+    /// often its owner's.
+    pub const fn device_label(self) -> &'static str {
+        match self {
+            Self::MacOs => "Mac",
+            Self::Ios => "iPhone",
+            Self::IpadOs => "iPad",
+            Self::Android => "Android phone",
+            Self::AndroidTablet => "Android tablet",
+        }
+    }
 }
 
 /// Where the engine keeps the trackers' and the plugin stores' tokens.
@@ -253,6 +272,20 @@ mod tests {
             mac.app_clients(),
             AppClients { anilist: Some("4242".into()), ..AppClients::default() }
         );
+    }
+
+    #[test]
+    fn a_store_calls_each_device_its_kind() {
+        let kinds = [
+            (FfiPlatform::MacOs, "Mac"),
+            (FfiPlatform::Ios, "iPhone"),
+            (FfiPlatform::IpadOs, "iPad"),
+            (FfiPlatform::Android, "Android phone"),
+            (FfiPlatform::AndroidTablet, "Android tablet"),
+        ];
+        for (platform, label) in kinds {
+            assert_eq!(platform.device_label(), label);
+        }
     }
 
     #[test]

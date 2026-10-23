@@ -28,10 +28,12 @@ pub enum Field {
     JoinLink,
     /// Who an invite is for.
     InviteName,
+    /// What a store joined with an invite calls this device, on the join's confirmation.
+    DeviceLabel,
 }
 
 impl Field {
-    pub const ALL: [Self; 9] = [
+    pub const ALL: [Self; 10] = [
         Self::Search,
         Self::Palette,
         Self::ManualQuery,
@@ -41,6 +43,7 @@ impl Field {
         Self::KitsuPassword,
         Self::JoinLink,
         Self::InviteName,
+        Self::DeviceLabel,
     ];
 
     /// Whether `ch` goes into this field as it stands: a field that takes only some of what
@@ -52,6 +55,7 @@ impl Field {
             Self::Range => ch.is_ascii_digit() || ch == '-',
             // The server takes up to 64; stopping here says so before it is refused.
             Self::InviteName => field.len() < 64,
+            Self::DeviceLabel => field.len() < anistream_model::stores::DEVICE_LABEL_MAX,
             _ => true,
         }
     }
@@ -115,6 +119,7 @@ impl App {
     /// Whether keystrokes should be treated as text rather than bindings.
     pub fn is_typing(&self) -> bool {
         self.nav.overlay().is_some_and(Overlay::takes_text_input)
+            || self.naming_device()
             || (self.nav.section() == Section::Search
                 && self.nav.focus() == Focus::Stage
                 && !self.nav.has_overlay()
@@ -141,6 +146,7 @@ impl App {
             Some(Overlay::KitsuPassword) => Field::KitsuPassword,
             Some(Overlay::JoinStore) => Field::JoinLink,
             Some(Overlay::InviteName) => Field::InviteName,
+            Some(Overlay::StoreConfirm) if self.naming_device() => Field::DeviceLabel,
             _ if self.nav.section() == Section::Search => Field::Search,
             _ => return None,
         })
@@ -185,6 +191,7 @@ impl App {
         // An invite link is a one-time credential; a dismissed prompt forgets it.
         self.field_mut(Field::JoinLink).clear();
         self.field_mut(Field::InviteName).clear();
+        self.field_mut(Field::DeviceLabel).clear();
     }
 
     /// What `field` holds.

@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -341,6 +342,7 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
     val preview by store.stores.preview.collectAsStateWithLifecycle()
     val joined by store.stores.joined.collectAsStateWithLifecycle()
     val working by store.stores.working.collectAsStateWithLifecycle()
+    val deviceName by store.stores.deviceName.collectAsStateWithLifecycle()
     var link by rememberSaveable(start) { mutableStateOf(start) }
     val busy = store.stores.isWorking(working, StoresModel.Work.Join)
     LaunchedEffect(link) {
@@ -381,6 +383,17 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
             )
             is StoresModel.Preview.Store -> InvitedStorePreview(shown.store)
             null -> {}
+        }
+        // What the store will call this device: its kind, never its own name, to change first.
+        if (invited != null && !invited.anonymous) {
+            SheetField(
+                deviceName,
+                store.stores::nameDevice,
+                "Device name",
+                modifier = Modifier.padding(top = 16.dp),
+                keyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                supporting = "The store's owner sees this device by this name.",
+            )
         }
         HorizontalDivider(Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
         SheetText("Plugins come from the store's owner, not from anistream. You can leave a store at any time.", Modifier.padding(top = 16.dp))

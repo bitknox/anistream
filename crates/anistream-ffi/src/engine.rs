@@ -204,9 +204,12 @@ impl Opened {
     /// The options for the app's launch as `start` describes it, with `http` for every request.
     pub(crate) fn options(self, http: HttpClient, start: &FfiStart) -> EngineOptions {
         let Self { paths, config, store } = self;
-        // `start.platform` is said for what comes later: nothing differs by it yet.
         let theme = start.theme.clone().unwrap_or_else(player_theme);
         let mut options = EngineOptions::new(paths, config.clone(), http, store, theme);
+        // What a store joined with an invite calls this device: the kind of device it is.
+        if let Some(platform) = start.platform {
+            platform.device_label().clone_into(&mut options.device_label);
+        }
         // Nothing changes the config for one session here, as the terminal's flags can, so the
         // file's is the one in effect.
         options.saved = Some(config);

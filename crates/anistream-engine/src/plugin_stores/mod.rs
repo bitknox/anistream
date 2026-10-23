@@ -17,8 +17,8 @@ use anistream_core::config::{Config, Paths};
 use anistream_model::{
     sources::{ProviderOrigin, ProviderUpdate},
     stores::{
-        AnonymousDeviceRow, InviteLinkView, InvitedStore, LocalPluginRow, OpenJoinView, Secret,
-        StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow,
+        self, AnonymousDeviceRow, InviteLinkView, InvitedStore, LocalPluginRow, OpenJoinView,
+        Secret, StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow,
         StoreState,
     },
 };
@@ -52,6 +52,9 @@ pub struct Stores {
     /// Why the last refresh of each store failed. Kept only in memory: "offline" is a moment's
     /// state, and the next refresh decides it again.
     offline: Arc<Mutex<HashMap<String, String>>>,
+    /// What an invite join calls this device unless the person joining names it otherwise: the
+    /// kind of device the app runs on, as [`Self::labelled`] sets it.
+    device_label: Arc<str>,
 }
 
 /// The state file, next to the database.
@@ -78,7 +81,15 @@ impl Stores {
             paths: paths.clone(),
             lock: Arc::new(tokio::sync::Mutex::new(())),
             offline: Arc::new(Mutex::new(HashMap::new())),
+            device_label: stores::COMPUTER.into(),
         })
+    }
+
+    /// These stores, calling this device `kind` when it joins with an invite: "iPad", say. The
+    /// terminal app's are [`stores::COMPUTER`].
+    #[must_use]
+    pub fn labelled(self, kind: &str) -> Self {
+        Self { device_label: stores::device_label(Some(kind), stores::COMPUTER).into(), ..self }
     }
 
     pub fn plugin_dir(&self) -> &Path {
@@ -296,11 +307,20 @@ impl Stores {
                 .unwrap_or_default(),
             open: invite.open || index.as_ref().is_some_and(|index| index.open),
             anonymous: invite.open,
+            // An open link sends no name, so there is none to show or change.
+            device_label: if invite.open {
+                String::new()
+            } else {
+                self.device_label.to_string()
+            },
         })
     }
 
     /// Spend an invite, or join with an open link, keep the token, and fetch the store's list.
-    pub async fn join(&self, link: &str) -> Result<Joined, String> {
+    ///
+    /// An invite sends `label` as this device's name in the store, or the kind of device this is
+    /// when it is `None` or blank: never the machine's own name, which is often its owner's.
+    pub async fn join(&self, link: &str, label: Option<&str>) -> Result<Joined, String> {
         let invite = Invite::parse(link).map_err(|e| e.to_string())?;
         let previous = self.same_address(&invite)?;
         Self::not_unnamed(&invite, previous.as_ref())?;
@@ -308,7 +328,11 @@ impl Stores {
         // answer is what decides who receives the code.
         let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
         // An open join is sent no label: the store keeps nothing about who joined.
-        let label = if invite.open { String::new() } else { device_label() };
+        let label = if invite.open {
+            String::new()
+        } else {
+            stores::device_label(label, &self.device_label)
+        };
         let redeemed = self.client.redeem(&invite, &label).await.map_err(unusable)?;
 
         // Nothing is kept until the server shows it holds the key the link named. Serving a
@@ -872,18 +896,6 @@ fn origins(
         .collect()
 }
 
-/// What the store's member list calls this machine.
-fn device_label() -> String {
-    std::process::Command::new("hostname")
-        .output()
-        .ok()
-        .filter(|out| out.status.success())
-        .and_then(|out| String::from_utf8(out.stdout).ok())
-        .map(|name| name.trim().trim_end_matches(".local").to_owned())
-        .filter(|name| !name.is_empty())
-        .unwrap_or_else(|| std::env::consts::OS.to_owned())
-}
-
 fn now() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -983,10 +995,5 @@ mod tests {
         state.remove_store("abc");
         let left = ProviderOrigin::Store { id: "abc".into(), name: None };
         assert_eq!(origins(&state, dir.path()).get("old"), Some(&(left, None)));
-    }
-
-    #[test]
-    fn a_device_label_is_never_empty() {
-        assert!(!device_label().is_empty());
     }
 }

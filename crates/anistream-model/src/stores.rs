@@ -132,6 +132,35 @@ pub struct InvitedStore {
     /// as the person it was made for.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub anonymous: bool,
+    /// What the store's owner will see this device called, for the person joining to change
+    /// before they confirm: the kind of device it is, such as "iPad" or "Computer", never its
+    /// own name. Empty for an open link, which sends no name at all.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub device_label: String,
+}
+
+/// What an invite join calls a device when the app names no kind of its own: the terminal
+/// app's word for the machine it runs on.
+pub const COMPUTER: &str = "Computer";
+
+/// The longest device name a store keeps, in characters.
+pub const DEVICE_LABEL_MAX: usize = 64;
+
+/// The name an invite join sends for this device: `given`, as the confirmation's field holds
+/// it, trimmed and cut to [`DEVICE_LABEL_MAX`], or `kind` when that leaves nothing.
+pub fn device_label(given: Option<&str>, kind: &str) -> String {
+    let given: String = given
+        .unwrap_or_default()
+        .chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(DEVICE_LABEL_MAX)
+        .collect();
+    if given.is_empty() { kind.to_owned() } else { given }
 }
 
 /// A freshly made invite link.
@@ -261,5 +290,16 @@ mod tests {
         assert_eq!(host("http://owner@[fe80::1]:8080/store"), "fe80::1");
         assert_eq!(host("plugins.example"), "plugins.example", "no scheme");
         assert_eq!(host("https://"), "https://", "nothing to name it by");
+    }
+
+    #[test]
+    fn a_device_is_called_its_kind_unless_named_otherwise() {
+        // Nothing typed, or only spaces: the kind of device, never the machine's own name.
+        assert_eq!(device_label(None, "iPad"), "iPad");
+        assert_eq!(device_label(Some("  \t "), COMPUTER), "Computer");
+        // What the person typed, tidied as the store would keep it.
+        assert_eq!(device_label(Some("  Living room\n TV "), "Mac"), "Living room TV");
+        let long = "x".repeat(100);
+        assert_eq!(device_label(Some(&long), "Mac").chars().count(), DEVICE_LABEL_MAX);
     }
 }

@@ -34,6 +34,12 @@ pub struct EngineOptions {
     /// The sign-in clients a native app ships with, none for the terminal app, whose user
     /// registers their own in the config.
     pub app_clients: AppClients,
+    /// The kind of device the front end runs on, which a plugin store calls it when it joins
+    /// with an invite unless the person joining names it otherwise: "iPad", "Android phone".
+    /// Never the device's own name, which is often its owner's. [`COMPUTER`] for the terminal.
+    ///
+    /// [`COMPUTER`]: anistream_model::stores::COMPUTER
+    pub device_label: String,
     /// The source chain, whole, for an engine that is not to build its own: a still frame
     /// waits for every source before it starts, and a test brings sources of its own.
     ///
@@ -74,6 +80,7 @@ impl EngineOptions {
             player_theme,
             hosted_player: !cfg!(feature = "desktop"),
             app_clients: AppClients::default(),
+            device_label: anistream_model::stores::COMPUTER.to_owned(),
             sources: None,
             background: Background::default(),
             #[cfg(feature = "testing")]
