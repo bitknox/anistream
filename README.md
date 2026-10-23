@@ -53,9 +53,9 @@ one title, and the Sources overlay picks an exact release of an episode.
 
 Tracker sync covers AniList, MyAnimeList, Kitsu, Simkl and Trakt through an outbox that survives
 being offline. `a` sets a title's list status and `*` rates it out of ten; both queue like
-progress does, so rating is always yours to reach for and never a prompt in your way. Filler and
-recap episodes are marked from AnimeFillerList. Discord rich presence reports what you are
-watching.
+progress does, so rating is always yours to reach for and never a prompt in your way. Filler
+episodes are marked where the source that lists them says so. Discord rich presence reports what
+you are watching.
 
 anistream will not work around DRM: where a licensed catalogue is integrated at all, it will be
 as a link that opens in that service.
