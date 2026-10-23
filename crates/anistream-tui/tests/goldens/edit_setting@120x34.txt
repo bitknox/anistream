@@ -14,6 +14,7 @@ anistream                                                                       
   subtitles — enter saves, esc leaves it be
 
                             │    MARK OPENING AND ENDING     on
+                            │    SHOW SKIP BUTTON            on
                             │    START FULLSCREEN            off
                             │    UPSCALING                   natural · ArtCNN
                             │    PLAYER INTERFACE            anistream
@@ -27,7 +28,6 @@ anistream                                                                       
                             │
                             │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
                             │    TORRENT SOURCE              off
-                            │    VPN MODE                    socks5
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    enter types a language code — too many values to cycle
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
