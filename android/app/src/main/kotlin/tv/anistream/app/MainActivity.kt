@@ -167,6 +167,7 @@ class MainActivity : ComponentActivity() {
                     startPage = page,
                     player = player,
                     links = linkFlow,
+                    onSection = { section -> app.appUpdates?.section = section },
                 )
             }
         } }

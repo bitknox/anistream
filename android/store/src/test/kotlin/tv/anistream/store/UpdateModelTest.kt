@@ -434,8 +434,11 @@ class UpdateModelTest {
             sha256 = "0f".repeat(32),
             bytes = 61_400_000,
             page = "https://github.com/bitknox/anistream/releases/tag/v2.0.3",
+            notes = "Smoother calendar",
         )
         assertEquals(UpdateState.Available(offered), store.updates.state.value)
+        assertEquals("Smoother calendar", offered.headline)
+        assertEquals(null, offered.copy(notes = "\n  \n").headline)
         assertTrue(offered.installable)
         assertNull(store.updates.notice.value)
         store.apply(Event.Update(UpdateStatus.Available(release, notify = true)))

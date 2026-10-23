@@ -21,6 +21,7 @@ class UpdateTestReceiver : BroadcastReceiver() {
             sha256 = intent.getStringExtra("sha256").orEmpty(),
             bytes = intent.getLongExtra("size", 0),
             page = intent.getStringExtra("page").orEmpty(),
+            notes = intent.getStringExtra("notes").orEmpty(),
         )
         app.store.updates.offer(offer, tell = intent.getBooleanExtra("notify", true))
         Log.i(AnistreamApp.TAG, "update test: offered ${offer.version}")

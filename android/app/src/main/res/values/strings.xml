@@ -6,7 +6,7 @@
     <string name="downloads_channel">Downloads</string>
     <string name="downloads_channel_description">How far the episodes being downloaded are.</string>
     <string name="updates_channel">Updates</string>
-    <string name="updates_channel_description">How far the download of a new version of anistream is.</string>
+    <string name="updates_channel_description">How far the download of a new version of anistream is, and when it is installed.</string>
     <string name="updates_cancel">Cancel</string>
     <string name="episodes_channel">New episodes</string>
     <string name="episodes_channel_description">When a show you follow has a new episode out.</string>

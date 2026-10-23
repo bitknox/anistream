@@ -36,7 +36,12 @@ data class UpdateOffer(
     val bytes: Long,
     /** The release's page on GitHub, which Update opens where there is no APK to install. */
     val page: String = "",
+    /** What changed, in short, as the release's notes begin. */
+    val notes: String = "",
 ) {
+    /** The notes' first line, for the notification that says it is installed. */
+    val headline: String? get() = notes.lineSequence().map(String::trim).firstOrNull(String::isNotEmpty)
+
     /** `v2.0.3`, as the notice and the row name it. */
     val name: String get() = "v" + version.removePrefix("v")
 
@@ -51,6 +56,7 @@ data class UpdateOffer(
             sha256 = release.android?.sha256.orEmpty(),
             bytes = release.android?.size?.toLong() ?: 0,
             page = release.pageUrl,
+            notes = release.notes,
         )
     }
 }

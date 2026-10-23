@@ -196,6 +196,8 @@ fun AppRoot(
     player: PlayerSlot? = null,
     /** The links the system opens the app on, followed as they come: shortcuts, notifications. */
     links: Flow<AppLink> = emptyFlow(),
+    /** The destination on screen, each time it changes: where the Updated notification comes back to. */
+    onSection: (Destination) -> Unit = {},
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
@@ -218,6 +220,8 @@ fun AppRoot(
     }
     val entry by nav.currentBackStackEntryAsState()
     val current = entry?.destinationOf()
+    val sectionChanged by rememberUpdatedState(onSection)
+    androidx.compose.runtime.LaunchedEffect(current) { current?.let(sectionChanged) }
     val onPage = entry?.isPage == true
     val fullWindow = entry?.isFullWindow == true
     val onPlayer = entry?.destination?.route == PLAYER_ROUTE

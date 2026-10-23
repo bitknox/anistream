@@ -2,20 +2,20 @@
 # The app's own update, end to end on an emulator, with keys the test makes for itself and never
 # the release key:
 #
-#   android/scripts/update-test.sh build    the test's two keys, and the app flavour twice in
-#                                           release (R8): 2.0.0 to install and 2.0.1 to offer, both
-#                                           signed with the test key, and 2.0.1 signed again with
-#                                           the other key
+#   android/scripts/update-test.sh build    the test's two keys, and the app flavour in release
+#                                           (R8) three times: 2.0.0 to install, and 2.0.1 and 2.0.2
+#                                           to offer, all signed with the test key, and 2.0.1 signed
+#                                           again with the other key
 #   android/scripts/update-test.sh install  2.0.0 on the emulator, in place of any anistream there
 #   android/scripts/update-test.sh serve [--slow]
 #                                           the APKs to the emulator over plain HTTP on port 8471,
 #                                           through adb reverse, until stopped; --slow sends 256 kB
 #                                           a second, long enough to cancel
-#   android/scripts/update-test.sh offer <update|other-key|bad-checksum>
+#   android/scripts/update-test.sh offer <update [2.0.1|2.0.2]|other-key|bad-checksum>
 #                                           a release as the engine reports one, with its notice,
-#                                           through the update test's receiver: 2.0.1 as built, 2.0.1
-#                                           with the other key, or 2.0.1 with a checksum it does not
-#                                           have
+#                                           through the update test's receiver: 2.0.1 (or 2.0.2) as
+#                                           built, 2.0.1 with the other key, or 2.0.1 with a
+#                                           checksum it does not have
 #
 # Everything goes to android/build/update-test, which git ignores. These builds carry the update
 # test's receiver and fetch over plain HTTP (ANISTREAM_UPDATE_TEST_KEYSTORE), so they are never for
@@ -36,7 +36,7 @@ adb() { "$sdk/platform-tools/adb" -s "$serial" "$@"; }
 tools="$(ls -d "$sdk"/build-tools/*/ | sort -V | tail -1)"
 
 usage() {
-  sed -n '2,22p' "$0" >&2
+  sed -n '2,23p' "$0" >&2
   exit 2
 }
 
@@ -53,7 +53,7 @@ build() {
   key test
   key other
   local version name code
-  for version in 2.0.0:200000099 2.0.1:200000199; do
+  for version in 2.0.0:200000099 2.0.1:200000199 2.0.2:200000299; do
     name="${version%%:*}"
     code="${version##*:}"
     (cd "$android" && ./gradlew --console=plain --max-workers=3 --no-configuration-cache \
@@ -96,9 +96,12 @@ PY
 }
 
 offer() {
-  local apk sha
+  local apk sha version=2.0.1
   case "${1:-}" in
-    update) apk=anistream-2.0.1.apk ;;
+    update)
+      version="${2:-2.0.1}"
+      apk="anistream-$version.apk"
+      ;;
     other-key) apk=anistream-2.0.1-other-key.apk ;;
     bad-checksum) apk=anistream-2.0.1.apk ;;
     *) usage ;;
@@ -106,8 +109,8 @@ offer() {
   sha="$(shasum -a 256 "$out/$apk" | cut -d' ' -f1)"
   [[ "$1" == bad-checksum ]] && sha="$(printf '0%.0s' {1..64})"
   adb shell am broadcast -n tv.anistream.app/.UpdateTestReceiver \
-    --es version 2.0.1 --es url "http://127.0.0.1:$port/$apk" --es sha256 "$sha" \
-    --el size "$(stat -f %z "$out/$apk")" --ez notify true
+    --es version "$version" --es url "http://127.0.0.1:$port/$apk" --es sha256 "$sha" \
+    --el size "$(stat -f %z "$out/$apk")" --es notes "'Test release $version'" --ez notify true
 }
 
 case "${1:-}" in

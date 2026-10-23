@@ -34,6 +34,8 @@ import tv.anistream.store.UpdateModel
 import tv.anistream.store.UpdateOffer
 import tv.anistream.store.UpdateState
 import tv.anistream.store.Wording
+import tv.anistream.ui.AppLink
+import tv.anistream.ui.Destination
 
 /**
  * The update's side in Android. What needs an activity, Android's page for the switch and the
@@ -74,7 +76,9 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
     }
 
     override fun returnedFromSettings() {
-        preferences.edit().clear().apply()
+        preferences.edit()
+            .remove(KEPT_VERSION).remove(KEPT_URL).remove(KEPT_SHA256).remove(KEPT_BYTES).remove(KEPT_PAGE).remove(KEPT_AT)
+            .apply()
     }
 
     /**
@@ -124,6 +128,11 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
             setAppPackageName(app.packageName)
             setSize(file.length())
             setInstallReason(PackageManager.INSTALL_REASON_USER)
+            // With UPDATE_PACKAGES_WITHOUT_USER_ACTION (the app flavour's manifest), Android lets an
+            // app that installed itself update itself without its dialog, from Android 12, which
+            // the app's minimum is past. Where it still wants the viewer to confirm, the session
+            // says so (STATUS_PENDING_USER_ACTION) and the dialog shows as before.
+            setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         }
         val id = try {
             installer.createSession(params)
@@ -131,6 +140,7 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
             throw IOException(e.message, e)
         }
         session = id
+        mark(offer)
         try {
             installer.openSession(id).use { open ->
                 file.inputStream().use { input ->
@@ -145,15 +155,30 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
         } catch (e: Exception) {
             runCatching { installer.abandonSession(id) }
             session = null
+            unmark()
             throw if (e is IOException) e else IOException(e.message, e)
         }
     }
 
     override fun abandonInstall() {
+        unmark()
         val id = session ?: return
         session = null
         runCatching { app.packageManager.packageInstaller.abandonSession(id) }
     }
+
+    /** The destination on screen, which the Updated notification comes back to. */
+    var section: Destination = Destination.Continue
+
+    /**
+     * Mark [offer] as the one the in-app updater is installing, with the destination it was
+     * taken from: what the new version's first start tells the Updated notification by
+     * ([UpdatedReceiver]). An install by adb or by hand has no mark, and no notification.
+     */
+    private fun mark(offer: UpdateOffer) = mark(app, offer, section)
+
+    /** The install the mark was for did not happen: the viewer said no, it failed, or was cancelled. */
+    fun unmark() = unmark(app)
 
     /** The installer asks the viewer to confirm, in its own dialog. */
     fun confirm(intent: Intent) {
@@ -170,17 +195,60 @@ class AppUpdates(private val app: AnistreamApp, private val model: UpdateModel) 
         for (left in installer.mySessions) runCatching { installer.abandonSession(left.sessionId) }
     }
 
-    private companion object {
-        const val PREFERENCES = "updates"
-        const val KEPT_VERSION = "keptVersion"
-        const val KEPT_URL = "keptUrl"
-        const val KEPT_SHA256 = "keptSha256"
-        const val KEPT_BYTES = "keptBytes"
-        const val KEPT_PAGE = "keptPage"
-        const val KEPT_AT = "keptAt"
+    /** What the in-app updater installed, as the mark says it. */
+    data class Installed(val version: String, val section: Destination, val headline: String?)
+
+    companion object {
+        private const val PREFERENCES = "updates"
+
+        /**
+         * The update the in-app updater marked before installing it, when [installed] is that
+         * version and the mark is from the last [MARK_MILLIS]. Read once: the mark goes either way.
+         */
+        fun takeMark(context: Context, installed: String?): Installed? {
+            val saved = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+            val version = saved.getString(MARK_VERSION, null)
+            val at = saved.getLong(MARK_AT, 0)
+            val mark = version?.takeIf { it == installed && System.currentTimeMillis() - at in 0..MARK_MILLIS }?.let {
+                Installed(it, saved.getString(MARK_SECTION, null)?.let(Destination::named) ?: Destination.Continue, saved.getString(MARK_HEADLINE, null))
+            }
+            unmark(context)
+            return mark
+        }
+
+        /** Mark [offer] as being installed by the in-app updater, from [section]. */
+        fun mark(context: Context, offer: UpdateOffer, section: Destination) {
+            context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit()
+                .putString(MARK_VERSION, offer.version)
+                .putString(MARK_SECTION, section.route)
+                .putString(MARK_HEADLINE, offer.headline)
+                .putLong(MARK_AT, System.currentTimeMillis())
+                .commit()
+        }
+
+        fun unmark(context: Context) {
+            context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE).edit()
+                .remove(MARK_VERSION).remove(MARK_SECTION).remove(MARK_HEADLINE).remove(MARK_AT)
+                .apply()
+        }
+
+        private const val MARK_VERSION = "installingVersion"
+        private const val MARK_SECTION = "installingSection"
+        private const val MARK_HEADLINE = "installingHeadline"
+        private const val MARK_AT = "installingAt"
+
+        /** How long a mark waits for its install: the dialog, then the install itself. */
+        private const val MARK_MILLIS = 60 * 60_000L
+
+        private const val KEPT_VERSION = "keptVersion"
+        private const val KEPT_URL = "keptUrl"
+        private const val KEPT_SHA256 = "keptSha256"
+        private const val KEPT_BYTES = "keptBytes"
+        private const val KEPT_PAGE = "keptPage"
+        private const val KEPT_AT = "keptAt"
 
         /** How long a press waits on Android's page. */
-        const val KEEP_MILLIS = 15 * 60_000L
+        private const val KEEP_MILLIS = 15 * 60_000L
     }
 }
 
@@ -213,8 +281,14 @@ class UpdateReceiver : BroadcastReceiver() {
                     PackageInstaller.STATUS_PENDING_USER_ACTION ->
                         intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)?.let { app.appUpdates?.confirm(it) }
                     PackageInstaller.STATUS_SUCCESS -> updates.installResult(InstallResult.Installed)
-                    PackageInstaller.STATUS_FAILURE_ABORTED -> updates.installResult(InstallResult.Cancelled)
-                    else -> updates.installResult(InstallResult.Failed(message))
+                    PackageInstaller.STATUS_FAILURE_ABORTED -> {
+                        app.appUpdates?.unmark()
+                        updates.installResult(InstallResult.Cancelled)
+                    }
+                    else -> {
+                        app.appUpdates?.unmark()
+                        updates.installResult(InstallResult.Failed(message))
+                    }
                 }
             }
         }
@@ -279,7 +353,50 @@ class UpdateNotifier(private val context: Context) {
             .build()
     }
 
+    /**
+     * "anistream updated to v2.0.2", with the release's first line of notes under it, opening the
+     * app on the destination the update was taken from.
+     */
+    fun updated(installed: AppUpdates.Installed): Notification = NotificationCompat.Builder(context, CHANNEL)
+        .setSmallIcon(R.drawable.ic_launcher_monochrome)
+        .setColor(ObiSilk.Water.toArgb())
+        .setContentTitle("anistream updated to v${installed.version}")
+        .apply { installed.headline?.let(::setContentText) }
+        .setAutoCancel(true)
+        .setContentIntent(
+            PendingIntent.getActivity(
+                context,
+                UPDATED,
+                context.linkIntent(AppLink.Section(installed.section)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            ),
+        )
+        .build()
+
+    /** Post [updated]'s notification. Without the permission to post, Android shows nothing. */
+    fun postUpdated(installed: AppUpdates.Installed) {
+        context.getSystemService(NotificationManager::class.java).notify(UPDATED, updated(installed))
+    }
+
     companion object {
         const val CHANNEL = "updates"
+
+        /** The Updated notification's id, beside the job's 4201. */
+        const val UPDATED = 4202
+    }
+}
+
+/**
+ * The new version's first word from Android, after the app was replaced: the Updated notification,
+ * when the in-app updater marked this version before installing it, and nothing after an install
+ * by adb or by hand.
+ */
+class UpdatedReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
+        val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull()
+        val installed = AppUpdates.takeMark(context, version) ?: return
+        Log.i(AnistreamApp.TAG, "update: anistream is ${installed.version} now, from the in-app updater")
+        UpdateNotifier(context).postUpdated(installed)
     }
 }

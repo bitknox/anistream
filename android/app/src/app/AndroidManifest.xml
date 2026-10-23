@@ -4,4 +4,19 @@
     <!-- The app's own update: the release's APK, checked, handed to Android's installer once the
          viewer presses Update. The app flavour's alone: the fixtures flavour installs nothing. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- From the second update on, an app that installed itself updates itself without Android's
+         dialog; the first install over a build from elsewhere still asks. -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+
+    <application>
+        <!-- The new version's first start after the in-app updater installed it: the Updated
+             notification. -->
+        <receiver
+            android:name=".UpdatedReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

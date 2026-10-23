@@ -7,12 +7,13 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import kotlin.concurrent.thread
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** The SHA-256 a release gives its APK, checked against the file. */
@@ -143,12 +144,14 @@ class HttpApkFetch(
         val part = File(into.path + ".part")
         val connection = address.openConnection() as HttpURLConnection
         // A cancel closes the connection, which on Android ends a read that waits on the network;
-        // the JDK's waits for its read timeout.
-        val closing = launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+        // the JDK's waits for its read timeout. The close goes on a thread of its own, since the
+        // JDK's waits for the read to let go of the stream, and the cancel waits for nothing.
+        var finished = false
+        val closing = launch(start = CoroutineStart.UNDISPATCHED) {
             try {
                 awaitCancellation()
             } finally {
-                connection.disconnect()
+                if (!finished) thread(isDaemon = true, name = "update-close") { connection.disconnect() }
             }
         }
         try {
@@ -193,8 +196,10 @@ class HttpApkFetch(
             part.delete()
             throw e
         } finally {
+            val active = currentCoroutineContext().isActive
+            finished = active
             closing.cancel()
-            connection.disconnect()
+            if (active) connection.disconnect()
         }
     }
 

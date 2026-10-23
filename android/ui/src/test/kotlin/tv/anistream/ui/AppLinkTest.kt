@@ -17,6 +17,9 @@ class AppLinkTest {
         AppLink.Play(900003u, "12.5"),
         AppLink.Play(900003u, "SP 1/2"),
         AppLink.Download(42),
+        // The Updated notification's, back where the update was taken.
+        AppLink.Section(Destination.Library),
+        AppLink.Section(Destination.Continue),
     )
 
     @Test
@@ -48,6 +51,8 @@ class AppLinkTest {
             mapOf("open" to "play", "show" to "900001"),
             mapOf("open" to "play", "show" to "900001", "episode" to " "),
             mapOf("open" to "download", "download" to "x"),
+            mapOf("open" to "section"),
+            mapOf("open" to "section", "section" to "settings"),
         )
         for (fields in others) assertNull(fields.toString(), AppLink.of(fields::get))
     }

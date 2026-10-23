@@ -271,9 +271,16 @@ Nothing downloads or installs until the viewer presses Update. Then:
    read it as `tv.anistream.app`, signed with the certificate the installed app is (the release
    key, `4D:66:4A:AB:…:9F:95`, as in `website/public/.well-known/assetlinks.json`), and newer.
    Anything else is refused with a plain notice before the installer sees it.
-4. It is written into a `PackageInstaller` session, and Android asks the viewer to confirm.
-   Installed, the new version starts the next time the app opens; said no to, the file is kept
-   for another press; failed, the notice gives Android's message.
+4. It is written into a `PackageInstaller` session that asks for no confirmation
+   (`USER_ACTION_NOT_REQUIRED`, with `UPDATE_PACKAGES_WITHOUT_USER_ACTION` in the app flavour's
+   manifest). Android lets an app update itself that way. Where it still wants the viewer to
+   confirm, its dialog shows; said no to, the file is kept for another press; failed, the notice
+   gives Android's message.
+5. Android closes the app as the update goes in. The new version's first start
+   (`MY_PACKAGE_REPLACED`) posts "anistream updated to v2.0.3" with the release's first line of
+   notes, which opens the app on the destination the update was taken from. It is posted only
+   for a version the in-app updater marked just before installing it, never after an install by
+   adb or by hand.
 
 The APK is deleted after an install, a failure, a cancel and at every start, with any session
 left. A release without an APK, or without a `.sha256` that reads, opens its page instead, as the
@@ -283,14 +290,14 @@ manifest asks for.
 ### The update on an emulator
 
 ```sh
-android/scripts/update-test.sh build         # two keys of the test's own, 2.0.0 and 2.0.1
+android/scripts/update-test.sh build         # two keys of the test's own, 2.0.0, 2.0.1 and 2.0.2
 android/scripts/update-test.sh install       # 2.0.0 on emulator-5640 (SERIAL picks another)
 android/scripts/update-test.sh serve         # in a second shell; --slow to have time to cancel
-android/scripts/update-test.sh offer update  # or other-key, bad-checksum
+android/scripts/update-test.sh offer update  # 2.0.1, or `update 2.0.2`, other-key, bad-checksum
 ```
 
 `build` makes two throwaway keys in `android/build/update-test`, which git ignores, and builds the
-app flavour's release twice with `ANISTREAM_UPDATE_TEST_KEYSTORE`: signed with the test key and
+app flavour's release three times with `ANISTREAM_UPDATE_TEST_KEYSTORE`: signed with the test key and
 never reading the release key, with a receiver that offers a release as the engine would, and
 plain HTTP to this Mac through `adb reverse`. Then it signs 2.0.1 again with the other key, which
 the app has to refuse. Those builds are never for real use. `offer` posts the release's notice in

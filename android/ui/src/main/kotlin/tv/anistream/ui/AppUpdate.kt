@@ -66,7 +66,8 @@ internal object UpdateWords {
         is UpdateState.Downloading ->
             if (state.total > 0) "${Wording.bytes(state.done)} of ${Wording.bytes(state.total)}" else Wording.bytes(state.done)
         is UpdateState.Verifying -> "Checking the download"
-        is UpdateState.Installing -> "Confirm in Android's dialog"
+        // Android asks to confirm the first time; anistream closes as the update goes in.
+        is UpdateState.Installing -> "anistream closes as it installs"
         is UpdateState.Done -> "The new version opens next time"
     }
 
