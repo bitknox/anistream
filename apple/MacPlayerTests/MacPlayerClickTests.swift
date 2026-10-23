@@ -251,15 +251,24 @@ final class MacPlayerClickTests: XCTestCase {
     /// The main window: the largest of the app's, not the borderless one Picture in Picture's
     /// layer sits in.
     private func mainWindow(_ app: XCUIApplication) -> XCUIElement {
-        let windows = app.windows.allElementsBoundByIndex
-        return windows.max { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }
-            ?? app.windows.firstMatch
+        guard let (index, _) = largestWindow(app) else { return app.windows.firstMatch }
+        return app.windows.element(boundBy: index)
+    }
+
+    /// The largest window's place among the app's and its frame, read from one snapshot: a
+    /// window that closes while they are read, as one does going in and out of full screen and
+    /// Picture in Picture, cannot fail the read.
+    private func largestWindow(_ app: XCUIApplication) -> (Int, CGRect)? {
+        let windows = (try? app.snapshot())?.children.filter { $0.elementType == .window } ?? []
+        let area = { (frame: CGRect) in frame.width * frame.height }
+        return windows.enumerated().max { area($0.element.frame) < area($1.element.frame) }
+            .map { ($0.offset, $0.element.frame) }
     }
 
     /// Whether the app's main window fills its screen, as a full-screen window does: below the
     /// camera housing, where a screen has one.
     private func isFullScreen(_ app: XCUIApplication) -> Bool {
-        let window = mainWindow(app).frame
+        guard let (_, window) = largestWindow(app) else { return false }
         return NSScreen.screens.contains { screen in
             abs(window.width - screen.frame.width) < 1
                 && window.height >= screen.frame.height - screen.safeAreaInsets.top - 1
