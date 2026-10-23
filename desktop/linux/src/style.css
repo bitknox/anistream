@@ -122,6 +122,9 @@ levelbar block.empty { background: var(--rule); }
 .timeline highlight { background: var(--amber); }
 .timeline fill { background: alpha(var(--silk), 0.3); }
 .timeline mark indicator { color: var(--haze); min-height: 6px; }
+.seek-preview { padding: 4px; }
+.seek-preview label { color: var(--silk); }
+.mini-controls button { min-width: 44px; min-height: 44px; }
 .corner-card { background: var(--popover-bg-color); border-radius: 12px; padding: 12px; margin: 24px; }
 .countdown trough { background: var(--rule); min-height: 3px; }
 .countdown progress { background: var(--amber); min-height: 3px; }

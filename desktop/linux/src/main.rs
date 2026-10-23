@@ -231,6 +231,7 @@ fn build(
     if let Some(display) = gtk::gdk::Display::default() {
         style::install(&display);
         style::app_icon(&display, APP_ID, &files.cache);
+        style::action_icons(&display, &files.cache);
     }
     let hub = Hub::new(engine);
     let prefs = Rc::new(Prefs::open(files.prefs.clone()));

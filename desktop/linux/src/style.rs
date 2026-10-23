@@ -75,6 +75,24 @@ const ICONS: [(u32, &[u8]); 7] = [
 
 /// The app's icon, for the About dialog and the window list, when no installed copy is in the
 /// icon theme: written under `cache` as a hicolor tree and added to the theme's search path.
+/// The mini player's icon, which the Adwaita theme has none of: a frame with a small one in its
+/// corner.
+const MINI_PLAYER: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path fill="#222" d="M2.5 2A1.5 1.5 0 0 0 1 3.5v8A1.5 1.5 0 0 0 2.5 13H6v-1.5H2.5v-8h11V7H15V3.5A1.5 1.5 0 0 0 13.5 2z"/><rect fill="#222" x="7.5" y="8.5" width="7.5" height="5.5" rx="1"/></svg>"##;
+
+/// The icons the app draws itself, in the cache's own theme folder: the mini player's.
+pub fn action_icons(display: &gtk::gdk::Display, cache: &std::path::Path) {
+    let root = cache.join("icons");
+    let dir = root.join("hicolor/scalable/actions");
+    let file = dir.join("anistream-mini-player-symbolic.svg");
+    let written = std::fs::read_to_string(&file).is_ok_and(|s| s == MINI_PLAYER)
+        || std::fs::create_dir_all(&dir)
+            .and_then(|()| std::fs::write(&file, MINI_PLAYER))
+            .is_ok();
+    if written {
+        gtk::IconTheme::for_display(display).add_search_path(&root);
+    }
+}
+
 pub fn app_icon(display: &gtk::gdk::Display, name: &str, cache: &std::path::Path) {
     let theme = gtk::IconTheme::for_display(display);
     if theme.has_icon(name) {

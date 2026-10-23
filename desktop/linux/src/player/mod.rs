@@ -30,6 +30,22 @@ use crate::{
     words,
 };
 
+mod timeline;
+
+use timeline::{Marked, Preview};
+
+/// The mini player's size.
+const MINI: (i32, i32) = (480, 270);
+
+/// The window as it was before the mini player: its size, and whether it filled the screen.
+#[derive(Clone, Copy)]
+struct Restore {
+    width: i32,
+    height: i32,
+    maximized: bool,
+    fullscreen: bool,
+}
+
 /// How long the controls stay up with nothing happening.
 const IDLE: Duration = Duration::from_secs(2);
 /// The fade, in and out.
@@ -57,6 +73,11 @@ pub struct PlayerView {
     inhibit: Cell<Option<u32>>,
     countdown: RefCell<Option<glib::SourceId>>,
     menus: RefCell<Option<Menus>>,
+    /// The chapters changed or a file loaded: read them again once the file has a duration.
+    chapters_due: Cell<bool>,
+    preview: Rc<Preview>,
+    /// The window as it was, while the mini player stands in for it.
+    mini: Cell<Option<Restore>>,
 }
 
 /// The widgets the player updates.
@@ -78,6 +99,7 @@ struct Ui {
     episode: gtk::Label,
     play: gtk::Button,
     timeline: gtk::Scale,
+    marked: Marked,
     position: gtk::Label,
     remaining: gtk::Label,
     volume: gtk::Scale,
@@ -96,6 +118,9 @@ struct Ui {
     episodes: gtk::MenuButton,
     settings: gtk::MenuButton,
     menu_buttons: Vec<gtk::MenuButton>,
+    /// The mini player's controls, over the video in place of the bars.
+    mini: gtk::Box,
+    mini_play: gtk::Button,
 }
 
 impl PlayerView {
@@ -146,6 +171,7 @@ impl PlayerView {
         };
 
         let ui = build_ui(&video_widget);
+        let preview = Preview::new(&ui.timeline, false);
         ctx.on_size({
             let roomy = ui.roomy.clone();
             move |size| {
@@ -173,6 +199,9 @@ impl PlayerView {
             inhibit: Cell::new(None),
             countdown: RefCell::default(),
             menus: RefCell::default(),
+            chapters_due: Cell::new(false),
+            preview,
+            mini: Cell::new(None),
         });
         view.wire();
         glib::spawn_future_local({
@@ -221,6 +250,9 @@ impl PlayerView {
     }
 
     fn closed(&self) {
+        self.set_mini(false);
+        self.preview.forget();
+        self.ui.marked.set(Vec::new(), 0.0);
         if let Some(shell) = self.shell() {
             shell.show_player(false);
         }
@@ -256,6 +288,21 @@ impl PlayerView {
                     return;
                 };
                 for op in ops {
+                    match op {
+                        PlayerOp::Load { url, options } => {
+                            let options = options
+                                .iter()
+                                .map(|o| (o.name.clone(), o.value.clone()))
+                                .collect();
+                            self.preview.stream(url, options);
+                            self.ui.marked.set(Vec::new(), 0.0);
+                            self.chapters_due.set(true);
+                        }
+                        PlayerOp::Set { property, .. } if property == "chapter-list" => {
+                            self.chapters_due.set(true);
+                        }
+                        _ => {}
+                    }
                     if self.ready.get() {
                         player.apply(*playback, op);
                     } else {
@@ -330,6 +377,7 @@ impl PlayerView {
             }
             PlayerUi::StallCleared => self.ui.stall.set_visible(false),
             PlayerUi::Alert { text, .. } => self.ctx.toast(&crate::catalog::shown(text)),
+            PlayerUi::Thumbnails { url } => self.preview.thumbnails(url.as_deref()),
             _ => {}
         }
         self.ui.cards.set_visible(
@@ -404,6 +452,7 @@ impl PlayerView {
                     self.inhibit.set((cookie > 0).then_some(cookie));
                 }
                 self.wake();
+                self.lift(self.shown.get());
             }
             HostEvent::Closed => self.closed(),
             HostEvent::Fullscreen(on) => self.fullscreen(on),
@@ -428,8 +477,10 @@ impl PlayerView {
         } else {
             ("media-playback-pause-symbolic", "Pause")
         };
-        ui.play.set_icon_name(icon);
-        ui.play.set_tooltip_text(Some(tip));
+        for button in [&ui.play, &ui.mini_play] {
+            button.set_icon_name(icon);
+            button.set_tooltip_text(Some(tip));
+        }
         if let Some(duration) = state.duration {
             ui.timeline.set_range(0.0, duration.max(0.1));
         }
@@ -444,6 +495,19 @@ impl PlayerView {
         }
         if state.has_picture && ui.starting.is_visible() {
             fade(&ui.starting, false);
+        }
+        if let (Some(player), Some(duration)) = (&self.player, state.duration) {
+            if state.has_picture && self.chapters_due.replace(false) {
+                let chapters = player.mpv().get("chapter-list").map(|v| timeline::chapters(&v));
+                ui.marked
+                    .set(timeline::segments(&chapters.unwrap_or_default(), duration), duration);
+            }
+            // The buffered part of the track: as far as the cache reaches.
+            if let Some(cached) =
+                player.mpv().get("demuxer-cache-time").and_then(|v| v.as_f64())
+            {
+                ui.timeline.set_fill_level(cached.min(duration));
+            }
         }
         let paused_now = state.paused && !self.state.borrow().paused;
         self.state.replace(state);
@@ -482,6 +546,7 @@ impl PlayerView {
                 widget.set_visible(true);
             }
             self.ui.page.set_cursor(None);
+            self.lift(true);
             self.animate(true);
         }
         if let Some(source) = self.idle.borrow_mut().take() {
@@ -514,11 +579,80 @@ impl PlayerView {
         }
         self.shown.set(false);
         self.ui.page.set_cursor_from_name(Some("none"));
+        self.preview.hide();
+        self.lift(false);
         self.animate(false);
     }
 
-    fn chrome(&self) -> [gtk::Widget; 3] {
-        [
+    /// Subtitles above the bottom bar while it shows, at once: never under it.
+    fn lift(&self, up: bool) {
+        let Some(player) = &self.player else { return };
+        let bar = if up && self.mini.get().is_none() {
+            let height = self.ui.bottom.height();
+            if height > 0 {
+                height
+            } else {
+                self.ui.bottom.measure(gtk::Orientation::Vertical, -1).1
+            }
+        } else {
+            0
+        };
+        timeline::lift_subtitles(player.mpv(), bar, self.ui.stage.height());
+    }
+
+    /// The mini player: the window itself, small, undecorated and with three controls, or back
+    /// to what it was.
+    pub fn set_mini(&self, on: bool) {
+        let window = &self.ctx.window;
+        match (on, self.mini.get()) {
+            (true, None) => {
+                let (width, height) = window.default_size();
+                self.mini.set(Some(Restore {
+                    width: if width > 0 { width } else { window.width() },
+                    height: if height > 0 { height } else { window.height() },
+                    maximized: window.is_maximized(),
+                    fullscreen: window.is_fullscreen(),
+                }));
+                // The bars go; the mini controls stand in for them.
+                for widget in self.chrome() {
+                    widget.set_visible(false);
+                }
+                self.ui.top.set_visible(false);
+                self.ui.bottom.set_visible(false);
+                window.unfullscreen();
+                window.unmaximize();
+                window.set_decorated(false);
+                window.set_size_request(MINI.0, MINI.1);
+                window.set_default_size(MINI.0, MINI.1);
+                self.shown.set(false);
+                self.preview.hide();
+                self.lift(false);
+                self.wake();
+            }
+            (false, Some(restore)) => {
+                self.mini.set(None);
+                self.ui.mini.set_visible(false);
+                window.set_decorated(true);
+                window.set_size_request(360, 360);
+                window.set_default_size(restore.width, restore.height);
+                if restore.maximized {
+                    window.maximize();
+                }
+                if restore.fullscreen {
+                    window.fullscreen();
+                }
+                self.shown.set(false);
+                self.wake();
+            }
+            _ => {}
+        }
+    }
+
+    fn chrome(&self) -> Vec<gtk::Widget> {
+        if self.mini.get().is_some() {
+            return vec![self.ui.mini.clone().upcast(), self.ui.dim.clone().upcast()];
+        }
+        vec![
             self.ui.top.clone().upcast(),
             self.ui.bottom.clone().upcast(),
             self.ui.dim.clone().upcast(),
@@ -644,6 +778,7 @@ impl PlayerView {
         add("back-10", None, Box::new(|v, _| v.send(PlayerCommand::Seek(-10.0))));
         add("forward-10", None, Box::new(|v, _| v.send(PlayerCommand::Seek(10.0))));
         add("fullscreen", None, Box::new(|v, _| v.fullscreen(None)));
+        add("mini", None, Box::new(|v, _| v.set_mini(v.mini.get().is_none())));
         add("skip", None, Box::new(|v, _| v.send(PlayerCommand::TakeSkip)));
         add("play-next", None, Box::new(|v, _| v.send(PlayerCommand::PlayNext)));
         add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));
@@ -707,6 +842,29 @@ impl PlayerView {
                 glib::Propagation::Proceed
             }
         });
+        // Hovering the timeline shows the frame there.
+        let hover = gtk::EventControllerMotion::new();
+        hover.connect_motion({
+            let weak = Rc::downgrade(self);
+            move |_, x, _| {
+                let Some(view) = weak.upgrade() else { return };
+                let has_duration = view.state.borrow().duration.is_some_and(|d| d > 0.0);
+                if let Some(seconds) = timeline::time_at(&view.ui.timeline, x)
+                    && has_duration
+                {
+                    view.preview.show(x, seconds, view.ui.marked.at(seconds));
+                }
+            }
+        });
+        hover.connect_leave({
+            let weak = Rc::downgrade(self);
+            move |_| {
+                if let Some(view) = weak.upgrade() {
+                    view.preview.hide();
+                }
+            }
+        });
+        ui.timeline.add_controller(hover);
         ui.volume.connect_change_value({
             let weak = Rc::downgrade(self);
             move |_, _, value| {
@@ -774,6 +932,15 @@ impl PlayerView {
                 }
                 return;
             }
+            if view.mini.get().is_some() {
+                // The mini player is dragged by its picture; a double-click is the full window.
+                if presses == 2 {
+                    view.set_mini(false);
+                } else {
+                    view.wake();
+                }
+                return;
+            }
             match presses {
                 1 => view.send(PlayerCommand::TogglePause),
                 2 => {
@@ -784,6 +951,33 @@ impl PlayerView {
             }
         });
         ui.stage.add_controller(click);
+        let drag = gtk::GestureDrag::new();
+        let weak = Rc::downgrade(self);
+        drag.connect_drag_begin(move |gesture, x, y| {
+            let Some(view) = weak.upgrade() else { return };
+            if view.mini.get().is_none() {
+                return;
+            }
+            let window = &view.ctx.window;
+            let (Some(surface), Some(device)) = (window.surface(), gesture.device()) else {
+                return;
+            };
+            let Ok(toplevel) = surface.downcast::<gdk::Toplevel>() else { return };
+            let point = view
+                .ui
+                .stage
+                .compute_point(window, &gtk::graphene::Point::new(x as f32, y as f32))
+                .unwrap_or_else(|| gtk::graphene::Point::new(x as f32, y as f32));
+            let (dx, dy) = window.surface_transform();
+            toplevel.begin_move(
+                &device,
+                gesture.current_button() as i32,
+                f64::from(point.x()) + dx,
+                f64::from(point.y()) + dy,
+                gesture.current_event_time(),
+            );
+        });
+        ui.stage.add_controller(drag);
 
         // The wheel steps the volume; horizontal scrolling seeks.
         let scroll =
@@ -814,6 +1008,36 @@ impl PlayerView {
             }
         });
         ui.page.add_controller(keys);
+    }
+
+    /// For a shot: an opening and an ending on the timeline, and `subtitle` on screen.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_marks(&self, subtitle: &str) {
+        let Some(player) = &self.player else { return };
+        let list = serde_json::json!([
+            { "title": "Episode", "time": 0.0 },
+            { "title": "Opening", "time": 4.0 },
+            { "title": "Episode", "time": 16.0 },
+            { "title": "Ending", "time": 50.0 },
+        ]);
+        let _ = player.mpv().set("chapter-list", &list);
+        let _ = player.mpv().command(&["sub-add", subtitle, "select"]);
+        self.chapters_due.set(true);
+    }
+
+    /// For a shot: the seek preview's popover and where it is over the window.
+    pub fn shot_popover(&self) -> Option<(gtk::Widget, f32, f32)> {
+        self.preview.placed(&self.ctx.window)
+    }
+
+    /// For a shot: the seek preview `fraction` of the way along, as hovering there shows it.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_preview(&self, fraction: f64) {
+        let Some(duration) = self.state.borrow().duration else { return };
+        let Some(x) = timeline::x_at(&self.ui.timeline, fraction) else { return };
+        let seconds = duration * fraction;
+        self.preview.show(x, seconds, self.ui.marked.at(seconds));
+        self.wake();
     }
 
     fn rest_now(&self) {
@@ -847,7 +1071,8 @@ impl PlayerView {
                     let _ = player.mpv().command(&["cycle", "mute"]);
                 }
             }
-            Key::f | Key::F | Key::F11 => self.fullscreen(None),
+            Key::f | Key::F | Key::F11 if self.mini.get().is_none() => self.fullscreen(None),
+            Key::p | Key::P => self.set_mini(self.mini.get().is_none()),
             Key::s | Key::S if self.ui.skip.is_visible() => self.send(PlayerCommand::TakeSkip),
             Key::n => self.send(PlayerCommand::PlayNext),
             Key::N => self.send(PlayerCommand::Step(-1)),
@@ -871,6 +1096,8 @@ impl PlayerView {
                     self.send(PlayerCommand::CancelNext);
                 } else if self.ui.stall.is_visible() {
                     self.send(PlayerCommand::StallWait);
+                } else if self.mini.get().is_some() {
+                    self.set_mini(false);
                 } else if self.ctx.window.is_fullscreen() {
                     self.ctx.window.unfullscreen();
                 } else {
@@ -965,12 +1192,15 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         .build();
     episodes.add_css_class("flat");
     let full = icon_button("view-fullscreen-symbolic", "Fullscreen", "player.fullscreen");
+    let mini_button =
+        icon_button("anistream-mini-player-symbolic", "Mini Player", "player.mini");
     let top = adw::HeaderBar::new();
     top.add_css_class("osd");
     top.add_css_class("player-top");
     top.pack_start(&back);
     top.set_title_widget(Some(&titles));
     top.pack_end(&full);
+    top.pack_end(&mini_button);
     top.pack_end(&episodes);
 
     // The bottom bar.
@@ -991,6 +1221,9 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     timeline.set_draw_value(false);
     timeline.add_css_class("timeline");
     timeline.update_property(&[gtk::accessible::Property::Label("Timeline")]);
+    timeline.set_show_fill_level(true);
+    timeline.set_restrict_to_fill_level(false);
+    let marked = Marked::new(&timeline);
 
     let volume = gtk::Scale::with_range(gtk::Orientation::Vertical, 0.0, 100.0, 5.0);
     volume.set_inverted(true);
@@ -1037,7 +1270,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     ] {
         bottom.append(widget);
     }
-    bottom.append(&timeline);
+    bottom.append(&marked.widget);
     bottom.append(&remaining);
     bottom.append(&volume_button);
     bottom.append(&speed_button);
@@ -1132,12 +1365,40 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     dim.add_css_class("player-dim");
     dim.set_can_target(false);
 
+    // The mini player's controls: play and pause, back and forward 10 s in the middle, and the
+    // way back to the full window in the corner.
+    let mini = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    mini.set_visible(false);
+    let full_window =
+        icon_button("anistream-mini-player-symbolic", "Back to the Full Window", "player.mini");
+    full_window.set_halign(gtk::Align::End);
+    full_window.set_margin_top(8);
+    full_window.set_margin_end(8);
+    full_window.add_css_class("osd");
+    mini.append(&full_window);
+    let middle_row = gtk::Box::new(gtk::Orientation::Horizontal, 16);
+    middle_row.set_halign(gtk::Align::Center);
+    middle_row.set_valign(gtk::Align::Center);
+    middle_row.set_vexpand(true);
+    middle_row.add_css_class("mini-controls");
+    let mini_play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
+    for button in [
+        icon_button("media-seek-backward-symbolic", "Back 10 Seconds", "player.back-10"),
+        mini_play.clone(),
+        icon_button("media-seek-forward-symbolic", "Forward 10 Seconds", "player.forward-10"),
+    ] {
+        button.add_css_class("osd");
+        middle_row.append(&button);
+    }
+    mini.append(&middle_row);
+
     let stage = gtk::Overlay::new();
     stage.add_css_class("player");
     stage.set_child(Some(video));
     stage.add_overlay(&dim);
     stage.add_overlay(&starting);
     stage.add_overlay(&cards);
+    stage.add_overlay(&mini);
 
     // The bars over the video, which fills the page under them.
     let page = adw::ToolbarView::new();
@@ -1162,6 +1423,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         episode,
         play,
         timeline,
+        marked,
         position,
         remaining,
         volume,
@@ -1180,5 +1442,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         episodes,
         settings,
         menu_buttons,
+        mini,
+        mini_play,
     }
 }

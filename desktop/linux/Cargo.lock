@@ -127,6 +127,7 @@ dependencies = [
  "libadwaita",
  "pango",
  "pangocairo",
+ "serde_json",
  "tempfile",
  "tokio",
  "tracing",
