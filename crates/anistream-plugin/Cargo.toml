@@ -47,7 +47,7 @@ url = "2"
 regex = "1"
 # AES-128-CBC, for the wrapped stream payloads some sources use.
 aes = "0.8"
-cbc = { version = "0.1", features = ["alloc"] }
+cbc = { version = "0.2", features = ["alloc"] }
 
 # iOS lets no app but Apple's make memory executable, so nothing a compiler emits as native code
 # can run there. The same Cranelift emits Pulley bytecode instead, which wasmtime's interpreter
