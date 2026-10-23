@@ -150,8 +150,9 @@ impl Shell {
                 Dest::Seasonal => pages::seasonal::build(&ctx),
                 Dest::Search => search.page.clone(),
                 Dest::Library => pages::library::build(&ctx),
+                Dest::Providers => pages::providers::build(&ctx),
+                Dest::Stores => pages::stores::build(&ctx),
                 Dest::Settings => settings.page.clone(),
-                other => pages::placeholder(&ctx, other),
             };
             let nav = adw::NavigationView::new();
             nav.add(&root);
@@ -395,10 +396,9 @@ impl Shell {
                 }
             }),
         );
+        add("join-store", None, Box::new(|s, _| pages::join::open(&s.ctx, None)));
         // Not in this build yet: shown, and greyed out.
-        for name in ["join-store", "export"] {
-            add(name, None, Box::new(|_, _| {})).set_enabled(false);
-        }
+        add("export", None, Box::new(|_, _| {})).set_enabled(false);
         let _ = hub;
 
         for (i, dest) in Dest::ALL.iter().take(7).enumerate() {

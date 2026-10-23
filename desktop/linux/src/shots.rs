@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 13] = [
+pub const ALL: [&str; 18] = [
     "home",
     "calendar",
     "seasonal",
@@ -28,6 +28,11 @@ pub const ALL: [&str; 13] = [
     "title",
     "library",
     "downloads",
+    "providers",
+    "provider",
+    "stores",
+    "store",
+    "join",
     "settings",
     "settings-accounts",
     "about",
@@ -100,6 +105,28 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.go(Dest::Downloads);
             2.0
         }
+        "providers" => {
+            shell.go(Dest::Providers);
+            2.0
+        }
+        "provider" => {
+            shell.go(Dest::Providers);
+            crate::pages::plugin::push_provider(&shell.ctx, "mukashi-archive");
+            1.5
+        }
+        "stores" => {
+            shell.go(Dest::Stores);
+            2.0
+        }
+        "store" => {
+            shell.go(Dest::Stores);
+            crate::pages::stores::push_store(&shell.ctx, "hotaru");
+            1.5
+        }
+        "join" => {
+            join(shell);
+            2.0
+        }
         "settings" => {
             shell.settings_pane("playback");
             1.5
@@ -143,10 +170,30 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "title" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
-        "about" => close_dialogs(&shell.ctx.window),
+        "about" | "join" => close_dialogs(&shell.ctx.window),
+        "provider" | "store" => {
+            if let Some(nav) = shell.ctx.nav() {
+                nav.pop();
+            }
+        }
         "player" => shell.player.close(),
         _ => {}
     }
+}
+
+/// The join dialog with an invite pasted, and the showcase's answer to checking it.
+#[cfg(feature = "fixtures")]
+fn join(shell: &Rc<Shell>) {
+    crate::pages::join::open(&shell.ctx, Some(crate::showcase::INVITE));
+    let hub = Rc::clone(&shell.ctx.hub);
+    glib::timeout_add_local_once(Duration::from_millis(900), move || {
+        hub.show_instead(vec![crate::showcase::invite()]);
+    });
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn join(shell: &Rc<Shell>) {
+    crate::pages::join::open(&shell.ctx, None);
 }
 
 fn close_dialogs(window: &adw::ApplicationWindow) {

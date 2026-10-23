@@ -3,10 +3,14 @@
 pub mod calendar;
 pub mod continue_page;
 pub mod downloads;
+pub mod join;
 pub mod library;
+pub mod plugin;
+pub mod providers;
 pub mod search;
 pub mod seasonal;
 pub mod settings;
+pub mod stores;
 pub mod title;
 
 use std::rc::Rc;
@@ -14,9 +18,7 @@ use std::rc::Rc;
 use adw::prelude::*;
 
 use crate::{
-    nagare,
     prefs::CloseChoice,
-    widgets,
     window::{Ctx, Shell},
 };
 
@@ -92,26 +94,6 @@ impl Dest {
             Self::Settings => "emblem-system-symbolic",
         }
     }
-}
-
-/// A destination this build does not have yet: its header bar and Nagare.
-pub fn placeholder(ctx: &Rc<Ctx>, dest: Dest) -> adw::NavigationPage {
-    let header = adw::HeaderBar::new();
-    header.pack_start(&widgets::sidebar_button(&ctx.split));
-    let line = match dest {
-        Dest::Calendar => "The week's broadcasts come to this page in a later build.",
-        Dest::Downloads => "Downloads come to this page in a later build.",
-        Dest::Providers => "Sources and their order come to this page in a later build.",
-        _ => "Plugin stores come to this page in a later build.",
-    };
-    let content = nagare::status_page(dest.title(), line, None);
-    if dest == Dest::Providers || dest == Dest::Stores {
-        let legal = widgets::haze("anistream hosts no content.", "caption");
-        legal.set_halign(gtk::Align::Center);
-        legal.set_xalign(0.5);
-        content.set_child(Some(&legal));
-    }
-    widgets::page(dest.title(), &header, &content)
 }
 
 /// The keyboard shortcuts, as rows: Ctrl+? opens them.

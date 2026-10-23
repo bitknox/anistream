@@ -151,6 +151,59 @@ pub fn page(
     adw::NavigationPage::builder().title(title).child(&view).build()
 }
 
+/// How a row stands, beside its name: a mark and a word or two. `mark` is a dot's colour,
+/// "water", "vermilion" or "haze", or "ring" for something switched off or held back.
+pub fn standing(text: &str, mark: &str) -> gtk::Box {
+    let line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    line.set_valign(gtk::Align::Center);
+    let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    dot.add_css_class("mark");
+    dot.add_css_class(mark);
+    dot.set_valign(gtk::Align::Center);
+    line.append(&dot);
+    if !text.is_empty() {
+        let label = gtk::Label::new(Some(text));
+        label.add_css_class(if matches!(mark, "haze" | "ring") { "haze" } else { "standing" });
+        line.append(&label);
+    }
+    line
+}
+
+/// An empty boxed list, nothing selectable.
+pub fn boxed_list() -> gtk::ListBox {
+    let list = gtk::ListBox::new();
+    list.add_css_class("boxed-list");
+    list.set_selection_mode(gtk::SelectionMode::None);
+    list
+}
+
+/// A column of groups, clamped to `max` and scrolling down.
+pub fn column_page(column: &gtk::Box, max: i32) -> gtk::ScrolledWindow {
+    column.set_margin_top(18);
+    column.set_margin_bottom(24);
+    column.set_margin_start(12);
+    column.set_margin_end(12);
+    gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .vexpand(true)
+        .child(&adw::Clamp::builder().maximum_size(max).child(column).build())
+        .build()
+}
+
+/// A menu item for `action` with a string target.
+pub fn menu_item(label: &str, action: &str, target: &str) -> gio::MenuItem {
+    let item = gio::MenuItem::new(Some(label), None);
+    item.set_action_and_target_value(Some(action), Some(&target.to_variant()));
+    item
+}
+
+/// A row's chevron: it opens a page.
+pub fn chevron() -> gtk::Image {
+    let image = gtk::Image::from_icon_name("go-next-symbolic");
+    image.add_css_class("dim-label");
+    image
+}
+
 /// Keep `value` as long as `widget` lives: a screen's state, which its handlers hold weakly.
 pub fn keep<T: 'static>(widget: &impl IsA<gtk::Widget>, value: T) {
     let value = std::cell::RefCell::new(Some(value));

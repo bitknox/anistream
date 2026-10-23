@@ -94,6 +94,16 @@ row.failed .subtitle { color: var(--vermilion); }
 levelbar block.filled { background: var(--water); }
 levelbar block.empty { background: var(--rule); }
 
+/* A row's standing: a dot, or a ring for off and held back. */
+.mark { min-width: 6px; min-height: 6px; border-radius: 999px; }
+.mark.water { background: var(--water); }
+.mark.vermilion { background: var(--vermilion); }
+.mark.haze { background: var(--haze); }
+.mark.ring { box-shadow: inset 0 0 0 1.5px var(--haze); }
+.standing { color: var(--silk); }
+.problem { color: var(--vermilion); }
+.fingerprint { font-family: monospace; }
+
 .genre-tile { border-radius: 12px; padding: 18px; background: var(--raised); }
 .genre-tile:hover { background: var(--raised-selected); }
 

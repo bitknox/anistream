@@ -34,15 +34,15 @@ export GTK_A11Y=none DISPLAY=:99 GDK_BACKEND=x11 GSK_RENDERER=ngl LIBGL_ALWAYS_S
 # name, size, shots
 runs=(
   "wide 1280x800 ${SHOTS:-all}"
-  "medium 900x720 ${SHOTS:-home,calendar,title,downloads,settings}"
-  "narrow 400x780 ${SHOTS:-home,calendar,title,library,downloads,settings}"
+  "medium 900x720 ${SHOTS:-home,calendar,title,downloads,providers,store,settings}"
+  "narrow 400x780 ${SHOTS:-home,calendar,title,library,downloads,providers,store,join,settings}"
 )
 for run in "${runs[@]}"; do
   read -r name size shots <<<"$run"
   case " ${SIZES:-wide medium narrow} " in *" $name "*) ;; *) continue ;; esac
   data="/tmp/anistream-scene-$name"
   rm -rf "$data"
-  extra=()
+  extra=(--showcase)
   case ",$shots," in *,downloads,*|*,all,*) extra+=(--downloading) ;; esac
   echo "run: $name at $size: $shots"
   dbus-run-session -- timeout 240 "$bin" --fixtures --data "$data" --media "$media" "${extra[@]}" \
