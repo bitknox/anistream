@@ -85,6 +85,15 @@ gridview.posters > child:hover { background: alpha(var(--silk), 0.05); }
 .banner.small { border-radius: 6px; }
 .today-heading { color: var(--water); }
 
+/* Downloads: the bar is water while it runs, haze while it waits. */
+progressbar.water progress { background: var(--water); }
+progressbar.waiting progress { background: var(--haze); }
+row progressbar.horizontal > trough { min-width: 60px; }
+row levelbar.horizontal trough { min-width: 60px; }
+row.failed .subtitle { color: var(--vermilion); }
+levelbar block.filled { background: var(--water); }
+levelbar block.empty { background: var(--rule); }
+
 .genre-tile { border-radius: 12px; padding: 18px; background: var(--raised); }
 .genre-tile:hover { background: var(--raised-selected); }
 

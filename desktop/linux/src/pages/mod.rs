@@ -2,6 +2,7 @@
 
 pub mod calendar;
 pub mod continue_page;
+pub mod downloads;
 pub mod library;
 pub mod search;
 pub mod seasonal;
