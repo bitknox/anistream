@@ -7,7 +7,7 @@ import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
 import SiteNav from '../components/site/SiteNav.astro';
-import { APP_DOWNLOADS, INSTALL_APPS, LATEST, LEGAL } from '../data/site';
+import { APP_DOWNLOADS, INSTALL_APPS, LATEST, LEGAL, PRIVACY } from '../data/site';
 
 const everywhere: [string, string][] = [
 	['Widgets', 'Continue watching and Airing today, on the home screen.'],
@@ -206,6 +206,9 @@ const everywhere: [string, string][] = [
 				<p class="lede">
 					Plugins and sources are yours to add, and what you point them at is your decision, at your
 					own risk, under the laws that apply to you.
+				</p>
+				<p class="lede apps-privacy">
+					What the apps send, and what they keep on your device, is on the <a href={PRIVACY}>privacy page</a>.
 				</p>
 			</section>
 		</main>

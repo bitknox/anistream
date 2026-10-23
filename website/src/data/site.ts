@@ -16,6 +16,8 @@ export const APPS = '/apps/';
 
 export const LEGAL = 'anistream hosts no content.';
 
+export const PRIVACY = '/docs/privacy/';
+
 export interface AppDownload {
 	/** The id the page's elements carry, and the docs heading's anchor. */
 	id: 'android' | 'mac' | 'ios';

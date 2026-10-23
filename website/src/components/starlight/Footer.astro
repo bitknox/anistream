@@ -4,6 +4,7 @@
 import EditLink from '@astrojs/starlight/components/EditLink.astro';
 import LastUpdated from '@astrojs/starlight/components/LastUpdated.astro';
 import Pagination from '@astrojs/starlight/components/Pagination.astro';
+import { PRIVACY } from '../../data/site';
 ---
 
 <footer class="ani-docs-footer">
@@ -14,7 +15,7 @@ import Pagination from '@astrojs/starlight/components/Pagination.astro';
 	<Pagination />
 	<div class="legal">
 		<p>anistream hosts no content.</p>
-		<p>anistream is open source under the MIT licence.</p>
+		<p>anistream is open source under the MIT licence. <a href={PRIVACY}>Privacy</a></p>
 	</div>
 </footer>
 
@@ -42,6 +43,18 @@ import Pagination from '@astrojs/starlight/components/Pagination.astro';
 
 	.legal p {
 		margin: 0;
+	}
+
+	.legal a {
+		color: var(--ani-obi);
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
+		text-decoration-color: color-mix(in srgb, var(--ani-obi) 45%, transparent);
+		text-underline-offset: 3px;
+	}
+
+	.legal a:hover {
+		text-decoration-color: var(--ani-obi);
 	}
 
 	@media (max-width: 49.99em) {

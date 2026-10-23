@@ -437,4 +437,7 @@ configuration, and the responsibility that comes with it is yours. Torrenting is
 gated behind the VPN guard, and every source is a config edit away from being removed. anistream
 will not circumvent DRM.
 
+What anistream sends, and what it keeps on your device, is on the
+[privacy page](https://anistream.tv/docs/privacy/).
+
 MIT.
