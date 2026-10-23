@@ -60,9 +60,8 @@ fn resolve_target(invoked: &Path) -> PathBuf {
 
 /// Whether a path lies inside a macOS application bundle.
 fn in_app_bundle(path: &Path) -> bool {
-    path.components().any(|c| {
-        std::path::Path::new(c.as_os_str()).extension().is_some_and(|e| e == "app")
-    })
+    path.components()
+        .any(|c| std::path::Path::new(c.as_os_str()).extension().is_some_and(|e| e == "app"))
 }
 
 /// Turn a refusal to write into something the reader can act on.

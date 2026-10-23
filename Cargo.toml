@@ -9,7 +9,7 @@ exclude = ["plugins/*"]
 [workspace.package]
 version = "2.0.0"
 edition = "2024"
-rust-version = "1.91"
+rust-version = "1.98"
 license = "MIT"
 repository = "https://github.com/bitknox/anistream"
 
@@ -61,9 +61,17 @@ toml_edit = "0.25"
 # --- http ---
 # wreq: browser TLS/JA3/JA4 + HTTP2 fingerprint emulation. Required for Cloudflare-fronted
 # providers; a correct browser header set alone returns 403.
-# 0.15 is 5.3 renumbered: the maintainers reset the version line in Aug 2026 and yanked 5.x.
-wreq = { version = "0.15.3", features = ["json", "gzip", "brotli", "deflate", "cookies", "socks"] }
-wreq-util = "0.1"
+# 0.15 was 5.3 renumbered (the maintainers reset the version line in Aug 2026 and yanked 5.x);
+# 0.16 is the first past RUSTSEC-2026-0002, the unsound lru 0.13 its connection pool used, and
+# moved TLS from boring2 to btls, BoringSSL still. Features that 0.15 had on without being asked:
+# zstd (wreq-util 0.1's defaults turned it on, and the profiles offer it), and system-proxy (0.15
+# read the Mac's and Windows' proxy settings by default; 0.16 reads only the environment
+# without it). stream is for the mending proxy's capped reads, which 0.15 did with `chunk`.
+wreq = { version = "0.16.1", features = ["json", "gzip", "brotli", "deflate", "zstd", "cookies", "socks", "system-proxy", "stream"] }
+# emulation-compression puts each browser's own accept-encoding into its profile, where 0.1 always
+# had it. Without it the profiles carry none, and wreq's decoder appends one no browser sends
+# (`zstd,gzip,deflate,br`, last).
+wreq-util = { version = "0.2", features = ["emulation-compression"] }
 # reqwest: plain client for hosts that need no emulation (AniList, its image CDN, GitHub raw).
 reqwest = { version = "0.13", default-features = false, features = ["json", "query", "form", "rustls", "webpki-roots", "http2", "gzip", "brotli", "stream", "socks"] }
 

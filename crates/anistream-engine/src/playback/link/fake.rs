@@ -45,6 +45,10 @@ pub(crate) enum Call {
         property: &'static str,
         delta: f64,
     },
+    Multiply {
+        property: &'static str,
+        factor: f64,
+    },
     Seek {
         seconds: f64,
         absolute: bool,
@@ -122,6 +126,10 @@ impl PlayerLink for RecordingLink {
 
     async fn add(&self, property: &'static str, delta: f64) -> Result<(), LinkError> {
         self.note(Call::Add { property, delta })
+    }
+
+    async fn multiply(&self, property: &'static str, factor: f64) -> Result<(), LinkError> {
+        self.note(Call::Multiply { property, factor })
     }
 
     async fn seek(&self, seconds: f64, absolute: bool) -> Result<(), LinkError> {

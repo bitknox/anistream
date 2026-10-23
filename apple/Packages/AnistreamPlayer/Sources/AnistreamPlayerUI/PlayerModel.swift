@@ -1190,11 +1190,13 @@ public final class PlayerModel {
         seek(to: seconds)
     }
 
-    /// Play at `target` times normal speed.
+    /// Play at `target` times normal speed: set outright, whatever the speed is now, as the
+    /// speed menus and keys pick it. Not a factor of the speed this side last heard, which could
+    /// be the episode before's.
     public func setSpeed(_ target: Double) {
         input()
-        guard speed > 0, target > 0 else { return }
-        control(.speed(target / speed))
+        guard target > 0 else { return }
+        control(.speedTo(target))
     }
 
     public func stepVolume(by points: Double) {

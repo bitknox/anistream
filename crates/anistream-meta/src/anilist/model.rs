@@ -339,21 +339,36 @@ impl StreamingEpisode {
         rest.split(|c: char| !c.is_ascii_digit()).find(|s| !s.is_empty())?.parse().ok()
     }
 
-    /// The episode's own title, with AniList's `"Episode 12 - "` prefix removed.
-    ///
-    /// The field is free text written by whoever listed the episode, so this trims the shapes
-    /// actually seen — `-`, `–` and `:` separators — and gives up rather than guessing. A entry
-    /// that is *only* the numbering carries no title, and saying nothing beats showing
-    /// "Episode 12" twice.
+    /// The episode's own title, with AniList's `"Episode 12 - "` prefix removed: see
+    /// [`unnumbered`].
     pub fn episode_title(&self) -> Option<&str> {
-        let title = self.title.as_deref()?.trim();
-        let rest = match title.strip_prefix("Episode ") {
-            Some(rest) => rest.trim_start_matches(|c: char| c.is_ascii_digit() || c == '.'),
-            None => title,
-        };
-        let rest = rest.trim_start_matches([' ', '-', '\u{2013}', '\u{2014}', ':']).trim();
-        (!rest.is_empty()).then_some(rest)
+        unnumbered(self.title.as_deref()?)
     }
+}
+
+/// An episode's title without the numbering put in front of it, or `None` when the numbering is
+/// all there is: showing "Episode 12" beside the number 12 is worse than showing nothing.
+///
+/// Titles are free text, from AniList's streaming listings and from sources alike, so this trims
+/// the shapes actually seen and gives up rather than guessing: "Episode 12 - ", "Episode 1 – ",
+/// "Episode 7: ", "Ep. 3: ", "EP03 - ", "Episode 12.5 - ". The word has to be followed by a
+/// number, so a title that only starts with one ("Episodes of Spring", "Epilogue") is kept whole,
+/// as is one that starts with a number of its own.
+pub fn unnumbered(title: &str) -> Option<&str> {
+    let title = title.trim();
+    let lower = title.to_ascii_lowercase();
+    let numbered = ["episode", "ep.", "ep"].into_iter().find_map(|word| {
+        // The word's bytes are ASCII, so its length in the lowercased copy is its length here.
+        let after = title.get(word.len()..)?.trim_start_matches([' ', '#']);
+        let number = after.trim_start_matches(|c: char| c.is_ascii_digit() || c == '.');
+        let has_number = after.starts_with(|c: char| c.is_ascii_digit());
+        (lower.starts_with(word) && has_number).then_some(number)
+    });
+    let rest = numbered
+        .unwrap_or(title)
+        .trim_start_matches([' ', '-', '\u{2013}', '\u{2014}', ':', '.', '|'])
+        .trim();
+    (!rest.is_empty()).then_some(rest)
 }
 
 /// How one title relates to another.
@@ -406,6 +421,12 @@ pub struct RelationNode {
     pub season: Option<Season>,
     #[serde(default)]
     pub season_year: Option<u16>,
+    /// This title's own relations, one level further out, where the query asked for them: the
+    /// title page's does, and so does the season walk's ([`super::query::relations`]). Each
+    /// edge names its title by id and format only. `None` where they were not asked for, which
+    /// says nothing of whether there are any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relations: Option<RelationConnection>,
 }
 
 /// A title, as much of it as anistream renders.
@@ -825,6 +846,26 @@ mod title_tests {
         );
         assert_eq!(listing("Episode 1 – Pilot").episode_title(), Some("Pilot"));
         assert_eq!(listing("Episode 7: The Village").episode_title(), Some("The Village"));
+    }
+
+    #[test]
+    fn every_shape_of_numbering_is_stripped_and_nothing_else() {
+        assert_eq!(unnumbered("Ep. 3: The Ferryman's Ledger"), Some("The Ferryman's Ledger"));
+        assert_eq!(unnumbered("EP03 - Embers in the Snow"), Some("Embers in the Snow"));
+        assert_eq!(unnumbered("ep 4 | A Letter Never Sent"), Some("A Letter Never Sent"));
+        assert_eq!(
+            unnumbered("Episode #9 - The Last Lamplighter"),
+            Some("The Last Lamplighter")
+        );
+        assert_eq!(unnumbered("Episode 12.5 - Looking Back"), Some("Looking Back"));
+        assert_eq!(unnumbered("  Episode 2 — Overdue  "), Some("Overdue"));
+        assert_eq!(unnumbered("Ep. 3"), None, "the numbering alone");
+        // A word that only looks like the numbering, and a title's own number, are the title.
+        assert_eq!(unnumbered("Episodes of Spring"), Some("Episodes of Spring"));
+        assert_eq!(unnumbered("Epilogue"), Some("Epilogue"));
+        assert_eq!(unnumbered("Episode Zero"), Some("Episode Zero"));
+        assert_eq!(unnumbered("100 Lanterns"), Some("100 Lanterns"));
+        assert_eq!(listing("Ep. 3: The Village").episode_title(), Some("The Village"));
     }
 
     #[test]

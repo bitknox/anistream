@@ -26,6 +26,10 @@
 //! again; and after a list sync moves a show's progress or where it is on the list. Asked for
 //! again while a top-up runs, the latest ask runs once it is done.
 //!
+//! **What it skips.** Nothing, with no source set up, and no show whose episode table no source
+//! could list, as its last load found: its episodes are AniList's alone, with nothing to download
+//! them from.
+//!
 //! **What it waits for.** Nothing is topped up while downloads wait: off screen but for a
 //! downloads window, on cellular unless downloads may run there, in Low Data Mode, or while the
 //! connection check that guards torrents fails. And it stops before the
@@ -33,6 +37,7 @@
 //! more, has to leave [`KEEP_FREE`]. It says so once, until there is room again.
 
 use std::{
+    collections::HashSet,
     path::{Path, PathBuf},
     sync::{
         Arc, Mutex,
@@ -91,6 +96,10 @@ struct Inner {
     queue: Mutex<Queue>,
     /// A full device has been said, and is not said again until there is room.
     said_full: AtomicBool,
+    /// The shows whose episode table was last listed from AniList's data alone, because no
+    /// source here could list them: no source is asked to keep them until one does. Only for
+    /// as long as the engine runs, so a show is asked about again on the next launch.
+    unlisted: Mutex<HashSet<AnilistId>>,
 }
 
 /// The top-ups asked for: the latest, waiting for the one under way.
@@ -129,6 +138,26 @@ impl Ahead {
         Self(Arc::new(Inner { on, free, ..Inner::default() }))
     }
 
+    /// Take in what `event` says of which shows a source lists: a table listed from AniList's
+    /// data alone puts its show among the unlisted, and one a source listed takes it out. An
+    /// empty table says neither.
+    pub fn observe(&self, event: &Event) {
+        let Event::Episodes { id, rows } = event else { return };
+        let Some(first) = rows.first() else { return };
+        let mut unlisted = self.0.unlisted.lock().unwrap_or_else(|e| e.into_inner());
+        if first.metadata_only {
+            unlisted.insert(*id);
+        } else {
+            unlisted.remove(id);
+        }
+    }
+
+    /// Whether show `id`'s table was last listed from AniList's data alone: see
+    /// [`Self::observe`].
+    pub fn unlisted(&self, id: AnilistId) -> bool {
+        self.0.unlisted.lock().unwrap_or_else(|e| e.into_inner()).contains(&id)
+    }
+
     /// Run a top-up on `config`, now or after the one under way, which then runs no more than
     /// once for every ask that came while it ran: on the config of the latest.
     fn ask(&self, config: Config, listed: bool, services: &Services, tx: &Outbox) {
@@ -146,6 +175,7 @@ impl Ahead {
             meta: services.meta.clone(),
             cache_dir: services.paths.cache_dir.clone(),
             free: inner.free,
+            ahead: self.clone(),
         };
         let (clock, tx) = (services.clock.clone(), tx.clone());
         tokio::spawn(async move {
@@ -179,6 +209,11 @@ pub fn top_up(engine: &EngineState, services: &Services, tx: &Outbox) {
     // Whatever downloads may do: letting go asks nothing of the network.
     expire(&services.store, viewer, tx);
     if downloads_wait(engine) {
+        return;
+    }
+    // With no source set up there is nothing to download from, and every show's episodes are
+    // AniList's alone.
+    if services.registry.is_empty() && !services.registry.is_arriving() {
         return;
     }
     let config = engine.config.effective();
@@ -419,6 +454,10 @@ pub(crate) trait Work {
     ) -> Result<Queued, Refusal>;
     /// What is free where a download under `config` lands, when that can be said.
     fn free(&self, config: &Config) -> Option<u64>;
+    /// Whether no source here lists show `id`, as its table last said: see [`Ahead::observe`].
+    fn unlisted(&self, _id: AnilistId) -> bool {
+        false
+    }
 }
 
 /// A top-up's work, as the engine does it.
@@ -429,6 +468,8 @@ struct Live {
     cache_dir: PathBuf,
     /// A test's word for what is free, in place of the disk's.
     free: Option<u64>,
+    /// Which shows no source lists.
+    ahead: Ahead,
 }
 
 impl Work for Live {
@@ -462,6 +503,10 @@ impl Work for Live {
         let fetching = self.cache_dir.join("torrents");
         let finished = destination(config, &self.cache_dir);
         [free_space(&fetching), free_space(&finished)].into_iter().flatten().min()
+    }
+
+    fn unlisted(&self, id: AnilistId) -> bool {
+        self.ahead.unlisted(id)
     }
 }
 
@@ -500,6 +545,10 @@ pub(crate) async fn run(
     tx: &Outbox,
 ) {
     for show in missing(config, store, viewer) {
+        // Its episodes are AniList's alone: no source here has it to download.
+        if work.unlisted(show.id) {
+            continue;
+        }
         let Some(media) = work.media(show.id).await else { continue };
         let wanted = Wanted::of(&show.config);
         for episode in out(&media, &show.episodes) {
@@ -627,6 +676,8 @@ mod tests {
         free: Option<u64>,
         media: HashMap<AnilistId, Media>,
         asked: Mutex<Vec<(AnilistId, String, Wanted)>>,
+        /// Which shows no source lists, as the engine's record has them.
+        ahead: Ahead,
     }
 
     impl Fake {
@@ -639,6 +690,7 @@ mod tests {
                     .map(|id| (id, fixtures::media(id)))
                     .collect(),
                 asked: Mutex::default(),
+                ahead: Ahead::default(),
             }
         }
 
@@ -667,6 +719,10 @@ mod tests {
 
         fn free(&self, _: &Config) -> Option<u64> {
             self.free
+        }
+
+        fn unlisted(&self, id: AnilistId) -> bool {
+            self.ahead.unlisted(id)
         }
     }
 
@@ -820,6 +876,49 @@ mod tests {
             ]
         );
         assert_eq!(out(&fixtures::media(AIRING), &[5, 6, 7]), [5]);
+    }
+
+    /// Show `id`'s table, `metadata_only` or listed by a source.
+    fn table(id: AnilistId, metadata_only: bool) -> Event {
+        let row = |n: u32| anistream_model::episodes::EpisodeRow {
+            number: n.to_string(),
+            title: None,
+            thumbnail: None,
+            description: None,
+            duration_secs: None,
+            watched: 0.0,
+            completed: false,
+            kind: None,
+            skippable: false,
+            airs_at: None,
+            delayed_from: None,
+            metadata_only,
+        };
+        Event::Episodes { id, rows: (1..=12).map(row).collect() }
+    }
+
+    #[tokio::test]
+    async fn a_show_no_source_could_list_is_not_kept_until_one_does() {
+        let store = listed(&[(FINISHED, "CURRENT"), (AIRING, "CURRENT")]);
+        watched(&store, FINISHED, 4, NOW - DAY);
+        watched(&store, AIRING, 2, NOW - 2 * DAY);
+        let work = Fake::on(&store);
+        // Its table came from AniList alone; an empty one says nothing either way.
+        work.ahead.observe(&table(FINISHED, true));
+        work.ahead.observe(&Event::Episodes { id: FINISHED, rows: Vec::new() });
+        assert!(work.ahead.unlisted(FINISHED));
+        top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
+        assert_eq!(
+            work.asked(),
+            [(AIRING, "3".into()), (AIRING, "4".into())],
+            "only the other"
+        );
+
+        // Listed by a source since: kept as any other show.
+        work.ahead.observe(&table(FINISHED, false));
+        assert!(!work.ahead.unlisted(FINISHED));
+        top_up_with(&keeping(2), &work, &AtomicBool::new(false)).await;
+        assert_eq!(work.asked()[2..], [(FINISHED, "5".into()), (FINISHED, "6".into())]);
     }
 
     #[tokio::test]

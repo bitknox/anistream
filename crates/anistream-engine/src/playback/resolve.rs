@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// What a lookup says when there is no source to ask.
-const NO_SOURCES: &str = "no sources configured — see the Providers screen";
+pub(crate) const NO_SOURCES: &str = "no sources configured: see the Providers screen";
 
 /// Why `episode` of `media` cannot be played yet, when its schedule says it has not aired.
 ///

@@ -674,13 +674,26 @@ class ViewerTest {
         assertEquals(
             listOf(
                 PlayerCommand.ChooseTrack(TrackKind.AUDIO, 2), PlayerCommand.ChooseTrack(TrackKind.SUBTITLE, null),
-                PlayerCommand.Speed(1.5), PlayerCommand.Choose(PlayerChoice.Episode("3")), PlayerCommand.Upscaling("sharp"),
+                PlayerCommand.SpeedTo(1.5), PlayerCommand.Choose(PlayerChoice.Episode("3")), PlayerCommand.Upscaling("sharp"),
                 PlayerCommand.NightMode(true), PlayerCommand.Step(1),
             ),
             rig.controls,
         )
         assertEquals(listOf(1L, 2L), rig.model.audioTracks.map { it.id })
         assertEquals("Full", rig.model.subtitleTracks.first().title)
+    }
+
+    @Test
+    fun aSpeedIsSetOutrightWhateverPlays() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.emit(MpvEvent.property("speed", MpvValue.Real(1.25)))
+        assertEquals(1.25, rig.model.speed, 0.0)
+        // 1.5× from 1.25×: the speed itself, not the factor between them, which the engine
+        // multiplies by whatever plays then.
+        rig.model.playAt(1.5)
+        rig.model.playAt(1.0)
+        assertEquals(listOf(PlayerCommand.SpeedTo(1.5), PlayerCommand.SpeedTo(1.0)), rig.controls)
     }
 
     @Test

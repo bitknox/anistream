@@ -56,17 +56,23 @@ pub(crate) fn status_hints_paged(
             (Action::SkipOpening, Action::SkipOpening.hint()),
             (Action::Detach, Action::Detach.hint()),
         ],
-        // Enter plays in the table; that is the table's whole point.
+        // Enter plays in the table; that is the table's whole point. A row from AniList alone
+        // has nothing to play it from, and Enter there goes to add a source.
         V::Episodes(_) => vec![
-            (Action::Open, "play"),
+            (
+                Action::Open,
+                if app.selected_unlisted() { "add a source to play" } else { "play" },
+            ),
             (Action::ToggleWatched, Action::ToggleWatched.hint()),
             (Action::Back, Action::Back.hint()),
         ],
         // Enter on a title page goes one deeper, into its episodes. Space is play next only
         // while nothing plays; then it pauses the player, as on every other screen.
-        V::Title(_) => vec![
+        V::Title(id) => vec![
             if app.playing.is_some() {
                 (Action::PlayPause, Action::PlayPause.hint())
+            } else if app.unlisted(*id) {
+                (Action::PlayNext, "add a source to play")
             } else {
                 (Action::PlayNext, Action::PlayNext.hint())
             },

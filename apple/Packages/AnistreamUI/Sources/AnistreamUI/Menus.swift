@@ -14,11 +14,15 @@ struct TitleMenu: View {
 
     var body: some View {
         let action = TitleAction(entry)
-        Button(action.title) {
-            store.send(.play(id: entry.id, episode: String(action.episode)))
+        if action.playable, store.titles.unlisted(entry.id) {
+            Button(AddSourceWords.menu) { navigator.openProviders() }
+        } else {
+            Button(action.title) {
+                store.send(.play(id: entry.id, episode: String(action.episode)))
+            }
+            // Still to air: when, said and not offered.
+            .disabled(!action.playable)
         }
-        // Still to air: when, said and not offered.
-        .disabled(!action.playable)
         Button("Go to Title") { navigator.openTitle(entry.id) }
         Divider()
         Menu("Status") { StatusItems(id: entry.id) }
@@ -77,14 +81,20 @@ struct TitleMoreItems: View {
 /// An episode's context menu.
 struct EpisodeMenu: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let entry: Entry
     let number: UInt32
     let row: EpisodeRow
 
     var body: some View {
         let resuming = entry.progress?.next == number && entry.resume != nil
-        Button(resuming ? "Resume Episode \(number)" : "Play Episode \(number)") {
-            store.send(.play(id: entry.id, episode: row.number))
+        // One no source has: the way to a source in Play's and Download's place.
+        if row.metadataOnly {
+            Button(AddSourceWords.menu) { navigator.openProviders() }
+        } else {
+            Button(resuming ? "Resume Episode \(number)" : "Play Episode \(number)") {
+                store.send(.play(id: entry.id, episode: row.number))
+            }
         }
         Divider()
         if row.completed {
@@ -99,9 +109,11 @@ struct EpisodeMenu: View {
         Button("Mark All Previous Watched") {
             store.send(.setWatched(id: entry.id, episodes: (1...max(number, 1)).map(String.init), watched: true))
         }
-        Divider()
-        Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
-            .disabled(true)
+        if !row.metadataOnly {
+            Divider()
+            Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
+                .disabled(true)
+        }
     }
 }
 

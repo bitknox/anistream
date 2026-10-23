@@ -207,11 +207,14 @@ struct RotorItem<ID: Hashable>: Identifiable {
 /// title's AniList page. The list a title is on stays in the title page's own menu.
 struct TitleActions: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let entry: Entry
 
     var body: some View {
         let action = TitleAction(entry)
-        if action.playable {
+        if action.playable, store.titles.unlisted(entry.id) {
+            Button(AddSourceWords.menu) { navigator.openProviders() }
+        } else if action.playable {
             Button(action.resume == nil ? "Start Episode \(action.episode)" : "Resume Episode \(action.episode)") {
                 store.send(.play(id: entry.id, episode: String(action.episode)))
             }

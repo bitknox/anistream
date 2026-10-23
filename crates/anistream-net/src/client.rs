@@ -42,16 +42,21 @@ impl Profile {
         }
     }
 
-    /// The newest profile `wreq-util` ships for this browser.
+    /// The `wreq-util` profile reproduced for this browser.
     ///
-    /// The bundled versions trail current releases — 2.2.6's newest Chrome profile is 137 while
-    /// shipping Chrome is past 141 — which is one reason the choice is a config value.
-    fn emulation(self) -> wreq_util::Emulation {
+    /// These trail current releases: they were the newest wreq-util shipped when they were
+    /// chosen, and moving wreq-util on (0.1 to 0.2) kept them, so the TLS handshake and HTTP/2
+    /// settings providers see did not change with the library. 0.2 did correct their default
+    /// headers (order, `upgrade-insecure-requests`, `sec-fetch-user`) and the weight of the
+    /// request's HTTP/2 stream. Newer ones exist (0.2 ships Chrome 149); moving to one is a
+    /// change of its own, checked against the providers. The browser is a config value for the
+    /// same reason.
+    fn emulation(self) -> wreq_util::Profile {
         match self {
-            Self::Chrome => wreq_util::Emulation::Chrome137,
-            Self::Firefox => wreq_util::Emulation::Firefox139,
-            Self::Safari => wreq_util::Emulation::Safari18,
-            Self::Edge => wreq_util::Emulation::Edge134,
+            Self::Chrome => wreq_util::Profile::Chrome137,
+            Self::Firefox => wreq_util::Profile::Firefox139,
+            Self::Safari => wreq_util::Profile::Safari18,
+            Self::Edge => wreq_util::Profile::Edge134,
         }
     }
 }
@@ -297,5 +302,48 @@ mod tests {
         assert_eq!(client.plain().get(&url).send().await.unwrap().status().as_u16(), 204);
         assert_eq!(client.emulated().get(&url).send().await.unwrap().status().as_u16(), 204);
         server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn the_emulated_client_asks_for_encodings_as_the_browser_does() {
+        // wreq-util 0.2 puts a browser's own accept-encoding into its profile only with its
+        // `emulation-compression` feature. Without it the profile has none, and wreq's decoder
+        // appends its own, `zstd,gzip,deflate,br`, after every other header: a value and a place
+        // no browser uses.
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let client =
+            HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..Default::default() })
+                .unwrap();
+        let listener =
+            tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut head = Vec::new();
+            let mut byte = [0_u8; 1];
+            while !head.ends_with(b"\r\n\r\n") && socket.read(&mut byte).await.unwrap() == 1 {
+                head.push(byte[0]);
+            }
+            socket
+                .write_all(b"HTTP/1.1 204 No Content\r\ncontent-length: 0\r\nconnection: close\r\n\r\n")
+                .await
+                .unwrap();
+            String::from_utf8(head).unwrap()
+        });
+        client.emulated().get(format!("http://{addr}/")).send().await.unwrap();
+        let head = server.await.unwrap();
+
+        let names: Vec<&str> = head
+            .lines()
+            .skip(1)
+            .filter_map(|line| line.split_once(": "))
+            .map(|(n, _)| n)
+            .collect();
+        assert!(head.contains("\r\naccept-encoding: gzip, deflate, br, zstd\r\n"), "{head}");
+        // Chrome's place for it: after the fetch metadata, before the language.
+        let at = |name: &str| names.iter().position(|n| *n == name).unwrap_or(usize::MAX);
+        assert!(at("sec-fetch-dest") < at("accept-encoding"), "{head}");
+        assert!(at("accept-encoding") < at("accept-language"), "{head}");
     }
 }

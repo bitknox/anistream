@@ -1,7 +1,7 @@
 // The fixtures flavour's launch: the testing engine on a scene, each launch in a directory of its
 // own, steered by intent extras under the names of the Apple app's -Anistream* arguments:
 //
-//   scene     watching (the default), fresh or playing
+//   scene     watching (the default), sourceless (watching with no source set up), fresh or playing
 //   media     what the playing scene streams: a path or URL on the device
 //   section   the destination to open on: continue, calendar, seasonal, library or search
 //   watched   episodes to mark watched once the engine is up: 900006:8, or 900001:1,2,3, with more

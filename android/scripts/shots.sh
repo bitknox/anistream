@@ -3,8 +3,8 @@
 #
 #   android/scripts/shots.sh <phone|phone-37|tablet|fold> [shot…]
 #
-# A shot is a scene, and optionally a screen: watching (the default) or fresh, the fixtures
-# flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
+# A shot is a scene, and optionally a screen: watching (the default), sourceless (watching with no
+# source set up) or fresh, the fixtures flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
 # colon a section (continue, calendar, seasonal, library, search) or key=value, with more joined by
 # +: watched=<id>:<episodes> marks episodes watched as the shot starts, title=<id> opens a title
 # page, query=<words> searches, and sheet=<name> and player=<state> are passed on for the screens
@@ -31,7 +31,7 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 usage() {
-  echo "usage: android/scripts/shots.sh <phone|phone-37|tablet|fold> [<watching|fresh|app>[:<section|key=value>[+…]]]…" >&2
+  echo "usage: android/scripts/shots.sh <phone|phone-37|tablet|fold> [<watching|sourceless|fresh|app>[:<section|key=value>[+…]]]…" >&2
   exit 2
 }
 
@@ -48,7 +48,7 @@ shift
 shots=("$@")
 (( ${#shots[@]} )) || shots=(watching)
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | fresh | app) ;; *) usage ;; esac
+  case "${shot%%:*}" in watching | sourceless | fresh | app) ;; *) usage ;; esac
 done
 
 android="$(cd "$(dirname "$0")/.." && pwd)"

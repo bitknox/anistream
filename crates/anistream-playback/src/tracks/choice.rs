@@ -197,7 +197,6 @@ fn pick<'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::tracks::fixtures::*;
 
     // --- Choosing --------------------------------------------------------------------------

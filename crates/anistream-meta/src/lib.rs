@@ -11,6 +11,7 @@
 pub mod anilist;
 pub mod dataset;
 pub mod filler;
+pub mod franchise;
 pub mod source;
 pub mod tenrai;
 pub mod title;

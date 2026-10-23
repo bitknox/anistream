@@ -73,6 +73,9 @@ class TitleCache {
                     recommended = kept.recommended,
                     trailerUrl = kept.trailerUrl,
                     availableOn = kept.availableOn,
+                    // The page's own fields, its seasons among them: a list refreshed under an open
+                    // page would otherwise take its picker and related titles away.
+                    detail = kept.detail,
                 )
             }
             entries[entry.id] = merged
@@ -118,6 +121,16 @@ class TitleCache {
     internal fun episodes(id: AnilistId, rows: List<EpisodeRow>) {
         _episodes.value = _episodes.value + (id to rows)
     }
+
+    /**
+     * Whether [id]'s episodes, as last loaded, are AniList's alone: no source set up has it, so it
+     * can be marked watched but there is nothing to play or download it from.
+     */
+    fun unlisted(id: AnilistId): Boolean = _episodes.value[id]?.firstOrNull()?.metadataOnly == true
+
+    /** The titles whose episodes, as last loaded, are AniList's alone. */
+    internal fun unlistedTitles(): List<AnilistId> =
+        _episodes.value.filterValues { it.firstOrNull()?.metadataOnly == true }.keys.toList()
 
     /** A title put on a list here, ahead of the tracker's word. */
     fun setStatus(id: AnilistId, segment: LibrarySegment) = update { entries ->

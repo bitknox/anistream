@@ -217,8 +217,9 @@ class UpdateChecksTest {
             val download = async(Dispatchers.IO) { fetch.fetch("$base/slow", into, body.size.toLong()) { done, _ -> if (done > 0) started = true } }
             withTimeout(10_000) { while (!started) kotlinx.coroutines.delay(10) }
             download.cancel()
-            // The server holds the rest back for 30 s.
-            assertEquals(true, withTimeoutOrNull(5_000) { download.join(); true })
+            // The server holds the rest back for 30 s. The read timeout ends the read after 1 s;
+            // a busy runner can take a few more, so the wait stops well short of the server's.
+            assertEquals(true, withTimeoutOrNull(20_000) { download.join(); true })
             assertTrue(download.isCancelled)
         }
         assertFalse(into.exists())

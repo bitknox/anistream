@@ -187,6 +187,20 @@ pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             app.palette.style(runtime_role),
         );
 
+        // The next episode, from AniList's schedule, before it is out: when it airs, in place
+        // of a meter there is nothing to fill yet.
+        let now = app.clock.now_epoch();
+        if let Some(at) = episode.airs_at.filter(|at| *at > now) {
+            let airs = format!("in {}", anistream_model::wording::countdown(at - now));
+            buf.set_string(
+                table.left() + cols.state,
+                y,
+                airs,
+                app.palette.style(Role::TextDim),
+            );
+            continue;
+        }
+
         let meter_width = (table.width.saturating_sub(cols.state + 6)).min(10) as usize;
         let meter_role = if episode.completed { Role::State } else { Role::Obi };
         set_meter(
@@ -238,11 +252,15 @@ fn empty_episodes(app: &App) -> (&'static str, String) {
             format!("{filter} cycles it — showing none now"),
         );
     }
+    // AniList knows of none either: how many there are, and what has aired, is not known yet.
     if !app.providers.iter().any(|p| p.usable) {
         let providers = app.section_key(Section::Providers);
         return (
             "no episodes yet",
-            format!("no source is ready yet — press {providers} for the Providers screen"),
+            format!(
+                "AniList lists none for this title yet, and no source is ready: press \
+                 {providers} for the Providers screen"
+            ),
         );
     }
     if let Some(detail) = &app.detail

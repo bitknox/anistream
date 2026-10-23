@@ -265,6 +265,14 @@ class AppStore(
 
     private val episodesAsked = mutableSetOf<AnilistId>()
 
+    /**
+     * Sources are ready where none were: each title whose episodes are AniList's alone is asked for
+     * them again, so its list takes its source's numbering.
+     */
+    private fun sourcesArrived() {
+        for (id in titles.unlistedTitles()) loadEpisodes(id, force = true)
+    }
+
     /** [id]'s own settings sheet, answered with `ShowSettings`. */
     fun loadShowSettings(id: AnilistId) {
         send(Command.LoadShowSettings(id))
@@ -609,7 +617,11 @@ class AppStore(
             is Event.DeviceCode -> accounts.deviceCode(event.v1)
             is Event.Conflicts -> accounts.conflicts(event.v1)
             is Event.Settings -> settings.apply(event.v1)
-            is Event.Providers -> providers.apply(event.v1)
+            is Event.Providers -> {
+                val had = providers.rows.value.any { it.usable }
+                providers.apply(event.v1)
+                if (!had && event.v1.any { it.usable }) sourcesArrived()
+            }
             is Event.ProviderNote -> providers.note(event.v1)
             Event.SourcesChanged -> providers.sourcesChanged()
             is Event.Vpn -> providers.guardSaid(event.v1)

@@ -41,7 +41,7 @@ Building also needs Rust, cmake and a C toolchain, and NASM on Windows:
 
 ```sh
 brew install mpv ffmpeg cmake      # cmake is for wreq's BoringSSL
-rustup toolchain install 1.97.1    # pinned by rust-toolchain.toml
+rustup toolchain install 1.99.1    # pinned by rust-toolchain.toml
 ```
 
 </TabItem>
@@ -73,7 +73,7 @@ assembles its own crypto primitives. See
 </Tabs>
 
 cmake builds BoringSSL, which anistream's HTTP client uses to match a browser's TLS handshake,
-since some hosts answer differently depending on the client that connects. Rust 1.97.1 is pinned
+since some hosts answer differently depending on the client that connects. Rust 1.99.1 is pinned
 by `rust-toolchain.toml`, so `rustup` picks it up inside the repo. To build
 [plugins](/docs/plugins/authoring/), also run `rustup target add wasm32-wasip2`.
 
