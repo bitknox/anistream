@@ -96,6 +96,9 @@ class FocusMemory {
         return requesters[key]?.tryFocus() == true
     }
 
+    /** Focus the item remembered under [key]; false when it is not on screen. */
+    fun focus(key: String): Boolean = requesters[key]?.tryFocus() == true
+
     /** Focus the screen's first focus; false when it is not on screen. */
     fun focusFirst(): Boolean = first.tryFocus()
 

@@ -5,6 +5,7 @@ package tv.anistream.tv.shell
 
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -58,6 +59,15 @@ class TvNavigator(start: Destination = Destination.Continue) {
 
     /** Search's text, kept while the TV stays on Search, title pages included. */
     var searchText by mutableStateOf("")
+
+    /** Counts a phone's Search submits: each moves focus to the first result. */
+    var searchSubmits by mutableIntStateOf(0)
+        private set
+
+    /** A phone submitted Search, as its Enter does. */
+    fun submitSearch() {
+        searchSubmits += 1
+    }
 
     /**
      * Forget the saved state under a key: a page closed, or a destination entered afresh. The root

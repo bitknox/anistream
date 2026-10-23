@@ -3,15 +3,24 @@
 
 package tv.anistream.tv
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.FrontIntent
+import tv.anistream.engine.model.RemoteKey
+import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
 import tv.anistream.tv.ui.TvTheme
@@ -23,20 +32,27 @@ class TvActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         app.start(Flavour.launch(this, intent))
         val start = Flavour.start(intent)
+        val nav = TvNavigator(start.destination).apply {
+            start.query?.let { searchText = it }
+            start.title?.let(::openTitle)
+        }
         setContent {
-            val nav = remember {
-                TvNavigator(start.destination).apply {
-                    start.query?.let { searchText = it }
-                    start.title?.let(::openTitle)
-                }
-            }
             TvTheme {
                 TvRoot(
                     store = app.store,
                     player = app.player,
                     nav = nav,
                     play = { id, episode -> app.store.send(Command.Play(id, episode.toString())) },
+                    remote = app.remote,
                 )
+            }
+        }
+        app.remote.askLocalNetwork = ::askLocalNetwork
+        if (app.remote.findable) askLocalNetwork()
+        // What a paired phone asks of the browse UI.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                app.remote.intents.collect { act(nav, it) }
             }
         }
         // The screen stays on while an episode plays, and the screensaver may come once it stops.
@@ -51,9 +67,54 @@ class TvActivity : ComponentActivity() {
         }
     }
 
+    /** Do what a phone asked: open a title, type into Search, or press a key on the remote. */
+    private fun act(nav: TvNavigator, intent: FrontIntent) {
+        val playing = app.player.isPresented
+        when (intent) {
+            is FrontIntent.Open -> if (!playing) nav.openTitle(intent.id)
+            is FrontIntent.Text -> if (!playing) {
+                if (nav.destination != Destination.Search || nav.pages.isNotEmpty()) nav.go(Destination.Search)
+                nav.searchText = intent.text
+                if (intent.submit) nav.submitSearch()
+            }
+            is FrontIntent.Navigate -> when (intent.key) {
+                RemoteKey.BACK -> onBackPressedDispatcher.onBackPressed()
+                RemoteKey.HOME -> if (!playing) nav.go(Destination.Continue)
+                else -> press(keyCode(intent.key))
+            }
+            else -> Unit
+        }
+    }
+
+    private fun keyCode(key: RemoteKey): Int = when (key) {
+        RemoteKey.UP -> KeyEvent.KEYCODE_DPAD_UP
+        RemoteKey.DOWN -> KeyEvent.KEYCODE_DPAD_DOWN
+        RemoteKey.LEFT -> KeyEvent.KEYCODE_DPAD_LEFT
+        RemoteKey.RIGHT -> KeyEvent.KEYCODE_DPAD_RIGHT
+        else -> KeyEvent.KEYCODE_DPAD_CENTER
+    }
+
+    /** A key as the TV's own remote sends it: down, then up. */
+    private fun press(code: Int) {
+        val now = SystemClock.uptimeMillis()
+        dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0))
+        dispatchKeyEvent(KeyEvent(now, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, code, 0))
+    }
+
+    /** Android 17 asks before an app reaches the local network, which the remote needs. */
+    private fun askLocalNetwork() {
+        if (Build.VERSION.SDK_INT < LOCAL_NETWORK_SDK) return
+        if (checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED) return
+        requestPermissions(arrayOf(Manifest.permission.ACCESS_LOCAL_NETWORK), LOCAL_NETWORK_REQUEST)
+    }
+
     override fun onStop() {
         super.onStop()
         // Leaving the app (Home) pauses; the engine keeps the position. No Picture in Picture on TV.
         if (app.player.isPresented) app.player.setPlaying(false)
     }
 }
+
+/** The first Android that asks before an app reaches the local network: 17. */
+private const val LOCAL_NETWORK_SDK = 37
+private const val LOCAL_NETWORK_REQUEST = 17

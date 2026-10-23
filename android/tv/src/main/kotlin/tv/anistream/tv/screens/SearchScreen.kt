@@ -58,6 +58,7 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.store.ListState
 import tv.anistream.tv.posterLine
+import tv.anistream.tv.remote.LocalRemoteHost
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
@@ -101,6 +102,10 @@ object SearchKeys {
 /** How long after the last change the search runs. */
 private const val SEARCH_DELAY = 300L
 
+/** How long a phone's submit waits for the first result: 40 tries 100 ms apart. */
+private const val SUBMIT_TRIES = 40
+private const val SUBMIT_PAUSE = 100L
+
 private val KeySize = 48.dp
 
 @Composable
@@ -118,6 +123,21 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
     val results by store.search.list.state.collectAsStateWithLifecycle()
     val seasonal by store.seasonal.state.collectAsStateWithLifecycle()
     val field = remember { FocusRequester() }
+    val remote = LocalRemoteHost.current
+    // A phone's Enter: focus the first result once the search has them.
+    val submits = nav.searchSubmits
+    LaunchedEffect(submits) {
+        if (submits == 0) return@LaunchedEffect
+        repeat(SUBMIT_TRIES) {
+            val first = store.search.list.state.value.ids.firstOrNull()
+            if (first != null && memory.focus("result/$first")) {
+                remote?.typing = false
+                return@LaunchedEffect
+            }
+            delay(SUBMIT_PAUSE)
+        }
+    }
+    DisposableEffect(remote) { onDispose { remote?.typing = false } }
 
     DisposableEffect(nav) {
         val mine = {
@@ -135,10 +155,20 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
 
     Column(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY)) {
         QueryField(text, onText = { nav.searchText = it }, focus = field, modifier = Modifier.width(Canvas.SafeRight - Canvas.Keyline))
+        if (remote?.typing == true) {
+            Row(Modifier.padding(top = 8.dp, start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(TvIcons.Phone, contentDescription = null, tint = ObiSilk.Haze, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Typing from a phone", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+            }
+        }
         Spacer(Modifier.height(24.dp))
         Row(Modifier.fillMaxSize()) {
             Column(Modifier.width(288.dp)) {
-                Keyboard(memory, onKey = { nav.searchText = SearchKeys.type(nav.searchText, it) })
+                Keyboard(memory, onKey = {
+                    remote?.typing = false
+                    nav.searchText = SearchKeys.type(nav.searchText, it)
+                })
                 Spacer(Modifier.height(16.dp))
                 val keyboard = LocalSoftwareKeyboardController.current
                 TonalButton(
