@@ -318,7 +318,7 @@ not a backlog.
   The alternative is the system picker (`DiscoveryRequest` with `FLAG_SHOW_PICKER`): the user
   picks one device, and connections to the addresses it returns need no permission. Whether that
   allowance holds for sockets the engine opens, and on a later reconnect, needs checking on a
-  device. See the open decisions.
+  device. Decided: the app requests the permission instead (see below).
 
 ### iPhone, iPad and Mac (clients)
 
@@ -394,18 +394,24 @@ FfiLink.close()
 fingerprint, name and last address) are kept by the engine in its database, so a phone app only
 lists them.
 
+## Decided (2026-10-23)
+
+These are decided and not yet built: the crate still does what the sections above describe.
+
+- Volume is the TV's system volume, through `AudioManager`, which on many TVs reaches the TV set
+  over HDMI-CEC. It is not the player's own volume. The `volume` command will go to the TV front
+  end rather than to `PlayerCommand::Volume`, and the state's `volume` will be the system's.
+- The TV listens while the app runs and for 10 minutes after it goes to the background, as the
+  TV brief says, and then stops listening and withdraws its advert.
+- Pairing keeps SPAKE2 for the six-digit code and offers the QR code as well. A scanned code
+  pins the TV's key before the phone connects; a typed code pairs as described above.
+- On Android 17 phones, the app requests `ACCESS_LOCAL_NETWORK` the first time "Play on TV" is
+  used. It does not use the system picker.
+- What the remote asks of the TV front end crosses the FFI as a new event, `Event::Remote`,
+  in the stream the app already reads, as the FFI section proposes.
+
 ## Open decisions
 
-- Volume: the player's own volume (what `PlayerCommand::Volume` does now), or the TV's system
-  volume through `AudioManager`, which on many TVs reaches the TV set over HDMI-CEC.
-- Whether the TV keeps listening while the app is in the background, which needs a foreground
-  service and its notification, and memory on a 2 GB box. As built, the remote works while the
-  app is open.
-- `spake2` is not independently audited. The alternatives are CPace (no maintained Rust crate in
-  the tree's family yet) or making the QR code the only way to pair, which carries a 128-bit
-  secret and the TV's key and needs no PAKE, at the cost of a camera.
-- On Android 17 phones: request `ACCESS_LOCAL_NETWORK`, or use the system picker and test that
-  its allowance covers the engine's sockets and reconnects.
 - Which surfaces open a connection: only the remote screen, or also a Now Playing bar that
   shows what the TV plays while the phone app is in the foreground.
 - How text input behaves when the TV's focused field is not a search: send it to any focused
