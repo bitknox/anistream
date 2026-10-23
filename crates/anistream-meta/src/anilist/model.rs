@@ -406,6 +406,12 @@ pub struct RelationNode {
     pub season: Option<Season>,
     #[serde(default)]
     pub season_year: Option<u16>,
+    /// This title's own relations, one level further out, where the query asked for them: the
+    /// title page's does, and so does the season walk's ([`super::query::relations`]). Each
+    /// edge names its title by id and format only. `None` where they were not asked for, which
+    /// says nothing of whether there are any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relations: Option<RelationConnection>,
 }
 
 /// A title, as much of it as anistream renders.

@@ -92,14 +92,25 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     }
 }
 
-/// A title as its page shows it: [`entry_from`], with what only the single-title fetch brings.
-pub fn entry_with_detail(media: &Media, store: Option<&Store>) -> Entry {
-    Entry { detail: Some(detail_from(media, store)), ..entry_from(media, store) }
+/// A title as its page shows it: [`entry_from`], with what only the single-title fetch brings,
+/// and its franchise's `seasons` when the walk along them has said ([`Meta::seasons`]).
+///
+/// [`Meta::seasons`]: anistream_meta::Meta::seasons
+pub fn entry_with_detail(
+    media: &Media,
+    store: Option<&Store>,
+    seasons: Option<&[RelationNode]>,
+) -> Entry {
+    Entry { detail: Some(detail_from(media, store, seasons)), ..entry_from(media, store) }
 }
 
 /// What only a title's page carries, from the detail fetch, with where each title it links to
 /// is on the library, as `store` last kept it.
-fn detail_from(media: &Media, store: Option<&Store>) -> TitleDetail {
+fn detail_from(
+    media: &Media,
+    store: Option<&Store>,
+    seasons: Option<&[RelationNode]>,
+) -> TitleDetail {
     let linked = |node: &RelationNode, relation| LinkedTitle {
         list_status: store
             .and_then(|s| s.library_status(node.id).ok().flatten())
@@ -136,6 +147,7 @@ fn detail_from(media: &Media, store: Option<&Store>) -> TitleDetail {
             .filter(|edge| !matches!(edge.node.format, Some(MediaFormat::Unknown)))
             .map(|edge| linked(&edge.node, Some(relation_kind(edge.relation_type.as_deref()))))
             .collect(),
+        seasons: seasons.map(|cards| cards.iter().map(|card| linked(card, None)).collect()),
         recommendations: media
             .recommended()
             .into_iter()
@@ -878,7 +890,7 @@ mod tests {
             (Some("Hoshikuzu no Tabibito"), Some("Stardust Wayfarer"), Some("星屑の旅人"))
         );
 
-        let page = entry_with_detail(&media, None);
+        let page = entry_with_detail(&media, None, None);
         let detail = page.detail.expect("the page's own fields");
         assert_eq!(page.title, listed.title, "the rest is the list entry's");
         assert_eq!(detail.tags.len(), 1, "a nameless tag is passed over");
@@ -946,7 +958,8 @@ mod tests {
             ]}
         }))
         .unwrap();
-        let detail = entry_with_detail(&media, Some(&store)).detail.expect("the page's own");
+        let detail =
+            entry_with_detail(&media, Some(&store), None).detail.expect("the page's own");
         let cards: Vec<_> = detail
             .relations
             .iter()
@@ -957,8 +970,30 @@ mod tests {
             [(2, Some("#d77f4a"), Some(m::LibrarySegment::Completed)), (3, None, None)]
         );
         // With no store, nothing is known of the library.
-        let bare = entry_with_detail(&media, None).detail.unwrap();
+        let bare = entry_with_detail(&media, None, None).detail.unwrap();
         assert_eq!(bare.relations[0].list_status, None);
+    }
+
+    #[test]
+    fn a_pages_seasons_are_cards_placed_by_their_order_alone() {
+        use anistream_model::catalog as m;
+        let store = Store::open_in_memory().unwrap();
+        store
+            .replace_library_statuses("anilist", &[(AnilistId::new(2), "COMPLETED")], 10)
+            .unwrap();
+        let media: Media = serde_json::from_value(serde_json::json!({"id": 1})).unwrap();
+        let cards: Vec<RelationNode> = [1, 2]
+            .into_iter()
+            .map(|id| serde_json::from_value(serde_json::json!({"id": id, "format": "TV"})))
+            .collect::<Result<_, _>>()
+            .unwrap();
+        let detail = entry_with_detail(&media, Some(&store), Some(&cards)).detail.unwrap();
+        let seasons = detail.seasons.expect("said");
+        let said: Vec<_> =
+            seasons.iter().map(|s| (s.id.get(), s.relation, s.list_status)).collect();
+        assert_eq!(said, [(1, None, None), (2, None, Some(m::LibrarySegment::Completed))]);
+        // Not said yet: none, which is not the same as no seasons.
+        assert_eq!(entry_with_detail(&media, None, None).detail.unwrap().seasons, None);
     }
 
     #[test]

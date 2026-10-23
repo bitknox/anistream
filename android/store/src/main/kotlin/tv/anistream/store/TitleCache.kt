@@ -73,6 +73,9 @@ class TitleCache {
                     recommended = kept.recommended,
                     trailerUrl = kept.trailerUrl,
                     availableOn = kept.availableOn,
+                    // The page's own fields, its seasons among them: a list refreshed under an open
+                    // page would otherwise take its picker and related titles away.
+                    detail = kept.detail,
                 )
             }
             entries[entry.id] = merged

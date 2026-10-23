@@ -393,6 +393,31 @@ impl AniList {
         decode_detail(&data)
     }
 
+    /// The cards of at most fifty titles, each with its relations two levels deep: one step of
+    /// the season walk. See [`query::relations`].
+    ///
+    /// A title AniList has no anime for is not in the answer; one it answers in a shape this
+    /// build cannot read is left out too, so the walk takes both for a link that leads nowhere.
+    pub async fn relations(&self, ids: &[AnilistId]) -> Result<Vec<model::RelationNode>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+        let ids = &ids[..ids.len().min(50)];
+        let raw: Vec<i64> = ids.iter().map(|id| i64::from(id.get())).collect();
+        let data: serde_json::Value = self
+            .execute(
+                &query::relations(),
+                serde_json::json!({ "ids": raw, "perPage": ids.len() }),
+            )
+            .await?;
+        Ok(data["Page"]["media"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|node| serde_json::from_value(node.clone()).ok())
+            .collect())
+    }
+
     /// Seasonal browse with server-side filters.
     pub async fn seasonal(
         &self,

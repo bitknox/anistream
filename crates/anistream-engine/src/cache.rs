@@ -113,10 +113,14 @@ impl TitleCache {
         match event {
             Event::Detail(entry) => {
                 self.know(entry);
-                // Opened from the page, a relation or a recommendation shows by the name the
-                // page lists it under until its own record arrives.
+                // Opened from the page, a relation, a recommendation or a season shows by the
+                // name the page lists it under until its own record arrives.
                 for related in entry.related.iter().chain(&entry.recommended) {
                     self.name(related.id, &related.title);
+                }
+                let seasons = entry.detail.iter().flat_map(|d| d.seasons.iter().flatten());
+                for season in seasons {
+                    self.name(season.id, &season.title);
                 }
                 None
             }

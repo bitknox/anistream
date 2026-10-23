@@ -137,6 +137,110 @@ pub(crate) fn library_wire() -> &'static Value {
     &LIBRARY
 }
 
+/// A made-up franchise beside the six, for the season picker, in no list, search or schedule:
+/// [`crate::FakeAniList::add_titles`] answers its pages and the season walk.
+///
+/// | id | title (romaji / english) | shape |
+/// |---|---|---|
+/// | [`FRANCHISE_SEASONS`] 910001–910005 | Tomoshibi no Mori / Lantern Wood, then Season 2 to 5 | TV, one a year from 2019, each the sequel of the one before |
+/// | [`FRANCHISE_FILM`] 910006 | Lantern Wood: The Night Market | film, the second season's sequel and the third's prequel |
+/// | [`FRANCHISE_OVA`] 910007 | Lantern Wood: Before the First Light | OVA, a side story of the first season |
+/// | [`FRANCHISE_SIDE_STORY`] 910008 | Lantern Wood: Moth Letters | ONA, a side story of the third season |
+pub const FRANCHISE_SEASONS: [AnilistId; 5] = [
+    AnilistId::new(910_001),
+    AnilistId::new(910_002),
+    AnilistId::new(910_003),
+    AnilistId::new(910_004),
+    AnilistId::new(910_005),
+];
+/// [`FRANCHISE_SEASONS`]' film, between the second and the third.
+pub const FRANCHISE_FILM: AnilistId = AnilistId::new(910_006);
+/// [`FRANCHISE_SEASONS`]' OVA, a side story of the first.
+pub const FRANCHISE_OVA: AnilistId = AnilistId::new(910_007);
+/// [`FRANCHISE_SEASONS`]' web series, a side story of the third: an ONA that is no season.
+pub const FRANCHISE_SIDE_STORY: AnilistId = AnilistId::new(910_008);
+
+/// The franchise's titles, as the single-title query answers each: see [`FRANCHISE_SEASONS`].
+pub fn franchise() -> Vec<Value> {
+    use serde_json::json;
+    let [one, two, three, four, five] = FRANCHISE_SEASONS.map(|id| id.get());
+    let (film, ova, side) =
+        (FRANCHISE_FILM.get(), FRANCHISE_OVA.get(), FRANCHISE_SIDE_STORY.get());
+    let named = |id: u32| -> (String, String, &'static str, u16) {
+        let n = id - 910_000;
+        match id {
+            _ if id == film => (
+                "Tomoshibi no Mori: Yoichi".into(),
+                "Lantern Wood: The Night Market".into(),
+                "MOVIE",
+                2021,
+            ),
+            _ if id == ova => (
+                "Tomoshibi no Mori: Hajimari".into(),
+                "Lantern Wood: Before the First Light".into(),
+                "OVA",
+                2019,
+            ),
+            _ if id == side => (
+                "Tomoshibi no Mori: Ga no Tegami".into(),
+                "Lantern Wood: Moth Letters".into(),
+                "ONA",
+                2021,
+            ),
+            _ if n == 1 => ("Tomoshibi no Mori".into(), "Lantern Wood".into(), "TV", 2019),
+            _ => (
+                format!("Tomoshibi no Mori {n}"),
+                format!("Lantern Wood Season {n}"),
+                "TV",
+                2018 + n as u16,
+            ),
+        }
+    };
+    let card = |id: u32| {
+        let (romaji, english, format, year) = named(id);
+        json!({
+            "id": id,
+            "title": { "romaji": romaji, "english": english, "native": null },
+            "format": format,
+            "coverImage": { "large": format!("{ART_HOST}cover/{id}.jpg"), "color": "#6a8f5c" },
+            "season": "SPRING",
+            "seasonYear": year,
+        })
+    };
+    let relations: [(u32, Vec<(&str, u32)>); 8] = [
+        (one, vec![("SEQUEL", two), ("SIDE_STORY", ova)]),
+        (two, vec![("PREQUEL", one), ("SEQUEL", three), ("SEQUEL", film)]),
+        (
+            three,
+            vec![("PREQUEL", two), ("PREQUEL", film), ("SEQUEL", four), ("SIDE_STORY", side)],
+        ),
+        (four, vec![("PREQUEL", three), ("SEQUEL", five)]),
+        (five, vec![("PREQUEL", four)]),
+        (film, vec![("PREQUEL", two), ("SEQUEL", three)]),
+        (ova, vec![("PARENT", one)]),
+        (side, vec![("PARENT", three)]),
+    ];
+    relations
+        .into_iter()
+        .map(|(id, edges)| {
+            let (_, _, format, year) = named(id);
+            let mut title = card(id);
+            title["idMal"] = Value::Null;
+            title["status"] = json!("FINISHED");
+            title["episodes"] = json!(if format == "TV" { 12 } else { 1 });
+            title["duration"] = json!(if format == "MOVIE" { 95 } else { 24 });
+            title["startDate"] = json!({ "year": year, "month": 4, "day": 6 });
+            title["coverImage"]["extraLarge"] = title["coverImage"]["large"].clone();
+            let edges: Vec<Value> = edges
+                .into_iter()
+                .map(|(relation, to)| json!({ "relationType": relation, "node": card(to) }))
+                .collect();
+            title["relations"] = json!({ "edges": edges });
+            title
+        })
+        .collect()
+}
+
 /// One title with everything the Title screen shows. Panics for an id not in the set.
 pub fn media(id: AnilistId) -> Media {
     decode(wire(id).unwrap_or_else(|| panic!("{id} is not a fixture title")).clone())
@@ -255,6 +359,37 @@ mod tests {
         assert!(
             !media(FINISHED).tags.is_empty() && !media(FINISHED).characters.edges.is_empty()
         );
+    }
+
+    #[test]
+    fn the_franchise_decodes_and_says_each_link_from_both_sides() {
+        let titles: Vec<Media> = franchise().into_iter().map(decode).collect();
+        assert_eq!(titles.len(), 8);
+        let links = |id: AnilistId| -> Vec<(String, AnilistId)> {
+            let title = titles.iter().find(|t| t.id == id).expect("a franchise title");
+            title
+                .relations
+                .edges
+                .iter()
+                .map(|e| (e.relation_type.clone().unwrap_or_default(), e.node.id))
+                .collect()
+        };
+        for title in &titles {
+            for (relation, to) in links(title.id) {
+                let back = match relation.as_str() {
+                    "SEQUEL" => "PREQUEL",
+                    "PREQUEL" => "SEQUEL",
+                    "PARENT" => "SIDE_STORY",
+                    _ => "PARENT",
+                };
+                assert!(
+                    links(to).contains(&(back.to_owned(), title.id)),
+                    "{} {relation} {to}",
+                    title.id
+                );
+            }
+        }
+        assert!(titles.iter().all(|t| !ALL.contains(&t.id)), "beside the six, not among them");
     }
 
     #[test]
