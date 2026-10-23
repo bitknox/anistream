@@ -203,14 +203,51 @@ impl App {
         }
     }
 
-    /// Start the episode selected in the timing sheet.
+    /// Start the episode selected in the timing sheet. One listed from AniList alone has
+    /// nothing to play it from, so Enter goes to the Providers screen to add a source instead.
     pub(super) fn play_selected_episode(&mut self) -> Option<Command> {
         let id = match self.nav.current() {
             StageView::Episodes(id) => *id,
             _ => return None,
         };
-        let episode = self.episodes.get(self.cursors.episodes.selected)?.number.clone();
+        let row = self.episodes.get(self.cursors.episodes.selected)?;
+        if row.metadata_only {
+            return self.go_to_section(crate::nav::Section::Providers);
+        }
+        let episode = row.number.clone();
         Some(self.begin_playback(id, episode))
+    }
+
+    /// Whether title `id`'s table is the one loaded and was listed from AniList alone: no
+    /// source here has it to play or download.
+    pub fn unlisted(&self, id: AnilistId) -> bool {
+        self.episodes_for == Some(id)
+            && self.episodes_all.first().is_some_and(|r| r.metadata_only)
+    }
+
+    /// Whether the highlighted row of the table is one listed from AniList alone.
+    pub fn selected_unlisted(&self) -> bool {
+        self.in_episodes()
+            && self
+                .episodes
+                .get(self.cursors.episodes.selected)
+                .is_some_and(|r| r.metadata_only)
+    }
+
+    /// Said for a download asked of a table listed from AniList alone, in place of asking.
+    pub(super) fn say_add_a_source(&mut self, to: &str) {
+        let providers = self.section_key(crate::nav::Section::Providers);
+        self.push_toast(Notice::info(format!(
+            "add a source to {to}: press {providers} for the Providers screen"
+        )));
+    }
+
+    /// Sources became ready where none were: a table listed from AniList alone while there were
+    /// none is asked for again, so it takes the source's numbering.
+    pub(super) fn sources_arrived(&mut self) {
+        if let Some(id) = self.episodes_for.filter(|id| self.unlisted(*id)) {
+            self.commands.push(Command::LoadEpisodes(id));
+        }
     }
 
     /// The episode table of the title here, asked for afresh.
@@ -296,6 +333,10 @@ impl App {
 
     /// The prompt for a range of episodes to download, empty.
     pub(super) fn open_download_range(&mut self) {
+        if self.title_on_screen().is_some_and(|id| self.unlisted(id)) {
+            self.say_add_a_source("download");
+            return;
+        }
         self.field_mut(Field::Range).clear();
         self.cursors.overlay.selected = 0;
         self.nav.open_overlay(Overlay::DownloadRange);
@@ -973,6 +1014,7 @@ mod tests {
                 skippable: false,
                 airs_at: None,
                 delayed_from: None,
+                metadata_only: false,
                 thumbnail: None,
                 description: None,
             },
@@ -986,6 +1028,7 @@ mod tests {
                 skippable: false,
                 airs_at: None,
                 delayed_from: None,
+                metadata_only: false,
                 thumbnail: None,
                 description: None,
             },
@@ -1043,6 +1086,7 @@ mod tests {
                         skippable: false,
                         airs_at: None,
                         delayed_from: None,
+                        metadata_only: false,
                         thumbnail: None,
                         description: None,
                     })
@@ -1069,6 +1113,61 @@ mod tests {
             Some((Some(id), "2")),
             "auto-next follows the episode that just played"
         );
+    }
+
+    /// [`app_at_episodes`], its table listed from AniList alone, as with no source set up.
+    fn unlisted_table() -> App {
+        let mut a = app_at_episodes();
+        let rows =
+            a.episodes_all.iter().map(|row| EpisodeRow { metadata_only: true, ..row.clone() });
+        a.apply(a.episodes_here(rows.collect()));
+        a
+    }
+
+    fn ready(id: &str) -> Event {
+        let row = anistream_model::sources::ProviderRow {
+            id: id.into(),
+            usable: true,
+            ..Default::default()
+        };
+        Event::Providers(vec![row])
+    }
+
+    #[test]
+    fn a_row_from_anilist_alone_is_marked_as_any_and_enter_goes_to_add_a_source() {
+        let mut a = unlisted_table();
+        assert!(a.selected_unlisted());
+        let mark = a.handle(Action::ToggleWatched, 10);
+        assert!(matches!(mark, Some(Command::SetWatched { watched: true, .. })), "{mark:?}");
+        // The Providers screen, checked as entering it checks it, and nothing played.
+        assert_eq!(a.handle(Action::Open, 10), Some(Command::CheckProviders));
+        assert_eq!(a.nav.current(), &StageView::Section(Section::Providers));
+        assert!(a.playing.is_none());
+    }
+
+    #[test]
+    fn a_download_from_a_table_from_anilist_alone_is_not_asked_for() {
+        let mut a = unlisted_table();
+        assert_eq!(a.handle(Action::Download, 10), None);
+        a.handle(Action::DownloadRange, 10);
+        assert!(a.nav.overlay().is_none(), "no range is asked for either");
+        // Said once, as the same toast twice is.
+        let said: Vec<_> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
+        assert_eq!(said, ["add a source to download: press 7 for the Providers screen"]);
+    }
+
+    #[test]
+    fn a_source_ready_where_none_was_asks_for_a_table_from_anilist_again() {
+        let mut a = unlisted_table();
+        a.apply(ready("fixture"));
+        assert_eq!(a.take_commands(), [Command::LoadEpisodes(AnilistId::new(1))]);
+        // Ready already: nothing new to ask for.
+        a.apply(ready("fixture"));
+        assert!(a.take_commands().is_empty());
+        // A table a source listed is the source's numbering already.
+        let mut a = app_at_episodes();
+        a.apply(ready("fixture"));
+        assert!(a.take_commands().is_empty());
     }
 
     /// Reported from real use: after viewing one show's episodes, every other show opened on
@@ -1125,6 +1224,7 @@ mod tests {
             skippable: false,
             airs_at: None,
             delayed_from: None,
+            metadata_only: false,
             thumbnail: None,
             description: None,
         }]));
@@ -1173,6 +1273,7 @@ mod tests {
             skippable: false,
             airs_at: None,
             delayed_from: None,
+            metadata_only: false,
             thumbnail: None,
             description: None,
         };

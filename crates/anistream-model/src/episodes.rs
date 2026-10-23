@@ -50,6 +50,11 @@ pub struct EpisodeRow {
     /// `None` when it has not moved since it was first seen here.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub delayed_from: Option<i64>,
+    /// Listed from AniList's own data, because no source is set up or none could find the
+    /// show: it can be marked watched, but there is nothing to play or download it from, so
+    /// a front end offers to add a source instead. A table is all of one kind or the other.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub metadata_only: bool,
 }
 
 /// One episode's broadcast, from AniList's schedule: [`EpisodeRow::airs_at`] by number, and

@@ -128,6 +128,10 @@ impl App {
             return None;
         };
         let id = entry.id;
+        // Its table, loaded, is AniList's alone: there is nothing to play it from yet.
+        if self.unlisted(id) {
+            return self.go_to_section(crate::nav::Section::Providers);
+        }
         let episode =
             entry.progress.map(|p| p.next.to_string()).unwrap_or_else(|| "1".to_string());
         Some(self.begin_playback(id, episode))

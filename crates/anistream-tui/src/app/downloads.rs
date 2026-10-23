@@ -71,6 +71,11 @@ impl App {
                 (entry.id, episode)
             }
         };
+        // Listed from AniList alone: no source here has it to download.
+        if self.unlisted(id) {
+            self.say_add_a_source("download");
+            return None;
+        }
         Some(Command::DownloadEpisode { id, episode })
     }
 }

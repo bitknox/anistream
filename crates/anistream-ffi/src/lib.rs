@@ -702,6 +702,7 @@ mod tests {
             skippable: false,
             airs_at: Some(1_792_163_730),
             delayed_from: Some(1_792_161_000),
+            metadata_only: false,
         };
         assert_eq!(crossed(row.clone()), row);
         crosses_intact(Event::DubbedTo {

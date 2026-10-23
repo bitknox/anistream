@@ -11,28 +11,21 @@ use crate::{
     outbox::Outbox,
     services::Services,
     state::EngineState,
-    titles::episodes::{EpisodeLoad, load_episodes},
+    titles::episodes::{self, EpisodeLoad, load_episodes},
 };
 
 /// Forget the source match a title was given, and list its episodes as the ladder matches
 /// them now.
 pub async fn clear_match(lent: Lent, id: AnilistId) {
     let Lent { meta, store, registry, tx, .. } = lent;
-    let update = if let Err(e) = store.clear_title_match(id) {
-        Event::Toast(Notice::alert(format!("could not reset the match: {e}")))
+    let said = if let Err(e) = store.clear_title_match(id) {
+        vec![Event::Toast(Notice::alert(format!("could not reset the match: {e}")))]
     } else {
-        match load_episodes(&meta, &store, &registry, id).await {
-            Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-            Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-                Event::MatchChoices { id, provider_id, candidates }
-            }
-            Err(reason) => {
-                let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                Event::Toast(Notice::alert(reason))
-            }
-        }
+        episodes::said(id, load_episodes(&meta, &store, &registry, id).await)
     };
-    let _ = tx.send(update);
+    for event in said {
+        let _ = tx.send(event);
+    }
 }
 
 /// Keep the match the user chose for a title, and list its episodes from it.
@@ -40,23 +33,21 @@ pub async fn fix_match(lent: Lent, id: AnilistId, provider_id: String, key: Prov
     let Lent { meta, store, registry, tx, .. } = lent;
     // Remembered as an override, which the ladder consults before anything else —
     // so the question is asked once, not on every visit.
-    let update = if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
-        Event::Toast(Notice::alert(format!("could not save that match: {e}")))
+    let said = if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
+        vec![Event::Toast(Notice::alert(format!("could not save that match: {e}")))]
     } else {
         match load_episodes(&meta, &store, &registry, id).await {
-            Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
             // The override *is* the answer, so the ladder cannot come back
             // undecided; if it somehow does, say so rather than looping.
-            Ok(EpisodeLoad::Choose { .. }) => Event::Toast(Notice::alert(
+            Ok(EpisodeLoad::Choose { .. }) => vec![Event::Toast(Notice::alert(
                 "that match did not stick — the source may have changed",
-            )),
-            Err(reason) => {
-                let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                Event::Toast(Notice::alert(reason))
-            }
+            ))],
+            load => episodes::said(id, load),
         }
     };
-    let _ = tx.send(update);
+    for event in said {
+        let _ = tx.send(event);
+    }
 }
 
 /// Search the sources for a title as the user typed it, for a match the ladder could not make.

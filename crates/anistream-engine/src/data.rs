@@ -310,14 +310,16 @@ pub fn date_episodes(rows: &mut [EpisodeRow], times: &std::collections::BTreeMap
 }
 
 /// Mark each row the schedule has moved later with when it was to air before, as this device
-/// saw it: see [`EpisodeRow::delayed_from`]. Only rows [`date_episodes`] dated.
+/// saw it: see [`EpisodeRow::delayed_from`]. Only rows [`date_episodes`] dated, each by the
+/// number AniList gives it, as `numbering` has the rows' numbers stand to AniList's.
 pub fn mark_delays(
     rows: &mut [EpisodeRow],
+    numbering: Numbering,
     store: &Store,
     id: anistream_core::ids::AnilistId,
     now: i64,
 ) {
-    let numbered = |row: &EpisodeRow| row.number.trim().parse::<u32>().ok();
+    let numbered = |row: &EpisodeRow| numbering.anilist(&row.number);
     let airings: Vec<_> =
         rows.iter().filter_map(|row| Some((id, numbered(row)?, row.airs_at?))).collect();
     let moved = remember_airings(store, &airings, now);
@@ -532,31 +534,142 @@ pub fn provider_rows(
         .collect()
 }
 
-/// Fill in episode titles and stills a source could not supply, from metadata.
+/// How a source's episode numbers stand to AniList's for one title.
+///
+/// Usually they are the same. A source that numbers a later season on from the ones before it,
+/// 13 to 24 where AniList has the season as 1 to 12, is told by what AniList says of the season
+/// itself: its count, or the last episode its schedule carries, which the source's numbers run
+/// past, and how many it has out, which is how many the source lists, in one run. When neither
+/// reading can be ruled out, or neither fits, nothing of AniList's is put on the source's
+/// episodes by number: a wrong title is worse than none.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Numbering {
+    /// The source's episode 3 is AniList's episode 3.
+    Same,
+    /// The source counts on from the seasons before: its episode `n + offset` is AniList's `n`.
+    After(u32),
+    /// The two cannot be lined up.
+    Unknown,
+}
+
+impl Numbering {
+    /// How `episodes`, a source's for `media`, are numbered against AniList's, as of `now`:
+    /// see [`Numbering`].
+    pub fn of(episodes: &[anistream_core::media::Episode], media: &Media, now: i64) -> Self {
+        let numbers: std::collections::BTreeSet<u32> =
+            episodes.iter().filter_map(|episode| whole(&episode.number)).collect();
+        let (Some(&first), Some(&last)) = (numbers.first(), numbers.last()) else {
+            return Self::Same;
+        };
+        if first <= 1 {
+            return Self::Same;
+        }
+        // How far AniList numbers the season: its count, or the last broadcast it carries.
+        // Without either, a long runner's numbers are as good as AniList's own.
+        let bound = media
+            .episodes
+            .filter(|count| *count > 0)
+            .or_else(|| media.air_times().into_keys().max());
+        let Some(bound) = bound else { return Self::Same };
+        let listed = numbers.len() as u32;
+        let one_run = last - first + 1 == listed;
+        let out = *metadata_episodes(media, now).end();
+        let counted_on = one_run && listed <= bound && listed == out;
+        match (last <= bound, counted_on) {
+            (true, false) => Self::Same,
+            (false, true) => Self::After(first - 1),
+            _ => Self::Unknown,
+        }
+    }
+
+    /// AniList's number for the source's episode `number`, when it is a whole one and lines up.
+    pub fn anilist(self, number: &str) -> Option<u32> {
+        let number: u32 = number.trim().parse().ok()?;
+        match self {
+            Self::Same => Some(number),
+            Self::After(offset) => number.checked_sub(offset).filter(|n| *n >= 1),
+            Self::Unknown => None,
+        }
+    }
+
+    /// `by_anilist`, keyed by AniList's episode numbers, keyed by the source's instead: what of
+    /// it lines up with the source's episodes.
+    pub fn rekey<T: Clone>(
+        self,
+        by_anilist: &std::collections::BTreeMap<u32, T>,
+    ) -> std::collections::BTreeMap<u32, T> {
+        match self {
+            Self::Same => by_anilist.clone(),
+            Self::After(offset) => by_anilist
+                .iter()
+                .filter_map(|(n, value)| Some((n.checked_add(offset)?, value.clone())))
+                .collect(),
+            Self::Unknown => std::collections::BTreeMap::new(),
+        }
+    }
+}
+
+/// An episode's number, when it is a whole one: what AniList numbers by. An "OVA" has none, and
+/// a "12.5" is a recap, not episode 12.
+fn whole(number: &anistream_core::media::EpisodeNumber) -> Option<u32> {
+    let number = number.as_number()?;
+    let whole = number as u32;
+    (number >= 1.0 && f64::from(whole) == number).then_some(whole)
+}
+
+/// Fill in what a source's episodes lack from AniList's data for their title, and say how the
+/// source numbers them against AniList, for dating them by its schedule.
+///
+/// Titles and stills by number, through [`Numbering`], from the streaming listings; the
+/// length AniList gives the title's episodes, which needs no number. What the source said
+/// itself always stands: AniList only fills what is missing. Every title loses the numbering
+/// put in front of it, the source's as well as AniList's.
+pub fn enrich_episodes(
+    episodes: &mut [anistream_core::media::Episode],
+    media: &Media,
+    now: i64,
+) -> Numbering {
+    let numbering = Numbering::of(episodes, media, now);
+    name_episodes(
+        episodes,
+        &numbering.rekey(&media.episode_titles()),
+        &numbering.rekey(&media.episode_thumbnails()),
+    );
+    let length = media
+        .duration
+        .filter(|minutes| *minutes > 0)
+        .map(|minutes| std::time::Duration::from_secs(60 * u64::from(minutes)));
+    for episode in episodes.iter_mut().filter(|e| e.duration.is_none_or(|d| d.is_zero())) {
+        episode.duration = length;
+    }
+    numbering
+}
+
+/// Fill in episode titles and stills a source could not supply, from metadata keyed by the
+/// source's own numbers.
 ///
 /// A torrent source has no catalogue — its episode list comes from parsing release names, so it
 /// knows episode 13 exists but not that it is called "The Ferryman's Ledger", let alone what
 /// it looks like. AniList's streaming listings know both. Anything the source already supplied
-/// wins: it knows the release it is actually offering, which metadata cannot.
+/// wins: it knows the release it is actually offering, which metadata cannot. A title that is
+/// empty, or only the numbering ("Episode 13"), is not one the source supplied.
 pub fn name_episodes(
     episodes: &mut [anistream_core::media::Episode],
     titles: &std::collections::BTreeMap<u32, String>,
     thumbnails: &std::collections::BTreeMap<u32, String>,
 ) {
-    if titles.is_empty() && thumbnails.is_empty() {
-        return;
-    }
     for episode in episodes {
+        episode.title = episode.title.take().and_then(|title| {
+            anistream_meta::anilist::model::unnumbered(&title).map(str::to_owned)
+        });
+        if episode.thumbnail.as_deref().is_some_and(|url| url.trim().is_empty()) {
+            episode.thumbnail = None;
+        }
         // Only numeric episodes can be matched: the listings are keyed by number and an "OVA"
         // has none. Half-episodes are excluded too — "12.5" is a recap, not episode 12.
-        let Some(number) = episode.number.as_number() else {
+        let Some(whole) = whole(&episode.number) else {
             continue;
         };
-        let whole = number as u32;
-        if f64::from(whole) != number {
-            continue;
-        }
-
         if episode.title.is_none()
             && let Some(title) = titles.get(&whole)
         {
@@ -580,6 +693,63 @@ pub fn episode_rows(
     anilist_id: anistream_core::ids::AnilistId,
 ) -> Vec<EpisodeRow> {
     episode_rows_with_filler(episodes, store, anilist_id, None)
+}
+
+/// The episodes AniList's own data says a title has out, by number, for a table no source
+/// lists: see [`EpisodeRow::metadata_only`]. Only what it says, never a guess:
+///
+/// - A finished or cancelled show: 1 to its episode count.
+/// - One still to finish, or a finished one with no count: up to the last its schedule has
+///   aired, which is any episode before the next to air. The next one itself is not out yet:
+///   [`metadata_rows`] lists it, dated ahead.
+/// - Nothing, when neither the count nor the schedule says.
+///
+/// Aired by the clock the answer was given at, when it carries one (the next broadcast's
+/// countdown), so a show is not taken further than AniList had it; else by `now`.
+pub fn metadata_episodes(media: &Media, now: i64) -> std::ops::RangeInclusive<u32> {
+    use anistream_core::media::MediaStatus;
+    let done = matches!(media.status, Some(MediaStatus::Finished | MediaStatus::Cancelled));
+    if done
+        && media.next_airing_episode.is_none()
+        && let Some(count) = media.episodes.filter(|count| *count > 0)
+    {
+        return 1..=count;
+    }
+    let next = media.next_airing_episode.as_ref();
+    let now = next.map_or(now, |next| next.airing_at - next.time_until_airing);
+    let scheduled = media.air_times().into_iter().filter(|(_, at)| *at <= now).map(|(n, _)| n);
+    let before_next = next.map(|next| next.episode.saturating_sub(1));
+    let last = scheduled.chain(before_next).max().unwrap_or(0);
+    // Never past the count, where there is one: a schedule that runs over is wrong about it.
+    1..=media.episodes.map_or(last, |count| last.min(count))
+}
+
+/// A title's episode table from AniList's data alone, for when no source lists it: the
+/// episodes [`metadata_episodes`] says are out, and the next to air after them, which a page
+/// shows as when it airs, as it does under a source's list; filled in as a source's are
+/// ([`enrich_episodes`]), and watched as local history has it. Dated by the caller, as a
+/// source's rows are, numbered as AniList's own ([`Numbering::Same`]).
+pub fn metadata_rows(
+    media: &Media,
+    store: &Store,
+    anilist_id: anistream_core::ids::AnilistId,
+    now: i64,
+) -> Vec<EpisodeRow> {
+    let out = metadata_episodes(media, now);
+    let after = out.end().saturating_add(1);
+    let next = media
+        .next_airing_episode
+        .filter(|next| next.time_until_airing > 0 && next.episode == after)
+        .map(|next| next.episode);
+    let mut episodes: Vec<_> =
+        out.chain(next).map(anistream_core::media::Episode::new).collect();
+    // AniList's own numbers, from one: the same as its listings'.
+    enrich_episodes(&mut episodes, media, now);
+    let mut rows = episode_rows(&episodes, store, anilist_id);
+    for row in &mut rows {
+        row.metadata_only = true;
+    }
+    rows
 }
 
 /// Episode rows, optionally annotated with filler classification.
@@ -650,6 +820,7 @@ pub fn episode_rows_with_filler(
                 // Dated from the schedule by the caller, which has the title: `date_episodes`.
                 airs_at: None,
                 delayed_from: None,
+                metadata_only: false,
             }
         })
         .collect()
@@ -977,6 +1148,7 @@ mod tests {
                 skippable: false,
                 airs_at: Some(1),
                 delayed_from: None,
+                metadata_only: false,
             })
             .collect();
         date_episodes(&mut rows, &[(1, 100), (2, 200)].into_iter().collect());

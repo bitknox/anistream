@@ -57,7 +57,7 @@ async fn main() {
         println!("  note         {note}");
     }
     if registry.is_empty() {
-        println!("  ✕ nothing registered — the UI would say 'no sources configured'");
+        println!("  ✕ nothing registered: the table would come from AniList alone");
         return;
     }
 
