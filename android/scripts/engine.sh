@@ -208,9 +208,33 @@ cargo_clean() {
       [[ "$abi" == armeabi-v7a ]] && headers=arm-linux-androideabi
       pass+=("BINDGEN_EXTRA_CLANG_ARGS_${target//-/_}=--target=$clang$api"
         "BINDGEN_EXTRA_CLANG_ARGS_$target=--target=$clang$api --sysroot=$sysroot -I$sysroot/usr/include/$headers")
+      # BoringSSL is C++, and btls-sys links the C++ runtime as -lc++, which the NDK resolves to
+      # libc++_shared.so: a library the APK does not carry, so loading the engine fails. On
+      # 32-bit ARM the C++ code needs the runtime (exception cleanup, std::sort, sized delete);
+      # on arm64 the linker drops it unused. Linked statically instead, -lc++ under -Bstatic is
+      # the NDK's libc++.a, libc++_static and libc++abi, and the library needs nothing beside it.
+      pass+=("BORING_BSSL_RUST_CPPLIB_${target//-/_}=static:-bundle=c++")
     done
   fi
   (cd "$root" && env -i "${pass[@]}" "$@")
+}
+
+# Fail when the library at $1 needs one the APK does not carry: only Android's own may be needed,
+# as mpv.sh holds its libraries to. libc++_shared.so, which the NDK's -lc++ means when nothing says
+# static, would otherwise show only as a crash at launch.
+needs_only_system_libraries() {
+  local readelf needed
+  readelf="$ndk/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64/bin/llvm-readelf"
+  while IFS= read -r needed; do
+    case "$needed" in
+      libc.so | libm.so | libdl.so | liblog.so | libandroid.so) ;;
+      *)
+        echo "error: $1 needs $needed, which the APK does not carry." >&2
+        [[ "$needed" == libc++_shared.so ]] && echo "error: link the C++ runtime statically (BORING_BSSL_RUST_CPPLIB above)." >&2
+        exit 1
+        ;;
+    esac
+  done < <("$readelf" -d "$1" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')
 }
 
 profile_dir() {
@@ -251,6 +275,7 @@ if [[ -n "$ndk" ]]; then
       ${features:+--features "$features"} --lib --profile "$profile"
     mkdir -p "$stage/jniLibs/$abi"
     cp "$CARGO_TARGET_DIR/$target/$(profile_dir)/libanistream_ffi.so" "$stage/jniLibs/$abi/"
+    needs_only_system_libraries "$stage/jniLibs/$abi/libanistream_ffi.so"
   done
   # The bindings from the phone's library, which has the same interface as every other.
   library="$CARGO_TARGET_DIR/aarch64-linux-android/$(profile_dir)/libanistream_ffi.so"
