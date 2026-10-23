@@ -266,6 +266,7 @@ internal fun PlaybackPane() {
                 { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, "Skip opening automatically") },
                 { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, "Skip filler automatically") },
                 { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, "Mark opening and ending") },
+                { place -> SettingSwitch(place, SettingKey.SKIP_BUTTON, "Show skip button", note = "While the opening or ending plays, when it isn't skipped automatically") },
                 { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, "Counts as watched at", note = "Or when the ending starts, if it is marked") },
                 { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, "Spoiler protection", note = "Blurs stills of unwatched episodes after the next one") },
             ),
@@ -788,8 +789,17 @@ internal fun ActionRow(place: Place, title: String, enabled: Boolean = true, onC
 
 // About
 
+/** The privacy page: what anistream sends, where, and what it keeps on the device. */
+internal const val PRIVACY_URL = "https://anistream.tv/docs/privacy/"
+
+/**
+ * About: Nagare, the name and the version; Updates, with the newer release's row while there is
+ * one and the daily check's switch; then Privacy and the licences.
+ */
 @Composable
 internal fun AboutPane() {
+    val store = LocalAppStore.current
+    val update by store.updates.state.collectAsStateWithLifecycle()
     Pane {
         Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Nagare(cell = 6)
@@ -797,8 +807,25 @@ internal fun AboutPane() {
             Text("Version ${appVersion()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         SettingsGroup(
+            title = "Updates",
+            rows = listOfNotNull(
+                if (update.offer != null) @Composable { place: Place -> UpdateRow(place) } else null,
+                { place -> CheckNowRow(place) },
+                { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, "Check for updates", note = "Once a day. Nothing downloads until you choose to update.") },
+            ),
+        )
+        SettingsGroup(
             footer = LEGAL_LINE,
             rows = listOf(
+                { place ->
+                    InfoRow(
+                        place,
+                        "Privacy",
+                        "What anistream sends, and what stays on this device",
+                        onClick = { store.openExternal(PRIVACY_URL) },
+                        trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    )
+                },
                 { place -> InfoRow(place, "Licence", "MIT, open source and non-commercial") },
                 { place -> InfoRow(place, "Typefaces", "Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1") },
                 { place -> InfoRow(place, "Libraries", "JNA and AndroidX, under the Apache License 2.0") },

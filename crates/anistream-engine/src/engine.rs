@@ -146,6 +146,7 @@ impl Engine {
             player_theme,
             hosted_player,
             app_clients,
+            device_label,
             sources: given,
             background,
             #[cfg(feature = "testing")]
@@ -233,7 +234,9 @@ impl Engine {
                 .map_err(|reason| EngineError::PluginStores { reason })?;
         // The player a play opens, mpv's process or the one the front end hosts, and the app's
         // own sign-in clients, where signing in will read them (E6).
-        let services = Services { hosted_player, app_clients, ..services };
+        // And what a store joined with an invite calls this device unless told otherwise.
+        let stores = services.stores.labelled(&device_label);
+        let services = Services { hosted_player, app_clients, stores, ..services };
         let hosted = Arc::clone(&services.hosted);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.

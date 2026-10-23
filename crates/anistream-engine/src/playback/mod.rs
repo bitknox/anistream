@@ -38,8 +38,8 @@ pub mod start;
 pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 pub use context::PlaybackContext;
 pub use session::{
-    Machine, NO_PARTY, PictureState, PlaySettings, STILL_WATCHING_AFTER, UP_NEXT_COUNTDOWN,
-    fetch_skips, offered, play,
+    Machine, NO_PARTY, PictureState, PlaySettings, STILL_WATCHING_AFTER, SkipTimes,
+    UP_NEXT_COUNTDOWN, offered, play,
 };
 
 /// What a play is answered with where there is no player to play it in, said of each play.

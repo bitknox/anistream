@@ -269,7 +269,7 @@ struct SourcesPane: View {
 
     var body: some View {
         let on = store.settings.isOn(.torrents)
-        SettingsGroup(title: "Sources", footnote: "anistream ships no sources of its own and hosts no content. Every source is external.") {
+        SettingsGroup(title: "Sources", footnote: "anistream hosts no content.") {
             Button {
                 navigator.open(.providers)
             } label: {
@@ -385,6 +385,7 @@ enum GuardWords {
 struct AccountsPane: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.openURL) private var openURL
     @State private var sheet: AccountSheet?
 
     var body: some View {
@@ -419,6 +420,12 @@ struct AccountsPane: View {
         SettingsGroup(title: "Other trackers", footnote: AccountWords.tokens(store.accounts)) {
             ForEach(["mal", "kitsu", "simkl", "trakt"], id: \.self) { tracker in
                 TrackerRow(tracker: tracker, sheet: $sheet)
+            }
+        }
+        SettingsGroup {
+            SettingsRow(title: "Privacy", note: "What anistream sends, and what stays on this \(Device.name)") {
+                Button("Read Online") { openURL(AppVersion.privacy) }
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }
         Color.clear.frame(height: 0)
@@ -565,12 +572,7 @@ struct IntegrationsPane: View {
                 .disabled(!presence)
                 .opacity(presence ? 1 : 0.45)
         }
-        SettingsGroup(title: "Updates") {
-            SettingsRow(title: SettingKey.updateCheck.title, note: "Once a day. Nothing is downloaded until you choose to update.") {
-                SettingSwitch(key: .updateCheck)
-            }
-            SettingsRow(title: AppVersion.long) { EmptyView() }
-        }
+        UpdatesGroup()
     }
 }
 
@@ -587,6 +589,9 @@ enum AppVersion {
 
     /// The website, which About opens.
     static let website = URL(string: "https://anistream.tv")!
+
+    /// The privacy page: what anistream sends, where, and what it keeps on the device.
+    static let privacy = URL(string: "https://anistream.tv/docs/privacy/")!
 }
 
 /// What Discord shows while an episode plays: the show and the episode, or only "Watching anime"

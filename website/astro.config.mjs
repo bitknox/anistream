@@ -69,7 +69,10 @@ export default defineConfig({
 				},
 				{
 					label: 'Reference',
-					items: [{ label: 'Architecture', link: 'docs/reference/architecture' }],
+					items: [
+						{ label: 'Architecture', link: 'docs/reference/architecture' },
+						{ label: 'Privacy', link: 'docs/privacy' },
+					],
 				},
 			],
 		}),

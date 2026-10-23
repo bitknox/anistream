@@ -232,8 +232,16 @@ impl SkipInterval {
 /// end of the episode makes the server answer 500 under `episodeLength=0`, so callers
 /// need a real length to fall back to.
 pub fn query_url(mal_id: u32, episode: u32, episode_length: u32) -> String {
+    query_url_on(API, mal_id, episode, episode_length)
+}
+
+/// Where aniskip answers.
+pub const API: &str = "https://api.aniskip.com";
+
+/// [`query_url`], asked of `origin` rather than aniskip: a test's server.
+pub fn query_url_on(origin: &str, mal_id: u32, episode: u32, episode_length: u32) -> String {
     format!(
-        "https://api.aniskip.com/v2/skip-times/{mal_id}/{episode}\
+        "{origin}/v2/skip-times/{mal_id}/{episode}\
          ?types={}&types={}&episodeLength={episode_length}",
         SkipKind::Opening.api_type(),
         SkipKind::Ending.api_type()

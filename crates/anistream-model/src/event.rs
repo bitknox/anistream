@@ -22,6 +22,7 @@ use crate::{
         StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
+    updates::UpdateStatus,
     widgets::WidgetData,
 };
 
@@ -344,6 +345,15 @@ pub enum Event {
         store: String,
         view: OpenJoinView,
     },
+    /// Where the update check stands: a newer release and whether to tell of it now, or that
+    /// there is none. Sent at launch by the daily check when it is switched on, from what it
+    /// kept within the day or a request past it, and for each
+    /// [`Command::CheckForUpdates`](crate::command::Command::CheckForUpdates). The daily check
+    /// says nothing when it fails.
+    ///
+    /// The terminal app tells of a release with a notice of its own, which names
+    /// `anistream --update`; an app tells of it when `notify` says to.
+    Update(UpdateStatus),
 }
 
 impl Event {

@@ -14,10 +14,10 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │    SKIP OPENING AUTOMATICALLY  on
    │    SKIP FILLER AUTOMATICALLY   off
    │    MARK OPENING AND ENDING     on
+   │    SHOW SKIP BUTTON            on
    │    START FULLSCREEN            off
    │    UPSCALING                   natural · ArtCNN
    │    PLAYER INTERFACE            anistream
-   │    NIGHT MODE                  off
    │
    │
 ────────────────────────────────────────────────────────────────────────────────

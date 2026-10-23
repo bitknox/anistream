@@ -49,6 +49,23 @@
 		<key>UIImageRespectsSafeAreaInsets</key>
 		<false/>
 	</dict>
+	<!-- The Mac's updater, Sparkle (MacUpdater.swift): the feed each release publishes, the
+	     public half of the key its .dmg and the feed are signed with, and no checks or installs of
+	     its own. iPhone and iPad have no Sparkle and ignore these; the Fixtures app has none. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/bitknox/anistream/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>PQ5AUO8TwXyY94naXJw856LWoLiHc6goFN+scXCf2RQ=</string>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
 	<!-- iPhone and iPad: the background refresh, which checks for new episodes, schedules the
 	     week's notifications and writes the widgets' record. -->
 	<key>BGTaskSchedulerPermittedIdentifiers</key>

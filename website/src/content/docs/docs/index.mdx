@@ -6,12 +6,12 @@ description: 'An anime client for Mac, iPhone, iPad, Android and the terminal: b
 anistream is an anime client for Mac, iPhone, iPad and Android, and for the terminal on macOS,
 Linux and Windows, written in Rust. It browses AniList with no account, plays episodes in mpv,
 keeps your history locally and syncs it to five trackers. Sources are plugins or services you set
-up, and anistream ships none of its own.
+up.
 
-:::note[Sources are external]
-anistream hosts no content and ships no sources of its own, not even an index. The torrent side
-is a transport with nothing to search until you supply an endpoint. Everything else is a provider
-API or plugin you configure. What you point any of it at is your own decision, at your own risk.
+:::note[No hosted content]
+anistream hosts no content. The torrent side is a transport with nothing to search until you
+supply an endpoint, and everything else is a plugin or provider API you configure. Which sources
+you use, and what you point them at, is your own decision, at your own risk.
 :::
 
 ## The apps
@@ -47,7 +47,7 @@ anistream is under active development. What is in the terminal app now:
 - Tracker sync covers AniList, MyAnimeList, Kitsu, Simkl and Trakt, through an outbox that
   survives being offline. Kitsu is on by default and needs one sign-in. `a` sets a title's list
   status and `*` rates it, and both sync the same way progress does.
-- Filler and recap episodes are marked from AnimeFillerList, for the long-runners where it matters.
+- Filler episodes are marked where the source that lists them says so.
 - A downloads screen lists what you have pulled down, and completed files get subtitles muxed in.
 - `P` pins a source per title, the Sources overlay picks exact releases, and playback falls over to
   another stream when one produces no video.

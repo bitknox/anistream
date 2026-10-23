@@ -20,6 +20,7 @@ commit_threshold = 0.85    # fraction of runtime that counts as *watched* and ge
 auto_next = true
 skip_opening = true        # skips it, with an Undo on the video
 mark_chapters = true       # puts the opening and ending on the seek bar
+skip_button = true         # offers a skip while they play, when it isn't automatic
 upscaling = "natural"      # "natural" (ArtCNN), "sharp" (Anime4K) or "off"
 player_ui = "anistream"    # or "mpv" to keep your own mpv setup
 night_mode = false         # evens out quiet dialogue and loud music
@@ -46,8 +47,7 @@ screen with its position, since quitting halfway is a clear signal you mean to c
 
 ## Providers
 
-`providers.order` is the failover chain. Sources are external: anistream ships no sources of its
-own, and no entry does anything until you configure it.
+`providers.order` is the failover chain. No entry does anything until you configure it.
 
 - `"torrent"` is the BitTorrent transport, pointed at an indexer you configure and gated behind
   the [VPN guard](/docs/guides/torrents-vpn/).

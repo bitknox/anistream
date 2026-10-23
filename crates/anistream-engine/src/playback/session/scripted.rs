@@ -121,11 +121,12 @@ fn stream(kind: StreamKind) -> Stream {
     }
 }
 
-fn settings() -> PlaySettings {
+pub(super) fn settings() -> PlaySettings {
     PlaySettings {
         threshold: 0.85,
         auto_skip: false,
         mark_chapters: false,
+        skip_button: true,
         fullscreen: true,
         subtitle_language: Some("eng".into()),
         auto_next: true,

@@ -3,6 +3,10 @@
 
 package tv.anistream.ui
 
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -11,6 +15,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -47,6 +53,26 @@ class Snackbars(val host: SnackbarHostState, private val scope: CoroutineScope) 
 }
 
 val LocalSnackbars = staticCompositionLocalOf<Snackbars> { error("no Snackbars in this composition") }
+
+/**
+ * A snackbar as AndroidFoundations draws it: surfaceContainerHigh with silk text at corners 4,
+ * its button a silk text button.
+ */
+@Composable
+internal fun NoticeSnackbar(data: SnackbarData) {
+    val colors = MaterialTheme.colorScheme
+    Snackbar(
+        data,
+        shape = MaterialTheme.shapes.extraSmall,
+        containerColor = colors.surfaceContainerHigh,
+        contentColor = colors.onSurface,
+        actionColor = colors.onSurface,
+        actionContentColor = colors.onSurface,
+        dismissActionContentColor = colors.onSurface,
+        // Material's snackbar keeps 12 around itself: 16 from the sides, 12 above the bar.
+        modifier = Modifier.padding(horizontal = 4.dp),
+    )
+}
 
 /** The words on a notice's button, for what can be done about it. */
 fun NoticeHint.label(): String = when (this) {

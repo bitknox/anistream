@@ -178,7 +178,7 @@ struct SignedOutLibrary: View {
 /// The one legal line, everywhere it appears.
 struct LegalLine: View {
     var body: some View {
-        Text("anistream ships no sources of its own and hosts no content. Every source is external.")
+        Text("anistream hosts no content.")
             .font(.mac(13))
             .foregroundStyle(.haze)
             .multilineTextAlignment(.center)

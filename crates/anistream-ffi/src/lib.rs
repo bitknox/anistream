@@ -146,9 +146,13 @@ mod tests {
         };
         assert_eq!(crossed(start.clone()), start);
         assert_eq!(crossed(FfiStart::default()), FfiStart::default());
-        for platform in
-            [FfiPlatform::MacOs, FfiPlatform::Ios, FfiPlatform::IpadOs, FfiPlatform::Android]
-        {
+        for platform in [
+            FfiPlatform::MacOs,
+            FfiPlatform::Ios,
+            FfiPlatform::IpadOs,
+            FfiPlatform::Android,
+            FfiPlatform::AndroidTablet,
+        ] {
             assert_eq!(crossed(platform), platform);
         }
         for mode in [SecretsMode::Host, SecretsMode::FollowConfig] {
@@ -284,6 +288,38 @@ mod tests {
         // With the shows that switch new-episode notifications on for themselves counted.
         let view = SettingsView { notify_switched_on: 2, ..SettingsView::default() };
         assert_eq!(crossed(view.clone()), view);
+    }
+
+    #[test]
+    fn the_update_check_crosses_with_each_apps_file() {
+        use anistream_model::updates::{Release, ReleaseAsset, UpdateStatus};
+        assert_eq!(crossed(Command::CheckForUpdates), Command::CheckForUpdates);
+        let file = |name: &str, size: u64| ReleaseAsset {
+            name: name.into(),
+            url: format!(
+                "https://github.com/bitknox/anistream/releases/download/v2.0.3/{name}"
+            ),
+            sha256: "0f".repeat(32),
+            size,
+        };
+        let release = Release {
+            version: "2.0.3".into(),
+            published_at: 1_792_664_639,
+            page_url: "https://github.com/bitknox/anistream/releases/tag/v2.0.3".into(),
+            notes: "Smoother calendar\n\nThe calendar scrolls without dropping frames.".into(),
+            macos: Some(file("anistream-2.0.3-macos.dmg", 56_208_258)),
+            ios: None,
+            android: Some(file("anistream-2.0.3-android-arm64.apk", 5_000_000_000)),
+        };
+        for status in [
+            UpdateStatus::Checking,
+            UpdateStatus::UpToDate,
+            UpdateStatus::Available { release: Box::new(release.clone()), notify: true },
+            UpdateStatus::Failed { reason: "GitHub could not be reached".into() },
+        ] {
+            assert_eq!(crossed(status.clone()), status);
+            crosses_intact(Event::Update(status));
+        }
     }
 
     #[test]
@@ -730,10 +766,20 @@ mod tests {
             }],
             open: true,
             anonymous: true,
+            device_label: String::new(),
         })));
         crosses_intact(Event::StorePreview(InvitePreview::Failed {
             reason: "that is not a link".into(),
         }));
+    }
+
+    #[test]
+    fn a_join_crosses_with_the_name_the_device_was_given() {
+        let link = Secret("https://plugins.example/join/abc#key".into());
+        for label in [None, Some("Living room".to_owned())] {
+            let command = Command::JoinStore { link: link.clone(), label };
+            assert_eq!(crossed(command.clone()), command);
+        }
     }
 
     #[test]

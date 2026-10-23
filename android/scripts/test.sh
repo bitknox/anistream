@@ -2,7 +2,7 @@
 # Runs the app's JVM unit tests, the store's among them, which start the testing engine on this
 # Mac's build of it through JNA. Under a home of their own: HOME is a new temporary directory, and
 # tokens are files, so nothing a test does reaches the user's own anistream. Gradle's caches stay
-# in the user's ~/.gradle.
+# in the user's ~/.gradle, and the engine cache in their ~/.cache/anistream-engine.
 #
 #   android/scripts/test.sh [gradle task…]
 #
@@ -20,6 +20,9 @@ export GRADLE_USER_HOME="${GRADLE_USER_HOME:-$user_home/.gradle}"
 export JAVA_HOME="${JAVA_HOME:-/Applications/Android Studio.app/Contents/jbr/Contents/Home}"
 export ANDROID_HOME="${ANDROID_HOME:-$user_home/Library/Android/sdk}"
 export ANISTREAM_TOKEN_STORAGE=file
+# The engine cache every worktree shares stays the real home's: the temporary home below would hide
+# it, and engine.sh would build the engine again rather than reuse what another worktree built.
+export ANISTREAM_ENGINE_CACHE="${ANISTREAM_ENGINE_CACHE:-$user_home/.cache/anistream-engine}"
 home="$(mktemp -d -t anistream-android-test)"
 trap 'rm -rf "$home"' EXIT
 export HOME="$home"

@@ -56,6 +56,56 @@ fn stores(root: &Path) -> (Paths, Stores) {
     (paths, stores)
 }
 
+/// What the store calls the device that joined it from `root`, by asking it with that device's
+/// token.
+async fn device_label(root: &Path, joined: &anistream_plugin_store::Joined) -> String {
+    let tokens = TokenStore::with_backend(root.join("tokens"), Backend::File);
+    let token = tokens.get(&joined.token_key()).unwrap();
+    let client =
+        anistream_plugin_store::StoreClient::new(std::time::Duration::from_secs(5)).unwrap();
+    client.me(&joined.base, &token).await.unwrap().device.label
+}
+
+#[tokio::test]
+async fn an_invite_join_names_the_device_by_its_kind_or_as_typed() {
+    // The machine's own name was sent before, which is often its owner's. Now the store is
+    // told the kind of device, or whatever the person joining typed in its place.
+    let root = tempfile::tempdir().unwrap();
+    let (listener, addr) = server::bind("127.0.0.1:0".parse().unwrap()).await.unwrap();
+    let base = format!("http://{addr}");
+    let store =
+        server::open(&Storage::Dir(root.path().join("store")), Some(&base), Some("Ours"))
+            .await
+            .unwrap();
+    let owner_invite = store.fresh_owner_invite(&base, server::now()).await.unwrap().unwrap();
+    let server = Arc::new(Server::new(store, Some(base), None, None, false));
+    tokio::spawn(server::serve(listener, server, None, std::future::pending()));
+
+    // The terminal app, which names no kind of device: a computer.
+    let (_, owner) = stores(&root.path().join("owner"));
+    let preview = owner.preview(&owner_invite.link()).await.unwrap();
+    assert_eq!(preview.device_label, "Computer");
+    let joined = owner.join(&owner_invite.link(), None).await.unwrap();
+    let id = joined.id.clone();
+    assert_eq!(device_label(&root.path().join("owner"), &joined).await, "Computer");
+
+    // An iPad, joining as itself: the field left as it was offered.
+    let invite = owner.invite(&id, Some("Alex".into())).await.unwrap();
+    let (_, ipad) = stores(&root.path().join("ipad"));
+    let ipad = ipad.labelled("iPad");
+    let preview = ipad.preview(&invite.link.0).await.unwrap();
+    assert_eq!(preview.device_label, "iPad");
+    let joined = ipad.join(&invite.link.0, Some("   ")).await.unwrap();
+    assert_eq!(device_label(&root.path().join("ipad"), &joined).await, "iPad");
+
+    // A Mac whose owner typed a name of their own.
+    let invite = owner.invite(&id, Some("Sam".into())).await.unwrap();
+    let (_, mac) = stores(&root.path().join("mac"));
+    let mac = mac.labelled("Mac");
+    let joined = mac.join(&invite.link.0, Some("  Studio \n")).await.unwrap();
+    assert_eq!(device_label(&root.path().join("mac"), &joined).await, "Studio");
+}
+
 #[tokio::test]
 async fn an_owner_publishes_and_a_member_installs_a_real_plugin() {
     let Some(wasm) = component() else { return };
@@ -88,7 +138,7 @@ async fn an_owner_publishes_and_a_member_installs_a_real_plugin() {
     let preview = owner.preview(&owner_invite.link()).await.unwrap();
     assert_eq!(preview.name, "Ours");
     assert!(!preview.already_joined);
-    let joined = owner.join(&owner_invite.link()).await.unwrap();
+    let joined = owner.join(&owner_invite.link(), None).await.unwrap();
     assert!(joined.is_owner());
 
     let local = owner.local_plugins(&joined.id).await.unwrap();
@@ -109,7 +159,7 @@ async fn an_owner_publishes_and_a_member_installs_a_real_plugin() {
     // Someone new, invited from the app and joining on their own machine.
     let invite = owner.invite(&joined.id, Some("Alex".into())).await.unwrap();
     let (member_paths, member) = stores(&root.path().join("member"));
-    let as_member = member.join(&invite.link.0).await.unwrap();
+    let as_member = member.join(&invite.link.0, None).await.unwrap();
     assert_eq!(as_member.member.name, "Alex");
     assert!(!as_member.is_owner());
 
@@ -167,7 +217,7 @@ async fn a_joined_stores_key_in_a_link_to_another_address_is_refused() {
     tokio::spawn(server::serve(listener, server, None, std::future::pending()));
 
     let (_, stores) = stores(&root.path().join("member"));
-    let joined = stores.join(&invite.link()).await.unwrap();
+    let joined = stores.join(&invite.link(), None).await.unwrap();
 
     // Same key, same shape of code, another address. Nothing listens there: the refusal has to
     // come before anything is sent.
@@ -179,7 +229,7 @@ async fn a_joined_stores_key_in_a_link_to_another_address_is_refused() {
     };
     let preview = stores.preview(&elsewhere.link()).await.unwrap_err();
     assert!(preview.contains("is joined at"), "{preview}");
-    let join = stores.join(&elsewhere.link()).await.unwrap_err();
+    let join = stores.join(&elsewhere.link(), None).await.unwrap_err();
     assert!(join.contains("is joined at"), "{join}");
 
     let rows = stores.rows().unwrap();
@@ -201,7 +251,7 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
     tokio::spawn(server::serve(listener, server, None, std::future::pending()));
 
     let (_, owner) = stores(&root.path().join("owner"));
-    let id = owner.join(&invite.link()).await.unwrap().id;
+    let id = owner.join(&invite.link(), None).await.unwrap().id;
     let closed = owner.open_join(&id).await.unwrap().expect("a store with open joining");
     assert!(!closed.open && closed.link.is_none());
     let opened = owner.set_open(&id, true).await.unwrap();
@@ -213,9 +263,12 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
     let preview = guest.preview(&link).await.unwrap();
     assert!(preview.open && preview.anonymous);
     assert_eq!(preview.owners, ["Owner"]);
-    let joined = guest.join(&link).await.unwrap();
+    assert_eq!(preview.device_label, "", "an open link sends no name, so none is offered");
+    // A name typed anyway is not sent.
+    let joined = guest.join(&link, Some("Living room")).await.unwrap();
     assert!(joined.anonymous);
     assert_eq!(joined.member.name, "");
+    assert_eq!(device_label(&root.path().join("guest"), &joined).await, "");
     let row = &guest.rows().unwrap()[0];
     assert!(row.open && row.anonymous);
     assert_eq!(row.state, StoreState::Ready);
@@ -226,7 +279,7 @@ async fn an_open_store_is_joined_without_a_name_and_its_owner_decides_who_can_jo
     // their owner rights for a member with neither.
     let refused = owner.preview(&link).await.unwrap_err();
     assert!(refused.contains("without your name"), "{refused}");
-    assert!(owner.join(&link).await.is_err());
+    assert!(owner.join(&link, None).await.is_err());
     assert!(owner.rows().unwrap()[0].owner);
 
     let view = owner.open_join(&id).await.unwrap().unwrap();

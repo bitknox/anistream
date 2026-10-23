@@ -373,6 +373,13 @@ pub enum Command {
     /// Spend an invite link for a token and join.
     JoinStore {
         link: Secret,
+        /// What the store's owner sees this device called: the confirmation's field, which
+        /// starts as [`InvitedStore::device_label`]. `None`, or only spaces, for that kind of
+        /// device. An open link sends no name, and this is not sent with it.
+        ///
+        /// [`InvitedStore::device_label`]: crate::stores::InvitedStore::device_label
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        label: Option<String>,
     },
     /// Forget a store and revoke this device's token there.
     LeaveStore {
@@ -523,6 +530,11 @@ pub enum Command {
     /// Ask on launch, on coming to the foreground, after a sync or a change of progress, and
     /// from the background task, after [`Command::CheckNewEpisodes`].
     UpcomingNotices,
+    /// Ask GitHub for the newest release now, rather than waiting for the daily check: Settings'
+    /// Check Now. Answered with [`Event::Update`](crate::event::Event::Update), `Checking` and
+    /// then what it found, never with a job. Asks whether or not the daily check is switched on,
+    /// and keeps what it found for the daily check to go by.
+    CheckForUpdates,
 }
 
 /// A control sent to whatever is currently playing.

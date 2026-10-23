@@ -53,9 +53,9 @@ one title, and the Sources overlay picks an exact release of an episode.
 
 Tracker sync covers AniList, MyAnimeList, Kitsu, Simkl and Trakt through an outbox that survives
 being offline. `a` sets a title's list status and `*` rates it out of ten; both queue like
-progress does, so rating is always yours to reach for and never a prompt in your way. Filler and
-recap episodes are marked from AnimeFillerList. Discord rich presence reports what you are
-watching.
+progress does, so rating is always yours to reach for and never a prompt in your way. Filler
+episodes are marked where the source that lists them says so. Discord rich presence reports what
+you are watching.
 
 anistream will not work around DRM: where a licensed catalogue is integrated at all, it will be
 as a link that opens in that service.
@@ -150,6 +150,7 @@ commit_threshold = 0.85    # fraction of runtime that counts as watched and gets
 auto_next = true
 skip_opening = true        # skips it, with an Undo on the video
 mark_chapters = true       # puts the opening and ending on the seek bar
+skip_button = true         # offers a skip while they play, when it isn't automatic
 upscaling = "natural"      # "natural" (ArtCNN), "sharp" (Anime4K) or "off"
 player_ui = "anistream"    # or "mpv" to keep your own mpv setup
 
@@ -432,9 +433,12 @@ cargo run -p anistream-engine --example continue_probe           # resume vs. sy
 ## Scope
 
 The metadata, mapping, player, tracker and plugin layers use documented public APIs. anistream
-hosts no content and ships no catalogue of its own. The torrent source is a transport; what you
-point any source at is your configuration, and the responsibility that comes with it is yours.
-Torrenting is off by default and gated behind the VPN guard, and every source is a config edit away
-from being removed. anistream will not circumvent DRM.
+hosts no content. The torrent source is a transport; what you point any source at is your
+configuration, and the responsibility that comes with it is yours. Torrenting is off by default and
+gated behind the VPN guard, and every source is a config edit away from being removed. anistream
+will not circumvent DRM.
+
+What anistream sends, and what it keeps on your device, is on the
+[privacy page](https://anistream.tv/docs/privacy/).
 
 MIT.

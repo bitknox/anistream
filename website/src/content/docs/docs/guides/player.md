@@ -64,7 +64,8 @@ you chose. mpv's own full list of bindings is `Shift+I`, then `4`.
 Opening and ending times come from the file's own chapters when it has them, and from aniskip
 otherwise. Either way they are marked on the seekbar. While the playhead is inside one, a skip
 button sits in the corner. With `skip_opening = true` the skip happens on its own and a short note
-offers to undo it.
+offers to undo it. `skip_button = false` takes the button away, and with `skip_opening` and
+`mark_chapters` off too, aniskip is not asked at all.
 
 Near the end of an episode, from the start of its ending when that is known, an Up Next card shows
 the next episode's still and title. With `auto_next = true` the next episode starts in the same

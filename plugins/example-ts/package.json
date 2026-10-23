@@ -8,7 +8,6 @@
     "build": "jco componentize src/plugin.js --wit ../../wit/anistream-provider.wit --world-name plugin --out anistream-example-plugin-ts.wasm --disable all"
   },
   "devDependencies": {
-    "@bytecodealliance/jco": "^1.16.0",
-    "@bytecodealliance/componentize-js": "^0.19.0"
+    "@bytecodealliance/jco": "^1.39.0"
   }
 }

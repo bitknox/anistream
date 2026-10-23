@@ -2,6 +2,7 @@
 
 package tv.anistream.store
 
+import android.content.Context
 import java.io.File
 import tv.anistream.engine.ffi.FfiBackground
 import tv.anistream.engine.ffi.FfiDirs
@@ -170,8 +171,16 @@ data class EngineLaunch(
 /** An AniList client, and where it redirects: `null` for the app's scheme. */
 data class AniListClient(val id: String, val redirect: String?)
 
-/** What the engine is told the app runs on: informational, since nothing in it differs by it. */
-fun enginePlatform(): FfiPlatform? = FfiPlatform.ANDROID
+/**
+ * What the engine is told the app runs on: a phone, or a tablet once the screen is at least 600 dp
+ * wide the short way. A plugin store this device joins with an invite calls it by that kind,
+ * "Android phone" or "Android tablet", unless the person joining names it otherwise. A phone with
+ * no [context] to read the screen from.
+ */
+fun enginePlatform(context: Context? = null): FfiPlatform? {
+    val shortSide = context?.resources?.configuration?.smallestScreenWidthDp ?: 0
+    return if (shortSide >= 600) FfiPlatform.ANDROID_TABLET else FfiPlatform.ANDROID
+}
 
 /**
  * What a fixtures launch puts in the database before the engine starts: the Apple app's

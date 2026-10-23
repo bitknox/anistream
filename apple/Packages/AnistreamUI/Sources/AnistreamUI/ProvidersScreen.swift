@@ -115,7 +115,7 @@ struct SourceOrderList: View {
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Sources are tried top to bottom. Drag one to change the order.")
-                    Text("anistream ships no sources of its own and hosts no content. Every source is external.")
+                    Text("anistream hosts no content.")
                 }
                 .font(.mac(12))
                 .macLineHeight(17)

@@ -7,12 +7,17 @@ import android.content.Intent
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineHome
 import tv.anistream.store.EngineLaunch
+import tv.anistream.store.enginePlatform
 
 internal object Flavour {
     const val FIXTURES = false
 
+    /** The app flavour updates itself, from the release the engine finds. */
+    const val UPDATES = true
+
     fun launch(context: Context, intent: Intent): EngineLaunch =
         EngineLaunch.app(EngineHome.sandbox(files = context.filesDir, cache = context.cacheDir))
+            .copy(platform = enginePlatform(context))
 
     /** The engine background work starts while the app is not running: the app's own files. */
     fun background(context: Context): EngineLaunch =

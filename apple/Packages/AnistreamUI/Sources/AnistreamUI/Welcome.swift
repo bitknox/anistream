@@ -87,7 +87,7 @@ struct SetupCard: View {
                 .macLineHeight(16)
                 Spacer(minLength: 8)
                 HStack(spacing: 16) {
-                    Text("anistream ships no sources of its own and hosts no content. Every source is external.")
+                    Text("Episodes play from the plugins you add. anistream hosts no content.")
                         .font(.mac(11))
                         .macLineHeight(14)
                         .foregroundStyle(.haze)
@@ -132,7 +132,7 @@ struct SetupCard: View {
                     }
                 }
             }
-            Text("anistream ships no sources of its own and hosts no content. Every source is external.")
+            Text("Episodes play from the plugins you add. anistream hosts no content.")
                 .font(.mac(13))
                 .foregroundStyle(.haze)
         }

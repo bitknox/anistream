@@ -28,6 +28,14 @@ configFiles:
   Debug: Config/Base.xcconfig
   Release: Config/Base.xcconfig
 
+packages:
+  # The Mac's updater (App/MacUpdater.swift), for the app only: not the Fixtures app, not iPhone
+  # or iPad. Its binary is signed ad hoc, as the app is; adhoc-sign.sh signs its helpers again
+  # from the inside out.
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
+
 settings:
   base:
     # The engine slice for the platform being built, which the frameworks check is current.
@@ -171,6 +179,10 @@ targetTemplates:
       # bundles libmpv and FFmpeg, and which the iPhone's About › Acknowledgements shows.
       - path: ThirdParty/NOTICES-libmpv.txt
         buildPhase: resources
+      # Sparkle's, which the Mac app carries.
+      - path: ThirdParty/NOTICES-sparkle.txt
+        buildPhase: resources
+        destinationFilters: [macOS]
     preBuildScripts:
       - name: Check the subtitle font
         script: |
@@ -323,6 +335,9 @@ targets:
       - target: AnistreamUI
       - target: AnistreamWidgetData
       - target: AnistreamWidgets
+      - package: Sparkle
+        product: Sparkle
+        destinationFilters: [macOS]
 
   Anistream Fixtures:
     templates: [App, Fixtures]

@@ -304,6 +304,7 @@ fn settings() -> PlaySettings {
         threshold: 0.85,
         auto_skip: false,
         mark_chapters: true,
+        skip_button: true,
         fullscreen: false,
         subtitle_language: Some("eng".into()),
         auto_next: true,

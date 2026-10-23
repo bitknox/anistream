@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The update test's builds only (android/scripts/update-test.sh, ANISTREAM_UPDATE_TEST_KEYSTORE):
+     plain HTTP to this Mac, which serves the test's APK, and the receiver the test offers it with. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:usesCleartextTraffic="true">
+        <receiver
+            android:name=".UpdateTestReceiver"
+            android:exported="true" />
+    </application>
+</manifest>

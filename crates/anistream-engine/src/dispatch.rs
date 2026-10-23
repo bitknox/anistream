@@ -282,6 +282,10 @@ pub(crate) fn dispatch(
         Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
         Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
         Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
+        // Settings' Check Now, off the loop, with no job: the check says where it stands.
+        Command::CheckForUpdates => {
+            crate::updates::check_now(&services.paths.cache_dir, &services.http, tx)
+        }
 
         // The plugin stores.
         Command::LoadStores => {
@@ -290,8 +294,10 @@ pub(crate) fn dispatch(
         Command::PreviewStore { link } => {
             store_task(job, engine, services, tx, move |context| context.preview_store(link))
         }
-        Command::JoinStore { link } => {
-            store_task(job, engine, services, tx, move |context| context.join_store(link))
+        Command::JoinStore { link, label } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.join_store(link, label)
+            })
         }
         Command::LeaveStore { store } => {
             store_task(job, engine, services, tx, move |context| context.leave_store(store))

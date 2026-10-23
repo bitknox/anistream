@@ -43,6 +43,7 @@ import tv.anistream.store.AppStore
 import tv.anistream.store.EngineHome
 import tv.anistream.store.NewEpisode
 import tv.anistream.store.EngineLaunch
+import tv.anistream.store.enginePlatform
 import tv.anistream.store.FixtureScene
 import tv.anistream.store.fixtureDownloadClip
 import tv.anistream.store.fixtureMedia
@@ -55,6 +56,9 @@ import tv.anistream.widgets.ContinueWideReceiver
 internal object Flavour {
     const val FIXTURES = true
 
+    /** The fixtures flavour never installs anything: it has no permission to. */
+    const val UPDATES = false
+
     private var marked = false
 
     fun launch(context: Context, intent: Intent): EngineLaunch {
@@ -63,7 +67,7 @@ internal object Flavour {
         if (named != null && FixtureScene.named(named) == null) Log.w(AnistreamApp.TAG, "no scene named $named")
         intent.getStringExtra("media")?.let { fixtureMedia = it }
         if (intent.getStringExtra("downloads") != null) fixtureDownloadClip = downloadClip(context)
-        return EngineLaunch.fixtures(scene, context.cacheDir)
+        return EngineLaunch.fixtures(scene, context.cacheDir).copy(platform = enginePlatform(context))
     }
 
     /**

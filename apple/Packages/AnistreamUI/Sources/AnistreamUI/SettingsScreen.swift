@@ -24,8 +24,8 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
         }
     }
 
-    /// The panes this device shows. Integrations is the Mac's: Syncplay, Discord and the update
-    /// check are desktop programs, none of which an iPad or iPhone runs.
+    /// The panes this device shows. Integrations is the Mac's: Syncplay and Discord are desktop
+    /// programs, neither of which an iPad or iPhone runs. The iPad has Updates under Advanced.
     static var shown: [SettingsPane] {
         #if os(macOS)
         allCases
@@ -199,12 +199,21 @@ struct SettingsResults: View {
         ("Protect with", .sources), ("Last check", .sources), ("If a check fails", .sources),
         ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
         ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
-        ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts),
+        ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts), ("Privacy", .accounts),
         ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
         ("Syncplay room", .integrations), ("Discord presence", .integrations),
-        ("Presence shows the title", .integrations), ("Check for updates", .integrations),
+        ("Presence shows the title", .integrations), ("Check for updates", updatesPane),
         ("mpv options", .advanced),
     ].filter { SettingsPane.shown.contains($0.pane) }
+
+    /// Where Updates is: Integrations on the Mac, Advanced on the iPad.
+    static var updatesPane: SettingsPane {
+        #if os(macOS)
+        .integrations
+        #else
+        .advanced
+        #endif
+    }
 
     var body: some View {
         let words = query.lowercased().split(separator: " ")
@@ -350,6 +359,9 @@ struct PlaybackPane: View {
             SettingsRow(title: SettingKey.skipOpening.title, note: overridden(.skipOpening)) { SettingSwitch(key: .skipOpening) }
             SettingsRow(title: SettingKey.skipFiller.title, note: overridden(.skipFiller)) { SettingSwitch(key: .skipFiller) }
             SettingsRow(title: SettingKey.markChapters.title) { SettingSwitch(key: .markChapters) }
+            SettingsRow(title: SettingKey.skipButton.title, note: "While the opening or ending plays, when it isn't skipped automatically.") {
+                SettingSwitch(key: .skipButton)
+            }
             SettingsRow(title: SettingKey.commitThreshold.title, note: "Or when the ending starts, if it is marked.") {
                 SettingMenu(key: .commitThreshold)
             }
@@ -513,6 +525,11 @@ struct AdvancedPane: View {
             .opacity(0.6)
             .help("Waits on an engine setting for the player's options")
             SettingsFootnote("Passed to the player as written, after anistream’s own options, so a value here wins. Reset removes them all.")
+            #if os(iOS)
+            // The iPad's: the Mac has these under Integrations, which an iPad does not show.
+            UpdatesGroup()
+                .padding(.top, 24)
+            #endif
         }
     }
 }

@@ -69,7 +69,8 @@ cp "$android/stamp" "$android/features" "$stage/android/build/"
 cp android/scripts/mpv.sh android/mpv/libmpv.map "$stage/android/build/"
 cp -R android/mpv/patches "$stage/android/build/patches"
 
-cp apple/ThirdParty/NOTICES-libmpv.txt apple/ThirdParty/NOTICES-fonts.txt "$stage/apple/"
+cp apple/ThirdParty/NOTICES-libmpv.txt apple/ThirdParty/NOTICES-fonts.txt \
+  apple/ThirdParty/NOTICES-sparkle.txt "$stage/apple/"
 cp "$apple/stamp" "$stage/apple/build/"
 [[ -f "$apple/contents" ]] && cp "$apple/contents" "$stage/apple/build/"
 cp apple/scripts/mpv.sh "$stage/apple/build/"
@@ -114,7 +115,8 @@ apple/     anistream-$version-macos.dmg, anistream-$version-ios-unsigned.ipa
   the libraries beneath it. build/mpv.sh pins each of those by its address and SHA-256.
   NOTICES-libmpv.txt names every project inside the framework with its version, its source and
   its licence, followed by the licence texts. NOTICES-fonts.txt is the licence of the subtitle
-  font the iPhone and iPad app carries (SIL OFL 1.1).
+  font the iPhone and iPad app carries (SIL OFL 1.1). NOTICES-sparkle.txt is the licence of
+  Sparkle, which the Mac app updates itself with (MIT).
 
 engine/    every app
 

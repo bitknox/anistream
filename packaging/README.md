@@ -124,12 +124,38 @@ and so does a dispatch of apps-release.yml. CI's own jobs build the apps for eve
   pinned in the script, for the MPVKit release `apple/scripts/mpv.sh` takes, with MPVKit's own
   build scripts and patches. None of it goes into the repository.
 - `apps/release-notes.md`: those notes' install steps, for every version.
+- `apps/mac-update.sh`: `appcast.xml`, the feed Sparkle in the Mac app updates from, offering the
+  release's `.dmg` with its EdDSA signature, and signed itself. Both signatures are checked
+  against `SUPublicEDKey` in the app's Info.plist before the release goes on.
+  `apps/ed25519-verify.swift` checks a signature against a public key.
+- `apps/sidestore-source.sh`: `sidestore.json`, the source SideStore and AltStore install and
+  update the iPhone and iPad app from, with the `.ipa`'s version, size, SHA-256 and every
+  entitlement and privacy usage description it is signed with. `publish.sh` adds the release's
+  date and the first section of its notes.
 
 The APK is signed with the project's release key, from the repository's `ANDROID_RELEASE_*`
 secrets. The Mac app is signed ad hoc and not notarized, and the `.ipa` is signed ad hoc too, for
 AltStore or SideStore to sign with each person's own Apple ID: there is no paid Apple developer
 account behind either. Its ad hoc signature carries the App Group, `group.tv.anistream`, which
 those two read from it and register under the person's team (`apple/scripts/adhoc-sign.sh`).
+
+### Updates
+
+`appcast.xml` and `sidestore.json` are named without a version, so
+`https://github.com/bitknox/anistream/releases/latest/download/` always has the newest release's.
+Pre-releases are never marked latest, so they never reach either. The engine finds a new release
+on its own (`crates/anistream-engine/src/updates.rs`) and tells the apps, which then update:
+
+- The Mac app through Sparkle 2, when the viewer presses Update. The app is signed ad hoc, so
+  Sparkle trusts the `.dmg` by its EdDSA signature against the app's public key, and it checks it
+  before it opens the image. Its installer replaces the bundle, takes the new one out of
+  quarantine and relaunches it. The private key is the `MAC_UPDATE_ED25519_KEY` secret, Ed25519's
+  32-byte seed in base64, as Sparkle's `sign_update --ed-key-file` reads it. Losing it means the
+  Mac app can no longer update itself: a new key needs a release whose app carries it, installed
+  by hand.
+- iPhone and iPad through SideStore or AltStore, from the source. The app links to SideStore's
+  `sidestore://source?url=` and AltStore's `altstore://source?url=`, and to the release page
+  when neither is installed.
 
 ## The Rust crates' licences
 

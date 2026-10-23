@@ -86,16 +86,43 @@ class StoresTest {
         assertEquals(https, store.stores.joining.value)
         store.previewStore(" $https ")
         assertEquals(StoresModel.Preview.Checking(https), store.stores.preview.value)
-        val invited = InvitedStore(link = https, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false)
+        val invited = InvitedStore(link = https, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false, deviceLabel = "Android phone")
         store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
         assertEquals(StoresModel.Preview.Store(invited), store.stores.preview.value)
 
         store.joinStore(https)
-        assertEquals(Command.JoinStore(https), store.waiting.last())
+        assertEquals(Command.JoinStore(https, "Android phone"), store.waiting.last())
         store.apply(listOf(Event.StoreJoined("hotaru")))
         assertEquals("hotaru", store.stores.joined.value)
         assertNull(store.stores.joining.value)
         assertNull(store.stores.preview.value)
+    }
+
+    @Test
+    fun an_invite_offers_the_kind_of_device_and_joins_with_the_name_typed() {
+        store.previewStore(https)
+        val invited = InvitedStore(link = https, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false, deviceLabel = "Android tablet")
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
+        // The kind of device, never its own name, as the field starts.
+        assertEquals("Android tablet", store.stores.deviceName.value)
+        // Typed over, and kept when the link is checked again.
+        store.stores.nameDevice("Den")
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(invited))))
+        assertEquals("Den", store.stores.deviceName.value)
+        store.joinStore(" $https ")
+        assertEquals(Command.JoinStore(https, "Den"), store.waiting.last())
+        // The sheet closed: nothing typed is kept for the next one.
+        store.stores.closeJoin()
+        assertEquals("", store.stores.deviceName.value)
+    }
+
+    @Test
+    fun an_open_link_joins_with_no_name() {
+        store.previewStore(https)
+        val open = InvitedStore(link = https, name = "Hotaru Plugins", url = "https://plugins.example", host = "plugins.example", fingerprint = "9f3c 1a2b 77de 0c41", alreadyJoined = false, open = true, anonymous = true)
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(open))))
+        store.joinStore(https)
+        assertEquals(Command.JoinStore(https, null), store.waiting.last())
     }
 
     @Test

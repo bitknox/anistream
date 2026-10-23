@@ -26,7 +26,7 @@ with no account and no network, and trackers consume it through a durable outbox
 consulted for it.
 
 The metadata, mapping, player, tracker and plugin layers use documented public APIs. Only the
-provider layer *chooses* an external content source, it is off by default, and every source is a
+provider layer *chooses* a content source, it is off by default, and every source is a
 config edit away from being removed. Two playback-side paths then fetch from whatever host a
 provider named, sidecar subtitles and the HLS mender below, and both are source-agnostic.
 
