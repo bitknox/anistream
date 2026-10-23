@@ -39,7 +39,7 @@ tracing.workspace = true
 wasmtime = { version = "48.0", default-features = false, features = ["runtime", "std", "cranelift", "parallel-compilation", "component-model", "async", "cache", "anyhow", "backtrace"] }
 # Preview 2 only: the host links `wasmtime_wasi::p2`, and preview 1 would bring in the whole
 # wiggle/witx toolchain for nothing.
-wasmtime-wasi = { version = "48.0", default-features = false, features = ["p2"] }
+wasmtime-wasi = { version = "49.0", default-features = false, features = ["p2"] }
 # Regex is lent to guests: a TinyGo or JS plugin bundling its own would be enormous.
 # The same URL parser the HTTP client uses. The allowlist has to read a URL exactly the way
 # the request will, or it is checking a different host than the one contacted.
