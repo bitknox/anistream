@@ -49,8 +49,14 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     let clock = Clock::default();
     let now = clock.now();
     seed_history(&store, now);
-    if scene.downloading {
+    if scene.downloading && store.download_for(AIRING, "4").ok().flatten().is_none() {
+        // A queue with a row in every state.
+        seed::download(&store, FINISHED, "1", DownloadState::Done);
+        seed::download(&store, FINISHED, "2", DownloadState::Done);
         seed::download(&store, AIRING, "4", DownloadState::Active);
+        seed::download(&store, AIRING, "5", DownloadState::Queued);
+        seed::download(&store, ONA, "3", DownloadState::Paused);
+        seed::download(&store, AIRING_NO_MAL, "2", DownloadState::Failed);
     }
     let tokens = TokenStore::with_backend(paths.data_dir.join("tokens"), Backend::File);
     tokens.set("anilist", "fixture-anilist-token").map_err(|e| e.to_string())?;
