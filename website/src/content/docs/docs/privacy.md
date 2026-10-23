@@ -36,15 +36,12 @@ plays it in mpv when yt-dlp is installed.
 
 ## Background checks
 
-<!-- For whoever merges: the branches updates/android and updates/apple-and-engine add an update
-check switch on iPhone, iPad and Android. Once they land, change the last sentence of this
-paragraph to say where that switch is. -->
-
 Once a day, each app asks GitHub's API at `api.github.com` whether a newer release exists. The answer
 is kept for 24 hours, and the request carries nothing about you. An update is only downloaded when
-you ask for one, and it comes from GitHub releases. To turn the check off, use **Check for updates**
-in Settings, under Integrations, on a Mac, or on the terminal app's Settings screen, which writes
-`check = false` under `[updates]`. The iPhone, iPad and Android apps don't have a switch for it.
+you ask for one, and it comes from GitHub releases. Every app has a switch for the check:
+**Check for updates** in Settings, under Integrations on a Mac, under Advanced on an iPad, and under
+About on an iPhone or Android. In the terminal app it is on the Settings screen, which writes
+`check = false` under `[updates]`.
 
 To match a title across the trackers, the engine keeps two public lists of title ids current. They
 come from `raw.githubusercontent.com`: one is checked daily and the other weekly, and a list that

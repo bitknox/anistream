@@ -80,9 +80,8 @@ with open(ipa, "rb") as f:
 
 icon = f"https://raw.githubusercontent.com/{repo}/main/assets/icon/512x512.png"
 about = ("anistream for iPhone and iPad, on the same engine as the terminal and Mac apps: browse, "
-         "watch, track and sync anime in one client. It hosts no content and comes with no sources. "
-         "Plugins and sources are yours to add, and what you point them at is your own decision, at "
-         "your own risk.")
+         "watch, track and sync anime in one client, with sources as plugins you add. anistream hosts "
+         "no content. What you point a plugin at is your own decision, at your own risk.")
 source = {
     "version": 2,
     "name": "anistream",
