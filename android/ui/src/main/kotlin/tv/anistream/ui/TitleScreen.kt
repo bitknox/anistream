@@ -1010,6 +1010,10 @@ private fun LazyListScope.episodeRows(
     }
     val next = entry.progress?.next ?: 1u
     val listed = entry.listedEpisodes(episodes)
+    if (listed.isEmpty()) {
+        item(key = "no-episodes", contentType = "no-episodes") { NoEpisodes(itemMotion().padding(horizontal = 16.dp)) }
+        return
+    }
     val folded = entry.foldedEpisodes(listed)
     if (folded.isNotEmpty()) {
         val anchor = episodeKey(entry.id, listed[folded.size])
@@ -1019,6 +1023,20 @@ private fun LazyListScope.episodeRows(
     items(shown, key = { episodeKey(entry.id, it) }, contentType = { "episode" }) { row ->
         Box(itemMotion()) { EpisodeRowView(entry, row, next, actions) }
     }
+}
+
+/**
+ * Said plainly when a title has no episodes to list: none a source has, and none AniList knows of
+ * yet either.
+ */
+@Composable
+private fun NoEpisodes(modifier: Modifier = Modifier) {
+    Text(
+        "No episodes yet",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(vertical = 16.dp),
+    )
 }
 
 /**
@@ -1249,6 +1267,7 @@ private fun TabletTitle(
                     items(4) { AfterWait { EpisodePlaceholder() } }
                 } else {
                     val listed = entry.listedEpisodes(episodes)
+                    if (listed.isEmpty()) fullWidth("no-episodes") { NoEpisodes(itemMotion().padding(start = 16.dp)) }
                     // Folded in pairs, so the last watched keeps its column.
                     val folded = entry.foldedEpisodes(listed, columns = 2)
                     if (folded.isNotEmpty()) {
