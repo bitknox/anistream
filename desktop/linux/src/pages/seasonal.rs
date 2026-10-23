@@ -6,12 +6,12 @@ use std::{
     rc::Rc,
 };
 
+use adw::prelude::*;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, SearchFilters, Season},
     command::Command,
     event::Event,
 };
-use adw::prelude::*;
 use gtk::glib;
 
 use crate::{
@@ -84,7 +84,11 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     body.add_named(&loading, Some("loading"));
     body.add_named(&scroll, Some("grid"));
     body.add_named(
-        &nagare::status_page("Nothing This Season", "No titles in this format this season.", None),
+        &nagare::status_page(
+            "Nothing This Season",
+            "No titles in this format this season.",
+            None,
+        ),
         Some("empty"),
     );
 
@@ -137,7 +141,9 @@ impl Page {
         if at == self.now {
             self.ctx.hub.send(Command::LoadSeasonal);
         } else {
-            self.ctx.hub.send(Command::Search { query: String::new(), filter: self.filter(at) });
+            self.ctx
+                .hub
+                .send(Command::Search { query: String::new(), filter: self.filter(at) });
         }
     }
 
@@ -156,7 +162,9 @@ impl Page {
         let ours = match view {
             ContentFor::Seasonal => self.picked.get() == self.now,
             ContentFor::Search { query, filter } => {
-                query.is_empty() && self.picked.get() != self.now && *filter == self.filter(self.picked.get())
+                query.is_empty()
+                    && self.picked.get() != self.now
+                    && *filter == self.filter(self.picked.get())
             }
             _ => false,
         };
@@ -185,7 +193,9 @@ impl Page {
             .iter()
             .filter(|e| {
                 keep.is_empty()
-                    || e.format.as_deref().is_some_and(|f| keep.contains(&f.to_ascii_uppercase().as_str()))
+                    || e.format
+                        .as_deref()
+                        .is_some_and(|f| keep.contains(&f.to_ascii_uppercase().as_str()))
             })
             .cloned()
             .collect();

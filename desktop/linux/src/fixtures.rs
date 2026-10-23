@@ -59,8 +59,9 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     server.set_now(now);
     server.add_titles(fixtures::long_franchise());
     server.serve_art();
-    let http = HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
-        .map_err(|e| e.to_string())?;
+    let http =
+        HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
+            .map_err(|e| e.to_string())?;
     let meta = Meta::new(server.anilist(&http), None, store.clone());
     let tracked = tracking::native::with_app_clients(&config, &AppClients::default());
     let mut sync = tracking::Sync::with_tokens(&tracked, &store, &http, tokens.clone());

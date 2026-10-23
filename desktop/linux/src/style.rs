@@ -65,7 +65,8 @@ fn font_files() -> Vec<PathBuf> {
 /// The app's icon, for the About dialog and the window list, when no installed copy is in the
 /// icon theme: written once under `cache` and added to the theme's search path.
 pub fn app_icon(display: &gtk::gdk::Display, name: &str, cache: &std::path::Path) {
-    const ICON: &[u8] = include_bytes!("../../../assets/icon/anistream.iconset/icon_256x256@2x.png");
+    const ICON: &[u8] =
+        include_bytes!("../../../assets/icon/anistream.iconset/icon_256x256@2x.png");
     let theme = gtk::IconTheme::for_display(display);
     if theme.has_icon(name) {
         return;

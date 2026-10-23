@@ -3,8 +3,8 @@
 
 use std::rc::Rc;
 
-use anistream_model::catalog::Entry;
 use adw::prelude::*;
+use anistream_model::catalog::Entry;
 use gtk::{gdk, gio, glib};
 
 use crate::{fit::Fit, hub::Hub, words};
@@ -33,7 +33,12 @@ fn parse_hex(hex: &str) -> Option<[u8; 3]> {
 }
 
 /// Art in a rounded box: `url`'s once it is here, over a placeholder in `color`.
-pub fn art(hub: &Hub, url: Option<&str>, color: Option<&str>, class: &str) -> (gtk::Box, gtk::Picture) {
+pub fn art(
+    hub: &Hub,
+    url: Option<&str>,
+    color: Option<&str>,
+    class: &str,
+) -> (gtk::Box, gtk::Picture) {
     let picture = gtk::Picture::for_paintable(&swatch(color));
     picture.set_content_fit(gtk::ContentFit::Cover);
     picture.set_can_shrink(true);
@@ -49,7 +54,8 @@ pub fn art(hub: &Hub, url: Option<&str>, color: Option<&str>, class: &str) -> (g
 
 /// A title's cover at a fixed size, named for screen readers by its show.
 pub fn cover(hub: &Hub, entry: &Entry, width: i32, height: i32) -> Fit {
-    let (frame, _) = art(hub, entry.cover_url.as_deref(), entry.cover_color.as_deref(), "cover");
+    let (frame, _) =
+        art(hub, entry.cover_url.as_deref(), entry.cover_color.as_deref(), "cover");
     if width <= 40 {
         frame.add_css_class("small");
     }
@@ -62,7 +68,8 @@ pub fn cover(hub: &Hub, entry: &Entry, width: i32, height: i32) -> Fit {
 
 /// A cover that takes the width it is given, at 2:3, asking `width`.
 pub fn cover_fill(hub: &Hub, entry: &Entry, width: i32) -> Fit {
-    let (frame, _) = art(hub, entry.cover_url.as_deref(), entry.cover_color.as_deref(), "cover");
+    let (frame, _) =
+        art(hub, entry.cover_url.as_deref(), entry.cover_color.as_deref(), "cover");
     let fit = Fit::new(&frame, 2.0 / 3.0, width, false, 0);
     fit.set_valign(gtk::Align::Start);
     fit.update_property(&[gtk::accessible::Property::Label(&entry.title)]);
@@ -124,12 +131,20 @@ pub fn sidebar_button(split: &adw::OverlaySplitView) -> gtk::ToggleButton {
     button.set_icon_name("sidebar-show-symbolic");
     button.set_tooltip_text(Some("Show Sidebar"));
     split.bind_property("collapsed", &button, "visible").sync_create().build();
-    split.bind_property("show-sidebar", &button, "active").sync_create().bidirectional().build();
+    split
+        .bind_property("show-sidebar", &button, "active")
+        .sync_create()
+        .bidirectional()
+        .build();
     button
 }
 
 /// A page of a destination: its header bar over `content`.
-pub fn page(title: &str, header: &adw::HeaderBar, content: &impl IsA<gtk::Widget>) -> adw::NavigationPage {
+pub fn page(
+    title: &str,
+    header: &adw::HeaderBar,
+    content: &impl IsA<gtk::Widget>,
+) -> adw::NavigationPage {
     let view = adw::ToolbarView::new();
     view.add_top_bar(header);
     view.set_content(Some(content));

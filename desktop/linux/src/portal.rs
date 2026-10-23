@@ -9,9 +9,12 @@ const BUS: &str = "org.freedesktop.portal.Desktop";
 const PATH: &str = "/org/freedesktop/portal/desktop";
 
 /// Ask to keep running in the background, and call `answer` with whether the portal agreed.
-pub fn request_background(_window: &impl IsA<gtk::Window>, answer: impl FnOnce(bool) + 'static) {
-    let answer: Rc<RefCell<Option<Box<dyn FnOnce(bool)>>>> =
-        Rc::new(RefCell::new(Some(Box::new(answer))));
+pub fn request_background(
+    _window: &impl IsA<gtk::Window>,
+    answer: impl FnOnce(bool) + 'static,
+) {
+    type Answer = Rc<RefCell<Option<Box<dyn FnOnce(bool)>>>>;
+    let answer: Answer = Rc::new(RefCell::new(Some(Box::new(answer))));
     let say = {
         let answer = Rc::clone(&answer);
         move |allowed: bool| {
@@ -46,9 +49,11 @@ pub fn request_background(_window: &impl IsA<gtk::Window>, answer: impl FnOnce(b
             let subscription = Rc::clone(&subscription);
             let bus = bus.clone();
             move |_, _, _, _, _, params| {
-                let (response, results) =
-                    params.get::<(u32, glib::VariantDict)>().unwrap_or((2, glib::VariantDict::new(None)));
-                let background = results.lookup::<bool>("background").ok().flatten().unwrap_or(false);
+                let (response, results) = params
+                    .get::<(u32, glib::VariantDict)>()
+                    .unwrap_or((2, glib::VariantDict::new(None)));
+                let background =
+                    results.lookup::<bool>("background").ok().flatten().unwrap_or(false);
                 say(response == 0 && background);
                 if let Some(id) = subscription.borrow_mut().take() {
                     #[allow(deprecated)]

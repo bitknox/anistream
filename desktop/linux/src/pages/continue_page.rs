@@ -9,6 +9,7 @@ use std::{
     rc::Rc,
 };
 
+use adw::prelude::*;
 use anistream_core::ids::AnilistId;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry},
@@ -16,7 +17,6 @@ use anistream_model::{
     episodes::EpisodeRow,
     event::Event,
 };
-use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use crate::{
@@ -161,7 +161,8 @@ impl Page {
                     glib::Propagation::Stop
                 }
                 gdk::Key::Delete => {
-                    let _ = page.list.activate_action("win.hide-continue", Some(&id.to_variant()));
+                    let _ =
+                        page.list.activate_action("win.hide-continue", Some(&id.to_variant()));
                     glib::Propagation::Stop
                 }
                 gdk::Key::M | gdk::Key::m if modifiers.contains(ctrl_shift) => {
@@ -248,7 +249,8 @@ impl Page {
             self.list.remove(&row);
         }
         let queue = self.queue.borrow().clone();
-        for (group, items) in [("progress", &queue.in_progress), ("new", &queue.new_this_week)] {
+        for (group, items) in [("progress", &queue.in_progress), ("new", &queue.new_this_week)]
+        {
             for item in items {
                 self.list.append(&self.row(group, item));
             }
@@ -301,7 +303,10 @@ impl Page {
             menu.append(Some(verb), Some(&format!("win.play({play})")));
         }
         menu.append(Some("Mark Watched"), Some(&format!("win.mark-watched({play})")));
-        menu.append(Some("Hide from Continue"), Some(&format!("win.hide-continue(uint32 {id})")));
+        menu.append(
+            Some("Hide from Continue"),
+            Some(&format!("win.hide-continue(uint32 {id})")),
+        );
         menu.append(Some("Drop"), Some(&format!("win.drop(uint32 {id})")));
         menu.append(Some("Open Title"), Some(&format!("win.open-title(uint32 {id})")));
         widgets::context_menu(&row, &menu);
@@ -355,12 +360,13 @@ impl Page {
             return;
         }
         let weak = Rc::downgrade(self);
-        let source = glib::timeout_add_local_once(std::time::Duration::from_millis(150), move || {
-            if let Some(page) = weak.upgrade() {
-                page.settle.borrow_mut().take();
-                page.show_preview(true);
-            }
-        });
+        let source =
+            glib::timeout_add_local_once(std::time::Duration::from_millis(150), move || {
+                if let Some(page) = weak.upgrade() {
+                    page.settle.borrow_mut().take();
+                    page.show_preview(true);
+                }
+            });
         *self.settle.borrow_mut() = Some(source);
     }
 
@@ -404,7 +410,9 @@ impl Page {
         let banner = widgets::banner(hub, entry, 360, "preview");
         banner.set_halign(gtk::Align::Fill);
         banner.set_cursor_from_name(Some("pointer"));
-        banner.upcast_ref::<gtk::Widget>().update_property(&[gtk::accessible::Property::Label(&format!("Open {}", entry.title))]);
+        banner.upcast_ref::<gtk::Widget>().update_property(&[
+            gtk::accessible::Property::Label(&format!("Open {}", entry.title)),
+        ]);
         let open = gtk::GestureClick::new();
         open.connect_released({
             let banner = banner.clone();
@@ -423,7 +431,9 @@ impl Page {
             .episodes
             .borrow()
             .get(&id)
-            .and_then(|rows| rows.iter().find(|r| r.number == item.episode.to_string()).cloned())
+            .and_then(|rows| {
+                rows.iter().find(|r| r.number == item.episode.to_string()).cloned()
+            })
             .and_then(|r| r.title);
         let line = match episode_title {
             Some(name) => format!("Episode {} · {name}", item.episode),
@@ -460,7 +470,9 @@ impl Page {
                 button.set_halign(gtk::Align::Start);
                 button.set_margin_top(6);
                 button.set_action_name(Some("win.play"));
-                button.set_action_target_value(Some(&(id, item.episode.to_string()).to_variant()));
+                button.set_action_target_value(Some(
+                    &(id, item.episode.to_string()).to_variant(),
+                ));
                 column.append(&button);
             }
             (None, Some(waiting)) => column.append(&widgets::haze(&waiting, "")),

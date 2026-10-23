@@ -10,6 +10,7 @@ use std::{
     sync::Weak,
 };
 
+use adw::prelude::*;
 use anistream_core::ids::AnilistId;
 use anistream_engine::engine::Engine;
 use anistream_model::{
@@ -20,7 +21,6 @@ use anistream_model::{
     settings::{SettingKey, SettingRow, SettingsView},
     sync::SyncState,
 };
-use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 /// What several screens read, kept as the engine last said it.
@@ -151,7 +151,8 @@ impl Hub {
             }
             self.known.borrow_mut().take(&event);
             // Cloned out, so a listener may listen or forget as it hears.
-            let listeners: Vec<_> = self.listeners.borrow().iter().map(|(_, l)| l.clone()).collect();
+            let listeners: Vec<_> =
+                self.listeners.borrow().iter().map(|(_, l)| l.clone()).collect();
             for listener in listeners {
                 listener(&event);
             }

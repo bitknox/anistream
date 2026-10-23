@@ -8,13 +8,13 @@ use std::{
     rc::Rc,
 };
 
+use adw::prelude::*;
 use anistream_core::settings::SettingValue;
 use anistream_model::{
     command::Command,
     event::Event,
     settings::{SettingChange, SettingKey, SettingRow},
 };
-use adw::prelude::*;
 use gtk::gio;
 
 use crate::{
@@ -40,7 +40,10 @@ const PANES: [Pane; 8] = [
         title: "Playback",
         icon: "media-playback-start-symbolic",
         groups: &[
-            ("Watching", &[K::Translation, K::Quality, K::Subtitles, K::Titles, K::CommitThreshold]),
+            (
+                "Watching",
+                &[K::Translation, K::Quality, K::Subtitles, K::Titles, K::CommitThreshold],
+            ),
             (
                 "Player",
                 &[
@@ -62,7 +65,10 @@ const PANES: [Pane; 8] = [
         title: "Downloads",
         icon: "folder-download-symbolic",
         groups: &[
-            ("Files", &[K::DownloadDir, K::DownloadQuality, K::MergeSubtitles, K::DownloadHook]),
+            (
+                "Files",
+                &[K::DownloadDir, K::DownloadQuality, K::MergeSubtitles, K::DownloadHook],
+            ),
             ("Ahead", &[K::KeepNextEpisodes]),
         ],
     },
@@ -78,7 +84,15 @@ const PANES: [Pane; 8] = [
         icon: "network-server-symbolic",
         groups: &[(
             "Torrents",
-            &[K::Torrents, K::VpnMode, K::VpnOnFailure, K::KeepSeeding, K::SeedRatio, K::SeedHours, K::UploadLimit],
+            &[
+                K::Torrents,
+                K::VpnMode,
+                K::VpnOnFailure,
+                K::KeepSeeding,
+                K::SeedRatio,
+                K::SeedHours,
+                K::UploadLimit,
+            ],
         )],
     },
     Pane { name: "accounts", title: "Accounts", icon: "avatar-default-symbolic", groups: &[] },
@@ -92,7 +106,12 @@ const PANES: [Pane; 8] = [
             ("Updates", &[K::UpdateCheck]),
         ],
     },
-    Pane { name: "advanced", title: "Advanced", icon: "preferences-other-symbolic", groups: &[("mpv", &[K::MpvOptions])] },
+    Pane {
+        name: "advanced",
+        title: "Advanced",
+        icon: "preferences-other-symbolic",
+        groups: &[("mpv", &[K::MpvOptions])],
+    },
     Pane { name: "about", title: "About", icon: "help-about-symbolic", groups: &[] },
 ];
 
@@ -246,7 +265,9 @@ impl Inner {
             Event::Settings(view) => {
                 self.quiet.set(true);
                 for shown in self.rows.borrow().iter() {
-                    if let Some(row) = view.rows.iter().chain(&view.native_rows).find(|r| r.key == shown.key) {
+                    if let Some(row) =
+                        view.rows.iter().chain(&view.native_rows).find(|r| r.key == shown.key)
+                    {
                         (shown.update)(row);
                     }
                 }
@@ -297,7 +318,9 @@ impl Inner {
         }
         if name == "sources" {
             let legal = adw::PreferencesGroup::builder()
-                .description("anistream hosts no content. Sources come from the plugin stores you join.")
+                .description(
+                    "anistream hosts no content. Sources come from the plugin stores you join.",
+                )
                 .build();
             page.add(&legal);
         }
@@ -344,7 +367,8 @@ impl Inner {
         }
 
         if catalog::is_switch(key) {
-            let line = adw::SwitchRow::builder().title(&title).active(catalog::is_on(row)).build();
+            let line =
+                adw::SwitchRow::builder().title(&title).active(catalog::is_on(row)).build();
             if let Some(subtitle) = &subtitle {
                 line.set_subtitle(subtitle);
             }
@@ -407,7 +431,11 @@ impl Inner {
             if key == K::DownloadDir {
                 return self.folder_row(&title, text);
             }
-            let line = adw::EntryRow::builder().title(&title).text(text).show_apply_button(true).build();
+            let line = adw::EntryRow::builder()
+                .title(&title)
+                .text(text)
+                .show_apply_button(true)
+                .build();
             line.connect_apply({
                 let inner = Rc::downgrade(self);
                 move |line| {
@@ -434,7 +462,9 @@ impl Inner {
         let value = widgets::haze(&catalog::shown(&row.value), "");
         value.set_valign(gtk::Align::Center);
         line.add_suffix(&value);
-        for (icon, delta, tip) in [("go-previous-symbolic", -1, "Previous"), ("go-next-symbolic", 1, "Next")] {
+        for (icon, delta, tip) in
+            [("go-previous-symbolic", -1, "Previous"), ("go-next-symbolic", 1, "Next")]
+        {
             let button = gtk::Button::from_icon_name(icon);
             button.add_css_class("flat");
             button.set_valign(gtk::Align::Center);
@@ -465,14 +495,22 @@ impl Inner {
         let inner = Rc::downgrade(self);
         choose.connect_clicked(move |_| {
             let Some(inner) = inner.upgrade() else { return };
-            let dialog = gtk::FileDialog::builder().title("Download Folder").modal(true).build();
+            let dialog =
+                gtk::FileDialog::builder().title("Download Folder").modal(true).build();
             let weak = Rc::downgrade(&inner);
-            dialog.select_folder(Some(&inner.ctx.window), gio::Cancellable::NONE, move |picked| {
-                let (Some(inner), Ok(folder)) = (weak.upgrade(), picked) else { return };
-                if let Some(path) = folder.path() {
-                    inner.set(K::DownloadDir, SettingValue::Str(path.to_string_lossy().into_owned()));
-                }
-            });
+            dialog.select_folder(
+                Some(&inner.ctx.window),
+                gio::Cancellable::NONE,
+                move |picked| {
+                    let (Some(inner), Ok(folder)) = (weak.upgrade(), picked) else { return };
+                    if let Some(path) = folder.path() {
+                        inner.set(
+                            K::DownloadDir,
+                            SettingValue::Str(path.to_string_lossy().into_owned()),
+                        );
+                    }
+                },
+            );
         });
         line.add_suffix(&choose);
         self.keep(K::DownloadDir, {
@@ -577,7 +615,8 @@ fn about_pane(page: &adw::PreferencesPage) {
     group.add(&version);
     let legal = adw::ActionRow::builder().title("anistream hosts no content.").build();
     group.add(&legal);
-    let about = adw::ButtonRow::builder().title("About anistream").action_name("win.about").build();
+    let about =
+        adw::ButtonRow::builder().title("About anistream").action_name("win.about").build();
     group.add(&about);
     page.add(&group);
 }

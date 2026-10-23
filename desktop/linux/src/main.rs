@@ -8,9 +8,9 @@
 
 mod catalog;
 mod engine;
+mod fit;
 #[cfg(feature = "fixtures")]
 mod fixtures;
-mod fit;
 mod hub;
 mod nagare;
 mod pages;
@@ -120,8 +120,11 @@ fn main() -> glib::ExitCode {
 
     adw::init().expect("libadwaita");
     // A scene runs beside the user's own copy, never in it.
-    let flags =
-        if args.fixtures { gio::ApplicationFlags::NON_UNIQUE } else { gio::ApplicationFlags::empty() };
+    let flags = if args.fixtures {
+        gio::ApplicationFlags::NON_UNIQUE
+    } else {
+        gio::ApplicationFlags::empty()
+    };
     let app = adw::Application::builder().application_id(APP_ID).flags(flags).build();
     let player = PlayerOptions {
         hwdec: args.hwdec.clone().unwrap_or_else(|| "auto-safe".into()),

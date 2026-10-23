@@ -4,12 +4,12 @@
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
+use adw::prelude::*;
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     event::Event,
 };
-use adw::prelude::*;
 use gtk::{gio, glib};
 
 use crate::{
@@ -40,7 +40,7 @@ impl Order {
             // The tracker's own order is last updated first.
             Self::Updated => {}
             Self::Title => entries.sort_by_key(|e| e.title.to_lowercase()),
-            Self::Score => entries.sort_by(|a, b| b.score.cmp(&a.score)),
+            Self::Score => entries.sort_by_key(|e| std::cmp::Reverse(e.score)),
         }
     }
 }
@@ -141,7 +141,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     connect.set_halign(gtk::Align::Center);
     connect.set_action_name(Some("win.connect"));
     connect.set_action_target_value(Some(&"anilist".to_variant()));
-    let signed_out = nagare::status_page("Library", "Your lists come from your tracker.", Some(&connect));
+    let signed_out =
+        nagare::status_page("Library", "Your lists come from your tracker.", Some(&connect));
 
     let body = gtk::Stack::new();
     body.add_named(&lists_view, Some("lists"));
@@ -180,7 +181,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     order.connect_activate({
         let page = Rc::downgrade(&page);
         move |action, arg| {
-            let (Some(page), Some(name)) = (page.upgrade(), arg.and_then(String::from_variant)) else {
+            let (Some(page), Some(name)) = (page.upgrade(), arg.and_then(String::from_variant))
+            else {
                 return;
             };
             action.set_state(&name.to_variant());
@@ -216,7 +218,9 @@ impl Page {
                     self.show(*segment);
                 }
                 _ => {
-                    self.entries.borrow_mut().insert(segment.label(), content.entries().to_vec());
+                    self.entries
+                        .borrow_mut()
+                        .insert(segment.label(), content.entries().to_vec());
                     self.show(*segment);
                 }
             },
@@ -226,14 +230,10 @@ impl Page {
             }
             // A status set here moves the title between lists.
             Event::Detail(entry) if entry.list_status.is_some() => {
-                let moved = self
-                    .entries
-                    .borrow()
-                    .iter()
-                    .any(|(segment, list)| {
-                        list.iter().any(|e| e.id == entry.id)
-                            && Some(*segment) != entry.list_status.map(LibrarySegment::label)
-                    });
+                let moved = self.entries.borrow().iter().any(|(segment, list)| {
+                    list.iter().any(|e| e.id == entry.id)
+                        && Some(*segment) != entry.list_status.map(LibrarySegment::label)
+                });
                 if moved {
                     self.load();
                 }
@@ -259,10 +259,13 @@ impl Page {
     }
 
     fn show(&self, segment: LibrarySegment) {
-        let Some((_, grid, page, stack)) = self.lists.iter().find(|(s, ..)| *s == segment) else {
+        let Some((_, grid, page, stack)) = self.lists.iter().find(|(s, ..)| *s == segment)
+        else {
             return;
         };
-        let Some(mut entries) = self.entries.borrow().get(segment.label()).cloned() else { return };
+        let Some(mut entries) = self.entries.borrow().get(segment.label()).cloned() else {
+            return;
+        };
         self.order.borrow().sort(&mut entries);
         grid.set(&entries);
         page.set_title(Some(&format!("{} {}", segment_title(segment), entries.len())));

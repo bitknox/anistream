@@ -123,10 +123,9 @@ pub fn choices(key: SettingKey) -> Vec<Choice> {
         }),
         // Warn only is asked for with its acknowledgement, through the torrent protection.
         K::VpnOnFailure => strs(&[("pause", "pause torrents"), ("stop", "stop torrents")]),
-        _ if is_switch(key) => vec![
-            Choice::new(V::Bool(false), "off"),
-            Choice::new(V::Bool(true), "on"),
-        ],
+        _ if is_switch(key) => {
+            vec![Choice::new(V::Bool(false), "off"), Choice::new(V::Bool(true), "on")]
+        }
         _ => Vec::new(),
     }
 }
@@ -182,7 +181,12 @@ mod tests {
             if choices(r.key).is_empty() || r.key == SettingKey::Theme {
                 continue;
             }
-            assert!(current(r).is_some(), "{:?} says {:?}, which no choice says", r.key, r.value);
+            assert!(
+                current(r).is_some(),
+                "{:?} says {:?}, which no choice says",
+                r.key,
+                r.value
+            );
         }
     }
 

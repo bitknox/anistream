@@ -8,12 +8,12 @@ use std::{
     rc::Rc,
 };
 
+use adw::prelude::*;
 use anistream_model::{
     catalog::{ContentFor, ContentList, SearchFilters},
     command::Command,
     event::Event,
 };
-use adw::prelude::*;
 
 use crate::{
     catalog, nagare,
@@ -41,18 +41,33 @@ const GENRES: [&str; 16] = [
     "Thriller",
 ];
 
-const FORMATS: [(&str, &str); 6] =
-    [("Any format", ""), ("TV", "TV"), ("Movie", "MOVIE"), ("ONA", "ONA"), ("OVA", "OVA"), ("Special", "SPECIAL")];
-const SEASONS: [(&str, &str); 5] =
-    [("Any season", ""), ("Winter", "WINTER"), ("Spring", "SPRING"), ("Summer", "SUMMER"), ("Fall", "FALL")];
+const FORMATS: [(&str, &str); 6] = [
+    ("Any format", ""),
+    ("TV", "TV"),
+    ("Movie", "MOVIE"),
+    ("ONA", "ONA"),
+    ("OVA", "OVA"),
+    ("Special", "SPECIAL"),
+];
+const SEASONS: [(&str, &str); 5] = [
+    ("Any season", ""),
+    ("Winter", "WINTER"),
+    ("Spring", "SPRING"),
+    ("Summer", "SUMMER"),
+    ("Fall", "FALL"),
+];
 const STATUSES: [(&str, &str); 4] = [
     ("Any status", ""),
     ("Airing", "RELEASING"),
     ("Finished", "FINISHED"),
     ("Not yet aired", "NOT_YET_RELEASED"),
 ];
-const SORTS: [(&str, &str); 4] =
-    [("Best match", ""), ("Popular", "POPULARITY_DESC"), ("Top rated", "SCORE_DESC"), ("Newest", "START_DATE_DESC")];
+const SORTS: [(&str, &str); 4] = [
+    ("Best match", ""),
+    ("Popular", "POPULARITY_DESC"),
+    ("Top rated", "SCORE_DESC"),
+    ("Newest", "START_DATE_DESC"),
+];
 
 /// How many recent searches the page keeps.
 const RECENT: usize = 6;
@@ -95,7 +110,11 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .icon_name("system-search-symbolic")
         .tooltip_text("Search")
         .build();
-    toggle.bind_property("active", &bar, "search-mode-enabled").sync_create().bidirectional().build();
+    toggle
+        .bind_property("active", &bar, "search-mode-enabled")
+        .sync_create()
+        .bidirectional()
+        .build();
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_end(&toggle);
@@ -276,7 +295,11 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         move |bar| {
             let Some(inner) = inner.upgrade() else { return };
             if bar.is_search_mode() && inner.capture.get() && !inner.on_screen() {
-                let _ = WidgetExt::activate_action(&inner.ctx.window, "win.go", Some(&"search".to_variant()));
+                let _ = WidgetExt::activate_action(
+                    &inner.ctx.window,
+                    "win.go",
+                    Some(&"search".to_variant()),
+                );
             }
         }
     });
@@ -382,7 +405,9 @@ impl Inner {
                                 format!("Nothing found for \u{201c}{query}\u{201d}")
                             };
                             self.empty.set_title(&line);
-                            self.empty.set_description(Some("Try another spelling, or fewer filters."));
+                            self.empty.set_description(Some(
+                                "Try another spelling, or fewer filters.",
+                            ));
                             self.body.set_visible_child_name("empty");
                         }
                     }
@@ -409,7 +434,11 @@ impl Inner {
                 }
                 let line = adw::ActionRow::builder()
                     .title(catalog::shown(row.key.label()))
-                    .subtitle(format!("{} · {}", super::settings::pane_title(pane), catalog::shown(&row.value)))
+                    .subtitle(format!(
+                        "{} · {}",
+                        super::settings::pane_title(pane),
+                        catalog::shown(&row.value)
+                    ))
                     .activatable(true)
                     .build();
                 line.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));

@@ -13,6 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use adw::prelude::*;
 use anistream_engine::engine::Engine;
 use anistream_model::{
     command::{Command, PlayerCommand},
@@ -21,12 +22,10 @@ use anistream_model::{
     playback::{PlaybackId, SkipKind},
 };
 use anistream_mpv_host::{HostEvent, Player, PlayerOptions, PlayerState};
-use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use crate::{
-    video,
-    widgets,
+    video, widgets,
     window::{Ctx, Shell, Size},
     words,
 };
@@ -57,10 +56,16 @@ pub struct PlayerView {
     over_bar: Cell<bool>,
     inhibit: Cell<Option<u32>>,
     countdown: RefCell<Option<glib::SourceId>>,
-    menus: RefCell<Option<(Vec<MenuEpisode>, Vec<MenuSource>, MenuChoices, bool)>>,
+    menus: RefCell<Option<Menus>>,
 }
 
 /// The widgets the player updates.
+/// The episodes, sources and choices the menus offer, and whether they are open.
+type Menus = (Vec<MenuEpisode>, Vec<MenuSource>, MenuChoices, bool);
+
+/// What one of the page's actions does.
+type Handler = Box<dyn Fn(&PlayerView, Option<&glib::Variant>)>;
+
 struct Ui {
     page: adw::ToolbarView,
     /// The bottom bar's controls that narrow windows leave out: the keys still do them.
@@ -121,7 +126,8 @@ impl PlayerView {
         let (video_widget, gl) = match &player {
             Some(p) => {
                 let area = video::video_area(p.mpv().clone(), {
-                    let (ready, waiting, player) = (Rc::clone(&ready), Rc::clone(&waiting), Rc::clone(p));
+                    let (ready, waiting, player) =
+                        (Rc::clone(&ready), Rc::clone(&waiting), Rc::clone(p));
                     move || {
                         ready.set(true);
                         let ops: Vec<_> = waiting.borrow_mut().drain(..).collect();
@@ -221,7 +227,8 @@ impl PlayerView {
         if self.ctx.window.is_fullscreen() {
             self.ctx.window.unfullscreen();
         }
-        if let (Some(cookie), Some(app)) = (self.inhibit.take(), self.ctx.window.application()) {
+        if let (Some(cookie), Some(app)) = (self.inhibit.take(), self.ctx.window.application())
+        {
             app.uninhibit(cookie);
         }
         self.clear_cards();
@@ -263,14 +270,18 @@ impl PlayerView {
 
     fn player_ui(&self, ui: &PlayerUi) {
         match ui {
-            PlayerUi::Starting { title, episode, episode_title, banner_url, cover_url, .. } => {
+            PlayerUi::Starting {
+                title, episode, episode_title, banner_url, cover_url, ..
+            } => {
                 self.ui.show.set_label(title);
                 self.ui.episode.set_label(&episode_line(episode, episode_title.as_deref()));
                 self.ui.starting_line.set_label(&format!("Starting episode {episode}"));
                 self.ui.starting.set_visible(true);
                 self.ui.starting.set_opacity(1.0);
                 self.ui.starting_art.set_paintable(Some(&widgets::swatch(None)));
-                self.ctx.hub.art(&self.ui.starting_art, banner_url.as_deref().or(cover_url.as_deref()));
+                self.ctx
+                    .hub
+                    .art(&self.ui.starting_art, banner_url.as_deref().or(cover_url.as_deref()));
                 self.clear_cards();
                 self.open();
             }
@@ -279,7 +290,12 @@ impl PlayerView {
                 self.ui.episode.set_label(&episode_line(number, title.as_deref()));
             }
             PlayerUi::Menus { episodes, sources, upscaling, night_mode, .. } => {
-                self.menus.replace(Some((episodes.clone(), sources.clone(), upscaling.clone(), *night_mode)));
+                self.menus.replace(Some((
+                    episodes.clone(),
+                    sources.clone(),
+                    upscaling.clone(),
+                    *night_mode,
+                )));
                 self.rebuild_menus();
             }
             PlayerUi::Skip { kind, .. } => {
@@ -317,7 +333,9 @@ impl PlayerView {
             _ => {}
         }
         self.ui.cards.set_visible(
-            self.ui.skip.is_visible() || self.ui.up_next.is_visible() || self.ui.stall.is_visible(),
+            self.ui.skip.is_visible()
+                || self.ui.up_next.is_visible()
+                || self.ui.stall.is_visible(),
         );
     }
 
@@ -378,7 +396,8 @@ impl PlayerView {
                 {
                     let cookie = app.inhibit(
                         Some(&self.ctx.window),
-                        gtk::ApplicationInhibitFlags::IDLE | gtk::ApplicationInhibitFlags::SUSPEND,
+                        gtk::ApplicationInhibitFlags::IDLE
+                            | gtk::ApplicationInhibitFlags::SUSPEND,
                         Some("Playing an episode"),
                     );
                     // Zero when there is no session to ask, as in a headless run.
@@ -439,11 +458,14 @@ impl PlayerView {
         let Some(player) = &self.player else { return };
         let window = &self.ctx.window;
         let Some(surface) = window.surface() else { return };
-        let Some(monitor) = WidgetExt::display(window).monitor_at_surface(&surface) else { return };
+        let Some(monitor) = WidgetExt::display(window).monitor_at_surface(&surface) else {
+            return;
+        };
         let geometry = monitor.geometry();
         let scale = monitor.scale();
         let refresh = monitor.refresh_rate();
-        let compute = self.gl.get().is_some_and(|(major, minor, gles)| !gles && (major, minor) >= (4, 3));
+        let compute =
+            self.gl.get().is_some_and(|(major, minor, gles)| !gles && (major, minor) >= (4, 3));
         player.display(
             (f64::from(geometry.width()) * scale) as u32,
             (f64::from(geometry.height()) * scale) as u32,
@@ -479,7 +501,12 @@ impl PlayerView {
     fn rest(&self) {
         let menu_open = self.ui.menu_buttons.iter().any(|b| b.is_active());
         let card = self.ui.stall.is_visible();
-        if self.state.borrow().paused || self.over_bar.get() || menu_open || card || !self.shown.get() {
+        if self.state.borrow().paused
+            || self.over_bar.get()
+            || menu_open
+            || card
+            || !self.shown.get()
+        {
             if self.shown.get() {
                 self.wake();
             }
@@ -491,7 +518,11 @@ impl PlayerView {
     }
 
     fn chrome(&self) -> [gtk::Widget; 3] {
-        [self.ui.top.clone().upcast(), self.ui.bottom.clone().upcast(), self.ui.dim.clone().upcast()]
+        [
+            self.ui.top.clone().upcast(),
+            self.ui.bottom.clone().upcast(),
+            self.ui.dim.clone().upcast(),
+        ]
     }
 
     /// Fade the bars and the dim in or out; faded out, they are unmapped.
@@ -510,7 +541,13 @@ impl PlayerView {
             }
         });
         let (from, to) = if show { (0.0, 1.0) } else { (1.0, 0.0) };
-        let animation = adw::TimedAnimation::new(&self.ui.page, from, to, if reduced { 0 } else { FADE_MS }, target);
+        let animation = adw::TimedAnimation::new(
+            &self.ui.page,
+            from,
+            to,
+            if reduced { 0 } else { FADE_MS },
+            target,
+        );
         if !show {
             let weak = self.self_weak();
             animation.connect_done(move |_| {
@@ -533,7 +570,9 @@ impl PlayerView {
 
     /// The episodes menu and the settings menu, from what the engine offers.
     fn rebuild_menus(&self) {
-        let Some((episodes, sources, upscaling, night)) = self.menus.borrow().clone() else { return };
+        let Some((episodes, sources, upscaling, night)) = self.menus.borrow().clone() else {
+            return;
+        };
         let list = gio::Menu::new();
         for episode in episodes.iter().take(200) {
             let label = match &episode.title {
@@ -548,7 +587,11 @@ impl PlayerView {
         let menu = gio::Menu::new();
         let source_menu = gio::Menu::new();
         for source in &sources {
-            let label = if source.current { format!("{} (playing)", source.label) } else { source.label.clone() };
+            let label = if source.current {
+                format!("{} (playing)", source.label)
+            } else {
+                source.label.clone()
+            };
             source_menu.append(Some(&label), Some(&format!("player.source::{}", source.id)));
         }
         if !sources.is_empty() {
@@ -556,10 +599,17 @@ impl PlayerView {
         }
         let picture = gio::Menu::new();
         for choice in &upscaling.options {
-            let label = if choice.id == upscaling.current { format!("{} (on)", choice.label) } else { choice.label.clone() };
+            let label = if choice.id == upscaling.current {
+                format!("{} (on)", choice.label)
+            } else {
+                choice.label.clone()
+            };
             picture.append(Some(&label), Some(&format!("player.upscaling::{}", choice.id)));
         }
-        picture.append(Some(if night { "Night Mode (on)" } else { "Night Mode" }), Some("player.night"));
+        picture.append(
+            Some(if night { "Night Mode (on)" } else { "Night Mode" }),
+            Some("player.night"),
+        );
         menu.append_section(Some("Upscaling"), &picture);
         self.ui.settings.set_menu_model(Some(&menu));
     }
@@ -578,7 +628,7 @@ impl PlayerView {
 
         // The page's actions, for its buttons and menus.
         let group = gio::SimpleActionGroup::new();
-        let add = |name: &str, kind: Option<&glib::VariantTy>, f: Box<dyn Fn(&PlayerView, Option<&glib::Variant>)>| {
+        let add = |name: &str, kind: Option<&glib::VariantTy>, f: Handler| {
             let action = gio::SimpleAction::new(name, kind);
             let weak = Rc::downgrade(self);
             action.connect_activate(move |_, arg| {
@@ -599,30 +649,50 @@ impl PlayerView {
         add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));
         add("stall-switch", None, Box::new(|v, _| v.send(PlayerCommand::StallSwitch)));
         add("stall-wait", None, Box::new(|v, _| v.send(PlayerCommand::StallWait)));
-        add("night", None, Box::new(|v, _| {
-            let on = v.menus.borrow().as_ref().is_some_and(|m| m.3);
-            v.send(PlayerCommand::NightMode(!on));
-        }));
-        add("speed", Some(glib::VariantTy::DOUBLE), Box::new(|v, a| {
-            if let Some(speed) = a.and_then(f64::from_variant) {
-                v.send(PlayerCommand::SpeedTo(speed));
-            }
-        }));
-        add("episode", Some(glib::VariantTy::STRING), Box::new(|v, a| {
-            if let Some(n) = a.and_then(String::from_variant) {
-                v.send(PlayerCommand::Choose(PlayerChoice::Episode(n)));
-            }
-        }));
-        add("source", Some(glib::VariantTy::STRING), Box::new(|v, a| {
-            if let Some(id) = a.and_then(String::from_variant) {
-                v.send(PlayerCommand::Choose(PlayerChoice::Source(id)));
-            }
-        }));
-        add("upscaling", Some(glib::VariantTy::STRING), Box::new(|v, a| {
-            if let Some(id) = a.and_then(String::from_variant) {
-                v.send(PlayerCommand::Upscaling(id));
-            }
-        }));
+        add(
+            "night",
+            None,
+            Box::new(|v, _| {
+                let on = v.menus.borrow().as_ref().is_some_and(|m| m.3);
+                v.send(PlayerCommand::NightMode(!on));
+            }),
+        );
+        add(
+            "speed",
+            Some(glib::VariantTy::DOUBLE),
+            Box::new(|v, a| {
+                if let Some(speed) = a.and_then(f64::from_variant) {
+                    v.send(PlayerCommand::SpeedTo(speed));
+                }
+            }),
+        );
+        add(
+            "episode",
+            Some(glib::VariantTy::STRING),
+            Box::new(|v, a| {
+                if let Some(n) = a.and_then(String::from_variant) {
+                    v.send(PlayerCommand::Choose(PlayerChoice::Episode(n)));
+                }
+            }),
+        );
+        add(
+            "source",
+            Some(glib::VariantTy::STRING),
+            Box::new(|v, a| {
+                if let Some(id) = a.and_then(String::from_variant) {
+                    v.send(PlayerCommand::Choose(PlayerChoice::Source(id)));
+                }
+            }),
+        );
+        add(
+            "upscaling",
+            Some(glib::VariantTy::STRING),
+            Box::new(|v, a| {
+                if let Some(id) = a.and_then(String::from_variant) {
+                    v.send(PlayerCommand::Upscaling(id));
+                }
+            }),
+        );
         ui.page.insert_action_group("player", Some(&group));
 
         // A drag on the timeline seeks.
@@ -641,7 +711,12 @@ impl PlayerView {
             let weak = Rc::downgrade(self);
             move |_, _, value| {
                 if let Some(view) = weak.upgrade() {
-                    let now = view.player.as_ref().and_then(|p| p.mpv().get("volume")).and_then(|v| v.as_f64()).unwrap_or(100.0);
+                    let now = view
+                        .player
+                        .as_ref()
+                        .and_then(|p| p.mpv().get("volume"))
+                        .and_then(|v| v.as_f64())
+                        .unwrap_or(100.0);
                     view.send(PlayerCommand::Volume(value - now));
                 }
                 glib::Propagation::Proceed
@@ -688,9 +763,15 @@ impl PlayerView {
             if picked.is_some_and(|w| w.is_ancestor(&view.ui.cards)) {
                 return;
             }
-            if gesture.current_event().is_some_and(|e| e.device().is_some_and(|d| d.source() == gdk::InputSource::Touchscreen)) {
+            if gesture.current_event().is_some_and(|e| {
+                e.device().is_some_and(|d| d.source() == gdk::InputSource::Touchscreen)
+            }) {
                 // A tap toggles the controls instead.
-                if view.shown.get() { view.rest_now() } else { view.wake() }
+                if view.shown.get() {
+                    view.rest_now()
+                } else {
+                    view.wake()
+                }
                 return;
             }
             match presses {
@@ -705,7 +786,8 @@ impl PlayerView {
         ui.stage.add_controller(click);
 
         // The wheel steps the volume; horizontal scrolling seeks.
-        let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
+        let scroll =
+            gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::BOTH_AXES);
         let weak = Rc::downgrade(self);
         scroll.connect_scroll(move |_, dx, dy| {
             let Some(view) = weak.upgrade() else { return glib::Propagation::Proceed };
@@ -725,7 +807,11 @@ impl PlayerView {
         let weak = Rc::downgrade(self);
         keys.connect_key_pressed(move |_, key, _, modifiers| {
             let Some(view) = weak.upgrade() else { return glib::Propagation::Proceed };
-            if view.key(key, modifiers) { glib::Propagation::Stop } else { glib::Propagation::Proceed }
+            if view.key(key, modifiers) {
+                glib::Propagation::Stop
+            } else {
+                glib::Propagation::Proceed
+            }
         });
         ui.page.add_controller(keys);
     }
@@ -743,7 +829,8 @@ impl PlayerView {
         let shift = modifiers.contains(gdk::ModifierType::SHIFT_MASK);
         let step = if shift { 30.0 } else { 5.0 };
         // Arrows and S act without showing the controls; every other key shows them.
-        let quiet = matches!(key, Key::Left | Key::Right | Key::Up | Key::Down | Key::s | Key::S);
+        let quiet =
+            matches!(key, Key::Left | Key::Right | Key::Up | Key::Down | Key::s | Key::S);
         if modifiers.intersects(gdk::ModifierType::CONTROL_MASK | gdk::ModifierType::ALT_MASK) {
             return false;
         }
@@ -889,8 +976,10 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     // The bottom bar.
     let play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
     play.add_css_class("play");
-    let back10 = icon_button("media-seek-backward-symbolic", "Back 10 Seconds", "player.back-10");
-    let forward10 = icon_button("media-seek-forward-symbolic", "Forward 10 Seconds", "player.forward-10");
+    let back10 =
+        icon_button("media-seek-backward-symbolic", "Back 10 Seconds", "player.back-10");
+    let forward10 =
+        icon_button("media-seek-forward-symbolic", "Forward 10 Seconds", "player.forward-10");
     let position = gtk::Label::new(Some("0:00"));
     let remaining = gtk::Label::new(Some("-0:00"));
     for label in [&position, &remaining] {
@@ -940,7 +1029,12 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     let bottom = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     bottom.add_css_class("player-bar");
     bottom.add_css_class("osd");
-    for widget in [play.upcast_ref::<gtk::Widget>(), back10.upcast_ref(), forward10.upcast_ref(), position.upcast_ref()] {
+    for widget in [
+        play.upcast_ref::<gtk::Widget>(),
+        back10.upcast_ref(),
+        forward10.upcast_ref(),
+        position.upcast_ref(),
+    ] {
         bottom.append(widget);
     }
     bottom.append(&timeline);
@@ -1055,7 +1149,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     page.set_extend_content_to_bottom_edge(true);
     page.set_focusable(true);
 
-    let menu_buttons = vec![episodes.clone(), settings.clone(), speed_button.clone(), volume_button];
+    let menu_buttons =
+        vec![episodes.clone(), settings.clone(), speed_button.clone(), volume_button];
     Ui {
         roomy: vec![back10.upcast(), forward10.upcast(), speed_button.upcast()],
         page,

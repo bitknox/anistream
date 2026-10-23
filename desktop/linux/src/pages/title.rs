@@ -5,6 +5,7 @@
 
 use std::{cell::RefCell, rc::Rc};
 
+use adw::prelude::*;
 use anistream_core::ids::AnilistId;
 use anistream_model::{
     catalog::{Entry, LibrarySegment, LinkedTitle, RelationKind},
@@ -13,7 +14,6 @@ use anistream_model::{
     event::Event,
     settings::SettingKey,
 };
-use adw::prelude::*;
 use gtk::{gio, glib};
 
 use crate::{
@@ -82,7 +82,13 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     let banner_slot = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
     content.append(&banner_slot);
-    content.append(&adw::Clamp::builder().maximum_size(1200).tightening_threshold(1200).child(&columns).build());
+    content.append(
+        &adw::Clamp::builder()
+            .maximum_size(1200)
+            .tightening_threshold(1200)
+            .child(&columns)
+            .build(),
+    );
     let scroll = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&content)
@@ -178,7 +184,11 @@ impl Page {
     fn resized(&self, size: Size) {
         self.sized.replace(size);
         let wide = size == Size::Wide;
-        self.columns.set_orientation(if wide { gtk::Orientation::Horizontal } else { gtk::Orientation::Vertical });
+        self.columns.set_orientation(if wide {
+            gtk::Orientation::Horizontal
+        } else {
+            gtk::Orientation::Vertical
+        });
         self.side.set_size_request(if wide { 260 } else { -1 }, -1);
         let margin = if size == Size::Narrow { 12 } else { 36 };
         self.columns.set_margin_start(margin);
@@ -200,7 +210,9 @@ impl Page {
             move |_, arg| {
                 let Some(hub) = hub.upgrade() else { return };
                 let Some(name) = arg.and_then(String::from_variant) else { return };
-                if let Some(status) = LibrarySegment::ALL.into_iter().find(|s| s.label() == name) {
+                if let Some(status) =
+                    LibrarySegment::ALL.into_iter().find(|s| s.label() == name)
+                {
                     hub.send(Command::SetStatus { id, status });
                     hub.send(Command::LoadDetail(id));
                 }
@@ -224,7 +236,10 @@ impl Page {
         let show_settings = gio::SimpleAction::new("show-settings", None);
         show_settings.set_enabled(false);
         group.add_action(&show_settings);
-        let watched = gio::SimpleAction::new("watched", Some(&glib::VariantType::new("(sb)").expect("a type")));
+        let watched = gio::SimpleAction::new(
+            "watched",
+            Some(&glib::VariantType::new("(sb)").expect("a type")),
+        );
         watched.connect_activate(move |_, arg| {
             let Some(hub) = hub.upgrade() else { return };
             if let Some((episode, on)) = arg.and_then(<(String, bool)>::from_variant) {
@@ -270,7 +285,9 @@ impl Page {
                 button.add_css_class("pill");
                 button.add_css_class("suggested-action");
                 button.set_action_name(Some("win.play"));
-                button.set_action_target_value(Some(&(id, item.episode.to_string()).to_variant()));
+                button.set_action_target_value(Some(
+                    &(id, item.episode.to_string()).to_variant(),
+                ));
                 button.set_hexpand(narrow);
                 actions.append(&button);
             }
@@ -288,7 +305,11 @@ impl Page {
             );
         }
         let status = gtk::MenuButton::builder()
-            .label(entry.list_status.map_or("Add to List".to_owned(), |s| catalog::shown(s.label())))
+            .label(
+                entry
+                    .list_status
+                    .map_or("Add to List".to_owned(), |s| catalog::shown(s.label())),
+            )
             .menu_model(&status_menu)
             .valign(gtk::Align::Center)
             .build();
@@ -339,7 +360,9 @@ impl Page {
     /// The franchise's seasons as a picker, when there is more than one.
     fn fill_seasons(&self, entry: &Entry) {
         clear(&self.seasons);
-        let Some(seasons) = entry.detail.as_ref().and_then(|d| d.seasons.clone()) else { return };
+        let Some(seasons) = entry.detail.as_ref().and_then(|d| d.seasons.clone()) else {
+            return;
+        };
         if seasons.len() < 2 {
             return;
         }
@@ -354,7 +377,8 @@ impl Page {
             if let Some(season) = seasons.get(picker.selected() as usize)
                 && season.id != AnilistId::new(0)
             {
-                let _ = picker.activate_action("win.open-title", Some(&season.id.get().to_variant()));
+                let _ = picker
+                    .activate_action("win.open-title", Some(&season.id.get().to_variant()));
             }
         });
         self.seasons.append(&picker);
@@ -395,7 +419,16 @@ impl Page {
             .map(|d| {
                 d.relations
                     .iter()
-                    .filter(|r| !matches!(r.relation, Some(RelationKind::Adaptation | RelationKind::Source | RelationKind::Character)))
+                    .filter(|r| {
+                        !matches!(
+                            r.relation,
+                            Some(
+                                RelationKind::Adaptation
+                                    | RelationKind::Source
+                                    | RelationKind::Character
+                            )
+                        )
+                    })
                     .take(8)
                     .cloned()
                     .collect()
@@ -419,7 +452,9 @@ impl Page {
             let tile = gtk::Box::new(gtk::Orientation::Vertical, 4);
             tile.append(&widgets::cover(&self.ctx.hub, &shown, 76, 114));
             let label = widgets::haze(
-                &linked.relation.map_or_else(|| linked.title.clone(), |r| spaced(&format!("{r:?}"))),
+                &linked
+                    .relation
+                    .map_or_else(|| linked.title.clone(), |r| spaced(&format!("{r:?}"))),
                 "caption",
             );
             label.set_wrap(false);
@@ -451,7 +486,11 @@ impl Page {
         let rows = self.rows.borrow();
         if rows.is_empty() {
             self.episodes_state.set_visible_child_name(
-                if self.ctx.hub.entry(self.id).is_some_and(|e| e.detail.is_some()) { "empty" } else { "loading" },
+                if self.ctx.hub.entry(self.id).is_some_and(|e| e.detail.is_some()) {
+                    "empty"
+                } else {
+                    "loading"
+                },
             );
             return;
         }
@@ -527,11 +566,21 @@ impl Page {
             let check = gtk::CheckButton::new();
             check.set_active(row.completed);
             check.set_valign(gtk::Align::Center);
-            check.set_tooltip_text(Some(if row.completed { "Mark Unwatched" } else { "Mark Watched" }));
-            check.update_property(&[gtk::accessible::Property::Label(&format!("Episode {} watched", row.number))]);
+            check.set_tooltip_text(Some(if row.completed {
+                "Mark Unwatched"
+            } else {
+                "Mark Watched"
+            }));
+            check.update_property(&[gtk::accessible::Property::Label(&format!(
+                "Episode {} watched",
+                row.number
+            ))]);
             let episode = row.number.clone();
             check.connect_toggled(move |check| {
-                let _ = check.activate_action("title.watched", Some(&(episode.clone(), check.is_active()).to_variant()));
+                let _ = check.activate_action(
+                    "title.watched",
+                    Some(&(episode.clone(), check.is_active()).to_variant()),
+                );
             });
             line.append(&check);
 
@@ -548,7 +597,8 @@ impl Page {
             more.add_css_class("flat");
             line.append(&more);
 
-            let list_row = gtk::ListBoxRow::builder().child(&line).activatable(!row.metadata_only).build();
+            let list_row =
+                gtk::ListBoxRow::builder().child(&line).activatable(!row.metadata_only).build();
             list_row.set_action_name(Some("win.play"));
             list_row.set_action_target_value(Some(&(id, row.number.clone()).to_variant()));
             widgets::context_menu(&list_row, &menu);

@@ -2,7 +2,9 @@
 //! tokio runtime of its own, hosting its player in this app. Nothing here runs on GTK's main
 //! loop: the engine's work is on the runtime, and what it says reaches the loop over channels.
 
-use std::{path::Path, sync::Arc};
+#[cfg(any(feature = "fixtures", test))]
+use std::path::Path;
+use std::sync::Arc;
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
@@ -70,6 +72,7 @@ pub async fn start(paths: Paths, host: Arc<dyn Host>) -> Result<Started, String>
 }
 
 /// The directories under `root`, for a run that is not the user's own: a scene, or a test.
+#[cfg(any(feature = "fixtures", test))]
 pub fn paths_under(root: &Path) -> Paths {
     Paths {
         config_file: root.join("config").join("config.toml"),

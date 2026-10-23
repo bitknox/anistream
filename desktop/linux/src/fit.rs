@@ -41,7 +41,11 @@ mod imp {
             gtk::SizeRequestMode::HeightForWidth
         }
 
-        fn measure(&self, orientation: gtk::Orientation, for_size: i32) -> (i32, i32, i32, i32) {
+        fn measure(
+            &self,
+            orientation: gtk::Orientation,
+            for_size: i32,
+        ) -> (i32, i32, i32, i32) {
             let width = self.width.get();
             match orientation {
                 gtk::Orientation::Horizontal if self.fixed.get() => (width, width, -1, -1),
@@ -81,7 +85,13 @@ glib::wrapper! {
 impl Fit {
     /// `child` at `ratio` (width over height), `width` wide: exactly when `fixed`, else as it is
     /// given, asking `width` and taking no more height than `max_height` (0 for none).
-    pub fn new(child: &impl IsA<gtk::Widget>, ratio: f64, width: i32, fixed: bool, max_height: i32) -> Self {
+    pub fn new(
+        child: &impl IsA<gtk::Widget>,
+        ratio: f64,
+        width: i32,
+        fixed: bool,
+        max_height: i32,
+    ) -> Self {
         let fit: Self = glib::Object::new();
         let imp = fit.imp();
         imp.ratio.set(ratio);

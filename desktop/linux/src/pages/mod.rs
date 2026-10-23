@@ -179,7 +179,11 @@ pub fn shortcuts(ctx: &Ctx) {
 pub fn close_dialog(shell: &Rc<Shell>, downloading: usize, seeding: usize) {
     let body = running_body(downloading, seeding);
     let dialog = adw::AlertDialog::new(Some("Keep Downloads Going?"), Some(&body));
-    dialog.add_responses(&[("cancel", "Cancel"), ("stop", "Stop and Close"), ("keep", "Keep Going")]);
+    dialog.add_responses(&[
+        ("cancel", "Cancel"),
+        ("stop", "Stop and Close"),
+        ("keep", "Keep Going"),
+    ]);
     dialog.set_response_appearance("keep", adw::ResponseAppearance::Suggested);
     dialog.set_default_response(Some("keep"));
     dialog.set_close_response("cancel");
@@ -213,8 +217,14 @@ pub fn close_dialog(shell: &Rc<Shell>, downloading: usize, seeding: usize) {
 pub fn running_body(downloading: usize, seeding: usize) -> String {
     let are = |n: usize| if n == 1 { "is" } else { "are" };
     let what = match (downloading, seeding) {
-        (d, 0) => format!("{} {} downloading.", anistream_model::wording::plural(d, "episode"), are(d)),
-        (0, s) => format!("{} {} seeding.", anistream_model::wording::plural(s, "episode"), are(s)),
+        (d, 0) => format!(
+            "{} {} downloading.",
+            anistream_model::wording::plural(d, "episode"),
+            are(d)
+        ),
+        (0, s) => {
+            format!("{} {} seeding.", anistream_model::wording::plural(s, "episode"), are(s))
+        }
         (d, s) => format!(
             "{} {} downloading and {s} {} seeding.",
             anistream_model::wording::plural(d, "episode"),

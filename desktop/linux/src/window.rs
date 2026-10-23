@@ -7,13 +7,9 @@ use std::{
     rc::Rc,
 };
 
-use anistream_core::ids::AnilistId;
-use anistream_model::{
-    catalog::LibrarySegment,
-    command::Command,
-    event::Event,
-};
 use adw::prelude::*;
+use anistream_core::ids::AnilistId;
+use anistream_model::{catalog::LibrarySegment, command::Command, event::Event};
 use gtk::{gio, glib};
 
 use anistream_mpv_host::PlayerOptions;
@@ -38,6 +34,12 @@ pub enum Size {
     Narrow,
 }
 
+/// What a window size change calls.
+type OnSize = Box<dyn Fn(Size)>;
+
+/// What one of the window's actions does.
+type ShellAction = Box<dyn Fn(&Shell, Option<&glib::Variant>)>;
+
 /// What every screen is built with.
 pub struct Ctx {
     pub hub: Rc<Hub>,
@@ -46,7 +48,7 @@ pub struct Ctx {
     pub toasts: adw::ToastOverlay,
     pub prefs: Rc<Prefs>,
     size: Cell<Size>,
-    sized: RefCell<Vec<Box<dyn Fn(Size)>>>,
+    sized: RefCell<Vec<OnSize>>,
     /// Pushes a page on the destination on screen.
     navs: RefCell<Vec<(Dest, adw::NavigationView)>>,
     stack: gtk::Stack,
@@ -193,8 +195,11 @@ impl Shell {
     pub fn go(&self, dest: Dest) {
         let ctx = &self.ctx;
         ctx.stack.set_visible_child_name(dest.name());
-        let (list, other) =
-            if dest == Dest::Settings { (&self.foot, &self.sidebar) } else { (&self.sidebar, &self.foot) };
+        let (list, other) = if dest == Dest::Settings {
+            (&self.foot, &self.sidebar)
+        } else {
+            (&self.sidebar, &self.foot)
+        };
         other.unselect_all();
         let mut child = list.first_child();
         while let Some(widget) = child {
@@ -273,7 +278,7 @@ impl Shell {
         let window = &self.ctx.window;
         let hub = &self.ctx.hub;
         let weak = Rc::downgrade(self);
-        let with = move |f: Box<dyn Fn(&Shell, Option<&glib::Variant>)>| {
+        let with = move |f: ShellAction| {
             let weak = weak.clone();
             move |_: &gio::SimpleAction, arg: Option<&glib::Variant>| {
                 if let Some(shell) = weak.upgrade() {
@@ -281,70 +286,113 @@ impl Shell {
                 }
             }
         };
-        let add = |name: &str, kind: Option<&glib::VariantTy>, f: Box<dyn Fn(&Shell, Option<&glib::Variant>)>| {
+        let add = |name: &str, kind: Option<&glib::VariantTy>, f: ShellAction| {
             let action = gio::SimpleAction::new(name, kind);
             action.connect_activate(with(f));
             window.add_action(&action);
             action
         };
-        let id_of = |arg: Option<&glib::Variant>| arg.and_then(u32::from_variant).map(AnilistId::new);
+        let id_of =
+            |arg: Option<&glib::Variant>| arg.and_then(u32::from_variant).map(AnilistId::new);
         let play_of = |arg: Option<&glib::Variant>| {
             arg.and_then(<(u32, String)>::from_variant).map(|(id, ep)| (AnilistId::new(id), ep))
         };
 
-        add("open-title", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
-            if let Some(id) = id_of(a) {
-                s.open_title(id);
-            }
-        }));
-        add("play", Some(glib::VariantTy::new("(us)").expect("a type")), Box::new(move |s, a| {
-            if let Some((id, episode)) = play_of(a) {
-                s.ctx.hub.send(Command::Play { id, episode });
-            }
-        }));
-        add("mark-watched", Some(glib::VariantTy::new("(us)").expect("a type")), Box::new(move |s, a| {
-            if let Some((id, episode)) = play_of(a) {
-                s.ctx.hub.send(Command::SetWatched { id, episodes: vec![episode], watched: true });
-            }
-        }));
-        add("plan", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
-            if let Some(id) = id_of(a) {
-                s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Planning });
-                s.ctx.toast("Added to Planning");
-            }
-        }));
-        add("drop", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
-            if let Some(id) = id_of(a) {
-                s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Dropped });
-                s.ctx.hub.send(Command::HideFromContinue { id });
-            }
-        }));
-        add("hide-continue", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
-            if let Some(id) = id_of(a) {
-                s.ctx.hub.send(Command::HideFromContinue { id });
-                s.ctx.hub.send(Command::LoadContinue);
-            }
-        }));
-        add("go", Some(glib::VariantTy::STRING), Box::new(move |s, a| {
-            if let Some(dest) = a.and_then(String::from_variant).and_then(|n| Dest::named(&n)) {
-                s.go(dest);
-            }
-        }));
-        add("settings-pane", Some(glib::VariantTy::STRING), Box::new(move |s, a| {
-            if let Some(pane) = a.and_then(String::from_variant) {
-                s.settings_pane(&pane);
-            }
-        }));
+        add(
+            "open-title",
+            Some(glib::VariantTy::UINT32),
+            Box::new(move |s, a| {
+                if let Some(id) = id_of(a) {
+                    s.open_title(id);
+                }
+            }),
+        );
+        add(
+            "play",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a) {
+                    s.ctx.hub.send(Command::Play { id, episode });
+                }
+            }),
+        );
+        add(
+            "mark-watched",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a) {
+                    s.ctx.hub.send(Command::SetWatched {
+                        id,
+                        episodes: vec![episode],
+                        watched: true,
+                    });
+                }
+            }),
+        );
+        add(
+            "plan",
+            Some(glib::VariantTy::UINT32),
+            Box::new(move |s, a| {
+                if let Some(id) = id_of(a) {
+                    s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Planning });
+                    s.ctx.toast("Added to Planning");
+                }
+            }),
+        );
+        add(
+            "drop",
+            Some(glib::VariantTy::UINT32),
+            Box::new(move |s, a| {
+                if let Some(id) = id_of(a) {
+                    s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Dropped });
+                    s.ctx.hub.send(Command::HideFromContinue { id });
+                }
+            }),
+        );
+        add(
+            "hide-continue",
+            Some(glib::VariantTy::UINT32),
+            Box::new(move |s, a| {
+                if let Some(id) = id_of(a) {
+                    s.ctx.hub.send(Command::HideFromContinue { id });
+                    s.ctx.hub.send(Command::LoadContinue);
+                }
+            }),
+        );
+        add(
+            "go",
+            Some(glib::VariantTy::STRING),
+            Box::new(move |s, a| {
+                if let Some(dest) =
+                    a.and_then(String::from_variant).and_then(|n| Dest::named(&n))
+                {
+                    s.go(dest);
+                }
+            }),
+        );
+        add(
+            "settings-pane",
+            Some(glib::VariantTy::STRING),
+            Box::new(move |s, a| {
+                if let Some(pane) = a.and_then(String::from_variant) {
+                    s.settings_pane(&pane);
+                }
+            }),
+        );
         add("search", None, Box::new(|s, _| s.go(Dest::Search)));
         add("back", None, Box::new(|s, _| s.back()));
         add("sync", None, Box::new(|s, _| s.ctx.hub.send(Command::SyncNow)));
         add("about", None, Box::new(|s, _| pages::settings::about(&s.ctx)));
         add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
-        add("connect", Some(glib::VariantTy::STRING), Box::new(move |s, a| {
-            if let Some(tracker) = a.and_then(String::from_variant) {
-                s.ctx.hub.send(Command::Connect { tracker });
-            }
-        }));
+        add(
+            "connect",
+            Some(glib::VariantTy::STRING),
+            Box::new(move |s, a| {
+                if let Some(tracker) = a.and_then(String::from_variant) {
+                    s.ctx.hub.send(Command::Connect { tracker });
+                }
+            }),
+        );
         // Not in this build yet: shown, and greyed out.
         for name in ["join-store", "export"] {
             add(name, None, Box::new(|_, _| {})).set_enabled(false);
@@ -431,7 +479,11 @@ impl Shell {
             tracing::info!(%url, "a link, not opened in a scene");
             return;
         }
-        gtk::UriLauncher::new(url).launch(Some(&self.ctx.window), gio::Cancellable::NONE, |_| {});
+        gtk::UriLauncher::new(url).launch(
+            Some(&self.ctx.window),
+            gio::Cancellable::NONE,
+            |_| {},
+        );
     }
 
     /// Closing with nothing running quits. Closing while episodes download or seed asks first.
@@ -556,7 +608,8 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
         list.connect_row_activated(|list, row| {
             let name = row.widget_name();
             if name == "account" {
-                let _ = list.activate_action("win.settings-pane", Some(&"accounts".to_variant()));
+                let _ =
+                    list.activate_action("win.settings-pane", Some(&"accounts".to_variant()));
             } else {
                 let _ = list.activate_action("win.go", Some(&name.to_variant()));
             }
@@ -646,7 +699,10 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                     name.set_label(&user);
                     let waiting = state.outbox;
                     status.set_label(&if waiting > 0 {
-                        format!("{} waiting to sync", anistream_model::wording::plural(waiting as usize, "change"))
+                        format!(
+                            "{} waiting to sync",
+                            anistream_model::wording::plural(waiting as usize, "change")
+                        )
                     } else {
                         "AniList synced".into()
                     });

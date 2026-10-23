@@ -6,8 +6,8 @@
 
 use std::{path::PathBuf, rc::Rc, time::Duration};
 
-use anistream_model::command::Command;
 use adw::prelude::*;
+use anistream_model::command::Command;
 use gtk::glib;
 
 use crate::{pages::Dest, window::Shell};
@@ -82,7 +82,8 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "title" => {
             shell.go(Dest::Continue);
-            let _ = WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             3.5
         }
         "library" => {
@@ -103,7 +104,11 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "player" => {
             let (id, episode) = PLAYING;
-            let _ = WidgetExt::activate_action(window, "win.play", Some(&(id, episode.to_owned()).to_variant()));
+            let _ = WidgetExt::activate_action(
+                window,
+                "win.play",
+                Some(&(id, episode.to_owned()).to_variant()),
+            );
             // Paused once it plays, so the controls stay up.
             let hub = Rc::clone(&shell.ctx.hub);
             glib::timeout_add_local_once(Duration::from_secs(7), move || {
@@ -167,18 +172,12 @@ async fn wait(seconds: f64) {
 pub fn named(list: Option<&str>) -> Vec<String> {
     match list {
         None | Some("all") => ALL.iter().map(|s| (*s).to_owned()).collect(),
-        Some(list) => list.split(',').map(str::trim).filter(|s| !s.is_empty()).map(str::to_owned).collect(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn shots_are_named_or_all() {
-        assert_eq!(named(Some("home, title")), ["home", "title"]);
-        assert_eq!(named(None).len(), ALL.len());
+        Some(list) => list
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_owned)
+            .collect(),
     }
 }
 
@@ -200,5 +199,16 @@ fn wide_widgets(widget: &gtk::Widget, depth: usize, limit: i32) {
     }
     if !over {
         tracing::warn!(depth, min, kind = %widget.type_(), name = %widget.widget_name(), css = ?widget.css_classes(), "too wide");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shots_are_named_or_all() {
+        assert_eq!(named(Some("home, title")), ["home", "title"]);
+        assert_eq!(named(None).len(), ALL.len());
     }
 }
