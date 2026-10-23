@@ -36,6 +36,10 @@ plays it in mpv when yt-dlp is installed.
 
 ## Background checks
 
+<!-- For whoever merges: the branches updates/android and updates/apple-and-engine add an update
+check switch on iPhone, iPad and Android. Once they land, change the last sentence of this
+paragraph to say where that switch is. -->
+
 Once a day, each app asks GitHub's API at `api.github.com` whether a newer release exists. The answer
 is kept for 24 hours, and the request carries nothing about you. An update is only downloaded when
 you ask for one, and it comes from GitHub releases. To turn the check off, use **Check for updates**
@@ -59,9 +63,15 @@ these checks stop.
 ## Playing an episode
 
 When an episode starts, the engine asks aniskip at `api.aniskip.com` for the times of its opening
-and ending, so the player can offer to skip them. The request names the show's MyAnimeList id and
-the episode number, and, if the first answer fails, the episode's length. It is asked each time
-an episode starts, and there is no switch for it.
+and ending, so the player can skip them, mark them on the seek bar or show a skip button. The
+request names the show's MyAnimeList id and the episode number, and, if the first answer fails,
+the episode's length. The answer is kept until the app quits, so playing the episode again asks
+nothing.
+
+The engine asks only while something uses the answer: **Skip opening automatically**, **Mark
+opening and ending** or **Show skip button** in Settings, which are `skip_opening`,
+`mark_chapters` and `skip_button` under `[playback]` in `config.toml`. A show set to skip its
+opening asks for that show. With all three off, aniskip is never asked.
 
 The video itself comes from the source that found it, as the next sections describe.
 
@@ -133,12 +143,13 @@ To stop a plugin, remove it on the Providers screen.
 A plugin store is run by someone you know, not by anistream. You join one with a link its owner
 gives you.
 
-Joining with an invite sends the invite code and a name for this device: your computer's name as
-it gives it on the network, or a generic name on a phone. The store's owner sees the name they gave
-you, each of your devices by that name, when each joined, and when each was last seen, to within
-ten minutes. Joining with an open link sends no name, and the owner sees only when each device
-joined and was last seen. To limit joins, the store counts them per address for an hour, by a
-digest of the address.
+Joining with an invite sends the invite code and a name for this device. The name starts as the
+kind of device it is, such as "Mac", "iPhone", "iPad", "Android phone" or "Android tablet", or
+"Computer" in the terminal app, and you can change it before you join. anistream never fills in
+the device's own name. The store's owner sees the name they gave you, each of your devices by its
+name, when each joined, and when each was last seen, to within ten minutes. Joining with an open
+link sends no name, and the owner sees only when each device joined and was last seen. To limit
+joins, the store counts them per address for an hour, by a digest of the address.
 
 After you join, the app asks each store for its plugin list at launch, and downloads a plugin when
 you install or update it. Each request carries this device's token, which is kept with the tracker
@@ -186,8 +197,8 @@ The apps keep these on the device, and send them nowhere unless a section above 
 - cached title data, cover art and the title id lists;
 - downloads, and the torrent cache, which is 20 GB at most by default, oldest first;
 - a log, one file a day, which can name the titles you open. It keeps only the host of an
-  address, never the rest of it, since that can carry a token. The terminal app deletes logs after
-  14 days.
+  address, never the rest of it, since that can carry a token. Each app deletes its logs after 14
+  days.
 
 They live here:
 
