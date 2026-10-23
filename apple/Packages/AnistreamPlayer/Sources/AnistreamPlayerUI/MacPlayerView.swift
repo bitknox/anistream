@@ -481,10 +481,19 @@ public struct MacPlayerView: View {
         return "\(Int(frame.width))×\(Int(frame.height)) pt at (\(Int(frame.minX)), \(Int(frame.minY))), \(content), \(screen), full screen \(window.styleMask.contains(.fullScreen) ? "yes" : "no")"
     }
 
+    /// Into or out of full screen as the model asks, on the next turn of the run loop. The
+    /// change arrives in SwiftUI's update, inside the hosting view's layout: a transition started
+    /// there resizes the window under that layout, which then sizes the window back from the
+    /// size it had, and leaves the content view off by the difference (the video in a box at
+    /// the window's corner, the title strip in mid-window). By the time it runs, the window may
+    /// already be where the model says, or between the two, and AppKit's own notices bring the
+    /// model back to what the window does.
     private func fullScreen(_ on: Bool) {
-        guard let window, window.styleMask.contains(.fullScreen) != on else { return }
-        if on { enteredFullScreen = true }
-        window.toggleFullScreen(nil)
+        DispatchQueue.main.async { [weak window, model] in
+            guard let window, model.fullScreen == on, window.styleMask.contains(.fullScreen) != on else { return }
+            if on { enteredFullScreen = true }
+            window.toggleFullScreen(nil)
+        }
     }
 
     /// The title bar is transparent and hides with the controls.
