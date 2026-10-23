@@ -244,6 +244,7 @@ struct SourceList: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 13))
                     .foregroundStyle(.haze)
+                    .pointingHand()
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -565,6 +566,7 @@ struct PillButtonStyle: ButtonStyle {
             }
             .opacity(configuration.isPressed ? 0.8 : 1)
             .contentShape(.capsule)
+            .pointingHand()
     }
 }
 
@@ -684,6 +686,7 @@ struct SkipButton: View {
                 .contentShape(.capsule)
             }
             .buttonStyle(.plain)
+            .pointingHand()
             .accessibilityInputLabels([Text(skip.label), Text("Skip")])
             .opacity(model.skipDimmed && !hovering ? 0.55 : 1)
             .animation(.standard, value: model.skipDimmed)
@@ -706,6 +709,7 @@ struct UndoNote: View {
                     .buttonStyle(.plain)
                     .fontWeight(.semibold)
                     .foregroundStyle(.amber)
+                    .pointingHand()
             }
             .font(.system(size: metrics.body))
             .foregroundStyle(.silk)
@@ -778,6 +782,7 @@ struct ResumeNoteView: View {
                     .buttonStyle(.plain)
                     .fontWeight(.semibold)
                     .foregroundStyle(.amber)
+                    .pointingHand()
             }
             .font(.system(size: metrics.body))
             .foregroundStyle(.silk)
@@ -874,15 +879,15 @@ struct MenuRow: View {
     }
 }
 
+/// A menu's row: lit on press only, as Mac rows are (motion.md), with the pointing hand.
 struct MenuRowStyle: ButtonStyle {
-    @State private var hovering = false
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(Palette.silk.opacity(configuration.isPressed ? 0.16 : 0))
             )
+            .pointingHand()
     }
 }
 
