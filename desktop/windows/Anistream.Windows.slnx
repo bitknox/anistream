@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Anistream.Engine.Tests/Anistream.Engine.Tests.csproj" />
+  <Project Path="Anistream.Engine/Anistream.Engine.csproj" />
+</Solution>

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The engine as the Windows app holds it: the C# bindings uniffi-bindgen-cs generates from the
+       engine's library, compiled as they are, with the library beside them. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Anistream.Engine</RootNamespace>
+    <EngineFlavour>release</EngineFlavour>
+  </PropertyGroup>
+  <Import Project="../Engine.props" />
+</Project>

@@ -1,0 +1,18 @@
+<Project>
+  <!-- The engine's C# bindings and its library, for the flavour a project names in EngineFlavour:
+       release for the app, testing for the tests. scripts/bindings.sh writes both to
+       .engine/<flavour>, generated from the same build, so they always match. -->
+  <PropertyGroup>
+    <EngineDir>$(MSBuildThisFileDirectory).engine/$(EngineFlavour)/</EngineDir>
+    <!-- The bindings use pointers and pinned buffers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(EngineDir)bindings/*.cs" Link="Bindings/%(Filename)%(Extension)" />
+    <!-- Beside the assembly, where .NET looks for `anistream_ffi` first. -->
+    <None Include="$(EngineDir)native/*" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+  <Target Name="CheckEngine" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(EngineDir)stamp')" Text="The $(EngineFlavour) engine has not been built: run desktop/windows/scripts/bindings.sh $(EngineFlavour)" />
+  </Target>
+</Project>
