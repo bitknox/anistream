@@ -139,6 +139,7 @@ dependencies = [
  "anistream-plugin",
  "anistream-plugin-store",
  "anistream-providers",
+ "anistream-remote",
  "anistream-store",
  "anistream-store-server",
  "anistream-testkit",
