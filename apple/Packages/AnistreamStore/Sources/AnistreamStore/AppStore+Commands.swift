@@ -141,8 +141,9 @@ extension AppStore {
         send(.previewStore(link: link))
     }
 
+    /// Join with `link`, calling this device what the join sheet's field says.
     public func joinStore(_ link: String) {
-        stores.started(.join, job: send(.joinStore(link: link.trimmingCharacters(in: .whitespacesAndNewlines))))
+        stores.started(.join, job: send(stores.joinCommand(link)))
     }
 
     public func leaveStore(_ store: String) {

@@ -13,12 +13,12 @@ anistream                                                                       
   Previous episode                                                                                                 N
   Expand synopsis                                                                                                  i
   Show keys                                                                                                        ?
+  Open the privacy page
   Move up                                                                                                          k
   Page up                                                                                                     ctrl+u
   Volume up                                                                                                        0
   Leave player running                                                                                             q
   Faster                                                                                                           ]
-  Clear finished downloads                                                                                         c
 
                             │                                         ▏ resume ep 4 at 5:00 (21%)
                             │                                         █████░░░░░░░░░░░░░░░░░░░

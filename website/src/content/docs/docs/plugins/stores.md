@@ -12,7 +12,9 @@ sent you.
 
 The store's owner sends you an invite link. In anistream, open **Providers** and press Enter to
 open plugin stores, choose **join a store**, and paste the link. anistream checks the link against
-the store before using it, shows the store's name and key, and asks you to confirm.
+the store before using it, shows the store's name and key, and asks you to confirm. The
+confirmation also shows the name the store's owner will see for this device, which starts as the
+kind of device it is, such as "Computer" or "iPhone". Type over it before you join to change it.
 
 The store's page lists its plugins. Enter on one shows what it may contact before anything is
 installed. Installed plugins run as part of the `"plugins"` entry in `providers.order`, which is

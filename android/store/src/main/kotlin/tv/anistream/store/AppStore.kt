@@ -515,9 +515,9 @@ class AppStore(
         send(Command.PreviewStore(trimmed))
     }
 
-    /** Spend an invite link for a token and join. */
+    /** Spend an invite link for a token and join, calling this device what the join sheet's field says. */
     fun joinStore(link: String) {
-        stores.started(StoresModel.Work.Join, send(Command.JoinStore(link.trim())))
+        stores.started(StoresModel.Work.Join, send(stores.joinCommand(link)))
     }
 
     /** Forget [store] and revoke this device's token there. */

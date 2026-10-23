@@ -91,6 +91,7 @@ async fn main() -> anyhow::Result<()> {
             threshold: config.playback.commit_threshold,
             auto_skip: false,
             mark_chapters: true,
+            skip_button: true,
             fullscreen: config.playback.fullscreen,
             subtitle_language: Some(config.playback.subtitle_language.clone()),
             auto_next: true,

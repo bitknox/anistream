@@ -146,9 +146,13 @@ mod tests {
         };
         assert_eq!(crossed(start.clone()), start);
         assert_eq!(crossed(FfiStart::default()), FfiStart::default());
-        for platform in
-            [FfiPlatform::MacOs, FfiPlatform::Ios, FfiPlatform::IpadOs, FfiPlatform::Android]
-        {
+        for platform in [
+            FfiPlatform::MacOs,
+            FfiPlatform::Ios,
+            FfiPlatform::IpadOs,
+            FfiPlatform::Android,
+            FfiPlatform::AndroidTablet,
+        ] {
             assert_eq!(crossed(platform), platform);
         }
         for mode in [SecretsMode::Host, SecretsMode::FollowConfig] {
@@ -762,10 +766,20 @@ mod tests {
             }],
             open: true,
             anonymous: true,
+            device_label: String::new(),
         })));
         crosses_intact(Event::StorePreview(InvitePreview::Failed {
             reason: "that is not a link".into(),
         }));
+    }
+
+    #[test]
+    fn a_join_crosses_with_the_name_the_device_was_given() {
+        let link = Secret("https://plugins.example/join/abc#key".into());
+        for label in [None, Some("Living room".to_owned())] {
+            let command = Command::JoinStore { link: link.clone(), label };
+            assert_eq!(crossed(command.clone()), command);
+        }
     }
 
     #[test]

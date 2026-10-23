@@ -26,11 +26,11 @@ pub struct EpisodeRow {
     pub watched: f64,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub completed: bool,
-    /// Filler, mixed or canon — from AnimeFillerList, when the show is covered.
+    /// Filler, where the source that listed the episode says so.
     ///
-    /// `None` means unknown, which is the common case: most shows have no filler and are not in the
-    /// index at all. Rendered only when present, so an uncovered show shows no column rather than a
-    /// column of blanks.
+    /// `None` means unknown, which is the common case: most shows have no filler, and most sources
+    /// say nothing either way. Rendered only when present, so such a show shows no column rather
+    /// than a column of blanks.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub kind: Option<EpisodeKind>,
     /// Whether offering to skip this whole episode is reasonable.

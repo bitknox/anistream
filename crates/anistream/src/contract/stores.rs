@@ -52,7 +52,7 @@ impl StoreServer {
 
 /// `h`, joined to `link`, and the store's id.
 async fn joined(h: &mut Harness, link: &str) -> String {
-    h.send(Command::JoinStore { link: Secret(link.to_owned()) });
+    h.send(Command::JoinStore { link: Secret(link.to_owned()), label: None });
     h.settle().await;
     h.app().stores[0].id.clone()
 }
@@ -110,9 +110,13 @@ async fn an_invite_is_previewed_then_joined() {
         unreachable!()
     };
     assert!(preview.owners.is_empty() && preview.plugins.is_empty(), "{preview:?}");
+    // What the store will call this machine, for the confirmation to offer: its kind, never
+    // its own name.
+    assert_eq!(preview.device_label, "Computer");
     ends(&updates, job);
 
-    let job = h.send(Command::JoinStore { link: Secret(store.owner_link.clone()) });
+    let job =
+        h.send(Command::JoinStore { link: Secret(store.owner_link.clone()), label: None });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Stores", "StoreJoined", "Toast", "JobDone"]);
     let Event::Stores(rows) = &updates[0] else { unreachable!() };
@@ -309,7 +313,8 @@ async fn an_owner_opens_the_store_and_anyone_with_its_link_joins_without_a_name(
     };
     assert!(preview.open && preview.anonymous);
     assert_eq!(preview.owners, ["Owner"]);
-    let job = guest.send(Command::JoinStore { link: Secret(link.clone()) });
+    assert_eq!(preview.device_label, "", "an open link sends no name");
+    let job = guest.send(Command::JoinStore { link: Secret(link.clone()), label: None });
     let updates = guest.settle().await;
     assert_eq!(names(&updates), ["Stores", "StoreJoined", "Toast", "JobDone"]);
     assert_eq!(toasts(&updates), ["info: joined Ours without a name"]);

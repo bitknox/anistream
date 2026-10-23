@@ -584,6 +584,7 @@ pub fn play_settings(
         threshold: playback.commit_threshold,
         auto_skip: playback.skip_opening,
         mark_chapters: playback.mark_chapters,
+        skip_button: playback.skip_button,
         fullscreen: playback.fullscreen,
         subtitle_language: Some(playback.subtitle_language.clone()),
         auto_next: playback.auto_next,

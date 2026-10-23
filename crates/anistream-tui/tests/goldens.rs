@@ -479,6 +479,7 @@ scenarios! {
     store_members,
     join_store,
     store_confirm,
+    store_confirm_named,
     plugin_action,
     invite_name,
     invite_link,
@@ -974,8 +975,8 @@ fn settings(s: &mut Screen) {
     let mut session = Config::default();
     session.playback.translation = anistream_core::media::Translation::Dub;
     s.settings(&session, &Config::default());
-    // Down to upscaling, past the titles row too.
-    s.press(&["j"; 12]);
+    // Down to upscaling, past the titles and skip button rows too.
+    s.press(&["j"; 13]);
 }
 
 /// The immersive theme, switched on from Settings: the painted ground under everything.
@@ -1682,7 +1683,15 @@ fn store_confirm(s: &mut Screen) {
         plugins: Vec::new(),
         open: false,
         anonymous: false,
+        device_label: "Computer".into(),
     })));
+}
+
+/// The same confirmation, with the name the store will call this device typed over.
+fn store_confirm_named(s: &mut Screen) {
+    store_confirm(s);
+    s.press(&["backspace"; 8]);
+    s.type_text("Studio");
 }
 
 /// The plugin overlay for an update that adds a host: the facts first, then the choices.
@@ -1829,6 +1838,7 @@ fn open_link_confirm(s: &mut Screen) {
         ],
         open: true,
         anonymous: true,
+        device_label: String::new(),
     })));
 }
 

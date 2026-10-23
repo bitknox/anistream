@@ -14,10 +14,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    SKIP OPENING AUTOMATICALLY  on
    │    SKIP FILLER AUTOMATICALLY   off
    │    MARK OPENING AND ENDING     on
+   │    SHOW SKIP BUTTON            on
    │    START FULLSCREEN            off
    │  ▌ UPSCALING                   natural · ArtCNN
    │    PLAYER INTERFACE            anistream
-   │    NIGHT MODE                  off
    │  ────────────────────────────────────────────────────────────────────────
    │    adapts to the source and your GPU · from the next episode
 ───────────────────────────────────────────── ▌ now using dub for this session ─
@@ -84,17 +84,17 @@ r15 c08-30 fg=text-dim
 r15 c36-37 fg=text
 r16 c03-03 fg=rule
 r16 c08-23 fg=text-dim
-r16 c36-38 fg=text
+r16 c36-37 fg=text
 r17 c03-03 fg=rule
-r17 c06-06 fg=obi
-r17 c08-16 fg=text
-r17 c36-51 fg=text mod=BOLD
+r17 c08-23 fg=text-dim
+r17 c36-38 fg=text
 r18 c03-03 fg=rule
-r18 c08-23 fg=text-dim
-r18 c36-44 fg=text
+r18 c06-06 fg=obi
+r18 c08-16 fg=text
+r18 c36-51 fg=text mod=BOLD
 r19 c03-03 fg=rule
-r19 c08-17 fg=text-dim
-r19 c36-38 fg=text
+r19 c08-23 fg=text-dim
+r19 c36-44 fg=text
 r20 c03-03 fg=rule
 r20 c06-77 fg=rule
 r21 c03-03 fg=rule

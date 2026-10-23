@@ -271,6 +271,7 @@ extension SettingKey {
         case .skipOpening: "Skip opening automatically"
         case .skipFiller: "Skip filler automatically"
         case .markChapters: "Mark opening and ending"
+        case .skipButton: "Show skip button"
         case .fullscreen: "Start fullscreen"
         case .upscaling: "Upscaling"
         case .nightMode: "Night mode"

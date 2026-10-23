@@ -6,6 +6,7 @@ package tv.anistream.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ConflictRow
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.DownloadRow
@@ -223,6 +224,18 @@ class StoresModel {
     /** The invite link being checked, and what it leads to. */
     val preview: StateFlow<Preview?> = _preview.asStateFlow()
 
+    private val _deviceName = MutableStateFlow("")
+
+    /**
+     * What the store will call this device, as the join sheet's field holds it: the kind of device
+     * the engine offers with the preview, until the person joining types over it. An open link
+     * sends no name, and this goes with nothing.
+     */
+    val deviceName: StateFlow<String> = _deviceName.asStateFlow()
+
+    /** The kind of device the last preview offered, so a name typed over it survives a recheck. */
+    private var offeredName = ""
+
     private val _joined = MutableStateFlow<String?>(null)
 
     /** The store just joined, for the screen to move into, until it is shown. */
@@ -260,6 +273,21 @@ class StoresModel {
             is InvitePreview.Store -> Preview.Store(answer.v1)
             is InvitePreview.Failed -> Preview.Failed(answer.reason)
         }
+        if (answer is InvitePreview.Store) {
+            if (_deviceName.value == offeredName) _deviceName.value = answer.v1.deviceLabel
+            offeredName = answer.v1.deviceLabel
+        }
+    }
+
+    /** The join sheet's device name, as typed. */
+    fun nameDevice(name: String) {
+        _deviceName.value = name
+    }
+
+    /** The join for [link]: an invite sends this device's name as the field holds it, an open link none. */
+    internal fun joinCommand(link: String): Command {
+        val invited = (_preview.value as? Preview.Store)?.store
+        return Command.JoinStore(link.trim(), invited?.takeIf { !it.anonymous }?.let { _deviceName.value })
     }
 
     internal fun joined(store: String) {
@@ -289,12 +317,19 @@ class StoresModel {
     /** Forget the link being checked: the field no longer holds an invite. */
     fun clearPreview() {
         _preview.value = null
+        forgetDeviceName()
     }
 
     /** The join sheet closed: forget the link being checked. */
     fun closeJoin() {
         _joining.value = null
         _preview.value = null
+        forgetDeviceName()
+    }
+
+    private fun forgetDeviceName() {
+        _deviceName.value = ""
+        offeredName = ""
     }
 
     /** The store just joined has been shown. */

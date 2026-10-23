@@ -37,6 +37,13 @@ public final class StoresModel {
     public private(set) var loaded = false
     /// The invite link being checked, and what it leads to.
     public private(set) var preview: Preview?
+    /// What the store will call this device, as the join sheet's field holds it: the kind of
+    /// device the engine offers with the preview, until the person joining types over it. An
+    /// open link sends no name, and this goes with nothing.
+    public var deviceName = ""
+    /// The kind of device the last preview offered, so a name typed over it survives the link
+    /// being checked again.
+    private var offeredName = ""
     /// The store just joined, for the screen to move into: until it is shown.
     public private(set) var joined: String?
     /// An invite link to show and send.
@@ -64,9 +71,20 @@ public final class StoresModel {
 
     func previewed(_ answer: InvitePreview) {
         switch answer {
-        case .store(let store): preview = .store(store)
+        case .store(let store):
+            preview = .store(store)
+            if deviceName == offeredName { deviceName = store.deviceLabel }
+            offeredName = store.deviceLabel
         case .failed(let reason): preview = .failed(reason)
         }
+    }
+
+    /// The join for `link`: an invite sends this device's name as the field holds it, and an open
+    /// link sends none.
+    func joinCommand(_ link: String) -> Command {
+        var label: String?
+        if case .store(let invited)? = preview, !invited.anonymous { label = deviceName }
+        return .joinStore(link: link.trimmingCharacters(in: .whitespacesAndNewlines), label: label)
     }
 
     func joined(_ store: String) {
@@ -101,6 +119,8 @@ public final class StoresModel {
     /// Forget the invite link being checked: the join sheet closed.
     public func clearPreview() {
         preview = nil
+        deviceName = ""
+        offeredName = ""
     }
 
     /// The store just joined has been shown.

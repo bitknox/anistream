@@ -6,7 +6,7 @@ use anistream_model::stores::{StorePluginRow, StorePluginStatus, StoreRow, Store
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
-    app::{App, MemberLine, PluginChoice, StoreConfirm, StoreLine},
+    app::{App, Field, MemberLine, PluginChoice, StoreConfirm, StoreLine},
     clock::Clock,
     nav::Focus,
     theme::{Role, glyph},
@@ -781,6 +781,15 @@ pub(super) fn store_confirm_rows(app: &App) -> Vec<(String, String)> {
             if preview.already_joined {
                 rows.push(row("already joined — joining again gives this device a new token"));
             }
+            // An invite sends a name for this device, which the person joining can change here.
+            if !preview.anonymous {
+                rows.push(row(""));
+                let name = super::overlays::field_text(app, Field::DeviceLabel);
+                rows.push(row(&format!("device    {name}▏")));
+                rows.push(row(
+                    "          the store's owner sees this name · type to change it",
+                ));
+            }
             rows.push(row(""));
             rows.push(row("enter joins · esc cancels"));
             rows
@@ -1019,6 +1028,7 @@ mod tests {
             plugins: Vec::new(),
             open: false,
             anonymous: false,
+            device_label: "Computer".into(),
         }));
         app.show_plugin("aaaa", "three");
         app.nav.close_overlay();

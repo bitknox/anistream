@@ -155,9 +155,12 @@ pub fn sweep_at_launch(paths: &anistream_core::config::Paths) -> Pruned {
 }
 
 /// Daily logs past [`LOG_DAYS`], by when they were last written — today's is being written.
+///
+/// The terminal's `anistream.log.<date>` and the apps' `app.log.<date>`, which share the
+/// directory, so whichever launches sweeps both.
 fn prune_logs(dir: &Path, now: std::time::SystemTime) -> usize {
     prune_older_than(dir, Duration::from_secs(LOG_DAYS * 86_400), now, |name| {
-        name.starts_with("anistream.log")
+        name.starts_with("anistream.log") || name.starts_with("app.log")
     })
 }
 
@@ -264,6 +267,26 @@ mod tests {
             .collect();
         left.sort();
         assert_eq!(left, ["anistream.log.2026-10-10", "anistream.log.2026-10-18", "notes.txt"]);
+    }
+
+    #[test]
+    fn the_apps_logs_are_kept_two_weeks_too() {
+        // The apps write their own daily file beside the terminal's, and it was never removed.
+        let dir = tempfile::tempdir().unwrap();
+        aged(&dir.path().join("app.log.2026-08-01"), b"old", 78);
+        aged(&dir.path().join("app.log.2026-10-04"), b"older than the window", 15);
+        aged(&dir.path().join("app.log.2026-10-10"), b"recent", 8);
+        aged(&dir.path().join("app.log.2026-10-18"), b"today", 0);
+        aged(&dir.path().join("application notes.txt"), b"not ours", 90);
+
+        assert_eq!(prune_logs(dir.path(), std::time::SystemTime::now()), 2);
+        let mut left: Vec<String> = std::fs::read_dir(dir.path())
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        left.sort();
+        assert_eq!(left, ["app.log.2026-10-10", "app.log.2026-10-18", "application notes.txt"]);
     }
 
     #[test]

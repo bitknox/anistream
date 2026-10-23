@@ -212,6 +212,9 @@ impl App {
                 ));
             }
             InvitePreview::Store(preview) => {
+                // What the store will call this device, to change before saying yes. Empty for
+                // an open link, which sends no name.
+                self.set_text(Field::DeviceLabel, preview.device_label.clone());
                 self.store_confirm = Some(StoreConfirm::Join(preview));
                 self.nav.open_overlay(Overlay::StoreConfirm);
             }
@@ -224,6 +227,13 @@ impl App {
                 }
             }
         }
+    }
+
+    /// Whether the keyboard is naming this device: a join's confirmation for an invite, whose
+    /// device name is a field. An open link joins without one.
+    pub(crate) fn naming_device(&self) -> bool {
+        self.nav.overlay() == Some(&Overlay::StoreConfirm)
+            && matches!(&self.store_confirm, Some(StoreConfirm::Join(preview)) if !preview.anonymous)
     }
 
     /// A store just joined.
@@ -529,7 +539,11 @@ impl App {
         Some(match confirm {
             StoreConfirm::Join(preview) => {
                 self.field_mut(Field::JoinLink).clear();
-                Command::JoinStore { link: preview.link }
+                let label = self.field_mut(Field::DeviceLabel).take();
+                Command::JoinStore {
+                    link: preview.link,
+                    label: (!preview.anonymous).then_some(label),
+                }
             }
             StoreConfirm::Leave { store, .. } => Command::LeaveStore { store },
             StoreConfirm::RemoveMember { store, member, .. } => {
@@ -628,6 +642,8 @@ impl App {
 
 #[cfg(test)]
 mod tests {
+    use crossterm::event::{KeyCode, KeyEvent};
+
     use super::*;
     use crate::app::fixtures::*;
 
@@ -698,15 +714,21 @@ mod tests {
             plugins: Vec::new(),
             open: false,
             anonymous: false,
+            device_label: "Computer".into(),
         })));
         assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
+        // The name the store will call this machine, its kind, ready to change.
+        assert!(a.is_typing());
+        assert_eq!(a.text(Field::DeviceLabel), "Computer");
         assert_eq!(
             a.handle(Action::Open, 20),
             Some(Command::JoinStore {
-                link: Secret("https://plugins.example/join/abc#key".into())
+                link: Secret("https://plugins.example/join/abc#key".into()),
+                label: Some("Computer".into()),
             })
         );
         assert!(a.text(Field::JoinLink).is_empty(), "the spent link is not kept");
+        assert!(a.text(Field::DeviceLabel).is_empty());
 
         // Joined: the new store opens, because the user is still on the list it was joined from.
         a.apply(Event::Stores(vec![store_row("abc", false, Vec::new())]));
@@ -1122,12 +1144,75 @@ mod tests {
             plugins: Vec::new(),
             open: false,
             anonymous: false,
+            device_label: "Computer".into(),
         })));
         assert_eq!(a.store_confirm, leave);
         assert_eq!(
             a.handle(Action::Open, 20),
             Some(Command::LeaveStore { store: "abc".into() })
         );
+    }
+
+    fn invited(anonymous: bool) -> InvitedStore {
+        InvitedStore {
+            link: Secret("https://plugins.example/join/abc#key".into()),
+            name: "Our plugins".into(),
+            url: "https://plugins.example".into(),
+            host: "plugins.example".into(),
+            fingerprint: "9f3c".into(),
+            already_joined: false,
+            owners: Vec::new(),
+            plugins: Vec::new(),
+            open: anonymous,
+            anonymous,
+            device_label: if anonymous { String::new() } else { "Computer".into() },
+        }
+    }
+
+    #[test]
+    fn the_device_name_an_invite_sends_is_typed_over_before_joining() {
+        let mut a = at_stores(Vec::new());
+        a.apply(Event::StorePreview(InvitePreview::Store(invited(false))));
+        // Letters are the name now, not bindings: `q` does not quit.
+        for _ in 0.."Computer".len() {
+            a.press(KeyEvent::from(KeyCode::Backspace), 20);
+        }
+        for c in "q Den".chars() {
+            a.press(KeyEvent::from(KeyCode::Char(c)), 20);
+        }
+        assert!(!a.should_quit);
+        assert_eq!(
+            a.press(KeyEvent::from(KeyCode::Enter), 20),
+            Some(Command::JoinStore {
+                link: Secret("https://plugins.example/join/abc#key".into()),
+                label: Some("q Den".into()),
+            })
+        );
+    }
+
+    #[test]
+    fn an_open_link_joins_with_no_name_to_type() {
+        let mut a = at_stores(Vec::new());
+        a.apply(Event::StorePreview(InvitePreview::Store(invited(true))));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
+        assert!(!a.is_typing(), "nothing is sent to name, so there is nothing to type");
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::JoinStore {
+                link: Secret("https://plugins.example/join/abc#key".into()),
+                label: None,
+            })
+        );
+    }
+
+    #[test]
+    fn a_join_dismissed_forgets_the_name_typed() {
+        let mut a = at_stores(Vec::new());
+        a.apply(Event::StorePreview(InvitePreview::Store(invited(false))));
+        a.press(KeyEvent::from(KeyCode::Char('x')), 20);
+        a.press(KeyEvent::from(KeyCode::Esc), 20);
+        assert!(!a.nav.has_overlay());
+        assert!(a.text(Field::DeviceLabel).is_empty());
     }
 
     fn open_view(open: bool, devices: u32) -> OpenJoinView {

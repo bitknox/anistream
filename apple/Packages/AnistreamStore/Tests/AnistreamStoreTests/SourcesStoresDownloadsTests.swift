@@ -105,6 +105,32 @@ struct StoresTests {
         #expect(store.stores.joined == "hotaru")
     }
 
+    @Test func anInviteOffersTheKindOfDeviceAndJoinsWithTheNameTyped() {
+        let store = AppStore()
+        let link = "https://plugins.example/join/abc#key"
+        store.previewStore(link)
+        let invited = InvitedStore(link: link, name: "Hotaru Plugins", url: "https://plugins.example",
+                                   host: "plugins.example", fingerprint: "9f3c 1a2b", alreadyJoined: false,
+                                   deviceLabel: "iPad")
+        store.apply(.storePreview(.store(invited)))
+        // The kind of device, never its own name, as the field starts.
+        #expect(store.stores.deviceName == "iPad")
+        #expect(store.stores.joinCommand(" \(link) ") == .joinStore(link: link, label: "iPad"))
+        // Typed over, and kept when the link is checked again.
+        store.stores.deviceName = "Den"
+        store.apply(.storePreview(.store(invited)))
+        #expect(store.stores.deviceName == "Den")
+        #expect(store.stores.joinCommand(link) == .joinStore(link: link, label: "Den"))
+        // An open link sends no name at all.
+        let open = InvitedStore(link: link, name: "Hotaru Plugins", url: "https://plugins.example",
+                                host: "plugins.example", fingerprint: "9f3c 1a2b", alreadyJoined: false,
+                                open: true, anonymous: true)
+        store.apply(.storePreview(.store(open)))
+        #expect(store.stores.joinCommand(link) == .joinStore(link: link, label: nil))
+        store.stores.clearPreview()
+        #expect(store.stores.deviceName.isEmpty)
+    }
+
     @Test func aPluginComesFromTheStoreThatKeepsItUpdated() {
         let store = AppStore()
         store.apply(.stores([

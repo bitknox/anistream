@@ -359,6 +359,9 @@ struct PlaybackPane: View {
             SettingsRow(title: SettingKey.skipOpening.title, note: overridden(.skipOpening)) { SettingSwitch(key: .skipOpening) }
             SettingsRow(title: SettingKey.skipFiller.title, note: overridden(.skipFiller)) { SettingSwitch(key: .skipFiller) }
             SettingsRow(title: SettingKey.markChapters.title) { SettingSwitch(key: .markChapters) }
+            SettingsRow(title: SettingKey.skipButton.title, note: "While the opening or ending plays, when it isn't skipped automatically.") {
+                SettingSwitch(key: .skipButton)
+            }
             SettingsRow(title: SettingKey.commitThreshold.title, note: "Or when the ending starts, if it is marked.") {
                 SettingMenu(key: .commitThreshold)
             }

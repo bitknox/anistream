@@ -64,7 +64,7 @@ mod subtitles;
 mod upscaling;
 mod watch;
 
-pub use skips::{fetch_skips, offered};
+pub use skips::{SkipTimes, offered};
 pub use upscaling::PictureState;
 
 use companion_state::fetch_still;
@@ -100,6 +100,9 @@ pub struct PlaySettings {
     /// Put the opening and ending on the seek bar where the stream has no chapters of its own,
     /// from `playback.mark_chapters`.
     pub mark_chapters: bool,
+    /// Offer a skip button while the opening or ending plays, where the skip is not automatic,
+    /// from `playback.skip_button`.
+    pub skip_button: bool,
     /// Open mpv fullscreen, from `playback.fullscreen`.
     pub fullscreen: bool,
     pub subtitle_language: Option<String>,
@@ -247,8 +250,9 @@ pub async fn play(
         return;
     }
 
-    let skips =
-        fetch_skips(&http, context.mal_id, &context.episode, context.runtime_secs).await;
+    let skips = SkipTimes::shared()
+        .for_playback(&http, &settings, context.mal_id, &context.episode, context.runtime_secs)
+        .await;
 
     let mut run = Run {
         context: &context,
