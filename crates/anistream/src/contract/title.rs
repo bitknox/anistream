@@ -21,7 +21,7 @@ use anistream_testkit::{
     Operation,
     fixtures::{
         self, AIRING, FINISHED, FIXTURE_NOW, FRANCHISE_FILM, FRANCHISE_OVA, FRANCHISE_SEASONS,
-        FRANCHISE_SIDE_STORY, MISSING, SEQUEL,
+        FRANCHISE_SIDE_STORY, LONG_FRANCHISE_FILM, LONG_FRANCHISE_SEASONS, MISSING, SEQUEL,
     },
     seed, sources,
 };
@@ -136,6 +136,30 @@ async fn a_franchise_walked_once_is_known_on_every_page_without_asking() {
         let updates = h.settle().await;
         assert_eq!(seasons_said(&updates), [Some(Vec::new())], "{id}");
     }
+}
+
+#[tokio::test]
+async fn a_long_franchise_has_all_twelve_seasons_on_every_page() {
+    // The ninth season's page first, as a link to it would open. It sees the seventh to the
+    // eleventh itself; the walk asks after the seventh and the eleventh, then the fifth, the
+    // third and the first, whose own relations say the chain ends there.
+    let mut h = Harness::with(Options::default()).await;
+    h.server().add_titles(fixtures::long_franchise());
+    let ninth = LONG_FRANCHISE_SEASONS[8];
+    let job = h.send(Command::LoadDetail(ninth));
+    let updates = h.settle().await;
+    assert_eq!(seasons_said(&updates), [Some(LONG_FRANCHISE_SEASONS.to_vec())]);
+    assert_eq!(h.server().requests_for(Operation::Relations).len(), 4);
+    ends(&updates, job);
+    for id in [LONG_FRANCHISE_SEASONS[0], LONG_FRANCHISE_SEASONS[11]] {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        assert_eq!(seasons_said(&updates), [Some(LONG_FRANCHISE_SEASONS.to_vec())], "{id}");
+    }
+    assert_eq!(h.server().requests_for(Operation::Relations).len(), 4, "nothing asked again");
+    // The film is a side story of the sixth, no prequel or sequel of a season: none to pick.
+    h.send(Command::LoadDetail(LONG_FRANCHISE_FILM));
+    assert_eq!(seasons_said(&h.settle().await), [Some(Vec::new())]);
 }
 
 #[tokio::test]

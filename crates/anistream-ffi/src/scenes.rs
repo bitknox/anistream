@@ -23,6 +23,10 @@ use crate::{
 };
 
 /// What a scene puts in the database before the engine starts on it.
+///
+/// Every scene's fake AniList also has the test kit's long franchise
+/// ([`fixtures::LONG_FRANCHISE_SEASONS`], twelve seasons of Cloudcutter Airship), in no list,
+/// search or schedule: its pages open by id.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum FfiScene {
     /// Nothing: a first launch, as [`FfiEngine::start_testing`] starts.
@@ -105,7 +109,10 @@ impl FfiEngine {
         let started = runtime.block_on(async {
             let server = FakeAniList::start().await;
             server.set_now(now);
-            let sources = scene_sources(&scene, &server.art_base());
+            // The long franchise beside the six, for a season picker of twelve: a page opens on
+            // it by id, as no list has it.
+            server.add_titles(fixtures::long_franchise());
+            let sources = Some(scene_sources(&scene, &server.art_base()));
             let testing = testing::Testing { server, clock };
             let options = testing::options(opened, &testing, start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
@@ -145,11 +152,14 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
     Ok(())
 }
 
-/// The scene's sources, for a scene that plays: the test kit's fixture provider, its stills
-/// under `art`, streaming `media`. `None` for the others, which have the fixture provider as
-/// [`FfiEngine::start_testing`] has it.
-fn scene_sources(scene: &FfiScene, art: &str) -> Option<ProviderRegistry> {
-    let FfiScene::Playing { media } = scene else { return None };
+/// The scene's sources: the test kit's fixture provider, its stills under `art`, with the long
+/// franchise's titles beside the six, which the scene's fake AniList has too. For a scene that
+/// plays, every episode streams `media`.
+fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
+    let franchise = || sources::with_long_franchise(sources::provider_with_art(art));
+    let FfiScene::Playing { media } = scene else {
+        return ProviderRegistry::new(vec![franchise().arc()]);
+    };
     let web = media.starts_with("http")
         && media.split('?').next().is_some_and(|path| path.ends_with(".m3u8"));
     let stream = Stream {
@@ -157,11 +167,11 @@ fn scene_sources(scene: &FfiScene, art: &str) -> Option<ProviderRegistry> {
         headers: if web { vec![("Referer".into(), SCENE_REFERER.into())] } else { Vec::new() },
         ..Stream::new(media, if web { StreamKind::Hls } else { StreamKind::Mp4 })
     };
-    let mut provider = sources::provider_with_art(art);
+    let mut provider = franchise();
     for id in fixtures::ALL {
         provider = provider.with_streams_for(sources::key(id), vec![stream.clone()]);
     }
-    Some(ProviderRegistry::new(vec![provider.arc()]))
+    ProviderRegistry::new(vec![provider.arc()])
 }
 
 /// The referer a Playing scene's web stream is locked to: an invented source's.
@@ -250,10 +260,11 @@ mod tests {
         let continuing = store.continue_list(15).expect("the rail");
         assert_eq!(continuing.iter().map(|p| p.anilist_id).collect::<Vec<_>>(), [FINISHED]);
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), None);
-        let playing =
-            scene_sources(&scene, "http://127.0.0.1:9/art/").expect("a scene that plays");
+        let playing = scene_sources(&scene, "http://127.0.0.1:9/art/");
         assert_eq!(playing.ids(), [sources::PROVIDER_ID]);
-        assert!(scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/").is_none());
+        // Every scene has the fixture provider, with the long franchise beside the six.
+        let watching = scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/");
+        assert_eq!(watching.ids(), [sources::PROVIDER_ID]);
     }
 
     #[test]
