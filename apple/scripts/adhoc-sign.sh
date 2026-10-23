@@ -6,7 +6,9 @@
 #   apple/scripts/adhoc-sign.sh <derived data>/Build/Products/<Debug|Release>/Anistream.app
 #   apple/scripts/adhoc-sign.sh <derived data>/Build/Products/<Debug|Release>-iphoneos/Anistream.app
 #
-# 1. Each framework and dylib in the app's Frameworks.
+# 1. Each framework and dylib in the app's Frameworks. A Mac framework that carries code of its
+#    own to run, as Sparkle's does (its XPC services, Updater.app and Autoupdate), has that signed
+#    first, keeping the identifier, entitlements and flags each was built with.
 # 2. Each app extension in PlugIns (the widgets), the frameworks inside it first, with its
 #    entitlements: on the Mac, macOS loads no extension that is not sandboxed.
 # 3. The app, with its entitlements when it has any.
@@ -190,11 +192,36 @@ sign() {
   echo "adhoc-sign.sh: signed $(label "$path")${with:+ with its entitlements}"
 }
 
+# Sign `path` again, keeping what its signature says of it: its identifier, its entitlements, and
+# its flags, such as the hardened runtime Sparkle builds its helpers with.
+sign_keeping() {
+  codesign --force --sign - --timestamp=none --preserve-metadata=identifier,entitlements,flags "$1"
+  echo "adhoc-sign.sh: signed $(label "$1"), keeping its identifier, entitlements and flags"
+}
+
+# What a Mac framework carries inside its version directory that runs on its own: XPC services
+# and helper apps, then helper tools, the executables beside the framework's own binary. Only a
+# versioned framework, the Mac's, has any; Versions/Current is a link to one of them, and find
+# does not follow it.
+sign_nested() {
+  local framework="$1" own item
+  [[ -d "$framework/Versions" ]] || return 0
+  own="$(basename "${framework%.framework}")"
+  while IFS= read -r item; do
+    sign_keeping "$item"
+  done < <(find "$framework/Versions" -mindepth 2 -maxdepth 3 -type d \( -name '*.xpc' -o -name '*.app' \) | LC_ALL=C sort)
+  while IFS= read -r item; do
+    [[ "$(basename "$item")" == "$own" ]] && continue
+    sign_keeping "$item"
+  done < <(find "$framework/Versions" -mindepth 2 -maxdepth 2 -type f -perm -u+x | LC_ALL=C sort)
+}
+
 # The frameworks and dylibs directly in `dir`, each before what holds them.
 sign_frameworks() {
   local dir="$1" item
   [[ -d "$dir" ]] || return 0
   while IFS= read -r item; do
+    if [[ "$item" == *.framework ]]; then sign_nested "$item"; fi
     sign "$item"
   done < <(find "$dir" -mindepth 1 -maxdepth 1 \( -name '*.framework' -o -name '*.dylib' \) | LC_ALL=C sort)
 }

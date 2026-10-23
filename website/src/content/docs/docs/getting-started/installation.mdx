@@ -45,8 +45,16 @@ The `.ipa` is unsigned. [AltStore](https://altstore.io) or [SideStore](https://s
 it with your own Apple ID as it installs it:
 
 1. Set up AltStore or SideStore on the iPhone or iPad, as its own guide describes.
-2. Download the `.ipa` on the device, open it in AltStore or SideStore, and install it.
-3. If iOS asks for Developer Mode, turn it on under **Settings › Privacy & Security › Developer
+2. Add anistream's source to it. In SideStore or AltStore, go to **Sources**, choose **+** and
+   paste this address:
+
+   ```
+   https://github.com/bitknox/anistream/releases/latest/download/sidestore.json
+   ```
+
+3. Install anistream from the source. You can also download the `.ipa` on the device and open it
+   in AltStore or SideStore, but then it does not offer you new releases.
+4. If iOS asks for Developer Mode, turn it on under **Settings › Privacy & Security › Developer
    Mode** and restart when it asks. Apps signed with a personal Apple ID need it.
 
 With a free Apple ID the signature lasts 7 days. AltStore or SideStore has to refresh the app
@@ -107,8 +115,21 @@ prerequisites and then build.
 
 ## Updating
 
-To update an app, install the new release's file the same way. It replaces the version before it
-and keeps your history and settings.
+The apps check GitHub for a new release once a day and say when one is out. Settings shows it too,
+with **Check Now**. Nothing is downloaded until you choose to update, and an update keeps your
+history and settings. Turn the daily check off with **Check for updates** in Settings.
+
+On the Mac, choose **Update** in the notice, or **Update to** the new version under
+**Settings › Integrations › Updates**. anistream downloads the new release, checks its signature,
+replaces itself and opens again. macOS does not ask for Open Anyway again, since a browser did not
+download it. It may still ask whether Anistream can use what it keeps in your keychain.
+
+On iPhone and iPad, updates come through SideStore or AltStore, from the source you added. Choose
+**Update in SideStore** in the notice, under **Settings › About** on iPhone or under
+**Settings › Advanced** on iPad. It opens SideStore with anistream's source, where you update the
+app. Without SideStore or AltStore it opens the release page.
+
+On Android, install the new release's APK the same way. It replaces the version before it.
 
 The terminal app updates itself:
 

@@ -7,9 +7,14 @@
 #
 # <terminal dir> holds the four builds' archives, installers and AppImage, a .sha256 for each,
 # and the Rust crates' licences. <apps dir> holds the APK, the .dmg, the .ipa, the notices' zip
-# and the libraries' sources, a .sha256 for each, and apps-release-notes.md. Every file a
-# release carries has to be there, and nothing else may be, so a build that stops making one,
-# or starts making a new one, fails here rather than publishing without it.
+# and the libraries' sources, a .sha256 for each, the Mac's appcast.xml, the iPhone and iPad's
+# sidestore.json, and apps-release-notes.md. Every file a release carries has to be there, and
+# nothing else may be, so a build that stops making one, or starts making a new one, fails here
+# rather than publishing without it.
+#
+# appcast.xml and sidestore.json have no version in their names, so the newest release's are at
+# releases/latest/download/, where the apps look. sidestore.json gets the release's date and the
+# first section of its notes here (packaging/apps/sidestore-source.sh made the rest).
 #
 # The notes start with the pull request merged as <commit>, its title and body, which GitHub
 # links to the commit. A commit pushed without one gets the subjects of the commits since the
@@ -84,6 +89,7 @@ if (( ! notes_only )); then
   expect_checked "$apps" \
     "$p-android-arm64.apk" "$p-macos.dmg" "$p-ios-unsigned.ipa" \
     "$p-apps-third-party.zip" "$p-apps-sources.tar"
+  expect "$apps" appcast.xml sidestore.json
 
   shopt -s nullglob
   for dir in "$terminal" "$apps"; do
@@ -157,6 +163,40 @@ if (( notes_only )); then
   cat "$work/notes.md"
   exit 0
 fi
+
+# The source's version: the release's date, and the first section of its notes, the pull request
+# merged, as plain text and short, as the apps' update check shortens it.
+python3 -I - "$apps/sidestore.json" "$work/notes.md" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" <<'EOF'
+import json, re, sys
+
+path, notes, date = sys.argv[1:]
+lines = []
+for line in open(notes).read().splitlines():
+    bare = line.strip()
+    if bare.startswith("## ") and lines:
+        break
+    text = bare.lstrip("#").strip() if bare.startswith("#") else line.rstrip()
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text).replace("**", "").replace("`", "")
+    if text or (lines and lines[-1]):
+        lines.append(text)
+while lines and not lines[-1]:
+    lines.pop()
+short = ""
+for line in lines:
+    joined = short + ("\n" if short else "") + line
+    if len(joined) > 500:
+        short = (short or line[:500].rsplit(" ", 1)[0]) + "…"
+        break
+    short = joined
+
+source = json.load(open(path))
+version = source["apps"][0]["versions"][0]
+version["date"] = date
+version["localizedDescription"] = short
+with open(path, "w") as f:
+    json.dump(source, f, indent=2, ensure_ascii=False)
+    f.write("\n")
+EOF
 
 # --- The release -----------------------------------------------------------------------------------
 

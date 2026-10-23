@@ -42,6 +42,8 @@ public final class AppStore {
     public let answers = EngineAnswers()
     /// Downloads that go on after the app leaves, in the system's window for them (iOS).
     public let continued = ContinuedDownloads()
+    /// The update check's word, and an update the viewer started.
+    public let updates = UpdatesModel()
     /// The week's ask, waiting a moment in case more ask at once.
     @ObservationIgnored var noticeRefresh: Task<Void, Never>?
     /// The home-screen widgets' snapshot, kept current as what they show changes.
@@ -89,6 +91,7 @@ public final class AppStore {
             return true
         }
         continued.send = { [weak self] command in self?.send(command) }
+        updates.send = { [weak self] command in self?.send(command) }
         // The downloads' Live Activity and the system's own progress for them never show at once.
         continued.runningChanged = { [weak self] running in self?.downloadsActivity.systemShowsProgress = running }
     }
@@ -458,6 +461,9 @@ public final class AppStore {
 
         case .widgetSnapshot(let data):
             widgets.received(data, art: artwork)
+
+        case .update(let status):
+            updates.apply(status)
 
         case .viewerTitleLanguage(let language):
             accounts.viewerTitleLanguage = language
