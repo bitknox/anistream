@@ -124,6 +124,7 @@ public struct PhonePlayerView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: drag > 120) { _, crossed in crossed }
         .sheet(item: $sheet) { sheet in sheetContent(sheet) }
         .onChange(of: sheet) { _, open in model.hold("sheet", open != nil) }
+        .onChange(of: model.trackMenuRequests) { sheet = .tracks }
         .onChange(of: held) { _, on in speedHeld(on) }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
@@ -236,19 +237,26 @@ public struct PhonePlayerView: View {
 
     @ViewBuilder
     private func sheetContent(_ sheet: Sheet) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                switch sheet {
-                case .tracks:
-                    TrackLists(model: model, metrics: metrics)
-                    MenuDivider()
-                    MoreLists(model: model, metrics: metrics)
-                case .episodes:
-                    EpisodeList(model: model, metrics: metrics)
+        ScrollViewReader { list in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    switch sheet {
+                    case .tracks:
+                        TrackLists(model: model, metrics: metrics)
+                        MenuDivider()
+                        MoreLists(model: model, metrics: metrics)
+                    case .episodes:
+                        EpisodeList(model: model, metrics: metrics)
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .onAppear {
+                // The row in use, in view however long the list.
+                let row = sheet == .tracks ? TrackLists.selectedRow(model) : EpisodeList.selectedRow(model)
+                if let row { list.scrollTo(row, anchor: .center) }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationBackground(Palette.ground)
