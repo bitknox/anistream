@@ -26,7 +26,7 @@ anistream-tui.workspace = true
 open.workspace = true
 anyhow.workspace = true
 # Encodes an invite link for the terminal's clipboard (OSC 52). Already in the tree.
-base64 = "0.22"
+base64 = "0.23"
 # Verifies release archives against their published SHA-256 before `--update` installs.
 sha2 = "0.10"
 # Raises the open-file allowance at startup — macOS's default 256 is less than one
