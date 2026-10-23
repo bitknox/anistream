@@ -149,7 +149,7 @@ jobs:
           java-version: 21
       # Reads main's Gradle caches and writes none: a run with the release key in it leaves
       # nothing behind.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: true
 

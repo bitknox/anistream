@@ -576,7 +576,7 @@ jobs:
           distribution: temurin
           java-version: 21
       # Gradle's caches and the wrapper's distribution, saved from main like the Rust cache.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
       # The platform the app compiles against, and the NDK its build.gradle.kts strips the APK's
