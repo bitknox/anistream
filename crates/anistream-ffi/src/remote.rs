@@ -279,6 +279,20 @@ impl FfiTvRemote {
         Some(link.to_string())
     }
 
+    /// Open a pairing code from the TV's side, for its Pair a phone screen and the QR code it
+    /// shows: any phone may pair with it, typed or scanned, for five minutes or until one pairs,
+    /// when `Event::Remote` brings `HidePairingCode` and then `Paired`. `None` once stopped.
+    pub fn open_pairing(&self) -> Option<String> {
+        lock(&self.running).as_ref().map(TvRemote::open_code)
+    }
+
+    /// Close the code `open_pairing` opened, as the screen closes.
+    pub fn close_pairing(&self) {
+        if let Some(remote) = lock(&self.running).as_ref() {
+            remote.close_code();
+        }
+    }
+
     /// What the TV has on screen now.
     pub fn set_screen(&self, screen: FfiScreen) {
         if let Some(remote) = lock(&self.running).as_ref() {

@@ -116,6 +116,10 @@ async fn paired_phone(tv: &mut Tv, name: &str) -> (Identity, RemoteClient) {
         timeout(WAIT, tv.front.recv()).await.unwrap(),
         Some(FrontIntent::HidePairingCode)
     );
+    assert_eq!(
+        timeout(WAIT, tv.front.recv()).await.unwrap(),
+        Some(FrontIntent::Paired { phone: name.into() })
+    );
     (phone, client)
 }
 
@@ -171,9 +175,44 @@ async fn a_phone_finds_the_tv_pairs_with_the_code_on_screen_and_is_told_the_stat
         timeout(WAIT, tv.front.recv()).await.unwrap(),
         Some(FrontIntent::HidePairingCode)
     );
+    assert_eq!(
+        timeout(WAIT, tv.front.recv()).await.unwrap(),
+        Some(FrontIntent::Paired { phone: "Hall phone".into() })
+    );
 
     let mut state = client.state();
     next_state(&mut state, |s| s.screen == Screen::Home).await;
+}
+
+#[tokio::test]
+async fn a_phone_pairs_with_a_code_the_tv_opened_itself_without_asking() {
+    let mut tv = Tv::new().await;
+    let code = tv.server.open_code();
+    assert_eq!(code.len(), 6);
+    let phone = Identity::generate().unwrap();
+    // As a scanned QR code has it: the TV's key pinned before connecting.
+    let pin = Some(tv.identity.fingerprint());
+    let mut client =
+        RemoteClient::connect(tv.addr(), &phone, pin, &hello("Den tablet")).await.unwrap();
+    client.pair(&code).await.expect("the TV's own code pairs");
+    assert!(tv.trust.get(&phone.fingerprint()).is_some());
+    assert_eq!(
+        timeout(WAIT, tv.front.recv()).await.unwrap(),
+        Some(FrontIntent::HidePairingCode)
+    );
+    assert_eq!(
+        timeout(WAIT, tv.front.recv()).await.unwrap(),
+        Some(FrontIntent::Paired { phone: "Den tablet".into() })
+    );
+
+    // Closed with its screen, it pairs nobody.
+    tv.server.open_code();
+    let late = tv.server.open_code();
+    tv.server.close_code();
+    let other = Identity::generate().unwrap();
+    let mut client =
+        RemoteClient::connect(tv.addr(), &other, None, &hello("Late phone")).await.unwrap();
+    assert!(client.pair(&late).await.is_err());
 }
 
 #[tokio::test]

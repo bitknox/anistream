@@ -122,7 +122,20 @@ fn a_phone_pairs_and_its_keys_and_volume_reach_the_front_end() {
     assert_eq!(name, "Mika's phone");
     runtime.block_on(client.pair(&code)).expect("the code pairs");
     assert_eq!(tv.intent(), FrontIntent::HidePairingCode);
+    assert_eq!(tv.intent(), FrontIntent::Paired { phone: "Mika's phone".into() });
     assert_eq!(remote.paired().len(), 1);
+
+    // The TV's own Pair a phone screen: a code any phone pairs with, its key pinned by the QR.
+    let opened = remote.open_pairing().expect("a code");
+    let tablet = Identity::generate().unwrap();
+    let hello = Hello { name: "Ren's tablet".into(), app: "anistream-test/0".into() };
+    runtime.block_on(async {
+        let mut client = RemoteClient::connect(addr, &tablet, None, &hello).await.unwrap();
+        client.pair(&opened).await.expect("the TV's own code pairs");
+    });
+    assert_eq!(tv.intent(), FrontIntent::HidePairingCode);
+    assert_eq!(tv.intent(), FrontIntent::Paired { phone: "Ren's tablet".into() });
+    assert_eq!(remote.paired().len(), 2);
 
     runtime.block_on(client.send(RemoteCommand::Navigate { key: Key::Down })).unwrap();
     assert_eq!(tv.intent(), FrontIntent::Navigate { key: RemoteKey::Down });
@@ -136,9 +149,9 @@ fn a_phone_pairs_and_its_keys_and_volume_reach_the_front_end() {
     // The key was kept: started again, it is the same TV.
     let again = futures::executor::block_on(tv.engine.start_remote("Den".into(), 0)).unwrap();
     assert_eq!(again.short_fingerprint(), short);
-    assert_eq!(again.paired().len(), 1, "the paired phone is remembered");
+    assert_eq!(again.paired().len(), 2, "the paired phones are remembered");
     let phone = again.paired().remove(0).fingerprint;
     assert_eq!(again.revoke(phone), Ok(true));
-    assert!(again.paired().is_empty());
+    assert_eq!(again.paired().len(), 1);
     tv.engine.shutdown();
 }

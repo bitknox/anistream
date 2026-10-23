@@ -96,10 +96,11 @@ struct Shared {
     next_session: AtomicU64,
 }
 
-/// The pairing code on screen, and the session that asked for it.
+/// The pairing code on screen, and the session that asked for it: none for a code the TV opened
+/// itself, which any phone may pair with.
 struct ActiveCode {
     code: PairingCode,
-    session: u64,
+    session: Option<u64>,
     tries_left: u32,
     expires: Instant,
 }
@@ -115,6 +116,10 @@ enum Close {
     Revoked,
     ShuttingDown,
 }
+
+/// How long a code the TV opened itself lasts, in seconds: its Pair a phone screen opens another
+/// as it runs out.
+pub const TV_CODE_LIFETIME: u32 = 300;
 
 fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
@@ -187,6 +192,31 @@ impl RemoteServer {
         let mut folder = lock(&self.shared.folder);
         if change(&mut folder) {
             self.shared.state.send_replace(folder.publish());
+        }
+    }
+
+    /// Open a pairing code from the TV's side, for its Pair a phone screen: any phone that
+    /// connects may pair with it, as a scanned QR code or typed, for [`TV_CODE_LIFETIME`]
+    /// seconds or until it pairs. Replaces any code on screen. The front end shows the code it is
+    /// given; it hears [`FrontIntent::HidePairingCode`] when the code is used up and
+    /// [`FrontIntent::Paired`] when a phone pairs.
+    pub fn open_code(&self) -> String {
+        let code = PairingCode::generate();
+        let digits = code.as_str().to_owned();
+        *lock(&self.shared.code) = Some(ActiveCode {
+            code,
+            session: None,
+            tries_left: MAX_TRIES,
+            expires: Instant::now() + Duration::from_secs(TV_CODE_LIFETIME.into()),
+        });
+        digits
+    }
+
+    /// Close the code the TV opened, as its screen closes. A code a phone asked for is left.
+    pub fn close_code(&self) {
+        let mut code = lock(&self.shared.code);
+        if code.as_ref().is_some_and(|c| c.session.is_none()) {
+            *code = None;
         }
     }
 
@@ -336,7 +366,7 @@ impl Shared {
     fn unregister(&self, id: u64) {
         lock(&self.sessions).remove(&id);
         let mut code = lock(&self.code);
-        if code.as_ref().is_some_and(|c| c.session == id) {
+        if code.as_ref().is_some_and(|c| c.session == Some(id)) {
             *code = None;
             drop(code);
             self.sink.front(FrontIntent::HidePairingCode);
@@ -481,7 +511,7 @@ impl Session<'_> {
         });
         *lock(&self.shared.code) = Some(ActiveCode {
             code,
-            session: self.id,
+            session: Some(self.id),
             tries_left: MAX_TRIES,
             expires: Instant::now() + Duration::from_secs(CODE_LIFETIME.into()),
         });
@@ -494,7 +524,9 @@ impl Session<'_> {
     fn pair_start(&mut self, message: &str) -> ServerMessage {
         let mut slot = lock(&self.shared.code);
         let usable = slot.as_ref().is_some_and(|c| {
-            c.session == self.id && c.tries_left > 0 && Instant::now() < c.expires
+            c.session.is_none_or(|session| session == self.id)
+                && c.tries_left > 0
+                && Instant::now() < c.expires
         });
         if !usable {
             let had = slot.take().is_some();
@@ -537,6 +569,7 @@ impl Session<'_> {
         }
         *lock(&self.shared.code) = None;
         self.shared.sink.front(FrontIntent::HidePairingCode);
+        self.shared.sink.front(FrontIntent::Paired { phone: self.name.clone() });
         info!(phone = %self.name, "remote paired");
         Ok(ServerMessage::Paired)
     }

@@ -356,6 +356,8 @@ FfiTvRemote.advert() -> FfiAdvert                          // for NsdManager
 FfiTvRemote.port() -> u16
 FfiTvRemote.short_fingerprint() -> String
 FfiTvRemote.pair_link(address: String, code: String?) -> String?   // for the QR code
+FfiTvRemote.open_pairing() -> String?                      // a code the TV opens itself
+FfiTvRemote.close_pairing()
 FfiTvRemote.set_screen(screen: FfiScreen)
 FfiTvRemote.set_volume(percent: f64)                       // the system's, for the state
 FfiTvRemote.paired() -> [FfiPairedPhone]
@@ -376,9 +378,11 @@ field's text, move the focus, step the system volume. `FrontIntent` and its `Rem
 model's, so they cross as the rest of the events do.
 
 `pair_link` takes the TV's address on the local network, which the platform knows and the
-engine does not, and the code on screen when a phone has asked for one. Before that, the QR code
-carries the address and the key alone: a phone that scans it connects with the key pinned and
-then asks for a code.
+engine does not, and the code on screen. The TV's Pair a phone screen opens a code itself with
+`open_pairing`, for any phone to pair with for five minutes (`TV_CODE_LIFETIME`), typed or
+scanned: a scanned link pins the TV's key and carries the code, so the phone pairs without asking
+for one. A phone that asks for a code instead replaces the TV's. When a phone pairs, the front end
+hears `HidePairingCode` and then `Paired { phone }`, for the notice.
 
 ### On a phone, Mac or terminal (proposed, not built)
 

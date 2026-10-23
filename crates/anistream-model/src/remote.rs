@@ -20,7 +20,11 @@ pub enum FrontIntent {
     Volume { step: f64 },
     /// Show a pairing code, for the phone named, until [`FrontIntent::HidePairingCode`].
     ShowPairingCode { code: String, phone: String },
+    /// The code on screen is used up: a phone paired with it, it ran out, or too many wrong
+    /// tries were made.
     HidePairingCode,
+    /// The phone named has paired, for the notice that says so.
+    Paired { phone: String },
 }
 
 /// The keys of a TV's own remote, as a phone presses them.

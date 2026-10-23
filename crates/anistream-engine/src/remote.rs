@@ -87,6 +87,17 @@ impl TvRemote {
         self.server.set_volume(percent);
     }
 
+    /// A pairing code the TV opened itself, for its Pair a phone screen: see
+    /// [`RemoteServer::open_code`].
+    pub fn open_code(&self) -> String {
+        self.server.open_code()
+    }
+
+    /// Close the code [`Self::open_code`] opened, as its screen closes.
+    pub fn close_code(&self) {
+        self.server.close_code();
+    }
+
     pub fn advert(&self) -> Advert {
         self.server.advert()
     }
