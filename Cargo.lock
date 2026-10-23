@@ -92,7 +92,7 @@ dependencies = [
  "anistream-track",
  "anistream-tui",
  "anyhow",
- "base64",
+ "base64 0.23.1",
  "clap",
  "crossterm",
  "futures",
@@ -336,7 +336,7 @@ name = "anistream-store-core"
 version = "2.0.0"
 dependencies = [
  "async-trait",
- "base64",
+ "base64 0.23.1",
  "ed25519-dalek",
  "getrandom 0.2.17",
  "serde",
@@ -808,6 +808,12 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
 
 [[package]]
 name = "base64-simd"
@@ -2770,7 +2776,7 @@ version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96547c2556ec9d12fb1578c4eaf448b04993e7fb79cbaad930a656880a6bdfa0"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "futures-channel",
  "futures-util",
@@ -3354,7 +3360,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "backoff",
- "base64",
+ "base64 0.22.1",
  "bincode 2.0.1",
  "bitvec",
  "byteorder",
@@ -4372,7 +4378,7 @@ version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08808e3c483c46e999108051c78334f473d5adb59d78bb80a1268c7e6aa6c514"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "byteorder",
  "bytes",
  "fallible-iterator 0.2.0",
@@ -4961,7 +4967,7 @@ version = "0.12.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "futures-core",
  "futures-util",
@@ -5002,7 +5008,7 @@ version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04e9018c9d814e5f30cc16a0f03271aeab3571e609612d9fe78c1aa8d11c2f62"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bytes",
  "futures-core",
  "futures-util",
@@ -5450,7 +5456,7 @@ version = "3.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76a5c54c7310e7b8b9577c286d7e399ddd876c3e12b3ed917a8aabc4b96e9e8c"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "bs58",
  "chrono",
  "hex",
@@ -5890,7 +5896,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4676b37242ccbd1aabf56edb093a4827dc49086c0ffd764a5705899e0f35f8f7"
 dependencies = [
  "anyhow",
- "base64",
+ "base64 0.22.1",
  "bitflags 2.13.1",
  "fancy-regex",
  "filedescriptor",
@@ -6968,7 +6974,7 @@ version = "48.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b11ca8945aa341f944558622db59845dffa1435971f318d5fce2f2d9765a69b0"
 dependencies = [
- "base64",
+ "base64 0.22.1",
  "directories-next",
  "log",
  "postcard",
@@ -7729,7 +7735,7 @@ dependencies = [
  "antidote",
  "arc-swap",
  "async-compression",
- "base64",
+ "base64 0.22.1",
  "boring2",
  "bytes",
  "cookie",
