@@ -1,0 +1,49 @@
+name: Gate recheck
+
+# "CI passed" fails as soon as another check fails, and keeps that result when the other check is
+# re-run and passes. When any of a pull request's workflows finishes, this re-runs a failed
+# "CI passed" once nothing else has failed or is still going, so a re-run needs nothing more.
+on:
+  workflow_run:
+    workflows: [CI, Apps release, Release, Store image]
+    types: [completed]
+
+permissions: {}
+
+# One at a time per commit: a second finds the first's re-run going and leaves it.
+concurrency:
+  group: gate-recheck-${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  recheck:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      checks: read
+      statuses: read
+    steps:
+      - name: Re-run a failed gate whose checks now pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          gate="$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+            --jq '.check_runs[] | select(.name == "CI passed") | [.id, .status, (.conclusion // "")] | @tsv' | sort -n | tail -1)"
+          if [ -z "$gate" ] || [ "$(cut -f2,3 <<<"$gate")" != "$(printf 'completed\tfailure')" ]; then
+            echo "The gate has not failed: ${gate:-no gate}"; exit 0
+          fi
+          runs="$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
+            --jq '.check_runs[] | select(.name != "CI passed") | [.name, .status, (.conclusion // "")] | @tsv')"
+          statuses="$(gh api "repos/$REPO/commits/$SHA/status" \
+            --jq '.statuses[] | [.context, (if .state == "pending" then "in_progress" else "completed" end), .state] | @tsv')"
+          all="$(printf '%s\n%s\n' "$runs" "$statuses" | sed '/^$/d')"
+          if awk -F'\t' '$2 != "completed" || $3 !~ /^(success|skipped|neutral)$/ { bad = 1 } END { exit !bad }' <<<"$all"; then
+            echo "Not every other check has passed yet:"
+            awk -F'\t' '$2 != "completed" || $3 !~ /^(success|skipped|neutral)$/' <<<"$all"
+            exit 0
+          fi
+          echo "Every other check passed; re-running the gate."
+          gh api -X POST "repos/$REPO/actions/jobs/$(cut -f1 <<<"$gate")/rerun"

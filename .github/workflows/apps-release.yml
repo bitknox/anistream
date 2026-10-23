@@ -113,7 +113,7 @@ jobs:
 
       # `inputs.ref` is release.yml's commit. A dispatch has none, and builds its tag, or with no
       # tag either, like a pull request, the ref that started the run.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
 
@@ -188,15 +188,18 @@ jobs:
           path: android/.mpv/${{ env.MPV_PIN }}
           key: ${{ steps.mpv.outputs.cache-primary-key }}
 
-      # engine.sh's cache, keyed by what its stamp is made from. Kept from main's runs only: a pull
+      # engine.sh's cache, keyed by what its stamp is made from (engine.sh --sources-hash). Kept from main's runs only: a pull
       # request's would push main's own caches out of the repository's quota, and a tag's could be
       # read by no other run.
+      - name: The engine's sources
+        id: sources
+        run: echo "hash=$(android/scripts/engine.sh --sources-hash)" >> "$GITHUB_OUTPUT"
       - name: Restore the engine
         id: engine
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.ANISTREAM_ENGINE_CACHE }}
-          key: apps-android-engine-ndk${{ env.NDK_VERSION }}-${{ hashFiles('crates/**', 'wit/**', 'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', '.cargo/**', 'android/scripts/engine.sh') }}
+          key: apps-android-engine-ndk${{ env.NDK_VERSION }}-${{ steps.sources.outputs.hash }}
       - name: The engine
         run: android/scripts/engine.sh release
       - name: Keep the engine
@@ -347,7 +350,7 @@ jobs:
           echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
 
@@ -385,12 +388,15 @@ jobs:
 
       # The release engine for both, as the Release configuration checks for it. The Mac's slice
       # is the one the Swift bindings are generated from.
+      - name: The engine's sources
+        id: sources
+        run: echo "hash=$(apple/scripts/engine.sh --sources-hash)" >> "$GITHUB_OUTPUT"
       - name: Restore the engine
         id: engine
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.ANISTREAM_ENGINE_CACHE }}
-          key: apps-apple-engine-xcode${{ env.XCODE }}-${{ hashFiles('crates/**', 'wit/**', 'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', '.cargo/**', 'apple/scripts/engine.sh') }}
+          key: apps-apple-engine-xcode${{ env.XCODE }}-${{ steps.sources.outputs.hash }}
       - name: The engine
         run: apple/scripts/engine.sh release macos ios
       - name: Keep the engine
@@ -580,7 +586,7 @@ jobs:
         run: |
           echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
           exit 1
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
       - name: The version
@@ -616,7 +622,7 @@ jobs:
     needs: [android, apple, sources]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || inputs.tag }}
       - name: The version

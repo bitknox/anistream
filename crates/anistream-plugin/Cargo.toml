@@ -36,24 +36,24 @@ tracing.workspace = true
 # the pooling allocator and component composition — none of which a host loading binary
 # components uses, and together a large share of the workspace's compile time. `backtrace` stays
 # so a trapped guest's error still says where.
-wasmtime = { version = "48.0", default-features = false, features = ["runtime", "std", "cranelift", "parallel-compilation", "component-model", "async", "cache", "anyhow", "backtrace"] }
+wasmtime = { version = "49.0", default-features = false, features = ["runtime", "std", "cranelift", "parallel-compilation", "component-model", "async", "cache", "anyhow", "backtrace"] }
 # Preview 2 only: the host links `wasmtime_wasi::p2`, and preview 1 would bring in the whole
 # wiggle/witx toolchain for nothing.
-wasmtime-wasi = { version = "48.0", default-features = false, features = ["p2"] }
+wasmtime-wasi = { version = "49.0", default-features = false, features = ["p2"] }
 # Regex is lent to guests: a TinyGo or JS plugin bundling its own would be enormous.
 # The same URL parser the HTTP client uses. The allowlist has to read a URL exactly the way
 # the request will, or it is checking a different host than the one contacted.
 url = "2"
 regex = "1"
 # AES-128-CBC, for the wrapped stream payloads some sources use.
-aes = "0.8"
-cbc = { version = "0.1", features = ["alloc"] }
+aes = "0.9"
+cbc = { version = "0.2", features = ["alloc"] }
 
 # iOS lets no app but Apple's make memory executable, so nothing a compiler emits as native code
 # can run there. The same Cranelift emits Pulley bytecode instead, which wasmtime's interpreter
 # runs: see `engine::INTERPRETED`.
 [target.'cfg(target_os = "ios")'.dependencies]
-wasmtime = { version = "48.0", default-features = false, features = ["pulley"] }
+wasmtime = { version = "49.0", default-features = false, features = ["pulley"] }
 
 [dev-dependencies]
 tempfile = "3"

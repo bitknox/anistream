@@ -3,6 +3,7 @@
 # as one XCFramework, with the Swift bindings generated from it.
 #
 #   apple/scripts/engine.sh [--check] <release|testing> [macos] [ios] [ios-sim]
+#   apple/scripts/engine.sh --sources-hash
 #
 #   release   the engine the app ships: --no-default-features, so without mpv's child process
 #   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
@@ -39,10 +40,17 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 usage() {
-  echo "usage: apple/scripts/engine.sh [--check] <release|testing> [macos] [ios] [ios-sim]" >&2
+  echo "usage: apple/scripts/engine.sh [--check] <release|testing> [macos] [ios] [ios-sim] | --sources-hash" >&2
   exit 2
 }
 
+# --sources-hash prints the hash of what the engine is built from, which its stamp and caches
+# are keyed by, CI's too, and builds nothing.
+sources_only=0
+if [[ "${1:-}" == --sources-hash ]]; then
+  sources_only=1
+  set -- release
+fi
 check=0
 if [[ "${1:-}" == --check ]]; then
   check=1
@@ -84,22 +92,15 @@ triple() {
   esac
 }
 
-# What the build is made from: every file under crates/ and wit/, tracked or not but not ignored,
-# the workspace's manifests and lock file, the toolchain pin and this script, each by its content.
-# A change anywhere in the workspace counts, which costs at most a build cargo finds up to date.
+# What the build is made from: the files tools/engine-sources.sh lists (each crate anistream-ffi
+# builds on, without its tests, benches and examples, with the workspace's manifests, lock file,
+# toolchain pin and .cargo) and this script, each by its content. A change to the terminal, the
+# store's server or a test is no change to the engine.
 sources_hash() {
   (
     cd "$root"
-    {
-      git ls-files -co --exclude-standard -- crates wit Cargo.toml Cargo.lock rust-toolchain.toml \
-        .cargo apple/scripts/engine.sh |
-        LC_ALL=C sort -u |
-        while IFS= read -r file; do
-          [[ -f "$file" ]] && printf '%s\n' "$file"
-        done |
-        git hash-object --stdin-paths
-    } | shasum -a 256 | cut -d' ' -f1
-  )
+    tools/engine-sources.sh apple/scripts/engine.sh | git hash-object --stdin-paths
+  ) | shasum -a 256 | cut -d' ' -f1
 }
 
 # The Swift packages build on the testing engine, the release one with `startTesting` beside it,
@@ -122,6 +123,10 @@ link_package() {
 }
 
 hash="$(sources_hash)"
+if (( sources_only )); then
+  echo "$hash"
+  exit 0
+fi
 if [[ -f "$out/stamp" && -d "$out/AnistreamEngine.xcframework" && -d "$out/Swift" ]]; then
   fresh=1
   [[ "$(sed -n 's/^sources //p' "$out/stamp")" == "$hash" ]] || fresh=0

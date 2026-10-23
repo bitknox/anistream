@@ -1,7 +1,7 @@
 anistream-store-core (./crates/anistream-store-core) 
 anistream-store-wasm (./crates/anistream-store-wasm) 
 async-trait v0.1.92 (proc-macro) 
-base64 v0.22.1 alloc,default,std
+base64 v0.23.1 alloc,default,simd-unsafe,std
 block-buffer v0.10.4 
 bumpalo v3.20.3 default
 cfg-if v1.0.4 
@@ -12,9 +12,9 @@ displaydoc v0.2.6 (proc-macro)
 ed25519 v2.2.3 alloc,std
 ed25519-dalek v2.2.0 alloc,std,zeroize
 form_urlencoded v1.2.2 alloc,std
-futures-core v0.3.33 alloc,std
-futures-task v0.3.33 alloc,std
-futures-util v0.3.33 alloc,slab,std
+futures-core v0.3.34 alloc,std
+futures-task v0.3.34 alloc,std
+futures-util v0.3.34 alloc,slab,std
 generic-array v0.14.7 more_lengths
 getrandom v0.2.17 js,js-sys,wasm-bindgen
 icu_collections v2.2.0 
@@ -42,7 +42,7 @@ semver v1.0.28 default,std
 serde v1.0.229 default,derive,serde_derive,std
 serde_core v1.0.229 result,std
 serde_derive v1.0.229 (proc-macro) default
-serde_json v1.0.151 default,std
+serde_json v1.0.154 default,std
 sha2 v0.10.9 default,std
 signature v2.2.0 alloc,std
 slab v0.4.12 std
@@ -52,8 +52,8 @@ subtle v2.6.1
 syn v2.0.119 clone-impls,default,derive,extra-traits,fold,full,parsing,printing,proc-macro,visit,visit-mut
 syn v3.0.3 clone-impls,default,derive,full,parsing,printing,proc-macro,visit-mut
 synstructure v0.13.2 default,proc-macro
-thiserror v2.0.19 default,std
-thiserror-impl v2.0.19 (proc-macro) 
+thiserror v2.0.21 default,std
+thiserror-impl v2.0.21 (proc-macro) 
 tinystr v0.8.3 zerovec
 tracing v0.1.44 attributes,default,std,tracing-attributes
 tracing-attributes v0.1.31 (proc-macro) 
@@ -79,7 +79,7 @@ zerovec v0.11.6 derive,yoke
 zerovec-derive v0.11.3 (proc-macro) 
 zmij v1.0.23 
 .cargo/config.toml 761d510346b6861c9338f5ace254699175ee40e8
-crates/anistream-store-core/Cargo.toml 7feb38b2892b7e4ab1d9c33f02127e5e86bb932f
+crates/anistream-store-core/Cargo.toml a9f86c917eaf991307ac62ae680d3c839f2da320
 crates/anistream-store-core/admin/.gitignore c2658d7d1b31848c3b71960543cb0368e56cd4c7
 crates/anistream-store-core/admin/README.md 2e4239d73d1b97eb21df70df5287a29af07266ec
 crates/anistream-store-core/admin/bun.lock 0ea037adba2b7fd372cba8ee9bf8e77d0f2a800a

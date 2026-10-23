@@ -228,7 +228,7 @@ impl Capabilities {
 /// Lent because some sources wrap their stream payloads in it, and a TinyGo or JS
 /// guest bundling its own AES would dwarf the parsing logic it exists for.
 pub fn aes_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
-    use aes::cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7};
+    use aes::cipher::{BlockModeDecrypt, KeyIvInit, block_padding::Pkcs7};
 
     // The key length selects the variant, exactly as the WIT documents: real sources use
     // AES-256 about as often as AES-128, and a guest cannot pad its own key into working.
@@ -248,15 +248,21 @@ pub fn aes_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String
         ));
     }
 
+    // From slices, whose lengths are checked above: a key is a fixed-size array now, which a
+    // slice only converts to fallibly.
+    let sizes = |e: aes::cipher::InvalidLength| e.to_string();
     match key.len() {
-        16 => cbc::Decryptor::<aes::Aes128>::new(key.into(), iv.into())
-            .decrypt_padded_vec_mut::<Pkcs7>(data)
+        16 => cbc::Decryptor::<aes::Aes128>::new_from_slices(key, iv)
+            .map_err(sizes)?
+            .decrypt_padded_vec::<Pkcs7>(data)
             .map_err(|e| e.to_string()),
-        24 => cbc::Decryptor::<aes::Aes192>::new(key.into(), iv.into())
-            .decrypt_padded_vec_mut::<Pkcs7>(data)
+        24 => cbc::Decryptor::<aes::Aes192>::new_from_slices(key, iv)
+            .map_err(sizes)?
+            .decrypt_padded_vec::<Pkcs7>(data)
             .map_err(|e| e.to_string()),
-        _ => cbc::Decryptor::<aes::Aes256>::new(key.into(), iv.into())
-            .decrypt_padded_vec_mut::<Pkcs7>(data)
+        _ => cbc::Decryptor::<aes::Aes256>::new_from_slices(key, iv)
+            .map_err(sizes)?
+            .decrypt_padded_vec::<Pkcs7>(data)
             .map_err(|e| e.to_string()),
     }
 }
@@ -405,7 +411,7 @@ mod tests {
     fn aes_round_trips_a_known_vector() {
         // NIST SP 800-38A F.2.1, AES-128-CBC. Pinned because a wrong implementation would fail
         // only on real provider payloads, where it would look like a parse error.
-        use aes::cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
+        use aes::cipher::{BlockModeEncrypt, KeyIvInit, block_padding::Pkcs7};
         let key = [
             0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf,
             0x4f, 0x3c,
@@ -418,7 +424,7 @@ mod tests {
 
         type Encryptor = cbc::Encryptor<aes::Aes128>;
         let ciphertext =
-            Encryptor::new(&key.into(), &iv.into()).encrypt_padded_vec_mut::<Pkcs7>(plaintext);
+            Encryptor::new(&key.into(), &iv.into()).encrypt_padded_vec::<Pkcs7>(plaintext);
 
         assert_eq!(aes_decrypt(&key, &iv, &ciphertext).unwrap(), plaintext);
     }
@@ -427,18 +433,18 @@ mod tests {
     fn aes_picks_the_variant_from_the_key_length() {
         // Real sources use AES-256 about as often as AES-128, and the WIT promises the key
         // length selects the variant — so both wide keys must round-trip, not just 128.
-        use aes::cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
+        use aes::cipher::{BlockModeEncrypt, KeyIvInit, block_padding::Pkcs7};
         let iv = [0x24; 16];
         let plaintext = b"the same url, behind a wider key";
 
         let key = [0x42; 32];
         let sealed = cbc::Encryptor::<aes::Aes256>::new(&key.into(), &iv.into())
-            .encrypt_padded_vec_mut::<Pkcs7>(plaintext);
+            .encrypt_padded_vec::<Pkcs7>(plaintext);
         assert_eq!(aes_decrypt(&key, &iv, &sealed).unwrap(), plaintext);
 
         let key = [0x42; 24];
         let sealed = cbc::Encryptor::<aes::Aes192>::new(&key.into(), &iv.into())
-            .encrypt_padded_vec_mut::<Pkcs7>(plaintext);
+            .encrypt_padded_vec::<Pkcs7>(plaintext);
         assert_eq!(aes_decrypt(&key, &iv, &sealed).unwrap(), plaintext);
     }
 
