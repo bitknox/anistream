@@ -142,6 +142,31 @@ class MetadataTest {
     }
 
     @Test
+    fun a_season_whose_page_has_not_come_keeps_the_franchises_seasons() {
+        val walked = entry.detail!!.seasons!!
+        // The second season as a list carries it, with no page of its own yet: the seasons another
+        // of the franchise's pages said, this one marked.
+        val listed = entry.copy(id = 900004u, detail = null)
+        assertEquals(emptyList<TitleFamily.Season>(), TitleFamily.of(listed).seasons)
+        assertEquals(listOf(false, true), TitleFamily.of(listed, walked).seasons.map { it.isThis })
+        assertEquals("Stardust Wayfarer Season 2", TitleFamily.of(listed, walked).card(900004u)?.title)
+        // A title that is none of them keeps none of them.
+        assertEquals(emptyList<TitleFamily.Season>(), TitleFamily.of(entry.copy(id = 900003u, detail = null), walked).seasons)
+        // Its own seasons, once said, are what it has.
+        assertEquals(listOf(900001u, 900004u), TitleFamily.of(entry, emptyList()).seasons.map { it.id })
+    }
+
+    @Test
+    fun a_seasons_neighbours_are_the_ones_either_side_of_it() {
+        fun season(id: UInt) = TitleFamily.Season(id, "Season of $id", isThis = false)
+        val family = TitleFamily((1u..12u).map(::season), related = emptyList())
+        assertEquals(listOf(2u), family.neighbours(1u))
+        assertEquals(listOf(8u, 10u), family.neighbours(9u))
+        assertEquals(listOf(11u), family.neighbours(12u))
+        assertEquals(emptyList<UInt>(), family.neighbours(99u))
+    }
+
+    @Test
     fun rankings_go_season_year_all_time_rated_before_popular() {
         val rankings = listOf(
             Ranking(31u, RankingKind.POPULAR, "", true, null, null),
