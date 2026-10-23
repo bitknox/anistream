@@ -3,7 +3,7 @@
 //! libmpv, and draws native controls over the video.
 //!
 //!   anistream-desktop <file> [--data <dir>] [--hwdec <mode>] [--ao <output>] [--quit-after <s>]
-//!                            [--stats] [--exercise]
+//!                            [--stats] [--exercise] [--fullscreen]
 
 mod engine;
 mod video;
@@ -31,6 +31,8 @@ struct Args {
     /// Use the controls by themselves: seek to 0:30 at 4 s and pause at 6 s, through the same
     /// handlers a click and a drag reach.
     exercise: bool,
+    /// Start in full screen, where no rounded corner clips the video and it can be offloaded.
+    fullscreen: bool,
 }
 
 fn args() -> Args {
@@ -41,6 +43,7 @@ fn args() -> Args {
     let mut stats = false;
     let mut audio_output = None;
     let mut exercise = false;
+    let mut fullscreen = false;
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {
@@ -50,12 +53,25 @@ fn args() -> Args {
             "--stats" => stats = true,
             "--ao" => audio_output = it.next(),
             "--exercise" => exercise = true,
+            "--fullscreen" => fullscreen = true,
             _ => file = Some(PathBuf::from(arg)),
         }
     }
-    let file = file.expect("usage: anistream-desktop <file> [--data <dir>] [--hwdec <mode>] [--quit-after <s>] [--stats]");
-    let data = data.unwrap_or_else(|| std::env::temp_dir().join(format!("anistream-desktop-{}", std::process::id())));
-    Args { file: std::fs::canonicalize(&file).unwrap_or(file), data, hwdec, quit_after, stats, audio_output, exercise }
+    let file =
+        file.expect("usage: anistream-desktop <file> [options], as the crate docs list them");
+    let data = data.unwrap_or_else(|| {
+        std::env::temp_dir().join(format!("anistream-desktop-{}", std::process::id()))
+    });
+    Args {
+        file: std::fs::canonicalize(&file).unwrap_or(file),
+        data,
+        hwdec,
+        quit_after,
+        stats,
+        audio_output,
+        exercise,
+        fullscreen,
+    }
 }
 
 fn main() -> glib::ExitCode {
@@ -333,7 +349,8 @@ fn build(
             move || {
                 let (fps, worst) = pacing.take();
                 let mpv = player.mpv();
-                let get = |p: &str| mpv.get(p).map(|v| v.to_string()).unwrap_or_else(|| "-".into());
+                let get =
+                    |p: &str| mpv.get(p).map(|v| v.to_string()).unwrap_or_else(|| "-".into());
                 tracing::info!(
                     drawn_fps = format!("{fps:.1}"),
                     worst_gap_ms = format!("{worst:.1}"),
@@ -371,6 +388,9 @@ fn build(
             move || window.close()
         });
     }
+    if args.fullscreen {
+        window.fullscreen();
+    }
     window.present();
 }
 
@@ -381,9 +401,14 @@ fn status_show(status: &gtk::Label, text: &str) {
 
 /// The display the window is on, for the engine's upscaling: its size in pixels, scale and
 /// refresh rate, and whether the GL context runs compute shaders (desktop GL 4.3 and up).
-fn report_display(player: &Player, window: &adw::ApplicationWindow, gl: Option<(i32, i32, bool)>) {
+fn report_display(
+    player: &Player,
+    window: &adw::ApplicationWindow,
+    gl: Option<(i32, i32, bool)>,
+) {
     let Some(surface) = window.surface() else { return };
-    let Some(monitor) = gtk::prelude::WidgetExt::display(window).monitor_at_surface(&surface) else {
+    let Some(monitor) = gtk::prelude::WidgetExt::display(window).monitor_at_surface(&surface)
+    else {
         return;
     };
     let geometry = monitor.geometry();
@@ -401,7 +426,11 @@ fn report_display(player: &Player, window: &adw::ApplicationWindow, gl: Option<(
 
 fn clock(seconds: f64) -> String {
     let s = seconds.max(0.0) as u64;
-    if s >= 3600 { format!("{}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60) } else { format!("{}:{:02}", s / 60, s % 60) }
+    if s >= 3600 {
+        format!("{}:{:02}:{:02}", s / 3600, s / 60 % 60, s % 60)
+    } else {
+        format!("{}:{:02}", s / 60, s % 60)
+    }
 }
 
 fn show_state(

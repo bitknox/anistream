@@ -38,7 +38,9 @@ fn native_display(area: &gtk::GLArea) -> NativeDisplay {
     let display = area.display();
     if let Some(wayland) = display.downcast_ref::<gdk_wayland::WaylandDisplay>() {
         // SAFETY: a live GdkWaylandDisplay; the wl_display lives as long as it.
-        let ptr = unsafe { gdk_wayland_sys::gdk_wayland_display_get_wl_display(wayland.to_glib_none().0) };
+        let ptr = unsafe {
+            gdk_wayland_sys::gdk_wayland_display_get_wl_display(wayland.to_glib_none().0)
+        };
         return NativeDisplay::Wayland(ptr.cast());
     }
     if let Some(x11) = display.downcast_ref::<gdk_x11::X11Display>() {
@@ -103,7 +105,8 @@ pub struct VideoArea {
 pub fn video_area(mpv: Mpv, ready: impl FnOnce() + 'static) -> VideoArea {
     let gl = Rc::new(Cell::new(None));
     let ready = RefCell::new(Some(ready));
-    let area = gtk::GLArea::builder().hexpand(true).vexpand(true).has_depth_buffer(false).build();
+    let area =
+        gtk::GLArea::builder().hexpand(true).vexpand(true).has_depth_buffer(false).build();
     area.set_auto_render(false);
     let renderer: Rc<RefCell<Option<GlRenderer>>> = Rc::default();
     let pacing = Rc::new(Pacing::default());
@@ -170,7 +173,8 @@ pub fn video_area(mpv: Mpv, ready: impl FnOnce() + 'static) -> VideoArea {
             let get: Option<GetIntegerv> = {
                 let p = gl_proc("glGetIntegerv");
                 // SAFETY: the GL function of that name has this signature.
-                (!p.is_null()).then(|| unsafe { std::mem::transmute::<*mut c_void, GetIntegerv>(p) })
+                (!p.is_null())
+                    .then(|| unsafe { std::mem::transmute::<*mut c_void, GetIntegerv>(p) })
             };
             if let Some(get) = get {
                 // SAFETY: GTK has bound the area's framebuffer, with its context current.
