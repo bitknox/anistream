@@ -208,12 +208,6 @@ cargo_clean() {
       [[ "$abi" == armeabi-v7a ]] && headers=arm-linux-androideabi
       pass+=("BINDGEN_EXTRA_CLANG_ARGS_${target//-/_}=--target=$clang$api"
         "BINDGEN_EXTRA_CLANG_ARGS_$target=--target=$clang$api --sysroot=$sysroot -I$sysroot/usr/include/$headers")
-      # BoringSSL is C++, and btls-sys links the C++ runtime as -lc++, which the NDK resolves to
-      # libc++_shared.so: a library the APK does not carry, so loading the engine fails. On
-      # 32-bit ARM the C++ code needs the runtime (exception cleanup, std::sort, sized delete);
-      # on arm64 the linker drops it unused. Linked statically instead, -lc++ under -Bstatic is
-      # the NDK's libc++.a, libc++_static and libc++abi, and the library needs nothing beside it.
-      pass+=("BORING_BSSL_RUST_CPPLIB_${target//-/_}=static:-bundle=c++")
     done
   fi
   (cd "$root" && env -i "${pass[@]}" "$@")
@@ -230,7 +224,7 @@ needs_only_system_libraries() {
       libc.so | libm.so | libdl.so | liblog.so | libandroid.so) ;;
       *)
         echo "error: $1 needs $needed, which the APK does not carry." >&2
-        [[ "$needed" == libc++_shared.so ]] && echo "error: link the C++ runtime statically (BORING_BSSL_RUST_CPPLIB above)." >&2
+        [[ "$needed" == libc++_shared.so ]] && echo "error: link the C++ runtime statically (BORING_BSSL_RUST_CPPLIB_<target> in .cargo/config.toml)." >&2
         exit 1
         ;;
     esac
