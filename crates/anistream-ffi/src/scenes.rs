@@ -156,15 +156,24 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
 }
 
 /// The scene's sources: the test kit's fixture provider, its stills under `art`, with the long
-/// franchise's titles beside the six, which the scene's fake AniList has too. For a scene that
-/// plays, every episode streams `media`. None at all for [`FfiScene::Sourceless`].
+/// franchise's titles beside the six, which the scene's fake AniList has too. Every episode
+/// streams the test kit's episode-long clip, or `media` in a scene that plays. None at all for
+/// [`FfiScene::Sourceless`].
 fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
     if *scene == FfiScene::Sourceless {
         return ProviderRegistry::new(Vec::new());
     }
     let franchise = || sources::with_long_franchise(sources::provider_with_art(art));
     let FfiScene::Playing { media } = scene else {
-        return ProviderRegistry::new(vec![franchise().arc()]);
+        let clip = sources::episode_clip();
+        let mut provider = franchise();
+        for id in fixtures::ALL {
+            provider = provider.with_streams_for(sources::key(id), vec![clip.clone()]);
+        }
+        for media in fixtures::long_franchise_media() {
+            provider = provider.with_streams_for(sources::key(media.id), vec![clip.clone()]);
+        }
+        return ProviderRegistry::new(vec![provider.arc()]);
     };
     let web = media.starts_with("http")
         && media.split('?').next().is_some_and(|path| path.ends_with(".m3u8"));
