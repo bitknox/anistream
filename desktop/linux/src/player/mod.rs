@@ -27,7 +27,7 @@ use gtk::{gdk, gio, glib};
 use crate::{
     video,
     widgets,
-    window::{Ctx, Shell},
+    window::{Ctx, Shell, Size},
     words,
 };
 
@@ -63,6 +63,8 @@ pub struct PlayerView {
 /// The widgets the player updates.
 struct Ui {
     page: adw::ToolbarView,
+    /// The bottom bar's controls that narrow windows leave out: the keys still do them.
+    roomy: Vec<gtk::Widget>,
     top: adw::HeaderBar,
     bottom: gtk::Box,
     dim: gtk::Box,
@@ -138,6 +140,14 @@ impl PlayerView {
         };
 
         let ui = build_ui(&video_widget);
+        ctx.on_size({
+            let roomy = ui.roomy.clone();
+            move |size| {
+                for widget in &roomy {
+                    widget.set_visible(size != Size::Narrow);
+                }
+            }
+        });
         let view = Rc::new_cyclic(|me| Self {
             widget: ui.page.clone().upcast(),
             me: me.clone(),
@@ -1045,8 +1055,9 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     page.set_extend_content_to_bottom_edge(true);
     page.set_focusable(true);
 
-    let menu_buttons = vec![episodes.clone(), settings.clone(), speed_button, volume_button];
+    let menu_buttons = vec![episodes.clone(), settings.clone(), speed_button.clone(), volume_button];
     Ui {
+        roomy: vec![back10.upcast(), forward10.upcast(), speed_button.upcast()],
         page,
         top,
         bottom,

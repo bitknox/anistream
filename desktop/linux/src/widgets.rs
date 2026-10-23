@@ -173,7 +173,7 @@ impl PosterGrid {
         let selection = gtk::NoSelection::new(Some(store.clone()));
         let widget = gtk::GridView::new(Some(selection), Some(factory));
         widget.set_max_columns(12);
-        widget.set_min_columns(3);
+        widget.set_min_columns(2);
         widget.set_single_click_activate(true);
         widget.add_css_class("posters");
         widget.set_vexpand(true);
@@ -197,7 +197,7 @@ impl PosterGrid {
 
 fn poster(hub: &Hub, entry: &Entry) -> gtk::Box {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 6);
-    column.set_size_request(140, -1);
+    column.set_size_request(120, -1);
     column.append(&cover_fill(hub, entry, 148));
     let title = show_title(&entry.title, "row");
     title.set_lines(2);
