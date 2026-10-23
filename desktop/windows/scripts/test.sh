@@ -14,8 +14,17 @@ real="$HOME"
 home="$(mktemp -d)"
 trap 'rm -rf "$home"' EXIT
 [[ "$home" != "$real" ]] || exit 1
+# On Windows (Git Bash) .NET reads the profile from USERPROFILE, as a Windows path; the tests check
+# that one. Untried until there is a Windows machine.
+guard="$home"
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*)
+    guard="$(cygpath -w "$home")"
+    export USERPROFILE="$guard"
+    ;;
+esac
 HOME="$home" \
-  ANISTREAM_TEST_HOME="$home" \
+  ANISTREAM_TEST_HOME="$guard" \
   ANISTREAM_TOKEN_STORAGE=file \
   ANISTREAM_PLAYER_NATIVE=off \
   NUGET_PACKAGES="${NUGET_PACKAGES:-$real/.nuget/packages}" \
