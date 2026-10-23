@@ -23,7 +23,7 @@ serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-librqbit = { version = "8.1.1", default-features = false, features = ["rust-tls"] }
+librqbit = { version = "9.0.1", default-features = false, features = ["rust-tls"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
