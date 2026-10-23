@@ -32,6 +32,9 @@ rules=(
   "anistream-model|$terminal"
   "anistream-engine|$terminal"
   "anistream-ffi|$terminal"
+  # Light enough for a TV box: the protocol and its TLS, never the engine or an HTTP stack.
+  "anistream-remote|$terminal"
+  "anistream-remote|^(anistream-engine|anistream-net|wreq|reqwest|hyper) "
   "anistream-tui|^anistream-engine "
 )
 

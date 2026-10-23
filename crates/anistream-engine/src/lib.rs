@@ -104,6 +104,8 @@ pub mod phases;
 pub mod playback;
 pub mod plugin_stores;
 pub mod protection;
+#[cfg(feature = "remote")]
+pub mod remote;
 pub mod services;
 pub mod settings;
 pub mod show_settings;
