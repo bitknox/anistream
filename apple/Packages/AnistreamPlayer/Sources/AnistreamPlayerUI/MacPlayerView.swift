@@ -229,6 +229,7 @@ public struct MacPlayerView: View {
             PlayerTime(seconds: model.position, metrics: metrics)
                 .frame(width: 44, alignment: .leading)
                 .padding(.leading, 8)
+                .accessibilityIdentifier("Elapsed")
             SeekLine(model: model, metrics: metrics)
                 .padding(.horizontal, 8)
             PlayerTime(seconds: max(0, (model.duration ?? 0) - model.position), remaining: true, metrics: metrics)

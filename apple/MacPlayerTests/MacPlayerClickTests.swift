@@ -57,10 +57,15 @@ final class MacPlayerClickTests: XCTestCase {
         click(app, "Pause")
         XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 5), "Pause did not pause")
 
-        let position = app.descendants(matching: .any)["Position"]
-        let before = position.value as? String
+        // The clock beside the buttons, as it shows: the seek line's spoken value does not
+        // change in the Mac's accessibility tree while the picture is paused.
+        let elapsed = app.staticTexts["Elapsed"]
+        XCTAssertTrue(elapsed.waitForExistence(timeout: 5), "no elapsed time")
+        let shown = { "\(elapsed.label)\(elapsed.value as? String ?? "")" }
+        let before = shown()
+        XCTAssertFalse(before.isEmpty, "the elapsed time shows nothing")
         click(app, "Forward 10 seconds")
-        XCTAssertTrue(waitFor { (position.value as? String) != before }, "Forward 10 seconds did not seek")
+        XCTAssertTrue(waitFor { shown() != before }, "Forward 10 seconds did not seek")
 
         click(app, "Mute")
         XCTAssertTrue(button(app, "Unmute").waitForExistence(timeout: 5), "Mute did not mute")
