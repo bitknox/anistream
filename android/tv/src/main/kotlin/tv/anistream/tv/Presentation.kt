@@ -1,0 +1,116 @@
+// How a title's fields read on the TV: what the amber action plays and says, the hero's line and
+// the title page's metadata line. The phone has its own in :ui; these follow the TV brief's words.
+
+package tv.anistream.tv
+
+import java.time.Instant
+import java.time.format.TextStyle
+import java.util.Locale
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
+import tv.anistream.engine.model.ResumePoint
+import tv.anistream.store.AirTime
+import tv.anistream.store.AppClock
+import tv.anistream.store.ContinueItem
+import tv.anistream.store.EpisodeAiring
+import tv.anistream.store.airing
+
+/** The episode a title's amber action plays, and how it says so. */
+data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null) {
+    /** Whether it plays now: never an episode still to air. */
+    val playable: Boolean get() = airing.hasAired
+
+    /**
+     * "Resume episode 7", "Play episode 1", or for one not out yet "Play episode 10 (out Thursday)",
+     * which stays disabled until it is out.
+     */
+    fun label(now: Instant = AppClock.now()): String = when {
+        resume != null -> "Resume episode $episode"
+        playable -> "Play episode $episode"
+        else -> outDay(now)?.let { "Play episode $episode (out $it)" } ?: "Play episode $episode (not out yet)"
+    }
+
+    private fun outDay(now: Instant): String? {
+        val at = airsAt?.let(Instant::ofEpochSecond)
+            ?: (airing as? EpisodeAiring.Upcoming)?.inSeconds?.let(now::plusSeconds)
+            ?: return null
+        val zone = AppClock.zone
+        val days = (at.epochSecond - now.epochSecond) / 86_400.0
+        val local = at.atZone(zone)
+        return when {
+            local.toLocalDate() == now.atZone(zone).toLocalDate() -> "today"
+            days < 6 -> local.dayOfWeek.getDisplayName(TextStyle.FULL, AirTime.locale)
+            else -> "${local.dayOfMonth} ${local.month.getDisplayName(TextStyle.FULL, AirTime.locale)}"
+        }
+    }
+
+    companion object {
+        fun of(entry: Entry, now: Long = AppClock.now().epochSecond): PlayAction {
+            val episode = entry.progress?.next ?: 1u
+            val resume = entry.resume
+            if (resume != null) return PlayAction(episode, resume, EpisodeAiring.Aired)
+            val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
+            if (scheduled != null) {
+                return if (scheduled.airsAt > now) {
+                    PlayAction(episode, null, EpisodeAiring.Upcoming(scheduled.airsAt - now), scheduled.airsAt)
+                } else {
+                    PlayAction(episode, null, EpisodeAiring.Aired)
+                }
+            }
+            return PlayAction(episode, null, entry.airing(episode))
+        }
+    }
+}
+
+/** The hero's line under the title: "Episode 7 · The Lantern Road · 14 min left". */
+fun ContinueItem.heroLine(rows: List<EpisodeRow>?): String {
+    val title = rows?.firstOrNull { it.number == episode.toString() }?.title?.takeIf { it.isNotBlank() }
+    val left = minutesLeft?.let { "$it min left" }
+    return listOfNotNull("Episode $episode", title, left).joinToString(" · ")
+}
+
+/** What the hero's amber action says: "Resume episode 7", "Start episode 8". */
+val ContinueItem.heroAction: String
+    get() = if (resume != null) "Resume episode $episode" else "Start episode $episode"
+
+/**
+ * The title page's metadata line, set in capitals: "TV · SUMMER 2026 · 24 EPS · 79 % ·
+ * ATELIER HOTARU".
+ */
+val Entry.metadataLine: String
+    get() {
+        val parts = mutableListOf<String>()
+        format?.let { parts += it.replace('_', ' ') }
+        val airedIn = listOfNotNull(season?.name, year?.toString()).joinToString(" ")
+        if (airedIn.isNotEmpty()) parts += airedIn
+        episodes?.takeIf { it > 0u && format != "MOVIE" }?.let { parts += if (it == 1u) "1 EP" else "$it EPS" }
+        score?.let { parts += "$it %" }
+        studio?.takeIf { it.isNotBlank() }?.let { parts += it }
+        return parts.joinToString(" · ").uppercase(Locale.ROOT)
+    }
+
+/** A poster's second line on Seasonal and Search: "24 eps · 79 %". */
+val Entry.posterLine: String?
+    get() = listOfNotNull(
+        episodes?.takeIf { it > 0u }?.let { if (it == 1u) "1 ep" else "$it eps" },
+        score?.let { "$it %" },
+    ).joinToString(" · ").ifEmpty { null }
+
+/** An episode card's line: "24 min", "14 min left", or "Watched". */
+fun EpisodeRow.cardLine(resume: ResumePoint?, playsNext: Boolean): String? {
+    if (completed) return "Watched"
+    val minutes = durationSecs?.toLong()?.let { maxOf(1L, Math.round(it / 60.0)) }
+    if (playsNext && resume != null && minutes != null) {
+        val left = maxOf(1L, Math.round((minutes * 60 - resume.position) / 60))
+        return "$left min left"
+    }
+    return minutes?.let { "$it min" }
+}
+
+/** "E7 · The Lantern Road", or "E7" alone. */
+val EpisodeRow.cardTitle: String
+    get() = title?.takeIf { it.isNotBlank() }?.let { "E$number · $it" } ?: "E$number"
+
+/** Synopses from AniList carry their spoilers marked; the TV shows only the text before them. */
+fun synopsisWithoutSpoilers(text: String): String =
+    text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "").replace(Regex("\\s+\\n"), "\n").trim()
