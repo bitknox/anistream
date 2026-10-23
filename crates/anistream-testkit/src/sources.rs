@@ -124,11 +124,13 @@ pub fn hits() -> Vec<SearchHit> {
         .collect()
 }
 
-/// A four-second test pattern mpv draws itself, attributed to the fixture provider.
+/// A test pattern mpv draws itself, attributed to the fixture provider: an episode's 24 minutes,
+/// so a device run stays on the episode it started rather than ending inside Up Next's window
+/// and going on to the next.
 pub fn clip() -> Stream {
     Stream {
         provider_id: PROVIDER_ID.into(),
-        ..Stream::new("av://lavfi:testsrc=duration=4:size=320x240:rate=30", StreamKind::Mp4)
+        ..Stream::new("av://lavfi:testsrc=duration=1440:size=320x240:rate=30", StreamKind::Mp4)
     }
 }
 
