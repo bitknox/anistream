@@ -3,6 +3,7 @@
 package tv.anistream.store
 
 import android.content.Context
+import android.content.res.Configuration
 import java.io.File
 import tv.anistream.engine.ffi.FfiBackground
 import tv.anistream.engine.ffi.FfiDirs
@@ -172,13 +173,16 @@ data class EngineLaunch(
 data class AniListClient(val id: String, val redirect: String?)
 
 /**
- * What the engine is told the app runs on: a phone, or a tablet once the screen is at least 600 dp
- * wide the short way. A plugin store this device joins with an invite calls it by that kind,
- * "Android phone" or "Android tablet", unless the person joining names it otherwise. A phone with
- * no [context] to read the screen from.
+ * What the engine is told the app runs on: a TV when the system says it is in television mode, else
+ * a phone, or a tablet once the screen is at least 600 dp wide the short way. A plugin store this
+ * device joins with an invite calls it by that kind, "Android TV", "Android phone" or "Android
+ * tablet", unless the person joining names it otherwise. A phone with no [context] to read from.
  */
 fun enginePlatform(context: Context? = null): FfiPlatform? {
-    val shortSide = context?.resources?.configuration?.smallestScreenWidthDp ?: 0
+    val configuration = context?.resources?.configuration
+    val mode = (configuration?.uiMode ?: 0) and Configuration.UI_MODE_TYPE_MASK
+    if (mode == Configuration.UI_MODE_TYPE_TELEVISION) return FfiPlatform.ANDROID_TV
+    val shortSide = configuration?.smallestScreenWidthDp ?: 0
     return if (shortSide >= 600) FfiPlatform.ANDROID_TABLET else FfiPlatform.ANDROID
 }
 

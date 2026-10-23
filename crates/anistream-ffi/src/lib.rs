@@ -152,6 +152,7 @@ mod tests {
             FfiPlatform::IpadOs,
             FfiPlatform::Android,
             FfiPlatform::AndroidTablet,
+            FfiPlatform::AndroidTv,
         ] {
             assert_eq!(crossed(platform), platform);
         }

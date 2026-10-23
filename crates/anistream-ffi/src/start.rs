@@ -191,6 +191,8 @@ pub enum FfiPlatform {
     Android,
     /// An Android tablet: a screen at least 600 dp wide the short way.
     AndroidTablet,
+    /// Android TV or Google TV: a television driven by a remote, whatever its screen.
+    AndroidTv,
 }
 
 impl FfiPlatform {
@@ -204,6 +206,7 @@ impl FfiPlatform {
             Self::IpadOs => "iPad",
             Self::Android => "Android phone",
             Self::AndroidTablet => "Android tablet",
+            Self::AndroidTv => "Android TV",
         }
     }
 }
@@ -282,6 +285,7 @@ mod tests {
             (FfiPlatform::IpadOs, "iPad"),
             (FfiPlatform::Android, "Android phone"),
             (FfiPlatform::AndroidTablet, "Android tablet"),
+            (FfiPlatform::AndroidTv, "Android TV"),
         ];
         for (platform, label) in kinds {
             assert_eq!(platform.device_label(), label);
