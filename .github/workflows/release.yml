@@ -32,6 +32,8 @@ on:
       - 'website/**'
       - 'docs/**'
       - '*.md'
+      - '**/CLAUDE.md'
+      - '.claude/**'
   # A pull request that would change how a release is built builds it first, saving and
   # publishing nothing, so a release that no longer builds, or no longer starts on older Linux,
   # shows up before the merge rather than on main.
