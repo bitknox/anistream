@@ -33,6 +33,9 @@ public final class JobsModel {
 
     @ObservationIgnored private let now: @Sendable () -> ContinuousClock.Instant
     @ObservationIgnored private let schedule: Bool
+    /// The rechecks `started` scheduled that have not run yet, each under a number of its own.
+    @ObservationIgnored private var rechecks: [Int: Task<Void, Never>] = [:]
+    @ObservationIgnored private var lastRecheck = 0
 
     /// - Parameters:
     ///   - now: the clock, which a test replaces.
@@ -60,9 +63,21 @@ public final class JobsModel {
     func started(_ job: JobId, activity: String) {
         running.append(Job(id: job, activity: activity, started: now()))
         guard schedule else { return }
-        Task { [weak self] in
+        lastRecheck += 1
+        let recheck = lastRecheck
+        rechecks[recheck] = Task { [weak self] in
             try? await Task.sleep(for: Self.delay)
             self?.refresh()
+            self?.rechecks[recheck] = nil
+        }
+    }
+
+    /// Wait until every recheck scheduled so far has run. What a test waits on rather than a
+    /// clock: a busy main actor can hold a recheck up well past the delay, but once it has run,
+    /// the job it was for has been looked at on the clock's own now.
+    func rechecked() async {
+        for recheck in rechecks.values {
+            await recheck.value
         }
     }
 
