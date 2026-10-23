@@ -7,8 +7,9 @@
 # sourceless (watching with no source set up) or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
 # palette=<words>, with more joined by +: pane=<Settings pane>, sheet=<torrent|join|kitsu|update|
-# show|about>, showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`, and
-# watched=<id>:<episodes>, episodes marked watched as the shot starts (900006:8 is caught up), and
+# show|about>, showcase=<sources|stores|downloads|invite|pale|all>, the invented rows of `Showcase`
+# (pale: 900001's page with a long title on a near-white banner), and watched=<id>:<episodes>,
+# episodes marked watched as the shot starts (900006:8 is caught up), and
 # fold=open, the title page's watched episodes opened:
 #
 #   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
