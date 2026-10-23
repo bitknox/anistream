@@ -78,6 +78,7 @@ zerotrie v0.2.4 yoke,zerofrom
 zerovec v0.11.6 derive,yoke
 zerovec-derive v0.11.3 (proc-macro) 
 zmij v1.0.23 
+.cargo/config.toml 761d510346b6861c9338f5ace254699175ee40e8
 crates/anistream-store-core/Cargo.toml 7feb38b2892b7e4ab1d9c33f02127e5e86bb932f
 crates/anistream-store-core/admin/.gitignore c2658d7d1b31848c3b71960543cb0368e56cd4c7
 crates/anistream-store-core/admin/README.md 2e4239d73d1b97eb21df70df5287a29af07266ec
