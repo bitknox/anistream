@@ -1141,10 +1141,15 @@ class PlayerModel(
         seekTo(seconds)
     }
 
+    /**
+     * Play at [target] times normal speed: set outright, whatever the speed is now, as the speed
+     * menu picks it. Not a factor of the speed this side last heard, which the engine multiplies
+     * by whatever plays then.
+     */
     fun playAt(target: Double) {
         input()
-        if (speed <= 0 || target <= 0) return
-        control(PlayerCommand.Speed(target / speed))
+        if (target <= 0) return
+        control(PlayerCommand.SpeedTo(target))
     }
 
     /** An audio or subtitle track, by its `track-list` id, or the subtitles off: kept for the series. */
