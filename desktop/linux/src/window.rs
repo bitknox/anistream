@@ -1,0 +1,671 @@
+//! The window: an `AdwOverlaySplitView` with the destinations down the sidebar and each
+//! destination's pages in an `AdwNavigationView`, the player over all of it, and the window's
+//! keys, actions, notices and close.
+
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
+
+use anistream_core::ids::AnilistId;
+use anistream_model::{
+    catalog::LibrarySegment,
+    command::Command,
+    event::Event,
+};
+use adw::prelude::*;
+use gtk::{gio, glib};
+
+use anistream_mpv_host::PlayerOptions;
+
+use crate::{
+    engine::HostRequest,
+    hub::Hub,
+    pages::{self, Dest},
+    player::PlayerView,
+    prefs::{CloseChoice, Prefs},
+    widgets,
+};
+
+/// How wide the window is, by the brief's breakpoints.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Size {
+    /// From 1000 sp: the sidebar shown, 240 wide.
+    Wide,
+    /// 600 to 999 sp: the sidebar 220 wide, inner splits collapsed.
+    Medium,
+    /// Under 600 sp: the sidebar an overlay behind a button.
+    Narrow,
+}
+
+/// What every screen is built with.
+pub struct Ctx {
+    pub hub: Rc<Hub>,
+    pub window: adw::ApplicationWindow,
+    pub split: adw::OverlaySplitView,
+    pub toasts: adw::ToastOverlay,
+    pub prefs: Rc<Prefs>,
+    size: Cell<Size>,
+    sized: RefCell<Vec<Box<dyn Fn(Size)>>>,
+    /// Pushes a page on the destination on screen.
+    navs: RefCell<Vec<(Dest, adw::NavigationView)>>,
+    stack: gtk::Stack,
+}
+
+impl Ctx {
+    pub fn size(&self) -> Size {
+        self.size.get()
+    }
+
+    /// Run `f` with the size now and whenever it changes.
+    pub fn on_size(&self, f: impl Fn(Size) + 'static) {
+        f(self.size.get());
+        self.sized.borrow_mut().push(Box::new(f));
+    }
+
+    fn resized(&self, size: Size) {
+        if self.size.replace(size) != size {
+            for f in self.sized.borrow().iter() {
+                f(size);
+            }
+        }
+    }
+
+    /// The navigation view of the destination on screen.
+    pub fn nav(&self) -> Option<adw::NavigationView> {
+        let name = self.stack.visible_child_name()?;
+        self.navs.borrow().iter().find(|(d, _)| d.name() == name).map(|(_, n)| n.clone())
+    }
+
+    pub fn toast(&self, text: &str) {
+        self.toasts.add_toast(adw::Toast::new(text));
+    }
+}
+
+/// The window and what drives it.
+pub struct Shell {
+    pub ctx: Rc<Ctx>,
+    pub player: Rc<PlayerView>,
+    top: gtk::Stack,
+    sidebar: gtk::ListBox,
+    foot: gtk::ListBox,
+    settings: pages::settings::SettingsPage,
+    search: pages::search::SearchPage,
+    /// Set once the viewer chose what closing does, so the next close goes through.
+    closing: Cell<bool>,
+    /// The app kept running with its window closed, until the downloads end.
+    held: RefCell<Option<gio::ApplicationHoldGuard>>,
+    fixtures: bool,
+}
+
+impl Shell {
+    pub fn build(
+        app: &adw::Application,
+        hub: Rc<Hub>,
+        prefs: Rc<Prefs>,
+        player: &PlayerOptions,
+        fixtures: bool,
+    ) -> Rc<Self> {
+        let window = adw::ApplicationWindow::builder()
+            .application(app)
+            .title("anistream")
+            .default_width(prefs.width())
+            .default_height(prefs.height())
+            .width_request(360)
+            .height_request(360)
+            .build();
+        if prefs.maximized() {
+            window.maximize();
+        }
+        let split = adw::OverlaySplitView::builder()
+            .min_sidebar_width(220.0)
+            .max_sidebar_width(240.0)
+            .sidebar_width_fraction(0.2)
+            .build();
+        let toasts = adw::ToastOverlay::new();
+        let stack = gtk::Stack::new();
+        stack.set_transition_type(gtk::StackTransitionType::None);
+        let ctx = Rc::new(Ctx {
+            hub: Rc::clone(&hub),
+            window: window.clone(),
+            split: split.clone(),
+            toasts: toasts.clone(),
+            prefs,
+            size: Cell::new(Size::Wide),
+            sized: RefCell::default(),
+            navs: RefCell::default(),
+            stack: stack.clone(),
+        });
+
+        // The destinations, each a navigation view of its own.
+        let search = pages::search::build(&ctx);
+        let settings = pages::settings::build(&ctx);
+        for dest in Dest::ALL {
+            let root = match dest {
+                Dest::Continue => pages::continue_page::build(&ctx),
+                Dest::Seasonal => pages::seasonal::build(&ctx),
+                Dest::Search => search.page.clone(),
+                Dest::Library => pages::library::build(&ctx),
+                Dest::Settings => settings.page.clone(),
+                other => pages::placeholder(&ctx, other),
+            };
+            let nav = adw::NavigationView::new();
+            nav.add(&root);
+            stack.add_named(&nav, Some(dest.name()));
+            ctx.navs.borrow_mut().push((dest, nav));
+        }
+
+        let (sidebar_page, sidebar, foot) = sidebar(&ctx);
+        split.set_sidebar(Some(&sidebar_page));
+        split.set_content(Some(&stack));
+
+        let player = PlayerView::new(&ctx, player);
+        let top = gtk::Stack::new();
+        top.set_transition_type(gtk::StackTransitionType::Crossfade);
+        top.set_transition_duration(200);
+        top.add_named(&split, Some("main"));
+        top.add_named(&player.widget, Some("player"));
+        toasts.set_child(Some(&top));
+        window.set_content(Some(&toasts));
+
+        let shell = Rc::new(Self {
+            ctx,
+            player,
+            top,
+            sidebar,
+            foot,
+            settings,
+            search,
+            closing: Cell::new(false),
+            held: RefCell::default(),
+            fixtures,
+        });
+        shell.player.attach(Rc::downgrade(&shell));
+        shell.breakpoints();
+        shell.actions(app);
+        shell.listen();
+        shell.close_request();
+        shell.go(Dest::Continue);
+        shell
+    }
+
+    /// Show `dest`, as its sidebar row does.
+    pub fn go(&self, dest: Dest) {
+        let ctx = &self.ctx;
+        ctx.stack.set_visible_child_name(dest.name());
+        let (list, other) =
+            if dest == Dest::Settings { (&self.foot, &self.sidebar) } else { (&self.sidebar, &self.foot) };
+        other.unselect_all();
+        let mut child = list.first_child();
+        while let Some(widget) = child {
+            if let Some(row) = widget.downcast_ref::<gtk::ListBoxRow>()
+                && row.widget_name() == dest.name()
+                && !row.is_selected()
+            {
+                list.select_row(Some(row));
+            }
+            child = widget.next_sibling();
+        }
+        if ctx.split.is_collapsed() {
+            ctx.split.set_show_sidebar(false);
+        }
+        if dest == Dest::Search {
+            self.search.focus();
+        }
+    }
+
+    /// Settings on one of its panes.
+    pub fn settings_pane(&self, pane: &str) {
+        self.go(Dest::Settings);
+        self.settings.select(pane);
+    }
+
+    /// A title's page, over the destination on screen.
+    pub fn open_title(&self, id: AnilistId) {
+        if let Some(nav) = self.ctx.nav() {
+            nav.push(&pages::title::page(&self.ctx, id));
+        }
+    }
+
+    pub fn show_player(&self, on: bool) {
+        self.top.set_visible_child_name(if on { "player" } else { "main" });
+        self.search.capture_keys(!on);
+        if on {
+            self.player.focus();
+        }
+    }
+
+    pub fn back(&self) {
+        if self.top.visible_child_name().as_deref() == Some("player") {
+            self.player.close();
+        } else if let Some(nav) = self.ctx.nav() {
+            nav.pop();
+        }
+    }
+
+    fn breakpoints(self: &Rc<Self>) {
+        let window = &self.ctx.window;
+        let medium = adw::Breakpoint::new(
+            adw::BreakpointCondition::parse("max-width: 999sp").expect("a condition"),
+        );
+        medium.add_setter(&self.ctx.split, "max-sidebar-width", Some(&220.0f64.to_value()));
+        let narrow = adw::Breakpoint::new(
+            adw::BreakpointCondition::parse("max-width: 599sp").expect("a condition"),
+        );
+        narrow.add_setter(&self.ctx.split, "collapsed", Some(&true.to_value()));
+        window.add_breakpoint(medium.clone());
+        window.add_breakpoint(narrow.clone());
+        window.connect_current_breakpoint_notify({
+            let ctx = Rc::downgrade(&self.ctx);
+            move |window| {
+                let Some(ctx) = ctx.upgrade() else { return };
+                let size = match window.current_breakpoint() {
+                    Some(b) if b == narrow => Size::Narrow,
+                    Some(b) if b == medium => Size::Medium,
+                    _ => Size::Wide,
+                };
+                ctx.resized(size);
+            }
+        });
+    }
+
+    fn actions(self: &Rc<Self>, app: &adw::Application) {
+        let window = &self.ctx.window;
+        let hub = &self.ctx.hub;
+        let weak = Rc::downgrade(self);
+        let with = move |f: Box<dyn Fn(&Shell, Option<&glib::Variant>)>| {
+            let weak = weak.clone();
+            move |_: &gio::SimpleAction, arg: Option<&glib::Variant>| {
+                if let Some(shell) = weak.upgrade() {
+                    f(&shell, arg);
+                }
+            }
+        };
+        let add = |name: &str, kind: Option<&glib::VariantTy>, f: Box<dyn Fn(&Shell, Option<&glib::Variant>)>| {
+            let action = gio::SimpleAction::new(name, kind);
+            action.connect_activate(with(f));
+            window.add_action(&action);
+            action
+        };
+        let id_of = |arg: Option<&glib::Variant>| arg.and_then(u32::from_variant).map(AnilistId::new);
+        let play_of = |arg: Option<&glib::Variant>| {
+            arg.and_then(<(u32, String)>::from_variant).map(|(id, ep)| (AnilistId::new(id), ep))
+        };
+
+        add("open-title", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
+            if let Some(id) = id_of(a) {
+                s.open_title(id);
+            }
+        }));
+        add("play", Some(glib::VariantTy::new("(us)").expect("a type")), Box::new(move |s, a| {
+            if let Some((id, episode)) = play_of(a) {
+                s.ctx.hub.send(Command::Play { id, episode });
+            }
+        }));
+        add("mark-watched", Some(glib::VariantTy::new("(us)").expect("a type")), Box::new(move |s, a| {
+            if let Some((id, episode)) = play_of(a) {
+                s.ctx.hub.send(Command::SetWatched { id, episodes: vec![episode], watched: true });
+            }
+        }));
+        add("plan", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
+            if let Some(id) = id_of(a) {
+                s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Planning });
+                s.ctx.toast("Added to Planning");
+            }
+        }));
+        add("drop", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
+            if let Some(id) = id_of(a) {
+                s.ctx.hub.send(Command::SetStatus { id, status: LibrarySegment::Dropped });
+                s.ctx.hub.send(Command::HideFromContinue { id });
+            }
+        }));
+        add("hide-continue", Some(glib::VariantTy::UINT32), Box::new(move |s, a| {
+            if let Some(id) = id_of(a) {
+                s.ctx.hub.send(Command::HideFromContinue { id });
+                s.ctx.hub.send(Command::LoadContinue);
+            }
+        }));
+        add("go", Some(glib::VariantTy::STRING), Box::new(move |s, a| {
+            if let Some(dest) = a.and_then(String::from_variant).and_then(|n| Dest::named(&n)) {
+                s.go(dest);
+            }
+        }));
+        add("settings-pane", Some(glib::VariantTy::STRING), Box::new(move |s, a| {
+            if let Some(pane) = a.and_then(String::from_variant) {
+                s.settings_pane(&pane);
+            }
+        }));
+        add("search", None, Box::new(|s, _| s.go(Dest::Search)));
+        add("back", None, Box::new(|s, _| s.back()));
+        add("sync", None, Box::new(|s, _| s.ctx.hub.send(Command::SyncNow)));
+        add("about", None, Box::new(|s, _| pages::settings::about(&s.ctx)));
+        add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
+        add("connect", Some(glib::VariantTy::STRING), Box::new(move |s, a| {
+            if let Some(tracker) = a.and_then(String::from_variant) {
+                s.ctx.hub.send(Command::Connect { tracker });
+            }
+        }));
+        // Not in this build yet: shown, and greyed out.
+        for name in ["join-store", "export"] {
+            add(name, None, Box::new(|_, _| {})).set_enabled(false);
+        }
+        let _ = hub;
+
+        for (i, dest) in Dest::ALL.iter().take(7).enumerate() {
+            app.set_accels_for_action(
+                &format!("win.go::{}", dest.name()),
+                &[&format!("<Control>{}", i + 1)],
+            );
+        }
+        app.set_accels_for_action("win.go::settings", &["<Control>comma"]);
+        app.set_accels_for_action("win.search", &["<Control>f"]);
+        app.set_accels_for_action("win.sync", &["<Control>r"]);
+        app.set_accels_for_action("win.back", &["<Alt>Left"]);
+        app.set_accels_for_action("win.shortcuts", &["<Control>question"]);
+        app.set_accels_for_action("window.close", &["<Control>w"]);
+        let quit = gio::SimpleAction::new("quit", None);
+        quit.connect_activate({
+            let weak = Rc::downgrade(self);
+            move |_, _| {
+                if let Some(shell) = weak.upgrade() {
+                    // Quitting is the answer: everything stops, with no question.
+                    shell.closing.set(true);
+                    shell.ctx.window.close();
+                }
+            }
+        });
+        app.add_action(&quit);
+        app.set_accels_for_action("app.quit", &["<Control>q"]);
+
+        // The mouse's back button.
+        let click = gtk::GestureClick::new();
+        click.set_button(8);
+        click.connect_pressed({
+            let weak = Rc::downgrade(self);
+            move |_, _, _, _| {
+                if let Some(shell) = weak.upgrade() {
+                    shell.back();
+                }
+            }
+        });
+        window.add_controller(click);
+    }
+
+    /// The engine's events the window itself answers: notices, sign-in pages, the player.
+    fn listen(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        self.ctx.hub.listen(move |event| {
+            let Some(shell) = weak.upgrade() else { return };
+            match event {
+                Event::Toast(notice) => shell.ctx.toast(&sentence(&notice.text)),
+                Event::Authorize { url, .. } => shell.open_url(url),
+                Event::PlaybackEnded { rolling_on: false, .. } => {
+                    shell.ctx.hub.send(Command::LoadContinue);
+                }
+                _ => {}
+            }
+            if matches!(event, Event::Downloads(_) | Event::Seeding(_)) {
+                shell.release_when_done();
+            }
+            shell.player.engine_event(event);
+        });
+    }
+
+    /// What the engine asked of the desktop.
+    pub fn host(&self, request: HostRequest) {
+        match request {
+            HostRequest::OpenUrl(url) => self.open_url(&url),
+            HostRequest::Notify { title, body } if !self.fixtures => {
+                let notification = gio::Notification::new(&title);
+                notification.set_body(Some(&body));
+                if let Some(app) = self.ctx.window.application() {
+                    app.send_notification(None, &notification);
+                }
+            }
+            HostRequest::Notify { title, .. } => tracing::info!(%title, "a notification"),
+        }
+    }
+
+    fn open_url(&self, url: &str) {
+        if self.fixtures {
+            tracing::info!(%url, "a link, not opened in a scene");
+            return;
+        }
+        gtk::UriLauncher::new(url).launch(Some(&self.ctx.window), gio::Cancellable::NONE, |_| {});
+    }
+
+    /// Closing with nothing running quits. Closing while episodes download or seed asks first.
+    fn close_request(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        self.ctx.window.connect_close_request(move |window| {
+            let Some(shell) = weak.upgrade() else { return glib::Propagation::Proceed };
+            shell.ctx.prefs.remember_window(window);
+            let (downloading, seeding) = shell.ctx.hub.known.borrow().running();
+            let running = downloading + seeding > 0;
+            if shell.closing.get() || !running {
+                shell.player.window_closed();
+                return glib::Propagation::Proceed;
+            }
+            match shell.ctx.prefs.close_choice() {
+                CloseChoice::Ask => {
+                    pages::close_dialog(&shell, downloading, seeding);
+                    glib::Propagation::Stop
+                }
+                CloseChoice::KeepGoing => {
+                    shell.keep_going();
+                    glib::Propagation::Stop
+                }
+                CloseChoice::Stop => {
+                    shell.player.window_closed();
+                    glib::Propagation::Proceed
+                }
+            }
+        });
+    }
+
+    /// The viewer chose to stop everything and close.
+    pub fn stop_and_close(&self) {
+        self.closing.set(true);
+        self.ctx.window.close();
+    }
+
+    /// The viewer chose to keep the downloads going with the window closed: ask the Background
+    /// portal, and keep running only if it agrees.
+    pub fn keep_going(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        crate::portal::request_background(&self.ctx.window, move |allowed| {
+            let Some(shell) = weak.upgrade() else { return };
+            if allowed {
+                if let Some(app) = shell.ctx.window.application() {
+                    // Held until the downloads end or the viewer quits.
+                    shell.held.replace(Some(app.hold()));
+                }
+                shell.player.window_closed();
+                shell.ctx.window.set_visible(false);
+            } else {
+                shell.ctx.toast("anistream can't keep running in the background here");
+                // A remembered Keep going that cannot keep going falls back to Stop.
+                if shell.ctx.prefs.close_choice() == CloseChoice::KeepGoing {
+                    shell.ctx.prefs.set_close_choice(CloseChoice::Stop);
+                }
+            }
+        });
+    }
+
+    /// With the window closed and kept going, quit once nothing downloads or seeds.
+    fn release_when_done(&self) {
+        if self.held.borrow().is_none() || self.ctx.window.is_visible() {
+            return;
+        }
+        let (downloading, seeding) = self.ctx.hub.known.borrow().running();
+        if downloading + seeding == 0 {
+            self.held.replace(None);
+            self.closing.set(true);
+            self.ctx.window.close();
+        }
+    }
+
+    /// The Search page, for a screenshot that searches.
+    pub fn search_page(&self) -> &pages::search::SearchPage {
+        &self.search
+    }
+
+    pub fn is_player(&self) -> bool {
+        self.top.visible_child_name().as_deref() == Some("player")
+    }
+}
+
+/// A notice as a sentence: the engine words its notices for the terminal, in lower case.
+fn sentence(text: &str) -> String {
+    crate::catalog::shown(text)
+}
+
+/// The sidebar: the destinations, "Sources" over the last two, and the account and Settings
+/// at its foot.
+fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
+    let list = gtk::ListBox::new();
+    list.add_css_class("navigation-sidebar");
+    for dest in Dest::ALL {
+        if dest == Dest::Settings {
+            continue;
+        }
+        if dest == Dest::Providers {
+            let header = gtk::Label::new(Some("Sources"));
+            header.add_css_class("heading");
+            header.add_css_class("haze");
+            header.set_xalign(0.0);
+            header.set_margin_top(12);
+            header.set_margin_start(6);
+            let row = gtk::ListBoxRow::builder()
+                .child(&header)
+                .activatable(false)
+                .selectable(false)
+                .build();
+            list.append(&row);
+        }
+        list.append(&dest_row(dest));
+    }
+
+    let foot = gtk::ListBox::new();
+    foot.add_css_class("navigation-sidebar");
+    let account = account_row(ctx);
+    foot.append(&account);
+    foot.append(&dest_row(Dest::Settings));
+
+    let pick = |list: &gtk::ListBox| {
+        list.connect_row_activated(|list, row| {
+            let name = row.widget_name();
+            if name == "account" {
+                let _ = list.activate_action("win.settings-pane", Some(&"accounts".to_variant()));
+            } else {
+                let _ = list.activate_action("win.go", Some(&name.to_variant()));
+            }
+        });
+    };
+    pick(&list);
+    pick(&foot);
+
+    let column = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .vexpand(true)
+        .child(&list)
+        .build();
+    column.append(&scroll);
+    column.append(&foot);
+
+    let menu = gio::Menu::new();
+    let first = gio::Menu::new();
+    first.append(Some("Sync Now"), Some("win.sync"));
+    first.append(Some("Join Store…"), Some("win.join-store"));
+    first.append(Some("Export Lists and History…"), Some("win.export"));
+    menu.append_section(None, &first);
+    let second = gio::Menu::new();
+    second.append(Some("Keyboard Shortcuts"), Some("win.shortcuts"));
+    second.append(Some("About anistream"), Some("win.about"));
+    menu.append_section(None, &second);
+    let primary = gtk::MenuButton::builder()
+        .icon_name("open-menu-symbolic")
+        .menu_model(&menu)
+        .tooltip_text("Main Menu")
+        .primary(true)
+        .build();
+    let header = adw::HeaderBar::new();
+    header.set_title_widget(Some(&adw::WindowTitle::new("anistream", "")));
+    header.pack_end(&primary);
+    let page = widgets::page("anistream", &header, &column);
+    (page, list, foot)
+}
+
+fn dest_row(dest: Dest) -> gtk::ListBoxRow {
+    let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    line.append(&gtk::Image::from_icon_name(dest.icon()));
+    let label = gtk::Label::new(Some(dest.title()));
+    label.set_xalign(0.0);
+    line.append(&label);
+    let row = gtk::ListBoxRow::builder().child(&line).build();
+    row.set_widget_name(dest.name());
+    row
+}
+
+/// The account at the sidebar's foot: "Mika", "AniList synced" with a water dot, which opens
+/// Settings on the Accounts pane.
+fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
+    let avatar = adw::Avatar::new(28, None, true);
+    let name = gtk::Label::new(Some("Not signed in"));
+    name.set_xalign(0.0);
+    name.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    dot.add_css_class("state-dot");
+    dot.set_valign(gtk::Align::Center);
+    let status = widgets::haze("Connect AniList", "caption");
+    let status_line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    status_line.append(&dot);
+    status_line.append(&status);
+    let text = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    text.set_valign(gtk::Align::Center);
+    text.append(&name);
+    text.append(&status_line);
+    let line = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    line.add_css_class("account-row");
+    line.append(&avatar);
+    line.append(&text);
+    let row = gtk::ListBoxRow::builder().child(&line).build();
+    row.set_widget_name("account");
+
+    let show = {
+        let (avatar, name, status, dot) = (avatar, name, status, dot);
+        let hub = Rc::downgrade(&ctx.hub);
+        move || {
+            let Some(hub) = hub.upgrade() else { return };
+            let known = hub.known.borrow();
+            match known.anilist() {
+                Some(state) => {
+                    let user = state.user.clone().unwrap_or_else(|| "Signed in".into());
+                    avatar.set_text(Some(&user));
+                    name.set_label(&user);
+                    let waiting = state.outbox;
+                    status.set_label(&if waiting > 0 {
+                        format!("{} waiting to sync", anistream_model::wording::plural(waiting as usize, "change"))
+                    } else {
+                        "AniList synced".into()
+                    });
+                    dot.set_visible(waiting == 0 && !state.needs_reauth);
+                }
+                None => {
+                    avatar.set_text(None);
+                    name.set_label("Not signed in");
+                    status.set_label("Connect AniList");
+                    dot.set_visible(false);
+                }
+            }
+        }
+    };
+    show();
+    ctx.hub.listen(move |event| {
+        if matches!(event, Event::Sync(_)) {
+            show();
+        }
+    });
+    row
+}
