@@ -106,6 +106,7 @@ struct TitleSearchField: ViewModifier {
                 text: text,
                 tokens: tokens,
                 suggestedTokens: .constant(titles ? suggestions : []),
+                isPresented: Binding(get: { navigator.searchPresented }, set: { navigator.searchPresented = $0 }),
                 placement: placement,
                 prompt: prompt
             ) { token in
@@ -215,6 +216,9 @@ struct SearchScreen: View {
         .scrollIndicators(.never)
         #if os(iOS)
         .navigationSubtitle(store.search.searchingLine ?? "")
+        // The ground inside the inspector: it hosts the screen in a column of its own, which
+        // draws the system's black over the ground TabStack puts behind it.
+        .background(Palette.ground)
         .inspector(isPresented: $navigator.searchFiltersShown) {
             SearchFiltersPanel(compact: compact)
                 .inspectorColumnWidth(min: 300, ideal: 340, max: 420)
@@ -241,6 +245,11 @@ struct SearchScreen: View {
                 navigator.search(launch, in: store)
             } else if store.search.asked == nil, !navigator.query.isEmpty {
                 store.search(text: navigator.query)
+            }
+            if navigator.launchSheet == "typing" {
+                navigator.launchSheet = nil
+                try? await Task.sleep(for: .milliseconds(300))
+                navigator.searchPresented = true
             }
             if navigator.launchSheet == "filters" {
                 navigator.launchSheet = nil
@@ -859,8 +868,8 @@ struct SearchFiltersPanel: View {
         let query = store.search.query
         let facets = store.search.facets
         return ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                    header(query)
+            VStack(alignment: .leading, spacing: compact ? 28 : 24) {
+                header(query)
                 PanelSection(compact: compact, "Genres") {
                     FlowLayout(spacing: 6, lineSpacing: 6) {
                         ForEach(facets?.genres ?? [], id: \.self) { name in
@@ -1020,7 +1029,7 @@ struct SearchFiltersPanel: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 10)
                 .frame(minHeight: compact ? 44 : 28)
-                .background(Palette.ground, in: .rect(cornerRadius: 8))
+                .background(Palette.raised, in: .rect(cornerRadius: 8))
             Stepper(value: Binding(
                 get: { Int(store.search.query.minTagRank ?? defaultTagRank) },
                 set: { rank in
@@ -1099,19 +1108,19 @@ private struct PanelSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: compact ? 10 : 8) {
+            // Search's own section heading, as over its rails and recent searches: sentence
+            // case, the hierarchy from type and space, with no box around the section.
             Text(title)
-                .groupHeaderStyle()
-                .padding(.leading, 12)
+                .font(compact ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
+                .foregroundStyle(.silk)
                 .accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: 10) {
                 content
             }
             .font(compact ? .ui(17) : .mac(13))
             .foregroundStyle(.silk)
-            .padding(compact ? 16 : 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.raised, in: .rect(cornerRadius: compact ? 16 : 12))
         }
     }
 }
@@ -1240,9 +1249,10 @@ private struct RangeFields: View {
         LabeledContent(title) {
             HStack(spacing: 6) {
                 field("From", \.min)
-                Text("to").foregroundStyle(.haze)
+                // Never broken a letter to a line where the panel is narrow.
+                Text("to").foregroundStyle(.haze).fixedSize()
                 field("To", \.max)
-                if let unit { Text(unit).foregroundStyle(.haze) }
+                if let unit { Text(unit).foregroundStyle(.haze).fixedSize() }
             }
         }
     }

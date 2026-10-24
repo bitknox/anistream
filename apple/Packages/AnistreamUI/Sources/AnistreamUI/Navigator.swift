@@ -54,6 +54,8 @@ public final class Navigator {
     public var showSettings: AnilistId?
     /// A selection asked of Continue's list from outside it, as the list itself would move it.
     public var continueSelection: AnilistId?
+    /// Whether the title search field is up for typing. The launch route's "typing" sheet sets it.
+    public var searchPresented = false
     /// The title whose "More about this show" sheet is open.
     public var moreAbout: AnilistId?
     /// The titles whose watched episodes are open in their episode lists, for the session.
