@@ -415,11 +415,19 @@ impl PlayerView {
             bar.set_fraction(f64::from(left) / f64::from(seconds));
         };
         say(seconds);
+        let weak = self.self_weak();
         let source = glib::timeout_add_seconds_local(1, move || {
             let now = left.get().saturating_sub(1);
             left.set(now);
             say(now);
-            if now == 0 { glib::ControlFlow::Break } else { glib::ControlFlow::Continue }
+            if now > 0 {
+                return glib::ControlFlow::Continue;
+            }
+            // Done: forgotten, so clearing the cards later does not remove it a second time.
+            if let Some(view) = weak.upgrade() {
+                view.countdown.borrow_mut().take();
+            }
+            glib::ControlFlow::Break
         });
         self.countdown.replace(Some(source));
     }
