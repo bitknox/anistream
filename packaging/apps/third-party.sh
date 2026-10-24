@@ -46,8 +46,10 @@ field() { sed -n "s/^$1 //p" "$2"; }
 android_sources="$(grep -v -E '^(sources|ndk|abi|tools|seconds|peak-disk-kb|total-kb|binaries) ' "$android/stamp")"
 [[ -n "$android_sources" ]] || { echo "third-party.sh: $android/stamp names no sources" >&2; exit 1; }
 ndk="$(field ndk "$android/stamp")"
-ffmpeg_licence="$(sed -n 's/^ffmpeg License: //p' "$android/features")"
+# One licence line per ABI, "ffmpeg <abi> License: ...", which must agree: the notice names one.
+ffmpeg_licence="$(sed -n 's/^ffmpeg [^ ]* License: //p' "$android/features" | sort -u)"
 [[ -n "$ffmpeg_licence" ]] || { echo "third-party.sh: $android/features has no FFmpeg licence" >&2; exit 1; }
+[[ "$ffmpeg_licence" != *$'\n'* ]] || { echo "third-party.sh: $android/features has FFmpeg licences that differ by ABI" >&2; exit 1; }
 
 # Apple's stamp: "mpv v0.41.0 libass 0.17.5 mpvkit 1.1.0-n9.0.2"; MPVKit's release names the
 # FFmpeg it builds after the dash.

@@ -32,6 +32,9 @@ rules=(
   "anistream-model|$terminal"
   "anistream-engine|$terminal"
   "anistream-ffi|$terminal"
+  # Light enough for a TV box: the protocol and its TLS, never the engine or an HTTP stack.
+  "anistream-remote|$terminal"
+  "anistream-remote|^(anistream-engine|anistream-net|wreq|reqwest|hyper) "
   "anistream-tui|^anistream-engine "
 )
 
@@ -70,8 +73,11 @@ done
 phone='^(anistream-player|open|keyring) '
 for crate in anistream-playback anistream-engine anistream-ffi; do
   for target in aarch64-apple-ios aarch64-linux-android aarch64-apple-darwin; do
-    tree="$(cargo tree --quiet --color never -p "$crate" --no-default-features -e normal \
-      --target "$target" --prefix none | sed 's/ (\*)$//' | sort -u)"
+    # Android's build has the TV's remote, so it is held to the rule too.
+    features=()
+    [[ "$crate" == anistream-ffi && "$target" == *android* ]] && features=(--features remote)
+    tree="$(cargo tree --quiet --color never -p "$crate" --no-default-features "${features[@]}" \
+      -e normal --target "$target" --prefix none | sed 's/ (\*)$//' | sort -u)"
     found="$(grep -E "$phone" <<<"$tree" || true)"
     if [[ -n "$found" ]]; then
       echo "$crate for $target, without desktop, must not depend on:" >&2

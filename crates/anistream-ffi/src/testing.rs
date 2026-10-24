@@ -18,7 +18,7 @@ use anistream_track::{
 };
 
 use crate::{
-    engine::{FfiEngine, Opened, runtime},
+    engine::{FfiEngine, Opened, RemoteHome, runtime},
     host::{Adapter, FfiHost},
     start::{FfiDirs, FfiError, FfiStart, SecretsMode},
 };
@@ -117,6 +117,7 @@ impl FfiEngine {
         // The test's token files are the trackers' and the stores' own, so the host's keychain
         // is never asked.
         let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
+        let home = RemoteHome::of(&host, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             // The fake answers on the engine's runtime, for as long as the engine holds it.
@@ -126,8 +127,10 @@ impl FfiEngine {
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing))),
-            Err(e) => Self::hold(runtime, Err(e), None),
+            Ok((started, testing)) => {
+                Self::hold(runtime, Ok(started), Some(Box::new(testing)), home)
+            }
+            Err(e) => Self::hold(runtime, Err(e), None, home),
         }
     }
 }

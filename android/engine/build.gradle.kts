@@ -7,6 +7,8 @@ plugins {
 
 android {
     namespace = "tv.anistream.engine"
+    // Shared with the TV app.
+    defaultConfig { minSdk = AnistreamSdk.TV_MIN }
     sourceSets {
         AnistreamSdk.engines.forEach { (flavour, engine) ->
             named(flavour) {

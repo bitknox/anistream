@@ -3,7 +3,7 @@
 use std::{
     any::Any,
     future::Future,
-    path::Path,
+    path::{Path, PathBuf},
     pin::Pin,
     sync::{Arc, Mutex, MutexGuard, PoisonError},
     task::{Context, Poll},
@@ -12,7 +12,7 @@ use std::{
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     engine::{Engine, EventStream},
-    host::Host,
+    host::{Host, SecretStore},
     options::EngineOptions,
 };
 use anistream_model::{command::Command, event::Event, jobs::JobId, playback::PlayerTheme};
@@ -44,6 +44,26 @@ pub struct FfiEngine {
     /// accessors.
     #[cfg_attr(not(feature = "testing"), allow(dead_code))]
     kept: Option<Box<dyn Any + Send + Sync>>,
+    /// The TV's remote, when one is started, and what it asked of the front end: see
+    /// [`crate::remote`].
+    #[cfg(feature = "remote")]
+    remote: crate::remote::Attached,
+}
+
+/// What a TV's remote needs of the engine's start: where the TV's key is kept, and the directory
+/// its paired phones are written to.
+pub(crate) struct RemoteHome {
+    #[cfg_attr(not(feature = "remote"), allow(dead_code))]
+    pub(crate) secrets: Option<Arc<dyn SecretStore>>,
+    #[cfg_attr(not(feature = "remote"), allow(dead_code))]
+    pub(crate) data: PathBuf,
+}
+
+impl RemoteHome {
+    /// The keychain `host` keeps tokens in, and the data directory of `paths`.
+    pub(crate) fn of(host: &Adapter, paths: &Paths) -> Self {
+        Self { secrets: host.secrets(), data: paths.data_dir.clone() }
+    }
 }
 
 #[uniffi::export]
@@ -66,6 +86,7 @@ impl FfiEngine {
     ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
         let host = Adapter::new(host, start.secrets_mode(), &opened.config, &opened.paths);
+        let home = RemoteHome::of(&host, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             let http = HttpClient::new(&opened.config.network)
@@ -74,7 +95,7 @@ impl FfiEngine {
             options.background = background.into();
             Self::launch(options, host).await
         });
-        Self::hold(runtime, started, None)
+        Self::hold(runtime, started, None, home)
     }
 
     /// Hand the engine a command, and say which job it starts, for work someone waits on: the
@@ -84,6 +105,10 @@ impl FfiEngine {
     /// Only puts the command on a channel, so any thread may call this, the main thread among
     /// them. `None` too once the engine has stopped.
     pub fn send(&self, command: Command) -> Option<JobId> {
+        #[cfg(feature = "remote")]
+        if let Command::PlayerReport { report, .. } = &command {
+            self.remote.report(report);
+        }
         lock(&self.engine).as_ref()?.send(command)
     }
 
@@ -95,6 +120,9 @@ impl FfiEngine {
     /// stops waiting loses nothing, and the next call has what it would have had.
     pub async fn next_events(&self) -> Vec<Event> {
         let events = Arc::clone(&self.events);
+        #[cfg(feature = "remote")]
+        let read = self.remote.read(&events);
+        #[cfg(not(feature = "remote"))]
         let read = async move { events.lock().await.next_events().await };
         InRuntime { handle: self.handle.clone(), future: Box::pin(read) }.await
     }
@@ -144,6 +172,7 @@ impl FfiEngine {
         runtime: Runtime,
         started: Result<(Engine, EventStream), FfiError>,
         kept: Option<Box<dyn Any + Send + Sync>>,
+        #[cfg_attr(not(feature = "remote"), allow(unused_variables))] home: RemoteHome,
     ) -> Result<Arc<Self>, FfiError> {
         match started {
             Ok((engine, events)) => Ok(Arc::new(Self {
@@ -152,12 +181,38 @@ impl FfiEngine {
                 handle: runtime.handle().clone(),
                 runtime: Mutex::new(Some(runtime)),
                 kept,
+                #[cfg(feature = "remote")]
+                remote: crate::remote::Attached::new(home),
             })),
             Err(e) => {
                 runtime.shutdown_background();
                 Err(e)
             }
         }
+    }
+}
+
+#[cfg(feature = "remote")]
+impl FfiEngine {
+    /// What the remote sends the engine's commands through, until the engine stops.
+    pub(crate) fn remote_sender(&self) -> Option<anistream_engine::engine::RemoteSender> {
+        lock(&self.engine).as_ref().map(Engine::remote_sender)
+    }
+
+    pub(crate) fn runtime_handle(&self) -> Handle {
+        self.handle.clone()
+    }
+
+    pub(crate) fn remote(&self) -> &crate::remote::Attached {
+        &self.remote
+    }
+
+    /// Run `work` on the engine's runtime, and wait for it from whichever thread polls.
+    pub(crate) async fn on_runtime<T: Send + 'static>(
+        &self,
+        work: impl Future<Output = T> + Send + 'static,
+    ) -> Option<T> {
+        self.handle.spawn(work).await.ok()
     }
 }
 

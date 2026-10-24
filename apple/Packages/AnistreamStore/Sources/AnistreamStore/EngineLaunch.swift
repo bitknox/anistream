@@ -132,7 +132,7 @@ extension FfiError {
     public var reason: String {
         switch self {
         case .Dirs(let reason), .Config(let reason), .Store(let reason), .Client(let reason),
-             .Runtime(let reason), .Engine(let reason):
+             .Runtime(let reason), .Engine(let reason), .Remote(let reason):
             reason
         }
     }

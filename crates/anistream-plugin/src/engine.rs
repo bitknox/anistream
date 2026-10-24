@@ -63,8 +63,8 @@ pub use self::exports::anistream::provider::provider::{
     Subtitle,
 };
 
-/// Whether plugins run in wasmtime's interpreter here, rather than as native code: always on iOS,
-/// and anywhere with the `interpret` feature.
+/// Whether plugins run in wasmtime's interpreter here, rather than as native code: always on iOS
+/// and on 32-bit machines, and anywhere with the `interpret` feature.
 ///
 /// iOS lets no app but Apple's make memory executable, so nothing Cranelift compiles to native
 /// code can run there. It compiles to Pulley instead, wasmtime's portable bytecode, and the
@@ -80,9 +80,19 @@ pub use self::exports::anistream::provider::provider::{
 /// plugin that embeds a whole language runtime, as the JavaScript reference does, pays the most:
 /// an interpreter interpreting an interpreter.
 ///
+/// A 32-bit host interprets too, since Cranelift emits native code for 64-bit machines only:
+/// most Android TV boxes run 32-bit Android on 64-bit chips.
+///
 /// `cargo test -p anistream-plugin --features interpret` runs the conformance suite this way,
 /// the deadline and the memory ceiling included.
-pub const INTERPRETED: bool = cfg!(any(target_os = "ios", feature = "interpret"));
+pub const INTERPRETED: bool = cfg!(any(
+    target_os = "ios",
+    all(target_pointer_width = "32", not(target_family = "wasm")),
+    feature = "interpret"
+));
+
+/// The Pulley form for this machine's pointer width, when plugins are interpreted.
+const PULLEY: &str = if cfg!(target_pointer_width = "32") { "pulley32" } else { "pulley64" };
 
 /// How often the epoch advances.
 ///
@@ -371,8 +381,9 @@ impl PluginHost {
             // is a default; async support is unconditional in wasmtime 47 and no longer a flag.
             .epoch_interruption(true);
         if INTERPRETED {
-            // Pulley's 64-bit, little-endian form, which is what wasmtime runs on an arm64 phone.
-            config.target("pulley64").map_err(|e| PluginError::Load {
+            // Pulley's little-endian form at this machine's width: 64-bit on an arm64 phone,
+            // 32-bit on a TV box running 32-bit Android.
+            config.target(PULLEY).map_err(|e| PluginError::Load {
                 path: "engine".into(),
                 message: e.to_string(),
             })?;

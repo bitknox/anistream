@@ -546,7 +546,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: tools/ci-toolchain.sh aarch64-linux-android
+      # Both of the APKs' ABIs, as engine.sh builds them: arm64 and the TV boxes' 32-bit ARM.
+      - run: tools/ci-toolchain.sh aarch64-linux-android armv7-linux-androideabi
       # The newest NDK the runner has, which links 16 KB aligned (r28 and later), where
       # ANDROID_NDK_HOME may name an older one. And bindgen's clang arguments, for BoringSSL's
       # bindings: bindgen asks clang for the Rust target as it is named, without an API level,

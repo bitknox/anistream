@@ -19,9 +19,12 @@ dependencyResolutionManagement {
 rootProject.name = "anistream"
 
 // The modules follow the Apple app's packages: the engine's bindings and library, the store that
-// holds the engine and its state, the design system, the screens, the player, and the app.
-include(":engine", ":store", ":design", ":ui", ":player", ":app")
+// holds the engine and its state, the design system, the screens, the player and its screens, and
+// the app.
+include(":engine", ":store", ":design", ":ui", ":player", ":player-ui", ":app")
 // The home-screen widgets, Glance's, drawn from the record the background check keeps.
 include(":widgets")
+// The TV app, a separate APK on Android 11 and up.
+include(":tv")
 // What the tests share: the engine's events recorded as scenes, and the fixture titles' art.
 include(":testkit")

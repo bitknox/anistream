@@ -54,6 +54,7 @@ pub mod notifications;
 pub mod playback;
 pub mod progress;
 pub mod protection;
+pub mod remote;
 pub mod settings;
 pub mod show;
 pub mod sources;
