@@ -210,10 +210,12 @@ object ArtFocus {
 @Composable
 fun Modifier.focusScale(focused: Boolean, scale: Float): Modifier {
     val repeat = LocalKeyRepeat.current
+    val reduced = LocalReducedMotion.current
     val value = remember { Animatable(1f) }
     LaunchedEffect(focused) {
         val target = if (focused) scale else 1f
-        if (repeat.held) value.snapTo(target) else value.animateTo(target, Motion.quick())
+        // Held keys and Remove animations land at once.
+        if (repeat.held || reduced) value.snapTo(target) else value.animateTo(target, Motion.quick())
     }
     return graphicsLayer {
         scaleX = value.value

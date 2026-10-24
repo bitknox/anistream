@@ -195,15 +195,3 @@ fun PairPage(name: String, code: String?, link: String?, address: String?, onClo
     }
 }
 
-/** The remote's notice, top right: "Mika's phone is paired". */
-@Composable
-fun RemoteNotice(text: String, modifier: Modifier = Modifier) {
-    Box(
-        modifier
-            .padding(top = Canvas.SafeY, end = Canvas.SafeX)
-            .background(ObiSilk.RaisedHigh, RoundedCornerShape(12.dp))
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-    ) {
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-    }
-}

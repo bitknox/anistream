@@ -40,7 +40,9 @@ import tv.anistream.store.ContinueItem
 import tv.anistream.store.ListState
 import tv.anistream.tv.heroAction
 import tv.anistream.tv.heroLine
+import tv.anistream.tv.player.LocalAddStore
 import tv.anistream.tv.posterLine
+import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.ui.ActionSheet
 import tv.anistream.tv.ui.AmberButton
@@ -53,7 +55,11 @@ import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.HeldScroll
 import tv.anistream.tv.ui.HeroHeader
-import tv.anistream.tv.ui.LocalActions
+import tv.anistream.tv.ui.OfflineLine
+import tv.anistream.tv.ui.StateBlock
+import tv.anistream.tv.ui.isOffline
+import tv.anistream.tv.ui.plainReason
+import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
 import tv.anistream.tv.ui.ScrollRule
@@ -81,14 +87,16 @@ fun ContinueScreen(
     LaunchedEffect(Unit) {
         store.loadContinue()
         store.loadSeasonal()
+        store.loadCalendar()
     }
     val entries by store.titles.entries.collectAsStateWithLifecycle()
     val tables by store.titles.episodes.collectAsStateWithLifecycle()
     val state by store.continuing.list.state.collectAsStateWithLifecycle()
     val hidden by store.continuing.hidden.collectAsStateWithLifecycle()
     val seasonal by store.seasonal.state.collectAsStateWithLifecycle()
+    val window by store.calendar.window.collectAsStateWithLifecycle()
+    val offline = isOffline()
     val queue = remember(entries, state, hidden) { store.continuing.queue(entries) }
-    val actions = LocalActions.current
     val lead = queue.lead
     LaunchedEffect(lead?.id) { lead?.let { store.loadEpisodes(it.id) } }
 
@@ -103,6 +111,8 @@ fun ContinueScreen(
     val inProgress = queue.inProgress.filter { it.id != lead?.id }
     val newThisWeek = queue.newThisWeek.filter { it.id != lead?.id }
     val season = seasonal.ids.mapNotNull { entries[it] }.take(SEASON_CARDS)
+    val airingToday = remember(window) { airingToday(window) }
+    val failed = state as? ListState.Failed
 
     ScrollRule(HeldScroll) {
         LazyColumn(
@@ -113,21 +123,41 @@ fun ContinueScreen(
         ) {
             if (lead != null) {
                 item(key = HERO, contentType = "hero") {
-                    Hero(lead, tables[lead.id], memory, onOpen, onPlay, Modifier.onFocusChanged {
+                    Hero(lead, tables[lead.id], memory, onOpen, onPlay, swapFade().onFocusChanged {
                         if (it.hasFocus) scope.launch { list.animateScrollToItem(0) }
                     })
                 }
             } else if (placeholders) {
-                item(key = "placeholder", contentType = "hero") { HeroPlaceholder() }
+                item(key = "placeholder", contentType = "hero") { HeroPlaceholder(swapFade()) }
             }
-            var firstRow = lead == null
+            if (offline) {
+                item(key = "offline", contentType = "line") {
+                    OfflineLine(swapFade().padding(start = Canvas.Keyline, top = if (lead == null) Canvas.SafeY else 0.dp))
+                }
+            }
+            // Watching failed while the rest came: say so where the hero would be, with one way on.
+            val retry = { store.loadContinue(force = true) }
+            val failedHere = failed != null && lead == null && (season.isNotEmpty() || airingToday.isNotEmpty())
+            if (failedHere) {
+                item(key = "failed", contentType = "state") {
+                    StateBlock(
+                        "Couldn't load Watching.",
+                        swapFade().padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 64.dp),
+                        detail = plainReason(failed!!.reason),
+                        action = "Try again",
+                        onAction = retry,
+                        actionModifier = Modifier.firstFocus(memory, "retry-watching"),
+                    )
+                }
+            }
+            var firstRow = lead == null && !failedHere
             if (inProgress.isNotEmpty()) {
                 val first = firstRow
                 firstRow = false
                 item(key = "continue", contentType = "row") {
                     BrowseRow(
                         "Continue watching",
-                        modifier = Modifier.settlesAt(list, scope, "continue", rowTop),
+                        modifier = swapFade().settlesAt(list, scope, "continue", rowTop),
                     ) {
                         items(inProgress, key = { it.id.toLong() }, contentType = { "wide" }) { item ->
                             val firstCard = first && item === inProgress.first()
@@ -136,7 +166,7 @@ fun ContinueScreen(
                                 onClick = { onOpen(item.id) },
                                 line = item.action,
                                 progress = item.fraction?.toFloat(),
-                                onLongClick = { actions?.open(continueSheet(store, item, onOpen)) },
+                                sheet = { continueSheet(store, item, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "continue/${item.id}", firstCard),
                             )
@@ -148,16 +178,34 @@ fun ContinueScreen(
                 val first = firstRow
                 firstRow = false
                 item(key = "new", contentType = "row") {
-                    BrowseRow("New this week", modifier = Modifier.settlesAt(list, scope, "new", rowTop)) {
+                    BrowseRow("New this week", modifier = swapFade().settlesAt(list, scope, "new", rowTop)) {
                         items(newThisWeek, key = { it.id.toLong() }, contentType = { "wide" }) { item ->
                             WideCard(
                                 item.entry,
                                 onClick = { onOpen(item.id) },
                                 line = item.action,
                                 newDot = true,
-                                onLongClick = { actions?.open(continueSheet(store, item, onOpen)) },
+                                sheet = { continueSheet(store, item, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "new/${item.id}", first && item === newThisWeek.first()),
+                            )
+                        }
+                    }
+                }
+            }
+            if (airingToday.isNotEmpty()) {
+                val first = firstRow
+                firstRow = false
+                item(key = "airing", contentType = "row") {
+                    BrowseRow("Airing today", modifier = swapFade().settlesAt(list, scope, "airing", rowTop)) {
+                        items(airingToday, key = { "${it.entry.id}/${it.episode}" }, contentType = { "wide" }) { airing ->
+                            WideCard(
+                                airing.entry,
+                                onClick = { onOpen(airing.entry.id) },
+                                line = airing.timeLine(),
+                                sheet = { planSheet(store, airing.entry, onOpen) },
+                                modifier = Modifier
+                                    .firstFocus(memory, "airing/${airing.entry.id}", first && airing === airingToday.first()),
                             )
                         }
                     }
@@ -166,13 +214,13 @@ fun ContinueScreen(
             if (season.isNotEmpty()) {
                 val first = firstRow
                 item(key = "season", contentType = "row") {
-                    BrowseRow("This season", modifier = Modifier.settlesAt(list, scope, "season", rowTop)) {
+                    BrowseRow("This season", modifier = swapFade().settlesAt(list, scope, "season", rowTop)) {
                         items(season, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
                             PosterCard(
                                 entry,
                                 onClick = { onOpen(entry.id) },
                                 line = entry.posterLine,
-                                onLongClick = { actions?.open(planSheet(store, entry, onOpen)) },
+                                sheet = { planSheet(store, entry, onOpen) },
                                 modifier = Modifier
                                     .firstFocus(memory, "season/${entry.id}", first && entry === season.first()),
                             )
@@ -180,14 +228,23 @@ fun ContinueScreen(
                     }
                 }
             } else if (placeholders) {
-                item(key = "season-placeholder", contentType = "row") { RowPlaceholder() }
+                item(key = "season-placeholder", contentType = "row") { RowPlaceholder(swapFade()) }
             }
-            if (!loading && lead == null && season.isEmpty() && seasonal !is ListState.Loading) {
-                item(key = "empty", contentType = "empty") { EmptyQueue(state, onRetry = { store.loadContinue(force = true); store.loadSeasonal(force = true) }, memory) }
+            val empty = !loading && lead == null && season.isEmpty() && airingToday.isEmpty() && seasonal !is ListState.Loading
+            if (empty) {
+                item(key = "empty", contentType = "empty") {
+                    EmptyQueue(
+                        failed = failed != null || seasonal is ListState.Failed,
+                        onRetry = { store.loadContinue(force = true); store.loadSeasonal(force = true); store.loadCalendar(force = true) },
+                        onBrowse = { nav.go(Destination.Seasonal) },
+                        memory = memory,
+                        modifier = swapFade(),
+                    )
+                }
             }
         }
     }
-    EnterFocus(memory, entry = lead != null || season.isNotEmpty())
+    EnterFocus(memory, entry = lead != null || season.isNotEmpty() || airingToday.isNotEmpty())
 }
 
 
@@ -205,11 +262,19 @@ private fun Hero(
         Text(item.heroLine(rows), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, maxLines = 1)
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AmberButton(
-                onClick = { onPlay(item.id, item.episode) },
-                enabled = item.playable,
-                modifier = Modifier.firstFocus(memory, HERO),
-            ) { ButtonLabel(item.heroAction) }
+            // No source can play yet: the one way on is a plugin store, as on the title page.
+            val addStore = LocalAddStore.current
+            if (addStore != null) {
+                AmberButton(onClick = addStore, icon = null, modifier = Modifier.firstFocus(memory, HERO)) {
+                    ButtonLabel("Add a plugin store to play")
+                }
+            } else {
+                AmberButton(
+                    onClick = { onPlay(item.id, item.episode) },
+                    enabled = item.playable,
+                    modifier = Modifier.firstFocus(memory, HERO),
+                ) { ButtonLabel(item.heroAction) }
+            }
             Spacer(Modifier.width(16.dp))
             TonalButton(
                 onClick = { onOpen(item.id) },
@@ -221,8 +286,8 @@ private fun Hero(
 }
 
 @Composable
-private fun HeroPlaceholder() {
-    Column(Modifier.fillMaxWidth()) {
+private fun HeroPlaceholder(modifier: Modifier) {
+    Column(modifier.fillMaxWidth()) {
         Spacer(Modifier.height(212.dp))
         Column(Modifier.padding(start = Canvas.Keyline)) {
             TextBar(320.dp, height = 32.dp)
@@ -233,8 +298,8 @@ private fun HeroPlaceholder() {
 }
 
 @Composable
-private fun RowPlaceholder() {
-    Column(Modifier.padding(start = Canvas.Keyline)) {
+private fun RowPlaceholder(modifier: Modifier) {
+    Column(modifier.padding(start = Canvas.Keyline)) {
         TextBar(140.dp, height = 16.dp)
         Spacer(Modifier.height(Canvas.HeaderGap))
         Row(horizontalArrangement = Arrangement.spacedBy(Canvas.CardGap)) {
@@ -243,18 +308,43 @@ private fun RowPlaceholder() {
     }
 }
 
-/** Nothing to show and nothing cached: what failed, and one way forward, focused. */
+/**
+ * Nothing to show. With nothing cached and the network failing: Nagare, the brief's line and Try
+ * again. Otherwise the queue is just empty: Nagare, the line, and the season to browse.
+ */
 @Composable
-private fun EmptyQueue(state: ListState, onRetry: () -> Unit, memory: FocusMemory) {
-    Box(Modifier.fillMaxWidth().padding(top = 160.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val line = if (state is ListState.Failed) "anistream can't reach AniList right now." else "Nothing to continue yet."
-            Text(line, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-            Spacer(Modifier.height(20.dp))
-            TonalButton(onClick = onRetry, modifier = Modifier.firstFocus(memory, "retry")) { ButtonLabel("Try again") }
+private fun EmptyQueue(failed: Boolean, onRetry: () -> Unit, onBrowse: () -> Unit, memory: FocusMemory, modifier: Modifier) {
+    Box(modifier.fillMaxWidth().padding(top = 120.dp), contentAlignment = Alignment.Center) {
+        if (failed) {
+            StateBlock(
+                "anistream can't reach AniList right now.",
+                nagare = true,
+                action = "Try again",
+                onAction = onRetry,
+                actionModifier = Modifier.firstFocus(memory, "retry"),
+            )
+        } else {
+            StateBlock(
+                "Nothing to continue yet.",
+                nagare = true,
+                action = "Browse this season",
+                onAction = onBrowse,
+                actionModifier = Modifier.firstFocus(memory, "browse"),
+            )
         }
     }
 }
+
+/** Today's broadcasts from the calendar's window, in air order, for Continue's Airing today. */
+private fun airingToday(window: tv.anistream.store.CalendarModel.Window): List<Airing> {
+    val now = tv.anistream.store.AppClock.now()
+    val zone = tv.anistream.store.AppClock.zone
+    val today = now.atZone(zone).toLocalDate()
+    return window.airings(now).filter { it.at.atZone(zone).toLocalDate() == today }.take(AIRING_CARDS)
+}
+
+/** Airing today stops at twelve cards; the Calendar has the day. */
+private const val AIRING_CARDS = 12
 
 private const val HERO = "hero"
 

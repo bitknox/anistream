@@ -43,7 +43,9 @@ import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.AppStore
-import tv.anistream.tv.remote.LocalRemoteHost
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.remote.QrCode
 import tv.anistream.tv.remote.localAddress
 import tv.anistream.tv.ui.ButtonLabel
@@ -66,9 +68,9 @@ fun spaced(code: String): String = code.chunked(4).joinToString(" ")
 
 /** TVSignIn for [tracker], until it is signed in ([onDone]) or Back. */
 @Composable
-fun SignInScreen(tracker: String, onDone: () -> Unit) {
+fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Cancel") {
     val store = LocalAppStore.current
-    val remote = LocalRemoteHost.current
+    val notices = LocalNotices.current
     val name = AccountsModel.name(tracker)
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     val done by rememberUpdatedState(onDone)
@@ -77,7 +79,7 @@ fun SignInScreen(tracker: String, onDone: () -> Unit) {
     LaunchedEffect(signedIn) {
         if (signedIn && !wasSignedIn) {
             val user = trackers[tracker]?.user
-            remote?.say(if (user != null) "Signed in to $name as $user" else "Signed in to $name")
+            notices?.say(if (user != null) "Signed in to $name as $user" else "Signed in to $name")
             done()
         }
     }
@@ -94,10 +96,10 @@ fun SignInScreen(tracker: String, onDone: () -> Unit) {
     ) {
         Box(Modifier.width(160.dp)) { Nagare(cell = 5) }
         Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Text("Sign in to $name", style = MaterialTheme.typography.headlineMedium, color = ObiSilk.Silk)
+            Text("Sign in to $name", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
             when (signInWay(tracker)) {
                 SignInWay.Page -> PageWay(store, tracker, name)
-                SignInWay.DeviceCode -> DeviceCodeWay(store, tracker)
+                SignInWay.DeviceCode -> DeviceCodeWay(store, tracker, cancel)
                 SignInWay.PhoneOnly -> Text(
                     "$name signs in from a paired anistream phone, with the account the phone uses.",
                     style = MaterialTheme.typography.bodyLarge,
@@ -105,7 +107,9 @@ fun SignInScreen(tracker: String, onDone: () -> Unit) {
                     modifier = Modifier.widthIn(max = 640.dp),
                 )
             }
-            TonalButton(onClick = onDone, modifier = Modifier.focusRequester(cancel)) { ButtonLabel("Cancel") }
+            TonalButton(onClick = onDone, modifier = if (signInWay(tracker) == SignInWay.DeviceCode) Modifier else Modifier.focusRequester(cancel)) {
+                ButtonLabel(cancelLabel)
+            }
         }
     }
 }
@@ -146,6 +150,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
                         store.finishSignIn(request, anilistCallback(answer.text, request.callbackScheme, state))
                     }
                     is PageAnswer.Password -> store.connectKitsu(answer.username, answer.password)
+                    is PageAnswer.Link -> Unit
                 }
             }
         }
@@ -192,7 +197,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
 
 /** Simkl and Trakt: the service's code and its address, while the engine polls. */
 @Composable
-private fun DeviceCodeWay(store: AppStore, tracker: String) {
+private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequester) {
     val prompt by store.accounts.deviceCode.collectAsStateWithLifecycle()
     LaunchedEffect(tracker) { store.connect(tracker) }
     val shown = prompt?.takeIf { it.tracker == tracker }
@@ -217,4 +222,6 @@ private fun DeviceCodeWay(store: AppStore, tracker: String) {
             shown?.let { Text(it.url, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze) }
         }
     }
+    // The code waits, so focus rests on asking for a fresh one.
+    TonalButton(onClick = { store.connect(tracker) }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
 }

@@ -4,6 +4,7 @@
 package tv.anistream.tv.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import tv.anistream.engine.model.Entry
@@ -33,7 +35,8 @@ fun PosterGrid(
     line: (Entry) -> String? = { null },
     progress: (Entry) -> Float? = { null },
     placeholders: Int = 0,
-    onLongClick: ((Entry) -> Unit)? = null,
+    sheet: ((Entry) -> ActionSheet)? = null,
+    dot: (Entry) -> Color? = { null },
     top: LazyGridScope.() -> Unit = {},
 ) {
     val density = LocalDensity.current
@@ -56,18 +59,23 @@ fun PosterGrid(
         ) {
             top()
             items(placeholders, key = { "placeholder/$it" }, contentType = { "poster" }) {
-                CardPlaceholder(Canvas.PosterWidth, Canvas.PosterHeight)
+                Box(swapFade()) { CardPlaceholder(Canvas.PosterWidth, Canvas.PosterHeight) }
             }
-            items(entries, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
-                PosterCard(
-                    entry,
-                    onClick = { onOpen(entry) },
-                    line = line(entry),
-                    progress = progress(entry),
-                    onLongClick = onLongClick?.let { long -> { long(entry) } },
-                    modifier = Modifier
-                        .firstFocus(memory, "$keyPrefix/${entry.id}", entry === entries.first()),
-                )
+            // While the placeholders hold, they stand in for what has come; then one crossfade.
+            val shown = if (placeholders > 0) emptyList() else entries
+            items(shown, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
+                Box(swapFade()) {
+                    PosterCard(
+                        entry,
+                        onClick = { onOpen(entry) },
+                        line = line(entry),
+                        progress = progress(entry),
+                        sheet = sheet?.let { open -> { open(entry) } },
+                        dot = dot(entry),
+                        modifier = Modifier
+                            .firstFocus(memory, "$keyPrefix/${entry.id}", entry === shown.first()),
+                    )
+                }
             }
         }
     }

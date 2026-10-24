@@ -10,4 +10,6 @@ data class Start(
     val destination: Destination = Destination.Continue,
     val title: AnilistId? = null,
     val query: String? = null,
+    /** Whether first launch's pages may show: always on a release; on fixtures, `--ez firstLaunch true`. */
+    val firstLaunch: Boolean = true,
 )

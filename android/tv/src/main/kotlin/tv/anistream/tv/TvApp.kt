@@ -8,11 +8,15 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.hardware.display.DisplayManager
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.util.Log
 import android.view.Display
 import androidx.core.net.toUri
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import tv.anistream.engine.ffi.startLog
 import tv.anistream.player.CaptionStyle
 import tv.anistream.player.CaptionStyleWatch
@@ -85,8 +89,35 @@ class TvApp : Application(), PlayerHost {
             traced("flavour") { Flavour.prepare(this) }
         }
         store.start(launch, host(), prepare)
+        watchNetwork()
         ProcessLifecycleOwner.get().lifecycle.addObserver(remote)
         watchNext.start()
+    }
+
+    /**
+     * The network as the engine plans around it, as the phone says it: a metered link, Data Saver,
+     * or none at all, which is the one offline state the screens show.
+     */
+    private fun watchNetwork() {
+        val connectivity = getSystemService(ConnectivityManager::class.java) ?: return
+        var said: Triple<Boolean, Boolean, Boolean>? = null
+        val say = { capabilities: NetworkCapabilities? ->
+            val cellular = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+            val constrained = connectivity.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
+            val offline = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) != true
+            val now = Triple(cellular, constrained, offline)
+            if (now != said) {
+                said = now
+                scope.launch { store.networkPath(cellular, constrained, offline) }
+            }
+        }
+        say(connectivity.getNetworkCapabilities(connectivity.activeNetwork))
+        connectivity.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = say(capabilities)
+
+            // Another network may already be the default; only none at all is offline.
+            override fun onLost(network: Network) = say(connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities))
+        })
     }
 
     private fun host() = AppHost(

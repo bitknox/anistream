@@ -5,7 +5,12 @@
 package tv.anistream.tv.shell
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -14,7 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,11 +47,11 @@ import tv.anistream.player.PlayerModel
 import tv.anistream.store.AppStore
 import tv.anistream.tv.home.LocalWatchNext
 import tv.anistream.tv.home.WatchNext
+import tv.anistream.tv.player.LocalAddStore
 import tv.anistream.tv.player.TvPlayerScreen
 import tv.anistream.tv.remote.LocalRemoteHost
 import tv.anistream.tv.remote.PairRequestDialog
 import tv.anistream.tv.remote.PairScreen
-import tv.anistream.tv.remote.RemoteNotice
 import tv.anistream.tv.remote.TvRemoteHost
 import tv.anistream.tv.remote.grouped
 import tv.anistream.tv.screens.CalendarScreen
@@ -51,7 +62,14 @@ import tv.anistream.tv.screens.SeasonalScreen
 import tv.anistream.tv.screens.SettingsScreen
 import tv.anistream.tv.screens.SettingsSection
 import tv.anistream.tv.screens.TitleScreen
+import tv.anistream.tv.signin.JoinStoreScreen
 import tv.anistream.tv.signin.SignInScreen
+import tv.anistream.tv.ui.LocalNotices
+import tv.anistream.tv.ui.LocalReducedMotion
+import tv.anistream.tv.ui.NoticeView
+import tv.anistream.tv.ui.ShownNotice
+import tv.anistream.tv.ui.TvNotices
+import tv.anistream.tv.ui.rememberReducedMotion
 import tv.anistream.tv.ui.ActionsHost
 import tv.anistream.tv.ui.ActionsPanel
 import tv.anistream.tv.ui.KeyRepeat
@@ -72,14 +90,35 @@ fun TvRoot(
     playerScreen: @Composable (PlayerModel) -> Unit = { TvPlayerScreen(it) },
     remote: TvRemoteHost? = null,
     watchNext: WatchNext? = null,
+    firstLaunch: Boolean = false,
 ) {
     val repeat = remember { KeyRepeat() }
     val states = rememberSaveableStateHolder()
+    val scope = rememberCoroutineScope()
+    val notices = remember { TvNotices(scope) }
+    var covered by remember { mutableStateOf(firstLaunch) }
+    // With no source that can play, Continue's hero and a failed playback offer a plugin store
+    // instead: Add closes the player, if it is up, onto the join page.
+    val providersLoaded by store.providers.loaded.collectAsStateWithLifecycle()
+    val providers by store.providers.rows.collectAsStateWithLifecycle()
+    val addStore: (() -> Unit)? = if (providersLoaded && providers.none { it.usable }) {
+        remember(player, nav) {
+            {
+                if (player.isPresented) player.viewerClosed()
+                nav.openJoinStore()
+            }
+        }
+    } else {
+        null
+    }
     CompositionLocalProvider(
         LocalAppStore provides store,
         LocalKeyRepeat provides repeat,
         LocalRemoteHost provides remote,
         LocalWatchNext provides watchNext,
+        LocalNotices provides notices,
+        LocalReducedMotion provides rememberReducedMotion(),
+        LocalAddStore provides addStore,
     ) {
         Box(
             Modifier
@@ -91,12 +130,39 @@ fun TvRoot(
                 playerScreen(player)
             } else if (remote?.pairing == true) {
                 PairScreen(remote, onClose = remote::closePairing)
-            } else {
+            } else if (!covered) {
                 states.SaveableStateProvider("browse") { Browse(nav, play, playFromStart) }
             }
+            if (firstLaunch && !player.isPresented) FirstLaunch(onCover = { covered = it })
             if (remote != null) RemoteOverlays(remote, playing = player.isPresented, nav = nav)
+            Notices(store, player, remote, notices)
         }
     }
+}
+
+/**
+ * The one notice surface, top right: the engine's notices, the player's alerts and the remote's
+ * lines, each said for its time. A phone asking to pair during playback holds its line there.
+ */
+@Composable
+private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRemoteHost?, notices: TvNotices) {
+    val current by store.notices.current.collectAsStateWithLifecycle()
+    LaunchedEffect(current?.id) {
+        val item = current ?: return@LaunchedEffect
+        notices.say(item.notice.text)
+        store.notices.dismiss(item)
+    }
+    val alert = player.alert
+    LaunchedEffect(alert?.since) { alert?.let { notices.say(it.text) } }
+    val said = remote?.notices ?: 0
+    LaunchedEffect(said) { if (said > 0) remote?.notice?.let(notices::say) }
+    val request = remote?.request
+    val held = if (request != null && player.isPresented) {
+        ShownNotice(-1, "${request.phone} wants to pair: code ${grouped(request.code)}")
+    } else {
+        null
+    }
+    NoticeView(held ?: notices.shown, Modifier.align(Alignment.TopEnd))
 }
 
 /**
@@ -109,12 +175,6 @@ private fun BoxScope.RemoteOverlays(remote: TvRemoteHost, playing: Boolean, nav:
     if (request != null && !playing && !remote.pairing) {
         PairRequestDialog(request, onCancel = remote::cancelRequest)
     }
-    val line = when {
-        request != null && playing -> "${request.phone} wants to pair: code ${grouped(request.code)}"
-        else -> remote.notice
-    }
-    if (line != null) RemoteNotice(line, Modifier.align(Alignment.TopEnd))
-
     val screen = when {
         playing -> FfiScreen.Player
         else -> when (val top = nav.top) {
@@ -174,13 +234,28 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
         val shown: Any = nav.top ?: nav.destination
         CompositionLocalProvider(LocalActions provides actions) {
             Box(Modifier.fillMaxSize()) {
-                Crossfade(targetState = shown, animationSpec = Motion.fadeIn(), label = "screen") { target ->
+                val reduced = LocalReducedMotion.current
+                AnimatedContent(
+                    targetState = shown,
+                    transitionSpec = {
+                        if (reduced) EnterTransition.None togetherWith ExitTransition.None else fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick())
+                    },
+                    label = "screen",
+                ) { target ->
                     val key = (target as? Page)?.key ?: (target as Destination).name
                     screens.SaveableStateProvider(key) {
                         Box(Modifier.fillMaxSize()) {
                             when (target) {
-                                is Page.Title -> TitleScreen(target.id, target.memory, onOpen = nav::openTitle, onPlay = play, onPlayFromStart = playFromStart)
+                                is Page.Title -> TitleScreen(
+                                    target.id,
+                                    target.memory,
+                                    onOpen = nav::openTitle,
+                                    onPlay = play,
+                                    onPlayFromStart = playFromStart,
+                                    onAddStore = nav::openJoinStore,
+                                )
                                 is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
+                                is Page.JoinStore -> JoinStoreScreen(onDone = { nav.pop() })
                                 Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
                                 Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
                                 Destination.Calendar -> CalendarScreen(nav, nav.memory(Destination.Calendar), onOpen = nav::openTitle)
@@ -189,9 +264,12 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                                     nav,
                                     nav.memory(Destination.Library),
                                     onOpen = nav::openTitle,
-                                    onAccounts = { nav.go(Destination.Settings) },
+                                    onAccounts = { nav.goSettings(SettingsSection.Accounts.name) },
                                 )
-                                Destination.Settings -> SettingsScreen(nav, nav.memory(Destination.Settings), start = SettingsSection.Playback)
+                                Destination.Settings -> key(nav.settingsStart) {
+                                    val start = nav.settingsStart?.let { name -> SettingsSection.entries.firstOrNull { it.name == name } }
+                                    SettingsScreen(nav, nav.memory(Destination.Settings), start = start ?: SettingsSection.Playback)
+                                }
                             }
                         }
                     }

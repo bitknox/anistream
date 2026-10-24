@@ -84,8 +84,11 @@ fun ArtImage(url: String?, plate: Color?, maxPixelSize: Int, modifier: Modifier 
     }
     // Art already here when the box first draws shows at once; art that arrives fades in.
     val shown = remember(url) { Animatable(if (art != null) 1f else 0f) }
+    val reduced = LocalReducedMotion.current
     LaunchedEffect(url, art != null) {
-        if (art != null) shown.animateTo(1f, Motion.fadeIn())
+        if (art != null) {
+            if (reduced) shown.snapTo(1f) else shown.animateTo(1f, Motion.fadeIn())
+        }
     }
     Box(modifier) {
         CoverPlate(plate, Modifier.fillMaxSize())
