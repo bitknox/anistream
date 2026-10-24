@@ -104,6 +104,15 @@ struct PhoneTitle: View {
                             }
                             .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 15))
                         }
+                        if action.playable, !store.titles.unlisted(entry.id), store.tv.available {
+                            Button {
+                                store.playOnTV(entry.id, episode: String(action.episode), from: action.resume?.position)
+                            } label: {
+                                Image(systemName: "tv").frame(width: 20)
+                            }
+                            .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 15))
+                            .accessibilityLabel("Play on TV")
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 12) {

@@ -38,6 +38,7 @@ import tv.anistream.store.AppHost
 import tv.anistream.store.BackgroundEngine
 import tv.anistream.store.EngineEpisodeCheck
 import tv.anistream.store.EpisodeCheck
+import tv.anistream.app.tv.TvConnection
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
@@ -202,8 +203,30 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
         ContinueShortcut(this).follow(store, scope)
         recordWidgetsOnLeaving()
         watchNetwork()
+        startTv()
         // The fixtures' downloads are seeded where they are; only the app's are kept here.
         if (!Flavour.FIXTURES) keepDownloadsInAppSpace()
+    }
+
+    /** What keeps the TV this phone drives through the background, once Play on TV is up. */
+    private var tvConnection: TvConnection? = null
+
+    /**
+     * Play on TV, once the engine runs: the TVs Android's DNS-SD finds (the fixtures' made-up
+     * ones in that flavour), and the service that keeps a TV driven in the background. A TV that
+     * plays what the player here played closes the player.
+     */
+    private fun startTv() {
+        scope.launch {
+            store.phase.first { it != AppStore.Phase.Starting }
+            if (store.phase.value != AppStore.Phase.Running) return@launch
+            val browser = Flavour.tvBrowser(this@AnistreamApp, store) ?: return@launch
+            val tablet = resources.configuration.smallestScreenWidthDp >= 600
+            val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "0"
+            if (!store.startTv(browser, if (tablet) "Android tablet" else "Android phone", "anistream-android/$version")) return@launch
+            store.tv.handedOff = { player.viewerClosed() }
+            tvConnection = TvConnection(this@AnistreamApp, store.tv, scope)
+        }
     }
 
     /**

@@ -209,6 +209,23 @@ public final class PlayerModel {
     /// Picture in Picture can be asked for: there is a picture to put in it.
     public var pictureInPictureAvailable: Bool { pictureInPictureToggle != nil && isPresented && hasPicture }
 
+    /// What Play on TV hands the episode playing to: the app's TV picker. None, and the player
+    /// has no Play on TV button.
+    @ObservationIgnored public var playOnTVHandler: (@MainActor (TVPlayRequest) -> Void)?
+
+    /// Play on TV can be asked for: an episode is staged, and the app has a TV picker.
+    public var playOnTVAvailable: Bool { playOnTVHandler != nil && staged != nil }
+
+    /// Hand the episode playing to a TV, from where it is: this one pauses while the viewer
+    /// chooses, and closes once the TV plays it.
+    public func playOnTV() {
+        guard let handler = playOnTVHandler, let staged else { return }
+        pause()
+        handler(TVPlayRequest(
+            id: staged.id, title: staged.title, episode: staged.episode,
+            from: position > 5 ? position : nil, fromPlayer: true))
+    }
+
     /// Into the system's floating window, or back out of it: the button, ⌥⌘P and the menu.
     public func togglePictureInPicture() {
         guard pictureInPictureAvailable || pictureInPicturePhase != .inline else { return }

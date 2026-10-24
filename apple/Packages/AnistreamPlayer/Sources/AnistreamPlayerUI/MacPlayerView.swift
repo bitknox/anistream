@@ -163,6 +163,9 @@ public struct MacPlayerView: View {
         Divider()
         Button("Picture in Picture") { model.togglePictureInPicture() }
             .disabled(!model.pictureInPictureAvailable)
+        if model.playOnTVAvailable {
+            Button("Play on TV…") { model.playOnTV() }
+        }
     }
 
     // MARK: Chrome
@@ -267,6 +270,9 @@ public struct MacPlayerView: View {
             icon("slider.horizontal.3", "Picture and sound", on: panel == .picture) { toggle(.picture) }
                 .disabled(model.menus == nil)
                 .opacity(model.menus == nil ? 0.4 : 1)
+            if model.playOnTVAvailable {
+                icon("tv", "Play on TV") { model.playOnTV() }
+            }
             icon("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
                 .disabled(!model.pictureInPictureAvailable)
                 .opacity(model.pictureInPictureAvailable ? 1 : 0.4)

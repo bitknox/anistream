@@ -38,6 +38,8 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
 /// A page of the iPhone's Settings sheet.
 public enum PhoneSettingsPage: Hashable, Sendable {
     case root, playback, downloads, notifications, sources, accounts, providers, stores, about, acknowledgements
+    /// The TVs paired for Play on TV.
+    case tvs
     case store(String)
     case plugin(String)
     /// A show's own new-episode switch, from a row of the Notifications page's week.
@@ -53,6 +55,7 @@ public enum PhoneSettingsPage: Hashable, Sendable {
         case "accounts": .accounts
         case "providers": .providers
         case "about": .about
+        case "tvs": .tvs
         case "titles": .playback
         case "stores", "pluginStores": .stores
         // The showcase's own, for screenshots.

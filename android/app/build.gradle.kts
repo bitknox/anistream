@@ -131,6 +131,9 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.process)
+    // The TV's media session while Play on TV drives one.
+    implementation(libs.media3.session)
+    implementation(libs.media3.common)
     implementation(libs.browser)
     implementation(libs.work.runtime)
 

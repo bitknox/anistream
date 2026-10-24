@@ -17,6 +17,8 @@ struct AppSheets: ViewModifier {
             // Over the iPhone's Settings sheet, the sheet itself shows the code: a window shows
             // one sheet at a time.
             .modifier(DeviceCodePresenter(here: navigator.phoneSettings == nil))
+            // Play on TV: the picker and the now-playing card.
+            .modifier(TVRemoteSheets())
             .sheet(item: Binding<InviteItem?>(
                 get: { navigator.invite.map(InviteItem.init) },
                 set: { (item: InviteItem?) in navigator.invite = item?.link }

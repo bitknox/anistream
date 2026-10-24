@@ -1,0 +1,1062 @@
+// Play on TV: the sheet that chooses a TV and pairs with it, and the now-playing card that
+// drives it. The engine's sender says what the rows, the pairing's failures and the card read
+// (TVRemoteModel); these views only lay them out, each platform as its other sheets are: on the
+// Mac a raised window sheet with its buttons at the foot (as Join a Plugin Store), on iPhone and
+// iPad a grouped list in a navigation stack (as the Settings sheet).
+
+import AnistreamDesign
+import AnistreamKit
+import AnistreamStore
+import SwiftUI
+#if canImport(VisionKit) && os(iOS)
+import VisionKit
+#endif
+
+/// The TV sheet, over whatever presents it. A window presents one sheet at a time: on iPhone and
+/// iPad the player is a full-screen cover and Settings a sheet, and each presents its own TV
+/// sheet while it is up, the window's keeping out of their way.
+public struct TVRemoteSheets: ViewModifier {
+    @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+    @Environment(\.playerUp) private var playerUp
+
+    enum Place {
+        case window, player, settings
+    }
+
+    let place: Place
+
+    /// The window's, or with `overPlayer` the player's cover's.
+    public init(overPlayer: Bool = false) {
+        place = overPlayer ? .player : .window
+    }
+
+    init(place: Place) {
+        self.place = place
+    }
+
+    private var here: Bool {
+        #if os(iOS)
+        switch place {
+        case .window: !playerUp && navigator.phoneSettings == nil
+        case .player, .settings: true
+        }
+        #else
+        place == .window
+        #endif
+    }
+
+    public func body(content: Content) -> some View {
+        let tv = store.tv
+        content
+            .sheet(isPresented: Binding(
+                get: { here && tv.sheet != nil },
+                set: { up in if !up, here { tv.sheetClosed() } }
+            )) {
+                Group {
+                    #if os(macOS)
+                    MacTVSheet()
+                    #else
+                    PhoneTVSheet()
+                        .presentationDetents(tv.sheet == .remote ? [.large] : [.medium, .large])
+                        .presentationBackground(Palette.ground)
+                    #endif
+                }
+                .environment(store)
+                .preferredColorScheme(.dark)
+            }
+            // A TV's QR code, read by the system's camera, opens the app with its link.
+            .onOpenURL { url in if place == .window { tv.open(url) } }
+    }
+}
+
+/// The way back to the card while a TV is driven: its name, in the toolbar.
+struct TVNowPlayingButton: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        if let card = store.tv.card, store.tv.connected != nil {
+            Button {
+                store.tv.openRemote()
+            } label: {
+                Label(card.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
+                    #if os(macOS)
+                    .labelStyle(.titleAndIcon)
+                    #endif
+            }
+            .help("Show the remote for \(card.tvName)")
+        }
+    }
+}
+
+#if os(iOS)
+/// What the TV plays, over the tab bar while a TV is driven and plays something: the tab bar's
+/// own accessory, as a now-playing bar is on iOS 26.1 and later. Before it, the toolbar's button
+/// is the way back to the card.
+struct TVAccessory: ViewModifier {
+    @Environment(AppStore.self) private var store
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.1, *) {
+            content.tabViewBottomAccessory(isEnabled: store.tv.connected != nil && store.tv.card?.now != nil) {
+                TVNowPlayingBar()
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// The cover, the title and the TV's name, and play or pause; a tap opens the card. Inline, as
+/// the tab bar minimises, the title alone.
+struct TVNowPlayingBar: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+
+    var body: some View {
+        if let card = store.tv.card, let now = card.now {
+            HStack(spacing: 12) {
+                if placement != .inline, let entry = store.titles[now.id] { CoverArt(entry: entry, width: 24) }
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(now.title).font(.showTitle(size: 15)).foregroundStyle(.silk).lineLimit(1)
+                    if placement != .inline {
+                        Text(card.phase == .connected ? "Playing on \(card.tvName)" : TVWords.status(card))
+                            .font(.ui(13)).foregroundStyle(.haze).lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    store.tv.send(.togglePause)
+                } label: {
+                    Image(systemName: now.paused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.silk)
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .disabled(now.loading)
+                .accessibilityLabel(now.paused ? "Play" : "Pause")
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 4)
+            .contentShape(.rect)
+            .onTapGesture { store.tv.openRemote() }
+            .accessibilityElement(children: .contain)
+            .accessibilityAction(named: "Show the remote") { store.tv.openRemote() }
+        }
+    }
+}
+#endif
+
+// MARK: - Words
+
+/// What the sheets say that both platforms share.
+enum TVWords {
+    static func pickerTitle(_ request: TVPlayRequest?) -> String {
+        request == nil ? "Pair a TV" : "Play on TV"
+    }
+
+    static func pickerLine(_ request: TVPlayRequest?) -> String {
+        guard let request else {
+            return "Open anistream on the TV. It needs to be on the same Wi-Fi as this \(Device.name)."
+        }
+        return request.title.isEmpty ? "Episode \(request.episode)" : "\(request.title), episode \(request.episode)"
+    }
+
+    static func pairingLine(_ name: String) -> String {
+        "Type the six digits \(name) shows. After this, this \(Device.name) connects by itself."
+    }
+
+    static let empty = "Looking for TVs on this network"
+    static let address = "The TV shows its address on its Pair a phone screen."
+    static let nothing = "Choose Play on TV on an episode, or search on the TV from here."
+
+    /// A track as the card names it: its language in this device's language, and its title.
+    static func track(_ track: FfiTvTrack) -> String {
+        let language = track.language.flatMap { Locale.current.localizedString(forLanguageCode: $0) }
+        switch (language, track.title) {
+        case (let language?, let title?) where !title.isEmpty: return "\(language) · \(title)"
+        case (let language?, _): return language
+        case (nil, let title?) where !title.isEmpty: return title
+        default: return "Track \(track.id)"
+        }
+    }
+
+    static func chosen(_ tracks: [FfiTvTrack], off: Bool) -> String {
+        off ? "Off" : tracks.first(where: \.selected).map(track) ?? "None"
+    }
+
+    static func volume(_ now: FfiNowCard) -> String? {
+        now.volume.map { "\(Int($0.rounded())) of 100" }
+    }
+
+    /// The dot beside the link's line: water while connected, vermilion when the TV let this
+    /// device go, haze while it connects.
+    static func dot(_ phase: FfiLinkPhase?) -> Color {
+        switch phase {
+        case .connected: .water
+        case .unpaired, .keyChanged: .vermilion
+        default: .haze
+        }
+    }
+
+    static func status(_ card: FfiRemoteCard?) -> String {
+        card?.phaseLine ?? "Connected"
+    }
+
+    static func lost(_ card: FfiRemoteCard?) -> Bool {
+        card?.phase == .unpaired || card?.phase == .keyChanged
+    }
+}
+
+/// The digits typed, once there are six.
+private func sixDigits(_ code: String) -> String? {
+    let digits = code.filter(\.isNumber)
+    return digits.count == 6 ? digits : nil
+}
+
+// MARK: - Parts both platforms share
+
+/// The TV's playhead as the player's seek line draws it: a capsule track with the played part in
+/// amber, dragged to seek, and the time either side.
+struct TVSeekLine: View {
+    @Environment(AppStore.self) private var store
+    let now: FfiNowCard
+    let touch: Bool
+    @State private var dragging: Double?
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let duration = max(now.duration ?? 0, 1)
+            let position = min(dragging ?? store.tv.playhead(at: context.date) ?? now.position, duration)
+            VStack(spacing: 6) {
+                GeometryReader { proxy in
+                    let width = proxy.size.width
+                    Capsule()
+                        .fill(.rule)
+                        .overlay(alignment: .leading) {
+                            Rectangle().fill(.amber).frame(width: width * position / duration)
+                        }
+                        .clipShape(.capsule)
+                        .frame(height: dragging != nil ? 6 : 4)
+                        .frame(maxHeight: .infinity)
+                        .contentShape(.rect)
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { drag in
+                                    dragging = min(max(0, drag.location.x / max(width, 1)), 1) * duration
+                                }
+                                .onEnded { _ in
+                                    if let to = dragging { store.tv.send(.seekTo(position: to)) }
+                                    dragging = nil
+                                }
+                        )
+                }
+                .frame(height: touch ? 24 : 16)
+                .disabled(now.duration == nil || now.loading)
+                HStack {
+                    Text(ResumePoint(position: position, fraction: nil).clock)
+                    Spacer()
+                    Text(now.duration.map { "-" + ResumePoint(position: max(0, $0 - position), fraction: nil).clock } ?? "")
+                }
+                .font(touch ? .ui(13) : .mac(11))
+                .monospacedDigit()
+                .foregroundStyle(.haze)
+            }
+            .accessibilityElement()
+            .accessibilityLabel("Position")
+            .accessibilityValue(ResumePoint(position: position, fraction: nil).clock)
+            .accessibilityAdjustableAction { direction in
+                store.tv.send(.seek(by: direction == .increment ? 10 : -10))
+            }
+        }
+    }
+}
+
+/// Back and forward 10 seconds, play or pause, and the next episode: silk glyphs, as the
+/// player's bar draws them.
+struct TVTransport: View {
+    @Environment(AppStore.self) private var store
+    let now: FfiNowCard
+    let touch: Bool
+
+    var body: some View {
+        HStack(spacing: touch ? 24 : 16) {
+            glyph("gobackward.10", "Back 10 seconds", size: touch ? 24 : 18) { store.tv.send(.seek(by: -10)) }
+            glyph(now.paused ? "play.fill" : "pause.fill", now.paused ? "Play" : "Pause", size: touch ? 34 : 24) {
+                store.tv.send(.togglePause)
+            }
+            .keyboardShortcut(.space, modifiers: [])
+            glyph("goforward.10", "Forward 10 seconds", size: touch ? 24 : 18) { store.tv.send(.seek(by: 10)) }
+            glyph("forward.end.fill", "Next episode", size: touch ? 20 : 15) { store.tv.send(.next) }
+        }
+        .frame(maxWidth: .infinity)
+        .disabled(now.loading)
+    }
+
+    private func glyph(_ symbol: String, _ label: String, size: CGFloat, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: size, weight: .medium))
+                .foregroundStyle(.silk)
+                .frame(width: touch ? 56 : 44, height: touch ? 56 : 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .pointerLift()
+        .accessibilityLabel(label)
+    }
+}
+
+/// The subtitle or audio choice, as a settings menu: the choices inline, the one on ticked.
+struct TVTrackMenu: View {
+    @Environment(AppStore.self) private var store
+    let title: String
+    let kind: FfiTvTrackKind
+    let tracks: [FfiTvTrack]
+    let off: Bool
+    let phone: Bool
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: Binding<Int64?>(
+                get: { off ? nil : tracks.first(where: \.selected)?.id },
+                set: { store.tv.send(.track(kind: kind, id: $0)) }
+            )) {
+                if kind == .subtitle { Text("Off").tag(Int64?.none) }
+                ForEach(tracks, id: \.id) { track in
+                    Text(TVWords.track(track)).tag(Optional(track.id))
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            MenuValue(text: TVWords.chosen(tracks, off: off), phone: phone)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .disabled(tracks.isEmpty)
+        .accessibilityLabel(title)
+    }
+}
+
+/// Six digits in boxes, typed into one field under them, as the code reads on the TV.
+struct TVCodeBoxes: View {
+    @Binding var code: String
+    var focused: FocusState<Bool>.Binding
+    let touch: Bool
+    let submit: () -> Void
+
+    var body: some View {
+        let digits = Array(code.filter(\.isNumber).prefix(6))
+        ZStack(alignment: .leading) {
+            TextField("", text: $code)
+                .focused(focused)
+                #if os(iOS)
+                .keyboardType(.numberPad)
+                .textContentType(.oneTimeCode)
+                #endif
+                .opacity(0.02)
+                .onChange(of: code) { _, typed in
+                    let kept = String(typed.filter(\.isNumber).prefix(6))
+                    if kept != typed { code = kept }
+                    if kept.count == 6 { submit() }
+                }
+                .onSubmit(submit)
+                .accessibilityLabel("Pairing code")
+            HStack(spacing: touch ? 8 : 6) {
+                ForEach(0..<6, id: \.self) { index in
+                    Text(index < digits.count ? String(digits[index]) : "")
+                        .font(touch ? .ui(28, weight: .semibold) : .mac(22, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.silk)
+                        .frame(width: touch ? 44 : 40, height: touch ? 56 : 46)
+                        .background(touch ? Palette.raised : Palette.ground, in: .rect(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(index == digits.count && focused.wrappedValue ? Palette.silk : Palette.glassRule, lineWidth: 1)
+                        )
+                    if index == 2 { Spacer().frame(width: touch ? 8 : 10) }
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+        .contentShape(.rect)
+        .onTapGesture { focused.wrappedValue = true }
+    }
+}
+
+/// A row of the picker: the TV, what the engine says under it, and what choosing it does.
+struct TVRow: View {
+    @Environment(AppStore.self) private var store
+    let row: FfiTvRow
+    let phone: Bool
+
+    var body: some View {
+        Button {
+            store.tv.choose(row)
+        } label: {
+            HStack(spacing: phone ? 14 : 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.name).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
+                    Text(row.detail).font(phone ? .ui(13) : .mac(12)).foregroundStyle(.haze)
+                }
+                Spacer(minLength: 8)
+                switch row.kind {
+                case .new:
+                    Text("Pair")
+                        .font(phone ? .ui(17, weight: .semibold) : .mac(13, weight: .semibold))
+                        .foregroundStyle(.silk)
+                case .paired, .pairedAway:
+                    if store.tv.connected == row.fingerprint {
+                        Image(systemName: "checkmark")
+                            .font(phone ? .ui(15, weight: .semibold) : .mac(12, weight: .semibold))
+                            .foregroundStyle(.silk)
+                            .accessibilityLabel("Connected")
+                    } else if !phone {
+                        Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
+                    }
+                case .needsUpdate:
+                    EmptyView()
+                }
+            }
+            .padding(.horizontal, phone ? 0 : 14)
+            .frame(minHeight: phone ? 52 : 46)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(row.kind == .needsUpdate)
+        .opacity(row.kind == .needsUpdate ? 0.55 : 1)
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(row.kind == .new ? "Pairs with this TV" : "")
+    }
+}
+
+#if os(macOS)
+// MARK: - The Mac's sheet
+
+/// A raised window sheet, 440 wide: its title and line, what it shows, and its buttons at the
+/// foot, as the app's other sheets.
+struct MacTVSheet: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        let tv = store.tv
+        VStack(alignment: .leading, spacing: 0) {
+            if let pairing = tv.pairing {
+                MacTVPairing(step: pairing)
+            } else if tv.sheet == .remote {
+                MacTVRemote()
+            } else {
+                MacTVPicker()
+            }
+        }
+        .padding(24)
+        .sheetWidth(440)
+        .background(.raised)
+    }
+}
+
+/// The sheet's title and the line under it.
+private struct MacSheetHeading: View {
+    let title: String
+    let line: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.mac(15, weight: .semibold))
+                .foregroundStyle(.silk)
+            Text(line)
+                .font(.mac(13))
+                .foregroundStyle(.haze)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Rows on the ground inside the raised sheet, with hairlines between them.
+private struct MacSheetRows<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Group(subviews: content) { rows in
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 {
+                        Rectangle().fill(.faintRule).frame(height: 1).padding(.leading, 14)
+                    }
+                    row
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .background(.ground, in: .rect(cornerRadius: 10))
+    }
+}
+
+struct MacTVPicker: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var address = ""
+    @State private var typing = false
+
+    var body: some View {
+        let tv = store.tv
+        MacSheetHeading(title: TVWords.pickerTitle(tv.request), line: TVWords.pickerLine(tv.request))
+        MacSheetRows {
+            if tv.rows.isEmpty {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text(TVWords.empty).font(.mac(13)).foregroundStyle(.haze)
+                }
+                .padding(.horizontal, 14)
+                .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+            }
+            ForEach(tv.rows, id: \.key) { row in
+                TVRow(row: row, phone: false)
+            }
+        }
+        .padding(.top, 16)
+        if typing {
+            HStack(spacing: 10) {
+                TextField("Address", text: $address, prompt: Text("192.168.1.20:47811"))
+                    .textFieldStyle(SheetFieldStyle())
+                    .labelsHidden()
+                    .onSubmit(connect)
+                Button("Connect", action: connect)
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    .disabled(address.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+            .padding(.top, 14)
+            Text(TVWords.address)
+                .font(.mac(12))
+                .foregroundStyle(.haze)
+                .padding(.top, 6)
+        }
+        HStack(spacing: 10) {
+            if !typing {
+                Button("Type an Address…") { typing = true }
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            }
+            Spacer()
+            Button("Done") { dismiss() }
+                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                .keyboardShortcut(.cancelAction)
+        }
+        .padding(.top, 20)
+        .onAppear { tv.startBrowsing() }
+        .onDisappear { tv.stopBrowsing() }
+    }
+
+    private func connect() {
+        let typed = address.trimmingCharacters(in: .whitespaces)
+        if !typed.isEmpty { store.tv.begin(typed) }
+    }
+}
+
+struct MacTVPairing: View {
+    @Environment(AppStore.self) private var store
+    let step: TVPairingStep
+    @State private var code = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        let tv = store.tv
+        let typing = step.needsCode && !step.tvName.isEmpty
+        if typing {
+            MacSheetHeading(title: "Pair with \(step.tvName)", line: TVWords.pairingLine(step.tvName))
+            TVCodeBoxes(code: $code, focused: $focused, touch: false, submit: submit)
+                .padding(.top, 18)
+        } else {
+            MacSheetHeading(
+                title: step.tvName.isEmpty ? "Connecting to the TV" : "Pairing with \(step.tvName)",
+                line: "This takes a moment.")
+        }
+        if let problem = step.problem {
+            Text(problem)
+                .font(.mac(12))
+                .foregroundStyle(.vermilion)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 12)
+        }
+        HStack(spacing: 10) {
+            Button("Back") { tv.cancelPairing() }
+                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                .keyboardShortcut(.cancelAction)
+            Spacer()
+            if step.working { ProgressView().controlSize(.small) }
+            if typing {
+                Button("Show New Code") {
+                    code = ""
+                    tv.requestCodeAgain()
+                }
+                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                .disabled(step.working)
+                Button("Pair", action: submit)
+                    .buttonStyle(PrimaryCapsuleStyle(height: 28))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(sixDigits(code) == nil || step.working)
+            }
+        }
+        .padding(.top, 20)
+        .onAppear { focused = true }
+        .onChange(of: step.problem) { _, problem in
+            if problem != nil { code = ""; focused = true }
+        }
+    }
+
+    private func submit() {
+        if let digits = sixDigits(code) { store.tv.submit(code: digits) }
+    }
+}
+
+struct MacTVRemote: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var search = ""
+
+    var body: some View {
+        let tv = store.tv
+        let card = tv.card
+        VStack(alignment: .leading, spacing: 4) {
+            Text(card?.tvName ?? "TV")
+                .font(.mac(15, weight: .semibold))
+                .foregroundStyle(.silk)
+            HStack(spacing: 6) {
+                Circle().fill(TVWords.dot(card?.phase)).frame(width: 6, height: 6)
+                Text(TVWords.status(card)).font(.mac(12)).foregroundStyle(.haze)
+            }
+            .accessibilityElement(children: .combine)
+        }
+        if let now = card?.now {
+            HStack(spacing: 12) {
+                if let entry = store.titles[now.id] { CoverArt(entry: entry, width: 36) }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(now.title).font(.showTitle(size: 15)).foregroundStyle(.silk).lineLimit(1)
+                    Text(now.loading ? "Starting on the TV" : now.episodeLine)
+                        .font(.mac(12)).foregroundStyle(.haze).lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                if let skip = now.skip {
+                    Button(skip.label.capitalized) { tv.send(.skip) }
+                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                }
+            }
+            .padding(.top, 18)
+            TVSeekLine(now: now, touch: false).padding(.top, 14)
+            TVTransport(now: now, touch: false).padding(.top, 2)
+            MacSheetRows {
+                SettingsRow(title: "Subtitles") {
+                    TVTrackMenu(title: "Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
+                }
+                SettingsRow(title: "Audio") {
+                    TVTrackMenu(title: "Audio", kind: .audio, tracks: now.audio, off: false, phone: false)
+                }
+                SettingsRow(title: "TV Volume", note: TVWords.volume(now)) {
+                    HStack(spacing: 6) {
+                        volume("speaker.wave.1", "Volume Down", -5)
+                        volume("speaker.wave.3", "Volume Up", 5)
+                    }
+                }
+            }
+            .padding(.top, 12)
+        } else if card?.phase == .connected {
+            Text(TVWords.nothing)
+                .font(.mac(13))
+                .foregroundStyle(.haze)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 14)
+        }
+        TextField("Search on the TV", text: $search, prompt: Text("Search on the TV"))
+            .textFieldStyle(SheetFieldStyle())
+            .labelsHidden()
+            .onChange(of: search) { _, text in tv.send(.text(text: text, submit: false)) }
+            .onSubmit { tv.send(.text(text: search, submit: true)) }
+            .padding(.top, 14)
+        if let problem = tv.problem {
+            Text(problem).font(.mac(12)).foregroundStyle(.vermilion).padding(.top, 10)
+        }
+        HStack(spacing: 10) {
+            if TVWords.lost(card) {
+                Button("Pair Again") { pairAgain() }
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            } else {
+                Button("Choose Another TV…") { tv.openPicker() }
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            }
+            Button("Disconnect") {
+                tv.disconnect()
+                dismiss()
+            }
+            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            Spacer()
+            Button("Done") { dismiss() }
+                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                .keyboardShortcut(.cancelAction)
+        }
+        .padding(.top, 20)
+    }
+
+    private func volume(_ symbol: String, _ label: String, _ step: Double) -> some View {
+        Button {
+            store.tv.send(.volume(step: step))
+        } label: {
+            Image(systemName: symbol).frame(width: 16)
+        }
+        .buttonStyle(SecondaryCapsuleStyle())
+        .accessibilityLabel(label)
+        .help(label)
+    }
+
+    private func pairAgain() {
+        if let fingerprint = store.tv.connected { store.tv.forget(fingerprint) }
+        store.tv.openPicker()
+    }
+}
+#endif
+
+#if os(iOS)
+// MARK: - iPhone and iPad's sheet
+
+/// A grouped list in a navigation stack, as the Settings sheet: the picker, pairing, or the card.
+struct PhoneTVSheet: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        let tv = store.tv
+        NavigationStack {
+            Group {
+                if let pairing = tv.pairing {
+                    PhoneTVPairing(step: pairing)
+                } else if tv.sheet == .remote {
+                    PhoneTVRemote()
+                } else {
+                    PhoneTVPicker()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.fontWeight(.semibold)
+                }
+            }
+        }
+        .tint(.silk)
+    }
+}
+
+/// A button row of a list, as Settings writes them: silk, semibold.
+private struct PhoneActionRow: View {
+    let title: String
+    var systemImage: String?
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                if let systemImage {
+                    Image(systemName: systemImage).font(.ui(17)).foregroundStyle(.haze).frame(width: 28)
+                }
+                Text(title).font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
+            }
+        }
+        .listRowBackground(Palette.raised)
+    }
+}
+
+struct PhoneTVPicker: View {
+    @Environment(AppStore.self) private var store
+    @State private var address = ""
+    @State private var scanning = false
+
+    var body: some View {
+        let tv = store.tv
+        PhoneList {
+            Section {
+                if tv.rows.isEmpty {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text(TVWords.empty).font(.ui(17)).foregroundStyle(.haze)
+                    }
+                    .listRowBackground(Palette.raised)
+                }
+                ForEach(tv.rows, id: \.key) { row in
+                    TVRow(row: row, phone: true).listRowBackground(Palette.raised)
+                }
+            } header: {
+                PhoneSectionHeader("On this network")
+            } footer: {
+                Text(TVWords.pickerLine(tv.request))
+            }
+            Section {
+                if TVCodeScanner.isSupported {
+                    PhoneActionRow(title: "Scan the code on the TV", systemImage: "qrcode.viewfinder") { scanning = true }
+                }
+                TextField("Address", text: $address, prompt: Text("Type an address"))
+                    .font(.ui(17))
+                    .keyboardType(.numbersAndPunctuation)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.go)
+                    .onSubmit {
+                        let typed = address.trimmingCharacters(in: .whitespaces)
+                        if !typed.isEmpty { tv.begin(typed) }
+                    }
+                    .listRowBackground(Palette.raised)
+            } header: {
+                PhoneSectionHeader("Not listed")
+            } footer: {
+                Text(TVWords.address)
+            }
+        }
+        .navigationTitle(TVWords.pickerTitle(tv.request))
+        .onAppear { tv.startBrowsing() }
+        .onDisappear { tv.stopBrowsing() }
+        .sheet(isPresented: $scanning) {
+            TVCodeScanner { link in
+                scanning = false
+                tv.begin(link)
+            }
+            .ignoresSafeArea()
+        }
+    }
+}
+
+struct PhoneTVPairing: View {
+    @Environment(AppStore.self) private var store
+    let step: TVPairingStep
+    @State private var code = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        let tv = store.tv
+        let typing = step.needsCode && !step.tvName.isEmpty
+        PhoneList {
+            if typing {
+                Section {
+                    TVCodeBoxes(code: $code, focused: $focused, touch: true, submit: submit)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
+                } header: {
+                    PhoneSectionHeader("Code on \(step.tvName)")
+                } footer: {
+                    if let problem = step.problem {
+                        Text(problem).foregroundStyle(.vermilion)
+                    } else {
+                        Text(TVWords.pairingLine(step.tvName))
+                    }
+                }
+                Section {
+                    PhoneActionRow(title: "Show a new code") {
+                        code = ""
+                        tv.requestCodeAgain()
+                    }
+                    .disabled(step.working)
+                }
+            } else {
+                Section {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text(step.tvName.isEmpty ? "Connecting to the TV" : "Pairing with \(step.tvName)")
+                            .font(.ui(17)).foregroundStyle(.haze)
+                    }
+                    .listRowBackground(Palette.raised)
+                } footer: {
+                    if let problem = step.problem { Text(problem).foregroundStyle(.vermilion) }
+                }
+            }
+        }
+        .navigationTitle("Pair with a TV")
+        .navigationBarBackButtonHidden()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Back") { tv.cancelPairing() }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if typing {
+                Button(action: submit) {
+                    HStack(spacing: 8) {
+                        if step.working { ProgressView().tint(.ground) }
+                        Text("Pair")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
+                .disabled(sixDigits(code) == nil || step.working)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+        }
+        .onAppear { focused = true }
+        .onChange(of: step.problem) { _, problem in
+            if problem != nil { code = ""; focused = true }
+        }
+    }
+
+    private func submit() {
+        if let digits = sixDigits(code) { store.tv.submit(code: digits) }
+    }
+}
+
+struct PhoneTVRemote: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var search = ""
+
+    var body: some View {
+        let tv = store.tv
+        let card = tv.card
+        PhoneList {
+            Section {
+                if let now = card?.now {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 14) {
+                            if let entry = store.titles[now.id] { CoverArt(entry: entry, width: 40) }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(now.title).font(.showTitle(size: 17)).foregroundStyle(.silk).lineLimit(2)
+                                Text(now.loading ? "Starting on the TV" : now.episodeLine)
+                                    .font(.ui(15)).foregroundStyle(.haze).lineLimit(2)
+                            }
+                        }
+                        TVSeekLine(now: now, touch: true)
+                        TVTransport(now: now, touch: true)
+                    }
+                    .padding(.vertical, 10)
+                    .listRowBackground(Palette.raised)
+                    if let skip = now.skip {
+                        PhoneActionRow(title: skip.label, systemImage: "forward") { tv.send(.skip) }
+                    }
+                } else {
+                    PhoneRowTitle(title: card?.phase == .connected ? "Nothing playing" : (card?.tvName ?? "TV"), note: TVWords.nothing)
+                        .padding(.vertical, 6)
+                        .listRowBackground(Palette.raised)
+                }
+            } header: {
+                HStack(spacing: 6) {
+                    Circle().fill(TVWords.dot(card?.phase)).frame(width: 6, height: 6)
+                    PhoneSectionHeader(TVWords.status(card))
+                }
+            }
+            if let now = card?.now {
+                Section {
+                    menuRow("Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
+                    menuRow("Audio", kind: .audio, tracks: now.audio, off: false)
+                    HStack(spacing: 8) {
+                        PhoneRowTitle(title: "TV volume", note: TVWords.volume(now))
+                        Spacer()
+                        volume("speaker.wave.1", "Volume down", -5)
+                        volume("speaker.wave.3", "Volume up", 5)
+                    }
+                    .listRowBackground(Palette.raised)
+                }
+            }
+            Section {
+                TextField("Search on the TV", text: $search, prompt: Text("Type a search"))
+                    .font(.ui(17))
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                    .onChange(of: search) { _, text in tv.send(.text(text: text, submit: false)) }
+                    .onSubmit { tv.send(.text(text: search, submit: true)) }
+                    .listRowBackground(Palette.raised)
+            } header: {
+                PhoneSectionHeader("Search on the TV")
+            } footer: {
+                if let problem = tv.problem { Text(problem).foregroundStyle(.vermilion) }
+            }
+            Section {
+                if TVWords.lost(card) {
+                    PhoneActionRow(title: "Pair again") {
+                        if let fingerprint = tv.connected { tv.forget(fingerprint) }
+                        tv.openPicker()
+                    }
+                } else {
+                    PhoneActionRow(title: "Choose another TV") { tv.openPicker() }
+                }
+                PhoneActionRow(title: "Disconnect") {
+                    tv.disconnect()
+                    dismiss()
+                }
+            }
+        }
+        .navigationTitle(card?.tvName ?? "TV")
+    }
+
+    private func menuRow(_ title: String, kind: FfiTvTrackKind, tracks: [FfiTvTrack], off: Bool) -> some View {
+        HStack {
+            PhoneRowTitle(title: title)
+            Spacer()
+            TVTrackMenu(title: title, kind: kind, tracks: tracks, off: off, phone: true)
+        }
+        .listRowBackground(Palette.raised)
+    }
+
+    private func volume(_ symbol: String, _ label: String, _ step: Double) -> some View {
+        Button {
+            store.tv.send(.volume(step: step))
+        } label: {
+            Image(systemName: symbol)
+                .font(.ui(17))
+                .foregroundStyle(.silk)
+                .frame(width: 44, height: 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.borderless)
+        .accessibilityLabel(label)
+    }
+}
+
+// MARK: - Scanning a TV's code
+
+/// The camera, reading the QR code on a TV's Pair a phone screen: hands over the link it carries.
+/// VisionKit's scanner, on a device with a camera that has it; the system's Camera app reads the
+/// same code and opens the app with the link where it does not.
+struct TVCodeScanner: UIViewControllerRepresentable {
+    let found: (String) -> Void
+
+    static var isSupported: Bool {
+        DataScannerViewController.isSupported && DataScannerViewController.isAvailable
+    }
+
+    func makeUIViewController(context: Context) -> DataScannerViewController {
+        let scanner = DataScannerViewController(
+            recognizedDataTypes: [.barcode(symbologies: [.qr])],
+            qualityLevel: .fast,
+            isHighlightingEnabled: true
+        )
+        scanner.delegate = context.coordinator
+        try? scanner.startScanning()
+        return scanner
+    }
+
+    func updateUIViewController(_ scanner: DataScannerViewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(found: found) }
+
+    final class Coordinator: NSObject, DataScannerViewControllerDelegate {
+        let found: (String) -> Void
+        private var done = false
+
+        init(found: @escaping (String) -> Void) {
+            self.found = found
+        }
+
+        func dataScanner(_ scanner: DataScannerViewController, didAdd items: [RecognizedItem], allItems: [RecognizedItem]) {
+            for item in items {
+                guard !done, case .barcode(let code) = item,
+                      let link = code.payloadStringValue, link.hasPrefix("anistream-remote://") else { continue }
+                done = true
+                scanner.stopScanning()
+                found(link)
+            }
+        }
+    }
+}
+#endif

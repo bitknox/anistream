@@ -29,18 +29,29 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4)
     // The activity a compose rule's content is set in.
     testImplementation(libs.compose.ui.test.manifest)
-    // JNA's JVM build, with this Mac's native library: Search asks the engine's model for the
-    // words of its filters, as the app does.
+    // JNA's JVM build, with this Mac's native library, for the shots that start the engine.
     testImplementation(libs.jna.jvm)
 }
 
-// The engine's model on this Mac's build of it, android/.engine/<engine>/host; no engine runs.
+// The Play on TV shots drive the fixtures' fake TVs on this Mac's build of the testing engine,
+// android/.engine/<engine>/host, through JNA, under a HOME of their own as the store's tests are.
 AnistreamSdk.engines.forEach { (flavour, engine) ->
     val name = flavour.replaceFirstChar(Char::uppercase)
     val library = rootDir.resolve(".engine/$engine/host")
     tasks.withType<Test>().matching { it.name.startsWith("test$name") }.configureEach {
+        val home = layout.buildDirectory.dir("test-home/${this.name}").get().asFile
+        val userHome = System.getProperty("user.home")
         systemProperty("jna.library.path", library.path)
-        // JNA loads its native library itself, which Java now asks to be allowed.
         jvmArgs("--enable-native-access=ALL-UNNAMED")
+        // The bindings free the engine's objects with Android's SystemCleaner, which Robolectric
+        // builds on the JDK's own cleaner.
+        jvmArgs("--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED")
+        environment("HOME", home.path)
+        environment("ANISTREAM_TOKEN_STORAGE", "file")
+        doFirst {
+            check(home.canonicalPath != File(userHome).canonicalPath) { "the tests' HOME would be the user's own" }
+            home.deleteRecursively()
+            home.mkdirs()
+        }
     }
 }

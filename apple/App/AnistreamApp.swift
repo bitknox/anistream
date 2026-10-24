@@ -61,7 +61,7 @@ struct AnistreamApp: App {
         RootView()
             // Handoff: what another device hands over opens here.
             .continuesHandoff()
-            .hostsPlayer(delegate.player)
+            .hostsPlayer(delegate.player, over: TVRemoteSheets(overPlayer: true))
             .environment(\.playerUp, delegate.player.isPresented)
             .environment(delegate.store)
             .environment(delegate.navigator)
@@ -84,6 +84,8 @@ struct AnistreamApp: App {
                 switch phase {
                 case .active:
                     delegate.notices.cameForward()
+                    // A TV driven tries again at once rather than at the end of its wait.
+                    delegate.store.tv.retryNow()
                     #if os(iOS)
                     delegate.store.continued.phase(foreground: true, rows: delegate.store.downloads.rows)
                     #endif

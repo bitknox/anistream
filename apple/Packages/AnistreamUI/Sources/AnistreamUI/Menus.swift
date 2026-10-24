@@ -95,6 +95,11 @@ struct EpisodeMenu: View {
             Button(resuming ? "Resume Episode \(number)" : "Play Episode \(number)") {
                 store.send(.play(id: entry.id, episode: row.number))
             }
+            if store.tv.available {
+                Button("Play on TV", systemImage: "tv") {
+                    store.playOnTV(entry.id, episode: row.number, from: resuming ? entry.resume?.position : nil)
+                }
+            }
         }
         Divider()
         if row.completed {

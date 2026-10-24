@@ -384,27 +384,50 @@ scanned: a scanned link pins the TV's key and carries the code, so the phone pai
 for one. A phone that asks for a code instead replaces the TV's. When a phone pairs, the front end
 hears `HidePairingCode` and then `Paired { phone }`, for the notice.
 
-### On a phone, Mac or terminal (proposed, not built)
+### On a phone, tablet or Mac (built)
+
+The same `remote` feature, which the Apple builds turn on as well. The rules every app shares are
+the engine's (`anistream_engine::remote::sender`): the picker's rows and their order, the
+now-playing card, and the words for what went wrong. The apps only draw them.
 
 ```
-callback FfiBrowser { start(sink: FfiDiscoverySink); stop() }
-FfiDiscoverySink.found(instance: String, addresses: [String], txt: [TxtPair])
+callback FfiTvBrowser { start(sink: FfiDiscoverySink); stop() }      // NWBrowser, NsdManager
+FfiDiscoverySink.found(instance: String, addresses: [String], port: u16, txt: [FfiTxtPair])
 FfiDiscoverySink.lost(instance: String)
 
-FfiEngine.remote_browse(browser: FfiBrowser) -> FfiTvList       // FoundTv rows as they change
-FfiEngine.remote_pair(addr: String) -> FfiPairing               throws
-FfiPairing.request_code() async                                 throws
-FfiPairing.pair(code: String) async -> String                   throws  // the TV's fingerprint
-FfiEngine.remote_link(addr: String, tv: String) -> FfiLink
-FfiLink.send(command: RemoteCommand) async                      throws
-FfiLink.next_state() async -> RemoteState
-FfiLink.next_status() async -> LinkStatus
-FfiLink.close()
+FfiEngine.tv_sender(device_name: String, app: String) -> FfiTvSender   throws FfiError
+FfiTvSender.browse(browser: FfiTvBrowser)       // while the picker is open
+FfiTvSender.stop_browsing()
+FfiTvSender.rows() -> [FfiTvRow]                // paired and found, in the picker's order
+FfiTvSender.paired() -> [FfiPairedTv]           // for Settings
+FfiTvSender.changed() async                     // the rows or the paired TVs may differ
+FfiTvSender.pair(target: String) async -> FfiTvPairing        throws FfiTvError
+FfiTvSender.link(fingerprint: String) -> FfiTvLink?
+FfiTvSender.forget(fingerprint: String) async -> bool
+FfiTvPairing.needs_code() -> bool               // false for a scanned link with its code
+FfiTvPairing.request_code() async                             throws FfiTvError
+FfiTvPairing.pair(code: String?) async -> FfiPairedTv         throws FfiTvError
+FfiTvLink.card() -> FfiRemoteCard
+FfiTvLink.next_card() async -> FfiRemoteCard?
+FfiTvLink.play(id, title: String, episode: String, from: f64?) async   throws FfiTvError
+FfiTvLink.send(command: FfiTvCommand) async                   throws FfiTvError
+FfiTvLink.close()
+tv_playhead(now: FfiNowCard, elapsed: f64) -> f64
 ```
 
-`remote_link` and `remote_pair` take the phone's key from the host's secrets. Known TVs (their
-fingerprint, name and last address) are kept by the engine in its database, so a phone app only
-lists them.
+- `pair` takes a picker row's key, a scanned `anistream-remote://pair` link or an address typed by
+  hand. A wrong code can be typed again on the same pairing, until the TV's three tries are used.
+- The phone's key is kept in the host's keychain under `remote-sender-identity`, apart from a
+  TV's `remote-identity`. Its paired TVs are kept in `remote/remote-tvs.json` in the data
+  directory: fingerprint, name, last address, when paired and last seen. A paired TV a browse
+  does not find is tried at its last address, for networks that drop multicast.
+- `play` carries the phone's position over: with `from`, the phone waits until the TV has
+  started that episode and then seeks it there. The card shows the title by the name the phone
+  sent, in the phone's title language, rather than the TV's.
+- A TV that answers with a key other than the pinned one (a reset or a reinstall) stops the link
+  with `KeyChanged` instead of retrying, and the card asks to pair again.
+- Testing builds add `FfiEngine.start_fake_tv(name)`: a real remote server on 127.0.0.1 with a
+  scripted player over the fixture titles, which the Fixtures apps and the tests pair with.
 
 ## Decided (2026-10-23)
 

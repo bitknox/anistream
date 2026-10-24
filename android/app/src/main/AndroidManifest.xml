@@ -11,6 +11,9 @@
     <!-- Android 16's Live Updates: the download notification promoted to the top of the shade and
          the lock screen, with its chip in the status bar. -->
     <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
+    <!-- Play on TV finds TVs and talks to them on the local network: Android 17 asks the first
+         time Play on TV is used. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <!-- No backup: the tokens are sealed with a key that never leaves this device's keystore, so a
          restored copy could not open them, and everything else comes back from AniList and the stores. -->
@@ -76,6 +79,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="anistream" android:host="*" android:pathPrefix="/join/" />
             </intent-filter>
+            <!-- A TV's QR code, read by the system's camera: anistream-remote://pair?... pairs with
+                 that TV. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="anistream-remote" />
+            </intent-filter>
             <!-- The launcher's shortcuts, Search and Downloads; Continue <title> is published as the
                  queue changes. Each opens this activity explicitly, with the link in its extras
                  (tv.anistream.action.OPEN), so no filter here claims those links. -->
@@ -83,6 +94,16 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+        <!-- The TV this phone drives, kept through the background: its media notification, its
+             volume on the volume keys, and the link to it. -->
+        <service
+            android:name=".tv.TvRemoteService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
         <!-- A new-episode notification's Mark watched, which only the app's own notifications
              reach. -->
         <receiver

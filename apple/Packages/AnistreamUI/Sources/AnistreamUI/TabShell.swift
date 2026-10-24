@@ -49,6 +49,7 @@ struct TabShell: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .modifier(TVAccessory())
         // The iPad's sidebar as the brief draws it (PadSidebarStyle). The bar is empty; it is
         // where the style reaches the sidebar from, and unlike a header it moves no row.
         .tabViewSidebarBottomBar { PadSidebarStyle(selection: navigator.section) }
@@ -148,6 +149,7 @@ struct IPadDownloadsToolbar: ToolbarContent {
 /// A tab's stack: its screen, with a title's page pushed onto it by a zoom from the cover that
 /// opened it.
 struct TabStack<Screen: View>: View {
+    @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Namespace private var zoom
@@ -160,6 +162,11 @@ struct TabStack<Screen: View>: View {
             set: { navigator.paths[section] = $0 }
         )) {
             screen()
+                .toolbar {
+                    if store.tv.connected != nil {
+                        ToolbarItem(placement: .topBarLeading) { TVNowPlayingButton() }
+                    }
+                }
                 .navigationTitle(section.title.capitalizedSentence)
                 .boardTitle(section.title.capitalizedSentence)
                 .background(.ground)

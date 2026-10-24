@@ -72,6 +72,7 @@ import tv.anistream.store.AirTime
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeKind
 import tv.anistream.engine.model.EpisodeRow
+import tv.anistream.store.TvPlayRequest
 
 /**
  * The episodes the user marked or unmarked on this page, until their row has shown the change:
@@ -330,6 +331,16 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
             )
         } else {
             DownloadMenuItem(entry, row.number, onDismiss)
+            if (store.tv.available) {
+                DropdownMenuItem(
+                    text = { Text("Play on TV") },
+                    leadingIcon = { Icon(Icons.Tv, contentDescription = null) },
+                    onClick = {
+                        onDismiss()
+                        store.tv.offer(TvPlayRequest(entry.id, entry.showTitle, row.number))
+                    },
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Play from the beginning") },
                 leadingIcon = { Icon(Icons.Restart, contentDescription = null) },

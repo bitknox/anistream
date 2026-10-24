@@ -285,6 +285,15 @@ struct TitleHero: View {
                         }
                         .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
                     }
+                    if action.playable, !store.titles.unlisted(entry.id), store.tv.available {
+                        Button {
+                            store.playOnTV(entry.id, episode: String(action.episode), from: action.resume?.position)
+                        } label: {
+                            Label("Play on TV", systemImage: "tv")
+                        }
+                        .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
+                        .help("Play this episode on a TV with anistream")
+                    }
                     #if os(iOS)
                     // The list's menu, in the header where a narrow window's bar has no room.
                     Menu {

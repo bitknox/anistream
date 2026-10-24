@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Play on TV: finding the TVs that run anistream on the network, which asks for local
+	     network access the first time, and the camera for the code a TV shows to pair. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>anistream looks for TVs running anistream on your network, so you can play episodes on them and use this device as their remote.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_anistream._tcp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>anistream reads the code a TV shows, to pair with it.</string>
 	<!-- What Xcode does not generate for the Fixtures app: the background audio the app has, so
 	     its player is tried as the app's plays. No anistream:// links: the app opens those. -->
 	<key>UIBackgroundModes</key>

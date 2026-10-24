@@ -61,6 +61,8 @@ final class Delegate: NSObject, NSApplicationDelegate {
     lazy var player: PlayerModel = {
         let player = PlayerModel(send: { [weak store] command in store?.send(command) })
         store.onPlayback = { [weak player] event in player?.apply(event) }
+        player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
+        store.tv.handedOff = { [weak player] in player?.viewerClosed() }
         return player
     }()
     private var temporary: URL?
@@ -116,6 +118,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.arguments.contains("-AnistreamUpdating") {
             store.updates.update()
             try? await Task.sleep(for: .milliseconds(1800))
+        }
+        if let scene = TVScene.named() {
+            let there = await store.tv.reached(scene)
+            print(there ? "AnistreamDev: the TV scene is at \(scene.rawValue)" : "AnistreamDev: the TV scene did not reach \(scene.rawValue)")
         }
         // `-AnistreamNotice alert`: a failure toast, for the shot of its Report action.
         if let at = ProcessInfo.processInfo.arguments.firstIndex(of: "-AnistreamNotice"),

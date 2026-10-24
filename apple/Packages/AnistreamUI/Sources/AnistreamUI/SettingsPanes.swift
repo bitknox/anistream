@@ -567,6 +567,7 @@ struct IntegrationsPane: View {
                 .disabled(!syncplay)
                 .opacity(syncplay ? 1 : 0.45)
         }
+        TVsGroup()
         // Only where the engine has a presence to show: a phone's has none.
         if store.settings.hasPresence {
             SettingsGroup(
