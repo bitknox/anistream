@@ -327,6 +327,13 @@ pub enum Command {
     DownloadPause {
         id: i64,
     },
+    /// Start a queued or paused download now: it goes to the front of the queue and starts as
+    /// soon as the queue next looks, within a second. When the queue already runs as many as it
+    /// may at once, the one that would have been last to start goes back to waiting, behind it,
+    /// keeping what it fetched. A download already running, finished or failed is left as it is.
+    DownloadStartNow {
+        id: i64,
+    },
     /// Remove a download from the queue, stopping it if it is running.
     DownloadCancel {
         id: i64,

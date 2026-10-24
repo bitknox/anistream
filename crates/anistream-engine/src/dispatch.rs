@@ -27,7 +27,7 @@ use crate::{
         self, ahead,
         commands::{
             download_cancel, download_clear_completed, download_delete, download_episode,
-            download_many, download_pause,
+            download_many, download_pause, download_start_now,
         },
     },
     jobs::JobGuard,
@@ -300,6 +300,7 @@ pub(crate) fn dispatch(
         Command::DownloadMany { id, episodes } => {
             download_many(id, episodes, job, engine, services, tx)
         }
+        Command::DownloadStartNow { id } => download_start_now(id, services, tx),
         Command::DownloadPause { id } => download_pause(id, services, tx),
         Command::DownloadCancel { id } => download_cancel(id, services, tx),
         Command::DownloadDelete { id } => download_delete(id, services, tx),

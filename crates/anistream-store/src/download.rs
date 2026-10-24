@@ -71,6 +71,9 @@ pub struct Download {
     pub updated_at: i64,
     /// Queued by keep next, to have a show's next episodes on the device, rather than asked for.
     pub ahead: bool,
+    /// When the viewer asked it to start now, which put it at the front of the queue: see
+    /// [`Store::download_to_front`].
+    pub front_at: Option<i64>,
 }
 
 impl Download {
@@ -146,6 +149,9 @@ impl Store {
                     -- Asked for by the viewer, it is theirs from now on; keep next never takes
                     -- one of theirs over.
                     ahead = download.ahead AND excluded.ahead,
+                    -- A retry waits its turn: a start now was for the attempt that failed.
+                    front_at = CASE WHEN download.state = 'failed' THEN NULL
+                                    ELSE download.front_at END,
                     updated_at = ?5",
                 rusqlite::params![anilist_id.get(), episode, title, magnet, at, ahead],
             )?;
@@ -172,7 +178,7 @@ impl Store {
         self.with_conn(|c| {
             Ok(c.query_row(
                 "SELECT id, anilist_id, episode, title, magnet, state, path, downloaded, total,
-                        error, created_at, updated_at, ahead
+                        error, created_at, updated_at, ahead, front_at
                    FROM download WHERE anilist_id = ?1 AND episode = ?2",
                 rusqlite::params![anilist_id.get(), episode],
                 row_to_download,
@@ -186,7 +192,7 @@ impl Store {
         self.with_conn(|c| {
             let mut stmt = c.prepare(
                 "SELECT id, anilist_id, episode, title, magnet, state, path, downloaded, total,
-                        error, created_at, updated_at, ahead
+                        error, created_at, updated_at, ahead, front_at
                    FROM download ORDER BY created_at DESC",
             )?;
             let rows = stmt.query_map([], row_to_download)?;
@@ -202,10 +208,10 @@ impl Store {
         self.with_conn(|c| {
             let mut stmt = c.prepare(
                 "SELECT id, anilist_id, episode, title, magnet, state, path, downloaded, total,
-                        error, created_at, updated_at, ahead
+                        error, created_at, updated_at, ahead, front_at
                    FROM download
                   WHERE state IN ('queued', 'active')
-                  ORDER BY created_at ASC",
+                  ORDER BY front_at IS NULL, front_at DESC, created_at ASC, id ASC",
             )?;
             let rows = stmt.query_map([], row_to_download)?;
             Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
@@ -253,6 +259,20 @@ impl Store {
                 rusqlite::params![id, at],
             )?;
             Ok(())
+        })
+    }
+
+    /// Put a waiting or paused download at the front of the queue, waiting, as asked at `at`:
+    /// "Start now". Ahead of every other waiting download, the ones asked to start now since
+    /// excepted. Whether it was one to move: a download running, finished or failed is not.
+    pub fn download_to_front(&self, id: i64, at: i64) -> Result<bool> {
+        self.with_conn(|c| {
+            let moved = c.execute(
+                "UPDATE download SET state = 'queued', front_at = ?2, updated_at = ?2
+                  WHERE id = ?1 AND state IN ('queued', 'paused')",
+                rusqlite::params![id, at],
+            )?;
+            Ok(moved > 0)
         })
     }
 
@@ -374,6 +394,7 @@ fn row_to_download(row: &rusqlite::Row<'_>) -> rusqlite::Result<Download> {
         created_at: row.get(10)?,
         updated_at: row.get(11)?,
         ahead: row.get(12)?,
+        front_at: row.get(13)?,
     })
 }
 
@@ -385,6 +406,43 @@ mod tests {
 
     fn store() -> Store {
         Store::open_in_memory().unwrap()
+    }
+
+    #[test]
+    fn a_download_asked_to_start_now_waits_at_the_front_of_the_queue() {
+        let store = store();
+        let queue = |store: &Store| -> Vec<String> {
+            store.pending_downloads().unwrap().into_iter().map(|d| d.episode).collect()
+        };
+        let rows: Vec<Download> = (1..=4)
+            .map(|n| {
+                store.enqueue_download(ID, &n.to_string(), "Hoshikuzu", "magnet:?xt=a").unwrap()
+            })
+            .collect();
+        assert_eq!(queue(&store), ["1", "2", "3", "4"], "oldest first");
+
+        assert!(store.download_to_front(rows[2].id, 100).unwrap());
+        assert_eq!(queue(&store), ["3", "1", "2", "4"]);
+        // Asked since, ahead of it.
+        assert!(store.download_to_front(rows[3].id, 200).unwrap());
+        assert_eq!(queue(&store), ["4", "3", "1", "2"]);
+
+        // A paused one starts waiting again, at the front.
+        store.set_download_state(rows[1].id, DownloadState::Paused).unwrap();
+        assert!(store.download_to_front(rows[1].id, 300).unwrap());
+        assert_eq!(queue(&store), ["2", "4", "3", "1"]);
+        assert_eq!(store.download_for(ID, "2").unwrap().unwrap().state, DownloadState::Queued);
+
+        // Running, finished or failed: nothing to move.
+        store.set_download_state(rows[0].id, DownloadState::Active).unwrap();
+        assert!(!store.download_to_front(rows[0].id, 400).unwrap());
+        store.fail_download(rows[2].id, "no peers").unwrap();
+        assert!(!store.download_to_front(rows[2].id, 400).unwrap());
+        assert!(!store.download_to_front(9_999, 400).unwrap());
+
+        // A retry of a failed one waits its turn.
+        store.enqueue_download(ID, "3", "Hoshikuzu", "magnet:?xt=a").unwrap();
+        assert_eq!(store.download_for(ID, "3").unwrap().unwrap().front_at, None);
     }
 
     #[test]
