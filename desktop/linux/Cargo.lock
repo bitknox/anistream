@@ -155,6 +155,7 @@ dependencies = [
  "jiff",
  "rand 0.10.3",
  "rustix",
+ "serde",
  "serde_json",
  "thiserror 2.0.21",
  "tokio",
@@ -182,6 +183,7 @@ name = "anistream-model"
 version = "2.0.0"
 dependencies = [
  "anistream-core",
+ "serde",
 ]
 
 [[package]]
@@ -189,6 +191,7 @@ name = "anistream-mpv-host"
 version = "2.0.0"
 dependencies = [
  "anistream-model",
+ "find-msvc-tools",
  "pkg-config",
  "serde_json",
  "tracing",
