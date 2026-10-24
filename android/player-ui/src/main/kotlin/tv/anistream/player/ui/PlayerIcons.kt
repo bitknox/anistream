@@ -28,6 +28,9 @@ internal object PlayerIcons {
 
     val Back = icon("Back", listOf("M19 12 H5.5 M11 6 L5 12 L11 18"))
 
+    /** Play on TV: a screen on its foot. */
+    val Tv = icon("Tv", listOf("M5 5 H19 A2 2 0 0 1 21 7 V15 A2 2 0 0 1 19 17 H5 A2 2 0 0 1 3 15 V7 A2 2 0 0 1 5 5 Z", "M8 21 H16 M12 17 V21"))
+
     val Subtitles = icon(
         "Subtitles",
         listOf("M6 5 H18 A3 3 0 0 1 21 8 V16 A3 3 0 0 1 18 19 H6 A3 3 0 0 1 3 16 V8 A3 3 0 0 1 6 5 Z", "M7 12 H9.5 M12.5 12 H17 M7 15.5 H13 M16 15.5 H17"),

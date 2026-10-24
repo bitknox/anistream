@@ -10,11 +10,15 @@ import tv.anistream.ui.PlayerSlot
 
 /** [model]'s screen in the frame's player slot: the frame navigates to it while it is up. */
 @Stable
-class PlayerFrame(private val model: PlayerModel) : PlayerSlot {
+class PlayerFrame(
+    private val model: PlayerModel,
+    /** Play on TV from the player, while the app has it: `null` where it has not. */
+    private val playOnTv: () -> (() -> Unit)? = { null },
+) : PlayerSlot {
     override val presented: Boolean get() = model.isPresented
 
     override val title: AnilistId? get() = model.titleId
 
     @Composable
-    override fun Content() = PlayerScreen(model)
+    override fun Content() = PlayerScreen(model, playOnTv = playOnTv())
 }
