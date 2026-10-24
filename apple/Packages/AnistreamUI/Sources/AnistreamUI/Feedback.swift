@@ -10,8 +10,8 @@ extension EnvironmentValues {
 }
 
 /// The check of a watched episode: drawn on when the episode becomes watched, at once under
-/// Reduce Motion, with a light impact on iPhone (T9). It holds its place while unwatched, so
-/// nothing in the row moves.
+/// Reduce Motion (T9). It holds its place while unwatched, so nothing in the row moves. The light
+/// impact comes from the viewer's own mark (`Navigator.watchedByHand`), never from the value.
 struct WatchedCheck: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let watched: Bool
@@ -24,9 +24,6 @@ struct WatchedCheck: View {
             .symbolEffect(.drawOn, isActive: !watched)
             .symbolEffectsRemoved(reduceMotion)
             .opacity(watched ? 1 : 0)
-            #if os(iOS)
-            .sensoryFeedback(.impact(weight: .light), trigger: watched) { _, now in now }
-            #endif
             .accessibilityHidden(true)
     }
 }
