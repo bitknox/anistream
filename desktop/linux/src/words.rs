@@ -243,6 +243,8 @@ pub fn tracker_name(id: &str) -> &str {
         "anilist" => "AniList",
         "kitsu" => "Kitsu",
         "mal" | "myanimelist" => "MyAnimeList",
+        "simkl" => "Simkl",
+        "trakt" => "Trakt",
         other => other,
     }
 }

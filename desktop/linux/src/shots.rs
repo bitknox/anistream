@@ -7,10 +7,10 @@
 use std::{path::PathBuf, rc::Rc, time::Duration};
 
 use adw::prelude::*;
-use anistream_model::command::Command;
+use anistream_model::{command::Command, sync::DeviceCodePrompt};
 use gtk::glib;
 
-use crate::{pages::Dest, window::Shell};
+use crate::{hub::SignIn, pages::Dest, window::Shell};
 
 /// The title the title shots open: the fixture scene's finished title, part-way through
 /// episode 7.
@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 25] = [
+pub const ALL: [&str; 33] = [
     "home",
     "welcome",
     "offline",
@@ -39,9 +39,17 @@ pub const ALL: [&str; 25] = [
     "settings",
     "settings-upscaling",
     "settings-accounts",
+    "accounts-kitsu",
+    "accounts-code",
+    "torrents-setup",
+    "torrents-none",
+    "torrents-on",
+    "settings-updates",
     "about",
     "player",
     "player-marks",
+    "player-tracks",
+    "player-undo",
     "mini",
     "resumed",
     "close",
@@ -65,8 +73,7 @@ pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
             for _ in 0..4 {
                 // Taken just after a frame is painted, when the window is laid out: between
                 // frames a relayout can be pending, and a widget waiting for one draws nothing.
-                let marks = shot == "player-marks";
-                taken = painted(&shell, &path, marks).await;
+                taken = painted(&shell, &path, shot).await;
                 if taken.is_ok() {
                     break;
                 }
@@ -197,6 +204,89 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.settings_pane("accounts");
             1.5
         }
+        "torrents-setup" => {
+            shell.settings_pane("sources");
+            crate::pages::torrents::setup(&shell.ctx, true, None, Rc::new(|| {}));
+            1.5
+        }
+        "torrents-none" => {
+            shell.settings_pane("sources");
+            crate::pages::torrents::setup(
+                &shell.ctx,
+                true,
+                Some(anistream_model::protection::TorrentProtection::None),
+                Rc::new(|| {}),
+            );
+            if let Some(dialog) = shell.ctx.window.visible_dialog()
+                && let Some(send) = default_button(&dialog)
+            {
+                send.emit_clicked();
+            }
+            1.5
+        }
+        "torrents-on" => {
+            use anistream_core::settings::SettingValue;
+            use anistream_model::protection::{FailedCheck, TorrentProtection};
+            shell.ctx.hub.send(Command::SetSetting {
+                key: anistream_model::settings::SettingKey::TorrentIndex,
+                value: SettingValue::Str("https://index.example.test/rss?q={query}".into()),
+            });
+            // A proxy nothing listens on: the check fails on this machine, and never looks up
+            // where the run's own traffic leaves from.
+            shell.ctx.hub.send(Command::SetTorrentProtection {
+                mode: TorrentProtection::Proxy,
+                proxy: Some(anistream_model::protection::TorrentProxy {
+                    host: "127.0.0.1".into(),
+                    port: 9,
+                    user: None,
+                    password: None,
+                }),
+                on_failure: FailedCheck::Pause,
+                acknowledged: false,
+            });
+            shell.ctx.hub.send(Command::SetSetting {
+                key: anistream_model::settings::SettingKey::Torrents,
+                value: SettingValue::Bool(true),
+            });
+            shell.settings_pane("sources");
+            3.0
+        }
+        "settings-updates" => {
+            use anistream_model::updates::{Release, UpdateStatus};
+            shell.settings_pane("integrations");
+            // As the daily check tells of a release: the toast once, and the row after.
+            shell.ctx.hub.take(vec![anistream_model::event::Event::Update(
+                UpdateStatus::Available {
+                    release: Box::new(Release {
+                        version: "2.1.0".into(),
+                        published_at: 0,
+                        page_url: "https://example.test/releases/v2.1.0".into(),
+                        notes: String::new(),
+                        macos: None,
+                        ios: None,
+                        android: None,
+                    }),
+                    notify: true,
+                },
+            )]);
+            1.5
+        }
+        "accounts-kitsu" => {
+            shell.settings_pane("accounts");
+            crate::pages::accounts::kitsu(&shell.ctx, Rc::new(|| {}));
+            1.5
+        }
+        "accounts-code" => {
+            shell.ctx.hub.known.borrow_mut().signing.insert("simkl".into(), SignIn::Job(None));
+            shell.settings_pane("accounts");
+            let prompt = DeviceCodePrompt {
+                tracker: "simkl".into(),
+                code: "7KQ2M4".into(),
+                url: "https://example.test/pin".into(),
+            };
+            crate::pages::accounts::device_code(&shell.ctx, Some(&prompt));
+            1.5
+        }
         "about" => {
             let _ = WidgetExt::activate_action(window, "win.about", None);
             1.5
@@ -226,6 +316,32 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             }
             10.0
         }
+        "player-tracks" => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_secs(4), move || {
+                    player.shot_tracks(Some("/out/media/lantern-road.srt"));
+                });
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_millis(8000), move || {
+                    player.shot_tracks(None);
+                });
+            }
+            9.5
+        }
+        "player-undo" => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_millis(7500), move || {
+                    player.shot_auto_skipped();
+                });
+            }
+            9.0
+        }
         "mini" => {
             play(shell);
             let player = Rc::clone(&shell.player);
@@ -249,7 +365,21 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "title" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
-        "about" | "join" | "welcome" => close_dialogs(&shell.ctx.window),
+        "about" | "join" | "welcome" | "accounts-kitsu" | "torrents-setup" => {
+            close_dialogs(&shell.ctx.window)
+        }
+        "torrents-none" => {
+            close_dialogs(&shell.ctx.window);
+            close_dialogs(&shell.ctx.window);
+        }
+        "torrents-on" => shell.ctx.hub.send(Command::SetSetting {
+            key: anistream_model::settings::SettingKey::Torrents,
+            value: anistream_core::settings::SettingValue::Bool(false),
+        }),
+        "accounts-code" => {
+            crate::pages::accounts::device_code(&shell.ctx, None);
+            shell.ctx.hub.known.borrow_mut().signing.remove("simkl");
+        }
         "offline" => shell.ctx.hub.send(Command::NetworkPath {
             cellular: false,
             constrained: false,
@@ -271,7 +401,11 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
                 nav.pop();
             }
         }
-        "player" | "player-marks" | "mini" => shell.player.close(),
+        "player-tracks" => {
+            shell.player.close_menus();
+            shell.player.close();
+        }
+        "player" | "player-marks" | "player-undo" | "mini" => shell.player.close(),
         _ => {}
     }
 }
@@ -319,6 +453,11 @@ fn close_dialogs(window: &adw::ApplicationWindow) {
     }
 }
 
+/// A dialog's default button: what Return presses.
+fn default_button(dialog: &adw::Dialog) -> Option<gtk::Button> {
+    dialog.default_widget()?.downcast().ok()
+}
+
 /// Draw the window, dialogs and all, into a PNG at its own scale.
 fn capture(
     window: &adw::ApplicationWindow,
@@ -364,15 +503,20 @@ fn capture(
     texture.save_to_png(path).map_err(|e| e.to_string())
 }
 
-/// The window drawn into `path` just after its next frame is painted, with the seek preview on
-/// top when `marks`; captured at once if no frame comes within a second.
-async fn painted(shell: &Rc<Shell>, path: &std::path::Path, marks: bool) -> Result<(), String> {
+/// The window drawn into `path` just after its next frame is painted, with the shot's popover
+/// on top; captured at once if no frame comes within a second.
+async fn painted(shell: &Rc<Shell>, path: &std::path::Path, shot: &str) -> Result<(), String> {
     let window = shell.ctx.window.clone();
     let take = {
         let (player, window, path) =
             (Rc::clone(&shell.player), window.clone(), path.to_owned());
+        let shot = shot.to_owned();
         move || {
-            let over = if marks { player.shot_popover() } else { None };
+            let over = match shot.as_str() {
+                "player-marks" => player.shot_popover(),
+                "player-tracks" => player.shot_tracks_popover(),
+                _ => None,
+            };
             capture(&window, &path, over)
         }
     };

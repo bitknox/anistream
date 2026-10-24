@@ -1,5 +1,6 @@
-//! The Background portal, asked before the app keeps running with its window closed, so GNOME
-//! lists anistream under Background Apps. Over D-Bus with GIO: no portal, or a refusal, is a no.
+//! The desktop portals the app asks over D-Bus with GIO: Background, before the app keeps
+//! running with its window closed, so GNOME lists anistream under Background Apps; and OpenURI,
+//! which opens a link in the viewer's browser, in a sandbox or out of one.
 
 use std::{cell::RefCell, rc::Rc};
 
@@ -85,4 +86,43 @@ pub fn request_background(
             }
         },
     );
+}
+
+/// Open `uri` in the viewer's browser through the OpenURI portal, and with GTK's launcher where
+/// there is no portal to ask. `failed` hears when neither could.
+pub fn open_uri(window: &impl IsA<gtk::Window>, uri: &str, failed: impl FnOnce() + 'static) {
+    let Ok(bus) = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE) else {
+        launch(window, uri, failed);
+        return;
+    };
+    let options = glib::VariantDict::new(None);
+    options.insert("handle_token", format!("anistream{}", glib::random_int()));
+    let window = window.as_ref().clone();
+    let link = uri.to_owned();
+    bus.call(
+        Some(BUS),
+        PATH,
+        "org.freedesktop.portal.OpenURI",
+        "OpenURI",
+        Some(&("", uri, options.end()).to_variant()),
+        None,
+        gio::DBusCallFlags::NONE,
+        10_000,
+        gio::Cancellable::NONE,
+        move |result| {
+            if let Err(e) = result {
+                tracing::info!(error = %e, "no OpenURI portal: GTK opens the link");
+                launch(&window, &link, failed);
+            }
+        },
+    );
+}
+
+fn launch(window: &impl IsA<gtk::Window>, uri: &str, failed: impl FnOnce() + 'static) {
+    gtk::UriLauncher::new(uri).launch(Some(window), gio::Cancellable::NONE, move |result| {
+        if let Err(e) = result {
+            tracing::warn!(error = %e, "the link did not open");
+            failed();
+        }
+    });
 }
