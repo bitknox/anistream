@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -53,8 +54,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.runtime.SideEffect
@@ -719,6 +718,7 @@ private fun SeasonPage(
     val marks = remember(entry.id) { UserMarks() }
     val unfolded by store.episodeFolds.unfolded.collectAsStateWithLifecycle()
     val fold = rememberEpisodeFold(entry.id, list)
+    val dubs by store.titles.dubLines.collectAsStateWithLifecycle()
     val failedIds by store.titles.failed.collectAsStateWithLifecycle()
     val failed = !loaded && entry.id in failedIds
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
@@ -771,7 +771,7 @@ private fun SeasonPage(
             }
             val related = entry.relatedCards()
             if (related.isNotEmpty()) item(key = "related", contentType = "related") { Box(itemMotion()) { RelatedRail(related) } }
-            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead)
+            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead, dub = dubs[entry.id])
         }
     }
 }
@@ -993,8 +993,7 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
 @Composable
 private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modifier) {
     Row(
-        // Room under the cover's foot for the dub line, which takes no height of its own.
-        modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).heightIn(min = 120.dp),
+        modifier.padding(horizontal = 16.dp).heightIn(min = 120.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
@@ -1025,40 +1024,7 @@ private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modi
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            DubLine(entry.id)
         }
-    }
-}
-
-/**
- * How far the title's dub goes, under the metadata line and taking no height: it fades in on
- * fadeIn where the engine says it, over the gap below the header, so nothing moves.
- */
-@Composable
-private fun DubLine(id: AnilistId) {
-    val store = LocalAppStore.current
-    val line by remember(id) { store.titles.dubLines.map { it[id] }.distinctUntilChanged() }
-        .collectAsStateWithLifecycle(initialValue = store.titles.dubLines.value[id])
-    // The last line it had, while it fades; nothing before one has come.
-    var shown by remember(id) { mutableStateOf(line) }
-    if (line != null) shown = line
-    AnimatedVisibility(
-        visible = line != null,
-        enter = fadeIn(Motion.fadeIn()),
-        exit = ExitTransition.None,
-        modifier = Modifier.layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            layout(placeable.width, 0) { placeable.place(0, 0) }
-        },
-    ) {
-        Text(
-            shown.orEmpty(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp),
-        )
     }
 }
 
@@ -1565,6 +1531,8 @@ private fun LazyListScope.episodeRows(
     onFold: (anchor: String) -> Unit,
     /** Whether the placeholders wait 600 ms first (T8): not on a page composed ahead, off screen. */
     wait: Boolean = true,
+    /** How far the dub goes: on the fold row's own line, or a row of its own without a fold. */
+    dub: String? = null,
 ) {
     if (episodes == null) {
         // Crossfading with the rows as they arrive (T8), as every item comes and goes.
@@ -1582,7 +1550,17 @@ private fun LazyListScope.episodeRows(
     val folded = entry.foldedEpisodes(listed)
     if (folded.isNotEmpty()) {
         val anchor = episodeKey(entry.id, listed[folded.size])
-        item(key = watchedFold(entry.id), contentType = "fold") { WatchedFoldRow(folded, unfolded, itemMotion().padding(horizontal = 16.dp)) { onFold(anchor) } }
+        item(key = watchedFold(entry.id), contentType = "fold") { WatchedFoldRow(folded, unfolded, itemMotion().padding(horizontal = 16.dp), dub = dub) { onFold(anchor) } }
+    }
+    if (folded.isEmpty() && dub != null) {
+        item(key = "dub-line", contentType = "dub-line") {
+            Text(
+                dub,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = itemMotion().fillMaxWidth().heightIn(min = 56.dp).wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 16.dp),
+            )
+        }
     }
     val shown = if (folded.isNotEmpty() && !unfolded) listed.drop(folded.size) else listed
     items(shown, key = { episodeKey(entry.id, it) }, contentType = { "episode" }) { row ->
@@ -1663,7 +1641,7 @@ private fun rememberEpisodeFold(id: AnilistId, grid: androidx.compose.foundation
  * quiet one-line row with a chevron, not a button.
  */
 @Composable
-private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, onToggle: () -> Unit) {
+private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, dub: String? = null, onToggle: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val turn by androidx.compose.animation.core.animateFloatAsState(if (unfolded) 180f else 0f, Motion.quick(), label = "fold")
     Row(
@@ -1680,6 +1658,10 @@ private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier
             color = colors.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
+        // The dub line on this row's own line, so its arrival moves nothing.
+        androidx.compose.animation.AnimatedVisibility(dub != null, enter = fadeIn(Motion.fadeIn()), exit = ExitTransition.None) {
+            Text(dub.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, modifier = Modifier.padding(end = 12.dp))
+        }
         Icon(Icons.Down, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.graphicsLayer { rotationZ = turn })
     }
 }

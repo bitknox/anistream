@@ -58,19 +58,6 @@ struct PhoneTitle: View {
                         Text(entry.phoneMetadata)
                             .groupHeaderStyle()
                             .padding(.top, 2)
-                            // How far the dub goes, under the metadata and over nothing: it
-                            // fades in without moving the title or anything below.
-                            .overlay(alignment: .bottomLeading) {
-                                if let dub = store.titles.dubLines[entry.id] {
-                                    Text(dub)
-                                        .font(.ui(13))
-                                        .foregroundStyle(.haze)
-                                        .lineLimit(1)
-                                        .offset(y: 18)
-                                        .transition(.opacity.animation(.fadeIn))
-                                }
-                            }
-                            .animation(.fadeIn, value: store.titles.dubLines[entry.id])
                     }
                     .padding(.bottom, 4)
                 }
@@ -317,6 +304,7 @@ struct PhoneEpisodes: View {
             if let fold {
                 WatchedFoldSection(
                     fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
+                    dub: store.titles.dubLines[entry.id],
                     toggle: { navigator.toggleWatched(entry.id) }
                 ) {
                     ForEach(rows.prefix(fold.count), id: \.number) {
@@ -324,6 +312,16 @@ struct PhoneEpisodes: View {
                     }
                 }
                 .bareRow(inset)
+            }
+            // With no watched run to fold, the line has a row of its own above the episodes.
+            if fold == nil, let dub = store.titles.dubLines[entry.id] {
+                Text(dub)
+                    .font(.ui(15))
+                    .foregroundStyle(.haze)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .padding(.leading, 34)
+                    .bareRow(inset)
+                    .transition(.opacity.animation(.fadeIn))
             }
             ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
                 PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
