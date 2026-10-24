@@ -275,7 +275,7 @@ pub(crate) fn dispatch(
         Command::FinishSignIn { tracker, callback } => {
             finish_sign_in(tracker, callback, job, services, tx)
         }
-        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services),
+        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services, tx),
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }

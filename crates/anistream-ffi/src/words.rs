@@ -72,6 +72,13 @@ pub fn calendar_mark(entry: Entry) -> Option<String> {
     present::calendar_mark(&entry).map(str::to_owned)
 }
 
+/// The line under a sign-in's device code, from its `expires_at` less now in seconds:
+/// "Expires in 14:59", then "Code expired", when the app sends `Command::Connect` again.
+#[uniffi::export]
+pub fn device_code_expiry(seconds_left: i64) -> String {
+    present::device_code_expiry(seconds_left)
+}
+
 /// A resume point as a viewer reads it: `10:06`, `1:02:03`.
 #[uniffi::export]
 pub fn resume_clock(resume: ResumePoint) -> String {

@@ -4,11 +4,12 @@ anistream                                                   torrent ○  plugins
   ▤  CALENDAR               │
   ▦  SEASONAL               │    1. open   https://auth.example/device
   /  SEARCH                 │    2. enter  K T Q 7 - M 2 W D
-  ▥  LIBRARY                │
-  ↓  DOWNLOADS              │  ───────────────────────────────────────────────────────────────────────────────────────
-  ◇  PROVIDERS              │
-▌ ◎  ACCOUNTS               │  TRACKER         STATE             QUEUED    TOKEN
-  ⚙  SETTINGS               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  LIBRARY                │              Expires in 14:32
+  ↓  DOWNLOADS              │
+  ◇  PROVIDERS              │  ───────────────────────────────────────────────────────────────────────────────────────
+▌ ◎  ACCOUNTS               │
+  ⚙  SETTINGS               │  TRACKER         STATE             QUEUED    TOKEN
+                            │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    ANILIST       ● connected       2         OS keychain
                             │    KITSU         ○ not connected   0         0600 file
                             │  ▌ MAL           ✕ sign in again   0         OS keychain
@@ -17,7 +18,6 @@ anistream                                                   torrent ○  plugins
                             │    tokens stored in 0600 files — OS keychain unavailable
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    ↵ sign in
-                            │
                             │
                             │
                             │
@@ -66,51 +66,52 @@ r05 c43-59 fg=obi mod=BOLD
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
+r06 c43-58 fg=text-dim
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
-r07 c31-117 fg=rule
 r08 c02-02 fg=text-dim
 r08 c05-13 fg=text-dim
 r08 c28-28 fg=rule
+r08 c31-117 fg=rule
 r09 c00-00 fg=text-dim
 r09 c02-02 fg=text
 r09 c05-12 fg=text mod=BOLD
 r09 c28-28 fg=rule
-r09 c31-37 fg=text-dim
-r09 c47-51 fg=text-dim
-r09 c65-70 fg=text-dim
-r09 c75-79 fg=text-dim
 r10 c02-02 fg=text-dim
 r10 c05-12 fg=text-dim
 r10 c28-28 fg=rule
-r10 c31-117 fg=rule
+r10 c31-37 fg=text-dim
+r10 c47-51 fg=text-dim
+r10 c65-70 fg=text-dim
+r10 c75-79 fg=text-dim
 r11 c28-28 fg=rule
-r11 c33-39 fg=text
-r11 c47-57 fg=state
-r11 c65-65 fg=state
-r11 c75-85 fg=text-dim
+r11 c31-117 fg=rule
 r12 c28-28 fg=rule
-r12 c33-37 fg=text
-r12 c47-61 fg=text-dim
-r12 c65-65 fg=text-dim
-r12 c75-83 fg=text-dim
+r12 c33-39 fg=text
+r12 c47-57 fg=state
+r12 c65-65 fg=state
+r12 c75-85 fg=text-dim
 r13 c28-28 fg=rule
-r13 c31-31 fg=obi
-r13 c33-35 fg=text mod=BOLD
-r13 c47-61 fg=alert
+r13 c33-37 fg=text
+r13 c47-61 fg=text-dim
 r13 c65-65 fg=text-dim
-r13 c75-85 fg=text-dim
+r13 c75-83 fg=text-dim
 r14 c28-28 fg=rule
-r14 c47-89 fg=alert
+r14 c31-31 fg=obi
+r14 c33-35 fg=text mod=BOLD
+r14 c47-61 fg=alert
+r14 c65-65 fg=text-dim
+r14 c75-85 fg=text-dim
 r15 c28-28 fg=rule
+r15 c47-89 fg=alert
 r16 c28-28 fg=rule
-r16 c33-85 fg=text-dim
 r17 c28-28 fg=rule
-r17 c31-117 fg=rule
+r17 c33-85 fg=text-dim
 r18 c28-28 fg=rule
-r18 c33-41 fg=text-dim
+r18 c31-117 fg=rule
 r19 c28-28 fg=rule
+r19 c33-41 fg=text-dim
 r20 c28-28 fg=rule
 r21 c28-28 fg=rule
 r22 c28-28 fg=rule

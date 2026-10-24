@@ -210,7 +210,11 @@ pub enum Command {
         id: AnilistId,
         keep_local: bool,
     },
-    /// Run a tracker's sign-in flow.
+    /// Run a tracker's sign-in flow. For a device-code tracker, sent again while its code is up
+    /// it asks for a new code, which replaces the one before: what "Get a new code" sends, and a
+    /// TV once the code's [`DeviceCodePrompt::expires_at`] passes.
+    ///
+    /// [`DeviceCodePrompt::expires_at`]: crate::sync::DeviceCodePrompt::expires_at
     Connect {
         tracker: String,
     },
@@ -221,7 +225,8 @@ pub enum Command {
         tracker: String,
         callback: Secret,
     },
-    /// The sign-in sheet for `tracker` was closed without signing in.
+    /// The sign-in sheet for `tracker` was closed without signing in, or its device code's
+    /// screen was: that flow stops, and its code comes down with `Event::DeviceCode(None)`.
     CancelSignIn {
         tracker: String,
     },

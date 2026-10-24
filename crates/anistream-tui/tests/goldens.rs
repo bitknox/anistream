@@ -960,6 +960,7 @@ fn accounts(s: &mut Screen) {
         tracker: "mal".into(),
         code: "KTQ7-M2WD".into(),
         url: "https://auth.example/device".into(),
+        expires_at: Some(NOW + 14 * MINUTE + 32),
     })));
     s.press(&["j", "j"]);
 }

@@ -315,6 +315,18 @@ pub fn calendar_mark(entry: &Entry) -> Option<&'static str> {
     }
 }
 
+/// How long a sign-in's device code has left, for the line under it, from
+/// [`DeviceCodePrompt::expires_at`] less now: "Expires in 14:59", then "Code expired" at
+/// nought, when the app asks for a new one.
+///
+/// [`DeviceCodePrompt::expires_at`]: crate::sync::DeviceCodePrompt::expires_at
+pub fn device_code_expiry(seconds_left: i64) -> String {
+    if seconds_left <= 0 {
+        return "Code expired".into();
+    }
+    format!("Expires in {}", clock(seconds_left as f64))
+}
+
 /// A tracker's name as the apps show it: "AniList" for `anilist`.
 pub fn tracker_name(id: &str) -> String {
     match id {
@@ -414,6 +426,14 @@ mod tests {
         assert_eq!(calendar_mark(&row), Some("Sub"));
         row.airing_translation = Some(Translation::Dub);
         assert_eq!(calendar_mark(&row), Some("Dub"));
+    }
+
+    #[test]
+    fn a_device_code_counts_down_to_expired() {
+        assert_eq!(device_code_expiry(899), "Expires in 14:59");
+        assert_eq!(device_code_expiry(5), "Expires in 0:05");
+        assert_eq!(device_code_expiry(0), "Code expired");
+        assert_eq!(device_code_expiry(-30), "Code expired");
     }
 
     #[test]
