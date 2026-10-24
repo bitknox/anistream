@@ -49,7 +49,6 @@ struct EmptyState<Action: View>: View {
                 .foregroundStyle(.haze)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 340)
-                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
             action()
                 .padding(.top, 16)
