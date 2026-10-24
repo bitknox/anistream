@@ -56,15 +56,27 @@ impl Watch {
                 .unwrap_or(0.0)
         }
     }
+
+    /// This watch on an episode's meter and its finished mark.
+    ///
+    /// Monotonic: a re-watch that was quit early must not erase that it was once finished.
+    pub fn land(&self, watched: &mut f64, completed: &mut bool) {
+        *watched = watched.max(self.fraction());
+        *completed = *completed || self.completed;
+    }
 }
 
-/// A watch on the episode's row in a list of a title's rows, when the list has it.
-///
-/// Monotonic: a re-watch that was quit early must not erase that it was once finished.
+impl From<&EpisodeRow> for EpisodeProgress {
+    fn from(row: &EpisodeRow) -> Self {
+        Self { number: row.number.clone(), watched: row.watched, completed: row.completed }
+    }
+}
+
+/// A watch on the episode's row in a list of a title's rows, when the list has it: see
+/// [`Watch::land`].
 pub fn watch_row(rows: &mut [EpisodeRow], watch: &Watch) {
     if let Some(row) = rows.iter_mut().find(|r| r.number == watch.episode) {
-        row.watched = row.watched.max(watch.fraction());
-        row.completed = row.completed || watch.completed;
+        watch.land(&mut row.watched, &mut row.completed);
     }
 }
 

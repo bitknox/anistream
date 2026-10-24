@@ -29,6 +29,7 @@ use anistream_model::{
         TrackKind,
     },
     playback::{Ending, PlaybackId, SkipKind},
+    progress::TitleProgress,
 };
 use anistream_providers::ProviderRegistry;
 use anistream_testkit::{
@@ -72,7 +73,46 @@ struct App {
     read: Vec<String>,
     /// Every op the player was told so far, in order, with its playback.
     ops: Vec<(PlaybackId, PlayerOp)>,
+    /// Each title's episode table and progress, as an app's title cache keeps them: a table
+    /// for every title loaded, moved on by what the engine says of the title's episodes.
+    titles: AppTitles,
     root: tempfile::TempDir,
+}
+
+/// What an app holds of the titles it was told of, applied as the Mac and Android apps apply
+/// it: `Episodes` replaces a title's table, and `Progress` sets the title's standing and the
+/// state of each row it names. A title's table is loaded once and kept.
+#[derive(Default)]
+struct AppTitles {
+    tables: std::collections::HashMap<AnilistId, Vec<anistream_model::episodes::EpisodeRow>>,
+    progress: std::collections::HashMap<AnilistId, Option<TitleProgress>>,
+}
+
+impl AppTitles {
+    fn apply(&mut self, event: &Event) {
+        match event {
+            Event::Episodes { id, rows } => {
+                self.tables.insert(*id, rows.clone());
+            }
+            Event::Progress { id, progress, episodes, .. } => {
+                self.progress.insert(*id, *progress);
+                let Some(table) = self.tables.get_mut(id) else { return };
+                for said in episodes {
+                    if let Some(row) = table.iter_mut().find(|row| row.number == said.number) {
+                        row.watched = said.watched;
+                        row.completed = said.completed;
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The episodes of `id`'s table that read as watched.
+    fn watched(&self, id: AnilistId) -> Vec<&str> {
+        let rows = self.tables.get(&id).map(Vec::as_slice).unwrap_or_default();
+        rows.iter().filter(|row| row.completed).map(|row| row.number.as_str()).collect()
+    }
 }
 
 /// A file the player was told to load.
@@ -114,7 +154,14 @@ impl App {
                 }
             }
         });
-        Self { engine, events, read: Vec::new(), ops: Vec::new(), root }
+        Self {
+            engine,
+            events,
+            read: Vec::new(),
+            ops: Vec::new(),
+            titles: AppTitles::default(),
+            root,
+        }
     }
 
     /// The engine on the test kit's sources: one stream for each episode.
@@ -131,6 +178,7 @@ impl App {
                 panic!("no {what} in time; the engine said:\n{}", self.read.join("\n"))
             };
             self.read.push(format!("{event:?}"));
+            self.titles.apply(&event);
             if let Event::PlayerOps { playback, ops } = &event {
                 self.ops.extend(ops.iter().map(|op| (*playback, op.clone())));
             }
@@ -276,6 +324,7 @@ impl App {
             self.events.recv_timeout(until.saturating_duration_since(Instant::now()))
         {
             self.read.push(format!("{event:?}"));
+            self.titles.apply(&event);
             if let Event::PlayerOps { playback, ops } = &event {
                 self.ops.extend(ops.iter().map(|op| (*playback, op.clone())));
             }
@@ -790,6 +839,68 @@ fn the_next_episode_is_found_ahead_and_rolls_on_in_the_same_player() {
     app.opened(next.playback, &[]);
     app.tick(next.playback, 0, 2);
     app.stop();
+    app.shutdown();
+}
+
+/// Episode `playback` of a binge played to its end, as libmpv reports it: the file loaded with
+/// its chapters, the Up Next card shown once the list is in, the playhead to the last second
+/// and the end of the file. Returns the next episode's playback, which the ending rolls on to.
+fn played_through(app: &mut App, playback: PlaybackId, next: &str) -> PlaybackId {
+    app.opened(playback, &[("Opening", 0.0), ("Part A", 30.0), ("Ending", 100.0)]);
+    app.tick(playback, 0, 0);
+    app.ui("Up Next", |ui| matches!(ui, PlayerUi::UpNext { ending_at: Some(_), .. }));
+    app.tick(playback, 1, 119);
+    app.report(playback, PlayerReport::Ended { reason: PlayerEnd::Eof });
+    assert_eq!(app.ended(), Ending::Complete { next: Some(next.into()) });
+    let rolled = app.load();
+    assert_ne!(rolled.playback, playback, "{next} is a playback of its own");
+    rolled.playback
+}
+
+#[test]
+fn a_binge_marks_every_episode_watched_on_a_table_loaded_before_another_titles() {
+    let mut app = App::fixtures("");
+    // The airing title's page, its episodes listed: five of twelve are out.
+    app.engine.send(Command::LoadDetail(AIRING));
+    app.until("the page", |event| matches!(event, Event::Detail(_)).then_some(()));
+    app.engine.send(Command::LoadEpisodes(AIRING));
+    app.until("its table", |event| {
+        matches!(event, Event::Episodes { id, .. } if *id == AIRING).then_some(())
+    });
+    assert_eq!(app.titles.tables[&AIRING].len(), 5);
+    // Another title's table, as Continue loads the one it selects, or Downloads each of its
+    // shows': the app keeps both.
+    app.engine.send(Command::LoadEpisodes(FINISHED));
+    app.until("the other table", |event| {
+        matches!(event, Event::Episodes { id, .. } if *id == FINISHED).then_some(())
+    });
+
+    // Episodes 1 to 3 in one sitting, each rolling on to the next.
+    app.play(AIRING, "1");
+    let mut playback = app.load().playback;
+    for next in ["2", "3", "4"] {
+        playback = played_through(&mut app, playback, next);
+    }
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 2);
+    app.stop();
+    app.settle();
+
+    assert_eq!(app.titles.watched(AIRING), ["1", "2", "3"], "each episode played is watched");
+    assert_eq!(app.titles.progress[&AIRING], Some(TitleProgress { done: 3, next: 4 }));
+    assert!(app.titles.watched(FINISHED).is_empty(), "the other title watched nothing");
+
+    // Continue offers episode 4, which is out: the next to air is 6.
+    app.engine.send(Command::LoadContinue);
+    let row = app.until("Continue", |event| match event {
+        Event::Content {
+            view: anistream_model::catalog::ContentFor::Continue,
+            content: anistream_model::catalog::ContentList::Entries(entries),
+        } => entries.iter().find(|entry| entry.id == AIRING).cloned(),
+        _ => None,
+    });
+    assert_eq!(row.progress, Some(TitleProgress { done: 3, next: 4 }));
+    assert_eq!(row.next_episode, Some(6), "4 has aired, so Continue is not caught up");
     app.shutdown();
 }
 

@@ -246,10 +246,10 @@ pub enum Event {
     /// did, so that whatever that event brings up shows the title as it now stands.
     ///
     /// `progress` and `resume` are what every entry of the title says, on its page and in any
-    /// list; `episodes` is each episode's watched state, from the episode table loaded last when
-    /// it is this title's, and otherwise empty. A table is only ever loaded with
-    /// [`Event::Episodes`]: this says how far through it the viewer is, never which episodes
-    /// there are.
+    /// list; `episodes` is each episode's watched state, from the title's table as it was last
+    /// loaded, whether or not another title's has loaded since, and empty when none of it was.
+    /// A table is only ever loaded with [`Event::Episodes`]: this says how far through it the
+    /// viewer is, never which episodes there are.
     Progress {
         id: AnilistId,
         progress: Option<TitleProgress>,
