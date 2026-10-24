@@ -68,11 +68,41 @@ export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 # This repository's toolchain for the generator too, so it needs no toolchain of its own.
 toolchain="$(sed -n 's/^channel = "\(.*\)"/\1/p' "$root/rust-toolchain.toml")"
 
+exe=""
+on_windows=0
 case "$(uname -s)" in
   Darwin) library=libanistream_ffi.dylib ;;
-  MINGW* | MSYS* | CYGWIN*) library=anistream_ffi.dll ;;
+  MINGW* | MSYS* | CYGWIN*)
+    library=anistream_ffi.dll
+    exe=.exe
+    on_windows=1
+    ;;
   *) library=libanistream_ffi.so ;;
 esac
+
+# On Windows: Visual Studio's clang-cl and Ninja on the PATH, for the Windows on Arm build that
+# .cargo/config.toml asks for, and its libclang for bindgen. The host is read from rustc, since
+# Git Bash itself may run emulated as x64 on an Arm machine.
+if ((on_windows)); then
+  vs="$("/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe" -latest -products '*' \
+    -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath | tr -d '\r')"
+  [[ -n "$vs" ]] || {
+    echo "error: Visual Studio Build Tools with the C++ Clang component are needed" >&2
+    exit 1
+  }
+  vs="$(cygpath -u "$vs")"
+  case "$(rustc -vV | sed -n 's/^host: //p')" in
+    aarch64-*) llvm="$vs/VC/Tools/Llvm/ARM64/bin" ;;
+    *) llvm="$vs/VC/Tools/Llvm/x64/bin" ;;
+  esac
+  export PATH="$llvm:$vs/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja:$PATH"
+  export LIBCLANG_PATH="${LIBCLANG_PATH:-$(cygpath -w "$llvm")}"
+fi
+
+# Git for Windows has sha256sum on its PATH but keeps shasum among its Perl scripts.
+sha256() {
+  if command -v sha256sum >/dev/null; then sha256sum; else shasum -a 256; fi
+}
 
 # The generator: the pinned commit and the patches, each by its content.
 # shellcheck source=../bindgen-cs/upstream
@@ -82,10 +112,10 @@ generator_key="$(
     echo "$commit"
     echo "$toolchain"
     cat "$windows"/bindgen-cs/patches/*.patch
-  } | shasum -a 256 | cut -c1-16
+  } | sha256 | cut -c1-16
 )"
 generator_cache="${ANISTREAM_BINDGEN_CS_CACHE:-$HOME/.cache/anistream-bindgen-cs}"
-generator="$generator_cache/$generator_key/bin/uniffi-bindgen-cs"
+generator="$generator_cache/$generator_key/bin/uniffi-bindgen-cs$exe"
 
 # What the build is made from: every file under crates/ and wit/, tracked or not but not ignored,
 # the workspace's manifests and lock file, the toolchain pin, this script and the generator's pin.
@@ -101,7 +131,7 @@ sources_hash() {
         done |
         git hash-object --stdin-paths
       echo "$generator_key"
-    } | shasum -a 256 | cut -d' ' -f1
+    } | sha256 | cut -d' ' -f1
   )
 }
 
@@ -137,7 +167,7 @@ build_generator() {
     am -q "$windows"/bindgen-cs/patches/*.patch
   RUSTUP_TOOLCHAIN="$toolchain" CARGO_TARGET_DIR="$CARGO_TARGET_DIR/bindgen-cs" \
     cargo build --manifest-path "$work/src/Cargo.toml" --locked --release -p uniffi-bindgen-cs
-  cp "$CARGO_TARGET_DIR/bindgen-cs/release/uniffi-bindgen-cs" "$work/bin/"
+  cp "$CARGO_TARGET_DIR/bindgen-cs/release/uniffi-bindgen-cs$exe" "$work/bin/"
   rm -rf "$work/src"
   rm -rf "${generator_cache:?}/$generator_key"
   mv "$work" "$generator_cache/$generator_key"

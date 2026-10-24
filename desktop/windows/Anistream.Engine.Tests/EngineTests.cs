@@ -98,11 +98,33 @@ sealed class Started : IDisposable
     {
         Engine.Shutdown();
         Engine.Dispose();
-        try
+        DeleteRoot(Root);
+    }
+
+    /// <summary>
+    /// Deletes a test root. On Windows an open file cannot be deleted, and the engine's database
+    /// closes when the last of its tasks lets go of it, a moment after Shutdown() returns, so this
+    /// tries again for a while before it gives up.
+    /// </summary>
+    public static void DeleteRoot(string root)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (true)
         {
-            Directory.Delete(Root, recursive: true);
+            try
+            {
+                Directory.Delete(root, recursive: true);
+                return;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return;
+            }
+            catch (IOException) when (OperatingSystem.IsWindows() && DateTime.UtcNow < deadline)
+            {
+                Thread.Sleep(100);
+            }
         }
-        catch (DirectoryNotFoundException) { }
     }
 
     /// <summary>Every event until the one that ends <paramref name="job"/>, that one included.</summary>
@@ -342,7 +364,7 @@ public class EngineTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            Started.DeleteRoot(root);
         }
     }
 
@@ -359,7 +381,7 @@ public class EngineTests
         }
         finally
         {
-            Directory.Delete(root, recursive: true);
+            Started.DeleteRoot(root);
         }
     }
 }
