@@ -993,7 +993,8 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
 @Composable
 private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modifier) {
     Row(
-        modifier.padding(horizontal = 16.dp).heightIn(min = 120.dp),
+        // Room under the cover's foot for the dub line, which takes no height of its own.
+        modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp).heightIn(min = 120.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
@@ -1056,7 +1057,7 @@ private fun DubLine(id: AnilistId) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 4.dp),
         )
     }
 }
