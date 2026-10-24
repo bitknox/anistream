@@ -24,7 +24,8 @@ use anistream_remote::{
 // Lines are read blocking on one worker while the client reads the TV on another.
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let addr: SocketAddr = std::env::args().nth(1).ok_or("the TV's address, host:port")?.parse()?;
+    let addr: SocketAddr =
+        std::env::args().nth(1).ok_or("the TV's address, host:port")?.parse()?;
     let phone = Identity::generate()?;
     let hello = Hello { name: "Test phone".into(), app: "remote_drive/0".into() };
     let mut client = RemoteClient::connect(addr, &phone, None, &hello).await?;
@@ -56,17 +57,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ["text", rest @ ..] => {
                 let submit = rest.last() == Some(&"go");
                 let text = rest[..rest.len() - usize::from(submit)].join(" ");
-                client.send(RemoteCommand::Text { text: text.clone(), submit }).await.map(|()| text)
+                client
+                    .send(RemoteCommand::Text { text: text.clone(), submit })
+                    .await
+                    .map(|()| text)
             }
             ["volume", step] => {
                 let step: f64 = step.parse()?;
-                client.send(RemoteCommand::Volume { step }).await.map(|()| format!("volume {step}"))
+                client
+                    .send(RemoteCommand::Volume { step })
+                    .await
+                    .map(|()| format!("volume {step}"))
             }
             ["open", id] => {
                 let id = AnilistId::new(id.parse()?);
                 client.send(RemoteCommand::Open { id }).await.map(|()| "opened".to_owned())
             }
-            ["pause"] => client.send(RemoteCommand::TogglePause).await.map(|()| "pause".to_owned()),
+            ["pause"] => {
+                client.send(RemoteCommand::TogglePause).await.map(|()| "pause".to_owned())
+            }
             ["sleep", seconds] => {
                 tokio::time::sleep(std::time::Duration::from_secs_f64(seconds.parse()?)).await;
                 continue;

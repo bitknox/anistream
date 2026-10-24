@@ -92,9 +92,12 @@ impl Attached {
     /// The TV's key from the host's keychain, made and kept there the first time.
     fn identity(&self) -> Result<Identity, FfiError> {
         let fail = |e: RemoteError| FfiError::Remote { reason: e.to_string() };
-        let Some(secrets) = &self.home.secrets else { return Identity::generate().map_err(fail) };
+        let Some(secrets) = &self.home.secrets else {
+            return Identity::generate().map_err(fail);
+        };
         if let Ok(Some(kept)) = secrets.get(IDENTITY_SECRET)
-            && let Some(identity) = from_hex(&kept).and_then(|der| Identity::from_pkcs8(&der).ok())
+            && let Some(identity) =
+                from_hex(&kept).and_then(|der| Identity::from_pkcs8(&der).ok())
         {
             return Ok(identity);
         }
@@ -182,7 +185,11 @@ impl FfiEngine {
     /// first.
     ///
     /// What the remote asks of the front end comes out of `next_events` as `Event::Remote`.
-    pub async fn start_remote(&self, name: String, port: u16) -> Result<Arc<FfiTvRemote>, FfiError> {
+    pub async fn start_remote(
+        &self,
+        name: String,
+        port: u16,
+    ) -> Result<Arc<FfiTvRemote>, FfiError> {
         let fail = |e: RemoteError| FfiError::Remote { reason: e.to_string() };
         let Some(sender) = self.remote_sender() else {
             return Err(FfiError::Remote { reason: "the engine has stopped".into() });
@@ -191,8 +198,9 @@ impl FfiEngine {
         let identity = attached.identity()?;
         let fingerprint = identity.fingerprint();
         let remote_dir = attached.home.data.join("remote");
-        std::fs::create_dir_all(&remote_dir)
-            .map_err(|e| FfiError::Remote { reason: format!("{}: {e}", remote_dir.display()) })?;
+        std::fs::create_dir_all(&remote_dir).map_err(|e| FfiError::Remote {
+            reason: format!("{}: {e}", remote_dir.display()),
+        })?;
         let trust = Arc::new(FileTrust::open(&remote_dir).map_err(fail)?);
         let options = ServerOptions { tv_name: name, ..ServerOptions::default() };
         let running = Arc::clone(&attached.running);
@@ -275,7 +283,8 @@ impl FfiTvRemote {
     /// one. `None` when `address` is not an IP address.
     pub fn pair_link(&self, address: String, code: Option<String>) -> Option<String> {
         let ip = address.parse().ok()?;
-        let link = PairLink { addr: SocketAddr::new(ip, self.port), tv: Some(self.fingerprint), code };
+        let link =
+            PairLink { addr: SocketAddr::new(ip, self.port), tv: Some(self.fingerprint), code };
         Some(link.to_string())
     }
 
@@ -360,7 +369,10 @@ fn from_hex(text: &str) -> Option<Vec<u8>> {
     if !text.len().is_multiple_of(2) {
         return None;
     }
-    (0..text.len()).step_by(2).map(|i| u8::from_str_radix(text.get(i..i + 2)?, 16).ok()).collect()
+    (0..text.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(text.get(i..i + 2)?, 16).ok())
+        .collect()
 }
 
 #[cfg(test)]

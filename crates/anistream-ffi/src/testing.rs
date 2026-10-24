@@ -116,7 +116,9 @@ impl FfiEngine {
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing)), home),
+            Ok((started, testing)) => {
+                Self::hold(runtime, Ok(started), Some(Box::new(testing)), home)
+            }
             Err(e) => Self::hold(runtime, Err(e), None, home),
         }
     }

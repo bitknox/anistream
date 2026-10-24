@@ -121,7 +121,9 @@ impl RemoteCommand {
             Self::Previous => player(PlayerCommand::Step(-1)),
             Self::Skip => player(PlayerCommand::TakeSkip),
             Self::Stop => player(PlayerCommand::Stop),
-            Self::Volume { step } => Routed::Front(FrontIntent::Volume { step: step.clamp(-100.0, 100.0) }),
+            Self::Volume { step } => {
+                Routed::Front(FrontIntent::Volume { step: step.clamp(-100.0, 100.0) })
+            }
             Self::Speed { speed } => player(PlayerCommand::SpeedTo(speed.clamp(0.25, 4.0))),
             Self::Track { kind, id } => player(PlayerCommand::ChooseTrack {
                 kind: match kind {
