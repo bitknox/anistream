@@ -131,23 +131,6 @@ extension SettingsModel {
     }
 }
 
-/// A switch the engine cannot set yet: drawn as the board has it, and disabled.
-struct DeferredSwitch: View {
-    let title: String
-    let on: Bool
-    /// The engine step it waits on, for the tooltip: "E8".
-    let waitsOn: String
-
-    var body: some View {
-        Toggle(title, isOn: .constant(on))
-            .toggleStyle(.switch)
-            .tint(.amber)
-            .labelsHidden()
-            .disabled(true)
-            .help("Comes with engine step \(waitsOn)")
-    }
-}
-
 /// A menu's label: the capsule on the Mac and iPad, the plain value with chevrons in an iPhone's
 /// list row.
 struct MenuValue: View {
@@ -227,19 +210,6 @@ struct SettingMenu: View {
         .fixedSize()
         .disabled(row == nil)
         .accessibilityLabel(key.title)
-    }
-}
-
-/// A menu the engine cannot set yet: its choice as the board shows it, disabled.
-struct DeferredMenu: View {
-    let text: String
-    let waitsOn: String
-
-    var body: some View {
-        MenuCapsule(text: text)
-            .opacity(0.45)
-            .help("Comes with engine step \(waitsOn)")
-            .accessibilityLabel("\(text), not available yet")
     }
 }
 

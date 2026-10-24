@@ -131,7 +131,7 @@ struct ShowSettingsSheet: View {
             HStack(spacing: 14) {
                 CoverArt(entry: entry, width: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.showTitle).font(.mac(15, weight: .semibold)).foregroundStyle(.silk)
+                    Text(entry.showTitle).font(.macShowTitle(size: 15)).foregroundStyle(.silk)
                     Text("Settings for this show").font(.mac(13)).foregroundStyle(.haze)
                 }
             }
@@ -173,7 +173,7 @@ struct ShowSettingsSheet: View {
                 rule
                 GridRow {
                     Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                    Button("Reset to Defaults") { store.resetShowSettings(entry.id) }
+                    Button(cased(mac: "Reset to Defaults", touch: "Reset to defaults")) { store.resetShowSettings(entry.id) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         .disabled(view == nil)
                 }

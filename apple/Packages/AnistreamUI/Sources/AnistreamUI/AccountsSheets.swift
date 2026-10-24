@@ -45,7 +45,7 @@ struct KitsuSheet: View {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
-                Button("Sign In", action: signIn)
+                Button(cased(mac: "Sign In", touch: "Sign in"), action: signIn)
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
                     .disabled(username.isEmpty || password.isEmpty || working)
@@ -166,7 +166,7 @@ struct ConflictsSheet: View {
                                     .foregroundStyle(.haze)
                             }
                             Spacer()
-                            Button("Keep This \(Device.name)’s") { store.resolveConflict(row.anilistId, keepLocal: true) }
+                            Button(cased(mac: "Keep This \(Device.name)’s", touch: "Keep this \(Device.name)’s")) { store.resolveConflict(row.anilistId, keepLocal: true) }
                             Button("Keep AniList’s") { store.resolveConflict(row.anilistId, keepLocal: false) }
                         }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))

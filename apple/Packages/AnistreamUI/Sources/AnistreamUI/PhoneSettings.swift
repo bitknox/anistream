@@ -31,12 +31,13 @@ struct PhoneSettingsSheet: View {
         }
         .onAppear { if start != .root, path.isEmpty { path = [start] } }
         .modifier(DeviceCodePresenter(here: true))
+        .modifier(KitsuPresenter(here: true))
         // Pair a TV, from the TVs page.
         .modifier(TVRemoteSheets(place: .settings))
         // What the engine says while Settings is open, a sign-in that failed among it: at the
         // foot of the sheet, clear of its bar.
         .overlay(alignment: .bottom) {
-            NoticeCapsule(opensMessages: false).padding(.horizontal, 16).padding(.bottom, 24)
+            NoticeCapsule(inSettingsSheet: true).padding(.horizontal, 16).padding(.bottom, 24)
         }
         // Silk for the bar's actions and links; switches set their own amber.
         .tint(.silk)
@@ -175,46 +176,6 @@ struct PhoneMenuValue: View {
         }
         .font(.ui(17))
         .foregroundStyle(.haze)
-    }
-}
-
-/// A row the engine cannot set yet: its value as the board shows it, disabled.
-struct PhoneDeferredRow: View {
-    let title: String
-    var note: String?
-    let value: String
-    let waitsOn: String
-
-    var body: some View {
-        HStack {
-            PhoneRowTitle(title: title, note: note)
-            Spacer()
-            HStack(spacing: 6) {
-                Text(value)
-                Image(systemName: "chevron.up.chevron.down").font(.ui(11, weight: .semibold))
-            }
-            .font(.ui(17))
-            .foregroundStyle(.haze)
-        }
-        .opacity(0.5)
-        .listRowBackground(Palette.raised)
-        .accessibilityElement(children: .combine)
-        .accessibilityHint("Not available yet")
-        .help("Comes with engine step \(waitsOn)")
-    }
-}
-
-/// A switch the engine cannot set yet.
-struct PhoneDeferredSwitch: View {
-    let title: String
-    var note: String?
-    let on: Bool
-
-    var body: some View {
-        Toggle(isOn: .constant(on)) { PhoneRowTitle(title: title, note: note) }
-            .tint(.amber)
-            .disabled(true)
-            .listRowBackground(Palette.raised)
     }
 }
 
@@ -412,6 +373,12 @@ struct PhoneDownloadsPage: View {
     var body: some View {
         let watched = WatchedDownloads(store)
         PhoneList {
+            if store.downloads.loaded, store.downloads.groups.isEmpty {
+                NoDownloads()
+                    .frame(minHeight: 280)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            }
             ForEach(store.downloads.groups) { group in
                 Section {
                     ForEach(group.rows, id: \.id) { row in
@@ -432,15 +399,16 @@ struct PhoneDownloadsPage: View {
                 PhoneSectionHeader("Files")
             }
             Section {
-                Button("Delete Watched Downloads", role: .destructive) { confirmDelete = true }
+                Button("Delete watched downloads", role: .destructive) { confirmDelete = true }
                     .disabled(watched.rows.isEmpty)
                     .listRowBackground(Palette.raised)
             } footer: {
                 Text("\(Wording.bytes(store.downloads.bytesOnDisk)) in downloads"
-                     + (FreeSpace.bytes.map { ". \(Wording.bytes($0)) free on this iPhone." } ?? "."))
+                     + (FreeSpace.bytes.map { ". \(Wording.bytes($0)) free on this \(Device.name)." } ?? "."))
             }
         }
         .inProgressRotor(store.downloads.groups, titles: store.titles, in: rotor)
+        .pullToRefresh(store, .downloads)
         .navigationTitle("Downloads")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Delete \(Wording.plural(watched.rows.count, "watched download"))?", isPresented: $confirmDelete) {
@@ -454,6 +422,8 @@ struct PhoneDownloadsPage: View {
 struct PhoneDownloadRow: View {
     @Environment(AppStore.self) private var store
     let row: DownloadRow
+    /// Whether Delete is asking first.
+    @State private var deleting = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -464,7 +434,11 @@ struct PhoneDownloadRow: View {
                     Text(Wording.bytes(row.total)).font(.ui(15)).foregroundStyle(.haze).monospacedDigit()
                 }
             }
-            Text(status).font(.ui(13)).foregroundStyle(row.state == .failed ? .vermilion : .haze)
+            if row.state == .failed {
+                FailedLine(status, size: 11)
+            } else {
+                Text(status).font(.ui(13)).foregroundStyle(.haze)
+            }
             if row.state == .active || row.state == .paused, row.total > 0 {
                 Capsule().fill(.rule)
                     .overlay(alignment: .leading) {
@@ -479,21 +453,29 @@ struct PhoneDownloadRow: View {
         .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
         .listRowBackground(Palette.raised)
-        .swipeActions(edge: .trailing) {
+        // No full swipe: a file goes only by a tap on Delete, and Delete asks first.
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             switch row.state {
             case .done:
-                Button("Delete", role: .destructive) { store.deleteDownload(row.id) }
+                Button("Delete", role: .destructive) { deleting = true }
             default:
-                Button("Remove", role: .destructive) { store.cancelDownload(row.id) }
+                Button("Cancel", role: .destructive) { store.cancelDownload(row.id) }
             }
         }
+        // Untinted: the screen's one amber is not spent on a swipe (Johan kept these, decision 12).
         .swipeActions(edge: .leading) {
             switch row.state {
-            case .done: Button("Play") { store.playDownload(row) }.tint(.amber)
+            case .done: Button("Play") { store.playDownload(row) }
             case .active, .queued: Button("Pause") { store.toggleDownload(row.id) }
-            case .paused: Button("Resume") { store.toggleDownload(row.id) }.tint(.water)
-            case .failed: Button("Retry") { store.retryDownload(row) }.tint(.amber)
+            case .paused: Button("Resume") { store.toggleDownload(row.id) }
+            case .failed: Button("Retry") { store.retryDownload(row) }
             }
+        }
+        .confirmationDialog("Delete episode \(row.episode)?", isPresented: $deleting, titleVisibility: .visible) {
+            Button("Delete download", role: .destructive) { store.deleteDownload(row.id) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It plays again only with a connection, or once you download it again.")
         }
     }
 
@@ -506,7 +488,7 @@ struct PhoneDownloadRow: View {
                 + (store.downloads.secondsLeft(row).map { " · \(Wording.countdown($0)) left" } ?? "")
         case .paused: "Paused at \(Wording.bytes(row.downloaded)) of \(Wording.bytes(row.total))"
         case .queued: "Queued · starts when a download slot is free"
-        case .failed: "Failed: \(row.error ?? "the download stopped")"
+        case .failed: "The download stopped"
         }
     }
 }
@@ -560,7 +542,7 @@ struct PhoneSourcesPage: View {
             }
             if on {
                 Section {
-                    PhoneSettingPicker(key: .seedRatio, note: "Best effort on iPhone: only while anistream is open")
+                    PhoneSettingPicker(key: .seedRatio, note: "Best effort on \(Device.name): only while anistream is open")
                     PhoneSettingPicker(key: .seedHours)
                     PhoneSettingPicker(key: .uploadLimit)
                 } header: {

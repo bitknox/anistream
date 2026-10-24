@@ -14,15 +14,7 @@ struct DownloadsScreen: View {
         let groups = store.downloads.groups
         Group {
             if store.downloads.loaded, groups.isEmpty, store.downloads.seeding.isEmpty {
-                VStack(spacing: 8) {
-                    Text("Nothing downloaded")
-                        .font(.mac(15, weight: .semibold))
-                        .foregroundStyle(.silk)
-                    Text("Download an episode from its title page to watch it without a connection.")
-                        .font(.mac(13))
-                        .foregroundStyle(.haze)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                NoDownloads()
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
@@ -51,7 +43,15 @@ struct DownloadsScreen: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .pullToRefresh(store, .downloads)
         .task { store.loadDownloads() }
+    }
+}
+
+/// Downloads with nothing in it (the spec's empty states).
+struct NoDownloads: View {
+    var body: some View {
+        EmptyState(title: "No downloads", line: "Downloaded episodes play without a connection.")
     }
 }
 
@@ -218,9 +218,8 @@ struct DownloadLine: View {
         case .queued:
             Text("Queued · starts when a download slot is free").font(.mac(13)).foregroundStyle(.haze)
         case .failed:
-            Text("Failed: \(row.error ?? "the download stopped")")
-                .font(.mac(13))
-                .foregroundStyle(.vermilion)
+            // What stopped it is in Messages and the bug report (copy rule 5).
+            FailedLine("The download stopped")
                 .lineLimit(2)
         }
     }
@@ -275,19 +274,7 @@ struct DownloadLine: View {
                 icon("play", "Resume") { store.toggleDownload(row.id) }
                 icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
             case .queued:
-                Menu {
-                    // Starting one ahead of the queue, and its quality, are no command the engine has.
-                    Button("Start Now") {}.disabled(true)
-                    Divider()
-                    Button("Remove from Queue") { store.cancelDownload(row.id) }
-                } label: {
-                    Image(systemName: "ellipsis").frame(width: 28, height: 28)
-                }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .accessibilityLabel("More")
+                // Starting one ahead of the queue is no command the engine has, so no menu offers it.
                 icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
             case .failed:
                 Button("Retry") { store.retryDownload(row) }
@@ -352,13 +339,6 @@ struct SeedingList: View {
                         .monospacedDigit()
                         .foregroundStyle(.haze)
                         .frame(width: 80, alignment: .trailing)
-                    // Stopping one file's seeding early has no engine command yet.
-                    Image(systemName: "xmark")
-                        .font(.mac(13, weight: .medium))
-                        .foregroundStyle(.haze)
-                        .frame(width: 120, alignment: .trailing)
-                        .opacity(0.45)
-                        .help("Waits on an engine command to stop seeding one file")
                 }
                 .padding(.leading, 50)
                 .frame(minHeight: 32)
