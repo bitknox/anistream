@@ -20,7 +20,7 @@ use anistream_model::{
     downloads::{DownloadRow, DownloadState, SeedRow},
     event::Event,
     settings::{SettingKey, SettingRow, SettingsView},
-    sources::{ProviderOrigin, ProviderRow},
+    sources::{GuardView, ProviderOrigin, ProviderRow},
     stores::{StorePluginRow, StorePluginStatus, StoreRow},
     sync::SyncState,
 };
@@ -58,6 +58,9 @@ pub struct Known {
     pub jobs: HashMap<JobId, String>,
     /// The trackers being signed in to, and how.
     pub signing: HashMap<String, SignIn>,
+    /// The torrent connection check's last verdict, and when it was heard; `None` while
+    /// torrents are off or before the first.
+    pub guard: Option<(GuardView, std::time::Instant)>,
 }
 
 impl Known {
@@ -186,6 +189,9 @@ impl Known {
             }
             Event::Stores(rows) => self.stores = rows.clone(),
             Event::Connectivity { offline } => self.offline = *offline,
+            Event::Vpn(guard) => {
+                self.guard = guard.clone().map(|g| (g, std::time::Instant::now()));
+            }
             Event::JobStarted { job, activity } => {
                 self.jobs.insert(*job, activity.clone());
             }

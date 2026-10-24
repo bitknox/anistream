@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 29] = [
+pub const ALL: [&str; 32] = [
     "home",
     "welcome",
     "offline",
@@ -41,6 +41,9 @@ pub const ALL: [&str; 29] = [
     "settings-accounts",
     "accounts-kitsu",
     "accounts-code",
+    "torrents-setup",
+    "torrents-none",
+    "torrents-on",
     "about",
     "player",
     "player-marks",
@@ -200,6 +203,53 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.settings_pane("accounts");
             1.5
         }
+        "torrents-setup" => {
+            shell.settings_pane("sources");
+            crate::pages::torrents::setup(&shell.ctx, true, None, Rc::new(|| {}));
+            1.5
+        }
+        "torrents-none" => {
+            shell.settings_pane("sources");
+            crate::pages::torrents::setup(
+                &shell.ctx,
+                true,
+                Some(anistream_model::protection::TorrentProtection::None),
+                Rc::new(|| {}),
+            );
+            if let Some(dialog) = shell.ctx.window.visible_dialog()
+                && let Some(send) = default_button(&dialog)
+            {
+                send.emit_clicked();
+            }
+            1.5
+        }
+        "torrents-on" => {
+            use anistream_core::settings::SettingValue;
+            use anistream_model::protection::{FailedCheck, TorrentProtection};
+            shell.ctx.hub.send(Command::SetSetting {
+                key: anistream_model::settings::SettingKey::TorrentIndex,
+                value: SettingValue::Str("https://index.example.test/rss?q={query}".into()),
+            });
+            // A proxy nothing listens on: the check fails on this machine, and never looks up
+            // where the run's own traffic leaves from.
+            shell.ctx.hub.send(Command::SetTorrentProtection {
+                mode: TorrentProtection::Proxy,
+                proxy: Some(anistream_model::protection::TorrentProxy {
+                    host: "127.0.0.1".into(),
+                    port: 9,
+                    user: None,
+                    password: None,
+                }),
+                on_failure: FailedCheck::Pause,
+                acknowledged: false,
+            });
+            shell.ctx.hub.send(Command::SetSetting {
+                key: anistream_model::settings::SettingKey::Torrents,
+                value: SettingValue::Bool(true),
+            });
+            shell.settings_pane("sources");
+            3.0
+        }
         "accounts-kitsu" => {
             shell.settings_pane("accounts");
             crate::pages::accounts::kitsu(&shell.ctx, Rc::new(|| {}));
@@ -294,7 +344,17 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "title" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
-        "about" | "join" | "welcome" | "accounts-kitsu" => close_dialogs(&shell.ctx.window),
+        "about" | "join" | "welcome" | "accounts-kitsu" | "torrents-setup" => {
+            close_dialogs(&shell.ctx.window)
+        }
+        "torrents-none" => {
+            close_dialogs(&shell.ctx.window);
+            close_dialogs(&shell.ctx.window);
+        }
+        "torrents-on" => shell.ctx.hub.send(Command::SetSetting {
+            key: anistream_model::settings::SettingKey::Torrents,
+            value: anistream_core::settings::SettingValue::Bool(false),
+        }),
         "accounts-code" => {
             crate::pages::accounts::device_code(&shell.ctx, None);
             shell.ctx.hub.known.borrow_mut().signing.remove("simkl");
@@ -370,6 +430,11 @@ fn close_dialogs(window: &adw::ApplicationWindow) {
     if let Some(dialog) = window.visible_dialog() {
         dialog.force_close();
     }
+}
+
+/// A dialog's default button: what Return presses.
+fn default_button(dialog: &adw::Dialog) -> Option<gtk::Button> {
+    dialog.default_widget()?.downcast().ok()
 }
 
 /// Draw the window, dialogs and all, into a PNG at its own scale.

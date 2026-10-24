@@ -16,6 +16,7 @@ pub mod settings_preview;
 pub mod show_settings;
 pub mod stores;
 pub mod title;
+pub mod torrents;
 
 use std::rc::Rc;
 

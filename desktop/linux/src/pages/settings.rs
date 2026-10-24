@@ -15,11 +15,15 @@ use anistream_model::{
     event::Event,
     settings::{SettingChange, SettingKey, SettingRow},
 };
-use gtk::gio;
+use gtk::{gio, glib};
 
 use crate::{
     catalog,
-    pages::settings_preview::{self as preview, Topic},
+    hub::Known,
+    pages::{
+        settings_preview::{self as preview, Topic},
+        torrents,
+    },
     prefs::CloseChoice,
     widgets,
     window::{Ctx, Size},
@@ -83,18 +87,12 @@ const PANES: [Pane; 8] = [
         name: "sources",
         title: "Sources",
         icon: "network-server-symbolic",
-        groups: &[(
-            "Torrents",
-            &[
-                K::Torrents,
-                K::VpnMode,
-                K::VpnOnFailure,
-                K::KeepSeeding,
-                K::SeedRatio,
-                K::SeedHours,
-                K::UploadLimit,
-            ],
-        )],
+        groups: &[
+            // Laid out by `torrents_group`: the switch, the index, what protects them, the last
+            // check and what a failed one does.
+            ("Torrents", &[K::Torrents, K::VpnMode, K::VpnOnFailure]),
+            ("Seeding", &[K::KeepSeeding, K::SeedRatio, K::SeedHours, K::UploadLimit]),
+        ],
     },
     Pane { name: "accounts", title: "Accounts", icon: "avatar-default-symbolic", groups: &[] },
     Pane {
@@ -154,6 +152,8 @@ struct Inner {
     /// The buttons that open a row's preview on a page of its own, hidden while the column
     /// shows it.
     openers: RefCell<Vec<gtk::Button>>,
+    /// Shows the torrent check's verdict again, while Sources is on screen.
+    guard: RefCell<Option<Rc<dyn Fn()>>>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
@@ -198,6 +198,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
         aside: RefCell::default(),
         topic: Cell::new(Topic::Pane("playback")),
         openers: RefCell::default(),
+        guard: RefCell::default(),
     });
     list.connect_row_selected({
         let inner = Rc::downgrade(&inner);
@@ -295,6 +296,12 @@ impl Inner {
                     self.show(pane);
                 }
             }
+            Event::Vpn(_) => {
+                let shown = self.guard.borrow().clone();
+                if let Some(shown) = shown {
+                    shown();
+                }
+            }
             Event::Sync(_)
             | Event::Authorize { .. }
             | Event::DeviceCode(_)
@@ -317,6 +324,7 @@ impl Inner {
         let Some(pane) = PANES.iter().find(|p| p.name == name) else { return };
         self.rows.borrow_mut().clear();
         self.openers.borrow_mut().clear();
+        self.guard.replace(None);
         self.topic.set(Topic::Pane(name));
         let page = adw::PreferencesPage::new();
         match name {
@@ -327,7 +335,23 @@ impl Inner {
         let known = self.ctx.hub.known.borrow();
         let ready = known.settings.is_some();
         for (title, keys) in pane.groups {
+            if name == "sources" && *title == "Torrents" {
+                if let Some(group) = self.torrents_group(&known) {
+                    page.add(&group);
+                }
+                continue;
+            }
             let group = adw::PreferencesGroup::builder().title(*title).build();
+            if *title == "Seeding" {
+                // Seeding only says anything once torrents are on.
+                let on = known.setting(K::Torrents).is_some_and(|r| catalog::is_on(&r));
+                group.set_visible(on);
+                group.set_description(Some("Seeding runs only while anistream is open."));
+                self.keep(K::Torrents, {
+                    let group = group.clone();
+                    move |row| group.set_visible(catalog::is_on(row))
+                });
+            }
             let mut any = false;
             for key in *keys {
                 let Some(row) = known.setting(*key) else { continue };
@@ -440,18 +464,20 @@ impl Inner {
             if let Some(subtitle) = &subtitle {
                 line.set_subtitle(subtitle);
             }
-            if key == K::Torrents {
-                // Turning the torrent source on asks first, with the connection check: Providers
-                // brings that in a later build.
-                line.set_sensitive(false);
-                line.set_subtitle("Set up from Providers in a later build");
-            }
             line.connect_active_notify({
                 let inner = Rc::downgrade(self);
                 move |line| {
-                    if let Some(inner) = inner.upgrade() {
-                        inner.set(key, SettingValue::Bool(line.is_active()));
+                    let Some(inner) = inner.upgrade() else { return };
+                    if key == K::Torrents && line.is_active() && !inner.quiet.get() {
+                        // Turning torrents on asks first how to protect them: the switch stays
+                        // off until the engine says they are on.
+                        inner.quiet.set(true);
+                        line.set_active(false);
+                        inner.quiet.set(false);
+                        torrents::setup(&inner.ctx, true, None, Rc::new(|| {}));
+                        return;
                     }
+                    inner.set(key, SettingValue::Bool(line.is_active()));
                 }
             });
             self.keep(key, {
@@ -743,6 +769,183 @@ impl Inner {
         if !self.quiet.get() {
             self.ctx.hub.send(Command::SetSetting { key, value });
         }
+    }
+
+    /// Torrents: the switch, and once they are on the index, what protects them, the last check
+    /// and what a failed one does. Turning them on opens the dialog that asks how to protect them.
+    fn torrents_group(self: &Rc<Self>, known: &Known) -> Option<adw::PreferencesGroup> {
+        let row = known.setting(K::Torrents)?;
+        let on = catalog::is_on(&row);
+        let group = adw::PreferencesGroup::builder()
+            .title("Torrents")
+            .description(if on { torrents::ON_NOTE } else { torrents::OFF_NOTE })
+            .build();
+        group.add(&self.row(&row));
+        let protection =
+            known.settings.as_ref().map(|v| (*v.torrent).clone()).unwrap_or_default();
+        let index = known.settings.as_ref().and_then(|v| v.sources.index.clone());
+        let mut while_on: Vec<gtk::Widget> = Vec::new();
+
+        // The index, sent when applied.
+        let entry = adw::EntryRow::builder()
+            .title("Torrent index")
+            .text(index.as_deref().unwrap_or_default())
+            .show_apply_button(true)
+            .input_purpose(gtk::InputPurpose::Url)
+            .tooltip_text(torrents::INDEX_NOTE)
+            .build();
+        entry.connect_apply({
+            let hub = Rc::downgrade(&self.ctx.hub);
+            move |entry| {
+                let typed = entry.text().trim().to_owned();
+                if let (Some(hub), false) = (hub.upgrade(), typed.is_empty()) {
+                    hub.send(Command::SetSetting {
+                        key: K::TorrentIndex,
+                        value: SettingValue::Str(typed),
+                    });
+                }
+            }
+        });
+        group.add(&entry);
+        while_on.push(entry.clone().upcast());
+
+        // Protect with: the device's VPN at once, a proxy through the dialog, none confirmed.
+        let labels: Vec<&str> =
+            torrents::PROTECTIONS.iter().map(|p| torrents::label(*p)).collect();
+        let protect = adw::ComboRow::builder()
+            .title("Protect with")
+            .model(&gtk::StringList::new(&labels))
+            .build();
+        let at = |p| torrents::PROTECTIONS.iter().position(|c| *c == p).unwrap_or(0) as u32;
+        protect.set_selected(at(protection.protection));
+        let put_back = {
+            let (inner, protect) = (Rc::downgrade(self), protect.clone());
+            move || {
+                let Some(inner) = inner.upgrade() else { return };
+                inner.quiet.set(true);
+                protect.set_selected(at(torrents::current(&inner.ctx).protection));
+                inner.quiet.set(false);
+            }
+        };
+        let put_back: Rc<dyn Fn()> = Rc::new(put_back);
+        protect.connect_selected_notify({
+            let (inner, put_back) = (Rc::downgrade(self), Rc::clone(&put_back));
+            move |protect| {
+                let Some(inner) = inner.upgrade() else { return };
+                let Some(choice) = torrents::PROTECTIONS.get(protect.selected() as usize)
+                else {
+                    return;
+                };
+                if inner.quiet.get() || *choice == torrents::current(&inner.ctx).protection {
+                    return;
+                }
+                torrents::choose_protection(&inner.ctx, *choice, Rc::clone(&put_back));
+            }
+        });
+        group.add(&protect);
+        while_on.push(protect.clone().upcast());
+
+        // The last check: where traffic left through and when, and how it went.
+        let check = adw::ActionRow::builder().title("Last check").build();
+        let verdict = gtk::Label::new(None);
+        verdict.set_valign(gtk::Align::Center);
+        check.add_suffix(&verdict);
+        let shown: Rc<dyn Fn()> = Rc::new({
+            let (hub, check, verdict) =
+                (Rc::downgrade(&self.ctx.hub), check.clone(), verdict.clone());
+            move || {
+                let Some(hub) = hub.upgrade() else { return };
+                let known = hub.known.borrow();
+                let guard = known.guard.as_ref();
+                let ago = guard.map(|(_, at)| at.elapsed().as_secs() as i64);
+                let (note, word, failed) = torrents::guard_words(guard.map(|(g, _)| g), ago);
+                check.set_subtitle(&note);
+                verdict.set_label(word);
+                if failed {
+                    verdict.add_css_class("error")
+                } else {
+                    verdict.remove_css_class("error")
+                }
+            }
+        });
+        shown();
+        self.guard.replace(Some(Rc::clone(&shown)));
+        // "· 2 min ago" moves on while the row is on screen.
+        glib::timeout_add_seconds_local(30, {
+            let (check, shown) = (check.downgrade(), Rc::downgrade(&shown));
+            move || match (check.upgrade(), shown.upgrade()) {
+                (Some(_), Some(shown)) => {
+                    shown();
+                    glib::ControlFlow::Continue
+                }
+                _ => glib::ControlFlow::Break,
+            }
+        });
+        group.add(&check);
+        while_on.push(check.clone().upcast());
+
+        // If a check fails: pause or stop at once, Warn only once confirmed.
+        let labels: Vec<&str> =
+            torrents::FAILED_CHECKS.iter().map(|c| torrents::failed_label(*c)).collect();
+        let failed = adw::ComboRow::builder()
+            .title(catalog::shown(K::VpnOnFailure.label()))
+            .model(&gtk::StringList::new(&labels))
+            .build();
+        let at_check =
+            |c| torrents::FAILED_CHECKS.iter().position(|f| *f == c).unwrap_or(0) as u32;
+        failed.set_selected(at_check(protection.on_failure));
+        failed.connect_selected_notify({
+            let inner = Rc::downgrade(self);
+            move |failed| {
+                let Some(inner) = inner.upgrade() else { return };
+                let Some(check) = torrents::FAILED_CHECKS.get(failed.selected() as usize)
+                else {
+                    return;
+                };
+                if inner.quiet.get() {
+                    return;
+                }
+                let put_back = {
+                    let (inner, failed) = (Rc::downgrade(&inner), failed.clone());
+                    move || {
+                        let Some(inner) = inner.upgrade() else { return };
+                        inner.quiet.set(true);
+                        failed.set_selected(at_check(torrents::current(&inner.ctx).on_failure));
+                        inner.quiet.set(false);
+                    }
+                };
+                torrents::set_failed_check(&inner.ctx, *check, put_back);
+            }
+        });
+        group.add(&failed);
+        while_on.push(failed.clone().upcast());
+
+        for widget in &while_on {
+            widget.set_visible(on);
+        }
+        self.keep(K::Torrents, {
+            let (group, inner) = (group.clone(), Rc::downgrade(self));
+            move |row| {
+                let on = catalog::is_on(row);
+                group.set_description(Some(if on {
+                    torrents::ON_NOTE
+                } else {
+                    torrents::OFF_NOTE
+                }));
+                for widget in &while_on {
+                    widget.set_visible(on);
+                }
+                let Some(inner) = inner.upgrade() else { return };
+                let known = inner.ctx.hub.known.borrow();
+                let Some(view) = known.settings.as_ref() else { return };
+                protect.set_selected(at(view.torrent.protection));
+                failed.set_selected(at_check(view.torrent.on_failure));
+                if !entry.has_focus() {
+                    entry.set_text(view.sources.index.as_deref().unwrap_or_default());
+                }
+            }
+        });
+        Some(group)
     }
 
     /// Accounts: the trackers, each signed in or not.
