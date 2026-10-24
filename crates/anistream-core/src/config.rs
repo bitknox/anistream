@@ -427,11 +427,14 @@ pub struct MetaConfig {
     /// Which form of each title is shown: AniList's own choice for the signed-in account, or
     /// English or romaji whoever is signed in. Every front end shows what this says.
     pub title_language: TitleChoice,
+    /// Show titles AniList marks adult in Search and the lists, with its adult genre and tags
+    /// among the filters. Off unless asked for.
+    pub adult: bool,
 }
 
 impl Default for MetaConfig {
     fn default() -> Self {
-        Self { fallback: true, title_language: TitleChoice::default() }
+        Self { fallback: true, title_language: TitleChoice::default(), adult: false }
     }
 }
 

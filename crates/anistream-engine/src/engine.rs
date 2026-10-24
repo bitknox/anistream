@@ -106,6 +106,8 @@ impl RemoteSender {
 }
 
 /// What the front end hands the actor.
+// Commands carry a search's whole query, and pass through here once each: not worth a box.
+#[allow(clippy::large_enum_variant)]
 enum Message {
     /// A command, with the job [`Engine::send`] numbered for it, and its activity.
     Command { job: Option<(JobId, String)>, command: Command },
@@ -567,6 +569,8 @@ pub struct EventStream {
 }
 
 /// What the actor puts on the stream.
+// Events carry a search's whole query, and pass through here once each: not worth a box.
+#[allow(clippy::large_enum_variant)]
 enum Out {
     /// For the front end.
     Event(Event),
@@ -675,6 +679,8 @@ impl EventStream {
 
 /// What an engine started from a test's parts says: its events, and two things beside them.
 #[cfg(feature = "testing")]
+// Events carry a search's whole query, and pass through here once each: not worth a box.
+#[allow(clippy::large_enum_variant)]
 pub enum Traced {
     /// An event, as any front end reads it.
     Event(Event),

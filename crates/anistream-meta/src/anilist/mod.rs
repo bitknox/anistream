@@ -66,6 +66,13 @@ impl Season {
         }
     }
 
+    /// The season AniList calls `name`.
+    pub fn parse(name: &str) -> Option<Self> {
+        [Self::Winter, Self::Spring, Self::Summer, Self::Fall]
+            .into_iter()
+            .find(|season| season.as_str() == name)
+    }
+
     /// The season containing a given month.
     pub const fn of_month(month: u8) -> Self {
         match month {
@@ -95,35 +102,215 @@ impl Season {
     }
 }
 
-/// Server-side browse filters.
+/// Server-side browse filters: every argument of `Page.media` a search can set, in AniList's
+/// own words and values.
 ///
 /// Every field here is applied by AniList rather than locally, which is what makes a wide
-/// filter surface affordable against a 30/minute budget.
-#[derive(Debug, Clone, Default)]
+/// filter surface affordable against a 30/minute budget. Bounds are exclusive, as AniList's
+/// `_greater` and `_lesser` arguments are. An unset field is left out of the request.
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct BrowseFilter {
+    /// AniList's sort names, the first deciding. Empty is relevance with a term and
+    /// popularity without. Ties are broken by id either way, so pages do not shuffle.
+    pub sort: Vec<String>,
+    /// Every one of these.
     pub genres: Vec<String>,
-    pub format: Option<String>,
-    pub status: Option<String>,
-    pub min_score: Option<u32>,
-    pub sort: Option<String>,
-    /// Wire form (`WINTER`…). Only read by [`AniList::search_filtered`] — the seasonal
-    /// browse takes its season as a required argument instead.
+    pub genres_excluded: Vec<String>,
+    /// Every one of these.
+    pub tags: Vec<String>,
+    pub tags_excluded: Vec<String>,
+    pub min_tag_rank: Option<u32>,
+    /// Any of these (`TV`, `TV_SHORT`, …).
+    pub formats: Vec<String>,
+    /// Any of these (`RELEASING`, …).
+    pub statuses: Vec<String>,
+    /// `WINTER`…
     pub season: Option<String>,
-    /// Same: the filtered search's optional year, not the seasonal browse's required one.
+    /// The year of [`Self::season`], or on its own, the year a title aired in.
     pub year: Option<u32>,
+    /// Start dates as AniList's `YYYYMMDD` integers, exclusive.
+    pub started_after: Option<u32>,
+    pub started_before: Option<u32>,
+    pub episodes_greater: Option<u32>,
+    pub episodes_lesser: Option<u32>,
+    /// Minutes an episode.
+    pub duration_greater: Option<u32>,
+    pub duration_lesser: Option<u32>,
+    /// Average score, 0 to 100, above this.
+    pub min_score: Option<u32>,
+    /// People with the title on a list, above this.
+    pub min_popularity: Option<u32>,
+    /// Any of these (`MANGA`, `LIGHT_NOVEL`, …).
+    pub sources: Vec<String>,
+    /// Any of these ISO codes.
+    pub countries: Vec<String>,
+    /// Streaming officially on any of these sites.
+    pub licensed_by: Vec<String>,
+    pub licensed: Option<bool>,
+    /// On the signed-in viewer's lists, or not; needs the token.
+    pub on_list: Option<bool>,
+    /// Adult or not; `None` asks for both.
+    pub adult: Option<bool>,
 }
 
 impl BrowseFilter {
     pub fn is_empty(&self) -> bool {
-        self.genres.is_empty()
-            && self.format.is_none()
-            && self.status.is_none()
-            && self.min_score.is_none()
-            && self.sort.is_none()
-            && self.season.is_none()
-            && self.year.is_none()
+        *self == Self { adult: self.adult, ..Self::default() }
+    }
+
+    /// The arguments of one page of this browse for `term`, as [`query::media_pages`] takes
+    /// them: only those set.
+    pub fn arguments(
+        &self,
+        term: &str,
+        page: u32,
+        per_page: u32,
+    ) -> Vec<(query::Argument, serde_json::Value)> {
+        use serde_json::json;
+        let term = term.trim();
+        let mut out: Vec<(query::Argument, serde_json::Value)> = vec![
+            (("page", "Int"), json!(page.max(1))),
+            (("perPage", "Int"), json!(per_page.clamp(1, 50))),
+        ];
+        let mut sort = self.sort.clone();
+        if sort.is_empty() {
+            // `SEARCH_MATCH` means nothing without a term to match.
+            sort.push(if term.is_empty() { "POPULARITY_DESC" } else { "SEARCH_MATCH" }.into());
+        }
+        if !sort.iter().any(|s| s == "ID" || s == "ID_DESC") {
+            sort.push("ID".into());
+        }
+        out.push((("sort", "[MediaSort]"), json!(sort)));
+        if !term.is_empty() {
+            out.push((("search", "String"), json!(term)));
+        }
+        let lists: [(query::Argument, &Vec<String>); 9] = [
+            (("genre_in", "[String]"), &self.genres),
+            (("genre_not_in", "[String]"), &self.genres_excluded),
+            (("tag_in", "[String]"), &self.tags),
+            (("tag_not_in", "[String]"), &self.tags_excluded),
+            (("format_in", "[MediaFormat]"), &self.formats),
+            (("status_in", "[MediaStatus]"), &self.statuses),
+            (("source_in", "[MediaSource]"), &self.sources),
+            (("licensedBy_in", "[String]"), &self.licensed_by),
+            (("countryOfOrigin_in", "[CountryCode]"), &self.countries),
+        ];
+        for (argument, values) in lists {
+            if values.is_empty() {
+                continue;
+            }
+            // One country goes as the plain argument, which every schema has had.
+            if argument.0 == "countryOfOrigin_in" && values.len() == 1 {
+                out.push((("countryOfOrigin", "CountryCode"), json!(values[0])));
+            } else {
+                out.push((argument, json!(values)));
+            }
+        }
+        if !self.tags.is_empty() || !self.tags_excluded.is_empty() {
+            out.push((("minimumTagRank", "Int"), json!(self.min_tag_rank.unwrap_or(60))));
+        }
+        if let Some(season) = &self.season {
+            out.push((("season", "MediaSeason"), json!(season)));
+        }
+        let numbers: [(query::Argument, Option<u32>); 9] = [
+            (("seasonYear", "Int"), self.year),
+            (("startDate_greater", "FuzzyDateInt"), self.started_after),
+            (("startDate_lesser", "FuzzyDateInt"), self.started_before),
+            (("episodes_greater", "Int"), self.episodes_greater),
+            (("episodes_lesser", "Int"), self.episodes_lesser),
+            (("duration_greater", "Int"), self.duration_greater),
+            (("duration_lesser", "Int"), self.duration_lesser),
+            (("averageScore_greater", "Int"), self.min_score),
+            (("popularity_greater", "Int"), self.min_popularity),
+        ];
+        for (argument, value) in numbers {
+            if let Some(value) = value {
+                out.push((argument, json!(value)));
+            }
+        }
+        let flags: [(query::Argument, Option<bool>); 3] = [
+            (("isLicensed", "Boolean"), self.licensed),
+            (("onList", "Boolean"), self.on_list),
+            (("isAdult", "Boolean"), self.adult),
+        ];
+        for (argument, value) in flags {
+            if let Some(value) = value {
+                out.push((argument, json!(value)));
+            }
+        }
+        out
+    }
+
+    /// A filter with every argument set, for the tests that hold the documents to GraphQL.
+    #[cfg(test)]
+    pub(crate) fn every_argument() -> Self {
+        Self {
+            sort: vec!["SCORE_DESC".into()],
+            genres: vec!["Mecha".into()],
+            genres_excluded: vec!["Romance".into()],
+            tags: vec!["Time Travel".into()],
+            tags_excluded: vec!["Isekai".into()],
+            min_tag_rank: Some(80),
+            formats: vec!["TV".into(), "MOVIE".into()],
+            statuses: vec!["FINISHED".into()],
+            season: Some("FALL".into()),
+            year: Some(2024),
+            started_after: Some(2009_9999),
+            started_before: Some(2020_0000),
+            episodes_greater: Some(0),
+            episodes_lesser: Some(13),
+            duration_greater: Some(15),
+            duration_lesser: Some(61),
+            min_score: Some(69),
+            min_popularity: Some(1000),
+            sources: vec!["MANGA".into()],
+            countries: vec!["JP".into(), "KR".into()],
+            licensed_by: vec!["Hikari Stream".into()],
+            licensed: Some(true),
+            on_list: Some(false),
+            adult: Some(false),
+        }
     }
 }
+
+/// What the filters choose from, as AniList lists it.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Facets {
+    pub genres: Vec<String>,
+    pub tags: Vec<FacetTag>,
+    /// Streaming sites, each once, in AniList's order.
+    pub streaming: Vec<String>,
+}
+
+/// One of AniList's tags.
+#[derive(Debug, Clone, Default, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct FacetTag {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    /// "Theme-Action", "Cast-Main Cast", "Setting-Scene", "Demographic".
+    #[serde(default)]
+    pub category: String,
+    #[serde(default, rename = "isAdult")]
+    pub adult: bool,
+    #[serde(default, rename = "isGeneralSpoiler")]
+    pub spoiler: bool,
+}
+
+tokio::task_local! {
+    /// Set for work nobody is looking at: see [`in_background`].
+    static BACKGROUND: ();
+}
+
+/// AniList requests made inside `work` leave the last few tokens of the budget for whatever
+/// someone is looking at: a sync, a relations walk or the new-episode check never makes a
+/// search wait.
+pub async fn in_background<F: Future>(work: F) -> F::Output {
+    BACKGROUND.scope((), work).await
+}
+
+/// How many tokens background work leaves in the bucket.
+const INTERACTIVE_RESERVE: f64 = 6.0;
 
 /// One upcoming broadcast, for the Calendar screen.
 #[derive(Debug, Clone)]
@@ -237,7 +424,11 @@ impl AniList {
         document: &str,
         variables: serde_json::Value,
     ) -> Result<T> {
-        self.limiter.acquire().await;
+        if BACKGROUND.try_with(|()| ()).is_ok() {
+            self.limiter.acquire_leaving(INTERACTIVE_RESERVE).await;
+        } else {
+            self.limiter.acquire().await;
+        }
 
         let mut request = self
             .http
@@ -304,59 +495,75 @@ impl AniList {
         serde_json::from_value(data.clone()).map_err(|e| AniListError::Decode(e.to_string()))
     }
 
-    /// Full-text search.
+    /// Full-text search, with nothing else set.
     pub async fn search(&self, term: &str, page: u32, per_page: u32) -> Result<Page<Media>> {
-        let data: serde_json::Value = self
-            .execute(
-                &query::search(),
-                serde_json::json!({ "search": term, "page": page.max(1), "perPage": per_page }),
-            )
-            .await?;
-        decode_media_page(&data["Page"])
+        self.browse(term, &BrowseFilter::default(), page, per_page).await
     }
 
-    /// Full-text search with the same server-side filter surface as the seasonal browse.
-    ///
-    /// With no term this is a browse, and the sort falls back to popularity — AniList's
-    /// `SEARCH_MATCH` order means nothing without a search string to match.
-    pub async fn search_filtered(
+    /// One page of a search for `term` with `filter`, or a browse when `term` is empty.
+    pub async fn browse(
         &self,
         term: &str,
         filter: &BrowseFilter,
         page: u32,
         per_page: u32,
     ) -> Result<Page<Media>> {
-        let term = term.trim();
-        let default_sort = if term.is_empty() { "POPULARITY_DESC" } else { "SEARCH_MATCH" };
-        let mut variables = serde_json::json!({
-            "page": page.max(1),
-            "perPage": per_page,
-            "sort": [filter.sort.clone().unwrap_or_else(|| default_sort.into())],
-        });
-        // Omit absent arguments entirely, as the seasonal browse does: AniList treats an
-        // explicit null differently from a missing argument for some fields.
-        if !term.is_empty() {
-            variables["search"] = serde_json::json!(term);
-        }
-        if !filter.genres.is_empty() {
-            variables["genres"] = serde_json::json!(filter.genres);
-        }
-        if let Some(f) = &filter.format {
-            variables["format"] = serde_json::json!(f);
-        }
-        if let Some(s) = &filter.status {
-            variables["status"] = serde_json::json!(s);
-        }
-        if let Some(s) = &filter.season {
-            variables["season"] = serde_json::json!(s);
-        }
-        if let Some(y) = filter.year {
-            variables["seasonYear"] = serde_json::json!(y);
-        }
+        let mut pages = self.browse_many(&[(term, filter)], page, per_page).await?;
+        Ok(pages.pop().unwrap_or(Page { items: Vec::new(), has_next: false }))
+    }
 
+    /// Page `page` of several browses in one request, in the order asked: Search's rails.
+    pub async fn browse_many(
+        &self,
+        browses: &[(&str, &BrowseFilter)],
+        page: u32,
+        per_page: u32,
+    ) -> Result<Vec<Page<Media>>> {
+        if browses.is_empty() {
+            return Ok(Vec::new());
+        }
+        let arguments: Vec<_> = browses
+            .iter()
+            .map(|(term, filter)| filter.arguments(term, page, per_page))
+            .collect();
+        let (document, variables) = query::media_pages(&arguments);
+        let data: serde_json::Value = self.execute(&document, variables).await?;
+        (0..browses.len()).map(|i| decode_media_page(&data[format!("r{i}")])).collect()
+    }
+
+    /// The genres, tags and streaming sites the filters choose from.
+    pub async fn facets(&self) -> Result<Facets> {
         let data: serde_json::Value =
-            self.execute(&query::search_filtered(), variables).await?;
-        decode_media_page(&data["Page"])
+            self.execute(query::FACETS, serde_json::json!({})).await?;
+        let genres = data["GenreCollection"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|g| g.as_str().map(str::to_owned))
+            .collect();
+        let tags = data["MediaTagCollection"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|t| serde_json::from_value::<FacetTag>(t.clone()).ok())
+            .collect();
+        let mut streaming: Vec<String> = Vec::new();
+        for site in data["ExternalLinkSourceCollection"].as_array().into_iter().flatten() {
+            if site["isDisabled"].as_bool() == Some(true) {
+                continue;
+            }
+            if let Some(name) = site["site"].as_str()
+                && !streaming.iter().any(|s| s == name)
+            {
+                streaming.push(name.to_owned());
+            }
+        }
+        Ok(Facets { genres, tags, streaming })
+    }
+
+    /// How many requests could go now without waiting on the limit.
+    pub async fn budget_left(&self) -> f64 {
+        self.limiter.available().await
     }
 
     /// One title, with relations, recommendations and streaming links.
@@ -416,41 +623,6 @@ impl AniList {
             .flatten()
             .filter_map(|node| serde_json::from_value(node.clone()).ok())
             .collect())
-    }
-
-    /// Seasonal browse with server-side filters.
-    pub async fn seasonal(
-        &self,
-        season: Season,
-        year: u16,
-        filter: &BrowseFilter,
-        page: u32,
-        per_page: u32,
-    ) -> Result<Page<Media>> {
-        let mut variables = serde_json::json!({
-            "season": season.as_str(),
-            "seasonYear": year,
-            "page": page.max(1),
-            "perPage": per_page,
-            "sort": [filter.sort.clone().unwrap_or_else(|| "POPULARITY_DESC".into())],
-        });
-        // Omit absent filters entirely: AniList treats an explicit null differently from a
-        // missing argument for some fields.
-        if !filter.genres.is_empty() {
-            variables["genres"] = serde_json::json!(filter.genres);
-        }
-        if let Some(f) = &filter.format {
-            variables["format"] = serde_json::json!(f);
-        }
-        if let Some(s) = &filter.status {
-            variables["status"] = serde_json::json!(s);
-        }
-        if let Some(m) = filter.min_score {
-            variables["minScore"] = serde_json::json!(m);
-        }
-
-        let data: serde_json::Value = self.execute(&query::seasonal(), variables).await?;
-        decode_media_page(&data["Page"])
     }
 
     /// Upcoming broadcasts in a time window — the Calendar screen.

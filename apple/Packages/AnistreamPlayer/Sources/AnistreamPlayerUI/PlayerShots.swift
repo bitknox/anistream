@@ -37,6 +37,12 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// Playing, paused, with the Subtitles and audio menu open over it and the last subtitle
     /// track picked, which a long list scrolls into view.
     case tracks
+    /// Playing, paused, with the Speed menu open (on iPhone and iPad, Picture and sound).
+    case speed
+    /// Playing, paused, with the Picture and sound menu open: upscaling and night mode.
+    case picture
+    /// Playing, paused, with the Episodes menu open, the playing episode's sources under it.
+    case episodes
 
     /// The launch argument that names one: `-AnistreamPlayerShot up-next`.
     public static let argument = "-AnistreamPlayerShot"
@@ -44,6 +50,26 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     public static func named(in arguments: [String]) -> PlayerShot? {
         guard let index = arguments.firstIndex(of: argument), arguments.indices.contains(index + 1) else { return nil }
         return PlayerShot(rawValue: arguments[index + 1])
+    }
+
+    /// The launch argument that draws a menu's row as if the pointer were over it, by its title:
+    /// `-AnistreamPlayerPointer 1.5×`.
+    public static let pointerArgument = "-AnistreamPlayerPointer"
+
+    static func pointed(in arguments: [String]) -> String? {
+        guard let index = arguments.firstIndex(of: pointerArgument), arguments.indices.contains(index + 1) else { return nil }
+        return arguments[index + 1]
+    }
+
+    /// The menu a shot opens.
+    var menu: PlayerMenu? {
+        switch self {
+        case .tracks: .tracks
+        case .speed: .speed
+        case .picture: .picture
+        case .episodes: .episodes
+        default: nil
+        }
     }
 }
 
@@ -73,14 +99,15 @@ extension PlayerModel {
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
             pinnedControls = true
-        case .tracks:
+        case .tracks, .speed, .picture, .episodes:
             seek(to: 31)
-            there = await waited(10) { self.position >= 31.5 && !self.subtitleTracks.isEmpty }
+            there = await waited(10) { self.position >= 31.5 && !self.subtitleTracks.isEmpty && self.menus != nil }
             togglePause()
-            if let last = subtitleTracks.last { selectSubtitle(last.id) }
+            if shot == .tracks, let last = subtitleTracks.last { selectSubtitle(last.id) }
             pinnedControls = true
+            pointedRow = PlayerShot.pointed(in: ProcessInfo.processInfo.arguments)
             try? await Task.sleep(for: .seconds(0.5))
-            requestTrackMenu()
+            if let menu = shot.menu { requestMenu(menu) }
         case .fading:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }

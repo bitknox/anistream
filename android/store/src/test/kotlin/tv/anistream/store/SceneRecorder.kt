@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
@@ -19,8 +20,10 @@ import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
+import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.SearchQuery
 import tv.anistream.testkit.Scene
 
 /**
@@ -69,13 +72,15 @@ class SceneRecorder {
         withContext(main) {
             store.onApplied = { batch -> events += batch.filter(::kept) }
             store.start(EngineLaunch(EngineLaunch.Engine.Fixtures(scene), EngineHome.override(home)), AppHost(MemorySecrets()))
-            // What every screen asks for: the lists, the library's segments, the search the
-            // shots run, and each fixture title's page, episodes and settings sheet.
+            // What every screen asks for: the lists, the library's segments, Search's start and
+            // the searches the shots run, and each fixture title's page, episodes and settings
+            // sheet.
             store.loadContinue()
             store.loadSeasonal()
             store.loadCalendar()
             store.loadDownloads()
-            store.search("hoshi")
+            store.loadSearchStart()
+            store.search(SearchQuery(text = "hoshi"))
             for (segment in LibraryModel.order) store.loadLibrary(segment)
             for (id in FIXTURE_IDS) {
                 store.loadDetail(id)
@@ -92,6 +97,15 @@ class SceneRecorder {
         withTimeout(60_000) {
             store.phase.first { it == AppStore.Phase.Running }
             check(store.settle(quietMillis = 1_500, timeoutMillis = 55_000)) { "the ${scene.name} scene did not settle" }
+        }
+        // A browse by genre, once the search before it is answered: a newer search takes an
+        // older one's place.
+        val browse = SearchQuery(genres = listOf("Fantasy"))
+        withContext(main) { store.search(browse) }
+        withTimeout(60_000) {
+            // The list on screen stays as it was until the answer, so settling alone would not wait.
+            while (withContext(main) { events.none { it is Event.Content && it.view == ContentFor.Search(browse) } }) delay(50)
+            check(store.settle(quietMillis = 1_500, timeoutMillis = 55_000)) { "the ${scene.name} browse did not settle" }
         }
         withContext(main) { store.shutdown() }
         withTimeout(10_000) { store.phase.first { it == AppStore.Phase.Stopped } }

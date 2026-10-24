@@ -33,6 +33,26 @@ impl Store {
         })
     }
 
+    /// Read a text value, such as a small JSON document a screen keeps between launches.
+    pub fn get_meta_text(&self, key: &str) -> Result<Option<String>> {
+        self.with_conn(|c| {
+            Ok(c.query_row("SELECT value FROM app_state WHERE key = ?1", [key], |r| r.get(0))
+                .optional()?)
+        })
+    }
+
+    /// Write a text value.
+    pub fn set_meta_text(&self, key: &str, value: &str) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute(
+                "INSERT INTO app_state (key, value) VALUES (?1, ?2)
+                 ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                rusqlite::params![key, value],
+            )?;
+            Ok(())
+        })
+    }
+
     /// Drop every cursor whose key starts with `prefix`, returning how many there were.
     pub fn clear_meta_prefix(&self, prefix: &str) -> Result<usize> {
         self.with_conn(|c| {
@@ -108,6 +128,18 @@ mod tests {
 
         store.set_meta_i64("last_pull:anilist", 1_900).unwrap();
         assert_eq!(store.get_meta_i64("last_pull:anilist").unwrap(), Some(1_900));
+    }
+
+    #[test]
+    fn a_text_value_round_trips_and_overwrites() {
+        let store = Store::open_in_memory().unwrap();
+        assert_eq!(store.get_meta_text("search:recent").unwrap(), None);
+        store.set_meta_text("search:recent", "[]").unwrap();
+        store.set_meta_text("search:recent", r#"[{"text":"kaze"}]"#).unwrap();
+        assert_eq!(
+            store.get_meta_text("search:recent").unwrap().as_deref(),
+            Some(r#"[{"text":"kaze"}]"#)
+        );
     }
 
     #[test]

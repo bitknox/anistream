@@ -15,7 +15,7 @@ struct PhoneTitle: View {
     let id: AnilistId
 
     var body: some View {
-        let entry = store.titles[id] ?? Entry.placeholder(id)
+        let entry = store.titles.page(id)
         let action = TitleAction(entry, handedOff: navigator.handedOff)
         let art = store.heroArt(entry)
         ScrollView {
@@ -243,6 +243,8 @@ struct PhoneTitle: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
+        // Pointed at, on an iPad in a narrow window, its page and art asked for ahead.
+        .onHover { inside in if inside, !season.isThis { store.prefetchPage(season.id) } }
     }
 }
 
@@ -257,26 +259,34 @@ struct PhoneEpisodes: View {
 
     var body: some View {
         let rows = entry.episodeTable(store.titles.episodes[entry.id] ?? [])
-        VStack(alignment: .leading, spacing: 0) {
-            if store.titles.episodes[entry.id] == nil {
-                ForEach(0..<4, id: \.self) { _ in EpisodePlaceholderRow() }
-            }
-            // The watched run folds away above the last episode watched.
-            let fold = WatchedFold(rows)
-            if let fold {
-                WatchedFoldSection(
-                    fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
-                    toggle: { navigator.toggleWatched(entry.id) }
-                ) {
-                    ForEach(rows.prefix(fold.count), id: \.number) {
+        let loaded = store.titles.episodes[entry.id] != nil
+        // The placeholders and the rows in one place, one crossfading into the other (T8).
+        ZStack(alignment: .topLeading) {
+            if loaded {
+                VStack(alignment: .leading, spacing: 0) {
+                    // The watched run folds away above the last episode watched.
+                    let fold = WatchedFold(rows)
+                    if let fold {
+                        WatchedFoldSection(
+                            fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
+                            toggle: { navigator.toggleWatched(entry.id) }
+                        ) {
+                            ForEach(rows.prefix(fold.count), id: \.number) {
+                                PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
+                            }
+                        }
+                    }
+                    ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
                         PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
                     }
                 }
-            }
-            ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
-                PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
+                .transition(.opacity)
+            } else {
+                EpisodePlaceholders(count: entry.episodes)
+                    .transition(.opacity)
             }
         }
+        .animation(.standard, value: loaded)
     }
 }
 

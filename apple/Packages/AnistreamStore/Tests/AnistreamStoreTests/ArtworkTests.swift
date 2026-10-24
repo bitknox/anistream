@@ -233,29 +233,33 @@ struct ArtworkTests {
         #expect(slept.all == [.milliseconds(1500)], "what was left of the wait")
     }
 
-    @Test func artTheCacheLetGoWhileOnScreenIsAskedAgain() async throws {
+    @Test func artLandingIsSeenOnceEachTime() async throws {
+        let artwork = ArtworkStore { _ in true }
+        let url = "https://img.example/cover/900001.jpg"
+        let bytes = png(width: 460, height: 690)
+        artwork.request(url, maxPixelSize: 108)
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.image(url) != nil }
+        #expect(artwork.arrivalCount(url) == 1)
+        // A larger decode replaces it, which the view reading it sees.
+        artwork.request(url, maxPixelSize: 460)
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.arrivalCount(url) == 2 }
+        #expect(artwork.image(url)?.height == 460)
+    }
+
+    @Test func artGoneOffScreenIsTheCachesAgain() async throws {
         let asked = Box(0)
         let artwork = ArtworkStore { _ in asked.value += 1; return true }
         let url = "https://img.example/cover/900001.jpg"
-        let bytes = png(width: 460, height: 690)
         let shown = Task { await artwork.show(url, maxPixelSize: 108) }
-        defer { shown.cancel() }
         try await waitFor { asked.value == 1 }
-        artwork.ready(url: url, bytes: bytes)
+        artwork.ready(url: url, bytes: png(width: 460, height: 690))
         try await waitFor { artwork.image(url) != nil }
-        #expect(artwork.arrivals[url] == 1)
-
-        artwork.evict(url)
-        #expect(artwork.image(url) == nil)
-        // The engine answers from its disk.
-        try await waitFor { asked.value == 2 }
-        #expect(artwork.isPending(url))
-        _ = artwork.image(url)
+        shown.cancel()
         try await Task.sleep(for: .milliseconds(20))
-        #expect(asked.value == 2, "once")
-        artwork.ready(url: url, bytes: bytes)
-        try await waitFor { artwork.image(url) != nil }
-        #expect(artwork.arrivals[url] == 2, "which the view reading it sees")
+        artwork.evict(url)
+        #expect(artwork.image(url) == nil, "no longer held")
     }
 
     @Test func artTheCacheLetGoOffScreenWaitsToBeShownAgain() async throws {
@@ -267,6 +271,64 @@ struct ArtworkTests {
         try await waitFor { artwork.image(url) != nil }
         artwork.evict(url)
         #expect(artwork.image(url) == nil)
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(asked.value == 1)
+    }
+
+    @Test func artOnScreenOutlastsTheCacheLettingItGo() async throws {
+        // Johan's title page, every image flashing to its plate at once on a season switch: the
+        // cache let go of art still on screen, as NSCache may whenever memory is wanted, and the
+        // view found nothing the next time it read it.
+        let asked = Box(0)
+        let artwork = ArtworkStore { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/920001.jpg"
+        let shown = Task { await artwork.show(url, maxPixelSize: 460) }
+        defer { shown.cancel() }
+        try await waitFor { asked.value == 1 }
+        artwork.ready(url: url, bytes: png(width: 460, height: 690))
+        try await waitFor { artwork.image(url) != nil }
+
+        artwork.evict(url)
+        #expect(artwork.image(url) != nil, "still on screen")
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(asked.value == 1, "and not asked for again")
+    }
+
+    @Test func artArrivingIsSeenOnlyByTheViewsShowingIt() async throws {
+        // What turned one eviction into every image at once: each arrival changed what every
+        // view reading art observes, so all of them read their art again on any arrival, a season
+        // switch's burst of them among it.
+        let artwork = ArtworkStore { _ in true }
+        let shownURL = "https://img.example/cover/920001.jpg"
+        let other = "https://img.example/banner/920002.jpg"
+        artwork.request(shownURL, maxPixelSize: 460)
+        artwork.ready(url: shownURL, bytes: png(width: 460, height: 690))
+        try await waitFor { artwork.image(shownURL) != nil }
+
+        let changed = Box(false)
+        withObservationTracking {
+            _ = artwork.image(shownURL)
+        } onChange: {
+            Task { @MainActor in changed.value = true }
+        }
+        artwork.request(other, maxPixelSize: 1200)
+        artwork.ready(url: other, bytes: png(width: 1900, height: 400))
+        try await waitFor { artwork.image(other) != nil }
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(!changed.value)
+    }
+
+    @Test func aDecodeTheCacheTurnsAwayIsNotAskedForInALoop() async throws {
+        // Over its limit, NSCache can turn away the very decode just put in it. The store asked
+        // the engine again whenever it found no decode right after one landed, which with a full
+        // cache asks, decodes and is turned away again.
+        let asked = Box(0)
+        let cover = png(width: 460, height: 690)
+        let artwork = ArtworkStore(costLimit: 1) { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/920003.jpg"
+        artwork.request(url, maxPixelSize: 460)
+        artwork.ready(url: url, bytes: cover)
+        try await waitFor { artwork.arrivalCount(url) > 0 }
         try await Task.sleep(for: .milliseconds(20))
         #expect(asked.value == 1)
     }

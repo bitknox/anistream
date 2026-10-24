@@ -28,7 +28,7 @@ async fn a_search_is_answered_from_the_fixtures_and_recorded() {
 
     let asked = kit.server.requests_for(Operation::Search);
     assert_eq!(asked.len(), 1);
-    assert_eq!(asked[0].variables["search"], "hoshikuzu");
+    assert_eq!(asked[0].variables["r0_search"], "hoshikuzu");
     assert_eq!(asked[0].authorization, None);
     assert_eq!(kit.server.requests().len(), 1, "one round trip, nothing else");
 
@@ -53,12 +53,83 @@ async fn a_browse_lists_everything_in_pages_and_honours_its_filters() {
     assert_eq!(second.items.len(), 2);
     assert!(!second.has_next);
 
-    let movies = BrowseFilter { format: Some("MOVIE".into()), ..Default::default() };
+    let movies = BrowseFilter { formats: vec!["MOVIE".into()], ..Default::default() };
     let found = kit.meta.search("", &movies, 1, 20).await.unwrap();
     assert_eq!(ids(&found.items), [MOVIE.get()]);
     let sports = BrowseFilter { genres: vec!["Sports".into()], ..Default::default() };
     let found = kit.meta.search("", &sports, 1, 20).await.unwrap();
     assert_eq!(ids(&found.items), [AIRING_NO_MAL.get()]);
+}
+
+#[tokio::test]
+async fn every_filter_is_applied_as_anilist_applies_it() {
+    let kit = MetaKit::start().await;
+    let find = async |filter: BrowseFilter| {
+        ids(&kit.meta.search("", &filter, 1, 20).await.unwrap().items)
+    };
+    let not_drama =
+        BrowseFilter { genres_excluded: vec!["Drama".into()], ..Default::default() };
+    assert_eq!(find(not_drama).await, [AIRING.get(), ONA.get(), AIRING_NO_MAL.get()]);
+    // The tag at its rank, and not below it.
+    let travel = BrowseFilter { tags: vec!["Travel".into()], ..Default::default() };
+    assert_eq!(find(travel.clone()).await, [FINISHED.get()]);
+    let ranked = BrowseFilter { min_tag_rank: Some(95), ..travel };
+    assert!(find(ranked).await.is_empty());
+    let short = BrowseFilter { episodes_lesser: Some(13), ..Default::default() };
+    assert_eq!(
+        find(short).await,
+        [FINISHED.get(), SEQUEL.get(), MOVIE.get(), ONA.get(), AIRING_NO_MAL.get()]
+    );
+    let between = BrowseFilter {
+        started_after: Some(2024_9999),
+        started_before: Some(2026_0000),
+        ..Default::default()
+    };
+    assert_eq!(find(between).await, [SEQUEL.get(), MOVIE.get()]);
+    let manga = BrowseFilter { sources: vec!["MANGA".into()], ..Default::default() };
+    assert_eq!(find(manga).await, [FINISHED.get(), SEQUEL.get()]);
+    let streaming =
+        BrowseFilter { licensed_by: vec!["Lantern Stream".into()], ..Default::default() };
+    assert_eq!(find(streaming).await, [FINISHED.get(), AIRING.get(), SEQUEL.get()]);
+    let korean = BrowseFilter { countries: vec!["KR".into()], ..Default::default() };
+    assert!(find(korean).await.is_empty(), "the fixtures are all made in Japan");
+
+    // Sorted by score, best first, and the title with none last.
+    let best = BrowseFilter { sort: vec!["SCORE_DESC".into()], ..Default::default() };
+    assert_eq!(
+        find(best).await,
+        [
+            MOVIE.get(),
+            SEQUEL.get(),
+            FINISHED.get(),
+            AIRING.get(),
+            ONA.get(),
+            AIRING_NO_MAL.get()
+        ]
+    );
+}
+
+#[tokio::test]
+async fn the_rails_come_in_one_request_and_the_facets_in_another() {
+    let kit = MetaKit::start().await;
+    let trending = BrowseFilter { sort: vec!["TRENDING_DESC".into()], ..Default::default() };
+    let movies = BrowseFilter { formats: vec!["MOVIE".into()], ..Default::default() };
+    let rails = kit.meta.browse_many(&[("", &trending), ("", &movies)], 3).await.unwrap();
+    assert_eq!(rails.len(), 2);
+    assert_eq!(rails[0].items.len(), 3);
+    assert!(rails[0].has_next);
+    assert_eq!(ids(&rails[1].items), [MOVIE.get()]);
+    assert_eq!(kit.server.requests_for(Operation::Browse).len(), 1);
+
+    let facets = kit.meta.facets().await.unwrap();
+    assert!(facets.genres.contains(&"Mecha".to_owned()));
+    assert!(facets.tags.iter().any(|t| t.name == "Nudity" && t.adult));
+    assert_eq!(
+        facets.streaming,
+        ["Lantern Stream", "Hikari Stream"],
+        "once each, none disabled"
+    );
+    assert_eq!(kit.server.requests().len(), 2);
 }
 
 #[tokio::test]
@@ -188,7 +259,12 @@ async fn the_calendar_window_is_honoured_in_both_directions() {
 #[tokio::test]
 async fn the_rails_queries_answer_too() {
     let kit = MetaKit::start().await;
-    let season = kit.meta.seasonal(Season::Fall, 2026, &BrowseFilter::default(), 1, 20).await;
+    let fall = BrowseFilter {
+        season: Some(Season::Fall.as_str().into()),
+        year: Some(2026),
+        ..Default::default()
+    };
+    let season = kit.meta.search("", &fall, 1, 20).await;
     assert_eq!(ids(&season.unwrap().items), [AIRING.get(), AIRING_NO_MAL.get()]);
 
     // In the order asked for, though the fake answers in its own.

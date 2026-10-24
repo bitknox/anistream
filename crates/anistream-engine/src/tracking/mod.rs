@@ -499,7 +499,8 @@ pub fn spawn_loops(sync: Sync, tx: Outbox) {
             let mut ticker = tokio::time::interval(drain_every);
             loop {
                 ticker.tick().await;
-                drain_once(&sync, &tx).await;
+                // Nobody waits on these: they leave the last of the AniList budget to Search.
+                anistream_meta::in_background(drain_once(&sync, &tx)).await;
             }
         });
     }
@@ -510,7 +511,7 @@ pub fn spawn_loops(sync: Sync, tx: Outbox) {
         // phone" show up when you open the app.
         loop {
             ticker.tick().await;
-            pull_once(&sync, &tx).await;
+            anistream_meta::in_background(pull_once(&sync, &tx)).await;
         }
     });
 }

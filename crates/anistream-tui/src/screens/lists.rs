@@ -406,10 +406,20 @@ fn empty_state(app: &App, section: Section, searched: bool) -> (&'static str, Op
     // A query typed and not yet run. "Type to search" over it told someone who had typed to
     // start typing, and an earlier "no matches" answers a query no longer in the field.
     let typed = app.text(Field::Search).trim();
-    let unsent = !typed.is_empty() && typed != app.searched_query;
+    let unsent = !typed.is_empty() && typed != app.searched_query.text;
     match section {
         Section::Search if unsent => ("↵ to search", None),
-        Section::Search if !searched => ("type to search", None),
+        Section::Search if !searched => {
+            let browse = if app.search_filter.has_filters() {
+                "or ↵ to browse with these filters"
+            } else {
+                "or ↵ to browse the most popular"
+            };
+            ("type to search", Some(browse.to_owned()))
+        }
+        Section::Search if app.searched_query.is_browse() => {
+            ("no matches", Some("try fewer filters".to_owned()))
+        }
         Section::Search => {
             ("no matches", Some("try a shorter query, or the romaji title".to_owned()))
         }
@@ -786,7 +796,7 @@ mod tests {
         app.go_to_section(Section::Search);
         app.set_text(Field::Search, "zzzz".into());
         // Run, as Enter runs it: the answer is for the query in the field.
-        app.searched_query = "zzzz".into();
+        app.searched_query = anistream_model::search::SearchQuery::text("zzzz");
         app.apply(app.content_here(ContentList::Entries(vec![])));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NO MATCHES"), "got {text:?}");
@@ -1201,7 +1211,7 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Search);
         app.set_text(Field::Search, "kite".into());
-        app.searched_query = "kite".into();
+        app.searched_query = anistream_model::search::SearchQuery::text("kite");
         let view = app.content_view().unwrap();
         app.apply(Event::Caption { view: view.clone(), text: "showing the first 30".into() });
         app.apply(Event::Content {

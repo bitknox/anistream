@@ -596,6 +596,29 @@ async fn the_page_is_served_with_a_strict_policy() {
     assert_ne!(missing.status(), 200);
 }
 
+#[tokio::test]
+async fn the_root_is_the_landing_page_wherever_the_store_is_mounted() {
+    for (path, base) in [("", "/admin/"), ("/friends", "/friends/admin/")] {
+        let running = start_under(path).await;
+        let page = reqwest::get(format!("{}/", running.base)).await.unwrap();
+        assert_eq!(page.status(), 200);
+        let policy = page.headers()["content-security-policy"].to_str().unwrap().to_owned();
+        assert!(policy.contains("script-src 'self'") && policy.contains("base-uri 'self'"));
+        assert!(!policy.contains("github"), "the landing page reaches only the store");
+        let text = page.text().await.unwrap();
+        assert!(text.contains(&format!("<base href=\"{base}\">")), "{text}");
+        assert!(text.contains("data-page=\"home\"") && text.contains("<title>Test store"));
+        // Unclaimed, with a setup code: the page without script says how to claim it.
+        assert!(text.contains("Nobody owns this store yet"));
+        // Everything the page loads resolves below its base.
+        let script =
+            reqwest::get(format!("{}{base}admin.js", running.base.trim_end_matches(path)))
+                .await
+                .unwrap();
+        assert_eq!(script.status(), 200);
+    }
+}
+
 // --- parts, claiming, and stores that cannot run plugins ----------------------------------
 
 /// A "plugin" several parts long: the fake inspector reads the JSON and ignores the padding.

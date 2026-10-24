@@ -87,6 +87,8 @@ pub enum Key {
 
 /// Where a remote command goes on the TV.
 #[derive(Debug, Clone, PartialEq)]
+// Search queries made `Command` large; a routed command is built and matched once, never stored.
+#[allow(clippy::large_enum_variant)]
 pub enum Routed {
     /// To the engine, as the TV's own front end would send it.
     Engine(Command),

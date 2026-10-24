@@ -23,9 +23,19 @@ public struct PhonePlayerView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let metrics = PlayerMetrics.phone
 
+    /// The Mac's menus as sheets. The speed is in Picture and sound, since the bar has no room
+    /// for a speed button of its own.
     enum Sheet: String, Identifiable {
-        case tracks, episodes
+        case tracks, episodes, picture
         var id: String { rawValue }
+
+        init(_ menu: PlayerMenu) {
+            switch menu {
+            case .tracks: self = .tracks
+            case .episodes: self = .episodes
+            case .speed, .picture: self = .picture
+            }
+        }
     }
 
     /// Double taps' running count on one side: "+20 s".
@@ -124,7 +134,7 @@ public struct PhonePlayerView: View {
         .sensoryFeedback(.impact(weight: .light), trigger: drag > 120) { _, crossed in crossed }
         .sheet(item: $sheet) { sheet in sheetContent(sheet) }
         .onChange(of: sheet) { _, open in model.hold("sheet", open != nil) }
-        .onChange(of: model.trackMenuRequests) { sheet = .tracks }
+        .onChange(of: model.menuRequests) { sheet = Sheet(model.requestedMenu) }
         .onChange(of: held) { _, on in speedHeld(on) }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
@@ -172,6 +182,7 @@ public struct PhonePlayerView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 0) {
                 headerButton("captions.bubble", "Subtitles and audio") { sheet = .tracks }
+                headerButton("slider.horizontal.3", "Picture and sound") { sheet = .picture }
                 if model.pictureInPictureToggle != nil {
                     // The Mac's button, until the PhonePlayer board draws one.
                     headerButton("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
@@ -243,18 +254,28 @@ public struct PhonePlayerView: View {
                     switch sheet {
                     case .tracks:
                         TrackLists(model: model, metrics: metrics)
-                        MenuDivider()
-                        MoreLists(model: model, metrics: metrics)
+                    case .picture:
+                        SpeedList(model: model, metrics: metrics)
+                        if model.menus != nil {
+                            MenuDivider()
+                            PictureLists(model: model, metrics: metrics)
+                        }
                     case .episodes:
                         EpisodeList(model: model, metrics: metrics)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
+                .environment(\.pointedMenuRow, model.pointedRow)
             }
             .onAppear {
                 // The row in use, in view however long the list.
-                let row = sheet == .tracks ? TrackLists.selectedRow(model) : EpisodeList.selectedRow(model)
+                let row: String? =
+                    switch sheet {
+                    case .tracks: TrackLists.selectedRow(model)
+                    case .episodes: EpisodeList.selectedRow(model)
+                    case .picture: nil
+                    }
                 if let row { list.scrollTo(row, anchor: .center) }
             }
         }

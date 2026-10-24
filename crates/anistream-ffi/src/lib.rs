@@ -65,7 +65,8 @@ mod tests {
     use anistream_model::playback::PlayerTheme;
     use anistream_model::{
         catalog::{
-            Aired, ContentFor, ContentList, Entry, ResumePoint, SearchFilters, TitleAired,
+            Aired, AiringStatus, ContentFor, ContentList, Entry, ResumePoint, Season,
+            TitleAired,
         },
         command::{Command, PlayerCommand},
         event::Event,
@@ -77,6 +78,10 @@ mod tests {
         notice::NoticeKind,
         playback::{NextEpisode, PlayableStream, PlaybackId, SkipKind},
         progress::TitleProgress,
+        search::{
+            Bounds, BrowseRail, FacetTag, MediaFormat, OnList, SearchFacets, SearchQuery,
+            SearchSort, TagGroup,
+        },
         settings::SettingKey,
         sources::MatchCandidate,
         stores::{InvitePreview, InvitedStore, Secret},
@@ -118,10 +123,12 @@ mod tests {
                 key: SettingKey::SourceOrder,
                 value: SettingValue::Strings(vec!["torrent".into(), "plugins".into()]),
             },
-            Command::Search {
-                query: "hoshikuzu".into(),
-                filter: SearchFilters { year: Some(2024), ..SearchFilters::default() },
-            },
+            Command::Search { query: every_filter() },
+            Command::SearchLive { query: SearchQuery::text("hoshi") },
+            Command::SearchMore { query: SearchQuery::sorted(SearchSort::Score), page: 3 },
+            Command::RememberSearch(SearchQuery::season(Season::Fall, 2026)),
+            Command::LoadBrowse,
+            Command::LoadSearchFacets,
         ];
         for command in commands {
             assert_eq!(crossed(command.clone()), command);
@@ -642,6 +649,32 @@ mod tests {
         assert_eq!(crossed(bare.clone()), bare);
     }
 
+    /// A search with every filter set, to cross intact.
+    fn every_filter() -> SearchQuery {
+        SearchQuery {
+            text: "hoshikuzu".into(),
+            sort: Some(SearchSort::Newest),
+            genres: vec!["Fantasy".into()],
+            genres_excluded: vec!["Romance".into()],
+            tags: vec!["Travel".into()],
+            tags_excluded: vec!["Trains".into()],
+            min_tag_rank: Some(80),
+            formats: vec![MediaFormat::Tv, MediaFormat::Ona],
+            statuses: vec![AiringStatus::Finished],
+            season: Some(Season::Spring),
+            years: Bounds { min: Some(2020), max: Some(2024) },
+            episodes: Bounds { min: None, max: Some(13) },
+            minutes: Bounds { min: Some(20), max: None },
+            min_score: Some(70),
+            min_popularity: Some(1_000),
+            sources: vec![anistream_model::catalog::SourceMaterial::Manga],
+            countries: vec!["JP".into()],
+            streaming_on: vec!["Lantern Stream".into()],
+            licensed_only: true,
+            on_list: Some(OnList::Hide),
+        }
+    }
+
     #[test]
     fn a_list_crosses_with_its_view_and_where_each_title_stands() {
         let mut entry = Entry::new(AnilistId::new(900_002), "Kaze no Tegami");
@@ -649,9 +682,39 @@ mod tests {
         entry.last_aired = Some(Aired { episode: 4, ago: 3_600 });
         entry.resume = Some(ResumePoint { position: 754.5, fraction: Some(0.52) });
         crosses_intact(Event::Content {
-            view: ContentFor::Search { query: "kaze".into(), filter: SearchFilters::default() },
-            content: ContentList::Entries(vec![entry]),
+            view: ContentFor::Search { query: every_filter() },
+            content: ContentList::Entries(vec![entry.clone()]),
         });
+        crosses_intact(Event::SearchPaging {
+            query: SearchQuery::text("kaze"),
+            has_next: true,
+        });
+        crosses_intact(Event::SearchMore {
+            query: SearchQuery::text("kaze"),
+            page: 2,
+            entries: vec![entry.clone()],
+            has_next: false,
+        });
+        crosses_intact(Event::LiveSearch { paused: true });
+        crosses_intact(Event::Browse(vec![BrowseRail {
+            title: "Popular this season".into(),
+            detail: Some("Fall 2026".into()),
+            query: SearchQuery::season(Season::Fall, 2026),
+            entries: vec![entry],
+        }]));
+        crosses_intact(Event::Facets(SearchFacets {
+            genres: vec!["Mecha".into()],
+            tag_groups: vec![TagGroup {
+                category: "Theme".into(),
+                tags: vec![FacetTag {
+                    name: "Time Travel".into(),
+                    description: "Going back.".into(),
+                    spoiler: false,
+                }],
+            }],
+            streaming_sites: vec!["Hikari Stream".into()],
+        }));
+        crosses_intact(Event::RecentSearches(vec![every_filter(), SearchQuery::text("kaze")]));
         crosses_intact(Event::Content {
             view: ContentFor::Continue,
             content: ContentList::Failed("no disk".into()),

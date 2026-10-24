@@ -51,6 +51,7 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.SearchQuery
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
 import tv.anistream.store.HAS_TESTING_ENGINE
@@ -105,7 +106,20 @@ class BoardShots {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_search() = shoot("phone-search", WATCHING, start = Destination.Search, query = "hoshi")
+    fun phone_search() = shoot("phone-search", WATCHING, start = Destination.Search, search = SearchQuery(text = "hoshi"))
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_search_start() = shoot("phone-search-start", WATCHING, start = Destination.Search)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_search_browse() = shoot("phone-search-browse", WATCHING, start = Destination.Search, search = SearchQuery(genres = listOf("Fantasy")))
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_search_filters() =
+        shoot("phone-search-filters", WATCHING, start = Destination.Search, search = SearchQuery(genres = listOf("Fantasy")), sheet = "filters")
 
     @Test
     @Config(qualifiers = PHONE)
@@ -337,7 +351,8 @@ class BoardShots {
         scene: String,
         start: Destination = Destination.Continue,
         title: AnilistId? = null,
-        query: String? = null,
+        search: SearchQuery? = null,
+        sheet: String? = null,
         /** Whether every transition runs to its end before the capture; else it is taken where [then] left the clock. */
         settle: Boolean = true,
         sourceless: Boolean = false,
@@ -360,7 +375,7 @@ class BoardShots {
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
         compose.setContent {
             AnistreamTheme {
-                AppRoot(store, if (query != null) Destination.Search else start, startTitle = title, startQuery = query)
+                AppRoot(store, if (search != null) Destination.Search else start, startTitle = title, startSearch = search, startSheet = sheet)
             }
         }
         compose.waitForIdle()

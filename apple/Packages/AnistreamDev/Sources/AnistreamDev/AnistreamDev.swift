@@ -56,7 +56,7 @@ struct AnistreamDev: App {
 
 @MainActor
 final class Delegate: NSObject, NSApplicationDelegate {
-    let store = AppStore()
+    let store = AppStore(artworkCostLimit: options.artCache.map { $0 << 20 } ?? ArtworkStore.costLimit)
     let navigator = Navigator()
     lazy var player: PlayerModel = {
         let player = PlayerModel(send: { [weak store] command in store?.send(command) })
@@ -98,6 +98,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
         // The Mac's updater, rehearsed: it goes through a download and installs nothing.
         store.updates.installer = RehearsedInstaller()
         await store.start(launch, host: host)
+        store.episodesDelay = options.episodesDelay
         if let trouble = options.artTrouble {
             store.troubleArt(failFirst: trouble.failFirst, delay: trouble.delay)
         }

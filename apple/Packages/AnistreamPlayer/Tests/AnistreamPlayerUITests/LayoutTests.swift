@@ -7,6 +7,7 @@ import CoreGraphics
 import SwiftUI
 import Testing
 
+import AnistreamKit
 @testable import AnistreamPlayerUI
 
 @MainActor
@@ -72,6 +73,32 @@ struct LayoutTests {
         #expect(MenuPanelFrame.height(rows: 60, room: 240) == 60)
         // In a window too short for more, still a few rows.
         #expect(MenuPanelFrame.height(rows: 500, room: 20) == MenuPanelFrame.least)
+    }
+
+    /// The control row's menus each hang over their own button: Speed, then Picture and sound,
+    /// nearer the edge. The top bar's hang under its capsule.
+    @Test func eachControlRowMenuHangsOverItsButton() {
+        #expect(MacPlayerView.panelTrailing(.picture) == 84)
+        #expect(MacPlayerView.panelTrailing(.speed) == 120)
+        #expect(MacPlayerView.panelHangs(.speed) == .bottomTrailing)
+        #expect(MacPlayerView.panelHangs(.picture) == .bottomTrailing)
+        #expect(MacPlayerView.panelTrailing(.episodes) == 16)
+        #expect(MacPlayerView.panelHangs(.tracks) == .topTrailing)
+    }
+
+    /// The Episodes menu's Source group: finding while the engine has not listed the streams or
+    /// a playback is being found, none when it found none, and the releases otherwise.
+    @Test func theSourceGroupSaysWhereTheReleasesAre() {
+        let source = MenuSource(id: "0", label: "lantern-archive", detail: "1080p", current: true, health: nil)
+        let menus = PlayerMenus(
+            episodes: [], sources: [source], translation: .sub,
+            upscaling: MenuChoices(current: "", options: []), toneMapping: nil, nightMode: false)
+        var empty = menus
+        empty.sources = []
+        #expect(SourceGroup.listing(nil, starting: false) == .finding)
+        #expect(SourceGroup.listing(menus, starting: true) == .finding)
+        #expect(SourceGroup.listing(empty, starting: false) == .none)
+        #expect(SourceGroup.listing(menus, starting: false) == .sources([source]))
     }
 }
 #endif

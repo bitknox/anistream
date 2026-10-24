@@ -18,8 +18,15 @@ import type {
 	UploadStarted,
 } from './types';
 
-/** The store's own address. The page lives at `{store}/admin/`, so the store is one level up. */
-const root = new URL('../', window.location.href);
+/**
+ * The store's own address. The page lives at `{store}/admin/`, so the store is one level up. At
+ * the store's root the page is served with a `<base>` at `{store}/admin/`, so the base is what
+ * to go up from, not the address bar.
+ */
+const root = new URL('../', document.baseURI);
+
+/** The store's address as people paste it: without a trailing slash. */
+export const storeAddress = () => root.href.replace(/\/$/, '');
 
 export class ApiError extends Error {
 	constructor(

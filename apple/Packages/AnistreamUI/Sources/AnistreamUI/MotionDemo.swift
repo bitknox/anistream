@@ -17,6 +17,8 @@ public enum MotionDemo: String, CaseIterable, Sendable {
     case back
     /// T9: the title's next episode is marked watched.
     case t9
+    /// The title page's next season opened from its season picker, as a click on its cell does.
+    case season
 
     /// The one the launch arguments name.
     public static func from(arguments: [String] = ProcessInfo.processInfo.arguments) -> MotionDemo? {
@@ -42,6 +44,12 @@ public enum MotionDemo: String, CaseIterable, Sendable {
             guard let id = navigator.focusedTitle, let entry = store.titles[id] else { return }
             let next = entry.progress?.next ?? 1
             store.send(.setWatched(id: id, episodes: [String(next)], watched: true))
+        case .season:
+            guard let id = navigator.titleOnMac ?? navigator.paths[navigator.section]?.last,
+                  let seasons = store.titles[id]?.detail?.seasons,
+                  let at = seasons.firstIndex(where: { $0.id == id }), seasons.indices.contains(at + 1)
+            else { return }
+            navigator.openTitle(seasons[at + 1].id)
         }
     }
 }

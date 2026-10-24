@@ -77,15 +77,18 @@ public final class AppStore {
     /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
 
+    /// - Parameter artworkCostLimit: how many bytes of decoded art the cache keeps beside what is
+    ///   on screen; smaller in the dev harness, to see the page with the cache full.
     public init(
         jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed(),
-        downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed()
+        downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed(),
+        artworkCostLimit: Int = ArtworkStore.costLimit
     ) {
         self.jobs = jobs
         self.notices = notices
         self.widgets = widgets
         self.downloadsActivity = downloadsActivity
-        artwork = ArtworkStore { [weak self] url in
+        artwork = ArtworkStore(costLimit: artworkCostLimit) { [weak self] url in
             guard let client = self?.client else { return false }
             client.send(.fetchArtwork(url: url))
             return true
@@ -237,9 +240,60 @@ public final class AppStore {
         send(.loadCalendar)
     }
 
-    public func search(_ query: String, filter: SearchFilters = SearchFilters()) {
-        search.submit(query: query, filter: filter)
-        send(.search(query: query, filter: filter))
+    /// Search now, as Return, a recent search or a rail's See All does: always asked, and kept
+    /// among the recent searches.
+    public func search(_ query: SearchQuery) {
+        _ = search.edit(query)
+        guard !query.normalized.isBlank() else { return }
+        send(.search(query: query.normalized))
+    }
+
+    /// Search for these words with the filters already set.
+    public func search(text: String) {
+        var query = search.query
+        query.text = text
+        search(query)
+    }
+
+    /// The search changed, a keystroke or a filter: the engine searches once the changes stop.
+    public func searchLive(_ query: SearchQuery) {
+        guard search.edit(query) else { return }
+        send(.searchLive(query: query.normalized))
+    }
+
+    /// The text changed, with the filters as they are.
+    public func searchLive(text: String) {
+        guard text != search.query.text else { return }
+        var query = search.query
+        query.text = text
+        searchLive(query)
+    }
+
+    /// The next page of the results, as the end of them comes near.
+    public func searchMore() {
+        guard let (query, page) = search.nextPage() else { return }
+        send(.searchMore(query: query, page: page))
+    }
+
+    /// Search's start: the rails, the recent searches and what the filters choose from.
+    public func loadSearchStart() {
+        if search.rails == nil { send(.loadBrowse) }
+        if search.facets == nil { send(.loadSearchFacets) }
+        send(.loadRecentSearches)
+    }
+
+    /// Keep what is searched for among the recent searches, as opening one of its titles does.
+    public func rememberSearch() {
+        guard let asked = search.asked else { return }
+        send(.rememberSearch(asked))
+    }
+
+    public func forgetRecentSearch(_ query: SearchQuery) {
+        send(.forgetRecentSearch(query))
+    }
+
+    public func clearRecentSearches() {
+        send(.clearRecentSearches)
     }
 
     public func loadLibrary(_ segment: LibrarySegment) {
@@ -304,7 +358,17 @@ public final class AppStore {
         for segment in LibraryModel.order where library.segment(segment).answeredAt != nil {
             loadLibrary(segment)
         }
-        if let submitted = search.submitted { search(submitted.query, filter: submitted.filter) }
+        if let query = search.again() { send(.search(query: query)) }
+        if search.rails != nil { send(.loadBrowse) }
+    }
+
+    /// Adult titles were let in or kept out: Search and its start are asked for again, so they
+    /// show them or leave them out at once.
+    private func adultChanged() {
+        if let query = search.again() { send(.search(query: query)) }
+        if search.rails != nil { send(.loadBrowse) }
+        if search.facets != nil { send(.loadSearchFacets) }
+        if seasonal.answeredAt != nil { loadSeasonal() }
     }
 
     /// Take a title off Continue: the row goes at once, and the engine keeps it hidden.
@@ -316,12 +380,34 @@ public final class AppStore {
     // MARK: Applying
 
     public func apply(_ events: [Event]) {
+        var events = events
+        #if FIXTURES
+        if let delay = episodesDelay {
+            // Episode tables held back, as a slow source answers them.
+            let tables = events.filter { if case .episodes = $0 { true } else { false } }
+            events.removeAll { if case .episodes = $0 { true } else { false } }
+            if !tables.isEmpty {
+                Task { [weak self] in
+                    try? await Task.sleep(for: delay)
+                    guard let self else { return }
+                    for event in tables { apply(event) }
+                    lastApplied = .now
+                }
+            }
+        }
+        #endif
         for event in events {
             apply(event)
         }
         lastApplied = .now
         onApplied?(events)
     }
+
+    #if FIXTURES
+    /// How long each episode table waits before the screens see it: the dev harness's slow
+    /// source (`--episodes-delay`). The testing engine only.
+    public var episodesDelay: Duration?
+    #endif
 
     /// Show the invented rows the launch arguments ask for, on the testing engine only, and keep
     /// the engine's own of those kinds off screen from then on. For screenshots.
@@ -404,7 +490,9 @@ public final class AppStore {
             notices.post(notice)
 
         case .settings(let view):
+            let adult = settings.view.map { _ in settings.isOn(.adultTitles) }
             settings.apply(view)
+            if let adult, adult != settings.isOn(.adultTitles) { adultChanged() }
         case .showSettings(let view):
             showSettings.apply(view)
 
@@ -485,6 +573,19 @@ public final class AppStore {
         case .update(let status):
             updates.apply(status)
 
+        case .searchPaging(let query, let hasNext):
+            search.paging(query, hasNext: hasNext)
+        case .searchMore(let query, let page, let entries, let hasNext):
+            search.more(query, page: page, entries: entries, hasNext: hasNext, titles: titles)
+        case .liveSearch(let paused):
+            search.live(paused: paused)
+        case .browse(let rails):
+            search.rails(rails, titles: titles)
+        case .facets(let facets):
+            search.facets(facets)
+        case .recentSearches(let queries):
+            search.recents(queries)
+
         case .viewerTitleLanguage(let language):
             accounts.viewerTitleLanguage = language
         case .titlesChanged:
@@ -509,8 +610,8 @@ public final class AppStore {
             seasonal.apply(content, titles: titles)
         case .calendar:
             calendar.apply(content, titles: titles)
-        case .search(let query, let filter):
-            guard search.takes(query: query, filter: filter) else { return }
+        case .search(let query):
+            guard search.takes(query) else { return }
             search.list.apply(content, titles: titles)
         case .library(let segment):
             library.segment(segment).apply(content, titles: titles)
@@ -522,8 +623,8 @@ public final class AppStore {
         case .continue: continuing.list.caption = text
         case .seasonal: seasonal.caption = text
         case .calendar: calendar.list.caption = text
-        case .search(let query, let filter):
-            if search.takes(query: query, filter: filter) { search.list.caption = text }
+        case .search(let query):
+            if search.takes(query) { search.list.caption = text.isEmpty ? nil : text }
         case .library(let segment): library.segment(segment).caption = text
         }
     }

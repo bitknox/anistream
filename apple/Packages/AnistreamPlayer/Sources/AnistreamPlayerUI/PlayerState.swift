@@ -124,6 +124,13 @@ public struct EpisodeOnScreen: Equatable, Sendable {
     }
 }
 
+/// The player's menus, each by what it is for: subtitles and audio, the episodes with the
+/// playing one's sources, the speed, and the picture and sound. On iPhone and iPad the speed is
+/// in the picture and sound sheet.
+public enum PlayerMenu: Equatable, Sendable {
+    case tracks, episodes, speed, picture
+}
+
 /// What the menus list, whole.
 public struct PlayerMenus: Equatable, Sendable {
     public var episodes: [MenuEpisode]

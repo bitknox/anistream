@@ -34,24 +34,30 @@ pub async fn load_continue(lent: Lent) {
     let _ = tx.send(update);
 }
 
-/// This season's most popular titles, captioned with which season it is.
-pub async fn load_seasonal(lent: Lent) {
-    let Lent { meta, store, tx, .. } = lent;
+/// This season's most popular titles, captioned with which season it is: Search's preset for
+/// the season, which the screen can open in Search to filter further.
+pub async fn load_seasonal(lent: Lent, adult: bool) {
     const PAGE: u32 = 40;
-    let (season, year) = current_season();
-    let update = match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
-        Ok(page) => {
+    let (season, year) = crate::catalog::browse::this_season(now_epoch());
+    let query = anistream_model::search::SearchQuery::season(season, year);
+    let filter = crate::catalog::search::browse_filter(&query, adult);
+    let Lent { meta, store, tx, .. } = lent;
+    let update = match meta.find("", &filter, 1, PAGE).await {
+        Ok(found) => {
             // Which season this is, which the screen never said, and that one
             // page is not all of it when it is not.
-            let season = format!("{} {year}", season.as_str().to_lowercase());
-            let text = if page.has_next {
+            let season = format!(
+                "{} {year}",
+                anistream_model::search::season_label(season).to_lowercase()
+            );
+            let text = if found.page.has_next {
                 format!("{season} · the {PAGE} most popular")
             } else {
                 season
             };
             let _ = tx.send(Event::Caption { view: ContentFor::Seasonal, text });
             let entries =
-                page.items.iter().map(|m| data::entry_from(m, Some(&store))).collect();
+                found.page.items.iter().map(|m| data::entry_from(m, Some(&store))).collect();
             publish_list(&meta, &tx, ContentFor::Seasonal, entries, now_epoch()).await;
             return;
         }
@@ -122,11 +128,22 @@ pub async fn publish_list(
     entries: Vec<anistream_model::catalog::Entry>,
     now: i64,
 ) {
+    let _ = tx.send(Event::Content { view, content: ContentList::Entries(entries.clone()) });
+    follow_aired(meta, tx, &entries, now).await;
+}
+
+/// When the releasing titles among `entries` last aired, as one more request, for a list
+/// already on screen.
+pub async fn follow_aired(
+    meta: &Meta,
+    tx: &Outbox,
+    entries: &[anistream_model::catalog::Entry],
+    now: i64,
+) {
     // Releasing titles only. A finished show has no broadcast to report, and including it would
     // spend rows of a capped response on titles that cannot use them.
     let ids: Vec<anistream_core::ids::AnilistId> =
         entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
-    let _ = tx.send(Event::Content { view, content: ContentList::Entries(entries) });
     if ids.is_empty() {
         return;
     }
@@ -156,8 +173,13 @@ pub async fn publish_list(
 
 /// The season containing today, derived from the epoch without a calendar dependency.
 pub fn current_season() -> (anistream_meta::anilist::Season, u16) {
+    season_at(now_epoch())
+}
+
+/// The season containing `now`.
+pub fn season_at(now: i64) -> (anistream_meta::anilist::Season, u16) {
     use anistream_meta::anilist::Season;
-    let days = now_epoch() / 86_400;
+    let days = now / 86_400;
     // Civil-from-days, the standard algorithm.
     let z = days + 719_468;
     let era = z.div_euclid(146_097);

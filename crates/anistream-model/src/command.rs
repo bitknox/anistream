@@ -3,11 +3,12 @@
 use anistream_core::ids::AnilistId;
 
 use crate::{
-    catalog::{LibrarySegment, SearchFilters},
+    catalog::LibrarySegment,
     episodes::EpisodeRow,
     hosted::{PlayerChoice, PlayerReport},
     playback::{PlaybackId, Successor},
     protection::{FailedCheck, TorrentProtection, TorrentProxy},
+    search::SearchQuery,
     settings::SettingKey,
     show::ShowSettingKey,
     stores::Secret,
@@ -22,8 +23,15 @@ impl Command {
             Self::LoadSeasonal => "loading this season".into(),
             Self::LoadCalendar => "loading the calendar".into(),
             Self::LoadCalendarPast { .. } => "loading earlier broadcasts".into(),
-            Self::Search { query, .. } if query.is_empty() => "browsing".into(),
-            Self::Search { query, .. } => format!("searching \u{201c}{query}\u{201d}"),
+            // A live search has no job: it is sent on every keystroke, and most are replaced
+            // before they ask anything.
+            Self::Search { query } | Self::SearchMore { query, .. } if query.is_browse() => {
+                "browsing".into()
+            }
+            Self::Search { query } | Self::SearchMore { query, .. } => {
+                format!("searching \u{201c}{}\u{201d}", query.trimmed_text())
+            }
+            Self::LoadBrowse => "loading trending titles".into(),
             Self::LoadDetail(_) => "loading the title".into(),
             Self::LoadEpisodes(_) => "loading episodes".into(),
             Self::ClearMatch { .. } | Self::FixMatch { .. } => "rematching sources".into(),
@@ -102,10 +110,46 @@ pub enum Command {
         anchor: i64,
         page: u32,
     },
+    /// Search now: Return in the field, a recent search, a rail's See All. Always runs, even
+    /// when the AniList budget is low. Answered with [`Event::SearchPaging`] and then the
+    /// [`Event::Content`] for [`ContentFor::Search`], and remembered as a recent search.
+    ///
+    /// [`Event::SearchPaging`]: crate::event::Event::SearchPaging
+    /// [`Event::Content`]: crate::event::Event::Content
+    /// [`ContentFor::Search`]: crate::catalog::ContentFor::Search
     Search {
-        query: String,
-        filter: SearchFilters,
+        query: SearchQuery,
     },
+    /// Search as the query changes: sent on every keystroke and every filter change. The engine
+    /// waits until the changes stop (400 ms after the text changed, 250 ms after a filter did)
+    /// and searches once, and a newer one replaces any still waiting. Text shorter than two
+    /// characters (one for Chinese, Japanese and Korean) is not searched yet. While the AniList
+    /// budget is low, text changes wait for a [`Command::Search`], and
+    /// [`Event::LiveSearch`](crate::event::Event::LiveSearch) says so.
+    SearchLive {
+        query: SearchQuery,
+    },
+    /// The next page of the results on screen, asked for as the end comes near. Answered with
+    /// [`Event::SearchMore`](crate::event::Event::SearchMore).
+    SearchMore {
+        query: SearchQuery,
+        page: u32,
+    },
+    /// Search's start, as rails, in one request: answered with
+    /// [`Event::Browse`](crate::event::Event::Browse), at once from what was kept and again once
+    /// AniList answers.
+    LoadBrowse,
+    /// What the filters choose from: answered with
+    /// [`Event::Facets`](crate::event::Event::Facets). Asked of AniList at most once a week.
+    LoadSearchFacets,
+    /// The recent searches, answered with
+    /// [`Event::RecentSearches`](crate::event::Event::RecentSearches).
+    LoadRecentSearches,
+    /// Keep a search among the recent ones, as when a title is opened from a live search's
+    /// results. A [`Command::Search`] is kept by itself.
+    RememberSearch(SearchQuery),
+    ForgetRecentSearch(SearchQuery),
+    ClearRecentSearches,
     LoadDetail(AnilistId),
     /// Ask the signed-in AniList viewer's title language, answered by
     /// [`Event::ViewerTitleLanguage`](crate::event::Event::ViewerTitleLanguage). Costs no request

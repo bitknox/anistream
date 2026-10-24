@@ -129,8 +129,13 @@ impl TitleCache {
                 None
             }
             Event::Content { content: ContentList::Entries(entries), .. }
-            | Event::CalendarBackfill { entries, .. } => {
+            | Event::CalendarBackfill { entries, .. }
+            | Event::SearchMore { entries, .. } => {
                 entries.iter().for_each(|entry| self.know(entry));
+                None
+            }
+            Event::Browse(rails) => {
+                rails.iter().flat_map(|rail| &rail.entries).for_each(|entry| self.know(entry));
                 None
             }
             Event::Episodes { id, rows } => {

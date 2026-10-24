@@ -5,9 +5,10 @@
 #
 # A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default),
 # sourceless (watching with no source set up) or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
-# downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
-# palette=<words>, with more joined by +: pane=<Settings pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|
-# show|about>, showcase=<sources|stores|downloads|invite|pale|all>, the invented rows of `Showcase`
+# downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words>,
+# genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
+# pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|show|about|filters>,
+# showcase=<sources|stores|downloads|invite|pale|all>, the invented rows of `Showcase`
 # (pale: 900001's page with a long title on a near-white banner), and watched=<id>:<episodes>,
 # episodes marked watched as the shot starts (900006:8 is caught up), and
 # fold=open, the title page's watched episodes opened:
@@ -19,8 +20,10 @@
 #
 # The player's states are shots too: player-starting, player-playing, player-skip, player-up-next,
 # player-still-watching, player-stall, player-buffering, player-scrubbing, player-tracks (the
-# Subtitles and audio menu open) and player-picture-in-picture play the Playing scene's generated episode
-# (apple/scripts/player-media.sh) to that state and shoot the player; "player" is all of them.
+# Subtitles and audio menu open), player-speed, player-picture (Picture and sound), player-episodes
+# (with the playing episode's sources) and player-picture-in-picture play the Playing scene's
+# generated episode (apple/scripts/player-media.sh) to that state and shoot the player; "player" is
+# all of them. ANISTREAM_POINTED=<row title> draws a menu's row as if the pointer were over it.
 #
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
 #   settled. It needs no Screen Recording permission.
@@ -38,7 +41,8 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall
-  player-buffering player-scrubbing player-tracks player-picture-in-picture)
+  player-buffering player-scrubbing player-tracks player-speed player-picture player-episodes
+  player-picture-in-picture)
 
 usage() {
   echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
@@ -72,6 +76,7 @@ arguments() {
   local shot="$1" scene="${1%%:*}" screens="" screen
   if [[ "$shot" == player-* ]]; then
     printf '%s\n' -AnistreamScene playing -AnistreamPlayerShot "${shot#player-}"
+    [[ -z "${ANISTREAM_POINTED:-}" ]] || printf '%s\n' -AnistreamPlayerPointer "$ANISTREAM_POINTED"
     return
   fi
   [[ "$shot" == *:* ]] && screens="${shot#*:}"
@@ -83,6 +88,7 @@ arguments() {
       title=*) printf '%s\n' -AnistreamTitle "${screen#title=}" ;;
       select=*) printf '%s\n' -AnistreamSelect "${screen#select=}" ;;
       query=*) printf '%s\n' -AnistreamSection search -AnistreamQuery "${screen#query=}" ;;
+      genre=*) printf '%s\n' -AnistreamSection search -AnistreamGenre "${screen#genre=}" ;;
       palette=*) printf '%s\n' -AnistreamPalette "${screen#palette=}" ;;
       pane=*) printf '%s\n' -AnistreamPane "${screen#pane=}" ;;
       notice=*) printf '%s\n' -AnistreamNotice "${screen#notice=}" ;;
@@ -113,8 +119,11 @@ if [[ "$device" == mac ]]; then
   "$apple/scripts/engine.sh" testing macos
   for shot in "${shots[@]}"; do
     if [[ "$shot" == player-* ]]; then
+      pointed=()
+      [[ -z "${ANISTREAM_POINTED:-}" ]] || pointed=(-AnistreamPlayerPointer "$ANISTREAM_POINTED")
       (cd "$apple/Packages/AnistreamDev" &&
-        swift run AnistreamDev --scene playing --player-shot "${shot#player-}" --snapshot "$out/mac-$shot.png")
+        swift run AnistreamDev --scene playing --player-shot "${shot#player-}" ${pointed[@]+"${pointed[@]}"} \
+          --snapshot "$out/mac-$shot.png")
       continue
     fi
     args=()

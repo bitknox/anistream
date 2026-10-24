@@ -23,7 +23,7 @@ export function Hero({
 		<header className="hero">
 			<Scene nav={nav} />
 			<div className="wrap hero-copy">
-				<p className="caps hero-eyebrow">{eyebrow}</p>
+				<p className="hero-eyebrow">{eyebrow}</p>
 				<h1>{title}</h1>
 				{children}
 			</div>

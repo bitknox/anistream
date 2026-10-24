@@ -32,7 +32,11 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
-import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.Bounds
+import tv.anistream.engine.model.MediaFormat
+import tv.anistream.engine.model.SearchQuery
+import tv.anistream.engine.model.SearchSort
+import tv.anistream.store.normalized
 import tv.anistream.engine.model.Season
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
@@ -87,24 +91,30 @@ data class SeasonTab(val season: Season, val year: Int) {
 fun seasonLabel(date: LocalDate): String = SeasonTab.of(date).label
 
 /** Seasonal's sorts, under AniList's names. */
-enum class SeasonSort(val label: String, val key: String) {
-    Popular("Popular", "POPULARITY_DESC"),
-    Score("Score", "SCORE_DESC"),
-    AirDay("Air day", "START_DATE"),
+enum class SeasonSort(val label: String, val sort: SearchSort) {
+    Popular("Popular", SearchSort.POPULARITY),
+    Score("Score", SearchSort.SCORE),
+    AirDay("Air day", SearchSort.OLDEST),
 }
 
 /** Seasonal's formats: every one, or one of AniList's. */
-val SeasonFormats: List<Pair<String?, String>> = listOf(null to "All formats", "TV" to "TV", "MOVIE" to "Movie", "ONA" to "ONA", "OVA" to "OVA")
+val SeasonFormats: List<Pair<MediaFormat?, String>> =
+    listOf(null to "All formats", MediaFormat.TV to "TV", MediaFormat.MOVIE to "Movie", MediaFormat.ONA to "ONA", MediaFormat.OVA to "OVA")
 
 /**
  * What Seasonal asks the engine for: the current season, popular first, in every format is the
  * engine's own seasonal list; anything else a browse by filter.
  */
-fun seasonFilter(tab: SeasonTab, current: SeasonTab, sort: SeasonSort, format: String?): SearchFilters? =
+fun seasonFilter(tab: SeasonTab, current: SeasonTab, sort: SeasonSort, format: MediaFormat?): SearchQuery? =
     if (tab == current && sort == SeasonSort.Popular && format == null) {
         null
     } else {
-        SearchFilters(year = tab.year.toUInt(), season = tab.season.name, format = format, sort = sort.key)
+        SearchQuery(
+            sort = sort.sort,
+            formats = listOfNotNull(format),
+            season = tab.season,
+            years = Bounds(min = tab.year.toUInt(), max = tab.year.toUInt()),
+        )
     }
 
 @Composable
@@ -127,7 +137,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     val seasonal by store.seasonal.state.collectAsStateWithLifecycle()
     val browsed by store.browse.list.state.collectAsStateWithLifecycle()
     // A browse answer for another filter, still on screen while the new one loads, is not shown.
-    val state = if (filter == null) seasonal else if (store.browse.takes("", filter)) browsed else ListState.Loading
+    val state = if (filter == null) seasonal else if (store.browse.takes(filter.normalized)) browsed else ListState.Loading
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     val signedIn = trackers.values.any { it.connected }
     // On my list: the season's titles already on one of the tracker's lists, which this loads, as

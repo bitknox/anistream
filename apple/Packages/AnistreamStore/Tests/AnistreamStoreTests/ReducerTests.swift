@@ -135,18 +135,97 @@ struct ReducerTests {
 
     @Test func aSlowAnswerToAnEarlierSearchIsNotShown() {
         let store = AppStore()
-        store.search("hoshi")
-        store.search("hoshikuzu")
+        store.search(SearchQuery(text: "hoshi"))
+        store.search(SearchQuery(text: "hoshikuzu"))
         store.apply(.content(
-            view: .search(query: "hoshi", filter: SearchFilters()),
+            view: .search(query: SearchQuery(text: "hoshi")),
             content: .entries([entry(900_003, "Moonlit Platform")])
         ))
         #expect(store.search.list.state == .loading)
         store.apply(.content(
-            view: .search(query: "hoshikuzu", filter: SearchFilters()),
+            view: .search(query: SearchQuery(text: "hoshikuzu")),
             content: .entries([entry(900_001, "Stardust Wayfarer")])
         ))
         #expect(store.search.list.state == .loaded([900_001]))
+    }
+
+    @Test func searchTakesTheAnswerToItsTextWithoutTheSpacesAround() {
+        let store = AppStore()
+        store.searchLive(SearchQuery(text: " hoshi "))
+        store.apply(.content(
+            view: .search(query: SearchQuery(text: "hoshi")),
+            content: .entries([entry(900_001, "Stardust Wayfarer")])
+        ))
+        #expect(store.search.list.state == .loaded([900_001]))
+        #expect(store.search.query.text == " hoshi ")
+    }
+
+    @Test func aBlankSearchIsTheStartAndAsksNothing() {
+        let store = AppStore()
+        store.searchLive(SearchQuery(text: "  "))
+        #expect(store.search.atStart)
+        #expect(store.search.asked == nil)
+        #expect(store.search.list.state == .idle)
+        // A sort alone is a browse.
+        store.searchLive(SearchQuery(sort: .score))
+        #expect(!store.search.atStart)
+        #expect(store.search.list.state == .loading)
+    }
+
+    @Test func furtherPagesGoAfterWhatIsThereAndAFailedOneIsAskedAgain() {
+        let store = AppStore()
+        let mecha = SearchQuery(genres: ["Mecha"])
+        store.search(mecha)
+        store.apply([
+            .searchPaging(query: mecha, hasNext: true),
+            .content(view: .search(query: mecha), content: .entries([entry(900_001, "Stardust Wayfarer")])),
+        ])
+        #expect(store.search.hasNext)
+        store.searchMore()
+        #expect(store.search.loadingMore)
+        // Asked once, however often the end comes near while it is on its way.
+        store.searchMore()
+        store.apply(.searchMore(query: mecha, page: 2, entries: [], hasNext: true))
+        #expect(!store.search.loadingMore)
+        #expect(store.search.pages == 1)
+        store.searchMore()
+        store.apply(.searchMore(
+            query: mecha, page: 2,
+            entries: [entry(900_003, "Moonlit Platform"), entry(900_001, "Stardust Wayfarer")],
+            hasNext: false
+        ))
+        #expect(store.search.list.state == .loaded([900_001, 900_003]))
+        #expect(store.search.pages == 2)
+        #expect(!store.search.hasNext)
+        // A page of an earlier search is not added.
+        store.apply(.searchMore(query: SearchQuery(text: "hoshi"), page: 3, entries: [entry(900_006, "Summer Wind Relay")], hasNext: false))
+        #expect(store.search.list.state == .loaded([900_001, 900_003]))
+    }
+
+    @Test func theRailsBringTheirTitlesAndTheStartItsRecents() {
+        let store = AppStore()
+        let rail = BrowseRail(title: "Trending now", detail: nil, query: SearchQuery(sort: .trending),
+                              entries: [entry(900_002, "The Library Above the Clouds")])
+        store.apply([
+            .browse([rail]),
+            .recentSearches([SearchQuery(text: "hoshi", genres: ["Mecha"])]),
+            .liveSearch(paused: true),
+        ])
+        #expect(store.search.rails?.first?.title == "Trending now")
+        #expect(store.titles[900_002]?.title == "The Library Above the Clouds")
+        #expect(store.search.recents.first?.genres == ["Mecha"])
+        #expect(store.search.livePaused)
+    }
+
+    @Test func seasonalIsTheSeasonPresetOfSearch() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        let october = calendar.date(from: DateComponents(year: 2026, month: 10, day: 24))!
+        let query = SearchQuery.season(at: october)
+        #expect(query.season == .fall)
+        #expect(query.years == Bounds(min: 2026, max: 2026))
+        #expect(query.sort == .popularity)
+        #expect(query.headline() == "2026 · Fall")
     }
 
     @Test func eachListTakesOnlyItsOwnAnswerAndCaption() {

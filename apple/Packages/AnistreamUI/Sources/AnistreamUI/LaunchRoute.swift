@@ -11,10 +11,12 @@ import Foundation
 ///     -AnistreamSelect 900005       the title selected in a list
 ///     -AnistreamTitle 900001        a title's page, over the section
 ///     -AnistreamQuery hoshikuzu     what Search searches for
+///     -AnistreamGenre Fantasy       Search browses a genre, with any query's words
 ///     -AnistreamLibrary planning    the Library's list
 ///     -AnistreamPalette hoshi       the ⌘K palette, open on these words
 ///     -AnistreamPane accounts       Settings' pane, or on iPhone the Settings sheet at its page
-///     -AnistreamSheet torrent       a sheet over the screen: torrent, join, kitsu, update, show
+///     -AnistreamSheet torrent       a sheet over the screen: torrent, join, kitsu, update, show,
+///                                   filters (Search's filters)
 ///     -AnistreamFold open           the title page's watched episodes, opened
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
 public struct LaunchRoute: Equatable, Sendable {
@@ -22,6 +24,7 @@ public struct LaunchRoute: Equatable, Sendable {
     public var selected: AnilistId?
     public var title: AnilistId?
     public var query: String?
+    public var genre: String?
     public var library: LibrarySegment?
     public var palette: String?
     public var pane: String?
@@ -40,6 +43,7 @@ public struct LaunchRoute: Equatable, Sendable {
         selected = value("-AnistreamSelect").flatMap { AnilistId($0) }
         title = value("-AnistreamTitle").flatMap { AnilistId($0) }
         query = value("-AnistreamQuery")
+        genre = value("-AnistreamGenre")
         palette = value("-AnistreamPalette")
         pane = value("-AnistreamPane")
         sheet = value("-AnistreamSheet")

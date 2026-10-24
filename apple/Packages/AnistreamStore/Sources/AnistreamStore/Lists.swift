@@ -1,6 +1,7 @@
 // The lists the engine sends, each tagged with the view it answers.
 
 import AnistreamKit
+import Foundation
 import Observation
 
 /// Where a list stands.
@@ -99,24 +100,144 @@ public final class CalendarModel {
     }
 }
 
-/// Search, which takes only the answer to what was asked last: a slow answer to an earlier
+/// Search: the query as it stands, the results for it, and what Search shows before anything
+/// is asked. It takes only the answer to what was asked last, so a slow answer to an earlier
 /// query never replaces the results of a later one.
 @Observable @MainActor
 public final class SearchModel {
     public let list = ListModel()
-    /// The query and filters as last submitted.
-    public private(set) var submitted: (query: String, filter: SearchFilters)?
+    /// The search as it stands: what is typed and every filter. Blank is Search's start.
+    public private(set) var query = SearchQuery()
+    /// What the list is the answer to, as the engine tags it: `query` with its text trimmed.
+    /// `nil` at Search's start.
+    public private(set) var asked: SearchQuery?
+    /// Whether AniList has more pages of the results behind those on screen.
+    public private(set) var hasNext = false
+    /// Whether a further page is on its way.
+    public private(set) var loadingMore = false
+    /// How many pages of the results are on screen.
+    public private(set) var pages: UInt32 = 0
+    /// Search's start: rails of titles, each a query of its own. `nil` until the engine sends
+    /// them.
+    public private(set) var rails: [BrowseRail]?
+    /// What the filters choose from. `nil` until the engine sends it.
+    public private(set) var facets: SearchFacets?
+    /// The recent searches, newest first, each with its filters.
+    public private(set) var recents: [SearchQuery] = []
+    /// Whether typing waits for Return: the AniList budget ran low. Filters still search.
+    public private(set) var livePaused = false
 
     public init() {}
 
-    func submit(query: String, filter: SearchFilters) {
-        submitted = (query, filter)
-        list.state = .loading
-        list.caption = nil
+    /// Whether Search shows its start: rails and recent searches rather than results.
+    public var atStart: Bool { query.isBlank() }
+
+    /// The search changed. Whether it asks anything new of the engine: not at the start, and not
+    /// when only spaces around the text changed.
+    func edit(_ query: SearchQuery) -> Bool {
+        self.query = query
+        let normal = query.normalized
+        if normal.isBlank() {
+            asked = nil
+            list.state = .idle
+            list.caption = nil
+            hasNext = false
+            loadingMore = false
+            pages = 0
+            return false
+        }
+        guard normal != asked else { return false }
+        asked = normal
+        // What is on screen stays until the answer replaces it, so typing does not flash.
+        list.asked()
+        hasNext = false
+        loadingMore = false
+        pages = 0
+        return true
     }
 
-    func takes(query: String, filter: SearchFilters) -> Bool {
-        submitted.map { $0.query == query && $0.filter == filter } ?? false
+    /// Search again for what is asked, as when titles are named another way.
+    func again() -> SearchQuery? {
+        guard let asked else { return nil }
+        list.asked()
+        return asked
+    }
+
+    /// Whether an answer tagged with `query` is for what is on screen.
+    func takes(_ query: SearchQuery) -> Bool {
+        asked == query
+    }
+
+    func paging(_ query: SearchQuery, hasNext: Bool) {
+        guard takes(query) else { return }
+        self.hasNext = hasNext
+        pages = 1
+        loadingMore = false
+    }
+
+    /// The next page to ask for, when there is one and none is on its way.
+    func nextPage() -> (SearchQuery, UInt32)? {
+        guard let asked, hasNext, !loadingMore, case .loaded = list.state else { return nil }
+        loadingMore = true
+        return (asked, pages + 1)
+    }
+
+    /// A further page: after what is there. An empty page failed, and is asked for again on the
+    /// next scroll.
+    func more(_ query: SearchQuery, page: UInt32, entries: [Entry], hasNext: Bool, titles: TitleCache) {
+        guard takes(query) else { return }
+        loadingMore = false
+        guard !entries.isEmpty else { return }
+        titles.merge(entries)
+        let ids = list.state.ids
+        let seen = Set(ids)
+        list.state = .loaded(ids + entries.map(\.id).filter { !seen.contains($0) })
+        pages = max(pages, page)
+        self.hasNext = hasNext
+    }
+
+    func rails(_ rails: [BrowseRail], titles: TitleCache) {
+        for rail in rails { titles.merge(rail.entries) }
+        self.rails = rails
+    }
+
+    func facets(_ facets: SearchFacets) {
+        self.facets = facets
+    }
+
+    func recents(_ recents: [SearchQuery]) {
+        self.recents = recents
+    }
+
+    func live(paused: Bool) {
+        livePaused = paused
+    }
+}
+
+extension SearchQuery {
+    /// The query as the engine searches for it and tags its answer: its text without the spaces
+    /// around it.
+    public var normalized: SearchQuery {
+        var query = self
+        query.text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query
+    }
+
+    /// The season on now, its most popular first: what Seasonal shows, as a search.
+    public static func season(at date: Date = .now) -> SearchQuery {
+        // In UTC, as the engine reckons the season.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .gmt
+        let parts = calendar.dateComponents([.month, .year], from: date)
+        let month = parts.month ?? 1
+        let year = UInt32(parts.year ?? 2026)
+        let season: Season = switch month {
+        case 1...3: .winter
+        case 4...6: .spring
+        case 7...9: .summer
+        default: .fall
+        }
+        return SearchQuery(sort: .popularity, season: season, years: Bounds(min: year, max: year))
     }
 }
 

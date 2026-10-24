@@ -15,6 +15,8 @@ import org.junit.Before
 import org.junit.Test
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.Aired
+import tv.anistream.engine.model.Bounds
+import tv.anistream.engine.model.BrowseRail
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
@@ -25,7 +27,9 @@ import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.ResumePoint
-import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.SearchQuery
+import tv.anistream.engine.model.SearchSort
+import tv.anistream.engine.model.Season
 import tv.anistream.engine.model.ShowSettingKey
 import tv.anistream.engine.model.ShowSettingRow
 import tv.anistream.engine.model.ShowSettingsView
@@ -158,11 +162,74 @@ class ReducerTest {
     fun a_search_takes_only_the_answer_to_what_was_asked_last() {
         store.search("hoshi")
         store.search("kumo")
-        val early = ContentFor.Search("hoshi", SearchFilters())
-        store.apply(Event.Content(early, ContentList.Entries(listOf(entry(900001u, "Hoshi")))))
+        store.apply(Event.Content(ContentFor.Search(SearchQuery(text = "hoshi")), ContentList.Entries(listOf(entry(900001u, "Hoshi")))))
         assertEquals(ListState.Loading, store.search.list.state.value)
-        store.apply(Event.Content(ContentFor.Search("kumo", SearchFilters()), ContentList.Empty))
+        store.apply(Event.Content(ContentFor.Search(SearchQuery(text = "kumo")), ContentList.Empty))
         assertEquals(ListState.Empty, store.search.list.state.value)
+    }
+
+    @Test
+    fun a_search_takes_the_answer_to_its_text_without_the_spaces_around() {
+        store.searchLive(SearchQuery(text = " kumo  "))
+        assertEquals(listOf(Command.SearchLive(SearchQuery(text = "kumo"))), store.waiting)
+        // Only spaces changed: nothing new to ask.
+        store.searchLive("kumo ")
+        assertEquals(1, store.waiting.size)
+        store.apply(Event.Content(ContentFor.Search(SearchQuery(text = "kumo")), ContentList.Empty))
+        assertEquals(ListState.Empty, store.search.list.state.value)
+    }
+
+    @Test
+    fun a_blank_search_is_the_start_and_asks_nothing() {
+        store.search("kumo")
+        store.searchLive("  ")
+        assertEquals(listOf(Command.Search(SearchQuery(text = "kumo"))), store.waiting)
+        assertTrue(store.search.status.value.atStart)
+        assertNull(store.search.asked)
+        assertEquals(ListState.Idle, store.search.list.state.value)
+    }
+
+    @Test
+    fun further_pages_go_after_what_is_there_and_a_failed_one_is_asked_again() {
+        val browse = SearchQuery(genres = listOf("Fantasy"))
+        store.search(browse)
+        store.apply(Event.SearchPaging(browse, hasNext = true))
+        store.apply(Event.Content(ContentFor.Search(browse), ContentList.Entries(listOf(entry(900001u, "Hoshi"), entry(900002u, "Kumo")))))
+        store.searchMore()
+        // Once at a time.
+        store.searchMore()
+        assertEquals(listOf(Command.Search(browse), Command.SearchMore(browse, 2u)), store.waiting)
+        store.apply(Event.SearchMore(browse, 2u, emptyList(), hasNext = true))
+        store.searchMore()
+        assertEquals(Command.SearchMore(browse, 2u), store.waiting.last())
+        store.apply(Event.SearchMore(browse, 2u, listOf(entry(900002u, "Kumo"), entry(900003u, "Tsuki")), hasNext = false))
+        assertEquals(listOf(900001u, 900002u, 900003u), store.search.list.state.value.ids)
+        assertFalse(store.search.status.value.hasNext)
+        store.searchMore()
+        assertEquals(3, store.waiting.size)
+    }
+
+    @Test
+    fun the_rails_bring_their_titles_and_the_start_its_recents() {
+        store.loadSearchStart()
+        assertEquals(listOf(Command.LoadBrowse, Command.LoadSearchFacets, Command.LoadRecentSearches), store.waiting)
+        val rail = BrowseRail("Trending now", null, SearchQuery(sort = SearchSort.TRENDING), listOf(entry(900004u, "Kaze")))
+        store.apply(Event.Browse(listOf(rail)))
+        store.apply(Event.RecentSearches(listOf(SearchQuery(text = "hoshi"))))
+        assertEquals("Kaze", store.titles[900004u]?.title)
+        assertEquals(listOf(SearchQuery(text = "hoshi")), store.search.status.value.recents)
+        // The rails are here: the start asks only for its recents again.
+        store.loadSearchStart()
+        assertEquals(Command.LoadRecentSearches, store.waiting.last())
+        assertEquals(5, store.waiting.size)
+    }
+
+    @Test
+    fun seasonal_is_the_season_preset_of_search() {
+        val query = seasonQuery(java.time.Instant.parse("2026-10-24T12:00:00Z"))
+        assertEquals(Season.FALL, query.season)
+        assertEquals(Bounds(2026u, 2026u), query.years)
+        assertEquals("2026 · Fall", query.headline())
     }
 
     @Test
@@ -170,11 +237,11 @@ class ReducerTest {
         store.apply(Event.Content(ContentFor.Continue, ContentList.Empty))
         store.apply(Event.Content(ContentFor.Seasonal, ContentList.Entries(listOf(entry(900002u, "Kumo")))))
         store.search("kumo")
-        assertEquals(listOf(Command.Search("kumo", SearchFilters())), store.waiting)
+        assertEquals(listOf(Command.Search(SearchQuery(text = "kumo"))), store.waiting)
         store.apply(Event.TitlesChanged(TitleLanguage.ENGLISH))
         // What was answered is asked for again; the calendar and the library never were.
         assertEquals(
-            listOf(Command.Search("kumo", SearchFilters()), Command.LoadContinue, Command.LoadSeasonal, Command.Search("kumo", SearchFilters())),
+            listOf(Command.Search(SearchQuery(text = "kumo")), Command.LoadContinue, Command.LoadSeasonal, Command.Search(SearchQuery(text = "kumo"))),
             store.waiting,
         )
     }

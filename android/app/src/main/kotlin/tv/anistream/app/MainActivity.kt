@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.player.ui.PlayerFrame
 import tv.anistream.store.DownloadsModel
@@ -142,6 +143,9 @@ class MainActivity : ComponentActivity() {
             ?.let(Destination::named) ?: Destination.Continue
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
+        val genre = intent.getStringExtra(GENRE)?.takeIf { steerable }
+        val search = if (query != null || genre != null) SearchQuery(text = query.orEmpty(), genres = listOfNotNull(genre)) else null
+        val sheet = intent.getStringExtra(SHEET)?.takeIf { steerable }
         val page = intent.getStringExtra(PAGE)?.takeIf { steerable }
 
         // Play from the title page, the Continue hero or an episode row: the engine finds the
@@ -160,10 +164,11 @@ class MainActivity : ComponentActivity() {
             AnistreamTheme {
                 AppRoot(
                     app.store,
-                    if (query != null) Destination.Search else start,
+                    if (search != null) Destination.Search else start,
                     actions = actions,
                     startTitle = title,
-                    startQuery = query,
+                    startSearch = search,
+                    startSheet = sheet,
                     startPage = page,
                     player = player,
                     links = linkFlow,
@@ -333,6 +338,12 @@ class MainActivity : ComponentActivity() {
 
         /** A search to run, on Search. */
         const val QUERY = "query"
+
+        /** A genre to browse, on Search, alone or with the query. */
+        const val GENRE = "genre"
+
+        /** A sheet to open over the destination: `filters`, Search's filters. */
+        const val SHEET = "sheet"
 
         /** A page to open over the destination, by its route: `settings`, `settings/playback`. */
         const val PAGE = "page"

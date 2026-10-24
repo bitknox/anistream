@@ -16,6 +16,9 @@ STORE=http://127.0.0.1:7878 bun run dev
 anistream store admin ./my-store   # copy the #login=… part onto the dev server's address
 ```
 
+The same build is the landing page at the store's root, which the server serves with a `<base>` at
+`admin/` and `data-page="home"`. The dev server shows it at `/?home`.
+
 The dev server forwards `/v1` to the store and presents the store's own origin, because the store
 only accepts changes from the address it serves the page at.
 

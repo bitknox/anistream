@@ -68,34 +68,56 @@ const LINKED_FIELDS: &str = r"
 /// inside it.
 const NEIGHBOURS: &str = r"relations { edges { relationType node { id format } } }";
 
-pub fn search() -> String {
-    format!(
-        r"query ($search: String, $page: Int, $perPage: Int) {{
-            Page(page: $page, perPage: $perPage) {{
-                pageInfo {{ hasNextPage }}
-                media(search: $search, type: ANIME, sort: SEARCH_MATCH) {{ {MEDIA_FIELDS} }}
-            }}
-        }}"
-    )
+/// One argument of `Page.media` a browse can set: its name and its GraphQL type.
+pub type Argument = (&'static str, &'static str);
+
+/// Pages of anime under aliases `r0`, `r1` and on, each with only the arguments it sets, in one
+/// request: one search, or every rail on Search's start at once. AniList charges per request,
+/// not per page, so five rails cost what one search does (measured: five pages of twenty with
+/// the full fragment answer in one request, 2026-10-24).
+///
+/// Each page's variables are named for its alias (`$r0_search`), and an argument that is not
+/// set is left out of the document entirely: AniList reads an explicit null differently from a
+/// missing argument for some of them.
+pub fn media_pages(
+    pages: &[Vec<(Argument, serde_json::Value)>],
+) -> (String, serde_json::Value) {
+    let mut declared = Vec::new();
+    let mut roots = Vec::new();
+    let mut variables = serde_json::Map::new();
+    for (i, arguments) in pages.iter().enumerate() {
+        let alias = format!("r{i}");
+        let mut page_args = Vec::new();
+        let mut media_args = vec!["type: ANIME".to_owned()];
+        for ((name, kind), value) in arguments {
+            let variable = format!("{alias}_{name}");
+            declared.push(format!("${variable}: {kind}"));
+            variables.insert(variable.clone(), value.clone());
+            match *name {
+                "page" | "perPage" => page_args.push(format!("{name}: ${variable}")),
+                _ => media_args.push(format!("{name}: ${variable}")),
+            }
+        }
+        roots.push(format!(
+            "{alias}: Page({}) {{ pageInfo {{ hasNextPage }} media({}) {{ {MEDIA_FIELDS} }} }}",
+            page_args.join(", "),
+            media_args.join(", "),
+        ));
+    }
+    let head =
+        if declared.is_empty() { String::new() } else { format!("({})", declared.join(", ")) };
+    (format!("query {head} {{\n{}\n}}", roots.join("\n")), serde_json::Value::Object(variables))
 }
 
-/// Search with the filter surface: the same server-side arguments as the seasonal
-/// browse, every one optional, so one document serves "hoshikuzu", "mecha from 2006"
-/// and "best of fall" alike.
-pub fn search_filtered() -> String {
-    format!(
-        r"query ($search: String, $page: Int, $perPage: Int, $genres: [String],
-                 $format: MediaFormat, $status: MediaStatus, $season: MediaSeason,
-                 $seasonYear: Int, $sort: [MediaSort]) {{
-            Page(page: $page, perPage: $perPage) {{
-                pageInfo {{ hasNextPage }}
-                media(search: $search, type: ANIME, genre_in: $genres, format: $format,
-                      status: $status, season: $season, seasonYear: $seasonYear,
-                      sort: $sort) {{ {MEDIA_FIELDS} }}
-            }}
-        }}"
-    )
-}
+/// What the filters choose from: the genres, every tag with its category, and the streaming
+/// sites AniList links to. One request, asked about once a week, since these hardly change.
+pub const FACETS: &str = r"
+    query {
+        GenreCollection
+        MediaTagCollection { name description category isAdult isGeneralSpoiler }
+        ExternalLinkSourceCollection(type: STREAMING, mediaType: ANIME) { site isDisabled }
+    }
+";
 
 /// Several titles at once, for the `CONTINUE` rail.
 ///
@@ -158,26 +180,6 @@ pub fn relations() -> String {
                 media(id_in: $ids, type: ANIME) {{ {LINKED_FIELDS}
                     relations {{ edges {{ relationType node {{ {LINKED_FIELDS} {NEIGHBOURS} }} }} }}
                 }}
-            }}
-        }}"
-    )
-}
-
-/// Seasonal browse, with the full filter surface AniList supports server-side.
-///
-/// Filtering here rather than locally is what makes 20+ criteria essentially free: the
-/// alternative would be fetching a season and filtering in the client, which costs far more
-/// requests against a 30/minute budget.
-pub fn seasonal() -> String {
-    format!(
-        r"query ($season: MediaSeason, $seasonYear: Int, $page: Int, $perPage: Int,
-                 $genres: [String], $format: MediaFormat, $status: MediaStatus,
-                 $minScore: Int, $sort: [MediaSort]) {{
-            Page(page: $page, perPage: $perPage) {{
-                pageInfo {{ hasNextPage }}
-                media(season: $season, seasonYear: $seasonYear, type: ANIME,
-                      genre_in: $genres, format: $format, status: $status,
-                      averageScore_greater: $minScore, sort: $sort) {{ {MEDIA_FIELDS} }}
             }}
         }}"
     )
@@ -302,6 +304,59 @@ pub const SAVE_PROGRESS: &str = r"
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::anilist::BrowseFilter;
+
+    /// A text search with nothing else set, as a document.
+    fn search() -> String {
+        media_pages(&[BrowseFilter::default().arguments("kaze", 1, 30)]).0
+    }
+
+    /// A browse with every argument the builder writes set, as a document.
+    fn search_filtered() -> String {
+        media_pages(&[BrowseFilter::every_argument().arguments("", 1, 30)]).0
+    }
+
+    /// Several pages at once, as Search's start asks for its rails.
+    fn seasonal() -> String {
+        let season = BrowseFilter {
+            season: Some("FALL".into()),
+            year: Some(2026),
+            sort: vec!["POPULARITY_DESC".into()],
+            ..BrowseFilter::default()
+        };
+        let trending =
+            BrowseFilter { sort: vec!["TRENDING_DESC".into()], ..BrowseFilter::default() };
+        media_pages(&[trending.arguments("", 1, 20), season.arguments("", 1, 20)]).0
+    }
+
+    #[test]
+    fn a_page_writes_only_the_arguments_it_sets() {
+        let (doc, variables) = media_pages(&[BrowseFilter::default().arguments("kaze", 2, 30)]);
+        assert!(doc.contains("r0: Page(page: $r0_page, perPage: $r0_perPage)"), "{doc}");
+        assert!(doc.contains("search: $r0_search"), "{doc}");
+        for absent in ["genre_in", "format_in", "seasonYear", "isAdult"] {
+            assert!(!doc.contains(&format!("{absent}: $")), "{absent} in:\n{doc}");
+        }
+        assert_eq!(variables["r0_search"], "kaze");
+        assert_eq!(variables["r0_page"], 2);
+        assert_eq!(variables["r0_sort"], serde_json::json!(["SEARCH_MATCH", "ID"]));
+
+        let (doc, variables) =
+            media_pages(&[BrowseFilter::every_argument().arguments("", 1, 30)]);
+        for name in BrowseFilter::every_argument().arguments("", 1, 30).iter().map(|a| a.0.0) {
+            assert!(doc.contains(&format!("${{r0_{name}}}").replace(['{', '}'], "")), "{name}");
+        }
+        assert_eq!(variables["r0_sort"], serde_json::json!(["SCORE_DESC", "ID"]));
+        assert!(variables.get("r0_search").is_none(), "no term, no search argument");
+    }
+
+    #[test]
+    fn several_pages_go_in_one_request_under_their_own_aliases() {
+        let doc = seasonal();
+        assert!(doc.contains("r0: Page(") && doc.contains("r1: Page("), "{doc}");
+        assert!(doc.contains("$r1_season: MediaSeason"), "{doc}");
+        assert!(!doc.contains("$r0_season"), "the first page sets no season");
+    }
 
     fn balanced(doc: &str) -> bool {
         let mut depth = 0i32;
@@ -325,6 +380,7 @@ mod tests {
         vec![
             ("search", search()),
             ("search_filtered", search_filtered()),
+            ("facets", FACETS.to_string()),
             ("by_ids", by_ids()),
             ("by_id", by_id()),
             ("relations", relations()),

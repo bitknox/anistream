@@ -33,7 +33,7 @@ public struct MacPlayerView: View {
     @Environment(\.playerZoom) private var zoom
     private let metrics = PlayerMetrics.mac
 
-    enum Panel: Equatable { case tracks, episodes, more }
+    typealias Panel = PlayerMenu
 
     public init(model: PlayerModel) {
         self.model = model
@@ -94,7 +94,7 @@ public struct MacPlayerView: View {
         .onChange(of: visible, initial: true) { _, on in titleBar(on) }
         .onChange(of: window) { _, window in if let window { opened(window) } }
         .onChange(of: model.backRequests) { back() }
-        .onChange(of: model.trackMenuRequests) { panel = .tracks }
+        .onChange(of: model.menuRequests) { panel = model.requestedMenu }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
             guard let window, (note.object as? NSWindow) === window else { return }
             PlayerModel.note(.info, "player window full screen, \(Self.describe(window))")
@@ -158,6 +158,8 @@ public struct MacPlayerView: View {
         Button("Subtitles…") { toggle(.tracks) }
         Button("Audio…") { toggle(.tracks) }
         Button("Episodes…") { toggle(.episodes) }
+        Button("Picture and Sound…") { toggle(.picture) }
+            .disabled(model.menus == nil)
         Divider()
         Button("Picture in Picture") { model.togglePictureInPicture() }
             .disabled(!model.pictureInPictureAvailable)
@@ -249,7 +251,7 @@ public struct MacPlayerView: View {
                 VolumeLine(model: model)
             }
             .padding(.leading, 8)
-            Button { toggle(.more) } label: {
+            Button { toggle(.speed) } label: {
                 HStack(spacing: 5) {
                     Text(speedLabel(model.speed)).monospacedDigit()
                     Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
@@ -258,9 +260,13 @@ public struct MacPlayerView: View {
                 .frame(height: 28)
                 .contentShape(.capsule)
             }
-            .buttonStyle(OverVideoButtonStyle(on: panel == .more))
+            .buttonStyle(OverVideoButtonStyle(on: panel == .speed))
             .padding(.leading, 8)
             .accessibilityLabel("Playback speed, \(speedLabel(model.speed))")
+            .help("Playback speed")
+            icon("slider.horizontal.3", "Picture and sound", on: panel == .picture) { toggle(.picture) }
+                .disabled(model.menus == nil)
+                .opacity(model.menus == nil ? 0.4 : 1)
             icon("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
                 .disabled(!model.pictureInPictureAvailable)
                 .opacity(model.pictureInPictureAvailable ? 1 : 0.4)
@@ -276,7 +282,7 @@ public struct MacPlayerView: View {
     }
 
     private func icon(
-        _ symbol: String, _ label: String, lit: Bool = false, action: @escaping () -> Void
+        _ symbol: String, _ label: String, on: Bool = false, lit: Bool = false, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
@@ -284,7 +290,7 @@ public struct MacPlayerView: View {
                 .frame(width: 32, height: 32)
                 .contentShape(.circle)
         }
-        .buttonStyle(OverVideoButtonStyle(lit: lit))
+        .buttonStyle(OverVideoButtonStyle(on: on, lit: lit))
         .accessibilityLabel(label)
         .voiceControlLabels(label)
         .help(label)
@@ -332,10 +338,12 @@ public struct MacPlayerView: View {
                         switch which {
                         case .tracks: TrackLists(model: model, metrics: metrics)
                         case .episodes: EpisodeList(model: model, metrics: metrics)
-                        case .more: MoreLists(model: model, metrics: metrics)
+                        case .speed: SpeedList(model: model, metrics: metrics)
+                        case .picture: PictureLists(model: model, metrics: metrics)
                         }
                     }
                     .padding(5)
+                    .environment(\.pointedMenuRow, model.pointedRow)
                 }
                 .onAppear {
                     if let row = selectedRow(which) { list.scrollTo(row, anchor: .center) }
@@ -346,10 +354,29 @@ public struct MacPlayerView: View {
         .background(.glassFill, in: .rect(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
         .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
-        // Below the title strip and above the control row, whichever end it hangs from.
-        .padding(EdgeInsets(top: 50, leading: 0, bottom: 60, trailing: which == .more ? 84 : 16))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: which == .more ? .bottomTrailing : .topTrailing)
+        // Below the title strip and above the control row, whichever end it hangs from: the top
+        // bar's menus under the capsule, the control row's over their buttons.
+        .padding(EdgeInsets(top: 50, leading: 0, bottom: 60, trailing: Self.panelTrailing(which)))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.panelHangs(which))
         .transition(.opacity)
+    }
+
+    /// How far in from the trailing edge a panel ends: the control row's in line with the end of
+    /// the button that opened it, past Full Screen, Picture in Picture and, for the speed, Picture
+    /// and sound, each 32 pt and 4 apart, in from the row's 16.
+    static func panelTrailing(_ which: Panel) -> CGFloat {
+        switch which {
+        case .tracks, .episodes: 16
+        case .picture: 84
+        case .speed: 84 + 36
+        }
+    }
+
+    static func panelHangs(_ which: Panel) -> Alignment {
+        switch which {
+        case .tracks, .episodes: .topTrailing
+        case .speed, .picture: .bottomTrailing
+        }
     }
 
     /// The row in use in a panel, which a list too long for the window scrolls to as it opens.
@@ -357,7 +384,7 @@ public struct MacPlayerView: View {
         switch which {
         case .tracks: TrackLists.selectedRow(model)
         case .episodes: EpisodeList.selectedRow(model)
-        case .more: nil
+        case .speed, .picture: nil
         }
     }
 

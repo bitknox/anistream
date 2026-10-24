@@ -70,6 +70,10 @@ open it, choose **open the admin page** on the store's page in anistream, and yo
 already signed in. On the machine that runs the store, `anistream store admin ./my-store` prints a
 sign-in link instead. A sign-in link works once, for ten minutes, and a session lasts twelve hours.
 
+Anyone who opens the store's address itself gets a page about the store: its name and key, how to
+join from anistream, a link for its owners to sign in, and a small game with Nagare on the rooftops.
+It shows only what `GET /v1/store` tells anyone, so no plugins and no members.
+
 `--url` is the address people will reach the store at, and it is what invite links are built from.
 The server listens on `127.0.0.1:7878` unless `--listen` says otherwise.
 

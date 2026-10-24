@@ -106,7 +106,7 @@ pub(crate) fn check(engine: &EngineState, services: &Services, tx: &Outbox) {
     tokio::spawn(async move {
         let _turn = turn.lock().await;
         let found = if check.enabled || !switched(&check.store, "true").is_empty() {
-            check.run().await
+            anistream_meta::in_background(check.run()).await
         } else {
             if let Err(error) = check.store.forget_episode_check() {
                 tracing::warn!(%error, "could not forget the new-episode check");

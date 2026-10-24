@@ -45,24 +45,60 @@ const POLICY: &str = "default-src 'none'; script-src 'self'; style-src 'self'; f
                       connect-src 'self' https://api.github.com https://raw.githubusercontent.com; \
                       base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
+/// The store's own page, at its root, for whoever opens its address: the same build in its
+/// landing view. It talks to nothing but the store's public `GET /v1/store`, and it reads the
+/// admin page's files through a `<base>`, which is all the policy allows beyond the page's.
+const HOME_POLICY: &str = "default-src 'none'; script-src 'self'; style-src 'self'; \
+                           font-src 'self'; img-src 'self' data:; connect-src 'self'; \
+                           base-uri 'self'; form-action 'none'; frame-ancestors 'none'";
+
 /// One of the page's files, or `None` for a path that is not one.
 pub(crate) fn asset(path: &str) -> Option<Response> {
     let (_, kind, bytes) = FILES.iter().find(|(name, _, _)| *name == path)?;
+    Some(respond(kind, POLICY, bytes.to_vec()))
+}
+
+/// The landing page at the store's root. `prefix` is the path the store is mounted at, `title`
+/// the page's title and `fallback` what to show without script, each already escaped as HTML.
+///
+/// It is the admin page's `index.html` with three changes: a `<base>` at the admin page's
+/// directory, so its files and the store's address resolve as they do there; `data-page` on
+/// the root element, which the app reads to show the landing view; and the store's name in the
+/// title.
+pub(crate) fn home(prefix: &str, title: &str, fallback: &str) -> Response {
+    let page = std::str::from_utf8(asset!("index.html")).unwrap_or_default();
+    let page = page
+        .replacen("<html lang=\"en\">", "<html lang=\"en\" data-page=\"home\">", 1)
+        .replacen("<head>", &format!("<head><base href=\"{prefix}/admin/\">"), 1)
+        .replacen(
+            "<title>Store admin · anistream</title>",
+            &format!("<title>{title}</title>"),
+            1,
+        )
+        .replacen(
+            "<div id=\"root\"></div>",
+            &format!("<div id=\"root\"><noscript>{fallback}</noscript></div>"),
+            1,
+        );
+    respond("text/html; charset=utf-8", HOME_POLICY, page.into_bytes())
+}
+
+fn respond(kind: &str, policy: &str, body: Vec<u8>) -> Response {
     let headers = [
-        ("content-type", *kind),
+        ("content-type", kind),
         // Revalidated every time: the names are not hashed, so a cached copy could outlive an
         // upgrade of the store it came from.
         ("cache-control", "no-cache"),
-        ("content-security-policy", POLICY),
+        ("content-security-policy", policy),
         ("x-frame-options", "DENY"),
         ("referrer-policy", "no-referrer"),
         ("x-content-type-options", "nosniff"),
     ];
-    Some(Response {
+    Response {
         status: 200,
         headers: headers.iter().map(|(n, v)| ((*n).to_owned(), (*v).to_owned())).collect(),
-        body: bytes.to_vec(),
-    })
+        body,
+    }
 }
 
 #[cfg(test)]
@@ -85,6 +121,24 @@ mod tests {
         for (name, _, _) in FILES.iter().filter(|(name, _, _)| name.ends_with(".woff2")) {
             assert!(css.contains(&format!("./{name}")), "admin.css does not use {name}");
         }
+    }
+
+    #[test]
+    fn the_home_page_is_the_admin_page_in_its_landing_view() {
+        // Each change `home` makes is a replacement of a line the build writes; a build that
+        // wrote one differently would leave it out silently.
+        let page = home("/friends", "Our plugins · anistream", "<p>Our plugins</p>");
+        let page = std::str::from_utf8(&page.body).unwrap();
+        for part in [
+            "<html lang=\"en\" data-page=\"home\">",
+            "<head><base href=\"/friends/admin/\">",
+            "<title>Our plugins · anistream</title>",
+            "<div id=\"root\"><noscript><p>Our plugins</p></noscript></div>",
+            "./admin.js",
+        ] {
+            assert!(page.contains(part), "the home page lacks {part}");
+        }
+        assert!(!page.contains("Store admin"));
     }
 
     #[test]
