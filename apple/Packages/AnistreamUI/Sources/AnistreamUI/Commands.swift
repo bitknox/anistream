@@ -70,9 +70,11 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             Divider()
             Button("Search") { navigator.open(.search) }
                 .keyboardShortcut("f", modifiers: .command)
-            Button("Search Filters") {}
-                .keyboardShortcut("f", modifiers: [.command, .option])
-                .disabled(true)
+            Button("Search Filters") {
+                navigator.section = .search
+                navigator.searchFiltersShown.toggle()
+            }
+            .keyboardShortcut("f", modifiers: [.command, .option])
             Button("Command Palette") { navigator.paletteShown.toggle() }
                 .keyboardShortcut("k", modifiers: .command)
             Divider()

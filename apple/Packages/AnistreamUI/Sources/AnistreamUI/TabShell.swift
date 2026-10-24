@@ -45,8 +45,7 @@ struct TabShell: View {
             }
             Tab(value: AppSection.search, role: .search) {
                 TabStack(section: .search) { PhoneSearch() }
-                    .searchable(text: $navigator.query, prompt: "Search titles")
-                    .onSubmit(of: .search) { navigator.search(navigator.query, in: store) }
+                    .titleSearchField(text: $navigator.query, prompt: "Search titles")
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
@@ -78,7 +77,7 @@ struct TabShell: View {
         switch section {
         case .continue: if wide { ContinueScreen() } else { PhoneContinue() }
         case .calendar: if wide { CalendarScreen() } else { PhoneCalendar() }
-        case .seasonal: SeasonalScreen(minimum: wide ? 128 : 100)
+        case .seasonal: SeasonalScreen(minimum: wide ? 128 : 100).toolbar { ToolbarItem { SeasonalToolbar() } }
         case .library: PhoneLibrary()
         case .downloads: DownloadsScreen().toolbar { IPadDownloadsToolbar() }
         case .providers: ProvidersScreen().toolbar { IPadProvidersToolbar() }

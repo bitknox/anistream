@@ -28,8 +28,12 @@ public final class Navigator {
     public var paletteShown = false
     /// Whether Messages is up.
     public var messagesShown = false
-    /// What Search searches for.
+    /// What Search's field holds.
     public var query = ""
+    /// Whether every filter is up: the inspector on the Mac and iPad, a sheet on iPhone.
+    public var searchFiltersShown = false
+    /// The search the launch arguments ask for, for a screenshot, until Search runs it.
+    public var launchSearch: SearchQuery?
     /// The Library's list on screen.
     public var librarySegment: LibrarySegment = .watching
     /// The calendar's week, as weeks from this one.
@@ -71,6 +75,7 @@ public final class Navigator {
         // "titles": Playback, its title-language row selected (MacSettingsTitles).
         if route.pane == "titles" { playbackFocus = .titleLanguage }
         launchSheet = route.sheet
+        if let genre = route.genre { launchSearch = SearchQuery(text: route.query ?? "", genres: [genre]) }
         if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }
         if route.sheet == "show" { showSettings = route.title }
         if route.sheet == "about" { moreAbout = route.title }
@@ -132,49 +137,19 @@ public final class Navigator {
         titleOnMac != nil || !(paths[section] ?? []).isEmpty
     }
 
-    /// Search for `query`, in the Search section.
-    public func search(_ query: String, in store: AppStore) {
-        self.query = query
+    /// Search for `query` now, in the Search section: a recent search, a rail's See All, a
+    /// genre.
+    public func search(_ query: SearchQuery, in store: AppStore) {
         section = .search
-        if !query.isEmpty {
-            store.search(query)
-            RecentSearches.shared.add(query)
-        }
-    }
-}
-
-/// What was searched for lately, newest first, kept on this device.
-@Observable @MainActor
-public final class RecentSearches {
-    public static let shared = RecentSearches()
-    private static let key = "anistream.recentSearches"
-    /// How many are kept.
-    static let kept = 8
-
-    public private(set) var queries: [String]
-    @ObservationIgnored private let defaults: UserDefaults
-
-    public init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        queries = defaults.stringArray(forKey: Self.key) ?? []
+        store.search(query)
+        // After the store has it, so the field's change finds nothing new to search for.
+        self.query = query.text
     }
 
-    public func add(_ query: String) {
-        let query = query.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return }
-        queries.removeAll { $0.caseInsensitiveCompare(query) == .orderedSame }
-        queries.insert(query, at: 0)
-        queries = Array(queries.prefix(Self.kept))
-        defaults.set(queries, forKey: Self.key)
-    }
-
-    public func remove(_ query: String) {
-        queries.removeAll { $0 == query }
-        defaults.set(queries, forKey: Self.key)
-    }
-
-    public func clear() {
-        queries = []
-        defaults.removeObject(forKey: Self.key)
+    /// Search for these words, with the filters already set.
+    public func search(text: String, in store: AppStore) {
+        var query = store.search.query
+        query.text = text
+        search(query, in: store)
     }
 }

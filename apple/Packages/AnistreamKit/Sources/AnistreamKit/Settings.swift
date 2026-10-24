@@ -23,7 +23,7 @@ extension SettingKey {
         switch self {
         case .motion, .autoNext, .skipOpening, .skipFiller, .markChapters, .skipButton, .fullscreen, .nightMode,
              .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .torrents, .syncplay,
-             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular:
+             .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles:
             true
         default:
             false

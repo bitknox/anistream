@@ -321,6 +321,7 @@ struct PhonePlaybackPage: View {
         PhoneList {
             Section {
                 PhoneTitleLanguageRow()
+                PhoneSettingSwitch(key: .adultTitles, note: "Titles AniList marks adult, in Search and Seasonal")
                 PhoneSettingPicker(key: .translation, note: overridden(.translation))
                 PhoneSubtitlesPicker()
                 // Kept on this device: the style it follows is this device's.

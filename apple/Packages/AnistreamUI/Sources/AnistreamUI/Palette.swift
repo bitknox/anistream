@@ -10,7 +10,7 @@ struct PaletteItem: Identifiable {
     enum Kind {
         case title(Entry)
         case command(symbol: String, detail: String?, shortcut: String?, enabled: Bool, run: @MainActor () -> Void)
-        case recent(String)
+        case recent(SearchQuery)
     }
 
     let id: String
@@ -74,10 +74,10 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         return enabled(lhs) && !enabled(rhs)
     }
 
-    let recent = RecentSearches.shared.queries
-        .filter { matches($0) }
+    let recent = store.search.recents
+        .filter { matches($0.recentLine) }
         .prefix(3)
-        .map { PaletteItem(id: "recent-\($0)", name: $0, kind: .recent($0)) }
+        .map { PaletteItem(id: "recent-\($0.recentLine)", name: $0.recentLine, kind: .recent($0)) }
     return (titles, Array(commands.prefix(q.isEmpty ? 4 : 6)), recent)
 }
 
@@ -93,6 +93,7 @@ struct PaletteOverlay: View {
         let lists = paletteItems(query: query, store: store, navigator: navigator)
         let all = lists.titles + lists.commands + lists.recent
         ZStack(alignment: .top) {
+            Color.clear.frame(width: 0, height: 0).task { store.send(.loadRecentSearches) }
             Palette.ground.opacity(0.35)
                 .ignoresSafeArea()
                 .onTapGesture { close() }
@@ -177,7 +178,7 @@ struct PaletteOverlay: View {
     private func run(_ items: [PaletteItem], play: Bool) {
         let item = items.count == 1 ? items[0] : (items.indices.contains(selected) ? items[selected] : nil)
         guard let item else {
-            if !query.isEmpty { navigator.search(query, in: store) }
+            if !query.isEmpty { navigator.search(text: query, in: store) }
             close()
             return
         }
@@ -247,7 +248,7 @@ struct PaletteRow: View {
                         .font(.mac(15))
                         .frame(width: 28)
                         .foregroundStyle(.haze)
-                    Text(query).font(.mac(15)).foregroundStyle(.silk)
+                    Text(query.recentLine).font(.mac(15)).foregroundStyle(.silk).lineLimit(1)
                     Spacer()
                 }
             }

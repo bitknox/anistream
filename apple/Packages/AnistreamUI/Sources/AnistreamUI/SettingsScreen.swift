@@ -337,6 +337,9 @@ struct PlaybackPane: View {
         let overridden = store.settings.overriddenNote
         SettingsGroup(title: "Language") {
             TitleLanguageRow()
+            SettingsRow(title: SettingKey.adultTitles.title, note: "Titles AniList marks adult, in Search and Seasonal.") {
+                SettingSwitch(key: .adultTitles)
+            }
             SettingsRow(title: SettingKey.translation.title, note: overridden(.translation)) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
             // Kept on this device: the style it follows is this device's.
