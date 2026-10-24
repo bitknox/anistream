@@ -260,6 +260,20 @@ class PlayerModel(
     var aspect by mutableStateOf<Double?>(null)
         private set
 
+    /** The picture's height in lines and its pixel format, for the Info panel: 1080, "yuv420p10". */
+    var videoHeight by mutableStateOf<Int?>(null)
+        private set
+    var pixelFormat by mutableStateOf<String?>(null)
+        private set
+
+    /** The video track's codec as mpv names it ("hevc"), for the Info panel. */
+    var videoCodec by mutableStateOf<String?>(null)
+        private set
+
+    /** Frames mpv dropped in this file, for the Info panel. */
+    var droppedFrames by mutableStateOf(0L)
+        private set
+
     // The viewer
 
     /** Now, a few times a second while the player is up: what the cards' timing reads. */
@@ -684,6 +698,10 @@ class PlayerModel(
         bufferingSince = null
         hasPicture = false
         aspect = null
+        videoHeight = null
+        pixelFormat = null
+        videoCodec = null
+        droppedFrames = 0L
     }
 
     // mpv's events
@@ -760,7 +778,11 @@ class PlayerModel(
                 val w = value["dw"].double ?: value["w"].double
                 val h = value["dh"].double ?: value["h"].double
                 if (w != null && h != null && h > 0) aspect = w / h
+                videoHeight = value["h"].double?.toInt()
+                pixelFormat = value["hw-pixelformat"].string ?: value["pixelformat"].string
             }
+            "current-tracks/video" -> videoCodec = value["codec"].string
+            "frame-drop-count" -> droppedFrames = value.long ?: 0L
             "aid" -> audioTrack = value.long
             "sid" -> subtitleTrack = value.long
             "paused-for-cache" -> {
@@ -1081,6 +1103,9 @@ class PlayerModel(
         lastInput = now()
         clock = lastInput
     }
+
+    /** A key on the TV's remote or a phone's: somebody is there, for "Still watching?". */
+    fun viewerThere() = input()
 
     /** Something the viewer did: no longer nobody there. */
     private fun input() {

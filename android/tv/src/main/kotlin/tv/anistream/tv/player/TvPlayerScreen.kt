@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -70,12 +72,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
+import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerChoice
 import tv.anistream.player.Device
 import tv.anistream.player.PlayerModel
@@ -84,6 +88,7 @@ import tv.anistream.player.Track
 import tv.anistream.store.AppClock
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.ButtonLabel
+import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.TvListRow
@@ -91,7 +96,7 @@ import tv.anistream.tv.ui.TvTitle
 import tv.anistream.tv.ui.tryFocus
 
 /** The player's panels, each the 400-wide column on the right. */
-enum class PlayerPanel { Episodes, Tracks, Sources }
+enum class PlayerPanel { Episodes, Tracks, Sources, Info }
 
 /** What the chrome puts focus on as it comes up. */
 private enum class ChromeFocus { Play, SeekBar, Episodes }
@@ -236,6 +241,8 @@ fun TvPlayerScreen(
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) heldSince = model.clock
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                // Any key, the TV's remote's or a phone's: somebody is there.
+                model.viewerThere()
                 when (event.key) {
                     Key.MediaPlayPause -> { model.togglePause(); true }
                     Key.MediaPlay -> { model.setPlaying(true); true }
@@ -300,9 +307,14 @@ fun TvPlayerScreen(
         if (!chrome && skip != null) {
             SkipPill(skip.label, fresh = skipFresh, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 540.dp - 400.dp))
         }
+        val upNext = model.upNext?.takeIf { model.corner == PlayerModel.Corner.UpNext && panel == null }
+        if (upNext != null) {
+            UpNextCard(model, upNext.next, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 27.dp))
+        }
         panel?.let { open ->
             Panel(model, open, onDone = { closePanel() }, modifier = Modifier.align(Alignment.CenterEnd))
         }
+        if (model.stillWatching) StillWatchingDialog(model)
     }
     LaunchedEffect(Unit) { root.tryFocus() }
 }
@@ -432,6 +444,7 @@ private fun Chrome(
                 }
                 TonalButton(onClick = { onPanel(PlayerPanel.Tracks) }, icon = TvIcons.Subtitles) { ButtonLabel("Subtitles and audio") }
                 TonalButton(onClick = { onPanel(PlayerPanel.Sources) }, icon = TvIcons.Source) { ButtonLabel("Source") }
+                TonalButton(onClick = { onPanel(PlayerPanel.Info) }, icon = TvIcons.Info) { ButtonLabel("Info") }
                 Spacer(Modifier.weight(1f))
                 if (hasNext) TonalButton(onClick = onNext, icon = TvIcons.SkipNext) { ButtonLabel("Next episode") }
             }
@@ -541,6 +554,7 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
             PlayerPanel.Episodes -> "Episodes"
             PlayerPanel.Tracks -> "Subtitles and audio"
             PlayerPanel.Sources -> "Source"
+            PlayerPanel.Info -> "Info"
         }
         Text(title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
         LazyColumn(Modifier.focusRequester(list).focusGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -590,6 +604,7 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
                         )
                     }
                 }
+                PlayerPanel.Info -> item(key = "info") { InfoPanel(model, Modifier.focusRequester(current)) }
                 PlayerPanel.Sources -> items(model.menus?.sources.orEmpty(), key = { it.id }) { source ->
                     TvListRow(
                         source.label,
@@ -618,4 +633,130 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
 @Composable
 private fun PanelHeading(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp))
+}
+
+/**
+ * TVPlayerUpNext: the next episode bottom right as the ending starts, its still (the spoiler rule:
+ * blurred, as it is not watched yet), "Plays in 8 s" over the bar, Play now focused and Cancel.
+ */
+@Composable
+private fun UpNextCard(model: PlayerModel, next: NextEpisode, modifier: Modifier) {
+    val play = remember { FocusRequester() }
+    LaunchedEffect(next.number) {
+        repeat(5) {
+            androidx.compose.runtime.withFrameNanos { }
+            if (play.tryFocus()) return@LaunchedEffect
+        }
+    }
+    Row(
+        modifier
+            .width(UP_NEXT_WIDTH)
+            .background(ObiSilk.RaisedHigh, RoundedCornerShape(16.dp))
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        ArtImage(
+            next.thumbnail,
+            plate = ObiSilk.Raised,
+            maxPixelSize = 368,
+            spoiler = true,
+            modifier = Modifier.size(184.dp, 104.dp).clip(RoundedCornerShape(8.dp)),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                next.title?.let { "Next: E${next.number} · $it" } ?: "Next: E${next.number}",
+                style = TvTitle.player,
+                color = ObiSilk.Silk,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            model.countdown?.let { (left, progress) ->
+                Text("Plays in $left s", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
+                Box(Modifier.fillMaxWidth().height(4.dp).background(ObiSilk.Rule, CircleShape)) {
+                    Box(Modifier.fillMaxWidth(progress).fillMaxHeight().background(ObiSilk.Amber, CircleShape))
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TonalButton(onClick = { model.playNext() }, modifier = Modifier.focusRequester(play)) { ButtonLabel("Play now") }
+                TonalButton(onClick = { model.cancelNext() }) { ButtonLabel("Cancel") }
+            }
+        }
+    }
+}
+
+private val UP_NEXT_WIDTH = 560.dp
+
+/** "Still watching?" after episodes in a row with nobody there: paused, Continue focused. */
+@Composable
+private fun StillWatchingDialog(model: PlayerModel) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = { model.continueWatching() }) {
+        val keep = remember { FocusRequester() }
+        LaunchedEffect(Unit) { runCatching { keep.requestFocus() } }
+        Column(
+            Modifier
+                .width(480.dp)
+                .background(ObiSilk.RaisedHigh, RoundedCornerShape(28.dp))
+                .padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Text("Still watching?", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TonalButton(onClick = { model.continueWatching() }, modifier = Modifier.focusRequester(keep)) { ButtonLabel("Continue") }
+                TonalButton(onClick = { model.stopWatching() }) { ButtonLabel("Stop") }
+            }
+        }
+    }
+}
+
+/** TVPlayerInfo: the episode, then how it plays, where heavy subtitles show their cost. */
+@Composable
+private fun InfoPanel(model: PlayerModel, modifier: Modifier) {
+    val store = LocalAppStore.current
+    val episodes by store.titles.episodes.collectAsStateWithLifecycle()
+    val number = model.episode?.number
+    val row = model.titleId?.let { episodes[it] }?.firstOrNull { it.number == number }
+    Column(
+        // Focusable, so Back and the D-pad stay in the panel.
+        modifier.focusable().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(model.episodeLine, style = TvTitle.player, color = ObiSilk.Silk)
+        row?.description?.takeIf { it.isNotBlank() }?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 8, overflow = TextOverflow.Ellipsis)
+        }
+        Text("Playback details", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
+        playbackDetails(model).forEach { line ->
+            Text(line, style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
+        }
+    }
+}
+
+/**
+ * The Info panel's playback lines: "1080p · HEVC 10-bit · hardware decoding", the source, the
+ * dropped frames, and the upscaling.
+ */
+fun playbackDetails(model: PlayerModel): List<String> = buildList {
+    val picture = listOfNotNull(
+        model.videoHeight?.let { "${it}p" },
+        model.videoCodec?.let { codec ->
+            val name = codecName(codec)
+            if (model.pixelFormat?.contains("10") == true) "$name 10-bit" else name
+        },
+        if (model.decoding.trim() == "no") "software decoding" else "hardware decoding",
+    )
+    add(picture.joinToString(" · "))
+    model.menus?.sources?.firstOrNull { it.current }?.let { add(it.label) }
+    add("Dropped frames: ${model.droppedFrames}")
+    val upscaling = model.menus?.upscaling
+    val chosen = upscaling?.options?.firstOrNull { it.id == upscaling.current }?.label
+    add("Upscaling: ${chosen?.lowercase() ?: "off on this TV"}")
+}
+
+/** mpv's codec names as people read them. */
+fun codecName(codec: String): String = when (codec.lowercase()) {
+    "hevc", "h265" -> "HEVC"
+    "h264", "avc" -> "H.264"
+    "av1" -> "AV1"
+    "vp9" -> "VP9"
+    else -> codec.uppercase()
 }

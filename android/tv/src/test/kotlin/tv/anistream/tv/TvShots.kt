@@ -44,6 +44,7 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
@@ -187,10 +188,31 @@ class TvShots {
         captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-pair-request.png")
     }
 
+    /** Up Next as the ending starts: its card bottom right, Play now focused. */
+    @Test
+    fun player_up_next() = playerShot("tv-player-up-next") { model ->
+        time = CHROME_HIDE + 1_000
+        compose.runOnUiThread {
+            model.apply(Event.PlayerUi(1u, PlayerUi.UpNext(NextEpisode("8", "A Town Without Night", null), true, 148.0, 10u, 3u)))
+        }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        assertEquals("Play now", focusedText())
+    }
+
+    /** The Info panel: the episode, then how it plays. */
+    @Test
+    fun player_info() = playerShot("tv-player-info") {
+        // The chrome is up with focus on Play: Right along the buttons to Info.
+        repeat(6) { if (focusedText() != "Info") press(Key.DirectionRight) }
+        assertEquals("Info", focusedText())
+        press(Key.DirectionCenter)
+    }
+
     /** The model's clock, held where a shot puts it. */
     private var time = 0L
 
-    private fun playerShot(name: String, then: () -> Unit) {
+    private fun playerShot(name: String, then: (PlayerModel) -> Unit) {
         AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         var mpv: ScriptedMpv? = null
@@ -231,7 +253,7 @@ class TvShots {
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
-        then()
+        then(model)
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
         awaitArt(store)
