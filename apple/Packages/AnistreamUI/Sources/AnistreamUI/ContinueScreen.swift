@@ -51,7 +51,9 @@ struct ContinueScreen: View {
             placeholder: AnyView(QueueColumn(queue: nil, selection: moving).frame(maxWidth: .infinity, alignment: .leading)),
             activity: "loading continue watching",
             failure: "Couldn't load Continue",
-            retry: { store.loadContinue(force: true) }
+            retry: { store.loadContinue(force: true) },
+            // In line with the queue's group headers.
+            offlineInset: 16
         ) { _ in
             if queue.isEmpty {
                 NothingToContinue()

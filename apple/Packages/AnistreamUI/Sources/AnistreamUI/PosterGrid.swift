@@ -273,11 +273,16 @@ struct ListStates<Loaded: View, Empty: View>: View {
     private func answer(_ state: ListState) -> some View {
         switch state {
         case .failed(let reason):
-            if store.offline {
-                OfflineEmpty()
-            } else {
-                ScreenFailed(title: failure, reason: reason, retry: retry)
+            Group {
+                if store.offline {
+                    OfflineEmpty()
+                } else {
+                    ScreenFailed(title: failure, reason: reason, retry: retry)
+                }
             }
+            // Across the screen and a little down it, inside a scroll view as well, where it
+            // would otherwise take its own width at the top left.
+            .frame(maxWidth: .infinity, minHeight: 360)
         case .empty:
             empty()
         case .loaded(let ids):

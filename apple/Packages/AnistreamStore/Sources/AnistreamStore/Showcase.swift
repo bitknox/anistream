@@ -74,7 +74,7 @@ public enum Showcase: String, CaseIterable, Sendable {
                 held.insert("connectivity")
             case .stranded, .failed:
                 if self == .stranded { events.append(.connectivity(offline: true)) }
-                let reason = self == .stranded ? "no route to host" : "anilist unreachable: error sending request"
+                let reason = self == .stranded ? "no route to host" : "AniList unreachable: error sending request"
                 let views: [ContentFor] = [.continue, .seasonal, .calendar]
                     + LibraryModel.order.map { ContentFor.library($0) }
                 events += views.map { .content(view: $0, content: .failed(reason)) }
