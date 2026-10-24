@@ -1,5 +1,6 @@
 //! The screens: one module each, and what the window shows for destinations not built yet.
 
+pub mod accounts;
 pub mod calendar;
 pub mod continue_page;
 pub mod downloads;
@@ -15,6 +16,7 @@ pub mod settings_preview;
 pub mod show_settings;
 pub mod stores;
 pub mod title;
+pub mod torrents;
 
 use std::rc::Rc;
 
@@ -137,6 +139,8 @@ pub fn shortcuts(ctx: &Ctx) {
                 ("Fullscreen", "f"),
                 ("Mini player", "p"),
                 ("Skip the opening or ending", "s"),
+                ("Undo an automatic skip", "u <Control>z"),
+                ("Subtitles and audio", "t"),
                 ("Next or previous episode", "n <Shift>n"),
                 ("Faster or slower", "bracketright bracketleft"),
                 ("Normal speed", "BackSpace"),
