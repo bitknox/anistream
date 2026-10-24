@@ -34,19 +34,19 @@ plans it.
 
 ## The flow
 
-The flow assumes the engine speaks Syncplay itself and drives each app's own player (decision
-1). With the hand-off instead, steps 4 and 5 happen in Syncplay's window, not ours.
+The engine speaks Syncplay itself and drives each app's own player (decision 1), so every step
+below happens in our windows.
 
 1. **Start.** From a title: More, then "Watch together…". From the player: a people button in the
    top bar. Both open the same small form.
-2. **Server and room.** A server field with recent servers, a room prefilled with a random
+2. **Server and room.** A server field, empty on the first party with the Syncplay project's public server suggested and a line saying who runs it, then recent servers, a room prefilled with a random
    two-word name, and the display name. Start.
 3. **Invite.** Once joined, the form becomes the party panel with Copy invite link. The link is
    `anistream://party?server=…&room=…&title=<AniList id>&episode=…`. On a friend's device it opens
    anistream (single instance, as with store invites), shows the title and episode and asks
    Join. Their app resolves the episode from their own sources and joins the room. If none has
-   it, the dialog says "None of your sources has this episode", offers Choose source, and can
-   join without playing. The panel also shows server and room as text for plain Syncplay users.
+   it, the dialog says "None of your sources has this episode" and joins the room without
+   playing, offering Choose source. The panel also shows server and room as text for plain Syncplay users.
 4. **Ready.** Each member has a ready toggle. The panel lists members with ready state and
    whether their file matches in length. When everyone is ready, play starts on its own, as
    Syncplay's autoplay does. Pause and seek from anyone apply to everyone, with a notice naming
@@ -74,10 +74,11 @@ Native surfaces, following `native-ux.md` and `desktop-design-brief.md`:
 - **Feature flags:** the client in its own `party` feature, on for the desktop apps and the
   terminal.
 - **Settings:** `enabled` (send every play to a party) goes, since a party is now started on
-  purpose. Server and name stay as defaults; the room becomes per party.
-- With the hand-off instead: a `syncplay` feature split from `desktop`, room per party, headers
-  as player arguments, and an "is Syncplay installed" probe. A Flatpak cannot start host
-  programs without `flatpak-spawn` and a permission.
+  purpose. The `server` preset goes too, since there is no default server (decision 2); the last
+  server used is remembered. Name stays as a default; the room becomes per party.
+- **Chat:** incoming messages become player notices; sending is not built (decision 3).
+- **Progress:** a party play marks the episode watched when it ends and syncs trackers. Party
+  pauses and seeks never save a position (decision 5).
 
 ## Legal and privacy
 
@@ -93,49 +94,19 @@ Native surfaces, following `native-ux.md` and `desktop-design-brief.md`:
 - A public server is run by people we do not know. The website's privacy page needs updating to
   match what is chosen below.
 
-## Decisions for Johan
+## Decided
 
-1. **How does a party play?**
-   - a) Hand off to the installed Syncplay app, as the terminal does.
-   - b) A Syncplay client in the engine, driving each app's own player.
-   - c) Hand-off now, client later.
+Johan decided these on 2026-10-24.
 
-   Recommendation: b. The hand-off leaves our player, needs Syncplay installed, fails on
-   header-bound streams and in a Flatpak, and has no ready state or invites to show. The client
-   is written once for all apps.
-
-2. **Default server?**
-   - a) Keep the Syncplay project's public server preset.
-   - b) No default: the first party asks, offering the public server as a suggestion with a line
-     saying who runs it.
-   - c) anistream runs its own server.
-
-   Recommendation: b. It is honest about the third party; c makes anistream run a service
-   that sees who watches what together.
-
-3. **Is chat in scope?**
-   - a) No chat: members and ready state only.
-   - b) Incoming messages shown as player notices, no sending yet.
-   - c) A full chat panel.
-
-   Recommendation: b. Plain Syncplay members will chat; dropping that reads as broken.
-
-4. **What does an invite open when the friend lacks the episode?**
-   - a) Refuse to join.
-   - b) Join the room without playing, with Choose source offered.
-
-   Recommendation: b, as in the flow above.
-
-5. **Progress during a party?**
-   - a) Keep recording nothing.
-   - b) Mark the episode watched when it ends in a party, without saving positions.
-   - c) Record it like a private play.
-
-   Recommendation: b. You did watch it, and the room's pauses still never count as yours.
+1. A Syncplay protocol client in the engine drives each app's own player, and the hand-off to the Syncplay program is not used for parties.
+2. There is no default server: the first party asks for one and suggests the Syncplay project's public server, with a line saying who runs it.
+3. Incoming chat is shown as player notices, and there is no sending yet.
+4. An invite whose episode the friend lacks joins the room without playing and offers Choose source.
+5. A party play marks the episode watched when it ends and syncs trackers, and party pauses and seeks never save a position.
 
 ## Effort
 
-With decision 1b, in working days:
+This is the effort for decision 1, the engine client (option 1b), in working days:
 
 | Part | Estimate |
 |---|---|
@@ -144,6 +115,3 @@ With decision 1b, in working days:
 | Windows: dialog, flyout, scheme registration and single-instance redirect | 3 to 4 |
 | Linux: dialog, popover, `x-scheme-handler` in the app's desktop file | 2 to 3 |
 | Privacy page, settings cleanup, parity doc | 1 |
-
-With 1a, the engine part drops to 2 to 3 days and each app to about 1 to 2, but the hand-off's
-gaps in decision 1 stay.
