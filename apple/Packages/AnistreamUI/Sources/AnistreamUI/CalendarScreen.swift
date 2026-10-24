@@ -68,7 +68,7 @@ enum CalendarWords {
     }
 
     /// The week as the locale writes a range of days: "19–25 October 2026".
-    static func range(_ week: [Date]) -> String {
+    static func range(_ week: [Date], locale: Locale = locale) -> String {
         guard let first = week.first, let last = week.last else { return "" }
         return (first..<last).formatted(Date.IntervalFormatStyle(locale: locale).day().month(.wide).year())
     }

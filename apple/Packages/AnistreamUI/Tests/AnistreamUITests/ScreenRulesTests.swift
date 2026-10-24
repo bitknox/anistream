@@ -31,7 +31,8 @@ struct ScreenRulesTests {
         #expect(days.count == 7)
         #expect(calendar.component(.weekday, from: days[0]) == 2, "Monday first")
         #expect(calendar.component(.day, from: days[0]) == 19)
-        #expect(CalendarWords.range(days) == "19–25 October 2026")
+        // In the viewer's locale; British English writes it so, thin spaces round the dash.
+        #expect(CalendarWords.range(days, locale: Locale(identifier: "en_GB")) == "19\u{2009}–\u{2009}25 October 2026")
         #expect(calendar.component(.day, from: weekDays(offset: -1, now: wednesday)[0]) == 12)
     }
 
