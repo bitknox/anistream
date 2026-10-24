@@ -123,6 +123,13 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
     val ready = !anilist || asked != null
     var link by remember { mutableStateOf<String?>(null) }
     var sent by remember { mutableStateOf(false) }
+    // A sign-in that ran and ended with no account: the answer was turned down. A success closes
+    // the screen before this is seen.
+    val working by store.accounts.working.collectAsStateWithLifecycle()
+    val busy = store.accounts.isWorking(working, tracker)
+    var ran by remember { mutableStateOf(false) }
+    LaunchedEffect(busy) { if (busy) ran = true }
+    val failed = sent && ran && !busy
     DisposableEffect(ready) {
         if (!ready) return@DisposableEffect onDispose {}
         val page = SignInPage(
@@ -132,6 +139,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
         ) { answer ->
             scope.launch {
                 sent = true
+                ran = false
                 when (answer) {
                     is PageAnswer.Code -> asked?.let { request ->
                         val state = request.url.toUri().getQueryParameter("state")
@@ -170,9 +178,13 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
             Text("Or open this address", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
             Text(shown ?: "Starting", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Silk)
             Text(
-                if (sent) "Signing in" else "The page closes with this screen, or in 10 minutes.",
+                when {
+                    !sent -> "The page closes with this screen, or in 10 minutes."
+                    failed -> "$name did not sign in. Check the details and send them again from the page."
+                    else -> "Signing in"
+                },
                 style = MaterialTheme.typography.bodyMedium,
-                color = ObiSilk.Haze,
+                color = if (failed) ObiSilk.Vermilion else ObiSilk.Haze,
             )
         }
     }
