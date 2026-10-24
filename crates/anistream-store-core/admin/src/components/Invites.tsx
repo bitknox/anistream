@@ -19,21 +19,35 @@ export function Invites({
 	const [name, setName] = useState('');
 	const [owner, setOwner] = useState(false);
 	const [made, setMade] = useState<(InviteCreated & { name: string }) | null>(null);
+	const [busy, setBusy] = useState(false);
 
-	const create = async (event: React.FormEvent) => {
-		event.preventDefault();
-		const who = name.trim();
-		if (!who) return;
+	const make = async (who: string, role: 'owner' | 'member') => {
+		setBusy(true);
 		let created: InviteCreated | null = null;
-		const ok = await act(async () => {
-			created = await api.invite(who, owner ? 'owner' : 'member');
-		}, `Made an invite link for ${who}.`);
+		const ok = await act(
+			async () => {
+				created = await api.invite(who, role);
+			},
+			`Made an invite link for ${who}.`,
+			() => void make(who, role),
+		);
+		setBusy(false);
 		if (ok && created) {
 			setMade({ ...(created as InviteCreated), name: who });
 			setName('');
 			setOwner(false);
 		}
 	};
+
+	const create = (event: React.FormEvent) => {
+		event.preventDefault();
+		const who = name.trim();
+		if (who && !busy) void make(who, owner ? 'owner' : 'member');
+	};
+
+	// The link just made stays while its invite waits. Once it is used or cancelled it works no
+	// more, so it goes.
+	const shown = made && invites.some((invite) => invite.id === made.id) ? made : null;
 
 	const copy = async () => {
 		if (!made) return;
@@ -70,15 +84,15 @@ export function Invites({
 					/>
 					<span>As an owner, who can invite, remove and publish</span>
 				</label>
-				<button type="submit" className="btn invite-submit" disabled={!name.trim()}>
-					Make an invite link
+				<button type="submit" className="btn invite-submit" disabled={busy || !name.trim()}>
+					{busy ? 'Making the link…' : 'Make an invite link'}
 				</button>
 			</form>
 
-			{made && (
-				<fieldset className="made" aria-label={`Invite link for ${made.name}`}>
-					<p className="caps made-for">For {made.name}</p>
-					<p className="made-link">{made.link}</p>
+			{shown && (
+				<fieldset className="made" aria-label={`Invite link for ${shown.name}`}>
+					<p className="caps made-for">For {shown.name}</p>
+					<p className="made-link">{shown.link}</p>
 					<div className="actions">
 						<button type="button" className="btn btn-small" onClick={copy}>
 							Copy link

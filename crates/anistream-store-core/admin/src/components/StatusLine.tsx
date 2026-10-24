@@ -7,6 +7,8 @@ export interface Status {
 	tone: 'info' | 'alert' | 'busy';
 	/** How far the work has got, 0 to 1, drawn as an amber line along the toast's foot. */
 	progress?: number;
+	/** For a failure worth another go: the toast offers Try again, which runs this. */
+	retry?: () => void;
 	at: number;
 }
 
@@ -32,6 +34,19 @@ export function StatusLine({ status }: { status: Status | null }) {
 					<p className="toast-text">
 						<Said text={shown.text} />
 					</p>
+					{shown.retry && (
+						<button
+							type="button"
+							className="btn btn-small"
+							onClick={() => {
+								const again = shown.retry;
+								setShown(null);
+								again?.();
+							}}
+						>
+							Try again
+						</button>
+					)}
 					{shown.tone !== 'busy' && (
 						<button
 							type="button"
