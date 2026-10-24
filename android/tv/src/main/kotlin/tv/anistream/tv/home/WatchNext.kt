@@ -198,6 +198,9 @@ class WatchNext(
         }
     }
 
+    // The setters are BasePreviewProgram.Builder's, restricted to the library only so that
+    // subclasses return their own type: calling them through WatchNextProgram.Builder is the API.
+    @SuppressLint("RestrictedApi")
     private fun program(card: WatchNextCard): WatchNextProgram {
         val intent = Intent(Intent.ACTION_VIEW, playLink(card.id, card.episode).toUri()).setComponent(activity)
         return WatchNextProgram.Builder()

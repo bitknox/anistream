@@ -122,11 +122,12 @@ class TvActivity : ComponentActivity() {
         else -> KeyEvent.KEYCODE_DPAD_CENTER
     }
 
-    /** A key as the TV's own remote sends it: down, then up. */
+    /** A key as the TV's own remote sends it: down, then up, through the window to this activity. */
     private fun press(code: Int) {
         val now = SystemClock.uptimeMillis()
-        dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0))
-        dispatchKeyEvent(KeyEvent(now, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, code, 0))
+        val decor = window.decorView
+        decor.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0))
+        decor.dispatchKeyEvent(KeyEvent(now, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, code, 0))
     }
 
     /** Android 17 asks before an app reaches the local network, which the remote needs. */
