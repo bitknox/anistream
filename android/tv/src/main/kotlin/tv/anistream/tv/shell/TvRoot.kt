@@ -34,6 +34,8 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.ffi.FfiScreen
 import tv.anistream.player.PlayerModel
 import tv.anistream.store.AppStore
+import tv.anistream.tv.home.LocalWatchNext
+import tv.anistream.tv.home.WatchNext
 import tv.anistream.tv.player.TvPlayerScreen
 import tv.anistream.tv.remote.LocalRemoteHost
 import tv.anistream.tv.remote.PairRequestDialog
@@ -64,6 +66,7 @@ fun TvRoot(
     play: (AnilistId, UInt) -> Unit,
     playerScreen: @Composable (PlayerModel) -> Unit = { TvPlayerScreen(it) },
     remote: TvRemoteHost? = null,
+    watchNext: WatchNext? = null,
 ) {
     val repeat = remember { KeyRepeat() }
     val states = rememberSaveableStateHolder()
@@ -71,6 +74,7 @@ fun TvRoot(
         LocalAppStore provides store,
         LocalKeyRepeat provides repeat,
         LocalRemoteHost provides remote,
+        LocalWatchNext provides watchNext,
     ) {
         Box(
             Modifier

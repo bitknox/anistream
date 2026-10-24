@@ -46,6 +46,8 @@ dependencies {
     implementation(libs.lifecycle.process)
     // The pairing screen's QR code.
     implementation(libs.zxing.core)
+    // The launcher's Watch Next row.
+    implementation(libs.tvprovider)
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
 

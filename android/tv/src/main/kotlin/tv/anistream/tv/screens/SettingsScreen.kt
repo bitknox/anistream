@@ -42,6 +42,7 @@ import tv.anistream.engine.model.SettingsView
 import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AppStore
 import tv.anistream.store.SettingsCatalog
+import tv.anistream.tv.home.LocalWatchNext
 import tv.anistream.tv.remote.LocalRemoteHost
 import tv.anistream.tv.remote.RemovePhoneDialog
 import tv.anistream.tv.shell.TvNavigator
@@ -300,12 +301,13 @@ fun phoneLine(phone: FfiPairedPhone, now: Long): String {
 private fun LazyListScope.thisTv(memory: FocusMemory) {
     item(key = "this-tv", contentType = "list") {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val watchNext = LocalWatchNext.current
             TvListRow(
                 "Show anistream on the home screen",
-                onClick = {},
+                onClick = { watchNext?.let { it.enable(!it.enabled) } },
                 supporting = "Watch Next",
-                switch = false,
-                enabled = false,
+                switch = watchNext?.enabled ?: false,
+                enabled = watchNext != null,
                 modifier = Modifier.remembered(memory, "tv/watch-next"),
             )
             ImageCacheRow(memory)

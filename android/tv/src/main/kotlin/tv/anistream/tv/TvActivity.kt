@@ -4,6 +4,7 @@
 package tv.anistream.tv
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -16,10 +17,13 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.RemoteKey
+import tv.anistream.store.AppStore
+import tv.anistream.tv.home.parsePlayLink
 import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
@@ -44,9 +48,12 @@ class TvActivity : ComponentActivity() {
                     nav = nav,
                     play = { id, episode -> app.store.send(Command.Play(id, episode.toString())) },
                     remote = app.remote,
+                    watchNext = app.watchNext,
                 )
             }
         }
+        this.nav = nav
+        if (savedInstanceState == null) openLink(intent)
         app.remote.askLocalNetwork = ::askLocalNetwork
         if (app.remote.findable) askLocalNetwork()
         // What a paired phone asks of the browse UI.
@@ -64,6 +71,27 @@ class TvActivity : ComponentActivity() {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 }
             }
+        }
+    }
+
+    private var nav: TvNavigator? = null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        openLink(intent)
+    }
+
+    /**
+     * A Watch Next entry: the player on its episode, with the title page under it so Back from
+     * the player lands there.
+     */
+    private fun openLink(intent: Intent) {
+        val (id, episode) = parsePlayLink(intent.dataString) ?: return
+        val nav = nav ?: return
+        nav.openTitle(id)
+        lifecycleScope.launch {
+            app.store.phase.first { it == AppStore.Phase.Running }
+            app.store.send(Command.Play(id, episode.toString()))
         }
     }
 
