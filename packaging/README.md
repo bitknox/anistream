@@ -102,7 +102,7 @@ packaging/linux/glibc-floor.sh target/x86_64-unknown-linux-gnu/release/anistream
 ## The apps
 
 A release carries the apps beside the terminal binaries: `anistream-<version>-android-arm64.apk`,
-`anistream-<version>-macos.dmg` and `anistream-<version>-ios-unsigned.ipa`, with
+`anistream-<version>-android-tv.apk`, `anistream-<version>-macos.dmg` and `anistream-<version>-ios-unsigned.ipa`, with
 `anistream-<version>-apps-third-party.zip` and `anistream-<version>-apps-sources.tar`, each with a
 `.sha256`. `.github/workflows/apps-release.yml` builds them, and `release.yml` calls it for every
 release and publishes what it built with the terminal builds. A pull request that
@@ -133,8 +133,12 @@ and so does a dispatch of apps-release.yml. CI's own jobs build the apps for eve
   entitlement and privacy usage description it is signed with. `publish.sh` adds the release's
   date and the first section of its notes.
 
-The APK is signed with the project's release key, from the repository's `ANDROID_RELEASE_*`
-secrets. The Mac app is signed ad hoc and not notarized, and the `.ipa` is signed ad hoc too, for
+Both APKs are signed with the project's release key, from the repository's `ANDROID_RELEASE_*`
+secrets. The phone APK is arm64 only. The TV APK is one universal APK with both `arm64-v8a` and
+`armeabi-v7a`, since most TV boxes run 32-bit userspace, for Android 11 or later; Gradle signs it
+through `android/tv/build.gradle.kts` with the same properties, and the workflow signs it with
+`apksigner` if Gradle left it unsigned, then checks its package, version, minimum SDK, ABIs and
+libraries. The engine and libmpv are built for both ABIs once, and the phone APK takes arm64. The Mac app is signed ad hoc and not notarized, and the `.ipa` is signed ad hoc too, for
 AltStore or SideStore to sign with each person's own Apple ID: there is no paid Apple developer
 account behind either. Its ad hoc signature carries the App Group, `group.tv.anistream`, which
 those two read from it and register under the person's team (`apple/scripts/adhoc-sign.sh`).

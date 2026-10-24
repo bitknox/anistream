@@ -441,6 +441,9 @@ struct TitleFamilyRow: View {
                                 seasonCell(index, season)
                             }
                         }
+                        // Each cell at its own width, so a tight row fails to fit and the
+                        // scrolling layout takes over instead of the cells squeezing.
+                        .fixedSize(horizontal: true, vertical: false)
                     }
                 }
                 if hasRelated {
