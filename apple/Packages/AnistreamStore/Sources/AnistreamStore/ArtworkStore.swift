@@ -61,6 +61,9 @@ public final class ArtworkStore {
     /// last only when a screen shows it again, the last wait later.
     public static let backoff: [Duration] = [.seconds(2), .seconds(5), .seconds(15), .seconds(60)]
 
+    /// How many bytes of decoded pixels the cache keeps, unless the store is told otherwise.
+    public static let costLimit = 256 << 20
+
     /// Bumped for a URL each time its art lands, which is what a view reading it observes.
     public private(set) var arrivals: [String: Int] = [:]
 
@@ -89,7 +92,7 @@ public final class ArtworkStore {
     ///   - backoff: the waits after each failure in a row (`ArtworkStore.backoff`).
     ///   - sleep: how a retry waits out its part of the backoff.
     public init(
-        costLimit: Int = 256 << 20,
+        costLimit: Int = ArtworkStore.costLimit,
         backoff: [Duration] = ArtworkStore.backoff,
         now: @escaping @Sendable () -> ContinuousClock.Instant = { ContinuousClock.now },
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },

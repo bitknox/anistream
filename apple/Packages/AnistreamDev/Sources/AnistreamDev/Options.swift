@@ -24,6 +24,12 @@ import Foundation
 ///                                                     every second image fails 3 times first and
 ///                                                     each waits 400 ms, shot once settled and
 ///                                                     then 3 s and 9 s after, untouched
+///     swift run AnistreamDev -AnistreamTitle 920001 -AnistreamMotion season --art-cache 8 \
+///         --snapshot shot.png --frames 0,50,100       the next season opened from the page's
+///                                                     picker with the art cache kept to 8 MB,
+///                                                     shot as it changes
+///     swift run AnistreamDev --episodes-delay 800     each episode table held back 800 ms, as a
+///                                                     slow source answers
 ///     swift run AnistreamDev --home <dir>             keep the files in <dir> instead
 ///     swift run AnistreamDev --real                   the app's own engine, real sources and
 ///                                                     AniList, in a new temporary home
@@ -54,6 +60,11 @@ struct Options {
     /// How badly the fake serves the art: every second image fails this many times before it is
     /// served, and each waits the delay.
     var artTrouble: (failFirst: Int, delay: Duration)?
+    /// How many megabytes of decoded art the cache keeps beside what is on screen, when not the
+    /// app's own.
+    var artCache: Int?
+    /// How long each episode table waits before the screens see it, as a slow source answers.
+    var episodesDelay: Duration?
     var width: CGFloat = 1280
     var height: CGFloat = 800
 
@@ -61,6 +72,7 @@ struct Options {
         usage: AnistreamDev [--scene watching|fresh|playing | --real [--shared]] [--home <dir>]
                             [--player-shot <state>] [--snapshot <file.png>] [--size <width>x<height>]
                             [--media <file>] [--full-screen <times>] [--art-trouble <fails>[,<ms>]]
+                            [--art-cache <MB>] [--episodes-delay <ms>]
         the player's states: \(PlayerShot.allCases.map(\.rawValue).joined(separator: ", "))
         """
 
@@ -122,6 +134,14 @@ struct Options {
                       let delay = parts.count == 2 ? parts[1] : 0
                 else { throw Problem.bad(flag, spec) }
                 artTrouble = (fails, .milliseconds(delay))
+            case "--art-cache":
+                let megabytes = try value(flag)
+                guard let size = Int(megabytes), size > 0 else { throw Problem.bad(flag, megabytes) }
+                artCache = size
+            case "--episodes-delay":
+                let ms = try value(flag)
+                guard let delay = Int(ms), delay >= 0 else { throw Problem.bad(flag, ms) }
+                episodesDelay = .milliseconds(delay)
             case "--size":
                 let size = try value(flag)
                 let parts = size.split(separator: "x").compactMap { Double($0) }
