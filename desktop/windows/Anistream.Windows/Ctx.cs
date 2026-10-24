@@ -53,7 +53,7 @@ sealed class Ctx
 
     public void OpenTitle(uint id) => Window.OpenTitle(id);
 
-    public void Play(uint id, string episode) => Send(new Command.Play(id, episode));
+    public void Play(uint id, string episode) => Send(new Command.Play(id, episode, false));
 
     public void Search(string query) => Window.ShowSearch(query);
 }

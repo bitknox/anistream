@@ -170,6 +170,48 @@ fn a_title_comes_back_whole_with_the_source_pinned_for_it_ahead() {
     engine.shutdown();
 }
 
+/// The path as a platform monitor says it.
+fn path(offline: bool) -> Command {
+    Command::NetworkPath { cellular: false, constrained: false, offline }
+}
+
+#[test]
+fn being_offline_is_said_once_and_coming_back_loads_again_what_was_asked_meanwhile() {
+    let (engine, _root) = started();
+    let connectivity = |event: &Event| matches!(event, Event::Connectivity { .. });
+    let season = |event: &Event| matches!(event, Event::JobStarted { activity, .. } if activity == "loading this season");
+
+    // The path goes: said once, however often the monitor repeats it.
+    engine.send(path(true));
+    engine.send(path(true));
+    let read = read_until(&engine, connectivity);
+    assert!(matches!(read.last(), Some(Event::Connectivity { offline: true })), "{read:?}");
+
+    // Nothing is refused while offline: the screen asks, and is answered as it can be.
+    let job = engine.send(Command::LoadSeasonal).expect("loading the season is a job");
+    let read = read_until(&engine, ends(job));
+    assert!(!read.iter().any(connectivity), "said once: {read:?}");
+
+    // Back: said, then the season asked for again, once, as a job of its own.
+    engine.send(path(false));
+    let read = read_until(&engine, |event| {
+        matches!(event, Event::Content { view: ContentFor::Seasonal, .. })
+    });
+    let back = read
+        .iter()
+        .position(|event| matches!(event, Event::Connectivity { offline: false }))
+        .unwrap_or_else(|| panic!("back online said: {read:?}"));
+    let again = read.iter().position(season);
+    assert!(again.is_some_and(|again| again > back), "{read:?}");
+
+    // Online already: nothing said, and nothing loaded again.
+    engine.send(path(false));
+    let job = engine.send(Command::LoadDetail(AnilistId::new(900_001))).expect("a job");
+    let read = read_until(&engine, ends(job));
+    assert!(!read.iter().any(|event| connectivity(event) || season(event)), "{read:?}");
+    engine.shutdown();
+}
+
 #[test]
 fn the_fake_anilist_says_what_it_was_asked() {
     let (engine, _root) = started();

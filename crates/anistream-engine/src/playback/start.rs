@@ -72,11 +72,13 @@ fn party_by_default(config: &Config) -> bool {
 }
 
 /// Play an episode from whichever source the resolution ladder chooses, staged for Now Playing
-/// as the engine's record of the titles names it, which the front end is told. Refused, with
-/// nothing staged, where this build has no player to open.
+/// as the engine's record of the titles names it, which the front end is told: where it was
+/// left, or from the beginning when `from_start`. Refused, with nothing staged, where this build
+/// has no player to open.
 pub fn play(
     id: AnilistId,
     episode: String,
+    from_start: bool,
     job: Option<JobGuard>,
     engine: &mut EngineState,
     services: &Services,
@@ -86,7 +88,8 @@ pub fn play(
         return playback::refuse(job, tx);
     };
     let billing = named(id, &episode, engine);
-    let staged = play_staged(id, episode, None, billing, opener, job, engine, services, tx);
+    let staged =
+        play_staged(id, episode, None, from_start, billing, opener, job, engine, services, tx);
     let _ = tx.send(staged);
 }
 
@@ -107,7 +110,8 @@ pub fn play_source(
     };
     let billing = named(id, &episode, engine);
     let pick = Some((provider_id, source_id));
-    let staged = play_staged(id, episode, pick, billing, opener, job, engine, services, tx);
+    let staged =
+        play_staged(id, episode, pick, false, billing, opener, job, engine, services, tx);
     let _ = tx.send(staged);
 }
 
@@ -124,7 +128,7 @@ pub(crate) fn play_following(
 ) -> Event {
     let Follow { id, episode, title, episode_title } = follow;
     let billing = (title, episode_title);
-    play_staged(id, episode, None, billing, opener, job, engine, services, tx)
+    play_staged(id, episode, None, false, billing, opener, job, engine, services, tx)
 }
 
 /// What a play the front end asked for is staged as: the name the engine's record of the titles
@@ -161,14 +165,15 @@ fn stage(
 }
 
 /// Play an episode staged for Now Playing as `billing` says, its title and its episode's own
-/// name, from the release `pick` names or whichever the resolution ladder chooses. Returns what
-/// it was staged as.
+/// name, from the release `pick` names or whichever the resolution ladder chooses, and from the
+/// beginning when `from_start`. Returns what it was staged as.
 #[allow(clippy::too_many_arguments)]
 fn play_staged(
     id: AnilistId,
     episode: String,
     // `(provider_id, source_id)` when the user picked an exact release in the Sources overlay.
     pick: Option<(String, String)>,
+    from_start: bool,
     (title, episode_title): (String, Option<String>),
     opener: Arc<dyn PlayerOpener>,
     job: Option<JobGuard>,
@@ -206,6 +211,7 @@ fn play_staged(
         id,
         episode,
         pick,
+        from_start,
         party_by_default(config),
         prx,
         stopped,
@@ -256,6 +262,7 @@ pub fn play_party(
         id,
         episode,
         None,
+        false,
         true,
         prx,
         stopped,
@@ -452,6 +459,8 @@ fn spawn_playback(
     // `(provider_id, source_id)` when the user picked an exact release in the Sources
     // overlay; `None` lets the resolution ladder choose.
     pick: Option<(String, String)>,
+    // Open at the beginning, whatever position the episode was left at.
+    from_start: bool,
     // Hand the resolved stream to a Syncplay party instead of a private session.
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
@@ -545,6 +554,11 @@ fn spawn_playback(
             }
         };
         let (streams, mut context) = context;
+        // Played from the beginning: no resume point, so the player opens at nought, nothing
+        // says it resumed, and the history it writes as it plays is where it is left next.
+        if from_start {
+            context.resume_at = None;
+        }
         let PlayHints { next, episodes, cover_url, banner_url, episode_total, .. } = hints;
         (context.next, context.episodes) = (next, episodes);
         // The art the title's lookup found, else what its page or a list showed.

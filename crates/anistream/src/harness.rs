@@ -765,6 +765,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::PlaybackSpeed(_) => "PlaybackSpeed",
         Event::PlaybackEnded { .. } => "PlaybackEnded",
         Event::PlaybackStaged { .. } => "PlaybackStaged",
+        Event::Connectivity { .. } => "Connectivity",
         Event::Resumed { .. } => "Resumed",
         Event::PlayerOps { .. } => "PlayerOps",
         Event::PlayerUi { .. } => "PlayerUi",
@@ -906,6 +907,7 @@ fn copy(update: &Event) -> Event {
                 speed: *speed,
             }
         }
+        Event::Connectivity { offline } => Event::Connectivity { offline: *offline },
         Event::Resumed { position } => Event::Resumed { position: *position },
         Event::PlayerOps { playback, ops } => {
             Event::PlayerOps { playback: *playback, ops: ops.clone() }

@@ -114,7 +114,7 @@ impl RemoteCommand {
     pub fn route(self) -> Routed {
         let player = |command| Routed::Engine(Command::Player(command));
         match self {
-            Self::Play { id, episode } => Routed::Engine(Command::Play { id, episode }),
+            Self::Play { id, episode } => Routed::Engine(Command::play(id, episode)),
             Self::Open { id } => Routed::Front(FrontIntent::Open { id }),
             Self::TogglePause => player(PlayerCommand::TogglePause),
             Self::Seek { by } => player(PlayerCommand::Seek(by)),
@@ -169,7 +169,7 @@ mod tests {
         );
         let routed = RemoteCommand::Play { id: AnilistId::new(7), episode: "3".into() }.route();
         assert!(
-            matches!(routed, Routed::Engine(Command::Play { id, episode }) if id.get() == 7 && episode == "3")
+            matches!(routed, Routed::Engine(Command::Play { id, episode, from_start: false }) if id.get() == 7 && episode == "3")
         );
     }
 

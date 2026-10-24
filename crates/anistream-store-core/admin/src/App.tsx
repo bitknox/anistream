@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api } from './api';
 import { Footer, Nav } from './components/Chrome';
 import { DropBand } from './components/DropBand';
+import { Failed, Loading } from './components/Hold';
 import { Invites } from './components/Invites';
 import { Joining } from './components/Joining';
 import { Landing } from './components/Landing';
@@ -17,13 +18,25 @@ type View =
 	| { kind: 'loading' }
 	| { kind: 'home'; store?: StoreInfo }
 	| { kind: 'signed-out'; reason?: string; store?: StoreInfo }
+	| { kind: 'failed'; reason: string }
 	| { kind: 'ready'; data: AdminOverview };
 
-/** What every section uses to change something: run it, say how it went, redraw. */
-export type Act = (work: () => Promise<unknown>, done: string) => Promise<boolean>;
+/**
+ * What every section uses to change something: run it, say how it went, redraw. A failure is
+ * offered again from the toast, by running the same work or by `retry` where that differs.
+ */
+export type Act = (
+	work: () => Promise<unknown>,
+	done: string,
+	retry?: () => void,
+) => Promise<boolean>;
 
 const describe = (error: unknown) =>
-	error instanceof Error ? error.message : 'something went wrong';
+	error instanceof Error ? error.message : 'Something went wrong. Try again.';
+
+/** The store did not answer, or answered with a failure of its own rather than a refusal. */
+const unreachable = (error: unknown) =>
+	!(error instanceof ApiError) || error.status === 0 || error.status >= 500;
 
 /** Signed out, with what the store says about itself: a store nobody owns yet can be claimed. */
 async function signedOut(reason?: string): Promise<View> {
@@ -36,6 +49,7 @@ async function load(): Promise<View> {
 		return { kind: 'ready', data: await api.overview() };
 	} catch (error) {
 		if (error instanceof ApiError && error.status === 401) return signedOut();
+		if (unreachable(error)) return { kind: 'failed', reason: describe(error) };
 		return signedOut(describe(error));
 	}
 }
@@ -63,6 +77,7 @@ function start(): Promise<View> {
 			try {
 				await api.login(code);
 			} catch (error) {
+				if (unreachable(error)) return { kind: 'failed', reason: describe(error) };
 				return signedOut(describe(error));
 			}
 		}
@@ -84,12 +99,19 @@ export function App() {
 		} else start().then(setView);
 	}, []);
 
-	const say = useCallback((text: string, tone: Status['tone'] = 'info', progress?: number) => {
-		setStatus({ text, tone, progress, at: Date.now() });
+	const say = useCallback(
+		(text: string, tone: Status['tone'] = 'info', progress?: number, retry?: () => void) => {
+			setStatus({ text, tone, progress, retry, at: Date.now() });
+		},
+		[],
+	);
+
+	const retryLoad = useCallback(async () => {
+		setView(await load());
 	}, []);
 
 	const act = useCallback<Act>(
-		async (work, done) => {
+		async function attempt(work, done, retry) {
 			try {
 				await work();
 				if (done) say(done);
@@ -102,7 +124,13 @@ export function App() {
 						reason: 'This session has ended. Open the admin page again from anistream.',
 					});
 				} else {
-					say(describe(error), 'alert');
+					say(
+						describe(error),
+						'alert',
+						undefined,
+						// A refusal would only be refused again; a store that did not answer may now.
+						unreachable(error) ? (retry ?? (() => void attempt(work, done, retry))) : undefined,
+					);
 				}
 				return false;
 			}
@@ -117,26 +145,31 @@ export function App() {
 				say('Only .wasm files can be published.', 'alert');
 				return;
 			}
-			for (const file of wasm) {
+			const one = async (file: File) => {
 				let published = '';
-				const ok = await act(async () => {
-					const entry = await api.publish(file, (step) => {
-						if (step.step === 'publish') {
-							say(`Publishing ${file.name}…`, 'busy', 1);
-						} else if (step.parts === 1) {
-							say(`Uploading ${file.name}…`, 'busy', 0);
-						} else {
-							say(
-								`Uploading ${file.name}, ${step.part + 1} of ${step.parts} parts…`,
-								'busy',
-								step.part / step.parts,
-							);
-						}
-					});
-					published = `${entry.name} ${entry.version}`;
-				}, '');
+				const ok = await act(
+					async () => {
+						const entry = await api.publish(file, (step) => {
+							if (step.step === 'publish') {
+								say(`Publishing ${file.name}…`, 'busy', 1);
+							} else if (step.parts === 1) {
+								say(`Uploading ${file.name}…`, 'busy', 0);
+							} else {
+								say(
+									`Uploading ${file.name}, ${step.part + 1} of ${step.parts} parts…`,
+									'busy',
+									step.part / step.parts,
+								);
+							}
+						});
+						published = `${entry.name} ${entry.version}`;
+					},
+					'',
+					() => void one(file),
+				);
 				if (ok) say(`Published ${published}.`);
-			}
+			};
+			for (const file of wasm) await one(file);
 		},
 		[act, say],
 	);
@@ -159,7 +192,8 @@ export function App() {
 			</a>
 			<Nav me={data?.me} onSignOut={signOut} owners={HOME} view={view.kind} />
 			<main id="main" tabIndex={-1}>
-				{view.kind === 'loading' && <div className="scene-hold" aria-hidden="true" />}
+				{view.kind === 'loading' && <Loading />}
+				{view.kind === 'failed' && <Failed reason={view.reason} onRetry={retryLoad} />}
 				{data && (
 					<>
 						<Overview data={data} />

@@ -208,7 +208,7 @@ public final class AppStore {
         sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
         #endif
         switch command {
-        case .play(let id, let episode):
+        case .play(let id, let episode, _):
             playSent = .now
             startAt = nil
             AppLog.info("store", "play \(id) episode \(episode)")

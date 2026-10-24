@@ -89,6 +89,7 @@ pub mod cache;
 pub mod catalog;
 pub mod clock;
 pub mod config;
+pub mod connectivity;
 pub mod data;
 pub(crate) mod dispatch;
 pub mod downloads;

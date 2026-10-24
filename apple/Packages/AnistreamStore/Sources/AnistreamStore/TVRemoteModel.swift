@@ -72,6 +72,11 @@ public final class TVRemoteModel {
     public private(set) var problem: String?
     /// This device's fingerprint in short, as a TV's settings list it.
     public private(set) var shortFingerprint = ""
+    /// What Play on TV asked the TV to play, until the TV's card names it: the card shows it
+    /// starting meanwhile, rather than the TV's last episode or nothing.
+    public private(set) var starting: TVPlayRequest?
+    /// When the link to the TV was lost, while it is: the playhead stops there.
+    public private(set) var lostAt: Date?
 
     /// Called once the TV plays what the player here was playing: the app closes its player.
     @ObservationIgnored public var handedOff: (@MainActor () -> Void)?
@@ -291,13 +296,11 @@ public final class TVRemoteModel {
         guard let link = sender.link(fingerprint: fingerprint) else { return }
         self.link = link
         connected = fingerprint
-        card = link.card()
-        cardAt = .now
+        take(link.card())
         cards = Task { [weak self, link] in
             while let card = await link.nextCard() {
                 guard let self, self.link === link else { return }
-                self.card = card
-                self.cardAt = .now
+                self.take(card)
                 // The engine says when the session is over: the TV stopped playing, or stayed
                 // away too long. The card stays while it is up, to say so.
                 if card.over, self.sheet != .remote { self.disconnect() }
@@ -305,6 +308,38 @@ public final class TVRemoteModel {
         }
         watchNetwork()
     }
+
+    /// The card the TV sent. The playhead moves on from where and when the TV last said it: a
+    /// card that only says the link changed keeps that moment, so the line does not jump back to
+    /// it, and stops where the link was lost.
+    private func take(_ next: FfiRemoteCard) {
+        let same = card.map { $0.rev == next.rev && $0.now == next.now } ?? false
+        if next.phase == .connected {
+            lostAt = nil
+        } else if lostAt == nil, card?.phase == .connected {
+            lostAt = .now
+        }
+        card = next
+        if !same { cardAt = .now }
+        if let request = starting, let now = next.now, now.id == request.id, now.episode == request.episode {
+            starting = nil
+        }
+        if next.over { starting = nil }
+    }
+
+    /// What the TV plays, as the card shows it: what was asked of it while it starts, else what
+    /// the TV last said.
+    public var now: FfiNowCard? {
+        guard let request = starting else { return card?.now }
+        return FfiNowCard(
+            id: request.id, title: request.title, episode: request.episode,
+            episodeLine: "Episode \(request.episode)", loading: true, position: request.from ?? 0,
+            duration: nil, paused: false, speed: 1, volume: card?.now?.volume, audio: [], subtitles: [],
+            subtitlesOff: false, skip: nil)
+    }
+
+    /// The link is up, and the card's controls reach the TV.
+    public var live: Bool { card?.phase == .connected }
 
     /// Try the TV again now rather than after the link's wait: as the app comes back to the
     /// front, or the network back. A connected link stays as it is.
@@ -327,12 +362,18 @@ public final class TVRemoteModel {
     private func play(on fingerprint: String) {
         guard let request, let link, connected == fingerprint else { return }
         self.request = nil
+        starting = request
         sheet = .remote
         Task {
             do {
                 try await link.play(id: request.id, title: request.title, episode: request.episode, from: request.from)
+                // The TV playing it already sends nothing new.
+                if starting == request, let now = card?.now, now.id == request.id, now.episode == request.episode {
+                    starting = nil
+                }
                 if request.fromPlayer { handedOff?() }
             } catch {
+                if starting == request { starting = nil }
                 problem = Self.words(error)
             }
         }
@@ -346,6 +387,8 @@ public final class TVRemoteModel {
         link = nil
         connected = nil
         card = nil
+        starting = nil
+        lostAt = nil
         path?.cancel()
         path = nil
     }
@@ -380,8 +423,9 @@ public final class TVRemoteModel {
     /// Where the TV's playhead is now: moved on from the card on this device's clock while it
     /// plays.
     public func playhead(at date: Date = .now) -> Double? {
-        guard let now = card?.now else { return nil }
-        return tvPlayhead(now: now, elapsed: max(0, date.timeIntervalSince(cardAt)))
+        guard starting == nil, let now = card?.now else { return nil }
+        let until = lostAt.map { min($0, date) } ?? date
+        return tvPlayhead(now: now, elapsed: max(0, until.timeIntervalSince(cardAt)))
     }
 
     /// What a TV lists this device as: the kind of device, never the name it was given, which

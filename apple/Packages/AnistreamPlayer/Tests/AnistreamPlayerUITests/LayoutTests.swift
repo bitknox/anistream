@@ -80,6 +80,10 @@ struct LayoutTests {
     @Test func eachControlRowMenuHangsOverItsButton() {
         #expect(MacPlayerView.panelTrailing(.picture) == 84)
         #expect(MacPlayerView.panelTrailing(.speed) == 120)
+        // Play on TV sits between Picture and sound and Picture in Picture when the row has it.
+        #expect(MacPlayerView.panelTrailing(.picture, playOnTV: true) == 120)
+        #expect(MacPlayerView.panelTrailing(.speed, playOnTV: true) == 156)
+        #expect(MacPlayerView.panelTrailing(.episodes, playOnTV: true) == 16)
         #expect(MacPlayerView.panelHangs(.speed) == .bottomTrailing)
         #expect(MacPlayerView.panelHangs(.picture) == .bottomTrailing)
         #expect(MacPlayerView.panelTrailing(.episodes) == 16)

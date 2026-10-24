@@ -45,7 +45,15 @@ final class AppDelegate: NSObject {
         // Play on TV from the player: the TV picker over it, and the player closed once the TV
         // plays the episode.
         player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
-        store.tv.handedOff = { [weak player = self.player] in player?.viewerClosed() }
+        store.tv.handedOff = { [weak player = self.player, weak store] in
+            player?.viewerClosed()
+            #if os(iOS)
+            // The card sits on the player's cover, so it leaves with it, in one animation, rather
+            // than going down with the cover and coming up again over the window. The
+            // now-playing bar leads back to it.
+            store?.tv.sheetClosed()
+            #endif
+        }
         // The App Intents reach the app here, from its first moment: an intent can be what
         // launched it, before any window has started the engine.
         let intents = IntentsBridge.shared

@@ -902,7 +902,7 @@ mod tests {
         let task = a.handle(Action::Open, 20).expect("enter must resume");
         assert_eq!(
             task,
-            Command::Play { id: AnilistId::new(5), episode: "8".into() },
+            Command::play(AnilistId::new(5), "8"),
             "the section is named Continue; Enter continues"
         );
         assert!(a.playing.is_some());

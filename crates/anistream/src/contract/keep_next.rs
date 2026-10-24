@@ -208,7 +208,7 @@ async fn a_list_sync_that_moves_a_show_tops_it_up_with_only_what_is_out() {
 #[tokio::test]
 async fn nothing_is_kept_while_downloads_wait_on_cellular_or_off_screen() {
     let mut h = keeping(Options { config: keep(2), ..Options::default() }).await;
-    h.send(Command::NetworkPath { cellular: true, constrained: false });
+    h.send(Command::NetworkPath { cellular: true, constrained: false, offline: false });
     h.settle().await;
     four_in(h.store());
     h.send(Command::SetWatched { id: FINISHED, episodes: vec!["4".into()], watched: true });
@@ -217,7 +217,7 @@ async fn nothing_is_kept_while_downloads_wait_on_cellular_or_off_screen() {
 
     // Back on Wi-Fi, but off screen: still waiting.
     h.send(Command::AppPhase { phase: AppState::Background { playing: false } });
-    h.send(Command::NetworkPath { cellular: false, constrained: false });
+    h.send(Command::NetworkPath { cellular: false, constrained: false, offline: false });
     h.settle().await;
     assert!(queue(h.store(), FINISHED).is_empty(), "off screen");
 

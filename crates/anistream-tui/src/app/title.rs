@@ -715,10 +715,7 @@ mod tests {
 
         assert_eq!(a.handle(Action::ShowEpisodes, 5), Some(Command::LoadEpisodes(row)));
         a.handle(Action::Back, 5);
-        assert_eq!(
-            a.handle(Action::PlayNext, 5),
-            Some(Command::Play { id: row, episode: first() })
-        );
+        assert_eq!(a.handle(Action::PlayNext, 5), Some(Command::play(row, first())));
         assert_eq!(a.playing.as_ref().map(|p| p.title.as_str()), Some("Title 2"));
     }
 
