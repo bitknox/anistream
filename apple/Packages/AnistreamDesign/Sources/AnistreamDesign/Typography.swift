@@ -194,10 +194,22 @@ extension Font {
 struct GroupHeaderStyle: ViewModifier {
     @Environment(\.dynamicTypeSize) private var typeSize
 
+    /// 11 pt at 0.08 em on the Mac; 13 pt at 0.04 em on iPhone and iPad, as Foundations sets
+    /// grouped lists' headers.
+    #if os(macOS)
+    static let size: CGFloat = 11
+    static let tracking: CGFloat = 0.08
+    static var font: Font { .mac(11, weight: .medium) }
+    #else
+    static let size: CGFloat = 13
+    static let tracking: CGFloat = 0.04
+    static var font: Font { .ui(13, weight: .medium) }
+    #endif
+
     func body(content: Content) -> some View {
         content
-            .font(.mac(11, weight: .medium))
-            .kerning(typeSize.isAccessibilitySize ? 0 : 11 * 0.08)
+            .font(Self.font)
+            .kerning(typeSize.isAccessibilitySize ? 0 : Self.size * Self.tracking)
             .textCase(.uppercase)
             .foregroundStyle(.haze)
             .dynamicTypeSize(...DynamicTypeSize.accessibility1)

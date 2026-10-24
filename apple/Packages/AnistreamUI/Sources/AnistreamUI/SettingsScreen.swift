@@ -505,43 +505,15 @@ struct UpscalingPreview: View {
 
 // MARK: - Advanced
 
-/// Options passed to the player as written. The engine has no setting for them yet, so the table
-/// is drawn as the board has it and nothing in it can be changed.
+/// Options passed to the player. The engine has no setting for the player's own options yet,
+/// so the pane says the player runs with anistream's, and offers nothing it cannot keep.
 struct AdvancedPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("mpv options").groupHeaderStyle().macLineHeight(14).padding(.leading, 14)
-                .accessibilityAddTraits(.isHeader)
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    Text("Option").frame(width: 344, alignment: .leading)
-                    Text("Value")
-                    Spacer()
-                }
-                .font(.mac(12))
+            Text("No extra options. The player runs with anistream's own.")
+                .font(.plat(mac: 13, touch: 15))
                 .foregroundStyle(.haze)
-                .padding(.horizontal, 18)
-                .frame(height: 34)
-                Rectangle().fill(.faintRule).frame(height: 1)
-                HStack(spacing: 18) {
-                    Image(systemName: "plus")
-                    Image(systemName: "minus")
-                    Spacer()
-                    Button("Reset") {}
-                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                }
-                .font(.mac(14))
-                .foregroundStyle(.silk)
-                .padding(.leading, 18)
-                .padding(.trailing, 6)
-                .frame(height: 44)
-            }
-            .background(.raised, in: .rect(cornerRadius: 12))
-            // No engine step carries the player's own options to the app yet: not in E8 or E9.
-            .disabled(true)
-            .opacity(0.6)
-            .help("Waits on an engine setting for the player's options")
-            SettingsFootnote("Passed to the player as written, after anistream’s own options, so a value here wins. Reset removes them all.")
+                .padding(.leading, 14)
             #if os(iOS)
             // The iPad's: the Mac has these under Integrations, which an iPad does not show.
             UpdatesGroup()

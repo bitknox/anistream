@@ -12,6 +12,8 @@ struct PhoneTitle: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
     @Namespace private var rotor
+    /// Whether the main button has scrolled away, for the capsule that takes its place below.
+    @State private var mainButtonGone = false
     let id: AnilistId
 
     var body: some View {
@@ -80,6 +82,8 @@ struct PhoneTitle: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
+                        .contextMenu { FromStartItem(id: entry.id, action: action) }
+                        .onScrollVisibilityChange(threshold: 0.2) { visible in mainButtonGone = !visible }
                     } else {
                         // Still to air: when, in the button's place.
                         AirsStatus(text: action.sentence, height: 50, fontSize: 17, fills: true)
@@ -212,6 +216,21 @@ struct PhoneTitle: View {
         .background(.ground)
         .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
         .handsOff(title: entry)
+        // The main button scrolled away: a capsule of it fades in at the foot (native-ux, iPhone).
+        .safeAreaInset(edge: .bottom) {
+            if mainButtonGone, action.playable, !store.titles.unlisted(entry.id) {
+                Button {
+                    action.play(entry.id, store: store, navigator: navigator)
+                } label: {
+                    Label(action.short, systemImage: "play.fill")
+                }
+                .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
+                .contextMenu { FromStartItem(id: entry.id, action: action) }
+                .padding(.bottom, 8)
+                .transition(.opacity)
+            }
+        }
+        .animation(reduceMotion ? nil : .standard, value: mainButtonGone)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -413,6 +432,29 @@ struct PhoneUnairedRow: View {
         .frame(minHeight: 56)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Episode \(row.number)" + (row.title.map { ", \($0)" } ?? "") + ". \(when), not out yet")
+    }
+}
+
+/// "Play from the beginning", in the context menu of a Resume button: the episode from its first
+/// second, its place let go. Nothing for a Start button, which starts there anyway.
+struct FromStartItem: View {
+    @Environment(AppStore.self) private var store
+    let id: AnilistId
+    let action: TitleAction
+
+    var body: some View {
+        if action.resume != nil, action.playable {
+            Button(cased(mac: "Play from the Beginning", touch: "Play from the beginning")) {
+                store.send(.play(id: id, episode: String(action.episode), fromStart: true))
+            }
+        }
+    }
+}
+
+extension TitleAction {
+    /// The capsule's words, with no clock: "Resume episode 7", "Start episode 4".
+    var short: String {
+        resume == nil ? "Start episode \(episode)" : "Resume episode \(episode)"
     }
 }
 #endif

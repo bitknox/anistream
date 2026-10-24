@@ -67,7 +67,7 @@ struct SetupCard: View {
                                 .foregroundStyle(.haze)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        Button("Connect AniList…") { store.send(.connect(tracker: "anilist")) }
+                        Button(cased(mac: "Sign In to AniList…", touch: "Sign in to AniList")) { store.send(.connect(tracker: "anilist")) }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                     .frame(maxWidth: .infinity)
@@ -79,7 +79,7 @@ struct SetupCard: View {
                                 .foregroundStyle(.haze)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        Button("Add Plugin Store…") { navigator.open(.pluginStores) }
+                        Button(cased(mac: "Add Plugin Store…", touch: "Add plugin store")) { navigator.invite = "" }
                             .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     }
                     .frame(maxWidth: .infinity)
@@ -127,7 +127,7 @@ struct SetupCard: View {
                     }
                     Divider().overlay(.faintRule)
                     setupRow("Plugin store", note: nil, detail: "Needed for playback") {
-                        Button("Add") { navigator.open(.pluginStores) }
+                        Button("Add") { navigator.invite = "" }
                             .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
                     }
                 }
@@ -173,7 +173,7 @@ struct AiringToday: View {
                     navigator.open(.calendar)
                 } label: {
                     HStack(spacing: 8) {
-                        Text(compact ? "Airing today" : "Airing Today")
+                        Text(compact ? "Airing today" : cased(mac: "Airing Today", touch: "Airing today"))
                             .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                             .foregroundStyle(.silk)
                         Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
@@ -259,7 +259,7 @@ struct ThisSeason: View {
                         navigator.open(.seasonal)
                     } label: {
                         HStack(spacing: 8) {
-                            Text(compact ? "This season" : "This Season")
+                            Text(compact ? "This season" : cased(mac: "This Season", touch: "This season"))
                                 .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                                 .foregroundStyle(.silk)
                             Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)

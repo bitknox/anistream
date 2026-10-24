@@ -75,7 +75,8 @@ extension Broadcast {
         if watched { return "Episode \(episode), watched" }
         let seconds = Int64(airs.timeIntervalSince(now))
         if seconds <= 0 { return "Episode \(episode), out " + Spoken.words(Wording.ago(-seconds)) }
-        return "Episode \(episode) at \(CalendarWords.time(airs)), in " + Spoken.words(Wording.countdown(seconds))
+        let delay = delayedFrom.map { ", delayed from \(CalendarWords.time($0))" } ?? ""
+        return "Episode \(episode) at \(CalendarWords.time(airs))\(delay), in " + Spoken.words(Wording.countdown(seconds))
     }
 }
 
@@ -215,7 +216,9 @@ struct TitleActions: View {
         if action.playable, store.titles.unlisted(entry.id) {
             Button(AddSourceWords.menu) { navigator.openProviders() }
         } else if action.playable {
-            Button(action.resume == nil ? "Start Episode \(action.episode)" : "Resume Episode \(action.episode)") {
+            Button(action.resume == nil
+                   ? cased(mac: "Start Episode \(action.episode)", touch: "Start episode \(action.episode)")
+                   : cased(mac: "Resume Episode \(action.episode)", touch: "Resume episode \(action.episode)")) {
                 store.send(.play(id: entry.id, episode: String(action.episode)))
             }
         }
@@ -232,7 +235,7 @@ struct NoticeAnnouncer: ViewModifier {
     func body(content: Content) -> some View {
         content.onChange(of: store.notices.current?.id) { _, id in
             guard enabled, id != nil, let item = store.notices.current else { return }
-            var words = AttributedString(item.notice.text.capitalizedSentence)
+            var words = AttributedString(item.notice.text.firstCapitalized)
             words.accessibilitySpeechAnnouncementPriority = item.isAlert ? .high : .default
             AccessibilityNotification.Announcement(words).post()
         }

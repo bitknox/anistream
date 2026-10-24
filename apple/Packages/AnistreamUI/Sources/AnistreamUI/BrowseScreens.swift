@@ -15,7 +15,13 @@ struct SeasonalScreen: View {
 
     var body: some View {
         ScrollView {
-            ListStates(state: store.seasonal.state, placeholder: AnyView(PosterGridPlaceholder(minimum: minimum))) { ids in
+            ListStates(
+                state: store.seasonal.state,
+                placeholder: AnyView(PosterGridPlaceholder(minimum: minimum)),
+                activity: "loading this season",
+                failure: "Couldn't load this season",
+                retry: { store.loadSeasonal() }
+            ) { ids in
                 PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: minimum, spacing: minimum < 128 ? 12 : 20) { entry in
                     PosterCell(entry: entry, detail: entry.genres.first, width: minimum)
                 }
@@ -25,6 +31,7 @@ struct SeasonalScreen: View {
             .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
         }
         .scrollIndicators(.never)
+        .pullToRefresh(store, .seasonal)
         .task { if store.seasonal.state == .idle { store.loadSeasonal() } }
     }
 }
@@ -103,9 +110,13 @@ struct LibraryScreen: View {
 
     private var grid: some View {
         let minimum: CGFloat = narrow ? 100 : 128
+        let segment = navigator.librarySegment
         return ListStates(
-            state: store.library.segment(navigator.librarySegment).state,
-            placeholder: AnyView(PosterGridPlaceholder(minimum: minimum))
+            state: store.library.segment(segment).state,
+            placeholder: AnyView(PosterGridPlaceholder(minimum: minimum)),
+            activity: "loading your \(segment.label) list",
+            failure: "Couldn't load your list",
+            retry: { store.loadLibrary(segment) }
         ) { ids in
             PosterGrid(entries: sorted(ids.compactMap { store.titles[$0] }), minimum: minimum,
                        spacing: minimum < 128 ? 12 : 20) { entry in
@@ -120,6 +131,8 @@ struct LibraryScreen: View {
         } empty: {
             QuietLine("Nothing on this list")
         }
+        // A list of its own: switching to one already there shows it at once.
+        .id(segment)
     }
 
     private func sorted(_ entries: [Entry]) -> [Entry] {
@@ -165,28 +178,18 @@ struct SignedOutLibrary: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 24)
-            Nagare(cell: 6)
-            Text("Your lists come from AniList")
-                .font(.mac(17, weight: .semibold))
-                .foregroundStyle(.silk)
-                .padding(.top, 24)
-            Text("Connect AniList to see your Watching, Planning and Completed lists here.")
-                .font(.mac(15))
-                .foregroundStyle(.haze)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 320)
-                .padding(.top, 6)
-            Button("Connect AniList") {
-                store.send(.connect(tracker: "anilist"))
+            EmptyState(
+                title: "Your lists come from AniList",
+                line: "Sign in to sync what you watch and where you stopped."
+            ) {
+                Button(cased(mac: "Sign In to AniList", touch: "Sign in to AniList")) {
+                    store.send(.connect(tracker: "anilist"))
+                }
+                .buttonStyle(PrimaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
             }
-            .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
-            .padding(.top, 20)
-            Spacer(minLength: 24)
             LegalLine()
                 .padding(.bottom, 24)
         }
-        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

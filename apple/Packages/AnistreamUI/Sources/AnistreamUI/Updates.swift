@@ -45,9 +45,9 @@ struct UpdateWords: Equatable {
         case .relaunching:
             self.init(note: "Restarting to finish the update", action: .none)
             return
-        case .failed(let reason):
+        case .failed:
             if let latest {
-                self.init(note: "The update did not finish. \(reason)", problem: true,
+                self.init(note: "The update did not finish.", problem: true,
                           action: .update(version: latest.version))
                 return
             }
@@ -62,7 +62,7 @@ struct UpdateWords: Equatable {
         } else {
             switch outcome {
             case .upToDate: self.init(note: "Up to date", action: .checkNow)
-            case .failed(let reason): self.init(note: "Could not check. \(reason).", problem: true, action: .checkNow)
+            case .failed: self.init(note: "Could not check.", problem: true, action: .checkNow)
             case nil: self.init(note: nil, action: .checkNow)
             }
         }
@@ -89,10 +89,10 @@ struct UpdateWords: Equatable {
     /// The action's label.
     var label: String? {
         switch action {
-        case .checkNow: "Check Now"
+        case .checkNow: cased(mac: "Check Now", touch: "Check now")
         case .update(let version): "Update to v\(version)"
-        case .updateInStore: "Update in SideStore"
-        case .releasePage: "Release Page"
+        case .updateInStore: cased(mac: "Update in SideStore", touch: "Update in SideStore")
+        case .releasePage: cased(mac: "Release Page", touch: "Release page")
         case .cancel: "Cancel"
         case .none: nil
         }
@@ -160,7 +160,7 @@ struct UpdateVersionRow: View {
         let updates = store.updates
         let words = UpdateWords(updates)
         VStack(alignment: .leading, spacing: 0) {
-            SettingsRow(title: AppVersion.long, note: words.note, noteColor: words.problem ? .vermilion : .haze) {
+            SettingsRow(title: AppVersion.long, note: words.note, noteColor: .haze) {
                 UpdateButton(words: words) { UpdateActions(store: store, openURL: openURL).run($0) }
             }
             if updates.progress.isActive {
@@ -205,7 +205,7 @@ struct ReleaseNotesRow: View {
     var body: some View {
         SettingsRow(title: "What’s new in \(release.version)", note: release.notes) {
             if let page = URL(string: release.pageUrl) {
-                Button("Release Notes") { openURL(page) }
+                Button(cased(mac: "Release Notes", touch: "Release notes")) { openURL(page) }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }
@@ -265,7 +265,7 @@ struct UpdateNotice: View {
         switch words.action {
         case .update: "Update"
         case .updateInStore: "Update"
-        case .releasePage: "Release Page"
+        case .releasePage: cased(mac: "Release Page", touch: "Release page")
         default: nil
         }
     }
@@ -302,7 +302,7 @@ struct PhoneUpdatesCard: View {
                 if let note = words.note {
                     Text(note)
                         .font(.ui(17))
-                        .foregroundStyle(words.problem ? .vermilion : .silk)
+                        .foregroundStyle(.silk)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if let release = store.updates.latest, !release.notes.isEmpty {

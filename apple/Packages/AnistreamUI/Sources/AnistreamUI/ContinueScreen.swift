@@ -46,37 +46,37 @@ struct ContinueScreen: View {
 
     var body: some View {
         let queue = store.continuing.queue(store.titles)
-        Group {
-            switch store.continuing.list.state {
-            case .idle, .loading:
-                QueueColumn(queue: nil, selection: moving)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            case .empty:
-                ScrollView {
-                    WelcomeContinue()
-                        .padding(EdgeInsets(top: 4, leading: 12, bottom: 24, trailing: 16))
-                }
-                .scrollIndicators(.never)
-            case .failed(let reason):
-                ListFailed(reason: reason)
-            case .loaded:
-                if queue.isEmpty {
-                    NothingToContinue()
-                } else {
-                    HStack(alignment: .top, spacing: 0) {
-                        QueueColumn(queue: queue, selection: moving, opensOnTap: !previewFits)
-                        if previewFits, let item = queue.all.first(where: { $0.id == selection }) ?? queue.all.first {
-                            ContinuePreview(item: item)
-                                .id(item.id)
-                                .transition(.opacity)
-                        }
+        ListStates(
+            state: store.continuing.list.state,
+            placeholder: AnyView(QueueColumn(queue: nil, selection: moving).frame(maxWidth: .infinity, alignment: .leading)),
+            activity: "loading continue watching",
+            failure: "Couldn't load Continue",
+            retry: { store.loadContinue(force: true) },
+            // In line with the queue's group headers.
+            offlineInset: 16
+        ) { _ in
+            if queue.isEmpty {
+                NothingToContinue()
+            } else {
+                HStack(alignment: .top, spacing: 0) {
+                    QueueColumn(queue: queue, selection: moving, opensOnTap: !previewFits)
+                    if previewFits, let item = queue.all.first(where: { $0.id == selection }) ?? queue.all.first {
+                        ContinuePreview(item: item)
+                            .id(item.id)
+                            .transition(.opacity)
                     }
-                    #if os(iOS)
-                    // On the Mac the sidebar sets the queue off the edge; an iPad has none.
-                    .padding(.leading, 12)
-                    #endif
                 }
+                #if os(iOS)
+                // On the Mac the sidebar sets the queue off the edge; an iPad has none.
+                .padding(.leading, 12)
+                #endif
             }
+        } empty: {
+            ScrollView {
+                WelcomeContinue()
+                    .padding(EdgeInsets(top: 4, leading: 12, bottom: 24, trailing: 16))
+            }
+            .scrollIndicators(.never)
         }
         // The ground under the whole screen, however narrow the list.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -205,7 +205,7 @@ struct QueueRow: View {
                     .lineLimit(1)
                     .padding(.top, 2)
                     Held(value: item.fraction) { fraction in
-                        if let fraction { Meter(fraction: fraction, height: 3).padding(.top, 6) }
+                        if let fraction { Meter(fraction: fraction, height: 3, spoken: item.timeLeft).padding(.top, 6) }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -217,7 +217,7 @@ struct QueueRow: View {
             .contentShape(.rect(cornerRadius: 10))
         }
         .buttonStyle(.plain)
-        .pointerHover()
+        .rowHover()
         // The tint moves at once, as in any Mac list (M2).
         .titleElement(item.entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -233,21 +233,30 @@ struct QueueMenu: View {
     let item: ContinueItem
 
     var body: some View {
+        let n = item.episode
         if item.playable {
-            Button(item.resume == nil ? "Start Episode \(item.episode)" : "Resume Episode \(item.episode)") {
-                store.send(.play(id: item.id, episode: String(item.episode)))
+            Button(item.resume == nil ? cased(mac: "Start Episode \(n)", touch: "Start episode \(n)")
+                                      : cased(mac: "Resume Episode \(n)", touch: "Resume episode \(n)")) {
+                store.send(.play(id: item.id, episode: String(n)))
             }
-            Button("Mark Episode \(item.episode) as Watched") {
-                store.send(.setWatched(id: item.id, episodes: [String(item.episode)], watched: true))
+            // A part watched: the episode again from its first second, its place let go.
+            if item.resume != nil {
+                Button(cased(mac: "Play from the Beginning", touch: "Play from the beginning")) {
+                    store.send(.play(id: item.id, episode: String(n), fromStart: true))
+                }
+            }
+            Button(cased(mac: "Mark Episode \(n) as Watched", touch: "Mark episode \(n) as watched")) {
+                store.send(.setWatched(id: item.id, episodes: [String(n)], watched: true))
+                navigator.watchedByHand += 1
             }
         } else {
             // Nothing to play yet: when it airs, said and not offered.
-            Button(item.airing.airs().map { "Episode \(item.episode) Airs \($0)" }
-                   ?? "Episode \(item.episode) Is Not Out Yet") {}
+            Button(item.airing.airs().map { cased(mac: "Episode \(n) Airs \($0)", touch: "Episode \(n) airs \($0)") }
+                   ?? cased(mac: "Episode \(n) Is Not Out Yet", touch: "Episode \(n) is not out yet")) {}
                 .disabled(true)
         }
         Divider()
-        Button("Go to Title") { navigator.openTitle(item.id, fromPreview: true) }
+        Button(cased(mac: "Go to Title", touch: "Go to title")) { navigator.openTitle(item.id, fromPreview: true) }
         Divider()
         Button("Hide from Continue") {
             store.hideFromContinue(item.id)
@@ -324,7 +333,7 @@ struct ContinuePreview: View {
                     }
                     .font(.mac(13))
                     Held(value: item.fraction) { fraction in
-                        if let fraction { Meter(fraction: fraction, height: 4) }
+                        if let fraction { Meter(fraction: fraction, height: 4, spoken: item.timeLeft) }
                     }
                 }
 
@@ -409,50 +418,14 @@ struct BannerFrame: Layout {
     }
 }
 
-/// Continue on a database with nothing in it: Nagare, and where to start.
-struct NothingWatched: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Nagare(cell: 5)
-            VStack(spacing: 4) {
-                Text("Nothing watched yet")
-                    .font(.mac(15, weight: .semibold))
-                    .foregroundStyle(.silk)
-                Text("What you start watching shows here.")
-                    .font(.mac(13))
-                    .foregroundStyle(.haze)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// Continue when everything in it has been hidden.
+/// Continue when everything in it has been hidden: Nagare, and where to start.
 struct NothingToContinue: View {
-    var body: some View {
-        Text("Nothing to continue")
-            .font(.mac(13))
-            .foregroundStyle(.haze)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// A list that could not be loaded: why, in the engine's words, with a vermilion dot.
-struct ListFailed: View {
-    let reason: String
+    @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 6) {
-                Circle().fill(.vermilion).frame(width: 6, height: 6).accessibilityHidden(true)
-                Text(reason)
-                    .font(.mac(13))
-                    .foregroundStyle(.silk)
-                    .textSelection(.enabled)
-            }
-            ReportButton(context: BugContext(kind: "load", message: reason))
+        EmptyState(title: "Nothing to continue", line: "Pick something from Seasonal, or search for a title.") {
+            Button("Browse Seasonal") { navigator.open(.seasonal) }
+                .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
