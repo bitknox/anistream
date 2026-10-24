@@ -31,7 +31,10 @@ export function SignedOut({
 			</Hero>
 			<Section id="sign-in" title="How to sign in">
 				<Row label="Step 1">
-					<p>Open this store's page in anistream: Providers, then Enter, then the store.</p>
+					<p>
+						Open <b>Plugin stores</b> in anistream (in the terminal app: Providers, then Enter) and
+						choose this store.
+					</p>
 				</Row>
 				<Row label="Step 2">
 					<p>
@@ -112,7 +115,8 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 				<Section id="next" title="What to do with it">
 					<Row label="Step 1">
 						<p>
-							Open anistream, go to <b>Providers</b>, choose <b>Join a store</b> and paste the link.
+							Open <b>Plugin stores</b> in anistream (in the terminal app: Providers, then Enter),
+							choose <b>Join a store</b> and paste the link.
 						</p>
 					</Row>
 					<Row label="Step 2">

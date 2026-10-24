@@ -333,15 +333,9 @@ code {
 	border-color: var(--ani-text);
 }
 
+/* The second press of a question that removes something: a raised button whose words are in vermilion. */
 .btn-danger {
-	border-color: transparent;
-	background: var(--ani-alert);
-	color: var(--ani-ground);
-}
-
-.btn-danger:hover:not(:disabled) {
-	background: var(--ani-alert);
-	border-color: var(--ani-text);
+	color: var(--ani-alert);
 }
 
 /* A text button, for a count that opens a list. */
