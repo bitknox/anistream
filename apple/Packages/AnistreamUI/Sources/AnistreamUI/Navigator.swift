@@ -30,7 +30,7 @@ public final class Navigator {
     public var messagesShown = false
     /// What Search's field holds.
     public var query = ""
-    /// Whether every filter is up: the inspector on the Mac and iPad, a sheet on iPhone.
+    /// Whether every filter is up: a panel on the Mac, the inspector on iPad, a sheet on iPhone.
     public var searchFiltersShown = false
     /// The search the launch arguments ask for, for a screenshot, until Search runs it.
     public var launchSearch: SearchQuery?
