@@ -69,9 +69,11 @@ async fn main() {
     let filter = BrowseFilter {
         genres: vec!["Fantasy".into()],
         min_score: Some(70),
+        season: Some(Season::Summer.as_str().into()),
+        year: Some(2026),
         ..Default::default()
     };
-    match client.seasonal(Season::Summer, 2026, &filter, 1, 5).await {
+    match client.browse("", &filter, 1, 5).await {
         Ok(page) => {
             for m in &page.items {
                 println!(

@@ -535,12 +535,17 @@ internal fun PosterCell(
     from: String = "poster",
     detail: String? = entry.genreLine,
     fresh: Boolean = false,
+    /** Said as the title opens, before the page goes up. */
+    onOpen: (() -> Unit)? = null,
 ) {
     val navigator = LocalNavigator.current
     Column(
         modifier
             .shared(Shared.Page, entry.id, from)
-            .clickable(onClickLabel = "Open title") { navigator.openTitle(entry.id, from) },
+            .clickable(onClickLabel = "Open title") {
+                onOpen?.invoke()
+                navigator.openTitle(entry.id, from)
+            },
     ) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
             CoverArt(entry, maxWidth, Modifier.size(maxWidth, maxWidth * 1.5f).shared(Shared.Cover, entry.id, from))

@@ -48,12 +48,13 @@ struct EngineTests {
         defer { engine.shutdown() }
 
         let job = try #require(
-            engine.send(command: .search(query: "hoshikuzu", filter: SearchFilters()))
+            engine.send(command: .search(query: SearchQuery(text: "hoshikuzu")))
         )
         let read = try await events(until: job, from: engine)
 
         let titles = read.lazy.compactMap { event -> [Entry]? in
-            guard case .content(view: .search(query: "hoshikuzu", filter: _), content: .entries(let entries)) = event
+            guard case .content(view: .search(let query), content: .entries(let entries)) = event,
+                  query.text == "hoshikuzu"
             else { return nil }
             return entries
         }.first

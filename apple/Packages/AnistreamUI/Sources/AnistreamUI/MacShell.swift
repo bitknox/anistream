@@ -61,14 +61,19 @@ struct MacShell: View {
                 }
             }
             .toolbarBackgroundVisibility(navigator.titleOnMac == nil ? .automatic : .hidden, for: .windowToolbar)
-            .searchable(
+            .inspector(isPresented: Binding(
+                get: { navigator.section == .search && navigator.titleOnMac == nil && navigator.searchFiltersShown },
+                set: { navigator.searchFiltersShown = $0 }
+            )) {
+                SearchFiltersPanel()
+                    .inspectorColumnWidth(min: 300, ideal: 340, max: 420)
+            }
+            .titleSearchField(
                 text: navigator.section == .settings ? $navigator.settingsQuery : $navigator.query,
+                titles: navigator.section != .settings,
                 placement: .toolbar,
                 prompt: navigator.section == .settings ? "Search Settings" : "Search titles"
             )
-            .onSubmit(of: .search) {
-                if navigator.section != .settings { navigator.search(navigator.query, in: store) }
-            }
         }
         .containerBackground(Palette.ground, for: .window)
         .overlay {
@@ -102,6 +107,8 @@ struct MacShell: View {
             return CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         case .seasonal:
             return store.seasonName ?? ""
+        case .search:
+            return store.search.atStart ? "" : store.search.query.headline()
         case .downloads:
             return downloadsSubtitle(store)
         default:
@@ -125,6 +132,8 @@ struct SectionToolbar: ToolbarContent {
                     LibraryMenus()
                 }
             }
+        case .seasonal:
+            ToolbarItem(placement: .primaryAction) { SeasonalToolbar() }
         case .providers:
             ToolbarItem(placement: .primaryAction) { ProvidersToolbar() }
         case .pluginStores:

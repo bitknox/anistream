@@ -81,6 +81,7 @@ import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.NoticeHint
+import tv.anistream.engine.model.SearchQuery
 
 /** The top-level destinations, in the navigation bar's order. */
 enum class Destination(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
@@ -188,8 +189,10 @@ fun AppRoot(
     actions: AppActions = AppActions(),
     /** A title page to open on [start] as the app starts: the fixtures' `title` extra. */
     startTitle: AnilistId? = null,
-    /** A search to run on Search as the app starts: the fixtures' `query` extra. */
-    startQuery: String? = null,
+    /** A search to run on Search as the app starts: the fixtures' `query` and `genre` extras. */
+    startSearch: SearchQuery? = null,
+    /** A sheet to open on [start] as the app starts: the fixtures' `sheet` extra, `filters` on Search. */
+    startSheet: String? = null,
     /** A page to open over [start] as the app starts, by its route: the fixtures' `page` extra. */
     startPage: String? = null,
     /** The player, which the frame shows over everything while it is up. */
@@ -299,7 +302,7 @@ fun AppRoot(
                                 navigation(route = graphRoute(destination), startDestination = destination.route) {
                                     composable(destination.route) {
                                         CompositionLocalProvider(LocalPageAnimation provides this) {
-                                            DestinationScreen(destination, routed, startQuery, searchOpening) { searchOpening = false }
+                                            DestinationScreen(destination, routed, startSearch, startSheet, searchOpening) { searchOpening = false }
                                         }
                                     }
                                     composable(
@@ -329,7 +332,8 @@ fun AppRoot(
 private fun DestinationScreen(
     destination: Destination,
     actions: AppActions,
-    startQuery: String?,
+    startSearch: SearchQuery?,
+    startSheet: String?,
     searchOpening: Boolean,
     searchOpened: () -> Unit,
 ) {
@@ -343,7 +347,7 @@ private fun DestinationScreen(
         Destination.Calendar -> CalendarScreen()
         Destination.Seasonal -> SeasonalScreen()
         Destination.Library -> LibraryScreen(actions)
-        Destination.Search -> SearchScreen(startQuery, open = searchOpening, opened = searchOpened)
+        Destination.Search -> SearchScreen(startSearch, startFilters = startSheet == "filters", open = searchOpening, opened = searchOpened)
     }
 }
 

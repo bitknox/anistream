@@ -24,9 +24,14 @@ use crate::{data, outbox::Outbox, services::Services};
 pub fn retitle(event: &mut Event, language: TitleLanguage) {
     match event {
         Event::Content { content: ContentList::Entries(entries), .. }
-        | Event::CalendarBackfill { entries, .. } => {
+        | Event::CalendarBackfill { entries, .. }
+        | Event::SearchMore { entries, .. } => {
             entries.iter_mut().for_each(|entry| retitle_entry(entry, language));
         }
+        Event::Browse(rails) => rails
+            .iter_mut()
+            .flat_map(|rail| &mut rail.entries)
+            .for_each(|entry| retitle_entry(entry, language)),
         Event::Detail(entry) => retitle_entry(entry, language),
         _ => {}
     }

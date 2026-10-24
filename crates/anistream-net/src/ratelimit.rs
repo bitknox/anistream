@@ -69,6 +69,16 @@ impl RateLimiter {
 
     /// Wait until a request may proceed.
     pub async fn acquire(&self) {
+        self.acquire_leaving(0.0).await;
+    }
+
+    /// Wait until a request may proceed and still leave `reserve` tokens in the bucket.
+    ///
+    /// For background work, which should never be what makes a search wait: a sync or a
+    /// relations walk takes a token only while there are more than `reserve` left, so the last
+    /// few are always there for whatever someone is looking at.
+    pub async fn acquire_leaving(&self, reserve: f64) {
+        let reserve = reserve.clamp(0.0, (self.capacity - 1.0).max(0.0));
         loop {
             let wait = {
                 let mut state = self.state.lock().await;
@@ -91,11 +101,11 @@ impl RateLimiter {
                         (state.tokens + elapsed * self.refill_rate).min(self.capacity);
                     state.last_refill = now;
 
-                    if state.tokens >= 1.0 {
+                    if state.tokens >= 1.0 + reserve {
                         state.tokens -= 1.0;
                         None
                     } else {
-                        let deficit = 1.0 - state.tokens;
+                        let deficit = 1.0 + reserve - state.tokens;
                         Some(Duration::from_secs_f64(deficit / self.refill_rate))
                     }
                 })
@@ -132,6 +142,18 @@ impl RateLimiter {
             return None;
         }
         Some(Duration::from_secs_f64((1.0 - tokens) / self.refill_rate))
+    }
+
+    /// How many requests could go now without waiting, as far as the bucket knows: none while
+    /// the server holds us.
+    pub async fn available(&self) -> f64 {
+        let state = self.state.lock().await;
+        let now = Instant::now();
+        if state.hold_until.is_some_and(|until| until > now) {
+            return 0.0;
+        }
+        let elapsed = now.duration_since(state.last_refill).as_secs_f64();
+        (state.tokens + elapsed * self.refill_rate).min(self.capacity)
     }
 
     pub async fn observe(&self, remaining: Option<u32>, reset_in: Option<Duration>) {
@@ -272,6 +294,22 @@ mod tests {
             start.elapsed() >= Duration::from_secs(2),
             "server's lower count must be respected over our own optimism"
         );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn background_work_leaves_the_last_tokens_for_what_is_on_screen() {
+        let limiter = RateLimiter::per_minute(10);
+        for _ in 0..6 {
+            limiter.acquire_leaving(4.0).await;
+        }
+        assert!((limiter.available().await - 4.0).abs() < 0.01, "four left for searches");
+        let started = Instant::now();
+        limiter.acquire().await;
+        assert!(started.elapsed() < Duration::from_millis(5), "a search goes at once");
+        // Background work now waits for the bucket to refill past the reserve.
+        let started = Instant::now();
+        limiter.acquire_leaving(4.0).await;
+        assert!(started.elapsed() >= Duration::from_secs(11), "{:?}", started.elapsed());
     }
 
     #[tokio::test(start_paused = true)]

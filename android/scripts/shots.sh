@@ -7,8 +7,9 @@
 # source set up) or fresh, the fixtures flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
 # colon a section (continue, calendar, seasonal, library, search) or key=value, with more joined by
 # +: watched=<id>:<episodes> marks episodes watched as the shot starts, title=<id> opens a title
-# page, query=<words> searches, and sheet=<name> and player=<state> are passed on for the screens
-# that take them in later phases:
+# page, query=<words> searches, genre=<name> browses a genre on Search, sheet=filters opens
+# Search's filters, and sheet=<name> and player=<state> are passed on for the screens that take
+# them in later phases:
 #
 #   android/scripts/shots.sh phone fresh fresh:seasonal app:seasonal
 #   android/scripts/shots.sh tablet fresh:watched=900001:1,2,3

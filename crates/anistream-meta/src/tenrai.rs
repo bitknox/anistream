@@ -168,7 +168,8 @@ impl Tenrai {
         Ok(media)
     }
 
-    /// Full-text search, translated to our identity. Unmapped rows are dropped.
+    /// Full-text search, translated to our identity. Unmapped rows are dropped. What MAL
+    /// cannot express is left out: [`unapplied`] names it, so the screen can say so.
     pub async fn search(
         &self,
         term: &str,
@@ -176,52 +177,7 @@ impl Tenrai {
         page: u32,
         per_page: u32,
     ) -> Result<Page<Media>> {
-        let mut path = format!("/anime?page={}&limit={}", page.max(1), per_page.min(25));
-        if !term.trim().is_empty() {
-            path.push_str(&format!("&q={}", urlencode(term.trim())));
-        }
-        if let Some(genre) = filter.genres.first()
-            && let Some((_, id)) = GENRE_IDS.iter().find(|(name, _)| name == genre)
-        {
-            path.push_str(&format!("&genres={id}"));
-        }
-        if let Some(format) = &filter.format {
-            // MAL speaks the same format words in lowercase, except that it has no short-form
-            // TV type: those are filed under `tv` there.
-            let kind = match format.as_str() {
-                "TV_SHORT" => "tv".to_owned(),
-                other => other.to_lowercase(),
-            };
-            path.push_str(&format!("&type={kind}"));
-        }
-        if let Some(status) = &filter.status {
-            let status = match status.as_str() {
-                "RELEASING" => "airing",
-                "FINISHED" => "complete",
-                "NOT_YET_RELEASED" => "upcoming",
-                _ => "",
-            };
-            if !status.is_empty() {
-                path.push_str(&format!("&status={status}"));
-            }
-        }
-        if let Some(year) = filter.year {
-            path.push_str(&format!("&start_date={year}-01-01&end_date={year}-12-31"));
-        }
-        let order = match filter.sort.as_deref() {
-            Some("SCORE_DESC") => "score",
-            Some("START_DATE_DESC") => "start_date",
-            // Trending has no MAL equivalent; popularity is the honest neighbour.
-            Some("POPULARITY_DESC" | "TRENDING_DESC") => "members",
-            // Relevance: Tenrai orders text matches itself.
-            _ if !term.trim().is_empty() => "",
-            _ => "members",
-        };
-        if !order.is_empty() {
-            path.push_str(&format!("&order_by={order}&sort=desc"));
-        }
-
-        let body = self.get(&path).await?;
+        let body = self.get(&search_path(term, filter, page, per_page)).await?;
         Ok(self.to_page(&body))
     }
 
@@ -413,6 +369,140 @@ fn status_from(status: &str) -> Option<MediaStatus> {
     })
 }
 
+/// The `/anime` path for a search, with every filter MAL can apply.
+fn search_path(term: &str, filter: &BrowseFilter, page: u32, per_page: u32) -> String {
+    let mut path = format!("/anime?page={}&limit={}", page.max(1), per_page.min(25));
+    let term = term.trim();
+    if !term.is_empty() {
+        path.push_str(&format!("&q={}", urlencode(term)));
+    }
+    let genre_ids = |names: &[String]| {
+        names
+            .iter()
+            .filter_map(|genre| GENRE_IDS.iter().find(|(name, _)| name == genre))
+            .map(|(_, id)| id.to_string())
+            .collect::<Vec<_>>()
+            .join(",")
+    };
+    let included = genre_ids(&filter.genres);
+    if !included.is_empty() {
+        path.push_str(&format!("&genres={included}"));
+    }
+    let excluded = genre_ids(&filter.genres_excluded);
+    if !excluded.is_empty() {
+        path.push_str(&format!("&genres_exclude={excluded}"));
+    }
+    if let [format] = filter.formats.as_slice() {
+        // MAL speaks the same format words in lowercase, except that it has no short-form
+        // TV type: those are filed under `tv` there.
+        let kind = match format.as_str() {
+            "TV_SHORT" => "tv".to_owned(),
+            other => other.to_lowercase(),
+        };
+        path.push_str(&format!("&type={kind}"));
+    }
+    if let [status] = filter.statuses.as_slice() {
+        let status = match status.as_str() {
+            "RELEASING" => "airing",
+            "FINISHED" => "complete",
+            "NOT_YET_RELEASED" => "upcoming",
+            _ => "",
+        };
+        if !status.is_empty() {
+            path.push_str(&format!("&status={status}"));
+        }
+    }
+    let (from, to) = match filter.year {
+        Some(year) => (Some(format!("{year}-01-01")), Some(format!("{year}-12-31"))),
+        None => (filter.started_after.map(day_after), filter.started_before.map(day_before)),
+    };
+    if let Some(from) = from {
+        path.push_str(&format!("&start_date={from}"));
+    }
+    if let Some(to) = to {
+        path.push_str(&format!("&end_date={to}"));
+    }
+    if let Some(score) = filter.min_score {
+        // MAL scores out of ten.
+        path.push_str(&format!("&min_score={:.1}", f64::from(score) / 10.0));
+    }
+    if filter.adult == Some(false) {
+        path.push_str("&sfw=true");
+    }
+    let order = match filter.sort.first().map(String::as_str) {
+        Some("SCORE_DESC") => "score&sort=desc",
+        Some("START_DATE_DESC") => "start_date&sort=desc",
+        Some("START_DATE") => "start_date&sort=asc",
+        Some("TITLE_ROMAJI") => "title&sort=asc",
+        Some("FAVOURITES_DESC") => "favorites&sort=desc",
+        // Trending has no MAL equivalent; popularity is the honest neighbour.
+        Some("POPULARITY_DESC" | "TRENDING_DESC") => "members&sort=desc",
+        // Relevance: Tenrai orders text matches itself.
+        _ if !term.is_empty() => "",
+        _ => "members&sort=desc",
+    };
+    if !order.is_empty() {
+        path.push_str(&format!("&order_by={order}"));
+    }
+    path
+}
+
+/// What a search with `filter` asks for that Tenrai cannot apply, in words for a caption.
+pub fn unapplied(filter: &BrowseFilter) -> Vec<&'static str> {
+    let mut out = Vec::new();
+    let mut note = |set: bool, what: &'static str| {
+        if set && !out.contains(&what) {
+            out.push(what);
+        }
+    };
+    let unmapped =
+        |names: &[String]| names.iter().any(|g| !GENRE_IDS.iter().any(|(n, _)| n == g));
+    note(unmapped(&filter.genres) || unmapped(&filter.genres_excluded), "some genres");
+    note(!filter.tags.is_empty() || !filter.tags_excluded.is_empty(), "tags");
+    note(filter.formats.len() > 1, "several formats");
+    note(filter.statuses.len() > 1, "several statuses");
+    note(filter.season.is_some(), "the season");
+    note(
+        filter.episodes_greater.is_some() || filter.episodes_lesser.is_some(),
+        "episode count",
+    );
+    note(
+        filter.duration_greater.is_some() || filter.duration_lesser.is_some(),
+        "episode length",
+    );
+    note(filter.min_popularity.is_some(), "popularity");
+    note(!filter.sources.is_empty(), "source");
+    note(!filter.countries.is_empty(), "country");
+    note(!filter.licensed_by.is_empty() || filter.licensed.is_some(), "streaming");
+    note(filter.on_list.is_some(), "your list");
+    out
+}
+
+/// The first day after AniList's exclusive `YYYYMMDD` bound, as MAL's `YYYY-MM-DD`.
+/// `20099999` (after any day of 2009) is the first of 2010.
+fn day_after(bound: u32) -> String {
+    let (year, rest) = (bound / 10_000, bound % 10_000);
+    if rest >= 1231 {
+        format!("{}-01-01", year + 1)
+    } else {
+        format!("{year}-{:02}-{:02}", (rest / 100).max(1), (rest % 100 + 1).clamp(1, 28))
+    }
+}
+
+/// The last day before AniList's exclusive bound: `20200000` is the last of 2019.
+fn day_before(bound: u32) -> String {
+    let (year, rest) = (bound / 10_000, bound % 10_000);
+    if rest <= 101 {
+        format!("{}-12-31", year - 1)
+    } else {
+        format!(
+            "{year}-{:02}-{:02}",
+            (rest / 100).max(1),
+            (rest % 100).saturating_sub(1).max(1)
+        )
+    }
+}
+
 fn urlencode(s: &str) -> String {
     s.bytes()
         .flat_map(|b| match b {
@@ -474,6 +564,31 @@ mod tests {
             }},
             "trailer": {"youtube_id": "ZEkwCGJ3o7M"}
         })
+    }
+
+    #[test]
+    fn a_search_asks_tenrai_for_what_mal_can_apply_and_names_the_rest() {
+        let filter = BrowseFilter {
+            genres: vec!["Mecha".into(), "Drama".into()],
+            genres_excluded: vec!["Romance".into()],
+            tags: vec!["Time Travel".into()],
+            formats: vec!["TV".into()],
+            statuses: vec!["FINISHED".into(), "RELEASING".into()],
+            started_after: Some(2009_9999),
+            started_before: Some(2016_0000),
+            episodes_lesser: Some(13),
+            min_score: Some(70),
+            adult: Some(false),
+            ..BrowseFilter::default()
+        };
+        let path = search_path("kaze no", &filter, 2, 30);
+        assert_eq!(
+            path,
+            "/anime?page=2&limit=25&q=kaze+no&genres=18,8&genres_exclude=22&type=tv\
+             &start_date=2010-01-01&end_date=2015-12-31&min_score=7.0&sfw=true"
+        );
+        assert_eq!(unapplied(&filter), ["tags", "several statuses", "episode count"]);
+        assert!(unapplied(&BrowseFilter::default()).is_empty());
     }
 
     #[test]

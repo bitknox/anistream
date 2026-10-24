@@ -47,15 +47,19 @@ const MAX_PER_PAGE: usize = 50;
 /// Which of the app's queries a request was.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operation {
-    /// `query::search` or `query::search_filtered`: a text search, or a browse with no term.
+    /// `query::media_pages` with one page: a text search, or a browse with no term.
     Search,
+    /// `query::media_pages` with several pages: Search's rails, in one request.
+    Browse,
+    /// `query::FACETS`: the genres, tags and streaming sites the filters choose from.
+    Facets,
     /// `query::by_id`: one title, with the detail-only fields.
     Detail,
     /// `query::by_ids`: several titles at once, for the Continue rail.
     Many,
     /// `query::relations`: several titles' relations, two levels deep, for the season walk.
     Relations,
-    /// `query::seasonal`.
+    /// `query::media_pages` with one page of a season and no term: Seasonal.
     Seasonal,
     /// `query::airing_schedule`: broadcasts in a window, for the Calendar.
     Schedule,
@@ -107,9 +111,13 @@ impl Operation {
             Self::Relations
         } else if has("media(id_in:") {
             Self::Many
-        } else if has("media(season:") {
+        } else if has("GenreCollection") {
+            Self::Facets
+        } else if has("r1: Page(") {
+            Self::Browse
+        } else if has("r0: Page(") && has("season: $r0_season") && !has("search: $r0_search") {
             Self::Seasonal
-        } else if has("media(search:") {
+        } else if has("r0: Page(") {
             Self::Search
         } else {
             Self::Unknown
@@ -711,11 +719,14 @@ fn respond(
         return Reply::errors(401, "Invalid token", Value::Null);
     }
     match operation {
-        Operation::Search => Reply::ok(media_page(search(vars), vars, clock)),
-        Operation::Seasonal => {
-            let found = fixtures::SEASONAL.iter().filter(|id| filtered(**id, vars, false));
-            Reply::ok(media_page(found.copied().collect(), vars, clock))
+        Operation::Search | Operation::Seasonal | Operation::Browse => {
+            let mut data = serde_json::Map::new();
+            for (alias, page) in pages(vars) {
+                data.insert(alias, media_page(search(&page), &page, clock)["Page"].take());
+            }
+            Reply::ok(Value::Object(data))
         }
+        Operation::Facets => Reply::ok(facets()),
         Operation::Detail => {
             match vars["id"].as_u64().and_then(|id| catalogue.get(id)) {
                 Some(media) => Reply::ok(detail(catalogue.with_neighbours(media), clock)),
@@ -814,11 +825,37 @@ fn detail(media: Value, clock: Clock) -> Value {
     json!({ "Media": media, "aired": { "airingSchedules": aired } })
 }
 
-/// The titles a search finds: every one whose title or synonyms contain the term, any case,
-/// that the filters allow. No term is a browse of the whole catalogue.
+/// Each page a `query::media_pages` request asks for, under its alias, with its variables
+/// named as AniList's arguments are: `r0_genre_in` is `genre_in` of the page aliased `r0`.
+fn pages(vars: &Value) -> Vec<(String, Value)> {
+    let mut pages: Vec<(String, serde_json::Map<String, Value>)> = Vec::new();
+    for (name, value) in vars.as_object().into_iter().flatten() {
+        let Some((alias, argument)) = name.split_once('_') else { continue };
+        let at = match pages.iter().position(|(a, _)| a == alias) {
+            Some(at) => at,
+            None => {
+                pages.push((alias.to_owned(), serde_json::Map::new()));
+                pages.len() - 1
+            }
+        };
+        pages[at].1.insert(argument.to_owned(), value.clone());
+    }
+    pages.sort_by_key(|(alias, _)| alias[1..].parse::<u32>().unwrap_or(u32::MAX));
+    pages.into_iter().map(|(alias, page)| (alias, Value::Object(page))).collect()
+}
+
+/// The titles a page finds, in the order asked for. A text search matches any title whose forms
+/// or synonyms contain the term, any case; no term browses the whole catalogue. A season asked
+/// with no term is answered with [`fixtures::SEASONAL`] when it is the one the real clock is in,
+/// as the app asks for that one and a test should not break when the season turns. Any other
+/// season, and every other filter, is applied to the fixtures as AniList would apply it.
 fn search(vars: &Value) -> Vec<AnilistId> {
     let term = vars["search"].as_str().unwrap_or_default().trim().to_lowercase();
-    fixtures::ALL
+    let this_season = term.is_empty()
+        && vars["season"].as_str() == Some(real_season().0)
+        && vars["seasonYear"].as_u64() == Some(real_season().1);
+    let pool: &[AnilistId] = if this_season { &fixtures::SEASONAL } else { &fixtures::ALL };
+    let mut found: Vec<AnilistId> = pool
         .iter()
         .copied()
         .filter(|id| {
@@ -835,22 +872,179 @@ fn search(vars: &Value) -> Vec<AnilistId> {
                 );
             term.is_empty() || names.map(str::to_lowercase).any(|name| name.contains(&term))
         })
-        .filter(|id| filtered(*id, vars, true))
-        .collect()
+        .filter(|id| filtered(*id, vars, !this_season))
+        .collect();
+    sort(&mut found, vars);
+    found
 }
 
-/// Whether a title passes the server-side filters the app sends: genres (every one), format
-/// and status, and for a search the year. The seasonal browse's season and year are not
-/// filters here — see [`fixtures::SEASONAL`].
-fn filtered(id: AnilistId, vars: &Value, with_year: bool) -> bool {
+/// The season the real clock is in, in AniList's words, and its year.
+fn real_season() -> (&'static str, u64) {
+    let days = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64)
+        / 86_400;
+    // Civil from days.
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z.rem_euclid(146_097);
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + i64::from(month <= 2);
+    let season = match month {
+        1..=3 => "WINTER",
+        4..=6 => "SPRING",
+        7..=9 => "SUMMER",
+        _ => "FALL",
+    };
+    (season, year as u64)
+}
+
+/// Whether a title passes every filter the page sets, as AniList reads them: `_in` is any of,
+/// except genres and tags, which are every one of; `_not_in` is none of; `_greater` and
+/// `_lesser` are exclusive. A field the fixture leaves out reads as AniList's most common
+/// answer for it (made in Japan, licensed), or as nothing (no score, no popularity).
+fn filtered(id: AnilistId, vars: &Value, with_season: bool) -> bool {
     let Some(media) = fixtures::wire(id) else { return false };
+    let list = |name: &str| vars[name].as_array().cloned().unwrap_or_default();
+    let number = |name: &str| vars[name].as_i64();
     let genres = media["genres"].as_array().cloned().unwrap_or_default();
-    let mut wanted = vars["genres"].as_array().into_iter().flatten();
-    wanted.all(|g| genres.contains(g))
-        && ["format", "status"].iter().all(|f| vars[f].is_null() || vars[f] == media[f])
-        && (!with_year
-            || vars["seasonYear"].is_null()
-            || vars["seasonYear"] == media["seasonYear"])
+    let rank = number("minimumTagRank").unwrap_or(0);
+    let tags: Vec<Value> = media["tags"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|t| t["rank"].as_i64().unwrap_or(100) >= rank)
+        .map(|t| t["name"].clone())
+        .collect();
+    let any_of = |name: &str, field: &Value| {
+        let wanted = list(name);
+        wanted.is_empty() || wanted.contains(field)
+    };
+    let date = |d: &Value| {
+        d["year"].as_i64().unwrap_or(0) * 10_000
+            + d["month"].as_i64().unwrap_or(0) * 100
+            + d["day"].as_i64().unwrap_or(0)
+    };
+    let bounded = |field: Option<i64>, name: &str| {
+        let greater = number(&format!("{name}_greater"));
+        let lesser = number(&format!("{name}_lesser"));
+        match field {
+            Some(value) => {
+                greater.is_none_or(|g| value > g) && lesser.is_none_or(|l| value < l)
+            }
+            None => greater.is_none() && lesser.is_none(),
+        }
+    };
+    let country = media.get("countryOfOrigin").filter(|c| !c.is_null()).cloned();
+    let country = country.unwrap_or_else(|| json!("JP"));
+    let sites: Vec<Value> = media["externalLinks"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .map(|link| link["site"].clone())
+        .collect();
+    let on_list = entries().any(|e| e["mediaId"].as_u64() == Some(u64::from(id.get())));
+
+    list("genre_in").iter().all(|g| genres.contains(g))
+        && !list("genre_not_in").iter().any(|g| genres.contains(g))
+        && list("tag_in").iter().all(|t| tags.contains(t))
+        && !list("tag_not_in").iter().any(|t| tags.contains(t))
+        && any_of("format_in", &media["format"])
+        && any_of("status_in", &media["status"])
+        && any_of("source_in", &media["source"])
+        && any_of("countryOfOrigin_in", &country)
+        && (vars["countryOfOrigin"].is_null() || vars["countryOfOrigin"] == country)
+        && (!with_season
+            || ((vars["season"].is_null() || vars["season"] == media["season"])
+                && (vars["seasonYear"].is_null() || vars["seasonYear"] == media["seasonYear"])))
+        && bounded(Some(date(&media["startDate"])), "startDate")
+        && bounded(media["episodes"].as_i64(), "episodes")
+        && bounded(media["duration"].as_i64(), "duration")
+        && number("averageScore_greater")
+            .is_none_or(|g| media["averageScore"].as_i64().is_some_and(|s| s > g))
+        && number("popularity_greater")
+            .is_none_or(|g| media["popularity"].as_i64().unwrap_or(0) > g)
+        && (list("licensedBy_in").is_empty()
+            || list("licensedBy_in").iter().any(|site| sites.contains(site)))
+        && vars["isLicensed"]
+            .as_bool()
+            .is_none_or(|l| media["isLicensed"].as_bool().unwrap_or(true) == l)
+        && vars["isAdult"]
+            .as_bool()
+            .is_none_or(|a| media["isAdult"].as_bool().unwrap_or(false) == a)
+        && vars["onList"].as_bool().is_none_or(|wanted| on_list == wanted)
+}
+
+/// The page's sort, first name deciding, as AniList orders: relevance and `ID` keep the
+/// catalogue's order, and a title with nothing to sort by goes last.
+fn sort(found: &mut [AnilistId], vars: &Value) {
+    let first = match &vars["sort"] {
+        Value::Array(sorts) => {
+            sorts.first().and_then(Value::as_str).unwrap_or_default().to_owned()
+        }
+        sort => sort.as_str().unwrap_or_default().to_owned(),
+    };
+    let field = |id: &AnilistId, name: &str| {
+        fixtures::wire(*id).and_then(|m| m[name].as_i64()).unwrap_or(i64::MIN)
+    };
+    let started = |id: &AnilistId| {
+        fixtures::wire(*id).map_or(0, |m| {
+            let d = &m["startDate"];
+            d["year"].as_i64().unwrap_or(0) * 10_000
+                + d["month"].as_i64().unwrap_or(0) * 100
+                + d["day"].as_i64().unwrap_or(0)
+        })
+    };
+    match first.as_str() {
+        "SCORE_DESC" => found.sort_by_key(|id| std::cmp::Reverse(field(id, "averageScore"))),
+        "POPULARITY_DESC" => found.sort_by_key(|id| std::cmp::Reverse(field(id, "popularity"))),
+        "TRENDING_DESC" => found.sort_by_key(|id| std::cmp::Reverse(field(id, "trending"))),
+        "FAVOURITES_DESC" => found.sort_by_key(|id| std::cmp::Reverse(field(id, "favourites"))),
+        "START_DATE_DESC" => found.sort_by_key(|id| std::cmp::Reverse(started(id))),
+        "START_DATE" => found.sort_by_key(started),
+        "TITLE_ROMAJI" => found.sort_by_key(|id| {
+            fixtures::wire(*id)
+                .and_then(|m| m["title"]["romaji"].as_str().map(str::to_lowercase))
+                .unwrap_or_default()
+        }),
+        _ => {}
+    }
+}
+
+/// What the filters choose from: the genres the fixtures have and a few beside, made-up tags in
+/// AniList's categories, one of them adult, and streaming sites, one of them disabled.
+fn facets() -> Value {
+    json!({
+        "GenreCollection": ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Hentai",
+                            "Mecha", "Mystery", "Romance", "Sci-Fi", "Slice of Life", "Sports"],
+        "MediaTagCollection": [
+            { "name": "Travel", "description": "Journeys from place to place.",
+              "category": "Theme-Other", "isAdult": false, "isGeneralSpoiler": false },
+            { "name": "Found Family", "description": "Strangers who become a family.",
+              "category": "Theme-Drama", "isAdult": false, "isGeneralSpoiler": false },
+            { "name": "Libraries", "description": "Set in or around a library.",
+              "category": "Setting-Scene", "isAdult": false, "isGeneralSpoiler": false },
+            { "name": "Weather Magic", "description": "Magic over wind and rain.",
+              "category": "Theme-Fantasy", "isAdult": false, "isGeneralSpoiler": false },
+            { "name": "Trains", "description": "Railways feature prominently.",
+              "category": "Setting-Scene", "isAdult": false, "isGeneralSpoiler": false },
+            { "name": "Gardening", "description": "Growing things.",
+              "category": "Theme-Slice of Life", "isAdult": false, "isGeneralSpoiler": false },
+            { "name": "The Last Lantern", "description": "A twist at the end.",
+              "category": "Theme-Drama", "isAdult": false, "isGeneralSpoiler": true },
+            { "name": "Nudity", "description": "Adult content.",
+              "category": "Sexual Content", "isAdult": true, "isGeneralSpoiler": false },
+        ],
+        "ExternalLinkSourceCollection": [
+            { "site": "Lantern Stream", "isDisabled": false },
+            { "site": "Hikari Stream", "isDisabled": false },
+            { "site": "Lantern Stream", "isDisabled": false },
+            { "site": "Old Stream", "isDisabled": true },
+        ],
+    })
 }
 
 /// `page` and `perPage` applied to a list, as AniList pages: one-based, at most fifty.
@@ -1026,20 +1220,39 @@ fn save_entry(vars: &Value) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_meta::anilist::query;
+    use anistream_meta::{BrowseFilter, anilist::query};
+
+    fn search_document(term: &str, filter: &BrowseFilter) -> String {
+        query::media_pages(&[filter.arguments(term, 1, 20)]).0
+    }
 
     #[test]
     fn every_document_the_app_sends_is_one_the_fake_knows() {
+        let season = BrowseFilter {
+            season: Some("FALL".into()),
+            year: Some(2026),
+            ..BrowseFilter::default()
+        };
         // The documents carry no operation names, so the fake tells them apart by content. A
         // change to a query that broke that would otherwise surface as a baffling test failure
         // somewhere far from here.
         for (document, operation) in [
-            (query::search(), Operation::Search),
-            (query::search_filtered(), Operation::Search),
+            (search_document("kaze", &BrowseFilter::default()), Operation::Search),
+            (search_document("", &BrowseFilter::default()), Operation::Search),
+            (search_document("", &season), Operation::Seasonal),
+            (search_document("kaze", &season), Operation::Search),
+            (
+                query::media_pages(&[
+                    BrowseFilter::default().arguments("", 1, 20),
+                    season.arguments("", 1, 20),
+                ])
+                .0,
+                Operation::Browse,
+            ),
+            (query::FACETS.to_owned(), Operation::Facets),
             (query::by_id(), Operation::Detail),
             (query::by_ids(), Operation::Many),
             (query::relations(), Operation::Relations),
-            (query::seasonal(), Operation::Seasonal),
             (query::airing_schedule(), Operation::Schedule),
             (query::LAST_AIRED.to_owned(), Operation::LastAired),
             (query::AIRED_SINCE.to_owned(), Operation::AiredSince),

@@ -5,7 +5,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import tv.anistream.engine.model.Season
-import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.Bounds
+import tv.anistream.engine.model.MediaFormat
+import tv.anistream.engine.model.SearchQuery
+import tv.anistream.engine.model.SearchSort
 import tv.anistream.tv.screens.SeasonSort
 import tv.anistream.tv.screens.SeasonTab
 import tv.anistream.tv.screens.seasonFilter
@@ -25,12 +28,17 @@ class SeasonalTest {
         val now = SeasonTab(Season.FALL, 2026)
         assertNull(seasonFilter(now, now, SeasonSort.Popular, null))
         assertEquals(
-            SearchFilters(year = 2026u, season = "FALL", format = null, sort = "SCORE_DESC"),
+            SearchQuery(sort = SearchSort.SCORE, season = Season.FALL, years = Bounds(min = 2026u, max = 2026u)),
             seasonFilter(now, now, SeasonSort.Score, null),
         )
         assertEquals(
-            SearchFilters(year = 2026u, season = "SUMMER", format = "MOVIE", sort = "POPULARITY_DESC"),
-            seasonFilter(now.shift(-1), now, SeasonSort.Popular, "MOVIE"),
+            SearchQuery(
+                sort = SearchSort.POPULARITY,
+                formats = listOf(MediaFormat.MOVIE),
+                season = Season.SUMMER,
+                years = Bounds(min = 2026u, max = 2026u),
+            ),
+            seasonFilter(now.shift(-1), now, SeasonSort.Popular, MediaFormat.MOVIE),
         )
     }
 }

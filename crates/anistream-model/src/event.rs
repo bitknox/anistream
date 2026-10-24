@@ -15,6 +15,7 @@ use crate::{
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     remote::FrontIntent,
+    search::{BrowseRail, SearchFacets, SearchQuery},
     settings::SettingsView,
     show::ShowSettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
@@ -81,6 +82,35 @@ pub enum Event {
         entries: Vec<Entry>,
         more_past: bool,
     },
+    /// Whether the search arriving has more pages: sent with each first page, before its
+    /// [`Event::Content`], so the screen knows to ask for the next as the end comes near.
+    SearchPaging {
+        query: SearchQuery,
+        has_next: bool,
+    },
+    /// A further page of a search's results, to go after what is on screen, in answer to
+    /// [`Command::SearchMore`](crate::command::Command::SearchMore). Taken only while `query`
+    /// is the search on screen. `entries` is empty when the page failed, and the same page is
+    /// asked for again on the next scroll.
+    SearchMore {
+        query: SearchQuery,
+        page: u32,
+        entries: Vec<Entry>,
+        has_next: bool,
+    },
+    /// Whether live search is waiting for Return: `true` once the AniList budget runs low and
+    /// a change of text was not searched, `false` once one is again. Filter changes and Return
+    /// always search.
+    LiveSearch {
+        paused: bool,
+    },
+    /// Search's start: the rails, each a preset and its titles. Sent from what was kept, then
+    /// again when AniList answers.
+    Browse(Vec<BrowseRail>),
+    /// What the filters choose from.
+    Facets(SearchFacets),
+    /// The recent searches, newest first: at launch when asked, and after each change.
+    RecentSearches(Vec<SearchQuery>),
     Detail(Box<Entry>),
     /// The title language the signed-in AniList viewer reads in, in answer to
     /// [`Command::LoadTitleLanguage`](crate::command::Command::LoadTitleLanguage). `None` when

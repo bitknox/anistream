@@ -33,7 +33,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
-import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
 
@@ -256,11 +256,12 @@ class AppStore(
         send(Command.LoadSeasonal)
     }
 
-    /** Browse [filter] with nothing typed, into [browse], as Seasonal does for another season or sort. */
-    fun browse(filter: SearchFilters) {
-        if (browse.takes("", filter) && browse.list.state.value !is ListState.Failed) return
-        browse.submit("", filter)
-        send(Command.Search("", filter))
+    /** Browse [query] with nothing typed, into [browse], as Seasonal does for another season or sort. */
+    fun browse(query: SearchQuery) {
+        val normal = query.normalized
+        if (browse.takes(normal) && browse.list.state.value !is ListState.Failed) return
+        browse.edit(query)
+        send(Command.Search(normal))
     }
 
     fun loadCalendar(force: Boolean = false) {
@@ -269,9 +270,58 @@ class AppStore(
         send(Command.LoadCalendar)
     }
 
-    fun search(query: String, filter: SearchFilters = SearchFilters()) {
-        search.submit(query, filter)
-        send(Command.Search(query, filter))
+    /**
+     * Search now, as the search key, a recent search or a rail's See all does: always asked, so
+     * a failed search can be asked again.
+     */
+    fun search(query: SearchQuery) {
+        search.edit(query)
+        if (query.normalized.isBlank()) return
+        send(Command.Search(query.normalized))
+    }
+
+    /** Search for these words with the filters already set. */
+    fun search(text: String) = search(search.status.value.query.copy(text = text))
+
+    /** The search changed, a keystroke or a filter: the engine searches once the changes stop. */
+    fun searchLive(query: SearchQuery) {
+        if (!search.edit(query)) return
+        send(Command.SearchLive(query.normalized))
+    }
+
+    /** The words typed changed, with the filters already set. */
+    fun searchLive(text: String) {
+        val now = search.status.value.query
+        if (text == now.text) return
+        searchLive(now.copy(text = text))
+    }
+
+    /** The next page of results, when there is one and none is on its way. */
+    fun searchMore() {
+        val (query, page) = search.nextPage() ?: return
+        send(Command.SearchMore(query, page))
+    }
+
+    /** Search's start: the rails, the recent searches and what the filters choose from. */
+    fun loadSearchStart() {
+        val now = search.status.value
+        if (now.rails == null) send(Command.LoadBrowse)
+        if (now.facets == null) send(Command.LoadSearchFacets)
+        send(Command.LoadRecentSearches)
+    }
+
+    /** Keep what is searched for among the recent searches, as opening one of its titles does. */
+    fun rememberSearch() {
+        val asked = search.asked ?: return
+        send(Command.RememberSearch(asked))
+    }
+
+    fun forgetRecentSearch(query: SearchQuery) {
+        send(Command.ForgetRecentSearch(query))
+    }
+
+    fun clearRecentSearches() {
+        send(Command.ClearRecentSearches)
     }
 
     fun loadLibrary(segment: LibrarySegment) {
@@ -306,8 +356,20 @@ class AppStore(
         for (segment in LibraryModel.order) {
             if (library.segment(segment).answeredAt != null) loadLibrary(segment)
         }
-        search.submitted?.let { (query, filter) -> search(query, filter) }
+        search.again()?.let { send(Command.Search(it)) }
+        if (search.status.value.rails != null) send(Command.LoadBrowse)
         for (id in titles.detailed.toList().takeLast(5)) loadDetail(id)
+    }
+
+    /**
+     * Adult titles were let in or kept out: Search, its start and Seasonal are asked for again, so
+     * they show them or leave them out at once.
+     */
+    private fun adultChanged() {
+        search.again()?.let { send(Command.Search(it)) }
+        if (search.status.value.rails != null) send(Command.LoadBrowse)
+        if (search.status.value.facets != null) send(Command.LoadSearchFacets)
+        if (seasonal.answeredAt != null) loadSeasonal(force = true)
     }
 
     /** A title's episodes, once a session per title unless [force]: for the names of what plays. */
@@ -678,6 +740,12 @@ class AppStore(
             is Event.Caption -> caption(event.text, event.view)
             is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
+            is Event.SearchPaging -> search.paging(event.query, event.hasNext)
+            is Event.SearchMore -> search.more(event.query, event.page, event.entries, event.hasNext, titles)
+            is Event.LiveSearch -> search.live(event.paused)
+            is Event.Browse -> search.rails(event.v1, titles)
+            is Event.Facets -> search.facets(event.v1)
+            is Event.RecentSearches -> search.recents(event.v1)
             is Event.Detail -> {
                 detailPending -= event.v1.id
                 titles.merge(detail = event.v1)
@@ -695,7 +763,11 @@ class AppStore(
             is Event.Authorize -> accounts.authorize(SignInRequest(event.tracker, event.url, event.callbackScheme))
             is Event.DeviceCode -> accounts.deviceCode(event.v1)
             is Event.Conflicts -> accounts.conflicts(event.v1)
-            is Event.Settings -> settings.apply(event.v1)
+            is Event.Settings -> {
+                val adult = settings.view.value?.let { settings.isOn(SettingKey.ADULT_TITLES) }
+                settings.apply(event.v1)
+                if (adult != null && adult != settings.isOn(SettingKey.ADULT_TITLES)) adultChanged()
+            }
             is Event.Providers -> {
                 val had = providers.rows.value.any { it.usable }
                 providers.apply(event.v1)
@@ -740,8 +812,8 @@ class AppStore(
             ContentFor.Seasonal -> seasonal.apply(content, titles)
             ContentFor.Calendar -> calendar.apply(content, titles)
             is ContentFor.Search -> {
-                if (search.takes(view.query, view.filter)) search.list.apply(content, titles)
-                if (browse.takes(view.query, view.filter)) browse.list.apply(content, titles)
+                if (search.takes(view.query)) search.list.apply(content, titles)
+                if (browse.takes(view.query)) browse.list.apply(content, titles)
             }
             is ContentFor.Library -> library.segment(view.v1).apply(content, titles)
         }
@@ -753,8 +825,8 @@ class AppStore(
             ContentFor.Seasonal -> seasonal.caption(text)
             ContentFor.Calendar -> calendar.list.caption(text)
             is ContentFor.Search -> {
-                if (search.takes(view.query, view.filter)) search.list.caption(text)
-                if (browse.takes(view.query, view.filter)) browse.list.caption(text)
+                if (search.takes(view.query)) search.list.caption(text.ifEmpty { null })
+                if (browse.takes(view.query)) browse.list.caption(text.ifEmpty { null })
             }
             is ContentFor.Library -> library.segment(view.v1).caption(text)
         }

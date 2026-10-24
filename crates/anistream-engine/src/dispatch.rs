@@ -16,10 +16,11 @@ use crate::playback::start::{
 use crate::{
     artwork,
     catalog::{
+        browse,
         calendar::{load_calendar, load_calendar_past},
         detail::{load_detail, open_external, play_trailer},
         lists::{hide_from_continue, load_continue, load_seasonal},
-        search::search,
+        recents, search,
     },
     data,
     downloads::{
@@ -69,6 +70,17 @@ pub struct Lent {
     pub tx: Outbox,
 }
 
+/// The handles a task is lent, cloned.
+pub(crate) fn lend(services: &Services, tx: &Outbox) -> Lent {
+    Lent {
+        meta: services.meta.clone(),
+        store: services.store.clone(),
+        registry: services.registry.clone(),
+        stores: services.stores.clone(),
+        tx: tx.clone(),
+    }
+}
+
 /// Run a task off the UI thread, once the AniList rate limit lets it, and let it report back
 /// through the channel.
 fn spawn<W, F>(job: Option<JobGuard>, services: &Services, tx: &Outbox, work: W)
@@ -76,11 +88,22 @@ where
     W: FnOnce(Lent) -> F + Send + 'static,
     F: Future<Output = ()> + Send + 'static,
 {
-    let meta = services.meta.clone();
-    let store = services.store.clone();
-    let registry = services.registry.clone();
-    let stores = services.stores.clone();
-    let tx = tx.clone();
+    spawn_abortable(job, services, tx, work);
+}
+
+/// [`spawn`], with the handle that stops it: a search a newer one replaces. Stopped while it
+/// waits on the limit, it spends nothing.
+pub(crate) fn spawn_abortable<W, F>(
+    job: Option<JobGuard>,
+    services: &Services,
+    tx: &Outbox,
+    work: W,
+) -> tokio::task::AbortHandle
+where
+    W: FnOnce(Lent) -> F + Send + 'static,
+    F: Future<Output = ()> + Send + 'static,
+{
+    let Lent { meta, store, registry, stores, tx } = lend(services, tx);
 
     tokio::spawn(async move {
         // Say so before waiting, not after. At thirty requests a minute a burst of navigation can
@@ -103,7 +126,8 @@ where
             }
         }
         work(Lent { meta, store, registry, stores, tx }).await;
-    });
+    })
+    .abort_handle()
 }
 
 /// Route a command to whatever carries it out.
@@ -125,15 +149,36 @@ pub(crate) fn dispatch(
     match task {
         // The lists, the calendar, search and a title's page.
         Command::LoadContinue => spawn(job, services, tx, load_continue),
-        Command::LoadSeasonal => spawn(job, services, tx, load_seasonal),
+        Command::LoadSeasonal => {
+            let adult = engine.config.effective().meta.adult;
+            spawn(job, services, tx, move |lent| load_seasonal(lent, adult))
+        }
         Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
         Command::LoadCalendar => spawn(job, services, tx, load_calendar),
         Command::LoadCalendarPast { anchor, page } => {
             spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
         }
-        Command::Search { query, filter } => {
-            spawn(job, services, tx, move |lent| search(lent, query, filter))
+        Command::Search { query } => search::submit(query, job, engine, services, tx),
+        Command::SearchLive { query } => search::live(query, engine, services, tx),
+        Command::SearchMore { query, page } => {
+            let (searches, adult) =
+                (engine.search.clone(), engine.config.effective().meta.adult);
+            spawn(job, services, tx, move |lent| {
+                search::more(lent, searches, query, page, adult)
+            })
         }
+        Command::LoadBrowse => {
+            let (adult, now) = (engine.config.effective().meta.adult, services.clock.now());
+            spawn(job, services, tx, move |lent| browse::load_browse(lent, adult, now))
+        }
+        Command::LoadSearchFacets => {
+            let (adult, now) = (engine.config.effective().meta.adult, services.clock.now());
+            spawn(job, services, tx, move |lent| browse::load_facets(lent, adult, now))
+        }
+        Command::LoadRecentSearches => recents::publish(services, tx),
+        Command::RememberSearch(query) => recents::remember(query, services, tx),
+        Command::ForgetRecentSearch(query) => recents::forget(query, services, tx),
+        Command::ClearRecentSearches => recents::clear(services, tx),
         Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
         Command::LoadTitleLanguage => load_title_language(services, tx),
         Command::PlayTrailer { url, title } => {

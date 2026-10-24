@@ -7,9 +7,10 @@
 
 use anistream_core::settings::SettingValue;
 use anistream_model::{
-    catalog::{ContentFor, LibrarySegment, SearchFilters},
+    catalog::{ContentFor, LibrarySegment},
     command::{Command, PlayerCommand},
     event::Event,
+    search::SearchQuery,
     settings::SettingKey,
 };
 use anistream_providers::ProviderRegistry;
@@ -59,7 +60,7 @@ async fn harness(setup: Setup) -> Harness {
 }
 
 fn search(query: &str) -> Command {
-    Command::Search { query: query.into(), filter: SearchFilters::default() }
+    Command::Search { query: SearchQuery::text(query) }
 }
 
 #[tokio::test]
@@ -199,7 +200,7 @@ async fn loads_sent_together_each_end_after_their_own_answer() {
         (h.send(Command::LoadSeasonal), ContentFor::Seasonal),
         (
             h.send(search("hoshikuzu")),
-            ContentFor::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() },
+            ContentFor::Search { query: SearchQuery::text("hoshikuzu") },
         ),
     ];
     let updates = h.settle().await;

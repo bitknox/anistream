@@ -2,10 +2,11 @@
 //! time, Search with its filters, the Library's segments, and the Continue list.
 
 use anistream_model::{
-    catalog::{ContentFor, ContentList, Entry, SearchFilters, TitleAired},
+    catalog::{ContentFor, ContentList, Entry, Season, TitleAired},
     command::Command,
     event::Event,
     notice::Notice,
+    search::{MediaFormat, SearchQuery, SearchSort},
 };
 
 use super::{App, Cursor, Field};
@@ -65,6 +66,78 @@ impl App {
         let Some(anchor) = self.calendar_anchor else { return };
         self.calendar_loading_past = true;
         self.commands.push(Command::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
+    }
+
+    /// Fetch the next page of search results once the selection nears the end of them, quietly,
+    /// as the calendar fetches its past.
+    pub(super) fn more_search_if_near_end(&mut self) {
+        if self.nav.section() != Section::Search
+            || self.search_loading_more
+            || !self.search_more
+            || self.cursors.search.selected + SEARCH_MORE_MARGIN < self.content.len()
+        {
+            return;
+        }
+        self.search_loading_more = true;
+        self.commands.push(Command::SearchMore {
+            query: self.searched_query.clone(),
+            page: self.search_pages + 1,
+        });
+    }
+
+    /// Whether the search just answered has more pages.
+    pub(super) fn apply_search_paging(&mut self, query: SearchQuery, has_next: bool) {
+        if query != self.searched_query {
+            return;
+        }
+        self.search_pages = 1;
+        self.search_more = has_next;
+        self.search_loading_more = false;
+    }
+
+    /// A further page of the results on screen, put after them.
+    pub(super) fn apply_search_more(
+        &mut self,
+        query: SearchQuery,
+        page: u32,
+        entries: Vec<Entry>,
+        has_next: bool,
+    ) {
+        if query != self.searched_query || self.nav.section() != Section::Search {
+            return;
+        }
+        self.search_loading_more = false;
+        self.search_more = has_next;
+        if entries.is_empty() {
+            return;
+        }
+        self.search_pages = self.search_pages.max(page);
+        if let ContentList::Entries(shown) = &mut self.content {
+            let known: std::collections::HashSet<_> = shown.iter().map(|e| e.id).collect();
+            shown.extend(entries.into_iter().filter(|e| !known.contains(&e.id)));
+        }
+    }
+
+    /// The search the field and the filters make: the text as typed, without the spaces
+    /// around it, and every filter set.
+    pub fn search_query(&self) -> SearchQuery {
+        SearchQuery {
+            text: self.text(Field::Search).trim().to_owned(),
+            ..self.search_filter.clone()
+        }
+    }
+
+    /// Run the search the field and the filters make, from the top of its results.
+    fn run_search(&mut self) -> Command {
+        let query = self.search_query();
+        self.searched_query = query.clone();
+        self.search_pages = 0;
+        self.search_more = false;
+        self.search_loading_more = false;
+        self.content = ContentList::Loading;
+        // New results start at their top, not at the row the old ones were left on.
+        self.cursors.search = Cursor::default();
+        Command::Search { query }
     }
 
     /// The paging of the calendar just loaded: the instant its pages count back from, how many
@@ -167,29 +240,16 @@ impl App {
         task
     }
 
-    /// Enter on FILTERS: the search, with the filters as they are set.
+    /// Enter on FILTERS: the search, with the filters as they are set. With nothing typed it
+    /// is a browse, most popular first.
     pub(super) fn confirm_search_filters(&mut self) -> Option<Command> {
         self.nav.close_overlay();
-        let query = self.text(Field::Search).trim().to_owned();
-        // A filter with no query is a browse, which is a legitimate search. Both
-        // empty means there is nothing to ask yet, and that is not an error.
-        if query.is_empty() && self.search_filter.is_empty() {
-            return None;
-        }
-        self.searched_query = query.clone();
-        self.content = ContentList::Loading;
-        // New results start at their top, not at the row the old ones were left on.
-        self.cursors.search = Cursor::default();
-        Some(Command::Search { query, filter: self.search_filter.clone() })
+        Some(self.run_search())
     }
 
     /// Enter in Search's field: the search, or the highlighted result once the results are for
-    /// the query as typed.
+    /// the query as typed. With nothing typed, a browse with the filters set.
     pub(super) fn submit_search(&mut self) -> Option<Command> {
-        let query = self.text(Field::Search).trim().to_owned();
-        if query.is_empty() {
-            return None;
-        }
         // Enter submitted the search *every* time, so a result could be highlighted and
         // never opened — the key just re-ran the same query. It submits only while there is
         // something new to ask; once the results on screen are for this query, Enter does
@@ -197,11 +257,7 @@ impl App {
         if self.search_opens_on_enter() {
             return self.open_selected();
         }
-        self.searched_query = query.clone();
-        self.content = ContentList::Loading;
-        // New results start at their top, not at the row the old ones were left on.
-        self.cursors.search = Cursor::default();
-        Some(Command::Search { query, filter: self.search_filter.clone() })
+        Some(self.run_search())
     }
 
     /// Whether Enter resumes the highlighted row rather than opening it: a part-watched title
@@ -258,8 +314,7 @@ impl App {
     /// Whether Enter in Search's field opens the highlighted result rather than searching:
     /// the results on screen are already for the query as typed.
     pub fn search_opens_on_enter(&self) -> bool {
-        let query = self.text(Field::Search).trim();
-        !query.is_empty() && query == self.searched_query && !self.content.is_empty()
+        self.search_query() == self.searched_query && !self.content.is_empty()
     }
 
     /// Push the selected title's detail screen — what Enter does on a row with nothing to
@@ -356,10 +411,7 @@ impl App {
             Section::Home => ContentFor::Continue,
             Section::Seasonal => ContentFor::Seasonal,
             Section::Calendar => ContentFor::Calendar,
-            Section::Search => ContentFor::Search {
-                query: self.searched_query.clone(),
-                filter: self.search_filter.clone(),
-            },
+            Section::Search => ContentFor::Search { query: self.searched_query.clone() },
             Section::Library => ContentFor::Library(self.library_segment),
             _ => return None,
         })
@@ -477,15 +529,15 @@ impl App {
             Section::Home => Command::LoadContinue,
             Section::Seasonal => Command::LoadSeasonal,
             Section::Calendar => Command::LoadCalendar,
-            Section::Search
-                if !self.text(Field::Search).trim().is_empty()
-                    || !self.search_filter.is_empty() =>
-            {
+            Section::Search if !self.search_query().is_blank() => {
                 // Recorded as submitted, the same as Enter does, because the answer is tagged
                 // with this query and only taken while it is still the one on screen.
-                let query = self.text(Field::Search).trim().to_owned();
+                let query = self.search_query();
                 self.searched_query = query.clone();
-                Command::Search { query, filter: self.search_filter.clone() }
+                self.search_pages = 0;
+                self.search_more = false;
+                self.search_loading_more = false;
+                Command::Search { query }
             }
             Section::Providers => Command::CheckProviders,
             Section::Downloads => Command::LoadDownloads,
@@ -516,105 +568,92 @@ impl App {
     fn fetches_list(&self) -> bool {
         match self.nav.section() {
             Section::Home | Section::Seasonal | Section::Calendar | Section::Library => true,
-            Section::Search => {
-                !self.text(Field::Search).trim().is_empty() || !self.search_filter.is_empty()
-            }
+            Section::Search => !self.search_query().is_blank(),
             _ => false,
         }
     }
 }
 
-/// The FILTERS overlay's row labels, in order: one for each of [`SearchFilters`]' fields. The
-/// cycling and display functions index against this.
+/// The FILTERS overlay's row labels, in order. The cycling and display functions index against
+/// this.
 ///
-/// The overlay's rather than the filters' own: which rows there are, the words a value is shown in
-/// and the ladder each one steps through are how this screen offers a search. The filters it sends
-/// hold wire values only.
+/// The overlay's rather than the query's own: which rows there are, the words a value is shown in
+/// and the ladder each one steps through are how this screen offers a search. The native apps
+/// offer the rest of the query's filters.
 pub const SEARCH_FILTER_ROWS: [&str; 6] =
     ["genre", "year", "season", "format", "status", "sort"];
 
-/// AniList's fixed genre set. Genres are strings on the wire, but the set is closed —
-/// typing one would invite misses on casing that a cycle cannot produce.
-const SEARCH_GENRES: [&str; 18] = [
-    "Action",
-    "Adventure",
-    "Comedy",
-    "Drama",
-    "Ecchi",
-    "Fantasy",
-    "Horror",
-    "Mahou Shoujo",
-    "Mecha",
-    "Music",
-    "Mystery",
-    "Psychological",
-    "Romance",
-    "Sci-Fi",
-    "Slice of Life",
-    "Sports",
-    "Supernatural",
-    "Thriller",
+const SEARCH_SEASONS: [(Season, &str); 4] = [
+    (Season::Winter, "winter"),
+    (Season::Spring, "spring"),
+    (Season::Summer, "summer"),
+    (Season::Fall, "fall"),
 ];
 
-const SEARCH_SEASONS: [(&str, &str); 4] =
-    [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
-
-const SEARCH_FORMATS: [(&str, &str); 7] = [
-    ("TV", "tv"),
+const SEARCH_FORMATS: [(MediaFormat, &str); 7] = [
+    (MediaFormat::Tv, "tv"),
     // Short-form TV — a few minutes an episode — is its own format on AniList, so a
     // filter without it had no way to find one.
-    ("TV_SHORT", "tv short"),
-    ("MOVIE", "movie"),
-    ("OVA", "ova"),
-    ("ONA", "ona"),
-    ("SPECIAL", "special"),
-    ("MUSIC", "music"),
+    (MediaFormat::TvShort, "tv short"),
+    (MediaFormat::Movie, "movie"),
+    (MediaFormat::Ova, "ova"),
+    (MediaFormat::Ona, "ona"),
+    (MediaFormat::Special, "special"),
+    (MediaFormat::Music, "music"),
 ];
 
-const SEARCH_STATUSES: [(&str, &str); 3] =
-    [("RELEASING", "airing"), ("FINISHED", "finished"), ("NOT_YET_RELEASED", "upcoming")];
+const SEARCH_STATUSES: [(anistream_model::catalog::AiringStatus, &str); 3] = {
+    use anistream_model::catalog::AiringStatus as S;
+    [(S::Releasing, "airing"), (S::Finished, "finished"), (S::NotYetReleased, "upcoming")]
+};
 
-const SEARCH_SORTS: [(&str, &str); 4] = [
-    ("POPULARITY_DESC", "popularity"),
-    ("SCORE_DESC", "score"),
-    ("TRENDING_DESC", "trending"),
-    ("START_DATE_DESC", "newest"),
+const SEARCH_SORTS: [(SearchSort, &str); 4] = [
+    (SearchSort::Popularity, "popularity"),
+    (SearchSort::Score, "score"),
+    (SearchSort::Trending, "trending"),
+    (SearchSort::Newest, "newest"),
 ];
 
 /// Older than any TV anime that streams anywhere; the year cycle stops here.
 const OLDEST_SEARCH_YEAR: u32 = 1970;
 
+/// Rows from the end of the results at which the next page is asked for.
+const SEARCH_MORE_MARGIN: usize = 8;
+
+/// The word for `value` among `set`'s.
+fn word<T: PartialEq + Copy>(set: &[(T, &str)], value: Option<T>) -> Option<String> {
+    let value = value?;
+    set.iter().find(|(v, _)| *v == value).map(|(_, word)| (*word).to_owned())
+}
+
 /// What a filter row currently shows: the display form, or "any" when unset.
-pub fn search_filter_value(filter: &SearchFilters, row: usize) -> String {
-    let shown = |set: &[(&str, &str)], value: &Option<String>| {
-        value.as_deref().and_then(|v| {
-            set.iter().find(|(wire, _)| *wire == v).map(|(_, word)| (*word).to_string())
-        })
-    };
+pub fn search_filter_value(filter: &SearchQuery, row: usize) -> String {
     match row {
         // A genre is a name, and keeps the casing it has everywhere else it is shown.
-        0 => filter.genre.clone(),
-        1 => filter.year.map(|y| y.to_string()),
-        2 => shown(&SEARCH_SEASONS, &filter.season),
-        3 => shown(&SEARCH_FORMATS, &filter.format),
-        4 => shown(&SEARCH_STATUSES, &filter.status),
-        5 => return shown(&SEARCH_SORTS, &filter.sort).unwrap_or_else(|| "relevance".into()),
+        0 => filter.genres.first().cloned(),
+        1 => filter.years.single().map(|y| y.to_string()),
+        2 => word(&SEARCH_SEASONS, filter.season),
+        3 => word(&SEARCH_FORMATS, filter.formats.first().copied()),
+        4 => word(&SEARCH_STATUSES, filter.statuses.first().copied()),
+        5 => {
+            return word(&SEARCH_SORTS, filter.sort).unwrap_or_else(|| "relevance".into());
+        }
         _ => None,
     }
     .unwrap_or_else(|| "any".into())
 }
 
 /// The set filter values joined for the search prompt line, empty when nothing is.
-pub fn search_filter_summary(filter: &SearchFilters) -> String {
+pub fn search_filter_summary(filter: &SearchQuery) -> String {
     (0..SEARCH_FILTER_ROWS.len())
         .filter(|row| {
             // "relevance" is the resting state of sort, not a choice worth announcing.
             match row {
-                0 => filter.genre.is_some(),
-                1 => filter.year.is_some(),
+                0 => !filter.genres.is_empty(),
+                1 => filter.years.single().is_some(),
                 2 => filter.season.is_some(),
-                3 => filter.format.is_some(),
-                4 => filter.status.is_some(),
+                3 => !filter.formats.is_empty(),
+                4 => !filter.statuses.is_empty(),
                 _ => filter.sort.is_some(),
             }
         })
@@ -626,38 +665,50 @@ pub fn search_filter_summary(filter: &SearchFilters) -> String {
 /// Step a filter row's value. Forward walks the options and comes back around to "any",
 /// so both directions reach everything and nothing is a dead end. The year ladder tops out
 /// at next year by `clock`.
-pub fn cycle_search_filter(
-    filter: &mut SearchFilters,
-    row: usize,
-    forward: bool,
-    clock: &Clock,
-) {
-    fn step(current: &mut Option<String>, wires: &[&str], forward: bool) {
-        let at = current.as_deref().and_then(|c| wires.iter().position(|w| *w == c));
+pub fn cycle_search_filter(filter: &mut SearchQuery, row: usize, forward: bool, clock: &Clock) {
+    fn step<T: PartialEq + Copy>(current: Option<T>, values: &[T], forward: bool) -> Option<T> {
+        let at = current.and_then(|c| values.iter().position(|v| *v == c));
         let next = match (at, forward) {
             (None, true) => Some(0),
-            (None, false) => Some(wires.len() - 1),
-            (Some(i), true) => (i + 1 < wires.len()).then_some(i + 1),
+            (None, false) => Some(values.len() - 1),
+            (Some(i), true) => (i + 1 < values.len()).then_some(i + 1),
             (Some(0), false) => None,
             (Some(i), false) => Some(i - 1),
         };
-        *current = next.map(|i| wires[i].to_owned());
+        next.map(|i| values[i])
     }
     match row {
-        0 => step(&mut filter.genre, &SEARCH_GENRES, forward),
+        0 => {
+            let genres: Vec<&str> = anistream_model::search::GENRES.to_vec();
+            let current = filter.genres.first().map(String::as_str);
+            filter.genres =
+                step(current, &genres, forward).map(|g| vec![g.to_owned()]).unwrap_or_default();
+        }
         1 => {
             let latest = chrono::Datelike::year(&clock.today()).max(0) as u32 + 1;
-            filter.year = match (filter.year, forward) {
+            let year = match (filter.years.single(), forward) {
                 (None, true) => Some(latest),
                 (None, false) => Some(OLDEST_SEARCH_YEAR),
                 (Some(y), true) => (y > OLDEST_SEARCH_YEAR).then(|| y - 1),
                 (Some(y), false) => (y < latest).then(|| y + 1),
             };
+            filter.years = anistream_model::search::Bounds { min: year, max: year };
         }
-        2 => step(&mut filter.season, &SEARCH_SEASONS.map(|(wire, _)| wire), forward),
-        3 => step(&mut filter.format, &SEARCH_FORMATS.map(|(wire, _)| wire), forward),
-        4 => step(&mut filter.status, &SEARCH_STATUSES.map(|(wire, _)| wire), forward),
-        _ => step(&mut filter.sort, &SEARCH_SORTS.map(|(wire, _)| wire), forward),
+        2 => filter.season = step(filter.season, &SEARCH_SEASONS.map(|(s, _)| s), forward),
+        3 => {
+            let next =
+                step(filter.formats.first().copied(), &SEARCH_FORMATS.map(|(f, _)| f), forward);
+            filter.formats = next.into_iter().collect();
+        }
+        4 => {
+            let next = step(
+                filter.statuses.first().copied(),
+                &SEARCH_STATUSES.map(|(s, _)| s),
+                forward,
+            );
+            filter.statuses = next.into_iter().collect();
+        }
+        _ => filter.sort = step(filter.sort, &SEARCH_SORTS.map(|(s, _)| s), forward),
     }
 }
 
@@ -859,19 +910,18 @@ mod tests {
 
     #[test]
     fn the_format_filter_can_find_short_tv() {
-        let mut filter = SearchFilters::default();
+        let mut filter = SearchQuery::default();
         let clock = Clock::system();
         cycle_search_filter(&mut filter, 3, true, &clock);
         assert_eq!(search_filter_value(&filter, 3), "tv");
         cycle_search_filter(&mut filter, 3, true, &clock);
-        assert_eq!(filter.format.as_deref(), Some("TV_SHORT"), "AniList's name for it");
+        assert_eq!(filter.formats, [MediaFormat::TvShort]);
         assert_eq!(search_filter_value(&filter, 3), "tv short");
     }
 
     #[test]
     fn a_genre_filter_keeps_the_genre_s_own_casing() {
-        let filter =
-            SearchFilters { genre: Some("Slice of Life".into()), ..Default::default() };
+        let filter = SearchQuery { genres: vec!["Slice of Life".into()], ..Default::default() };
         assert_eq!(search_filter_value(&filter, 0), "Slice of Life");
     }
 
@@ -1011,10 +1061,7 @@ mod tests {
         // First Enter runs it.
         assert_eq!(
             a.handle(Action::Open, 10),
-            Some(Command::Search {
-                query: "hoshikuzu".into(),
-                filter: SearchFilters::default()
-            })
+            Some(Command::Search { query: SearchQuery::text("hoshikuzu") })
         );
         a.apply(a.content_here(entries(3)));
 
@@ -1028,10 +1075,7 @@ mod tests {
         a.type_char('x');
         assert_eq!(
             a.handle(Action::Open, 10),
-            Some(Command::Search {
-                query: "hoshikuzux".into(),
-                filter: SearchFilters::default()
-            })
+            Some(Command::Search { query: SearchQuery::text("hoshikuzux") })
         );
     }
 
@@ -1044,12 +1088,12 @@ mod tests {
 
         // Right on the genre row picks the first genre; a filter alone is a browse.
         a.handle(Action::Right, 10);
-        assert_eq!(a.search_filter.genre.as_deref(), Some("Action"));
+        assert_eq!(a.search_filter.genres, ["Action"]);
         let task = a.handle(Action::Open, 10);
         match task {
-            Some(Command::Search { query, filter }) => {
-                assert_eq!(query, "");
-                assert_eq!(filter.genre.as_deref(), Some("Action"));
+            Some(Command::Search { query }) => {
+                assert_eq!(query.text, "");
+                assert_eq!(query.genres, ["Action"]);
             }
             other => panic!("expected a search, got {other:?}"),
         }
@@ -1063,10 +1107,13 @@ mod tests {
 
         a.handle(Action::Right, 10);
         a.handle(Action::Left, 10);
-        assert_eq!(a.search_filter.genre, None, "left from the first option is back to any");
+        assert!(a.search_filter.genres.is_empty(), "left from the first option is back to any");
 
-        // Both empty: Enter closes the overlay and asks nothing.
-        assert_eq!(a.handle(Action::Open, 10), None);
+        // Both empty: Enter closes the overlay and browses, most popular first.
+        assert_eq!(
+            a.handle(Action::Open, 10),
+            Some(Command::Search { query: SearchQuery::default() })
+        );
         assert!(!a.nav.has_overlay());
     }
 
@@ -1147,7 +1194,7 @@ mod tests {
             assert!(matches!(a.handle(Action::Open, 20), Some(Command::Search { .. })));
         }
         let answer = |query: &str, n| Event::Content {
-            view: ContentFor::Search { query: query.into(), filter: SearchFilters::default() },
+            view: ContentFor::Search { query: SearchQuery::text(query) },
             content: entries(n),
         };
         a.apply(answer("hoshikuzu", 2));

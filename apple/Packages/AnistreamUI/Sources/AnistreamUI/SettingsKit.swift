@@ -249,6 +249,7 @@ extension SettingKey {
     var title: String {
         switch self {
         case .titles: "Title language"
+        case .adultTitles: "Show adult titles"
         case .upNextCountdown: "Up Next countdown"
         case .spoilerProtection: "Spoiler protection"
         case .downloadQuality: "Quality"

@@ -97,6 +97,9 @@ pub enum SettingKey {
     /// (`--sub-font-size=40`): passed after anistream's own, so one here wins over its flags.
     /// The Mac's Advanced table.
     MpvOptions,
+    /// Whether Search and the lists show titles AniList marks adult, with its adult genre and
+    /// tags among the filters. Off by default.
+    AdultTitles,
 }
 
 impl SettingKey {
@@ -142,7 +145,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 9] = [
+    pub const NATIVE_ROWS: [Self; 10] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -152,6 +155,7 @@ impl SettingKey {
         Self::VpnOnFailure,
         Self::EpisodeNotifications,
         Self::MpvOptions,
+        Self::AdultTitles,
     ];
 
     /// Where the file keeps it: the containing table, as the dotted path
@@ -162,6 +166,7 @@ impl SettingKey {
             Self::Theme => (&["theme"], "mode"),
             Self::Motion => (&["theme"], "motion"),
             Self::Titles => (&["meta"], "title_language"),
+            Self::AdultTitles => (&["meta"], "adult"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
             Self::Subtitles => (&["playback"], "subtitle_language"),
@@ -282,6 +287,7 @@ impl SettingKey {
             Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
             Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
             Self::UpdateCheck => to.updates.check = from.updates.check,
+            Self::AdultTitles => to.meta.adult = from.meta.adult,
             Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
@@ -307,7 +313,7 @@ impl SettingKey {
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
         match self {
-            Self::Theme | Self::Motion | Self::Titles => "appearance",
+            Self::Theme | Self::Motion | Self::Titles | Self::AdultTitles => "appearance",
             Self::Translation
             | Self::Quality
             | Self::Subtitles
@@ -400,6 +406,7 @@ impl SettingKey {
             Self::DownloadsOnCellular => "downloads on cellular",
             Self::TorrentsOnCellular => "torrents on cellular",
             Self::VpnOnFailure => "if a check fails",
+            Self::AdultTitles => "adult titles",
             Self::EpisodeNotifications => "new episode notifications",
             Self::MpvOptions => "mpv options",
         }
@@ -694,6 +701,7 @@ pub fn step(
         SettingKey::DownloadsOnCellular => V::Bool(!effective.downloads.on_cellular),
         SettingKey::TorrentsOnCellular => V::Bool(!effective.providers.torrent.on_cellular),
         SettingKey::EpisodeNotifications => V::Bool(!effective.notifications.episodes),
+        SettingKey::AdultTitles => V::Bool(!effective.meta.adult),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
         SettingKey::VpnOnFailure => V::Str(
@@ -840,6 +848,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         }
         (SettingKey::DownloadsOnCellular, V::Bool(on)) => config.downloads.on_cellular = *on,
         (SettingKey::EpisodeNotifications, V::Bool(on)) => config.notifications.episodes = *on,
+        (SettingKey::AdultTitles, V::Bool(on)) => config.meta.adult = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
         }
@@ -965,6 +974,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::DownloadsOnCellular => on_off(effective.downloads.on_cellular),
         SettingKey::TorrentsOnCellular => on_off(torrent.on_cellular),
         SettingKey::EpisodeNotifications => on_off(effective.notifications.episodes),
+        SettingKey::AdultTitles => on_off(effective.meta.adult),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
             LeakAction::Stop => "stop torrents",
@@ -1031,6 +1041,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::DownloadsOnCellular => c.downloads.on_cellular,
         S::TorrentsOnCellular => c.providers.torrent.on_cellular,
         S::EpisodeNotifications => c.notifications.episodes,
+        S::AdultTitles => c.meta.adult,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
             c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
@@ -1230,6 +1241,7 @@ mod tests {
                 (SettingKey::VpnOnFailure, "pause torrents"),
                 (SettingKey::EpisodeNotifications, "off"),
                 (SettingKey::MpvOptions, "none"),
+                (SettingKey::AdultTitles, "off"),
             ]
         );
         assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));

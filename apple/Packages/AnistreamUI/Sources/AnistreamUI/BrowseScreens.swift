@@ -1,4 +1,4 @@
-// Seasonal, Library and Search: titles as covers.
+// Seasonal and Library: titles as covers, and what Search shares with them.
 
 import AnistreamDesign
 import AnistreamKit
@@ -26,6 +26,22 @@ struct SeasonalScreen: View {
         }
         .scrollIndicators(.never)
         .task { if store.seasonal.state == .idle { store.loadSeasonal() } }
+    }
+}
+
+/// Seasonal's way into Search: the same season, with every filter to narrow it.
+struct SeasonalToolbar: View {
+    @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+
+    var body: some View {
+        Button {
+            navigator.search(.season(), in: store)
+        } label: {
+            Label("Filter in Search", systemImage: "line.3.horizontal.decrease")
+                .labelStyle(.titleAndIcon)
+        }
+        .help("This season in Search, where every filter narrows it")
     }
 }
 
@@ -201,217 +217,7 @@ struct QuietLine: View {
     }
 }
 
-// MARK: - Search
-
-/// The genres Search offers before anything is typed, as AniList names them.
-let searchGenres = [
-    "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Mystery", "Romance", "Slice of Life",
-    "Sports",
-]
-
-/// Search: before anything is typed, recent searches, this season and the genres; then the
-/// titles found.
-struct SearchScreen: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
-    /// The iPhone's: sentence case, larger type, three columns.
-    var compact = false
-
-    var body: some View {
-        ScrollView {
-            Group {
-                if store.search.submitted == nil {
-                    SearchStart(compact: compact)
-                } else {
-                    VStack(alignment: .leading, spacing: 16) {
-                        SearchFilterBar(compact: compact)
-                        if let caption = searchCaption {
-                            Text(caption)
-                                .font(.mac(13))
-                                .foregroundStyle(.haze)
-                        }
-                        ListStates(state: store.search.list.state,
-                                   placeholder: AnyView(PosterGridPlaceholder(minimum: compact ? 100 : 128))) { ids in
-                            PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: compact ? 100 : 128,
-                                       spacing: compact ? 12 : 20) { entry in
-                                PosterCell(entry: entry, detail: searchLine(entry), width: compact ? 100 : 128)
-                            }
-                        } empty: {
-                            QuietLine("Nothing found for \u{201c}\(store.search.submitted?.query ?? "")\u{201d}")
-                        }
-                    }
-                }
-            }
-            .padding(compact ? EdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16)
-                             : EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
-        }
-        .scrollIndicators(.never)
-        .task {
-            if store.search.submitted == nil, !navigator.query.isEmpty {
-                store.search(navigator.query)
-            }
-            if store.seasonal.state == .idle { store.loadSeasonal() }
-        }
-    }
-
-    private var searchCaption: String? {
-        guard let submitted = store.search.submitted else { return nil }
-        if let genre = submitted.filter.genre, submitted.query.isEmpty { return genre }
-        return nil
-    }
-
-    private func searchLine(_ entry: Entry) -> String? {
-        if let status = entry.listStatus {
-            let watching = status == .watching ? entry.progress.map { " · Ep \($0.next)" } ?? "" : ""
-            return status.label + watching
-        }
-        return [entry.format, entry.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
-    }
-}
-
-/// The filters over Search's results: format, season, genre and status, each a capsule menu,
-/// amber where it is set. Changing one searches again.
-struct SearchFilterBar: View {
-    @Environment(AppStore.self) private var store
-    var compact = false
-
-    private static let formats = [("TV", "TV"), ("Movie", "MOVIE"), ("OVA", "OVA"), ("ONA", "ONA"), ("Special", "SPECIAL")]
-    private static let seasons = [("Winter", "WINTER"), ("Spring", "SPRING"), ("Summer", "SUMMER"), ("Fall", "FALL")]
-    private static let statuses = [("Airing", "RELEASING"), ("Finished", "FINISHED"), ("Not yet aired", "NOT_YET_RELEASED")]
-
-    var body: some View {
-        let submitted = store.search.submitted
-        let filter = submitted?.filter ?? SearchFilters()
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                menu("Format", Self.formats, filter.format) { $0.format = $1 }
-                menu("Season", Self.seasons, filter.season) { $0.season = $1 }
-                menu("Genre", searchGenres.map { ($0.capitalizedSentence, $0) }, filter.genre) { $0.genre = $1 }
-                menu("Status", Self.statuses, filter.status) { $0.status = $1 }
-            }
-        }
-        .scrollIndicators(.never)
-    }
-
-    private func menu(
-        _ name: String,
-        _ options: [(String, String)],
-        _ current: String?,
-        _ set: @escaping (inout SearchFilters, String?) -> Void
-    ) -> some View {
-        let label = options.first { $0.1 == current }?.0 ?? name
-        return Menu {
-            Button("Any") { apply(set, nil) }
-            Divider()
-            ForEach(options, id: \.1) { option in
-                Button(option.0) { apply(set, option.1) }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Text(label)
-                Image(systemName: "chevron.down").font(compact ? .ui(11, weight: .semibold) : .mac(9, weight: .semibold))
-            }
-            .font(compact ? .ui(17) : .mac(13))
-            .foregroundStyle(current == nil ? .silk : .amber)
-            .padding(.horizontal, compact ? 16 : 12)
-            .frame(height: compact ? 40 : 28)
-            .background(current == nil ? .clear : Palette.selection, in: .capsule)
-            .overlay(Capsule().strokeBorder(current == nil ? Palette.faintRule : .clear))
-        }
-        .menuStyle(.button)
-        .buttonStyle(.plain)
-        .fixedSize()
-    }
-
-    private func apply(_ set: (inout SearchFilters, String?) -> Void, _ value: String?) {
-        let query = store.search.submitted?.query ?? ""
-        var filter = store.search.submitted?.filter ?? SearchFilters()
-        set(&filter, value)
-        store.search(query, filter: filter)
-    }
-}
-
-/// Search before anything is typed.
-struct SearchStart: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
-    private let recents = RecentSearches.shared
-    var compact = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            if !recents.queries.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        SectionHeading(compact ? "Recent searches" : "Recent Searches", compact: compact)
-                        Spacer()
-                        Button("Clear") { recents.clear() }
-                            .buttonStyle(.plain)
-                            .font(.mac(13, weight: .semibold))
-                            .foregroundStyle(.silk)
-                    }
-                    ForEach(recents.queries, id: \.self) { query in
-                        HStack {
-                            Button {
-                                navigator.search(query, in: store)
-                            } label: {
-                                Label(query, systemImage: "clock")
-                                    .font(.mac(13))
-                                    .foregroundStyle(.silk)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(.rect)
-                            }
-                            .buttonStyle(.plain)
-                            Button("Remove \(query)", systemImage: "xmark") { recents.remove(query) }
-                                .labelStyle(.iconOnly)
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.haze)
-                        }
-                        .frame(height: 28)
-                    }
-                }
-            }
-            let season = store.seasonal.state.ids.compactMap { store.titles[$0] }
-            if !season.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(alignment: .firstTextBaseline) {
-                        SectionHeading(compact ? "This season" : "This Season", compact: compact)
-                        Spacer()
-                        if let name = store.seasonName {
-                            Text(name).font(compact ? .ui(15) : .mac(13)).foregroundStyle(.haze)
-                        }
-                    }
-                    if compact {
-                        ScrollView(.horizontal) {
-                            HStack(alignment: .top, spacing: 12) {
-                                ForEach(season, id: \.id) { PosterCell(entry: $0, width: 124).frame(width: 124) }
-                            }
-                            .padding(.horizontal, 16)
-                        }
-                        .scrollIndicators(.never)
-                        .padding(.horizontal, -16)
-                    } else {
-                        PosterGrid(entries: season) { entry in
-                            PosterCell(entry: entry, detail: entry.genres.first)
-                        }
-                    }
-                }
-            }
-            VStack(alignment: .leading, spacing: 12) {
-                SectionHeading("Genres", compact: compact)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: compact ? 100 : 140), spacing: 8)], spacing: 8) {
-                    ForEach(searchGenres, id: \.self) { genre in
-                        Button(genre.capitalizedSentence) {
-                            navigator.section = .search
-                            store.search("", filter: SearchFilters(genre: genre))
-                        }
-                        .buttonStyle(ChipStyle(height: compact ? 44 : 32, fontSize: compact ? 17 : 13))
-                    }
-                }
-            }
-        }
-    }
-}
+// MARK: - Shared
 
 /// A heading over a group on a screen: 15 semibold on the Mac.
 struct SectionHeading: View {

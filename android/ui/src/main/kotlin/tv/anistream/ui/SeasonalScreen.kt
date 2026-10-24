@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.anistream.store.ListState
+import tv.anistream.store.seasonQuery
 
 @Composable
 fun SeasonalScreen() {
@@ -23,8 +24,19 @@ fun SeasonalScreen() {
     val state by store.seasonal.state.collectAsStateWithLifecycle()
     val caption by store.seasonal.caption.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
+    val navigator = LocalNavigator.current
     LaunchedEffect(Unit) { store.loadSeasonal() }
-    ScreenFrame(title = "Seasonal", subtitle = caption?.let(::seasonName)) { padding ->
+    ScreenFrame(
+        title = "Seasonal",
+        subtitle = caption?.let(::seasonName),
+        actions = {
+            // The season as a search, to narrow by genre, format or anything else.
+            QuietButton("Filter in Search") {
+                store.search(seasonQuery())
+                navigator.go(Destination.Search)
+            }
+        },
+    ) { padding ->
         val grid = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 24.dp)
         val answered = state.takeIf { it is ListState.Loaded || it is ListState.Empty || it is ListState.Failed }
         Loading(
