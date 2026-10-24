@@ -9,6 +9,7 @@
 
 import AnistreamKit
 import Foundation
+import Network
 import Observation
 #if canImport(UIKit)
 import UIKit
@@ -81,6 +82,7 @@ public final class TVRemoteModel {
     @ObservationIgnored private var link: FfiTvLink?
     @ObservationIgnored private var watcher: Task<Void, Never>?
     @ObservationIgnored private var cards: Task<Void, Never>?
+    @ObservationIgnored private var path: NWPathMonitor?
     @ObservationIgnored private var browsers = 0
 
     public init() {}
@@ -144,6 +146,8 @@ public final class TVRemoteModel {
         sheet = nil
         request = nil
         cancelPairing()
+        // A session the TV ended while its card was up ends here as the card goes.
+        if card?.over == true { disconnect() }
     }
 
     /// Look for TVs while a picker is up. Counted, as two can be up at once (a Mac's Settings
@@ -294,8 +298,30 @@ public final class TVRemoteModel {
                 guard let self, self.link === link else { return }
                 self.card = card
                 self.cardAt = .now
+                // The engine says when the session is over: the TV stopped playing, or stayed
+                // away too long. The card stays while it is up, to say so.
+                if card.over, self.sheet != .remote { self.disconnect() }
             }
         }
+        watchNetwork()
+    }
+
+    /// Try the TV again now rather than after the link's wait: as the app comes back to the
+    /// front, or the network back. A connected link stays as it is.
+    public func retryNow() {
+        link?.retryNow()
+    }
+
+    /// Ask for a try at once whenever the network comes back while a TV is driven.
+    private func watchNetwork() {
+        guard path == nil else { return }
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            guard path.status == .satisfied else { return }
+            Task { @MainActor in self?.retryNow() }
+        }
+        monitor.start(queue: DispatchQueue(label: "tv.anistream.tv-path"))
+        path = monitor
     }
 
     private func play(on fingerprint: String) {
@@ -320,6 +346,8 @@ public final class TVRemoteModel {
         link = nil
         connected = nil
         card = nil
+        path?.cancel()
+        path = nil
     }
 
     /// Send the TV a command from the card.
