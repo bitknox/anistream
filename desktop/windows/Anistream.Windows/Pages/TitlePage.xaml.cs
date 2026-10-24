@@ -143,7 +143,7 @@ public sealed partial class TitlePage : Page, IPageKeys
             else
                 flight.Cancel();
         }
-        if (ctx.Options.Show == "settings" && ctx.Options.Title == id)
+        if (ctx.Options.Show is "settings" or "settings-loading" or "settings-failed" && ctx.Options.Title == id)
             DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, OpenShowSettings);
     }
 

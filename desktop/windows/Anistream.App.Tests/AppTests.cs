@@ -528,3 +528,37 @@ public class SceneTests
         }
     }
 }
+
+public class ShowSettingsTests
+{
+    [Fact]
+    public void EveryRowTheEngineHasOffersWhatItsSettingTakes()
+    {
+        foreach (var key in Enum.GetValues<ShowSettingKey>())
+            Assert.NotEmpty(ShowSettingsCatalog.Choices(key));
+        Assert.Equal(["Japanese", "English"], ShowSettingsCatalog.Choices(ShowSettingKey.Translation).Select(c => c.Label));
+        Assert.Equal(["480p", "720p", "1080p", "2160p"], ShowSettingsCatalog.Choices(ShowSettingKey.Quality).Select(c => c.Label));
+        Assert.Equal(["Standard", "Higher"], ShowSettingsCatalog.Choices(ShowSettingKey.DownloadQuality).Select(c => c.Label));
+        Assert.Equal("Off", ShowSettingsCatalog.Choices(ShowSettingKey.KeepNext)[0].Label);
+    }
+
+    [Fact]
+    public void AShowsOwnValueStandsOnItsChoice()
+    {
+        Assert.Equal(-1, ShowSettingsCatalog.IndexOf(ShowSettingKey.Quality, null));
+        Assert.Equal(2, ShowSettingsCatalog.IndexOf(ShowSettingKey.Quality, new SettingValue.Int(1080)));
+        Assert.Equal(1, ShowSettingsCatalog.IndexOf(ShowSettingKey.SkipFiller, new SettingValue.Bool(false)));
+        Assert.Equal(1, ShowSettingsCatalog.IndexOf(ShowSettingKey.Translation, new SettingValue.Str("dub")));
+        Assert.Equal(-1, ShowSettingsCatalog.IndexOf(ShowSettingKey.Quality, new SettingValue.Int(360)));
+    }
+
+    [Fact]
+    public void ARowSaysItsValueInTheSheetsWords()
+    {
+        Assert.Equal("English", ShowSettingsCatalog.Shown(ShowSettingKey.Translation, "dub"));
+        Assert.Equal("On", ShowSettingsCatalog.Shown(ShowSettingKey.SkipOpening, "on"));
+        Assert.Equal("720p", ShowSettingsCatalog.Shown(ShowSettingKey.Quality, "720p"));
+        Assert.Equal("Standard", ShowSettingsCatalog.Shown(ShowSettingKey.DownloadQuality, "standard"));
+        Assert.Equal(SettingKey.KeepNextEpisodes, ShowSettingsCatalog.Setting(ShowSettingKey.KeepNext));
+    }
+}
