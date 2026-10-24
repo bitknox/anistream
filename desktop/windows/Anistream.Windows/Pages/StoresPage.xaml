@@ -3,6 +3,7 @@
     x:Class="Anistream.Windows.Pages.StoresPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Anistream.Windows.Pages"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
@@ -15,17 +16,23 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Spacing="2">
-        <TextBlock Text="Plugin stores" Style="{StaticResource PageTitleStyle}" />
+        <TextBlock Text="Plugin stores" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+        <local:OfflineLine />
         <TextBlock Text="Plugins add sources. Each one lists the hosts it contacts before you install it." Style="{StaticResource HazeBodyStyle}" />
       </StackPanel>
       <Button Grid.Column="1" Style="{StaticResource AccentButtonStyle}" Content="Join a store" Click="OnJoin" Height="32" VerticalAlignment="Center" />
     </Grid>
-    <Grid Grid.Row="1" ColumnSpacing="24">
+    <!-- The stores beside the selected one; below about 760 the detail goes under the list. -->
+    <Grid Grid.Row="1" ColumnSpacing="24" RowSpacing="16" SizeChanged="OnColumnsSizeChanged">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="320" />
-        <ColumnDefinition Width="*" />
+        <ColumnDefinition x:Name="ListColumn" Width="320" />
+        <ColumnDefinition x:Name="DetailColumn" Width="*" />
       </Grid.ColumnDefinitions>
-      <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <Grid.RowDefinitions>
+        <RowDefinition x:Name="ListRow" Height="*" />
+        <RowDefinition x:Name="DetailRow" Height="0" />
+      </Grid.RowDefinitions>
+      <ScrollViewer x:Name="ListScroll" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="8" Padding="0,0,8,24">
           <ListView x:Name="StoreList" SelectionMode="Single" SelectionChanged="OnSelected" Margin="-12,0,0,0"
                     AutomationProperties.Name="Plugin stores" />
@@ -33,9 +40,10 @@
             <TextBlock Text="No stores yet" Style="{StaticResource BodyStrongTextBlockStyle}" />
             <TextBlock Text="A store's owner sends you an invite link. Paste it under Join a store." Style="{StaticResource HazeBodyStyle}" />
           </StackPanel>
+          <TextBlock Text="anistream hosts no content." Style="{StaticResource HazeCaptionStyle}" Margin="0,8,0,0" />
         </StackPanel>
       </ScrollViewer>
-      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+      <ScrollViewer x:Name="DetailScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="Detail" Spacing="8" Padding="0,0,12,24" MaxWidth="620" HorizontalAlignment="Stretch" />
       </ScrollViewer>
     </Grid>

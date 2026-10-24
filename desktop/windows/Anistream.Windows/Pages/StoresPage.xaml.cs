@@ -167,11 +167,11 @@ public sealed partial class StoresPage : Page
                 buttons.Children.Add(Ui.Label("Install", (_, _) => ctx.Send(new Command.InstallPlugin(store.Id, plugin.Id))));
                 break;
             case StorePluginStatus.Update:
-                buttons.Children.Add(Ui.Label("Update", (_, _) => ctx.Send(new Command.InstallPlugin(store.Id, plugin.Id))));
-                buttons.Children.Add(Ui.Label("Remove", (_, _) => ctx.Send(new Command.RemovePlugin(plugin.Id))));
+                buttons.Children.Add(Ui.Label("Update", (_, _) => Update(store, plugin)));
+                buttons.Children.Add(Ui.Label("Remove", (_, _) => RemovePlugin(plugin)));
                 break;
             case StorePluginStatus.Installed or StorePluginStatus.AddedByHand:
-                buttons.Children.Add(Ui.Label("Remove", (_, _) => ctx.Send(new Command.RemovePlugin(plugin.Id))));
+                buttons.Children.Add(Ui.Label("Remove", (_, _) => RemovePlugin(plugin)));
                 break;
             case StorePluginStatus.OtherStore:
                 break;
@@ -231,7 +231,11 @@ public sealed partial class StoresPage : Page
             line.Children.Add(text);
             if (!member.You && !member.Owner)
             {
-                var remove = Ui.Label("Remove", (_, _) => ctx.Send(new Command.RemoveMember(store.Id, member.Id)));
+                var remove = Ui.Label("Remove", async (_, _) =>
+                {
+                    if (await Ui.Confirm(XamlRoot, $"Remove {member.Name}?", "Their devices lose access to this store. Plugins they installed keep working but stop updating.", "Remove"))
+                        ctx.Send(new Command.RemoveMember(store.Id, member.Id));
+                });
                 Grid.SetColumn(remove, 1);
                 line.Children.Add(remove);
             }
@@ -249,14 +253,45 @@ public sealed partial class StoresPage : Page
             Detail.Children.Add(line);
         }
 
-        var open = new ToggleSwitch { IsOn = store.Open, OnContent = "Anyone with the open link can join", OffContent = "Only people you invite can join" };
+        var open = new ToggleSwitch { IsOn = store.Open, OnContent = "", OffContent = "", Header = "Open link" };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(open, "Open link");
+        var says = Ui.Text(store.Open ? "Anyone with the open link can join." : "Only people you invite can join.", "HazeCaptionStyle");
         open.Toggled += (_, _) =>
         {
+            says.Text = open.IsOn ? "Anyone with the open link can join." : "Only people you invite can join.";
             if (!quiet)
                 ctx.Send(new Command.SetOpenJoin(store.Id, open.IsOn));
         };
         Detail.Children.Add(open);
+        Detail.Children.Add(says);
+    }
+
+    async void RemovePlugin(StorePluginRow plugin)
+    {
+        if (await Ui.Confirm(XamlRoot, $"Remove {plugin.Name}?", "It stops being tried for episodes. You can install it again from this store.", "Remove"))
+            ctx.Send(new Command.RemovePlugin(plugin.Id));
+    }
+
+    /// <summary>An update that would contact new hosts names them and asks first.</summary>
+    async void Update(StoreRow store, StorePluginRow plugin)
+    {
+        if (plugin.Status is StorePluginStatus.Update { NewHosts: { Length: > 0 } added }
+            && !await Ui.Confirm(XamlRoot, $"Update {plugin.Name}?", $"This version would also contact {string.Join(", ", added)}.", "Update"))
+            return;
+        ctx.Send(new Command.InstallPlugin(store.Id, plugin.Id));
+    }
+
+    /// <summary>Below about 760 the detail goes under the list, as one column.</summary>
+    void OnColumnsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var narrow = e.NewSize.Width < 760;
+        ListColumn.Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(320);
+        DetailColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        ListRow.Height = narrow ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
+        DetailRow.Height = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        Grid.SetColumn(DetailScroll, narrow ? 0 : 1);
+        Grid.SetRow(DetailScroll, narrow ? 1 : 0);
+        ListScroll.MaxHeight = narrow ? Math.Max(160, e.NewSize.Height * 0.35) : double.PositiveInfinity;
     }
 
     async void ConfirmLeave(StoreRow store)
