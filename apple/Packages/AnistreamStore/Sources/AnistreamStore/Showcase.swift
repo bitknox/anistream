@@ -3,7 +3,9 @@
 // as the design boards invent them, and only ever on the testing engine.
 
 import AnistreamKit
+import CoreGraphics
 import Foundation
+import ImageIO
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -12,9 +14,10 @@ import UIKit
 
 /// What a screenshot can ask the Fixtures app to show beside the testing engine's own data, with
 /// `-AnistreamShowcase <name>`: `sources`, `stores`, `downloads`, `invite`, or `all`; and
-/// `update`, a newer release with its notice, which `all` leaves out.
+/// `update`, a newer release with its notice, and `pale`, 900001 renamed to a title long enough to
+/// wrap and given a near-white banner, which `all` leaves out.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, update, all
+    case sources, stores, downloads, invite, update, pale, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -24,7 +27,9 @@ public enum Showcase: String, CaseIterable, Sendable {
     }
 
     /// The events to apply, and which of the engine's own to set aside so they stay on screen.
-    @MainActor func events(settings: SettingsView?) -> (events: [Event], held: Set<String>) {
+    @MainActor func events(
+        settings: SettingsView?, entry: (AnilistId) -> Entry? = { _ in nil }
+    ) -> (events: [Event], held: Set<String>) {
         var events: [Event] = []
         var held: Set<String> = []
         let parts: [Showcase] = self == .all ? [.sources, .stores, .downloads, .invite] : [self]
@@ -56,6 +61,12 @@ public enum Showcase: String, CaseIterable, Sendable {
             case .update:
                 events.append(.update(.available(release: Self.release, notify: true)))
                 held.insert("update")
+            case .pale:
+                // The banner first, so the page finds it here and never asks the engine for it.
+                if let bytes = Self.paleBanner, let title = entry(Self.paleTitle) {
+                    events.append(.artworkReady(url: Self.paleBannerUrl, bytes: bytes))
+                    events.append(.detail(Self.pale(title)))
+                }
             case .all:
                 break
             }
@@ -163,6 +174,52 @@ public enum Showcase: String, CaseIterable, Sendable {
                     fraction: total > 0 ? Double(done) / Double(total) : 0, downloaded: done, total: total,
                     error: error, path: path)
     }
+
+    /// The title `pale` restyles: the one the shots open most.
+    static let paleTitle: AnilistId = 900_001
+    static let paleBannerUrl = "https://img.example/banner/pale.png"
+
+    /// `entry` with a made-up title long enough to wrap to two lines at any width, and the
+    /// near-white banner.
+    static func pale(_ entry: Entry) -> Entry {
+        var entry = entry
+        entry.title = "Kamifusen Toudai no Bannin to Nanatsu no Kaze no Tegami"
+        entry.secondary = "The Paper Balloon Lighthouse Keeper and the Letters of the Seven Winds"
+        entry.titleRomaji = entry.title
+        entry.titleEnglish = entry.secondary
+        entry.titleNative = "紙風船灯台の番人と七つの風の手紙"
+        entry.bannerUrl = paleBannerUrl
+        return entry
+    }
+
+    /// A near-white banner as PNG: white warming to paper, with a few faint pastel shapes, the
+    /// lightest art a title can have. Small, so its one decode answers every size asked of it.
+    static let paleBanner: Data? = {
+        let (width, height) = (960, 360)
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        let paper = [CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1), CGColor(srgbRed: 0.97, green: 0.96, blue: 0.94, alpha: 1)]
+        if let wash = CGGradient(colorsSpace: space, colors: paper as CFArray, locations: [0, 1]) {
+            context.drawLinearGradient(wash, start: .zero, end: CGPoint(x: width, y: height), options: [])
+        }
+        let shapes: [(CGRect, CGColor)] = [
+            (CGRect(x: 60, y: 200, width: 220, height: 220), CGColor(srgbRed: 0.98, green: 0.90, blue: 0.92, alpha: 1)),
+            (CGRect(x: 640, y: 40, width: 260, height: 260), CGColor(srgbRed: 0.90, green: 0.95, blue: 0.99, alpha: 1)),
+            (CGRect(x: 380, y: 250, width: 120, height: 120), CGColor(srgbRed: 0.99, green: 0.96, blue: 0.86, alpha: 1)),
+        ]
+        for (rect, color) in shapes {
+            context.setFillColor(color)
+            context.fillEllipse(in: rect)
+        }
+        guard let image = context.makeImage() else { return nil }
+        let data = NSMutableData()
+        guard let png = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(png, image, nil)
+        return CGImageDestinationFinalize(png) ? data as Data : nil
+    }()
 
     /// The settings with torrents on, behind a VPN on this device, as Sources shows them so.
     static func torrentsOn(_ view: SettingsView) -> SettingsView {

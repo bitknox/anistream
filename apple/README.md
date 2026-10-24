@@ -55,9 +55,11 @@ The output goes to `apple/.engine/<flavour>/`, all of it generated and gitignore
 - `Swift/`: the generated Swift, a file per crate, generated once in library mode from the macOS
   dynamic library (the generator is built in the same cargo run, so it reads the very library the
   slice ships);
-- `stamp`: a hash of the Rust sources, the manifests, `Cargo.lock`, the toolchain pin and the
-  script, with the profile and the slices. When it matches, nothing is built. `--check` builds
-  nothing either way, and fails when the build is not current.
+- `stamp`: a hash of what the engine is built from (`tools/engine-sources.sh` lists it: the
+  crates `anistream-ffi` builds on, without their tests, benches and examples, with the manifests,
+  `Cargo.lock`, the toolchain pin and the script), with the profile and the slices. When it
+  matches, nothing is built. `--check` builds nothing either way, and fails when the build is not
+  current. `--sources-hash` prints the hash alone, as CI keys its caches of the engine.
 
 Each slice built is also kept in a cache every worktree shares, under
 `$ANISTREAM_ENGINE_CACHE/apple/<flavour>/<profile>/<slice>/<hash>/` (`~/.cache/anistream-engine`

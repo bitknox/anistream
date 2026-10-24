@@ -177,7 +177,54 @@ final class MacPlayerClickTests: XCTestCase {
         XCTAssertTrue(waitFor { !self.isFullScreen(app) }, "the window stayed full screen after the player")
     }
 
+    /// In and out by a double click on the video and by the player's button, mixed: each way
+    /// out gives the window back at the size it went in with, the title strip along its top and
+    /// the control row along its bottom. A full screen change started from the double click
+    /// once left the content view the size of neither, the video in a box at the window's
+    /// corner and the title strip in mid-window.
+    func testFullScreenBackAndForthKeepsThePlayerInTheWindow() throws {
+        let app = launch()
+        defer { app.terminate() }
+        let before = try XCTUnwrap(largestWindow(app)?.1)
+        for (into, outOf) in [("double click", "button"), ("button", "double click"), ("double click", "double click")] {
+            enterOrLeave(app, by: into)
+            XCTAssertTrue(waitFor { self.isFullScreen(app) }, "the window did not go full screen by \(into)")
+            Thread.sleep(forTimeInterval: 1)
+            assertFillsTheWindow(app, "in full screen by \(into)")
+            enterOrLeave(app, by: outOf)
+            XCTAssertTrue(waitFor { !self.isFullScreen(app) }, "the window stayed full screen after \(outOf)")
+            Thread.sleep(forTimeInterval: 1)
+            let after = try XCTUnwrap(largestWindow(app)?.1)
+            XCTAssertEqual(after.size, before.size, "the window came back another size after \(outOf)")
+            assertFillsTheWindow(app, "out of full screen by \(outOf)")
+        }
+    }
+
     // MARK: Helpers
+
+    /// Full screen toggled by a double click on the middle of the video, or by the player's own
+    /// button.
+    private func enterOrLeave(_ app: XCUIApplication, by way: String) {
+        wakeTheControls(app)
+        if way == "double click" {
+            mainWindow(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).doubleClick()
+        } else {
+            click(app, isFullScreen(app) ? "Exit Full Screen" : "Enter Full Screen")
+        }
+    }
+
+    /// Back at the window's top and Full Screen at its bottom: the player laid out over all of
+    /// the window, not in a box of another size.
+    private func assertFillsTheWindow(_ app: XCUIApplication, _ when: String) {
+        wakeTheControls(app)
+        guard let window = largestWindow(app)?.1 else { return XCTFail("no window \(when)") }
+        let back = button(app, "Back")
+        let full = app.buttons.matching(NSPredicate(format: "label ENDSWITH 'Full Screen'")).firstMatch
+        XCTAssertTrue(back.waitForExistence(timeout: 5) && full.waitForExistence(timeout: 5), "no controls \(when)")
+        XCTAssertLessThan(back.frame.minY - window.minY, 60, "the title strip is not along the top \(when)")
+        XCTAssertLessThan(window.maxY - full.frame.maxY, 52, "the control row is not along the bottom \(when)")
+        XCTAssertLessThan(window.maxX - full.frame.maxX, 52, "the control row does not reach the right \(when)")
+    }
 
     /// The Fixtures app on the Playing scene, the player up on the episode: its controls pinned up
     /// for `playing`, left to fade for `fading`.
