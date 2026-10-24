@@ -541,9 +541,13 @@ fn time(unix: i64) -> String {
     local(unix).format(format).map(|s| s.trim().to_string()).unwrap_or_default()
 }
 
-/// Whether times read on a 12-hour clock: GNOME's clock setting where the app can read it,
-/// otherwise the locale's own way of writing a time.
+/// Whether times read on a 12-hour clock: GNOME's clock setting, through the settings portal
+/// (which a sandbox allows) or else straight from GSettings, otherwise the locale's own way of
+/// writing a time.
 fn twelve_hour() -> bool {
+    if let Some(format) = portal_clock_format() {
+        return format == "12h";
+    }
     let sandboxed = std::path::Path::new("/.flatpak-info").exists();
     if !sandboxed
         && let Some(source) = gio::SettingsSchemaSource::default()
@@ -555,6 +559,32 @@ fn twelve_hour() -> bool {
             == "12h";
     }
     locale_twelve_hour()
+}
+
+/// GNOME's clock-format, "12h" or "24h", as the desktop's settings portal reads it out.
+fn portal_clock_format() -> Option<String> {
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).ok()?;
+    let ask = |method: &str| {
+        bus.call_sync(
+            Some("org.freedesktop.portal.Desktop"),
+            "/org/freedesktop/portal/desktop",
+            "org.freedesktop.portal.Settings",
+            method,
+            Some(&("org.gnome.desktop.interface", "clock-format").to_variant()),
+            None,
+            gio::DBusCallFlags::NONE,
+            1000,
+            gio::Cancellable::NONE,
+        )
+        .ok()
+    };
+    // ReadOne answers (v); the older Read answers the value wrapped once more.
+    let answer = ask("ReadOne").or_else(|| ask("Read"))?;
+    let mut value = answer.try_child_value(0)?;
+    while let Some(inner) = value.as_variant() {
+        value = inner;
+    }
+    value.str().map(str::to_owned)
 }
 
 /// Whether the locale writes three in the afternoon without a 15.
