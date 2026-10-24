@@ -55,6 +55,14 @@ android {
     }
 }
 
+// The app's debug build installs beside its release one, as tv.anistream.tv.debug, so a TV with
+// the real app keeps it, its sign-ins and its stores while a debuggable build is tried on it.
+androidComponents {
+    onVariants(selector().withBuildType("debug").withFlavor(AnistreamSdk.ENGINE to "app")) { variant ->
+        variant.applicationId.set("tv.anistream.tv.debug")
+    }
+}
+
 dependencies {
     implementation(project(":player"))
     implementation(project(":store"))

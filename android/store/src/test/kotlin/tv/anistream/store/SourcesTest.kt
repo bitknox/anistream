@@ -8,6 +8,8 @@ import org.junit.Test
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.Notice
+import tv.anistream.engine.model.NoticeKind
 
 /** An episode's releases, listed for the title page's Choose source and the player's. */
 class SourcesTest {
@@ -32,5 +34,16 @@ class SourcesTest {
         store.playSource(900001u, "7", release)
         assertNull(store.sources.value)
         assertEquals(Command.PlaySource(900001u, "7", "fixture", "r1"), store.waiting.last())
+    }
+
+    @Test
+    fun an_alert_reaches_the_player_as_well_as_the_notices_and_an_info_does_not() {
+        val store = AppStore(CoroutineScope(Dispatchers.Unconfined))
+        val heard = mutableListOf<Event>()
+        store.onPlayback = { heard += it }
+        val alert = Event.Toast(Notice(NoticeKind.ALERT, "no playable stream", null))
+        store.apply(Event.Toast(Notice(NoticeKind.INFO, "looking", null)))
+        store.apply(alert)
+        assertEquals(listOf<Event>(alert), heard)
     }
 }
