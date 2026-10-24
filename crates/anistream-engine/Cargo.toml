@@ -48,6 +48,7 @@ futures.workspace = true
 image.workspace = true
 # When an episode yet to air airs, said in the reader's own zone.
 jiff.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
 tracing.workspace = true

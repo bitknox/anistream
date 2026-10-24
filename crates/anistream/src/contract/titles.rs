@@ -7,9 +7,10 @@
 
 use anistream_core::settings::SettingValue;
 use anistream_model::{
-    catalog::{Entry, SearchFilters, TitleLanguage},
+    catalog::{Entry, TitleLanguage},
     command::Command,
     event::Event,
+    search::SearchQuery,
     settings::SettingKey,
 };
 use anistream_testkit::{
@@ -58,7 +59,7 @@ async fn page(h: &mut Harness) -> Entry {
 
 /// The titles a search for `query` lists.
 async fn searched(h: &mut Harness, query: &str) -> Vec<String> {
-    h.send(Command::Search { query: query.into(), filter: SearchFilters::default() });
+    h.send(Command::Search { query: SearchQuery::text(query) });
     let updates = h.settle().await;
     updates
         .iter()

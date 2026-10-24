@@ -18,6 +18,7 @@ doctest = false
 # those in CI.
 [dependencies]
 anistream-core.workspace = true
+serde.workspace = true
 uniffi = { workspace = true, optional = true }
 
 [features]

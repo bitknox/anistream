@@ -14,7 +14,7 @@
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{
-    catalog::{ContentFor, ContentList, Entry, LibrarySegment, SearchFilters},
+    catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
@@ -95,10 +95,16 @@ pub struct App {
     ///
     /// Lets Enter mean "run this" while the query is new and "open this" once it is not, which is
     /// the difference between a search box you can act on and one that only ever re-submits.
-    pub searched_query: String,
-    /// Server-side filters the next search will carry. Sticky across queries on purpose:
-    /// narrowing to a genre and then trying three titles should not mean setting it thrice.
-    pub search_filter: SearchFilters,
+    pub searched_query: anistream_model::search::SearchQuery,
+    /// Server-side filters the next search will carry, its text aside. Sticky across queries on
+    /// purpose: narrowing to a genre and then trying three titles should not mean setting it
+    /// thrice.
+    pub search_filter: anistream_model::search::SearchQuery,
+    /// The results' paging: the last page on screen, whether AniList has more, and whether the
+    /// next is on its way.
+    search_pages: u32,
+    search_more: bool,
+    search_loading_more: bool,
     /// Whether the keyboard is in the search results rather than the query field.
     ///
     /// The field takes every printable key, so `j`, `k` and the title keys could never reach
@@ -318,8 +324,11 @@ impl App {
             caption: None,
             cursors: Cursors::default(),
             texts: Default::default(),
-            searched_query: String::new(),
-            search_filter: SearchFilters::default(),
+            searched_query: Default::default(),
+            search_filter: Default::default(),
+            search_pages: 0,
+            search_more: false,
+            search_loading_more: false,
             search_in_results: false,
             detail: None,
             title_trail: Vec::new(),
@@ -428,6 +437,18 @@ impl App {
                 self.apply_calendar_backfill(page, entries, more_past)
             }
             Event::Caption { view, text } => self.apply_caption(view, text),
+            Event::SearchPaging { query, has_next } => {
+                self.apply_search_paging(query, has_next)
+            }
+            Event::SearchMore { query, page, entries, has_next } => {
+                self.apply_search_more(query, page, entries, has_next)
+            }
+            // The terminal's Search has no rails, no tokens, no live search and no recents:
+            // an empty Enter browses, with the filters it has.
+            Event::LiveSearch { .. }
+            | Event::Browse(_)
+            | Event::Facets(_)
+            | Event::RecentSearches(_) => {}
             Event::Content { view, content } => self.apply_content(view, content),
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.

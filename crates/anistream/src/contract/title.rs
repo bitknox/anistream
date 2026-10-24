@@ -8,11 +8,11 @@ use anistream_core::ids::AnilistId;
 use anistream_core::{media::SearchHit, traits::SourceCandidate};
 use anistream_model::{
     catalog::{
-        CastRole, FuzzyDate, RankingKind, RelationKind, SearchFilters, Season, SourceMaterial,
-        TitleLanguage,
+        CastRole, FuzzyDate, RankingKind, RelationKind, Season, SourceMaterial, TitleLanguage,
     },
     command::Command,
     event::Event,
+    search::SearchQuery,
     settings::SettingKey,
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
@@ -445,7 +445,7 @@ async fn a_titles_page_carries_what_only_it_fetches_and_a_list_does_not() {
     assert_eq!(detail.rankings[0].kind, RankingKind::Rated);
     assert_eq!(detail.staff[0].role, "Director");
 
-    h.send(Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() });
+    h.send(Command::Search { query: SearchQuery::text("hoshikuzu") });
     let updates = h.settle().await;
     let listed = updates
         .iter()

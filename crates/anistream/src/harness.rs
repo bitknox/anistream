@@ -726,6 +726,12 @@ pub fn name(update: &Event) -> &'static str {
         Event::JobDone(_) => "JobDone",
         Event::Content { .. } => "Content",
         Event::Caption { .. } => "Caption",
+        Event::SearchPaging { .. } => "SearchPaging",
+        Event::SearchMore { .. } => "SearchMore",
+        Event::LiveSearch { .. } => "LiveSearch",
+        Event::Browse(_) => "Browse",
+        Event::Facets(_) => "Facets",
+        Event::RecentSearches(_) => "RecentSearches",
         Event::CalendarWindow { .. } => "CalendarWindow",
         Event::CalendarBackfill { .. } => "CalendarBackfill",
         Event::Detail(_) => "Detail",
@@ -813,6 +819,19 @@ fn copy(update: &Event) -> Event {
         Event::Caption { view, text } => {
             Event::Caption { view: view.clone(), text: text.clone() }
         }
+        Event::SearchPaging { query, has_next } => {
+            Event::SearchPaging { query: query.clone(), has_next: *has_next }
+        }
+        Event::SearchMore { query, page, entries, has_next } => Event::SearchMore {
+            query: query.clone(),
+            page: *page,
+            entries: entries.clone(),
+            has_next: *has_next,
+        },
+        Event::LiveSearch { paused } => Event::LiveSearch { paused: *paused },
+        Event::Browse(rails) => Event::Browse(rails.clone()),
+        Event::Facets(facets) => Event::Facets(facets.clone()),
+        Event::RecentSearches(recent) => Event::RecentSearches(recent.clone()),
         Event::CalendarWindow { anchor, pages, more_past } => {
             Event::CalendarWindow { anchor: *anchor, pages: *pages, more_past: *more_past }
         }

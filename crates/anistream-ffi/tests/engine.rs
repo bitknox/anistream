@@ -12,9 +12,10 @@ use std::{
 use anistream_core::ids::AnilistId;
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiStart};
 use anistream_model::{
-    catalog::{ContentFor, ContentList, Entry, SearchFilters},
+    catalog::{ContentFor, ContentList, Entry},
     command::Command,
     event::Event,
+    search::SearchQuery,
 };
 
 /// How long a test waits for what it is waiting on before failing. Everything is on loopback,
@@ -89,9 +90,9 @@ fn read_until(
 fn search_titles<'a>(events: &'a [Event], query: &str) -> Option<&'a [Entry]> {
     events.iter().find_map(|event| match event {
         Event::Content {
-            view: ContentFor::Search { query: q, .. },
+            view: ContentFor::Search { query: q },
             content: ContentList::Entries(entries),
-        } if q == query => Some(entries.as_slice()),
+        } if q.text == query => Some(entries.as_slice()),
         _ => None,
     })
 }
@@ -104,8 +105,7 @@ fn ends(job: anistream_model::jobs::JobId) -> impl Fn(&Event) -> bool + Send + '
 #[test]
 fn a_search_comes_back_with_the_fixture_titles() {
     let (engine, _root) = started();
-    let search =
-        Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() };
+    let search = Command::Search { query: SearchQuery::text("hoshikuzu") };
     let job = engine.send(search).expect("a search is work someone waits on");
 
     // The job ends after everything its work said, the list among it.
@@ -208,8 +208,7 @@ fn shutdown_returns_and_ends_the_stream() {
 #[test]
 fn a_fixture_cover_arrives_as_an_image() {
     let (engine, _root) = started();
-    let search =
-        Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() };
+    let search = Command::Search { query: SearchQuery::text("hoshikuzu") };
     let job = engine.send(search).expect("a search is work someone waits on");
     let read = read_until(&engine, ends(job));
     let cover = search_titles(&read, "hoshikuzu").expect("the search's titles")[0]

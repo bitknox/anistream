@@ -201,6 +201,11 @@ impl PreviewRun {
                 | Command::LoadCalendar
                 | Command::LoadCalendarPast { .. }
                 | Command::Search { .. }
+                | Command::SearchLive { .. }
+                | Command::SearchMore { .. }
+                | Command::LoadBrowse
+                | Command::LoadSearchFacets
+                | Command::LoadRecentSearches
                 | Command::LoadDetail(_)
                 | Command::LoadEpisodes(_)
                 | Command::CheckProviders

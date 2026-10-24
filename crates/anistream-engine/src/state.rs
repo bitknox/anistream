@@ -82,6 +82,9 @@ pub struct EngineState {
     /// Keep next: whether it runs, and the top-up asked for while one runs. See
     /// [`crate::downloads::ahead`].
     pub ahead: crate::downloads::ahead::Ahead,
+    /// Search's kept answers and the search waiting or running: see
+    /// [`crate::catalog::search::Searches`].
+    pub search: crate::catalog::search::Searches,
 }
 
 impl EngineState {
@@ -111,6 +114,7 @@ impl EngineState {
             episode_check: Arc::default(),
             widget_schedule: Schedule::default(),
             ahead: Default::default(),
+            search: Default::default(),
         }
     }
 

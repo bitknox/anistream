@@ -3,7 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 
-use crate::{episodes::EpisodeAiring, progress::TitleProgress};
+use crate::{episodes::EpisodeAiring, progress::TitleProgress, search::SearchQuery};
 
 /// A title as the list views need it.
 ///
@@ -143,7 +143,7 @@ pub struct Entry {
 }
 
 /// Where a title is in its run, as AniList says.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum AiringStatus {
     Releasing,
@@ -163,7 +163,7 @@ pub struct SynopsisSpan {
 }
 
 /// The season a title premiered in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Season {
     Winter,
@@ -187,7 +187,7 @@ pub struct FuzzyDate {
 }
 
 /// What a title was adapted from. A kind AniList adds later reads as [`Self::Other`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum SourceMaterial {
     Original,
@@ -643,57 +643,21 @@ impl ContentList {
 /// unevenly, so the answer for a section just left can land after the switch. Untagged, it was
 /// shown under the new section's heading until that section's own answer replaced it. The reducer
 /// takes a list only while the view it was fetched for is still the one on screen.
+// A search carries its whole query, which is what tells its answer from a later one's. Not
+// boxed: the bindings carry records by value.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum ContentFor {
     Continue,
     Seasonal,
     Calendar,
-    /// The query and filters as submitted, so a slow answer to an earlier search cannot replace
-    /// the results of a later one.
+    /// The query as asked, so a slow answer to an earlier search cannot replace the results of
+    /// a later one.
     Search {
-        query: String,
-        filter: SearchFilters,
+        query: SearchQuery,
     },
     Library(LibrarySegment),
-}
-
-/// Server-side search filters, set from the FILTERS overlay on the Search screen.
-///
-/// Wire values rather than display values — what AniList's enums expect, lowercased only
-/// when a row is drawn. `None` reads as "any" and is omitted from the query entirely,
-/// because AniList treats an explicit null differently from a missing argument.
-///
-/// Each filter defaults to "any" in the bindings too, so a native front end writes
-/// `SearchFilters()` for none and names only the ones it sets.
-#[derive(Debug, Clone, Default, PartialEq)]
-#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
-pub struct SearchFilters {
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub genre: Option<String>,
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub year: Option<u32>,
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub season: Option<String>,
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub format: Option<String>,
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub status: Option<String>,
-    /// `None` is relevance — AniList's `SEARCH_MATCH` — which is only meaningful with a
-    /// search term, so the executor substitutes popularity for a filter-only browse.
-    #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub sort: Option<String>,
-}
-
-impl SearchFilters {
-    pub fn is_empty(&self) -> bool {
-        self.genre.is_none()
-            && self.year.is_none()
-            && self.season.is_none()
-            && self.format.is_none()
-            && self.status.is_none()
-            && self.sort.is_none()
-    }
 }
 
 #[cfg(test)]

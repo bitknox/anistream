@@ -36,7 +36,8 @@ use anistream_store::Store;
 
 use crate::{
     anilist::{
-        AiringEntry, AniList, AniListError, BrowseFilter, LastAired, Media, Page, Season,
+        AiringEntry, AniList, AniListError, BrowseFilter, Facets, LastAired, Media, Page,
+        Season,
     },
     franchise,
     tenrai::{Tenrai, TenraiError},
@@ -53,6 +54,14 @@ pub enum MetaError {
 }
 
 type Result<T> = std::result::Result<T, MetaError>;
+
+/// A page of a search, and what of its filter the source that answered could not apply.
+#[derive(Debug, Clone)]
+pub struct Found {
+    pub page: Page<Media>,
+    /// In words for a caption ("tags", "episode length"); empty when AniList answered.
+    pub unapplied: Vec<&'static str>,
+}
 
 /// Which rung answered most recently. Only transitions are worth a toast.
 const FRESH: u8 = 0;
@@ -568,7 +577,9 @@ impl Meta {
         &self,
         ids: &[AnilistId],
     ) -> Result<Vec<crate::anilist::model::RelationNode>> {
-        self.weathered(self.anilist.relations(ids)).await
+        // The walk goes on behind a page already shown, so it leaves the last of the budget
+        // to what is on screen.
+        self.weathered(crate::anilist::in_background(self.anilist.relations(ids))).await
     }
 
     /// The seasons of `media`'s franchise, the same from every one of them, said through `say`
@@ -683,34 +694,37 @@ impl Meta {
         Ok(assembled)
     }
 
-    /// Filtered search. Tenrai applies what MAL can express; the rest is said, not faked.
-    pub async fn search(
+    /// One page of a search for `term` with `filter`, or a browse when `term` is empty.
+    /// Tenrai applies what MAL can express; the rest is named in [`Found::unapplied`], not
+    /// faked.
+    pub async fn find(
         &self,
         term: &str,
         filter: &BrowseFilter,
         page: u32,
         per_page: u32,
-    ) -> Result<Page<Media>> {
-        let primary = match self
-            .ask_anilist(self.anilist.search_filtered(term, filter, page, per_page))
-            .await
-        {
-            Ok(found) => {
-                self.went(FRESH);
-                self.remember_page(&found);
-                return Ok(found);
-            }
-            Err(e) if !Self::descends(&e) => return Err(e.into()),
-            Err(e) => e,
-        };
+    ) -> Result<Found> {
+        let primary =
+            match self.ask_anilist(self.anilist.browse(term, filter, page, per_page)).await {
+                Ok(found) => {
+                    self.went(FRESH);
+                    self.remember_page(&found);
+                    return Ok(Found { page: found, unapplied: Vec::new() });
+                }
+                Err(e) if !Self::descends(&e) => return Err(e.into()),
+                Err(e) => e,
+            };
 
         let mut tenrai_error = None;
         if let Some(tenrai) = &self.tenrai {
-            match self.ask_tenrai(tenrai.search(term, filter, page, per_page)).await {
+            match self
+                .ask_tenrai(self.find_on_tenrai(tenrai, term, filter, page, per_page))
+                .await
+            {
                 Ok(found) => {
                     self.note_tenrai(None);
                     self.went(TENRAI);
-                    self.remember_page(&found);
+                    self.remember_page(&found.page);
                     return Ok(found);
                 }
                 Err(e) => {
@@ -725,55 +739,87 @@ impl Meta {
         Err(self.exhausted(primary, tenrai_error))
     }
 
-    /// Seasonal browse. Tenrai's season endpoint takes no filters, so ours are applied
-    /// to its answer client-side — fewer rows, never wrong rows.
-    pub async fn seasonal(
+    /// A season with nothing typed goes to Tenrai's season endpoint, which takes no filters,
+    /// so genres, formats and statuses are applied to its answer here: fewer rows, never
+    /// wrong rows. Anything else is Tenrai's search.
+    async fn find_on_tenrai(
         &self,
-        season: Season,
-        year: u16,
+        tenrai: &Tenrai,
+        term: &str,
+        filter: &BrowseFilter,
+        page: u32,
+        per_page: u32,
+    ) -> std::result::Result<Found, TenraiError> {
+        let (Some(season), Some(year), true) = (
+            filter.season.as_deref().and_then(Season::parse),
+            filter.year,
+            term.trim().is_empty(),
+        ) else {
+            let found = tenrai.search(term, filter, page, per_page).await?;
+            return Ok(Found { page: found, unapplied: crate::tenrai::unapplied(filter) });
+        };
+        let mut found = tenrai.seasonal(season, year as u16, page, per_page).await?;
+        let wire = |value: Option<serde_json::Value>| {
+            value.and_then(|v| v.as_str().map(str::to_owned))
+        };
+        found.items.retain(|media| {
+            filter.genres.iter().all(|g| media.genres.contains(g))
+                && !filter.genres_excluded.iter().any(|g| media.genres.contains(g))
+                // By AniList's name for the format, which the filter carries: the enum's
+                // name upper-cased is `TVSHORT`, not `TV_SHORT`.
+                && (filter.formats.is_empty()
+                    || wire(media.format.and_then(|m| serde_json::to_value(m).ok()))
+                        .is_some_and(|f| filter.formats.contains(&f)))
+                && (filter.statuses.is_empty()
+                    || wire(media.status.and_then(|m| serde_json::to_value(m).ok()))
+                        .is_some_and(|s| filter.statuses.contains(&s)))
+        });
+        let applied = BrowseFilter {
+            season: None,
+            formats: Vec::new(),
+            statuses: Vec::new(),
+            year: None,
+            ..filter.clone()
+        };
+        let mut unapplied = crate::tenrai::unapplied(&applied);
+        unapplied.retain(|what| *what != "some genres");
+        Ok(Found { page: found, unapplied })
+    }
+
+    /// [`Self::find`], without saying what was left out.
+    pub async fn search(
+        &self,
+        term: &str,
         filter: &BrowseFilter,
         page: u32,
         per_page: u32,
     ) -> Result<Page<Media>> {
-        let primary = match self
-            .ask_anilist(self.anilist.seasonal(season, year, filter, page, per_page))
-            .await
-        {
-            Ok(found) => {
-                self.went(FRESH);
-                self.remember_page(&found);
-                return Ok(found);
-            }
-            Err(e) if !Self::descends(&e) => return Err(e.into()),
-            Err(e) => e,
-        };
+        Ok(self.find(term, filter, page, per_page).await?.page)
+    }
 
-        let mut tenrai_error = None;
-        if let Some(tenrai) = &self.tenrai {
-            match self.ask_tenrai(tenrai.seasonal(season, year, page, per_page)).await {
-                Ok(mut found) => {
-                    found.items.retain(|media| {
-                        filter.genres.iter().all(|g| media.genres.contains(g))
-                            // By AniList's name for the format, which the filter carries:
-                            // the enum's name upper-cased is `TVSHORT`, not `TV_SHORT`.
-                            && filter.format.as_deref().is_none_or(|f| {
-                                media.format.and_then(|m| serde_json::to_value(m).ok())
-                                    == Some(serde_json::Value::from(f))
-                            })
-                    });
-                    self.note_tenrai(None);
-                    self.went(TENRAI);
-                    self.remember_page(&found);
-                    return Ok(found);
-                }
-                Err(e) => {
-                    tracing::warn!(error = %e, "tenrai seasonal failed too");
-                    tenrai_error = Some(e.to_string());
-                    self.note_tenrai(tenrai_error.clone());
-                }
-            }
+    /// The first page of several browses in one request: Search's rails. AniList only, as
+    /// rails are a nicety and Tenrai's budget is better spent on what was asked for.
+    pub async fn browse_many(
+        &self,
+        browses: &[(&str, &BrowseFilter)],
+        per_page: u32,
+    ) -> Result<Vec<Page<Media>>> {
+        let pages = self.weathered(self.anilist.browse_many(browses, 1, per_page)).await?;
+        for page in &pages {
+            self.remember_page(page);
         }
-        Err(self.exhausted(primary, tenrai_error))
+        Ok(pages)
+    }
+
+    /// What the cache holds of `ids`, in that order, asking nobody: titles a screen showed
+    /// before, to show again at once while a fresh answer is on its way.
+    pub fn cached(&self, ids: &[AnilistId]) -> Vec<Media> {
+        ids.iter().filter_map(|id| self.recall(*id)).collect()
+    }
+
+    /// The genres, tags and streaming sites the filters choose from. AniList only.
+    pub async fn facets(&self) -> Result<Facets> {
+        self.weathered(self.anilist.facets()).await
     }
 
     /// The calendar. AniList only: Tenrai publishes broadcast weekdays, not timestamps,
