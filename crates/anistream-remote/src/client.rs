@@ -79,7 +79,10 @@ impl RemoteClient {
         let stream =
             timeout(ANSWER, TlsConnector::from(config).connect(tls::server_name(), socket))
                 .await
-                .map_err(|_| Error::Timeout)??;
+                .map_err(|_| Error::Timeout)?
+                .map_err(
+                    |e| if server_key.mismatched() { Error::KeyChanged } else { e.into() },
+                )?;
         let (_, conn) = stream.get_ref();
         let exporter = conn.export_keying_material([0u8; 32], EXPORTER_LABEL, None)?;
         let tv = server_key.seen().ok_or(Error::Protocol("no TV key"))?;
@@ -266,6 +269,9 @@ pub enum LinkStatus {
     },
     /// The TV forgot this phone, or removed it: pair again. The link has stopped.
     Unpaired,
+    /// The TV answered with another key: it was reset, or another device has its address. The
+    /// link has stopped; pairing again trusts the new key.
+    KeyChanged,
 }
 
 #[derive(Debug, Clone)]
@@ -353,7 +359,12 @@ async fn run_link(
     let mut attempt: u32 = 0;
     loop {
         status.send_replace(LinkStatus::Connecting);
-        if let Ok(mut client) = RemoteClient::connect(addr, &identity, Some(tv), &hello).await {
+        let connected = RemoteClient::connect(addr, &identity, Some(tv), &hello).await;
+        if let Err(Error::KeyChanged) = connected {
+            status.send_replace(LinkStatus::KeyChanged);
+            return;
+        }
+        if let Ok(mut client) = connected {
             if !client.is_paired() {
                 status.send_replace(LinkStatus::Unpaired);
                 return;

@@ -158,6 +158,12 @@ impl ServerKey {
     pub(crate) fn seen(&self) -> Option<Fingerprint> {
         *self.seen.lock().unwrap_or_else(PoisonError::into_inner)
     }
+
+    /// Whether the TV presented a key other than the pinned one: it was reset or reinstalled,
+    /// or it is another device answering at its address.
+    pub(crate) fn mismatched(&self) -> bool {
+        self.pinned.is_some_and(|pinned| self.seen().is_some_and(|seen| seen != pinned))
+    }
 }
 
 impl ServerCertVerifier for ServerKey {
@@ -170,12 +176,13 @@ impl ServerCertVerifier for ServerKey {
         _now: UnixTime,
     ) -> Result<ServerCertVerified, TlsError> {
         let presented = Fingerprint::of_spki(end_entity.as_ref());
+        // Noted before the check, so a refused key tells the phone the TV's key changed.
+        *self.seen.lock().unwrap_or_else(PoisonError::into_inner) = Some(presented);
         if let Some(pinned) = self.pinned
             && pinned != presented
         {
             return Err(TlsError::General("the TV's key is not the one it paired with".into()));
         }
-        *self.seen.lock().unwrap_or_else(PoisonError::into_inner) = Some(presented);
         Ok(ServerCertVerified::assertion())
     }
 

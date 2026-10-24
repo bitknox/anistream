@@ -14,6 +14,11 @@ doctest = false
 # Light enough for a 32-bit TV box with 2 GB: no HTTP stack, no WebSocket library and no mDNS
 # daemon of its own. Every crate below is already in the workspace's tree except spake2, whose own
 # dependencies (curve25519-dalek, hkdf, sha2, rand_core) are too. See docs/remote-protocol.md.
+[features]
+# `fake::FakeTv`: a TV on the loopback interface with a scripted player, for tests and the apps'
+# Fixtures builds. Never in an app's release build.
+testing = []
+
 [dependencies]
 anistream-core.workspace = true
 anistream-model.workspace = true
