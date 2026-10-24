@@ -85,8 +85,28 @@ data class StartingScreen(
     fun offersChoice(now: Long): Boolean = now - since >= PlayerTiming.STARTING_OFFERS
 }
 
-/** A playback that never played, for "Couldn't play episode 7". */
-data class PlaybackFailure(val id: AnilistId?, val episode: String)
+/**
+ * A playback that never played, for "Couldn't play episode 7", and why when the engine said:
+ * "No sources configured", the first clause of its alert in plain words.
+ */
+data class PlaybackFailure(val id: AnilistId?, val episode: String, val reason: String? = null) {
+    companion object {
+        /**
+         * The engine's alert as a failure says it: its first clause, capitalised, with no address
+         * in it. "no sources configured: see the Providers screen" is "No sources configured", and
+         * "mpv: loading failed" is "Loading failed", as a lone word before the colon only names who
+         * said it.
+         */
+        fun reason(alert: String): String? {
+            var text = alert.trim()
+            val named = text.substringBefore(": ", "")
+            if (named.isNotEmpty() && ' ' !in named && text.length > named.length + 2) text = text.substringAfter(": ")
+            // The clause before the address is cut, as an address would take a colon after it as its own.
+            val clause = text.substringBefore(": ").substringBefore(" \u2014 ").trim().trimEnd('.').trim()
+            return MpvLog.redacting(clause).takeIf { it.isNotEmpty() }?.replaceFirstChar { it.uppercase() }
+        }
+    }
+}
 
 /** The episode on screen, for the header and the media session. */
 data class EpisodeOnScreen(

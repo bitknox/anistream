@@ -25,6 +25,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.PlayerChoice
 import tv.anistream.engine.model.PlayerCommand
 import tv.anistream.engine.model.PlayerEnd
@@ -210,6 +211,9 @@ class PlayerModel(
     var failure by mutableStateOf<PlaybackFailure?>(null)
         private set
 
+    /** The engine's last alert since this episode began to start: why, should it never play. */
+    private var failedWith: String? = null
+
     /** The viewer asked for the episode's releases; [sourceChoices] is null until they come. */
     var choosingSource by mutableStateOf(false)
         private set
@@ -356,6 +360,7 @@ class PlayerModel(
                 closedByViewer = false
                 stagedAhead = true
                 failure = null
+                failedWith = null
                 choosingSource = false
                 sourceChoices = null
                 verdictPending = false
@@ -370,8 +375,10 @@ class PlayerModel(
                     // It never played: no stream was found, or none showed a frame. Say so where the
                     // viewer is looking, with another source to choose, rather than vanish.
                     verdictPending = false
-                    failure = PlaybackFailure(staged?.id, startingEpisode!!)
-                    note("couldn't play episode ${failure?.episode}")
+                    failure = PlaybackFailure(staged?.id, startingEpisode!!, failedWith?.let(PlaybackFailure::reason))
+                    failedWith = null
+                    // A release build's logcat says why too, as the engine's own log is the app's.
+                    note("couldn't play episode ${failure?.episode}" + (failure?.reason?.let { ": $it" } ?: ""))
                 }
                 mpv == null -> {
                     // Nothing was opened for it, or it played elsewhere, or it is simply over.
@@ -382,6 +389,8 @@ class PlayerModel(
             is Event.Sources -> if (choosingSource) sourceChoices = event.candidates
             // The playback staged found nothing; the one before plays on.
             Event.PlaybackKept -> starting = null
+            // The alerts that come while the player is up: the one before a failed ending says why.
+            is Event.Toast -> if (isPresented && event.v1.kind == NoticeKind.ALERT) failedWith = event.v1.text
             else -> {}
         }
     }
@@ -430,6 +439,7 @@ class PlayerModel(
         when (ui) {
             is PlayerUi.Starting -> {
                 note("#$playback starting episode ${ui.episode}")
+                failedWith = null
                 starting = StartingScreen(playback, ui.id, ui.title, ui.episode, ui.episodeTitle, ui.coverUrl, ui.bannerUrl, now)
                 ui.coverUrl?.let { coverUrl = it }
                 ui.bannerUrl?.let { bannerUrl = it }
@@ -692,6 +702,7 @@ class PlayerModel(
     private fun dismiss() {
         isPresented = false
         failure = null
+        failedWith = null
         choosingSource = false
         sourceChoices = null
         verdictPending = false
