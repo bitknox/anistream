@@ -336,9 +336,12 @@ jobs:
           [[ "$badging" == *"package: name='tv.anistream.tv'"* ]]
           [[ "$badging" == *"versionCode='$BUILD_NUMBER'"* && "$badging" == *"versionName='$VERSION'"* ]] ||
             { echo "::error::The TV APK is not numbered $VERSION ($BUILD_NUMBER)"; exit 1; }
-          [[ "$badging" == *"sdkVersion:'30'"* ]] || { echo "::error::The TV APK's minimum is not Android 11"; exit 1; }
-          [[ "$badging" == *"native-code: 'armeabi-v7a' 'arm64-v8a'"* || "$badging" == *"native-code: 'arm64-v8a' 'armeabi-v7a'"* ]] ||
-            { echo "::error::The TV APK does not carry exactly arm64-v8a and armeabi-v7a"; exit 1; }
+          grep -E "^(sdkVersion|minSdkVersion|native-code)" <<<"$badging"
+          grep -q -E "^(min)?[sS]dkVersion:'30'" <<<"$badging" ||
+            { echo "::error::The TV APK's minimum is not Android 11"; exit 1; }
+          abis="$(sed -n "s/^native-code: //p" <<<"$badging" | tr -d "'" | tr ' ' '\n' | sort | tr '\n' ' ')"
+          [[ "$abis" == "arm64-v8a armeabi-v7a " ]] ||
+            { echo "::error::The TV APK carries ABIs '$abis', not exactly arm64-v8a and armeabi-v7a"; exit 1; }
           contents="$(unzip -l "$apk")"
           for abi in arm64-v8a armeabi-v7a; do
             for entry in libanistream_ffi.so libmpv.so libavcodec.so libanistream_mpv.so; do
