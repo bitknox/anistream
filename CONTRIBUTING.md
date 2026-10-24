@@ -12,6 +12,8 @@ To report a vulnerability, follow [SECURITY.md](SECURITY.md) instead of opening 
   issues or screenshots. Use made-up titles and `.example` hosts.
 - Don't link to sources in issues or pull requests, and don't name sites that carry content.
 - Screenshots and playback checks use openly licensed footage only.
+- UI changes keep VoiceOver and TalkBack labels, Dynamic Type and font scale, and reduced motion
+  working. See [ACCESSIBILITY.md](ACCESSIBILITY.md).
 - Docs and copy use plain sentences and headings, and no em dashes.
 
 ## Pull requests
