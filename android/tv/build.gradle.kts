@@ -20,9 +20,28 @@ android {
         versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse("2.0.0")
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
     }
+    // The phone app's release key, from the same Gradle properties (~/.gradle/gradle.properties on
+    // the machine that signs, the ANDROID_RELEASE_* secrets in CI). Where they are not set the
+    // release build is left unsigned, for the release workflow to sign.
+    val release = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD")
+        .associateWith { providers.gradleProperty("ANISTREAM_RELEASE_$it").orNull }
+    val signsReleases = release.values.all { !it.isNullOrBlank() }
+    signingConfigs {
+        if (signsReleases) {
+            create("release") {
+                storeFile = file(release.getValue("STORE_FILE")!!.replaceFirst("~", System.getProperty("user.home")))
+                storePassword = release.getValue("STORE_PASSWORD")
+                keyAlias = release.getValue("KEY_ALIAS")
+                keyPassword = release.getValue("KEY_PASSWORD")
+            }
+        }
+    }
     // Its own ids, so it installs beside the phone app on a device that takes both.
     productFlavors {
-        named("app") { applicationId = "tv.anistream.tv" }
+        named("app") {
+            applicationId = "tv.anistream.tv"
+            if (signsReleases) signingConfig = signingConfigs.getByName("release")
+        }
         named("fixtures") { applicationId = "tv.anistream.tv.fixtures" }
     }
     packaging {
