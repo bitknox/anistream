@@ -412,6 +412,29 @@ class AppStore(
         send(Command.HideFromContinue(id))
     }
 
+    private val _sources = MutableStateFlow<SourceChoices?>(null)
+
+    /** The releases of the episode the viewer is choosing a source for, outside the player. */
+    val sources: StateFlow<SourceChoices?> = _sources.asStateFlow()
+
+    /** List [episode]'s releases to choose from: [sources] until they come, then with them. */
+    fun loadSources(id: AnilistId, episode: String) {
+        _sources.value = SourceChoices(id, episode)
+        val job = send(Command.LoadSources(id, episode))
+        _sources.value = _sources.value?.takeIf { it.id == id && it.episode == episode }?.copy(job = job)
+    }
+
+    /** Play the release [candidate] of [episode], as the player's own Choose source does. */
+    fun playSource(id: AnilistId, episode: String, candidate: tv.anistream.engine.core.SourceCandidate) {
+        _sources.value = null
+        send(Command.PlaySource(id, episode, candidate.providerId, candidate.id))
+    }
+
+    /** The viewer closed the releases without choosing. */
+    fun closeSources() {
+        _sources.value = null
+    }
+
     /** Mark [episodes] of [id] watched, or not. */
     fun setWatched(id: AnilistId, episodes: List<String>, watched: Boolean = true) {
         send(Command.SetWatched(id, episodes, watched))
@@ -644,6 +667,8 @@ class AppStore(
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
             is Event.JobDone -> {
                 jobs.done(event.v1)
+                // A listing that ended with none said: it failed, which a notice says, and none came.
+                _sources.value?.let { if (it.job == event.v1 && it.candidates == null) _sources.value = it.copy(candidates = emptyList()) }
                 accounts.done(event.v1)
                 stores.done(event.v1)
                 detailDone(event.v1)
@@ -694,6 +719,12 @@ class AppStore(
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)
+
+            // For the player's own Choose source, and for one outside it.
+            is Event.Sources -> {
+                _sources.value?.let { if (it.id == event.id && it.episode == event.episode) _sources.value = it.copy(candidates = event.candidates) }
+                onPlayback?.invoke(event)
+            }
 
             is Event.PlayerOps, is Event.PlayerUi, is Event.PlaybackStaged, is Event.PlaybackEnded,
             Event.PlaybackKept -> onPlayback?.invoke(event)
@@ -746,3 +777,11 @@ val FfiException.reason: String
         is FfiException.Engine -> reason
         is FfiException.Remote -> reason
     }
+
+/** An episode's releases to choose from: [candidates] is null while they are listed. */
+data class SourceChoices(
+    val id: AnilistId,
+    val episode: String,
+    val candidates: List<tv.anistream.engine.core.SourceCandidate>? = null,
+    val job: JobId? = null,
+)
