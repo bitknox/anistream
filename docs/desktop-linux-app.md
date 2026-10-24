@@ -1,4 +1,4 @@
-# Linux desktop app: phase 1
+# Linux desktop app: phases 1 and 2
 
 Branch `desktop/linux-app`, October 2026, built on the foundations spike
 ([desktop-linux-spike.md](desktop-linux-spike.md)) to the design brief on `desktop/design-brief`.
@@ -23,6 +23,28 @@ GTK 4 and libadwaita in Rust, no web views. Dark only for now.
 - Settings: a page in the sidebar with its panes, rows updated in place from the engine. Closing
   the window while downloads run asks whether to keep them going, as the brief says.
 
+Phase 2 added:
+
+- Calendar: the week as seven columns, an agenda on medium and narrow windows.
+- Downloads: the engine's queue by title, with pause, resume and remove, Pause All, and the
+  storage meter of the download folder's disk.
+- Providers: the source order, dragged or moved from a row's menu, each source's standing and
+  its page (hosts, version, update, disable, remove). Plugin Stores: the stores joined, each
+  store's page with Install, Update and Replace, Leave, and Join Store with the invite checked
+  as it is pasted. `--showcase` shows invented sources and stores in place of the fixture
+  engine's own, for the shots.
+- The player: openings and endings marked on the timeline from mpv's chapters, the buffered
+  part, a seek preview from a second mpv while the pointer is over the timeline, subtitles
+  raised above the controls while they show, and a mini player (P, or the top bar's button):
+  the window itself at 480×270, undecorated, dragged to move, double-clicked to restore.
+- Settings: at 1280 and wider a preview column on the pane's end, the Mac's: upscaling as the
+  480p source beside the mode, a caption sample for subtitles, a note for the other panes.
+  Below that, Upscaling opens a page of its own with the frame and the modes. A title's More
+  menu opens its Show Settings dialog: audio, the subtitles remembered, skips, spoilers,
+  new-episode notifications, the source it keeps and Reset to Defaults.
+- Recent searches kept between launches, the tracker's name on the account row when it gives
+  no user name, and the app icon at every hicolor size from `assets/icon`.
+
 The engine runs in-process on a tokio runtime of its own. The window only queues commands, and
 the engine's events reach GTK's main loop over a channel, where `hub.rs` hands them out.
 
@@ -43,9 +65,10 @@ the sizes (`wide medium narrow`) and `SHOTS` the wide run's shots.
 
 ## Not yet
 
-- Calendar, Downloads, Providers and Plugin Stores are placeholders.
-- The timeline has no segment marks or seek preview, subtitles do not rise over the bar, and
-  there is no mini player.
-- Settings has no preview column, Show Settings and the torrent switch are off, and recent
-  searches are kept only for the session.
-- The account row says "Signed in" when the tracker gives no name.
+- Store owner tools (invites, members, publishing), pasting an invite anywhere in the window,
+  and `anistream://join` links.
+- The torrent switch stays off: its confirmation dialog with the connection check is still to
+  come.
+- The calendar's times are the tracker's, not approximate, and sub and dub are not separate
+  entries, since the model has neither.
+- Night mode and the subtitle style have no picture of their own yet.
