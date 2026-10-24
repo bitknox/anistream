@@ -20,7 +20,8 @@ struct PhoneTitle: View {
         let entry = store.titles.page(id)
         let action = TitleAction(entry, handedOff: navigator.handedOff)
         let art = store.heroArt(entry)
-        ScrollView {
+        // A list, so the episodes take their swipes (native-ux), drawn as the scroll view was.
+        List {
             VStack(alignment: .leading, spacing: 0) {
                 // The wide art: it stretches when pulled down and scrolls at half speed (T1).
                 // With none, the page starts under the navigation bar, the cover beside the title.
@@ -201,15 +202,19 @@ struct PhoneTitle: View {
                             }
                         }
                     }
-
-                    PhoneEpisodes(entry: entry, spoilers: store.spoilerProtection(for: id), rotor: rotor)
                 }
                 .accessibilityElement(children: .contain)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-                .padding(.bottom, 32)
+                .padding(.bottom, 16)
             }
+            .bareRow()
+            PhoneEpisodes(entry: entry, spoilers: store.spoilerProtection(for: id), rotor: rotor)
+            Color.clear.frame(height: 32).bareRow()
         }
+        .bareList()
+        // The placeholders give way to the rows in one fade (T8).
+        .animation(.standard, value: store.titles.episodes[id] != nil)
         .nudgeableScroll()
         .ignoresSafeArea(edges: art.isCompact ? [] : .top)
         .scrollIndicators(.never)
@@ -276,7 +281,8 @@ struct PhoneTitle: View {
     }
 }
 
-/// The episodes on an iPhone's page: a row each, the next one marked, stills after it blurred.
+/// The episodes on an iPhone's page, as rows of its list: a row each, the next one marked, stills
+/// after it blurred.
 struct PhoneEpisodes: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
@@ -288,33 +294,31 @@ struct PhoneEpisodes: View {
     var body: some View {
         let rows = entry.episodeTable(store.titles.episodes[entry.id] ?? [])
         let loaded = store.titles.episodes[entry.id] != nil
-        // The placeholders and the rows in one place, one crossfading into the other (T8).
-        ZStack(alignment: .topLeading) {
-            if loaded {
-                VStack(alignment: .leading, spacing: 0) {
-                    // The watched run folds away above the last episode watched.
-                    let fold = WatchedFold(rows)
-                    if let fold {
-                        WatchedFoldSection(
-                            fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
-                            toggle: { navigator.toggleWatched(entry.id) }
-                        ) {
-                            ForEach(rows.prefix(fold.count), id: \.number) {
-                                PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
-                            }
-                        }
-                    }
-                    ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
+        // Rows of the page's list, each with its swipes; the folded run is one row, which opens
+        // in place.
+        let inset = EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+        if loaded {
+            // The watched run folds away above the last episode watched.
+            let fold = WatchedFold(rows)
+            if let fold {
+                WatchedFoldSection(
+                    fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
+                    toggle: { navigator.toggleWatched(entry.id) }
+                ) {
+                    ForEach(rows.prefix(fold.count), id: \.number) {
                         PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
                     }
                 }
-                .transition(.opacity)
-            } else {
-                EpisodePlaceholders(count: entry.episodes)
-                    .transition(.opacity)
+                .bareRow(inset)
             }
+            ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
+                PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
+                    .bareRow(inset)
+            }
+        } else {
+            EpisodePlaceholders(count: entry.episodes)
+                .bareRow(inset)
         }
-        .animation(.standard, value: loaded)
     }
 }
 
@@ -347,6 +351,7 @@ struct PhoneEpisodeRow: View {
                 EpisodeMenu(entry: entry, number: number, row: row)
             }
             .accessibilityRotorEntry(id: row.number, in: rotor)
+            .episodeSwipes(entry, row)
         } else {
             Button {
                 store.send(.play(id: entry.id, episode: row.number))
@@ -360,6 +365,7 @@ struct PhoneEpisodeRow: View {
             }
             .accessibilityRotorEntry(id: row.number, in: rotor)
             .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
+            .episodeSwipes(entry, row)
         }
     }
 
