@@ -42,8 +42,7 @@ public sealed partial class SeasonalPage : Page
         Pick(picked);
     }
 
-    static SearchQuery Query(SeasonYear season) => new(
-        Season: season.Season, Years: new Bounds(Min: (uint)season.Year, Max: (uint)season.Year), Sort: SearchSort.Popularity);
+    static SearchQuery Query(SeasonYear season) => Anistream.App.Searches.InSeason(season.Season, (uint)season.Year);
 
     void Pick(SeasonYear season)
     {

@@ -184,7 +184,7 @@ public class EngineTests
         // Started as the Windows app will start, with the fields it names and the rest defaulted.
         using var started = Started.Testing(start: new FfiStart(Platform: FfiPlatform.MacOs, Secrets: SecretsMode.Host));
 
-        var job = started.Engine.Send(new Command.Search(new SearchQuery(Text: "hoshikuzu")));
+        var job = started.Engine.Send(new Command.Search(new SearchQuery(Text: "hoshikuzu", Years: new Bounds(), Episodes: new Bounds(), Minutes: new Bounds())));
         Assert.NotNull(job);
         var read = await started.EventsUntil(job.Value);
 

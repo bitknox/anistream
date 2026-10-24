@@ -22,14 +22,14 @@ public sealed partial class SearchPage : Page
         Unloaded += (_, _) => ctx.Batch -= Heard;
     }
 
-    static ContentFor View(string query) => new ContentFor.Search(new SearchQuery(Text: query));
+    static ContentFor View(string query) => new ContentFor.Search(Anistream.App.Searches.Text(query));
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
         query = e.Parameter as string ?? "";
         if (query.Length > 0)
-            ctx.Send(new Command.Search(new SearchQuery(Text: query)));
+            ctx.Send(new Command.Search(Anistream.App.Searches.Text(query)));
         else if (!ctx.Known.Lists.ContainsKey(new ContentFor.Seasonal()))
             ctx.Send(new Command.LoadSeasonal());
         Show();
