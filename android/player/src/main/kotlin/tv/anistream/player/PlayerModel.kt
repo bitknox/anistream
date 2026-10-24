@@ -1031,10 +1031,20 @@ class PlayerModel(
 
     private fun tick() {
         val now = now()
-        clock = now
+        if (!resting(now)) clock = now
         undo?.let { if (now - it.since >= PlayerTiming.UNDO_PAUSED) undo = null }
         alert?.let { if (now - it.since >= PlayerTiming.ALERT_STAYS) alert = null }
     }
+
+    /**
+     * Whether nothing on screen keeps time: a playback that failed and says so, or a pause nobody
+     * has touched since the controls would have hidden, with no card counting. The clock then
+     * stands still, so an idle player does not recompose four times a second for as long as it
+     * sits there; a key ([poke]) or anything that changes the state moves it on again.
+     */
+    private fun resting(now: Long): Boolean = failure != null ||
+        paused && starting == null && stall == null && upNext == null && skip == null && undo == null &&
+        alert == null && holds.isEmpty() && scrubbing == null && now - lastInput >= PlayerTiming.CONTROLS_HIDE
 
     // What the screens read
 

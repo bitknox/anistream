@@ -24,10 +24,13 @@ sealed interface PageAnswer {
 
     /** Kitsu: the user name or email, and the password. */
     data class Password(val username: String, val password: String) : PageAnswer
+
+    /** A plugin store's invite link, for the TV to preview before joining. */
+    data class Link(val text: String) : PageAnswer
 }
 
-/** Which form the page shows. */
-enum class PageForm { Code, Password }
+/** Which form the page shows: a code, a user name and password, or a plugin store's link. */
+enum class PageForm { Code, Password, Link }
 
 /**
  * The page for [tracker] ("AniList"), its form [form], with a link to [authorizeUrl] to open
@@ -106,12 +109,14 @@ class SignInPage(
                         val password = fields["password"].orEmpty()
                         if (user.isNotEmpty() && password.isNotEmpty()) PageAnswer.Password(user, password) else null
                     }
+                    PageForm.Link -> fields["link"]?.trim()?.takeIf { it.isNotEmpty() }?.let(PageAnswer::Link)
                 }
                 if (answer == null) {
                     Reply(200, formPage(error = "Fill in the form, then send it again."))
                 } else {
                     onAnswer(answer)
-                    Reply(200, page("Sent to the TV", "<p>Look at the TV: it signs in to ${escape(tracker)} now. You can close this page.</p>"))
+                    val next = if (form == PageForm.Link) "it shows the store, to join there" else "it signs in to ${escape(tracker)} now"
+                    Reply(200, page("Sent to the TV", "<p>Look at the TV: $next. You can close this page.</p>"))
                 }
             }
             else -> Reply(405, page("Not allowed", "<p>This page only takes its own form.</p>"))
@@ -145,16 +150,18 @@ class SignInPage(
                 append("<li>Paste it here and send it to the TV.</li></ol>")
             }
             PageForm.Password -> "<p>Your $tracker user name or email, and password. They go to the TV, which signs in to $tracker with them and keeps only the token.</p>"
+            PageForm.Link -> "<p>Paste the plugin store's invite link. The TV shows the store before it joins.</p>"
         }
         val fields = when (form) {
             PageForm.Code -> "<label>Code<textarea name=\"code\" rows=\"4\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"></textarea></label>"
             PageForm.Password ->
                 "<label>User name or email<input name=\"username\" autocomplete=\"username\" autocapitalize=\"off\"></label>" +
                     "<label>Password<input name=\"password\" type=\"password\" autocomplete=\"current-password\"></label>"
+            PageForm.Link -> "<label>Invite link<input name=\"link\" type=\"url\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"></label>"
         }
         val warning = error?.let { "<p class=\"error\">${escape(it)}</p>" }.orEmpty()
         return page(
-            "Sign in to $tracker",
+            if (form == PageForm.Link) "Add a plugin store" else "Sign in to $tracker",
             "$steps$warning<form method=\"post\" action=\"/$path\">$fields<button type=\"submit\">Send to the TV</button></form>",
         )
     }

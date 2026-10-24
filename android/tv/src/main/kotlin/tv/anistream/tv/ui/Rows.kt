@@ -4,6 +4,9 @@
 package tv.anistream.tv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,7 +23,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +43,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 
 /**
@@ -84,7 +90,7 @@ fun TvListRow(
                 Spacer(Modifier.width(16.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(headline, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (supporting != null) {
                     val quiet = if (focused) LocalContentColor.current else ObiSilk.Haze
                     Text(supporting, style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -107,19 +113,30 @@ fun TvListRow(
     }
 }
 
-/** A switch drawn as the row's state: a track and a thumb, amber when on. Not focusable itself. */
+/**
+ * A switch drawn as the row's state, not focusable itself, in tv-material's colours: on, an amber
+ * track with a ground handle; off, a #343A57 track with a haze edge and a haze handle. On a
+ * focused (silk) row the off switch draws in the ground colour.
+ */
 @Composable
 private fun SwitchMark(on: Boolean, focused: Boolean) {
-    val track = when {
-        on -> ObiSilk.Amber
-        focused -> ObiSilk.Ground.copy(alpha = 0.3f)
-        else -> ObiSilk.Rule
+    val track = if (on) ObiSilk.Amber else if (focused) Color.Transparent else ObiSilk.RaisedSelected
+    val edge = if (focused) ObiSilk.Ground else ObiSilk.Haze
+    val handle = when {
+        on -> ObiSilk.Ground
+        focused -> ObiSilk.Ground
+        else -> ObiSilk.Haze
     }
-    Box(Modifier.size(44.dp, 24.dp).background(track, CircleShape).padding(3.dp)) {
+    Box(
+        Modifier.size(44.dp, 24.dp)
+            .background(track, CircleShape)
+            .then(if (on) Modifier else Modifier.border(2.dp, edge, CircleShape))
+            .padding(if (on) 3.dp else 5.dp),
+    ) {
         Box(
             Modifier.align(if (on) Alignment.CenterEnd else Alignment.CenterStart)
-                .size(18.dp)
-                .background(if (on) ObiSilk.Ground else ObiSilk.Silk, CircleShape),
+                .size(if (on) 18.dp else 14.dp)
+                .background(handle, CircleShape),
         )
     }
 }
@@ -186,21 +203,42 @@ fun TextBar(width: Dp, modifier: Modifier = Modifier, height: Dp = 12.dp) {
 }
 
 /**
- * Whether a loading screen shows its placeholders yet: nothing for 600 ms, then placeholders, so a
- * fast answer never flashes them.
+ * Whether a loading screen shows its placeholders: nothing for 600 ms, so a fast answer never
+ * flashes them, then placeholders, held at least 0.3 s once shown, so they never flicker away.
+ * While this holds, the screen shows the placeholders and not the content that has come.
  */
 @Composable
 fun placeholdersAfterWait(loading: Boolean): Boolean {
     var shown by remember { mutableStateOf(false) }
+    var since by remember { mutableLongStateOf(0L) }
     LaunchedEffect(loading) {
-        if (!loading) {
+        if (loading) {
+            if (!shown) {
+                delay(PLACEHOLDER_WAIT)
+                since = withFrameMillis { it }
+                shown = true
+            }
+        } else if (shown) {
+            val left = PLACEHOLDER_HOLD - (withFrameMillis { it } - since)
+            if (left > 0) delay(left)
             shown = false
-        } else {
-            delay(PLACEHOLDER_WAIT)
-            shown = true
         }
     }
-    return loading && shown
+    return shown
 }
 
 private const val PLACEHOLDER_WAIT = 600L
+private const val PLACEHOLDER_HOLD = 300L
+
+/**
+ * Placeholders and content swap in one crossfade on standard: the placeholders fade out as the
+ * items fade in, in place. Nothing moves, and with Remove animations they swap at once.
+ */
+@Composable
+fun LazyItemScope.swapFade(): Modifier =
+    if (LocalReducedMotion.current) Modifier else Modifier.animateItem(fadeInSpec = Motion.standard(), placementSpec = null, fadeOutSpec = Motion.standard())
+
+/** The same crossfade, in a grid. */
+@Composable
+fun LazyGridItemScope.swapFade(): Modifier =
+    if (LocalReducedMotion.current) Modifier else Modifier.animateItem(fadeInSpec = Motion.standard(), placementSpec = null, fadeOutSpec = Motion.standard())

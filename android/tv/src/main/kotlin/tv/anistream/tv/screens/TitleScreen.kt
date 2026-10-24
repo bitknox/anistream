@@ -5,6 +5,10 @@
 package tv.anistream.tv.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +38,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -78,7 +89,14 @@ import tv.anistream.tv.ui.ProgressEdge
 import tv.anistream.tv.ui.ReleaseList
 import tv.anistream.tv.ui.ScrollRule
 import tv.anistream.tv.ui.TextBar
+import tv.anistream.tv.ui.StateBlock
 import tv.anistream.tv.ui.TonalButton
+import tv.anistream.tv.ui.TonalIconButton
+import tv.anistream.tv.ui.cardLabel
+import tv.anistream.tv.ui.focusSoon
+import tv.anistream.tv.ui.showSettingsSheet
+import tv.anistream.tv.ui.statusSheet
+import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.pixels
@@ -93,6 +111,7 @@ fun TitleScreen(
     onOpen: (AnilistId) -> Unit,
     onPlay: (AnilistId, UInt) -> Unit,
     onPlayFromStart: (AnilistId, UInt) -> Unit = onPlay,
+    onAddStore: () -> Unit = {},
 ) {
     val store = LocalAppStore.current
     LaunchedEffect(id) {
@@ -110,8 +129,26 @@ fun TitleScreen(
     val scope = rememberCoroutineScope()
     val rowTop = with(LocalDensity.current) { 48.dp.roundToPx() }
 
+    val failed by store.titles.failed.collectAsStateWithLifecycle()
+    val providersLoaded by store.providers.loaded.collectAsStateWithLifecycle()
+    val providers by store.providers.rows.collectAsStateWithLifecycle()
+    // No source can play anything: the amber action leads to a plugin store instead.
+    val noSources = providersLoaded && providers.none { it.usable }
+    val waiting = placeholdersAfterWait(entry == null && id !in failed)
     if (entry == null) {
-        if (placeholdersAfterWait(true)) TitlePlaceholder()
+        if (id in failed) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                StateBlock(
+                    "Couldn't load this title.",
+                    action = "Try again",
+                    onAction = { store.loadDetail(id) },
+                    actionModifier = Modifier.firstFocus(memory, "retry"),
+                )
+            }
+            EnterFocus(memory, entry = "failed/$id")
+        } else if (waiting) {
+            TitlePlaceholder()
+        }
         return
     }
     val action = remember(entry) { PlayAction.of(entry) }
@@ -123,19 +160,19 @@ fun TitleScreen(
             verticalArrangement = Arrangement.spacedBy(Canvas.RowGap),
         ) {
             item(key = "header", contentType = "header") {
-                Header(entry, rows, action, memory, onPlay, onList = { store.setStatus(id, LibrarySegment.PLANNING) }, Modifier.onFocusChanged {
+                Header(entry, rows, action, noSources, memory, onPlay, onAddStore, swapFade().onFocusChanged {
                     if (it.hasFocus) scope.launch { list.animateScrollToItem(0) }
                 })
             }
             if (rows == null || rows.isNotEmpty()) {
                 item(key = "episodes", contentType = "row") {
-                    Episodes(entry, rows, action, spoilers, memory, onPlay, onPlayFromStart, Modifier.settlesAt(list, scope, "episodes", rowTop))
+                    Episodes(entry, rows, action, spoilers, memory, onPlay, onPlayFromStart, swapFade().settlesAt(list, scope, "episodes", rowTop))
                 }
             }
             val related = entry.detail?.relations.orEmpty()
             if (related.isNotEmpty()) {
                 item(key = "related", contentType = "row") {
-                    BrowseRow("Related", modifier = Modifier.settlesAt(list, scope, "related", rowTop)) {
+                    BrowseRow("Related", modifier = swapFade().settlesAt(list, scope, "related", rowTop)) {
                         items(related, key = { it.id.toLong() }, contentType = { "poster" }) { linked ->
                             PosterCard(
                                 linked.title,
@@ -150,7 +187,7 @@ fun TitleScreen(
                 }
             }
             item(key = "details", contentType = "details") {
-                Details(entry, memory, Modifier.settlesAt(list, scope, "details", rowTop))
+                Details(entry, memory, swapFade().settlesAt(list, scope, "details", rowTop))
             }
         }
     }
@@ -163,29 +200,43 @@ private fun Header(
     entry: Entry,
     rows: List<EpisodeRow>?,
     action: PlayAction,
+    noSources: Boolean,
     memory: FocusMemory,
     onPlay: (AnilistId, UInt) -> Unit,
-    onList: () -> Unit,
+    onAddStore: () -> Unit,
     modifier: Modifier,
 ) {
+    val store = LocalAppStore.current
+    val actions = LocalActions.current
     HeroHeader(entry, rows, modifier) {
         Spacer(Modifier.height(6.dp))
         Text(entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = ObiSilk.Haze, maxLines = 1)
         Spacer(Modifier.height(16.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AmberButton(
-                onClick = { onPlay(entry.id, action.episode) },
-                // Still focusable while it waits for the episode, so it can say when it is out.
-                enabled = action.playable,
-                modifier = Modifier.firstFocus(memory, "play"),
-            ) { ButtonLabel(action.label()) }
+            if (noSources) {
+                AmberButton(onClick = onAddStore, icon = null, modifier = Modifier.firstFocus(memory, "play")) { ButtonLabel("Add a plugin store to play") }
+            } else {
+                AmberButton(
+                    onClick = { onPlay(entry.id, action.episode) },
+                    // Still focusable while it waits for the episode, so it can say when it is out.
+                    enabled = action.playable,
+                    modifier = Modifier.firstFocus(memory, "play"),
+                ) { ButtonLabel(action.label()) }
+            }
             Spacer(Modifier.width(16.dp))
             val status = entry.listStatus
             TonalButton(
-                onClick = { if (status == null) onList() },
+                onClick = { actions?.open(statusSheet(store, entry.id, entry.title, status)) },
                 icon = if (status == null) TvIcons.Library else TvIcons.Check,
                 modifier = Modifier.remembered(memory, "status"),
             ) { ButtonLabel(status?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list") }
+            Spacer(Modifier.width(16.dp))
+            TonalIconButton(
+                TvIcons.More,
+                "More",
+                onClick = { actions?.open(titleSheet(store, entry, rows, action)) },
+                modifier = Modifier.remembered(memory, "more"),
+            )
         }
     }
 }
@@ -202,18 +253,21 @@ private fun Episodes(
     modifier: Modifier,
 ) {
     val store = LocalAppStore.current
-    val actions = LocalActions.current
     val next = rows?.indexOfFirst { it.number == action.episode.toString() }?.takeIf { it >= 0 } ?: 0
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
+    val placeholders = placeholdersAfterWait(rows == null)
     BrowseRow("Episodes", modifier = modifier, state = state, fallback = nextRequester) {
         if (rows == null) {
-            items(PLACEHOLDER_CARDS) { tv.anistream.tv.ui.CardPlaceholder(Canvas.CardWidth, Canvas.CardHeight) }
+            if (placeholders) {
+                items(PLACEHOLDER_CARDS, key = { "placeholder/$it" }) { Box(swapFade()) { tv.anistream.tv.ui.CardPlaceholder(Canvas.CardWidth, Canvas.CardHeight) } }
+            }
             return@BrowseRow
         }
         items(rows, key = { it.number }, contentType = { "episode" }) { row ->
             val index = rows.indexOf(row)
             val playsNext = index == next
+            Box(swapFade()) {
             EpisodeCard(
                 row = row,
                 entry = entry,
@@ -223,11 +277,12 @@ private fun Episodes(
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
                 onClick = { row.number.toUIntOrNull()?.let { onPlay(entry.id, it) } },
-                onLongClick = { actions?.open(episodeSheet(store, entry, rows, row, onPlayFromStart)) },
+                sheet = { episodeSheet(store, entry, rows, row, onPlayFromStart) },
                 modifier = Modifier
                     .then(if (playsNext) Modifier.focusRequester(nextRequester) else Modifier)
                     .remembered(memory, "episode/${row.number}"),
             )
+            }
         }
     }
 }
@@ -240,11 +295,12 @@ private fun EpisodeCard(
     progress: Float?,
     spoiler: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    sheet: () -> ActionSheet,
     modifier: Modifier,
 ) {
+    val label = cardLabel(row.cardTitle, line, progress) + if (row.completed) ", watched" else ""
     Column(Modifier.width(Canvas.CardWidth)) {
-        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, onLongClick) {
+        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, sheet, label) {
             ArtImage(row.thumbnail ?: entry.bannerUrl, CoverPlate.parse(entry.coverColor), pixels(Canvas.CardWidth), Modifier.fillMaxSize(), spoiler = spoiler)
             if (progress != null) ProgressEdge(progress, Modifier.align(Alignment.BottomStart))
             if (row.completed) {
@@ -252,7 +308,7 @@ private fun EpisodeCard(
                     Modifier.align(Alignment.TopEnd).padding(8.dp).size(24.dp).background(ObiSilk.Ground.copy(alpha = 0.72f), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(TvIcons.Check, contentDescription = "Watched", tint = ObiSilk.Water, modifier = Modifier.size(16.dp))
+                    Icon(TvIcons.Check, contentDescription = null, tint = ObiSilk.Water, modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -264,14 +320,17 @@ private fun EpisodeCard(
 @Composable
 private fun Details(entry: Entry, memory: FocusMemory, modifier: Modifier) {
     Column(modifier.padding(start = Canvas.Keyline - 16.dp, end = Canvas.SafeX)) {
+        val actions = LocalActions.current
         Text(
             "Details",
             style = MaterialTheme.typography.titleMedium,
             color = ObiSilk.Silk,
-            modifier = Modifier.padding(start = 16.dp, bottom = Canvas.HeaderGap),
+            modifier = Modifier.padding(start = 16.dp, bottom = Canvas.HeaderGap).semantics { heading() },
         )
+        val full = synopsisWithoutSpoilers(entry.synopsis)
         Surface(
-            onClick = {},
+            // Center opens the whole synopsis in a panel.
+            onClick = { if (full.isNotEmpty()) actions?.open(ActionSheet(entry.title, body = { Synopsis(full) })) },
             modifier = Modifier.widthIn(max = 640.dp).remembered(memory, "details"),
             shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
             colors = ClickableSurfaceDefaults.colors(
@@ -301,6 +360,33 @@ private fun Details(entry: Entry, memory: FocusMemory, modifier: Modifier) {
             }
         }
     }
+}
+
+/** The whole synopsis in a panel: focusable, so Up and Down scroll it. */
+@Composable
+private fun Synopsis(text: String) {
+    val scroll = rememberScrollState()
+    val focus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
+    val step = with(LocalDensity.current) { 120.dp.toPx() }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .focusRequester(focus)
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.DirectionDown -> { scope.launch { scroll.animateScrollBy(step) }; true }
+                    Key.DirectionUp -> { scope.launch { scroll.animateScrollBy(-step) }; true }
+                    else -> false
+                }
+            }
+            .focusable()
+            .verticalScroll(scroll),
+    ) {
+        Text(text, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.padding(horizontal = 16.dp))
+    }
+    LaunchedEffect(Unit) { focus.focusSoon() }
 }
 
 @Composable
@@ -344,6 +430,25 @@ fun episodeSheet(
             number?.let {
                 CardAction("Choose source", then = ActionSheet(title, body = { EpisodeReleases(store, entry.id, row.number) }))
             },
+        ),
+    )
+}
+
+/**
+ * The title page's More: Show settings, Mark watched up to the episode it would play, Hide from
+ * Continue, Drop (keeps progress).
+ */
+fun titleSheet(store: AppStore, entry: Entry, rows: List<EpisodeRow>?, action: PlayAction): ActionSheet {
+    val before = rows?.takeWhile { it.number != action.episode.toString() }?.filter { !it.completed }?.map { it.number }.orEmpty()
+    return ActionSheet(
+        entry.title,
+        listOfNotNull(
+            CardAction("Show settings", then = showSettingsSheet(store, entry.id, entry.title)),
+            before.takeIf { it.isNotEmpty() }?.let { upTo ->
+                CardAction("Mark all watched up to episode ${action.episode - 1u}") { store.setWatched(entry.id, upTo) }
+            },
+            CardAction("Hide from Continue") { store.hideFromContinue(entry.id) },
+            CardAction("Drop") { store.setStatus(entry.id, LibrarySegment.DROPPED) },
         ),
     )
 }

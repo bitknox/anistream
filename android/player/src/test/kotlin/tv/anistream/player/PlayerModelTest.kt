@@ -232,6 +232,18 @@ class ClosingTest {
     }
 
     @Test
+    fun aFailureOnScreenLetsTheClockRest() = runTest {
+        val rig = Rig(this)
+        staged(rig, "7")
+        rig.model.apply(Event.PlaybackEnded(false, Ending.Failed, false))
+        assertNotNull(rig.model.failure)
+        assertTrue(rig.model.isPresented)
+        val rested = rig.model.clock
+        advanceTimeBy(30_000)
+        assertEquals(rested, rig.model.clock)
+    }
+
+    @Test
     fun anAlertBeforeTheEpisodeWasStagedIsNotItsReason() = runTest {
         val rig = Rig(this)
         staged(rig, "7")
@@ -820,6 +832,24 @@ class ViewerTest {
         rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
         advanceTimeBy(2_000)
         assertFalse(rig.model.showsBuffering)
+    }
+
+    @Test
+    fun anUntouchedPauseLetsTheClockRestAndAKeyMovesItOn() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.emit(MpvEvent.property("pause", MpvValue.Flag(true)))
+        rig.model.poke()
+        advanceTimeBy(3_300)
+        val rested = rig.model.clock
+        advanceTimeBy(60_000)
+        assertEquals("nothing on screen keeps time", rested, rig.model.clock)
+        assertTrue(rig.model.controlsVisible)
+        rig.model.poke()
+        assertTrue("a key moves it on", rig.model.clock > rested)
+        rig.emit(MpvEvent.property("pause", MpvValue.Flag(false)))
+        advanceTimeBy(1_000)
+        assertTrue("playing keeps time", rig.model.clock > rested + 60_000)
     }
 
     @Test

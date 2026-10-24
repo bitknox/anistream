@@ -4,12 +4,7 @@
 package tv.anistream.tv.screens
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -20,7 +15,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.unit.dp
@@ -30,6 +24,7 @@ import androidx.tv.material3.Text
 import java.time.LocalDate
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.AiringStatus
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.Bounds
@@ -46,15 +41,17 @@ import tv.anistream.store.label
 import tv.anistream.tv.posterLine
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.ui.ActionSheet
-import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.CardAction
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.GRID_COLUMNS
 import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
+import tv.anistream.tv.ui.OfflineLine
 import tv.anistream.tv.ui.PosterGrid
-import tv.anistream.tv.ui.TonalButton
+import tv.anistream.tv.ui.StateBlock
+import tv.anistream.tv.ui.isOffline
+import tv.anistream.tv.ui.plainReason
 import tv.anistream.tv.ui.TvTab
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.placeholdersAfterWait
@@ -121,6 +118,7 @@ fun seasonFilter(tab: SeasonTab, current: SeasonTab, sort: SeasonSort, format: M
 fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
     val actions = LocalActions.current
+    val offline = isOffline()
     val today = AppClock.now().atZone(AppClock.zone).toLocalDate()
     val current = SeasonTab.of(today)
     val tabs = SeasonTab.around(today)
@@ -157,8 +155,10 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}/$listed",
         onOpen = { onOpen(it.id) },
         state = grid,
-        line = { it.posterLine },
-        onLongClick = { entry -> actions?.open(planSheet(store, entry, onOpen)) },
+        line = { entry -> listOfNotNull(entry.listStatus?.label?.replaceFirstChar { it.uppercase() }, entry.posterLine).joinToString(" · ").ifEmpty { null } },
+        sheet = { entry -> planSheet(store, entry, onOpen) },
+        // A water dot on the titles airing now.
+        dot = { entry -> if (entry.status == AiringStatus.RELEASING) ObiSilk.Water else null },
         placeholders = if (placeholdersAfterWait(state is ListState.Loading || state is ListState.Idle || waiting)) GRID_COLUMNS * 2 else 0,
     ) {
         item(key = "tabs", span = { GridItemSpan(maxLineSpan) }, contentType = "tabs") {
@@ -178,7 +178,9 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                 TvTab(
                     format.second,
                     selected = format.first != null,
-                    onSelect = { formatIndex = (formatIndex + 1) % SeasonFormats.size },
+                    onSelect = {
+                        actions?.open(ActionSheet("Format", SeasonFormats.mapIndexed { index, each -> CardAction(each.second, selected = index == formatIndex) { formatIndex = index } }))
+                    },
                     settle = null,
                     chip = true,
                     modifier = Modifier.remembered(memory, "chip/format"),
@@ -186,7 +188,9 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                 TvTab(
                     "Sort: ${sort.label}",
                     selected = sort != SeasonSort.Popular,
-                    onSelect = { sortIndex = (sortIndex + 1) % SeasonSort.entries.size },
+                    onSelect = {
+                        actions?.open(ActionSheet("Sort", SeasonSort.entries.map { each -> CardAction(each.label, selected = each == sort) { sortIndex = each.ordinal } }))
+                    },
                     settle = null,
                     chip = true,
                     modifier = Modifier.remembered(memory, "chip/sort"),
@@ -203,6 +207,9 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                 }
             }
         }
+        if (offline) {
+            item(key = "offline", span = { GridItemSpan(maxLineSpan) }, contentType = "line") { OfflineLine() }
+        }
         if (waiting) {
             // The lists are on their way: no line yet saying there is nothing.
         } else if (listed && state is ListState.Loaded && state.ids.isNotEmpty() && shown.isEmpty()) {
@@ -211,12 +218,19 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
             }
         } else if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
-                Text("Nothing announced for ${tab.label} yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                StateBlock("Nothing announced for ${tab.label} yet.", Modifier.padding(top = 48.dp), nagare = true)
             }
         }
-        if (state is ListState.Failed) {
+        if (state is ListState.Failed && shown.isEmpty()) {
             item(key = "failed", span = { GridItemSpan(maxLineSpan) }) {
-                Text("${tab.label} did not load. ${state.reason}", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                StateBlock(
+                    "Couldn't load ${tab.label}.",
+                    Modifier.padding(top = 48.dp),
+                    detail = plainReason(state.reason),
+                    action = "Try again",
+                    onAction = { if (filter == null) store.loadSeasonal(force = true) else store.browse(filter) },
+                    actionModifier = Modifier.firstFocus(memory, "retry/${tab.label}"),
+                )
             }
         }
     }
@@ -226,7 +240,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
 @Composable
 fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit, onAccounts: () -> Unit) {
     val store = LocalAppStore.current
-    val actions = LocalActions.current
+    val offline = isOffline()
     var segment by rememberSaveable { mutableStateOf(LibrarySegment.WATCHING) }
     LaunchedEffect(Unit) { LibraryModel.order.forEach(store::loadLibrary) }
     LaunchedEffect(segment) { store.loadLibrary(segment) }
@@ -245,7 +259,7 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
         onOpen = { onOpen(it.id) },
         state = grid,
         line = { entry -> entry.progress?.let { "${it.done} / ${entry.episodes ?: "?"}" } },
-        onLongClick = { entry -> actions?.open(librarySheet(store, entry, segment, onOpen)) },
+        sheet = { entry -> librarySheet(store, entry, segment, onOpen) },
         progress = { entry ->
             if (segment != LibrarySegment.WATCHING) return@PosterGrid null
             val done = entry.progress?.done?.toFloat() ?: return@PosterGrid null
@@ -268,10 +282,23 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
                 }
             }
         }
+        if (offline) {
+            item(key = "offline", span = { GridItemSpan(maxLineSpan) }, contentType = "line") { OfflineLine() }
+        }
         if (shown.isEmpty() && (state is ListState.Empty || state is ListState.Loaded || state is ListState.Failed)) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }, contentType = "empty") {
                 if (!signedIn) {
                     NotSignedIn(onAccounts, memory)
+                } else if (state is ListState.Failed) {
+                    val name = segment.label.replaceFirstChar { it.uppercase() }
+                    StateBlock(
+                        "Couldn't load $name.",
+                        Modifier.padding(top = 48.dp),
+                        detail = plainReason(state.reason),
+                        action = "Try again",
+                        onAction = { store.loadLibrary(segment) },
+                        actionModifier = Modifier.firstFocus(memory, "retry/${segment.name}"),
+                    )
                 } else {
                     val name = segment.label.replaceFirstChar { it.uppercase() }
                     Text("Nothing in $name.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 24.dp))
@@ -282,15 +309,17 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
     EnterFocus(memory, entry = shown.isNotEmpty())
 }
 
+/** Not signed in: Nagare, where the lists live, and the way to a tracker, focused. */
 @Composable
 private fun NotSignedIn(onAccounts: () -> Unit, memory: FocusMemory) {
-    Box(Modifier.fillMaxWidth().padding(top = 96.dp), contentAlignment = Alignment.TopStart) {
-        Column {
-            Text("Your lists live in a tracker. Sign in to see them here.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-            Spacer(Modifier.height(20.dp))
-            TonalButton(onClick = onAccounts, modifier = Modifier.remembered(memory, "connect")) { ButtonLabel("Connect a tracker") }
-        }
-    }
+    StateBlock(
+        "Your lists live in a tracker. Sign in to see them here.",
+        Modifier.padding(top = 48.dp),
+        nagare = true,
+        action = "Connect a tracker",
+        onAction = onAccounts,
+        actionModifier = Modifier.firstFocus(memory, "connect"),
+    )
 }
 
 /** A Library card's actions: change its list, mark the next episode watched, or open it. */

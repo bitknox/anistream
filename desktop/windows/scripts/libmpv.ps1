@@ -4,9 +4,12 @@
 #   powershell -File desktop/windows/scripts/libmpv.ps1 [-Arch arm64|x64]
 #
 # mpv's own releases (v0.41.0) ship mpv.exe linked statically, with no libmpv DLL. libmpv for
-# Windows comes only from mpv's "development build" pre-release (tag git-release), which CI
-# rebuilds from master and replaces: the file name carries the commit and the CI run, so a pinned
-# name either downloads exactly this build or fails. Mirror the zip before relying on it in CI.
+# Windows comes only from mpv's "development build" pre-release (tag git-release), which mpv's CI
+# rebuilds and replaces every few hours, so old files vanish. The two zips are therefore mirrored,
+# unmodified, on our own pre-release `deps-libmpv` (never the latest release).
+# To bump: download the new zips from mpv's git-release, upload them as new assets on the
+# deps-libmpv release (gh release upload deps-libmpv <zip>), then change $build and the two SHA-256
+# values below. Leave the old assets in place so older commits still build.
 # docs/desktop-windows-spike.md says why the LGPL build.
 param([ValidateSet('arm64', 'x64')][string]$Arch = 'arm64')
 $ErrorActionPreference = 'Stop'
@@ -18,7 +21,7 @@ $pins = @{
   x64   = @{ name = "libmpv-$build-x86_64-w64-mingw32-lgpl.zip"; sha256 = '4c9d0e3ff428cb12483d0d27736a17d7e14d161024052f526e90f447ef20b452' }
 }
 $pin = $pins[$Arch]
-$url = "https://github.com/mpv-player/mpv/releases/download/git-release/$($pin.name)"
+$url = "https://github.com/bitknox/anistream/releases/download/deps-libmpv/$($pin.name)"
 
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root ".libmpv\$Arch"

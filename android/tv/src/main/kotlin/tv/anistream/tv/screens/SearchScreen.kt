@@ -382,7 +382,7 @@ private fun Results(
                     entry,
                     onClick = { onOpen(entry.id) },
                     line = entry.posterLine,
-                    onLongClick = { actions?.open(planSheet(store, entry, onOpen)) },
+                    sheet = { planSheet(store, entry, onOpen) },
                     modifier = Modifier.remembered(memory, "result/${entry.id}"),
                 )
             }

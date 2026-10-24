@@ -64,7 +64,8 @@ fun NavigationDrawerScope.Rail(
         modifier
             .fillMaxHeight()
             .width(if (open) Canvas.Drawer else Canvas.Rail)
-            .then(if (open) Modifier.background(ObiSilk.Raised) else Modifier)
+            // Collapsed, a ground strip, so content scrolling under it never shows through the icons.
+            .background(if (open) ObiSilk.Raised else ObiSilk.Ground)
             .focusProperties {
                 onEnter = { focus.requesters.getValue(current).tryFocus() }
             }

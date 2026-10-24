@@ -7,6 +7,7 @@
 //   section   the destination to open on: search, continue, calendar, seasonal, library or settings
 //   title     a title page to open, by id
 //   query     a search to type, on Search
+//   firstLaunch  true to show first launch's pages, which fixtures leave out otherwise
 
 package tv.anistream.tv
 
@@ -59,6 +60,7 @@ internal object Flavour {
             destination = section ?: if (query != null) Destination.Search else Destination.Continue,
             title = intent.getStringExtra("title")?.toUIntOrNull(),
             query = query,
+            firstLaunch = intent.getBooleanExtra("firstLaunch", false),
         )
     }
 }
