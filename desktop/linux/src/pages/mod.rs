@@ -137,6 +137,8 @@ pub fn shortcuts(ctx: &Ctx) {
                 ("Fullscreen", "f"),
                 ("Mini player", "p"),
                 ("Skip the opening or ending", "s"),
+                ("Undo an automatic skip", "u <Control>z"),
+                ("Subtitles and audio", "t"),
                 ("Next or previous episode", "n <Shift>n"),
                 ("Faster or slower", "bracketright bracketleft"),
                 ("Normal speed", "BackSpace"),

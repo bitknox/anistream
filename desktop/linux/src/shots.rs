@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 25] = [
+pub const ALL: [&str; 27] = [
     "home",
     "welcome",
     "offline",
@@ -42,6 +42,8 @@ pub const ALL: [&str; 25] = [
     "about",
     "player",
     "player-marks",
+    "player-tracks",
+    "player-undo",
     "mini",
     "resumed",
     "close",
@@ -65,8 +67,7 @@ pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
             for _ in 0..4 {
                 // Taken just after a frame is painted, when the window is laid out: between
                 // frames a relayout can be pending, and a widget waiting for one draws nothing.
-                let marks = shot == "player-marks";
-                taken = painted(&shell, &path, marks).await;
+                taken = painted(&shell, &path, shot).await;
                 if taken.is_ok() {
                     break;
                 }
@@ -226,6 +227,32 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             }
             10.0
         }
+        "player-tracks" => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_secs(4), move || {
+                    player.shot_tracks(Some("/out/media/lantern-road.srt"));
+                });
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_millis(8000), move || {
+                    player.shot_tracks(None);
+                });
+            }
+            9.5
+        }
+        "player-undo" => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_millis(7500), move || {
+                    player.shot_auto_skipped();
+                });
+            }
+            9.0
+        }
         "mini" => {
             play(shell);
             let player = Rc::clone(&shell.player);
@@ -271,7 +298,11 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
                 nav.pop();
             }
         }
-        "player" | "player-marks" | "mini" => shell.player.close(),
+        "player-tracks" => {
+            shell.player.close_menus();
+            shell.player.close();
+        }
+        "player" | "player-marks" | "player-undo" | "mini" => shell.player.close(),
         _ => {}
     }
 }
@@ -364,15 +395,20 @@ fn capture(
     texture.save_to_png(path).map_err(|e| e.to_string())
 }
 
-/// The window drawn into `path` just after its next frame is painted, with the seek preview on
-/// top when `marks`; captured at once if no frame comes within a second.
-async fn painted(shell: &Rc<Shell>, path: &std::path::Path, marks: bool) -> Result<(), String> {
+/// The window drawn into `path` just after its next frame is painted, with the shot's popover
+/// on top; captured at once if no frame comes within a second.
+async fn painted(shell: &Rc<Shell>, path: &std::path::Path, shot: &str) -> Result<(), String> {
     let window = shell.ctx.window.clone();
     let take = {
         let (player, window, path) =
             (Rc::clone(&shell.player), window.clone(), path.to_owned());
+        let shot = shot.to_owned();
         move || {
-            let over = if marks { player.shot_popover() } else { None };
+            let over = match shot.as_str() {
+                "player-marks" => player.shot_popover(),
+                "player-tracks" => player.shot_tracks_popover(),
+                _ => None,
+            };
             capture(&window, &path, over)
         }
     };

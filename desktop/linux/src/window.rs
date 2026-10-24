@@ -104,7 +104,17 @@ impl Ctx {
         );
     }
 
-    fn show_notice(&self, text: &str, alert: bool, button: Option<(&str, &str, Option<&str>)>) {
+    /// A notice of the app's own with a button: `label`, running the window's `action`.
+    pub fn toast_with(&self, text: &str, label: &str, action: &str) -> adw::Toast {
+        self.show_notice(text, false, Some((label, action, None)))
+    }
+
+    fn show_notice(
+        &self,
+        text: &str,
+        alert: bool,
+        button: Option<(&str, &str, Option<&str>)>,
+    ) -> adw::Toast {
         let toast = adw::Toast::new(text);
         // The words as the toast's own title, so a click on them dismisses it.
         let title = gtk::Label::new(Some(text));
@@ -132,7 +142,8 @@ impl Ctx {
             toast.set_priority(adw::ToastPriority::High);
         }
         toast.set_timeout(words::notice_seconds(text, alert || button.is_some()));
-        self.toasts.add_toast(toast);
+        self.toasts.add_toast(toast.clone());
+        toast
     }
 }
 
