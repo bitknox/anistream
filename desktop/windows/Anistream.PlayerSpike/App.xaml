@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="Anistream.PlayerSpike.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    RequestedTheme="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+      </ResourceDictionary.MergedDictionaries>
+      <!-- The brief's Obi & Silk colours, the few the spike draws. -->
+      <Color x:Key="Ground">#161A2E</Color>
+      <Color x:Key="Silk">#E4E0D6</Color>
+      <Color x:Key="Haze">#9298B5</Color>
+      <Color x:Key="Amber">#F2A64B</Color>
+      <SolidColorBrush x:Key="SilkBrush" Color="{StaticResource Silk}" />
+      <SolidColorBrush x:Key="HazeBrush" Color="{StaticResource Haze}" />
+      <SolidColorBrush x:Key="AmberBrush" Color="{StaticResource Amber}" />
+      <!-- The controls' 35% dim of the ground over the frame. -->
+      <SolidColorBrush x:Key="DimBrush" Color="{StaticResource Ground}" Opacity="0.35" />
+      <SolidColorBrush x:Key="SliderTrackValueFill" Color="{StaticResource Amber}" />
+      <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="{StaticResource Amber}" />
+      <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="{StaticResource Amber}" />
+      <SolidColorBrush x:Key="SliderThumbBackground" Color="{StaticResource Amber}" />
+      <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{StaticResource Amber}" />
+      <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{StaticResource Amber}" />
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

@@ -8,3 +8,9 @@
 package_name = "tv.anistream.engine.model"
 # Android's own APIs where there are both: the library loaded as Android loads one.
 android = true
+
+[bindings.csharp]
+# The Windows app's namespaces, one per crate as for Kotlin, public so the app's own projects can
+# use the types the Anistream.Engine project compiles.
+namespace = "Anistream.Engine.Model"
+access_modifier = "public"

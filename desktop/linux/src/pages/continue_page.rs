@@ -1,0 +1,560 @@
+//! Continue: the queue down the start edge, grouped In progress and New this week, and beside it
+//! the selected row's preview with its one amber action. Below the wide size the inner split
+//! collapses: the queue fills the content and a row opens its title page. With nothing watched
+//! yet, the setup card with Nagare, over This season.
+
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+    rc::Rc,
+};
+
+use adw::prelude::*;
+use anistream_core::ids::AnilistId;
+use anistream_model::{
+    catalog::{ContentFor, ContentList, Entry},
+    command::Command,
+    episodes::EpisodeRow,
+    event::Event,
+};
+use gtk::{gdk, gio, glib};
+
+use crate::{
+    nagare,
+    widgets::{self, PosterGrid},
+    window::{Ctx, Size},
+    words::{Queue, QueueItem},
+};
+
+struct Page {
+    ctx: Rc<Ctx>,
+    split: adw::NavigationSplitView,
+    list: gtk::ListBox,
+    body: gtk::Stack,
+    preview: gtk::Stack,
+    preview_page: adw::NavigationPage,
+    season: PosterGrid,
+    queue: RefCell<Queue>,
+    ids: RefCell<Vec<u32>>,
+    episodes: RefCell<HashMap<u32, Vec<EpisodeRow>>>,
+    selected: Cell<Option<u32>>,
+    settle: RefCell<Option<glib::SourceId>>,
+    shown: Cell<u32>,
+}
+
+pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
+    let list = gtk::ListBox::new();
+    list.add_css_class("queue");
+    list.set_selection_mode(gtk::SelectionMode::Browse);
+    list.set_activate_on_single_click(false);
+    list.set_header_func(|row, before| {
+        let group = row.widget_name();
+        let changed = before.is_none_or(|b| b.widget_name() != group);
+        if changed {
+            let text = if group == "new" { "New this week" } else { "In progress" };
+            let label = widgets::heading(text);
+            label.add_css_class("queue-heading");
+            row.set_header(Some(&label));
+        } else {
+            row.set_header(gtk::Widget::NONE);
+        }
+    });
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .child(&list)
+        .build();
+    list.set_margin_start(8);
+    list.set_margin_end(8);
+    list.set_margin_bottom(12);
+
+    let season = PosterGrid::new(&ctx.hub);
+    let body = gtk::Stack::new();
+    body.add_named(&gtk::Box::new(gtk::Orientation::Vertical, 0), Some("loading"));
+    body.add_named(&scroll, Some("queue"));
+    body.add_named(&setup(ctx, &season), Some("setup"));
+
+    let header = adw::HeaderBar::new();
+    header.pack_start(&widgets::sidebar_button(&ctx.split));
+    let sidebar_page = widgets::page("Continue", &header, &body);
+
+    let preview = gtk::Stack::new();
+    preview.set_transition_type(gtk::StackTransitionType::Crossfade);
+    preview.set_transition_duration(200);
+    let preview_header = adw::HeaderBar::new();
+    preview_header.set_show_title(false);
+    let preview_scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .child(&preview)
+        .build();
+    let preview_page = widgets::page("Preview", &preview_header, &preview_scroll);
+
+    let split = adw::NavigationSplitView::builder()
+        .sidebar(&sidebar_page)
+        .content(&preview_page)
+        .min_sidebar_width(360.0)
+        .max_sidebar_width(360.0)
+        .show_content(true)
+        .build();
+    split.add_css_class("continue");
+
+    let page = Rc::new(Page {
+        ctx: Rc::clone(ctx),
+        split: split.clone(),
+        list: list.clone(),
+        body,
+        preview,
+        preview_page,
+        season,
+        queue: RefCell::default(),
+        ids: RefCell::default(),
+        episodes: RefCell::default(),
+        selected: Cell::new(None),
+        settle: RefCell::default(),
+        shown: Cell::new(0),
+    });
+    page.wire();
+    ctx.hub.send(Command::LoadContinue);
+    ctx.hub.send(Command::LoadSeasonal);
+
+    let root = adw::NavigationPage::builder().title("Continue").child(&split).build();
+    widgets::keep(&root, page);
+    root
+}
+
+impl Page {
+    fn wire(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        self.ctx.hub.listen(move |event| {
+            if let Some(page) = weak.upgrade() {
+                page.heard(event);
+            }
+        });
+
+        let weak = Rc::downgrade(self);
+        self.list.connect_row_selected(move |_, row| {
+            let Some(page) = weak.upgrade() else { return };
+            let Some(id) = row.and_then(row_id) else { return };
+            page.select(id);
+        });
+        // Enter plays; double-click, or a single click when collapsed, opens the title.
+        let weak = Rc::downgrade(self);
+        self.list.connect_row_activated(move |_, row| {
+            let Some(page) = weak.upgrade() else { return };
+            if let Some(id) = row_id(row) {
+                let _ = page.list.activate_action("win.open-title", Some(&id.to_variant()));
+            }
+        });
+        let keys = gtk::EventControllerKey::new();
+        keys.set_propagation_phase(gtk::PropagationPhase::Capture);
+        let weak = Rc::downgrade(self);
+        keys.connect_key_pressed(move |_, key, _, modifiers| {
+            let Some(page) = weak.upgrade() else { return glib::Propagation::Proceed };
+            let Some(item) = page.selected_item() else { return glib::Propagation::Proceed };
+            let id = item.entry.id.get();
+            let play = (id, item.episode.to_string()).to_variant();
+            let ctrl_shift = gdk::ModifierType::CONTROL_MASK | gdk::ModifierType::SHIFT_MASK;
+            match key {
+                gdk::Key::Return | gdk::Key::KP_Enter if !page.split.is_collapsed() => {
+                    if item.playable() {
+                        let _ = page.list.activate_action("win.play", Some(&play));
+                    }
+                    glib::Propagation::Stop
+                }
+                gdk::Key::Delete => {
+                    let _ =
+                        page.list.activate_action("win.hide-continue", Some(&id.to_variant()));
+                    glib::Propagation::Stop
+                }
+                gdk::Key::M | gdk::Key::m if modifiers.contains(ctrl_shift) => {
+                    let _ = page.list.activate_action("win.mark-watched", Some(&play));
+                    glib::Propagation::Stop
+                }
+                _ => glib::Propagation::Proceed,
+            }
+        });
+        self.list.add_controller(keys);
+
+        let weak = Rc::downgrade(self);
+        self.ctx.on_size(move |size| {
+            let Some(page) = weak.upgrade() else { return };
+            let collapsed = size != Size::Wide;
+            page.split.set_collapsed(collapsed);
+            page.split.set_show_content(!collapsed);
+            page.list.set_activate_on_single_click(collapsed);
+            page.list.set_selection_mode(if collapsed {
+                gtk::SelectionMode::None
+            } else {
+                gtk::SelectionMode::Browse
+            });
+            if !collapsed {
+                page.reselect();
+            }
+        });
+    }
+
+    fn heard(self: &Rc<Self>, event: &Event) {
+        match event {
+            Event::Content { view: ContentFor::Continue, content } => match content {
+                ContentList::Loading => {}
+                ContentList::Entries(entries) => {
+                    *self.ids.borrow_mut() = entries.iter().map(|e| e.id.get()).collect();
+                    self.rebuild();
+                }
+                ContentList::Empty => {
+                    self.ids.borrow_mut().clear();
+                    self.rebuild();
+                }
+                ContentList::Failed(why) => {
+                    tracing::warn!(%why, "continue did not load");
+                    self.rebuild();
+                }
+            },
+            Event::Content { view: ContentFor::Seasonal, content } => {
+                self.season.set(content.entries());
+            }
+            Event::Progress { id, .. } => {
+                if self.ids.borrow().contains(&id.get()) {
+                    self.rebuild();
+                }
+            }
+            Event::Detail(entry) => {
+                if self.ids.borrow().contains(&entry.id.get()) {
+                    self.rebuild();
+                }
+            }
+            Event::LastAired(_) => self.rebuild(),
+            Event::Episodes { id, rows } => {
+                self.episodes.borrow_mut().insert(id.get(), rows.clone());
+                if self.selected.get() == Some(id.get()) {
+                    self.show_preview(true);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// The queue from what is known of each title, in the engine's order.
+    fn rebuild(self: &Rc<Self>) {
+        let entries: Vec<Entry> = {
+            let known = self.ctx.hub.known.borrow();
+            self.ids.borrow().iter().filter_map(|id| known.entries.get(id).cloned()).collect()
+        };
+        let queue = Queue::of(&entries, &[]);
+        let same = *self.queue.borrow() == queue;
+        *self.queue.borrow_mut() = queue;
+        if same && self.list.first_child().is_some() {
+            return;
+        }
+        while let Some(row) = self.list.first_child() {
+            self.list.remove(&row);
+        }
+        let queue = self.queue.borrow().clone();
+        for (group, items) in [("progress", &queue.in_progress), ("new", &queue.new_this_week)]
+        {
+            for item in items {
+                self.list.append(&self.row(group, item));
+            }
+        }
+        self.body.set_visible_child_name(if queue.is_empty() { "setup" } else { "queue" });
+        self.split.set_show_content(!queue.is_empty() && !self.split.is_collapsed());
+        self.reselect();
+    }
+
+    fn row(&self, group: &str, item: &QueueItem) -> gtk::ListBoxRow {
+        let hub = &self.ctx.hub;
+        let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+        line.set_widget_name(&item.entry.id.get().to_string());
+        line.append(&widgets::cover(hub, &item.entry, 36, 54));
+        let text = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        text.set_valign(gtk::Align::Center);
+        text.set_hexpand(true);
+        let title = widgets::show_title(&item.entry.title, "row");
+        title.set_wrap(false);
+        title.set_ellipsize(gtk::pango::EllipsizeMode::End);
+        text.append(&title);
+        let action = widgets::haze(&item.action(), "caption");
+        action.add_css_class("numeric");
+        if item.is_new() {
+            action.remove_css_class("haze");
+            action.add_css_class("state");
+        }
+        text.append(&action);
+        if let Some(fraction) = item.fraction() {
+            let bar = gtk::ProgressBar::new();
+            bar.set_fraction(fraction);
+            bar.set_margin_top(4);
+            text.append(&bar);
+        }
+        line.append(&text);
+        line.set_size_request(-1, 54);
+        let row = gtk::ListBoxRow::builder().child(&line).build();
+        row.set_widget_name(group);
+        row.update_property(&[gtk::accessible::Property::Label(&format!(
+            "{}, {}",
+            item.entry.title,
+            item.action()
+        ))]);
+
+        let id = item.entry.id.get();
+        let menu = gio::Menu::new();
+        let play = format!("(uint32 {id}, '{}')", item.episode);
+        if item.playable() {
+            let verb = if item.resume.is_some() { "Resume" } else { "Play" };
+            menu.append(Some(verb), Some(&format!("win.play({play})")));
+        }
+        menu.append(Some("Mark Watched"), Some(&format!("win.mark-watched({play})")));
+        menu.append(
+            Some("Hide from Continue"),
+            Some(&format!("win.hide-continue(uint32 {id})")),
+        );
+        menu.append(Some("Drop"), Some(&format!("win.drop(uint32 {id})")));
+        menu.append(Some("Open Title"), Some(&format!("win.open-title(uint32 {id})")));
+        widgets::context_menu(&row, &menu);
+        row
+    }
+
+    fn selected_item(&self) -> Option<QueueItem> {
+        let id = self.selected.get()?;
+        self.queue.borrow().all().find(|i| i.entry.id.get() == id).cloned()
+    }
+
+    /// Keep the selection on the same title, or the first.
+    fn reselect(self: &Rc<Self>) {
+        if self.split.is_collapsed() {
+            return;
+        }
+        let want = self.selected.get();
+        let mut first = None;
+        let mut child = self.list.first_child();
+        while let Some(widget) = child {
+            if let Some(row) = widget.downcast_ref::<gtk::ListBoxRow>() {
+                first.get_or_insert_with(|| row.clone());
+                if row_id(row) == want {
+                    self.list.select_row(Some(row));
+                    self.show_preview(false);
+                    return;
+                }
+            }
+            child = widget.next_sibling();
+        }
+        if let Some(row) = first {
+            self.list.select_row(Some(&row));
+        }
+    }
+
+    /// The selection moved: the preview follows once it settles, so a selection running down
+    /// the list does not crossfade every row it passes.
+    fn select(self: &Rc<Self>, id: u32) {
+        if self.selected.replace(Some(id)) == Some(id) && self.shown.get() == id {
+            return;
+        }
+        if !self.episodes.borrow().contains_key(&id) {
+            self.ctx.hub.send(Command::LoadEpisodes(AnilistId::new(id)));
+        }
+        if let Some(source) = self.settle.borrow_mut().take() {
+            source.remove();
+        }
+        let first = self.shown.get() == 0;
+        if first {
+            self.show_preview(false);
+            return;
+        }
+        let weak = Rc::downgrade(self);
+        let source =
+            glib::timeout_add_local_once(std::time::Duration::from_millis(150), move || {
+                if let Some(page) = weak.upgrade() {
+                    page.settle.borrow_mut().take();
+                    page.show_preview(true);
+                }
+            });
+        *self.settle.borrow_mut() = Some(source);
+    }
+
+    fn show_preview(&self, fade: bool) {
+        let Some(item) = self.selected_item() else { return };
+        let id = item.entry.id.get();
+        let name = format!("{id}-{}", self.episodes.borrow().get(&id).map_or(0, Vec::len));
+        if self.preview.child_by_name(&name).is_none() {
+            let view = self.preview_of(&item);
+            self.preview.add_named(&view, Some(&name));
+        }
+        self.preview.set_transition_type(if fade {
+            gtk::StackTransitionType::Crossfade
+        } else {
+            gtk::StackTransitionType::None
+        });
+        let old = self.preview.visible_child();
+        self.preview.set_visible_child_name(&name);
+        self.preview_page.set_title(&item.entry.title);
+        self.shown.set(id);
+        // What was shown before goes once it has faded.
+        if let Some(old) = old.filter(|o| self.preview.visible_child().as_ref() != Some(o)) {
+            let stack = self.preview.clone();
+            glib::timeout_add_local_once(std::time::Duration::from_millis(400), move || {
+                if stack.visible_child().as_ref() != Some(&old) {
+                    stack.remove(&old);
+                }
+            });
+        }
+    }
+
+    fn preview_of(&self, item: &QueueItem) -> gtk::Widget {
+        let hub = &self.ctx.hub;
+        let entry = &item.entry;
+        let id = entry.id.get();
+        let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
+        column.set_margin_start(36);
+        column.set_margin_end(36);
+        column.set_margin_bottom(36);
+
+        let banner = widgets::banner(hub, entry, 360, "preview");
+        banner.set_halign(gtk::Align::Fill);
+        banner.set_cursor_from_name(Some("pointer"));
+        banner.upcast_ref::<gtk::Widget>().update_property(&[
+            gtk::accessible::Property::Label(&format!("Open {}", entry.title)),
+        ]);
+        let open = gtk::GestureClick::new();
+        open.connect_released({
+            let banner = banner.clone();
+            move |_, _, _, _| {
+                let _ = banner.activate_action("win.open-title", Some(&id.to_variant()));
+            }
+        });
+        banner.add_controller(open);
+        column.append(&banner);
+
+        let title = widgets::show_title(&entry.title, "title-2");
+        title.set_margin_top(12);
+        column.append(&title);
+
+        let episode_title = self
+            .episodes
+            .borrow()
+            .get(&id)
+            .and_then(|rows| {
+                rows.iter().find(|r| r.number == item.episode.to_string()).cloned()
+            })
+            .and_then(|r| r.title);
+        let line = match episode_title {
+            Some(name) => format!("Episode {} · {name}", item.episode),
+            None => format!("Episode {}", item.episode),
+        };
+        let episode = gtk::Label::new(Some(&line));
+        episode.add_css_class("title-4");
+        episode.set_xalign(0.0);
+        episode.set_wrap(true);
+        column.append(&episode);
+
+        if let Some(fraction) = item.fraction() {
+            let meter = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+            let bar = gtk::ProgressBar::new();
+            bar.set_fraction(fraction);
+            bar.set_hexpand(true);
+            bar.set_valign(gtk::Align::Center);
+            meter.append(&bar);
+            if let Some(left) = item.left() {
+                let left = widgets::haze(&left, "caption");
+                left.add_css_class("numeric");
+                left.set_wrap(false);
+                meter.append(&left);
+            }
+            meter.set_size_request(-1, 20);
+            column.append(&meter);
+        }
+
+        match (item.button(), item.waiting()) {
+            (Some(label), _) => {
+                let button = gtk::Button::with_label(&label);
+                button.add_css_class("pill");
+                button.add_css_class("suggested-action");
+                button.set_halign(gtk::Align::Start);
+                button.set_margin_top(6);
+                button.set_action_name(Some("win.play"));
+                button.set_action_target_value(Some(
+                    &(id, item.episode.to_string()).to_variant(),
+                ));
+                column.append(&button);
+            }
+            (None, Some(waiting)) => column.append(&widgets::haze(&waiting, "")),
+            (None, None) => {}
+        }
+
+        if !entry.synopsis.is_empty() {
+            let synopsis = gtk::Label::new(Some(&entry.synopsis));
+            synopsis.set_wrap(true);
+            synopsis.set_xalign(0.0);
+            synopsis.set_margin_top(12);
+            synopsis.set_max_width_chars(80);
+            column.append(&synopsis);
+        }
+        let clamp = adw::Clamp::builder().maximum_size(720).child(&column).build();
+        clamp.upcast()
+    }
+}
+
+/// The title a queue row is for.
+fn row_id(row: &gtk::ListBoxRow) -> Option<u32> {
+    row.child()?.widget_name().parse().ok()
+}
+
+/// First launch: no modal and no empty screen. The setup card with Nagare, then This season.
+fn setup(ctx: &Rc<Ctx>, season: &PosterGrid) -> gtk::Widget {
+    let rows = gtk::ListBox::new();
+    rows.add_css_class("boxed-list");
+    rows.set_selection_mode(gtk::SelectionMode::None);
+    rows.set_valign(gtk::Align::Center);
+    rows.set_hexpand(true);
+    let connect = adw::ActionRow::builder()
+        .title("Connect AniList")
+        .subtitle("Optional. Brings in your lists and fills Continue with what you watch.")
+        .activatable(true)
+        .action_name("win.connect")
+        .action_target(&"anilist".to_variant())
+        .build();
+    connect.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    let store = adw::ActionRow::builder()
+        .title("Add a Plugin Store")
+        .subtitle("anistream plays episodes from the sources a plugin store offers.")
+        .activatable(true)
+        .action_name("win.go")
+        .action_target(&"stores".to_variant())
+        .build();
+    store.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
+    rows.append(&connect);
+    rows.append(&store);
+
+    let card = gtk::Box::new(gtk::Orientation::Horizontal, 24);
+    card.add_css_class("setup");
+    card.append(&nagare::picture(4));
+    let side = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    side.set_valign(gtk::Align::Center);
+    side.append(&widgets::heading("Get Started"));
+    side.append(&rows);
+    card.append(&side);
+    ctx.on_size({
+        let card = card.clone();
+        move |size| {
+            card.set_orientation(if size == Size::Narrow {
+                gtk::Orientation::Vertical
+            } else {
+                gtk::Orientation::Horizontal
+            });
+        }
+    });
+
+    let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    column.set_margin_start(12);
+    column.set_margin_end(12);
+    column.set_margin_top(12);
+    column.append(&card);
+    let heading = widgets::heading("This Season");
+    heading.set_margin_top(12);
+    column.append(&heading);
+    column.append(&season.widget);
+    season.widget.set_vscroll_policy(gtk::ScrollablePolicy::Natural);
+    gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .child(&column)
+        .build()
+        .upcast()
+}

@@ -44,7 +44,7 @@ export function Plugins({
 		>
 			{plugins.length === 0 ? (
 				<div className="empty">
-					<Nagare cell={3} decorative />
+					<Nagare cell={4} decorative />
 					<p>
 						Publish a plugin from your plugin directory, or drop its .wasm file anywhere on this
 						page.

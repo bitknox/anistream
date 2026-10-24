@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import {
 	liveScene,
 	PLANE_RATES,
@@ -21,12 +21,15 @@ const still = () => window.matchMedia('(prefers-reduced-motion: reduce)').matche
  * The website's hero scene, drawn the same way: four planes at whole CSS pixels a scene pixel,
  * sinking at their own rates as the page scrolls, swaying a little with a mouse. While it is on
  * screen it stays alive, as the website's does. With reduced motion it rests.
+ *
+ * It draws before the browser paints, so a view that replaces another, such as the store's
+ * overview after loading, never shows the scene's ground without its picture for a frame.
  */
 export function Scene({ nav }: { nav: number }) {
 	const box = useRef<HTMLDivElement>(null);
 	const canvases = useRef<Partial<Record<PlaneName, HTMLCanvasElement>>>({});
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		const el = box.current;
 		const planes = canvases.current as Record<PlaneName, HTMLCanvasElement>;
 		if (!el || PLANES.some((p) => !planes[p])) return;

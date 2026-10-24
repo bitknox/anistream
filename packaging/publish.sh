@@ -6,7 +6,7 @@
 #   packaging/publish.sh --notes <tag> <commit> <apps dir>    prints the notes, publishes nothing
 #
 # <terminal dir> holds the four builds' archives, installers and AppImage, a .sha256 for each,
-# and the Rust crates' licences. <apps dir> holds the APK, the .dmg, the .ipa, the notices' zip
+# and the Rust crates' licences. <apps dir> holds the two APKs, the .dmg, the .ipa, the notices' zip
 # and the libraries' sources, a .sha256 for each, the Mac's appcast.xml, the iPhone and iPad's
 # sidestore.json, and apps-release-notes.md. Every file a release carries has to be there, and
 # nothing else may be, so a build that stops making one, or starts making a new one, fails here
@@ -87,7 +87,7 @@ if (( ! notes_only )); then
     "$p-amd64.deb" "$p-x86_64.AppImage"
   expect "$terminal" "$p-rust-licences.txt"
   expect_checked "$apps" \
-    "$p-android-arm64.apk" "$p-macos.dmg" "$p-ios-unsigned.ipa" \
+    "$p-android-arm64.apk" "$p-android-tv.apk" "$p-macos.dmg" "$p-ios-unsigned.ipa" \
     "$p-apps-third-party.zip" "$p-apps-sources.tar"
   expect "$apps" appcast.xml sidestore.json
 

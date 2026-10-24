@@ -1,0 +1,42 @@
+[package]
+name = "anistream-mpv-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "libmpv behind the engine's hosted player protocol, for the desktop apps"
+publish = false
+
+[lib]
+doctest = false
+
+# The protocol's half, what each op is on mpv and what each of mpv's events reports, builds with
+# no libmpv, so the workspace builds and tests it on any machine. The `libmpv` feature adds the
+# player itself and its renderer, and links libmpv: the desktop apps turn it on. On Linux and
+# macOS it is the system's, found through pkg-config, and the build needs libmpv's development
+# files. With MSVC on Windows it is the DLL in ANISTREAM_LIBMPV_DIR (build.rs says how).
+[features]
+libmpv = ["dep:pkg-config", "dep:find-msvc-tools"]
+
+[dependencies]
+anistream-model.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[build-dependencies]
+pkg-config = { version = "0.3", optional = true }
+# lib.exe, for the import library of a libmpv built with mingw.
+find-msvc-tools = { version = "0.1", optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+# Not the workspace's: it forbids unsafe code, and this crate is the one place that calls libmpv's
+# C API. Unsafe is denied everywhere else in it and allowed only where a module says so.
+[lints.rust]
+unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "warn"

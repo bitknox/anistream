@@ -52,6 +52,7 @@ pub mod jobs;
 pub mod notice;
 pub mod notifications;
 pub mod playback;
+pub mod present;
 pub mod progress;
 pub mod protection;
 pub mod remote;

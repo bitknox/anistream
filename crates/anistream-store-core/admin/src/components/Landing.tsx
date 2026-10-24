@@ -42,7 +42,7 @@ export function Landing({ store }: { store?: StoreInfo }) {
 			<Hero title={store?.name ?? 'A plugin store'}>
 				<p className="hero-sub">
 					A plugin store for anistream, run by its owners. It shares source plugins with the people
-					they invite, who install and update them from anistream's Providers screen.
+					they invite, who install and update them from Plugin stores in anistream.
 				</p>
 				{store?.claimable && (
 					<p className="hero-sub">
@@ -70,9 +70,9 @@ export function Landing({ store }: { store?: StoreInfo }) {
 			>
 				<Row label="Invite">
 					<p>
-						Ask an owner for an invite link. In anistream, open <b>Providers</b>, press Enter,
-						choose <b>Join a store</b> and paste the whole link, including the part after{' '}
-						<code>#</code>.
+						Ask an owner for an invite link. Open <b>Plugin stores</b> in anistream (in the terminal
+						app: Providers, then Enter), choose <b>Join a store</b> and paste the whole link,
+						including the part after <code>#</code>.
 					</p>
 				</Row>
 				<Row label="Open link">

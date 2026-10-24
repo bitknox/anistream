@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Anistream.PlayerSpike.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="anistream player spike">
+  <Grid Background="Black">
+    <!-- The video is the bottom layer, and the bars are XAML inside the SwapChainPanel, as the
+         design brief draws them: composition means XAML draws over the swapchain, no airspace. -->
+    <SwapChainPanel x:Name="VideoPanel" SizeChanged="OnPanelSizeChanged">
+      <Grid x:Name="Chrome" Background="{StaticResource DimBrush}">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Top bar: the title, and what mpv and DXGI report, for the spike's record. -->
+        <StackPanel Grid.Row="0" Padding="20,16,20,0" Spacing="2">
+          <TextBlock Text="Spike test pattern" FontSize="20" FontWeight="Bold" Foreground="{StaticResource SilkBrush}" />
+          <TextBlock x:Name="Subtitle" Text="Episode 1 · Composition over XAML" Foreground="{StaticResource HazeBrush}" />
+          <TextBlock x:Name="Info" Margin="0,10,0,0" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                     Foreground="{StaticResource SilkBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- Bottom bar: play and pause, back and forward 10 s, the timeline and the times. -->
+        <Grid Grid.Row="2" Padding="16,0,16,16" ColumnSpacing="8">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Button x:Name="PlayPause" Grid.Column="0" Width="40" Height="40" Padding="0" Click="OnPlayPause"
+                  ToolTipService.ToolTip="Play or pause">
+            <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE769;" />
+          </Button>
+          <Button Grid.Column="1" Width="40" Height="40" Padding="0" Click="OnBack" ToolTipService.ToolTip="Back 10 s">
+            <FontIcon Glyph="&#xED3C;" />
+          </Button>
+          <Button Grid.Column="2" Width="40" Height="40" Padding="0" Click="OnForward" ToolTipService.ToolTip="Forward 10 s">
+            <FontIcon Glyph="&#xED3D;" />
+          </Button>
+          <TextBlock x:Name="Elapsed" Grid.Column="3" Text="0:00" VerticalAlignment="Center" Foreground="{StaticResource SilkBrush}" />
+          <Slider x:Name="Timeline" Grid.Column="4" VerticalAlignment="Center" Minimum="0" Maximum="1"
+                  StepFrequency="0.1" IsThumbToolTipEnabled="False" ValueChanged="OnTimelineChanged" />
+          <TextBlock x:Name="Remaining" Grid.Column="5" Text="-0:00" VerticalAlignment="Center" Foreground="{StaticResource SilkBrush}" />
+          <ToggleButton x:Name="HdrToggle" Grid.Column="6" Height="40" Content="HDR output" Click="OnHdrToggle"
+                        ToolTipService.ToolTip="Switch the output between SDR and HDR10" />
+        </Grid>
+      </Grid>
+    </SwapChainPanel>
+  </Grid>
+</Window>

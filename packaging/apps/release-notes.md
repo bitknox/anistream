@@ -1,6 +1,6 @@
 ## Apps
 
-anistream for Android, the Mac, iPhone and iPad, on the same engine as the terminal app. Like
+anistream for Android phones and TVs, the Mac, iPhone and iPad, on the same engine as the terminal app. Like
 it, the apps host no content. Plugins and sources are yours to add, and what you point them at is
 your own decision, at your own risk.
 
@@ -14,6 +14,15 @@ release key, so each release installs over the one before and keeps your data. I
 Google Play, and Play Protect may offer to scan it. Once it is installed, the app updates itself
 when you choose Update in its notice or in Settings › About. The first time, Android asks you to
 allow it for anistream too.
+
+### Android TV
+
+`anistream-@VERSION@-android-tv.apk`, for Android TV and Google TV on Android 11 or later. One file
+runs on 32-bit and 64-bit ARM boxes, including the Chromecast with Google TV.
+
+Install it with a sideloading app on the TV, or with `adb install anistream-@VERSION@-android-tv.apk`
+from a computer on the same network. It is signed with the same release key as the phone app and
+installs beside it. It is not on Google Play. Pair it with your phone from the TV's first screen.
 
 ### Mac
 

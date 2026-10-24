@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- anistream for Windows: WinUI 3 on the Windows App SDK, unpackaged and self-contained, so it
+       runs from its output folder. The engine comes in through the generated bindings
+       (Anistream.Engine), its hosted mpv player draws into a SwapChainPanel through mpv's d3d11
+       composition mode, and the pages are Fluent controls in the brief's Obi and Silk palette.
+       Build with -p:EngineFlavour=testing for the fixture scenes (Options.cs). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Anistream.Windows</RootNamespace>
+    <AssemblyName>anistream</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/anistream.ico</ApplicationIcon>
+    <Platforms>ARM64;x64</Platforms>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants Condition="'$(EngineFlavour)' == 'testing'">$(DefineConstants);ANISTREAM_TESTING</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Anistream.App.Core/Anistream.App.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Show titles: Zen Kaku Gothic New Bold, under the OFL (assets/mpv/licenses). -->
+    <Content Include="../../../assets/mpv/fonts/ZenKakuGothicNew-Bold.ttf" Link="Assets/Fonts/ZenKakuGothicNew-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

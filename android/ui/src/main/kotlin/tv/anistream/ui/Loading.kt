@@ -31,7 +31,7 @@ import tv.anistream.design.Motion
 private enum class LoadPhase { Waiting, Placeholders, Content }
 
 /** How long nothing is drawn before placeholders, and how long they stay once shown. */
-private const val PLACEHOLDERS_AFTER = 600L
+internal const val PLACEHOLDERS_AFTER = 600L
 private const val PLACEHOLDERS_HOLD = 300L
 
 /**

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The app's own C# without WinUI: what it keeps of the engine's events, the calendar's week,
+       the model's words through the bindings, and a fixture scene read as the app reads it. On
+       the testing engine; scripts/test.sh runs it under a temporary HOME. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);xUnit1069</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+  <!-- The app's core compiled in, rather than referenced, so it and the bindings are the testing
+       flavour's whatever the core project would build on its own. -->
+  <ItemGroup>
+    <Compile Include="../Anistream.App.Core/**/*.cs" Exclude="../Anistream.App.Core/obj/**;../Anistream.App.Core/bin/**" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Import Project="../Engine.props" />
+</Project>

@@ -1,6 +1,6 @@
 name: Apps release
 
-# The apps a release ships beside the terminal binaries: the Android APK, the Mac app in a .dmg
+# The apps a release ships beside the terminal binaries: the Android APKs (phone and TV), the Mac app in a .dmg
 # and the iPhone and iPad app as an .ipa for AltStore or SideStore to sign, with the notices for
 # the LGPL libmpv and FFmpeg inside them and for the engine's Rust crates, and the source those
 # libraries were built from. release.yml calls this for each release, from the commit it releases
@@ -65,6 +65,7 @@ on:
       - apple/scripts/adhoc-sign.sh
       - apple/patches/**
       - android/app/build.gradle.kts
+      - android/tv/build.gradle.kts
       - android/gradle/libs.versions.toml
       - android/scripts/engine.sh
       - android/scripts/mpv.sh
@@ -237,7 +238,7 @@ jobs:
           chmod 600 "$keystore"
           echo "KEYSTORE_FILE=$keystore" >> "$GITHUB_ENV"
 
-      # The `app` flavour in release, with the engine and libmpv above. The configuration cache is
+      # The `app` flavour in release, with the engine and libmpv above, for the phone and the TV. The configuration cache is
       # off, so the key's passwords are never written into it.
       - name: The APK
         working-directory: android
@@ -254,7 +255,7 @@ jobs:
             export ORG_GRADLE_PROJECT_ANISTREAM_RELEASE_KEY_ALIAS="$KEY_ALIAS"
             export ORG_GRADLE_PROJECT_ANISTREAM_RELEASE_KEY_PASSWORD="$KEY_PASSWORD"
           fi
-          ./gradlew --console=plain --no-configuration-cache :app:assembleAppRelease
+          ./gradlew --console=plain --no-configuration-cache :app:assembleAppRelease :tv:assembleAppRelease
 
       # Gradle signs the APK when the app's build has the release signing config and the key's
       # properties. An APK it left unsigned is signed here with the same key, keeping the 16 KB
@@ -299,6 +300,55 @@ jobs:
             assets/licences/player/NOTICE assets/licences/RobotoFlex-OFL.txt; do
             grep -q " $entry\$" <<<"$contents" || { echo "::error::The APK has no $entry"; exit 1; }
           done
+          (cd dist && sha256sum "$name.apk" > "$name.apk.sha256")
+
+      # The TV app, signed with the same key the same way: one APK with the engine and libmpv for
+      # arm64-v8a and for the 32-bit armeabi-v7a most TV boxes run, from Android 11.
+      - name: Sign and check the TV APK
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          tools="$ANDROID_HOME/build-tools/$BUILD_TOOLS"
+          built=android/tv/build/outputs/apk/app/release
+          ls -l "$built"
+          name="anistream-$VERSION-android-tv"
+          if [[ -f "$built/tv-app-release.apk" ]]; then
+            cp "$built/tv-app-release.apk" "dist/$name.apk"
+          elif [[ -n "${KEYSTORE_FILE:-}" ]]; then
+            "$tools/apksigner" sign --alignment-preserved --v4-signing-enabled false \
+              --ks "$KEYSTORE_FILE" --ks-type PKCS12 --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass env:STORE_PASSWORD --key-pass env:KEY_PASSWORD \
+              --out "dist/$name.apk" "$built/tv-app-release-unsigned.apk"
+          else
+            name="$name-unsigned"
+            cp "$built/tv-app-release-unsigned.apk" "dist/$name.apk"
+          fi
+          apk="dist/$name.apk"
+
+          if [[ -n "${KEYSTORE_FILE:-}" ]]; then
+            "$tools/apksigner" verify --min-sdk-version 30 "$apk"
+          fi
+          "$tools/zipalign" -c -P 16 4 "$apk"
+          badging="$("$tools/aapt2" dump badging "$apk")"
+          head -1 <<<"$badging"
+          [[ "$badging" == *"package: name='tv.anistream.tv'"* ]]
+          [[ "$badging" == *"versionCode='$BUILD_NUMBER'"* && "$badging" == *"versionName='$VERSION'"* ]] ||
+            { echo "::error::The TV APK is not numbered $VERSION ($BUILD_NUMBER)"; exit 1; }
+          grep -E "^(sdkVersion|minSdkVersion|native-code)" <<<"$badging"
+          grep -q -E "^(min)?[sS]dkVersion:'30'" <<<"$badging" ||
+            { echo "::error::The TV APK's minimum is not Android 11"; exit 1; }
+          abis="$(sed -n "s/^native-code: //p" <<<"$badging" | tr -d "'" | tr ' ' '\n' | sort | tr '\n' ' ')"
+          [[ "$abis" == "arm64-v8a armeabi-v7a " ]] ||
+            { echo "::error::The TV APK carries ABIs '$abis', not exactly arm64-v8a and armeabi-v7a"; exit 1; }
+          contents="$(unzip -l "$apk")"
+          for abi in arm64-v8a armeabi-v7a; do
+            for entry in libanistream_ffi.so libmpv.so libavcodec.so libanistream_mpv.so; do
+              grep -q " lib/$abi/$entry\$" <<<"$contents" || { echo "::error::The TV APK has no lib/$abi/$entry"; exit 1; }
+            done
+          done
+          grep -q " assets/licences/player/NOTICE\$" <<<"$contents" || { echo "::error::The TV APK has no player NOTICE"; exit 1; }
           (cd dist && sha256sum "$name.apk" > "$name.apk.sha256")
 
       - name: Forget the release key

@@ -1,0 +1,110 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: anistream <noreply@anistream.example>
+Date: Fri, 23 Oct 2026 22:11:41 +0200
+Subject: [PATCH 6/6] Qualify a variant field's type with its own crate's
+ namespace
+
+A variant field whose type has the variant's name, PlayerChoice::Translation(Translation), was
+qualified with this crate's namespace, which is wrong for a type from another crate (CS0234).
+It is now qualified with the namespace of the crate the type comes from, and also when optional
+or a sequence.
+---
+ bindgen/src/gen_cs/mod.rs          | 26 ++++++++++++++++++++++++++
+ bindgen/templates/EnumTemplate.cs  |  2 +-
+ bindgen/templates/ErrorTemplate.cs |  4 ++--
+ bindgen/templates/macros.cs        | 11 +++++++----
+ 4 files changed, 36 insertions(+), 7 deletions(-)
+
+diff --git a/bindgen/src/gen_cs/mod.rs b/bindgen/src/gen_cs/mod.rs
+index 0132b19..8756f2d 100644
+--- a/bindgen/src/gen_cs/mod.rs
++++ b/bindgen/src/gen_cs/mod.rs
+@@ -229,6 +229,32 @@ impl<'a> TypeRenderer<'a> {
+         self.config
+             .external_package_name(module_path, Some(namespace))
+     }
++
++    // A variant field's type label, qualified with its namespace when its name is the variant's
++    // own (`Translation(Translation)`), whether bare, optional or a sequence. For a type from
++    // another crate the namespace is that crate's.
++    fn variant_field_type_label(&self, field: &Field, variant_name: &str) -> String {
++        let label = CsCodeOracle.find(&field.as_type()).type_label(self.ci);
++        let base = label.trim_end_matches(['?', '[', ']']);
++        if base != variant_name {
++            return label;
++        }
++        let mut inner = field.as_type();
++        while let Type::Optional { inner_type } | Type::Sequence { inner_type } = inner {
++            inner = *inner_type;
++        }
++        let package = match inner.module_path() {
++            Some(module_path) if self.ci.is_external(&inner) => {
++                let namespace = self
++                    .ci
++                    .namespace_for_module_path(module_path)
++                    .unwrap_or(module_path);
++                self.external_type_package_name(module_path, namespace)
++            }
++            _ => self.config.namespace(),
++        };
++        format!("global::{package}.{label}")
++    }
+ }
+ 
+ #[derive(Template)]
+diff --git a/bindgen/templates/EnumTemplate.cs b/bindgen/templates/EnumTemplate.cs
+index 67cb78e..0db39f9 100644
+--- a/bindgen/templates/EnumTemplate.cs
++++ b/bindgen/templates/EnumTemplate.cs
+@@ -86,7 +86,7 @@ class {{ e|ffi_converter_name }}: FfiConverterRustBuffer<{{ type_name }}> {
+     public record {{ variant.name()|class_name(ci) }} (
+         {%- for (pos, field) in ordered_fields %}
+         {%- let field_name = field.name()|or_pos_var(pos)|property_name %}
+-        {% call cs::enum_parameter_type_name(field|type_name(ci), variant.name()|class_name(ci)) %} {{ field_name|enum_field_name(e, ci) }}
++        {% call cs::enum_parameter_type_name(field, variant.name()|class_name(ci)) %} {{ field_name|enum_field_name(e, ci) }}
+         {%- match field.default_value() %}
+             {%- when Some with(literal) %} = {{ literal|render_literal(field, ci) }}
+             {%- else %}
+diff --git a/bindgen/templates/ErrorTemplate.cs b/bindgen/templates/ErrorTemplate.cs
+index e4d9664..368f572 100644
+--- a/bindgen/templates/ErrorTemplate.cs
++++ b/bindgen/templates/ErrorTemplate.cs
+@@ -92,14 +92,14 @@ class {{ ffi_converter_name }} : FfiConverterRustBuffer<{{ type_name }}>, CallSt
+         // Members
+         {%- for field in variant.fields() %}
+         {%- let field_name = field.name()|or_pos_var(loop.index)|var_name %}
+-        public {% call cs::enum_parameter_type_name(field|type_name(ci), variant|error_variant_name) %} {{ field_name }};
++        public {% call cs::enum_parameter_type_name(field, variant|error_variant_name) %} {{ field_name }};
+         {%- endfor %}
+ 
+         // Constructor
+         public {{ variant|error_variant_name }}(
+                 {%- for field in variant.fields() %}
+                 {%- let field_name = field.name()|or_pos_var(loop.index)|var_name %}
+-                {% call cs::enum_parameter_type_name(field|type_name(ci), variant|error_variant_name) %} {{ field_name }}{% if loop.last %}{% else %}, {% endif %}
++                {% call cs::enum_parameter_type_name(field, variant|error_variant_name) %} {{ field_name }}{% if loop.last %}{% else %}, {% endif %}
+                 {%- endfor %}) : base(
+                 {%- for field in variant.fields() -%}
+                 {%- let field_name = field.name()|or_pos_var(loop.index)|var_name %}
+diff --git a/bindgen/templates/macros.cs b/bindgen/templates/macros.cs
+index b838b8a..2e84db8 100644
+--- a/bindgen/templates/macros.cs
++++ b/bindgen/templates/macros.cs
+@@ -251,10 +251,13 @@ void
+ //         public record Ellipse(Ellipse @s) : Shape { }
+ //     }
+ #}
+-{%- macro enum_parameter_type_name(param_type_name, enum_name) %}
+-{%- if param_type_name == enum_name %}{{ config.namespace() }}.{{ param_type_name }}
+-{%- else %}{{ param_type_name }}
+-{%- endif %}
++{#-
++// A variant's field type, qualified when its name is the variant's own, which C# would otherwise
++// read as the nested variant record. The type's own namespace, which for a type from another crate
++// is that crate's, not this one's.
++-#}
++{%- macro enum_parameter_type_name(field, enum_name) %}
++{{- self.variant_field_type_label(field, enum_name) }}
+ {%- endmacro %}
+ 
+ {%- macro docstring(defn, indent_spaces) %}

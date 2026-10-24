@@ -130,11 +130,13 @@ internal fun SheetField(
     supporting: String? = null,
     error: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
+    enabled: Boolean = true,
 ) {
     val colors = MaterialTheme.colorScheme
     TextField(
         value = value,
         onValueChange = onChange,
+        enabled = enabled,
         label = { Text(label) },
         singleLine = true,
         isError = error,
@@ -152,6 +154,7 @@ internal fun SheetField(
             focusedLabelColor = colors.onSurface,
             unfocusedLabelColor = colors.onSurfaceVariant,
             cursorColor = colors.primary,
+            disabledContainerColor = colors.surfaceContainerHighest.copy(alpha = 0.38f),
         ),
         modifier = modifier.fillMaxWidth(),
     )

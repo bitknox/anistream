@@ -1,0 +1,354 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Max Heimbrock <43608204+MaxHeimbrock@users.noreply.github.com>
+Date: Thu, 10 Sep 2026 15:17:16 +0200
+Subject: [PATCH 2/6] fix: render external custom types locally and inherit
+ their config
+
+Upstream: https://github.com/NordSecurity/uniffi-bindgen-cs/pull/185 (open), cherry-picked.
+Needed for AnilistId, ProviderKey and JobId, custom types of one crate used by another.
+
+Custom types are rendered as file-scoped C# `using` aliases, but
+ExternalTypeTemplate.cs treated a custom type from another crate like a
+record: it referenced the other file's alias as a type (CS0246) and its
+alias as a converter class (CS0234).
+
+Route external custom types through CustomTypeTemplate.cs so the
+consuming file declares its own aliases, or its own converter class when
+the type is configured. Drop the unreachable `is_external` branch in the
+local-types loop; iter_local_types() never yields external types.
+
+Because every file renders the type itself, copy `custom_types` entries
+from the defining crate into each crate that uses the type, unless that
+crate configures it itself, the same way external_packages is filled in.
+
+Add two custom types to the ext-types base fixture (one unconfigured, one
+mapped to System.Uri via a new uniffi.toml), consumer functions using them
+directly and inside Option, Vec and a record, and a new test class.
+Existing fixtures and tests are unchanged.
+
+Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
+Signed-off-by: Max Heimbrock <43608204+MaxHeimbrock@users.noreply.github.com>
+---
+ bindgen/src/gen_cs/mod.rs                     |  2 +-
+ bindgen/src/lib.rs                            | 31 ++++++-
+ bindgen/templates/Types.cs                    | 11 +--
+ docs/CONFIGURATION.md                         |  4 +
+ .../TestExtTypesCSharpCustomTypes.cs          | 87 +++++++++++++++++++
+ .../ext-types-csharp/base-crate/src/lib.rs    | 30 +++++++
+ .../ext-types-csharp/base-crate/uniffi.toml   |  9 ++
+ .../consumer-crate/src/lib.rs                 | 43 ++++++++-
+ 8 files changed, 209 insertions(+), 8 deletions(-)
+ create mode 100644 dotnet-tests/UniffiCS.BindingTests/TestExtTypesCSharpCustomTypes.cs
+ create mode 100644 fixtures/ext-types-csharp/base-crate/uniffi.toml
+
+diff --git a/bindgen/src/gen_cs/mod.rs b/bindgen/src/gen_cs/mod.rs
+index c8aa034..0132b19 100644
+--- a/bindgen/src/gen_cs/mod.rs
++++ b/bindgen/src/gen_cs/mod.rs
+@@ -74,7 +74,7 @@ pub struct Config {
+     pub(super) namespace: Option<String>,
+     pub(super) cdylib_name: Option<String>,
+     #[serde(default)]
+-    custom_types: HashMap<String, CustomTypeConfig>,
++    pub(crate) custom_types: HashMap<String, CustomTypeConfig>,
+     #[serde(default)]
+     pub(crate) external_packages: HashMap<String, String>,
+     #[serde(default)]
+diff --git a/bindgen/src/lib.rs b/bindgen/src/lib.rs
+index b841062..737b8ac 100644
+--- a/bindgen/src/lib.rs
++++ b/bindgen/src/lib.rs
+@@ -12,7 +12,7 @@ pub use gen_cs::generate_bindings;
+ use serde::{Deserialize, Serialize};
+ use std::collections::{BTreeSet, HashMap, HashSet};
+ use std::io::Write;
+-use uniffi_bindgen::interface::ComponentInterface;
++use uniffi_bindgen::interface::{ComponentInterface, Type};
+ use uniffi_bindgen::{Component, GenerationSettings};
+ 
+ #[derive(Parser)]
+@@ -179,6 +179,35 @@ impl uniffi_bindgen::BindingGenerator for BindingGenerator {
+                 }
+             }
+         }
++
++        // Custom types are rendered in every file that uses them (C# `using` aliases are
++        // file-scoped), so a crate using another crate's custom type needs that type's
++        // `custom_types` entry too. Copy it from the defining crate unless the using crate has
++        // its own.
++        let custom_types = HashMap::<String, HashMap<String, gen_cs::CustomTypeConfig>>::from_iter(
++            components
++                .iter()
++                .map(|c| (c.ci.crate_name().to_string(), c.config.custom_types.clone())),
++        );
++        for c in &mut *components {
++            let external_custom_types: Vec<(String, String)> =
++                c.ci.iter_external_types()
++                    .filter_map(|t| match t {
++                        Type::Custom { name, .. } => t
++                            .crate_name()
++                            .map(|ext_crate| (ext_crate.to_string(), name.clone())),
++                        _ => None,
++                    })
++                    .collect();
++            for (ext_crate, name) in external_custom_types {
++                if c.config.custom_types.contains_key(&name) {
++                    continue;
++                }
++                if let Some(config) = custom_types.get(&ext_crate).and_then(|m| m.get(&name)) {
++                    c.config.custom_types.insert(name, config.clone());
++                }
++            }
++        }
+         Ok(())
+     }
+ }
+diff --git a/bindgen/templates/Types.cs b/bindgen/templates/Types.cs
+index 533d293..0452d8c 100644
+--- a/bindgen/templates/Types.cs
++++ b/bindgen/templates/Types.cs
+@@ -98,12 +98,8 @@
+ {%- when Type::Duration %}
+ {% include "DurationHelper.cs" %}
+ 
+-{%- when Type::Custom { module_path, name, builtin } %}
+-{%- if ci.is_external(type_) %}
+-{% include "ExternalTypeTemplate.cs" %}
+-{%- else %}
++{%- when Type::Custom { name, builtin, .. } %}
+ {% include "CustomTypeTemplate.cs" %}
+-{%- endif %}
+ 
+ {%- endmatch %}
+ {%- endfor %}
+@@ -116,6 +112,11 @@
+ {% include "ExternalObjectTypeTemplate.cs" %}
+ {%- when Type::CallbackInterface { .. } %}
+ {% include "ExternalObjectTypeTemplate.cs" %}
++{%- when Type::Custom { name, builtin, .. } %}
++{#- C# `using` aliases are file-scoped, so a custom type defined in another crate is rendered
++    here again, exactly like a local one, instead of forwarding to the other file's alias. #}
++{%- let ffi_converter_name = type_|ffi_converter_name %}
++{% include "CustomTypeTemplate.cs" %}
+ {%- else %}
+ {% include "ExternalTypeTemplate.cs" %}
+ {%- endmatch %}
+diff --git a/docs/CONFIGURATION.md b/docs/CONFIGURATION.md
+index 10fed68..7ccc247 100644
+--- a/docs/CONFIGURATION.md
++++ b/docs/CONFIGURATION.md
+@@ -38,6 +38,10 @@ uniffi-bindgen-cs path/to/definitions.udl --config path/to/uniffi.toml
+         will be expanded into variable containing the custom value. The expression is used in a
+         return statement, i.e. `return <expression(value);>`.
+ 
++    In library mode a crate that uses a custom type defined in another crate inherits that
++    crate's `custom_types` entry unless it configures the type itself, so the mapping only has to
++    be written once, in the defining crate.
++
+ - `namespace` - override the `namespace ..;` declaration in generated bindings file. The default is
+     `uniffi.{{namespace}}`, where `namespace` is the namespace from UDL file.
+     ```toml
+diff --git a/dotnet-tests/UniffiCS.BindingTests/TestExtTypesCSharpCustomTypes.cs b/dotnet-tests/UniffiCS.BindingTests/TestExtTypesCSharpCustomTypes.cs
+new file mode 100644
+index 0000000..65309e2
+--- /dev/null
++++ b/dotnet-tests/UniffiCS.BindingTests/TestExtTypesCSharpCustomTypes.cs
+@@ -0,0 +1,87 @@
++using System;
++using uniffi.uniffi_cs_ext_types_base;
++using uniffi.uniffi_cs_ext_types_consumer;
++
++namespace UniffiCS.BindingTests;
++
++// Custom types defined in the base crate and used from the consumer crate. C# `using` aliases are
++// file-scoped, so the consumer's generated file has to declare `BaseBlob` and `BaseUrl` itself.
++// `BaseBlob` has no config and is a `byte[]`; `BaseUrl` is mapped to `System.Uri` by the base
++// crate's `uniffi.toml`, and the consumer inherits that mapping.
++public class TestExtTypesCSharpCustomTypes
++{
++    [Fact]
++    public void TestBlobFromBaseIntoConsumer()
++    {
++        var blob = UniffiCsExtTypesBaseMethods.MakeBaseBlob(4);
++        Assert.IsType<byte[]>(blob);
++        Assert.Equal(4u, UniffiCsExtTypesConsumerMethods.BaseBlobLen(blob));
++    }
++
++    [Fact]
++    public void TestBlobLiteral()
++    {
++        Assert.Equal(3u, UniffiCsExtTypesConsumerMethods.BaseBlobLen(new byte[] { 1, 2, 3 }));
++    }
++
++    [Fact]
++    public void TestMaybeBlobNone()
++    {
++        Assert.Null(UniffiCsExtTypesConsumerMethods.GetMaybeBaseBlob(null));
++    }
++
++    [Fact]
++    public void TestMaybeBlobSome()
++    {
++        var result = UniffiCsExtTypesConsumerMethods.GetMaybeBaseBlob(new byte[] { 7, 8 });
++        Assert.Equal(new byte[] { 7, 8 }, result);
++    }
++
++    [Fact]
++    public void TestBlobList()
++    {
++        var result = UniffiCsExtTypesConsumerMethods.GetBaseBlobs(
++            new[] { new byte[] { 1 }, new byte[] { 2, 2 } });
++        Assert.Equal(2, result.Length);
++        Assert.Equal(new byte[] { 1 }, result[0]);
++        Assert.Equal(new byte[] { 2, 2 }, result[1]);
++    }
++
++    [Fact]
++    public void TestUrlFromBaseIntoConsumer()
++    {
++        var url = UniffiCsExtTypesBaseMethods.MakeBaseUrl("https://example.com/path");
++        Assert.IsType<Uri>(url);
++        Assert.Equal("https://example.com/path", UniffiCsExtTypesConsumerMethods.BaseUrlString(url));
++    }
++
++    [Fact]
++    public void TestUrlLiteral()
++    {
++        var result = UniffiCsExtTypesConsumerMethods.BaseUrlString(new Uri("https://example.com/"));
++        Assert.Equal("https://example.com/", result);
++    }
++
++    [Fact]
++    public void TestMaybeUrlNone()
++    {
++        Assert.Null(UniffiCsExtTypesConsumerMethods.GetMaybeBaseUrl(null));
++    }
++
++    [Fact]
++    public void TestMaybeUrlSome()
++    {
++        var result = UniffiCsExtTypesConsumerMethods.GetMaybeBaseUrl(new Uri("https://example.com/a"));
++        Assert.NotNull(result);
++        Assert.Equal("example.com", result!.Host);
++    }
++
++    [Fact]
++    public void TestCustomTypesInRecord()
++    {
++        var holder = UniffiCsExtTypesConsumerMethods.HoldCustomTypes(
++            new byte[] { 9 }, new Uri("https://example.com/r"));
++        Assert.Equal(new byte[] { 9 }, holder.Blob);
++        Assert.Equal("https://example.com/r", holder.Url.AbsoluteUri);
++    }
++}
+diff --git a/fixtures/ext-types-csharp/base-crate/src/lib.rs b/fixtures/ext-types-csharp/base-crate/src/lib.rs
+index 4c0a590..a35b268 100644
+--- a/fixtures/ext-types-csharp/base-crate/src/lib.rs
++++ b/fixtures/ext-types-csharp/base-crate/src/lib.rs
+@@ -76,4 +76,34 @@ fn base_error_identity(val: i32) -> Result<i32, BaseError> {
+     }
+ }
+ 
++// Custom types used from the consumer crate.
++//
++// `BaseBlob` has no `custom_types` entry and is rendered as `using BaseBlob = byte[];`.
++// `BaseUrl` is mapped to `System.Uri` in this crate's `uniffi.toml`; the consumer crate has no
++// config of its own and must inherit this mapping.
++
++pub struct BaseBlob(pub Vec<u8>);
++
++uniffi::custom_type!(BaseBlob, Vec<u8>, {
++    lower: |blob| blob.0,
++    try_lift: |bytes| Ok(BaseBlob(bytes)),
++});
++
++pub struct BaseUrl(pub String);
++
++uniffi::custom_type!(BaseUrl, String, {
++    lower: |url| url.0,
++    try_lift: |s| Ok(BaseUrl(s)),
++});
++
++#[uniffi::export]
++fn make_base_blob(len: u32) -> BaseBlob {
++    BaseBlob(vec![0xAB; len as usize])
++}
++
++#[uniffi::export]
++fn make_base_url(url: String) -> BaseUrl {
++    BaseUrl(url)
++}
++
+ uniffi::setup_scaffolding!();
+diff --git a/fixtures/ext-types-csharp/base-crate/uniffi.toml b/fixtures/ext-types-csharp/base-crate/uniffi.toml
+new file mode 100644
+index 0000000..2e0a662
+--- /dev/null
++++ b/fixtures/ext-types-csharp/base-crate/uniffi.toml
+@@ -0,0 +1,9 @@
++[bindings.csharp]
++cdylib_name = "uniffi_fixtures"
++
++# Used by the consumer crate as well: in library mode the consumer inherits this mapping.
++[bindings.csharp.custom_types.BaseUrl]
++imports = ["System"]
++type_name = "Uri"
++into_custom = "new Uri({})"
++from_custom = "{}.AbsoluteUri"
+diff --git a/fixtures/ext-types-csharp/consumer-crate/src/lib.rs b/fixtures/ext-types-csharp/consumer-crate/src/lib.rs
+index 5a73888..e1192b2 100644
+--- a/fixtures/ext-types-csharp/consumer-crate/src/lib.rs
++++ b/fixtures/ext-types-csharp/consumer-crate/src/lib.rs
+@@ -1,5 +1,7 @@
+ use std::sync::Arc;
+-use uniffi_cs_ext_types_base::{BaseEnum, BaseError, BaseInterface, BaseRecord, BaseTrait};
++use uniffi_cs_ext_types_base::{
++    BaseBlob, BaseEnum, BaseError, BaseInterface, BaseRecord, BaseTrait, BaseUrl,
++};
+ 
+ #[derive(uniffi::Record)]
+ pub struct CompositeRecord {
+@@ -69,4 +71,43 @@ fn get_maybe_base_enum(e: Option<BaseEnum>) -> Option<BaseEnum> {
+     e
+ }
+ 
++// Custom types defined in the base crate, used directly and inside an optional, a sequence and a
++// record. `BaseUrl` is mapped to `System.Uri` by the base crate's `uniffi.toml`.
++
++#[derive(uniffi::Record)]
++pub struct CustomTypeHolder {
++    pub blob: BaseBlob,
++    pub url: BaseUrl,
++}
++
++#[uniffi::export]
++fn base_blob_len(blob: BaseBlob) -> u32 {
++    blob.0.len() as u32
++}
++
++#[uniffi::export]
++fn get_maybe_base_blob(blob: Option<BaseBlob>) -> Option<BaseBlob> {
++    blob
++}
++
++#[uniffi::export]
++fn get_base_blobs(blobs: Vec<BaseBlob>) -> Vec<BaseBlob> {
++    blobs
++}
++
++#[uniffi::export]
++fn base_url_string(url: BaseUrl) -> String {
++    url.0
++}
++
++#[uniffi::export]
++fn get_maybe_base_url(url: Option<BaseUrl>) -> Option<BaseUrl> {
++    url
++}
++
++#[uniffi::export]
++fn hold_custom_types(blob: BaseBlob, url: BaseUrl) -> CustomTypeHolder {
++    CustomTypeHolder { blob, url }
++}
++
+ uniffi::setup_scaffolding!();

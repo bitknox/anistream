@@ -1,0 +1,7 @@
+# The C# bindings generator the Windows app's engine bindings come from: NordSecurity's
+# uniffi-bindgen-cs at the head of its pull request for uniffi 0.32 (#176), with the patches in
+# patches/ applied in order. docs/desktop-windows-bindings.md says why each one is there and what
+# to do when uniffi moves. Read by desktop/windows/scripts/bindings.sh.
+repo=https://github.com/NordSecurity/uniffi-bindgen-cs.git
+ref=refs/pull/176/head
+commit=cf0aa7a8fb59358a846708730a58a02bf206ac05

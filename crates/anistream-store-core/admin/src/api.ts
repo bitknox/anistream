@@ -1,3 +1,4 @@
+import { sentence } from './format';
 import type {
 	AdminLogin,
 	AdminOverview,
@@ -65,14 +66,14 @@ async function call<T>(method: string, path: string, body?: object | Blob): Prom
 			cache: 'no-store',
 		});
 	} catch {
-		throw new ApiError('the store did not answer — is it still running?', 0, 'network');
+		throw new ApiError('The store did not answer. Check that it is running.', 0, 'network');
 	}
 	if (!response.ok) {
-		let message = `the store answered HTTP ${response.status}`;
+		let message = `The store answered with an error, HTTP ${response.status}. Try again in a moment.`;
 		let code = `http_${response.status}`;
 		try {
 			const error = (await response.json()) as Partial<ErrorBody>;
-			message = error.message ?? message;
+			message = error.message ? sentence(error.message) : message;
 			code = error.error ?? code;
 		} catch {
 			// Not one of the store's own errors — a proxy's page, say. The status will do.
