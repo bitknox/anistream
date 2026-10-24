@@ -117,6 +117,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     var tabIndex by rememberSaveable { mutableIntStateOf(tabs.indexOf(current)) }
     var sortIndex by rememberSaveable { mutableIntStateOf(0) }
     var formatIndex by rememberSaveable { mutableIntStateOf(0) }
+    var onList by rememberSaveable { mutableStateOf(false) }
     val tab = tabs[tabIndex]
     val sort = SeasonSort.entries[sortIndex]
     val format = SeasonFormats[formatIndex]
@@ -127,14 +128,18 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     val browsed by store.browse.list.state.collectAsStateWithLifecycle()
     // A browse answer for another filter, still on screen while the new one loads, is not shown.
     val state = if (filter == null) seasonal else if (store.browse.takes("", filter)) browsed else ListState.Loading
-    val shown = state.ids.mapNotNull { entries[it] }
+    val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
+    val signedIn = trackers.values.any { it.connected }
+    // On my list: the season's titles already on one of the tracker's lists.
+    val listed = onList && signedIn
+    val shown = state.ids.mapNotNull { entries[it] }.filter { !listed || it.listStatus != null }
     val grid = rememberLazyGridState()
     LaunchedEffect(filter) { grid.scrollToItem(0) }
     ToTop(nav, memory, scrolled = { grid.firstVisibleItemIndex > 0 || grid.firstVisibleItemScrollOffset > 0 }) { grid.scrollToItem(0) }
     PosterGrid(
         shown,
         memory,
-        keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}",
+        keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}/$listed",
         onOpen = { onOpen(it.id) },
         state = grid,
         line = { it.posterLine },
@@ -171,9 +176,23 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                     chip = true,
                     modifier = Modifier.remembered(memory, "chip/sort"),
                 )
+                if (signedIn) {
+                    TvTab(
+                        "On my list",
+                        selected = onList,
+                        onSelect = { onList = !onList },
+                        settle = null,
+                        chip = true,
+                        modifier = Modifier.remembered(memory, "chip/list"),
+                    )
+                }
             }
         }
-        if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
+        if (listed && state is ListState.Loaded && state.ids.isNotEmpty() && shown.isEmpty()) {
+            item(key = "unlisted", span = { GridItemSpan(maxLineSpan) }) {
+                Text("Nothing from ${tab.label} is on your lists yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            }
+        } else if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
                 Text("Nothing announced for ${tab.label} yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
