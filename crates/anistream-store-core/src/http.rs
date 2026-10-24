@@ -768,8 +768,9 @@ fn join_page(name: &str, open: bool) -> String {
         &format!(
             "<h1>{heading}</h1>\
              <p class=\"dim\">An anistream plugin store.</p>\
-             <ol><li>Open anistream and go to <b>Providers</b>.</li>\
-             <li>Press Enter to open plugin stores, then choose <b>join a store</b>.</li>\
+             <ol><li>Open <b>Plugin stores</b> in anistream (in the terminal app: Providers, \
+             then Enter).</li>\
+             <li>Choose <b>Join a store</b>.</li>\
              <li>Paste the link you were sent. Copy all of it, including the part after \
              <code>#</code>.</li></ol>\
              <p class=\"dim\">{note}</p>"
