@@ -172,9 +172,9 @@ fn a_phone_finds_pairs_plays_and_forgets_a_tv() {
     assert_eq!(name, "Mika's phone");
     let wrong = if code == "000000" { "111111" } else { "000000" };
     let refused = block(pairing.pair(Some(wrong.into()))).unwrap_err();
-    let anistream_ffi::FfiTvError::Failed { problem, message } = refused;
+    let anistream_ffi::FfiTvError::Failed { problem, reason } = refused;
     assert_eq!(problem, FfiTvProblem::WrongCode);
-    assert!(message.starts_with("That code didn't match"), "{message}");
+    assert!(reason.starts_with("That code didn't match"), "{reason}");
     let spaced = format!("{} {}", &code[..3], &code[3..]);
     let paired = block(pairing.pair(Some(spaced))).expect("the right code pairs");
     assert_eq!(paired.name, "Living room");

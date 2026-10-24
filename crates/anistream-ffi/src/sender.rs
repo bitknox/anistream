@@ -113,8 +113,9 @@ pub enum FfiTvProblem {
 /// A remote call failed, with the words to show for it.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
 pub enum FfiTvError {
-    #[error("{message}")]
-    Failed { problem: FfiTvProblem, message: String },
+    /// `reason`, not `message`: Kotlin's exceptions have a `message` of their own.
+    #[error("{reason}")]
+    Failed { problem: FfiTvProblem, reason: String },
 }
 
 impl From<Problem> for FfiTvError {
@@ -133,7 +134,7 @@ impl From<Problem> for FfiTvError {
             Problem::NotALink => FfiTvProblem::NotALink,
             Problem::Other => FfiTvProblem::Other,
         };
-        Self::Failed { problem: kind, message: problem.message().to_owned() }
+        Self::Failed { problem: kind, reason: problem.message().to_owned() }
     }
 }
 
