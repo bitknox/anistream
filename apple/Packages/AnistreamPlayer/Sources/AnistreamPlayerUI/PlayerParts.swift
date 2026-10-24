@@ -89,7 +89,7 @@ struct StartingCurtain: View {
         .clipped()
         .task(id: url) {
             // As sharp as the screen, which the player may come to fill.
-            if let url { store.artwork.request(url, maxPixelSize: ScreenPixels.longSide) }
+            if let url { await store.artwork.show(url, maxPixelSize: ScreenPixels.longSide) }
         }
         .task(id: entry?.id) {
             // A title with no banner shows a still already seen, which the episode list has.
@@ -650,7 +650,7 @@ struct UpNextCardView: View {
         }
         .animation(.fadeIn, value: image != nil)
         .task(id: url) {
-            if let url { store.artwork.request(url, maxPixelSize: 320) }
+            if let url { await store.artwork.show(url, maxPixelSize: 320) }
         }
     }
 }

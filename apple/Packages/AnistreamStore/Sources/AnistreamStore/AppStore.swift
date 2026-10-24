@@ -139,6 +139,14 @@ public final class AppStore {
     /// What the fake AniList has been asked so far, an operation's name a request, in arrival
     /// order.
     public var anilistRequests: [String] { client?.engine.testingAnilistRequests() ?? [] }
+
+    /// Serve the fixtures' art badly from now on, as a busy CDN would: every second image fails
+    /// `failFirst` times before it is served, and each waits `delay` (the testing engine's
+    /// `testingTroubleArt`). The Fixtures app only.
+    public func troubleArt(failFirst: Int, delay: Duration) {
+        let ms = delay.components.seconds * 1000 + delay.components.attoseconds / 1_000_000_000_000_000
+        client?.engine.testingTroubleArt(failFirst: UInt32(max(0, failFirst)), delayMs: UInt32(max(0, ms)))
+    }
     #endif
 
     /// Read `engine`'s events from now on.
@@ -153,6 +161,7 @@ public final class AppStore {
             client?.send(command)
         }
         early = []
+        artwork.sendUnsent()
     }
 
     /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:
