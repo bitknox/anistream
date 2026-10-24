@@ -11,7 +11,9 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -27,12 +29,16 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import tv.anistream.app.tv.TvRemoteService
 import tv.anistream.design.AnistreamTheme
+import tv.anistream.engine.ffi.FfiTvCommand
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.player.ui.PlayerFrame
 import tv.anistream.store.DownloadsModel
 import tv.anistream.store.InviteLinks
+import tv.anistream.store.TvPlayRequest
+import tv.anistream.store.TvRemoteModel
 import tv.anistream.store.traced
 import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppLink
@@ -54,6 +60,23 @@ class MainActivity : ComponentActivity() {
     private val askForEpisodes = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         app.notifier.asked()
         if (granted) app.episodeAlerts.set(true) else app.episodeAlerts.refuse()
+    }
+
+    /**
+     * Android 17's local network permission, asked the first time Play on TV is used: the TVs are
+     * found and reached on the network this phone is on. The browse starts again once it is given.
+     */
+    private val askLocalNetwork = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            app.store.tv.browseAgain()
+            app.store.tv.retryNow()
+        }
+    }
+
+    private fun askLocalNetworkOnce() {
+        if (Build.VERSION.SDK_INT < LOCAL_NETWORK_SDK) return
+        if (checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED) return
+        askLocalNetwork.launch(Manifest.permission.ACCESS_LOCAL_NETWORK)
     }
 
     /** What waits on the permission a show's own switch asked for: switching it on. */
@@ -134,6 +157,7 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         traced("launch") { app.start(Flavour.launch(this, intent)) }
+        app.store.tv.firstUse = ::askLocalNetworkOnce
         // Where Android stopped the app as "Install unknown apps" turned on, the press goes on.
         app.appUpdates?.kept()?.let(app.store.updates::returning)
         Flavour.started(this, app.store, intent, app.episodeNotifier)
@@ -155,7 +179,18 @@ class MainActivity : ComponentActivity() {
                 openSystemSettings = ::openNotificationSettings,
             ),
         )
-        val player = PlayerFrame(app.player)
+        // Play on TV from the player: the episode and where it is, which the TV starts from.
+        val player = PlayerFrame(app.player) {
+            val tv = app.store.tv
+            val model = app.player
+            val id = model.titleId
+            val episode = model.startingEpisode
+            if (!tv.available || id == null || episode == null) {
+                null
+            } else {
+                { tv.offer(TvPlayRequest(id, model.showTitle, episode, model.position, fromPlayer = true)) }
+            }
+        }
         traced("setContent") { setContent {
             AnistreamTheme {
                 AppRoot(
@@ -176,7 +211,7 @@ class MainActivity : ComponentActivity() {
         signIn.start()
         // A restored activity, or one opened again from Recents, has its navigation already.
         val fresh = savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
-        if (!signIn.handle(intent) && !(fresh && follow(intent))) invite(intent)
+        if (!signIn.handle(intent) && !(fresh && follow(intent)) && !invite(intent)) remote(intent)
         keepDownloadsRunning()
         startUpdateActivities()
     }
@@ -240,6 +275,40 @@ class MainActivity : ComponentActivity() {
         return true
     }
 
+    /**
+     * A TV's pairing link, from its QR code read by the system's camera, pairs with it; the TV
+     * notification's tap opens its card.
+     */
+    private fun remote(intent: Intent?): Boolean {
+        intent ?: return false
+        if (intent.getBooleanExtra(TvRemoteService.EXTRA_REMOTE, false)) {
+            intent.removeExtra(TvRemoteService.EXTRA_REMOTE)
+            app.store.tv.openRemote()
+            return true
+        }
+        val link = intent.data?.toString()?.takeIf { it.startsWith("${TvRemoteModel.SCHEME}://") } ?: return false
+        intent.data = null
+        return app.store.tv.open(link)
+    }
+
+    /**
+     * The volume keys move the TV's volume while its card is open, or while it is driven and
+     * plays; the TV's media session takes them once the app is behind another.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val step = when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> TvRemoteModel.VOLUME_STEP
+            KeyEvent.KEYCODE_VOLUME_DOWN -> -TvRemoteModel.VOLUME_STEP
+            else -> return super.dispatchKeyEvent(event)
+        }
+        val tv = app.store.tv
+        val driving = tv.connected.value != null &&
+            (tv.sheet.value == TvRemoteModel.Sheet.Remote || tv.card.value?.card?.now != null)
+        if (!driving || app.player.isPresented) return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_DOWN) tv.send(FfiTvCommand.Volume(step))
+        return true
+    }
+
     override fun onResume() {
         super.onResume()
         signIn.resumed()
@@ -290,7 +359,7 @@ class MainActivity : ComponentActivity() {
     private fun announceReady() {
         lifecycleScope.launch {
             // Up to three minutes: an emulator on a machine busy with builds starts the engine slowly.
-            if (app.store.settle(timeoutMillis = 180_000)) {
+            if (app.store.settle(timeoutMillis = 180_000) && Flavour.reachedTv(intent, app.store)) {
                 Log.i(AnistreamApp.TAG, READY)
             } else {
                 Log.w(AnistreamApp.TAG, "the screens did not settle")
@@ -317,7 +386,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         // The redirect a sign-in comes back with is the engine's, and is not kept as the
         // activity's intent.
-        if (signIn.handle(intent) || follow(intent) || invite(intent)) return
+        if (signIn.handle(intent) || follow(intent) || invite(intent) || remote(intent)) return
         setIntent(intent)
     }
 
@@ -338,5 +407,8 @@ class MainActivity : ComponentActivity() {
         const val PAGE = "page"
 
         private const val NOTIFICATIONS_ASKED = "notificationsAsked"
+
+        /** Android 17, where reaching the local network asks first. */
+        private const val LOCAL_NETWORK_SDK = 37
     }
 }
