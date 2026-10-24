@@ -60,7 +60,7 @@
           <!-- No first frame after 20 s: another source, or stop. -->
           <StackPanel x:Name="StartingChoices" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Visibility="Collapsed">
             <Button Content="Stop" Click="OnStartingStop" />
-            <Button x:Name="StartingChoose" Content="Choose source" Style="{StaticResource AccentButtonStyle}">
+            <Button x:Name="StartingChoose" Content="Choose source" Style="{StaticResource AccentButtonStyle}" Click="OnStartingChoose">
               <Button.Flyout>
                 <MenuFlyout x:Name="StartingSources" Placement="Bottom" Opening="OnStartingSourcesOpening" />
               </Button.Flyout>

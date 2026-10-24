@@ -366,7 +366,10 @@ public sealed partial class PlayerView : UserControl
         {
             StartingLine.Text = $"Couldn't start episode {startingEpisode}";
             StartingRing.Visibility = Visibility.Collapsed;
-            StartingChoose.Visibility = menus is { Sources.Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
+            // The source menu, once the player has one; before that, the next stream, as the stall card does.
+            var listed = menus is { Sources.Length: > 0 };
+            StartingChoose.Content = listed ? "Choose source" : "Switch source";
+            StartingChoose.Flyout = listed ? StartingSources : null;
             StartingChoices.Visibility = Visibility.Visible;
             Announce(StartingLine);
             ShowPointer();
@@ -376,6 +379,14 @@ public sealed partial class PlayerView : UserControl
     }
 
     void OnStartingStop(object sender, RoutedEventArgs e) => Close();
+
+    void OnStartingChoose(object sender, RoutedEventArgs e)
+    {
+        if (StartingChoose.Flyout is not null)
+            return;
+        Send(new PlayerCommand.StallSwitch());
+        ShowStarting();
+    }
 
     void OnStartingSourcesOpening(object? sender, object e)
     {
