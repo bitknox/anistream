@@ -100,13 +100,15 @@ pub fn texture(cell: usize) -> gdk::Texture {
     .upcast()
 }
 
-/// An empty state: Nagare, a line and, when given, one action.
+/// A big, first-time empty state: Nagare at cell 5 (100 by 160), a line and, when given, one
+/// action. Small, frequent empties use `states::plain`, without him.
 pub fn status_page(title: &str, line: &str, action: Option<&gtk::Button>) -> adw::StatusPage {
     let page = adw::StatusPage::builder()
         .title(title)
         .description(line)
-        .paintable(&texture(4))
+        .paintable(&texture(5))
         .build();
+    page.add_css_class("nagare");
     if let Some(action) = action {
         action.set_halign(gtk::Align::Center);
         page.set_child(Some(action));
@@ -115,12 +117,12 @@ pub fn status_page(title: &str, line: &str, action: Option<&gtk::Button>) -> adw
 }
 
 /// Nagare as a picture of his own, `cell` logical pixels to the sprite pixel.
-pub fn picture(cell: usize) -> gtk::Picture {
-    let picture = gtk::Picture::for_paintable(&texture(cell));
-    picture.set_can_shrink(false);
-    picture.set_size_request((WIDTH * cell) as i32, (HEIGHT * cell) as i32);
-    picture.update_property(&[gtk::accessible::Property::Label(DESCRIPTION)]);
-    picture
+pub fn picture(cell: usize) -> gtk::Image {
+    // The texture is drawn at twice the size for HiDPI; the image holds it to its logical size.
+    let image = gtk::Image::from_paintable(Some(&texture(cell)));
+    image.set_pixel_size((HEIGHT * cell) as i32);
+    image.update_property(&[gtk::accessible::Property::Label(DESCRIPTION)]);
+    image
 }
 
 #[cfg(test)]

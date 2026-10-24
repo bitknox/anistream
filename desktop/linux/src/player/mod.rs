@@ -78,7 +78,19 @@ pub struct PlayerView {
     preview: Rc<Preview>,
     /// The window as it was, while the mini player stands in for it.
     mini: Cell<Option<Restore>>,
+    /// Since when the starting screen has waited, the line's tick, and the engine's note on
+    /// the start's job.
+    starting_since: Cell<Option<Instant>>,
+    starting_tick: RefCell<Option<glib::SourceId>>,
+    starting_note: RefCell<Option<String>>,
+    /// Where the playback resumed, while "Resumed at" shows: it goes 6 s of playback later.
+    resumed_from: Cell<Option<f64>>,
 }
+
+/// How long the starting screen says only "Starting episode 7".
+const STARTING_QUIET: Duration = Duration::from_secs(3);
+/// How long "Resumed at" stays, in seconds of playback.
+const RESUMED_FOR: f64 = 6.0;
 
 /// The widgets the player updates.
 /// The episodes, sources and choices the menus offer, and whether they are open.
@@ -115,6 +127,8 @@ struct Ui {
     up_next_bar: gtk::ProgressBar,
     stall: gtk::Box,
     stall_line: gtk::Label,
+    resumed: gtk::Box,
+    resumed_line: gtk::Label,
     episodes: gtk::MenuButton,
     settings: gtk::MenuButton,
     menu_buttons: Vec<gtk::MenuButton>,
@@ -202,6 +216,10 @@ impl PlayerView {
             chapters_due: Cell::new(false),
             preview,
             mini: Cell::new(None),
+            starting_since: Cell::new(None),
+            starting_tick: RefCell::default(),
+            starting_note: RefCell::default(),
+            resumed_from: Cell::new(None),
         });
         view.wire();
         glib::spawn_future_local({
@@ -311,7 +329,62 @@ impl PlayerView {
                 }
             }
             Event::PlayerUi { ui, .. } => self.player_ui(ui),
+            Event::JobNote { job, note, .. } => {
+                let starting = self
+                    .ctx
+                    .hub
+                    .known
+                    .borrow()
+                    .jobs
+                    .get(job)
+                    .is_some_and(|activity| activity.starts_with("starting"));
+                if starting {
+                    self.starting_note.replace(Some(crate::catalog::shown(note)));
+                }
+            }
             _ => {}
+        }
+    }
+
+    /// The starting screen's line: "Starting episode 7", and from 3 s the wait admitted, with
+    /// the engine's note when it has one: "Finding a source · 4 s".
+    fn tick_starting(&self, episode: &str) {
+        if let Some(tick) = self.starting_tick.borrow_mut().take() {
+            tick.remove();
+        }
+        self.starting_since.set(Some(Instant::now()));
+        self.starting_note.replace(None);
+        self.ui.starting_line.set_label(&format!("Starting episode {episode}"));
+        let me = self.me.clone();
+        let tick = glib::timeout_add_local(Duration::from_secs(1), move || {
+            let Some(view) = me.upgrade() else { return glib::ControlFlow::Break };
+            let since = view.starting_since.get();
+            let (Some(since), true) = (since, view.ui.starting.is_visible()) else {
+                view.starting_tick.borrow_mut().take();
+                return glib::ControlFlow::Break;
+            };
+            let waited = since.elapsed();
+            if waited >= STARTING_QUIET {
+                let note =
+                    view.starting_note.borrow().clone().unwrap_or("Finding a source".into());
+                view.ui.starting_line.set_label(&format!("{note} · {} s", waited.as_secs()));
+            }
+            glib::ControlFlow::Continue
+        });
+        self.starting_tick.replace(Some(tick));
+    }
+
+    /// "Resumed at 12:04" with Start Over, in the top leading corner.
+    fn resumed(&self, position: f64) {
+        self.ui.resumed_line.set_label(&format!("Resumed at {}", words::clock(position)));
+        self.resumed_from.set(Some(position));
+        self.ui.resumed.set_visible(true);
+        crate::motion::fade_in(&self.ui.resumed);
+    }
+
+    fn resumed_done(&self) {
+        if self.resumed_from.take().is_some() && self.ui.resumed.is_visible() {
+            crate::motion::fade_out(&self.ui.resumed);
         }
     }
 
@@ -322,7 +395,8 @@ impl PlayerView {
             } => {
                 self.ui.show.set_label(title);
                 self.ui.episode.set_label(&episode_line(episode, episode_title.as_deref()));
-                self.ui.starting_line.set_label(&format!("Starting episode {episode}"));
+                self.tick_starting(episode);
+                self.resumed_done();
                 self.ui.starting.set_visible(true);
                 self.ui.starting.set_opacity(1.0);
                 self.ui.starting_art.set_paintable(Some(&widgets::swatch(None)));
@@ -378,6 +452,7 @@ impl PlayerView {
             PlayerUi::StallCleared => self.ui.stall.set_visible(false),
             PlayerUi::Alert { text, .. } => self.ctx.toast(&crate::catalog::shown(text)),
             PlayerUi::Thumbnails { url } => self.preview.thumbnails(url.as_deref()),
+            PlayerUi::Resumed { position } => self.resumed(*position),
             _ => {}
         }
         self.ui.cards.set_visible(
@@ -503,6 +578,13 @@ impl PlayerView {
         }
         if state.has_picture && ui.starting.is_visible() {
             fade(&ui.starting, false);
+            self.starting_since.set(None);
+        }
+        // Six seconds of playback on, or a seek back past it, and "Resumed at" goes.
+        if let (Some(from), Some(position)) = (self.resumed_from.get(), state.position)
+            && (position > from + RESUMED_FOR || position + 1.0 < from)
+        {
+            self.resumed_done();
         }
         if let (Some(player), Some(duration)) = (&self.player, state.duration) {
             if state.has_picture && self.chapters_due.replace(false) {
@@ -793,6 +875,14 @@ impl PlayerView {
         add("stall-switch", None, Box::new(|v, _| v.send(PlayerCommand::StallSwitch)));
         add("stall-wait", None, Box::new(|v, _| v.send(PlayerCommand::StallWait)));
         add(
+            "start-over",
+            None,
+            Box::new(|v, _| {
+                v.send(PlayerCommand::SeekTo(0.0));
+                v.resumed_done();
+            }),
+        );
+        add(
             "night",
             None,
             Box::new(|v, _| {
@@ -1016,6 +1106,14 @@ impl PlayerView {
             }
         });
         ui.page.add_controller(keys);
+    }
+
+    /// For a shot: "Resumed at" as a resumed playback shows it, `at` said and the six seconds
+    /// counted from where the test pattern is.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_resumed(&self, at: f64) {
+        self.resumed(at);
+        self.resumed_from.set(self.state.borrow().position);
     }
 
     /// For a shot: an opening and an ending on the timeline, and `subtitle` on screen.
@@ -1346,7 +1444,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     stall_title.set_xalign(0.0);
     let stall_line = widgets::haze("", "caption");
     let stall_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    let switch = gtk::Button::with_label("Try Another Source");
+    let switch = gtk::Button::with_label("Switch Source");
     switch.add_css_class("pill");
     switch.add_css_class("suggested-action");
     switch.set_action_name(Some("player.stall-switch"));
@@ -1358,6 +1456,22 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     stall.append(&stall_title);
     stall.append(&stall_line);
     stall.append(&stall_buttons);
+
+    // "Resumed at 12:04" and Start Over, top leading, under the top bar.
+    let resumed = card();
+    resumed.set_orientation(gtk::Orientation::Horizontal);
+    resumed.set_spacing(12);
+    resumed.set_halign(gtk::Align::Start);
+    resumed.set_valign(gtk::Align::Start);
+    resumed.set_margin_top(72);
+    let resumed_line = gtk::Label::new(None);
+    resumed_line.add_css_class("numeric");
+    resumed_line.set_valign(gtk::Align::Center);
+    let start_over = gtk::Button::with_label("Start Over");
+    start_over.add_css_class("pill");
+    start_over.set_action_name(Some("player.start-over"));
+    resumed.append(&resumed_line);
+    resumed.append(&start_over);
 
     let cards = gtk::Box::new(gtk::Orientation::Vertical, 8);
     cards.set_halign(gtk::Align::End);
@@ -1406,6 +1520,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     stage.add_overlay(&dim);
     stage.add_overlay(&starting);
     stage.add_overlay(&cards);
+    stage.add_overlay(&resumed);
     stage.add_overlay(&mini);
 
     // The bars over the video, which fills the page under them.
@@ -1447,6 +1562,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         up_next_bar,
         stall,
         stall_line,
+        resumed,
+        resumed_line,
         episodes,
         settings,
         menu_buttons,

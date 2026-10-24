@@ -13,11 +13,12 @@ use anistream_model::{
     command::Command,
     event::Event,
 };
-use gtk::glib;
+use gtk::{gio, glib};
 
 use crate::{
     fit::Fit,
-    nagare, widgets,
+    states::{self, Shape, States},
+    widgets,
     window::{Ctx, Size},
 };
 
@@ -73,11 +74,16 @@ struct Page {
     mine: Cell<bool>,
     title: adw::WindowTitle,
     this_week: gtk::Button,
-    body: gtk::Stack,
+    body: Rc<States>,
+    /// The week's columns or the agenda, whichever the width takes.
+    views: gtk::Stack,
     week_view: gtk::Box,
     agenda: gtk::Box,
     empty: adw::StatusPage,
     loaded: Cell<bool>,
+    /// Whether the week on screen came from an answer, so stepping weeks before one, or after
+    /// a failure, leaves the state alone.
+    answered: Cell<bool>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -127,23 +133,16 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&adw::Clamp::builder().maximum_size(760).child(&agenda).build())
         .build();
-    let loading = adw::Spinner::new();
-    loading.set_size_request(32, 32);
-    loading.set_halign(gtk::Align::Center);
-    loading.set_valign(gtk::Align::Center);
-    let empty =
-        nagare::status_page("Nothing Airing", "Nothing on your list airs this week.", None);
-    let body = gtk::Stack::new();
-    body.add_named(&loading, Some("loading"));
-    body.add_named(&scroll_week, Some("week"));
-    body.add_named(&scroll_agenda, Some("agenda"));
-    body.add_named(&empty, Some("empty"));
-    body.set_vexpand(true);
+    let empty = states::plain("Nothing Airing", "Nothing on your list airs this week.");
+    let views = gtk::Stack::new();
+    views.add_named(&scroll_week, Some("week"));
+    views.add_named(&scroll_agenda, Some("agenda"));
+    let body = States::new(&ctx.hub, &views, Shape::Week, &empty, "Couldn't Load the Calendar");
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 0);
     column.append(&toggles);
-    column.append(&body);
-    let navigation = widgets::page("Calendar", &header, &column);
+    column.append(&body.widget);
+    let navigation = widgets::content_page("Calendar", &header, &column);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -157,16 +156,26 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         title,
         this_week: this_week.clone(),
         body,
+        views,
         week_view,
         agenda,
         empty,
         loaded: Cell::new(false),
+        answered: Cell::new(false),
     });
 
     let weak = Rc::downgrade(&page);
     ctx.hub.listen(move |event| {
         if let Some(page) = weak.upgrade() {
             page.heard(event);
+        }
+    });
+    page.body.on_retry({
+        let weak = Rc::downgrade(&page);
+        move || {
+            if let Some(page) = weak.upgrade() {
+                page.load();
+            }
         }
     });
     let step = |delta: i32| {
@@ -206,7 +215,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             if let Some(page) = weak.upgrade()
                 && !page.loaded.replace(true)
             {
-                page.ctx.hub.send(Command::LoadCalendar);
+                page.load();
             }
         }
     });
@@ -216,6 +225,11 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 }
 
 impl Page {
+    fn load(&self) {
+        self.body.loading(Command::LoadCalendar.activity());
+        self.ctx.hub.send(Command::LoadCalendar);
+    }
+
     fn heard(&self, event: &Event) {
         match event {
             Event::CalendarWindow { anchor, pages, more_past } => {
@@ -224,14 +238,15 @@ impl Page {
                 self.more_past.set(*more_past);
             }
             Event::Content { view: ContentFor::Calendar, content } => match content {
-                ContentList::Loading => self.body.set_visible_child_name("loading"),
+                ContentList::Loading => self.body.loading(Command::LoadCalendar.activity()),
                 ContentList::Failed(why) => {
                     tracing::warn!(%why, "the calendar did not load");
-                    self.rows.borrow_mut().clear();
-                    self.show();
+                    self.answered.set(false);
+                    self.body.failed(why);
                 }
                 _ => {
                     *self.rows.borrow_mut() = content.entries().to_vec();
+                    self.answered.set(true);
                     self.show();
                     self.backfill();
                 }
@@ -305,7 +320,10 @@ impl Page {
         self.title.set_title(&title);
         self.title.set_subtitle(&subtitle);
         self.this_week.set_visible(self.week.get() != 0);
-        if !self.loaded.get() || self.rows.borrow().is_empty() && self.anchor.get().is_none() {
+        if !self.loaded.get()
+            || self.rows.borrow().is_empty() && self.anchor.get().is_none()
+            || !self.answered.get()
+        {
             return;
         }
         let start = days[0].to_unix();
@@ -321,16 +339,17 @@ impl Page {
             } else {
                 "Nothing airs this week."
             }));
-            self.body.set_visible_child_name("empty");
+            self.body.empty();
             return;
         }
         if self.ctx.size() == Size::Wide {
             self.show_week(&days, &broadcasts);
-            self.body.set_visible_child_name("week");
+            self.views.set_visible_child_name("week");
         } else {
             self.show_agenda(&days, &broadcasts);
-            self.body.set_visible_child_name("agenda");
+            self.views.set_visible_child_name("agenda");
         }
+        self.body.content();
     }
 
     fn show_week(&self, days: &[glib::DateTime], broadcasts: &[Broadcast]) {
@@ -347,7 +366,7 @@ impl Page {
             let heading = gtk::Box::new(gtk::Orientation::Vertical, 0);
             heading.add_css_class("calendar-heading");
             let name = gtk::Label::new(Some(
-                &day.format("%a").map(|s| s.to_uppercase()).unwrap_or_default(),
+                &day.format("%a").map(|s| s.to_string()).unwrap_or_default(),
             ));
             name.add_css_class("caption-heading");
             name.add_css_class("haze");
@@ -370,7 +389,6 @@ impl Page {
     fn cell(&self, broadcast: &Broadcast, now: i64) -> gtk::Widget {
         let entry = &broadcast.entry;
         let cell = gtk::Box::new(gtk::Orientation::Vertical, 4);
-        cell.add_css_class("broadcast");
         if broadcast.watched() {
             let line = widgets::haze(
                 &format!(
@@ -392,8 +410,7 @@ impl Page {
             cell.append(&title);
             cell.append(&episode_line(broadcast, now));
         }
-        opens(&cell, entry);
-        cell.upcast()
+        opens(&cell, broadcast)
     }
 
     fn show_agenda(&self, days: &[glib::DateTime], broadcasts: &[Broadcast]) {
@@ -414,9 +431,6 @@ impl Page {
             let name = day.format("%A %-d %B").map(|s| s.to_string()).unwrap_or_default();
             let heading =
                 widgets::heading(&if is_today { format!("Today, {name}") } else { name });
-            if is_today {
-                heading.add_css_class("today-heading");
-            }
             let list = gtk::ListBox::new();
             list.add_css_class("boxed-list");
             list.set_selection_mode(gtk::SelectionMode::None);
@@ -482,20 +496,24 @@ fn episode_line(broadcast: &Broadcast, now: i64) -> gtk::Box {
     line
 }
 
-/// Clicking a cell opens its title; right-click offers the title's menu.
-fn opens(cell: &gtk::Box, entry: &Entry) {
+/// A cell as a flat button that opens its title, read as the title and its episode line, with
+/// the title's menu on right-click and on the keyboard.
+fn opens(cell: &gtk::Box, broadcast: &Broadcast) -> gtk::Widget {
+    let entry = &broadcast.entry;
     let id = entry.id.get();
-    let click = gtk::GestureClick::new();
-    click.connect_released({
-        let cell = cell.clone();
-        move |_, _, _, _| {
-            let _ = cell.activate_action("win.open-title", Some(&id.to_variant()));
-        }
-    });
-    cell.add_controller(click);
-    cell.set_cursor_from_name(Some("pointer"));
-    cell.set_tooltip_text(Some(&entry.title));
-    widgets::title_menu(cell, id, entry.list_status.is_none());
+    let button = gtk::Button::builder().child(cell).build();
+    button.add_css_class("flat");
+    button.add_css_class("broadcast");
+    button.set_action_name(Some("win.open-title"));
+    button.set_action_target_value(Some(&id.to_variant()));
+    button.set_tooltip_text(Some(&entry.title));
+    button.update_property(&[gtk::accessible::Property::Label(&format!(
+        "{}, {}",
+        entry.title,
+        broadcast.line()
+    ))]);
+    widgets::title_menu(&button, id, entry.list_status.is_none());
+    button.upcast()
 }
 
 fn clear(container: &gtk::Box) {
@@ -513,9 +531,37 @@ fn local(unix: i64) -> glib::DateTime {
         .unwrap_or_else(|_| glib::DateTime::from_unix_utc(0).expect("the epoch"))
 }
 
-/// "16:30", on the 24-hour clock the boards use.
+/// "16:30", or "4:30 PM" where the clock is set to 12 hours.
 fn time(unix: i64) -> String {
-    local(unix).format("%H:%M").map(|s| s.to_string()).unwrap_or_default()
+    thread_local! {
+        static TWELVE: bool = twelve_hour();
+    }
+    let format = if TWELVE.with(|t| *t) { "%-l:%M %p" } else { "%H:%M" };
+    local(unix).format(format).map(|s| s.trim().to_string()).unwrap_or_default()
+}
+
+/// Whether times read on a 12-hour clock: GNOME's clock setting where the app can read it,
+/// otherwise the locale's own way of writing a time.
+fn twelve_hour() -> bool {
+    let sandboxed = std::path::Path::new("/.flatpak-info").exists();
+    if !sandboxed
+        && let Some(source) = gio::SettingsSchemaSource::default()
+        && source
+            .lookup("org.gnome.desktop.interface", true)
+            .is_some_and(|schema| schema.has_key("clock-format"))
+    {
+        return gio::Settings::new("org.gnome.desktop.interface").string("clock-format")
+            == "12h";
+    }
+    locale_twelve_hour()
+}
+
+/// Whether the locale writes three in the afternoon without a 15.
+fn locale_twelve_hour() -> bool {
+    glib::DateTime::new(&glib::TimeZone::utc(), 2026, 1, 1, 15, 0, 0.0)
+        .ok()
+        .and_then(|t| t.format("%X").ok())
+        .is_some_and(|text| !text.contains("15"))
 }
 
 fn same_day(a: &glib::DateTime, b: &glib::DateTime) -> bool {

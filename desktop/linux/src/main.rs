@@ -12,6 +12,7 @@ mod fit;
 #[cfg(feature = "fixtures")]
 mod fixtures;
 mod hub;
+mod motion;
 mod nagare;
 mod pages;
 mod player;
@@ -20,6 +21,7 @@ mod prefs;
 mod shots;
 #[cfg(feature = "fixtures")]
 mod showcase;
+mod states;
 mod style;
 mod video;
 mod widgets;
