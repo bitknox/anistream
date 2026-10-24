@@ -17,7 +17,7 @@ import UIKit
 /// `update`, a newer release with its notice, and `pale`, 900001 renamed to a title long enough to
 /// wrap and given a near-white banner, which `all` leaves out; `offline`, the device without a
 /// network, what was loaded staying; `stranded`, offline with nothing loaded; and `failed`, the
-/// lists failed to load. `all` leaves these out too.
+/// lists failed to load; and `messages`, a session's notices for Messages. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
     case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, all
 
