@@ -4,8 +4,8 @@
 // mpv keeps playing in the one player throughout. While Picture in Picture runs, `PictureFeed`
 // copies each frame mpv presents, after the shaders and with the subtitles, into the
 // AVSampleBufferDisplayLayer the system's window shows; the picture's layer leaves the player,
-// the app goes back to browsing, and the picture renders at the size of the floating window.
-// Returning puts the layer back in the player. Nothing reloads either way.
+// the app goes back to browsing, and the picture renders at the size of the floating window (on
+// the Mac at one size, which the window scales: `macPixels`). Returning puts the layer back in the player. Nothing reloads either way.
 //
 // - Mac: the button, ⌥⌘P, the Window menu, or the window minimised or the app hidden while it
 //   plays. The display layer sits in a plain window of its own while it runs (`setStage`).
@@ -55,8 +55,9 @@ public final class PictureInPicture {
     /// Brings the main window back to the front, out of the Dock and out of hiding (Mac).
     var bringBackWindow: () -> Void = {}
     /// The size the floating window renders at, in pixels, as the system last said: mpv draws at
-    /// it while the picture floats. A 16:9 window of 640 points until the system says.
-    private var renderPixels = CGSize(width: 1280, height: 720)
+    /// it while the picture floats. A 16:9 window of 640 points until the system says. The Mac's
+    /// system says nothing, and it stays `macPixels`.
+    private var renderPixels: CGSize
     /// The layer the feed copies, while it runs.
     private weak var feedLayer: MpvLayer?
 
@@ -64,11 +65,19 @@ public final class PictureInPicture {
     /// system's window to open from, at a fraction of the full copy's cost.
     static let inlineSize = CGSize(width: 960, height: 540)
 
+    /// On the Mac, the floating picture at the video's shape inside this, in pixels, from start
+    /// to end: what mpv renders while the picture floats, and the size of every frame copied.
+    /// AVKit lays the floating window's picture out again, wrongly, each time the frames change
+    /// size (see `SystemPictureInPicture.follow(_:)`), so they keep one size, and the window
+    /// scales them.
+    static let macPixels = CGSize(width: 1920, height: 1080)
+
     init(model: PlayerModel, feed: PictureFeed, system: PictureInPictureSystem, inline: Bool = false) {
         self.model = model
         self.feed = feed
         self.system = system
         self.inline = inline
+        renderPixels = inline ? CGSize(width: 1280, height: 720) : Self.macPixels
         system.events = { [weak self] event in self?.receive(event) }
         system.renderSize = { [weak self] size in self?.rendering(at: size) }
         model.pictureInPictureToggle = { [weak self] in self?.toggle() }
@@ -180,6 +189,7 @@ public final class PictureInPicture {
     private func fitFeed() {
         feed.contentAspect = model?.videoAspect
         feed.maximumSize = model?.pictureInPicture == true || !inline ? nil : Self.inlineSize
+        feed.frameSize = inline ? nil : floatingPixels
     }
 
     private func startFeed(on layer: MpvLayer) {
@@ -239,6 +249,13 @@ public final class PictureInPicture {
     private func resizeFloating(_ layer: MpvLayer) {
         // The screen's scale, as the player's host last sized the layer for it.
         let scale = layer.contentsScale > 0 ? layer.contentsScale : 2
+        let size = floatingPixels
+        layer.resize(to: CGSize(width: size.width / scale, height: size.height / scale), scale: scale)
+        model?.surfaceResized()
+    }
+
+    /// The floating picture's size in pixels: the video's shape inside `renderPixels`.
+    private var floatingPixels: CGSize {
         let aspect = model?.videoAspect ?? 16 / 9
         var size = renderPixels
         if size.width / size.height > aspect {
@@ -246,8 +263,7 @@ public final class PictureInPicture {
         } else {
             size.height = (size.width / aspect).rounded()
         }
-        layer.resize(to: CGSize(width: size.width / scale, height: size.height / scale), scale: scale)
-        model?.surfaceResized()
+        return size
     }
 
     /// What mpv shows while paused, as it changes: paused, the feed's own frames stop about three
@@ -317,6 +333,9 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
     private var unasked = false
     #if os(macOS)
     private var stage: NSWindow?
+    /// The floating window's panel in the app while it is open, and its resizes followed.
+    private weak var floating: NSWindow?
+    private var floatingResized: NSObjectProtocol?
     #endif
 
     init(feed: PictureFeed, model: PlayerModel) {
@@ -445,7 +464,51 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
 
     /// The stage goes once the floating window has closed.
     func clearStage() {
+        unfollow()
         stage?.orderOut(nil)
+    }
+
+    /// The floating window among the app's windows: AppKit's side of the system's window, a panel
+    /// of the system's own at the floating window's size, which follows its resizes.
+    static func floatingWindow(among windows: [NSWindow]) -> NSWindow? {
+        windows.first { $0 is NSPanel && String(describing: type(of: $0)) == "PIPPanel" }
+    }
+
+    /// The display layer at the size of the floating window `window`, now and as it is resized.
+    /// AVKit shows the layer's picture in its window at the size the layer has in the app, from the
+    /// window's corner, and never scales it to the window: at the stage's size, the main window's,
+    /// the window showed a corner of the picture. Its picture is laid out right only after the
+    /// layer changes size, and wrongly again whenever the frames do, so they keep one size while
+    /// the picture floats (`PictureInPicture.macPixels`).
+    func follow(_ window: NSWindow) {
+        unfollow()
+        floating = window
+        floatingResized = NotificationCenter.default.addObserver(
+            forName: NSWindow.didResizeNotification, object: window, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.fitFloating() }
+        }
+        fitFloating()
+    }
+
+    private func unfollow() {
+        if let floatingResized { NotificationCenter.default.removeObserver(floatingResized) }
+        floatingResized = nil
+        floating = nil
+    }
+
+    private func fitFloating() {
+        guard let floating else { return }
+        let size = floating.contentView?.bounds.size ?? floating.frame.size
+        guard size.width > 1, size.height > 1 else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        // Centred on the stage, the main window's frame, where the floating window shrinks back to.
+        let stage = feed.displayLayer.superlayer?.bounds.size ?? size
+        feed.displayLayer.frame = CGRect(
+            x: ((stage.width - size.width) / 2).rounded(), y: ((stage.height - size.height) / 2).rounded(),
+            width: size.width, height: size.height)
+        CATransaction.commit()
     }
     #else
     func clearStage() {}
@@ -470,7 +533,16 @@ extension SystemPictureInPicture: AVPictureInPictureControllerDelegate {
     }
 
     nonisolated func pictureInPictureControllerDidStartPictureInPicture(_ controller: AVPictureInPictureController) {
-        MainActor.assumeIsolated { events?(.started) }
+        MainActor.assumeIsolated {
+            #if os(macOS)
+            if let window = Self.floatingWindow(among: NSApp.windows) {
+                follow(window)
+            } else {
+                PlayerModel.note(.warn, "picture in picture: no floating window to size the picture for")
+            }
+            #endif
+            events?(.started)
+        }
     }
 
     nonisolated func pictureInPictureController(
@@ -540,9 +612,13 @@ extension SystemPictureInPicture: AVPictureInPictureSampleBufferPlaybackDelegate
     nonisolated func pictureInPictureController(
         _ controller: AVPictureInPictureController, didTransitionToRenderSize newRenderSize: CMVideoDimensions
     ) {
+        #if !os(macOS)
         MainActor.assumeIsolated {
             renderSize?(CGSize(width: Int(newRenderSize.width), height: Int(newRenderSize.height)))
         }
+        #endif
+        // On the Mac this is the size of the display layer's picture in the app, in points, and
+        // the picture keeps one size there (`PictureInPicture.macPixels`).
     }
 
     nonisolated func pictureInPictureController(

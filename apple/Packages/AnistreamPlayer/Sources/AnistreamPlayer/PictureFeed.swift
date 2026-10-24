@@ -8,7 +8,7 @@
 //
 // The frames go out as 8-bit BGRA, which every display layer takes, whatever the drawable is:
 // mpv's is 10-bit, so the copy converts as it samples (MPS's bilinear scale), at the drawable's
-// size or within `maximumSize`.
+// size, within `maximumSize`, or at `frameSize`.
 
 import AVFoundation
 import CoreMedia
@@ -58,6 +58,7 @@ public final class PictureFeed: @unchecked Sendable {
     private var format: CMVideoFormatDescription?
     private var pending = 0
     private var limit: CGSize?
+    private var fixed: CGSize?
     private var aspect: Double?
     /// The scaler's transform is set for each copy, one copy at a time.
     private let encodeLock = NSLock()
@@ -105,6 +106,14 @@ public final class PictureFeed: @unchecked Sendable {
     public var maximumSize: CGSize? {
         get { lock.withLock { limit } }
         set { lock.withLock { limit = newValue } }
+    }
+
+    /// Every frame handed over at exactly this size, in pixels, the part scaled to fill it. Nil,
+    /// the default: the part's own size, within `maximumSize`. On the Mac, where AVKit lays the
+    /// floating window's picture out wrongly each time the frames change size.
+    public var frameSize: CGSize? {
+        get { lock.withLock { fixed } }
+        set { lock.withLock { fixed = newValue } }
     }
 
     /// The picture's width over its height, when mpv draws it with bars into a drawable of
@@ -198,17 +207,27 @@ public final class PictureFeed: @unchecked Sendable {
             Double(width) > limit.width || Double(height) > limit.height
         else { return (width, height) }
         let scale = min(limit.width / Double(width), limit.height / Double(height))
-        // Even sizes, which every video format takes.
-        func even(_ value: Double) -> Int { max(2, Int((value / 2).rounded()) * 2) }
         return (even(Double(width) * scale), even(Double(height) * scale))
     }
+
+    /// The size of the frames handed over for a `part` of a drawable: `exactly`, when given, or
+    /// the part's within `limit`.
+    static func handedOver(_ part: CGRect, exactly: CGSize?, inside limit: CGSize?) -> (width: Int, height: Int) {
+        if let exactly, exactly.width >= 2, exactly.height >= 2 {
+            return (even(exactly.width), even(exactly.height))
+        }
+        return fitted(width: Int(part.width), height: Int(part.height), inside: limit)
+    }
+
+    /// Even sizes, which every video format takes.
+    private static func even(_ value: Double) -> Int { max(2, Int((value / 2).rounded()) * 2) }
 
     private func copy(_ drawable: CAMetalDrawable) {
         let source = drawable.texture
         let prepared: (MTLCommandQueue, MPSImageBilinearScale, CVPixelBufferPool, PoolKey, CGRect)? = lock.withLock {
             guard layer != nil, let queue, let scaler else { return nil }
             let part = Self.content(width: source.width, height: source.height, aspect: aspect)
-            let size = Self.fitted(width: Int(part.width), height: Int(part.height), inside: limit)
+            let size = Self.handedOver(part, exactly: fixed, inside: limit)
             let key = PoolKey(width: size.width, height: size.height, pixelFormat: kCVPixelFormatType_32BGRA)
             guard pending < Self.maximumPending else {
                 tally.dropped += 1
@@ -278,7 +297,9 @@ public final class PictureFeed: @unchecked Sendable {
     public func show(_ whole: CGImage) {
         let part = Self.content(width: whole.width, height: whole.height, aspect: contentAspect)
         guard let image = whole.cropping(to: part) else { return }
-        let key = PoolKey(width: image.width, height: image.height, pixelFormat: kCVPixelFormatType_32BGRA)
+        let size = Self.handedOver(
+            CGRect(x: 0, y: 0, width: image.width, height: image.height), exactly: frameSize, inside: nil)
+        let key = PoolKey(width: size.width, height: size.height, pixelFormat: kCVPixelFormatType_32BGRA)
         let pool: CVPixelBufferPool? = lock.withLock {
             guard layer != nil else { return nil }
             if poolKey != key {
