@@ -1,6 +1,7 @@
 package tv.anistream.tv
 
 import android.content.ComponentName
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.CompositionLocalProvider
@@ -13,6 +14,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
@@ -209,10 +211,28 @@ class TvShots {
         press(Key.DirectionCenter)
     }
 
+    /** The remote's Back closes an open panel, and the player stays. */
+    @Test
+    fun back_closes_a_player_panel() = playerShot(null) { model ->
+        repeat(6) { if (focusedText() != "Info") press(Key.DirectionRight) }
+        press(Key.DirectionCenter)
+        assertEquals("the panel is open", 2, compose.onAllNodesWithText("Info").fetchSemanticsNodes().size)
+        // Through the activity, as a remote's key comes, not the dispatcher.
+        compose.runOnUiThread {
+            listOf(KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP).forEach {
+                compose.activity.dispatchKeyEvent(KeyEvent(it, KeyEvent.KEYCODE_BACK))
+            }
+        }
+        compose.mainClock.advanceTimeBy(600)
+        compose.waitForIdle()
+        assertEquals("the panel is closed", 1, compose.onAllNodesWithText("Info").fetchSemanticsNodes().size)
+        assertTrue("the player is still up", model.isPresented)
+    }
+
     /** The model's clock, held where a shot puts it. */
     private var time = 0L
 
-    private fun playerShot(name: String, then: (PlayerModel) -> Unit) {
+    private fun playerShot(name: String?, then: (PlayerModel) -> Unit) {
         AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         var mpv: ScriptedMpv? = null
@@ -256,6 +276,7 @@ class TvShots {
         then(model)
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        if (name == null) return
         awaitArt(store)
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
     }

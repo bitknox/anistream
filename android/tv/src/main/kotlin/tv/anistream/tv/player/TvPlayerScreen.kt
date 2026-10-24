@@ -155,7 +155,7 @@ fun TvPlayerScreen(
     }
 
     // Back, top to bottom: a panel closes, a scrub cancels, Up Next cancels, else the player closes.
-    BackHandler(enabled = model.isPresented) {
+    fun back() {
         when {
             model.choosingSource -> model.cancelChoosingSource()
             panel != null -> closePanel()
@@ -167,6 +167,7 @@ fun TvPlayerScreen(
             else -> model.viewerClosed()
         }
     }
+    BackHandler(enabled = model.isPresented, onBack = ::back)
 
     // The settled seek: one seek half a second after the last press, the count shown a moment more.
     LaunchedEffect(presses) {
@@ -243,6 +244,12 @@ fun TvPlayerScreen(
             .background(Color.Black)
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) heldSince = model.clock
+                // The remote's Back, here before Compose spends it on moving focus out to this
+                // focusable root, which would leave a panel open with focus behind it.
+                if (event.key == Key.Back) {
+                    if (event.type == KeyEventType.KeyUp && !event.nativeKeyEvent.isCanceled) back()
+                    return@onPreviewKeyEvent true
+                }
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 // Any key, the TV's remote's or a phone's: somebody is there.
                 model.viewerThere()
