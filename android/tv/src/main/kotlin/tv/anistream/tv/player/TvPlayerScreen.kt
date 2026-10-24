@@ -308,7 +308,8 @@ fun TvPlayerScreen(
         if (!chrome && skip != null) {
             SkipPill(skip.label, fresh = skipFresh, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 540.dp - 400.dp))
         }
-        val upNext = model.upNext?.takeIf { model.corner == PlayerModel.Corner.UpNext && panel == null }
+        // Never over the starting screen: the card belongs to the episode on screen.
+        val upNext = model.upNext?.takeIf { !starting && model.corner == PlayerModel.Corner.UpNext && panel == null }
         if (upNext != null) {
             UpNextCard(model, upNext.next, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 27.dp))
         }
