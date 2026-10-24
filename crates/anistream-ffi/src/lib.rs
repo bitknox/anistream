@@ -751,7 +751,7 @@ mod tests {
                 Person, Ranking, RankingKind, RelationKind, Season, SourceMaterial,
                 StaffCredit, SynopsisSpan, TitleDetail, TitleLanguage, TitleTag,
             },
-            episodes::{EpisodeAiring, EpisodeRow},
+            episodes::{DubExtent, EpisodeAiring, EpisodeRow},
         };
         let mut entry = Entry::new(AnilistId::new(900_001), "Stardust Wayfarer");
         entry.title_romaji = Some("Hoshikuzu no Tabibito".into());
@@ -849,11 +849,10 @@ mod tests {
             metadata_only: false,
         };
         assert_eq!(crossed(row.clone()), row);
-        crosses_intact(Event::DubbedTo {
-            id: AnilistId::new(900_001),
-            episode: Some("6".into()),
-        });
-        crosses_intact(Event::DubbedTo { id: AnilistId::new(900_001), episode: None });
+        let dub = DubExtent { through: 6, complete: false };
+        assert_eq!(crossed(dub), dub);
+        crosses_intact(Event::TitleDub { id: AnilistId::new(900_001), dub: Some(dub) });
+        crosses_intact(Event::TitleDub { id: AnilistId::new(900_001), dub: None });
     }
 
     #[test]

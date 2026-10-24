@@ -11,6 +11,7 @@ use anistream_model::{
         CastRole, FuzzyDate, RankingKind, RelationKind, Season, SourceMaterial, TitleLanguage,
     },
     command::Command,
+    episodes::DubExtent,
     event::Event,
     search::SearchQuery,
     settings::SettingKey,
@@ -261,19 +262,38 @@ async fn a_matched_titles_episodes_are_named_and_carry_its_history() {
 }
 
 #[tokio::test]
-async fn how_far_a_dub_goes_is_the_sources_own_listing_in_the_dub() {
+async fn how_far_a_dub_goes_is_the_sources_own_listing_in_the_dub_said_quietly() {
     let mut h = Harness::new().await;
-    h.send(Command::LoadDubbedTo(FINISHED));
+    // The page opens: its table and its dub asked together, the dub said after the table and
+    // with no job of its own.
+    h.send(Command::LoadEpisodes(FINISHED));
+    h.send(Command::LoadDub(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["DubbedTo"]);
-    let Event::DubbedTo { id, episode } = &updates[0] else { unreachable!() };
-    let last = sources::episodes(FINISHED).last().unwrap().number.as_str().to_owned();
-    assert_eq!((*id, episode.as_deref()), (FINISHED, Some(last.as_str())));
+    let said = names(&updates);
+    let at = |name: &str| said.iter().position(|said| *said == name).expect(name);
+    assert!(at("Episodes") < at("TitleDub"), "{said:?}");
+    // The table's job alone: the dub has none.
+    assert_eq!(said.iter().filter(|name| **name == "JobDone").count(), 1, "{said:?}");
+    let Event::TitleDub { id, dub } = &updates[at("TitleDub")] else { unreachable!() };
+    let through = sources::FINISHED_DUBBED_TO;
+    assert_eq!((*id, *dub), (FINISHED, Some(DubExtent { through, complete: false })));
+    assert_eq!(
+        anistream_model::present::dub_line(dub.as_ref()).as_deref(),
+        Some("Dub to episode 6")
+    );
+
+    // A title the source has dubbed whole.
+    h.send(Command::LoadDub(SEQUEL));
+    let updates = h.settle().await;
+    let [Event::TitleDub { id: SEQUEL, dub: Some(dub) }] = &updates[..] else {
+        panic!("{:?}", names(&updates))
+    };
+    assert!(dub.complete, "{dub:?}");
 
     // A title no source has: nothing to say of its dub.
-    h.send(Command::LoadDubbedTo(MISSING));
+    h.send(Command::LoadDub(MISSING));
     let updates = h.settle().await;
-    assert!(matches!(&updates[..], [Event::DubbedTo { id: MISSING, episode: None }]));
+    assert!(matches!(&updates[..], [Event::TitleDub { id: MISSING, dub: None }]));
 }
 
 #[tokio::test]

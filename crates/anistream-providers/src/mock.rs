@@ -30,6 +30,11 @@ pub struct MockProvider {
     /// Answers for one key, in place of the shared lists above. A key names one title, so a
     /// mock standing in for a catalogue of several has to tell them apart by it.
     episodes_for: HashMap<ProviderKey, Vec<Episode>>,
+    /// What a listing in the dub answers for one key, where it differs from the sub's.
+    dub_for: HashMap<ProviderKey, Vec<Episode>>,
+    /// A listing in the dub of a key `dub_for` does not name finds nothing, rather than the
+    /// sub's list.
+    no_dub: bool,
     streams_for: HashMap<ProviderKey, Vec<Stream>>,
     sources: Vec<SourceCandidate>,
     /// What each release in `sources` resolves to, by its id, for a pick by hand.
@@ -56,6 +61,8 @@ impl MockProvider {
             episodes: Vec::new(),
             streams: Vec::new(),
             episodes_for: HashMap::new(),
+            dub_for: HashMap::new(),
+            no_dub: false,
             streams_for: HashMap::new(),
             sources: Vec::new(),
             source_streams: HashMap::new(),
@@ -88,6 +95,19 @@ impl MockProvider {
         episodes: Vec<Episode>,
     ) -> Self {
         self.episodes_for.insert(key.into(), episodes);
+        self
+    }
+
+    /// Answer a listing of this key in the dub with these: a dub that stops short of the sub.
+    /// Every other key's dub is its sub's list, unless [`Self::without_dub`].
+    pub fn with_dub_for(mut self, key: impl Into<ProviderKey>, episodes: Vec<Episode>) -> Self {
+        self.dub_for.insert(key.into(), episodes);
+        self
+    }
+
+    /// Find nothing in the dub for a key [`Self::with_dub_for`] does not name.
+    pub fn without_dub(mut self) -> Self {
+        self.no_dub = true;
         self
     }
 
@@ -175,9 +195,17 @@ impl Provider for MockProvider {
     async fn episodes(
         &self,
         key: &ProviderKey,
-        _translation: Translation,
+        translation: Translation,
     ) -> Result<Vec<Episode>, ProviderError> {
         self.record().await?;
+        if translation == Translation::Dub {
+            if let Some(dub) = self.dub_for.get(key) {
+                return Ok(dub.clone());
+            }
+            if self.no_dub {
+                return Err(ProviderError::NotFound);
+            }
+        }
         Ok(self.episodes_for.get(key).unwrap_or(&self.episodes).clone())
     }
 

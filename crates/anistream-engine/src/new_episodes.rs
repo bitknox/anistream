@@ -40,7 +40,7 @@ use std::{
 use anistream_core::{
     config::Config,
     ids::AnilistId,
-    media::{Episode, MediaStatus, Translation},
+    media::{MediaStatus, Translation},
 };
 use anistream_meta::{Media, Meta, anilist::AiringEntry, titles::Titles};
 use anistream_model::{event::Event, notifications::NewEpisode, show::ShowSettingKey};
@@ -48,8 +48,13 @@ use anistream_providers::ProviderRegistry;
 use anistream_store::{EpisodeNotice, Store};
 
 use crate::{
-    clock::Clock, data, outbox::Outbox, services::Services, show_settings, state::EngineState,
-    titles::episodes::dub_listing,
+    clock::Clock,
+    data,
+    outbox::Outbox,
+    services::Services,
+    show_settings,
+    state::EngineState,
+    titles::{dub::reach, episodes::dub_listing},
 };
 
 const HOUR: i64 = 3_600;
@@ -193,17 +198,6 @@ fn notified(store: &Store, signed_in: bool, now: i64, enabled: bool) -> Vec<Anil
 /// The translation the viewer watches `id` in: its own setting, or Settings'.
 fn translation(config: &Config, store: &Store, id: AnilistId) -> Translation {
     show_settings::for_show(config, store, id).playback.translation
-}
-
-/// The highest whole episode a listing reaches: 6 for one that ends at "6" or "6.5", `None` for
-/// one with no episode numbered.
-fn reach(episodes: &[Episode]) -> Option<u32> {
-    episodes
-        .iter()
-        .filter_map(|episode| episode.number.as_number())
-        .filter(|number| *number >= 1.0)
-        .map(|number| number.floor() as u32)
-        .max()
 }
 
 /// What one check works with.
@@ -501,7 +495,7 @@ impl Check {
 
 #[cfg(test)]
 mod tests {
-    use anistream_core::config::NetworkConfig;
+    use anistream_core::{config::NetworkConfig, media::Episode};
     use anistream_meta::AniList;
     use anistream_store::WatchEvent;
 

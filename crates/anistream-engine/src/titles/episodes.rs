@@ -154,30 +154,9 @@ async fn listed(
     .await
 }
 
-/// How far title `id`'s dub goes, from the source a play would use: [`Event::DubbedTo`]. Said
-/// as `None` when that source has no dub of it, and when it could not say.
-pub async fn dubbed_to(lent: Lent, id: AnilistId) {
-    let Lent { meta, store, registry, tx, .. } = lent;
-    let episode = dub_reach(&meta, &store, &registry, id).await;
-    let _ = tx.send(Event::DubbedTo { id, episode });
-}
-
-async fn dub_reach(
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
-    id: AnilistId,
-) -> Option<String> {
-    if registry.is_empty() && !registry.is_arriving() {
-        return None;
-    }
-    let media = meta.media(id).await.ok()?;
-    last_episode(&dub_listing(&media, store, registry, id, now_epoch()).await?)
-}
-
 /// Title `id`'s episodes in the dub, from the source a play would use, once the sources on
-/// their way have arrived: `None` when no source answered. What [`dubbed_to`] reads the reach
-/// of, and the new-episode check too, for a show watched dubbed.
+/// their way have arrived: `None` when no source answered. What the new-episode check reads, for
+/// a show watched dubbed.
 pub(crate) async fn dub_listing(
     media: &anistream_meta::anilist::Media,
     store: &Store,
@@ -185,24 +164,74 @@ pub(crate) async fn dub_listing(
     id: AnilistId,
     now: i64,
 ) -> Option<Vec<anistream_core::media::Episode>> {
-    crate::sources::arrived(registry, || ()).await;
-    // A source the ladder cannot match confidently in the dub is not asked about: the question
-    // of which title is meant belongs to the episode table, which asks it in the sub.
-    match listed(media, store, registry, id, Translation::Dub, now).await {
+    match dub_answer(media, store, registry, id, now).await.answer {
         anistream_providers::Answer::Answered { value, .. } => Some(value),
         _ => None,
     }
 }
 
-/// The episode a listing reaches: the highest numbered one, or the last listed when none is
-/// numbered.
-fn last_episode(episodes: &[anistream_core::media::Episode]) -> Option<String> {
-    let numbered = episodes
-        .iter()
-        .filter_map(|episode| Some((episode.number.as_number()?, episode)))
-        .max_by(|(a, _), (b, _)| a.total_cmp(b))
-        .map(|(_, episode)| episode);
-    numbered.or(episodes.last()).map(|episode| episode.number.as_str().to_owned())
+/// What a listing of a title in the dub came to: see [`dub_answer`].
+pub(crate) struct DubAnswer {
+    pub answer: anistream_providers::Answer<Vec<anistream_core::media::Episode>>,
+    /// No source answered, and that is because each matched the title and found nothing of it
+    /// in the dub, rather than because one failed or could not match it: it has no dub there.
+    pub none: bool,
+}
+
+/// What the source a dubbed play would use answers for title `id`'s episodes in the dub, once
+/// the sources on their way have arrived: [`dub_listing`], and the title page's dub line.
+pub(crate) async fn dub_answer(
+    media: &anistream_meta::anilist::Media,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+    now: i64,
+) -> DubAnswer {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    };
+    crate::sources::arrived(registry, || ()).await;
+    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
+    let registry = pinned.as_ref().unwrap_or(registry);
+    // How many sources were listed, and whether each found nothing: a source that failed says
+    // nothing of whether there is a dub.
+    let (asked, nothing) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicBool::new(true)));
+    // A source the ladder cannot match confidently in the dub is not asked about: the question
+    // of which title is meant belongs to the episode table, which asks it in the sub.
+    let answer = anistream_providers::first_answer(
+        store,
+        registry,
+        id,
+        &media.match_target(),
+        Translation::Dub,
+        now,
+        |source, key| {
+            let (asked, nothing) = (asked.clone(), nothing.clone());
+            async move {
+                let attempt = source.episodes(&key, Translation::Dub, now).await;
+                asked.fetch_add(1, Ordering::SeqCst);
+                let not_found = attempt.failures.iter().all(|(_, error)| {
+                    matches!(error, anistream_core::error::ProviderError::NotFound)
+                });
+                if attempt.value.is_some() || !not_found {
+                    nothing.store(false, Ordering::SeqCst);
+                }
+                attempt
+            }
+        },
+    )
+    .await;
+    let none = match &answer {
+        // One reason for each source tried: each was matched and listed, and found nothing.
+        anistream_providers::Answer::Unanswered { reasons, matched: true } => {
+            !reasons.is_empty()
+                && asked.load(Ordering::SeqCst) == reasons.len()
+                && nothing.load(Ordering::SeqCst)
+        }
+        _ => false,
+    };
+    DubAnswer { answer, none }
 }
 
 /// A title's episodes, from the source playback would use, or the candidates to choose
@@ -517,16 +546,5 @@ mod tests {
                 (Some("Chapter 3"), Some(1_440)),
             ]
         );
-    }
-
-    #[test]
-    fn a_listing_reaches_its_highest_numbered_episode() {
-        let listed = |numbers: &[&str]| -> Vec<Episode> {
-            numbers.iter().map(|n| Episode::new(*n)).collect()
-        };
-        assert_eq!(last_episode(&listed(&["1", "2", "12", "3"])).as_deref(), Some("12"));
-        assert_eq!(last_episode(&listed(&["5", "5.5"])).as_deref(), Some("5.5"));
-        assert_eq!(last_episode(&listed(&["OVA", "Special"])).as_deref(), Some("Special"));
-        assert_eq!(last_episode(&[]), None);
     }
 }

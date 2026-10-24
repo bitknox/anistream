@@ -773,7 +773,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
         Event::Episodes { .. } => "Episodes",
-        Event::DubbedTo { .. } => "DubbedTo",
+        Event::TitleDub { .. } => "TitleDub",
         Event::Progress { .. } => "Progress",
         Event::Vpn(_) => "Vpn",
         Event::ArtworkReady { .. } => "ArtworkReady",
@@ -919,9 +919,7 @@ fn copy(update: &Event) -> Event {
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),
         Event::Episodes { id, rows } => Event::Episodes { id: *id, rows: rows.clone() },
-        Event::DubbedTo { id, episode } => {
-            Event::DubbedTo { id: *id, episode: episode.clone() }
-        }
+        Event::TitleDub { id, dub } => Event::TitleDub { id: *id, dub: *dub },
         Event::Progress { id, progress, resume, episodes } => Event::Progress {
             id: *id,
             progress: *progress,

@@ -87,6 +87,9 @@ pub struct EngineState {
     /// Search's kept answers and the search waiting or running: see
     /// [`crate::catalog::search::Searches`].
     pub search: crate::catalog::search::Searches,
+    /// How far each title's dub goes, kept, and the lookup running: see
+    /// [`crate::titles::dub`].
+    pub dubs: crate::titles::dub::Dubs,
 }
 
 impl EngineState {
@@ -118,6 +121,7 @@ impl EngineState {
             widget_schedule: Schedule::default(),
             ahead: Default::default(),
             search: Default::default(),
+            dubs: Default::default(),
         }
     }
 

@@ -57,6 +57,27 @@ pub struct EpisodeRow {
     pub metadata_only: bool,
 }
 
+/// How far a title's dub goes, as the source a dubbed play would use lists it: what
+/// [`Event::TitleDub`] says, and what [`present::dub_line`] words for the title page.
+///
+/// No dub at all, and a source that could not say, are both no extent: `None` where it is
+/// carried, and nothing on the page.
+///
+/// [`Event::TitleDub`]: crate::event::Event::TitleDub
+/// [`present::dub_line`]: crate::present::dub_line
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct DubExtent {
+    /// The last whole episode the source lists in the dub, in the numbering of the title's
+    /// episode table: 6 for "Dub to episode 6".
+    pub through: u32,
+    /// The dub has every episode aired so far: all of a finished show, or an airing one's dub
+    /// caught up with its broadcast. `false` when it stops short, and when how far the show
+    /// has aired cannot be lined up with the source's numbers.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub complete: bool,
+}
+
 /// One episode's broadcast, from AniList's schedule: [`EpisodeRow::airs_at`] by number, and
 /// what a play can be checked against before looking for an episode that is not out.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

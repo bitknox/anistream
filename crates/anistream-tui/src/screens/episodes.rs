@@ -14,6 +14,11 @@ use crate::{
 
 use super::{chrome::mark_selected, draw_artwork, line, lists::render_loading, set_meter};
 
+/// Columns between the title and the dub line beside it.
+const DUB_GAP: usize = 3;
+/// The least of the title the dub line is shown beside: narrower, the title has the row.
+const MIN_TITLE: usize = 16;
+
 /// The timing-sheet episode table.
 ///
 /// Modelled on an animation production timing sheet: a fixed-width numeral column, hairline
@@ -21,12 +26,30 @@ use super::{chrome::mark_selected, draw_artwork, line, lists::render_loading, se
 /// information rather than decorating — which is what earns the zero-padded field.
 pub(super) fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     let title = app.detail.as_ref().map_or("EPISODES", |e| e.title.as_str());
+    // How far the dub goes sits at the right of the title's row, when the row has room for both:
+    // it is the source's, as the table is.
+    let room = area.width.saturating_sub(4) as usize;
+    let dub = app
+        .detail
+        .as_ref()
+        .and_then(|e| app.dub_line(e.id))
+        .filter(|dub| room >= dub.chars().count() + DUB_GAP + MIN_TITLE);
+    let title_room = dub.as_ref().map_or(room, |dub| room - dub.chars().count() - DUB_GAP);
     buf.set_string(
         area.left(),
         area.top(),
-        format!("{}  {}", glyph::BACK, truncate(title, area.width.saturating_sub(4) as usize)),
+        format!("{}  {}", glyph::BACK, truncate(title, title_room)),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
+    if let Some(dub) = dub {
+        let width = dub.chars().count() as u16;
+        buf.set_string(
+            area.right().saturating_sub(width),
+            area.top(),
+            dub,
+            app.palette.style(Role::TextDim),
+        );
+    }
 
     let mut table = Rect { y: area.top() + 2, height: area.height.saturating_sub(2), ..area };
     if table.height < 3 {
@@ -450,6 +473,29 @@ mod tests {
         let nine = text.find("009").unwrap();
         let ten = text.find("010").unwrap();
         assert!(nine < ten);
+    }
+
+    #[test]
+    fn how_far_the_dub_goes_sits_beside_the_title_for_that_title_alone() {
+        use anistream_model::episodes::DubExtent;
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
+        app.handle(crate::keymap::Action::Open, 20);
+        app.detail = app.selected_entry().cloned();
+        app.nav.push(StageView::Episodes(AnilistId::new(1)));
+        app.apply(app.episodes_here(vec![episode("1", "The Lantern Road", 0.0, false)]));
+        let said = |app: &mut App, id: u32, dub: Option<DubExtent>| {
+            app.apply(Event::TitleDub { id: AnilistId::new(id), dub });
+            text_of(&render_to_buffer(app, 110, 20))
+        };
+
+        let partial = Some(DubExtent { through: 6, complete: false });
+        assert!(said(&mut app, 1, partial).contains("Dub to episode 6"));
+        // Another title's dub is not this one's.
+        let other = said(&mut app, 2, Some(DubExtent { through: 3, complete: false }));
+        assert!(!other.contains("Dub to episode 3"));
+        let whole = Some(DubExtent { through: 12, complete: true });
+        assert!(said(&mut app, 1, whole).contains("Dubbed"));
+        assert!(!said(&mut app, 1, None).contains("Dub"), "no dub, no line");
     }
 
     #[test]
