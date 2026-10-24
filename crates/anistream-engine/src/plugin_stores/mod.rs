@@ -85,6 +85,20 @@ impl Stores {
         })
     }
 
+    /// These stores with a client that resolves no name, for fixtures and tests: a store joined
+    /// or refreshed by name fails to resolve instead of reaching the internet.
+    pub fn with_offline_tokens(
+        config: &Config,
+        paths: &Paths,
+        tokens: TokenStore,
+    ) -> Result<Self, String> {
+        let timeout = Duration::from_secs(config.network.timeout_secs.max(1));
+        Ok(Self {
+            client: StoreClient::offline(timeout).map_err(|e| e.to_string())?,
+            ..Self::with_tokens(config, paths, tokens)?
+        })
+    }
+
     /// These stores, calling this device `kind` when it joins with an invite: "iPad", say. The
     /// terminal app's are [`stores::COMPUTER`].
     #[must_use]

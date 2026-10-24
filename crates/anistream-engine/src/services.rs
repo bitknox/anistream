@@ -74,6 +74,9 @@ pub struct Services {
     /// The time the new-episode check and the widgets' record go by: the system's, except in a
     /// test that moves it on.
     pub clock: crate::clock::Clock,
+    /// The exit network the connection check answers with, in a fixture build or a test: the
+    /// guard then makes no lookup. `None` for the app, which looks it up.
+    pub fixture_exit: Option<anistream_providers::vpn::Egress>,
 }
 
 impl Services {
@@ -121,6 +124,7 @@ impl Services {
             app_clients: AppClients::default(),
             host,
             clock: Default::default(),
+            fixture_exit: None,
         })
     }
 }
