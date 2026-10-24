@@ -32,6 +32,8 @@ mod log;
 mod remote;
 #[cfg(feature = "testing")]
 mod scenes;
+#[cfg(feature = "remote")]
+mod sender;
 mod start;
 #[cfg(feature = "testing")]
 mod testing;
@@ -43,6 +45,14 @@ pub use log::{FfiLogLevel, log_line, start_log};
 pub use remote::{FfiAdvert, FfiPairedPhone, FfiScreen, FfiTvRemote, FfiTxtPair};
 #[cfg(feature = "testing")]
 pub use scenes::FfiScene;
+#[cfg(all(feature = "remote", feature = "testing"))]
+pub use sender::FfiFakeTv;
+#[cfg(feature = "remote")]
+pub use sender::{
+    FfiDiscoverySink, FfiLinkPhase, FfiNowCard, FfiPairedTv, FfiRemoteCard, FfiSkipCard,
+    FfiTvBrowser, FfiTvCommand, FfiTvError, FfiTvLink, FfiTvPairing, FfiTvProblem, FfiTvRow,
+    FfiTvRowKind, FfiTvSender, FfiTvTrack, FfiTvTrackKind, tv_playhead,
+};
 pub use start::{FfiBackground, FfiDirs, FfiError, FfiPlatform, FfiStart, SecretsMode};
 
 /// Each command and event, written as the bindings write it and read back: what a front end sends
