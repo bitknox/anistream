@@ -81,9 +81,13 @@ which CI rebuilds from master. The spike pins this build:
   nothing the app needs.
 - It is a mingw build. Its DLL works from .NET as it is. Linking it from Rust with MSVC
   (`anistream-mpv-host`) needs an import library made with `lib /def`, or loading at run time.
-- `git-release` is replaced on every CI run, so the pinned names will disappear. Mirror the two
-  zips (for example, as assets on one of this repository's own releases) before CI depends on
-  them, and move to a tagged release once mpv ships libmpv with one.
+- `git-release` is replaced on every CI run, so the pinned names disappear. The two zips are
+  mirrored, unmodified, as assets on this repository's pre-release `deps-libmpv` (never the
+  latest release), and `desktop/windows/scripts/libmpv.ps1` fetches them from there and checks
+  their SHA-256. To bump, download the new zips from mpv's `git-release`, upload them with
+  `gh release upload deps-libmpv <zip>`, then change `$build` and the two SHA-256 values in the
+  script. Leave the old assets in place so older commits still build. Move to a tagged release
+  once mpv ships libmpv with one.
 - The DLL is 74 MB for arm64.
 
 ## What ran
@@ -255,8 +259,8 @@ The spike is not in `Anistream.Windows.slnx`, so the solution still builds and t
   UI thread while mpv presents from its own thread also needs a look.
 - **Threading.** The spike hands mpv's swapchain to XAML on the UI thread while mpv presents on
   its VO thread. That is allowed, and it held through every run, but it has had no stress test.
-- **libmpv's source.** Only rolling development builds have the DLL. Mirror the pinned zips, and
-  watch for mpv 0.42.
+- **libmpv's source.** Only rolling development builds have the DLL. The pinned zips are mirrored
+  on `deps-libmpv`. Watch for mpv 0.42.
 - **The player path.** The spike calls libmpv from C#. The app's plan is the engine's hosted
   player protocol through `anistream-mpv-host`, as on Linux. That needs a d3d11 composition mode
   in the crate (the options, the swapchain's address for the app, the composition size and the
