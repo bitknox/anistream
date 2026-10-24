@@ -13,6 +13,16 @@ struct Broadcast: Identifiable, Equatable {
     let episode: UInt32
     let airs: Date
 
+    /// When it was to air before the schedule moved it later, when it moved.
+    var delayedFrom: Date? {
+        entry.delayedFrom.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+    }
+
+    /// "(was 23:00)" after a delay.
+    var delayNote: String? {
+        delayedFrom.map { "(was \(CalendarWords.time($0)))" }
+    }
+
     /// Whether you have watched this episode.
     var watched: Bool {
         (entry.progress?.done ?? 0) >= episode
@@ -32,13 +42,13 @@ struct Broadcast: Identifiable, Equatable {
     }
 }
 
-/// The calendar's words for days and times, in English and on a 24-hour clock, as the boards
-/// set them.
+/// The calendar's words for days and times, through the system's formatters, so they follow the
+/// locale and its clock (copy rule 3).
 enum CalendarWords {
-    static let locale = Locale(identifier: "en_GB")
+    static var locale: Locale { .autoupdatingCurrent }
 
     static func time(_ date: Date) -> String {
-        date.formatted(Date.FormatStyle(locale: locale).hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        date.formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: locale))
     }
 
     static func weekday(_ date: Date) -> String {
@@ -57,15 +67,10 @@ enum CalendarWords {
         date.formatted(Date.FormatStyle(locale: locale).day())
     }
 
-    /// "19–25 October 2026", or across months "28 September – 4 October 2026".
+    /// The week as the locale writes a range of days: "19–25 October 2026".
     static func range(_ week: [Date]) -> String {
         guard let first = week.first, let last = week.last else { return "" }
-        let calendar = Calendar.current
-        let year = last.formatted(Date.FormatStyle(locale: locale).year())
-        if calendar.isDate(first, equalTo: last, toGranularity: .month) {
-            return "\(dayNumber(first))–\(dayMonth(last)) \(year)"
-        }
-        return "\(dayMonth(first)) – \(dayMonth(last)) \(year)"
+        return (first..<last).formatted(Date.IntervalFormatStyle(locale: locale).day().month(.wide).year())
     }
 
     /// "Thursday 16:30" for a time this week, "22 October 16:30" further away.
@@ -120,7 +125,14 @@ struct CalendarScreen: View {
         let days = weekDays(offset: navigator.calendarWeek)
         let broadcasts = store.broadcasts(mine: navigator.calendarMine)
         let now = Date.now
-        ListStates(state: store.calendar.list.state, placeholder: AnyView(Color.clear)) { _ in
+        ListStates(
+            state: store.calendar.list.state,
+            placeholder: AnyView(CalendarPlaceholder(days: days).padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))),
+            activity: "loading the calendar",
+            failure: "Couldn't load the calendar",
+            retry: { store.loadCalendar() },
+            offlineInset: 12
+        ) { _ in
             // One page that scrolls, the days' headings pinned above it: each column as long as
             // its day, and every one as long as the longest, or the window when that is longer.
             ScrollView {
@@ -280,11 +292,20 @@ struct BroadcastCell: View {
                         .aspectRatio(16 / 9, contentMode: .fit)
                         .clipShape(.rect(cornerRadius: 6))
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(CalendarWords.time(broadcast.airs))
-                            .font(.mac(13))
-                            .monospacedDigit()
-                            .macLineHeight(16)
-                            .foregroundStyle(.silk)
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(CalendarWords.time(broadcast.airs))
+                                .font(.mac(13))
+                                .monospacedDigit()
+                                .foregroundStyle(.silk)
+                            if let note = broadcast.delayNote {
+                                Text(note)
+                                    .font(.mac(12))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.haze)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .macLineHeight(16)
                         Text(broadcast.entry.showTitle)
                             .font(.macShowTitle(size: 13))
                             .macLineHeight(17)
@@ -330,17 +351,17 @@ struct CalendarToolbar: View {
         @Bindable var navigator = navigator
         HStack(spacing: 8) {
             HStack(spacing: 0) {
-                Button("Previous Week", systemImage: "chevron.left") { navigator.calendarWeek -= 1 }
+                Button(cased(mac: "Previous Week", touch: "Previous week"), systemImage: "chevron.left") { navigator.calendarWeek -= 1 }
                     .labelStyle(.iconOnly)
                 Text(weekName)
                     .font(.mac(13))
                     .frame(minWidth: 84)
-                Button("Next Week", systemImage: "chevron.right") { navigator.calendarWeek += 1 }
+                Button(cased(mac: "Next Week", touch: "Next week"), systemImage: "chevron.right") { navigator.calendarWeek += 1 }
                     .labelStyle(.iconOnly)
             }
             Picker("Show", selection: $navigator.calendarMine) {
-                Text("My List").tag(true)
-                Text("All Airing").tag(false)
+                Text(cased(mac: "My List", touch: "My list")).tag(true)
+                Text(cased(mac: "All Airing", touch: "All airing")).tag(false)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -350,10 +371,51 @@ struct CalendarToolbar: View {
 
     private var weekName: String {
         switch navigator.calendarWeek {
-        case 0: "This Week"
-        case -1: "Last Week"
-        case 1: "Next Week"
+        case 0: cased(mac: "This Week", touch: "This week")
+        case -1: cased(mac: "Last Week", touch: "Last week")
+        case 1: cased(mac: "Next Week", touch: "Next week")
         default: CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         }
+    }
+}
+
+/// The week while it loads, past 600 ms: the days' headings and a cell or two in each column,
+/// static and redacted, where the broadcasts will stand.
+struct CalendarPlaceholder: View {
+    let days: [Date]
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 4) {
+            ForEach(Array(days.enumerated()), id: \.offset) { index, day in
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(CalendarWords.weekday(day)).font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
+                        Text(CalendarWords.dayMonth(day)).font(.mac(12)).foregroundStyle(.haze)
+                    }
+                    .macLineHeight(16)
+                    .padding(8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .overlay(alignment: .bottom) { Rectangle().fill(.faintRule).frame(height: 1) }
+                    VStack(alignment: .leading, spacing: 12) {
+                        ForEach(0..<(index % 3 == 1 ? 1 : 2), id: \.self) { _ in
+                            VStack(alignment: .leading, spacing: 8) {
+                                RoundedRectangle(cornerRadius: 6).fill(.raised).aspectRatio(16 / 9, contentMode: .fit)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("17:30").font(.mac(13))
+                                    Text("Natsukaze Relay").font(.macShowTitle(size: 13))
+                                    Text("Ep 9 in 1h 30m").font(.mac(12))
+                                }
+                                .redacted(reason: .placeholder)
+                                .foregroundStyle(.haze)
+                            }
+                        }
+                    }
+                    .padding(8)
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .accessibilityHidden(true)
     }
 }

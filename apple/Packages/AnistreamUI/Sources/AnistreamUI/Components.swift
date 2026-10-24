@@ -156,6 +156,8 @@ struct ClampedText: View {
 struct Meter: View {
     let fraction: Double
     var height: CGFloat = 3
+    /// What VoiceOver says for it where the time left is known: "14 min left", not a percentage.
+    var spoken: String?
 
     var body: some View {
         Capsule()
@@ -171,7 +173,7 @@ struct Meter: View {
             .animation(.standard, value: fraction)
             .accessibilityElement()
             .accessibilityLabel("Progress")
-            .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
+            .accessibilityValue(spoken.map(Text.init) ?? Text(fraction, format: .percent.precision(.fractionLength(0))))
     }
 }
 
@@ -285,6 +287,17 @@ extension View {
         #endif
     }
 
+    /// The pointer over a list row: its highlight on iPad, and on the Mac the arrow, as Mac lists
+    /// have it; the row lights on press and selection only.
+    @ViewBuilder
+    func rowHover() -> some View {
+        #if os(iOS)
+        hoverEffect(.highlight)
+        #else
+        self
+        #endif
+    }
+
     /// The pointer over a capsule button: its lift on iPad, and the pointing hand on the Mac.
     func pointerLift() -> some View {
         #if os(iOS)
@@ -354,14 +367,17 @@ struct StateDot: View {
     }
 }
 
-/// The toolbar's sync capsule: where sync stands, as a button that opens Settings, Accounts.
+/// The toolbar's sync capsule: where sync stands, as a button that opens a popover of every
+/// running job with its elapsed time and note, the TUI's activity row whole (native-ux, Mac).
 struct SyncCapsule: View {
     @Environment(AppStore.self) private var store
+    /// Accounts in Settings, from the popover's foot.
     let open: () -> Void
+    @State private var showing = false
 
     var body: some View {
         let summary = store.accounts.summary
-        Button(action: open) {
+        Button { showing.toggle() } label: {
             HStack(spacing: 6) {
                 StateDot(state: summary.state)
                 Text(summary.text)
@@ -371,14 +387,73 @@ struct SyncCapsule: View {
             .padding(.horizontal, 4)
         }
         .accessibilityLabel(accessibilityLabel(summary))
-        .help("Opens Accounts in Settings")
+        .popover(isPresented: $showing, arrowEdge: .bottom) {
+            JobsPopover {
+                showing = false
+                open()
+            }
+        }
     }
 
     private func accessibilityLabel(_ summary: SyncSummary) -> String {
         let text = summary.state == .signedOut
             ? "\(AccountsModel.name(summary.tracker ?? "anilist")) not connected"
             : summary.text
-        return "\(text). Opens Settings, Accounts"
+        return "\(text). Shows what is running"
+    }
+}
+
+/// Every job running, oldest first: what it does, how long it has run, and what it waits on.
+struct JobsPopover: View {
+    @Environment(AppStore.self) private var store
+    let openAccounts: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(store.accounts.summary.text)
+                .font(.mac(13, weight: .semibold))
+                .foregroundStyle(.silk)
+            if store.jobs.running.isEmpty {
+                Text("Nothing is running.")
+                    .font(.mac(13))
+                    .foregroundStyle(.haze)
+                    .padding(.top, 8)
+            } else {
+                TimelineView(.periodic(from: .now, by: 1)) { _ in
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(store.jobs.running) { job in
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(job.activity.firstCapitalized)
+                                        .foregroundStyle(.silk)
+                                    if let note = job.note {
+                                        Text(note).foregroundStyle(.haze)
+                                    }
+                                }
+                                Spacer(minLength: 12)
+                                Text(Self.elapsed(job))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.haze)
+                            }
+                            .font(.mac(13))
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
+                .padding(.top, 10)
+            }
+            Rectangle().fill(.faintRule).frame(height: 1).padding(.vertical, 12)
+            Button("Accounts Settings…", action: openAccounts)
+                .buttonStyle(SecondaryCapsuleStyle())
+        }
+        .padding(16)
+        .frame(width: 300, alignment: .leading)
+    }
+
+    /// "4 s", "1 min 12 s".
+    static func elapsed(_ job: Job) -> String {
+        let seconds = Int((ContinuousClock.now - job.started).components.seconds)
+        return seconds < 60 ? "\(seconds) s" : "\(seconds / 60) min \(seconds % 60) s"
     }
 }
 

@@ -30,8 +30,13 @@ struct TabShell: View {
                 }
             }
             if sizeClass == .regular {
+                // In the sidebar's main group, as the Mac has it; Sources holds what plays from where.
+                Tab(AppSection.downloads.title, systemImage: AppSection.downloads.symbol, value: AppSection.downloads) {
+                    TabStack(section: .downloads) { screen(.downloads) }
+                }
+                .defaultVisibility(.hidden, for: .tabBar)
                 TabSection("Sources") {
-                    ForEach([AppSection.downloads, .providers, .pluginStores]) { section in
+                    ForEach([AppSection.providers, .pluginStores]) { section in
                         Tab(section.title.capitalizedSentence, systemImage: section.symbol, value: section) {
                             TabStack(section: section) { screen(section) }
                         }
@@ -53,8 +58,11 @@ struct TabShell: View {
         // The iPad's sidebar as the brief draws it (PadSidebarStyle). The bar is empty; it is
         // where the style reaches the sidebar from, and unlike a header it moves no row.
         .tabViewSidebarBottomBar { PadSidebarStyle(selection: navigator.section) }
-        .overlay(alignment: .top) {
-            NoticeCapsule(here: navigator.phoneSettings == nil).padding(.top, 8)
+        // At the foot, above the tab bar on iPhone and in a narrow window (Notices).
+        .overlay(alignment: .bottom) {
+            NoticeCapsule(here: navigator.phoneSettings == nil)
+                .padding(.horizontal, 16)
+                .padding(.bottom, sizeClass == .compact ? 64 : 16)
         }
         .sheet(isPresented: $navigator.messagesShown) {
             MessagesView()
@@ -67,6 +75,7 @@ struct TabShell: View {
             set: { (item: ShowItem?) in navigator.showSettings = item?.entry.id }
         )) { item in
             PhoneShowSettingsSheet(entry: item.entry)
+                .presentationDetents([.medium, .large])
         }
         .moreAboutSheet(navigator)
         .modifier(AppSheets())
@@ -77,7 +86,13 @@ struct TabShell: View {
         let wide = sizeClass == .regular
         switch section {
         case .continue: if wide { ContinueScreen() } else { PhoneContinue() }
-        case .calendar: if wide { CalendarScreen() } else { PhoneCalendar() }
+        case .calendar:
+            if wide {
+                // The week's paging and My list or All airing, as on the Mac (PadCalendar).
+                CalendarScreen().toolbar { ToolbarItem(placement: .topBarTrailing) { CalendarToolbar() } }
+            } else {
+                PhoneCalendar()
+            }
         case .seasonal: SeasonalScreen(minimum: wide ? 128 : 100).toolbar { ToolbarItem { SeasonalToolbar() } }
         case .library: PhoneLibrary()
         case .downloads: DownloadsScreen().toolbar { IPadDownloadsToolbar() }
@@ -124,7 +139,7 @@ struct IPadStoresToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Join Store", systemImage: "plus") { navigator.invite = "" }
+            Button("Join store", systemImage: "plus") { navigator.invite = "" }
         }
     }
 }
@@ -138,9 +153,9 @@ struct IPadDownloadsToolbar: ToolbarContent {
             let paused = store.downloads.rows.contains { $0.state == .paused }
             let running = store.downloads.rows.contains { $0.state == .active || $0.state == .queued }
             if running || !paused {
-                Button("Pause All") { store.pauseAllDownloads() }.disabled(!running)
+                Button("Pause all") { store.pauseAllDownloads() }.disabled(!running)
             } else {
-                Button("Resume All") { store.resumeAllDownloads() }
+                Button("Resume all") { store.resumeAllDownloads() }
             }
         }
     }
@@ -169,6 +184,13 @@ struct TabStack<Screen: View>: View {
                 }
                 .navigationTitle(section.title.capitalizedSentence)
                 .boardTitle(section.title.capitalizedSentence)
+                // Library's Downloads row, on iPhone and in a narrow window: no tab of its own.
+                .navigationDestination(isPresented: section == .library ? Binding(
+                    get: { navigator.downloadsPushed },
+                    set: { navigator.downloadsPushed = $0 }
+                ) : .constant(false)) {
+                    PhoneDownloadsPage()
+                }
                 .background(.ground)
                 // The ground under the whole stack, edge to edge, however narrow the screen in
                 // it: never the window's black at its sides.
