@@ -30,6 +30,8 @@ import Foundation
 ///                                                     shot as it changes
 ///     swift run AnistreamDev --episodes-delay 800     each episode table held back 800 ms, as a
 ///                                                     slow source answers
+///     swift run AnistreamDev --search-delay 1500      each search answer held back 1.5 s, as a
+///                                                     slow network answers
 ///     swift run AnistreamDev --home <dir>             keep the files in <dir> instead
 ///     swift run AnistreamDev --real                   the app's own engine, real sources and
 ///                                                     AniList, in a new temporary home
@@ -65,6 +67,8 @@ struct Options {
     var artCache: Int?
     /// How long each episode table waits before the screens see it, as a slow source answers.
     var episodesDelay: Duration?
+    /// How long each search answer waits before the screens see it, as a slow network answers.
+    var searchDelay: Duration?
     var width: CGFloat = 1280
     var height: CGFloat = 800
 
@@ -72,7 +76,7 @@ struct Options {
         usage: AnistreamDev [--scene watching|fresh|playing | --real [--shared]] [--home <dir>]
                             [--player-shot <state>] [--snapshot <file.png>] [--size <width>x<height>]
                             [--media <file>] [--full-screen <times>] [--art-trouble <fails>[,<ms>]]
-                            [--art-cache <MB>] [--episodes-delay <ms>]
+                            [--art-cache <MB>] [--episodes-delay <ms>] [--search-delay <ms>]
         the player's states: \(PlayerShot.allCases.map(\.rawValue).joined(separator: ", "))
         """
 
@@ -142,6 +146,10 @@ struct Options {
                 let ms = try value(flag)
                 guard let delay = Int(ms), delay >= 0 else { throw Problem.bad(flag, ms) }
                 episodesDelay = .milliseconds(delay)
+            case "--search-delay":
+                let ms = try value(flag)
+                guard let delay = Int(ms), delay >= 0 else { throw Problem.bad(flag, ms) }
+                searchDelay = .milliseconds(delay)
             case "--size":
                 let size = try value(flag)
                 let parts = size.split(separator: "x").compactMap { Double($0) }

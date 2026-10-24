@@ -276,7 +276,7 @@ public final class AppStore {
     /// Search now, as Return, a recent search or a rail's See All does: always asked, and kept
     /// among the recent searches.
     public func search(_ query: SearchQuery) {
-        _ = search.edit(query)
+        _ = search.edit(query, submitted: true)
         guard !query.normalized.isBlank() else { return }
         send(.search(query: query.normalized))
     }
@@ -289,6 +289,8 @@ public final class AppStore {
     }
 
     /// The search changed, a keystroke or a filter: the engine searches once the changes stop.
+    /// A blank or one-letter search is sent too, so the engine drops the search it was waiting
+    /// to make.
     public func searchLive(_ query: SearchQuery) {
         guard search.edit(query) else { return }
         send(.searchLive(query: query.normalized))
@@ -300,6 +302,12 @@ public final class AppStore {
         var query = search.query
         query.text = text
         searchLive(query)
+    }
+
+    /// Search again after the search failed.
+    public func retrySearch() {
+        guard let query = search.retry() else { return }
+        send(.search(query: query))
     }
 
     /// The next page of the results, as the end of them comes near.
@@ -428,6 +436,19 @@ public final class AppStore {
                 }
             }
         }
+        if let delay = searchDelay {
+            // Search's answers held back, as a slow network answers them.
+            let answers = events.filter(\.isSearchAnswer)
+            events.removeAll(where: \.isSearchAnswer)
+            if !answers.isEmpty {
+                Task { [weak self] in
+                    try? await Task.sleep(for: delay)
+                    guard let self else { return }
+                    for event in answers { apply(event) }
+                    lastApplied = .now
+                }
+            }
+        }
         #endif
         for event in events {
             apply(event)
@@ -440,6 +461,10 @@ public final class AppStore {
     /// How long each episode table waits before the screens see it: the dev harness's slow
     /// source (`--episodes-delay`). The testing engine only.
     public var episodesDelay: Duration?
+
+    /// How long each search answer waits before the screens see it: the dev harness's slow
+    /// network (`--search-delay`). The testing engine only.
+    public var searchDelay: Duration?
     #endif
 
     /// Show the invented rows the launch arguments ask for, on the testing engine only, and keep
@@ -644,8 +669,7 @@ public final class AppStore {
         case .calendar:
             calendar.apply(content, titles: titles)
         case .search(let query):
-            guard search.takes(query) else { return }
-            search.list.apply(content, titles: titles)
+            search.answer(content, for: query, titles: titles)
         case .library(let segment):
             library.segment(segment).apply(content, titles: titles)
         }
@@ -662,3 +686,15 @@ public final class AppStore {
         }
     }
 }
+
+#if FIXTURES
+extension Event {
+    /// An answer to a search: its titles, caption or pages, which the slow network holds back.
+    fileprivate var isSearchAnswer: Bool {
+        switch self {
+        case .content(.search, _), .caption(.search, _), .searchPaging, .searchMore: true
+        default: false
+        }
+    }
+}
+#endif

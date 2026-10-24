@@ -111,6 +111,13 @@ public final class SearchModel {
     /// What the list is the answer to, as the engine tags it: `query` with its text trimmed.
     /// `nil` at Search's start.
     public private(set) var asked: SearchQuery?
+    /// What the list on screen answers: `asked` once its answer is in, an earlier query while
+    /// it is on its way, `nil` before any.
+    public private(set) var answered: SearchQuery?
+    /// Whether the answer to `asked` has been waited for past 600 ms: the screens then show the
+    /// search as a job and placeholders in place of the earlier results. Never while typing
+    /// waits for Return.
+    public private(set) var overdue = false
     /// Whether AniList has more pages of the results behind those on screen.
     public private(set) var hasNext = false
     /// Whether a further page is on its way.
@@ -126,34 +133,56 @@ public final class SearchModel {
     public private(set) var recents: [SearchQuery] = []
     /// Whether typing waits for Return: the AniList budget ran low. Filters still search.
     public private(set) var livePaused = false
+    /// What the engine was last told, so an edit that changes nothing it searches for is not
+    /// sent again.
+    @ObservationIgnored private var told: SearchQuery?
+    @ObservationIgnored private var overdueTimer: Task<Void, Never>?
+
+    /// How long an answer is waited for before it shows as a job: the TUI's 600 ms.
+    public static let quiet: Duration = .milliseconds(600)
 
     public init() {}
 
-    /// Whether Search shows its start: rails and recent searches rather than results.
-    public var atStart: Bool { query.isBlank() }
+    /// Whether Search shows its start: rails and recent searches rather than results. One typed
+    /// letter, which the engine does not search for as it is typed, is the start still.
+    public var atStart: Bool {
+        let normal = query.normalized
+        return normal.isBlank() || (normal.waitsForWords && normal.withoutWords.isBlank() && asked != normal)
+    }
 
-    /// The search changed. Whether it asks anything new of the engine: not at the start, and not
-    /// when only spaces around the text changed.
-    func edit(_ query: SearchQuery) -> Bool {
+    /// Whether the answer to what was asked is still on its way.
+    public var pending: Bool {
+        asked != nil && answered != asked
+    }
+
+    /// The search changed: a keystroke, a filter, or Return when `submitted`. Whether the
+    /// engine is to be told: not when only spaces around the text changed.
+    func edit(_ query: SearchQuery, submitted: Bool = false) -> Bool {
         self.query = query
         let normal = query.normalized
-        if normal.isBlank() {
+        // One letter as it is typed: the engine waits for a second (its `too_short`).
+        let waits = !submitted && normal.waitsForWords
+        if normal.isBlank() || (waits && normal.withoutWords.isBlank()) {
             asked = nil
+            answered = nil
             list.state = .idle
             list.caption = nil
             hasNext = false
             loadingMore = false
             pages = 0
-            return false
+            watchOverdue()
+        } else if !waits, normal != asked {
+            asked = normal
+            // What is on screen stays until the answer replaces it, so typing does not flash;
+            // past 600 ms the screens show placeholders instead (`overdue`).
+            list.asked()
+            hasNext = false
+            loadingMore = false
+            pages = 0
+            watchOverdue()
         }
-        guard normal != asked else { return false }
-        asked = normal
-        // What is on screen stays until the answer replaces it, so typing does not flash.
-        list.asked()
-        hasNext = false
-        loadingMore = false
-        pages = 0
-        return true
+        defer { told = normal }
+        return submitted || normal != told
     }
 
     /// Search again for what is asked, as when titles are named another way.
@@ -163,9 +192,41 @@ public final class SearchModel {
         return asked
     }
 
+    /// Try again after a failure: placeholders until the answer.
+    func retry() -> SearchQuery? {
+        guard let asked else { return nil }
+        answered = nil
+        list.state = .loading
+        list.caption = nil
+        watchOverdue()
+        return asked
+    }
+
     /// Whether an answer tagged with `query` is for what is on screen.
     func takes(_ query: SearchQuery) -> Bool {
         asked == query
+    }
+
+    /// The answer to `query`, when it is the one asked.
+    func answer(_ content: ContentList, for query: SearchQuery, titles: TitleCache) {
+        guard takes(query) else { return }
+        list.apply(content, titles: titles)
+        if case .loading = content { return }
+        answered = query
+        overdue = false
+        overdueTimer?.cancel()
+    }
+
+    /// Count the 600 ms from now, for what was just asked.
+    private func watchOverdue() {
+        overdue = false
+        overdueTimer?.cancel()
+        guard pending else { return }
+        overdueTimer = Task { [weak self] in
+            try? await Task.sleep(for: Self.quiet)
+            guard let self, !Task.isCancelled, pending, !livePaused else { return }
+            overdue = true
+        }
     }
 
     func paging(_ query: SearchQuery, hasNext: Bool) {
@@ -177,7 +238,7 @@ public final class SearchModel {
 
     /// The next page to ask for, when there is one and none is on its way.
     func nextPage() -> (SearchQuery, UInt32)? {
-        guard let asked, hasNext, !loadingMore, case .loaded = list.state else { return nil }
+        guard let asked, !pending, hasNext, !loadingMore, case .loaded = list.state else { return nil }
         loadingMore = true
         return (asked, pages + 1)
     }
@@ -211,10 +272,30 @@ public final class SearchModel {
 
     func live(paused: Bool) {
         livePaused = paused
+        if paused { overdue = false }
     }
 }
 
 extension SearchQuery {
+    /// Whether the engine waits for more words before it searches as they are typed: one
+    /// letter, except a Chinese, Japanese or Korean character, which is a word. The engine's
+    /// `too_short`; Return searches for it anyway.
+    public var waitsForWords: Bool {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let only = text.unicodeScalars.first, text.unicodeScalars.count == 1 else { return false }
+        switch only.value {
+        case 0x3040...0x30FF, 0x3400...0x4DBF, 0x4E00...0x9FFF, 0xF900...0xFAFF, 0xAC00...0xD7AF: return false
+        default: return true
+        }
+    }
+
+    /// The query without its words: the filters and sort alone.
+    public var withoutWords: SearchQuery {
+        var query = self
+        query.text = ""
+        return query
+    }
+
     /// The query as the engine searches for it and tags its answer: its text without the spaces
     /// around it.
     public var normalized: SearchQuery {

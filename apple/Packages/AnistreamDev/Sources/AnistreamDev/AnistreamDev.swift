@@ -101,6 +101,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
         store.updates.installer = RehearsedInstaller()
         await store.start(launch, host: host)
         store.episodesDelay = options.episodesDelay
+        store.searchDelay = options.searchDelay
         if let trouble = options.artTrouble {
             store.troubleArt(failFirst: trouble.failFirst, delay: trouble.delay)
         }
