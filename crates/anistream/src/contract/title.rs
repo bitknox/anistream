@@ -209,17 +209,22 @@ async fn a_pin_written_inline_is_what_the_next_task_reads() {
     // The settings first, with the shows that keep a source of their own counted again.
     assert_eq!(
         names(&updates),
-        ["Settings", "Toast", "ProviderPreference", "Detail", "JobDone"]
+        ["Settings", "Toast", "ShowSettings", "ProviderPreference", "Detail", "JobDone"]
     );
     assert_eq!(kept_sources(&updates[0]), 1);
     assert_eq!(toasts(&updates), ["info: alt will be used for this title"]);
-    assert!(matches!(&updates[2], Event::ProviderPreference(Some(p)) if p == "alt"));
+    // The show's sheet says the pin, for the sheet it was made from.
+    assert!(
+        matches!(&updates[2], Event::ShowSettings(sheet) if sheet.source.as_deref() == Some("alt"))
+    );
+    assert!(matches!(&updates[3], Event::ProviderPreference(Some(p)) if p == "alt"));
     ends(&updates, job);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap().as_deref(), Some("alt"));
 
     h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Settings", "Toast"]);
+    assert_eq!(names(&updates), ["Settings", "Toast", "ShowSettings"]);
+    assert!(matches!(&updates[2], Event::ShowSettings(sheet) if sheet.source.is_none()));
     assert_eq!(kept_sources(&updates[0]), 0);
     assert_eq!(toasts(&updates), ["info: back to automatic source selection"]);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap(), None);
@@ -337,15 +342,15 @@ async fn a_pinned_source_lists_its_own_episodes() {
     h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Settings", "Toast", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[2]), ["1", "2", "3"], "alt's numbering, which Enter plays");
+    assert_eq!(names(&updates), ["Settings", "Toast", "ShowSettings", "Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[3]), ["1", "2", "3"], "alt's numbering, which Enter plays");
     ends(&updates, job);
 
     h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
     h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Settings", "Toast", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[2]).len(), 12, "the first source in the chain again");
+    assert_eq!(names(&updates), ["Settings", "Toast", "ShowSettings", "Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[3]).len(), 12, "the first source in the chain again");
 }
 
 #[tokio::test]

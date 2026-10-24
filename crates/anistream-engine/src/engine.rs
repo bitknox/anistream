@@ -1496,10 +1496,16 @@ mod tests {
         });
         until(&mut events, |e| matches!(e, Event::Settings(_))).await;
         engine.send(Command::SetProviderPreference { id, provider: Some("yamabiko".into()) });
-        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
-        let [Event::Settings(view), Event::Toast(_)] = &seen[..] else {
-            panic!("the settings, counted again, then the notice: {seen:?}")
+        let seen = until(&mut events, |e| matches!(e, Event::ShowSettings(_))).await;
+        let [Event::Settings(view), Event::Toast(_), Event::ShowSettings(pinned)] = &seen[..]
+        else {
+            panic!("the settings, counted again, the notice, then the show's sheet: {seen:?}")
         };
+        assert_eq!(
+            pinned.source.as_deref(),
+            Some("yamabiko"),
+            "the sheet says the pin at once"
+        );
         let counted: Vec<_> = view.overridden.iter().map(|o| (o.key, o.shows)).collect();
         assert_eq!(counted, [(SettingKey::SourceOrder, 1), (SettingKey::Translation, 1)]);
         engine.send(Command::LoadShowSettings { id });
