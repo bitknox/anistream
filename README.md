@@ -1,9 +1,10 @@
 # anistream
 
-anistream is an anime client for Mac, iPhone, iPad and Android, and for the terminal on macOS,
-Linux and Windows. It browses AniList with no account, plays episodes in mpv, keeps your history
-on your device and syncs it to AniList, MyAnimeList, Kitsu, Simkl and Trakt. The apps and the
-terminal app run the same Rust engine.
+anistream is an anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows
+and Linux, and a terminal app for macOS, Linux and Windows. It browses AniList with no account,
+plays episodes in mpv, keeps your history on your device and syncs it to AniList, MyAnimeList,
+Kitsu, Simkl and Trakt. Each app is written in its platform's own toolkit, and all of them run the
+same Rust engine.
 
 ![A title page in the Mac app, with a Resume button, the seasons and the episode list](website/public/apps/mac-title-1280.webp)
 
@@ -21,6 +22,7 @@ or on Google Play, so each one needs a one-time step the first time you open it.
 | Mac, macOS 26 or later, Apple silicon | `anistream-<version>-macos.dmg` | Drag Anistream to Applications. The app is ad-hoc signed and not notarized, so macOS stops it once. Choose **Done**, then open **System Settings › Privacy & Security** and choose **Open Anyway**. |
 | iPhone and iPad, iOS or iPadOS 26 or later | `anistream-<version>-ios-unsigned.ipa` | Add the source below in [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), then install anistream from it. They sign the app with your own Apple ID. |
 | Android 15 or later, 64-bit ARM | `anistream-<version>-android-arm64.apk` | Open the APK on the device and allow installs from your browser or file manager once. |
+| Android TV and Google TV, Android 11 or later, 32-bit or 64-bit ARM | `anistream-<version>-android-tv.apk` | Install it with a sideloading app or `adb install`. |
 | Terminal app | See below | See below |
 
 The SideStore and AltStore source address, for **Sources** › **+**:
@@ -28,6 +30,9 @@ The SideStore and AltStore source address, for **Sources** › **+**:
 ```
 https://github.com/bitknox/anistream/releases/latest/download/sidestore.json
 ```
+
+The Windows app (WinUI 3, for Windows 10 version 2004 or later on x64 or Arm64) and the Linux app
+(GTK 4.16 and libadwaita 1.7 or newer) come with the next release.
 
 The terminal app comes as an installer or an archive for each system:
 
@@ -49,7 +54,8 @@ The apps check GitHub for a new release once a day and say when one is out. Noth
 until you choose to update, and an update keeps your history and settings. On the Mac, the app
 downloads the release, checks its signature and replaces itself. On Android, it downloads the APK,
 checks it and installs it over the old one. On iPhone and iPad, the notice opens SideStore or
-AltStore with anistream's source. The terminal app updates with `anistream --update`.
+AltStore with anistream's source. On Android TV, install the newer APK over the old one the same
+way. The terminal app updates with `anistream --update`.
 
 ## Sources and plugin stores
 
@@ -82,8 +88,12 @@ cargo clippy --workspace --all-targets
 
 - Mac, iPhone and iPad: [apple/README.md](apple/README.md). It needs Xcode 26, XcodeGen and an
   Apple silicon Mac.
-- Android: [android/README.md](android/README.md). It needs Android Studio, the NDK, `cargo-ndk`
-  and the `aarch64-linux-android` target.
+- Android and Android TV: [android/README.md](android/README.md). It needs Android Studio, the NDK,
+  `cargo-ndk` and the `aarch64-linux-android` target.
+- Windows: `desktop/windows`, a .NET solution. See
+  [docs/desktop-windows-bindings.md](docs/desktop-windows-bindings.md).
+- Linux: `desktop/linux`, a Cargo project with GTK 4 and libadwaita. See
+  [docs/desktop-linux-app.md](docs/desktop-linux-app.md).
 - Plugins: `rustup target add wasm32-wasip2`, then see [docs/plugins.md](docs/plugins.md).
 - The website: `cd website && bun run dev`.
 - Accessibility: what each app supports and how to report a barrier is in
@@ -95,7 +105,8 @@ cargo clippy --workspace --all-targets
 | --- | --- |
 | `crates/` | The Rust workspace: the engine, the terminal app, the trackers, the plugin sandbox, the plugin store and the FFI layer the apps use. See [crates/CLAUDE.md](crates/CLAUDE.md). |
 | `apple/` | The SwiftUI app for Mac, iPhone and iPad |
-| `android/` | The Kotlin and Compose app for Android |
+| `android/` | The Kotlin and Compose apps for Android and Android TV |
+| `desktop/` | The WinUI 3 app for Windows and the GTK 4 app for Linux |
 | `plugins/` | Example plugins in Rust and TypeScript |
 | `wit/` | The interface plugins are written against |
 | `deploy/` | Ways to run a plugin store: containers and serverless hosts |

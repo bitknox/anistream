@@ -1,8 +1,8 @@
 ---
 /**
  * One of the apps' screenshots, at the widths scripts/app-shots.ts made of it. A phone or a
- * tablet gets a slim dark bezel with the screen's own rounded corners; a Mac window is the window
- * as the app draws it.
+ * tablet gets a slim dark bezel with the screen's own rounded corners, and a TV a thinner one with
+ * small corners; a desktop window is the window as the app draws it.
  */
 import shots from '../data/shots.json';
 
@@ -11,7 +11,7 @@ interface Props {
 	alt: string;
 	/** The width the picture takes on the page, for the browser's pick of a file. */
 	sizes: string;
-	frame: 'window' | 'phone' | 'tablet';
+	frame: 'window' | 'phone' | 'tablet' | 'screen';
 	class?: string;
 	loading?: 'lazy' | 'eager';
 }

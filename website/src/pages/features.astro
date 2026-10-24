@@ -1,0 +1,278 @@
+---
+import '../styles/theme.css';
+import '../styles/landing.css';
+import '../styles/apps.css';
+import '../styles/features.css';
+import SiteFooter from '../components/site/SiteFooter.astro';
+import SiteHead from '../components/site/SiteHead.astro';
+import SiteNav from '../components/site/SiteNav.astro';
+import { APPS, INSTALL_GUIDE, LEGAL } from '../data/site';
+
+// What anistream does, by task. The matrix below says which app does each; docs/parity.md has
+// where in each app's code it lives.
+const tasks: { id: string; title: string; lede?: string; rows: [string, string][] }[] = [
+	{
+		id: 'finding',
+		title: 'Finding a show',
+		rows: [
+			['Search and browse', 'Search by name, or browse with no query by genre, year, season, format and sort. AniList’s public API answers, so it needs no account.'],
+			['Seasonal charts', 'Every show of a season, with the seasons before and after one step away.'],
+			['Airing calendar', 'The week’s episodes laid out by day, for your list or for everything airing.'],
+			['Title pages', 'A show’s details, its seasons, films and specials in one place, related titles, and the episode list with what you have watched.'],
+			['Titles the way you read them', 'Names as your AniList account shows them, or always in English or in romaji.'],
+			['Continue and your library', 'What you are in the middle of comes first, and your lists sort by status: watching, planning, completed and the rest.'],
+		],
+	},
+	{
+		id: 'watching',
+		title: 'Watching',
+		rows: [
+			['mpv in every app', 'The apps build mpv into their own player, and the terminal app runs the mpv you install. MKV files and styled subtitles play as they were made.'],
+			['Upscaling', 'ArtCNN for a natural look or Anime4K for a sharp one, chosen per file for the source, the display and the battery.'],
+			['Skip and Up Next', 'A skip button while the opening or ending runs, and the next episode ready at the ending.'],
+			['Resume', 'Each episode starts again where you stopped it, to the second.'],
+			['Sources you can see', 'Automatic selection ranks the candidates and says in one line why it chose one. You can list every source and pick one yourself.'],
+			['Sub or dub, and tracks', 'Subbed or dubbed as a default and per show, and subtitle and audio tracks from the player’s menu.'],
+			['Picture in Picture', 'The episode keeps playing in a small window while you do something else.'],
+			['Watch parties', 'An episode can open in a Syncplay room, with everyone’s player in step. Pauses in the room stay out of your watch history.'],
+		],
+	},
+	{
+		id: 'tracking',
+		title: 'Tracking and syncing',
+		rows: [
+			['History on your device', 'Watch history is a SQLite database on your device and works with no account. Trackers receive a copy of it.'],
+			['Five trackers', 'AniList, MyAnimeList, Kitsu, Simkl and Trakt. A pull from one only moves your progress forward.'],
+			['Sync that works offline', 'Changes wait in an outbox on the device. Watch offline for a week and they go out in order when you are back.'],
+			['Marking episodes', 'Mark an episode watched or unwatched, or everything before it, and your trackers follow.'],
+			['Per-show settings', 'Sub or dub, subtitles, skipping and the source, set for one show without changing the rest.'],
+		],
+	},
+	{
+		id: 'downloads',
+		title: 'Downloads',
+		rows: [
+			['Offline episodes', 'Episodes download to the device and play offline, with the same history and resume as a stream.'],
+			['The next episodes, ahead', 'Keep the next few episodes of each show you watch downloaded, as many as you choose.'],
+			['A downloads page', 'Pause, resume, retry and delete, with the space downloads take.'],
+		],
+	},
+	{
+		id: 'tv',
+		title: 'On the TV',
+		rows: [
+			['An app for Android TV', 'Made for the remote’s arrow keys, with the same player, history and trackers as the other apps.'],
+			['Play on TV', 'Send an episode from the Mac, iPhone, iPad or Android app to the TV. The TV fetches and plays the stream itself.'],
+			['Your phone as the remote', 'Pause, seek, switch subtitles and audio, set the TV’s volume and type a search. Pair once with a code or a QR code.'],
+			['Watch Next', 'The show you are watching appears in the TV’s own Watch Next row.'],
+		],
+	},
+	{
+		id: 'plugins',
+		title: 'Plugins and stores',
+		lede: LEGAL,
+		rows: [
+			['Sources as plugins', 'Sandboxed WebAssembly components in Rust, JavaScript or any language that builds for WASI 0.2. The host lends fetch, and only to the hosts a plugin declares.'],
+			['Plugin stores by invite', 'Run a small private plugin store and invite the people you choose. Each device gets its own token, and every plugin list is signed with the store’s key.'],
+			['Torrents behind a VPN guard', 'Off by default, and unreachable until you set up the VPN guard, which checks the connection and pauses torrents when a check fails.'],
+		],
+	},
+	{
+		id: 'device',
+		title: 'On your device',
+		rows: [
+			['Widgets', 'Continue watching and Airing today on the home screen.'],
+			['New-episode notifications', 'An alert when a new episode of a show you watch comes out, off until you turn it on, with a switch for each show.'],
+			['Handoff, Spotlight and Shortcuts', 'On Apple devices, pick up a title on another device, find your shows in Spotlight, and ask Siri to continue watching.'],
+			['Updates', 'The apps say when a new release is out. The Mac and Android apps and the terminal app update themselves.'],
+			['A command line', 'In the terminal app, --search, --stats and --random take --json for scripts, and --continue resumes the episode you left half watched.'],
+		],
+	},
+];
+
+const platforms = ['Mac', 'iPhone', 'iPad', 'Android', 'Android TV', 'Windows', 'Linux', 'Terminal'];
+
+// One cell per platform, in the order above. Y: the app does it. D: in development. N: not on this
+// platform. Any other text: what the app does, where it does part of it.
+type Cell = 'Y' | 'D' | 'N' | (string & {});
+const matrix: [string, [string, Cell[]][]][] = [
+	[
+		'Finding a show',
+		[
+			['Search by name', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Browse with filters', ['Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y', 'Y']],
+			['Seasonal charts', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Airing calendar', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Seasons on the title page', ['Y', 'Y', 'Y', 'Y', 'Related titles', 'Related titles', 'Y', 'Y']],
+			['English or romaji titles', ['Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y', 'Y']],
+			['Continue and library', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+		],
+	],
+	[
+		'Watching',
+		[
+			['Plays in mpv', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Your mpv']],
+			['Upscaling', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
+			['Skip opening and ending', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Up Next', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Resume', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Pick a source yourself', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Sub or dub', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Subtitle and audio tracks', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y']],
+			['Picture in Picture', ['Y', 'Y', 'Y', 'Y', 'N', 'Mini player', 'Mini player', 'N']],
+			['Syncplay watch parties', ['D', 'N', 'N', 'N', 'N', 'D', 'D', 'Y']],
+			['Discord status', ['Y', 'N', 'N', 'N', 'N', 'D', 'D', 'Y']],
+		],
+	],
+	[
+		'Tracking and syncing',
+		[
+			['History with no account', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['AniList', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['MyAnimeList, Kitsu, Simkl, Trakt', ['Y', 'Y', 'Y', 'Y', 'Y', 'MyAnimeList, Kitsu', 'D', 'Y']],
+			['Mark episodes watched', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['Per-show settings', ['Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y', 'Source only']],
+		],
+	],
+	[
+		'Downloads',
+		[
+			['Download an episode', ['D', 'D', 'D', 'Y', 'N', 'D', 'D', 'Y']],
+			['Keep the next episodes', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
+			['Downloads page', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
+		],
+	],
+	[
+		'On the TV',
+		[
+			['Play on TV', ['Y', 'Y', 'Y', 'Y', 'Receives', 'D', 'D', 'D']],
+			['Phone or Mac as the remote', ['Y', 'Y', 'Y', 'Y', 'Pairs', 'D', 'D', 'D']],
+			['Arrow-key TV interface', ['N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N']],
+		],
+	],
+	[
+		'Plugins and stores',
+		[
+			['Add and order sources', ['Y', 'Y', 'Y', 'Y', 'Lists them', 'Y', 'Y', 'Y']],
+			['Join plugin stores', ['Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y', 'Y']],
+			['Torrents with the VPN guard', ['Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y', 'Y']],
+		],
+	],
+	[
+		'On your device',
+		[
+			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
+			['New-episode notifications', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'Y', 'In config']],
+			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
+			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'D', 'D', 'D', 'Y']],
+			['Command line with JSON', ['N', 'N', 'N', 'N', 'N', 'N', 'N', 'Y']],
+		],
+	],
+];
+---
+
+<html lang="en">
+	<head>
+		<SiteHead
+			title="anistream features · what each app does"
+			description="What anistream does, by task: finding a show, watching, tracking and syncing, downloads, the TV, and plugins and stores. Then which of the Mac, iPhone, iPad, Android, Android TV, Windows, Linux and terminal apps does each."
+		/>
+	</head>
+	<body class="landing apps-page features-page">
+		<SiteNav current="features" />
+
+		<main>
+			<header class="wrap apps-head">
+				<h1>Features</h1>
+				<p class="lede">
+					What anistream does, grouped by what you are doing, and then which app does each. Every
+					app runs the same engine, so most of it works the same everywhere. Where an app does not
+					have something yet, the table at the end says so.
+				</p>
+				<nav class="feat-index" aria-label="On this page">
+					{tasks.map((t) => <a href={`#${t.id}`}>{t.title}</a>)}
+					<a href="#platforms">By platform</a>
+				</nav>
+			</header>
+
+			{
+				tasks.map((t) => (
+					<section class="wrap apps-sect feat-sect" id={t.id} aria-labelledby={`${t.id}-h`}>
+						<h2 id={`${t.id}-h`}>{t.title}</h2>
+						{t.lede && <p class="legal-lead">{t.lede}</p>}
+						<dl class="rows">
+							{t.rows.map(([name, text]) => (
+								<div class="row">
+									<dt>{name}</dt>
+									<dd>{text}</dd>
+								</div>
+							))}
+						</dl>
+					</section>
+				))
+			}
+
+			<section class="wrap apps-sect feat-sect" id="platforms" aria-labelledby="platforms-h">
+				<h2 id="platforms-h">By platform</h2>
+				<p class="lede">
+					Each app is written in its platform’s own toolkit over the same engine. What differs is
+					what a platform has room for, and what each app has built so far.
+				</p>
+				<dl class="matrix-key">
+					<div><dt>Yes</dt><dd>The app does it.</dd></div>
+					<div><dt class="m-dev">In development</dt><dd>Being built for this app.</dd></div>
+					<div><dt class="m-none">–</dt><dd>Not on this platform.</dd></div>
+				</dl>
+				<div class="matrix-scroll" tabindex="0" role="region" aria-labelledby="platforms-h">
+					<table class="matrix">
+						<caption class="sr-only">Which app does each feature</caption>
+						<thead>
+							<tr>
+								<th scope="col"><span class="sr-only">Feature</span></th>
+								{platforms.map((p) => <th scope="col">{p}</th>)}
+							</tr>
+						</thead>
+						{
+							matrix.map(([group, rows]) => (
+								<tbody>
+									<tr class="m-group">
+										<th scope="colgroup" colspan={platforms.length + 1}>{group}</th>
+									</tr>
+									{rows.map(([name, cells]) => (
+										<tr>
+											<th scope="row">{name}</th>
+											{cells.map((c) =>
+												c === 'Y' ? (
+													<td>Yes</td>
+												) : c === 'D' ? (
+													<td class="m-dev">In development</td>
+												) : c === 'N' ? (
+													<td class="m-none">
+														<span aria-hidden="true">–</span>
+														<span class="sr-only">Not on this platform</span>
+													</td>
+												) : (
+													<td class="m-part">{c}</td>
+												),
+											)}
+										</tr>
+									))}
+								</tbody>
+							))
+						}
+					</table>
+				</div>
+				<p class="caption matrix-note">
+					The Windows and Linux apps come with the next release. The TV app’s Play on TV and remote
+					cells are the TV’s side: it plays what the other apps send, and pairs with phones.
+				</p>
+				<div class="actions sect-actions">
+					<a class="btn btn-primary" href={APPS}>Get the apps</a>
+					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>
+				</div>
+			</section>
+		</main>
+
+		<SiteFooter />
+	</body>
+</html>

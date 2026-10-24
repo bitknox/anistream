@@ -1,0 +1,160 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   The features page: the apps page's head and rows, a section per task, then a table of which app
+   does what. The table scrolls sideways on a narrow screen, with the feature column held in place.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.feat-index {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 20px;
+	margin-top: 24px;
+	font-size: 15px;
+	line-height: 24px;
+}
+
+.feat-index a {
+	color: var(--ani-dim);
+	transition: color var(--ani-quick) var(--ani-spring);
+}
+
+.feat-index a:hover {
+	color: var(--ani-text);
+}
+
+.feat-sect {
+	scroll-margin-top: 24px;
+}
+
+.feat-sect .rows {
+	margin-top: 24px;
+}
+
+.feat-sect .legal-lead {
+	margin-top: 12px;
+}
+
+/* The key above the table: three short lines in a row */
+.matrix-key {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 28px;
+	margin-top: 24px;
+	font-size: 14px;
+	line-height: 20px;
+}
+
+.matrix-key div {
+	display: flex;
+	gap: 8px;
+}
+
+.matrix-key dt {
+	font-weight: 600;
+}
+
+.matrix-key dd {
+	color: var(--ani-dim);
+}
+
+/* Positioned, so the cells' screen-reader text is placed, and clipped, inside the scroller. */
+.matrix-scroll {
+	position: relative;
+	margin-top: 24px;
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+}
+
+.matrix {
+	width: 100%;
+	min-width: 1040px;
+	border-collapse: collapse;
+	table-layout: fixed;
+	text-align: left;
+	font-size: 14px;
+	line-height: 20px;
+}
+
+.matrix thead th {
+	position: sticky;
+	top: 0;
+	padding: 0 12px 10px 0;
+	font-size: 14px;
+	font-weight: 600;
+	vertical-align: bottom;
+	background: var(--ani-ground);
+}
+
+.matrix thead th:first-child {
+	width: 232px;
+}
+
+.matrix tbody th,
+.matrix td {
+	padding: 9px 12px 9px 0;
+	vertical-align: top;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.matrix tbody th {
+	font-weight: 500;
+}
+
+.matrix .m-group th {
+	padding-top: 28px;
+	font-size: 15px;
+	font-weight: 600;
+	border-top: 0;
+}
+
+.matrix tbody:first-of-type .m-group th {
+	padding-top: 12px;
+}
+
+.m-dev,
+.m-none {
+	color: var(--ani-dim);
+}
+
+.matrix .m-part {
+	color: var(--ani-text);
+}
+
+/* The feature column stays put while the platforms scroll under it. */
+.matrix th:first-child,
+.matrix tbody th[scope='row'] {
+	position: sticky;
+	left: 0;
+	z-index: 1;
+	background: var(--ani-ground);
+}
+
+.matrix-note {
+	max-width: 792px;
+	margin-top: 16px;
+}
+
+@media (max-width: 899px) {
+	.feat-index {
+		margin-top: 20px;
+		font-size: 14px;
+	}
+
+	.matrix-scroll {
+		margin-inline: calc(-1 * var(--gutter));
+		padding-inline: var(--gutter);
+	}
+
+	.matrix {
+		min-width: 900px;
+		font-size: 13px;
+		line-height: 18px;
+	}
+
+	.matrix thead th:first-child {
+		width: 160px;
+	}
+
+	.matrix tbody th[scope='row'] {
+		padding-right: 16px;
+	}
+}

@@ -7,7 +7,7 @@ import SiteHead from '../components/site/SiteHead.astro';
 import SiteNav from '../components/site/SiteNav.astro';
 import TerminalDemo from '../components/TerminalDemo.astro';
 import UpscaleCompare from '../components/UpscaleCompare.astro';
-import { APP_DOWNLOADS, APPS, GITHUB, INSTALL_GUIDE, LATEST, LEGAL } from '../data/site';
+import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST, LEGAL, TOOLKITS } from '../data/site';
 
 const features: [string, [string, string][]][] = [
 	[
@@ -24,6 +24,7 @@ const features: [string, [string, string][]][] = [
 			['Upscaling built in', 'ArtCNN for a natural look or Anime4K for a sharp one, chosen per file for the source, the display and the battery.'],
 			['Ranked source picks', 'Automatic selection is ranked and gives its reason in one line. You can list every candidate, and the release you choose plays with no failover behind it.'],
 			['Downloads with history and resume', 'Download an episode to watch later, with the same history and resume as a stream.'],
+			['Play on TV', 'Send an episode from your phone or Mac to the Android TV app, and use the phone as its remote.'],
 		],
 	],
 	[
@@ -51,7 +52,8 @@ const terminalRows: [string, string][] = [
 
 const bandItems = [
 	'Browse, watch, track, sync, extend',
-	'Mac, iPhone, iPad and Android',
+	'Native on Mac, iPhone, iPad, Android, Android TV, Windows and Linux',
+	'One Rust engine under every app',
 	'The terminal on macOS, Linux and Windows',
 	'Local history in SQLite',
 	'Sandboxed WebAssembly plugins',
@@ -72,6 +74,9 @@ const appFiles: Record<string, [string, string]> = {
 	mac: ['.dmg', 'Allow it once under Privacy & Security'],
 	ios: ['.ipa', 'Install it with AltStore or SideStore'],
 	android: ['.apk', 'Allow installs from your browser once'],
+	'android-tv': ['.apk', 'Install it with Downloader or adb'],
+	windows: ['', 'Coming with the next release'],
+	linux: ['', 'Coming with the next release'],
 };
 
 const releaseFiles = [
@@ -101,7 +106,7 @@ const installHtml = [
 	<head>
 		<SiteHead
 			title="anistream · an open-source anime client"
-			description="anistream is an open-source anime client for Mac, iPhone, iPad, Android and the terminal, for browsing, watching, tracking and syncing, with sources as plugins you add. It hosts no content."
+			description="anistream is an open-source anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and a terminal app, for browsing, watching, tracking and syncing, with sources as plugins you add. It hosts no content."
 		/>
 	</head>
 	<body class="landing">
@@ -126,8 +131,8 @@ const installHtml = [
 					<h1>Browse, watch, track and sync anime <span class="hero-claim">in one client.</span></h1>
 					<div class="hero-side">
 						<p class="hero-sub">
-							anistream runs on Mac, iPhone, iPad and Android, and in your terminal on macOS, Linux
-							and Windows. Sources come from plugins you add.
+							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for
+							your terminal. Sources come from plugins you add.
 						</p>
 						<div class="actions">
 							<a class="btn btn-primary" href={APPS}>Get the apps</a>
@@ -206,18 +211,33 @@ const installHtml = [
 						))
 					}
 				</div>
+				<div class="actions sect-actions">
+					<a class="btn" href={FEATURES}>Every feature, by app</a>
+				</div>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="apps-h">
-				<h2 id="apps-h">Apps for Mac, iPhone, iPad and Android</h2>
+				<h2 id="apps-h">Native on every platform</h2>
 				<p class="lede">
-					The apps run the same engine as the terminal app, with each platform’s own navigation and
-					controls. mpv is built in, so MKV files, styled subtitles and upscaling work as they do in
-					the terminal. Widgets, new-episode notifications and Picture in Picture come with them.
+					Each app is written in its platform’s own toolkit, with that platform’s navigation and
+					controls. None of them is a web view or a shared cross-platform interface. Under all of
+					them runs one engine, written in Rust, so search, playback, history and sync work the same
+					in each, and mpv is built into every app.
 				</p>
+				<dl class="rows toolkits">
+					{
+						TOOLKITS.map(([platform, toolkit]) => (
+							<div class="row">
+								<dt>{platform}</dt>
+								<dd>{toolkit}</dd>
+							</div>
+						))
+					}
+				</dl>
 				<div class="ratio-row app-strip">
-					<Shot name="ipad-title" frame="tablet" sizes="(min-width: 1200px) 880px, (min-width: 900px) 74vw, 380px" alt="The iPad app on a title page, with the sidebar open and the episode list beside the show’s details" />
-					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 280px, (min-width: 900px) 24vw, 130px" alt="The Android app on Continue, with the show in progress and the shows that came out this week" />
+					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 490px, (min-width: 900px) 42vw, 490px" alt="The Linux app on Continue, with the shows in progress beside the one picked and a button to resume its episode" />
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 540px, (min-width: 900px) 46vw, 540px" alt="The Android TV app on Continue, with a large button to resume episode 7 and a row of shows in progress" />
+					<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 140px, (min-width: 900px) 12vw, 140px" alt="The Android app on Continue, with the show in progress and the shows that came out this week" />
 				</div>
 				<div class="actions sect-actions">
 					<a class="btn" href={APPS}>More about the apps</a>
@@ -330,8 +350,8 @@ const installHtml = [
 				<p class="lede">
 					Every release has the apps and the terminal app, each file with a .sha256 beside it. The
 					apps are not in the App Store or on Google Play, so the first install takes a step the
-					installation guide walks through. The terminal app needs mpv and ffmpeg installed
-					separately.
+					installation guide walks through. The Windows and Linux apps come with the next release.
+					The terminal app needs mpv and ffmpeg installed separately.
 				</p>
 				<table class="release-files">
 					<caption class="sr-only">Release files</caption>
