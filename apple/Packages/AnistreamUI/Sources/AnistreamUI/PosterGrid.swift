@@ -130,7 +130,9 @@ struct PosterGrid<Cell: View>: View {
                 spacing: 24
             ) {
                 ForEach(entries, id: \.id) { entry in
-                    cell(entry)
+                    // A cover and its lines move as one when the columns change, as the Mac's
+                    // filters panel opening does: never the title ahead of its cover.
+                    cell(entry).geometryGroup()
                 }
             }
         }
@@ -151,7 +153,7 @@ struct PosterGridPlaceholder: View {
             spacing: 24
         ) {
             ForEach(0..<count, id: \.self) { _ in
-                PosterCellPlaceholder(width: minimum)
+                PosterCellPlaceholder(width: minimum).geometryGroup()
             }
         }
         .accessibilityHidden(true)

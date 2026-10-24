@@ -187,6 +187,29 @@ struct SearchScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The iPhone's: sentence case, larger type, three columns.
     var compact = false
+    #if os(macOS)
+    /// The screen's width with the filters panel closed, which opening it does not change.
+    @State private var fullWidth: CGFloat?
+    #endif
+
+    private var margins: EdgeInsets {
+        compact ? EdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16)
+                : EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16)
+    }
+
+    /// The width the results take once the filters panel has opened or closed, set at once: the
+    /// grid lays out a single time and its covers move to their new places with the panel, rather
+    /// than reflowing at every width the panel passes through. `nil` until the screen is measured,
+    /// and on iPhone and iPad, whose system sheet and inspector lay out once.
+    private var settledWidth: CGFloat? {
+        #if os(macOS)
+        guard let fullWidth else { return nil }
+        let panel = navigator.searchFiltersShown ? MacFiltersPanel.width : 0
+        return max(0, fullWidth - panel - margins.leading - margins.trailing)
+        #else
+        return nil
+        #endif
+    }
 
     var body: some View {
         @Bindable var navigator = navigator
@@ -210,8 +233,15 @@ struct SearchScreen: View {
                 }
                 .animation(.standard, value: startShown)
             }
-            .padding(compact ? EdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16)
-                             : EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
+            .frame(width: settledWidth, alignment: .leading)
+            // With Reduce Motion the results take their new width at once while the panel fades.
+            .transaction(value: navigator.searchFiltersShown) { transaction in
+                if reduceMotion { transaction.animation = nil }
+            }
+            .padding(margins)
+            // Wider than the scroll view while the panel slides away: from the leading edge,
+            // under the panel, never centred.
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         }
         .scrollIndicators(.never)
         #if os(iOS)
@@ -230,13 +260,20 @@ struct SearchScreen: View {
         // inspector column: an inspector splits the window's title bar and AppKit draws its own
         // toolbar backdrop across it, a grey band in place of the ground. Here the results'
         // scroll view still spans the window under the toolbar, so the header never changes.
-        .safeAreaInset(edge: .trailing, spacing: 0) {
-            if navigator.searchFiltersShown {
-                MacFiltersPanel()
-                    .transition(reduceMotion ? .opacity : .move(edge: .trailing))
-            }
+        // The panel stays mounted and slides in from off the edge: inserting it made the glass
+        // toolbar items flash dark. The results lay out once at their settled width (above), so
+        // the cards glide to their new columns instead of stepping through every count between.
+        .overlay(alignment: .trailing) {
+            let shown = navigator.searchFiltersShown
+            MacFiltersPanel()
+                .offset(x: shown || reduceMotion ? 0 : MacFiltersPanel.width + 1)
+                .opacity(shown || !reduceMotion ? 1 : 0)
+                .allowsHitTesting(shown)
+                .disabled(!shown)
+                .accessibilityHidden(!shown)
         }
         .animation(.standard, value: navigator.searchFiltersShown)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { fullWidth = $0 }
         #endif
         .task {
             store.loadSearchStart()
@@ -270,9 +307,11 @@ struct SearchScreen: View {
 #if os(macOS)
 /// The Mac's filters panel: every filter, beside the results, a hairline at its edge.
 private struct MacFiltersPanel: View {
+    static let width: CGFloat = 340
+
     var body: some View {
         SearchFiltersPanel()
-            .frame(width: 340)
+            .frame(width: Self.width)
             .overlay(alignment: .leading) {
                 Rectangle().fill(Palette.faintRule).frame(width: 1)
             }
@@ -1058,6 +1097,7 @@ struct SearchFiltersPanel: View {
                             if set > 0 { Text("\(set)").monospacedDigit().foregroundStyle(.haze) }
                         }
                     }
+                    .disclosureGroupStyle(PanelDisclosureStyle(compact: compact))
                 }
             } else {
                 let found = groups.flatMap(\.tags)
@@ -1089,9 +1129,60 @@ private struct PanelSwitch: View {
 
     var body: some View {
         Toggle(isOn: isOn) {
-            Text(title).frame(maxWidth: .infinity, alignment: .leading)
+            // The whole row turns it, its words too, not the switch alone.
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+                .onTapGesture { isOn.wrappedValue.toggle() }
         }
         .toggleStyle(.switch)
+    }
+}
+
+/// A group of tags that opens and closes from anywhere on its row: its name, its count and its
+/// chevron, where the Mac's own disclosure answers on the chevron alone.
+private struct PanelDisclosureStyle: DisclosureGroupStyle {
+    var compact = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(reduceMotion ? nil : .quick) { configuration.isExpanded.toggle() }
+            } label: {
+                HStack(spacing: 8) {
+                    #if os(macOS)
+                    chevron(configuration.isExpanded)
+                    configuration.label
+                    #else
+                    configuration.label
+                    chevron(configuration.isExpanded)
+                    #endif
+                }
+                .frame(maxWidth: .infinity, minHeight: compact ? 44 : 22, alignment: .leading)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .pointerHover()
+            .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
+            .accessibilityHint(configuration.isExpanded ? "Closes the group" : "Opens the group")
+            if configuration.isExpanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    configuration.content
+                }
+                #if os(macOS)
+                .padding(.leading, 18)
+                #endif
+            }
+        }
+    }
+
+    private func chevron(_ expanded: Bool) -> some View {
+        Image(systemName: "chevron.right")
+            .font(compact ? .ui(13, weight: .semibold) : .mac(10, weight: .semibold))
+            .foregroundStyle(.haze)
+            .rotationEffect(.degrees(expanded ? 90 : 0))
+            .frame(width: 10)
     }
 }
 
