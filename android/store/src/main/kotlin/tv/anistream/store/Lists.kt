@@ -155,8 +155,13 @@ class SearchModel {
     data class Status(
         /** The search as it stands: what is typed and every filter. Blank is Search's start. */
         val query: SearchQuery = SearchQuery(),
-        /** What the list answers, as the engine tags it: [query] trimmed. `null` at the start. */
+        /** What is asked, as the engine tags its answer: [query] trimmed. `null` at the start. */
         val asked: SearchQuery? = null,
+        /**
+         * What the list on screen answers: [asked] once its answer is in, an earlier query while
+         * that is on its way, `null` before any.
+         */
+        val answered: SearchQuery? = null,
         /** Whether AniList has more pages behind those on screen. */
         val hasNext: Boolean = false,
         /** Whether a further page is on its way. */
@@ -172,8 +177,17 @@ class SearchModel {
         /** Whether typing waits for the search key: the AniList budget ran low. */
         val livePaused: Boolean = false,
     ) {
-        /** Whether Search shows its start: rails and recent searches rather than results. */
-        val atStart: Boolean get() = query.isBlank()
+        /**
+         * Whether Search shows its start: rails and recent searches rather than results. One typed
+         * letter, which the engine does not search for as it is typed, is the start still.
+         */
+        val atStart: Boolean get() {
+            val normal = query.normalized
+            return normal.isBlank() || (normal.waitsForWords() && normal.withoutWords.isBlank() && asked != normal)
+        }
+
+        /** Whether the answer to what was asked is still on its way. */
+        val pending: Boolean get() = asked != null && answered != asked
     }
 
     private val _status = MutableStateFlow(Status())
@@ -186,26 +200,33 @@ class SearchModel {
         _status.value = change(_status.value)
     }
 
+    /** What the engine was last told, so an edit that changes nothing it searches for is not sent again. */
+    private var told: SearchQuery? = null
+
     /**
-     * The search changed. Whether it asks anything new of the engine: not at the start, and not
-     * when only spaces around the text changed.
+     * The search changed: a keystroke, a filter, or the search key when [submitted]. Whether the
+     * engine is to be told: not when only spaces around the text changed. A blank or one-letter
+     * search is told too, so the engine drops the search it was waiting to make.
      */
-    internal fun edit(query: SearchQuery): Boolean {
+    internal fun edit(query: SearchQuery, submitted: Boolean = false): Boolean {
         val normal = query.normalized
-        if (normal.isBlank()) {
-            update { it.copy(query = query, asked = null, hasNext = false, loadingMore = false, pages = 0u) }
+        // One letter as it is typed: the engine waits for a second (the model's rule).
+        val waits = !submitted && normal.waitsForWords()
+        if (normal.isBlank() || (waits && normal.withoutWords.isBlank())) {
+            update { it.copy(query = query, asked = null, answered = null, hasNext = false, loadingMore = false, pages = 0u) }
             list.idle()
             list.caption(null)
-            return false
-        }
-        if (normal == _status.value.asked) {
+        } else if (!waits && normal != _status.value.asked) {
+            update { it.copy(query = query, asked = normal, hasNext = false, loadingMore = false, pages = 0u) }
+            // What is on screen stays until the answer replaces it, so typing does not flash; past
+            // 600 ms the screen shows placeholders instead.
+            list.asked()
+        } else {
             update { it.copy(query = query) }
-            return false
         }
-        update { it.copy(query = query, asked = normal, hasNext = false, loadingMore = false, pages = 0u) }
-        // What is on screen stays until the answer replaces it, so typing does not flash.
-        list.asked()
-        return true
+        val tell = submitted || normal != told
+        told = normal
+        return tell
     }
 
     /** Search again for what is asked, as when titles are named another way. */
@@ -215,8 +236,24 @@ class SearchModel {
         return asked
     }
 
+    /** Try again after a failure: placeholders until the answer. */
+    internal fun retry(): SearchQuery? {
+        val asked = _status.value.asked ?: return null
+        update { it.copy(answered = null) }
+        list.loading()
+        list.caption(null)
+        return asked
+    }
+
     /** Whether an answer tagged with [query] is for what is on screen. */
     fun takes(query: SearchQuery): Boolean = _status.value.asked == query
+
+    /** The answer to [query], when it is the one asked. */
+    internal fun answer(content: ContentList, query: SearchQuery, titles: TitleCache) {
+        if (!takes(query)) return
+        list.apply(content, titles)
+        if (content != ContentList.Loading) update { it.copy(answered = query) }
+    }
 
     internal fun paging(query: SearchQuery, hasNext: Boolean) {
         if (!takes(query)) return
@@ -227,7 +264,7 @@ class SearchModel {
     internal fun nextPage(): Pair<SearchQuery, UInt>? {
         val now = _status.value
         val asked = now.asked ?: return null
-        if (!now.hasNext || now.loadingMore || list.state.value !is ListState.Loaded) return null
+        if (now.pending || !now.hasNext || now.loadingMore || list.state.value !is ListState.Loaded) return null
         update { it.copy(loadingMore = true) }
         return asked to now.pages + 1u
     }
@@ -263,6 +300,9 @@ class SearchModel {
 
 /** The query as the engine searches for it and tags its answer: its text without the spaces around. */
 val SearchQuery.normalized: SearchQuery get() = copy(text = text.trim())
+
+/** The query without its words: the filters and sort alone. */
+val SearchQuery.withoutWords: SearchQuery get() = copy(text = "")
 
 /** The season on now, its most popular first: what Seasonal shows, as a search. In UTC, as the engine reckons it. */
 fun seasonQuery(at: java.time.Instant = java.time.Instant.now()): SearchQuery {

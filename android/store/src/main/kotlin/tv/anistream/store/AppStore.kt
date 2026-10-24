@@ -298,7 +298,7 @@ class AppStore(
      * a failed search can be asked again.
      */
     fun search(query: SearchQuery) {
-        search.edit(query)
+        search.edit(query, submitted = true)
         if (query.normalized.isBlank()) return
         send(Command.Search(query.normalized))
     }
@@ -306,7 +306,10 @@ class AppStore(
     /** Search for these words with the filters already set. */
     fun search(text: String) = search(search.status.value.query.copy(text = text))
 
-    /** The search changed, a keystroke or a filter: the engine searches once the changes stop. */
+    /**
+     * The search changed, a keystroke or a filter: the engine searches once the changes stop. A
+     * blank or one-letter search is sent too, so the engine drops the search it was waiting to make.
+     */
     fun searchLive(query: SearchQuery) {
         if (!search.edit(query)) return
         send(Command.SearchLive(query.normalized))
@@ -317,6 +320,12 @@ class AppStore(
         val now = search.status.value.query
         if (text == now.text) return
         searchLive(now.copy(text = text))
+    }
+
+    /** Search again after the search failed. */
+    fun retrySearch() {
+        val query = search.retry() ?: return
+        send(Command.Search(query))
     }
 
     /** The next page of results, when there is one and none is on its way. */
@@ -835,7 +844,7 @@ class AppStore(
             ContentFor.Seasonal -> seasonal.apply(content, titles)
             ContentFor.Calendar -> calendar.apply(content, titles)
             is ContentFor.Search -> {
-                if (search.takes(view.query)) search.list.apply(content, titles)
+                search.answer(content, view.query, titles)
                 if (browse.takes(view.query)) browse.list.apply(content, titles)
             }
             is ContentFor.Library -> library.segment(view.v1).apply(content, titles)
