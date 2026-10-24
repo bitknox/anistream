@@ -31,6 +31,8 @@ struct PhoneSettingsSheet: View {
         }
         .onAppear { if start != .root, path.isEmpty { path = [start] } }
         .modifier(DeviceCodePresenter(here: true))
+        // Pair a TV, from the TVs page.
+        .modifier(TVRemoteSheets(place: .settings))
         // What the engine says while Settings is open, a sign-in that failed among it: at the
         // foot of the sheet, clear of its bar.
         .overlay(alignment: .bottom) {
@@ -57,6 +59,7 @@ extension PhoneSettingsPage {
         case .stores: PhoneStoresPage()
         case .about: PhoneAboutPage()
         case .acknowledgements: PhoneAcknowledgementsPage()
+        case .tvs: PhoneTVsPage()
         case .store(let id): PhoneStorePage(id: id)
         case .plugin(let id): PhonePluginPage(id: id)
         }
@@ -253,6 +256,9 @@ struct PhoneSettingsRoot: View {
                 link(.notifications, "Notifications", "bell", value: store.settings.isOn(.episodeNotifications) ? "On" : "Off")
                 link(.sources, "Sources", "powerplug", value: store.settings.isOn(.torrents) ? "Torrents on" : "Torrents off")
                 link(.accounts, "Accounts", "person", value: anilist?.connected == true ? "AniList" : "None")
+                if store.tv.available {
+                    link(.tvs, "TVs", "tv", value: store.tv.paired.isEmpty ? "None" : "\(store.tv.paired.count)")
+                }
             }
             Section {
                 link(.about, "About", "info.circle", value: AppVersion.short)

@@ -566,6 +566,7 @@ struct IntegrationsPane: View {
                 .disabled(!syncplay)
                 .opacity(syncplay ? 1 : 0.45)
         }
+        TVsGroup()
         SettingsGroup(title: "Discord") {
             SettingsRow(title: SettingKey.presence.title, selected: true) { SettingSwitch(key: .presence) }
             SettingsRow(title: SettingKey.presenceTitle.title) { SettingSwitch(key: .presenceTitle) }
