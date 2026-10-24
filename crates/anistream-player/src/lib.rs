@@ -11,7 +11,6 @@ pub mod companion;
 pub mod external;
 pub mod ipc;
 pub mod mpv;
-pub mod presence;
 pub mod protocol;
 
 /// The pure half of playback, which anistream-playback holds, at the paths it had here.
@@ -21,7 +20,6 @@ pub use bundle::Bundle;
 pub use companion::{Choice, ScriptEvent};
 pub use external::ExternalPlayer;
 pub use mpv::{Mpv, MpvSession, PlaybackEvent, PlayerError};
-pub use presence::{Activity, Presence};
 pub use protocol::{Command, EndReason, Event};
 pub use skip::{SkipInterval, SkipKind};
 pub use tracker::{Action, PlaybackTracker};

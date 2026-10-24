@@ -63,7 +63,9 @@ done
 # target on its own, since the keychain crate is left out by target on a phone and by feature
 # on a Mac. None may reach the crate that runs mpv, the desktop's opener or the keychain crate:
 # in a native app the player, the browser and the keychain are the app's, reached through its
-# host. The Mac app is built this way too, with no desktop feature. anistream-playback, the pure
+# host. The Mac app is built this way too, with no desktop feature, and with `presence`
+# beside it, which the second pass holds to the same rule: Discord's client is its own crate
+# and takes none of the desktop with it. anistream-playback, the pure
 # half of playback, is allowed, and held to the same rule itself.
 phone='^(anistream-player|open|keyring) '
 for crate in anistream-playback anistream-engine anistream-ffi; do
@@ -79,5 +81,22 @@ for crate in anistream-playback anistream-engine anistream-ffi; do
       echo "$crate for $target without desktop: clean, $(wc -l <<<"$tree" | tr -d ' ') packages"
     fi
   done
+done
+
+# The Mac's engine: the same, with the Discord presence turned on.
+for crate in anistream-engine anistream-ffi; do
+  tree="$(cargo tree --quiet --color never -p "$crate" --no-default-features --features presence \
+    -e normal --target aarch64-apple-darwin --prefix none | sed 's/ (\*)$//' | sort -u)"
+  found="$(grep -E "$phone" <<<"$tree" || true)"
+  if [[ -n "$found" ]]; then
+    echo "$crate for aarch64-apple-darwin, with presence, must not depend on:" >&2
+    sed 's/^/  /' <<<"$found" >&2
+    status=1
+  elif ! grep -q '^anistream-discord ' <<<"$tree"; then
+    echo "$crate with the presence feature does not build the Discord client" >&2
+    status=1
+  else
+    echo "$crate for aarch64-apple-darwin with presence: clean, $(wc -l <<<"$tree" | tr -d ' ') packages"
+  fi
 done
 exit $status

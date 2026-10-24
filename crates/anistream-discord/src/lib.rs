@@ -1,5 +1,8 @@
 //! Discord rich presence, over Discord's local IPC socket.
 //!
+//! A crate of its own so that a build that wants presence and no mpv (the Mac app's) takes this
+//! and not `anistream-player`.
+//!
 //! Hand-rolled rather than pulled from a crate, for the same reason the mpv IPC is: the protocol is
 //! a length-prefixed JSON frame over a unix socket, the whole client is under two hundred lines, and
 //! a dependency for it would be larger than the thing it wraps.
@@ -11,7 +14,7 @@
 //! ```
 //!
 //! **Everything here fails silently by design.** Discord not running is the *normal* case, not an
-//! error — most people watching anime in a terminal do not have it open. Presence is decoration, so
+//! error — most people watching anime do not have it open. Presence is decoration, so
 //! a missing socket, a refused handshake or a dropped connection must never produce a toast, never
 //! block playback, and never appear in the failure ladder. The only trace is a debug log.
 //!
@@ -27,7 +30,9 @@ use std::{
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::ipc::{self, IpcStream};
+mod ipc;
+
+use ipc::IpcStream;
 
 /// Opcodes. Only these two are needed: a presence connection lives for exactly one episode, so
 /// there is nothing long-lived enough to want the keepalive ping.
@@ -40,6 +45,59 @@ const IPC_VERSION: &str = "1";
 /// Refuse absurd frames rather than allocating whatever a socket claims.
 const MAX_FRAME: u32 = 64 * 1024;
 
+/// Discord's activity type for "Watching".
+const TYPE_WATCHING: u8 = 3;
+
+/// `status_display_type` 2: the member list's status line shows `details`, the title, rather than
+/// the application's name.
+const STATUS_DISPLAY_DETAILS: u8 = 2;
+
+/// What the player is doing, which the presence says apart.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayState {
+    Playing,
+    Paused,
+    /// Held waiting for data.
+    Buffering,
+}
+
+impl PlayState {
+    fn words(self) -> &'static str {
+        match self {
+            Self::Playing => "Watching",
+            Self::Paused => "Paused",
+            Self::Buffering => "Buffering",
+        }
+    }
+
+    /// The key of the small image the application holds for the state.
+    fn image(self) -> &'static str {
+        match self {
+            Self::Playing => "playing",
+            Self::Paused => "paused",
+            Self::Buffering => "buffering",
+        }
+    }
+}
+
+/// A button under the presence.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Button {
+    pub label: String,
+    pub url: String,
+}
+
+/// The richer presence: Discord's own "Watching" with a cover, a progress bar and a button.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Rich {
+    /// An https URL of the cover, which Discord fetches itself and shows as the large image.
+    pub cover_url: Option<String>,
+    pub button: Option<Button>,
+    /// Unix seconds the episode started and will end at, were it to play on at the current speed:
+    /// what Discord draws its progress bar from. Never sent while paused or buffering.
+    pub span: Option<(i64, i64)>,
+}
+
 /// What is currently on screen, as a presence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Activity {
@@ -47,13 +105,58 @@ pub struct Activity {
     pub title: String,
     /// `Episode 5`, or whatever the episode is called.
     pub detail: String,
-    /// Whether it is paused, which is worth distinguishing from watching.
-    pub paused: bool,
+    /// Whether it plays, which is worth distinguishing from watching.
+    pub state: PlayState,
     /// Unix seconds when this episode started, for Discord's own elapsed timer.
     ///
     /// Sent rather than a formatted duration so the timer keeps counting between updates — without
     /// it a presence would only move when anistream happened to send something.
     pub started_at: Option<i64>,
+    /// The richer presence, when asked for. Without it the payload is the plain one.
+    pub rich: Option<Rich>,
+}
+
+impl Activity {
+    /// The `activity` of a SET_ACTIVITY, as it goes on the wire.
+    pub fn payload(&self) -> serde_json::Value {
+        let playing = self.state == PlayState::Playing;
+        let mut payload = serde_json::json!({
+            "details": truncate(&self.title),
+            "state": truncate(&self.detail),
+        });
+        let Some(rich) = &self.rich else {
+            // A paused episode gets no timestamp: Discord's timer would keep counting while
+            // nothing is happening, which is worse than showing no timer at all.
+            if let Some(started) = self.started_at.filter(|_| playing) {
+                payload["timestamps"] = serde_json::json!({ "start": started });
+            }
+            payload["assets"] = serde_json::json!({ "large_text": self.state.words() });
+            return payload;
+        };
+
+        payload["type"] = TYPE_WATCHING.into();
+        payload["status_display_type"] = STATUS_DISPLAY_DETAILS.into();
+        let mut assets = serde_json::json!({
+            "small_image": self.state.image(),
+            "small_text": self.state.words(),
+        });
+        if let Some(cover) = &rich.cover_url {
+            assets["large_image"] = cover.clone().into();
+            assets["large_text"] = truncate(&self.title).into();
+        }
+        payload["assets"] = assets;
+        // Start and end together make the bar; either alone would draw a timer instead.
+        if let Some((start, end)) = rich.span.filter(|_| playing) {
+            payload["timestamps"] = serde_json::json!({ "start": start, "end": end });
+        }
+        if let Some(button) = &rich.button {
+            payload["buttons"] = serde_json::json!([{
+                "label": truncate_to(&button.label, 32),
+                "url": button.url,
+            }]);
+        }
+        payload
+    }
 }
 
 /// A connection to the local Discord client.
@@ -68,8 +171,13 @@ impl Presence {
     /// `None` rather than an error throughout: the caller has nothing useful to do with a reason,
     /// and treating "Discord is closed" as a failure would be wrong about what happened.
     pub async fn connect(client_id: &str) -> Option<Self> {
-        for path in candidate_sockets() {
-            let Ok(stream) = ipc::connect(&path).await else { continue };
+        Self::connect_via(client_id, &candidate_sockets()).await
+    }
+
+    /// [`connect`](Self::connect), looking only at these sockets.
+    pub async fn connect_via(client_id: &str, sockets: &[PathBuf]) -> Option<Self> {
+        for path in sockets {
+            let Ok(stream) = ipc::connect(path).await else { continue };
             let mut presence = Self { stream, nonce: AtomicU32::new(1) };
             if presence.handshake(client_id).await.is_ok() {
                 tracing::debug!(socket = %path.display(), "discord presence connected");
@@ -96,26 +204,11 @@ impl Presence {
 
     /// Publish an activity.
     pub async fn set(&mut self, activity: &Activity) -> std::io::Result<()> {
-        // `state` and `details` are Discord's two text lines; `details` is the larger one, so the
-        // series goes there and the episode below it.
-        let mut payload = serde_json::json!({
-            "details": truncate(&activity.title),
-            "state": truncate(&activity.detail),
-        });
-        // A paused episode gets no timestamp: Discord's timer would keep counting while nothing is
-        // happening, which is worse than showing no timer at all.
-        if let Some(started) = activity.started_at.filter(|_| !activity.paused) {
-            payload["timestamps"] = serde_json::json!({ "start": started });
-        }
-        payload["assets"] = serde_json::json!({
-            "large_text": if activity.paused { "Paused" } else { "Watching" },
-        });
-
         self.command(
             "SET_ACTIVITY",
             serde_json::json!({
                 "pid": std::process::id(),
-                "activity": payload,
+                "activity": activity.payload(),
             }),
         )
         .await
@@ -176,88 +269,20 @@ impl Presence {
 
 /// Discord's two text fields are capped; a long title would otherwise be rejected outright.
 fn truncate(text: &str) -> String {
-    const LIMIT: usize = 128;
-    if text.chars().count() <= LIMIT {
-        return text.to_owned();
-    }
-    text.chars().take(LIMIT - 1).collect::<String>() + "…"
+    truncate_to(text, 128)
 }
 
-/// Where Discord's IPC endpoint might be. See [`crate::ipc::discord_endpoints`].
+fn truncate_to(text: &str, limit: usize) -> String {
+    if text.chars().count() <= limit {
+        return text.to_owned();
+    }
+    text.chars().take(limit - 1).collect::<String>() + "…"
+}
+
+/// Where Discord's IPC endpoint might be. See [`ipc::discord_endpoints`].
 pub fn candidate_sockets() -> Vec<PathBuf> {
     ipc::discord_endpoints()
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_frame_is_two_little_endian_headers_then_the_payload() {
-        // The wire format, asserted rather than assumed: getting the endianness wrong produces a
-        // connection that handshakes and then silently ignores everything.
-        let payload = br#"{"v":"1"}"#;
-        let mut frame = Vec::new();
-        frame.extend_from_slice(&OP_HANDSHAKE.to_le_bytes());
-        frame.extend_from_slice(&(payload.len() as u32).to_le_bytes());
-        frame.extend_from_slice(payload);
-
-        assert_eq!(&frame[0..4], &[0, 0, 0, 0], "handshake opcode");
-        assert_eq!(&frame[4..8], &[9, 0, 0, 0], "length, little-endian");
-        assert_eq!(&frame[8..], payload);
-    }
-
-    #[test]
-    fn candidate_sockets_cover_numbered_instances() {
-        // Matched against the whole string rather than `file_name()`, because a Windows pipe name
-        // is a device path and how `Path` splits one is not worth depending on here.
-        let paths: Vec<String> =
-            candidate_sockets().iter().map(|p| p.to_string_lossy().into_owned()).collect();
-        assert!(paths.iter().any(|p| p.ends_with("discord-ipc-0")));
-        // A second instance takes the next slot, so stopping at zero would miss it.
-        assert!(paths.iter().any(|p| p.ends_with("discord-ipc-1")));
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn candidate_sockets_cover_sandboxed_installs() {
-        // Flatpak and Snap each nest the socket further. Windows has a flat pipe namespace with
-        // no equivalent, which is why this is Unix-only rather than a cross-platform claim.
-        let paths = candidate_sockets();
-        assert!(
-            paths.iter().any(|p| p.to_string_lossy().contains("com.discordapp.Discord")),
-            "a Flatpak install nests the socket"
-        );
-        assert!(
-            paths.iter().any(|p| p.to_string_lossy().contains("snap.discord")),
-            "a Snap install nests the socket"
-        );
-    }
-
-    #[test]
-    fn a_long_title_is_truncated_rather_than_rejected() {
-        // Discord refuses over-long fields outright, so an untruncated title would drop the whole
-        // presence rather than shortening it.
-        let long: String = "あ".repeat(400);
-        let truncated = truncate(&long);
-        assert_eq!(truncated.chars().count(), 128);
-        assert!(truncated.ends_with('…'));
-        assert_eq!(truncate("Hoshikuzu"), "Hoshikuzu");
-    }
-
-    #[test]
-    fn a_paused_activity_carries_no_timestamp() {
-        // Discord's elapsed timer keeps running on its own, so leaving a start time on a paused
-        // episode would show it advancing while nothing plays.
-        let activity = Activity {
-            title: "Hoshikuzu".into(),
-            detail: "Episode 5".into(),
-            paused: true,
-            started_at: Some(1_700_000_000),
-        };
-        assert!(activity.started_at.filter(|_| !activity.paused).is_none());
-
-        let playing = Activity { paused: false, ..activity };
-        assert!(playing.started_at.filter(|_| !playing.paused).is_some());
-    }
-}
+mod tests;

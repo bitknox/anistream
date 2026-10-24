@@ -104,6 +104,7 @@ fn context(episode: &str, next: Option<&str>) -> PlaybackContext {
             .collect(),
         cover_url: None,
         banner_url: None,
+        episode_total: None,
     }
 }
 
