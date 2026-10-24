@@ -96,4 +96,5 @@ made-up titles and `.example` hosts like everything else.
 
 ## Help
 
-See [SUPPORT.md](SUPPORT.md) for where to ask questions.
+Questions and ideas go to [Discussions](https://github.com/bitknox/anistream/discussions), and
+bugs go to issues. See [SUPPORT.md](SUPPORT.md) for more.

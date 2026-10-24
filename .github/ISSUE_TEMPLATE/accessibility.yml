@@ -1,5 +1,6 @@
 name: Accessibility barrier
 description: Something you can't use, read or reach with your assistive technology or settings
+labels: ["accessibility"]
 body:
   - type: markdown
     attributes:
