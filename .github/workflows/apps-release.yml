@@ -47,12 +47,17 @@ on:
         required: true
   # What decides how a release is built and packaged. CI's own jobs already build the apps for
   # everything else, in Debug and for the Simulator. The patches and libmpv.map count as mpv's
-  # build script, which reads them.
+  # build script, which reads them. Of the packaging, only what the apps' jobs run: the scripts
+  # of packaging/apps, the shared ones they call, and the Rust licences; the terminal's Linux,
+  # Windows and macOS packages are release.yml's.
   pull_request:
     paths:
       - .github/workflows/apps-release.yml
       - .github/workflows/release.yml
-      - packaging/**
+      - packaging/apps/**
+      - packaging/rust-licences/**
+      - packaging/set-version.sh
+      - packaging/third-party.sh
       - apple/project.yml
       - apple/App/Info.plist
       - apple/scripts/engine.sh
