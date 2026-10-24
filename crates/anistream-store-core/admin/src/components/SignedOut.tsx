@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { until } from '../format';
 import type { Claimed, StoreInfo } from '../types';
@@ -58,6 +58,12 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [claimed, setClaimed] = useState<Claimed | null>(null);
+	const said = useRef<HTMLParagraphElement>(null);
+
+	// On a phone the form fills the screen, so the reason it failed would land out of sight.
+	useEffect(() => {
+		if (error) said.current?.scrollIntoView({ block: 'nearest' });
+	}, [error]);
 
 	const submit = async (event: React.FormEvent) => {
 		event.preventDefault();
@@ -150,7 +156,7 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 					</button>
 				</form>
 				{error && (
-					<p className="hero-reason" role="alert">
+					<p ref={said} className="hero-reason" role="alert">
 						<Said text={error} />
 					</p>
 				)}
