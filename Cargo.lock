@@ -179,6 +179,7 @@ dependencies = [
  "anistream-engine",
  "anistream-meta",
  "anistream-model",
+ "anistream-mpv-host",
  "anistream-net",
  "anistream-providers",
  "anistream-store",

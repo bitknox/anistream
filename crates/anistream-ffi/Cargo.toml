@@ -38,6 +38,10 @@ testing = [
     "dep:anistream-providers",
     "dep:anistream-track",
 ]
+# `FfiPlayer`: anistream-mpv-host's libmpv player behind the hosted player protocol, for the
+# Windows app, whose video is mpv's d3d11 composition. Links libmpv, so only that app's build
+# turns it on: desktop/windows/scripts/bindings.sh, with ANISTREAM_LIBMPV_DIR.
+mpv-host = ["dep:anistream-mpv-host", "anistream-mpv-host/libmpv"]
 # The `uniffi-bindgen` binary. With cargo metadata, which is how it finds each crate's own
 # `uniffi.toml`: the workspace takes uniffi without its default features, and without this the
 # Kotlin bindings came out under uniffi's default packages whatever the files said.
@@ -59,6 +63,8 @@ tracing.workspace = true
 tracing-appender.workspace = true
 tracing-subscriber.workspace = true
 uniffi.workspace = true
+# The hosted player, behind `mpv-host`.
+anistream-mpv-host = { workspace = true, optional = true }
 # What `start_testing` builds the engine's parts from.
 anistream-meta = { workspace = true, optional = true }
 anistream-testkit = { workspace = true, optional = true }

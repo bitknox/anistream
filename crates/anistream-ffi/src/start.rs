@@ -191,6 +191,7 @@ pub enum FfiPlatform {
     Android,
     /// An Android tablet: a screen at least 600 dp wide the short way.
     AndroidTablet,
+    Windows,
 }
 
 impl FfiPlatform {
@@ -204,6 +205,7 @@ impl FfiPlatform {
             Self::IpadOs => "iPad",
             Self::Android => "Android phone",
             Self::AndroidTablet => "Android tablet",
+            Self::Windows => "Windows PC",
         }
     }
 }
@@ -249,6 +251,11 @@ pub enum FfiError {
     /// The engine itself did not start.
     #[error("{reason}")]
     Engine { reason: String },
+    /// The hosted player's libmpv core did not start. Only in a build with the `mpv-host`
+    /// feature, so the phones' bindings never have it.
+    #[cfg(feature = "mpv-host")]
+    #[error("{reason}")]
+    Player { reason: String },
 }
 
 #[cfg(test)]
@@ -281,6 +288,7 @@ mod tests {
             (FfiPlatform::Ios, "iPhone"),
             (FfiPlatform::IpadOs, "iPad"),
             (FfiPlatform::Android, "Android phone"),
+            (FfiPlatform::Windows, "Windows PC"),
             (FfiPlatform::AndroidTablet, "Android tablet"),
         ];
         for (platform, label) in kinds {
