@@ -291,6 +291,16 @@ class BoardShots {
     @Config(qualifiers = TABLET)
     fun tablet_title_long() = shoot("tablet-title-long", WATCHING, title = 920009u)
 
+    // A title long enough to wrap, on the lightest banner a title can have: its first line over
+    // the art must still read.
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_pale() = shoot("phone-title-pale", WATCHING, title = 900001u, pale = true)
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_title_pale() = shoot("tablet-title-pale", WATCHING, title = 900001u, pale = true)
+
     /** Tap the season [label] names in the picker, scrolled to first. */
     private fun pickSeason(label: String) {
         compose.onNodeWithText(label).performScrollTo().performClick()
@@ -331,14 +341,21 @@ class BoardShots {
         /** Whether every transition runs to its end before the capture; else it is taken where [then] left the clock. */
         settle: Boolean = true,
         sourceless: Boolean = false,
+        /** Whether 900001 has the long title and the near-white banner of [PaleBanner]. */
+        pale: Boolean = false,
         then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         // The art the screens ask for, as the fake AniList serves it.
-        val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = { url -> PaleBanner.bytes(url) ?: FixtureArt.bytes(url) })
         val events = recorded.events.filter(::replayed).map { if (sourceless) withoutSources(it) else it }
-        store.apply(events)
+        // After the scene each time, so its own detail never wins over the pale one.
+        fun replay() {
+            store.apply(events)
+            if (pale) store.apply(listOf(Event.Detail(PaleBanner.retitle(checkNotNull(store.titles[PaleBanner.ID])))))
+        }
+        replay()
 
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
         compose.setContent {
@@ -349,7 +366,7 @@ class BoardShots {
         compose.waitForIdle()
         compose.runOnUiThread { systemBars(compose.activity) }
         // What the screens asked for as they opened is answered as the engine answered it.
-        store.apply(events)
+        replay()
         awaitArt(store)
         then?.let {
             it()

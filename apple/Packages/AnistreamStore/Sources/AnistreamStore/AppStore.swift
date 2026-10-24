@@ -319,7 +319,7 @@ public final class AppStore {
     public func applyShowcase(arguments: [String] = ProcessInfo.processInfo.arguments) {
         #if FIXTURES
         guard testing, let showcase = Showcase.from(arguments: arguments) else { return }
-        let (events, held) = showcase.events(settings: settings.view)
+        let (events, held) = showcase.events(settings: settings.view) { [titles] in titles[$0] }
         self.held = []
         for event in events { apply(event) }
         self.held = held
