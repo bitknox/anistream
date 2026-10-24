@@ -194,7 +194,40 @@ public sealed partial class TitlePage : Page, IPageKeys
             item.IsChecked = item.Tag is LibrarySegment s && s == entry.ListStatus;
         TrailerItem.IsEnabled = entry.TrailerUrl is not null;
 
+        ShowSeasons(entry);
         ShowDetails(entry);
+    }
+
+    IReadOnlyList<Anistream.App.TitleSeasons.Choice> seasons = [];
+
+    /// <summary>The franchise's seasons, once the engine has walked them, with this one picked.</summary>
+    void ShowSeasons(Entry entry)
+    {
+        var now = Anistream.App.TitleSeasons.Of(entry);
+        if (now.SequenceEqual(seasons))
+            return;
+        seasons = now;
+        SeasonPicker.SelectionChanged -= OnSeasonPicked;
+        SeasonPicker.Items.Clear();
+        foreach (var choice in seasons)
+            SeasonPicker.Items.Add(choice.Label);
+        SeasonPicker.SelectedIndex = seasons.ToList().FindIndex(c => c.IsThis);
+        SeasonPicker.SelectionChanged += OnSeasonPicked;
+        if (seasons.Count > 0)
+            Motion.Show(SeasonPicker);
+        else
+            Motion.Set(SeasonPicker, false);
+    }
+
+    void OnSeasonPicked(object sender, SelectionChangedEventArgs e)
+    {
+        if (SeasonPicker.SelectedIndex is not (var at and >= 0) || at >= seasons.Count || seasons[at].IsThis)
+            return;
+        ctx.OpenTitle(seasons[at].Id);
+        // Back here, the picker says this page's season again.
+        SeasonPicker.SelectionChanged -= OnSeasonPicked;
+        SeasonPicker.SelectedIndex = seasons.ToList().FindIndex(c => c.IsThis);
+        SeasonPicker.SelectionChanged += OnSeasonPicked;
     }
 
     void ShowDetails(Entry entry)
@@ -219,7 +252,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         Line(AnistreamFfiMethods.BroadcastLine(entry) is { Length: > 0 } airing ? airing : null);
         host.Children.Add(details);
 
-        if (entry.Related is { Length: > 0 } related)
+        if (Anistream.App.TitleSeasons.Related(entry) is { Length: > 0 } related)
         {
             var list = new StackPanel { Spacing = 6 };
             list.Children.Add(new TextBlock { Text = "Related", Style = Res<Style>("BodyStrongTextBlockStyle") });

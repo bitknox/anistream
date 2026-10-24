@@ -613,3 +613,27 @@ public class SearchTests
         Assert.Equal(1970u, Searches.Years(2026)[^1]);
     }
 }
+
+public class TitleSeasonsTests
+{
+    static LinkedTitle Linked(uint id, Season? season, ushort? year) => new(Id: id, Title: $"Lantern Road {id}", Season: season, Year: year);
+
+    [Fact]
+    public void ThePickerNamesEachSeasonInWatchOrderWithThisOnePicked()
+    {
+        var detail = new TitleDetail(Seasons: [Linked(910001, Season.Spring, 2021), Linked(910002, null, 2022), Linked(910003, null, null)]);
+        var entry = new Entry(Id: 910002, Title: "Lantern Road", Detail: detail,
+            Related: [new RelatedTitle(910001, "Lantern Road", "prequel", "TV"), new RelatedTitle(910006, "Lantern Road: the film", "side_story", "MOVIE")]);
+        var seasons = TitleSeasons.Of(entry);
+        Assert.Equal(["Season 1 · Spring 2021", "Season 2 · 2022", "Season 3"], seasons.Select(s => s.Label));
+        Assert.Equal([false, true, false], seasons.Select(s => s.IsThis));
+        Assert.Equal([910006u], TitleSeasons.Related(entry).Select(r => r.Id));
+    }
+
+    [Fact]
+    public void OneSeasonOrAWalkUnderWayIsNoPicker()
+    {
+        Assert.Empty(TitleSeasons.Of(new Entry(Id: 1, Title: "A")));
+        Assert.Empty(TitleSeasons.Of(new Entry(Id: 1, Title: "A", Detail: new TitleDetail(Seasons: [Linked(1, null, 2020)]))));
+    }
+}

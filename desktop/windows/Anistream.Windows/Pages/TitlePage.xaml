@@ -78,7 +78,12 @@
           <TextBlock x:Name="Synopsis" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="WrapWholeWords" MaxWidth="720" HorizontalAlignment="Left" />
 
           <StackPanel Spacing="4">
-            <TextBlock Text="Episodes" Style="{StaticResource SectionTitleStyle}" />
+            <!-- The season picker sits beside the heading, so its arriving moves nothing. -->
+            <StackPanel Orientation="Horizontal" Spacing="16" MinHeight="36">
+              <TextBlock Text="Episodes" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" />
+              <ComboBox x:Name="SeasonPicker" MinWidth="220" VerticalAlignment="Center" Visibility="Collapsed"
+                        AutomationProperties.Name="Season" SelectionChanged="OnSeasonPicked" />
+            </StackPanel>
             <TextBlock x:Name="EpisodesNote" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
             <ListView x:Name="EpisodeList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEpisodeClick"
                       Margin="-12,4,0,0" AutomationProperties.Name="Episodes">
