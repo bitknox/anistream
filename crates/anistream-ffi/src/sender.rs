@@ -224,6 +224,11 @@ pub struct FfiRemoteCard {
     pub now: Option<FfiNowCard>,
     /// Counts up with every state the TV sends.
     pub rev: u64,
+    /// The session is over: the TV forgot this device, has played nothing for a while after
+    /// playing something, or has been out of reach for minutes. A remote kept in the
+    /// background (a notification, a Live Activity) lets the link go.
+    #[uniffi(default)]
+    pub over: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -319,6 +324,7 @@ impl From<&RemoteCard> for FfiRemoteCard {
             screen: screen(&card.screen),
             now: card.now.as_ref().map(FfiNowCard::from),
             rev: card.rev,
+            over: card.over,
         }
     }
 }
@@ -628,6 +634,14 @@ impl FfiTvLink {
             .await
             .map_err(|_| stopped())?
             .map_err(tv_error)
+    }
+
+    /// Try the TV again now rather than after the wait: when the network comes back, or the app
+    /// comes to the front. A connected link stays as it is.
+    pub fn retry_now(&self) {
+        if let Some(link) = self.link.lock().unwrap_or_else(PoisonError::into_inner).as_ref() {
+            link.retry_now();
+        }
     }
 
     /// Close the connection, as the remote card closes or the app leaves the screen.

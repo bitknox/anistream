@@ -28,7 +28,7 @@ use anistream_remote::{
     state::{NowPlaying, RemoteState, Screen, SkipPart, TrackInfo},
     wire::{PairFailure, Rejection},
 };
-use tokio::{sync::watch, task::JoinHandle};
+use tokio::{sync::watch, task::JoinHandle, time::Instant};
 
 /// How long Play on TV waits for the TV to start the episode before it gives up carrying the
 /// phone's position over.
@@ -36,6 +36,17 @@ const START_WAIT: Duration = Duration::from_secs(90);
 
 /// A position closer to the start than this is not carried over: the TV starts from the top.
 const CARRY_FROM: f64 = 5.0;
+
+/// How long a link that has played something stays up once the TV plays nothing: the gap
+/// between one episode and the next is shorter.
+const IDLE_HOLD: Duration = Duration::from_secs(20);
+
+/// How long a link keeps trying a TV it cannot reach before the card calls the session over.
+const AWAY_HOLD: Duration = Duration::from_secs(5 * 60);
+
+/// The longest wait between tries to reach a lost TV. An app in the background keeps trying
+/// that seldom, and asks for a try at once when the network comes back.
+const RETRY_MAX: Duration = Duration::from_secs(30);
 
 /// The phone's side of the remote.
 pub struct TvSender {
@@ -276,7 +287,7 @@ impl TvSender {
             self.identity.clone(),
             *tv,
             self.hello.clone(),
-            LinkOptions::default(),
+            LinkOptions { retry_max: RETRY_MAX, ..LinkOptions::default() },
         );
         let (card, _) = watch::channel(RemoteCard::connecting(&known.name));
         let card = Arc::new(card);
@@ -411,6 +422,11 @@ impl TvLink {
         self.link.send(command).await.map_err(|e| Problem::from(&e))
     }
 
+    /// Try the TV again now, as the network or the app comes back, rather than after the wait.
+    pub fn retry_now(&self) {
+        self.link.retry_now();
+    }
+
     /// Play on TV: `title` is what this device calls it. With `from`, the phone's own position
     /// in that episode, the TV is moved there once it has started the episode, so a viewer who
     /// hands over mid-episode carries on.
@@ -500,6 +516,7 @@ async fn follow(
         read
     };
     let mut was_connected = false;
+    let mut hold = Hold::new(Instant::now());
     loop {
         let current = status.borrow_and_update().clone();
         let connected = matches!(current, LinkStatus::Connected { .. });
@@ -511,11 +528,17 @@ async fn follow(
         }
         was_connected = connected;
         let tv_state = state.borrow_and_update().clone();
-        card.send_replace(read(&current, tv_state.as_ref()));
+        let mut next = read(&current, tv_state.as_ref());
+        let at = Instant::now();
+        hold.saw(&next, at);
+        next.over = next.over || hold.over(at);
+        card.send_replace(next);
+        let until = hold.until(at);
         // The link stops by dropping both, the status last set first: read it once more.
         let open = tokio::select! {
             changed = status.changed() => changed.is_ok(),
             changed = state.changed() => changed.is_ok(),
+            () = sleep_until(until) => true,
         };
         if !open {
             let current = status.borrow().clone();
@@ -523,6 +546,55 @@ async fn follow(
             card.send_replace(read(&current, tv_state.as_ref()));
             return;
         }
+    }
+}
+
+/// Sleep until `at`, or for ever.
+async fn sleep_until(at: Option<Instant>) {
+    match at {
+        Some(at) => tokio::time::sleep_until(at).await,
+        None => std::future::pending().await,
+    }
+}
+
+/// When a link's session is over, for an app that keeps it in the background: the TV has
+/// played nothing for a while after playing something, or has been out of reach for long.
+#[derive(Debug, Clone, Copy)]
+struct Hold {
+    played: bool,
+    /// Since when the TV, connected, plays nothing, once it has played something.
+    idle: Option<Instant>,
+    /// Since when the TV cannot be reached.
+    away: Option<Instant>,
+}
+
+impl Hold {
+    fn new(opened: Instant) -> Self {
+        Self { played: false, idle: None, away: Some(opened) }
+    }
+
+    fn saw(&mut self, card: &RemoteCard, at: Instant) {
+        let connected = card.phase == LinkPhase::Connected;
+        let playing = card.now.is_some();
+        self.played |= playing;
+        self.away = if connected { None } else { self.away.or(Some(at)) };
+        self.idle =
+            if connected && self.played && !playing { self.idle.or(Some(at)) } else { None };
+    }
+
+    fn deadlines(self) -> impl Iterator<Item = Instant> {
+        let idle = self.idle.map(|since| since + IDLE_HOLD);
+        let away = self.away.map(|since| since + AWAY_HOLD);
+        idle.into_iter().chain(away)
+    }
+
+    fn over(self, at: Instant) -> bool {
+        self.deadlines().any(|deadline| deadline <= at)
+    }
+
+    /// When the session is next over, if nothing changes before.
+    fn until(self, at: Instant) -> Option<Instant> {
+        self.deadlines().filter(|deadline| *deadline > at).min()
     }
 }
 
@@ -549,6 +621,10 @@ pub struct RemoteCard {
     pub screen: Screen,
     pub now: Option<NowCard>,
     pub rev: u64,
+    /// The session is over: the TV forgot this device, has played nothing for a while after
+    /// playing something, or has been out of reach for minutes. An app holding the link in the
+    /// background lets it go; the remote screen only shows the card.
+    pub over: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -587,6 +663,7 @@ impl RemoteCard {
             screen: Screen::Home,
             now: None,
             rev: 0,
+            over: false,
         }
     }
 
@@ -619,6 +696,7 @@ impl RemoteCard {
             screen: state.map(|s| s.screen.clone()).unwrap_or_default(),
             now: state.and_then(|s| s.now_playing.as_ref()).map(NowCard::read),
             rev: state.map_or(0, |s| s.rev),
+            over: matches!(phase, LinkPhase::Unpaired | LinkPhase::KeyChanged),
         }
     }
 }
@@ -740,3 +818,86 @@ impl std::fmt::Display for Problem {
 }
 
 impl std::error::Error for Problem {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn card(phase: LinkPhase, playing: bool) -> RemoteCard {
+        let mut card = RemoteCard::connecting("Hall TV");
+        card.phase = phase;
+        card.now = playing.then(|| NowCard {
+            id: AnilistId::new(1),
+            title: "Harbour Lights".into(),
+            episode: "1".into(),
+            episode_line: "Episode 1".into(),
+            loading: false,
+            position: 0.0,
+            duration: None,
+            paused: false,
+            speed: 1.0,
+            volume: None,
+            audio: Vec::new(),
+            subtitles: Vec::new(),
+            subtitles_off: true,
+            skip: None,
+        });
+        card
+    }
+
+    #[test]
+    fn a_remote_opened_before_anything_plays_is_not_over_while_connected() {
+        let start = Instant::now();
+        let mut hold = Hold::new(start);
+        hold.saw(&card(LinkPhase::Connected, false), start);
+        let later = start + AWAY_HOLD * 2;
+        assert!(!hold.over(later));
+        assert_eq!(hold.until(later), None);
+    }
+
+    #[test]
+    fn a_session_is_over_a_while_after_the_tv_stops_playing() {
+        let start = Instant::now();
+        let mut hold = Hold::new(start);
+        hold.saw(&card(LinkPhase::Connected, true), start);
+        let stopped = start + Duration::from_secs(60);
+        hold.saw(&card(LinkPhase::Connected, false), stopped);
+        assert_eq!(hold.until(stopped), Some(stopped + IDLE_HOLD));
+        assert!(!hold.over(stopped + IDLE_HOLD / 2));
+
+        // The next episode starts in the gap: the session carries on.
+        hold.saw(&card(LinkPhase::Connected, true), stopped + IDLE_HOLD / 2);
+        assert!(!hold.over(stopped + IDLE_HOLD * 2));
+
+        let ended = stopped + IDLE_HOLD * 2;
+        hold.saw(&card(LinkPhase::Connected, false), ended);
+        assert!(hold.over(ended + IDLE_HOLD));
+    }
+
+    #[test]
+    fn a_session_is_over_once_the_tv_has_been_out_of_reach_for_minutes() {
+        let start = Instant::now();
+        let mut hold = Hold::new(start);
+        hold.saw(&card(LinkPhase::Connected, true), start);
+        let lost = start + Duration::from_secs(10);
+        hold.saw(&card(LinkPhase::Retrying, true), lost);
+        // Each try goes from retrying to connecting and back: the wait counts from the loss.
+        hold.saw(&card(LinkPhase::Connecting, true), lost + Duration::from_secs(30));
+        hold.saw(&card(LinkPhase::Retrying, true), lost + Duration::from_secs(31));
+        assert_eq!(hold.until(lost + Duration::from_secs(31)), Some(lost + AWAY_HOLD));
+        assert!(hold.over(lost + AWAY_HOLD));
+
+        let mut back = Hold::new(start);
+        back.saw(&card(LinkPhase::Retrying, true), lost);
+        back.saw(&card(LinkPhase::Connected, true), lost + AWAY_HOLD / 2);
+        assert!(!back.over(lost + AWAY_HOLD * 2));
+    }
+
+    #[test]
+    fn a_tv_that_forgot_this_device_ends_the_session_at_once() {
+        let card = RemoteCard::read("Hall TV", &LinkStatus::Unpaired, None);
+        assert!(card.over);
+        let card = RemoteCard::read("Hall TV", &LinkStatus::Connecting, None);
+        assert!(!card.over);
+    }
+}

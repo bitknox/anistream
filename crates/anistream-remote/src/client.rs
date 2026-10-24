@@ -7,13 +7,13 @@
 //! app drops its [`Link`], which closes the socket; the next time it opens, the TV sends the state
 //! as it stands.
 
-use std::{net::SocketAddr, time::Duration};
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use tokio::{
     io::{ReadHalf, WriteHalf},
     net::TcpStream,
-    sync::{mpsc, oneshot, watch},
+    sync::{Notify, mpsc, oneshot, watch},
     task::JoinHandle,
     time::timeout,
 };
@@ -295,12 +295,13 @@ impl Default for LinkOptions {
 
 type Pending = (RemoteCommand, oneshot::Sender<Result<(), Error>>);
 
-/// A paired TV, kept connected while this lives: the remote screen holds one while it is open
-/// and drops it when it closes or the app goes to the background.
+/// A paired TV, kept connected while this lives: the remote screen holds one while it is open,
+/// and an app keeps holding it in the background while the TV plays.
 pub struct Link {
     status: watch::Receiver<LinkStatus>,
     state: watch::Receiver<Option<RemoteState>>,
     commands: mpsc::Sender<Pending>,
+    retry: Arc<Notify>,
     task: JoinHandle<()>,
 }
 
@@ -316,9 +317,27 @@ impl Link {
         let (status_tx, status) = watch::channel(LinkStatus::Connecting);
         let (state_tx, state) = watch::channel(None);
         let (commands, rx) = mpsc::channel(8);
-        let task =
-            tokio::spawn(run_link(addr, identity, tv, hello, options, status_tx, state_tx, rx));
-        Self { status, state, commands, task }
+        let retry = Arc::new(Notify::new());
+        let task = tokio::spawn(run_link(
+            addr,
+            identity,
+            tv,
+            hello,
+            options,
+            Channels {
+                status: status_tx,
+                state: state_tx,
+                commands: rx,
+                retry: Arc::clone(&retry),
+            },
+        ));
+        Self { status, state, commands, retry, task }
+    }
+
+    /// Connect again now rather than after the wait, as the network or the app comes back. A
+    /// link that is connected keeps its connection; the next loss then retries at once.
+    pub fn retry_now(&self) {
+        self.retry.notify_one();
     }
 
     pub fn status(&self) -> watch::Receiver<LinkStatus> {
@@ -345,17 +364,23 @@ impl Drop for Link {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+/// What a link's task talks to its [`Link`] through.
+struct Channels {
+    status: watch::Sender<LinkStatus>,
+    state: watch::Sender<Option<RemoteState>>,
+    commands: mpsc::Receiver<Pending>,
+    retry: Arc<Notify>,
+}
+
 async fn run_link(
     addr: SocketAddr,
     identity: Identity,
     tv: Fingerprint,
     hello: Hello,
     options: LinkOptions,
-    status: watch::Sender<LinkStatus>,
-    state: watch::Sender<Option<RemoteState>>,
-    mut commands: mpsc::Receiver<Pending>,
+    channels: Channels,
 ) {
+    let Channels { status, state, mut commands, retry } = channels;
     let mut attempt: u32 = 0;
     loop {
         status.send_replace(LinkStatus::Connecting);
@@ -417,6 +442,10 @@ async fn run_link(
         loop {
             tokio::select! {
                 () = &mut wait => break,
+                () = retry.notified() => {
+                    attempt = 0;
+                    break;
+                }
                 pending = commands.recv() => {
                     let Some((_, reply)) = pending else { return };
                     let _ = reply.send(Err(Error::NotConnected));
