@@ -16,6 +16,57 @@ struct SettingsWordsTests {
         #expect(SettingKey.commitThreshold.title == "Counts as watched at")
     }
 
+    /// A settings view as an engine with or without a Discord presence sends it.
+    private func settingsView(presence: Bool) -> SettingsView {
+        SettingsView(
+            rows: [], refused: nil, translation: .sub, quality: 1080, theme: .adaptive,
+            sources: ConfiguredSources(order: [], disabled: [], torrent: false, remote: false, index: nil),
+            speed: nil, presenceClient: true, presenceAvailable: presence, nativeRows: [], overridden: [],
+            torrent: ProtectionView(protection: .none, proxy: nil, onFailure: .pause)
+        )
+    }
+
+    @Test func theDiscordSettingsAreHiddenWhereTheEngineHasNoPresence() {
+        let store = AppStore()
+        #expect(!store.settings.hasPresence, "nothing is shown before the engine has said")
+        store.apply(.settings(settingsView(presence: false)))
+        #expect(!store.settings.hasPresence)
+        let hidden = SettingsResults.rows(presence: store.settings.hasPresence).map(\.title)
+        for title in ["Discord presence", "Presence shows the title", "Rich presence"] {
+            #expect(!hidden.contains(title), "\(title) searched for on a phone")
+        }
+        store.apply(.settings(settingsView(presence: true)))
+        #expect(store.settings.hasPresence)
+        let shown = SettingsResults.rows(presence: store.settings.hasPresence).map(\.title)
+        #expect(shown.contains("Discord presence") && shown.contains("Rich presence"))
+    }
+
+    @Test func aSettingsViewBuiltByHandHasAPresenceUnlessTold() {
+        // The bindings' default, so a front end that does not say keeps the terminal's behaviour.
+        let view = SettingsView(
+            rows: [], refused: nil, translation: .sub, quality: 1080, theme: .adaptive,
+            sources: ConfiguredSources(order: [], disabled: [], torrent: false, remote: false, index: nil),
+            speed: nil, presenceClient: true, nativeRows: [], overridden: [],
+            torrent: ProtectionView(protection: .none, proxy: nil, onFailure: .pause)
+        )
+        #expect(view.presenceAvailable)
+    }
+
+    @Test func thePreviewDrawsWhatTheThreeSwitchesSend() {
+        let off = PresenceSketch(enabled: false, titled: true, rich: true, show: "Show", episode: 5, total: 12)
+        #expect(off.mode == .off)
+        let plain = PresenceSketch(enabled: true, titled: true, rich: false, show: "Show", episode: 5, total: 12)
+        #expect(plain.mode == .plain && plain.detail == "Episode 5" && !plain.cover && plain.button == nil)
+        let rich = PresenceSketch(enabled: true, titled: true, rich: true, show: "Show", episode: 5, total: 12)
+        #expect(rich.mode == .rich && rich.detail == "Episode 5 of 12" && rich.cover && rich.bar)
+        #expect(rich.button == "View on AniList")
+        let beyond = PresenceSketch(enabled: true, titled: true, rich: true, show: "Show", episode: 13, total: 12)
+        #expect(beyond.detail == "Episode 13")
+        let untitled = PresenceSketch(enabled: true, titled: false, rich: true, show: "Show", episode: 5, total: 12)
+        #expect(untitled.mode == .plain && untitled.heading == "Watching anime" && untitled.detail.isEmpty)
+        #expect(!untitled.cover && untitled.button == nil, "the title off keeps the show off every part")
+    }
+
     @Test func theWeeksFootnoteSaysWhatWaitsForItsDubAndWhatIsOff() {
         #expect(NoticeWords.leftOut(dubbed: [], off: []) == "A row opens that show’s settings.")
         #expect(NoticeWords.leftOut(dubbed: ["Summer Wind Relay"], off: ["Amber Forest"])

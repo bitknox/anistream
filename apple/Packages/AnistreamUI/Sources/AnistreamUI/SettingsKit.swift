@@ -262,6 +262,7 @@ extension SettingKey {
         case .syncplayRoom: "Syncplay room"
         case .presence: "Discord presence"
         case .presenceTitle: "Presence shows the title"
+        case .presenceRich: "Rich presence"
         case .updateCheck: "Check for updates"
         case .translation: "Translation"
         case .subtitles: "Subtitles"

@@ -1,6 +1,7 @@
 // The Mac dev harness: the app's own window, on the testing engine, from `swift run`.
 
 import AnistreamDesign
+import AnistreamKit
 import AnistreamPlayer
 import AnistreamPlayerUI
 import AnistreamStore
@@ -97,6 +98,9 @@ final class Delegate: NSObject, NSApplicationDelegate {
         // The Mac's updater, rehearsed: it goes through a download and installs nothing.
         store.updates.installer = RehearsedInstaller()
         await store.start(launch, host: host)
+        if let trouble = options.artTrouble {
+            store.troubleArt(failFirst: trouble.failFirst, delay: trouble.delay)
+        }
         store.applyWatchedArgument()
 
         // The saved frame can still win over the default size, so a snapshot sets its own.
@@ -112,6 +116,12 @@ final class Delegate: NSObject, NSApplicationDelegate {
             store.updates.update()
             try? await Task.sleep(for: .milliseconds(1800))
         }
+        // `-AnistreamNotice alert`: a failure toast, for the shot of its Report action.
+        if let at = ProcessInfo.processInfo.arguments.firstIndex(of: "-AnistreamNotice"),
+           ProcessInfo.processInfo.arguments.dropFirst(at + 1).first == "alert" {
+            store.apply(.toast(Notice(kind: .alert, text: "could not reach the source list", hint: nil)))
+            try? await Task.sleep(for: .milliseconds(300))
+        }
         print(settled ? "ANISTREAM_READY" : "AnistreamDev: did not settle; going on")
         if let shot = options.playerShot {
             let there = await player.stage(shot, store: store)
@@ -122,6 +132,9 @@ final class Delegate: NSObject, NSApplicationDelegate {
         try? await Task.sleep(for: .milliseconds(400))
         if let motion = MotionDemo.from(), !options.frames.isEmpty, let window = Snapshot.window {
             await frames(of: motion, in: window, to: url)
+        } else if options.artTrouble != nil, !options.frames.isEmpty, let window = Snapshot.window {
+            // The window left alone while the troubled art comes in.
+            await frames(of: nil, in: window, to: url)
         }
         if options.fullScreenCycles > 0, let window = Snapshot.window {
             await fullScreenCycles(window: window, url: url)
@@ -152,10 +165,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
 
     /// Run `motion` and snapshot the window at each of the frames' offsets after it starts: taken
     /// into memory as it runs, and written once it has, so writing never delays the next frame.
-    private func frames(of motion: MotionDemo, in window: NSWindow, to url: URL) async {
+    private func frames(of motion: MotionDemo?, in window: NSWindow, to url: URL) async {
         var taken: [(offset: Int, at: Duration, image: CGImage)] = []
         let start = ContinuousClock.now
-        motion.run(navigator: navigator, store: store)
+        motion?.run(navigator: navigator, store: store)
         for offset in options.frames.sorted() {
             let at = start + .milliseconds(offset)
             if at > .now { try? await Task.sleep(until: at) }

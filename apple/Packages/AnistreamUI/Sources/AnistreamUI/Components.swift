@@ -33,7 +33,8 @@ struct ArtworkView: View {
             }
             .clipped()
             .task(id: url) {
-                if let url { store.artwork.request(url, maxPixelSize: maxPixelSize) }
+                // For as long as the art is on screen, so it is asked again if it fails.
+                if let url { await store.artwork.show(url, maxPixelSize: maxPixelSize) }
             }
     }
 }

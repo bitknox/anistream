@@ -219,6 +219,7 @@ impl Engine {
                     stores: parts.stores,
                     slot: Default::default(),
                     prefetch: Default::default(),
+                    artwork: Default::default(),
                     player_theme,
                     app_clients: Default::default(),
                     host,

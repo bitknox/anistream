@@ -19,8 +19,9 @@ what you already have: an account on a hosting platform, a server, or a computer
 | Railway | [A template](https://github.com/bitknox/anistream/tree/main/deploy/railway) | Billed by use |
 | A server or a computer of yours | [`anistream store serve`](#on-a-machine-of-your-own), or [Docker](https://github.com/bitknox/anistream/tree/main/deploy/docker) | Nothing more |
 
-Each link has the details for that host: what the deploy creates, where it keeps the store's
-records and plugin files, and how to update it.
+Each link has the details for that host: what the deploy creates and where it keeps the store's
+records and plugin files. [Updating a store](/docs/plugins/updating-a-store/) covers new releases
+on every host.
 
 ## Claim it
 

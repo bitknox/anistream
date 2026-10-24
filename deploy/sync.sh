@@ -11,7 +11,12 @@
 # The package is not byte-for-byte reproducible across machines: cargo mixes the host's rustc
 # version line (its host triple) into every crate's identity, and wasm-bindgen's exported names
 # carry that. So a build records everything it was built from in SOURCE, and the check compares
-# that rather than bytes.
+# that rather than bytes. The first 16 hex digits of SOURCE's SHA-256 are compiled into the
+# package as its build, which the admin page compares with a release's SOURCE to tell an owner
+# whether there is anything newer.
+#
+# It also gives each template the workflow that updates a copy of it (update-store.yml), and
+# checks that the container templates follow the workspace's major version.
 set -euo pipefail
 shopt -s inherit_errexit
 
@@ -20,15 +25,44 @@ out="$root/deploy/store-wasm"
 templates=(cloudflare vercel netlify)
 files=(store.js store_bg.wasm store.d.ts store_bg.wasm.d.ts)
 
+sha256() {
+  if command -v sha256sum >/dev/null; then sha256sum; else shasum -a 256; fi
+}
+
+# The workspace's major and minor version, such as 2.0.
+major_minor() {
+  sed -n 's/^version = "\([0-9]*\.[0-9]*\)\..*/\1/p' "$root/Cargo.toml" | head -n 1
+}
+
+# The container templates name the image by its major version tag, which follows every release
+# of that major. A new major needs them moved by hand; this fails until they are.
+check_image_tags() {
+  local major stale=0 file
+  major="$(major_minor)"
+  major="${major%%.*}"
+  for file in fly.toml deploy/docker/compose.yaml deploy/docker/compose.tailscale.yaml \
+    deploy/heroku/Dockerfile deploy/render/Dockerfile deploy/railway/README.md \
+    deploy/docker/README.md; do
+    if grep -n 'ghcr.io/bitknox/anistream-store:[0-9]' "$root/$file" |
+      grep -v "anistream-store:$major\([^0-9]\|$\)" >&2; then
+      echo "$file names an image tag other than :$major, the workspace's major version." >&2
+      stale=1
+    fi
+  done
+  return $stale
+}
+
 # Everything the package is built from, a line each: every dependency it resolves to, with its
 # features; the files of the workspace's own crates among them, admin page included, by their
 # git hashes; any release profile; and the pinned toolchain. The rest of the lockfile and the
 # workspace manifest are left out, so a bump to a crate the store never compiles does not mark it
-# stale. The workspace's own crates are listed without their version, which is the release's,
-# changes nothing in the package and is raised in Cargo.toml for each new minor or major. Content,
-# not commits, so an uncommitted change counts.
+# stale. The workspace's own crates are listed without their version, which is the release's and
+# changes nothing in the package, apart from its major and minor, which the package reports and
+# which Cargo.toml raises for each new minor or major. Content, not commits, so an uncommitted
+# change counts.
 sources() (
   cd "$root"
+  printf 'version %s\n' "$(major_minor)"
   tree="$(cargo tree --quiet --color never -p anistream-store-wasm \
     --target wasm32-unknown-unknown -e normal,build --prefix none --format '{p} {f}' |
     sed -e 's/ (\*)$//' -e "s|$root|.|" -e 's|^\([^ ]*\) v[^ ]* \((\./\)|\1 \2|' |
@@ -46,6 +80,13 @@ sources() (
 
 if [[ "${1:-}" == "--check" ]]; then
   status=0
+  for template in "${templates[@]}"; do
+    if ! cmp -s "$root/deploy/update-store.yml" "$root/deploy/$template/update-store.yml"; then
+      echo "deploy/$template/update-store.yml differs from deploy/update-store.yml." >&2
+      status=1
+    fi
+  done
+  check_image_tags || status=1
   current="$(sources)"
   if ! diff -u -L "built from" -L "sources now" "$out/SOURCE" - <<<"$current" >&2; then
     echo "deploy/store-wasm is stale: the store's sources changed since it was built." >&2
@@ -73,11 +114,14 @@ if [[ "${1:-}" != "--copy" ]]; then
   cargo_home="${CARGO_HOME:-$HOME/.cargo}"
   export RUSTFLAGS="--remap-path-prefix=$cargo_home=/cargo --remap-path-prefix=$root=/src"
   export CARGO_INCREMENTAL=0
+  built_from="$(sources)"
+  ANISTREAM_STORE_BUILD="$(printf '%s\n' "$built_from" | sha256 | cut -c1-16)"
+  export ANISTREAM_STORE_BUILD
   wasm-pack build "$root/crates/anistream-store-wasm" --release --target web \
     --out-dir "$out" --out-name store --no-pack
   # wasm-pack writes these for a package of its own; this one is committed and copied.
   rm -f "$out/.gitignore" "$out/package.json" "$out/README.md"
-  sources > "$out/SOURCE"
+  printf '%s\n' "$built_from" > "$out/SOURCE"
 fi
 
 for template in "${templates[@]}"; do
@@ -87,6 +131,7 @@ for template in "${templates[@]}"; do
   for file in "${files[@]}"; do
     cp "$out/$file" "$dir/store/"
   done
+  cp "$root/deploy/update-store.yml" "$dir/update-store.yml"
 done
 
 # Vercel and Netlify run the same Node adapter. It is written once, in the Vercel template, and

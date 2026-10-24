@@ -29,6 +29,8 @@ default = ["desktop"]
 # The engine's desktop parts, mpv among them. A phone's build turns it off, with
 # `--no-default-features`.
 desktop = ["anistream-engine/desktop"]
+# Only the Discord presence of them, for the Mac app, whose player is libmpv in its own process.
+presence = ["anistream-engine/presence"]
 # `FfiEngine::start_testing`: the engine on a fake AniList, the test kit's fixture source and a
 # client that cannot leave the machine, for the Swift package's tests. Never on in an app.
 testing = [

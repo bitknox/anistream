@@ -21,7 +21,7 @@ use super::{
     FileOutcome, Run,
     companion_state::fetch_still,
     controls::apply_command,
-    presence::Rpc,
+    presence::{Playhead, Rpc},
     skips::{offered, skip_target},
     subtitles::LateSubtitles,
     upscaling::read_source,
@@ -489,9 +489,17 @@ impl Run<'_> {
                             duration: *duration,
                             paused: tracker.is_paused(),
                         });
-                        // Rides the same whole-second throttle: Discord rate-limits presence
-                        // updates, and one a second is more than a presence line needs.
-                        rpc.update(tracker.is_paused()).await;
+                        // Rides the same whole-second throttle, and the presence paces itself
+                        // beyond it: Discord rate-limits updates, and a bar that is still right
+                        // needs none.
+                        rpc.observe(Playhead {
+                            position: *position,
+                            duration: *duration,
+                            speed: tracker.speed(),
+                            paused: tracker.is_paused(),
+                            buffering,
+                        })
+                        .await;
                     }
                 }
                 _ => {}
@@ -533,6 +541,24 @@ impl Run<'_> {
                         .await;
                     }
                 }
+            }
+
+            // A pause, a stall or a new speed is said at once, where the position has not moved
+            // to bring the next tick: the tracker has just taken it in.
+            if matches!(
+                event,
+                PlaybackEvent::Paused(_)
+                    | PlaybackEvent::Speed(_)
+                    | PlaybackEvent::Buffering(_)
+            ) {
+                rpc.observe(Playhead {
+                    position: tracker.position(),
+                    duration: tracker.duration(),
+                    speed: tracker.speed(),
+                    paused: tracker.is_paused(),
+                    buffering,
+                })
+                .await;
             }
 
             // The file's own chapters arrive once it is playing, and outrank aniskip's times.

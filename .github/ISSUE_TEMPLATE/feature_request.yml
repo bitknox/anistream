@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a change or an addition
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        anistream hosts no content. Don't post links to sources and don't name sites that carry
+        content. Use made-up titles in examples.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Terminal app
+        - Mac, iPhone and iPad apps
+        - Android app
+        - Plugins
+        - Plugin store
+        - Website or docs
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The problem, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What else did you consider?

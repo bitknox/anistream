@@ -34,6 +34,8 @@ pub struct PlaybackContext {
     /// The title's art by URL, where the engine knows it, for the player's starting screen.
     pub cover_url: Option<String>,
     pub banner_url: Option<String>,
+    /// How many episodes the title has in all, where known: what a Discord presence says.
+    pub episode_total: Option<u32>,
 }
 
 impl PlaybackContext {

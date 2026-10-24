@@ -11,7 +11,7 @@ name: anistream-store
 
 services:
   store:
-    image: ghcr.io/bitknox/anistream-store:1
+    image: ghcr.io/bitknox/anistream-store:2
     restart: unless-stopped
     environment:
       ANISTREAM_STORE_URL: https://${STORE_DOMAIN:?set STORE_DOMAIN to the store's domain name}

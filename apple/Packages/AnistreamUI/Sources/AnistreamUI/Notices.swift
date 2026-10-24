@@ -26,22 +26,29 @@ struct NoticeCapsule: View {
     var body: some View {
         ZStack {
             if here, let item = store.notices.current {
-                Button {
-                    if opensMessages { navigator.messagesShown = true }
-                } label: {
-                    HStack(spacing: 8) {
-                        if item.isAlert {
-                            Circle().fill(.vermilion).frame(width: 6, height: 6)
+                HStack(spacing: 0) {
+                    Button {
+                        if opensMessages { navigator.messagesShown = true }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if item.isAlert {
+                                Circle().fill(.vermilion).frame(width: 6, height: 6)
+                            }
+                            Text(item.notice.text.capitalizedSentence)
+                                .font(.mac(13))
+                                .foregroundStyle(.silk)
+                                .lineLimit(2)
                         }
-                        Text(item.notice.text.capitalizedSentence)
-                            .font(.mac(13))
-                            .foregroundStyle(.silk)
-                            .lineLimit(2)
+                        .padding(.leading, 16)
+                        .padding(.trailing, item.isAlert ? 8 : 16)
+                        .frame(minHeight: 36)
                     }
-                    .padding(.horizontal, 16)
-                    .frame(minHeight: 36)
+                    .buttonStyle(.plain)
+                    if item.isAlert {
+                        ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12)
+                            .padding(.trailing, 6)
+                    }
                 }
-                .buttonStyle(.plain)
                 .chromeGlass(in: .capsule)
                 .frame(maxWidth: 520)
                 .transition(.opacity)
@@ -93,6 +100,9 @@ struct MessagesView: View {
                                 .foregroundStyle(.silk)
                                 .textSelection(.enabled)
                             Spacer()
+                            if item.isAlert {
+                                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12)
+                            }
                             Text(item.at, style: .time)
                                 .font(.mac(12))
                                 .foregroundStyle(.haze)

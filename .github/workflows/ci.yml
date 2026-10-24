@@ -734,6 +734,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
+      - run: bun run lint
       - run: bun run build
       - name: The committed build matches its source
         run: git diff --exit-code -- ../assets/admin

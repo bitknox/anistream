@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Drag a plugin over the page and the obi band crosses it: the homepage's amber strip, saying
- * what letting go will do. It leaves the way the eyecatch does, wiping out to the right.
+ * Drag a plugin over the page and an amber band crosses it, saying what letting go will do.
  */
 export function DropBand({ onFiles }: { onFiles: (files: File[]) => void }) {
-	const [state, setState] = useState<'hidden' | 'in' | 'out'>('hidden');
+	const [shown, setShown] = useState(false);
 	const depth = useRef(0);
 
 	useEffect(() => {
@@ -15,7 +14,7 @@ export function DropBand({ onFiles }: { onFiles: (files: File[]) => void }) {
 			if (!carriesFiles(event)) return;
 			event.preventDefault();
 			depth.current += 1;
-			setState('in');
+			setShown(true);
 		};
 		const over = (event: DragEvent) => {
 			if (!carriesFiles(event)) return;
@@ -25,13 +24,13 @@ export function DropBand({ onFiles }: { onFiles: (files: File[]) => void }) {
 		const leave = (event: DragEvent) => {
 			if (!carriesFiles(event)) return;
 			depth.current = Math.max(0, depth.current - 1);
-			if (depth.current === 0) setState('out');
+			if (depth.current === 0) setShown(false);
 		};
 		const drop = (event: DragEvent) => {
 			if (!carriesFiles(event)) return;
 			event.preventDefault();
 			depth.current = 0;
-			setState('out');
+			setShown(false);
 			onFiles(Array.from(event.dataTransfer?.files ?? []));
 		};
 		window.addEventListener('dragenter', enter);
@@ -46,14 +45,10 @@ export function DropBand({ onFiles }: { onFiles: (files: File[]) => void }) {
 		};
 	}, [onFiles]);
 
-	if (state === 'hidden') return null;
+	if (!shown) return null;
 	return (
-		<div
-			className={`drop-band is-${state}`}
-			aria-hidden="true"
-			onAnimationEnd={() => state === 'out' && setState('hidden')}
-		>
-			<span>▌ drop to publish</span>
+		<div className="drop-band" aria-hidden="true">
+			<span>Drop to publish</span>
 		</div>
 	);
 }

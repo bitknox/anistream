@@ -799,6 +799,7 @@ internal const val PRIVACY_URL = "https://anistream.tv/docs/privacy/"
 @Composable
 internal fun AboutPane() {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val update by store.updates.state.collectAsStateWithLifecycle()
     Pane {
         Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -812,6 +813,20 @@ internal fun AboutPane() {
                 if (update.offer != null) @Composable { place: Place -> UpdateRow(place) } else null,
                 { place -> CheckNowRow(place) },
                 { place -> SettingSwitch(place, SettingKey.UPDATE_CHECK, "Check for updates", note = "Once a day. Nothing downloads until you choose to update.") },
+            ),
+        )
+        SettingsGroup(
+            footer = "Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.",
+            rows = listOf(
+                { place ->
+                    InfoRow(
+                        place,
+                        "Report a bug",
+                        "Opens GitHub in your browser",
+                        onClick = { openBugReport(context, store) },
+                        trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    )
+                },
             ),
         )
         SettingsGroup(

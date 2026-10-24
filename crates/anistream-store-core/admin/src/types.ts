@@ -84,6 +84,20 @@ export interface AdminOverview {
 	members: MemberRow[];
 	invites: PendingInvite[];
 	open: OpenState;
+	/** What the store runs. Missing from stores older than the field. */
+	server?: ServerInfo;
+}
+
+/** The store's own version, as the overview reports it. */
+export interface ServerInfo {
+	/** The release, such as `2.0.8`. A store on WebAssembly says only its minor, such as `2.0`. */
+	version: string;
+	/** On WebAssembly, the first 16 hex digits of the SHA-256 of `deploy/store-wasm/SOURCE`. */
+	build?: string;
+	/** The database's schema version. */
+	schema: number;
+	/** Where it runs: docker, fly, render, railway, heroku, cloudflare, vercel, netlify, anistream or binary. */
+	host?: string;
 }
 
 /** `POST /v1/admin/session`, answered with the `Member` signed in. */

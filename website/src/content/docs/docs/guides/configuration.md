@@ -160,6 +160,7 @@ The update check downloads nothing; `anistream --update` does that when you run 
 [presence]
 enabled = false        # show what you are watching on your Discord profile
 show_title = true      # or only that something is playing
+rich = false           # cover, progress bar and an AniList button; needs show_title
 
 [syncplay]
 server = "syncplay.pl:8995"

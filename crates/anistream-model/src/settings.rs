@@ -47,6 +47,9 @@ pub enum SettingKey {
     DownloadHook,
     Presence,
     PresenceTitle,
+    /// Discord's "Watching" with the cover, a progress bar, a link to AniList and the player's
+    /// state. Needs the title shown, since every part of it names the show.
+    PresenceRich,
     Torrents,
     /// The torrent index: the RSS search address the torrent source asks, which anistream
     /// ships none of. No row on the terminal's Settings screen, which leaves it to the file; a
@@ -100,7 +103,7 @@ impl SettingKey {
     /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
     /// renderer draws a heading each time the category changes, so rows of one category must
     /// be contiguous here.
-    pub const ROWS: [Self; 32] = [
+    pub const ROWS: [Self; 33] = [
         Self::Theme,
         Self::Motion,
         Self::Titles,
@@ -128,6 +131,7 @@ impl SettingKey {
         Self::UploadLimit,
         Self::Presence,
         Self::PresenceTitle,
+        Self::PresenceRich,
         Self::TokenStorage,
         Self::Syncplay,
         Self::SyncplayServer,
@@ -177,6 +181,7 @@ impl SettingKey {
             Self::DownloadHook => (&["downloads"], "on_complete"),
             Self::Presence => (&["presence"], "enabled"),
             Self::PresenceTitle => (&["presence"], "show_title"),
+            Self::PresenceRich => (&["presence"], "rich"),
             Self::Torrents => (&["providers", "torrent"], "enabled"),
             Self::TorrentIndex => (&["providers", "torrent"], "rss_url"),
             Self::SeedRatio => (&["providers", "torrent", "seeding"], "ratio"),
@@ -258,6 +263,7 @@ impl SettingKey {
             }
             Self::Presence => to.presence.enabled = from.presence.enabled,
             Self::PresenceTitle => to.presence.show_title = from.presence.show_title,
+            Self::PresenceRich => to.presence.rich = from.presence.rich,
             Self::Torrents => to.providers.torrent.enabled = from.providers.torrent.enabled,
             Self::TorrentIndex => {
                 to.providers.torrent.rss_url.clone_from(&from.providers.torrent.rss_url);
@@ -335,6 +341,7 @@ impl SettingKey {
             | Self::VpnOnFailure => "sources",
             Self::Presence
             | Self::PresenceTitle
+            | Self::PresenceRich
             | Self::TokenStorage
             | Self::Syncplay
             | Self::SyncplayServer
@@ -375,6 +382,7 @@ impl SettingKey {
             Self::UpdateCheck => "check for updates",
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
+            Self::PresenceRich => "rich presence",
             Self::Torrents => "torrent source",
             Self::TorrentIndex => "torrent index",
             Self::SeedRatio => "seed after watching",
@@ -455,6 +463,11 @@ pub struct SettingsView {
     pub speed: Option<f64>,
     /// Whether Discord presence has a client to publish under, which its row's note depends on.
     pub presence_client: bool,
+    /// Whether this engine can publish a presence at all: it is a desktop's, not a phone's. A
+    /// front end shows no Discord setting or preview where it is not. The terminal's own is
+    /// always so; the engine says what it was built with.
+    #[cfg_attr(feature = "ffi", uniffi(default = true))]
+    pub presence_available: bool,
     /// The native apps' own rows, in [`SettingKey::NATIVE_ROWS`] order. The terminal draws
     /// none of them.
     #[cfg_attr(feature = "ffi", uniffi(default))]
@@ -503,6 +516,7 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         sources: ConfiguredSources::of(&effective.providers),
         speed: effective.playback.persisted_speed,
         presence_client: effective.presence.resolved_client_id().is_some(),
+        presence_available: true,
         native_rows: native_rows(effective, saved),
         // The shows' own are the database's, which the engine counts and puts in.
         overridden: Vec::new(),
@@ -645,6 +659,7 @@ pub fn step(
         SettingKey::Fullscreen => V::Bool(!playback.fullscreen),
         SettingKey::Presence => V::Bool(!effective.presence.enabled),
         SettingKey::PresenceTitle => V::Bool(!effective.presence.show_title),
+        SettingKey::PresenceRich => V::Bool(!effective.presence.rich),
         SettingKey::Torrents => V::Bool(!effective.providers.torrent.enabled),
         SettingKey::SeedRatio => {
             // Tenths, so the ladder can be matched exactly rather than as floats.
@@ -772,6 +787,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         }
         (SettingKey::Presence, V::Bool(on)) => config.presence.enabled = *on,
         (SettingKey::PresenceTitle, V::Bool(on)) => config.presence.show_title = *on,
+        (SettingKey::PresenceRich, V::Bool(on)) => config.presence.rich = *on,
         (SettingKey::Torrents, V::Bool(on)) => config.providers.torrent.enabled = *on,
         // Blank is no index, as the file reads it: the source needs one before it turns on.
         (SettingKey::TorrentIndex, V::Str(url)) => {
@@ -911,6 +927,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::UpdateCheck => on_off(effective.updates.check),
         SettingKey::Presence => on_off(effective.presence.enabled),
         SettingKey::PresenceTitle => on_off(effective.presence.show_title),
+        SettingKey::PresenceRich => on_off(effective.presence.rich),
         SettingKey::Torrents => on_off(torrent.enabled),
         // By its host, which is what tells one index from another at a glance.
         SettingKey::TorrentIndex => torrent.indexer_host().unwrap_or_else(|| "none".into()),
@@ -1003,6 +1020,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::KeepSeeding => c.downloads.keep_seeding,
         S::Presence => c.presence.enabled,
         S::PresenceTitle => c.presence.show_title,
+        S::PresenceRich => c.presence.rich,
         S::Torrents => c.providers.torrent.enabled,
         S::Syncplay => c.syncplay.enabled,
         S::UpdateCheck => c.updates.check,

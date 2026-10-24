@@ -554,6 +554,7 @@ struct IntegrationsPane: View {
     var body: some View {
         let syncplay = store.settings.isOn(.syncplay)
         let presence = store.settings.isOn(.presence)
+        let titled = store.settings.isOn(.presenceTitle)
         SettingsGroup(
             title: "Watch together",
             footnote: "Parties play through the Syncplay app. Progress is not recorded while a party is on."
@@ -566,13 +567,23 @@ struct IntegrationsPane: View {
                 .disabled(!syncplay)
                 .opacity(syncplay ? 1 : 0.45)
         }
-        SettingsGroup(title: "Discord") {
-            SettingsRow(title: SettingKey.presence.title, selected: true) { SettingSwitch(key: .presence) }
-            SettingsRow(title: SettingKey.presenceTitle.title) { SettingSwitch(key: .presenceTitle) }
-                .disabled(!presence)
-                .opacity(presence ? 1 : 0.45)
+        // Only where the engine has a presence to show: a phone's has none.
+        if store.settings.hasPresence {
+            SettingsGroup(
+                title: "Discord",
+                footnote: "Rich presence shows the cover, a progress bar and a link to the show on AniList. Discord fetches the cover from AniList itself. It needs the title shown."
+            ) {
+                SettingsRow(title: SettingKey.presence.title, selected: true) { SettingSwitch(key: .presence) }
+                SettingsRow(title: SettingKey.presenceTitle.title) { SettingSwitch(key: .presenceTitle) }
+                    .disabled(!presence)
+                    .opacity(presence ? 1 : 0.45)
+                SettingsRow(title: SettingKey.presenceRich.title) { SettingSwitch(key: .presenceRich) }
+                    .disabled(!presence || !titled)
+                    .opacity(presence && titled ? 1 : 0.45)
+            }
         }
         UpdatesGroup()
+        AboutGroup()
     }
 }
 
@@ -594,30 +605,77 @@ enum AppVersion {
     static let privacy = URL(string: "https://anistream.tv/docs/privacy/")!
 }
 
+/// What Discord is sent for an episode, as the three switches leave it: nothing, the plain
+/// presence, or the rich one. The preview draws this, so what it shows is what goes out.
+struct PresenceSketch: Equatable {
+    enum Mode: Equatable { case off, plain, rich }
+
+    var mode: Mode
+    /// The line above the episode: the show, or only that something is playing.
+    var heading: String
+    /// The episode line, empty when the title is kept off.
+    var detail: String
+    /// Whether the cover, the bar and the AniList button go with it.
+    var cover: Bool { mode == .rich }
+    var bar: Bool { mode == .rich }
+    var button: String? { mode == .rich ? "View on AniList" : nil }
+
+    init(enabled: Bool, titled: Bool, rich: Bool, show: String, episode: Int, total: Int?) {
+        // The rich presence names the show on every part of it, so it follows the title.
+        mode = !enabled ? .off : (rich && titled ? .rich : .plain)
+        heading = titled ? show : "Watching anime"
+        guard titled else { detail = ""; return }
+        let of = mode == .rich ? total.flatMap { episode <= $0 ? " of \($0)" : nil } ?? "" : ""
+        detail = "Episode \(episode)\(of)"
+    }
+}
+
 /// What Discord shows while an episode plays: the show and the episode, or only "Watching anime"
-/// when the title is kept off it.
+/// when the title is kept off it, and with Rich presence the cover, a progress bar and a button.
 struct PresencePreview: View {
     @Environment(AppStore.self) private var store
 
     var body: some View {
-        let on = store.settings.isOn(.presence)
-        let titled = store.settings.isOn(.presenceTitle)
         let example = store.continuing.queue(store.titles).all.first?.entry
+        let sketch = PresenceSketch(
+            enabled: store.settings.isOn(.presence), titled: store.settings.isOn(.presenceTitle),
+            rich: store.settings.isOn(.presenceRich), show: example?.showTitle ?? "Hoshikuzu no Tabibito",
+            episode: Int(example?.progress?.next ?? 7), total: example?.episodes.map(Int.init)
+        )
         VStack(alignment: .leading, spacing: 12) {
             Text("Discord presence").groupHeaderStyle().macLineHeight(14)
                 .accessibilityAddTraits(.isHeader)
-            VStack(alignment: .leading, spacing: 2) {
-                if titled {
-                    Text(example?.showTitle ?? "Hoshikuzu no Tabibito")
+            HStack(alignment: .top, spacing: 10) {
+                if sketch.cover {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(.haze.opacity(0.3))
+                        .frame(width: 48, height: 68)
+                        .overlay(Text("Cover").font(.mac(11)).foregroundStyle(.haze))
+                        .accessibilityHidden(true)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(sketch.heading)
                         .font(.mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
-                    Text("Episode \(example?.progress?.next ?? 7)").font(.mac(12)).foregroundStyle(.haze)
-                } else {
-                    Text("Watching anime").font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
+                    if !sketch.detail.isEmpty {
+                        Text(sketch.detail).font(.mac(12)).foregroundStyle(.haze)
+                    }
+                    if sketch.bar {
+                        Capsule().fill(.haze.opacity(0.3)).frame(width: 120, height: 4)
+                            .overlay(alignment: .leading) { Capsule().fill(.silk).frame(width: 40, height: 4) }
+                            .padding(.top, 4)
+                            .accessibilityHidden(true)
+                    }
+                    if let button = sketch.button {
+                        Text(button).font(.mac(12, weight: .semibold)).foregroundStyle(.silk)
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(.haze.opacity(0.25), in: RoundedRectangle(cornerRadius: 5))
+                            .padding(.top, 6)
+                    }
                 }
             }
-            .opacity(on ? 1 : 0.6)
-            Text(on
+            .opacity(sketch.mode == .off ? 0.6 : 1)
+            Text(sketch.mode != .off
                  ? "Your Discord profile shows this while an episode plays."
                  : "Off. When on, your Discord profile shows this while an episode plays.")
                 .font(.mac(13))

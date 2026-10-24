@@ -26,8 +26,11 @@ use crate::{
         Member, MemberRow, OPEN_DEVICES_LISTED, OpenState, PART_SIZE, PROTOCOL, PendingInvite,
         RESERVED_IDS, Role, SignedIndex, StoreInfo, is_valid_id, is_valid_version,
     },
-    sql,
+    schema, sql,
 };
+
+/// This code's version, as the workspace has it, recorded with each migration it applies.
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {
@@ -97,50 +100,6 @@ pub const OPEN_JOIN_WINDOW_SECS: i64 = 60 * 60;
 /// A store name nobody chose.
 pub const DEFAULT_NAME: &str = "Plugin store";
 
-fn schema(dialect: Dialect) -> Vec<String> {
-    // SQLite's INTEGER is 64-bit; Postgres's is not.
-    let int = match dialect {
-        Dialect::Sqlite => "INTEGER",
-        Dialect::Postgres => "BIGINT",
-    };
-    [
-        "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS members (
-            id TEXT PRIMARY KEY, name TEXT NOT NULL, role TEXT NOT NULL,
-            joined_at {int} NOT NULL, removed_at {int})",
-        "CREATE TABLE IF NOT EXISTS devices (
-            id TEXT PRIMARY KEY, member_id TEXT NOT NULL, label TEXT NOT NULL,
-            token_hash TEXT NOT NULL UNIQUE, created_at {int} NOT NULL, last_seen {int},
-            revoked_at {int})",
-        "CREATE TABLE IF NOT EXISTS invites (
-            id TEXT PRIMARY KEY, code_hash TEXT NOT NULL UNIQUE, kind TEXT NOT NULL,
-            name TEXT NOT NULL, role TEXT NOT NULL, member_id TEXT, created_by TEXT,
-            created_at {int} NOT NULL, expires_at {int} NOT NULL, used_at {int}, used_by TEXT,
-            cancelled_at {int})",
-        "CREATE TABLE IF NOT EXISTS admin_links (
-            code_hash TEXT PRIMARY KEY, member_id TEXT NOT NULL, created_at {int} NOT NULL,
-            expires_at {int} NOT NULL, used_at {int})",
-        "CREATE TABLE IF NOT EXISTS sessions (
-            token_hash TEXT PRIMARY KEY, member_id TEXT NOT NULL, created_at {int} NOT NULL,
-            expires_at {int} NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS plugins (
-            id TEXT PRIMARY KEY, name TEXT NOT NULL, version TEXT NOT NULL,
-            allowed_hosts TEXT NOT NULL, translations TEXT NOT NULL, sha256 TEXT NOT NULL,
-            size {int} NOT NULL, published_at {int} NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS uploads (
-            id TEXT PRIMARY KEY, member_id TEXT NOT NULL, size {int} NOT NULL,
-            created_at {int} NOT NULL)",
-        "CREATE TABLE IF NOT EXISTS failures (
-            key TEXT PRIMARY KEY, window_start {int} NOT NULL, attempts {int} NOT NULL)",
-        // Open joins per address, counted like failures but over their own window.
-        "CREATE TABLE IF NOT EXISTS open_joins (
-            key TEXT PRIMARY KEY, window_start {int} NOT NULL, attempts {int} NOT NULL)",
-    ]
-    .iter()
-    .map(|statement| statement.replace("{int}", int))
-    .collect()
-}
-
 /// What an invite is for.
 #[derive(Debug, Clone, Copy)]
 pub struct NewInvite<'a> {
@@ -192,7 +151,8 @@ impl<D, B> std::fmt::Debug for Store<D, B> {
 }
 
 impl<D: Database, B: Blobs> Store<D, B> {
-    /// Open a store, creating its tables and its key on first use.
+    /// Open a store, creating its tables and its key on first use, and bringing its tables up to
+    /// date when an earlier version made them (see [`crate::schema`]).
     ///
     /// `url` and `name` replace what is recorded when given. The key is kept in the database, so
     /// a backup of the database is a backup of the store's identity.
@@ -203,9 +163,7 @@ impl<D: Database, B: Blobs> Store<D, B> {
         name: Option<&str>,
     ) -> Result<Self, StoreError> {
         let dialect = db.dialect();
-        let statements: Vec<Statement> =
-            schema(dialect).iter().map(|s| Statement::new(s, Vec::new())).collect();
-        db.batch(&statements).await?;
+        schema::migrate(&db, VERSION).await?;
 
         // Generated once. Two instances starting together both try; the first insert wins and
         // both read back the same key.
