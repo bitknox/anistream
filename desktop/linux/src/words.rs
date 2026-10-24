@@ -168,16 +168,6 @@ pub fn season_step(season: Season, year: i32, delta: i32) -> (Season, i32) {
     (ALL[at.rem_euclid(4) as usize], at.div_euclid(4))
 }
 
-/// AniList's wire name for a season, as a search filter takes it.
-pub fn season_wire(season: Season) -> &'static str {
-    match season {
-        Season::Winter => "WINTER",
-        Season::Spring => "SPRING",
-        Season::Summer => "SUMMER",
-        Season::Fall => "FALL",
-    }
-}
-
 /// The calendar date of a Unix time, in UTC: (year, month, day).
 fn civil(unix: i64) -> (i32, u32, u32) {
     // Howard Hinnant's days-to-civil.

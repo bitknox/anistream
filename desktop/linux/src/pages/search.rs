@@ -10,9 +10,10 @@ use std::{
 
 use adw::prelude::*;
 use anistream_model::{
-    catalog::{ContentFor, ContentList, SearchFilters},
+    catalog::{AiringStatus, ContentFor, ContentList, Season},
     command::Command,
     event::Event,
+    search::{MediaFormat, SearchQuery, SearchSort},
 };
 
 use crate::{
@@ -41,33 +42,41 @@ const GENRES: [&str; 16] = [
     "Thriller",
 ];
 
-const FORMATS: [(&str, &str); 6] = [
-    ("Any format", ""),
-    ("TV", "TV"),
-    ("Movie", "MOVIE"),
-    ("ONA", "ONA"),
-    ("OVA", "OVA"),
-    ("Special", "SPECIAL"),
+const FORMATS: [(&str, Option<MediaFormat>); 6] = [
+    ("Any format", None),
+    ("TV", Some(MediaFormat::Tv)),
+    ("Movie", Some(MediaFormat::Movie)),
+    ("ONA", Some(MediaFormat::Ona)),
+    ("OVA", Some(MediaFormat::Ova)),
+    ("Special", Some(MediaFormat::Special)),
 ];
-const SEASONS: [(&str, &str); 5] = [
-    ("Any season", ""),
-    ("Winter", "WINTER"),
-    ("Spring", "SPRING"),
-    ("Summer", "SUMMER"),
-    ("Fall", "FALL"),
+const SEASONS: [(&str, Option<Season>); 5] = [
+    ("Any season", None),
+    ("Winter", Some(Season::Winter)),
+    ("Spring", Some(Season::Spring)),
+    ("Summer", Some(Season::Summer)),
+    ("Fall", Some(Season::Fall)),
 ];
-const STATUSES: [(&str, &str); 4] = [
-    ("Any status", ""),
-    ("Airing", "RELEASING"),
-    ("Finished", "FINISHED"),
-    ("Not yet aired", "NOT_YET_RELEASED"),
+const STATUSES: [(&str, Option<AiringStatus>); 4] = [
+    ("Any status", None),
+    ("Airing", Some(AiringStatus::Releasing)),
+    ("Finished", Some(AiringStatus::Finished)),
+    ("Not yet aired", Some(AiringStatus::NotYetReleased)),
 ];
-const SORTS: [(&str, &str); 4] = [
-    ("Best match", ""),
-    ("Popular", "POPULARITY_DESC"),
-    ("Top rated", "SCORE_DESC"),
-    ("Newest", "START_DATE_DESC"),
+const SORTS: [(&str, Option<SearchSort>); 4] = [
+    ("Best match", None),
+    ("Popular", Some(SearchSort::Popularity)),
+    ("Top rated", Some(SearchSort::Score)),
+    ("Newest", Some(SearchSort::Newest)),
 ];
+
+/// A drop-down of these options' names.
+fn drop_down<T>(options: &[(&str, T)]) -> gtk::DropDown {
+    let names: Vec<&str> = options.iter().map(|(n, _)| *n).collect();
+    let drop = gtk::DropDown::from_strings(&names);
+    drop.add_css_class("flat");
+    drop
+}
 
 /// How many recent searches the page keeps.
 const RECENT: usize = 6;
@@ -92,7 +101,7 @@ struct Inner {
     empty: adw::StatusPage,
     filters: [gtk::DropDown; 4],
     genre: RefCell<Option<String>>,
-    asked: RefCell<Option<(String, SearchFilters)>>,
+    asked: RefCell<Option<SearchQuery>>,
     searches: RefCell<Vec<String>>,
     capture: Cell<bool>,
 }
@@ -119,13 +128,8 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_end(&toggle);
 
-    let drop = |options: &[(&str, &str)]| {
-        let names: Vec<&str> = options.iter().map(|(n, _)| *n).collect();
-        let drop = gtk::DropDown::from_strings(&names);
-        drop.add_css_class("flat");
-        drop
-    };
-    let filters = [drop(&FORMATS), drop(&SEASONS), drop(&STATUSES), drop(&SORTS)];
+    let filters =
+        [drop_down(&FORMATS), drop_down(&SEASONS), drop_down(&STATUSES), drop_down(&SORTS)];
     let filter_row = gtk::FlowBox::builder()
         .selection_mode(gtk::SelectionMode::None)
         .max_children_per_line(5)
@@ -362,39 +366,38 @@ impl Inner {
         self.bar.is_mapped()
     }
 
-    fn picked(drop: &gtk::DropDown, options: &[(&str, &str)]) -> Option<String> {
-        let (_, wire) = options.get(drop.selected() as usize)?;
-        (!wire.is_empty()).then(|| (*wire).to_owned())
+    fn picked<T: Copy>(drop: &gtk::DropDown, options: &[(&str, Option<T>)]) -> Option<T> {
+        options.get(drop.selected() as usize)?.1
     }
 
-    fn filter(&self) -> SearchFilters {
+    /// What is typed and chosen, the text trimmed as the engine tags its answer.
+    fn query(&self) -> SearchQuery {
         let [format, season, status, sort] = &self.filters;
-        SearchFilters {
-            genre: self.genre.borrow().clone(),
-            year: None,
+        SearchQuery {
+            text: self.entry.text().trim().to_owned(),
+            genres: self.genre.borrow().iter().cloned().collect(),
             season: Self::picked(season, &SEASONS),
-            format: Self::picked(format, &FORMATS),
-            status: Self::picked(status, &STATUSES),
+            formats: Self::picked(format, &FORMATS).into_iter().collect(),
+            statuses: Self::picked(status, &STATUSES).into_iter().collect(),
             sort: Self::picked(sort, &SORTS),
+            ..SearchQuery::default()
         }
     }
 
     fn search(&self) {
-        let query = self.entry.text().trim().to_owned();
-        let filter = self.filter();
-        if query.is_empty() && filter.is_empty() {
+        let query = self.query();
+        if query.is_blank() {
             self.asked.replace(None);
             self.body.set_visible_child_name("before");
             return;
         }
-        self.match_settings(&query);
-        let asked = (query.clone(), filter.clone());
-        if self.asked.borrow().as_ref() == Some(&asked) {
+        self.match_settings(&query.text);
+        if self.asked.borrow().as_ref() == Some(&query) {
             return;
         }
-        self.asked.replace(Some(asked));
+        self.asked.replace(Some(query.clone()));
         self.body.set_visible_child_name("loading");
-        self.ctx.hub.send(Command::Search { query, filter });
+        self.ctx.hub.send(Command::Search { query });
     }
 
     fn heard(&self, event: &Event) {
@@ -403,8 +406,8 @@ impl Inner {
                 let entries = content.entries();
                 self.season.set(&entries[..entries.len().min(12)]);
             }
-            Event::Content { view: ContentFor::Search { query, filter }, content } => {
-                if self.asked.borrow().as_ref() != Some(&(query.clone(), filter.clone())) {
+            Event::Content { view: ContentFor::Search { query }, content } => {
+                if self.asked.borrow().as_ref() != Some(query) {
                     return;
                 }
                 match content {
@@ -420,10 +423,10 @@ impl Inner {
                         if self.settings_group.is_visible() {
                             self.body.set_visible_child_name("results");
                         } else {
-                            let line = if query.is_empty() {
+                            let line = if query.is_browse() {
                                 "Nothing found with these filters".to_owned()
                             } else {
-                                format!("Nothing found for \u{201c}{query}\u{201d}")
+                                format!("Nothing found for \u{201c}{}\u{201d}", query.text)
                             };
                             self.empty.set_title(&line);
                             self.empty.set_description(Some(

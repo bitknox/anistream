@@ -184,12 +184,12 @@ public class EngineTests
         // Started as the Windows app will start, with the fields it names and the rest defaulted.
         using var started = Started.Testing(start: new FfiStart(Platform: FfiPlatform.MacOs, Secrets: SecretsMode.Host));
 
-        var job = started.Engine.Send(new Command.Search("hoshikuzu", new SearchFilters()));
+        var job = started.Engine.Send(new Command.Search(new SearchQuery(Text: "hoshikuzu")));
         Assert.NotNull(job);
         var read = await started.EventsUntil(job.Value);
 
         var found = read.OfType<Event.Content>()
-            .Where(c => c.View is ContentFor.Search { Query: "hoshikuzu" })
+            .Where(c => c.View is ContentFor.Search { Query.Text: "hoshikuzu" })
             .Select(c => c.ContentValue)
             .OfType<ContentList.Entries>()
             .Select(e => e.V1)

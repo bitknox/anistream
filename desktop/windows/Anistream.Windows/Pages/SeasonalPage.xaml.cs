@@ -42,8 +42,8 @@ public sealed partial class SeasonalPage : Page
         Pick(picked);
     }
 
-    SearchFilters Filter(SeasonYear season) => new(
-        Season: AnistreamFfiMethods.SeasonWire(season.Season), Year: (uint)season.Year, Sort: "POPULARITY_DESC");
+    static SearchQuery Query(SeasonYear season) => new(
+        Season: season.Season, Years: new Bounds(Min: (uint)season.Year, Max: (uint)season.Year), Sort: SearchSort.Popularity);
 
     void Pick(SeasonYear season)
     {
@@ -62,8 +62,8 @@ public sealed partial class SeasonalPage : Page
         }
         else
         {
-            entries = ctx.Known.ListEntries(new ContentFor.Search("", Filter(season)));
-            ctx.Send(new Command.Search("", Filter(season)));
+            entries = ctx.Known.ListEntries(new ContentFor.Search(Query(season)));
+            ctx.Send(new Command.Search(Query(season)));
         }
         Show();
     }
@@ -77,7 +77,7 @@ public sealed partial class SeasonalPage : Page
             var ours = c.View switch
             {
                 ContentFor.Seasonal => picked == now,
-                ContentFor.Search s => s.Query.Length == 0 && picked != now && s.Filter == Filter(picked),
+                ContentFor.Search s => picked != now && s.Query == Query(picked),
                 _ => false,
             };
             if (!ours || c.ContentValue is ContentList.Loading)

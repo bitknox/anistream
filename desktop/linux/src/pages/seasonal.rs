@@ -8,9 +8,10 @@ use std::{
 
 use adw::prelude::*;
 use anistream_model::{
-    catalog::{ContentFor, ContentList, Entry, SearchFilters, Season},
+    catalog::{ContentFor, ContentList, Entry, Season},
     command::Command,
     event::Event,
+    search::SearchQuery,
 };
 use gtk::glib;
 
@@ -141,30 +142,21 @@ impl Page {
         if at == self.now {
             self.ctx.hub.send(Command::LoadSeasonal);
         } else {
-            self.ctx
-                .hub
-                .send(Command::Search { query: String::new(), filter: self.filter(at) });
+            self.ctx.hub.send(Command::Search { query: self.query(at) });
         }
     }
 
-    fn filter(&self, at: usize) -> SearchFilters {
+    fn query(&self, at: usize) -> SearchQuery {
         let (season, year) = self.seasons[at];
-        SearchFilters {
-            season: Some(words::season_wire(season).into()),
-            year: u32::try_from(year).ok(),
-            sort: Some("POPULARITY_DESC".into()),
-            ..SearchFilters::default()
-        }
+        SearchQuery::season(season, u16::try_from(year).unwrap_or_default())
     }
 
     fn heard(&self, event: &Event) {
         let Event::Content { view, content } = event else { return };
         let ours = match view {
             ContentFor::Seasonal => self.picked.get() == self.now,
-            ContentFor::Search { query, filter } => {
-                query.is_empty()
-                    && self.picked.get() != self.now
-                    && *filter == self.filter(self.picked.get())
+            ContentFor::Search { query } => {
+                self.picked.get() != self.now && *query == self.query(self.picked.get())
             }
             _ => false,
         };
