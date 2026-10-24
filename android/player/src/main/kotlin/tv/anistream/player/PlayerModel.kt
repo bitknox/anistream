@@ -187,6 +187,18 @@ class PlayerModel(
         private set
     var resume by mutableStateOf<ResumeNote?>(null)
         private set
+
+    /**
+     * The next playback starts from the beginning, wherever it was left: "Play from the start". The
+     * engine opens it at its resume point and says so, and this seeks back once the file is in.
+     */
+    private var fromStart = false
+    private var startOverOnLoad = false
+
+    /** The next playback starts from the beginning: call before asking the engine to play it. */
+    fun playFromStart() {
+        fromStart = true
+    }
     var alert by mutableStateOf<PlayerAlert?>(null)
         private set
     var upscaler by mutableStateOf<String?>(null)
@@ -453,7 +465,12 @@ class PlayerModel(
                 stall = null
                 stallWaived = false
             }
-            is PlayerUi.Resumed -> resume = ResumeNote(ui.position)
+            is PlayerUi.Resumed -> if (fromStart) {
+                fromStart = false
+                startOverOnLoad = true
+            } else {
+                resume = ResumeNote(ui.position)
+            }
             is PlayerUi.Picture -> {
                 upscaler = ui.upscaler
                 hdr = ui.hdr
@@ -653,6 +670,7 @@ class PlayerModel(
         current = null
         loads.clear()
         sources.clear()
+        startOverOnLoad = false
         settings.clear()
         thumbnails = null
         if (!awaitingVerdict || !isPresented) {
@@ -749,11 +767,18 @@ class PlayerModel(
             MpvNative.Event.PROPERTY_CHANGE -> update(event.name ?: return, event.value)
         }
         reportOf(event)?.let(::report)
+        // After the engine hears the file is in, which a seek waits for.
+        if (event.id == MpvNative.Event.FILE_LOADED && startOverOnLoad) {
+            startOverOnLoad = false
+            control(PlayerCommand.SeekTo(0.0))
+        }
     }
 
     /** The file's first picture is up: the starting screen fades from it. */
     private fun firstFrame() {
         hasPicture = true
+        // An episode with no resume point started at its beginning anyway.
+        fromStart = false
         watchdog?.cancel()
         watchdog = null
         note("#$current first frame")
