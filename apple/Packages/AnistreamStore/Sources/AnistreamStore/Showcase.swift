@@ -15,9 +15,11 @@ import UIKit
 /// What a screenshot can ask the Fixtures app to show beside the testing engine's own data, with
 /// `-AnistreamShowcase <name>`: `sources`, `stores`, `downloads`, `invite`, or `all`; and
 /// `update`, a newer release with its notice, and `pale`, 900001 renamed to a title long enough to
-/// wrap and given a near-white banner, which `all` leaves out.
+/// wrap and given a near-white banner, which `all` leaves out; `offline`, the device without a
+/// network, what was loaded staying; `stranded`, offline with nothing loaded; and `failed`, the
+/// lists failed to load. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, update, pale, all
+    case sources, stores, downloads, invite, update, pale, offline, stranded, failed, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -67,6 +69,16 @@ public enum Showcase: String, CaseIterable, Sendable {
                     events.append(.artworkReady(url: Self.paleBannerUrl, bytes: bytes))
                     events.append(.detail(Self.pale(title)))
                 }
+            case .offline:
+                events.append(.connectivity(offline: true))
+                held.insert("connectivity")
+            case .stranded, .failed:
+                if self == .stranded { events.append(.connectivity(offline: true)) }
+                let reason = self == .stranded ? "no route to host" : "anilist unreachable: error sending request"
+                let views: [ContentFor] = [.continue, .seasonal, .calendar]
+                    + LibraryModel.order.map { ContentFor.library($0) }
+                events += views.map { .content(view: $0, content: .failed(reason)) }
+                held.formUnion(["connectivity", "content"])
             case .all:
                 break
             }
@@ -250,6 +262,8 @@ extension Event {
         case .seeding: "seeding"
         case .storePreview: "storePreview"
         case .update: "update"
+        case .connectivity: "connectivity"
+        case .content: "content"
         default: nil
         }
     }

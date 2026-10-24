@@ -16,7 +16,8 @@ import Network
 /// - The Mac: always in the foreground. A Mac app keeps running behind other windows, minimised
 ///   or hidden, and its downloads and seeding with it; nothing takes its loopback servers away.
 /// - Both: the network from `NWPathMonitor`, an expensive path as cellular (a phone's own, or
-///   the Mac on a phone's hotspot) and a constrained one as Low Data Mode.
+///   the Mac on a phone's hotspot), a constrained one as Low Data Mode, and no usable path as
+///   offline, which the engine says back to every screen (`Event::Connectivity`).
 @MainActor
 public final class SystemPhases {
     /// What the system says of the app's scene.
@@ -30,7 +31,7 @@ public final class SystemPhases {
     private let backgrounds: Bool
     private var away = false
     private var said: AppState?
-    private var path: (cellular: Bool, constrained: Bool)?
+    private var path: (cellular: Bool, constrained: Bool, offline: Bool)?
     private var monitor: NWPathMonitor?
 
     /// Whether this device has a background as the engine means one: a phone's or an iPad's.
@@ -92,12 +93,13 @@ public final class SystemPhases {
     }
 
     /// The device uses a network that is `expensive`, cellular or a hotspot, or `constrained`,
-    /// in Low Data Mode, or neither.
-    public func network(expensive: Bool, constrained: Bool) {
-        guard path.map({ $0 != (expensive, constrained) }) ?? true else { return }
-        path = (expensive, constrained)
-        AppLog.info("phases", "network: \(expensive ? "cellular" : "not cellular")\(constrained ? ", low data mode" : "")")
-        send(.networkPath(cellular: expensive, constrained: constrained))
+    /// in Low Data Mode, or neither; or it has none at all, `offline`.
+    public func network(expensive: Bool, constrained: Bool, offline: Bool = false) {
+        guard path.map({ $0 != (expensive, constrained, offline) }) ?? true else { return }
+        path = (expensive, constrained, offline)
+        let how = offline ? "offline" : "\(expensive ? "cellular" : "not cellular")\(constrained ? ", low data mode" : "")"
+        AppLog.info("phases", "network: \(how)")
+        send(.networkPath(cellular: expensive, constrained: constrained, offline: offline))
     }
 
     /// Follow the system's network path from now on, said once as it first stands.
@@ -106,7 +108,8 @@ public final class SystemPhases {
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             let (expensive, constrained) = (path.isExpensive, path.isConstrained)
-            Task { @MainActor in self?.network(expensive: expensive, constrained: constrained) }
+            let offline = path.status != .satisfied
+            Task { @MainActor in self?.network(expensive: expensive, constrained: constrained, offline: offline) }
         }
         monitor.start(queue: DispatchQueue(label: "tv.anistream.network-path"))
         self.monitor = monitor

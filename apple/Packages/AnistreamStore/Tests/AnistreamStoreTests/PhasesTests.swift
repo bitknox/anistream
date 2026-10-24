@@ -84,7 +84,7 @@ struct PhasesTests {
         #expect(told.sent == [.appPhase(phase: .foreground)])
     }
 
-    @Test func theNetworkIsSaidAsCellularAndLowDataModeEachTimeItChanges() {
+    @Test func theNetworkIsSaidAsCellularLowDataModeAndOfflineEachTimeItChanges() {
         let told = Told()
         let phases = told.phases(backgrounds: true)
         phases.network(expensive: false, constrained: false)
@@ -92,11 +92,16 @@ struct PhasesTests {
         phases.network(expensive: true, constrained: false)
         phases.network(expensive: true, constrained: true)
         phases.network(expensive: false, constrained: false)
+        phases.network(expensive: false, constrained: false, offline: true)
+        phases.network(expensive: false, constrained: false, offline: true)
+        phases.network(expensive: false, constrained: false)
         #expect(told.sent == [
-            .networkPath(cellular: false, constrained: false),
-            .networkPath(cellular: true, constrained: false),
-            .networkPath(cellular: true, constrained: true),
-            .networkPath(cellular: false, constrained: false),
+            .networkPath(cellular: false, constrained: false, offline: false),
+            .networkPath(cellular: true, constrained: false, offline: false),
+            .networkPath(cellular: true, constrained: true, offline: false),
+            .networkPath(cellular: false, constrained: false, offline: false),
+            .networkPath(cellular: false, constrained: false, offline: true),
+            .networkPath(cellular: false, constrained: false, offline: false),
         ])
     }
 }

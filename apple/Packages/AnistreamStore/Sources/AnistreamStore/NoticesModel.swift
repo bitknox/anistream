@@ -42,6 +42,14 @@ public final class NoticesModel {
         if log.count > Self.kept { log.removeLast(log.count - Self.kept) }
     }
 
+    /// Keep `notice` in Messages without putting it up: the whole reason a screen failed for,
+    /// which the screen says in a few plain words.
+    func record(_ notice: Notice) {
+        count += 1
+        log.insert(NoticeItem(id: count, notice: notice, at: clock()), at: 0)
+        if log.count > Self.kept { log.removeLast(log.count - Self.kept) }
+    }
+
     func status(_ text: String) {
         status = text.isEmpty ? nil : text
     }

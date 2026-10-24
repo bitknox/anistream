@@ -21,6 +21,9 @@ public final class AppStore {
     }
 
     public private(set) var phase: Phase = .starting
+    /// Whether the device has no network, as the engine last said (`Event::Connectivity`): the
+    /// screens keep what they have under the offline line, and one with nothing says so.
+    public private(set) var offline = false
 
     public let titles = TitleCache()
     public let continuing = ContinueModel()
@@ -521,6 +524,9 @@ public final class AppStore {
             notices.status(text)
         case .toast(let notice):
             notices.post(notice)
+        case .connectivity(let offline):
+            AppLog.info("store", offline ? "offline" : "online")
+            self.offline = offline
 
         case .settings(let view):
             let adult = settings.view.map { _ in settings.isOn(.adultTitles) }
@@ -636,6 +642,10 @@ public final class AppStore {
     }
 
     private func content(_ content: ContentList, for view: ContentFor) {
+        // The screen says it failed in plain words; the engine's whole reason goes to Messages.
+        if case .failed(let reason) = content {
+            notices.record(Notice(kind: .alert, text: reason, hint: nil))
+        }
         switch view {
         case .continue:
             continuing.apply(content, titles: titles)
