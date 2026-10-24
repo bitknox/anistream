@@ -265,7 +265,8 @@ pub struct ServerInfo {
     /// The schema version its database is at.
     pub schema: u32,
     /// Where it runs, as far as it can tell: `docker`, `fly`, `render`, `railway`, `heroku`,
-    /// `cloudflare`, `vercel`, `netlify`, or `binary` for a store run by hand.
+    /// `cloudflare`, `vercel`, `netlify`, `anistream` for one that `anistream store serve` runs,
+    /// or `binary` for `anistream-store` run by hand.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
 }
