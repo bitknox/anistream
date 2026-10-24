@@ -61,6 +61,7 @@ mod presence;
 mod scripted;
 mod skips;
 mod subtitles;
+mod timeline;
 mod upscaling;
 mod watch;
 

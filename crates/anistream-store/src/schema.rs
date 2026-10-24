@@ -415,6 +415,14 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0013_download_front",
+        r#"
+    -- When the viewer asked a waiting download to start now, which puts it at the front of the
+    -- queue: the latest asked first, then the rest oldest first. NULL for one never asked.
+    ALTER TABLE download ADD COLUMN front_at INTEGER;
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.

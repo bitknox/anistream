@@ -27,7 +27,7 @@ use crate::{
         self, ahead,
         commands::{
             download_cancel, download_clear_completed, download_delete, download_episode,
-            download_many, download_pause,
+            download_many, download_pause, download_start_now,
         },
     },
     jobs::JobGuard,
@@ -154,9 +154,14 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| load_seasonal(lent, adult))
         }
         Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
-        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
+        // Each row marked with its dub where a title page found it: see `Entry::airing_dubbed`.
+        Command::LoadCalendar => {
+            let dubs = engine.dubs.clone();
+            spawn(job, services, tx, move |lent| load_calendar(lent, dubs))
+        }
         Command::LoadCalendarPast { anchor, page } => {
-            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
+            let dubs = engine.dubs.clone();
+            spawn(job, services, tx, move |lent| load_calendar_past(lent, dubs, anchor, page))
         }
         Command::Search { query } => search::submit(query, job, engine, services, tx),
         Command::SearchLive { query } => search::live(query, engine, services, tx),
@@ -283,7 +288,7 @@ pub(crate) fn dispatch(
         Command::FinishSignIn { tracker, callback } => {
             finish_sign_in(tracker, callback, job, services, tx)
         }
-        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services),
+        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services, tx),
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }
@@ -308,6 +313,7 @@ pub(crate) fn dispatch(
         Command::DownloadMany { id, episodes } => {
             download_many(id, episodes, job, engine, services, tx)
         }
+        Command::DownloadStartNow { id } => download_start_now(id, services, tx),
         Command::DownloadPause { id } => download_pause(id, services, tx),
         Command::DownloadCancel { id } => download_cancel(id, services, tx),
         Command::DownloadDelete { id } => download_delete(id, services, tx),

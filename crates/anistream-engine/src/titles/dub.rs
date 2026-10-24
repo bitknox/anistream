@@ -55,8 +55,10 @@ const KEPT: usize = 512;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Looked {
     /// The source listed the title in the dub: how far that goes, `None` for no episode, and
-    /// whether the show is still airing, which decides how long the answer keeps.
-    Said { dub: Option<DubExtent>, airing: bool },
+    /// whether the show is still airing, which decides how long the answer keeps. `aired` is
+    /// how far it goes in AniList's numbers, which the calendar's rows are in: `None` when the
+    /// source's numbers cannot be lined up with them, or there is no dub.
+    Said { dub: Option<DubExtent>, airing: bool, aired: Option<u32> },
     /// No source could say: none matched it in the dub, none answered, or there is none.
     Unsaid,
 }
@@ -95,6 +97,8 @@ struct Inner {
 
 struct Kept {
     dub: Option<DubExtent>,
+    /// How far the dub goes in AniList's numbers: see [`Looked::Said`].
+    aired: Option<u32>,
     until: i64,
 }
 
@@ -172,6 +176,18 @@ impl Dubs {
         }
     }
 
+    /// How far title `id`'s dub goes in AniList's numbers, as last found of the sources
+    /// `route` names, however long ago: a dub does not take back an episode it has, so an old
+    /// answer still holds as far as it goes. `None` when nothing is kept, or it said no dub.
+    pub fn aired_through(&self, id: AnilistId, route: &str) -> Option<u32> {
+        self.lock().kept.get(&(id, route.to_owned()))?.aired
+    }
+
+    /// Whether anything at all is kept of title `id`, of any sources.
+    pub fn knows(&self, id: AnilistId) -> bool {
+        self.lock().kept.keys().any(|(kept, _)| *kept == id)
+    }
+
     /// What is kept of title `id` asked of `route`, and whether it is still fresh at `now`.
     fn kept(&self, id: AnilistId, route: &str, now: i64) -> Option<(Option<DubExtent>, bool)> {
         let inner = self.lock();
@@ -186,9 +202,9 @@ impl Dubs {
         looked: Looked,
         now: i64,
     ) -> Option<DubExtent> {
-        let dub = match looked {
-            Looked::Said { dub, .. } => dub,
-            Looked::Unsaid => None,
+        let (dub, aired) = match looked {
+            Looked::Said { dub, aired, .. } => (dub, aired),
+            Looked::Unsaid => (None, None),
         };
         let until = now + kept_for(looked);
         let mut inner = self.lock();
@@ -196,7 +212,7 @@ impl Dubs {
         if inner.kept.len() >= KEPT {
             inner.kept.retain(|_, kept| kept.until > now);
         }
-        inner.kept.insert((id, route), Kept { dub, until });
+        inner.kept.insert((id, route), Kept { dub, aired, until });
         dub
     }
 
@@ -325,11 +341,15 @@ pub async fn look_up(
         media.status == Some(MediaStatus::Releasing) || media.next_airing_episode.is_some();
     let listed = episodes::dub_answer(&media, store, registry, id, now).await;
     match listed.answer {
-        Answer::Answered { value, .. } => {
-            Looked::Said { dub: extent(&value, &media, now), airing }
-        }
+        Answer::Answered { value, .. } => Looked::Said {
+            dub: extent(&value, &media, now),
+            airing,
+            aired: aired_reach(&value, &media, now),
+        },
         // Each source has the title and no dub of it: as sure an answer as a listing.
-        Answer::Unanswered { .. } if listed.none => Looked::Said { dub: None, airing },
+        Answer::Unanswered { .. } if listed.none => {
+            Looked::Said { dub: None, airing, aired: None }
+        }
         Answer::Ambiguous { .. } | Answer::Unanswered { .. } => Looked::Unsaid,
     }
 }
@@ -349,6 +369,19 @@ pub fn extent(listed: &[Episode], media: &Media, now: i64) -> Option<DubExtent> 
     };
     let complete = aired.is_some_and(|aired| aired > 0 && through >= aired);
     Some(DubExtent { through, complete })
+}
+
+/// How far `listed`, a source's episodes of `media` in the dub, goes in AniList's numbers as
+/// of `now`: its highest whole episode, less the episodes of the seasons before where the
+/// source counts on from them. `None` when it lists no whole episode, or its numbers cannot be
+/// lined up with AniList's.
+pub fn aired_reach(listed: &[Episode], media: &Media, now: i64) -> Option<u32> {
+    let through = reach(listed)?;
+    match data::Numbering::of(listed, media, now) {
+        data::Numbering::Same => Some(through),
+        data::Numbering::After(offset) => through.checked_sub(offset).filter(|n| *n > 0),
+        data::Numbering::Unknown => None,
+    }
 }
 
 /// The highest whole episode a listing reaches: 6 for one that ends at "6" or "6.5", `None` for
@@ -510,6 +543,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn what_a_page_found_says_how_far_the_dub_goes_for_the_calendar() {
+        let mut page = Page::new(registry(vec![source("first", Some(6))]), false);
+        assert!(!page.dubs.knows(SHOW));
+        page.open().await;
+        let path = route(&page.store, &page.registry, SHOW);
+        assert!(page.dubs.knows(SHOW));
+        assert_eq!(page.dubs.aired_through(SHOW, &path), Some(6));
+        // Stale, it still holds as far as it goes.
+        page.clock.advance(SETTLED_FOR * 2);
+        assert_eq!(page.dubs.aired_through(SHOW, &path), Some(6));
+        assert_eq!(page.dubs.aired_through(SHOW, "pinned:elsewhere"), None, "other sources");
+
+        // No dub: nothing to mark.
+        let mut page = Page::new(registry(vec![source("first", None)]), false);
+        page.open().await;
+        let path = route(&page.store, &page.registry, SHOW);
+        assert_eq!(page.dubs.aired_through(SHOW, &path), None);
+    }
+
+    #[tokio::test]
     async fn no_dub_is_no_extent_and_kept_as_an_answer() {
         let none = source("first", None);
         let counter = none.call_count();
@@ -583,7 +636,10 @@ mod tests {
         page.clock.advance(120);
         assert_eq!(page.open().await, six);
         assert!(calls(&counter) > asked);
-        assert_eq!(kept_for(Looked::Said { dub: six, airing: false }), SETTLED_FOR);
+        assert_eq!(
+            kept_for(Looked::Said { dub: six, airing: false, aired: Some(6) }),
+            SETTLED_FOR
+        );
     }
 
     #[tokio::test]
@@ -678,5 +734,10 @@ mod tests {
             extent(&listed(13..=18), &media, 0),
             Some(DubExtent { through: 18, complete: false })
         );
+        // In AniList's numbers, which the calendar's rows are in, all of it is episode 12.
+        assert_eq!(aired_reach(&listed(13..=24), &media, 0), Some(12));
+        // Partway, it cannot be lined up, so the calendar marks nothing rather than a wrong row.
+        assert_eq!(aired_reach(&listed(13..=18), &media, 0), None);
+        assert_eq!(aired_reach(&listed(1..=5), &media, 0), Some(5));
     }
 }

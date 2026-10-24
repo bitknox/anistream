@@ -73,9 +73,13 @@ pub fn finish_sign_in(
     });
 }
 
-/// A native app's sign-in sheet was closed without signing in.
-pub fn cancel_sign_in(tracker: String, services: &Services) {
+/// A sign-in was closed without signing in: a native app's sheet, or the device code's screen,
+/// whose flow stops polling and whose code comes down.
+pub fn cancel_sign_in(tracker: String, services: &Services, tx: &Outbox) {
     tracking::native::cancel(&services.sync, &tracker);
+    if services.sync.device.stop(&tracker) {
+        let _ = tx.send(Event::DeviceCode(None));
+    }
 }
 
 /// Sign in to Kitsu with a username and password.
