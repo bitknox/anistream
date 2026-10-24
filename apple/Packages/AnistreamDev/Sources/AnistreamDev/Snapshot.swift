@@ -39,6 +39,13 @@ enum Snapshot {
         return unsafeBitCast(symbol, to: CreateImage.self)
     }()
 
+    /// Whether the login session's screen is locked, when the window server's pictures of a
+    /// window come back blank.
+    static var screenLocked: Bool {
+        let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+        return session?["CGSSessionScreenIsLocked"] as? Bool ?? false
+    }
+
     /// `window` as the window server composites it, at its backing scale.
     @MainActor
     static func composited(_ window: NSWindow) -> CGImage? {
@@ -53,7 +60,8 @@ enum Snapshot {
     /// glass.
     @MainActor
     static func write(_ window: NSWindow, to url: URL) throws {
-        if let image = composited(window).flatMap({ withSheets($0, of: window) }), image.width > 1 {
+        // A locked screen's window server composites every window blank: AppKit draws it then.
+        if !screenLocked, let image = composited(window).flatMap({ withSheets($0, of: window) }), image.width > 1 {
             let bitmap = NSBitmapImageRep(cgImage: image)
             guard let png = bitmap.representation(using: .png, properties: [:]) else { throw Problem.noPNG }
             try FileManager.default.createDirectory(
