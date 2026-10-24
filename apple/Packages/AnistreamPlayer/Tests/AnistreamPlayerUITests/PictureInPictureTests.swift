@@ -173,6 +173,48 @@ struct PictureInPictureTests {
         #expect(!rig.reports.contains { $0.1 == .closed })
     }
 
+    /// The Mac: the frames keep one size from the start to the end of Picture in Picture, in the
+    /// main window and floating alike, which mpv renders at once the picture floats.
+    @Test func keepsTheFramesAtOneSizeThroughout() async throws {
+        let (rig, pip, system) = try await playing()
+        let layer = try #require(rig.model.layer)
+        CALayer().addSublayer(layer)
+        rig.model.togglePictureInPicture()
+        #expect(pip.feed.frameSize == CGSize(width: 1920, height: 1080))
+        system.say(.started)
+        #expect(layer.drawableSize == CGSize(width: 1920, height: 1080))
+        #expect(pip.feed.frameSize == CGSize(width: 1920, height: 1080))
+    }
+
+    #if os(macOS)
+    /// AVKit shows the display layer's picture in its floating window at the layer's size, from the
+    /// window's corner: the layer takes the floating window's size, centred on the stage, as it
+    /// opens and as it is resized, until it closes.
+    @Test func theDisplayLayerTakesTheFloatingWindowsSize() async throws {
+        let rig = Rig()
+        let feed = PictureFeed()
+        let system = SystemPictureInPicture(feed: feed, model: rig.model)
+        let stage = CALayer()
+        stage.frame = CGRect(x: 0, y: 0, width: 1280, height: 800)
+        stage.addSublayer(feed.displayLayer)
+        feed.displayLayer.frame = stage.bounds
+        let floating = PIPPanel(
+            contentRect: CGRect(x: 0, y: 0, width: 378, height: 212), styleMask: [.borderless],
+            backing: .buffered, defer: true)
+        floating.isReleasedWhenClosed = false
+        let found = try #require(SystemPictureInPicture.floatingWindow(among: [NSWindow(), floating]))
+        #expect(found === floating)
+
+        system.follow(found)
+        #expect(feed.displayLayer.frame == CGRect(x: 451, y: 294, width: 378, height: 212))
+        floating.setContentSize(CGSize(width: 560, height: 315))
+        #expect(feed.displayLayer.frame == CGRect(x: 360, y: 243, width: 560, height: 315))
+        system.clearStage()
+        floating.setContentSize(CGSize(width: 400, height: 225))
+        #expect(feed.displayLayer.frame.size == CGSize(width: 560, height: 315))
+    }
+    #endif
+
     @Test func restoresThePictureIntoTheMainWindow() async throws {
         let (rig, pip, system) = try await playing()
         var broughtBack = 0
@@ -257,8 +299,9 @@ struct PictureInPictureTests {
         rig.model.togglePictureInPicture()
         try await until("a still shown") { pip.feed.counts.copied == 1 }
         #expect(system.starts == 1)
+        // The scripted mpv's screenshot, at the one size the Mac's frames keep.
         let frame = try #require(pip.feed.latestFrame)
-        #expect(CVPixelBufferGetWidth(frame) == 16)
+        #expect(CVPixelBufferGetWidth(frame) == 1920 && CVPixelBufferGetHeight(frame) == 1080)
     }
 
     /// AVKit's own controller, asked to stop before it was asked to start: by a second toggle while
@@ -439,3 +482,8 @@ struct InlinePictureInPictureTests {
         withExtendedLifetime(pip) {}
     }
 }
+
+#if os(macOS)
+/// A stand-in for the panel of the system's own that AppKit has for the floating window.
+final class PIPPanel: NSPanel {}
+#endif

@@ -50,6 +50,36 @@ extension PlayerTests {
             #expect(brightness(of: image, row: 2) > 0.05 && brightness(of: image, row: image.height - 3) > 0.05)
         }
 
+        /// On the Mac while Picture in Picture runs: every frame at one size, whatever size mpv's
+        /// drawable has, so the frames never change size under AVKit's floating window.
+        @Test func copiesAtOneSizeWhateverTheDrawable() async throws {
+            let (client, layer) = try await startedClient(width: 960, height: 540)
+            try await play(client, "testsrc.mkv")
+            let feed = await PictureFeed()
+            feed.frameSize = CGSize(width: 640, height: 360)
+            #expect(feed.start(layer))
+            @Sendable func size() -> [Int]? {
+                feed.latestFrame.map { [CVPixelBufferGetWidth($0), CVPixelBufferGetHeight($0)] }
+            }
+            let first = await eventually { feed.counts.copied >= 6 ? size() : nil }
+            // The drawable shrinks, as mpv's does when the picture leaves the main window.
+            await MainActor.run { layer.resize(to: CGSize(width: 240, height: 135), scale: 2) }
+            await client.surfaceResized()
+            let copied = feed.counts.copied
+            let later = await eventually { feed.counts.copied >= copied + 12 ? size() : nil }
+            feed.stop()
+            await client.shutdown()
+            #expect(first == [640, 360])
+            #expect(later == [640, 360])
+        }
+
+        @Test func handsOverAtTheSizeItIsGiven() {
+            let part = CGRect(x: 0, y: 0, width: 2560, height: 1440)
+            #expect(PictureFeed.handedOver(part, exactly: CGSize(width: 1920, height: 803), inside: nil) == (1920, 804))
+            #expect(PictureFeed.handedOver(part, exactly: nil, inside: CGSize(width: 1280, height: 1280)) == (1280, 720))
+            #expect(PictureFeed.handedOver(part, exactly: nil, inside: nil) == (2560, 1440))
+        }
+
         /// The feed shows what mpv drew: the frame after the shaders, with the subtitles in it, as
         /// mpv's own screenshot of the window has it, and not the video alone. Playing, so the
         /// frames differ by a few frames of motion either way; only the subtitles tell them apart.
