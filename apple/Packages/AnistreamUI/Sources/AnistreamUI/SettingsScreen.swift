@@ -181,6 +181,7 @@ struct SettingsColumns: Layout {
 
 /// Settings' search: every row whose name has the words, with the pane it is on.
 struct SettingsResults: View {
+    @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     let query: String
 
@@ -201,10 +202,20 @@ struct SettingsResults: View {
         ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
         ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts), ("Privacy", .accounts),
         ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
-        ("Syncplay room", .integrations), ("Discord presence", .integrations),
-        ("Presence shows the title", .integrations), ("Check for updates", updatesPane),
+        ("Syncplay room", .integrations), ("Check for updates", updatesPane),
         ("mpv options", .advanced),
     ].filter { SettingsPane.shown.contains($0.pane) }
+
+    /// The rows about Discord, which only an engine with a presence has.
+    static let presenceRows: [(title: String, pane: SettingsPane)] = [
+        ("Discord presence", .integrations), ("Presence shows the title", .integrations),
+        ("Rich presence", .integrations),
+    ].filter { SettingsPane.shown.contains($0.pane) }
+
+    /// The rows to search, those about Discord only when `presence` says the engine has one.
+    static func rows(presence: Bool) -> [(title: String, pane: SettingsPane)] {
+        presence ? index + presenceRows : index
+    }
 
     /// Where Updates is: Integrations on the Mac, Advanced on the iPad.
     static var updatesPane: SettingsPane {
@@ -217,7 +228,7 @@ struct SettingsResults: View {
 
     var body: some View {
         let words = query.lowercased().split(separator: " ")
-        let found = Self.index.filter { row in words.allSatisfy { row.title.lowercased().contains($0) } }
+        let found = Self.rows(presence: store.settings.hasPresence).filter { row in words.allSatisfy { row.title.lowercased().contains($0) } }
         if found.isEmpty {
             Text("No setting is called that.")
                 .font(.mac(13))
@@ -293,7 +304,7 @@ struct SettingsAside: View {
             case .accounts:
                 aside("Accounts", "anistream works without an account. Your watch history stays on this \(Device.name) when you sign out.")
             case .integrations:
-                PresencePreview()
+                if store.settings.hasPresence { PresencePreview() }
             case .advanced:
                 aside("Advanced", "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.")
             }

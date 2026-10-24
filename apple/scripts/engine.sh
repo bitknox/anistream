@@ -5,7 +5,8 @@
 #   apple/scripts/engine.sh [--check] <release|testing> [macos] [ios] [ios-sim]
 #   apple/scripts/engine.sh --sources-hash
 #
-#   release   the engine the app ships: --no-default-features, so without mpv's child process
+#   release   the engine the app ships: --no-default-features, so without mpv's child process,
+#             and with the Discord presence on macOS alone (`presence`), since a phone has no Discord
 #   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
 #             the Fixtures app, the Swift packages' tests and the dev harness
 #
@@ -262,7 +263,7 @@ for slice in "${slices[@]}"; do
   if [[ "$slice" == macos ]]; then
     # The library and the bindings generator in one build, so the generator reads the very
     # library the slice ships, and turning `cli` on rebuilds nothing beneath it.
-    cargo_clean "" build -p anistream-ffi --no-default-features --features "$(feature_list cli)" \
+    cargo_clean "" build -p anistream-ffi --no-default-features --features "$(feature_list cli,presence)" \
       --lib --bin uniffi-bindgen --target "$target" --profile "$profile"
     # Library mode: the interface is read from the built library, here the dynamic one, which
     # carries the same interface as the static one at a fraction of its size.
@@ -283,6 +284,24 @@ for slice in "${slices[@]}"; do
   echo "engine: built $hash ($flavour, $profile, $slice)"
 done
 prune_cache
+
+# The Discord presence is in the macOS engine and in no other: it is a feature a build can lose
+# without a word (it did, and the Mac's switch did nothing for a release), so each library is
+# read for the one string only the presence has, whether it was built now or came from the cache.
+# The Swift side hides the Discord settings wherever the engine says it has none.
+for slice in "${slices[@]}"; do
+  [[ -f "$stage/libs/$slice/libanistream_ffi.a" ]] || continue
+  if grep -qa 'discord-ipc-' "$stage/libs/$slice/libanistream_ffi.a"; then has=1; else has=0; fi
+  if [[ "$slice" == macos && "$has" == 0 ]]; then
+    rm -rf "$stage"
+    echo "engine.sh: the macos engine was built without the Discord presence (--features presence)." >&2
+    exit 1
+  elif [[ "$slice" != macos && "$has" == 1 ]]; then
+    rm -rf "$stage"
+    echo "engine.sh: the $slice engine was built with the Discord presence, which a phone has no use for." >&2
+    exit 1
+  fi
+done
 
 if (( ${#failed_ios[@]} )); then
   rm -rf "$stage"

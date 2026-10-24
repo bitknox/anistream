@@ -61,6 +61,8 @@ impl ConfigState {
         SettingsView {
             overridden: self.overridden.clone(),
             notify_switched_on: self.notify_switched_on,
+            // What this build holds, not what the config asks: a phone's engine has no Discord.
+            presence_available: cfg!(feature = "presence"),
             ..settings::view(&self.effective, &self.saved)
         }
     }
