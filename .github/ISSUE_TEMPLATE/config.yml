@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security
+    url: https://github.com/bitknox/anistream/security/advisories/new
+    about: Report a vulnerability privately. Don't open a public issue.
+  - name: Discussions
+    url: https://github.com/bitknox/anistream/discussions
+    about: Ask a question or share an idea.
+  - name: Docs
+    url: https://anistream.tv/docs/
+    about: Guides for the apps, plugins and plugin stores.
