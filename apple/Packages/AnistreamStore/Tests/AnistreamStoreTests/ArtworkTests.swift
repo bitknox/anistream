@@ -1,4 +1,4 @@
-// Artwork asked for once per URL, decoded small enough, and tried again only after a while.
+// Artwork asked for once per URL, decoded small enough, and asked again while on screen.
 
 @testable import AnistreamStore
 import CoreGraphics
@@ -112,9 +112,16 @@ struct ArtworkTests {
         artwork.failed(url: url)
         artwork.request(url, maxPixelSize: 108)
         #expect(asked == 1)
-        clock.advance(.seconds(61))
+        clock.advance(.seconds(3))
         artwork.request(url, maxPixelSize: 108)
-        #expect(asked == 2)
+        #expect(asked == 2, "the first wait is short")
+        artwork.failed(url: url)
+        clock.advance(.seconds(3))
+        artwork.request(url, maxPixelSize: 108)
+        #expect(asked == 2, "the second is longer")
+        clock.advance(.seconds(3))
+        artwork.request(url, maxPixelSize: 108)
+        #expect(asked == 3)
     }
 
     @Test func anAskWithNoEngineYetIsMadeAgainLater() {
@@ -127,9 +134,153 @@ struct ArtworkTests {
         #expect(asked.value == 2)
     }
 
+    @Test func anAskWithNoEngineYetIsSentOnceThereIsOne() {
+        // A cover already on screen asks once, from its task: it never asks again by itself.
+        let engine = Box(false)
+        var sent: [String] = []
+        let artwork = ArtworkStore { url in
+            guard engine.value else { return false }
+            sent.append(url)
+            return true
+        }
+        let first = "https://img.example/cover/900002.jpg"
+        let second = "https://img.example/cover/900003.jpg"
+        artwork.request(first, maxPixelSize: 108)
+        artwork.request(second, maxPixelSize: 108)
+        artwork.request(first, maxPixelSize: 108)
+        #expect(!artwork.hasPending)
+        engine.value = true
+        artwork.sendUnsent()
+        #expect(sent == [first, second], "each once, in the order asked")
+        #expect(artwork.isPending(first) && artwork.isPending(second))
+        artwork.sendUnsent()
+        #expect(sent.count == 2)
+    }
+
+    @Test func aURLOnScreenThatFailedIsAskedAgainOnTheBackoff() async throws {
+        // A view stays on screen and asks once: its art used to stay a plate until it came back.
+        let slept = Slept()
+        let asked = Box(0)
+        let artwork = ArtworkStore(
+            now: { ContinuousClock.now },
+            sleep: { wait in slept.add(wait); try await Task.sleep(for: .milliseconds(1)) }
+        ) { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900004.jpg"
+        let shown = Task { await artwork.show(url, maxPixelSize: 108) }
+        defer { shown.cancel() }
+        try await waitFor { asked.value == 1 }
+        for times in 2...5 {
+            artwork.failed(url: url)
+            try await waitFor { asked.value == times }
+        }
+        // Tries left no more: only showing it again asks again.
+        artwork.failed(url: url)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(asked.value == 5)
+        let waits = slept.all.map { Int(($0 + .milliseconds(500)).components.seconds) }
+        #expect(waits == [2, 5, 15, 60])
+    }
+
+    @Test func aURLNoLongerOnScreenIsNotAskedAgainByItself() async throws {
+        let slept = Slept()
+        let asked = Box(0)
+        let artwork = ArtworkStore(
+            sleep: { wait in slept.add(wait); try await Task.sleep(for: .milliseconds(1)) }
+        ) { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900004.jpg"
+        let shown = Task { await artwork.show(url, maxPixelSize: 108) }
+        try await waitFor { asked.value == 1 }
+        shown.cancel()
+        await shown.value
+        artwork.failed(url: url)
+        try await Task.sleep(for: .milliseconds(50))
+        #expect(asked.value == 1)
+        #expect(slept.all.isEmpty)
+    }
+
+    @Test func aRetryWaitingIsDroppedWhenTheScreenGoes() async throws {
+        let asked = Box(0)
+        let artwork = ArtworkStore(sleep: { _ in try await Task.sleep(for: .milliseconds(100)) }) { _ in
+            asked.value += 1
+            return true
+        }
+        let url = "https://img.example/cover/900004.jpg"
+        let shown = Task { await artwork.show(url, maxPixelSize: 108) }
+        try await waitFor { asked.value == 1 }
+        artwork.failed(url: url)
+        shown.cancel()
+        await shown.value
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(asked.value == 1)
+    }
+
+    @Test func aScreenShowingAURLThatFailedAMomentAgoAsksOnceTheWaitIsOver() async throws {
+        let clock = SteppedClock()
+        let slept = Slept()
+        let asked = Box(0)
+        let artwork = ArtworkStore(
+            now: { clock.now },
+            sleep: { wait in slept.add(wait); try await Task.sleep(for: .milliseconds(1)) }
+        ) { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900006.jpg"
+        // Failed for the widgets, with no screen showing it.
+        artwork.request(url, maxPixelSize: 108)
+        artwork.failed(url: url)
+        clock.advance(.milliseconds(500))
+        let shown = Task { await artwork.show(url, maxPixelSize: 108) }
+        defer { shown.cancel() }
+        try await waitFor { asked.value == 2 }
+        #expect(slept.all == [.milliseconds(1500)], "what was left of the wait")
+    }
+
+    @Test func artTheCacheLetGoWhileOnScreenIsAskedAgain() async throws {
+        let asked = Box(0)
+        let artwork = ArtworkStore { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900001.jpg"
+        let bytes = png(width: 460, height: 690)
+        let shown = Task { await artwork.show(url, maxPixelSize: 108) }
+        defer { shown.cancel() }
+        try await waitFor { asked.value == 1 }
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.image(url) != nil }
+        #expect(artwork.arrivals[url] == 1)
+
+        artwork.evict(url)
+        #expect(artwork.image(url) == nil)
+        // The engine answers from its disk.
+        try await waitFor { asked.value == 2 }
+        #expect(artwork.isPending(url))
+        _ = artwork.image(url)
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(asked.value == 2, "once")
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.image(url) != nil }
+        #expect(artwork.arrivals[url] == 2, "which the view reading it sees")
+    }
+
+    @Test func artTheCacheLetGoOffScreenWaitsToBeShownAgain() async throws {
+        let asked = Box(0)
+        let artwork = ArtworkStore { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900001.jpg"
+        artwork.request(url, maxPixelSize: 108)
+        artwork.ready(url: url, bytes: png(width: 460, height: 690))
+        try await waitFor { artwork.image(url) != nil }
+        artwork.evict(url)
+        #expect(artwork.image(url) == nil)
+        try await Task.sleep(for: .milliseconds(20))
+        #expect(asked.value == 1)
+    }
+
     @Test func bytesThatAreNoImageDecodeToNothing() {
         #expect(ArtworkStore.decode(Data([0xFF, 0xD8, 0x00, 0x7F]), maxPixelSize: 100) == nil)
     }
+}
+
+/// The waits a store's retries asked for, from whichever thread they ask.
+final class Slept: Sendable {
+    private let waits = Mutex<[Duration]>([])
+    func add(_ wait: Duration) { waits.withLock { $0.append(wait) } }
+    var all: [Duration] { waits.withLock { $0 } }
 }
 
 /// A value the main actor changes from inside a closure.

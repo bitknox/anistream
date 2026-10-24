@@ -20,6 +20,10 @@ import Foundation
 ///     swift run AnistreamDev --scene playing --player-shot playing --full-screen 3 --snapshot shot.png
 ///                                                     in and out of full screen three times,
 ///                                                     playing and then paused, shot each way
+///     swift run AnistreamDev --art-trouble 3,400 --snapshot shot.png --frames 0,3000,9000
+///                                                     every second image fails 3 times first and
+///                                                     each waits 400 ms, shot once settled and
+///                                                     then 3 s and 9 s after, untouched
 ///     swift run AnistreamDev --home <dir>             keep the files in <dir> instead
 ///     swift run AnistreamDev --real                   the app's own engine, real sources and
 ///                                                     AniList, in a new temporary home
@@ -47,13 +51,16 @@ struct Options {
     /// The milliseconds after the launch's motion demo (`-AnistreamMotion`) to snapshot at, each
     /// to the snapshot's name with `-<ms>` before its extension.
     var frames: [Int] = []
+    /// How badly the fake serves the art: every second image fails this many times before it is
+    /// served, and each waits the delay.
+    var artTrouble: (failFirst: Int, delay: Duration)?
     var width: CGFloat = 1280
     var height: CGFloat = 800
 
     static let usage = """
         usage: AnistreamDev [--scene watching|fresh|playing | --real [--shared]] [--home <dir>]
                             [--player-shot <state>] [--snapshot <file.png>] [--size <width>x<height>]
-                            [--media <file>] [--full-screen <times>]
+                            [--media <file>] [--full-screen <times>] [--art-trouble <fails>[,<ms>]]
         the player's states: \(PlayerShot.allCases.map(\.rawValue).joined(separator: ", "))
         """
 
@@ -108,6 +115,13 @@ struct Options {
                 let times = try value(flag)
                 guard let count = Int(times), count > 0 else { throw Problem.bad(flag, times) }
                 fullScreenCycles = count
+            case "--art-trouble":
+                let spec = try value(flag)
+                let parts = spec.split(separator: ",").map { Int($0) }
+                guard let fails = parts.first ?? nil, fails >= 0, parts.count <= 2,
+                      let delay = parts.count == 2 ? parts[1] : 0
+                else { throw Problem.bad(flag, spec) }
+                artTrouble = (fails, .milliseconds(delay))
             case "--size":
                 let size = try value(flag)
                 let parts = size.split(separator: "x").compactMap { Double($0) }

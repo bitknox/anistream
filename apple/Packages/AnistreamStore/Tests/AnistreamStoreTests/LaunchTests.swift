@@ -173,4 +173,24 @@ struct EarlyTests {
         defer { store.shutdown() }
         try await waitFor { store.continuing.list.state.ids.count == 4 }
     }
+
+    @Test func artAskedForWhileTheEngineStartsIsAskedForOnceItHas() async throws {
+        // A cover on screen before the engine is there asks once, and never again by itself.
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AppStore()
+        let answered = Box<[String]>([])
+        store.onApplied = { events in
+            for case .imageFailed(let url, _) in events { answered.value.append(url) }
+        }
+        // Nothing listens there, so the engine's answer is that it failed.
+        let url = "http://127.0.0.1:1/cover/900001.jpg"
+        store.artwork.request(url, maxPixelSize: 108)
+        await store.start(
+            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .macOs, secrets: .host),
+            host: quietHost()
+        )
+        defer { store.shutdown() }
+        try await waitFor { answered.value == [url] }
+    }
 }
