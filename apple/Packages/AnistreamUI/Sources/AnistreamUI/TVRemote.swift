@@ -89,6 +89,66 @@ struct TVNowPlayingButton: View {
     }
 }
 
+#if os(iOS)
+/// What the TV plays, over the tab bar while a TV is driven and plays something: the tab bar's
+/// own accessory, as a now-playing bar is on iOS 26.1 and later. Before it, the toolbar's button
+/// is the way back to the card.
+struct TVAccessory: ViewModifier {
+    @Environment(AppStore.self) private var store
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.1, *) {
+            content.tabViewBottomAccessory(isEnabled: store.tv.connected != nil && store.tv.card?.now != nil) {
+                TVNowPlayingBar()
+            }
+        } else {
+            content
+        }
+    }
+}
+
+/// The cover, the title and the TV's name, and play or pause; a tap opens the card. Inline, as
+/// the tab bar minimises, the title alone.
+struct TVNowPlayingBar: View {
+    @Environment(AppStore.self) private var store
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+
+    var body: some View {
+        if let card = store.tv.card, let now = card.now {
+            HStack(spacing: 12) {
+                if placement != .inline, let entry = store.titles[now.id] { CoverArt(entry: entry, width: 24) }
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(now.title).font(.showTitle(size: 15)).foregroundStyle(.silk).lineLimit(1)
+                    if placement != .inline {
+                        Text(card.phase == .connected ? "Playing on \(card.tvName)" : TVWords.status(card))
+                            .font(.ui(13)).foregroundStyle(.haze).lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button {
+                    store.tv.send(.togglePause)
+                } label: {
+                    Image(systemName: now.paused ? "play.fill" : "pause.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.silk)
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .disabled(now.loading)
+                .accessibilityLabel(now.paused ? "Play" : "Pause")
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 4)
+            .contentShape(.rect)
+            .onTapGesture { store.tv.openRemote() }
+            .accessibilityElement(children: .contain)
+            .accessibilityAction(named: "Show the remote") { store.tv.openRemote() }
+        }
+    }
+}
+#endif
+
 // MARK: - Words
 
 /// What the sheets say that both platforms share.
@@ -317,7 +377,7 @@ struct TVCodeBoxes: View {
                         .background(touch ? Palette.raised : Palette.ground, in: .rect(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(index == digits.count && focused.wrappedValue ? Palette.amber : Palette.glassRule, lineWidth: 1)
+                                .strokeBorder(index == digits.count && focused.wrappedValue ? Palette.silk : Palette.glassRule, lineWidth: 1)
                         )
                     if index == 2 { Spacer().frame(width: touch ? 8 : 10) }
                 }
@@ -341,10 +401,6 @@ struct TVRow: View {
             store.tv.choose(row)
         } label: {
             HStack(spacing: phone ? 14 : 12) {
-                Image(systemName: "tv")
-                    .font(phone ? .ui(17) : .mac(14))
-                    .foregroundStyle(.haze)
-                    .frame(width: phone ? 28 : 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.name).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
                     Text(row.detail).font(phone ? .ui(13) : .mac(12)).foregroundStyle(.haze)
@@ -359,7 +415,8 @@ struct TVRow: View {
                     if store.tv.connected == row.fingerprint {
                         Image(systemName: "checkmark")
                             .font(phone ? .ui(15, weight: .semibold) : .mac(12, weight: .semibold))
-                            .foregroundStyle(.amber)
+                            .foregroundStyle(.silk)
+                            .accessibilityLabel("Connected")
                     } else if !phone {
                         Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
                     }

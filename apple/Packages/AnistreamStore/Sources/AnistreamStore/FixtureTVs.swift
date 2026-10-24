@@ -32,6 +32,8 @@ final class FixtureTVBrowser: FfiTvBrowser {
 ///     remote   Living room paired and playing an episode, its card open
 public enum TVScene: String, Sendable {
     case paired, picker, code, remote
+    /// The remote scene with its card closed: the now-playing bar over the tab bar.
+    case bar
 
     public static let argument = "-AnistreamTV"
 
@@ -65,6 +67,7 @@ extension TVRemoteModel {
             case .picker: sheet == .picker && rows.count == 2
             case .code: pairing?.needsCode == true && pairing?.working == false && !(pairing?.tvName.isEmpty ?? true)
             case .remote: card?.now.map { !$0.loading && !$0.subtitles.isEmpty } ?? false
+            case .bar: sheet == nil && card?.now.map { !$0.loading } ?? false
             }
             if there {
                 // The sheet's own animation in.
@@ -93,12 +96,16 @@ extension TVRemoteModel {
             case .code:
                 openPicker()
                 begin(rows.first { $0.name == "Living room" }?.key ?? living.pairLink(code: nil))
-            case .remote:
+            case .remote, .bar:
                 let pairing = try await sender.pair(target: living.pairLink(code: living.openCode()))
                 let tv = try await pairing.pair(code: nil)
                 refresh()
                 offer(play)
                 use(tv.fingerprint)
+                if scene == .bar {
+                    while card?.now.map({ !$0.loading }) != true { try await Task.sleep(for: .milliseconds(50)) }
+                    sheetClosed()
+                }
             }
         } catch {
             AppLog.error("tv", "the TV scene did not set up: \(error)")

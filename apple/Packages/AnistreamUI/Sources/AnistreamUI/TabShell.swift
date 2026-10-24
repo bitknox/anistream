@@ -50,6 +50,7 @@ struct TabShell: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .modifier(TVAccessory())
         // The iPad's sidebar as the brief draws it (PadSidebarStyle). The bar is empty; it is
         // where the style reaches the sidebar from, and unlike a header it moves no row.
         .tabViewSidebarBottomBar { PadSidebarStyle(selection: navigator.section) }
