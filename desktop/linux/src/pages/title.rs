@@ -205,7 +205,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     }
     ctx.hub.send(Command::LoadDetail(id));
     ctx.hub.send(Command::LoadEpisodes(id));
-    ctx.hub.send(Command::LoadDubbedTo(id));
+    ctx.hub.send(Command::LoadDub(id));
     // Kept as long as the page it draws, and deaf once that is gone.
     navigation.connect_destroy(move |_| {
         if let Some(id) = page.listening.borrow_mut().take() {
@@ -238,8 +238,8 @@ impl Page {
                 self.listed.set(true);
                 self.episodes_state.empty();
             }
-            Event::DubbedTo { id, episode } if *id == self.id => {
-                self.dubbed_to.replace(episode.clone());
+            Event::TitleDub { id, dub } if *id == self.id => {
+                self.dubbed_to.replace(anistream_model::present::dub_line(dub.as_ref()));
                 if let Some(entry) = self.ctx.hub.entry(self.id) {
                     self.fill(&entry);
                 }
@@ -392,8 +392,8 @@ impl Page {
             text.append(&widgets::haze(other, ""));
         }
         text.append(&widgets::haze(&words::meta_line(entry), "numeric"));
-        if let Some(episode) = self.dubbed_to.borrow().as_deref() {
-            text.append(&widgets::haze(&format!("Dub to episode {episode}"), "numeric"));
+        if let Some(line) = self.dubbed_to.borrow().as_deref() {
+            text.append(&widgets::haze(line, "numeric"));
         }
 
         let item = QueueItem::of(entry);
