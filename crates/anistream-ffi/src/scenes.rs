@@ -25,8 +25,9 @@ use crate::{
 /// What a scene puts in the database before the engine starts on it.
 ///
 /// Every scene's fake AniList also has the test kit's long franchise
-/// ([`fixtures::LONG_FRANCHISE_SEASONS`], twelve seasons of Cloudcutter Airship), in no list,
-/// search or schedule: its pages open by id.
+/// ([`fixtures::LONG_FRANCHISE_SEASONS`], twelve seasons of Cloudcutter Airship) and the short one
+/// ([`fixtures::FRANCHISE_SEASONS`], five seasons of Lantern Wood), in no list, search or
+/// schedule: their pages open by id.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum FfiScene {
     /// Nothing: a first launch, as [`FfiEngine::start_testing`] starts.
@@ -125,6 +126,9 @@ impl FfiEngine {
             // The long franchise beside the six, for a season picker of twelve: a page opens on
             // it by id, as no list has it.
             server.add_titles(fixtures::long_franchise());
+            // And the short one, five seasons with a film, an OVA and a web series beside them,
+            // for a season row that fits across the page with Related beside it.
+            server.add_titles(fixtures::franchise());
             let sources = Some(scene_sources(&scene, &server.art_base()));
             let testing = testing::Testing { server, clock };
             let options = testing::options(opened, &testing, start, sources)?;
