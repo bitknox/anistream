@@ -244,7 +244,7 @@ pub enum PlayerReport {
     /// way `mpv_observe_property` with `MPV_FORMAT_NODE` gives it. The engine reads `time-pos`,
     /// `duration`, `pause`, `speed`, `volume`, `chapter-list`, `video-params`,
     /// `current-tracks/video`, `track-list`, `aid`, `sid`, `sub-delay`, `paused-for-cache`,
-    /// `frame-drop-count` and `seeking`.
+    /// `demuxer-cache-state`, `frame-drop-count` and `seeking`.
     Property { name: String, json: String },
     /// The file ended: mpv's `end-file`, with its reason.
     Ended { reason: PlayerEnd },
