@@ -24,6 +24,7 @@ mod shots;
 mod showcase;
 mod states;
 mod style;
+mod updates;
 mod video;
 mod widgets;
 mod window;

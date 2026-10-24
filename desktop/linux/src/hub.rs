@@ -61,6 +61,8 @@ pub struct Known {
     /// The torrent connection check's last verdict, and when it was heard; `None` while
     /// torrents are off or before the first.
     pub guard: Option<(GuardView, std::time::Instant)>,
+    /// The update check's last word.
+    pub update: Option<anistream_model::updates::UpdateStatus>,
 }
 
 impl Known {
@@ -189,6 +191,7 @@ impl Known {
             }
             Event::Stores(rows) => self.stores = rows.clone(),
             Event::Connectivity { offline } => self.offline = *offline,
+            Event::Update(status) => self.update = Some(status.clone()),
             Event::Vpn(guard) => {
                 self.guard = guard.clone().map(|g| (g, std::time::Instant::now()));
             }

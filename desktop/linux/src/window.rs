@@ -14,6 +14,7 @@ use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
     notice::{Notice, NoticeHint, NoticeKind},
+    updates::UpdateStatus,
 };
 use gtk::{gio, glib};
 
@@ -511,6 +512,24 @@ impl Shell {
         add("back", None, Box::new(|s, _| s.back()));
         add("sync", None, Box::new(|s, _| s.ctx.hub.send(Command::SyncNow)));
         add("about", None, Box::new(|s, _| pages::settings::about(&s.ctx)));
+        add(
+            "release-page",
+            None,
+            Box::new(|s, _| {
+                let page = s
+                    .ctx
+                    .hub
+                    .known
+                    .borrow()
+                    .update
+                    .as_ref()
+                    .and_then(|u| crate::updates::page(Some(u)).map(str::to_owned));
+                if let Some(page) = page {
+                    s.open_url(&page);
+                }
+            }),
+        );
+        add("check-updates", None, Box::new(|s, _| s.ctx.hub.send(Command::CheckForUpdates)));
         add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
         add(
             "connect",
@@ -579,6 +598,13 @@ impl Shell {
                         && !matches!(content, ContentList::Loading) =>
                 {
                     shell.welcome();
+                }
+                // A newer version, told once: Flatpak tells of its own.
+                Event::Update(UpdateStatus::Available { release, notify: true })
+                    if !crate::updates::flatpak() =>
+                {
+                    let text = format!("Version {} of anistream is out", release.version);
+                    shell.ctx.toast_with(&text, "View", "win.release-page");
                 }
                 Event::Authorize { url, .. } => shell.open_url(url),
                 Event::DeviceCode(prompt) => {

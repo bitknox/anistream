@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 32] = [
+pub const ALL: [&str; 33] = [
     "home",
     "welcome",
     "offline",
@@ -44,6 +44,7 @@ pub const ALL: [&str; 32] = [
     "torrents-setup",
     "torrents-none",
     "torrents-on",
+    "settings-updates",
     "about",
     "player",
     "player-marks",
@@ -249,6 +250,26 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             });
             shell.settings_pane("sources");
             3.0
+        }
+        "settings-updates" => {
+            use anistream_model::updates::{Release, UpdateStatus};
+            shell.settings_pane("integrations");
+            // As the daily check tells of a release: the toast once, and the row after.
+            shell.ctx.hub.take(vec![anistream_model::event::Event::Update(
+                UpdateStatus::Available {
+                    release: Box::new(Release {
+                        version: "2.1.0".into(),
+                        published_at: 0,
+                        page_url: "https://example.test/releases/v2.1.0".into(),
+                        notes: String::new(),
+                        macos: None,
+                        ios: None,
+                        android: None,
+                    }),
+                    notify: true,
+                },
+            )]);
+            1.5
         }
         "accounts-kitsu" => {
             shell.settings_pane("accounts");

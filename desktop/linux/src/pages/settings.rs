@@ -14,6 +14,7 @@ use anistream_model::{
     command::Command,
     event::Event,
     settings::{SettingChange, SettingKey, SettingRow},
+    updates::UpdateStatus,
 };
 use gtk::{gio, glib};
 
@@ -154,6 +155,8 @@ struct Inner {
     openers: RefCell<Vec<gtk::Button>>,
     /// Shows the torrent check's verdict again, while Sources is on screen.
     guard: RefCell<Option<Rc<dyn Fn()>>>,
+    /// Shows the update check's word again, while a pane with it is on screen.
+    update: RefCell<Option<Rc<dyn Fn()>>>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
@@ -199,6 +202,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
         topic: Cell::new(Topic::Pane("playback")),
         openers: RefCell::default(),
         guard: RefCell::default(),
+        update: RefCell::default(),
     });
     list.connect_row_selected({
         let inner = Rc::downgrade(&inner);
@@ -296,6 +300,14 @@ impl Inner {
                     self.show(pane);
                 }
             }
+            Event::Update(_) | Event::Connectivity { .. }
+                if *self.pane.borrow() != "accounts" =>
+            {
+                let shown = self.update.borrow().clone();
+                if let Some(shown) = shown {
+                    shown();
+                }
+            }
             Event::Vpn(_) => {
                 let shown = self.guard.borrow().clone();
                 if let Some(shown) = shown {
@@ -325,11 +337,17 @@ impl Inner {
         self.rows.borrow_mut().clear();
         self.openers.borrow_mut().clear();
         self.guard.replace(None);
+        self.update.replace(None);
         self.topic.set(Topic::Pane(name));
         let page = adw::PreferencesPage::new();
         match name {
             "accounts" => self.accounts(&page),
-            "about" => about_pane(&page),
+            "about" => {
+                about_pane(&page);
+                let group = adw::PreferencesGroup::builder().title("Updates").build();
+                group.add(&self.update_row());
+                page.add(&group);
+            }
             _ => {}
         }
         let known = self.ctx.hub.known.borrow();
@@ -341,7 +359,7 @@ impl Inner {
                 }
                 continue;
             }
-            let group = adw::PreferencesGroup::builder().title(*title).build();
+            let mut group = adw::PreferencesGroup::builder().title(*title).build();
             if *title == "Seeding" {
                 // Seeding only says anything once torrents are on.
                 let on = known.setting(K::Torrents).is_some_and(|r| catalog::is_on(&r));
@@ -356,6 +374,15 @@ impl Inner {
             for key in *keys {
                 let Some(row) = known.setting(*key) else { continue };
                 group.add(&self.row(&row));
+                any = true;
+            }
+            if *title == "Updates" {
+                // Flatpak updates the app: no switch for a check of its own, and nothing to
+                // check now.
+                if crate::updates::flatpak() {
+                    group = adw::PreferencesGroup::builder().title(*title).build();
+                }
+                group.add(&self.update_row());
                 any = true;
             }
             if name == "downloads" && *title == "Files" {
@@ -946,6 +973,45 @@ impl Inner {
             }
         });
         Some(group)
+    }
+
+    /// The update check: where it stands, Check Now, and the release page while a newer version
+    /// is out. Under Flatpak, only what it found: Flatpak installs it.
+    fn update_row(self: &Rc<Self>) -> adw::ActionRow {
+        let flatpak = crate::updates::flatpak();
+        let row = adw::ActionRow::builder()
+            .title(format!("anistream {}", anistream_engine::updates::CURRENT))
+            .build();
+        let spinner = adw::Spinner::new();
+        spinner.set_size_request(16, 16);
+        spinner.set_valign(gtk::Align::Center);
+        row.add_suffix(&spinner);
+        let view = gtk::Button::with_label("View Release");
+        view.set_valign(gtk::Align::Center);
+        view.add_css_class("suggested-action");
+        view.set_action_name(Some("win.release-page"));
+        row.add_suffix(&view);
+        let check = gtk::Button::with_label("Check Now");
+        check.set_valign(gtk::Align::Center);
+        check.set_action_name(Some("win.check-updates"));
+        row.add_suffix(&check);
+        let shown: Rc<dyn Fn()> = Rc::new({
+            let (hub, row) = (Rc::downgrade(&self.ctx.hub), row.clone());
+            move || {
+                let Some(hub) = hub.upgrade() else { return };
+                let known = hub.known.borrow();
+                let status = known.update.as_ref();
+                let checking = matches!(status, Some(UpdateStatus::Checking));
+                row.set_subtitle(&crate::updates::words(status, known.offline, flatpak));
+                spinner.set_visible(checking);
+                view.set_visible(!flatpak && crate::updates::page(status).is_some());
+                check.set_visible(!flatpak);
+                check.set_sensitive(!checking && !known.offline);
+            }
+        });
+        shown();
+        self.update.replace(Some(shown));
+        row
     }
 
     /// Accounts: the trackers, each signed in or not.
