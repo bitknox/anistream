@@ -48,6 +48,8 @@ dependencies {
     implementation(libs.zxing.core)
     // The launcher's Watch Next row.
     implementation(libs.tvprovider)
+    // Compiles src/main/baseline-prof.txt ahead of time on install, sideloaded or not.
+    implementation(libs.profileinstaller)
     implementation(libs.core.ktx)
     implementation(libs.coroutines.android)
 
