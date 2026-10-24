@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
@@ -44,6 +45,60 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
                 return $"{Math.Max(1, (int)Math.Round(secs * (1 - Row.Watched) / 60))} min left";
             return AnistreamFfiMethods.RuntimeMinutes(secs);
         }
+    }
+
+    EpisodeDownload download = EpisodeDownload.Of([], 0, "");
+    bool reveal;
+
+    /// <summary>Where the episode stands in the download queue.</summary>
+    public EpisodeDownload Download
+    {
+        get => download;
+        set
+        {
+            if (download == value)
+                return;
+            download = value;
+            Changed(nameof(DownloadOpacity), nameof(DownloadSay), nameof(DownloadGlyph), nameof(DownloadTint), nameof(GlyphShown),
+                nameof(RingShown), nameof(RingWaiting), nameof(RingActive), nameof(RingValue), nameof(CanDownload));
+        }
+    }
+
+    /// <summary>The pointer over the row, or focus in it: Download shows.</summary>
+    public bool Reveal
+    {
+        get => reveal;
+        set
+        {
+            if (reveal == value)
+                return;
+            reveal = value;
+            Changed(nameof(DownloadOpacity));
+        }
+    }
+
+    public bool CanDownload => Playable && Download.Asks;
+    public string DownloadSay => Download.Say;
+    /// <summary>Nothing yet, and no pointer or focus here: the cell is empty, though it keeps its place.</summary>
+    public double DownloadOpacity => !Playable || (Download.Kind == EpisodeDownloadKind.None && !Reveal) ? 0 : 1;
+    public string DownloadGlyph => Download.Kind == EpisodeDownloadKind.Done ? "\uE73E" : "\uE896";
+    public Brush DownloadTint => Download.Kind switch
+    {
+        EpisodeDownloadKind.Done => (Brush)Application.Current.Resources["WaterBrush"],
+        EpisodeDownloadKind.Failed => new SolidColorBrush(Ui.Vermilion),
+        _ => (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"],
+    };
+    public Visibility GlyphShown => Download.Kind is EpisodeDownloadKind.None or EpisodeDownloadKind.Done or EpisodeDownloadKind.Failed ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility RingShown => GlyphShown == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+    public bool RingWaiting => Download.Kind == EpisodeDownloadKind.Queued;
+    /// <summary>A paused download's ring stands still at how far it got.</summary>
+    public bool RingActive => Download.Kind != EpisodeDownloadKind.Paused;
+    public double RingValue => Download.Fraction * 100;
+
+    void Changed(params string[] names)
+    {
+        foreach (var name in names)
+            PropertyChanged?.Invoke(this, new(name));
     }
 
     public ImageSource? Still
@@ -129,6 +184,8 @@ public sealed partial class TitlePage : Page, IPageKeys
             State.Wait();
         ctx.Send(new Command.LoadDetail(id));
         ctx.Send(new Command.LoadEpisodes(id));
+        // The queue, for each row's download cell.
+        ctx.Send(new Command.LoadDownloads());
         Show();
         ShowEpisodes();
         // The cover a grid sent flies in to this one; anything else crossfades.
@@ -162,6 +219,9 @@ public sealed partial class TitlePage : Page, IPageKeys
                     break;
                 case Event.Episodes ep when ep.Id == id:
                     ShowEpisodes();
+                    break;
+                case Event.Downloads d:
+                    ShowDownloads(d.V1);
                     break;
             }
         }
@@ -285,12 +345,83 @@ public sealed partial class TitlePage : Page, IPageKeys
             return item;
         }).ToList();
         EpisodeList.ItemsSource = items;
+        ShowDownloads(ctx.Known.Downloads);
         var metadataOnly = rows.Length > 0 && rows.All(r => r.MetadataOnly);
         EpisodesNote.Text = metadataOnly ? "Episodes from AniList. Add a source to play them." : "";
         EpisodesNote.Visibility = metadataOnly ? Visibility.Visible : Visibility.Collapsed;
     }
 
     static T Res<T>(string key) => (T)Application.Current.Resources[key];
+
+    /// <summary>Each episode row's download cell, from the queue.</summary>
+    void ShowDownloads(DownloadRow[] rows)
+    {
+        if (EpisodeList.ItemsSource is not IEnumerable<EpisodeItem> items)
+            return;
+        foreach (var item in items)
+            item.Download = EpisodeDownload.Of(rows, id, item.Row.Number);
+#if ANISTREAM_TESTING
+        // A shot's hover: the row after the one playing next, as if the pointer were on it.
+        if (ctx.Options.Show == "episode-download" && ctx.Known.Entry(id)?.Progress?.Next is { } next)
+            foreach (var item in items.Where(i => i.Row.Number == (next + 1).ToString()))
+            {
+                item.Reveal = true;
+                DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+                    (EpisodeList.ContainerFromItem(item) as UIElement)?.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.5, AnimationDesired = false }));
+            }
+#endif
+    }
+
+    readonly HashSet<ListViewItem> watchedContainers = [];
+
+    /// <summary>A row's container: its pointer and focus reveal the row's Download, whichever episode it carries now.</summary>
+    void OnEpisodeContainer(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.ItemContainer is not ListViewItem container || !watchedContainers.Add(container))
+            return;
+        static void Set(object sender, bool on)
+        {
+            if (sender is ListViewItem { Content: EpisodeItem item } c)
+                item.Reveal = on || c.FocusState != FocusState.Unfocused;
+        }
+        container.PointerEntered += (s, _) => Set(s, true);
+        container.PointerExited += (s, _) => Set(s, false);
+        container.PointerCanceled += (s, _) => Set(s, false);
+        container.GotFocus += (s, _) => Set(s, true);
+        container.LostFocus += (s, _) =>
+        {
+            // Focus moving within the row, to its Download, keeps the cell shown.
+            if (s is ListViewItem { Content: EpisodeItem item } c && XamlRoot is { } root
+                && FocusManager.GetFocusedElement(root) is DependencyObject now && IsWithin(now, c))
+                return;
+            Set(s, false);
+        };
+    }
+
+    static bool IsWithin(DependencyObject element, DependencyObject ancestor)
+    {
+        for (var at = element; at is not null; at = VisualTreeHelper.GetParent(at))
+            if (at == ancestor)
+                return true;
+        return false;
+    }
+
+    void OnDownloadCellFocus(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is { } item)
+            item.Reveal = true;
+    }
+
+    /// <summary>The download cell: Download when there is none or it failed, else the Downloads page.</summary>
+    void OnDownloadCell(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is not { Playable: true } item)
+            return;
+        if (item.Download.Asks)
+            ctx.Send(new Command.DownloadEpisode(id, item.Row.Number));
+        else
+            ctx.Go("downloads");
+    }
 
     void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -340,7 +471,7 @@ public sealed partial class TitlePage : Page, IPageKeys
 
     void OnEpisodeDownload(object sender, RoutedEventArgs e)
     {
-        if (ItemOf(sender) is { Playable: true } item)
+        if (ItemOf(sender) is { CanDownload: true } item)
             ctx.Send(new Command.DownloadEpisode(id, item.Row.Number));
     }
 

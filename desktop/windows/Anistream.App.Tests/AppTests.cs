@@ -704,3 +704,38 @@ public class NoticesTests
         Assert.Null(Notices.Read(new Dictionary<string, string> { ["action"] = "open" }));
     }
 }
+
+public class EpisodeDownloadTests
+{
+    static DownloadRow Row(long id, uint show, string episode, DownloadState state, double fraction = 0.5, ulong total = 100) =>
+        new(id, show, $"Show {show}", episode, state, fraction, (ulong)(fraction * total), total);
+
+    [Fact]
+    public void AnEpisodeWithNoRowOffersADownload()
+    {
+        var cell = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Done)], 7, "4");
+        Assert.Equal(EpisodeDownloadKind.None, cell.Kind);
+        Assert.True(cell.Asks);
+        Assert.Equal("Download episode 4", cell.Say);
+    }
+
+    [Fact]
+    public void ARunningDownloadSaysHowFar()
+    {
+        var going = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Active, 0.456)], 7, "3");
+        Assert.Equal("Downloading · 45%", going.Say);
+        Assert.False(going.Asks);
+        Assert.Equal(EpisodeDownloadKind.Queued, EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Active, 0, 0)], 7, "3").Kind);
+        Assert.Equal("Download paused at 50%", EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Paused)], 7, "3").Say);
+    }
+
+    [Fact]
+    public void AFinishedFileWinsOverAFailedRetry()
+    {
+        DownloadRow[] rows = [Row(1, 7, "3", DownloadState.Done, 1), Row(2, 7, "3", DownloadState.Failed), Row(3, 8, "3", DownloadState.Active)];
+        Assert.Equal(EpisodeDownloadKind.Done, EpisodeDownload.Of(rows, 7, "3").Kind);
+        var failed = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed), Row(2, 7, "3", DownloadState.Queued)], 7, "3");
+        Assert.Equal(EpisodeDownloadKind.Queued, failed.Kind);
+        Assert.True(EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed)], 7, "3").Asks);
+    }
+}

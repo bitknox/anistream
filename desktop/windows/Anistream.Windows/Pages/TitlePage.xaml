@@ -86,6 +86,7 @@
             </StackPanel>
             <TextBlock x:Name="EpisodesNote" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
             <ListView x:Name="EpisodeList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEpisodeClick"
+                      ContainerContentChanging="OnEpisodeContainer"
                       Margin="-12,4,0,0" AutomationProperties.Name="Episodes">
               <ListView.ItemTemplate>
                 <DataTemplate x:DataType="local:EpisodeItem">
@@ -100,7 +101,7 @@
                         <MenuFlyoutItem Text="Play" Click="OnEpisodePlay" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}" />
                         <MenuFlyoutItem Text="Play from the beginning" Click="OnEpisodeFromStart" Tag="{x:Bind}" Visibility="{x:Bind PartWay}" />
                         <MenuFlyoutItem Text="{x:Bind WatchedAction}" Click="OnEpisodeWatched" Tag="{x:Bind}" />
-                        <MenuFlyoutItem Text="Download" Click="OnEpisodeDownload" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}" />
+                        <MenuFlyoutItem Text="Download" Click="OnEpisodeDownload" Tag="{x:Bind}" IsEnabled="{x:Bind CanDownload, Mode=OneWay}" />
                       </MenuFlyout>
                     </Grid.ContextFlyout>
                     <Grid Width="128" Height="72" CornerRadius="6" Background="{ThemeResource RaisedBrush}">
@@ -113,8 +114,24 @@
                       <TextBlock Text="{x:Bind Line}" Style="{StaticResource HazeCaptionStyle}" />
                       <ProgressBar Value="{x:Bind Watched}" Maximum="1" Width="160" HorizontalAlignment="Left" Visibility="{x:Bind PartWay}" />
                     </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <!-- The episode's download: Download on hover or focus, then how far, then a check.
+                         The cell keeps its width in every state, so the row never moves. -->
+                    <Button Width="36" Height="36" Padding="0" Style="{StaticResource SubtleButtonStyle}"
+                            Opacity="{x:Bind DownloadOpacity, Mode=OneWay}" IsEnabled="{x:Bind Playable}"
+                            Click="OnDownloadCell" Tag="{x:Bind}" GotFocus="OnDownloadCellFocus"
+                            ToolTipService.ToolTip="{x:Bind DownloadSay, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind DownloadSay, Mode=OneWay}">
+                      <Grid>
+                        <FontIcon Glyph="{x:Bind DownloadGlyph, Mode=OneWay}" FontSize="16"
+                                  Foreground="{x:Bind DownloadTint, Mode=OneWay}" Visibility="{x:Bind GlyphShown, Mode=OneWay}" />
+                        <ProgressRing Width="20" Height="20" Visibility="{x:Bind RingShown, Mode=OneWay}"
+                                      IsIndeterminate="{x:Bind RingWaiting, Mode=OneWay}" IsActive="{x:Bind RingActive, Mode=OneWay}"
+                                      Value="{x:Bind RingValue, Mode=OneWay}" Maximum="100" />
+                      </Grid>
+                    </Button>
                     <!-- Watched is a state: a neutral check box, not an amber toggle. -->
-                    <CheckBox Grid.Column="2" MinWidth="0" Padding="0" IsChecked="{x:Bind Completed}"
+                    <CheckBox MinWidth="0" Padding="0" IsChecked="{x:Bind Completed}"
                               Click="OnWatchedToggle" Tag="{x:Bind}" ToolTipService.ToolTip="Watched"
                               AutomationProperties.Name="Watched" VerticalAlignment="Center">
                       <!-- On the control itself: the app's theme overrides do not reach a template's check box. -->
@@ -130,6 +147,7 @@
                         <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#161A2E" />
                       </CheckBox.Resources>
                     </CheckBox>
+                    </StackPanel>
                   </Grid>
                 </DataTemplate>
               </ListView.ItemTemplate>
