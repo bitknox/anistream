@@ -5,7 +5,8 @@ A Rust engine with a terminal app and native apps on top of it: SwiftUI for Mac,
 (`crates/anistream-ffi`). Plugin stores share provider plugins (`anistream-store-*`,
 `docs/plugin-stores.md`). The website is `website/` (its own `CLAUDE.md`).
 
-Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`. Procedures are skills:
+Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`. Any app UI work follows
+`docs/native-ux.md`, the behaviour spec for every native client. Procedures are skills:
 `local-checks`, `merge-train`, `ci-triage`, `app-shots`.
 
 ## Rules that always apply
