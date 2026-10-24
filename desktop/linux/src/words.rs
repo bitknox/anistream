@@ -303,6 +303,27 @@ pub fn minutes(seconds: u64) -> String {
     format!("{} min", (seconds + 30) / 60)
 }
 
+/// How long a notice stays, in seconds: 4 for information, 8 for an alert or one with a button,
+/// and a second more for every ten words past twelve.
+pub fn notice_seconds(text: &str, alert_or_button: bool) -> u32 {
+    let base = if alert_or_button { 8 } else { 4 };
+    let words = text.split_whitespace().count();
+    base + words.saturating_sub(12).div_ceil(10) as u32
+}
+
+/// Library's line under a cover: "Ep 7 of 24", "Ep 7" while the count is not known, or the
+/// format and year for a title not started.
+pub fn progress_caption(entry: &Entry) -> String {
+    let done = entry.progress.as_ref().map(|p| p.done).unwrap_or(0);
+    if done == 0 {
+        return cover_caption(entry);
+    }
+    match entry.episodes.filter(|n| *n > 0) {
+        Some(total) => format!("Ep {done} of {total}"),
+        None => format!("Ep {done}"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -400,5 +421,24 @@ mod tests {
         assert_eq!(clock(3723.0), "1:02:03");
         assert_eq!(minutes(1440), "24 min");
         assert_eq!(format("TV_SHORT"), "TV Short");
+    }
+
+    #[test]
+    fn a_notice_stays_by_its_kind_and_length() {
+        assert_eq!(notice_seconds("Added to Planning", false), 4);
+        assert_eq!(notice_seconds("Couldn't reach AniList", true), 8);
+        let long = "word ".repeat(25);
+        assert_eq!(notice_seconds(&long, false), 6);
+        assert_eq!(notice_seconds(&"word ".repeat(22), true), 9);
+    }
+
+    #[test]
+    fn library_captions_read_as_progress() {
+        let mut e = entry(1);
+        e.episodes = Some(24);
+        e.progress = Some(TitleProgress { done: 7, next: 8 });
+        assert_eq!(progress_caption(&e), "Ep 7 of 24");
+        e.episodes = None;
+        assert_eq!(progress_caption(&e), "Ep 7");
     }
 }

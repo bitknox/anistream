@@ -1,7 +1,7 @@
 //! Continue: the queue down the start edge, grouped In progress and New this week, and beside it
 //! the selected row's preview with its one amber action. Below the wide size the inner split
 //! collapses: the queue fills the content and a row opens its title page. With nothing watched
-//! yet, the setup card with Nagare, over This season.
+//! yet, Nagare and Browse Seasonal across the whole page.
 
 use std::{
     cell::{Cell, RefCell},
@@ -21,19 +21,19 @@ use gtk::{gdk, gio, glib};
 
 use crate::{
     nagare,
-    widgets::{self, PosterGrid},
+    states::{Shape, States},
+    widgets,
     window::{Ctx, Size},
-    words::{Queue, QueueItem},
+    words::{self, Queue, QueueItem},
 };
 
 struct Page {
     ctx: Rc<Ctx>,
     split: adw::NavigationSplitView,
     list: gtk::ListBox,
-    body: gtk::Stack,
+    body: Rc<States>,
     preview: gtk::Stack,
     preview_page: adw::NavigationPage,
-    season: PosterGrid,
     queue: RefCell<Queue>,
     ids: RefCell<Vec<u32>>,
     episodes: RefCell<HashMap<u32, Vec<EpisodeRow>>>,
@@ -67,15 +67,32 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     list.set_margin_end(8);
     list.set_margin_bottom(12);
 
-    let season = PosterGrid::new(&ctx.hub);
-    let body = gtk::Stack::new();
-    body.add_named(&gtk::Box::new(gtk::Orientation::Vertical, 0), Some("loading"));
-    body.add_named(&scroll, Some("queue"));
-    body.add_named(&setup(ctx, &season), Some("setup"));
+    let browse = gtk::Button::with_label("Browse Seasonal");
+    browse.add_css_class("pill");
+    browse.add_css_class("suggested-action");
+    browse.set_halign(gtk::Align::Center);
+    browse.set_action_name(Some("win.go"));
+    browse.set_action_target_value(Some(&"seasonal".to_variant()));
+    let empty = nagare::status_page(
+        "Nothing Watched Yet",
+        "Pick something from Seasonal, or search for a title.",
+        Some(&browse),
+    );
+    let rows = Shape::Rows { count: 5, width: 36, height: 54 };
+    let body = States::new(&ctx.hub, &scroll, rows, &empty, "Couldn't Load Continue");
+    body.loading(Command::LoadContinue.activity());
+    body.on_retry({
+        let hub = Rc::downgrade(&ctx.hub);
+        move || {
+            if let Some(hub) = hub.upgrade() {
+                hub.send(Command::LoadContinue);
+            }
+        }
+    });
 
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
-    let sidebar_page = widgets::page("Continue", &header, &body);
+    let sidebar_page = widgets::content_page("Continue", &header, &body.widget);
 
     let preview = gtk::Stack::new();
     preview.set_transition_type(gtk::StackTransitionType::Crossfade);
@@ -104,7 +121,6 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         body,
         preview,
         preview_page,
-        season,
         queue: RefCell::default(),
         ids: RefCell::default(),
         episodes: RefCell::default(),
@@ -175,27 +191,35 @@ impl Page {
         self.list.add_controller(keys);
 
         let weak = Rc::downgrade(self);
-        self.ctx.on_size(move |size| {
-            let Some(page) = weak.upgrade() else { return };
-            let collapsed = size != Size::Wide;
-            page.split.set_collapsed(collapsed);
-            page.split.set_show_content(!collapsed);
-            page.list.set_activate_on_single_click(collapsed);
-            page.list.set_selection_mode(if collapsed {
-                gtk::SelectionMode::None
-            } else {
-                gtk::SelectionMode::Browse
-            });
-            if !collapsed {
-                page.reselect();
+        self.ctx.on_size(move |_| {
+            if let Some(page) = weak.upgrade() {
+                page.layout();
             }
         });
+    }
+
+    /// The queue beside its preview on a wide window with something in it; otherwise the
+    /// queue, or what stands in for it, across the whole page.
+    fn layout(self: &Rc<Self>) {
+        let narrow = self.ctx.size() != Size::Wide;
+        let collapsed = narrow || self.queue.borrow().is_empty();
+        self.split.set_collapsed(collapsed);
+        self.split.set_show_content(!collapsed);
+        self.list.set_activate_on_single_click(narrow);
+        self.list.set_selection_mode(if narrow {
+            gtk::SelectionMode::None
+        } else {
+            gtk::SelectionMode::Browse
+        });
+        if !collapsed {
+            self.reselect();
+        }
     }
 
     fn heard(self: &Rc<Self>, event: &Event) {
         match event {
             Event::Content { view: ContentFor::Continue, content } => match content {
-                ContentList::Loading => {}
+                ContentList::Loading => self.body.loading(Command::LoadContinue.activity()),
                 ContentList::Entries(entries) => {
                     *self.ids.borrow_mut() = entries.iter().map(|e| e.id.get()).collect();
                     self.rebuild();
@@ -206,12 +230,9 @@ impl Page {
                 }
                 ContentList::Failed(why) => {
                     tracing::warn!(%why, "continue did not load");
-                    self.rebuild();
+                    self.body.failed(why);
                 }
             },
-            Event::Content { view: ContentFor::Seasonal, content } => {
-                self.season.set(content.entries());
-            }
             Event::Progress { id, .. } => {
                 if self.ids.borrow().contains(&id.get()) {
                     self.rebuild();
@@ -242,7 +263,7 @@ impl Page {
         let queue = Queue::of(&entries, &[]);
         let same = *self.queue.borrow() == queue;
         *self.queue.borrow_mut() = queue;
-        if same && self.list.first_child().is_some() {
+        if same && self.list.first_child().is_some() && self.body.has_answer() {
             return;
         }
         while let Some(row) = self.list.first_child() {
@@ -255,9 +276,12 @@ impl Page {
                 self.list.append(&self.row(group, item));
             }
         }
-        self.body.set_visible_child_name(if queue.is_empty() { "setup" } else { "queue" });
-        self.split.set_show_content(!queue.is_empty() && !self.split.is_collapsed());
-        self.reselect();
+        if queue.is_empty() {
+            self.body.empty();
+        } else {
+            self.body.content();
+        }
+        self.layout();
     }
 
     fn row(&self, group: &str, item: &QueueItem) -> gtk::ListBoxRow {
@@ -298,17 +322,34 @@ impl Page {
         let id = item.entry.id.get();
         let menu = gio::Menu::new();
         let play = format!("(uint32 {id}, '{}')", item.episode);
+        let n = item.episode;
+        let first = gio::Menu::new();
         if item.playable() {
             let verb = if item.resume.is_some() { "Resume" } else { "Play" };
-            menu.append(Some(verb), Some(&format!("win.play({play})")));
+            first.append(
+                Some(&format!("{verb} Episode {n}")),
+                Some(&format!("win.play({play})")),
+            );
+            if item.resume.is_some() {
+                first.append(
+                    Some("Play from the Beginning"),
+                    Some(&format!("win.play-from-start({play})")),
+                );
+            }
         }
-        menu.append(Some("Mark Watched"), Some(&format!("win.mark-watched({play})")));
-        menu.append(
+        first.append(Some("Go to Title"), Some(&format!("win.open-title(uint32 {id})")));
+        menu.append_section(None, &first);
+        let second = gio::Menu::new();
+        second.append(
+            Some(&format!("Mark Episode {n} as Watched")),
+            Some(&format!("win.mark-watched({play})")),
+        );
+        second.append(
             Some("Hide from Continue"),
             Some(&format!("win.hide-continue(uint32 {id})")),
         );
-        menu.append(Some("Drop"), Some(&format!("win.drop(uint32 {id})")));
-        menu.append(Some("Open Title"), Some(&format!("win.open-title(uint32 {id})")));
+        second.append(Some("Drop"), Some(&format!("win.drop(uint32 {id})")));
+        menu.append_section(None, &second);
         widgets::context_menu(&row, &menu);
         row
     }
@@ -426,6 +467,19 @@ impl Page {
         let title = widgets::show_title(&entry.title, "title-2");
         title.set_margin_top(12);
         column.append(&title);
+        let heading = gtk::Box::new(gtk::Orientation::Vertical, 2);
+        if let Some(english) = entry.title_english.as_deref().filter(|e| *e != entry.title) {
+            heading.append(&widgets::haze(english, ""));
+        }
+        let meta = words::meta_line(entry);
+        if !meta.is_empty() {
+            let meta = widgets::haze(&meta, "caption");
+            meta.add_css_class("numeric");
+            heading.append(&meta);
+        }
+        if heading.first_child().is_some() {
+            column.append(&heading);
+        }
 
         let episode_title = self
             .episodes
@@ -495,66 +549,4 @@ impl Page {
 /// The title a queue row is for.
 fn row_id(row: &gtk::ListBoxRow) -> Option<u32> {
     row.child()?.widget_name().parse().ok()
-}
-
-/// First launch: no modal and no empty screen. The setup card with Nagare, then This season.
-fn setup(ctx: &Rc<Ctx>, season: &PosterGrid) -> gtk::Widget {
-    let rows = gtk::ListBox::new();
-    rows.add_css_class("boxed-list");
-    rows.set_selection_mode(gtk::SelectionMode::None);
-    rows.set_valign(gtk::Align::Center);
-    rows.set_hexpand(true);
-    let connect = adw::ActionRow::builder()
-        .title("Connect AniList")
-        .subtitle("Optional. Brings in your lists and fills Continue with what you watch.")
-        .activatable(true)
-        .action_name("win.connect")
-        .action_target(&"anilist".to_variant())
-        .build();
-    connect.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
-    let store = adw::ActionRow::builder()
-        .title("Add a Plugin Store")
-        .subtitle("anistream plays episodes from the sources a plugin store offers.")
-        .activatable(true)
-        .action_name("win.go")
-        .action_target(&"stores".to_variant())
-        .build();
-    store.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
-    rows.append(&connect);
-    rows.append(&store);
-
-    let card = gtk::Box::new(gtk::Orientation::Horizontal, 24);
-    card.add_css_class("setup");
-    card.append(&nagare::picture(4));
-    let side = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    side.set_valign(gtk::Align::Center);
-    side.append(&widgets::heading("Get Started"));
-    side.append(&rows);
-    card.append(&side);
-    ctx.on_size({
-        let card = card.clone();
-        move |size| {
-            card.set_orientation(if size == Size::Narrow {
-                gtk::Orientation::Vertical
-            } else {
-                gtk::Orientation::Horizontal
-            });
-        }
-    });
-
-    let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.set_margin_start(12);
-    column.set_margin_end(12);
-    column.set_margin_top(12);
-    column.append(&card);
-    let heading = widgets::heading("This Season");
-    heading.set_margin_top(12);
-    column.append(&heading);
-    column.append(&season.widget);
-    season.widget.set_vscroll_policy(gtk::ScrollablePolicy::Natural);
-    gtk::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk::PolicyType::Never)
-        .child(&column)
-        .build()
-        .upcast()
 }

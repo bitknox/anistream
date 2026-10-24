@@ -3,7 +3,10 @@
 //! and the details and Related in a side column. One column below the wide size, and on narrow
 //! windows no cover beside the title, the action at full width and smaller stills.
 
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
@@ -17,58 +20,94 @@ use anistream_model::{
 use gtk::{gio, glib};
 
 use crate::{
-    catalog, widgets,
+    catalog, motion,
+    states::{Shape, States},
+    widgets,
     window::{Ctx, Size},
     words::{self, QueueItem},
 };
+
+/// How far a watched episode's still dims.
+const WATCHED: f64 = 0.55;
+
+/// An episode row as drawn, kept so a mark changes it in place: focus stays where it was, and
+/// the still dims on the quick token.
+struct EpisodeLine {
+    number: String,
+    check: gtk::CheckButton,
+    toggled: glib::SignalHandlerId,
+    name: gtk::Label,
+    still: gtk::Widget,
+    frame: gtk::Box,
+    sub: gtk::Label,
+    bar: gtk::ProgressBar,
+    menu: gio::Menu,
+    shown: RefCell<EpisodeRow>,
+}
 
 struct Page {
     ctx: Rc<Ctx>,
     id: AnilistId,
     navigation: glib::WeakRef<adw::NavigationPage>,
     banner: gtk::Box,
-    banner_filled: std::cell::Cell<bool>,
+    banner_filled: Cell<bool>,
     head: gtk::Box,
     side: gtk::Box,
     seasons: gtk::Box,
+    synopsis: gtk::Box,
     episodes: gtk::ListBox,
-    episodes_state: gtk::Stack,
+    episodes_state: Rc<States>,
+    lines: RefCell<Vec<EpisodeLine>>,
+    /// Whether the engine has answered for the episodes, so no table means none.
+    listed: Cell<bool>,
     columns: gtk::Box,
-    rows: RefCell<Vec<EpisodeRow>>,
+    rows: Rc<RefCell<Vec<EpisodeRow>>>,
+    /// The page's status action, its state the list the title is on.
+    status: gio::SimpleAction,
+    /// How far the dub goes, from the source a play would use: "Dub to episode 6".
+    dubbed_to: RefCell<Option<String>>,
     listening: RefCell<Option<u64>>,
     sized: RefCell<Size>,
 }
 
 pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     let entry = ctx.hub.entry(id);
-    let title = entry.as_ref().map_or("Title", |e| e.title.as_str()).to_owned();
+    // Nothing in the header until the title is known, rather than a word standing in for it.
+    let title = entry.as_ref().map_or("", |e| e.title.as_str()).to_owned();
 
     let head = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let seasons = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    let synopsis = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let episodes = gtk::ListBox::new();
     episodes.add_css_class("boxed-list");
     episodes.set_selection_mode(gtk::SelectionMode::None);
-    let loading = adw::Spinner::new();
-    loading.set_size_request(32, 32);
-    loading.set_halign(gtk::Align::Center);
-    loading.set_margin_top(24);
-    let episodes_state = gtk::Stack::new();
-    episodes_state.add_named(&loading, Some("loading"));
-    episodes_state.add_named(&episodes, Some("rows"));
-    episodes_state.add_named(
-        &widgets::haze("No episodes are listed for this title yet.", ""),
-        Some("empty"),
-    );
-    episodes_state.set_vhomogeneous(false);
+    let none = widgets::haze("No episodes are listed for this title yet.", "");
+    none.set_valign(gtk::Align::Start);
+    let shape = Shape::Rows { count: 4, width: 128, height: 72 };
+    let episodes_state =
+        States::new(&ctx.hub, &episodes, shape, &none, "Couldn't List Episodes");
+    episodes_state.widget.set_vhomogeneous(false);
+    episodes_state.widget.set_vexpand(false);
+    episodes_state.loading(Command::LoadEpisodes(id).activity());
+    episodes_state.on_retry({
+        let hub = Rc::downgrade(&ctx.hub);
+        let state = Rc::downgrade(&episodes_state);
+        move || {
+            if let (Some(hub), Some(state)) = (hub.upgrade(), state.upgrade()) {
+                state.loading(Command::LoadEpisodes(id).activity());
+                hub.send(Command::LoadEpisodes(id));
+            }
+        }
+    });
 
     let main = gtk::Box::new(gtk::Orientation::Vertical, 12);
     main.set_hexpand(true);
-    main.append(&head);
+    main.append(&synopsis);
     main.append(&seasons);
     let heading = widgets::heading("Episodes");
     heading.set_margin_top(12);
     main.append(&heading);
-    main.append(&episodes_state);
+    main.append(&episodes_state.widget);
 
     let side = gtk::Box::new(gtk::Orientation::Vertical, 18);
     side.set_size_request(260, -1);
@@ -77,11 +116,27 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     columns.append(&side);
     columns.set_margin_start(36);
     columns.set_margin_end(36);
+    columns.set_margin_top(18);
     columns.set_margin_bottom(36);
 
+    // The banner, up to 360 high, with the cover and the title over its lower part, on the
+    // ground's fade: both in one cell of a grid, so the head may run past the banner.
     let banner_slot = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    banner_slot.set_valign(gtk::Align::Start);
+    head.set_valign(gtk::Align::End);
+    head.set_margin_top(120);
+    head.set_margin_start(36);
+    head.set_margin_end(36);
+    let head_clamp = adw::Clamp::builder()
+        .maximum_size(1200)
+        .tightening_threshold(1200)
+        .child(&head)
+        .build();
+    let top = gtk::Grid::new();
+    top.attach(&banner_slot, 0, 0, 1, 1);
+    top.attach(&head_clamp, 0, 0, 1, 1);
     let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    content.append(&banner_slot);
+    content.append(&top);
     content.append(
         &adw::Clamp::builder()
             .maximum_size(1200)
@@ -98,6 +153,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     header.add_css_class("flat");
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
+    view.add_top_bar(&widgets::offline_banner());
     view.set_extend_content_to_top_edge(true);
     view.set_content(Some(&scroll));
     let navigation = adw::NavigationPage::builder().title(&title).child(&view).build();
@@ -107,16 +163,25 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         id,
         navigation: navigation.downgrade(),
         banner: banner_slot,
-        banner_filled: std::cell::Cell::new(false),
+        banner_filled: Cell::new(false),
         head,
         side,
         seasons,
+        synopsis,
         episodes,
         episodes_state,
+        lines: RefCell::default(),
+        listed: Cell::new(false),
         columns,
-        rows: RefCell::default(),
+        rows: Rc::default(),
         listening: RefCell::default(),
         sized: RefCell::new(ctx.size()),
+        status: gio::SimpleAction::new_stateful(
+            "status",
+            Some(glib::VariantTy::STRING),
+            &String::new().to_variant(),
+        ),
+        dubbed_to: RefCell::default(),
     });
 
     let weak = Rc::downgrade(&page);
@@ -140,6 +205,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     }
     ctx.hub.send(Command::LoadDetail(id));
     ctx.hub.send(Command::LoadEpisodes(id));
+    ctx.hub.send(Command::LoadDubbedTo(id));
     // Kept as long as the page it draws, and deaf once that is gone.
     navigation.connect_destroy(move |_| {
         if let Some(id) = page.listening.borrow_mut().take() {
@@ -159,8 +225,24 @@ impl Page {
                 self.fill(entry);
             }
             Event::Episodes { id, rows } if *id == self.id => {
+                self.listed.set(true);
                 self.rows.replace(rows.clone());
                 self.draw_episodes();
+                // The table decides what More offers.
+                if let Some(entry) = self.ctx.hub.entry(self.id) {
+                    self.fill(&entry);
+                }
+            }
+            // No table until a match is picked.
+            Event::MatchChoices { id, .. } if *id == self.id => {
+                self.listed.set(true);
+                self.episodes_state.empty();
+            }
+            Event::DubbedTo { id, episode } if *id == self.id => {
+                self.dubbed_to.replace(episode.clone());
+                if let Some(entry) = self.ctx.hub.entry(self.id) {
+                    self.fill(&entry);
+                }
             }
             Event::Progress { id, episodes, .. } if *id == self.id => {
                 {
@@ -175,7 +257,7 @@ impl Page {
                 if let Some(entry) = self.ctx.hub.entry(self.id) {
                     self.fill(&entry);
                 }
-                self.draw_episodes();
+                self.update_episodes();
             }
             _ => {}
         }
@@ -193,6 +275,8 @@ impl Page {
         let margin = if size == Size::Narrow { 12 } else { 36 };
         self.columns.set_margin_start(margin);
         self.columns.set_margin_end(margin);
+        self.head.set_margin_start(margin);
+        self.head.set_margin_end(margin);
         if let Some(entry) = self.ctx.hub.entry(self.id) {
             self.fill(&entry);
         }
@@ -202,23 +286,49 @@ impl Page {
     /// The page's own actions: the status menu and More.
     fn actions(&self) {
         let group = gio::SimpleActionGroup::new();
-        let status = gio::SimpleAction::new("status", Some(glib::VariantTy::STRING));
+        let status = &self.status;
         let hub = Rc::downgrade(&self.ctx.hub);
         let id = self.id;
         status.connect_activate({
             let hub = hub.clone();
-            move |_, arg| {
+            move |action, arg| {
                 let Some(hub) = hub.upgrade() else { return };
                 let Some(name) = arg.and_then(String::from_variant) else { return };
                 if let Some(status) =
                     LibrarySegment::ALL.into_iter().find(|s| s.label() == name)
                 {
+                    action.set_state(&name.to_variant());
                     hub.send(Command::SetStatus { id, status });
                     hub.send(Command::LoadDetail(id));
                 }
             }
         });
-        group.add_action(&status);
+        group.add_action(status);
+        let trailer = gio::SimpleAction::new("trailer", None);
+        trailer.connect_activate({
+            let hub = hub.clone();
+            move |_, _| {
+                let Some(hub) = hub.upgrade() else { return };
+                let Some(entry) = hub.entry(id) else { return };
+                if let Some(url) = entry.trailer_url.clone() {
+                    hub.send(Command::PlayTrailer { url, title: entry.title });
+                }
+            }
+        });
+        group.add_action(&trailer);
+        let download = gio::SimpleAction::new("download-unwatched", None);
+        download.connect_activate({
+            let hub = hub.clone();
+            let rows = Rc::clone(&self.rows);
+            move |_, _| {
+                let Some(hub) = hub.upgrade() else { return };
+                let episodes = unwatched(&rows.borrow());
+                if !episodes.is_empty() {
+                    hub.send(Command::DownloadMany { id, episodes });
+                }
+            }
+        });
+        group.add_action(&download);
         let previous = gio::SimpleAction::new("mark-previous", None);
         previous.connect_activate({
             let hub = hub.clone();
@@ -267,7 +377,7 @@ impl Page {
         let hub = &self.ctx.hub;
         // The banner, once: its art does not change with the detail.
         if !self.banner_filled.replace(true) {
-            self.banner.append(&widgets::banner(hub, entry, 280, "flush"));
+            self.banner.append(&widgets::faded_banner(hub, entry, 360));
         }
         let id = entry.id.get();
 
@@ -282,6 +392,9 @@ impl Page {
             text.append(&widgets::haze(other, ""));
         }
         text.append(&widgets::haze(&words::meta_line(entry), "numeric"));
+        if let Some(episode) = self.dubbed_to.borrow().as_deref() {
+            text.append(&widgets::haze(&format!("Dub to episode {episode}"), "numeric"));
+        }
 
         let item = QueueItem::of(entry);
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
@@ -304,6 +417,10 @@ impl Page {
                 }
             }
         }
+        // A choice each, checked where the title is.
+        self.status.set_state(
+            &entry.list_status.map_or_else(String::new, |s| s.label().to_owned()).to_variant(),
+        );
         let status_menu = gio::Menu::new();
         for segment in LibrarySegment::ALL {
             status_menu.append(
@@ -322,8 +439,34 @@ impl Page {
             .build();
         status.add_css_class("pill");
         let more_menu = gio::Menu::new();
-        more_menu.append(Some("Show Settings…"), Some("title.show-settings"));
-        more_menu.append(Some("Mark All Previous Watched"), Some("title.mark-previous"));
+        let first = gio::Menu::new();
+        let playable = {
+            let rows = self.rows.borrow();
+            !rows.is_empty() && !rows.iter().any(|r| r.metadata_only)
+        };
+        if playable {
+            first.append(
+                Some(&format!("Download Episode {}", item.episode)),
+                Some(&format!("win.download((uint32 {id}, '{}'))", item.episode)),
+            );
+            if unwatched(&self.rows.borrow()).len() > 1 {
+                first.append(
+                    Some("Download Unwatched Episodes"),
+                    Some("title.download-unwatched"),
+                );
+            }
+        }
+        first.append(Some("Mark All Previous Watched"), Some("title.mark-previous"));
+        more_menu.append_section(None, &first);
+        let second = gio::Menu::new();
+        if entry.trailer_url.is_some() {
+            second.append(Some("Play Trailer"), Some("title.trailer"));
+        }
+        second.append(Some("Open on AniList"), Some(&format!("win.open-anilist(uint32 {id})")));
+        more_menu.append_section(None, &second);
+        let third = gio::Menu::new();
+        third.append(Some("Show Settings…"), Some("title.show-settings"));
+        more_menu.append_section(None, &third);
         let more = gtk::MenuButton::builder()
             .icon_name("view-more-symbolic")
             .tooltip_text("More")
@@ -351,13 +494,14 @@ impl Page {
         line.append(&text);
         self.head.append(&line);
 
+        clear(&self.synopsis);
         if !entry.synopsis.is_empty() {
             let synopsis = gtk::Label::new(Some(&entry.synopsis));
             synopsis.set_wrap(true);
             synopsis.set_xalign(0.0);
-            synopsis.set_margin_top(18);
+            synopsis.set_margin_top(6);
             synopsis.set_max_width_chars(90);
-            self.head.append(&synopsis);
+            self.synopsis.append(&synopsis);
         }
 
         self.fill_seasons(entry);
@@ -468,19 +612,20 @@ impl Page {
             label.set_ellipsize(gtk::pango::EllipsizeMode::End);
             label.set_max_width_chars(10);
             tile.append(&label);
-            tile.set_tooltip_text(Some(&linked.title));
-            let open = gtk::GestureClick::new();
             let id = linked.id.get();
-            open.connect_released({
-                let tile = tile.clone();
-                move |_, _, _, _| {
-                    let _ = tile.activate_action("win.open-title", Some(&id.to_variant()));
-                }
-            });
-            tile.add_controller(open);
-            tile.set_cursor_from_name(Some("pointer"));
-            widgets::title_menu(&tile, id, linked.list_status.is_none());
-            box_.append(&tile);
+            let button = gtk::Button::builder().child(&tile).build();
+            button.add_css_class("flat");
+            button.add_css_class("related");
+            button.set_tooltip_text(Some(&linked.title));
+            button.set_action_name(Some("win.open-title"));
+            button.set_action_target_value(Some(&id.to_variant()));
+            let relation = linked.relation.map(|r| spaced(&format!("{r:?}")));
+            button.update_property(&[gtk::accessible::Property::Label(&match relation {
+                Some(relation) => format!("{}, {relation}", linked.title),
+                None => linked.title.clone(),
+            })]);
+            widgets::title_menu(&button, id, linked.list_status.is_none());
+            box_.append(&button);
         }
         let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
         column.append(&widgets::heading("Related"));
@@ -488,47 +633,30 @@ impl Page {
         self.side.append(&column);
     }
 
+    /// The episode table, drawn whole: when it arrives and when the window changes size.
     fn draw_episodes(&self) {
         clear_list(&self.episodes);
+        self.lines.borrow_mut().clear();
         let rows = self.rows.borrow();
         if rows.is_empty() {
-            self.episodes_state.set_visible_child_name(
-                if self.ctx.hub.entry(self.id).is_some_and(|e| e.detail.is_some()) {
-                    "empty"
-                } else {
-                    "loading"
-                },
-            );
+            if self.listed.get() {
+                self.episodes_state.empty();
+            }
             return;
         }
-        self.episodes_state.set_visible_child_name("rows");
         let narrow = *self.sized.borrow() == Size::Narrow;
         let w = if narrow { 96 } else { 128 };
         let entry = self.ctx.hub.entry(self.id);
-        let next = entry.as_ref().and_then(|e| e.progress).map_or(1, |p| p.next);
-        let spoilers = self
-            .ctx
-            .hub
-            .known
-            .borrow()
-            .setting(SettingKey::SpoilerProtection)
-            .is_some_and(|r| catalog::is_on(&r));
+        let color = entry.as_ref().and_then(|e| e.cover_color.clone());
         let id = self.id.get();
+        let mut lines = Vec::with_capacity(rows.len());
         for row in rows.iter() {
-            let number: u32 = row.number.parse().unwrap_or(0);
             let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
             line.add_css_class("episode-row");
             line.set_size_request(-1, if narrow { 54 } else { 72 });
 
-            let (still, frame) = widgets::still(
-                &self.ctx.hub,
-                row.thumbnail.as_deref(),
-                entry.as_ref().and_then(|e| e.cover_color.as_deref()),
-                w,
-            );
-            if spoilers && !row.completed && number > next {
-                frame.add_css_class("spoiler");
-            }
+            let (still, frame) =
+                widgets::still(&self.ctx.hub, row.thumbnail.as_deref(), color.as_deref(), w);
             line.append(&still);
 
             let text = gtk::Box::new(gtk::Orientation::Vertical, 2);
@@ -541,49 +669,25 @@ impl Page {
             let label = gtk::Label::new(Some(&name));
             label.set_xalign(0.0);
             label.set_ellipsize(gtk::pango::EllipsizeMode::End);
-            if row.completed {
-                label.add_css_class("haze");
-            }
             text.append(&label);
-            let part_way = row.watched > 0.0 && !row.completed;
-            let sub = match (part_way, row.duration_secs) {
-                (true, Some(d)) => {
-                    let left = (d as f64 * (1.0 - row.watched)).max(60.0);
-                    format!("{} min left", (left / 60.0).round() as u64)
-                }
-                (false, Some(d)) => words::minutes(d),
-                _ if row.metadata_only => "Not out yet".to_owned(),
-                _ => String::new(),
-            };
-            if !sub.is_empty() {
-                let sub = widgets::haze(&sub, "caption");
-                sub.add_css_class("numeric");
-                text.append(&sub);
-            }
-            if part_way {
-                let bar = gtk::ProgressBar::new();
-                bar.set_fraction(row.watched);
-                bar.set_margin_top(4);
-                bar.set_size_request(120, -1);
-                bar.set_halign(gtk::Align::Start);
-                text.append(&bar);
-            }
+            let sub = widgets::haze("", "caption");
+            sub.add_css_class("numeric");
+            text.append(&sub);
+            let bar = gtk::ProgressBar::new();
+            bar.set_margin_top(4);
+            bar.set_size_request(120, -1);
+            bar.set_halign(gtk::Align::Start);
+            text.append(&bar);
             line.append(&text);
 
             let check = gtk::CheckButton::new();
-            check.set_active(row.completed);
             check.set_valign(gtk::Align::Center);
-            check.set_tooltip_text(Some(if row.completed {
-                "Mark Unwatched"
-            } else {
-                "Mark Watched"
-            }));
             check.update_property(&[gtk::accessible::Property::Label(&format!(
                 "Episode {} watched",
                 row.number
             ))]);
             let episode = row.number.clone();
-            check.connect_toggled(move |check| {
+            let toggled = check.connect_toggled(move |check| {
                 let _ = check.activate_action(
                     "title.watched",
                     Some(&(episode.clone(), check.is_active()).to_variant()),
@@ -592,9 +696,6 @@ impl Page {
             line.append(&check);
 
             let menu = gio::Menu::new();
-            let target = format!("(uint32 {id}, '{}')", row.number);
-            menu.append(Some("Play"), Some(&format!("win.play({target})")));
-            menu.append(Some("Mark Watched"), Some(&format!("win.mark-watched({target})")));
             let more = gtk::MenuButton::builder()
                 .icon_name("view-more-symbolic")
                 .tooltip_text("Episode Menu")
@@ -610,8 +711,149 @@ impl Page {
             list_row.set_action_target_value(Some(&(id, row.number.clone()).to_variant()));
             widgets::context_menu(&list_row, &menu);
             self.episodes.append(&list_row);
+
+            let drawn = EpisodeLine {
+                number: row.number.clone(),
+                check,
+                toggled,
+                name: label,
+                still: still.upcast(),
+                frame,
+                sub,
+                bar,
+                menu,
+                shown: RefCell::new(row.clone()),
+            };
+            self.dress(&drawn, row, false);
+            lines.push(drawn);
+        }
+        drop(rows);
+        self.lines.replace(lines);
+        self.episodes_state.content();
+    }
+
+    /// Marks and progress moved: each row changed in place.
+    fn update_episodes(&self) {
+        if self.lines.borrow().len() != self.rows.borrow().len() {
+            self.draw_episodes();
+            return;
+        }
+        let rows = self.rows.borrow();
+        for line in self.lines.borrow().iter() {
+            if let Some(row) = rows.iter().find(|r| r.number == line.number)
+                && *line.shown.borrow() != *row
+            {
+                self.dress(line, row, true);
+                line.shown.replace(row.clone());
+            }
         }
     }
+
+    /// One row as `row` stands: its check, its line, its still and its menu.
+    fn dress(&self, line: &EpisodeLine, row: &EpisodeRow, animate: bool) {
+        let entry = self.ctx.hub.entry(self.id);
+        let next = entry.as_ref().and_then(|e| e.progress).map_or(1, |p| p.next);
+        let number: u32 = row.number.parse().unwrap_or(0);
+        let spoilers = self
+            .ctx
+            .hub
+            .known
+            .borrow()
+            .setting(SettingKey::SpoilerProtection)
+            .is_some_and(|r| catalog::is_on(&r));
+        if spoilers && !row.completed && number > next {
+            line.frame.add_css_class("spoiler");
+        } else {
+            line.frame.remove_css_class("spoiler");
+        }
+
+        line.check.block_signal(&line.toggled);
+        line.check.set_active(row.completed);
+        line.check.unblock_signal(&line.toggled);
+        line.check.set_tooltip_text(Some(if row.completed {
+            "Mark Unwatched"
+        } else {
+            "Mark Watched"
+        }));
+        if row.completed {
+            line.name.add_css_class("haze");
+        } else {
+            line.name.remove_css_class("haze");
+        }
+        let to = if row.completed { WATCHED } else { 1.0 };
+        let from = line.still.opacity();
+        if animate && (from - to).abs() > f64::EPSILON {
+            motion::quick(&line.still, from, to, motion::opacity(&line.still)).play();
+        } else {
+            line.still.set_opacity(to);
+        }
+
+        let part_way = row.watched > 0.0 && !row.completed;
+        let sub = match (part_way, row.duration_secs) {
+            (true, Some(d)) => {
+                let left = (d as f64 * (1.0 - row.watched)).max(60.0);
+                format!("{} min left", (left / 60.0).round() as u64)
+            }
+            (false, Some(d)) => words::minutes(d),
+            _ if row.metadata_only => "Not out yet".to_owned(),
+            _ => String::new(),
+        };
+        line.sub.set_label(&sub);
+        line.sub.set_visible(!sub.is_empty());
+        line.bar.set_fraction(row.watched);
+        line.bar.set_visible(part_way);
+
+        let id = self.id.get();
+        let n = &row.number;
+        let target = format!("(uint32 {id}, '{n}')");
+        line.menu.remove_all();
+        let first = gio::Menu::new();
+        if !row.metadata_only {
+            let verb = if part_way { "Resume" } else { "Play" };
+            first.append(
+                Some(&format!("{verb} Episode {n}")),
+                Some(&format!("win.play({target})")),
+            );
+            if part_way {
+                first.append(
+                    Some("Play from the Beginning"),
+                    Some(&format!("win.play-from-start({target})")),
+                );
+            }
+        }
+        line.menu.append_section(None, &first);
+        let second = gio::Menu::new();
+        if row.completed {
+            second.append(
+                Some(&format!("Mark Episode {n} as Unwatched")),
+                Some(&format!("win.mark-unwatched({target})")),
+            );
+        } else {
+            second.append(
+                Some(&format!("Mark Episode {n} as Watched")),
+                Some(&format!("win.mark-watched({target})")),
+            );
+        }
+        line.menu.append_section(None, &second);
+        if !row.metadata_only {
+            let third = gio::Menu::new();
+            third.append(
+                Some(&format!("Download Episode {n}")),
+                Some(&format!("win.download({target})")),
+            );
+            line.menu.append_section(None, &third);
+        }
+    }
+}
+
+/// The episodes Download Unwatched Episodes queues: each one listed from a source, out, and
+/// not watched.
+fn unwatched(rows: &[EpisodeRow]) -> Vec<String> {
+    let now = glib::DateTime::now_utc().map_or(0, |t| t.to_unix());
+    rows.iter()
+        .filter(|r| !r.metadata_only && !r.completed && r.airs_at.is_none_or(|at| at <= now))
+        .map(|r| r.number.clone())
+        .collect()
 }
 
 fn clear(container: &gtk::Box) {

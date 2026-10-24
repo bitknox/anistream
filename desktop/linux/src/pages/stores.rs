@@ -86,7 +86,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let body = gtk::Stack::new();
     body.add_named(&widgets::column_page(&column, 720), Some("list"));
     body.add_named(&empty, Some("empty"));
-    let navigation = widgets::page("Plugin Stores", &header, &body);
+    let navigation = widgets::content_page("Plugin Stores", &header, &body);
 
     let page = Rc::new(Page { ctx: Rc::clone(ctx), body, list, join, shown: Cell::new(false) });
     let open = gio::SimpleAction::new("open", Some(glib::VariantTy::STRING));
