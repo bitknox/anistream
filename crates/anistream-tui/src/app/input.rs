@@ -132,6 +132,7 @@ impl App {
             Action::OpenPrivacy => {
                 return Some(Command::OpenExternal { url: PRIVACY_URL.into() });
             }
+            Action::ReportBug => return self.report_bug(),
             Action::CommandPalette => self.open_palette(),
             // Out of the search results is back into the query they answered, one step short
             // of the rail — the same order the two were entered in.

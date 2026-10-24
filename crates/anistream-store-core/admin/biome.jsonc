@@ -1,0 +1,26 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		// The scene is a copy of the website's, kept byte for byte in step with it.
+		"includes": ["src/**", "!src/scene", "*.ts", "*.json", "!package.json"]
+	},
+	"formatter": {
+		"indentStyle": "tab",
+		"lineWidth": 100
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single"
+		}
+	},
+	"linter": {
+		"rules": {
+			"preset": "recommended",
+			"a11y": {
+				// Focus moves on purpose: to the second press of a question, to a rename field, and
+				// to a link just made, so a keyboard user lands where the next step is.
+				"noAutofocus": "off"
+			}
+		}
+	}
+}

@@ -79,12 +79,35 @@ To update, push this repository to the app from a clone: `heroku git:remote -a <
 
 See [`railway/`](railway/README.md).
 
+## Updating a store
+
+A store brings its database up to date by itself when a new version first starts, and refuses to
+run on a database that a newer version has already used. Its admin page shows the version it runs
+and, when asked, checks GitHub from the browser for a newer release and shows the steps for its
+host.
+
+| Where | How to update |
+| --- | --- |
+| Docker | `docker compose pull`, then `docker compose up -d` |
+| Fly.io | `fly deploy` in the directory you launched from |
+| Render | Manual Deploy, then Clear build cache & deploy |
+| Railway | Auto Updates in a maintenance window, or Redeploy |
+| Heroku | `git push heroku main` from an up-to-date clone |
+| Cloudflare, Vercel, Netlify | Run the Update the store workflow in your copy of the template |
+
+The deploy buttons for Cloudflare, Vercel and Netlify make a copy of the template rather than a
+fork, so GitHub's Sync fork does not apply. Each template carries `update-store.yml` instead. Move
+it to `.github/workflows/` once and commit it; it then appears under Actions as Update the store.
+Running it copies the newest release's template over yours, keeps your `wrangler.jsonc`,
+`vercel.json` or `netlify.toml`, and pushes, and the host deploys the push.
+
 ## The container image
 
 `ghcr.io/bitknox/anistream-store`, for linux/amd64 and linux/arm64, built from
 [`container/Dockerfile`](container/Dockerfile) by `.github/workflows/store-image.yml`. Its tags
-are the release's version (`1.0.0`), its minor and major versions (`1.0`, `1`) and `latest`. The
-templates use `1`, which follows every 1.x release.
+are the release's version (`2.0.8`), its minor and major versions (`2.0`, `2`) and `latest`. The
+templates use `2`, which follows every 2.x release. A new major version means changing the tag by
+hand, and `deploy/sync.sh --check` fails until every template names the workspace's major.
 
 It runs as a non-root user and keeps its files in `/data`. Settings come from the environment:
 
@@ -115,5 +138,5 @@ public once, or the platforms cannot pull it.
 The serverless templates carry the store as committed WebAssembly. After changing the store's
 crates, a dependency they compile or the toolchain, run `deploy/sync.sh` and commit what it
 writes; CI's `deploy/sync.sh --check` fails until then. What it records leaves out the workspace's
-own version, which changes nothing in the package, so a release or a new version in Cargo.toml
-needs no new build.
+own patch version, which changes nothing in the package, so a release needs no new build. A new
+minor or major in Cargo.toml does, since the package reports it.

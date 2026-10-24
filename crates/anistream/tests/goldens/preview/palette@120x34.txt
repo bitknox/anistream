@@ -11,6 +11,7 @@ anistream                                                                       
   Download a range of episodes                                                                                     D
   Next episode                                                                                                     n
   Previous episode                                                                                                 N
+  Report a bug
   Expand synopsis                                                                                                  i
   Show keys                                                                                                        ?
   Open the privacy page
@@ -18,7 +19,6 @@ anistream                                                                       
   Page up                                                                                                     ctrl+u
   Volume up                                                                                                        0
   Leave player running                                                                                             q
-  Faster                                                                                                           ]
 
                             │                                         ▏ resume ep 4 at 5:00 (21%)
                             │                                         █████░░░░░░░░░░░░░░░░░░░

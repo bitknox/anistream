@@ -72,6 +72,7 @@ fn context(episode: &str, next: Option<&str>) -> PlaybackContext {
         episodes: Vec::new(),
         cover_url: None,
         banner_url: None,
+        episode_total: None,
     }
 }
 

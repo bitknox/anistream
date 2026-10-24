@@ -258,6 +258,7 @@ pub async fn resolve_for_playback(
         episodes: Vec::new(),
         cover_url: media.cover_image.best().map(str::to_owned),
         banner_url: media.banner_image.clone(),
+        episode_total: media.episodes,
     };
     Ok((streams, context))
 }

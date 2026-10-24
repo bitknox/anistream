@@ -86,6 +86,7 @@ async fn main() -> anyhow::Result<()> {
             episodes: Vec::new(),
             cover_url: None,
             banner_url: None,
+            episode_total: None,
         };
         let settings = PlaySettings {
             threshold: config.playback.commit_threshold,

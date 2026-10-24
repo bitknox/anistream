@@ -308,7 +308,7 @@ pub fn play_local(
     // Named by the download, as it is staged.
     let hints = PlayHints { title: title.clone(), ..hints };
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
-    let PlayHints { next, episodes, cover_url, banner_url, .. } = hints;
+    let PlayHints { next, episodes, cover_url, banner_url, episode_total, .. } = hints;
     handoff.now();
     let tracker_ids = signed_in_tracker_ids(sync);
     if episodes.is_empty() {
@@ -349,6 +349,7 @@ pub fn play_local(
             episodes,
             cover_url,
             banner_url,
+            episode_total,
         };
         let settings = playback::PlaySettings {
             shader_dir: shaders,
@@ -544,10 +545,11 @@ fn spawn_playback(
             }
         };
         let (streams, mut context) = context;
-        let PlayHints { next, episodes, cover_url, banner_url, .. } = hints;
+        let PlayHints { next, episodes, cover_url, banner_url, episode_total, .. } = hints;
         (context.next, context.episodes) = (next, episodes);
         // The art the title's lookup found, else what its page or a list showed.
         context.cover_url = context.cover_url.or(cover_url);
+        context.episode_total = context.episode_total.or(episode_total);
         context.banner_url = context.banner_url.or(banner_url);
         // Resolved: from here the wait is mpv opening, which Now Playing shows itself, and the
         // session lasts the episode — far too long to hold a "starting" job open for.

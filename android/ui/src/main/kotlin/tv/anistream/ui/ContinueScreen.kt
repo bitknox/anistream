@@ -106,7 +106,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
         LazyColumn(contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 24.dp)) {
             when (val list = state) {
                 ListState.Empty -> welcome(actions, openCalendar, openSeasonal)
-                is ListState.Failed -> item { Quiet(list.reason) }
+                is ListState.Failed -> item { FailedQuiet(list.reason) }
                 is ListState.Loaded -> queue(store.continuing.queue(titles), actions)
                 else -> {}
             }

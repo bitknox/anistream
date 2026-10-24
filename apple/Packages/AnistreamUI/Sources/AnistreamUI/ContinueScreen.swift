@@ -442,12 +442,15 @@ struct ListFailed: View {
     let reason: String
 
     var body: some View {
-        HStack(spacing: 6) {
-            Circle().fill(.vermilion).frame(width: 6, height: 6).accessibilityHidden(true)
-            Text(reason)
-                .font(.mac(13))
-                .foregroundStyle(.silk)
-                .textSelection(.enabled)
+        VStack(spacing: 12) {
+            HStack(spacing: 6) {
+                Circle().fill(.vermilion).frame(width: 6, height: 6).accessibilityHidden(true)
+                Text(reason)
+                    .font(.mac(13))
+                    .foregroundStyle(.silk)
+                    .textSelection(.enabled)
+            }
+            ReportButton(context: BugContext(kind: "load", message: reason))
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

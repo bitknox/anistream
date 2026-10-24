@@ -335,6 +335,20 @@ A client compares `key` with the one in the invite and stops if they differ. A s
 owns yet and that was deployed with a setup code adds `"claimable": true`, which is how its admin
 page knows to ask for the code.
 
+`GET /v1/admin/overview` includes what the store runs, for its owners:
+
+```json
+"server": { "version": "2.0.8", "schema": 1, "host": "docker" }
+```
+
+`version` is the release it was built from. A store compiled to WebAssembly gives only the major
+and minor version, adds `build`, the first 16 hex digits of the SHA-256 of the
+`deploy/store-wasm/SOURCE` it was built from, and names `cloudflare`, `vercel` or `netlify` as its
+host. `schema` is the version of its database. The store moves its database forward on start, a
+recorded step at a time, and refuses a database whose schema is newer than it knows. The admin
+page compares `version` and `build` with GitHub's newest release, from the browser, when the owner
+asks it to.
+
 `POST /v1/setup` takes `{ "code": "…" }` and answers with an owner invite,
 `{ "link": "https://plugins.example/join/…#…", "expires_at": 1793000000 }`. A wrong code is `403`
 and counts toward the same limit as a failed invite. A store deployed without a setup code answers

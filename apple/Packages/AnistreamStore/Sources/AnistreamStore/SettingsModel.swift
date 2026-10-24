@@ -40,6 +40,13 @@ public final class SettingsModel {
         view?.torrent
     }
 
+    /// Whether this engine can publish a Discord presence at all, as it says: the Mac's can, a
+    /// phone's has none. False until the first view, so the settings are never shown and then
+    /// taken away.
+    public var hasPresence: Bool {
+        view?.presenceAvailable ?? false
+    }
+
     /// Whether a switch is on.
     public func isOn(_ key: SettingKey) -> Bool {
         row(key)?.isOn ?? false

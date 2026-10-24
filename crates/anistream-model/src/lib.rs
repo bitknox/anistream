@@ -41,6 +41,7 @@
 //! `android/scripts/engine.sh testing` then `./gradlew :ui:compileFixturesDebugKotlin
 //! :store:testFixturesDebugUnitTest` in `android/`, and `apple/build.sh`.
 
+pub mod bug_report;
 pub mod catalog;
 pub mod command;
 pub mod downloads;

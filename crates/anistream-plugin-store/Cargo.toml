@@ -33,7 +33,7 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc
 rustls-pki-types = { version = "1.15", features = ["std"] }
 # Postgres, for platforms with a database and no disk.
 tokio-postgres = "0.7"
-tokio-postgres-rustls = "0.13"
+tokio-postgres-rustls = "0.14"
 webpki-roots = "1"
 
 # The Mozilla roots as certificates, which the client trusts on Android in place of the

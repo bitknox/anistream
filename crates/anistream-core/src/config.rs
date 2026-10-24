@@ -274,6 +274,11 @@ pub struct PresenceConfig {
     /// For anyone who wants the "watching anime" presence without broadcasting *which* anime, which
     /// is a completely reasonable thing to want.
     pub show_title: bool,
+    /// The richer presence: Discord's "Watching" with the cover, a progress bar, a link to the
+    /// show on AniList and whether it is paused. Off by default, as each part of it is one more
+    /// thing a third party is told or fetches. Ignored when `show_title` is off, since every part
+    /// of it names the show.
+    pub rich: bool,
 }
 
 impl PresenceConfig {
@@ -293,7 +298,7 @@ impl PresenceConfig {
 
 impl Default for PresenceConfig {
     fn default() -> Self {
-        Self { enabled: false, client_id: None, show_title: true }
+        Self { enabled: false, client_id: None, show_title: true, rich: false }
     }
 }
 

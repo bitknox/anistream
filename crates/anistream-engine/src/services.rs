@@ -60,6 +60,8 @@ pub struct Services {
     pub hosted_player: bool,
     /// The next episode's streams, found while the current one's ending plays.
     pub prefetch: Prefetch,
+    /// The covers downloading, a few at a time.
+    pub artwork: crate::artwork::Downloads,
     /// How the player's own interface is dressed: the front end's choice, made once from its
     /// palette and the same for every playback.
     pub player_theme: PlayerTheme,
@@ -114,6 +116,7 @@ impl Services {
             hosted,
             hosted_player: !cfg!(feature = "desktop"),
             prefetch: Prefetch::default(),
+            artwork: Default::default(),
             player_theme,
             app_clients: AppClients::default(),
             host,

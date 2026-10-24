@@ -86,6 +86,8 @@ cargo clippy --workspace --all-targets
   and the `aarch64-linux-android` target.
 - Plugins: `rustup target add wasm32-wasip2`, then see [docs/plugins.md](docs/plugins.md).
 - The website: `cd website && bun run dev`.
+- Accessibility: what each app supports and how to report a barrier is in
+  [ACCESSIBILITY.md](ACCESSIBILITY.md).
 
 ## Project layout
 

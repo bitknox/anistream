@@ -161,24 +161,24 @@ const installHtml = [
 					</p>
 				</div>
 			</div>
+			<div class="band" role="note" aria-label={bandItems.join(', ')}>
+				<div class="band-track" aria-hidden="true">
+					{
+						[0, 1].map(() => (
+							<span class="band-run">
+								{bandItems.map((item) => (
+									<>
+										<span>{item}</span>
+										<span class="band-dot">·</span>
+									</>
+								))}
+							</span>
+						))
+					}
+				</div>
+			</div>
 		</header>
 
-		<div class="band" role="note" aria-label={bandItems.join(', ')}>
-			<div class="band-track" aria-hidden="true">
-				{
-					[0, 1].map(() => (
-						<span class="band-run">
-							{bandItems.map((item) => (
-								<>
-									<span>{item}</span>
-									<span class="band-dot">·</span>
-								</>
-							))}
-						</span>
-					))
-				}
-			</div>
-		</div>
 
 		<main>
 			<section class="wrap sect" aria-labelledby="features-h">

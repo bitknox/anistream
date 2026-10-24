@@ -80,7 +80,7 @@ jobs:
 
       # `inputs.tag` is empty on a pull request, and checkout then takes the ref that started the
       # run.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
 

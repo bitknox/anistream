@@ -1,40 +1,32 @@
-import type { AdminOverview } from '../types';
+import type { ReactNode } from 'react';
+import { Scene } from './Scene';
+
+/** The nav's height over the sky, which the scene leaves clear above its art. */
+const NAV = 64;
+const NAV_PHONE = 56;
 
 /**
- * The store's name, set the way the homepage sets its headline: each character rises in turn
- * once the eyecatch has passed. The katakana spine behind it is the homepage's アニストリーム
- * spine, renamed for the thing this page runs.
+ * The website's hero: the dusk scene across the page, with the copy standing on its rooftop.
+ * The hero is a picture, dusk in either theme, so its copy keeps the dark palette in both.
  */
-export function Hero({ data }: { data: AdminOverview }) {
-	const name = data.store.name;
+export function Hero({
+	eyebrow = 'Plugin store',
+	title,
+	children,
+}: {
+	eyebrow?: string;
+	title: ReactNode;
+	children?: ReactNode;
+}) {
+	const nav = window.matchMedia('(max-width: 599px)').matches ? NAV_PHONE : NAV;
 	return (
 		<header className="hero">
-			<span className="spine" aria-hidden="true">
-				プラグインストア
-			</span>
-			<p className="hero-eyebrow prefade">$ anistream store</p>
-			<h1 className="hero-h1">
-				<span className="sr-only">{name}</span>
-				<span aria-hidden="true">
-					{[...name].map((c, i) => (
-						<span key={i} className="hch" style={{ ['--i' as string]: i }}>
-							{c === ' ' ? ' ' : c}
-						</span>
-					))}
-				</span>
-			</h1>
-			<dl className="hero-facts prefade">
-				<div>
-					<dt>address</dt>
-					<dd>
-						<a href={data.url}>{data.url}</a>
-					</dd>
-				</div>
-				<div>
-					<dt>key</dt>
-					<dd>{data.fingerprint}</dd>
-				</div>
-			</dl>
+			<Scene nav={nav} />
+			<div className="wrap hero-copy">
+				<p className="caps hero-eyebrow">{eyebrow}</p>
+				<h1>{title}</h1>
+				{children}
+			</div>
 		</header>
 	);
 }
