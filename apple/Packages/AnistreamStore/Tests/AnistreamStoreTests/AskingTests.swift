@@ -31,6 +31,18 @@ struct AskingTests {
         #expect(store.sentLog == ["loadDetail", "loadEpisodes", "loadDetail"])
     }
 
+    @Test func theDubIsAskedForOnceAndSaidInTheEnginesWords() throws {
+        let store = AppStore()
+        store.loadDub(900_001)
+        store.loadDub(900_001)
+        #expect(store.sentLog == ["loadDub"])
+        #expect(store.titles.dubLines[900_001] == nil, "nothing shows before the engine answers")
+        store.apply(.titleDub(id: 900_001, dub: try DubExtent(through: 6, complete: false)))
+        #expect(store.titles.dubLines[900_001] == "Dub to episode 6")
+        store.apply(.titleDub(id: 900_001, dub: nil))
+        #expect(store.titles.dubLines[900_001] == nil, "a dub the source cannot say shows nothing")
+    }
+
     @Test func titlesNamedAnotherWayAskAgainForWhatWasShown() {
         let store = AppStore()
         store.apply(.content(view: .continue, content: .entries([entry(900_001, "Stardust Wayfarer")])))

@@ -56,6 +56,9 @@ import androidx.tv.material3.Text
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import tv.anistream.design.CoverPlate
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
 import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.model.Entry
@@ -113,9 +116,12 @@ fun BrowseRow(
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.padding(start = Canvas.Keyline, end = Canvas.SafeX), verticalAlignment = Alignment.Bottom) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, maxLines = 1)
-            if (subtitle != null) {
-                Spacer(Modifier.width(12.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1)
+            // Faded in when it lands late, in the row's own line, so nothing moves.
+            AnimatedVisibility(subtitle != null, enter = fadeIn(Motion.fadeIn()), exit = ExitTransition.None) {
+                Row {
+                    Spacer(Modifier.width(12.dp))
+                    Text(subtitle.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1)
+                }
             }
         }
         Spacer(Modifier.height(Canvas.HeaderGap - Canvas.FocusRoom))

@@ -6,6 +6,7 @@ package tv.anistream.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -52,6 +53,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.runtime.SideEffect
@@ -191,6 +194,7 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     LaunchedEffect(shown) {
         ask(shown)
         store.loadEpisodes(shown)
+        store.loadDub(shown)
         // The show's own settings, for its spoiler protection.
         store.loadShowSettings(shown)
     }
@@ -1020,7 +1024,40 @@ private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modi
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
+            DubLine(entry.id)
         }
+    }
+}
+
+/**
+ * How far the title's dub goes, under the metadata line and taking no height: it fades in on
+ * fadeIn where the engine says it, over the gap below the header, so nothing moves.
+ */
+@Composable
+private fun DubLine(id: AnilistId) {
+    val store = LocalAppStore.current
+    val line by remember(id) { store.titles.dubLines.map { it[id] }.distinctUntilChanged() }
+        .collectAsStateWithLifecycle(initialValue = store.titles.dubLines.value[id])
+    // The last line it had, while it fades; nothing before one has come.
+    var shown by remember(id) { mutableStateOf(line) }
+    if (line != null) shown = line
+    AnimatedVisibility(
+        visible = line != null,
+        enter = fadeIn(Motion.fadeIn()),
+        exit = ExitTransition.None,
+        modifier = Modifier.layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints)
+            layout(placeable.width, 0) { placeable.place(0, 0) }
+        },
+    ) {
+        Text(
+            shown.orEmpty(),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 }
 
@@ -1459,6 +1496,7 @@ private fun Seasons(
                         // The season's episodes are asked for as the finger lands, ahead of the pick.
                         onPress = {
                             store.loadEpisodes(season.id)
+                            store.loadDub(season.id)
                             onPress(season.id)
                         },
                         onRelease = onLift,

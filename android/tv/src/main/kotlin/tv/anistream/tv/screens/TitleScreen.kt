@@ -98,9 +98,11 @@ fun TitleScreen(
     LaunchedEffect(id) {
         store.loadDetail(id)
         store.loadEpisodes(id)
+        store.loadDub(id)
     }
     val entries by store.titles.entries.collectAsStateWithLifecycle()
     val tables by store.titles.episodes.collectAsStateWithLifecycle()
+    val dubs by store.titles.dubLines.collectAsStateWithLifecycle()
     val settings by store.settings.view.collectAsStateWithLifecycle()
     val entry = entries[id]
     val rows = tables[id]
@@ -129,7 +131,7 @@ fun TitleScreen(
             }
             if (rows == null || rows.isNotEmpty()) {
                 item(key = "episodes", contentType = "row") {
-                    Episodes(entry, rows, action, spoilers, memory, onPlay, onPlayFromStart, Modifier.settlesAt(list, scope, "episodes", rowTop))
+                    Episodes(entry, rows, dubs[id], action, spoilers, memory, onPlay, onPlayFromStart, Modifier.settlesAt(list, scope, "episodes", rowTop))
                 }
             }
             val related = entry.detail?.relations.orEmpty()
@@ -194,6 +196,7 @@ private fun Header(
 private fun Episodes(
     entry: Entry,
     rows: List<EpisodeRow>?,
+    dub: String?,
     action: PlayAction,
     spoilers: Boolean,
     memory: FocusMemory,
@@ -206,7 +209,7 @@ private fun Episodes(
     val next = rows?.indexOfFirst { it.number == action.episode.toString() }?.takeIf { it >= 0 } ?: 0
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
-    BrowseRow("Episodes", modifier = modifier, state = state, fallback = nextRequester) {
+    BrowseRow("Episodes", modifier = modifier, subtitle = dub, state = state, fallback = nextRequester) {
         if (rows == null) {
             items(PLACEHOLDER_CARDS) { tv.anistream.tv.ui.CardPlaceholder(Canvas.CardWidth, Canvas.CardHeight) }
             return@BrowseRow

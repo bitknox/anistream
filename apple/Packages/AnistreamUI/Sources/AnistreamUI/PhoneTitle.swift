@@ -58,6 +58,19 @@ struct PhoneTitle: View {
                         Text(entry.phoneMetadata)
                             .groupHeaderStyle()
                             .padding(.top, 2)
+                            // How far the dub goes, under the metadata and over nothing: it
+                            // fades in without moving the title or anything below.
+                            .overlay(alignment: .bottomLeading) {
+                                if let dub = store.titles.dubLines[entry.id] {
+                                    Text(dub)
+                                        .font(.ui(13))
+                                        .foregroundStyle(.haze)
+                                        .lineLimit(1)
+                                        .offset(y: 18)
+                                        .transition(.opacity.animation(.fadeIn))
+                                }
+                            }
+                            .animation(.fadeIn, value: store.titles.dubLines[entry.id])
                     }
                     .padding(.bottom, 4)
                 }
@@ -250,6 +263,7 @@ struct PhoneTitle: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            store.loadDub(id)
             // What the show sets for itself, its spoiler protection among it: from the database.
             store.loadShowSettings(id)
         }

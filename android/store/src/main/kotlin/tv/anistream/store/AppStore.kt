@@ -420,6 +420,17 @@ class AppStore(
     private val episodesAsked = mutableSetOf<AnilistId>()
 
     /**
+     * How far a title's dub goes, once a session per title. The engine answers in the background
+     * and the page shows the line when it lands, so nothing waits on it.
+     */
+    fun loadDub(id: AnilistId) {
+        if (!dubAsked.add(id)) return
+        send(Command.LoadDub(id))
+    }
+
+    private val dubAsked = mutableSetOf<AnilistId>()
+
+    /**
      * Sources are ready where none were: each title whose episodes are AniList's alone is asked for
      * them again, so its list takes its source's numbering.
      */
@@ -798,6 +809,7 @@ class AppStore(
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
             is Event.Episodes -> titles.episodes(event.id, event.rows)
+            is Event.TitleDub -> titles.dub(event.id, event.dub)
 
             is Event.Status -> notices.status(event.v1)
             is Event.Connectivity -> _offline.value = event.offline
