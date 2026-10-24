@@ -2,10 +2,12 @@
 # The files an app's engine is built from, one per line, relative to the repository: each
 # workspace crate anistream-ffi depends on, directly or not (normal and build dependencies, the
 # optional ones too), without their tests, benches and examples, which its library never
-# compiles; wit/, the workspace's manifests and lock file, the toolchain pin, .cargo, and the
+# compiles, and the store's admin page sources, which only the committed build in assets/ is
+# compiled from; wit/, the workspace's manifests and lock file, the toolchain pin, .cargo, and the
 # files named as arguments. Tracked or not, but not ignored.
 #
 #   tools/engine-sources.sh <file…>
+#   tools/engine-sources.sh --crates      the crates' directories alone, one per line
 #
 # apple/scripts/engine.sh and android/scripts/engine.sh hash this list for their stamps and
 # caches, and CI keys its caches of the engines by the same hash (engine.sh --sources-hash): a
@@ -25,9 +27,14 @@ crates="$(cargo metadata --no-deps --format-version 1 | jq -r --arg root "$root/
     ["anistream-ffi"] | closure | .[] | $packages[.].manifest_path
   | ltrimstr($root) | rtrimstr("/Cargo.toml")')"
 
+if [[ "${1:-}" == --crates ]]; then
+  printf '%s\n' "$crates"
+  exit 0
+fi
+
 # shellcheck disable=SC2086 # one crate directory per word
 git ls-files -co --exclude-standard -- $crates wit Cargo.toml Cargo.lock rust-toolchain.toml .cargo "$@" |
-  { grep -v -E '^crates/[^/]+/(tests|benches|examples)/' || true; } |
+  { grep -v -E '^crates/[^/]+/(tests|benches|examples|admin)/' || true; } |
   LC_ALL=C sort -u |
   while IFS= read -r file; do
     [[ -f "$file" ]] && printf '%s\n' "$file"
