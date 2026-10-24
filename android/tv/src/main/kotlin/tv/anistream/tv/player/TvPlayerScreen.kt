@@ -93,6 +93,7 @@ import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.TvListRow
 import tv.anistream.tv.ui.TvTitle
+import tv.anistream.tv.ui.entryFocus
 import tv.anistream.tv.ui.tryFocus
 
 /** The player's panels, each the 400-wide column on the right. */
@@ -691,9 +692,9 @@ private val UP_NEXT_WIDTH = 560.dp
 private fun StillWatchingDialog(model: PlayerModel) {
     androidx.compose.ui.window.Dialog(onDismissRequest = { model.continueWatching() }) {
         val keep = remember { FocusRequester() }
-        LaunchedEffect(Unit) { runCatching { keep.requestFocus() } }
         Column(
             Modifier
+                .entryFocus(keep)
                 .width(480.dp)
                 .background(ObiSilk.RaisedHigh, RoundedCornerShape(28.dp))
                 .padding(32.dp),

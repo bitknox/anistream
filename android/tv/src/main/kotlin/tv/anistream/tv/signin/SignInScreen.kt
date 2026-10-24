@@ -50,6 +50,7 @@ import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.TonalButton
+import tv.anistream.tv.ui.entryFocus
 
 /** How [tracker] signs in on a TV. */
 enum class SignInWay { Page, DeviceCode, PhoneOnly }
@@ -83,9 +84,9 @@ fun SignInScreen(tracker: String, onDone: () -> Unit) {
     BackHandler(onBack = onDone)
 
     val cancel = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { cancel.requestFocus() } }
     Row(
         Modifier
+            .entryFocus(cancel)
             .fillMaxSize()
             .background(ObiSilk.Ground)
             .padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 96.dp),

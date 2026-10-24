@@ -6,6 +6,7 @@ package tv.anistream.tv.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -18,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.graphicsLayer
@@ -116,6 +118,34 @@ class FocusMemory {
 
 /** Request focus, quietly false when the requester is not attached to anything on screen. */
 fun FocusRequester.tryFocus(): Boolean = runCatching { requestFocus() }.getOrDefault(false)
+
+/** Focus this once its item is laid out, a frame or a few after the first effect runs. */
+suspend fun FocusRequester.focusSoon() {
+    repeat(FOCUS_ATTEMPTS) {
+        androidx.compose.runtime.withFrameNanos { }
+        if (tryFocus()) return
+    }
+}
+
+/**
+ * A screen or dialog that comes up in place of what held focus: [target] is focused once it is
+ * laid out. The container holds focus first. On a device the system hands focus to the first
+ * button as soon as the old item goes, before the button watches its own focus, and the button
+ * would then be focused but drawn unfocused.
+ */
+@Composable
+fun Modifier.entryFocus(target: FocusRequester): Modifier {
+    val holder = remember { FocusRequester() }
+    // Only while focus is on its way: Back from the button would otherwise exit to the container
+    // rather than reach the screen's Back.
+    var holding by remember { mutableStateOf(true) }
+    LaunchedEffect(target) {
+        holder.focusSoon()
+        target.focusSoon()
+        holding = false
+    }
+    return focusRequester(holder).focusProperties { canFocus = holding }.focusable()
+}
 
 /** This item is remembered under [key] in [memory], and focused again when the screen returns. */
 @Composable

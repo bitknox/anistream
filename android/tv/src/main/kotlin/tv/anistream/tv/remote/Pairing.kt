@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +45,7 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.TonalButton
+import tv.anistream.tv.ui.entryFocus
 
 /** A QR code of [text], silk modules on ground with a quiet zone of four, [size] square. */
 @Composable
@@ -92,9 +92,9 @@ private fun Code(code: String) {
 fun PairRequestDialog(request: PairRequest, onCancel: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
         val cancel = remember { FocusRequester() }
-        LaunchedEffect(Unit) { runCatching { cancel.requestFocus() } }
         Column(
             Modifier
+                .entryFocus(cancel)
                 .widthIn(max = 560.dp)
                 .background(ObiSilk.RaisedHigh, RoundedCornerShape(28.dp))
                 .padding(32.dp),
@@ -114,9 +114,9 @@ fun PairRequestDialog(request: PairRequest, onCancel: () -> Unit) {
 fun ConfirmDialog(title: String, body: String, action: String, onConfirm: () -> Unit, onCancel: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
         val cancel = remember { FocusRequester() }
-        LaunchedEffect(Unit) { runCatching { cancel.requestFocus() } }
         Column(
             Modifier
+                .entryFocus(cancel)
                 .widthIn(max = 560.dp)
                 .background(ObiSilk.RaisedHigh, RoundedCornerShape(28.dp))
                 .padding(32.dp),
@@ -158,9 +158,9 @@ fun PairScreen(host: TvRemoteHost, onClose: () -> Unit) {
 fun PairPage(name: String, code: String?, link: String?, address: String?, onClose: () -> Unit) {
     BackHandler(onBack = onClose)
     val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     Row(
         Modifier
+            .entryFocus(focus)
             .fillMaxSize()
             .background(ObiSilk.Ground)
             .padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 96.dp),
