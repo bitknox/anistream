@@ -89,6 +89,7 @@ import tv.anistream.store.AppClock
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.LocalAppStore
+import tv.anistream.tv.ui.ReleasesPanel
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.TvListRow
@@ -156,6 +157,7 @@ fun TvPlayerScreen(
     // Back, top to bottom: a panel closes, a scrub cancels, Up Next cancels, else the player closes.
     BackHandler(enabled = model.isPresented) {
         when {
+            model.choosingSource -> model.cancelChoosingSource()
             panel != null -> closePanel()
             headAt != null -> {
                 head = null
@@ -315,6 +317,9 @@ fun TvPlayerScreen(
         }
         panel?.let { open ->
             Panel(model, open, onDone = { closePanel() }, modifier = Modifier.align(Alignment.CenterEnd))
+        }
+        if (model.choosingSource) {
+            ReleasesPanel(model.sourceChoices, onPick = model::play, onClose = model::cancelChoosingSource, modifier = Modifier.align(Alignment.CenterEnd))
         }
         if (model.stillWatching) StillWatchingDialog(model)
     }

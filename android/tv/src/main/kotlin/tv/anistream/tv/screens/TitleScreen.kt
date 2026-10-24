@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -74,6 +75,7 @@ import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
 import tv.anistream.tv.ui.ProgressEdge
+import tv.anistream.tv.ui.ReleaseList
 import tv.anistream.tv.ui.ScrollRule
 import tv.anistream.tv.ui.TextBar
 import tv.anistream.tv.ui.TonalButton
@@ -90,6 +92,7 @@ fun TitleScreen(
     memory: FocusMemory,
     onOpen: (AnilistId) -> Unit,
     onPlay: (AnilistId, UInt) -> Unit,
+    onPlayFromStart: (AnilistId, UInt) -> Unit = onPlay,
 ) {
     val store = LocalAppStore.current
     LaunchedEffect(id) {
@@ -126,7 +129,7 @@ fun TitleScreen(
             }
             if (rows == null || rows.isNotEmpty()) {
                 item(key = "episodes", contentType = "row") {
-                    Episodes(entry, rows, action, spoilers, memory, onPlay, Modifier.settlesAt(list, scope, "episodes", rowTop))
+                    Episodes(entry, rows, action, spoilers, memory, onPlay, onPlayFromStart, Modifier.settlesAt(list, scope, "episodes", rowTop))
                 }
             }
             val related = entry.detail?.relations.orEmpty()
@@ -195,6 +198,7 @@ private fun Episodes(
     spoilers: Boolean,
     memory: FocusMemory,
     onPlay: (AnilistId, UInt) -> Unit,
+    onPlayFromStart: (AnilistId, UInt) -> Unit,
     modifier: Modifier,
 ) {
     val store = LocalAppStore.current
@@ -219,7 +223,7 @@ private fun Episodes(
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
                 onClick = { row.number.toUIntOrNull()?.let { onPlay(entry.id, it) } },
-                onLongClick = { actions?.open(episodeSheet(store, entry, rows, row)) },
+                onLongClick = { actions?.open(episodeSheet(store, entry, rows, row, onPlayFromStart)) },
                 modifier = Modifier
                     .then(if (playsNext) Modifier.focusRequester(nextRequester) else Modifier)
                     .remembered(memory, "episode/${row.number}"),
@@ -313,18 +317,49 @@ private fun TitlePlaceholder() {
 
 private const val PLACEHOLDER_CARDS = 5
 
-/** An episode's actions: mark it watched, or every episode up to it. */
-fun episodeSheet(store: AppStore, entry: Entry, rows: List<EpisodeRow>, row: EpisodeRow): ActionSheet {
+/**
+ * An episode's actions: play it from the start, mark it watched or every episode up to it, or
+ * choose the release it plays from. One AniList alone lists has nothing to play.
+ */
+fun episodeSheet(
+    store: AppStore,
+    entry: Entry,
+    rows: List<EpisodeRow>,
+    row: EpisodeRow,
+    onPlayFromStart: (AnilistId, UInt) -> Unit,
+): ActionSheet {
     val upTo = rows.takeWhile { it.number != row.number }.map { it.number } + row.number
+    val number = row.number.toUIntOrNull()?.takeIf { !row.metadataOnly }
+    val title = "${entry.title} · ${row.cardTitle}"
     return ActionSheet(
-        "${entry.title} · ${row.cardTitle}",
-        listOf(
+        title,
+        listOfNotNull(
+            number?.let { CardAction("Play from the start") { onPlayFromStart(entry.id, it) } },
             if (row.completed) {
                 CardAction("Mark unwatched") { store.setWatched(entry.id, listOf(row.number), watched = false) }
             } else {
                 CardAction("Mark watched") { store.setWatched(entry.id, listOf(row.number)) }
             },
             CardAction("Mark watched up to here") { store.setWatched(entry.id, upTo) },
+            number?.let {
+                CardAction("Choose source", then = ActionSheet(title, body = { EpisodeReleases(store, entry.id, row.number) }))
+            },
         ),
+    )
+}
+
+/** The episode's releases, listed as the panel opens; choosing one plays it. */
+@Composable
+private fun EpisodeReleases(store: AppStore, id: AnilistId, episode: String) {
+    val actions = LocalActions.current
+    val choices by store.sources.collectAsStateWithLifecycle()
+    LaunchedEffect(id, episode) { store.loadSources(id, episode) }
+    DisposableEffect(id, episode) { onDispose { store.closeSources() } }
+    ReleaseList(
+        choices?.takeIf { it.id == id && it.episode == episode }?.candidates,
+        onPick = { candidate ->
+            actions?.close()
+            store.playSource(id, episode, candidate)
+        },
     )
 }

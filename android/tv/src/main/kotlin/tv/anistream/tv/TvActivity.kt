@@ -47,6 +47,10 @@ class TvActivity : ComponentActivity() {
                     player = app.player,
                     nav = nav,
                     play = { id, episode -> app.store.send(Command.Play(id, episode.toString())) },
+                    playFromStart = { id, episode ->
+                        app.player.playFromStart()
+                        app.store.send(Command.Play(id, episode.toString()))
+                    },
                     remote = app.remote,
                     watchNext = app.watchNext,
                 )

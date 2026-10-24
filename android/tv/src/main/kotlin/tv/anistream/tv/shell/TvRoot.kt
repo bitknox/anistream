@@ -68,6 +68,7 @@ fun TvRoot(
     player: PlayerModel,
     nav: TvNavigator,
     play: (AnilistId, UInt) -> Unit,
+    playFromStart: (AnilistId, UInt) -> Unit = play,
     playerScreen: @Composable (PlayerModel) -> Unit = { TvPlayerScreen(it) },
     remote: TvRemoteHost? = null,
     watchNext: WatchNext? = null,
@@ -91,7 +92,7 @@ fun TvRoot(
             } else if (remote?.pairing == true) {
                 PairScreen(remote, onClose = remote::closePairing)
             } else {
-                states.SaveableStateProvider("browse") { Browse(nav, play) }
+                states.SaveableStateProvider("browse") { Browse(nav, play, playFromStart) }
             }
             if (remote != null) RemoteOverlays(remote, playing = player.isPresented, nav = nav)
         }
@@ -130,7 +131,7 @@ private fun BoxScope.RemoteOverlays(remote: TvRemoteHost, playing: Boolean, nav:
 }
 
 @Composable
-private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit) {
+private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromStart: (AnilistId, UInt) -> Unit) {
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val rail = remember { RailFocus() }
     val screens = rememberSaveableStateHolder()
@@ -178,7 +179,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit) {
                     screens.SaveableStateProvider(key) {
                         Box(Modifier.fillMaxSize()) {
                             when (target) {
-                                is Page.Title -> TitleScreen(target.id, target.memory, onOpen = nav::openTitle, onPlay = play)
+                                is Page.Title -> TitleScreen(target.id, target.memory, onOpen = nav::openTitle, onPlay = play, onPlayFromStart = playFromStart)
                                 is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
                                 Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
                                 Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
