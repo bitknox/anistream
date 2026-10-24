@@ -1,4 +1,4 @@
-# Fetches libmpv for the Windows player spike into desktop/windows/.libmpv/<arch>/, at the pinned
+# Fetches libmpv for the Windows app (and the player spike) into desktop/windows/.libmpv/<arch>/, at the pinned
 # URL below, and refuses it unless its SHA-256 matches.
 #
 #   powershell -File desktop/windows/scripts/libmpv.ps1 [-Arch arm64|x64]

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Anistream.Windows.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource GroundBrush}">
+  <Grid Padding="36,20,36,0" RowSpacing="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <TextBlock Text="Settings" Style="{StaticResource PageTitleStyle}" />
+    <!-- As Windows 11 Settings: the panes down the start, the pane's cards beside them. -->
+    <Grid Grid.Row="1" ColumnSpacing="24">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="200" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <ListView x:Name="Panes" SelectionMode="Single" SelectionChanged="OnPaneChanged" Margin="-12,0,0,0"
+                AutomationProperties.Name="Settings panes" />
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="Cards" Spacing="4" Padding="0,0,12,24" MaxWidth="760" HorizontalAlignment="Stretch" />
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</Page>
