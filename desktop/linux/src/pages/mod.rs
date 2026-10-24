@@ -10,6 +10,7 @@ pub mod providers;
 pub mod search;
 pub mod seasonal;
 pub mod settings;
+pub mod show_settings;
 pub mod stores;
 pub mod title;
 

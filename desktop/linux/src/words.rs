@@ -257,6 +257,47 @@ pub fn tracker_name(id: &str) -> &str {
     }
 }
 
+/// A language code by its English name: "eng" and "en" read "English". A code with no name
+/// here reads as itself.
+pub fn language(code: &str) -> String {
+    let name = match code.to_ascii_lowercase().as_str() {
+        "en" | "eng" => "English",
+        "ja" | "jp" | "jpn" => "Japanese",
+        "es" | "spa" => "Spanish",
+        "pt" | "por" => "Portuguese",
+        "fr" | "fre" | "fra" => "French",
+        "de" | "ger" | "deu" => "German",
+        "it" | "ita" => "Italian",
+        "ru" | "rus" => "Russian",
+        "ar" | "ara" => "Arabic",
+        "id" | "ind" => "Indonesian",
+        "ko" | "kor" => "Korean",
+        "zh" | "chi" | "zho" => "Chinese",
+        _ => return code.to_owned(),
+    };
+    name.to_owned()
+}
+
+/// A remembered subtitle track: its language by name, and its title in words of its own past
+/// the language it repeats, "english signs" being "Signs": "English (Signs)".
+pub fn track(language_code: Option<&str>, title: &str) -> String {
+    let language = language_code.map(language);
+    let words: Vec<&str> = title
+        .split_whitespace()
+        .filter(|w| language.as_ref().is_none_or(|l| !w.eq_ignore_ascii_case(l)))
+        .collect();
+    let mut own = words.join(" ");
+    if let Some(first) = own.get(..1) {
+        own = first.to_uppercase() + &own[1..];
+    }
+    match (language, own.is_empty()) {
+        (None, true) => "Unnamed track".to_owned(),
+        (None, false) => own,
+        (Some(language), true) => language,
+        (Some(language), false) => format!("{language} ({own})"),
+    }
+}
+
 /// A playhead as people read it: "4:05", "1:02:03".
 pub fn clock(seconds: f64) -> String {
     let s = seconds.max(0.0) as u64;
@@ -280,6 +321,15 @@ mod tests {
 
     fn entry(id: u32) -> Entry {
         Entry::new(AnilistId::new(id), format!("Title {id}"))
+    }
+
+    #[test]
+    fn a_remembered_track_reads_by_language_and_its_own_words() {
+        assert_eq!(track(Some("eng"), "english signs"), "English (Signs)");
+        assert_eq!(track(Some("jpn"), ""), "Japanese");
+        assert_eq!(track(None, "full subs"), "Full subs");
+        assert_eq!(track(None, ""), "Unnamed track");
+        assert_eq!(language("xx"), "xx");
     }
 
     #[test]

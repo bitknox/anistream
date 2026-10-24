@@ -234,7 +234,14 @@ impl Page {
         });
         group.add_action(&previous);
         let show_settings = gio::SimpleAction::new("show-settings", None);
-        show_settings.set_enabled(false);
+        show_settings.connect_activate({
+            let ctx = Rc::downgrade(&self.ctx);
+            move |_, _| {
+                let Some(ctx) = ctx.upgrade() else { return };
+                let title = ctx.hub.entry(id).map(|e| e.title).unwrap_or_default();
+                crate::pages::show_settings::open(&ctx, id, &title);
+            }
+        });
         group.add_action(&show_settings);
         let watched = gio::SimpleAction::new(
             "watched",
