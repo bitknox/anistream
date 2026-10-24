@@ -575,8 +575,7 @@ input[type="text"]:focus {
 	}
 }
 
-.scene,
-.scene-hold {
+.scene {
 	position: relative;
 	height: calc(70 * var(--cell) + var(--nav-h));
 	overflow: hidden;
@@ -633,6 +632,16 @@ input[type="text"]:focus {
 	margin-top: 16px;
 	font-size: 17px;
 	line-height: 26px;
+}
+
+/* The line that says the page is still waiting, in haze, at the place the lede will take. */
+.hero-wait {
+	min-height: 26px;
+	color: var(--ani-dim);
+}
+
+.hero-actions {
+	margin-top: 24px;
 }
 
 .hero-reason {
@@ -827,6 +836,7 @@ input[type="text"]:focus {
 
 .facts dt {
 	color: var(--ani-dim);
+	white-space: nowrap;
 }
 
 .facts dd {
@@ -1039,11 +1049,6 @@ input[type="text"]:focus {
 	.invite-submit {
 		justify-self: start;
 	}
-
-	.empty svg {
-		width: 48px;
-		height: 77px;
-	}
 }
 
 /* ── Nagare's run: the dusk rooftops, playable ───────────────────────────
@@ -1090,8 +1095,7 @@ input[type="text"]:focus {
 	right: 16px;
 	display: flex;
 	gap: 16px;
-	font-family: var(--ani-font-mono);
-	font-size: 14px;
+	font-size: 15px;
 	line-height: 20px;
 	font-variant-numeric: tabular-nums;
 }
@@ -1232,6 +1236,19 @@ input[type="text"]:focus {
 	overflow-wrap: anywhere;
 }
 
+/* On a phone the words take the toast's width, and its buttons go below them. */
+@media (max-width: 599px) {
+	.toast {
+		flex-wrap: wrap;
+		gap: 4px 8px;
+		padding: 10px 10px 10px 16px;
+	}
+
+	.toast-text {
+		flex-basis: 100%;
+	}
+}
+
 .toast-progress {
 	position: absolute;
 	right: 0;
@@ -1262,4 +1279,42 @@ input[type="text"]:focus {
 	font-size: 32px;
 	font-weight: 700;
 	pointer-events: none;
+}
+
+/* ── The store's root without script: the landing view's words on the plain ground ── */
+.nojs {
+	padding-top: 16px;
+	padding-bottom: 64px;
+}
+
+.nojs .brand {
+	height: var(--nav-h);
+	margin-bottom: 64px;
+}
+
+.nojs h1 {
+	font-family: var(--ani-font-display);
+	font-size: 52px;
+	font-weight: 700;
+	line-height: 60px;
+	overflow-wrap: anywhere;
+}
+
+.nojs-legal {
+	margin-top: 96px;
+	padding-top: 32px;
+	border-top: 1px solid var(--ani-rule-faint);
+	font-size: 15px;
+	line-height: 22px;
+}
+
+@media (max-width: 899px) {
+	.nojs .brand {
+		margin-bottom: 40px;
+	}
+
+	.nojs h1 {
+		font-size: 34px;
+		line-height: 40px;
+	}
 }

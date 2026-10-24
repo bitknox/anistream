@@ -734,14 +734,19 @@ fn page(title: &str, body: &str) -> String {
 /// escaped already. Links resolve against the admin page's directory, so `./` is that page.
 fn home_page(name: &str, unclaimed: bool) -> String {
     let claim = if unclaimed {
-        "<p>Nobody owns this store yet. If you deployed it, \
+        "<p class=\"lede\">Nobody owns this store yet. If you deployed it, \
          <a href=\"./\">open the admin page</a> and claim it with its setup code.</p>"
     } else {
         ""
     };
+    // The landing view's words, set by the page's own stylesheet, for a browser without script.
     format!(
-        "<main class=\"wrap sect\"><h1>{name}</h1><p class=\"dim\">An anistream plugin store.</p>\
-         <p>People join this store with an invite link from its owners.</p>{claim}</main>"
+        "<div class=\"wrap nojs\"><p class=\"brand\"><img src=\"./icon.svg\" width=\"32\" \
+         height=\"32\" alt=\"\"><span>anistream <span class=\"brand-sub\">Plugin store</span>\
+         </span></p><main><p class=\"hero-eyebrow\">Plugin store</p><h1>{name}</h1>\
+         <p class=\"lede\">A plugin store for anistream, run by its owners. People join it with \
+         an invite link from them, and install its plugins from anistream.</p>{claim}</main>\
+         <p class=\"nojs-legal\">anistream hosts no content.</p></div>"
     )
 }
 
