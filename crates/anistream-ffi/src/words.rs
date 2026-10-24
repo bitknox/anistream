@@ -57,6 +57,28 @@ pub fn dub_line(dub: Option<DubExtent>) -> Option<String> {
     present::dub_line(dub.as_ref())
 }
 
+/// A calendar row's time as its row shows it: `time` is the app's own clock text for the
+/// broadcast, with "~" before it when the row's `airing_approximate` says it is an estimate:
+/// "~16:30".
+#[uniffi::export]
+pub fn air_time(time: String, approximate: bool) -> String {
+    present::air_time(&time, approximate)
+}
+
+/// A calendar row's Sub or Dub mark: "Dub" once the episode is out in the dub, "Sub" for a row
+/// of the sub's own time when the dub keeps one apart, and `None`, to mark nothing, otherwise.
+#[uniffi::export]
+pub fn calendar_mark(entry: Entry) -> Option<String> {
+    present::calendar_mark(&entry).map(str::to_owned)
+}
+
+/// The line under a sign-in's device code, from its `expires_at` less now in seconds:
+/// "Expires in 14:59", then "Code expired", when the app sends `Command::Connect` again.
+#[uniffi::export]
+pub fn device_code_expiry(seconds_left: i64) -> String {
+    present::device_code_expiry(seconds_left)
+}
+
 /// A resume point as a viewer reads it: `10:06`, `1:02:03`.
 #[uniffi::export]
 pub fn resume_clock(resume: ResumePoint) -> String {

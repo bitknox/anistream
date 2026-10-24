@@ -59,6 +59,19 @@ impl Store {
             Ok(moved)
         })
     }
+
+    /// When `episode` of `id` airs, or aired, as this device last saw AniList's schedule, in
+    /// Unix seconds: `None` for an episode no calendar here has listed.
+    pub fn airing_time(&self, id: AnilistId, episode: u32) -> Result<Option<i64>> {
+        self.with_conn(|c| {
+            Ok(c.query_row(
+                "SELECT airs_at FROM airing_time WHERE anilist_id = ?1 AND episode = ?2",
+                rusqlite::params![id.get(), episode],
+                |r| r.get(0),
+            )
+            .optional()?)
+        })
+    }
 }
 
 #[cfg(test)]
@@ -68,6 +81,16 @@ mod tests {
     const SHOW: AnilistId = AnilistId::new(900_001);
     const HOUR: i64 = 3_600;
     const SLOT: i64 = 1_792_000_000;
+
+    #[test]
+    fn an_episode_seen_says_when_it_airs_and_one_never_seen_says_nothing() {
+        let store = Store::open_in_memory().unwrap();
+        store.remember_airings(&[(SHOW, 3, SLOT)], 1).unwrap();
+        assert_eq!(store.airing_time(SHOW, 3).unwrap(), Some(SLOT));
+        assert_eq!(store.airing_time(SHOW, 4).unwrap(), None);
+        store.remember_airings(&[(SHOW, 3, SLOT + HOUR)], 2).unwrap();
+        assert_eq!(store.airing_time(SHOW, 3).unwrap(), Some(SLOT + HOUR), "as last seen");
+    }
 
     #[test]
     fn an_episode_moved_later_says_when_it_was_to_air_until_it_is_back() {

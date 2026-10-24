@@ -295,6 +295,38 @@ pub fn dub_line(dub: Option<&DubExtent>) -> Option<String> {
     Some(if dub.complete { "Dubbed".into() } else { format!("Dub to episode {}", dub.through) })
 }
 
+/// A calendar row's time as its row shows it: `time` is the app's own clock text for the
+/// broadcast ("16:30", "4:30 PM"), with "~" before it when the time is an estimate
+/// ([`Entry::airing_approximate`]): "~16:30".
+pub fn air_time(time: &str, approximate: bool) -> String {
+    if approximate { format!("~{time}") } else { time.to_owned() }
+}
+
+/// A calendar row's Sub or Dub mark: "Dub" for a row of the dub's own time, or of an episode
+/// out in the dub ([`Entry::airing_dubbed`]); "Sub" for a row of the sub's own time when the dub
+/// has one apart; nothing for a broadcast whose dub is not known to be out.
+pub fn calendar_mark(entry: &Entry) -> Option<&'static str> {
+    use anistream_core::media::Translation;
+    match entry.airing_translation {
+        Some(Translation::Dub) => Some("Dub"),
+        Some(Translation::Sub) if !entry.airing_dubbed => Some("Sub"),
+        _ if entry.airing_dubbed => Some("Dub"),
+        _ => None,
+    }
+}
+
+/// How long a sign-in's device code has left, for the line under it, from
+/// [`DeviceCodePrompt::expires_at`] less now: "Expires in 14:59", then "Code expired" at
+/// nought, when the app asks for a new one.
+///
+/// [`DeviceCodePrompt::expires_at`]: crate::sync::DeviceCodePrompt::expires_at
+pub fn device_code_expiry(seconds_left: i64) -> String {
+    if seconds_left <= 0 {
+        return "Code expired".into();
+    }
+    format!("Expires in {}", clock(seconds_left as f64))
+}
+
 /// A tracker's name as the apps show it: "AniList" for `anilist`.
 pub fn tracker_name(id: &str) -> String {
     match id {
@@ -373,6 +405,35 @@ mod tests {
 
     fn entry(id: u32) -> Entry {
         Entry::new(AnilistId::new(id), format!("Title {id}"))
+    }
+
+    #[test]
+    fn an_estimated_air_time_reads_with_a_tilde() {
+        assert_eq!(air_time("16:30", true), "~16:30");
+        assert_eq!(air_time("4:30 PM", false), "4:30 PM");
+    }
+
+    #[test]
+    fn a_calendar_row_is_marked_dub_once_its_dub_is_out() {
+        use anistream_core::media::Translation;
+        let mut row = entry(1);
+        assert_eq!(calendar_mark(&row), None, "nothing known, nothing marked");
+        row.airing_dubbed = true;
+        assert_eq!(calendar_mark(&row), Some("Dub"));
+        // A source that times the two apart: each row says which it is.
+        row.airing_dubbed = false;
+        row.airing_translation = Some(Translation::Sub);
+        assert_eq!(calendar_mark(&row), Some("Sub"));
+        row.airing_translation = Some(Translation::Dub);
+        assert_eq!(calendar_mark(&row), Some("Dub"));
+    }
+
+    #[test]
+    fn a_device_code_counts_down_to_expired() {
+        assert_eq!(device_code_expiry(899), "Expires in 14:59");
+        assert_eq!(device_code_expiry(5), "Expires in 0:05");
+        assert_eq!(device_code_expiry(0), "Code expired");
+        assert_eq!(device_code_expiry(-30), "Code expired");
     }
 
     #[test]

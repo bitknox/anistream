@@ -1,22 +1,32 @@
 //! The calendar: one timeline of what recently aired and what is coming, and the pages further
 //! back that a scroll toward its top asks for.
 
+use std::collections::{HashMap, HashSet};
+
+use anistream_core::ids::AnilistId;
 use anistream_meta::Meta;
 use anistream_model::{
-    catalog::{ContentFor, ContentList},
+    catalog::{AiringStatus, ContentFor, ContentList, Entry},
     event::Event,
 };
+use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-use crate::{data, dispatch::Lent, now_epoch};
+use crate::{
+    data,
+    dispatch::Lent,
+    now_epoch,
+    titles::dub::{Dubs, route},
+};
 
 /// The calendar's first load: what recently aired and the week ahead, with the window a
 /// backfill continues from.
-pub async fn load_calendar(lent: Lent) {
-    let Lent { meta, store, tx, .. } = lent;
+pub async fn load_calendar(lent: Lent, dubs: Dubs) {
+    let Lent { meta, store, registry, tx, .. } = lent;
     let anchor = now_epoch();
     let update = match calendar_timeline(&meta, &store, anchor).await {
-        Ok(load) => {
+        Ok(mut load) => {
+            mark_dubbed(&mut load.entries, &dubs, &store, &registry);
             // Sent before the content, so the reducer knows how to continue the
             // list at the moment the list exists — a backfill triggered by the
             // very first keypress has everything it needs.
@@ -38,10 +48,11 @@ pub async fn load_calendar(lent: Lent) {
 }
 
 /// One page further back in the calendar, for a scroll toward its top.
-pub async fn load_calendar_past(lent: Lent, anchor: i64, page: u32) {
-    let Lent { meta, store, tx, .. } = lent;
+pub async fn load_calendar_past(lent: Lent, dubs: Dubs, anchor: i64, page: u32) {
+    let Lent { meta, store, registry, tx, .. } = lent;
     let update = match calendar_past_page(&meta, &store, anchor, page).await {
-        Ok((entries, more_past)) => {
+        Ok((mut entries, more_past)) => {
+            mark_dubbed(&mut entries, &dubs, &store, &registry);
             Event::CalendarBackfill { page: Some(page), entries, more_past }
         }
         // Not a toast. The user never asked for this page by name — they scrolled —
@@ -105,6 +116,16 @@ async fn calendar_timeline(
     }
     if entries.is_empty() {
         return Err(past_error.unwrap_or_else(|| "nothing airing in this window".into()));
+    }
+    let now = now_epoch();
+    let guessed = estimated(&entries, now, anchor + CALENDAR_FUTURE, |id, episode| {
+        store.airing_time(id, episode).ok().flatten()
+    });
+    if !guessed.is_empty() {
+        tracing::info!(count = guessed.len(), "calendar rows estimated");
+        entries.extend(guessed);
+        // Back into time order: the estimates belong among the week ahead.
+        entries.sort_by_key(|entry| entry.airing_in.unwrap_or(i64::MAX));
     }
 
     tracing::info!(
@@ -235,6 +256,107 @@ async fn calendar_future(
     }
 }
 
+/// Mark each row of `entries` whose episode is out in the dub, as far as `dubs` already knows,
+/// asking nothing: see [`Entry::airing_dubbed`]. Only rows that have aired, of titles whose dub
+/// some page found, and only as far as the sources a dubbed play would use list it now.
+fn mark_dubbed(entries: &mut [Entry], dubs: &Dubs, store: &Store, registry: &ProviderRegistry) {
+    let mut through: HashMap<AnilistId, Option<u32>> = HashMap::new();
+    dubbed_rows(entries, |id| {
+        *through.entry(id).or_insert_with(|| {
+            dubs.knows(id)
+                .then(|| dubs.aired_through(id, &route(store, registry, id)))
+                .flatten()
+        })
+    });
+}
+
+/// Mark the aired rows of `entries` whose episode `through` says the title's dub has reached.
+fn dubbed_rows(entries: &mut [Entry], mut through: impl FnMut(AnilistId) -> Option<u32>) {
+    for entry in entries {
+        let (Some(airing_in), Some(episode)) = (entry.airing_in, entry.airing_episode) else {
+            continue;
+        };
+        if airing_in > 0 || entry.airing_approximate {
+            continue;
+        }
+        entry.airing_dubbed = through(entry.id).is_some_and(|through| episode <= through);
+    }
+}
+
+/// The rows the calendar estimates, each with "~" for its time: for a show still airing whose
+/// schedule AniList has stopped giving, its next episode, a week on from the last.
+///
+/// AniList dates every broadcast it lists, and a calendar of only its rows loses a show the
+/// moment its schedule lapses, which is the week its viewers look for it. So a show is given
+/// one estimated row when all of these hold, from what the calendar already loaded and what
+/// this device saw of the schedule before (`aired_at`), asking nothing more:
+///
+/// - AniList says it is releasing, and has no next broadcast for it.
+/// - Its latest broadcast here has aired, and no row of it is still to come.
+/// - That broadcast came a week after the one before it, within an hour: a weekly show, since
+///   a sequel's first episodes can air half an hour apart and the next eight days later.
+/// - The count AniList gives, if any, has episodes left.
+/// - A week on from the last broadcast is still within the calendar's week ahead.
+fn estimated(
+    entries: &[Entry],
+    now: i64,
+    until: i64,
+    aired_at: impl Fn(AnilistId, u32) -> Option<i64>,
+) -> Vec<Entry> {
+    // Each show's latest aired row, and the shows with a row still to come.
+    let mut latest: HashMap<AnilistId, &Entry> = HashMap::new();
+    let mut coming: HashSet<AnilistId> = HashSet::new();
+    for entry in entries {
+        let (Some(airing_in), Some(episode)) = (entry.airing_in, entry.airing_episode) else {
+            continue;
+        };
+        if airing_in > 0 {
+            coming.insert(entry.id);
+        } else if latest.get(&entry.id).is_none_or(|e| e.airing_episode < Some(episode)) {
+            latest.insert(entry.id, entry);
+        }
+    }
+    let at = |entry: &Entry| entry.airing_in.map(|airing_in| now + airing_in);
+    let mut guessed: Vec<Entry> = latest
+        .into_values()
+        .filter(|last| !coming.contains(&last.id))
+        .filter(|last| {
+            last.status == Some(AiringStatus::Releasing) && last.next_episode.is_none()
+        })
+        .filter_map(|last| {
+            let episode = last.airing_episode?;
+            if last.episodes.is_some_and(|total| episode >= total) || episode < 2 {
+                return None;
+            }
+            let aired = at(last)?;
+            let before = entries
+                .iter()
+                .find(|e| e.id == last.id && e.airing_episode == Some(episode - 1))
+                .and_then(at)
+                .or_else(|| aired_at(last.id, episode - 1))?;
+            if (aired - before - WEEK).abs() > WEEKLY_WITHIN {
+                return None;
+            }
+            let next = aired + WEEK;
+            (next > now && next <= until).then(|| Entry {
+                airing_episode: Some(episode + 1),
+                airing_in: Some(next - now),
+                delayed_from: None,
+                airing_approximate: true,
+                ..last.clone()
+            })
+        })
+        .collect();
+    guessed.sort_by_key(|entry| (entry.airing_in, entry.id.get()));
+    guessed
+}
+
+/// A week, which an estimated row is a week on from its show's last broadcast.
+const WEEK: i64 = 7 * 86_400;
+/// How far from a week apart a show's last two broadcasts may be and still count as weekly:
+/// AniList nudges a slot by minutes as a broadcaster pins it down.
+const WEEKLY_WITHIN: i64 = 3_600;
+
 /// The furthest back the calendar will ever reach, and so the floor of every past query.
 ///
 /// It bounds the *backfill*, not the first load: because the sort is descending from the anchor,
@@ -254,3 +376,110 @@ const CALENDAR_PER_PAGE: u32 = 50;
 const CALENDAR_INITIAL_PAST_PAGES: u32 = 3;
 /// And forward, covering the week ahead by the same measure.
 const CALENDAR_FUTURE_PAGES: u32 = 3;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SHOW: AnilistId = AnilistId::new(900_101);
+    const NOW: i64 = 1_800_000_000;
+    const HOUR: i64 = 3_600;
+    const DAY: i64 = 86_400;
+    const UNTIL: i64 = NOW + 7 * DAY;
+
+    /// A row of `SHOW` about `episode`, airing `at` seconds from now, AniList calling the show
+    /// releasing with no broadcast to come.
+    fn row(episode: u32, at: i64) -> Entry {
+        let mut entry = Entry::new(SHOW, "Invented Show");
+        entry.airing_episode = Some(episode);
+        entry.airing_in = Some(at);
+        entry.status = Some(AiringStatus::Releasing);
+        entry.episodes = Some(12);
+        entry
+    }
+
+    fn never(_: AnilistId, _: u32) -> Option<i64> {
+        None
+    }
+
+    #[test]
+    fn a_weekly_show_with_no_schedule_left_gets_its_next_episode_a_week_on() {
+        let rows = [row(4, -8 * DAY), row(5, -DAY)];
+        let guessed = estimated(&rows, NOW, UNTIL, never);
+        assert_eq!(guessed.len(), 1);
+        let next = &guessed[0];
+        assert_eq!(next.airing_episode, Some(6));
+        assert_eq!(next.airing_in, Some(6 * DAY));
+        assert!(next.airing_approximate);
+        assert!(!rows[1].airing_approximate, "AniList's own rows are not estimates");
+    }
+
+    #[test]
+    fn the_week_before_can_come_from_what_this_device_saw() {
+        let rows = [row(5, -DAY)];
+        let seen = |id: AnilistId, episode: u32| {
+            (id == SHOW && episode == 4).then_some(NOW - 8 * DAY + 20 * 60)
+        };
+        assert_eq!(estimated(&rows, NOW, UNTIL, seen)[0].airing_episode, Some(6));
+        assert!(estimated(&rows, NOW, UNTIL, never).is_empty(), "no cadence, no guess");
+    }
+
+    #[test]
+    fn nothing_is_guessed_where_anilist_still_has_a_say() {
+        // A row still to come.
+        assert!(
+            estimated(&[row(4, -8 * DAY), row(5, -DAY), row(6, 6 * DAY)], NOW, UNTIL, never)
+                .is_empty()
+        );
+        // A next broadcast AniList has, past the week: a break.
+        let mut on_break = row(5, -DAY);
+        on_break.next_episode = Some(6);
+        assert!(estimated(&[row(4, -8 * DAY), on_break], NOW, UNTIL, never).is_empty());
+        // Finished, or at its last episode.
+        let mut done = row(5, -DAY);
+        done.status = Some(AiringStatus::Finished);
+        assert!(estimated(&[row(4, -8 * DAY), done], NOW, UNTIL, never).is_empty());
+        let mut last = row(12, -DAY);
+        last.episodes = Some(12);
+        assert!(estimated(&[row(11, -8 * DAY), last], NOW, UNTIL, never).is_empty());
+    }
+
+    #[test]
+    fn broadcasts_not_a_week_apart_are_no_cadence() {
+        // Half an hour apart, as a sequel's first two can be.
+        assert!(
+            estimated(&[row(4, -DAY - HOUR / 2), row(5, -DAY)], NOW, UNTIL, never).is_empty()
+        );
+        // Eight days apart.
+        assert!(estimated(&[row(4, -9 * DAY), row(5, -DAY)], NOW, UNTIL, never).is_empty());
+        // A nudge of minutes is still weekly.
+        assert_eq!(
+            estimated(&[row(4, -8 * DAY - 10 * 60), row(5, -DAY)], NOW, UNTIL, never).len(),
+            1
+        );
+    }
+
+    #[test]
+    fn an_aired_row_is_marked_dubbed_as_far_as_the_dub_is_known_to_go() {
+        let mut rows = [row(4, -8 * DAY), row(5, -DAY), row(6, 6 * DAY)];
+        dubbed_rows(&mut rows, |id| (id == SHOW).then_some(4));
+        let marked: Vec<bool> = rows.iter().map(|row| row.airing_dubbed).collect();
+        assert_eq!(marked, [true, false, false], "to episode 4, and nothing yet to air");
+
+        let mut rows = [row(4, -8 * DAY)];
+        dubbed_rows(&mut rows, |_| None);
+        assert!(!rows[0].airing_dubbed, "nothing known, nothing marked");
+    }
+
+    #[test]
+    fn a_guess_past_the_week_ahead_or_already_due_is_left_out() {
+        // Aired ten days ago: a week on is already past.
+        assert!(
+            estimated(&[row(4, -17 * DAY), row(5, -10 * DAY)], NOW, UNTIL, never).is_empty()
+        );
+        // The calendar's week ends sooner than a week on.
+        assert!(
+            estimated(&[row(4, -8 * DAY), row(5, -DAY)], NOW, NOW + 5 * DAY, never).is_empty()
+        );
+    }
+}

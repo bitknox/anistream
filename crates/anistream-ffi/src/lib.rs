@@ -512,6 +512,47 @@ mod tests {
     }
 
     #[test]
+    fn what_the_parity_pieces_add_crosses_intact() {
+        use anistream_model::{
+            playback::{TimeRange, TimelineMark},
+            sync::DeviceCodePrompt,
+        };
+        let mut entry = Entry::new(AnilistId::new(900_003), "Invented Show");
+        entry.airing_episode = Some(5);
+        entry.airing_in = Some(3_600);
+        entry.airing_approximate = true;
+        entry.airing_translation = Some(Translation::Dub);
+        entry.airing_dubbed = true;
+        crosses_intact(Event::CalendarBackfill {
+            page: Some(1),
+            entries: vec![entry],
+            more_past: true,
+        });
+        crosses_intact(Event::PlayerTimeline {
+            playback: PlaybackId::new(3),
+            marks: vec![
+                TimelineMark { kind: SkipKind::Opening, start: 0.0, end: 89.5 },
+                TimelineMark { kind: SkipKind::Ending, start: 1_310.0, end: 1_400.0 },
+            ],
+        });
+        crosses_intact(Event::PlayerBuffered {
+            playback: PlaybackId::new(3),
+            ranges: vec![
+                TimeRange { start: 0.0, end: 210.0 },
+                TimeRange { start: 600.0, end: 640.0 },
+            ],
+        });
+        crosses_intact(Event::DeviceCode(Some(DeviceCodePrompt {
+            tracker: "simkl".into(),
+            code: "AB12C".into(),
+            url: "https://pin.example/".into(),
+            expires_at: Some(1_800_000_900),
+        })));
+        let start_now = Command::DownloadStartNow { id: 7 };
+        assert_eq!(crossed(start_now.clone()), start_now);
+    }
+
+    #[test]
     fn what_a_hosted_player_is_told_crosses_intact() {
         let playback = PlaybackId::new(3);
         crosses_intact(Event::PlayerOps {

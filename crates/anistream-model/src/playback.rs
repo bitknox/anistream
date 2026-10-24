@@ -38,6 +38,25 @@ pub enum SkipKind {
     Ending,
 }
 
+/// A stretch of the playing file the timeline marks: an opening or an ending, from `start` to
+/// `end` in seconds of the file. See [`crate::event::Event::PlayerTimeline`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TimelineMark {
+    pub kind: SkipKind,
+    pub start: f64,
+    pub end: f64,
+}
+
+/// A stretch of the playing file, `start` to `end` in seconds of it: what the player has
+/// buffered. See [`crate::event::Event::PlayerBuffered`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TimeRange {
+    pub start: f64,
+    pub end: f64,
+}
+
 /// How a playback came to an end.
 ///
 /// More than `watched` can say: an episode closed past the commit threshold counts as watched,

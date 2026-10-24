@@ -1,5 +1,5 @@
-//! What a front end asks of downloads: an episode queued, or several, and a download paused,
-//! cancelled, deleted, or cleared away once finished.
+//! What a front end asks of downloads: an episode queued, or several, and a download started
+//! now, paused, cancelled, deleted, or cleared away once finished.
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{event::Event, notice::Notice};
@@ -115,6 +115,22 @@ pub fn download_pause(id: i64, services: &Services, tx: &Outbox) {
         let _ = store.set_download_state(id, next);
     }
     downloads::publish_now(store, tx);
+}
+
+/// Start a waiting or paused download now: it goes to the front of the queue, and the manager
+/// starts it on its next tick, the download latest in the queue waiting again if every place is
+/// taken.
+pub fn download_start_now(id: i64, services: &Services, tx: &Outbox) {
+    let Services { store, .. } = services;
+    let row = store.downloads().ok().and_then(|all| all.into_iter().find(|d| d.id == id));
+    let moved = store.download_to_front(id, anistream_store::now()).unwrap_or(false);
+    downloads::publish_now(store, tx);
+    if let (true, Some(row)) = (moved, row) {
+        let _ = tx.send(Event::Toast(Notice::info(format!(
+            "starting {} ep {} now",
+            row.title, row.episode
+        ))));
+    }
 }
 
 /// Cancel a download.
