@@ -7,7 +7,11 @@
 #
 #   release   the engine the app ships: --no-default-features, so without mpv's child process
 #   testing   the same, plus the test kit's fake AniList and fixture source (`StartTesting`), for
-#             the tests
+#             the tests and the app's fixture runs
+#
+# On Windows both have the `mpv-host` feature too: `FfiPlayer`, anistream-mpv-host's libmpv
+# player, which links the libmpv that scripts/libmpv.ps1 fetched into .libmpv/<arch>
+# (ANISTREAM_LIBMPV_DIR says otherwise). Its DLL is copied beside the engine's.
 #
 # The output, all of it generated and gitignored:
 #
@@ -97,6 +101,17 @@ if ((on_windows)); then
   esac
   export PATH="$llvm:$vs/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja:$PATH"
   export LIBCLANG_PATH="${LIBCLANG_PATH:-$(cygpath -w "$llvm")}"
+  case "$(rustc -vV | sed -n 's/^host: //p')" in
+    aarch64-*) libmpv_arch=arm64 ;;
+    *) libmpv_arch=x64 ;;
+  esac
+  libmpv="$(cygpath -u "${ANISTREAM_LIBMPV_DIR:-$windows/.libmpv/$libmpv_arch}")"
+  [[ -f "$libmpv/libmpv-2.dll" ]] || {
+    echo "error: no libmpv in $libmpv: run powershell -File desktop/windows/scripts/libmpv.ps1 -Arch $libmpv_arch" >&2
+    exit 1
+  }
+  export ANISTREAM_LIBMPV_DIR="$(cygpath -w "$libmpv")"
+  features="${features:+$features,}mpv-host"
 fi
 
 # Git for Windows has sha256sum on its PATH but keeps shasum among its Perl scripts.
@@ -131,6 +146,8 @@ sources_hash() {
         done |
         git hash-object --stdin-paths
       echo "$generator_key"
+      echo "$features"
+      [[ -z "${libmpv:-}" ]] || cat "$libmpv/stamp" 2>/dev/null || true
     } | sha256 | cut -d' ' -f1
   )
 }
@@ -193,6 +210,9 @@ stage="$out.partial"
 rm -rf "$stage"
 mkdir -p "$stage/bindings" "$stage/native"
 cp "$built" "$stage/native/"
+if ((on_windows)); then
+  cp "$libmpv/libmpv-2.dll" "$stage/native/"
+fi
 # Library mode, from the repository's root: the generator reads each crate's uniffi.toml through
 # cargo metadata, which is where the C# namespaces are named. Not formatted: CSharpier is not
 # needed to compile them.

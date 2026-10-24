@@ -6,6 +6,10 @@
     <EngineDir>$(MSBuildThisFileDirectory).engine/$(EngineFlavour)/</EngineDir>
     <!-- The bindings use pointers and pinned buffers. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- What the bindings hold beyond the release engine's: the fixture scenes in the testing
+         flavour, and on Windows the hosted mpv player (scripts/bindings.sh adds mpv-host there). -->
+    <DefineConstants Condition="'$(EngineFlavour)' == 'testing'">$(DefineConstants);ANISTREAM_TESTING</DefineConstants>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);ANISTREAM_MPV_HOST</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(EngineDir)bindings/*.cs" Link="Bindings/%(Filename)%(Extension)" />

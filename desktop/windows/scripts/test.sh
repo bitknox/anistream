@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Runs the engine's C# tests: the testing engine built and its bindings generated
-# (scripts/bindings.sh testing), then `dotnet test` under a temporary HOME, which the tests check
-# for before they start an engine. NuGet's packages stay in the real HOME's cache. Run from
+# Runs the C# tests, the engine's and the app's: the testing engine built and its bindings
+# generated (scripts/bindings.sh testing), then `dotnet test` for each test project under a
+# temporary HOME, which the tests check for before they start an engine. NuGet's packages stay in the real HOME's cache. Run from
 # desktop/windows, whose global.json picks the Microsoft.Testing.Platform runner.
 #
 #   desktop/windows/scripts/test.sh [dotnet test arguments]
@@ -32,4 +32,4 @@ HOME="$home" \
   DOTNET_CLI_TELEMETRY_OPTOUT=1 \
   DOTNET_NOLOGO=1 \
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
-  bash -c 'cd "$1" && shift && exec dotnet test --project Anistream.Engine.Tests "$@"' test "$windows" "$@"
+  bash -c 'cd "$1" && shift && for p in Anistream.Engine.Tests Anistream.App.Tests; do dotnet test --project "$p" "$@" || exit; done' test "$windows" "$@"

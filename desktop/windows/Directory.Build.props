@@ -1,0 +1,9 @@
+<Project>
+  <!-- Which engine a build compiles against (Engine.props): the test projects default to the
+       testing flavour, everything else to release. A build can name either with
+       -p:EngineFlavour=..., and each project passes its flavour to the projects it references. -->
+  <PropertyGroup>
+    <EngineFlavour Condition="'$(EngineFlavour)' == '' and $(MSBuildProjectName.EndsWith('.Tests'))">testing</EngineFlavour>
+    <EngineFlavour Condition="'$(EngineFlavour)' == ''">release</EngineFlavour>
+  </PropertyGroup>
+</Project>
