@@ -151,6 +151,15 @@ public class SharedWordsTests
 
 public class SettingsCatalogTests
 {
+    [Fact]
+    public void RichPresenceWaitsOnPresenceAndTheTitle()
+    {
+        Assert.True(SettingsCatalog.IsSwitch(SettingKey.PresenceRich));
+        Assert.Equal([SettingKey.Presence, SettingKey.PresenceTitle], SettingsCatalog.Needs(SettingKey.PresenceRich));
+        Assert.Equal([SettingKey.Syncplay], SettingsCatalog.Needs(SettingKey.SyncplayRoom));
+        Assert.Empty(SettingsCatalog.Needs(SettingKey.Presence));
+    }
+
     static SettingRow Row(SettingKey key, string value, SettingChange? change = null) =>
         new(key, value, change ?? new SettingChange.Steps(true, true));
 

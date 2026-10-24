@@ -22,9 +22,23 @@ public static class SettingsCatalog
         SettingKey.Motion, SettingKey.AutoNext, SettingKey.SkipOpening, SettingKey.SkipFiller,
         SettingKey.MarkChapters, SettingKey.SkipButton, SettingKey.Fullscreen, SettingKey.NightMode,
         SettingKey.MergeSubtitles, SettingKey.KeepSeeding, SettingKey.Presence, SettingKey.PresenceTitle,
+        SettingKey.PresenceRich,
         SettingKey.Torrents, SettingKey.Syncplay, SettingKey.UpdateCheck, SettingKey.SpoilerProtection,
         SettingKey.DownloadsOnCellular, SettingKey.TorrentsOnCellular, SettingKey.EpisodeNotifications,
     ];
+
+    /// <summary>
+    /// The switches a row waits on, each to be on before the row means anything: the party's
+    /// server and room on Watch together, the title on Discord, rich presence on the title too.
+    /// The Mac's integrations pane greys the same rows.
+    /// </summary>
+    public static IReadOnlyList<SettingKey> Needs(SettingKey key) => key switch
+    {
+        SettingKey.SyncplayServer or SettingKey.SyncplayRoom => [SettingKey.Syncplay],
+        SettingKey.PresenceTitle => [SettingKey.Presence],
+        SettingKey.PresenceRich => [SettingKey.Presence, SettingKey.PresenceTitle],
+        _ => [],
+    };
 
     /// <summary>The settings with two states, on and off, that a switch shows.</summary>
     public static bool IsSwitch(SettingKey key) => Switches.Contains(key);

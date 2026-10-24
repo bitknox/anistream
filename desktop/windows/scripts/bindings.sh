@@ -11,7 +11,8 @@
 #
 # On Windows both have the `mpv-host` feature too: `FfiPlayer`, anistream-mpv-host's libmpv
 # player, which links the libmpv that scripts/libmpv.ps1 fetched into .libmpv/<arch>
-# (ANISTREAM_LIBMPV_DIR says otherwise). Its DLL is copied beside the engine's.
+# (ANISTREAM_LIBMPV_DIR says otherwise). Its DLL is copied beside the engine's. And `presence`,
+# the Discord presence, which the Mac and Linux engines publish too.
 #
 # The output, all of it generated and gitignored:
 #
@@ -111,7 +112,8 @@ if ((on_windows)); then
     exit 1
   }
   export ANISTREAM_LIBMPV_DIR="$(cygpath -w "$libmpv")"
-  features="${features:+$features,}mpv-host"
+  # And the Discord presence, as on the Mac and Linux: a desktop's engine publishes one.
+  features="${features:+$features,}mpv-host,presence"
 fi
 
 # Git for Windows has sha256sum on its PATH but keeps shasum among its Perl scripts.
