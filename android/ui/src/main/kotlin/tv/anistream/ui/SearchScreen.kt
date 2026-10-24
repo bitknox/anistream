@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,8 +78,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import tv.anistream.design.Motion
 import tv.anistream.design.tabular
 import tv.anistream.engine.model.Bounds
 import tv.anistream.engine.model.BrowseRail
@@ -104,6 +107,7 @@ import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
 import tv.anistream.store.BugContext
 import tv.anistream.store.ListState
+import tv.anistream.store.SearchModel
 import tv.anistream.store.label
 import tv.anistream.store.normalized
 
@@ -241,8 +245,12 @@ fun SearchScreen(
             modifier = Modifier.padding(horizontal = 16.dp).padding(top = 8.dp).fillMaxWidth(),
         )
         FilterRow(status.query, onFilters = { filtersShown = true })
-        Box(Modifier.weight(1f)) {
-            if (status.atStart) SearchStart() else SearchResults(status.query)
+        val overdue = searchOverdue(status)
+        // The start stays while a first search is under 600 ms away, then gives way to the
+        // results or their placeholders in one crossfade.
+        val startShown = status.atStart || (status.answered == null && status.pending && !overdue)
+        Crossfade(startShown, Modifier.weight(1f), animationSpec = Motion.standard(), label = "search") { start ->
+            if (start) SearchStart() else SearchResults(status.query, overdue)
         }
     }
     ExpandedFullScreenSearchBar(state = bar, inputField = input, colors = colors) {
@@ -285,7 +293,7 @@ private fun Typing(typed: String, onPicked: () -> Unit) {
                 words.isEmpty() && status.recents.isNotEmpty() -> PosterGrid(PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)) {
                     recentSearches(status.recents)
                 }
-                !status.atStart -> SearchResults(status.query)
+                !status.atStart -> SearchResults(status.query, searchOverdue(status))
                 else -> {}
             }
         }
@@ -573,10 +581,40 @@ private fun LazyGridScope.resultsHeader(query: SearchQuery, caption: String?, li
 }
 
 /**
- * The titles found, a page at a time: the next is asked for as its placeholders come into view.
+ * Whether the answer to what is asked has been waited for past 600 ms (T8): the results before it
+ * then give way to placeholders and the search shows as a job. Once up, the placeholders stay for
+ * a further search rather than the earlier results coming back. Never while typing waits for the
+ * search key.
  */
 @Composable
-private fun SearchResults(query: SearchQuery) {
+private fun searchOverdue(status: SearchModel.Status): Boolean {
+    var overdue by remember { mutableStateOf(false) }
+    val waiting = status.pending && !status.livePaused
+    LaunchedEffect(status.asked, waiting) {
+        if (!waiting) {
+            overdue = false
+        } else if (!overdue) {
+            delay(SEARCH_QUIET_MILLIS)
+            overdue = true
+        }
+    }
+    return overdue
+}
+
+private const val SEARCH_QUIET_MILLIS = 600L
+
+/** The search as a job, said where its results will land: Searching for “lantern”. */
+private fun SearchQuery.searchingLine(): String {
+    val words = text.trim()
+    return if (words.isEmpty()) "Searching for ${headline()}" else "Searching for “$words”"
+}
+
+/**
+ * The titles found, a page at a time: the next is asked for as its placeholders come into view.
+ * Past [overdue], placeholders in place of results that answer an earlier search.
+ */
+@Composable
+private fun SearchResults(query: SearchQuery, overdue: Boolean) {
     val store = LocalAppStore.current
     val context = LocalContext.current
     val state by store.search.list.state.collectAsStateWithLifecycle()
@@ -584,12 +622,14 @@ private fun SearchResults(query: SearchQuery) {
     val status by store.search.status.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     val grid = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp)
-    val answered = state.takeIf { it is ListState.Loaded || it is ListState.Empty || it is ListState.Failed }
+    val answered = state.takeIf { !overdue && (it is ListState.Loaded || it is ListState.Empty || it is ListState.Failed) }
     Loading(
         answered,
+        returns = true,
+        waited = overdue,
         placeholders = {
             PosterGrid(grid) {
-                resultsHeader(query, null, status.livePaused)
+                resultsHeader(query, status.asked?.searchingLine(), status.livePaused)
                 items(9, contentType = { "placeholder" }) { PosterPlaceholder() }
             }
         },
@@ -613,7 +653,7 @@ private fun SearchResults(query: SearchQuery) {
                     Column {
                         Text(list.reason, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row {
-                            QuietButton("Try again") { store.search(store.search.status.value.query) }
+                            QuietButton("Try again") { store.retrySearch() }
                             QuietButton("Report") { openBugReport(context, store, BugContext("load", list.reason)) }
                         }
                     }
@@ -721,13 +761,17 @@ private fun RailRow(rail: BrowseRail, entries: List<Entry>) {
     }
 }
 
-/** Posters to come, while the rails are on their way. */
+/** Rails to come, once they are 600 ms away: headings and posters where the rails will be. */
 @Composable
 private fun RailPlaceholder() {
-    Column {
-        TextPlaceholder(0.4f, 24.dp, Modifier.padding(vertical = 12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-            repeat(4) { Box(Modifier.width(104.dp)) { PosterPlaceholder() } }
+    AfterWait {
+        Column {
+            repeat(3) {
+                TextPlaceholder(0.4f, 24.dp, Modifier.padding(vertical = 12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
+                    repeat(4) { Box(Modifier.width(104.dp)) { PosterPlaceholder() } }
+                }
+            }
         }
     }
 }

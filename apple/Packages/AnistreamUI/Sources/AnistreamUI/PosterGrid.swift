@@ -142,23 +142,49 @@ struct PosterGrid<Cell: View>: View {
 struct PosterGridPlaceholder: View {
     var count = 14
     var minimum: CGFloat = 128
+    var spacing: CGFloat = 20
 
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: minimum), spacing: 20, alignment: .top)],
+            columns: [GridItem(.adaptive(minimum: minimum), spacing: spacing, alignment: .top)],
             alignment: .leading,
             spacing: 24
         ) {
             ForEach(0..<count, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 8) {
-                    RoundedRectangle(cornerRadius: 8).fill(.raised).aspectRatio(2 / 3, contentMode: .fit)
-                    Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 14))
-                    Text("Ep 7 of 24").font(.mac(12))
-                }
-                .redacted(reason: .placeholder)
-                .foregroundStyle(.haze)
+                PosterCellPlaceholder(width: minimum)
             }
         }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A poster cell to come, at the size the cell will have, so nothing moves when it arrives: the
+/// plate, two lines' room for the title and the detail line, as `PosterCell` lays them out.
+struct PosterCellPlaceholder: View {
+    var width: CGFloat = 128
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(.raised)
+                .aspectRatio(2 / 3, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
+            Text("Hoshikuzu no Tabibito")
+                .font(.macShowTitle(size: 14))
+                .macLineHeight(18)
+                .lineLimit(2, reservesSpace: true)
+                .padding(.top, 8)
+            Text("TV · 2026")
+                .font(.mac(12))
+                .macLineHeight(16)
+                .lineLimit(1)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .redacted(reason: .placeholder)
+        .foregroundStyle(.haze)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityHidden(true)
     }
 }
@@ -327,7 +353,6 @@ struct ListStates<Loaded: View, Empty: View>: View {
         withAnimation(.fadeIn) { slow = true }
     }
 }
-
 extension ListState {
     /// Whether the list has been answered, whatever the answer.
     var isAnswer: Bool {

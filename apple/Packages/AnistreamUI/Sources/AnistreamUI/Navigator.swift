@@ -32,7 +32,7 @@ public final class Navigator {
     public var kitsuShown = false
     /// What Search's field holds.
     public var query = ""
-    /// Whether every filter is up: the inspector on the Mac and iPad, a sheet on iPhone.
+    /// Whether every filter is up: a panel on the Mac, the inspector on iPad, a sheet on iPhone.
     public var searchFiltersShown = false
     /// The search the launch arguments ask for, for a screenshot, until Search runs it.
     public var launchSearch: SearchQuery?
@@ -61,6 +61,8 @@ public final class Navigator {
     public var showSettings: AnilistId?
     /// A selection asked of Continue's list from outside it, as the list itself would move it.
     public var continueSelection: AnilistId?
+    /// Whether the title search field is up for typing. The launch route's "typing" sheet sets it.
+    public var searchPresented = false
     /// The title whose "More about this show" sheet is open.
     public var moreAbout: AnilistId?
     /// The titles whose watched episodes are open in their episode lists, for the session.
