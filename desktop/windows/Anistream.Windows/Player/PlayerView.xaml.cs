@@ -53,6 +53,7 @@ public sealed partial class PlayerView : UserControl
     string skipDone = "";
     readonly Stopwatch skipSince = new(), stallSince = new();
     long startingFrom;
+    bool startingHeld;
     ulong stallBase;
     Undoable? undo;
     string startingEpisode = "";
@@ -410,7 +411,7 @@ public sealed partial class PlayerView : UserControl
             }
         }
         if (cornerCard == SkipSlot)
-            SkipCard.Opacity = skipHover || skipSince.Elapsed < TimeSpan.FromSeconds(8) ? 1 : 0.5;
+            SkipCard.Opacity = skipHover || skipSince.Elapsed < TimeSpan.FromSeconds(8) ? 1 : 0.7;
     }
 
     void OnSkipEntered(object sender, PointerRoutedEventArgs e) => skipHover = true;
@@ -434,7 +435,7 @@ public sealed partial class PlayerView : UserControl
 
     void ShowState(FfiPlayerState state)
     {
-        if (state.HasPicture && startingShown)
+        if (state.HasPicture && startingShown && !startingHeld)
         {
             // The first frame fades in over the starting screen.
             startingShown = false;
@@ -1032,6 +1033,7 @@ public sealed partial class PlayerView : UserControl
                 break;
             case "starting":
                 startingEpisode = "1";
+                startingHeld = true;
                 ShowStarting();
                 startingFrom -= 21 * Stopwatch.Frequency;
                 break;

@@ -111,7 +111,20 @@
                     <!-- Watched is a state: a neutral check box, not an amber toggle. -->
                     <CheckBox Grid.Column="2" MinWidth="0" Padding="0" IsChecked="{x:Bind Completed}"
                               Click="OnWatchedToggle" Tag="{x:Bind}" ToolTipService.ToolTip="Watched"
-                              AutomationProperties.Name="Watched" VerticalAlignment="Center" />
+                              AutomationProperties.Name="Watched" VerticalAlignment="Center">
+                      <!-- On the control itself: the app's theme overrides do not reach a template's check box. -->
+                      <CheckBox.Resources>
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#E4E0D6" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#E4E0D6" Opacity="0.9" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#9298B5" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#E4E0D6" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#E4E0D6" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#9298B5" />
+                        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#161A2E" />
+                        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#161A2E" />
+                        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#161A2E" />
+                      </CheckBox.Resources>
+                    </CheckBox>
                   </Grid>
                 </DataTemplate>
               </ListView.ItemTemplate>
