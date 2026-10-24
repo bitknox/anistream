@@ -1,11 +1,12 @@
 ---
-// The nav on the landing page and the apps page: the app icon and the name, then Apps, Docs,
-// Releases and GitHub. Over the landing page's scene it starts clear; elsewhere it is solid.
+// The nav on the landing page, the apps page and the features page: the app icon and the name,
+// then Apps, Features, Docs, Releases and GitHub. A phone shows the first three; the footer has
+// the rest. Over the landing page's scene it starts clear; elsewhere it is solid.
 import iconUrl from '../../assets/icon-32.svg?url';
-import { APPS, GITHUB, RELEASES } from '../../data/site';
+import { APPS, FEATURES, GITHUB, RELEASES } from '../../data/site';
 
 interface Props {
-	current?: 'apps';
+	current?: 'apps' | 'features';
 	/** Over the landing page's scene, clear until the scene has gone. */
 	overScene?: boolean;
 }
@@ -20,8 +21,9 @@ const { current, overScene = false } = Astro.props;
 	</a>
 	<div class="l-nav-links">
 		<a href={APPS} aria-current={current === 'apps' ? 'page' : undefined}>Apps</a>
+		<a href={FEATURES} aria-current={current === 'features' ? 'page' : undefined}>Features</a>
 		<a href="/docs/">Docs</a>
 		<a class="l-nav-releases" href={RELEASES}>Releases</a>
-		<a href={GITHUB}>GitHub</a>
+		<a class="l-nav-github" href={GITHUB}>GitHub</a>
 	</div>
 </nav>

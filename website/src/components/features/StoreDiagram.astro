@@ -1,0 +1,58 @@
+---
+// How a plugin store reaches you: someone runs a store and invites you, the store's plugin list
+// arrives signed with its key, and each of your devices joins with its own token.
+import { arrow, box, node, svg, text } from './draw';
+
+const DEVICES = ['Mac', 'iPhone', 'Windows'];
+
+const wide = svg(
+	720,
+	172,
+	'wide',
+	[
+		node(0, 50, 176, 72, 'Plugin store', 'Invite only'),
+		arrow([[177, 86], [261, 86]]),
+		node(262, 50, 196, 72, 'Plugin list', 'Signed by the store'),
+		...DEVICES.map((d, i) => {
+			const y = i * 64;
+			const mid = y + 22;
+			return [
+				arrow([[459, 86], [500, 86], [500, mid], [543, mid]]),
+				box(544, y, 176, 44),
+				text(560, y + 27, 'label', d),
+				text(704, y + 27, 'sub', 'own token', 'end'),
+			].join('');
+		}),
+	].join(''),
+);
+
+const narrow = svg(
+	358,
+	280,
+	'narrow',
+	[
+		node(69, 0, 220, 64, 'Plugin store', 'Invite only'),
+		arrow([[179, 65], [179, 103]]),
+		node(69, 104, 220, 64, 'Plugin list', 'Signed by the store'),
+		...DEVICES.map((d, i) => {
+			const x = i * 123;
+			const mid = x + 56;
+			return [
+				arrow([[179, 169], [179, 196], [mid, 196], [mid, 223]]),
+				box(x, 224, 112, 56),
+				text(x + 14, 248, 'label', d),
+				text(x + 14, 267, 'sub', 'own token'),
+			].join('');
+		}),
+	].join(''),
+);
+---
+
+<div
+	class="fdiag"
+	role="img"
+	aria-label="A plugin store, invite only, sends its plugin list signed by the store to your devices: a Mac, an iPhone and a Windows PC, each with its own token."
+>
+	<Fragment set:html={wide} />
+	<Fragment set:html={narrow} />
+</div>

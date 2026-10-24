@@ -7,14 +7,14 @@ import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
 import SiteNav from '../components/site/SiteNav.astro';
-import { APP_DOWNLOADS, INSTALL_APPS, LATEST, LEGAL, PRIVACY } from '../data/site';
+import { APP_DOWNLOADS, FEATURES, INSTALL_APPS, LATEST, LEGAL, PRIVACY, TOOLKITS } from '../data/site';
 
-const everywhere: [string, string][] = [
-	['Widgets', 'Continue watching and Airing today, on the home screen.'],
-	['New-episode notifications', 'An alert when a new episode of a show you watch comes out. They stay off until you turn them on, and each show has its own switch.'],
-	['Picture in Picture', 'The episode keeps playing in a small window while you browse or use another app.'],
-	['Downloads', 'Episodes download to the device and play offline, with the same history and resume as a stream.'],
-	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app, as in the terminal app.'],
+const across: [string, string][] = [
+	['Widgets', 'Continue watching and Airing today on the home screen, on Mac, iPhone, iPad and Android.'],
+	['New-episode notifications', 'An alert when a new episode of a show you watch comes out, on Mac, iPhone, iPad, Android and Linux. They stay off until you turn them on, and each show has its own switch.'],
+	['Picture in Picture', 'The episode keeps playing in a small window while you browse or use another app, on Mac, iPhone, iPad and Android. On Windows and Linux the player shrinks to a mini player.'],
+	['Downloads', 'Episodes download to the device and play offline, with the same history and resume as a stream. Every app but the TV app can keep the next episodes of the shows you watch downloaded.'],
+	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app, as in the terminal app. The features page lists which trackers each app signs in to.'],
 	['Handoff, Spotlight and Shortcuts', 'On Apple devices, pick up a title on another of your devices, find your shows in Spotlight, and ask Siri to continue watching.'],
 ];
 ---
@@ -22,8 +22,8 @@ const everywhere: [string, string][] = [
 <html lang="en">
 	<head>
 		<SiteHead
-			title="anistream apps · Mac, iPhone, iPad and Android"
-			description="The anistream apps for Mac, iPhone, iPad and Android: the same client as the terminal app, with each platform’s own navigation and controls. Sources are plugins you add, and the apps host no content."
+			title="anistream apps · Mac, iPhone, iPad, Android, Android TV, Windows and Linux"
+			description="The anistream apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux: each written in its platform’s own toolkit, over the same Rust engine as the terminal app. Sources are plugins you add, and the apps host no content."
 		/>
 	</head>
 	<body class="landing apps-page">
@@ -32,12 +32,12 @@ const everywhere: [string, string][] = [
 		<main>
 			<header class="wrap apps-head">
 				<img class="apps-icon" src={iconUrl} width="96" height="96" alt="The anistream app icon: Nagare, the mascot, on the dusk ground" />
-				<h1>anistream for Mac, iPhone, iPad and Android</h1>
+				<h1>anistream for Mac, iPhone, iPad, Android, Android TV, Windows and Linux</h1>
 				<p class="lede">
-					The apps are the same client as the terminal app, on the same engine, with each platform’s
-					own navigation and controls. They browse AniList with no account, play in a built-in mpv,
-					keep your history on the device and sync it to your trackers. Sources come from plugins
-					you add.
+					Each app is native to its platform, written in that platform’s own toolkit with its own
+					navigation and controls. Under every one runs the same engine as the terminal app. They
+					browse AniList with no account, play in a built-in mpv, keep your history on the device
+					and sync it to your trackers. Sources come from plugins you add.
 				</p>
 				<div class="actions">
 					<a class="btn btn-primary" href={LATEST}>Download</a>
@@ -47,6 +47,28 @@ const everywhere: [string, string][] = [
 					From GitHub, not the App Store or Google Play<span data-release-tag=" · Latest release {tag}" hidden></span>
 				</p>
 			</header>
+
+			<section class="wrap apps-sect" aria-labelledby="native-h">
+				<div class="apps-text">
+					<h2 id="native-h">Native apps over one engine</h2>
+					<p>
+						There is no web view and no shared interface layer. The engine, written in Rust, does the
+						searching, the playback, the history and the sync, and each app draws it in its own
+						toolkit. A feature built into the engine reaches every app, and each app can still look
+						and behave like the rest of its platform.
+					</p>
+				</div>
+				<dl class="rows toolkits">
+					{
+						TOOLKITS.map(([platform, toolkit]) => (
+							<div class="row">
+								<dt>{platform}</dt>
+								<dd>{toolkit}</dd>
+							</div>
+						))
+					}
+				</dl>
+			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="mac-h">
 				<div class="apps-text">
@@ -136,6 +158,75 @@ const everywhere: [string, string][] = [
 				</div>
 			</section>
 
+			<section class="wrap apps-sect" aria-labelledby="tv-h">
+				<div class="apps-text">
+					<h2 id="tv-h">Android TV</h2>
+					<p>
+						A separate app for the TV, made for the remote’s arrow keys: a rail for search, Continue,
+						the calendar, seasonal charts and your library, and large buttons that show where the
+						focus is. Episodes play in the same built-in mpv, with the skip button and Up Next, and
+						the show you are watching appears in the TV’s own Watch Next row. To sign in to a
+						tracker, scan a code with your phone or enter one on the tracker’s site, with no typing
+						on the TV.
+					</p>
+					<p class="apps-needs">Android TV 11 or later, on ARM</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Android TV app on Continue: the show in progress with a large button to resume episode 7, and a row of other shows below" />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="play-tv-h">
+				<div class="apps-text">
+					<h2 id="play-tv-h">Play on TV</h2>
+					<p>
+						The Mac, iPhone, iPad and Android apps send an episode to the TV app on the same network,
+						once you have paired them with the code or the QR code the TV shows. The TV fetches and
+						plays the stream itself, and the phone becomes its remote: pause, seek, the next episode,
+						subtitles and audio, the TV’s volume, and typing a search.
+					</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="tv-title" frame="screen" sizes="(min-width: 1200px) 900px, 70vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
+					<Shot name="iphone-tv-remote" frame="phone" sizes="(min-width: 1200px) 230px, 30vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="windows-h">
+				<div class="apps-text">
+					<h2 id="windows-h">Windows</h2>
+					<p>
+						A WinUI 3 app with a navigation pane for Continue, the calendar, seasonal charts, your
+						library and downloads, and search in the title bar. Episodes play in mpv inside the
+						window, and the mini player keeps one on top of your other windows.
+					</p>
+					<p class="apps-needs">Windows 10 version 2004 or later, on x64 or Arm64. Coming with the next release.</p>
+				</div>
+				<div class="ratio-row apps-row">
+					<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 588px, 48vw" alt="The Windows app on a title page: the poster, a button to resume episode 7 and the episode list" />
+					<Shot name="windows-stores" frame="window" sizes="(min-width: 1200px) 588px, 48vw" alt="The Windows app’s plugin stores: the stores you joined, and one store’s plugins with Install and Update buttons" />
+				</div>
+			</section>
+
+			<section class="wrap apps-sect" aria-labelledby="linux-h">
+				<div class="apps-text">
+					<h2 id="linux-h">Linux</h2>
+					<p>
+						A GTK 4 and libadwaita app that fits in on a GNOME desktop: a sidebar that folds away in a
+						narrow window, the calendar laid out by week, and libmpv drawing into the window. New
+						episodes arrive as desktop notifications.
+					</p>
+					<p class="apps-needs">GTK 4.16 and libadwaita 1.7 or newer. Coming with the next release.</p>
+				</div>
+				<div class="apps-shots">
+					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Linux app on Continue: the shows in progress, and the one picked with a button to resume its episode" />
+					<div class="apps-pair">
+						<Shot name="linux-title" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Linux app on a title page, with the season picker, the episode list and a related title" />
+						<Shot name="linux-calendar" frame="window" sizes="(min-width: 1200px) 588px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Linux app’s calendar, with the week laid out by day" />
+					</div>
+				</div>
+			</section>
+
 			<section class="wrap apps-sect" aria-labelledby="player-h">
 				<div class="apps-text">
 					<h2 id="player-h">The player</h2>
@@ -162,11 +253,11 @@ const everywhere: [string, string][] = [
 				</p>
 			</section>
 
-			<section class="wrap apps-sect" aria-labelledby="every-h">
-				<h2 id="every-h">In every app</h2>
+			<section class="wrap apps-sect" aria-labelledby="across-h">
+				<h2 id="across-h">Across the apps</h2>
 				<dl class="rows apps-rows">
 					{
-						everywhere.map(([name, text]) => (
+						across.map(([name, text]) => (
 							<div class="row">
 								<dt>{name}</dt>
 								<dd>{text}</dd>
@@ -174,6 +265,9 @@ const everywhere: [string, string][] = [
 						))
 					}
 				</dl>
+				<div class="actions apps-compare">
+					<a class="btn" href={`${FEATURES}#platforms`}>What each app does</a>
+				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="get-h">
@@ -183,7 +277,9 @@ const everywhere: [string, string][] = [
 					check it against. They are not in the App Store or on Google Play, so the first install
 					takes one extra step, which the installation guide walks through. After that the apps say
 					when a new release is out: the Mac and Android apps update themselves, and iPhone and iPad
-					update from anistream’s source in SideStore or AltStore.
+					update from anistream’s source in SideStore or AltStore. A newer TV app installs over the
+					one before, the same way as the first. The Windows and Linux apps come with the next
+					release.
 				</p>
 				<ul class="downloads">
 					{
@@ -193,13 +289,15 @@ const everywhere: [string, string][] = [
 									<span class="dl-platform">{a.platform}</span>
 									<span class="dl-needs">{a.needs}</span>
 								</div>
-								<code class="dl-file">{a.file}</code>
+								{a.file ? <code class="dl-file">{a.file}</code> : <span class="dl-file" />}
 								<p class="dl-first">
-									{a.first} <a href={a.guide}>How&nbsp;to&nbsp;install</a>
+									{a.first} {a.file && <a href={a.guide}>How&nbsp;to&nbsp;install</a>}
 								</p>
-								<a class="btn dl-btn" href={LATEST} data-asset={a.suffix}>
-									Download <span class="dl-size" data-asset-size></span>
-								</a>
+								{a.file && (
+									<a class="btn dl-btn" href={LATEST} data-asset={a.suffix}>
+										Download <span class="dl-size" data-asset-size></span>
+									</a>
+								)}
 							</li>
 						))
 					}

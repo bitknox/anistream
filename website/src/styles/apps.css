@@ -132,6 +132,14 @@
 	margin-top: 24px;
 }
 
+.apps-sect .rows.toolkits {
+	margin-top: 24px;
+}
+
+.apps-compare {
+	margin-top: 28px;
+}
+
 /* Getting the apps: a row per file */
 .downloads {
 	margin-top: 32px;
@@ -141,7 +149,8 @@
 
 .downloads li {
 	display: grid;
-	grid-template-columns: minmax(0, 260fr) minmax(0, 330fr) minmax(0, 470fr) auto;
+	/* A set width for the button, so the columns line up whether a row has a size, or no button. */
+	grid-template-columns: minmax(0, 260fr) minmax(0, 330fr) minmax(0, 470fr) 176px;
 	column-gap: 24px;
 	align-items: center;
 	min-height: 72px;
@@ -178,6 +187,10 @@
 .dl-first {
 	font-size: 15px;
 	line-height: 22px;
+}
+
+.dl-btn {
+	justify-self: end;
 }
 
 .dl-size:empty {
