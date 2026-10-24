@@ -8,10 +8,15 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.Graphics;
+using VirtualKey = Windows.System.VirtualKey;
+using VirtualKeyModifiers = Windows.System.VirtualKeyModifiers;
 
 namespace Anistream.Windows;
 
@@ -41,7 +46,10 @@ public sealed partial class MainWindow : Window
     readonly FfiPlayer? player;
     readonly FfiDirs dirs;
     readonly Ctx ctx;
-    bool selecting, played, closing, askedClose;
+    readonly NetworkWatch network;
+    readonly Taskbar? taskbar;
+    Tray? tray;
+    bool selecting, played, closing, askedClose, firstRun;
 
     public MainWindow(Options options)
     {
@@ -59,10 +67,10 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.ButtonPressedBackgroundColor = global::Windows.UI.Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF);
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "anistream.ico"));
         SystemBackdrop = new TintedMica();
-        Size();
 
         var host = new AppHost(ui, options.Fixture) { Notified = (title, body) => ShowToast(InfoBarSeverity.Informational, $"{title}: {body}") };
         (var engine, dirs) = StartEngine(host);
+        Size();
         session = new EngineSession(engine, act => ui.TryEnqueue(() => act()));
         var art = new Art(session.Send);
         ctx = new Ctx { Session = session, Art = art, Window = this, Options = options };
@@ -100,6 +108,11 @@ public sealed partial class MainWindow : Window
             return true;
         };
         session.Start();
+        // The network path, said to the engine now and on every change; it answers with one
+        // online or offline state (Event.Connectivity) the pages show.
+        network = new NetworkWatch(c => ctx.Send(c), ui, options.Offline);
+        taskbar = Taskbar.For(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        Keys();
 #if ANISTREAM_TESTING
         if (options.Showcase)
         {
@@ -116,23 +129,59 @@ public sealed partial class MainWindow : Window
 #endif
 
         AppWindow.Closing += OnClosing;
+        AppWindow.Changed += (_, e) =>
+        {
+            if (e.DidPositionChange || e.DidSizeChange || e.DidPresenterChange)
+                RememberPlace();
+        };
         Closed += (_, _) => Shutdown();
         Root.Loaded += (_, _) => FirstPage();
     }
 
+    /// <summary>
+    /// The window where it was last left (size, position and maximised), when that still lies on
+    /// a display; otherwise 1280 by 800, centred. The minimum is 500 by 420.
+    /// </summary>
     void Size()
     {
         var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         var scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+        if (AppWindow.Presenter is OverlappedPresenter overlapped)
+        {
+            overlapped.PreferredMinimumWidth = (int)(500 * scale);
+            overlapped.PreferredMinimumHeight = (int)(420 * scale);
+        }
+        if (options.Width is null && Place.Read(PlacePath) is { } place && Place.OnADisplay(place.Frame))
+        {
+            AppWindow.MoveAndResize(place.Frame);
+            if (place.Maximised && AppWindow.Presenter is OverlappedPresenter p)
+                p.Maximize();
+            placed = true;
+            return;
+        }
         var width = options.Width is { } w ? (int)(w * scale) : Math.Min((int)(1280 * scale), area.Width);
         var height = options.Height is { } h ? (int)(h * scale) : Math.Min((int)(800 * scale), area.Height);
         AppWindow.MoveAndResize(new RectInt32(
             area.X + Math.Max(0, (area.Width - width) / 2), area.Y + Math.Max(0, (area.Height - height) / 2), width, height));
-        if (AppWindow.Presenter is OverlappedPresenter overlapped)
-        {
-            overlapped.PreferredMinimumWidth = (int)(500 * scale);
-            overlapped.PreferredMinimumHeight = (int)(400 * scale);
-        }
+        placed = true;
+    }
+
+    bool placed;
+
+    string PlacePath => Path.Combine(dirs.Config, "windows-window.json");
+
+    /// <summary>Keeps the window's frame for the next launch: the normal frame, and whether it was maximised.</summary>
+    void RememberPlace()
+    {
+        if (!placed || options.Width is not null || AppWindow.Presenter is not OverlappedPresenter overlapped || !AppWindow.IsVisible)
+            return;
+        var maximised = overlapped.State == OverlappedPresenterState.Maximized;
+        if (overlapped.State == OverlappedPresenterState.Minimized)
+            return;
+        var frame = maximised && Place.Read(PlacePath) is { } was
+            ? was.Frame
+            : new RectInt32(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+        Place.Write(PlacePath, new Place(frame, maximised));
     }
 
     [System.Runtime.InteropServices.LibraryImport("user32.dll")]
@@ -160,6 +209,8 @@ public sealed partial class MainWindow : Window
         }
 #endif
         var user = AppDirs.User();
+        // A first launch: no config yet. Existing installs never see the welcome.
+        firstRun = !Directory.Exists(user.Config) || !Directory.EnumerateFileSystemEntries(user.Config).Any();
         AnistreamFfiMethods.StartLog(user.Cache);
         return (EngineSession.StartUser(host, start), user);
     }
@@ -209,6 +260,34 @@ public sealed partial class MainWindow : Window
                 await Task.Delay(2500);
                 AskBeforeClosing();
             });
+        if (options.Shortcuts)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(1500);
+                ShowShortcuts();
+            });
+        // First launch: the three pages, once. A fixture run shows them only when asked.
+        var welcomed = Path.Combine(dirs.Config, "windows-welcomed");
+        if (options.Welcome || (!options.Fixture && firstRun && !File.Exists(welcomed)))
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(600);
+                try
+                {
+                    Directory.CreateDirectory(dirs.Config);
+                    File.WriteAllText(welcomed, "");
+                }
+                catch (IOException)
+                {
+                    // Not kept: it shows again next time, which is harmless.
+                }
+                var welcome = new WelcomeDialog(ctx, Root.XamlRoot);
+                if (options.Welcome && options.Show is { } step)
+                    welcome.Step(step);
+                await welcome.ShowAsync();
+                if (welcome.Invite is { } invite)
+                    ShowJoinStore(invite);
+            });
     }
 
     void Heard(IReadOnlyList<Event> batch)
@@ -221,11 +300,10 @@ public sealed partial class MainWindow : Window
                     ShowAccount();
                     break;
                 case Event.Toast t:
-                    ShowToast(t.V1.Kind switch
-                    {
-                        NoticeKind.Alert => InfoBarSeverity.Warning,
-                        _ => InfoBarSeverity.Informational,
-                    }, t.V1.Text);
+                    ShowToast(t.V1);
+                    break;
+                case Event.Downloads:
+                    taskbar?.Downloads(ctx.Known.Downloads);
                     break;
                 case Event.Content { View: ContentFor.Continue, ContentValue: ContentList.Entries } when options.Play && !played:
                     played = true;
@@ -238,23 +316,92 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// The account in the pane's foot. Water is calm state: changes waiting to sync. A sign-in
+    /// that needs renewing is a problem, so it says so in words beside the error glyph.
+    /// </summary>
     void ShowAccount()
     {
         var anilist = ctx.Known.Anilist;
-        AccountText.Text = anilist is null ? "Not signed in" : anilist.User ?? "AniList";
-        AccountDot.Visibility = anilist is { Outbox: > 0 } || anilist is { NeedsReauth: true } ? Visibility.Visible : Visibility.Collapsed;
-        ToolTipService.SetToolTip(AccountItem, anilist is null ? "Connect a tracker" : $"Signed in to AniList as {anilist.User}");
+        var reauth = anilist is { NeedsReauth: true };
+        AccountText.Text = anilist is null ? "Not signed in" : reauth ? "Sign in again" : anilist.User ?? "AniList";
+        AccountDot.Visibility = anilist is { Outbox: > 0 } && !reauth ? Visibility.Visible : Visibility.Collapsed;
+        AccountAlert.Visibility = reauth ? Visibility.Visible : Visibility.Collapsed;
+        var tip = anilist is null ? "Sign in to AniList"
+            : reauth ? "AniList needs you to sign in again"
+            : anilist.Outbox > 0 ? $"Signed in to AniList as {anilist.User} · {AnistreamFfiMethods.Plural(anilist.Outbox, "change")} waiting to sync"
+            : $"Signed in to AniList as {anilist.User}";
+        ToolTipService.SetToolTip(AccountItem, tip);
+        AutomationProperties.SetName(AccountItem, tip);
     }
 
-    async void ShowToast(InfoBarSeverity severity, string text)
+    // Notices: the engine's words with the first letter capitalised, for as long as they take to
+    // read (4 s, 8 s with a button or for an alert, and 1 s for every 10 words past 12), paused
+    // under the pointer, with the hint as the one button.
+
+    int toastShown;
+    bool toastHeld;
+    DateTimeOffset toastUntil;
+
+    void ShowToast(Notice notice)
     {
+        var text = Words.Notice(notice.Text);
+        var (button, act) = notice.Hint switch
+        {
+            NoticeHint.StopPlayback => ("Stop", (Action)(() => { if (Player.Showing) Player.Close(); })),
+            NoticeHint.OpenStores => ("Open stores", () => Go("stores")),
+            NoticeHint.KitsuCredentials => ("Sign in", () => ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo())),
+            _ => (null, null),
+        };
+        ShowToast(notice.Kind == NoticeKind.Alert ? InfoBarSeverity.Warning : InfoBarSeverity.Informational, text, button, act);
+    }
+
+    void ShowToast(InfoBarSeverity severity, string text, string? button = null, Action? act = null)
+    {
+        var shown = ++toastShown;
+        if (Toast.IsOpen)
+            Motion.FadeIn(Toast);
         Toast.Severity = severity;
         Toast.Message = text;
+        if (button is not null && act is not null)
+        {
+            var b = new Button { Content = button };
+            b.Click += (_, _) =>
+            {
+                Toast.IsOpen = false;
+                act();
+            };
+            Toast.ActionButton = b;
+        }
+        else
+            Toast.ActionButton = null;
         Toast.IsOpen = true;
-        await Task.Delay(TimeSpan.FromSeconds(5));
-        if (Toast.Message == text)
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+        var seconds = (button is not null || severity == InfoBarSeverity.Warning ? 8 : 4) + Math.Max(0, words - 12) / 10;
+        toastUntil = DateTimeOffset.UtcNow.AddSeconds(seconds);
+        _ = CloseToastLater(shown);
+    }
+
+    async Task CloseToastLater(int shown)
+    {
+        while (shown == toastShown)
+        {
+            await Task.Delay(250);
+            if (toastHeld)
+            {
+                toastUntil = toastUntil.AddMilliseconds(250);
+                continue;
+            }
+            if (DateTimeOffset.UtcNow >= toastUntil)
+                break;
+        }
+        if (shown == toastShown)
             Toast.IsOpen = false;
     }
+
+    void OnToastPointerEntered(object sender, PointerRoutedEventArgs e) => toastHeld = true;
+
+    void OnToastPointerExited(object sender, PointerRoutedEventArgs e) => toastHeld = false;
 
     // Moving between pages.
 
@@ -267,11 +414,30 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(page, parameter, new SuppressNavigationTransitionInfo());
     }
 
+    /// <summary>Goes to a destination by its tag, as the pane and Ctrl+1 to Ctrl+7 do.</summary>
+    internal void Go(string tag)
+    {
+        if (Player.Showing)
+            Player.Close();
+        Navigate(tag);
+    }
+
+    /// <summary>
+    /// A title's page: drill-in, with the cover carried from where it was clicked when one was
+    /// (a connected animation). With animation effects off, both become a crossfade.
+    /// </summary>
     internal void OpenTitle(uint id)
     {
         if (Player.Showing)
             Player.Close();
-        ContentFrame.Navigate(typeof(TitlePage), id, new DrillInNavigationTransitionInfo());
+        if (Motion.Enabled)
+            ContentFrame.Navigate(typeof(TitlePage), id, new DrillInNavigationTransitionInfo());
+        else
+        {
+            ConnectedAnimationService.GetForCurrentView().GetAnimation(TitlePage.CoverAnimation)?.Cancel();
+            ContentFrame.Navigate(typeof(TitlePage), id, new SuppressNavigationTransitionInfo());
+            Motion.FadeIn(ContentFrame, Motion.Standard);
+        }
     }
 
     internal void ShowSearch(string query)
@@ -435,10 +601,18 @@ public sealed partial class MainWindow : Window
         if (closing)
             return;
         var (downloading, seeding) = ctx.Known.Running();
-        if (downloading + seeding > 0 && !askedClose && !DontAsk)
+        if (downloading + seeding == 0 || askedClose)
+            return;
+        switch (WhenClosing)
         {
-            args.Cancel = true;
-            AskBeforeClosing();
+            case CloseChoice.Ask:
+                args.Cancel = true;
+                AskBeforeClosing();
+                break;
+            case CloseChoice.KeepGoing:
+                args.Cancel = true;
+                KeepGoingHidden();
+                break;
         }
     }
 
@@ -467,7 +641,7 @@ public sealed partial class MainWindow : Window
         if (answer == ContentDialogResult.None)
             return;
         if (dontAsk.IsChecked == true)
-            DontAsk = true;
+            WhenClosing = answer == ContentDialogResult.Primary ? CloseChoice.KeepGoing : CloseChoice.Stop;
         if (answer == ContentDialogResult.Primary)
             KeepGoingHidden();
         else
@@ -484,22 +658,54 @@ public sealed partial class MainWindow : Window
         return $"{string.Join(" and ", parts)}. Keep them going after the window closes, or stop them?";
     }
 
-    /// <summary>Keep going: the window goes, the engine stays until nothing is left running.</summary>
+    DispatcherQueueTimer? keepGoing;
+
+    /// <summary>
+    /// Keep going: the window goes and the notification area icon comes, the first time with a
+    /// notification saying where anistream went. The engine stays until nothing is left running,
+    /// or until the icon's Quit; the icon's Open brings the window back.
+    /// </summary>
     void KeepGoingHidden()
     {
+        if (Player.Showing)
+            Player.Close();
         AppWindow.Hide();
-        var timer = ui.CreateTimer();
-        timer.Interval = TimeSpan.FromSeconds(5);
-        timer.Tick += (_, _) =>
+        tray ??= new Tray(WinRT.Interop.WindowNative.GetWindowHandle(this), Path.Combine(AppContext.BaseDirectory, "Assets", "anistream.ico"))
+        {
+            Open = () => ui.TryEnqueue(ShowAgain),
+            PauseAll = () => ui.TryEnqueue(ctx.PauseAllDownloads),
+            Quit = () => ui.TryEnqueue(CloseNow),
+            AnyRunning = () => ctx.Known.Downloads.Any(r => r.State is DownloadState.Active or DownloadState.Queued),
+        };
+        var told = Path.Combine(dirs.Config, "windows-told-tray");
+        tray.Show(tell: !File.Exists(told));
+        try
+        {
+            File.WriteAllText(told, "");
+        }
+        catch (IOException)
+        {
+            // Told again next time: harmless.
+        }
+        keepGoing?.Stop();
+        keepGoing = ui.CreateTimer();
+        keepGoing.Interval = TimeSpan.FromSeconds(5);
+        keepGoing.Tick += (_, _) =>
         {
             var (d, s) = ctx.Known.Running();
             if (d + s == 0)
-            {
-                timer.Stop();
                 CloseNow();
-            }
         };
-        timer.Start();
+        keepGoing.Start();
+    }
+
+    /// <summary>The window back from the notification area; the icon goes with the window's return.</summary>
+    void ShowAgain()
+    {
+        keepGoing?.Stop();
+        tray?.Hide();
+        AppWindow.Show(true);
+        Activate();
     }
 
     void CloseNow()
@@ -508,27 +714,185 @@ public sealed partial class MainWindow : Window
         Close();
     }
 
-    /// <summary>"Don't ask again", kept beside the engine's own config.</summary>
-    bool DontAsk
+    /// <summary>
+    /// What closing the window does while downloads run: Settings › Downloads, "When the window
+    /// closes with downloads running", kept beside the engine's own config. "Don't ask again" in
+    /// the dialog keeps the answer given. The old flag meant closing without asking, which stops.
+    /// </summary>
+    internal CloseChoice WhenClosing
     {
-        get => File.Exists(DontAskPath);
+        get
+        {
+            try
+            {
+                if (File.Exists(WhenClosingPath))
+                    return File.ReadAllText(WhenClosingPath).Trim() switch
+                    {
+                        "keep-going" => CloseChoice.KeepGoing,
+                        "stop" => CloseChoice.Stop,
+                        _ => CloseChoice.Ask,
+                    };
+                return File.Exists(Path.Combine(dirs.Config, "windows-close-without-asking")) ? CloseChoice.Stop : CloseChoice.Ask;
+            }
+            catch (IOException)
+            {
+                return CloseChoice.Ask;
+            }
+        }
         set
         {
             Directory.CreateDirectory(dirs.Config);
-            if (value)
-                File.WriteAllText(DontAskPath, "");
-            else
-                File.Delete(DontAskPath);
+            File.WriteAllText(WhenClosingPath, value switch
+            {
+                CloseChoice.KeepGoing => "keep-going",
+                CloseChoice.Stop => "stop",
+                _ => "ask",
+            });
+            File.Delete(Path.Combine(dirs.Config, "windows-close-without-asking"));
         }
     }
 
-    string DontAskPath => Path.Combine(dirs.Config, "windows-close-without-asking");
+    string WhenClosingPath => Path.Combine(dirs.Config, "windows-when-closing");
 
     void Shutdown()
     {
         closing = true;
+        keepGoing?.Stop();
+        tray?.Dispose();
+        network.Dispose();
+        taskbar?.Clear();
         player?.Shutdown();
         session.Dispose();
         player?.Dispose();
     }
+
+    // The window's keys, after the brief's table. The player's own keys are on the player; these
+    // stand aside while it is up, and while a text box has the focus for the keys it uses.
+
+    void Keys()
+    {
+        string[] tags = ["continue", "calendar", "seasonal", "library", "downloads", "providers", "stores"];
+        for (var i = 0; i < tags.Length; i++)
+        {
+            var tag = tags[i];
+            Key(VirtualKey.Number1 + i, VirtualKeyModifiers.Control, () => Go(tag));
+        }
+        Key(VirtualKey.Left, VirtualKeyModifiers.Menu, GoBack, inPlayer: true);
+        Key((VirtualKey)0xBC, VirtualKeyModifiers.Control, () => Navigate("settings"));
+        Key(VirtualKey.R, VirtualKeyModifiers.Control, SyncNow);
+        Key(VirtualKey.F5, VirtualKeyModifiers.None, SyncNow);
+        Key(VirtualKey.M, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, () => (ContentFrame.Content as IPageKeys)?.MarkWatched(), typing: false);
+        Key(VirtualKey.Delete, VirtualKeyModifiers.None, () => (ContentFrame.Content as IPageKeys)?.Delete(), typing: false);
+        Key((VirtualKey)0xBF, VirtualKeyModifiers.Control, ShowShortcuts);
+        // The mouse's back button, as Alt+Left.
+        Root.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, e) =>
+        {
+            if (e.GetCurrentPoint(Root).Properties.IsXButton1Pressed)
+            {
+                GoBack();
+                e.Handled = true;
+            }
+        }), true);
+    }
+
+    void Key(VirtualKey key, VirtualKeyModifiers modifiers, Action act, bool inPlayer = false, bool typing = true)
+    {
+        var accelerator = new KeyboardAccelerator { Key = key, Modifiers = modifiers };
+        accelerator.Invoked += (_, args) =>
+        {
+            if (Player.Showing && !inPlayer)
+                return;
+            if (!typing && FocusManager.GetFocusedElement(Root.XamlRoot) is TextBox or AutoSuggestBox or PasswordBox)
+                return;
+            args.Handled = true;
+            act();
+        };
+        Root.KeyboardAccelerators.Add(accelerator);
+    }
+
+    void SyncNow()
+    {
+        if (ctx.Known.Anilist is null)
+            return;
+        ctx.Send(new Command.SyncNow());
+        ShowToast(InfoBarSeverity.Informational, "Syncing with AniList");
+    }
+
+    /// <summary>Ctrl+/: every key the window and the player answer, in a dialog.</summary>
+    internal async void ShowShortcuts()
+    {
+        var grid = new Grid { ColumnSpacing = 24, RowSpacing = 6 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var row = 0;
+        void Section(string name)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var heading = new TextBlock { Text = name, Style = Ui.Res<Style>("BodyStrongTextBlockStyle"), Margin = new Thickness(0, row == 0 ? 0 : 12, 0, 2) };
+            AutomationProperties.SetHeadingLevel(heading, AutomationHeadingLevel.Level2);
+            Grid.SetRow(heading, row++);
+            Grid.SetColumnSpan(heading, 2);
+            grid.Children.Add(heading);
+        }
+        void Line(string what, string keys)
+        {
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var name = new TextBlock { Text = what };
+            var key = new TextBlock { Text = keys, Style = Ui.Res<Style>("HazeBodyStyle") };
+            Grid.SetRow(name, row);
+            Grid.SetRow(key, row++);
+            Grid.SetColumn(key, 1);
+            grid.Children.Add(name);
+            grid.Children.Add(key);
+        }
+        Section("Window");
+        Line("Continue to Plugin stores", "Ctrl+1 to Ctrl+7");
+        Line("Search", "Ctrl+F, Ctrl+E");
+        Line("Back", "Alt+Left, mouse back");
+        Line("Settings", "Ctrl+,");
+        Line("Sync now", "Ctrl+R, F5");
+        Line("Mark as watched", "Ctrl+Shift+M");
+        Line("Hide from Continue", "Delete");
+        Line("Context menu", "Shift+F10, Menu key");
+        Line("Keyboard shortcuts", "Ctrl+/");
+        Section("Player");
+        Line("Play or pause", "Space, K");
+        Line("Back or forward 5 s, 30 s with Shift", "Left, Right");
+        Line("Back or forward 10 s", "J, L");
+        Line("Volume", "Up, Down");
+        Line("Mute", "M");
+        Line("Full screen", "F, F11");
+        Line("Skip, undo the skip", "S, U");
+        Line("Next or previous episode", "N, Shift+N");
+        Line("Episodes", "E");
+        Line("Subtitles and audio", "T");
+        Line("Slower, faster, normal speed", "[, ], Backspace");
+        Line("Mini player", "P");
+        Line("Take the corner card's action", "Enter");
+        Line("Close the player", "Esc, Alt+Left");
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Root.XamlRoot,
+            Title = "Keyboard shortcuts",
+            Content = new ScrollViewer { Content = grid, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 16, 0) },
+            CloseButtonText = "Close",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        try
+        {
+            await dialog.ShowAsync();
+        }
+        catch (Exception)
+        {
+            // Another dialog is open: one at a time.
+        }
+    }
+}
+
+/// <summary>What closing the window does while downloads run.</summary>
+enum CloseChoice
+{
+    Ask,
+    KeepGoing,
+    Stop,
 }

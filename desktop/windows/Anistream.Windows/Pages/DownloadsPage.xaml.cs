@@ -79,16 +79,15 @@ public sealed partial class DownloadsPage : Page
                 Body.Children.Add(Seed(seed));
         }
         if (rows.Any(r => r.State is DownloadState.Active or DownloadState.Queued))
-            Body.Children.Add(Ui.Haze("Downloads continue after you leave anistream."));
+            Body.Children.Add(Ui.Haze(ctx.Window.WhenClosing switch
+            {
+                CloseChoice.KeepGoing => "Downloads keep going when you close the window.",
+                CloseChoice.Stop => "Closing the window stops downloads. They resume the next time anistream opens.",
+                _ => "Downloads keep going when you close the window, if you choose to.",
+            }));
     }
 
-    static StackPanel Empty()
-    {
-        var empty = new StackPanel { Spacing = 4, Margin = new Thickness(0, 24, 0, 0) };
-        empty.Children.Add(Ui.Text("Nothing downloaded", "BodyStrongTextBlockStyle"));
-        empty.Children.Add(Ui.Haze("Download an episode from its title page to watch it without a connection."));
-        return empty;
-    }
+    static StackPanel Empty() => States.Empty("No downloads", "Downloaded episodes play without a connection.");
 
     Border Group(DownloadGroup group)
     {
@@ -134,7 +133,8 @@ public sealed partial class DownloadsPage : Page
             {
                 Minimum = 0, Maximum = 1, Value = row.Fraction, Height = 4, MaxWidth = 420,
                 HorizontalAlignment = HorizontalAlignment.Left, Width = 420,
-                ShowPaused = row.State == DownloadState.Paused,
+                // Water while it runs, haze while it waits: a state, never the accent.
+                Foreground = Ui.Res<Microsoft.UI.Xaml.Media.Brush>(row.State == DownloadState.Active ? "WaterBrush" : "HazeBrush"),
             };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(bar, $"{name} progress");
             text.Children.Add(bar);
@@ -201,7 +201,16 @@ public sealed partial class DownloadsPage : Page
             case DownloadState.Queued:
                 return Ui.Haze("Queued · starts when a download slot is free", wrap: false);
             default:
-                return Ui.Haze($"Failed: {row.Error ?? "the download stopped"}");
+            {
+                // The glyph is the one vermilion thing; the words are haze, and the engine's
+                // reason goes to the log, not the row.
+                var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                line.Children.Add(States.ErrorGlyph(12));
+                line.Children.Add(Ui.Haze("Couldn't finish downloading. Retry, or remove it from the queue.", wrap: false));
+                if (row.Error is { } error)
+                    ToolTipService.SetToolTip(line, Words.Failure(error));
+                return line;
+            }
         }
     }
 
@@ -262,11 +271,7 @@ public sealed partial class DownloadsPage : Page
         }
     }
 
-    void OnPauseAll(object sender, RoutedEventArgs e)
-    {
-        foreach (var row in ctx.Known.Downloads.Where(r => r.State is DownloadState.Active or DownloadState.Queued))
-            ctx.Send(new Command.DownloadPause(row.Id));
-    }
+    void OnPauseAll(object sender, RoutedEventArgs e) => ctx.PauseAllDownloads();
 
     void OnClearCompleted(object sender, RoutedEventArgs e) => ctx.Send(new Command.DownloadClearCompleted());
 

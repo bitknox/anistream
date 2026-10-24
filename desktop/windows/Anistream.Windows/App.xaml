@@ -36,6 +36,15 @@
           <Color x:Key="TextFillColorDisabled">#5C6073</Color>
           <Color x:Key="TextOnAccentFillColorPrimary">#161A2E</Color>
           <Color x:Key="SystemFillColorCritical">#E06B54</Color>
+          <!-- Fluent's caution yellow, attention blue and success green are not in the palette:
+               caution and success read as haze, attention as water. -->
+          <Color x:Key="SystemFillColorCaution">#9298B5</Color>
+          <Color x:Key="SystemFillColorAttention">#7FC7D9</Color>
+          <Color x:Key="SystemFillColorSuccess">#7FC7D9</Color>
+          <Color x:Key="SystemFillColorCautionBackground">#222638</Color>
+          <Color x:Key="SystemFillColorAttentionBackground">#222638</Color>
+          <Color x:Key="SystemFillColorSuccessBackground">#222638</Color>
+          <Color x:Key="SystemFillColorCriticalBackground">#222638</Color>
 
           <SolidColorBrush x:Key="SolidBackgroundFillColorBaseBrush" Color="#161A2E" />
           <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#161A2E" />
@@ -58,14 +67,49 @@
           <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#F7C98B" />
           <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#F2A64B" />
           <SolidColorBrush x:Key="SystemFillColorCriticalBrush" Color="#E06B54" />
+          <SolidColorBrush x:Key="SystemFillColorCautionBrush" Color="#9298B5" />
+          <SolidColorBrush x:Key="SystemFillColorAttentionBrush" Color="#7FC7D9" />
+          <SolidColorBrush x:Key="SystemFillColorSuccessBrush" Color="#7FC7D9" />
+          <SolidColorBrush x:Key="SystemFillColorCautionBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="SystemFillColorAttentionBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="SystemFillColorSuccessBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="SystemFillColorCriticalBackgroundBrush" Color="#222638" />
 
-          <!-- Toggles, switches and the selector bar: amber when on, ground text on it. -->
-          <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#F2A64B" />
-          <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#F2A64B" Opacity="0.9" />
-          <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#DE9340" />
-          <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="#161A2E" />
-          <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="#161A2E" />
-          <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="#161A2E" />
+          <!-- InfoBar: the raised surface for every severity, its icon in the role's colour. -->
+          <SolidColorBrush x:Key="InfoBarInformationalSeverityBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="InfoBarWarningSeverityBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="InfoBarSuccessSeverityBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="InfoBarErrorSeverityBackgroundBrush" Color="#222638" />
+          <SolidColorBrush x:Key="InfoBarInformationalSeverityIconBackground" Color="#9298B5" />
+          <SolidColorBrush x:Key="InfoBarWarningSeverityIconBackground" Color="#9298B5" />
+          <SolidColorBrush x:Key="InfoBarSuccessSeverityIconBackground" Color="#7FC7D9" />
+          <SolidColorBrush x:Key="InfoBarErrorSeverityIconBackground" Color="#E06B54" />
+          <SolidColorBrush x:Key="InfoBarInformationalSeverityIconForeground" Color="#161A2E" />
+          <SolidColorBrush x:Key="InfoBarWarningSeverityIconForeground" Color="#161A2E" />
+          <SolidColorBrush x:Key="InfoBarSuccessSeverityIconForeground" Color="#161A2E" />
+          <SolidColorBrush x:Key="InfoBarErrorSeverityIconForeground" Color="#161A2E" />
+          <SolidColorBrush x:Key="InfoBarBorderBrush" Color="#2F3242" />
+
+          <!-- Switches and the selector bar: amber when on, ground on it. Check marks are a state,
+               not an action, so they stay neutral: silk with the ground's check on it. -->
+          <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#E4E0D6" Opacity="0.9" />
+          <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#9298B5" />
+          <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#9298B5" />
+          <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#161A2E" />
+          <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#161A2E" />
+          <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#161A2E" />
+          <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFill" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPointerOver" Color="#E4E0D6" Opacity="0.9" />
+          <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPressed" Color="#9298B5" />
+          <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStroke" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePointerOver" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePressed" Color="#9298B5" />
+          <SolidColorBrush x:Key="RadioButtonCheckGlyphFill" Color="#161A2E" />
+          <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPointerOver" Color="#161A2E" />
+          <SolidColorBrush x:Key="RadioButtonCheckGlyphFillPressed" Color="#161A2E" />
           <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#F2A64B" />
           <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#F2A64B" Opacity="0.9" />
           <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#DE9340" />
@@ -74,11 +118,12 @@
           <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#161A2E" />
           <SolidColorBrush x:Key="SelectorBarItemPillFill" Color="#F2A64B" />
 
-          <!-- Progress: amber on the rule colour. -->
-          <SolidColorBrush x:Key="ProgressBarForeground" Color="#F2A64B" />
+          <!-- Progress is a state: water on the rule colour (downloads use haze while they wait). -->
+          <SolidColorBrush x:Key="ProgressBarForeground" Color="#7FC7D9" />
           <SolidColorBrush x:Key="ProgressBarBackground" Color="#434653" />
           <SolidColorBrush x:Key="ProgressBarBorderBrush" Color="#434653" />
-          <SolidColorBrush x:Key="ProgressRingForegroundThemeBrush" Color="#F2A64B" />
+          <SolidColorBrush x:Key="ProgressRingForegroundThemeBrush" Color="#E4E0D6" />
+          <SolidColorBrush x:Key="ProgressRingForeground" Color="#E4E0D6" />
 
           <!-- The timeline and the volume: played part amber on the rule colour. -->
           <SolidColorBrush x:Key="SliderTrackValueFill" Color="#F2A64B" />
@@ -119,6 +164,10 @@
           <SolidColorBrush x:Key="FaintRuleBrush" Color="#2F3242" />
           <!-- The player's 35% dim of the ground over the frame. -->
           <SolidColorBrush x:Key="DimBrush" Color="#161A2E" Opacity="0.35" />
+          <!-- The still-watching scrim: the ground at 60%. -->
+          <SolidColorBrush x:Key="ScrimBrush" Color="#161A2E" Opacity="0.6" />
+          <!-- A spoiler still: blurred under a light ground tint; raised when the blur is off. -->
+          <AcrylicBrush x:Key="SpoilerBrush" TintColor="#161A2E" TintOpacity="0.25" TintLuminosityOpacity="0.3" FallbackColor="#222638" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>

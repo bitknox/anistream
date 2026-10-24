@@ -13,7 +13,7 @@
     </ItemsView.Layout>
     <ItemsView.ItemTemplate>
       <DataTemplate x:DataType="local:CoverItem">
-        <ItemContainer AutomationProperties.Name="{x:Bind Title}" CornerRadius="8">
+        <ItemContainer AutomationProperties.Name="{x:Bind Name}" CornerRadius="8">
           <ItemContainer.ContextFlyout>
             <MenuFlyout>
               <MenuFlyoutItem Text="Open title" Click="OnOpen" Tag="{x:Bind}">
@@ -25,7 +25,7 @@
             </MenuFlyout>
           </ItemContainer.ContextFlyout>
           <StackPanel Width="150" Spacing="2" Padding="0,0,0,6">
-            <Grid Width="150" Height="225" CornerRadius="8" Background="{x:Bind Placeholder}" Margin="0,0,0,6">
+            <Grid Tag="cover" Width="150" Height="225" CornerRadius="8" Background="{x:Bind Placeholder}" Margin="0,0,0,6">
               <Image Source="{x:Bind Cover, Mode=OneWay}" Stretch="UniformToFill" />
             </Grid>
             <TextBlock Text="{x:Bind Title}" Style="{StaticResource ShowTitleStyle}" MaxLines="2" TextWrapping="WrapWholeWords" />

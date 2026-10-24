@@ -1,0 +1,126 @@
+using Microsoft.UI.Composition;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media.Animation;
+using Windows.UI.ViewManagement;
+
+namespace Anistream.Windows;
+
+/// <summary>
+/// The motion tokens on Windows' animation APIs. Springs are critically damped (quick: 200 ms
+/// period, standard: 300 ms); fade-in is 200 ms decelerating, fade-out 300 ms accelerating.
+/// With "Animation effects" off (<see cref="UISettings.AnimationsEnabled"/>) the spatial
+/// motions (drill-in, the connected cover) become crossfades; fades stay, as the brief says.
+/// </summary>
+static class Motion
+{
+    static readonly UISettings settings = new();
+
+    public static bool Enabled => settings.AnimationsEnabled;
+
+    public static readonly TimeSpan Quick = TimeSpan.FromMilliseconds(200);
+    public static readonly TimeSpan Standard = TimeSpan.FromMilliseconds(300);
+    public static readonly TimeSpan FadeInTime = TimeSpan.FromMilliseconds(200);
+    public static readonly TimeSpan FadeOutTime = TimeSpan.FromMilliseconds(300);
+
+    static readonly Dictionary<UIElement, Storyboard> running = [];
+
+    /// <summary>Shows a collapsed element by fading it in (fade-in).</summary>
+    public static void Show(UIElement element) => Show(element, FadeInTime);
+
+    /// <summary>Shows an element with the standard token, for cards appearing inside a screen.</summary>
+    public static void ShowStandard(UIElement element) => Show(element, Standard);
+
+    static void Show(UIElement element, TimeSpan time)
+    {
+        if (element.Visibility == Visibility.Visible && !running.ContainsKey(element) && element.Opacity >= 1)
+            return;
+        var from = element.Visibility == Visibility.Visible ? element.Opacity : 0;
+        element.Visibility = Visibility.Visible;
+        Fade(element, from, 1, time, EasingMode.EaseOut, null);
+    }
+
+    /// <summary>Fades an element out (fade-out), then collapses it so the video scans out alone.</summary>
+    public static void Hide(UIElement element) => Hide(element, FadeOutTime);
+
+    public static void HideStandard(UIElement element) => Hide(element, Standard);
+
+    public static void HideQuick(UIElement element) => Hide(element, Quick);
+
+    static void Hide(UIElement element, TimeSpan time)
+    {
+        if (element.Visibility == Visibility.Collapsed)
+            return;
+        Fade(element, element.Opacity, 0, time, EasingMode.EaseIn, () =>
+        {
+            element.Visibility = Visibility.Collapsed;
+            element.Opacity = 1;
+        });
+    }
+
+    /// <summary>Fades freshly arrived content in from nothing: art, a page, a crossfade's new half.</summary>
+    public static void FadeIn(UIElement element, TimeSpan? time = null)
+    {
+        element.Visibility = Visibility.Visible;
+        Fade(element, 0, 1, time ?? FadeInTime, EasingMode.EaseOut, null);
+    }
+
+    /// <summary>Stops any fade and sets the element where it would have ended.</summary>
+    public static void Set(UIElement element, bool shown)
+    {
+        if (running.Remove(element, out var board))
+            board.Stop();
+        element.Opacity = 1;
+        element.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    static void Fade(UIElement element, double from, double to, TimeSpan time, EasingMode mode, Action? done)
+    {
+        if (running.Remove(element, out var was))
+            was.Stop();
+        var animation = new DoubleAnimation
+        {
+            From = from,
+            To = to,
+            Duration = time,
+            EasingFunction = new CubicEase { EasingMode = mode },
+        };
+        Storyboard.SetTarget(animation, element);
+        Storyboard.SetTargetProperty(animation, "Opacity");
+        var board = new Storyboard();
+        board.Children.Add(animation);
+        board.Completed += (_, _) =>
+        {
+            if (running.TryGetValue(element, out var current) && current == board)
+            {
+                running.Remove(element);
+                element.Opacity = to;
+                done?.Invoke();
+            }
+        };
+        running[element] = board;
+        board.Begin();
+    }
+
+    /// <summary>An opacity that eases to each new value on the quick token: the row dim after marking watched.</summary>
+    public static void QuickOpacity(UIElement element) =>
+        element.OpacityTransition = new ScalarTransition { Duration = Quick };
+
+    /// <summary>
+    /// A critically damped spring on a composition property ("Scale.X", "Offset.Y"...) of the
+    /// element's visual: quick or standard.
+    /// </summary>
+    public static void Spring(UIElement element, string property, float to, bool quick = false)
+    {
+        var visual = ElementCompositionPreview.GetElementVisual(element);
+        var spring = visual.Compositor.CreateSpringScalarAnimation();
+        spring.DampingRatio = 1f;
+        spring.Period = quick ? Quick : Standard;
+        spring.FinalValue = to;
+        if (!Enabled)
+        {
+            spring.Period = TimeSpan.FromMilliseconds(1);
+        }
+        visual.StartAnimation(property, spring);
+    }
+}

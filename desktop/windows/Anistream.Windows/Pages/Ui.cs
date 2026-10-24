@@ -78,7 +78,7 @@ static class Ui
             Width = width,
             Height = height,
             CornerRadius = new CornerRadius(6),
-            Background = new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x34, 0x3A, 0x57)),
+            Background = new SolidColorBrush(Colours.Raised),
         };
         if (ctx.Known.Entries.TryGetValue(id, out var entry))
         {

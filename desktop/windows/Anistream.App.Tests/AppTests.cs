@@ -34,6 +34,17 @@ public class KnownTests
     static Entry Title(uint id, string title) => new(Id: id, Title: title);
 
     [Fact]
+    public void OfflineFollowsTheEnginesConnectivity()
+    {
+        var known = new Known();
+        Assert.False(known.Offline);
+        known.Take(new Event.Connectivity(true));
+        Assert.True(known.Offline);
+        known.Take(new Event.Connectivity(false));
+        Assert.False(known.Offline);
+    }
+
+    [Fact]
     public void ProgressMovesTheTitleWhereverItWasSeen()
     {
         var known = new Known();
@@ -87,17 +98,22 @@ public class CalendarTests
     [Fact]
     public void TheWeekStartsOnMonday()
     {
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
         // Tuesday 20 October 2026, 19:30 UTC.
         var tuesday = new DateTimeOffset(2026, 10, 20, 19, 30, 0, TimeSpan.Zero).ToUnixTimeSeconds();
         Assert.Equal(new DateOnly(2026, 10, 19), Calendar.WeekStart(tuesday, 0, Utc));
         Assert.Equal(new DateOnly(2026, 10, 26), Calendar.WeekStart(tuesday, 1, Utc));
         Assert.Equal("19 to 25 October 2026", Calendar.WeekTitle(new DateOnly(2026, 10, 19)));
         Assert.Equal("28 September to 4 October 2026", Calendar.WeekTitle(new DateOnly(2026, 9, 28)));
+        // The system's clock: a 12-hour locale reads its own way.
+        var us = System.Globalization.CultureInfo.GetCultureInfo("en-US");
+        Assert.Matches(@"^7:30\sPM$", Calendar.Time(tuesday, Utc, us));
     }
 
     [Fact]
     public void BroadcastsFallOnTheirDayAndSayWhenTheyMoved()
     {
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
         var anchor = new DateTimeOffset(2026, 10, 20, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
         var rows = new[]
         {

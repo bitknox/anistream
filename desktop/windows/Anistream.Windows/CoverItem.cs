@@ -25,6 +25,9 @@ public sealed partial class CoverItem : INotifyPropertyChanged
     public Entry Entry { get; }
     public uint Id => Entry.Id;
     public string Title => Entry.Title;
+
+    /// <summary>What a screen reader says: the title, the English title when it differs, then the caption.</summary>
+    public string Name => string.Join(", ", new[] { Entry.Title, Entry.Secondary is { Length: > 0 } s && s != Entry.Title ? s : null, Caption is { Length: > 0 } c ? c : null }.Where(x => x is not null));
     public string Caption { get; set; }
     public Brush Placeholder { get; }
 
@@ -61,13 +64,13 @@ static class Colours
     public static readonly Color Amber = Color.FromArgb(0xFF, 0xF2, 0xA6, 0x4B);
     public static readonly Color Water = Color.FromArgb(0xFF, 0x7F, 0xC7, 0xD9);
 
-    /// <summary>"#rrggbb" as a colour, dimmed towards the ground so a placeholder stays quiet.</summary>
+    /// <summary>"#rrggbb" as a colour at half strength over the raised surface, so a placeholder stays quiet.</summary>
     public static Color? Parse(string? hex)
     {
         if (hex is not { Length: 7 } || hex[0] != '#' || !uint.TryParse(hex.AsSpan(1), System.Globalization.NumberStyles.HexNumber, null, out var rgb))
             return null;
-        byte Mix(uint c, byte ground) => (byte)((c * 2 + ground * 3) / 5);
-        return Color.FromArgb(0xFF, Mix((rgb >> 16) & 0xFF, Ground.R), Mix((rgb >> 8) & 0xFF, Ground.G), Mix(rgb & 0xFF, Ground.B));
+        byte Mix(uint c, byte under) => (byte)((c + under) / 2);
+        return Color.FromArgb(0xFF, Mix((rgb >> 16) & 0xFF, Raised.R), Mix((rgb >> 8) & 0xFF, Raised.G), Mix(rgb & 0xFF, Raised.B));
     }
 
     public static SolidColorBrush Brush(Color c) => new(c);

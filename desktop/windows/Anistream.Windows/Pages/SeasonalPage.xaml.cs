@@ -19,6 +19,7 @@ public sealed partial class SeasonalPage : Page
     SeasonYear picked;
     Entry[] entries = [];
     string[] keep = [];
+    bool answered;
 
     public SeasonalPage()
     {
@@ -31,6 +32,8 @@ public sealed partial class SeasonalPage : Page
             item.Click += (_, _) => Pick(season);
             SeasonMenu.Items.Add(item);
         }
+        State.Placeholders = () => States.Covers();
+        State.ActivityText = "Loading this season";
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
         Unloaded += (_, _) => ctx.Batch -= Heard;
@@ -54,17 +57,13 @@ public sealed partial class SeasonalPage : Page
         var last = SeasonMenu.Items.OfType<RadioMenuFlyoutItem>().Last().Tag as SeasonYear;
         Later.IsEnabled = season != first;
         Earlier.IsEnabled = season != last;
-        if (season == now)
-        {
-            entries = ctx.Known.ListEntries(new ContentFor.Seasonal());
-            ctx.Send(new Command.LoadSeasonal());
-        }
-        else
-        {
-            entries = ctx.Known.ListEntries(new ContentFor.Search(Query(season)));
-            ctx.Send(new Command.Search(Query(season)));
-        }
-        Show();
+        ContentFor view = season == now ? new ContentFor.Seasonal() : new ContentFor.Search(Query(season));
+        entries = ctx.Known.ListEntries(view);
+        answered = ctx.Known.Lists.TryGetValue(view, out var list) && list is ContentList.Entries or ContentList.Empty;
+        State.Wait(hasContent: entries.Length > 0);
+        ctx.Send(season == now ? new Command.LoadSeasonal() : new Command.Search(Query(season)));
+        if (entries.Length > 0 || answered)
+            Show();
     }
 
     void Heard(IReadOnlyList<Event> batch)
@@ -81,8 +80,16 @@ public sealed partial class SeasonalPage : Page
             };
             if (!ours || c.ContentValue is ContentList.Loading)
                 continue;
+            if (c.ContentValue is ContentList.Failed f)
+            {
+                if (entries.Length == 0)
+                    State.Failed(f.V1, () => Pick(picked));
+                else
+                    State.Done();
+                continue;
+            }
             entries = ctx.Known.ListEntries(c.View);
-            Empty.Text = c.ContentValue is ContentList.Failed f ? f.V1 : $"Nothing listed for {AnistreamFfiMethods.SeasonName(picked)} yet.";
+            answered = true;
             Show();
         }
     }
@@ -94,7 +101,10 @@ public sealed partial class SeasonalPage : Page
             .Select(e => new CoverItem(e).Load(ctx.Art))
             .ToList();
         Grid.Covers = shown;
-        Empty.Visibility = shown.Count == 0 && Empty.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (shown.Count > 0)
+            State.Done();
+        else if (answered)
+            State.Empty(States.Unavailable(entries.Length == 0 ? $"Nothing listed for {AnistreamFfiMethods.SeasonName(picked)} yet" : "No titles in this format", entries.Length == 0 ? "AniList adds a season's titles as they're announced." : "Try All."));
     }
 
     void OnFormatChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs e)
