@@ -510,6 +510,55 @@ class CardTest {
     }
 
     @Test
+    fun playFromTheStartSeeksBackOnceTheResumedFileIsIn() = runTest {
+        val rig = Rig(this)
+        rig.model.playFromStart()
+        rig.ui(1u, PlayerUi.Resumed(606.0))
+        assertNull("no Resumed note for a start from the beginning", rig.model.resume)
+        rig.ops(1u, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))
+        rig.emit(MpvEvent.of(MpvNative.Event.START_FILE))
+        assertEquals(emptyList<PlayerCommand>(), rig.controls)
+        rig.emit(MpvEvent.of(MpvNative.Event.FILE_LOADED))
+        assertEquals(listOf(PlayerCommand.SeekTo(0.0)), rig.controls)
+        // The next playback resumes as usual.
+        rig.ui(2u, PlayerUi.Resumed(300.0))
+        assertNotNull(rig.model.resume)
+    }
+
+    @Test
+    fun playFromTheStartIsForgottenByAPlaybackWithNoResumePoint() = runTest {
+        val rig = Rig(this)
+        rig.model.playFromStart()
+        rig.opened()
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        rig.ui(2u, PlayerUi.Resumed(300.0))
+        assertNotNull(rig.model.resume)
+    }
+
+    @Test
+    fun upNextWaitsForALengthThatSettles() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.ui(1u, upNextCard())
+        // A stream read faster than it plays: its length grows past where Up Next would show.
+        for (length in 1..12) rig.emit(MpvEvent.property("duration", MpvValue.Real(length * 10.0)))
+        rig.playhead(115.0)
+        assertFalse(rig.model.upNextShown)
+        assertEquals(emptyList<PlayerCommand>(), rig.controls)
+    }
+
+    @Test
+    fun upNextIgnoresAPlayheadPastTheLength() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.ui(1u, upNextCard())
+        rig.emit(MpvEvent.property("duration", MpvValue.Real(20.0)))
+        rig.playhead(40.0)
+        assertFalse(rig.model.upNextShown)
+        assertEquals(emptyList<PlayerCommand>(), rig.controls)
+    }
+
+    @Test
     fun aNewPlaybackStartsWithNoneOfTheLastOnesCards() = runTest {
         val rig = Rig(this)
         rig.opened()
@@ -906,3 +955,6 @@ class WatchdogTest {
         assertEquals(1uL to PlayerReport.FileLoaded, rig.reports.last())
     }
 }
+
+/** Up Next for episode 8, counting 10 s down from the end, with no ending known. */
+private fun upNextCard() = PlayerUi.UpNext(NextEpisode("8", null, null), true, null, 10u, 3u)

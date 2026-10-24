@@ -2,6 +2,7 @@
 
 package tv.anistream.store
 
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -24,10 +25,12 @@ import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiTvRemote
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
@@ -47,6 +50,8 @@ import tv.anistream.engine.model.ShowSettingKey
  * @param artworkWithoutEngine where art comes from when there is no engine behind the store, as
  *   in the screenshot tests: a URL's bytes, answered as the engine would answer them, or `null`
  *   for none. Unset, art waits for the engine.
+ * @param artworkBudget how many bytes of decoded art are kept in memory: [ArtworkStore.DEFAULT_BUDGET]
+ *   on a phone, less on a TV.
  */
 class AppStore(
     private val scope: CoroutineScope,
@@ -55,6 +60,7 @@ class AppStore(
     decoder: ArtworkDecoder = BitmapDecoder,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
     private val artworkWithoutEngine: ((String) -> ByteArray?)? = null,
+    artworkBudget: Long = ArtworkStore.DEFAULT_BUDGET,
 ) {
     /** Where the engine stands. */
     sealed interface Phase {
@@ -72,6 +78,9 @@ class AppStore(
     val titles = TitleCache()
     val continuing = ContinueModel()
     val seasonal = ListModel()
+
+    /** A browse by filter alone, nothing typed: another season, sorted another way. Search's own stays. */
+    val browse = SearchModel()
     val calendar = CalendarModel()
     val search = SearchModel()
     val library = LibraryModel()
@@ -86,7 +95,7 @@ class AppStore(
 
     /** The app's own update: the newer release, and the download and install the viewer started. */
     val updates = UpdateModel(notices)
-    val artwork = ArtworkStore(scope, decoder) { url ->
+    val artwork = ArtworkStore(scope, decoder, costLimit = artworkBudget) { url ->
         val client = client
         val files = artworkWithoutEngine
         when {
@@ -105,6 +114,9 @@ class AppStore(
 
     private var client: EngineClient? = null
 
+    /** Where the engine keeps the art it fetched, once a launch says: its cache's `img`. */
+    private var imageFiles: File? = null
+
     /** What the screens asked for before the engine was there, sent once it is. */
     private val early = mutableListOf<Command>()
 
@@ -116,6 +128,9 @@ class AppStore(
 
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
+
+    /** What a phone's remote asks of a TV's front end, once the TV started its remote. */
+    var onRemote: ((FrontIntent) -> Unit)? = null
 
     private val _answers = MutableSharedFlow<Event>(extraBufferCapacity = 8)
 
@@ -145,6 +160,7 @@ class AppStore(
      */
     fun start(launch: EngineLaunch, host: FfiHost, prepare: () -> Unit = {}) {
         _phase.value = Phase.Starting
+        imageFiles = launch.home.cache.resolve("img")
         scope.launch {
             try {
                 val engine = withContext(Dispatchers.IO) {
@@ -156,6 +172,20 @@ class AppStore(
                 _phase.value = Phase.Failed(e.reason)
                 early.clear()
             }
+        }
+    }
+
+    /**
+     * Start a TV's remote under [name] on [port], off the main thread: `null` with no engine, or
+     * when it could not listen, and why in the log. What it asks comes to [onRemote].
+     */
+    suspend fun startRemote(name: String, port: Int): FfiTvRemote? {
+        val engine = client?.engine ?: return null
+        return try {
+            engine.startRemote(name, port.toUShort())
+        } catch (e: FfiException) {
+            android.util.Log.w("anistream", "the remote did not start: ${e.reason}")
+            null
         }
     }
 
@@ -197,6 +227,23 @@ class AppStore(
     // Asking
 
     /** What you were watching, unless it was answered within [LIST_FRESH_MILLIS]; [force] asks anyway. */
+    /**
+     * How many bytes of art are kept: the decoded art in memory and the files the engine fetched,
+     * read off the main thread.
+     */
+    suspend fun imageCacheBytes(): Long {
+        val files = withContext(Dispatchers.IO) {
+            imageFiles?.listFiles()?.sumOf { if (it.isFile) it.length() else 0L } ?: 0L
+        }
+        return files + artwork.held.value
+    }
+
+    /** Drop the art kept in memory and the files the engine fetched, which it fetches again as asked. */
+    suspend fun clearImageCache() {
+        artwork.clear()
+        withContext(Dispatchers.IO) { imageFiles?.listFiles()?.forEach { if (it.isFile) it.delete() } }
+    }
+
     fun loadContinue(force: Boolean = false) {
         if (!force && continuing.list.answered(LIST_FRESH_MILLIS)) return
         continuing.list.asked()
@@ -207,6 +254,13 @@ class AppStore(
         if (!force && seasonal.answered(LIST_FRESH_MILLIS)) return
         seasonal.asked()
         send(Command.LoadSeasonal)
+    }
+
+    /** Browse [filter] with nothing typed, into [browse], as Seasonal does for another season or sort. */
+    fun browse(filter: SearchFilters) {
+        if (browse.takes("", filter) && browse.list.state.value !is ListState.Failed) return
+        browse.submit("", filter)
+        send(Command.Search("", filter))
     }
 
     fun loadCalendar(force: Boolean = false) {
@@ -356,6 +410,29 @@ class AppStore(
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
         send(Command.HideFromContinue(id))
+    }
+
+    private val _sources = MutableStateFlow<SourceChoices?>(null)
+
+    /** The releases of the episode the viewer is choosing a source for, outside the player. */
+    val sources: StateFlow<SourceChoices?> = _sources.asStateFlow()
+
+    /** List [episode]'s releases to choose from: [sources] until they come, then with them. */
+    fun loadSources(id: AnilistId, episode: String) {
+        _sources.value = SourceChoices(id, episode)
+        val job = send(Command.LoadSources(id, episode))
+        _sources.value = _sources.value?.takeIf { it.id == id && it.episode == episode }?.copy(job = job)
+    }
+
+    /** Play the release [candidate] of [episode], as the player's own Choose source does. */
+    fun playSource(id: AnilistId, episode: String, candidate: tv.anistream.engine.core.SourceCandidate) {
+        _sources.value = null
+        send(Command.PlaySource(id, episode, candidate.providerId, candidate.id))
+    }
+
+    /** The viewer closed the releases without choosing. */
+    fun closeSources() {
+        _sources.value = null
     }
 
     /** Mark [episodes] of [id] watched, or not. */
@@ -590,6 +667,8 @@ class AppStore(
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
             is Event.JobDone -> {
                 jobs.done(event.v1)
+                // A listing that ended with none said: it failed, which a notice says, and none came.
+                _sources.value?.let { if (it.job == event.v1 && it.candidates == null) _sources.value = it.copy(candidates = emptyList()) }
                 accounts.done(event.v1)
                 stores.done(event.v1)
                 detailDone(event.v1)
@@ -636,9 +715,16 @@ class AppStore(
             is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
             is Event.UpcomingNotices -> coming.apply(event.v1)
             is Event.Update -> updates.apply(event.v1)
+            is Event.Remote -> onRemote?.invoke(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)
+
+            // For the player's own Choose source, and for one outside it.
+            is Event.Sources -> {
+                _sources.value?.let { if (it.id == event.id && it.episode == event.episode) _sources.value = it.copy(candidates = event.candidates) }
+                onPlayback?.invoke(event)
+            }
 
             is Event.PlayerOps, is Event.PlayerUi, is Event.PlaybackStaged, is Event.PlaybackEnded,
             Event.PlaybackKept -> onPlayback?.invoke(event)
@@ -653,8 +739,10 @@ class AppStore(
             ContentFor.Continue -> continuing.apply(content, titles)
             ContentFor.Seasonal -> seasonal.apply(content, titles)
             ContentFor.Calendar -> calendar.apply(content, titles)
-            is ContentFor.Search ->
+            is ContentFor.Search -> {
                 if (search.takes(view.query, view.filter)) search.list.apply(content, titles)
+                if (browse.takes(view.query, view.filter)) browse.list.apply(content, titles)
+            }
             is ContentFor.Library -> library.segment(view.v1).apply(content, titles)
         }
     }
@@ -664,8 +752,10 @@ class AppStore(
             ContentFor.Continue -> continuing.list.caption(text)
             ContentFor.Seasonal -> seasonal.caption(text)
             ContentFor.Calendar -> calendar.list.caption(text)
-            is ContentFor.Search ->
+            is ContentFor.Search -> {
                 if (search.takes(view.query, view.filter)) search.list.caption(text)
+                if (browse.takes(view.query, view.filter)) browse.list.caption(text)
+            }
             is ContentFor.Library -> library.segment(view.v1).caption(text)
         }
     }
@@ -685,4 +775,13 @@ val FfiException.reason: String
         is FfiException.Client -> reason
         is FfiException.Runtime -> reason
         is FfiException.Engine -> reason
+        is FfiException.Remote -> reason
     }
+
+/** An episode's releases to choose from: [candidates] is null while they are listed. */
+data class SourceChoices(
+    val id: AnilistId,
+    val episode: String,
+    val candidates: List<tv.anistream.engine.core.SourceCandidate>? = null,
+    val job: JobId? = null,
+)

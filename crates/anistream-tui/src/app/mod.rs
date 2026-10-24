@@ -444,6 +444,8 @@ impl App {
             // What the update check found, for an app's Settings: the terminal's own notice
             // comes as a toast, naming `anistream --update`.
             Event::Update(_) => {}
+            // A TV's remote, which the terminal never runs.
+            Event::Remote(_) => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),

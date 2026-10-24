@@ -10,6 +10,8 @@ plugins {
 
 android {
     namespace = "tv.anistream.store"
+    // Shared with the TV app.
+    defaultConfig { minSdk = AnistreamSdk.TV_MIN }
 }
 
 dependencies {
@@ -18,6 +20,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    // Real bitmaps, for the artwork budget.
+    testImplementation(libs.robolectric)
     // JNA's JVM build, with this Mac's native library, for the tests that start the engine.
     testImplementation(libs.jna.jvm)
     // The scenes the recorder writes, as the screenshot tests read them.
@@ -36,6 +40,8 @@ AnistreamSdk.engines.forEach { (flavour, engine) ->
         systemProperty("jna.library.path", library.path)
         // JNA loads its native library itself, which Java now asks to be allowed.
         jvmArgs("--enable-native-access=ALL-UNNAMED")
+        // Robolectric's Android 16 reaches into the JDK's file descriptors, as in the screenshot tests.
+        jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
         environment("HOME", home.path)
         environment("ANISTREAM_TOKEN_STORAGE", "file")
         // android/scripts/scenes.sh: record the scenes into the test kit, every time it is run.

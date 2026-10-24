@@ -50,9 +50,10 @@ aes = "0.9"
 cbc = { version = "0.2", features = ["alloc"] }
 
 # iOS lets no app but Apple's make memory executable, so nothing a compiler emits as native code
-# can run there. The same Cranelift emits Pulley bytecode instead, which wasmtime's interpreter
-# runs: see `engine::INTERPRETED`.
-[target.'cfg(target_os = "ios")'.dependencies]
+# can run there, and Cranelift emits native code for 64-bit machines only. On both, the same
+# Cranelift emits Pulley bytecode instead, which wasmtime's interpreter runs: see
+# `engine::INTERPRETED`.
+[target.'cfg(any(target_os = "ios", all(target_pointer_width = "32", not(target_family = "wasm"))))'.dependencies]
 wasmtime = { version = "49.0", default-features = false, features = ["pulley"] }
 
 [dev-dependencies]

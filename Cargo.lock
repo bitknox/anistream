@@ -161,6 +161,7 @@ dependencies = [
  "anistream-plugin",
  "anistream-plugin-store",
  "anistream-providers",
+ "anistream-remote",
  "anistream-store",
  "anistream-store-server",
  "anistream-testkit",
@@ -192,6 +193,7 @@ dependencies = [
  "anistream-model",
  "anistream-net",
  "anistream-providers",
+ "anistream-remote",
  "anistream-store",
  "anistream-testkit",
  "anistream-track",
@@ -337,6 +339,26 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "anistream-remote"
+version = "2.0.0"
+dependencies = [
+ "anistream-core",
+ "anistream-model",
+ "base64 0.23.1",
+ "hex",
+ "ring",
+ "rustls",
+ "serde",
+ "serde_json",
+ "spake2",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
  "tracing",
 ]
 
@@ -1777,6 +1799,7 @@ dependencies = [
  "curve25519-dalek-derive",
  "digest 0.10.7",
  "fiat-crypto",
+ "rand_core 0.6.4",
  "rustc_version",
  "subtle",
  "zeroize",
@@ -5151,6 +5174,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -5608,6 +5632,18 @@ checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "spake2"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5482afe85a0b6ce956c945401598dbc527593c77ba51d0a87a586938b1b893a"
+dependencies = [
+ "curve25519-dalek",
+ "hkdf",
+ "rand_core 0.6.4",
+ "sha2 0.10.9",
 ]
 
 [[package]]

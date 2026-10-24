@@ -13,7 +13,8 @@ foreach(lib mpv avcodec)
 endforeach()
 
 add_library(anistream_mpv SHARED anistream_mpv.c)
-target_include_directories(anistream_mpv PRIVATE "${MPV_DIR}/include")
+# FFmpeg's configuration headers differ by architecture, so each ABI has its own.
+target_include_directories(anistream_mpv PRIVATE "${MPV_DIR}/include/${ANDROID_ABI}")
 target_compile_options(anistream_mpv PRIVATE -Wall -Wextra -Wno-unused-parameter -Werror)
 target_link_libraries(anistream_mpv mpv avcodec log)
 target_link_options(anistream_mpv PRIVATE "-Wl,-z,max-page-size=16384")

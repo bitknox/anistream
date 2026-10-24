@@ -134,7 +134,8 @@ jobs:
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup
           df -h /
 
-      - run: rustup toolchain install && rustup target add aarch64-linux-android
+      # Both of the APKs' ABIs, as engine.sh builds them: arm64 and the TV boxes' 32-bit ARM.
+      - run: rustup toolchain install && rustup target add aarch64-linux-android armv7-linux-androideabi
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-ndk

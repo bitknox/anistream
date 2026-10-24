@@ -14,6 +14,7 @@ use crate::{
     notifications::{NewEpisode, UpcomingNotices},
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
+    remote::FrontIntent,
     settings::SettingsView,
     show::ShowSettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
@@ -354,6 +355,10 @@ pub enum Event {
     /// The terminal app tells of a release with a notice of its own, which names
     /// `anistream --update`; an app tells of it when `notify` says to.
     Update(UpdateStatus),
+    /// What a phone's remote asks of a TV's front end: a title to open, text for the focused
+    /// field, a key, a volume step, or a pairing code to show or hide. Sent only on a TV that
+    /// started its remote, and never by the engine itself, which has no screen to act on.
+    Remote(FrontIntent),
 }
 
 impl Event {

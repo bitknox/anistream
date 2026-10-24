@@ -12,6 +12,10 @@ material3 = "1.5.0-beta01"
 adaptive = "1.3.0"
 activity = "1.13.0"
 lifecycle = "2.11.0"
+zxing = "3.5.4"
+tvprovider = "1.1.0"
+# Installs the TV app's baseline profile on a sideloaded build, where no store compiles it.
+profileinstaller = "1.4.1"
 navigation = "2.10.2"
 core = "1.19.1"
 annotation = "1.11.0"
@@ -37,6 +41,9 @@ ndk = "30.0.16248370"
 cmake = "4.1.2"
 androidx-test-runner = "1.7.0"
 androidx-test-junit = "1.3.0"
+# Compose for TV's components: the navigation drawer, cards, buttons, tabs, chips and lists the TV
+# app is built from. Its lazy layouts were removed; rows and grids are Compose foundation's.
+tv-material = "1.1.0"
 
 [libraries]
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -54,6 +61,9 @@ adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-n
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle" }
+tvprovider = { module = "androidx.tvprovider:tvprovider", version.ref = "tvprovider" }
+profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 # What the bindings' Android cleaner is annotated with.
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
@@ -82,4 +92,5 @@ roborazzi-gradle-plugin = { module = "io.github.takahirom.roborazzi:roborazzi-gr
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+tv-material = { module = "androidx.tv:tv-material", version.ref = "tv-material" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
