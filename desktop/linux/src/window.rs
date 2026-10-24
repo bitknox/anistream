@@ -324,7 +324,7 @@ impl Shell {
             Some(glib::VariantTy::new("(us)").expect("a type")),
             Box::new(move |s, a| {
                 if let Some((id, episode)) = play_of(a) {
-                    s.ctx.hub.send(Command::Play { id, episode });
+                    s.ctx.hub.send(Command::play(id, episode));
                 }
             }),
         );

@@ -245,7 +245,7 @@ public class EngineTests
         var engine = started.Engine;
 
         // The finale, so the playback ends with the episode rather than rolling on.
-        engine.Send(new Command.Play(900_001, "12"));
+        engine.Send(new Command.Play(900_001, "12", false));
         var opened = false;
         ulong? loaded = null;
         Ending? ending = null;
