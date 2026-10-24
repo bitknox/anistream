@@ -32,6 +32,7 @@ import tv.anistream.design.ArtShape
 import tv.anistream.design.CoverPlate
 import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
+import tv.anistream.store.Artwork
 import tv.anistream.engine.model.Entry
 
 /** The store the screens read and send through. */
@@ -47,7 +48,9 @@ fun ArtworkImage(url: String?, plate: Color?, maxPixelSize: Int, modifier: Modif
     // This URL's arrivals alone: another cover landing leaves this one be.
     val arrived = remember(url) { url?.let(store.artwork::arrivals) ?: NONE_ARRIVED }
     val arrivals by arrived.collectAsStateWithLifecycle()
-    val art = url?.let { arrivals; store.artwork.image(it) }
+    // Art on screen is held while it is: the store's budget letting it go never drops it to its plate.
+    val held = remember(url) { HeldArt() }
+    val art = url?.let { arrivals; store.artwork.image(it) }?.also { held.art = it } ?: held.art
     LaunchedEffect(url, maxPixelSize) {
         if (url != null) store.artwork.request(url, maxPixelSize)
     }
@@ -69,6 +72,9 @@ fun ArtworkImage(url: String?, plate: Color?, maxPixelSize: Int, modifier: Modif
         }
     }
 }
+
+/** The art a box last showed for its URL. */
+private class HeldArt { var art: Artwork? = null }
 
 /** What a box with no URL observes: nothing ever lands. */
 private val NONE_ARRIVED: StateFlow<Int> = MutableStateFlow(0)
