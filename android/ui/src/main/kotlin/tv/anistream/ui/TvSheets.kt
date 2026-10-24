@@ -9,6 +9,12 @@ package tv.anistream.ui
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.provider.MediaStore
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +49,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -73,6 +80,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.util.Locale
 import kotlinx.coroutines.delay
+import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
@@ -84,6 +92,7 @@ import tv.anistream.engine.ffi.FfiTvRow
 import tv.anistream.engine.ffi.FfiTvRowKind
 import tv.anistream.engine.ffi.FfiTvTrack
 import tv.anistream.engine.ffi.FfiTvTrackKind
+import tv.anistream.store.TvCard
 import tv.anistream.store.TvPairingStep
 import tv.anistream.store.TvPlayRequest
 import tv.anistream.store.TvRemoteModel
@@ -102,6 +111,12 @@ internal object TvWords {
         "Type the six digits $name shows. After this, this $device connects by itself."
 
     const val EMPTY = "Looking for TVs on this network"
+    const val NONE_FOUND = "No TVs found"
+
+    /** What to check when no TV answers. The picker's own line says it already when it is pairing, with nothing to play. */
+    fun noneLine(request: TvPlayRequest?, device: String): String =
+        if (request == null) "Check that anistream is open on the TV."
+        else "Check that anistream is open on the TV, on the same Wi-Fi as this $device."
     const val ADDRESS = "The TV shows its address on its Pair a phone screen."
     const val SCAN = "Point the camera app at the code on the TV. It opens anistream and pairs."
     const val NOTHING = "Choose Play on TV on an episode, or search on the TV from here."
@@ -183,9 +198,7 @@ private fun TvPicker(tv: TvRemoteModel) {
     SheetTitle(TvWords.pickerTitle(request))
     SheetText(TvWords.pickerLine(request, deviceWord()))
     TvHeading("On this network")
-    if (rows.isEmpty()) {
-        TvSheetRow(TvWords.EMPTY, null, leading = { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) })
-    }
+    if (rows.isEmpty()) TvSearchingRow(request)
     rows.forEachIndexed { index, row ->
         if (index > 0) TvDivider()
         TvPickerRow(row, chosen = row.fingerprint != null && row.fingerprint == connected) { tv.choose(row) }
@@ -214,6 +227,42 @@ private fun TvPicker(tv: TvRemoteModel) {
         QuietButton("Close", onClick = tv::sheetClosed)
     }
 }
+
+private enum class TvSearch { QUIET, LOOKING, NONE }
+
+/**
+ * The picker before any TV answers: its place held empty for 600 ms, as a loading state is, then
+ * the searching line, and after 10 s with nothing found what to check. The browse goes on, so a
+ * TV that turns up later still takes the row's place.
+ */
+@Composable
+private fun TvSearchingRow(request: TvPlayRequest?) {
+    var stage by remember { mutableStateOf(TvSearch.QUIET) }
+    val device = deviceWord()
+    LaunchedEffect(Unit) {
+        delay(PLACEHOLDERS_AFTER)
+        stage = TvSearch.LOOKING
+        delay(SEARCH_GIVES_UP - PLACEHOLDERS_AFTER)
+        stage = TvSearch.NONE
+    }
+    Box(Modifier.heightIn(min = 72.dp)) {
+        Crossfade(stage, animationSpec = Motion.fadeIn(), label = "searching") { shown ->
+            when (shown) {
+                TvSearch.QUIET -> Spacer(Modifier.fillMaxWidth().height(72.dp))
+                TvSearch.LOOKING -> TvSheetRow(
+                    TvWords.EMPTY,
+                    null,
+                    modifier = Modifier.heightIn(min = 72.dp),
+                    leading = { CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
+                )
+                TvSearch.NONE -> TvSheetRow(TvWords.NONE_FOUND, TvWords.noneLine(request, device))
+            }
+        }
+    }
+}
+
+/** How long the picker looks before it says no TV answered. */
+private const val SEARCH_GIVES_UP = 10_000L
 
 /** A row of the picker: the TV, what the engine says under it, and what choosing it does. */
 @Composable
@@ -321,9 +370,12 @@ private fun TvCodeBoxes(code: String, onChange: (String) -> Unit, submit: (Strin
 private fun TvRemote(tv: TvRemoteModel) {
     val colors = MaterialTheme.colorScheme
     val held by tv.card.collectAsStateWithLifecycle()
+    val starting by tv.starting.collectAsStateWithLifecycle()
     val problem by tv.problem.collectAsStateWithLifecycle()
     val card = held?.card
-    val now = card?.now
+    val now = TvRemoteModel.shown(held, starting)
+    // While the link connects or tries again, the card shows the TV as it last was, and nothing on it reaches the TV.
+    val live = held?.live == true
     var search by rememberSaveable { mutableStateOf("") }
     SheetTitle(card?.tvName ?: "TV")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -332,27 +384,29 @@ private fun TvRemote(tv: TvRemoteModel) {
     }
     Spacer(Modifier.height(16.dp))
     if (now != null) {
-        TvNowCard(tv, now)
+        TvNowCard(tv, now, held, live)
         now.skip?.let { skip ->
-            FilledTonalButton(onClick = { tv.send(FfiTvCommand.Skip) }, modifier = Modifier.padding(top = 8.dp)) { Text(skip.label) }
+            FilledTonalButton(onClick = { tv.send(FfiTvCommand.Skip) }, enabled = live, modifier = Modifier.padding(top = 8.dp)) { Text(skip.label) }
         }
         TvDivider(Modifier.padding(top = 16.dp))
-        TvTrackRow("Subtitles", FfiTvTrackKind.SUBTITLE, now.subtitles, now.subtitlesOff, tv)
+        TvTrackRow("Subtitles", FfiTvTrackKind.SUBTITLE, now.subtitles, now.subtitlesOff, tv, enabled = live)
         TvDivider()
-        TvTrackRow("Audio", FfiTvTrackKind.AUDIO, now.audio, off = false, tv)
+        TvTrackRow("Audio", FfiTvTrackKind.AUDIO, now.audio, off = false, tv, enabled = live)
         TvDivider()
         TvSheetRow(
             "TV volume",
             TvWords.volume(now),
+            modifier = Modifier.alpha(if (live) 1f else 0.38f),
             trailing = {
                 Row {
-                    TvGlyph(Icons.VolumeDown, "Volume down") { tv.send(FfiTvCommand.Volume(-TvRemoteModel.VOLUME_STEP)) }
-                    TvGlyph(Icons.VolumeUp, "Volume up") { tv.send(FfiTvCommand.Volume(TvRemoteModel.VOLUME_STEP)) }
+                    TvGlyph(Icons.VolumeDown, "Volume down", enabled = live) { tv.send(FfiTvCommand.Volume(-TvRemoteModel.VOLUME_STEP)) }
+                    TvGlyph(Icons.VolumeUp, "Volume up", enabled = live) { tv.send(FfiTvCommand.Volume(TvRemoteModel.VOLUME_STEP)) }
                 }
             },
         )
     } else {
-        TvSheetRow(if (card?.phase == FfiLinkPhase.CONNECTED) "Nothing playing" else card?.tvName ?: "TV", TvWords.NOTHING)
+        // What to do from here only once the TV can be reached: the line under the title says why not.
+        TvSheetRow(if (live) "Nothing playing" else card?.tvName ?: "TV", if (live) TvWords.NOTHING else null)
     }
     TvHeading("Search on the TV")
     SheetField(
@@ -364,6 +418,7 @@ private fun TvRemote(tv: TvRemoteModel) {
         "Type a search",
         keyboard = KeyboardOptions(imeAction = ImeAction.Search, autoCorrectEnabled = false),
         actions = KeyboardActions(onSearch = { tv.send(FfiTvCommand.Text(search, submit = true)) }),
+        enabled = live,
     )
     problem?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.error, modifier = Modifier.padding(top = 8.dp)) }
     SheetButtons {
@@ -384,7 +439,7 @@ private fun TvRemote(tv: TvRemoteModel) {
 
 /** What the TV plays: the cover, the title and episode, the seek line, and the transport. */
 @Composable
-private fun TvNowCard(tv: TvRemoteModel, now: FfiNowCard) {
+private fun TvNowCard(tv: TvRemoteModel, now: FfiNowCard, held: TvCard?, live: Boolean) {
     val store = LocalAppStore.current
     val colors = MaterialTheme.colorScheme
     val entry = store.titles[now.id]
@@ -401,25 +456,30 @@ private fun TvNowCard(tv: TvRemoteModel, now: FfiNowCard) {
             )
         }
     }
-    TvSeekLine(tv, now)
+    TvSeekLine(tv, now, held?.card?.rev, live)
+    val usable = live && !now.loading
     Row(
-        Modifier.fillMaxWidth().alpha(if (now.loading) 0.38f else 1f),
+        Modifier.fillMaxWidth().alpha(if (usable) 1f else 0.38f),
         horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TvStep(Icons.Replay, "Back 10 seconds", enabled = !now.loading) { tv.send(FfiTvCommand.Seek(-10.0)) }
-        TvGlyph(if (now.paused) Icons.PlayRow else Icons.Pause, if (now.paused) "Play" else "Pause", size = 32.dp, enabled = !now.loading) {
+        TvStep(Icons.Replay, "Back 10 seconds", enabled = usable) { tv.send(FfiTvCommand.Seek(-10.0)) }
+        TvGlyph(if (now.paused) Icons.PlayRow else Icons.Pause, if (now.paused) "Play" else "Pause", size = 32.dp, enabled = usable) {
             tv.send(FfiTvCommand.TogglePause)
         }
-        TvStep(Icons.Ahead, "Forward 10 seconds", enabled = !now.loading) { tv.send(FfiTvCommand.Seek(10.0)) }
-        TvGlyph(Icons.SkipNext, "Next episode", enabled = !now.loading) { tv.send(FfiTvCommand.Next) }
+        TvStep(Icons.Ahead, "Forward 10 seconds", enabled = usable) { tv.send(FfiTvCommand.Seek(10.0)) }
+        TvGlyph(Icons.SkipNext, "Next episode", enabled = usable) { tv.send(FfiTvCommand.Next) }
     }
 }
 
-/** The TV's playhead on the Expressive slider, amber up to the handle; dragged, it seeks on release. */
+/**
+ * The TV's playhead on the Expressive slider, amber up to the handle; dragged, it seeks on release,
+ * and holds where it was let go until the TV's next card says where it is (or 3 s pass), so the
+ * handle does not jump back while the command travels.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TvSeekLine(tv: TvRemoteModel, now: FfiNowCard) {
+private fun TvSeekLine(tv: TvRemoteModel, now: FfiNowCard, rev: ULong?, live: Boolean) {
     val colors = MaterialTheme.colorScheme
     val duration = now.duration?.takeIf { it > 0 } ?: 0.0
     // A tick a second while the TV plays, for the line to move on the phone's own clock.
@@ -431,18 +491,29 @@ private fun TvSeekLine(tv: TvRemoteModel, now: FfiNowCard) {
         }
     }
     var dragging by remember(now.id, now.episode) { mutableStateOf<Float?>(null) }
-    val shown = (dragging?.toDouble() ?: position).coerceIn(0.0, maxOf(duration, 0.0))
+    var sent by remember(now.id, now.episode) { mutableStateOf<Float?>(null) }
+    LaunchedEffect(rev) { sent = null }
+    LaunchedEffect(sent) {
+        if (sent != null) {
+            delay(SEEK_HOLD)
+            sent = null
+        }
+    }
+    val shown = ((dragging ?: sent)?.toDouble() ?: position).coerceIn(0.0, maxOf(duration, 0.0))
     val time = MaterialTheme.typography.labelMedium.tabular()
     Column(Modifier.padding(top = 8.dp)) {
         Slider(
             value = shown.toFloat(),
             onValueChange = { dragging = it },
             onValueChangeFinished = {
-                dragging?.let { tv.send(FfiTvCommand.SeekTo(it.toDouble())) }
+                dragging?.let {
+                    tv.send(FfiTvCommand.SeekTo(it.toDouble()))
+                    sent = it
+                }
                 dragging = null
             },
             valueRange = 0f..maxOf(duration.toFloat(), 1f),
-            enabled = duration > 0 && !now.loading,
+            enabled = duration > 0 && !now.loading && live,
             colors = SliderDefaults.colors(
                 thumbColor = colors.primary,
                 activeTrackColor = colors.primary,
@@ -457,10 +528,14 @@ private fun TvSeekLine(tv: TvRemoteModel, now: FfiNowCard) {
         Row(Modifier.fillMaxWidth()) {
             Text(TvWords.clock(shown), style = time, color = colors.onSurfaceVariant)
             Spacer(Modifier.weight(1f))
-            Text(if (duration > 0) TvWords.clock(duration) else "", style = time, color = colors.onSurfaceVariant, textAlign = TextAlign.End)
+            // The time left, as the player shows it.
+            Text(if (duration > 0) "−" + TvWords.clock(duration - shown) else "", style = time, color = colors.onSurfaceVariant, textAlign = TextAlign.End)
         }
     }
 }
+
+/** How long a let-go seek holds its place with no word from the TV. */
+private const val SEEK_HOLD = 3_000L
 
 /** A silk glyph in a 48 target, never amber. */
 @Composable
@@ -489,15 +564,16 @@ private fun TvStep(icon: ImageVector, label: String, enabled: Boolean, onClick: 
 
 /** The subtitle or audio choice: its value under its name, a menu of the tracks, the one on checked. */
 @Composable
-private fun TvTrackRow(title: String, kind: FfiTvTrackKind, tracks: List<FfiTvTrack>, off: Boolean, tv: TvRemoteModel) {
+private fun TvTrackRow(title: String, kind: FfiTvTrackKind, tracks: List<FfiTvTrack>, off: Boolean, tv: TvRemoteModel, enabled: Boolean = true) {
     var open by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
     Box {
         TvSheetRow(
             title,
             TvWords.chosen(tracks, off),
+            modifier = Modifier.alpha(if (enabled) 1f else 0.38f),
             trailing = { Icon(Icons.DropDown, contentDescription = null, tint = colors.onSurfaceVariant) },
-            onClick = if (tracks.isEmpty()) null else ({ open = true }),
+            onClick = if (tracks.isEmpty() || !enabled) null else ({ open = true }),
         )
         Menu(expanded = open, onDismissRequest = { open = false }) {
             val choices = buildList {
@@ -580,16 +656,39 @@ private fun TvSheetRow(
  */
 @Composable
 internal fun TvNowPlayingBar(modifier: Modifier = Modifier) {
-    val store = LocalAppStore.current
-    val tv = store.tv
+    val tv = LocalAppStore.current.tv
     val held by tv.card.collectAsStateWithLifecycle()
+    val starting by tv.starting.collectAsStateWithLifecycle()
     val sheet by tv.sheet.collectAsStateWithLifecycle()
     val connected by tv.connected.collectAsStateWithLifecycle()
-    val card = held?.card ?: return
-    val now = card.now ?: return
-    if (connected == null || sheet != null) return
+    val now = TvRemoteModel.shown(held, starting)
+    val card = held?.card
+    val visible = card != null && now != null && connected != null && sheet == null
+    // What the bar showed last, for it to leave with rather than go blank.
+    val last = remember { LastShown() }
+    val shown = if (visible) card!! to now!! else last.value
+    SideEffect { if (visible) last.value = shown }
+    AnimatedVisibility(
+        visible,
+        modifier = modifier,
+        enter = expandVertically(Motion.standard(), expandFrom = Alignment.Top) + fadeIn(Motion.fadeIn()),
+        exit = shrinkVertically(Motion.standard(), shrinkTowards = Alignment.Top) + fadeOut(Motion.fadeOut()),
+    ) {
+        shown?.let { (shownCard, shownNow) -> TvNowPlayingBarContent(tv, shownCard, shownNow) }
+    }
+}
+
+/** The card and episode the bar last showed, kept out of the snapshot: it is only read as the bar leaves. */
+private class LastShown {
+    var value: Pair<FfiRemoteCard, FfiNowCard>? = null
+}
+
+@Composable
+private fun TvNowPlayingBarContent(tv: TvRemoteModel, card: FfiRemoteCard, now: FfiNowCard) {
+    val store = LocalAppStore.current
     val colors = MaterialTheme.colorScheme
     val duration = now.duration?.takeIf { it > 0 }
+    val live = card.phase == FfiLinkPhase.CONNECTED
     val position by produceState(tv.playhead() ?: now.position, now) {
         while (true) {
             value = tv.playhead() ?: now.position
@@ -598,7 +697,7 @@ internal fun TvNowPlayingBar(modifier: Modifier = Modifier) {
         }
     }
     Column(
-        modifier
+        Modifier
             .fillMaxWidth()
             .background(colors.surfaceContainerHigh)
             .clickable(onClickLabel = "Show the remote") { tv.openRemote() },
@@ -617,15 +716,18 @@ internal fun TvNowPlayingBar(modifier: Modifier = Modifier) {
             Column(Modifier.weight(1f)) {
                 Text(now.title, style = ShowTitle.caption, color = colors.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (card.phase == FfiLinkPhase.CONNECTED) "Playing on ${card.tvName}" else TvWords.status(card),
+                    if (live) "Playing on ${card.tvName}" else TvWords.status(card),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            TvGlyph(if (now.paused) Icons.PlayRow else Icons.Pause, if (now.paused) "Play" else "Pause", enabled = !now.loading) {
-                tv.send(FfiTvCommand.TogglePause)
+            val usable = live && !now.loading
+            Box(Modifier.alpha(if (usable) 1f else 0.38f)) {
+                TvGlyph(if (now.paused) Icons.PlayRow else Icons.Pause, if (now.paused) "Play" else "Pause", enabled = usable) {
+                    tv.send(FfiTvCommand.TogglePause)
+                }
             }
         }
     }

@@ -137,9 +137,13 @@ public struct MacPlayerView: View {
             .padding(.top, 60)
             .frame(maxHeight: .infinity, alignment: .top)
             .animation(.standard, value: model.alert)
-        if let panel {
-            panelLayer(panel)
+        // A panel is part of the chrome: it fades in and out as the controls do (T4).
+        ZStack {
+            if let panel {
+                panelLayer(panel)
+            }
         }
+        .animation(panel != nil ? .fadeIn : .fadeOut, value: panel)
     }
 
     private func scrim(stops: [Gradient.Stop]) -> some View {
@@ -356,26 +360,36 @@ public struct MacPlayerView: View {
                 }
             }
         }
-        .frame(width: 264)
+        .frame(width: Self.panelWidth(which))
         .background(.glassFill, in: .rect(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
         .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
         // Below the title strip and above the control row, whichever end it hangs from: the top
         // bar's menus under the capsule, the control row's over their buttons.
-        .padding(EdgeInsets(top: 50, leading: 0, bottom: 60, trailing: Self.panelTrailing(which)))
+        .padding(EdgeInsets(top: 50, leading: 0, bottom: 60, trailing: Self.panelTrailing(which, playOnTV: model.playOnTVAvailable)))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: Self.panelHangs(which))
+        // One panel for each menu, so going from one to another crossfades rather than jumping
+        // the same panel across.
+        .id(which)
         .transition(.opacity)
     }
 
     /// How far in from the trailing edge a panel ends: the control row's in line with the end of
-    /// the button that opened it, past Full Screen, Picture in Picture and, for the speed, Picture
-    /// and sound, each 32 pt and 4 apart, in from the row's 16.
-    static func panelTrailing(_ which: Panel) -> CGFloat {
-        switch which {
+    /// the button that opened it, past Full Screen, Picture in Picture, Play on TV when the row
+    /// has it and, for the speed, Picture and sound, each 32 pt and 4 apart, in from the row's 16.
+    static func panelTrailing(_ which: Panel, playOnTV: Bool = false) -> CGFloat {
+        let tv: CGFloat = playOnTV ? 36 : 0
+        return switch which {
         case .tracks, .episodes: 16
-        case .picture: 84
-        case .speed: 84 + 36
+        case .picture: 84 + tv
+        case .speed: 84 + tv + 36
         }
+    }
+
+    /// How wide a panel is: Picture and sound wider, so the engine's notes on the upscaling
+    /// looks fit on their rows.
+    static func panelWidth(_ which: Panel) -> CGFloat {
+        which == .picture ? 368 : 264
     }
 
     static func panelHangs(_ which: Panel) -> Alignment {

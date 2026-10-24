@@ -79,7 +79,7 @@ struct TVNowPlayingButton: View {
             Button {
                 store.tv.openRemote()
             } label: {
-                Label(card.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
+                Label(store.tv.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
                     #if os(macOS)
                     .labelStyle(.titleAndIcon)
                     #endif
@@ -98,7 +98,7 @@ struct TVAccessory: ViewModifier {
 
     func body(content: Content) -> some View {
         if #available(iOS 26.1, *) {
-            content.tabViewBottomAccessory(isEnabled: store.tv.connected != nil && store.tv.card?.now != nil) {
+            content.tabViewBottomAccessory(isEnabled: store.tv.connected != nil && store.tv.now != nil) {
                 TVNowPlayingBar()
             }
         } else {
@@ -114,7 +114,7 @@ struct TVNowPlayingBar: View {
     @Environment(\.tabViewBottomAccessoryPlacement) private var placement
 
     var body: some View {
-        if let card = store.tv.card, let now = card.now {
+        if let card = store.tv.card, let now = store.tv.now {
             HStack(spacing: 12) {
                 if placement != .inline, let entry = store.titles[now.id] { CoverArt(entry: entry, width: 24) }
                 VStack(alignment: .leading, spacing: 0) {
@@ -135,7 +135,8 @@ struct TVNowPlayingBar: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .disabled(now.loading)
+                .disabled(now.loading || !store.tv.live)
+                .opacity(now.loading || !store.tv.live ? 0.4 : 1)
                 .accessibilityLabel(now.paused ? "Play" : "Pause")
             }
             .padding(.leading, 16)
@@ -169,6 +170,14 @@ enum TVWords {
     }
 
     static let empty = "Looking for TVs on this network"
+    static let noneFound = "No TVs found"
+    /// What to check when no TV answers. The picker's own line says it already when it is
+    /// pairing, with nothing to play.
+    static func noneLine(_ request: TVPlayRequest?) -> String {
+        request == nil
+            ? "Check that anistream is open on the TV."
+            : "Check that anistream is open on the TV, on the same Wi-Fi as this \(Device.name)."
+    }
     static let address = "The TV shows its address on its Pair a phone screen."
     static let nothing = "Choose Play on TV on an episode, or search on the TV from here."
 
@@ -225,11 +234,15 @@ struct TVSeekLine: View {
     let now: FfiNowCard
     let touch: Bool
     @State private var dragging: Double?
+    /// Where a drag let go, held until the TV's next card says where it went, so the line does
+    /// not jump back to the old playhead meanwhile.
+    @State private var held: Double?
+    @State private var heldRev: UInt64?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             let duration = max(now.duration ?? 0, 1)
-            let position = min(dragging ?? store.tv.playhead(at: context.date) ?? now.position, duration)
+            let position = min(dragging ?? held ?? store.tv.playhead(at: context.date) ?? now.position, duration)
             VStack(spacing: 6) {
                 GeometryReader { proxy in
                     let width = proxy.size.width
@@ -248,17 +261,21 @@ struct TVSeekLine: View {
                                     dragging = min(max(0, drag.location.x / max(width, 1)), 1) * duration
                                 }
                                 .onEnded { _ in
-                                    if let to = dragging { store.tv.send(.seekTo(position: to)) }
+                                    if let to = dragging {
+                                        held = to
+                                        heldRev = store.tv.card?.rev
+                                        store.tv.send(.seekTo(position: to))
+                                    }
                                     dragging = nil
                                 }
                         )
                 }
                 .frame(height: touch ? 24 : 16)
-                .disabled(now.duration == nil || now.loading)
+                .disabled(now.duration == nil || now.loading || !store.tv.live)
                 HStack {
                     Text(ResumePoint(position: position, fraction: nil).clock)
                     Spacer()
-                    Text(now.duration.map { "-" + ResumePoint(position: max(0, $0 - position), fraction: nil).clock } ?? "")
+                    Text(now.duration.map { "−" + ResumePoint(position: max(0, $0 - position), fraction: nil).clock } ?? "")
                 }
                 .font(touch ? .ui(13) : .mac(11))
                 .monospacedDigit()
@@ -270,6 +287,15 @@ struct TVSeekLine: View {
             .accessibilityAdjustableAction { direction in
                 store.tv.send(.seek(by: direction == .increment ? 10 : -10))
             }
+        }
+        .onChange(of: store.tv.card?.rev) { _, rev in
+            if held != nil, rev != heldRev { held = nil }
+        }
+        .task(id: held) {
+            // A seek the TV never answered lets go after a while.
+            guard held != nil else { return }
+            try? await Task.sleep(for: .seconds(3))
+            if !Task.isCancelled { held = nil }
         }
     }
 }
@@ -292,7 +318,9 @@ struct TVTransport: View {
             glyph("forward.end.fill", "Next episode", size: touch ? 20 : 15) { store.tv.send(.next) }
         }
         .frame(maxWidth: .infinity)
-        .disabled(now.loading)
+        // Starting on the TV, or the link lost: there, but nothing to press.
+        .disabled(now.loading || !store.tv.live)
+        .opacity(now.loading || !store.tv.live ? 0.4 : 1)
     }
 
     private func glyph(_ symbol: String, _ label: String, size: CGFloat, action: @escaping () -> Void) -> some View {
@@ -338,7 +366,7 @@ struct TVTrackMenu: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
-        .disabled(tracks.isEmpty)
+        .disabled(tracks.isEmpty || !store.tv.live)
         .accessibilityLabel(title)
     }
 }
@@ -436,6 +464,50 @@ struct TVRow: View {
     }
 }
 
+/// The picker's row while no TV is listed: nothing for the first 600 ms, as most TVs answer by
+/// then; then the search, said; and after 10 s with none, what to check. The browse goes on
+/// throughout, and a TV found replaces the row. The row keeps one height in each, so nothing
+/// below it moves.
+struct TVSearchingRow: View {
+    let phone: Bool
+    let request: TVPlayRequest?
+
+    enum Stage { case quiet, looking, none }
+    @State private var stage = Stage.quiet
+
+    static let quietFor: Duration = .milliseconds(600)
+    static let giveUpAfter: Duration = .seconds(10)
+
+    var body: some View {
+        HStack(spacing: phone ? 12 : 10) {
+            switch stage {
+            case .quiet:
+                Color.clear.frame(height: 1)
+            case .looking:
+                ProgressView().controlSize(phone ? .regular : .small)
+                Text(TVWords.empty).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.haze)
+            case .none:
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(TVWords.noneFound).font(phone ? .ui(17) : .mac(13)).foregroundStyle(.silk)
+                    Text(TVWords.noneLine(request)).font(phone ? .ui(13) : .mac(12)).foregroundStyle(.haze)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: phone ? 52 : 46, alignment: .leading)
+        .animation(.standard, value: stage)
+        .accessibilityElement(children: .combine)
+        .task {
+            try? await Task.sleep(for: Self.quietFor)
+            guard !Task.isCancelled else { return }
+            stage = .looking
+            try? await Task.sleep(for: Self.giveUpAfter - Self.quietFor)
+            guard !Task.isCancelled else { return }
+            stage = .none
+        }
+    }
+}
+
 #if os(macOS)
 // MARK: - The Mac's sheet
 
@@ -510,12 +582,7 @@ struct MacTVPicker: View {
         MacSheetHeading(title: TVWords.pickerTitle(tv.request), line: TVWords.pickerLine(tv.request))
         MacSheetRows {
             if tv.rows.isEmpty {
-                HStack(spacing: 10) {
-                    ProgressView().controlSize(.small)
-                    Text(TVWords.empty).font(.mac(13)).foregroundStyle(.haze)
-                }
-                .padding(.horizontal, 14)
-                .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
+                TVSearchingRow(phone: false, request: tv.request).padding(.horizontal, 14)
             }
             ForEach(tv.rows, id: \.key) { row in
                 TVRow(row: row, phone: false)
@@ -623,6 +690,7 @@ struct MacTVRemote: View {
     var body: some View {
         let tv = store.tv
         let card = tv.card
+        let now = tv.now
         VStack(alignment: .leading, spacing: 4) {
             Text(card?.tvName ?? "TV")
                 .font(.mac(15, weight: .semibold))
@@ -633,7 +701,7 @@ struct MacTVRemote: View {
             }
             .accessibilityElement(children: .combine)
         }
-        if let now = card?.now {
+        if let now {
             HStack(spacing: 12) {
                 if let entry = store.titles[now.id] { CoverArt(entry: entry, width: 36) }
                 VStack(alignment: .leading, spacing: 2) {
@@ -645,6 +713,8 @@ struct MacTVRemote: View {
                 if let skip = now.skip {
                     Button(skip.label.capitalized) { tv.send(.skip) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                        .disabled(!tv.live)
+                        .opacity(tv.live ? 1 : 0.4)
                 }
             }
             .padding(.top, 18)
@@ -654,14 +724,18 @@ struct MacTVRemote: View {
                 SettingsRow(title: "Subtitles") {
                     TVTrackMenu(title: "Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
                 }
+                .opacity(tv.live ? 1 : 0.4)
                 SettingsRow(title: "Audio") {
                     TVTrackMenu(title: "Audio", kind: .audio, tracks: now.audio, off: false, phone: false)
                 }
+                .opacity(tv.live ? 1 : 0.4)
                 SettingsRow(title: "TV Volume", note: TVWords.volume(now)) {
                     HStack(spacing: 6) {
                         volume("speaker.wave.1", "Volume Down", -5)
                         volume("speaker.wave.3", "Volume Up", 5)
                     }
+                    .disabled(!tv.live)
+                    .opacity(tv.live ? 1 : 0.4)
                 }
             }
             .padding(.top, 12)
@@ -675,6 +749,7 @@ struct MacTVRemote: View {
         TextField("Search on the TV", text: $search, prompt: Text("Search on the TV"))
             .textFieldStyle(SheetFieldStyle())
             .labelsHidden()
+            .disabled(!tv.live)
             .onChange(of: search) { _, text in tv.send(.text(text: text, submit: false)) }
             .onSubmit { tv.send(.text(text: search, submit: true)) }
             .padding(.top, 14)
@@ -780,11 +855,7 @@ struct PhoneTVPicker: View {
         PhoneList {
             Section {
                 if tv.rows.isEmpty {
-                    HStack(spacing: 12) {
-                        ProgressView()
-                        Text(TVWords.empty).font(.ui(17)).foregroundStyle(.haze)
-                    }
-                    .listRowBackground(Palette.raised)
+                    TVSearchingRow(phone: true, request: tv.request).listRowBackground(Palette.raised)
                 }
                 ForEach(tv.rows, id: \.key) { row in
                     TVRow(row: row, phone: true).listRowBackground(Palette.raised)
@@ -883,11 +954,12 @@ struct PhoneTVPairing: View {
         .safeAreaInset(edge: .bottom) {
             if typing {
                 Button(action: submit) {
-                    HStack(spacing: 8) {
-                        if step.working { ProgressView().tint(.ground) }
-                        Text("Pair")
-                    }
-                    .frame(maxWidth: .infinity)
+                    // The label stays centred; the spinner sits beside it without moving it.
+                    Text("Pair")
+                        .overlay(alignment: .leading) {
+                            if step.working { ProgressView().tint(.ground).offset(x: -28) }
+                        }
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
                 .disabled(sixDigits(code) == nil || step.working)
@@ -916,7 +988,7 @@ struct PhoneTVRemote: View {
         let card = tv.card
         PhoneList {
             Section {
-                if let now = card?.now {
+                if let now = tv.now {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 14) {
                             if let entry = store.titles[now.id] { CoverArt(entry: entry, width: 40) }
@@ -933,9 +1005,15 @@ struct PhoneTVRemote: View {
                     .listRowBackground(Palette.raised)
                     if let skip = now.skip {
                         PhoneActionRow(title: skip.label, systemImage: "forward") { tv.send(.skip) }
+                            .disabled(!tv.live)
+                            .opacity(tv.live ? 1 : 0.4)
                     }
                 } else {
-                    PhoneRowTitle(title: card?.phase == .connected ? "Nothing playing" : (card?.tvName ?? "TV"), note: TVWords.nothing)
+                    // What to do from here is said only while the TV can hear it; otherwise the
+                    // header's line says what the link is doing.
+                    PhoneRowTitle(
+                        title: tv.live ? "Nothing playing" : (card?.tvName ?? "TV"),
+                        note: tv.live ? TVWords.nothing : nil)
                         .padding(.vertical, 6)
                         .listRowBackground(Palette.raised)
                 }
@@ -945,7 +1023,7 @@ struct PhoneTVRemote: View {
                     PhoneSectionHeader(TVWords.status(card))
                 }
             }
-            if let now = card?.now {
+            if let now = tv.now {
                 Section {
                     menuRow("Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff)
                     menuRow("Audio", kind: .audio, tracks: now.audio, off: false)
@@ -955,12 +1033,15 @@ struct PhoneTVRemote: View {
                         volume("speaker.wave.1", "Volume down", -5)
                         volume("speaker.wave.3", "Volume up", 5)
                     }
+                    .disabled(!tv.live)
+                    .opacity(tv.live ? 1 : 0.4)
                     .listRowBackground(Palette.raised)
                 }
             }
             Section {
                 TextField("Search on the TV", text: $search, prompt: Text("Type a search"))
                     .font(.ui(17))
+                    .disabled(!tv.live)
                     .autocorrectionDisabled()
                     .submitLabel(.search)
                     .onChange(of: search) { _, text in tv.send(.text(text: text, submit: false)) }
@@ -995,6 +1076,7 @@ struct PhoneTVRemote: View {
             Spacer()
             TVTrackMenu(title: title, kind: kind, tracks: tracks, off: off, phone: true)
         }
+        .opacity(store.tv.live ? 1 : 0.4)
         .listRowBackground(Palette.raised)
     }
 

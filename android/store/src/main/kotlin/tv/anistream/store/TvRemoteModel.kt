@@ -21,6 +21,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.ffi.FfiPairedTv
 import tv.anistream.engine.ffi.FfiRemoteCard
 import tv.anistream.engine.ffi.FfiLinkPhase
+import tv.anistream.engine.ffi.FfiNowCard
 import tv.anistream.engine.ffi.FfiTvBrowser
 import tv.anistream.engine.ffi.FfiTvCommand
 import tv.anistream.engine.ffi.FfiTvException
@@ -62,17 +63,24 @@ data class TvPairingStep(
  *     picker   the same, with the picker open
  *     code     the picker pairing with Living room, its code to type
  *     remote   Living room paired and playing an episode, its card open
+ *     lost     the remote scene, then Living room gone from the network mid-episode
  */
 enum class TvScene {
-    PAIRED, PICKER, CODE, REMOTE;
+    PAIRED, PICKER, CODE, REMOTE, LOST;
 
     companion object {
         fun named(name: String?): TvScene? = entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
     }
 }
 
-/** The card as the TV last said it, and when on [TvRemoteModel]'s clock, for the playhead. */
-data class TvCard(val card: FfiRemoteCard, val at: Long)
+/**
+ * The card as the TV last said it, and when on [TvRemoteModel]'s clock, for the playhead; and
+ * when the link was lost, while it is, where the playhead stops.
+ */
+data class TvCard(val card: FfiRemoteCard, val at: Long, val lostAt: Long? = null) {
+    /** The link is up, and the card's controls reach the TV. */
+    val live: Boolean get() = card.phase == FfiLinkPhase.CONNECTED
+}
 
 /**
  * Play on TV's state, on the main thread.
@@ -123,6 +131,14 @@ class TvRemoteModel(
 
     /** Something the picker or the card has to say: a command that did not get through. */
     val problem: StateFlow<String?> = _problem.asStateFlow()
+
+    private val _starting = MutableStateFlow<TvPlayRequest?>(null)
+
+    /**
+     * What Play on TV asked the TV to play, until the TV's card names it: the card shows it
+     * starting meanwhile, rather than the TV's last episode or nothing.
+     */
+    val starting: StateFlow<TvPlayRequest?> = _starting.asStateFlow()
 
     /** This phone's fingerprint in short, as a TV's settings list it. */
     var shortFingerprint: String = ""
@@ -359,13 +375,36 @@ class TvRemoteModel(
         val link = sender.link(fingerprint) ?: return
         this.link = link
         _connected.value = fingerprint
-        _card.value = TvCard(link.card(), clock())
+        take(link.card())
         cards = scope.launch {
             while (isActive) {
                 val card = link.nextCard() ?: break
                 if (this@TvRemoteModel.link !== link) break
-                _card.value = TvCard(card, clock())
+                take(card)
             }
+        }
+    }
+
+    /**
+     * The card the TV sent. The playhead moves on from where and when the TV last said it: a card
+     * that only says the link changed keeps that moment, so the line does not jump back to it,
+     * and stops where the link was lost.
+     */
+    private fun take(next: FfiRemoteCard) {
+        val held = _card.value
+        val now = clock()
+        val same = held != null && held.card.rev == next.rev && held.card.now == next.now
+        val lostAt = when {
+            next.phase == FfiLinkPhase.CONNECTED -> null
+            held?.lostAt != null -> held.lostAt
+            held?.card?.phase == FfiLinkPhase.CONNECTED -> now
+            else -> null
+        }
+        _card.value = TvCard(next, if (same) held!!.at else now, lostAt)
+        val request = _starting.value
+        val playing = next.now
+        if (next.over || (request != null && playing != null && playing.id == request.id && playing.episode == request.episode)) {
+            _starting.value = null
         }
     }
 
@@ -374,12 +413,19 @@ class TvRemoteModel(
         val link = link ?: return
         if (_connected.value != fingerprint) return
         _request.value = null
+        _starting.value = request
         openSheet(Sheet.Remote)
         scope.launch {
             try {
                 link.play(request.id, request.title, request.episode, request.from)
+                // The TV playing it already sends nothing new.
+                val playing = _card.value?.card?.now
+                if (_starting.value == request && playing != null && playing.id == request.id && playing.episode == request.episode) {
+                    _starting.value = null
+                }
                 if (request.fromPlayer) handedOff?.invoke()
             } catch (e: FfiTvException) {
+                if (_starting.value == request) _starting.value = null
                 _problem.value = words(e)
             }
         }
@@ -394,6 +440,7 @@ class TvRemoteModel(
         link = null
         _connected.value = null
         _card.value = null
+        _starting.value = null
     }
 
     /** Send the TV a command from the card, the notification or the volume keys. */
@@ -430,9 +477,11 @@ class TvRemoteModel(
 
     /** Where the TV's playhead is now: moved on from the card on this phone's clock while it plays. */
     fun playhead(at: Long = clock()): Double? {
+        if (_starting.value != null) return null
         val card = _card.value ?: return null
         val now = card.card.now ?: return null
-        return tvPlayhead(now, ((at - card.at).coerceAtLeast(0)) / 1000.0)
+        val until = card.lostAt?.let { minOf(it, at) } ?: at
+        return tvPlayhead(now, ((until - card.at).coerceAtLeast(0)) / 1000.0)
     }
 
     /** Whether [scene] is on screen, as a shot waits for it. */
@@ -441,6 +490,7 @@ class TvRemoteModel(
         TvScene.PICKER -> _sheet.value == Sheet.Picker && _rows.value.size == 2
         TvScene.CODE -> _pairing.value.let { it != null && it.needsCode && !it.working && it.tvName.isNotEmpty() }
         TvScene.REMOTE -> _card.value?.card?.now?.let { !it.loading && it.subtitles.isNotEmpty() } == true
+        TvScene.LOST -> _card.value?.card?.let { it.phase == FfiLinkPhase.RETRYING && it.now != null } == true
     }
 
     /** The paired TV this phone drives, for the card's header and Settings. */
@@ -455,6 +505,27 @@ class TvRemoteModel(
 
         /** The volume keys' and buttons' step, out of the TV's 100. */
         const val VOLUME_STEP = 5.0
+
+        /** What the TV plays, as the card shows it: what was asked of it while it starts, else what the TV last said. */
+        fun shown(card: TvCard?, starting: TvPlayRequest?): FfiNowCard? {
+            val request = starting ?: return card?.card?.now
+            return FfiNowCard(
+                id = request.id,
+                title = request.title,
+                episode = request.episode,
+                episodeLine = "Episode ${request.episode}",
+                loading = true,
+                position = request.from ?: 0.0,
+                duration = null,
+                paused = false,
+                speed = 1.0,
+                volume = card?.card?.now?.volume,
+                audio = emptyList(),
+                subtitles = emptyList(),
+                subtitlesOff = false,
+                skip = null,
+            )
+        }
 
         /** The engine's words for a failure. */
         fun words(error: FfiTvException): String = when (error) {

@@ -56,7 +56,7 @@ import tv.anistream.testkit.FixtureArt
 import tv.anistream.testkit.Scene
 
 /**
- * Play on TV, drawn on the JVM over the watching scene: the picker, the code, the card, the bar
+ * Play on TV, drawn on the JVM over the watching scene: the picker, the code, the card, the card of a TV gone, the bar
  * that leads back to it, and the paired TVs in Settings. The TVs are the fixtures' two fake ones,
  * real remote servers on the loopback interface, driven through a second, real testing engine, as
  * the Fixtures app drives them.
@@ -103,6 +103,10 @@ class TvShots {
     @Test
     @Config(qualifiers = PHONE)
     fun phone_tv_remote() = shoot("phone-tv-remote", TvScene.REMOTE)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_tv_lost() = shoot("phone-tv-lost", TvScene.LOST)
 
     @Test
     @Config(qualifiers = PHONE)
