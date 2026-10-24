@@ -154,9 +154,14 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| load_seasonal(lent, adult))
         }
         Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
-        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
+        // Each row marked with its dub where a title page found it: see `Entry::airing_dubbed`.
+        Command::LoadCalendar => {
+            let dubs = engine.dubs.clone();
+            spawn(job, services, tx, move |lent| load_calendar(lent, dubs))
+        }
         Command::LoadCalendarPast { anchor, page } => {
-            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
+            let dubs = engine.dubs.clone();
+            spawn(job, services, tx, move |lent| load_calendar_past(lent, dubs, anchor, page))
         }
         Command::Search { query } => search::submit(query, job, engine, services, tx),
         Command::SearchLive { query } => search::live(query, engine, services, tx),

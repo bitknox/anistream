@@ -128,13 +128,12 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                 let shown = entries.iter().skip(start).take(visible);
                 let episode = shown
                     .clone()
-                    .filter_map(|e| e.airing_episode)
-                    .map(|ep| format!("ep {ep}").chars().count())
+                    .map(|e| calendar_episode(e).chars().count())
                     .max()
                     .unwrap_or(0);
                 let time = shown
-                    .filter_map(|e| e.airing_in)
-                    .map(|secs| calendar_time(secs).chars().count())
+                    .filter_map(|e| Some(calendar_when(e, e.airing_in?)))
+                    .map(|when| when.chars().count())
                     .max()
                     .unwrap_or(0);
                 (episode, time)
@@ -232,14 +231,11 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                     (_, Section::Calendar, Some(secs)) => {
                         let (episode_width, time_width) =
                             calendar_columns.expect("set for the calendar");
-                        let episode = entry
-                            .airing_episode
-                            .map(|ep| format!("ep {ep}"))
-                            .unwrap_or_default();
+                        let episode = calendar_episode(entry);
                         Some((
                             format!(
                                 "{episode:<episode_width$}  {:>time_width$}",
-                                calendar_time(secs)
+                                calendar_when(entry, secs)
                             ),
                             secs <= 0 && entry.progress.is_some(),
                         ))
@@ -742,6 +738,21 @@ pub(super) fn metadata_line(entry: &Entry) -> String {
     crate::widgets::meta_line(&refs)
 }
 
+/// A calendar row's episode column: "ep 5", with "dub" after it once the episode is out in the
+/// dub, as far as the engine knows.
+fn calendar_episode(entry: &Entry) -> String {
+    let Some(episode) = entry.airing_episode else { return String::new() };
+    match anistream_model::present::calendar_mark(entry) {
+        Some(mark) => format!("ep {episode} {}", mark.to_lowercase()),
+        None => format!("ep {episode}"),
+    }
+}
+
+/// A calendar row's time column, `secs` from now, "~" before an estimate: "~in 6d 23h".
+fn calendar_when(entry: &Entry, secs: i64) -> String {
+    anistream_model::present::air_time(&calendar_time(secs), entry.airing_approximate)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1084,6 +1095,27 @@ mod tests {
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("Paper Kite"), "{text}");
         assert!(!text.contains("Paper Kite  ep 7"), "the row's episode leaked:\n{text}");
+    }
+
+    #[test]
+    fn an_estimated_time_reads_with_a_tilde_and_a_dubbed_episode_says_so() {
+        let estimated = Entry {
+            airing_in: Some(600),
+            airing_episode: Some(7),
+            airing_approximate: true,
+            ..entry(1, "Paper Kite")
+        };
+        let dubbed = Entry {
+            airing_in: Some(-3_600),
+            airing_episode: Some(4),
+            airing_dubbed: true,
+            ..entry(2, "Lantern Row")
+        };
+        let mut app = calendar_with(vec![dubbed, estimated]);
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
+        assert!(text.contains("~in 10m"), "{text}");
+        assert!(text.contains("ep 4 dub"), "{text}");
+        assert!(!text.contains("ep 7 dub"), "{text}");
     }
 
     /// `G` on the calendar left rows blank at the bottom: the offset reserved rows for day
