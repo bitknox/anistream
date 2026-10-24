@@ -196,3 +196,25 @@ fn a_property_set_and_a_seek_land() {
         matches!(seen.last(), Some(HostEvent::Report { report: PlayerReport::Property { json, .. }, .. }) if json == "[]")
     );
 }
+
+#[test]
+fn a_file_after_a_paused_one_was_closed_plays() {
+    let rig = rig();
+    let one = PlaybackId::new(4);
+    rig.player.apply(one, &PlayerOp::Open { fullscreen: false, speed: None, volume: None });
+    rig.player.apply(
+        one,
+        &PlayerOp::Load { url: PATTERN.replace("duration=2", "duration=30"), options: vec![] },
+    );
+    rig.until(|e| *e == report(one, PlayerReport::FileLoaded));
+    rig.player.apply(one, &PlayerOp::Cycle { property: "pause".into() });
+    rig.until(|e| matches!(e, HostEvent::State(s) if s.paused));
+    rig.player.viewer_closed();
+    rig.until(|e| *e == HostEvent::Closed);
+
+    let two = PlaybackId::new(5);
+    open_and_load(&rig, two);
+    rig.until(|e| matches!(e, HostEvent::State(s) if s.position.is_some_and(|p| p > 0.5)));
+    assert!(!rig.player.state().paused);
+    assert_eq!(rig.player.mpv().get("pause"), Some(serde_json::Value::Bool(false)));
+}

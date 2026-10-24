@@ -455,6 +455,12 @@ impl Player {
             book.state = PlayerState::default();
         }
         self.enqueue(Work::Stop);
+        // mpv keeps `pause` from file to file: the next one would start on a still frame, with
+        // the controls, told nothing changed, saying it plays.
+        self.enqueue(Work::Call(MpvCall::Set {
+            property: "pause".into(),
+            value: false.into(),
+        }));
         shared.say(HostEvent::Closed);
     }
 

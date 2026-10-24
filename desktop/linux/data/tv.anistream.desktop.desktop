@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=anistream
+GenericName=Anime Player
+Comment=Browse, track and watch anime
+Exec=anistream-desktop
+Icon=tv.anistream.desktop
+Categories=AudioVideo;Video;Player;GTK;
+Keywords=anime;anilist;mpv;
+StartupNotify=true

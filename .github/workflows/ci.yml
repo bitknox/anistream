@@ -47,7 +47,8 @@ jobs:
       engine: ${{ steps.diff.outputs.engine }}
       apple: ${{ steps.diff.outputs.apple }}
       android: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.android == 'true' }}
-      windows: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.windows == 'true' }}
+      windows: ${{ steps.filter.outputs.windows == 'true' || steps.diff.outputs.engine == 'true' }}
+      desktop-linux: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.desktop-linux == 'true' }}
     steps:
       # Two commits: on a pull request the merge, whose first parent is the base, and on a push
       # main's new head, beside which the previous head is fetched below.
@@ -77,6 +78,10 @@ jobs:
               - 'android/**'
             windows:
               - 'desktop/windows/**'
+              - '.github/workflows/ci.yml'
+            desktop-linux:
+              - 'desktop/linux/**'
+              - '.github/workflows/ci.yml'
 
       # The files this change touches, and from them the three things the macOS and Windows jobs
       # are decided by:
@@ -284,6 +289,47 @@ jobs:
       - name: Clippy, the engine without the desktop feature
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: cargo clippy -p anistream-engine --no-default-features --all-targets -- -D warnings
+
+  # The Linux desktop app, its own workspace over the engine: built, tested with the fixture
+  # scene and without it, and linted. On 26.04, whose GTK 4.20 and libadwaita 1.8 are past the 4.16
+  # and 1.7 the app asks for; 24.04 ships 4.14 and 1.5. The tests run under a virtual display,
+  # since GTK wants one even to start. On main, only built, for the cache pull requests restore.
+  desktop-linux:
+    needs: changes
+    if: needs.changes.outputs.desktop-linux == 'true'
+    name: Linux app
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: desktop/linux
+    steps:
+      - uses: actions/checkout@v7
+      - run: ../../tools/ci-toolchain.sh
+        working-directory: desktop/linux
+      - name: GTK, libadwaita and libmpv
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config cmake clang libclang-dev nasm perl \
+            libgtk-4-dev libadwaita-1-dev libmpv-dev libegl-dev \
+            xvfb xauth libgl1-mesa-dri libegl-mesa0 dbus-x11 adwaita-icon-theme
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/linux
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Test with the fixture scene
+        run: ${{ github.event_name == 'push' && 'cargo test --locked --features fixtures --no-run' || 'xvfb-run -a cargo test --locked --features fixtures' }}
+      - name: Test without it
+        run: ${{ github.event_name == 'push' && 'cargo test --locked --no-run' || 'xvfb-run -a cargo test --locked' }}
+      - name: Clippy with the fixture scene
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: cargo clippy --locked --all-targets --features fixtures -- -D warnings
+      - name: Clippy without it
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Formatting
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: cargo fmt --check
 
   # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
   # where mpv is missing, which is every runner above. Here apt installs mpv and the tests

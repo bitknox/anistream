@@ -1,0 +1,371 @@
+//! The engine as the window sees it, on GTK's main loop: commands go out through [`Hub::send`],
+//! which only queues them for the engine's runtime, and the engine's events come back in
+//! batches, are kept where several screens read them, and are handed to every screen that
+//! listens. Covers and banners are fetched by the engine and decoded on a worker thread.
+
+use std::{
+    cell::{Cell, RefCell},
+    collections::HashMap,
+    rc::Rc,
+    sync::Weak,
+};
+
+use adw::prelude::*;
+use anistream_core::ids::AnilistId;
+use anistream_engine::engine::Engine;
+use anistream_model::{
+    catalog::Entry,
+    command::Command,
+    downloads::{DownloadRow, DownloadState, SeedRow},
+    event::Event,
+    settings::{SettingKey, SettingRow, SettingsView},
+    sources::{ProviderOrigin, ProviderRow},
+    stores::{StorePluginRow, StorePluginStatus, StoreRow},
+    sync::SyncState,
+};
+use gtk::{gdk, gio, glib};
+
+/// What several screens read, kept as the engine last said it.
+#[derive(Default)]
+pub struct Known {
+    /// Every title seen in a list or on its page, by id, as it last stood.
+    pub entries: HashMap<u32, Entry>,
+    pub settings: Option<SettingsView>,
+    pub sync: HashMap<String, SyncState>,
+    pub downloads: Vec<DownloadRow>,
+    pub seeding: Vec<SeedRow>,
+    pub providers: Vec<ProviderRow>,
+    pub stores: Vec<StoreRow>,
+}
+
+impl Known {
+    pub fn setting(&self, key: SettingKey) -> Option<SettingRow> {
+        let view = self.settings.as_ref()?;
+        view.rows.iter().chain(&view.native_rows).find(|r| r.key == key).cloned()
+    }
+
+    /// The AniList account, when signed in.
+    pub fn anilist(&self) -> Option<&SyncState> {
+        self.sync.get("anilist").filter(|s| s.connected)
+    }
+
+    /// The sources in the order failover tries them: by where each stands in the order setting,
+    /// a plugin it does not name where `"plugins"` stands, or last.
+    pub fn ordered_providers(&self) -> Vec<ProviderRow> {
+        let order = self.settings.as_ref().map(|s| s.sources.order.clone()).unwrap_or_default();
+        sorted(&self.providers, &order)
+    }
+
+    /// The order setting as it stands.
+    pub fn source_order(&self) -> Vec<String> {
+        self.settings.as_ref().map(|s| s.sources.order.clone()).unwrap_or_default()
+    }
+
+    /// Where an installed plugin came from: the store that keeps it updated and its row there,
+    /// or the first store that lists it as added by hand.
+    pub fn origin(&self, plugin: &str) -> Option<(StoreRow, StorePluginRow)> {
+        let mut by_hand = None;
+        for store in &self.stores {
+            let Some(row) = store.plugins.iter().find(|p| p.id == plugin) else { continue };
+            match row.status {
+                StorePluginStatus::Installed | StorePluginStatus::Update { .. } => {
+                    return Some((store.clone(), row.clone()));
+                }
+                StorePluginStatus::AddedByHand if by_hand.is_none() => {
+                    by_hand = Some((store.clone(), row.clone()));
+                }
+                _ => {}
+            }
+        }
+        by_hand.or_else(|| {
+            // A plugin from a store the list has not come back from yet.
+            let row = self.providers.iter().find(|p| p.id == plugin)?;
+            let ProviderOrigin::Store { id, .. } = &row.origin else { return None };
+            let store = self.stores.iter().find(|s| &s.id == id)?;
+            Some((store.clone(), store.plugins.iter().find(|p| p.id == plugin)?.clone()))
+        })
+    }
+
+    /// Episodes downloading or waiting to, and those seeding: what closing the window stops.
+    pub fn running(&self) -> (usize, usize) {
+        let downloading = self
+            .downloads
+            .iter()
+            .filter(|d| matches!(d.state, DownloadState::Active | DownloadState::Queued))
+            .count();
+        (downloading, self.seeding.len())
+    }
+
+    fn take(&mut self, event: &Event) {
+        match event {
+            Event::Content { content, .. } => {
+                for entry in content.entries() {
+                    self.entries.insert(entry.id.get(), entry.clone());
+                }
+            }
+            Event::Detail(entry) => {
+                self.entries.insert(entry.id.get(), (**entry).clone());
+            }
+            Event::Progress { id, progress, resume, .. } => {
+                if let Some(entry) = self.entries.get_mut(&id.get()) {
+                    entry.progress = *progress;
+                    entry.resume = *resume;
+                }
+            }
+            Event::LastAired(aired) => {
+                for title in aired {
+                    if let Some(entry) = self.entries.get_mut(&title.id.get()) {
+                        entry.last_aired = Some(title.aired);
+                    }
+                }
+            }
+            Event::Settings(view) => self.settings = Some(view.clone()),
+            Event::Sync(state) => {
+                self.sync.insert(state.tracker.clone(), (**state).clone());
+            }
+            Event::Downloads(rows) => self.downloads = rows.clone(),
+            Event::Seeding(rows) => self.seeding = rows.clone(),
+            Event::Providers(rows) => self.providers = rows.clone(),
+            Event::Stores(rows) => self.stores = rows.clone(),
+            _ => {}
+        }
+    }
+}
+
+/// `rows` in the order failover tries them, by `order`.
+pub fn sorted(rows: &[ProviderRow], order: &[String]) -> Vec<ProviderRow> {
+    let rank = |row: &ProviderRow| {
+        order
+            .iter()
+            .position(|entry| *entry == row.id)
+            .or_else(|| {
+                (row.kind == "plugin").then(|| order.iter().position(|e| e == "plugins"))?
+            })
+            .unwrap_or(order.len())
+    };
+    let mut ranked: Vec<_> =
+        rows.iter().enumerate().map(|(at, row)| (rank(row), at, row)).collect();
+    ranked.sort_by_key(|(rank, at, _)| (*rank, *at));
+    ranked.into_iter().map(|(_, _, row)| row.clone()).collect()
+}
+
+type Listener = Rc<dyn Fn(&Event)>;
+
+/// The main loop's side of the engine.
+pub struct Hub {
+    engine: Weak<Engine>,
+    pub known: RefCell<Known>,
+    listeners: RefCell<Vec<(u64, Listener)>>,
+    next: Cell<u64>,
+    art: Art,
+    /// Kinds of event the engine's own are set aside for, while a showcase shows its own.
+    #[cfg(feature = "fixtures")]
+    held: RefCell<Vec<&'static str>>,
+}
+
+impl Hub {
+    pub fn new(engine: Weak<Engine>) -> Rc<Self> {
+        Rc::new(Self {
+            engine,
+            known: RefCell::default(),
+            listeners: RefCell::default(),
+            next: Cell::new(1),
+            art: Art::default(),
+            #[cfg(feature = "fixtures")]
+            held: RefCell::default(),
+        })
+    }
+
+    /// The engine, for what talks to it off the main loop: the player's reports.
+    pub fn engine_link(&self) -> Weak<Engine> {
+        self.engine.clone()
+    }
+
+    /// Ask the engine for `command`. Never waits: the engine queues it on its runtime.
+    pub fn send(&self, command: Command) {
+        if let Some(engine) = self.engine.upgrade() {
+            engine.send(command);
+        }
+    }
+
+    /// Hear every event from now on, until [`Hub::forget`] with the number this returns.
+    pub fn listen(&self, listener: impl Fn(&Event) + 'static) -> u64 {
+        let id = self.next.get();
+        self.next.set(id + 1);
+        self.listeners.borrow_mut().push((id, Rc::new(listener)));
+        id
+    }
+
+    pub fn forget(&self, id: u64) {
+        self.listeners.borrow_mut().retain(|(at, _)| *at != id);
+    }
+
+    /// A batch of the engine's events, in order.
+    pub fn take(self: &Rc<Self>, batch: Vec<Event>) {
+        for event in batch {
+            match &event {
+                Event::ArtworkReady { url, bytes } => {
+                    self.art.arrived(url.clone(), bytes.clone());
+                    continue;
+                }
+                Event::ImageFailed { url, .. } => {
+                    self.art.failed(url);
+                    continue;
+                }
+                _ => {}
+            }
+            #[cfg(feature = "fixtures")]
+            if showcase_kind(&event).is_some_and(|kind| self.held.borrow().contains(&kind)) {
+                continue;
+            }
+            self.known.borrow_mut().take(&event);
+            // Cloned out, so a listener may listen or forget as it hears.
+            let listeners: Vec<_> =
+                self.listeners.borrow().iter().map(|(_, l)| l.clone()).collect();
+            for listener in listeners {
+                listener(&event);
+            }
+        }
+    }
+
+    /// Show `events` in place of the engine's own of their kinds, from now on: rows the fixture
+    /// engine has none of, for the screens that show them.
+    #[cfg(feature = "fixtures")]
+    pub fn show_instead(self: &Rc<Self>, events: Vec<Event>) {
+        let kinds: Vec<_> = events.iter().filter_map(showcase_kind).collect();
+        self.held.borrow_mut().retain(|kind| !kinds.contains(kind));
+        self.take(events);
+        self.held.borrow_mut().extend(kinds);
+    }
+
+    /// The title as it last stood, when it has been seen.
+    pub fn entry(&self, id: AnilistId) -> Option<Entry> {
+        self.known.borrow().entries.get(&id.get()).cloned()
+    }
+
+    /// Show `url`'s art in `picture` once it is here, fetching it once.
+    pub fn art(&self, picture: &gtk::Picture, url: Option<&str>) {
+        let Some(url) = url.filter(|u| !u.is_empty()) else { return };
+        if self.art.bind(url, picture) {
+            self.send(Command::FetchArtwork { url: url.to_owned() });
+        }
+    }
+}
+
+/// Decoded art by address, and the pictures waiting for it.
+#[derive(Default)]
+struct Art {
+    ready: Rc<RefCell<HashMap<String, gdk::Texture>>>,
+    waiting: RefCell<HashMap<String, Vec<glib::WeakRef<gtk::Picture>>>>,
+}
+
+impl Art {
+    /// Show `url` in `picture`: now when it is decoded, or when it arrives. True when it has to
+    /// be fetched.
+    fn bind(&self, url: &str, picture: &gtk::Picture) -> bool {
+        if let Some(texture) = self.ready.borrow().get(url) {
+            picture.set_paintable(Some(texture));
+            return false;
+        }
+        let mut waiting = self.waiting.borrow_mut();
+        let first = !waiting.contains_key(url);
+        waiting.entry(url.to_owned()).or_default().push(picture.downgrade());
+        first
+    }
+
+    fn arrived(&self, url: String, bytes: Vec<u8>) {
+        let waiting = self.waiting.borrow_mut().remove(&url).unwrap_or_default();
+        let ready = Rc::clone(&self.ready);
+        glib::spawn_future_local(async move {
+            let decoded = gio::spawn_blocking(move || decode(&bytes)).await.ok().flatten();
+            let Some((width, height, rgba)) = decoded else { return };
+            let texture: gdk::Texture = gdk::MemoryTexture::new(
+                width as i32,
+                height as i32,
+                gdk::MemoryFormat::R8g8b8a8,
+                &glib::Bytes::from_owned(rgba),
+                width as usize * 4,
+            )
+            .upcast();
+            for picture in waiting.iter().filter_map(glib::WeakRef::upgrade) {
+                picture.set_paintable(Some(&texture));
+            }
+            ready.borrow_mut().insert(url, texture);
+        });
+    }
+
+    fn failed(&self, url: &str) {
+        // Tried again the next time a screen shows it.
+        self.waiting.borrow_mut().remove(url);
+    }
+}
+
+/// An image's pixels, RGBA, off the main loop.
+fn decode(bytes: &[u8]) -> Option<(u32, u32, Vec<u8>)> {
+    let image = image::load_from_memory(bytes).ok()?.into_rgba8();
+    let (w, h) = image.dimensions();
+    Some((w, h, image.into_raw()))
+}
+
+/// The kind of event a showcase sets the engine's own aside by.
+#[cfg(feature = "fixtures")]
+fn showcase_kind(event: &Event) -> Option<&'static str> {
+    Some(match event {
+        Event::Providers(_) => "providers",
+        Event::Stores(_) => "stores",
+        Event::Seeding(_) => "seeding",
+        Event::StorePreview(_) => "store-preview",
+        _ => return None,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anistream_model::catalog::{ContentFor, ContentList, ResumePoint};
+    use anistream_model::progress::TitleProgress;
+
+    #[test]
+    fn progress_moves_the_title_wherever_it_was_seen() {
+        let mut known = Known::default();
+        let id = AnilistId::new(7);
+        known.take(&Event::Content {
+            view: ContentFor::Continue,
+            content: ContentList::Entries(vec![Entry::new(id, "A title")]),
+        });
+        known.take(&Event::Progress {
+            id,
+            progress: Some(TitleProgress { done: 3, next: 4 }),
+            resume: Some(ResumePoint { position: 60.0, fraction: None }),
+            episodes: Vec::new(),
+        });
+        let entry = &known.entries[&7];
+        assert_eq!(entry.progress, Some(TitleProgress { done: 3, next: 4 }));
+        assert_eq!(entry.resume.map(|r| r.position), Some(60.0));
+    }
+
+    #[test]
+    fn closing_counts_what_downloads_and_what_seeds() {
+        let row = |state| DownloadRow {
+            id: 1,
+            anilist_id: AnilistId::new(1),
+            title: "A title".into(),
+            episode: "1".into(),
+            state,
+            fraction: 0.0,
+            downloaded: 0,
+            total: 0,
+            error: None,
+            path: None,
+            ahead: false,
+        };
+        let mut known = Known::default();
+        known.take(&Event::Downloads(vec![
+            row(DownloadState::Active),
+            row(DownloadState::Queued),
+            row(DownloadState::Done),
+            row(DownloadState::Paused),
+        ]));
+        assert_eq!(known.running(), (2, 0));
+    }
+}

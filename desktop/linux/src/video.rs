@@ -108,6 +108,9 @@ pub fn video_area(mpv: Mpv, ready: impl FnOnce() + 'static) -> VideoArea {
     let area =
         gtk::GLArea::builder().hexpand(true).vexpand(true).has_depth_buffer(false).build();
     area.set_auto_render(false);
+    // New buffers hold nothing until drawn: a paused picture is drawn again at the new size,
+    // or a resize (the mini player, a window dragged smaller) shows garbage until it plays.
+    area.connect_resize(|area, _, _| area.queue_render());
     let renderer: Rc<RefCell<Option<GlRenderer>>> = Rc::default();
     let pacing = Rc::new(Pacing::default());
 
