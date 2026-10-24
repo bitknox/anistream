@@ -2,6 +2,7 @@
 // reads it: through EngineSession into Known, then the model's own queue rules.
 
 using Anistream.App;
+using Anistream.Engine.Core;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Xunit;
@@ -132,6 +133,279 @@ public class SharedWordsTests
     }
 }
 
+public class SettingsCatalogTests
+{
+    static SettingRow Row(SettingKey key, string value, SettingChange? change = null) =>
+        new(key, value, change ?? new SettingChange.Steps(true, true));
+
+    [Fact]
+    public void ARowsControlFollowsItsKeyNotItsValue()
+    {
+        // A switch is a switch whatever words the row says, and a ladder is a menu even when one
+        // of its values reads "off".
+        Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(Row(SettingKey.AutoNext, "on")));
+        Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(Row(SettingKey.Torrents, "off")));
+        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(Row(SettingKey.UpNextCountdown, "off")));
+        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(Row(SettingKey.Upscaling, "off")));
+        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(Row(SettingKey.Quality, "1080p")));
+        Assert.Equal(SettingControl.Text, SettingsCatalog.ControlFor(Row(SettingKey.DownloadDir, "D:/Anime", new SettingChange.Typed("D:/Anime"))));
+        Assert.Equal(SettingControl.ReadOnly, SettingsCatalog.ControlFor(Row(SettingKey.VpnMode, "external", new SettingChange.Fixed())));
+    }
+
+    [Fact]
+    public void TheLaddersAreTheEnginesInTheEnginesWords()
+    {
+        Assert.Equal(["480p", "720p", "1080p", "2160p"], SettingsCatalog.Options(SettingKey.Quality).Select(o => o.Label));
+        Assert.Equal(["70%", "80%", "85%", "90%", "95%"], SettingsCatalog.Options(SettingKey.CommitThreshold).Select(o => o.Label));
+        Assert.Equal(["off", "natural · ArtCNN", "sharp · Anime4K"], SettingsCatalog.Options(SettingKey.Upscaling).Select(o => o.Label));
+        Assert.Equal(["off", "5 s", "10 s", "15 s", "20 s", "30 s"], SettingsCatalog.Options(SettingKey.UpNextCountdown).Select(o => o.Label));
+        Assert.Equal(["off", "until ratio 0.5", "until ratio 1.0", "until ratio 1.5", "until ratio 2.0"], SettingsCatalog.Options(SettingKey.SeedRatio).Select(o => o.Label));
+        Assert.Equal(["off", "1 episode", "2 episodes", "3 episodes", "5 episodes", "10 episodes"], SettingsCatalog.Options(SettingKey.KeepNextEpisodes).Select(o => o.Label));
+        Assert.Equal("unlimited", SettingsCatalog.Options(SettingKey.UploadLimit)[0].Label);
+        Assert.Equal("262 kB/s", SettingsCatalog.Options(SettingKey.UploadLimit)[1].Label);
+        Assert.Equal(new SettingValue[] { new SettingValue.Bool(false), new SettingValue.Bool(true) }, SettingsCatalog.Options(SettingKey.Syncplay).Select(o => o.Value));
+        Assert.Empty(SettingsCatalog.Options(SettingKey.DownloadDir));
+        Assert.Empty(SettingsCatalog.Options(SettingKey.MpvOptions));
+    }
+
+    [Fact]
+    public void ARowStandsOnTheOptionItsWordsSay()
+    {
+        Assert.Equal(new SettingValue.Int(1080), SettingsCatalog.Current(Row(SettingKey.Quality, "1080p"))?.Value);
+        Assert.Null(SettingsCatalog.Current(Row(SettingKey.Quality, "1440p")));
+        // The session's choice is beside the saved one, and the row stands on the saved one.
+        Assert.Equal(new SettingValue.Str("sub"), SettingsCatalog.Current(Row(SettingKey.Translation, "sub · dub this session"))?.Value);
+        Assert.True(SettingsCatalog.IsOn(Row(SettingKey.Fullscreen, "on")));
+        Assert.False(SettingsCatalog.IsOn(Row(SettingKey.Fullscreen, "off")));
+        Assert.False(SettingsCatalog.Editable(Row(SettingKey.VpnMode, "external", new SettingChange.Fixed())));
+        Assert.Equal("D:/Anime", SettingsCatalog.TypedText(Row(SettingKey.DownloadDir, "D:/Anime", new SettingChange.Typed("D:/Anime"))));
+    }
+}
+
+public class SourcesTests
+{
+    static ProviderRow Plugin(string id, bool usable = true, string state = "ready") =>
+        new(Id: id, Kind: "plugin", State: state, Usable: usable, Name: id, Origin: new ProviderOrigin.ByHand());
+
+    static ProviderRow Torrent() =>
+        new(Id: "torrent", Kind: "torrent", State: "ready", Usable: true, Name: "Torrents", Origin: new ProviderOrigin.BuiltIn());
+
+    [Fact]
+    public void AMoveStepsOverWhatHasNoRowAndKeepsIt()
+    {
+        var rows = new[] { Torrent(), Plugin("a-archive"), Plugin("b-library") };
+        // "plugins" has no row of its own: it stays after the plugins it stands for.
+        var order = new[] { "torrent", "plugins", "remote" };
+        var down = SourceOrder.Moved(order, rows, "torrent", 1);
+        Assert.Equal(["a-archive", "torrent", "b-library", "plugins", "remote"], down);
+        Assert.Null(SourceOrder.Moved(order, rows, "torrent", -1));
+        var up = SourceOrder.Moved(["a-archive", "b-library", "torrent", "plugins"], rows, "b-library", -1);
+        Assert.Equal(["b-library", "a-archive", "torrent", "plugins"], up);
+        Assert.Null(SourceOrder.Moved(order, rows, "missing", 1));
+    }
+
+    [Fact]
+    public void TheRowsAreSortedByTheOrder()
+    {
+        var rows = new[] { Plugin("a-archive"), Torrent(), Plugin("b-library") };
+        var sorted = SourceOrder.Sorted(rows, ["torrent", "plugins"]);
+        Assert.Equal(["torrent", "a-archive", "b-library"], sorted.Select(r => r.Id));
+        Assert.Equal(["b-library", "torrent", "a-archive"], SourceOrder.Sorted(rows, ["b-library", "torrent"]).Select(r => r.Id));
+    }
+
+    [Fact]
+    public void AProviderStandsAsItsRowSaysItDoes()
+    {
+        Assert.Equal(ProviderStanding.Working, Plugin("a").Standing());
+        Assert.Equal(ProviderStanding.Failing, Plugin("a", usable: false).Standing());
+        Assert.Equal(ProviderStanding.Failing, Plugin("a", state: "down").Standing());
+        Assert.Equal(ProviderStanding.Slow, Plugin("a", state: "degraded").Standing());
+        Assert.Equal(ProviderStanding.Off, (Plugin("a") with { Disabled = true }).Standing());
+        Assert.Equal(ProviderStanding.HeldBack, (Plugin("a") with { HeldBack = true }).Standing());
+        Assert.Null(ProviderStanding.Working.StandingLine());
+        Assert.Equal("Not answering", ProviderStanding.Failing.StandingLine());
+    }
+}
+
+public class StoresTests
+{
+    static StorePluginRow Listed(string id, StorePluginStatus status, string version = "1.0.0", params string[] hosts) =>
+        new(Id: id, Name: id, Version: version, Status: status, Hosts: hosts);
+
+    static StoreRow Store(string id, params StorePluginRow[] plugins) =>
+        new(Id: id, Name: id + " plugins", Url: $"https://{id}.example", Host: $"{id}.example", Fingerprint: "9f3c 1a2b",
+            Member: "Mika", State: new StoreState.Ready(), Plugins: plugins);
+
+    [Fact]
+    public void APluginComesFromTheStoreThatKeepsItUpdated()
+    {
+        var stores = new[]
+        {
+            Store("one", Listed("films", new StorePluginStatus.OtherStore("two plugins")), Listed("hand", new StorePluginStatus.AddedByHand())),
+            Store("two", Listed("films", new StorePluginStatus.Installed()), Listed("hand", new StorePluginStatus.Available())),
+        };
+        Assert.Equal("two", Stores.OriginOf(stores, "films")?.Store.Id);
+        Assert.Equal("one", Stores.OriginOf(stores, "hand")?.Store.Id);
+        Assert.Null(Stores.OriginOf(stores, "nothing"));
+    }
+
+    [Fact]
+    public void UpdatesAndContactsAreCounted()
+    {
+        var store = Store("one",
+            Listed("a", new StorePluginStatus.Update("1.0.0", ["new.example"]), "1.1.0", "x.example", "new.example"),
+            Listed("b", new StorePluginStatus.Installed()));
+        Assert.Equal(1, Stores.Updates(store));
+        Assert.Equal("Contacts x.example and 1 more", Stores.ContactsLine(store.Plugins[0]));
+        Assert.Equal("Contacts no hosts", Stores.ContactsLine(store.Plugins[1]));
+        Assert.Equal("1.0.0", Stores.InstalledVersion(store.Plugins[0]));
+        Assert.Equal("1.0.0 installed", Stores.Standing(store.Plugins[0]));
+        Assert.Equal("Run by Ren, Aki · one.example", Stores.RunBy(["Ren", "Aki"], "one.example"));
+        Assert.Equal("one.example", Stores.RunBy([], "one.example"));
+        Assert.Equal("joined without a name", Stores.JoinedAs(store with { Anonymous = true }));
+    }
+
+    [Fact]
+    public void AnInviteIsFoundInWhatWasPasted()
+    {
+        Assert.Equal("https://plugins.example/join/abc#key", Stores.InviteIn("  https://plugins.example/join/abc#key \n"));
+        Assert.Equal("https://plugins.example/join/abc#key",
+            Stores.InviteIn("anistream://join?link=https%3A%2F%2Fplugins.example%2Fjoin%2Fabc%23key"));
+        Assert.Equal("https://plugins.example/join/abc#key", Stores.InviteIn("anistream://plugins.example/join/abc#key"));
+        Assert.Null(Stores.InviteIn("https://plugins.example/about"));
+        Assert.Null(Stores.InviteIn("not a link"));
+    }
+
+    [Fact]
+    public void TheEventsFillWhatThePagesRead()
+    {
+        var known = new Known();
+        known.Take(new Event.SourcesChanged());
+        Assert.True(known.Rebuilding);
+        known.Take(new Event.Providers([new ProviderRow(Id: "torrent", Kind: "torrent", State: "ready", Usable: true, Name: "Torrents", Origin: new ProviderOrigin.BuiltIn())]));
+        Assert.False(known.Rebuilding);
+        Assert.True(known.ProvidersLoaded);
+        known.Take(new Event.Stores([Store("one")]));
+        known.Take(new Event.StorePreview(new InvitePreview.Failed("The link is not an invite.")));
+        Assert.IsType<InvitePreview.Failed>(known.Preview);
+        known.Take(new Event.StoreJoined("one"));
+        Assert.Equal("one", known.Joined);
+        Assert.Null(known.Preview);
+    }
+}
+
+public class DownloadsTests
+{
+    static DownloadRow Row(long id, uint title, DownloadState state, ulong downloaded, ulong total) =>
+        new(Id: id, AnilistId: title, Title: $"Show {title}", Episode: id.ToString(), State: state,
+            Fraction: total == 0 ? 0 : (double)downloaded / total, Downloaded: downloaded, Total: total);
+
+    [Fact]
+    public void TheQueueGroupsByTitleWhereTheFirstRowIs()
+    {
+        var queue = new DownloadQueue();
+        var now = DateTimeOffset.UnixEpoch;
+        queue.Apply([
+            Row(1, 7, DownloadState.Done, 1000, 1000), Row(2, 9, DownloadState.Queued, 0, 0),
+            Row(3, 7, DownloadState.Active, 300, 1000), Row(4, 9, DownloadState.Paused, 50, 100)], now);
+        var groups = queue.Groups();
+        Assert.Equal([7u, 9u], groups.Select(g => g.Id));
+        Assert.Equal([1L, 3L], groups[0].Rows.Select(r => r.Id));
+        // A finished download counts its size, the others what they have so far.
+        Assert.Equal(1300UL, groups[0].BytesOnDisk);
+        Assert.Equal(1350UL, queue.BytesOnDisk);
+    }
+
+    [Fact]
+    public void ASpeedIsReadFromOneEventToTheNextAndSmoothed()
+    {
+        var queue = new DownloadQueue();
+        var t = DateTimeOffset.UnixEpoch;
+        queue.Apply([Row(1, 7, DownloadState.Active, 0, 10_000)], t);
+        Assert.Null(queue.SecondsLeft(queue.Rows[0]));
+        queue.Apply([Row(1, 7, DownloadState.Active, 1_000, 10_000)], t.AddSeconds(1));
+        Assert.Equal(1_000, queue.Rates[1], 3);
+        Assert.Equal(9, queue.SecondsLeft(queue.Rows[0]));
+        queue.Apply([Row(1, 7, DownloadState.Active, 3_000, 10_000)], t.AddSeconds(2));
+        Assert.Equal(1_500, queue.Rates[1], 3);
+        // A paused download has no speed.
+        queue.Apply([Row(1, 7, DownloadState.Paused, 3_000, 10_000)], t.AddSeconds(3));
+        Assert.False(queue.Rates.ContainsKey(1));
+    }
+
+    [Fact]
+    public void ASeedingFilesSizeIsWhatWentUpOverTheRatio()
+    {
+        Assert.Equal(400UL, new SeedRow(Name: "x", UploadedBytes: 100, Ratio: 0.25, Goal: 1, LeftSecs: 60).Size());
+        Assert.Null(new SeedRow(Name: "x", UploadedBytes: 0, Ratio: 0, Goal: 1, LeftSecs: 60).Size());
+    }
+}
+
+public class PlayerRulesTests
+{
+    [Fact]
+    public void ItAsksAfterTheEpisodesThatRolledOnWithNobodyThere()
+    {
+        var still = new StillWatching { After = 3 };
+        for (var i = 0; i < 2; i++)
+        {
+            still.RollingOn();
+            still.Started();
+            Assert.False(still.FirstPicture());
+        }
+        still.RollingOn();
+        still.Started();
+        Assert.True(still.FirstPicture());
+        Assert.True(still.Asking);
+        // Asked once until it is answered.
+        Assert.False(still.FirstPicture());
+        still.Answered();
+        still.Input();
+        Assert.Equal(0, still.RolledOn);
+    }
+
+    [Fact]
+    public void AnythingTheViewerDoesStartsTheCountOver()
+    {
+        var still = new StillWatching { After = 2 };
+        still.RollingOn();
+        still.Started();
+        still.Input();
+        still.RollingOn();
+        still.Started();
+        Assert.False(still.FirstPicture());
+        // An episode the viewer started is not a roll.
+        still.Started();
+        Assert.Equal(1, still.RolledOn);
+    }
+
+    [Fact]
+    public void ZeroNeverAsks()
+    {
+        var still = new StillWatching { After = 0 };
+        for (var i = 0; i < 5; i++)
+        {
+            still.RollingOn();
+            still.Started();
+        }
+        Assert.False(still.FirstPicture());
+    }
+
+    [Fact]
+    public void APreviewReadsTheStreamWithOnlyTheOptionsThatReachIt()
+    {
+        MpvOption[] options =
+        [
+            new("http-header-fields", "Referer: https://cdn.example/"), new("user-agent", "x"), new("start", "612"),
+            new("sid", "no"), new("force-media-title", "Show"), new("tls-verify", "yes"),
+        ];
+        Assert.Equal(["http-header-fields", "user-agent", "tls-verify"], PreviewSource.Reach(options).Select(o => o.Name));
+        Assert.Equal(300, PreviewSource.TimeAt(50, 100, 600), 6);
+        Assert.Equal(600, PreviewSource.TimeAt(500, 100, 600), 6);
+        Assert.Equal(0, PreviewSource.TimeAt(-4, 100, 600), 6);
+    }
+}
+
 public class SceneTests
 {
     [Fact(Timeout = 90_000)]
@@ -157,6 +431,62 @@ public class SceneTests
             var first = queue.InProgress[0];
             Assert.Equal(900_001u, first.Entry.Id);
             Assert.Equal("Resume episode 7 · 10:06", first.Button);
+        }
+        DeleteRoot(root);
+    }
+
+    /// <summary>
+    /// The catalog's words are the engine's: choosing each option of a stepped setting makes the
+    /// engine's row say exactly the option's label, so a menu built from the catalog never
+    /// drifts from what the rows read.
+    /// </summary>
+    [Fact(Timeout = 120_000)]
+    public async Task EveryOptionInTheCatalogIsWhatTheEngineThenSays()
+    {
+        HomeGuard.Check();
+        var root = AppDirs.NewScratchRoot("cs-catalog");
+        var gate = new object();
+        var engine = FfiEngine.StartScene(AppDirs.Under(root), new QuietHost(), new FfiScene.Fresh(), EngineSession.AppStart());
+        using (var session = new EngineSession(engine, a => { lock (gate) a(); }))
+        {
+            session.Start();
+            async Task<SettingRow?> Row(SettingKey key, Func<SettingRow, bool> until)
+            {
+                var deadline = DateTime.UtcNow.AddSeconds(15);
+                SettingRow? row = null;
+                while (DateTime.UtcNow < deadline)
+                {
+                    lock (gate) row = session.Known.Setting(key);
+                    if (row is not null && until(row))
+                        return row;
+                    await Task.Delay(50, TestContext.Current.CancellationToken);
+                }
+                return row;
+            }
+
+            SettingKey[] keys =
+            [
+                SettingKey.Quality, SettingKey.CommitThreshold, SettingKey.Upscaling, SettingKey.UpNextCountdown,
+                SettingKey.DownloadQuality, SettingKey.KeepNextEpisodes, SettingKey.Titles, SettingKey.AutoNext,
+                SettingKey.NightMode, SettingKey.SeedHours, SettingKey.UploadLimit, SettingKey.SeedRatio,
+            ];
+            foreach (var key in keys)
+            {
+                Assert.NotNull(await Row(key, _ => true));
+                foreach (var option in SettingsCatalog.Options(key))
+                {
+                    session.Send(new Command.SetSetting(key, option.Value));
+                    var row = await Row(key, r => r.Value == option.Label);
+                    Assert.True(row?.Value == option.Label, $"{key} set to {option.Label}: the engine's row says \"{row?.Value}\"");
+                    Assert.Equal(option, SettingsCatalog.Current(row));
+                }
+            }
+            lock (gate)
+            {
+                Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(session.Known.Setting(SettingKey.Quality)!));
+                Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(session.Known.Setting(SettingKey.AutoNext)!));
+                Assert.Equal(SettingControl.Text, SettingsCatalog.ControlFor(session.Known.Setting(SettingKey.DownloadDir)!));
+            }
         }
         DeleteRoot(root);
     }

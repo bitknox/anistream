@@ -20,8 +20,40 @@ public sealed class Known
 
     public SettingsView? Settings { get; private set; }
     public Dictionary<string, SyncState> Sync { get; } = [];
-    public DownloadRow[] Downloads { get; private set; } = [];
+    public DownloadRow[] Downloads => Queue.Rows;
     public SeedRow[] Seeding { get; private set; } = [];
+
+    /// <summary>The download queue, by title, with each running download's speed.</summary>
+    public DownloadQueue Queue { get; } = new();
+
+    /// <summary>The sources, as the engine last said them, in the order it lists them.</summary>
+    public ProviderRow[] Providers { get; private set; } = [];
+    public bool ProvidersLoaded { get; private set; }
+
+    /// <summary>Why no sources are available, when none are.</summary>
+    public string? ProviderNote { get; private set; }
+
+    /// <summary>The sources are being rebuilt, from <c>SourcesChanged</c> until the rebuilt list.</summary>
+    public bool Rebuilding { get; private set; }
+
+    /// <summary>The providers in the order failover tries them, as the config now has it.</summary>
+    public ProviderRow[] OrderedProviders => SourceOrder.Sorted(Providers, Settings?.Sources.Order ?? []);
+
+    /// <summary>Every joined plugin store.</summary>
+    public StoreRow[] Stores { get; private set; } = [];
+    public bool StoresLoaded { get; private set; }
+
+    /// <summary>What a pasted invite link leads to, once checked.</summary>
+    public InvitePreview? Preview { get; set; }
+
+    /// <summary>The store just joined, until the page has shown it.</summary>
+    public string? Joined { get; set; }
+
+    /// <summary>An invite link made, to show and send.</summary>
+    public InviteLinkView? Invite { get; set; }
+
+    /// <summary>A store's members and unused invites, for its owner.</summary>
+    public Dictionary<string, (StoreMemberRow[] Members, StoreInviteRow[] Invites)> Members { get; } = [];
 
     /// <summary>The calendar's broadcasts count their <c>AiringIn</c> from this Unix time.</summary>
     public long? CalendarAnchor { get; private set; }
@@ -91,7 +123,37 @@ public sealed class Known
                 Sync[s.V1.Tracker] = s.V1;
                 break;
             case Event.Downloads d:
-                Downloads = d.V1;
+                Queue.Apply(d.V1, DateTimeOffset.UtcNow);
+                break;
+            case Event.Providers p:
+                Providers = p.V1;
+                ProvidersLoaded = true;
+                Rebuilding = false;
+                if (p.V1.Length > 0)
+                    ProviderNote = null;
+                break;
+            case Event.ProviderNote n:
+                ProviderNote = n.V1;
+                break;
+            case Event.SourcesChanged:
+                Rebuilding = true;
+                break;
+            case Event.Stores st:
+                Stores = st.V1;
+                StoresLoaded = true;
+                break;
+            case Event.StorePreview preview:
+                Preview = preview.V1;
+                break;
+            case Event.StoreJoined joined:
+                Joined = joined.Store;
+                Preview = null;
+                break;
+            case Event.InviteLink link:
+                Invite = link.V1;
+                break;
+            case Event.StoreMembers members:
+                Members[members.Store] = (members.Members, members.Invites);
                 break;
             case Event.Seeding s:
                 Seeding = s.V1;
