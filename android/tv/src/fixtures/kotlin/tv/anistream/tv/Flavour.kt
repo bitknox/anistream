@@ -26,14 +26,14 @@ internal object Flavour {
         val named = intent.getStringExtra("scene")
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(TvApp.TAG, "no scene named $named")
-        fixtureMedia = intent.getStringExtra("media") ?: episode(context)
+        fixtureMedia = intent.getStringExtra("media") ?: File(context.cacheDir, EPISODE).path
         return EngineLaunch.fixtures(scene, context.cacheDir).copy(platform = enginePlatform(context))
     }
 
     /**
-     * The flavour's episode, copied out of the APK the first time, for mpv to open as a file: 24
-     * minutes of colour bars with a counter of seconds, at 2 frames a second and a keyframe every
-     * 10 s, 330 KB. Made with ffmpeg:
+     * Off the main thread, before the engine starts: the flavour's episode, copied out of the APK
+     * the first time, for mpv to open as a file: 24 minutes of colour bars with a counter of
+     * seconds, at 2 frames a second and a keyframe every 10 s, 330 KB. Made with ffmpeg:
      *
      *     ffmpeg -f lavfi -i smptebars=duration=1440:size=320x240:rate=2 \
      *       -f lavfi -i testsrc=duration=1440:size=320x240:rate=2 \
@@ -41,14 +41,13 @@ internal object Flavour {
      *       -c:v libx264 -preset veryslow -crf 30 -g 20 -pix_fmt yuv420p -movflags +faststart \
      *       -map_metadata -1 -fflags +bitexact -flags:v +bitexact episode.mp4
      */
-    private fun episode(context: Context): String {
+    fun prepare(context: Context) {
         val file = File(context.cacheDir, EPISODE)
         if (!file.exists()) {
             val partial = File(context.cacheDir, "$EPISODE.part")
             context.assets.open(EPISODE).use { from -> partial.outputStream().use { from.copyTo(it) } }
             partial.renameTo(file)
         }
-        return file.path
     }
 
     private const val EPISODE = "episode.mp4"
