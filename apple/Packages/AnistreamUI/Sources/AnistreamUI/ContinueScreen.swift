@@ -440,6 +440,8 @@ struct NothingToContinue: View {
 /// A list that could not be loaded: why, in the engine's words, with a vermilion dot.
 struct ListFailed: View {
     let reason: String
+    /// Try again, when the list can be asked for again from here.
+    var retry: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 12) {
@@ -450,7 +452,19 @@ struct ListFailed: View {
                     .foregroundStyle(.silk)
                     .textSelection(.enabled)
             }
-            ReportButton(context: BugContext(kind: "load", message: reason))
+            HStack(spacing: 8) {
+                if let retry {
+                    // Mac buttons in title case, the iPhone's and iPad's in sentence case.
+                    #if os(macOS)
+                    Button("Try Again") { retry() }
+                        .buttonStyle(SecondaryCapsuleStyle())
+                    #else
+                    Button("Try again") { retry() }
+                        .buttonStyle(SecondaryCapsuleStyle())
+                    #endif
+                }
+                ReportButton(context: BugContext(kind: "load", message: reason))
+            }
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

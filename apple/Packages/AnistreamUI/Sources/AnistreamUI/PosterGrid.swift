@@ -142,23 +142,49 @@ struct PosterGrid<Cell: View>: View {
 struct PosterGridPlaceholder: View {
     var count = 14
     var minimum: CGFloat = 128
+    var spacing: CGFloat = 20
 
     var body: some View {
         LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: minimum), spacing: 20, alignment: .top)],
+            columns: [GridItem(.adaptive(minimum: minimum), spacing: spacing, alignment: .top)],
             alignment: .leading,
             spacing: 24
         ) {
             ForEach(0..<count, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 8) {
-                    RoundedRectangle(cornerRadius: 8).fill(.raised).aspectRatio(2 / 3, contentMode: .fit)
-                    Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 14))
-                    Text("Ep 7 of 24").font(.mac(12))
-                }
-                .redacted(reason: .placeholder)
-                .foregroundStyle(.haze)
+                PosterCellPlaceholder(width: minimum)
             }
         }
+        .accessibilityHidden(true)
+    }
+}
+
+/// A poster cell to come, at the size the cell will have, so nothing moves when it arrives: the
+/// plate, two lines' room for the title and the detail line, as `PosterCell` lays them out.
+struct PosterCellPlaceholder: View {
+    var width: CGFloat = 128
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(.raised)
+                .aspectRatio(2 / 3, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
+            Text("Hoshikuzu no Tabibito")
+                .font(.macShowTitle(size: 14))
+                .macLineHeight(18)
+                .lineLimit(2, reservesSpace: true)
+                .padding(.top, 8)
+            Text("TV · 2026")
+                .font(.mac(12))
+                .macLineHeight(16)
+                .lineLimit(1)
+                .padding(.top, 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .redacted(reason: .placeholder)
+        .foregroundStyle(.haze)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityHidden(true)
     }
 }
@@ -204,10 +230,13 @@ private struct ZoomSource: ViewModifier {
 
 /// A list's states other than its rows: loading, failed and empty. Placeholders, once up, stay
 /// at least 0.3 seconds and then give way to what came in one crossfade (T8); a list already
-/// there when the screen opens shows at once.
+/// there when the screen opens shows at once. A list asked for again keeps its rows until its
+/// state says loading, then crossfades to the placeholders.
 struct ListStates<Loaded: View, Empty: View>: View {
     let state: ListState
     var placeholder: AnyView = AnyView(PosterGridPlaceholder())
+    /// Try again, beside the reason when the list failed.
+    var retry: (() -> Void)?
     @ViewBuilder let loaded: ([AnilistId]) -> Loaded
     @ViewBuilder let empty: () -> Empty
 
@@ -215,6 +244,8 @@ struct ListStates<Loaded: View, Empty: View>: View {
     @State private var answered = false
     /// When the placeholders came up.
     @State private var since: ContinuousClock.Instant?
+    /// The last answer, on screen while the placeholders are on their way back.
+    @State private var lastAnswer: ListState = .idle
 
     static var minimum: Duration { .milliseconds(300) }
 
@@ -223,16 +254,7 @@ struct ListStates<Loaded: View, Empty: View>: View {
             if !answered {
                 placeholder
             } else {
-                switch state {
-                case .idle, .loading:
-                    placeholder
-                case .failed(let reason):
-                    ListFailed(reason: reason)
-                case .empty:
-                    empty()
-                case .loaded(let ids):
-                    if ids.isEmpty { empty() } else { loaded(ids) }
-                }
+                answer(state.isAnswer ? state : lastAnswer)
             }
         }
         .onAppear {
@@ -242,17 +264,39 @@ struct ListStates<Loaded: View, Empty: View>: View {
                 since = .now
             }
         }
+        .onChange(of: state, initial: true) { _, state in
+            if state.isAnswer { lastAnswer = state }
+        }
         .task(id: state) {
-            guard !answered, state.isAnswer else { return }
-            if let since {
-                let left = Self.minimum - (ContinuousClock.now - since)
-                if left > .zero { try? await Task.sleep(for: left) }
+            if state.isAnswer {
+                guard !answered else { return }
+                if let since {
+                    let left = Self.minimum - (ContinuousClock.now - since)
+                    if left > .zero { try? await Task.sleep(for: left) }
+                }
+                guard !Task.isCancelled else { return }
+                withAnimation(.standard) { answered = true }
+            } else if answered {
+                since = .now
+                withAnimation(.standard) { answered = false }
             }
-            withAnimation(.standard) { answered = true }
+        }
+    }
+
+    @ViewBuilder
+    private func answer(_ state: ListState) -> some View {
+        switch state {
+        case .idle, .loading:
+            placeholder
+        case .failed(let reason):
+            ListFailed(reason: reason, retry: retry)
+        case .empty:
+            empty()
+        case .loaded(let ids):
+            if ids.isEmpty { empty() } else { loaded(ids) }
         }
     }
 }
-
 extension ListState {
     /// Whether the list has been answered, whatever the answer.
     var isAnswer: Bool {
