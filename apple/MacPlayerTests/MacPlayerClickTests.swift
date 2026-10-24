@@ -72,15 +72,22 @@ final class MacPlayerClickTests: XCTestCase {
         click(app, "Unmute")
         XCTAssertTrue(button(app, "Mute").waitForExistence(timeout: 5))
 
-        // The speed's menu, with upscaling and night mode: the speed set outright.
+        // The speed's menu: the speed set outright.
         click(app, "Playback speed, 1.0×")
-        XCTAssertTrue(app.staticTexts["Upscaling"].waitForExistence(timeout: 5), "no speed menu")
+        XCTAssertTrue(button(app, "1.5×").waitForExistence(timeout: 5), "no speed menu")
+        XCTAssertFalse(app.staticTexts["Upscaling"].exists, "the speed menu holds upscaling")
         click(app, "1.5×")
         XCTAssertTrue(button(app, "Playback speed, 1.5×").waitForExistence(timeout: 5), "1.5× was not picked")
+        click(app, "Playback speed, 1.5×")
+        XCTAssertTrue(gone(app, "1.5×"), "the speed menu stayed open")
+
+        // Picture and sound: upscaling and night mode.
+        click(app, "Picture and sound")
+        XCTAssertTrue(app.staticTexts["Upscaling"].waitForExistence(timeout: 5), "no picture and sound menu")
         click(app, "Night mode")
         XCTAssertTrue(waitFor { self.button(app, "Night mode").isSelected }, "night mode did not go on")
-        click(app, "Playback speed, 1.5×")
-        XCTAssertTrue(gone(app, "Upscaling", in: app.staticTexts), "the speed menu stayed open")
+        click(app, "Picture and sound")
+        XCTAssertTrue(gone(app, "Upscaling", in: app.staticTexts), "the picture and sound menu stayed open")
 
         // The top bar's menus: subtitles and audio, and episodes.
         click(app, "Subtitles and audio")
@@ -92,6 +99,7 @@ final class MacPlayerClickTests: XCTestCase {
         click(app, "Episodes")
         let last = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Episode 12'")).firstMatch
         XCTAssertTrue(last.waitForExistence(timeout: 5), "no episodes menu")
+        XCTAssertTrue(app.staticTexts["Source"].exists, "no sources under the episode playing")
         click(app, "Episodes")
         XCTAssertTrue(waitFor { !last.exists }, "the episodes menu stayed open")
 

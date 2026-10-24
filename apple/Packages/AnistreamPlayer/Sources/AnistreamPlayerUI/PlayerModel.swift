@@ -185,6 +185,8 @@ public final class PlayerModel {
     public private(set) var holds: Set<String> = []
     /// Up for a screenshot, whatever else says.
     public var pinnedControls = false
+    /// The menu row drawn as if the pointer were over it, by its title, for a screenshot.
+    public var pointedRow: String?
     /// Picture in Picture: the picture in the system's floating window while the app browses.
     /// Set by `PictureInPicture` as the picture leaves the player and returns.
     public internal(set) var pictureInPicture = false
@@ -501,12 +503,14 @@ public final class PlayerModel {
         }
     }
 
-    /// The Subtitles and audio menu asked for from outside the player, as a screenshot of it
-    /// does. Counted, for the player's view to answer.
-    public private(set) var trackMenuRequests = 0
+    /// A menu asked for from outside the player, as a screenshot of it does: the last one asked
+    /// for, and a count of the asks, for the player's view to answer.
+    public private(set) var requestedMenu: PlayerMenu = .tracks
+    public private(set) var menuRequests = 0
 
-    public func requestTrackMenu() {
-        trackMenuRequests += 1
+    public func requestMenu(_ menu: PlayerMenu) {
+        requestedMenu = menu
+        menuRequests += 1
     }
 
     /// The viewer closed the player: its close button, the swipe down, the window's close.

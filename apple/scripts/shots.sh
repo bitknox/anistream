@@ -19,8 +19,10 @@
 #
 # The player's states are shots too: player-starting, player-playing, player-skip, player-up-next,
 # player-still-watching, player-stall, player-buffering, player-scrubbing, player-tracks (the
-# Subtitles and audio menu open) and player-picture-in-picture play the Playing scene's generated episode
-# (apple/scripts/player-media.sh) to that state and shoot the player; "player" is all of them.
+# Subtitles and audio menu open), player-speed, player-picture (Picture and sound), player-episodes
+# (with the playing episode's sources) and player-picture-in-picture play the Playing scene's
+# generated episode (apple/scripts/player-media.sh) to that state and shoot the player; "player" is
+# all of them. ANISTREAM_POINTED=<row title> draws a menu's row as if the pointer were over it.
 #
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
 #   settled. It needs no Screen Recording permission.
@@ -38,7 +40,8 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall
-  player-buffering player-scrubbing player-tracks player-picture-in-picture)
+  player-buffering player-scrubbing player-tracks player-speed player-picture player-episodes
+  player-picture-in-picture)
 
 usage() {
   echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
@@ -72,6 +75,7 @@ arguments() {
   local shot="$1" scene="${1%%:*}" screens="" screen
   if [[ "$shot" == player-* ]]; then
     printf '%s\n' -AnistreamScene playing -AnistreamPlayerShot "${shot#player-}"
+    [[ -z "${ANISTREAM_POINTED:-}" ]] || printf '%s\n' -AnistreamPlayerPointer "$ANISTREAM_POINTED"
     return
   fi
   [[ "$shot" == *:* ]] && screens="${shot#*:}"
@@ -113,8 +117,11 @@ if [[ "$device" == mac ]]; then
   "$apple/scripts/engine.sh" testing macos
   for shot in "${shots[@]}"; do
     if [[ "$shot" == player-* ]]; then
+      pointed=()
+      [[ -z "${ANISTREAM_POINTED:-}" ]] || pointed=(-AnistreamPlayerPointer "$ANISTREAM_POINTED")
       (cd "$apple/Packages/AnistreamDev" &&
-        swift run AnistreamDev --scene playing --player-shot "${shot#player-}" --snapshot "$out/mac-$shot.png")
+        swift run AnistreamDev --scene playing --player-shot "${shot#player-}" ${pointed[@]+"${pointed[@]}"} \
+          --snapshot "$out/mac-$shot.png")
       continue
     fi
     args=()
