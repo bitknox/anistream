@@ -745,7 +745,8 @@ private fun InfoPanel(model: PlayerModel, modifier: Modifier) {
 fun playbackDetails(model: PlayerModel): List<String> = buildList {
     val picture = listOfNotNull(
         model.videoHeight?.let { "${it}p" },
-        model.videoCodec?.let { codec ->
+        // A frame mpv's own filters made carries no codec of its own: "wrapped_avframe" names none.
+        model.videoCodec?.takeIf { it.lowercase() != "wrapped_avframe" }?.let { codec ->
             val name = codecName(codec)
             if (model.pixelFormat?.contains("10") == true) "$name 10-bit" else name
         },
