@@ -1,0 +1,73 @@
+# The Linux desktop app: GTK 4 and libadwaita, calling the engine in-process. Its own workspace,
+# not the engine's: it needs GTK's and libmpv's development files, which the engine's CI does not
+# have. It shares the engine's toolchain through the repository's rust-toolchain.toml.
+[workspace]
+
+[package]
+name = "anistream-desktop"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.98"
+license = "MIT"
+publish = false
+
+[[bin]]
+name = "anistream-desktop"
+path = "src/main.rs"
+
+[features]
+# The test kit's scene in place of the network: a fake AniList on loopback, the fixture titles
+# and a history already watched, for screenshots and for trying the app with nothing set up.
+# Never on in a build that ships.
+fixtures = [
+  "dep:anistream-testkit",
+  "dep:anistream-meta",
+  "dep:anistream-providers",
+  "dep:anistream-track",
+  "anistream-engine/testing",
+]
+
+[dependencies]
+anistream-core = { path = "../../crates/anistream-core" }
+anistream-model = { path = "../../crates/anistream-model" }
+anistream-net = { path = "../../crates/anistream-net" }
+anistream-store = { path = "../../crates/anistream-store" }
+# Without the terminal's mpv child: this app hosts its own player.
+anistream-engine = { path = "../../crates/anistream-engine", default-features = false }
+anistream-mpv-host = { path = "../../crates/anistream-mpv-host", features = ["libmpv"] }
+
+anistream-testkit = { path = "../../crates/anistream-testkit", optional = true }
+anistream-meta = { path = "../../crates/anistream-meta", optional = true }
+anistream-providers = { path = "../../crates/anistream-providers", optional = true }
+anistream-track = { path = "../../crates/anistream-track", default-features = false, optional = true }
+
+# GraphicsOffload is GTK 4.14's; 4.16 gave it a black background for direct scanout.
+gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }
+# 1.7 for the toggle group and the inline view switcher; Debian 13 ships 1.7.
+adw = { package = "libadwaita", version = "0.9", features = ["v1_7"] }
+# The native display, for hardware decoding's interop.
+gdk-wayland-sys = { package = "gdk4-wayland-sys", version = "0.11" }
+gdk-x11-sys = { package = "gdk4-x11-sys", version = "0.11" }
+gdk-wayland = { package = "gdk4-wayland", version = "0.11" }
+gdk-x11 = { package = "gdk4-x11", version = "0.11" }
+# Zen Kaku Gothic New added to the font map from a build run out of the repository.
+pango = { version = "0.22", features = ["v1_56"] }
+pangocairo = "0.22"
+async-channel = "2"
+serde_json = "1"
+# Covers and banners decoded off the main loop.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+tokio = { version = "1.53", features = ["rt-multi-thread", "sync", "time"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.dev]
+debug = "line-tables-only"
+[profile.dev.package."*"]
+debug = false

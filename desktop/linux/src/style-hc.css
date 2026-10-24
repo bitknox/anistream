@@ -1,0 +1,11 @@
+/* High contrast, while the system asks for it: haze and rules lift, and covers take an outline
+   so they hold their edge on the ground. Loaded over style.css. */
+
+:root {
+  --haze: #B8BDD6;
+  --rule: #5C6073;
+  --faint-rule: #434653;
+}
+
+.cover, .card { outline: 1px solid alpha(var(--silk), 0.5); outline-offset: -1px; }
+.player-dim { background: alpha(var(--ground), 0.6); }

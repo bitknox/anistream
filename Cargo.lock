@@ -192,6 +192,7 @@ dependencies = [
  "anistream-engine",
  "anistream-meta",
  "anistream-model",
+ "anistream-mpv-host",
  "anistream-net",
  "anistream-providers",
  "anistream-remote",
@@ -234,6 +235,18 @@ dependencies = [
  "anistream-core",
  "serde",
  "uniffi",
+]
+
+[[package]]
+name = "anistream-mpv-host"
+version = "2.0.0"
+dependencies = [
+ "anistream-model",
+ "find-msvc-tools",
+ "pkg-config",
+ "serde_json",
+ "tempfile",
+ "tracing",
 ]
 
 [[package]]

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The engine driven from C# through the generated bindings, on this machine's testing build:
+       the fake AniList and the fixture titles, nothing leaving the machine. The same C# runs on
+       Windows against the DLL. scripts/test.sh runs it under a temporary HOME. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <EngineFlavour>testing</EngineFlavour>
+    <!-- The tests time out, but cannot cancel what they wait on: the generated async calls take no
+         CancellationToken, so NextEvents() runs until the engine has events or stops. -->
+    <NoWarn>$(NoWarn);xUnit1069</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+  <Import Project="../Engine.props" />
+</Project>

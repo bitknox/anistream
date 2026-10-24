@@ -1,0 +1,159 @@
+/* Obi & Silk on libadwaita: the palette as libadwaita's own variables, dark only at v1. Screens
+   use these and the classes below, never a colour of their own. */
+
+:root {
+  --ground: #161A2E;
+  --raised: #222638;
+  --raised-selected: #343A57;
+  --faint-rule: #2F3242;
+  --rule: #434653;
+  --silk: #E4E0D6;
+  --haze: #9298B5;
+  --amber: #F2A64B;
+  --water: #7FC7D9;
+  --vermilion: #E06B54;
+
+  --window-bg-color: var(--ground);
+  --view-bg-color: var(--ground);
+  --window-fg-color: var(--silk);
+  --view-fg-color: var(--silk);
+  --headerbar-bg-color: var(--ground);
+  --headerbar-fg-color: var(--silk);
+  --sidebar-bg-color: #1C2034;
+  --sidebar-fg-color: var(--silk);
+  --secondary-sidebar-bg-color: var(--ground);
+  --card-bg-color: var(--raised);
+  --card-fg-color: var(--silk);
+  --popover-bg-color: #2A2F45;
+  --popover-fg-color: var(--silk);
+  --dialog-bg-color: #2A2F45;
+  --dialog-fg-color: var(--silk);
+  --border-color: var(--faint-rule);
+  --accent-bg-color: var(--amber);
+  --accent-fg-color: var(--ground);
+  --accent-color: var(--amber);
+  --destructive-bg-color: var(--vermilion);
+  --error-color: var(--vermilion);
+  --error-bg-color: var(--vermilion);
+}
+
+/* Secondary text reads the same over every surface, and water marks a state. */
+.haze { color: var(--haze); }
+.state { color: var(--water); }
+.state-dot { background: var(--water); border-radius: 999px; min-width: 8px; min-height: 8px; }
+
+/* Show titles in Zen Kaku Gothic New, sized relative so they follow the text scale. */
+.show-title { font-family: "Zen Kaku Gothic New"; font-weight: 700; }
+.show-title.row { font-size: 1.07em; }
+.show-title.page { font-size: 2em; }
+
+/* Links in body text are silk and underlined, never amber. */
+label link { color: var(--silk); }
+
+/* Progress: amber on the rule colour. */
+progressbar trough { background: var(--rule); }
+progressbar progress { background: var(--amber); }
+
+/* Covers and banners: flat placeholders in the cover's own colour until the art lands. */
+.cover { border-radius: 8px; }
+.cover.small { border-radius: 6px; }
+.banner { border-radius: 12px; }
+.banner.flush { border-radius: 0; }
+.still { border-radius: 6px; }
+.still.spoiler { filter: blur(10px); }
+.art-fade { background: linear-gradient(to bottom, alpha(var(--ground), 0) 30%, var(--ground)); }
+
+/* Continue's queue is content, not navigation: it stays on the ground. */
+.queue { background: var(--ground); }
+.queue row { padding: 6px 8px; border-radius: 8px; }
+.queue-heading { padding: 18px 12px 6px 12px; }
+
+/* The sidebar's foot. */
+.account-row { padding: 6px; }
+
+/* Poster grids. */
+gridview.posters { background: none; padding: 8px 24px 24px 24px; }
+gridview.posters > child { padding: 8px; border-radius: 12px; }
+gridview.posters > child:hover { background: alpha(var(--silk), 0.05); }
+
+/* Calendar: today's column on raised from heading to foot. */
+.calendar-day { padding: 8px 6px; border-radius: 12px; }
+.calendar-day.today { background: var(--raised); }
+.calendar-heading { padding: 0 4px 4px 4px; }
+.broadcast { padding: 4px; border-radius: 8px; }
+.broadcast:hover { background: alpha(var(--silk), 0.05); }
+.banner.small { border-radius: 6px; }
+.today-heading { color: var(--water); }
+
+/* Downloads: the bar is water while it runs, haze while it waits. */
+progressbar.water progress { background: var(--water); }
+progressbar.waiting progress { background: var(--haze); }
+row progressbar.horizontal > trough { min-width: 60px; }
+row levelbar.horizontal trough { min-width: 60px; }
+row.failed .subtitle { color: var(--vermilion); }
+levelbar block.filled { background: var(--water); }
+levelbar block.empty { background: var(--rule); }
+
+/* A row's standing: a dot, or a ring for off and held back. */
+.mark { min-width: 6px; min-height: 6px; border-radius: 999px; }
+.mark.water { background: var(--water); }
+.mark.vermilion { background: var(--vermilion); }
+.mark.haze { background: var(--haze); }
+.mark.ring { box-shadow: inset 0 0 0 1.5px var(--haze); }
+.standing { color: var(--silk); }
+.problem { color: var(--vermilion); }
+.fingerprint { font-family: monospace; }
+
+.genre-tile { border-radius: 12px; padding: 18px; background: var(--raised); }
+.genre-tile:hover { background: var(--raised-selected); }
+
+/* Episode rows. */
+.episode-row { min-height: 72px; padding: 6px 0; }
+.watched .episode-name { color: var(--haze); }
+
+/* The player: controls on a 35% dim of the ground, no blur. */
+.player { background: black; }
+.player-dim { background: alpha(var(--ground), 0.35); }
+.player-bar { background: none; box-shadow: none; padding: 6px 12px; }
+.player-bar button { min-width: 40px; min-height: 40px; }
+.player-bar label { color: var(--silk); }
+.player-starting { background: var(--ground); }
+.timeline trough { background: var(--rule); min-height: 4px; }
+.timeline highlight { background: var(--amber); }
+.timeline fill { background: alpha(var(--silk), 0.3); }
+.timeline mark indicator { color: var(--haze); min-height: 6px; }
+.seek-preview { padding: 4px; }
+.seek-preview label { color: var(--silk); }
+.mini-controls button { min-width: 44px; min-height: 44px; }
+.corner-card { background: var(--popover-bg-color); border-radius: 12px; padding: 12px; margin: 24px; }
+.countdown trough { background: var(--rule); min-height: 3px; }
+.countdown progress { background: var(--amber); min-height: 3px; }
+
+/* The setup card. */
+.setup { padding: 12px; }
+
+/* Settings' preview column: a raised card on the pane's end. */
+.settings-preview { background: var(--raised); border-radius: 12px; padding: 16px; }
+.preview-frame { border-radius: 8px; }
+.chip {
+  font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 999px;
+  background: alpha(#0B0D18, 0.6); border: 1px solid alpha(white, 0.16);
+}
+.caption-sample {
+  color: white; font-size: 15px; font-weight: 600;
+  text-shadow: 0 0 2px black, 0 0 2px black, 0 1px 3px black;
+}
+
+/* Amber stays on the one primary action, progress and switches that are on. A watched mark and a
+   selected row take the neutral fill, as the brief's Linux selection says. */
+checkbutton check:checked, checkbutton check:indeterminate {
+  background: var(--raised-selected);
+  border-color: var(--rule);
+  color: var(--silk);
+}
+row:selected, row:selected:hover, row:selected:focus {
+  background: var(--raised-selected);
+}
+/* An open group's arrow is haze, not the accent. */
+row.expander image.expander-row-arrow,
+row.expander:checked image.expander-row-arrow { color: var(--haze); }

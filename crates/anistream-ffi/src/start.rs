@@ -193,6 +193,7 @@ pub enum FfiPlatform {
     AndroidTablet,
     /// Android TV or Google TV: a television driven by a remote, whatever its screen.
     AndroidTv,
+    Windows,
 }
 
 impl FfiPlatform {
@@ -207,6 +208,7 @@ impl FfiPlatform {
             Self::Android => "Android phone",
             Self::AndroidTablet => "Android tablet",
             Self::AndroidTv => "Android TV",
+            Self::Windows => "Windows PC",
         }
     }
 }
@@ -255,6 +257,11 @@ pub enum FfiError {
     /// A TV's remote could not start listening, or could not forget a phone.
     #[error("{reason}")]
     Remote { reason: String },
+    /// The hosted player's libmpv core did not start. Only in a build with the `mpv-host`
+    /// feature, so the phones' bindings never have it.
+    #[cfg(feature = "mpv-host")]
+    #[error("{reason}")]
+    Player { reason: String },
 }
 
 #[cfg(test)]
@@ -287,6 +294,7 @@ mod tests {
             (FfiPlatform::Ios, "iPhone"),
             (FfiPlatform::IpadOs, "iPad"),
             (FfiPlatform::Android, "Android phone"),
+            (FfiPlatform::Windows, "Windows PC"),
             (FfiPlatform::AndroidTablet, "Android tablet"),
             (FfiPlatform::AndroidTv, "Android TV"),
         ];
