@@ -78,6 +78,11 @@ class AppStore(
     private val _phase = MutableStateFlow<Phase>(Phase.Starting)
     val phase: StateFlow<Phase> = _phase.asStateFlow()
 
+    private val _offline = MutableStateFlow(false)
+
+    /** The one offline state, as the engine says it from the network path the app reports. */
+    val offline: StateFlow<Boolean> = _offline.asStateFlow()
+
     val titles = TitleCache()
     val continuing = ContinueModel()
     val seasonal = ListModel()
@@ -487,9 +492,12 @@ class AppStore(
         send(Command.PlayLocal(row.anilistId, row.episode, row.title, path))
     }
 
-    /** The device's network, as the system says it: cellular, and Data Saver as constrained. */
-    fun networkPath(cellular: Boolean, constrained: Boolean) {
-        send(Command.NetworkPath(cellular, constrained))
+    /**
+     * The device's network, as the system says it: cellular, Data Saver as constrained, and no
+     * network at all as offline. The engine answers with the one offline state.
+     */
+    fun networkPath(cellular: Boolean, constrained: Boolean, offline: Boolean = false) {
+        send(Command.NetworkPath(cellular, constrained, offline))
     }
 
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
@@ -783,6 +791,7 @@ class AppStore(
             is Event.Episodes -> titles.episodes(event.id, event.rows)
 
             is Event.Status -> notices.status(event.v1)
+            is Event.Connectivity -> _offline.value = event.offline
             is Event.Toast -> notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)

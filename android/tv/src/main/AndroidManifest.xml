@@ -19,7 +19,7 @@
         android:name=".TvApp"
         android:allowBackup="false"
         android:banner="@drawable/banner"
-        android:icon="@drawable/banner"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Anistream.Tv">

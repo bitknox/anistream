@@ -19,6 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
@@ -56,7 +58,7 @@ fun HeroHeader(entry: Entry, rows: List<EpisodeRow>?, modifier: Modifier = Modif
     Column(modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(BannerHeight)) {
             // Waiting for the episode list keeps the ground: never a cover stretched across.
-            if (art.url != null) ArtImage(art.url, plate = null, maxPixelSize = BANNER_PIXELS, modifier = Modifier.fillMaxSize())
+            if (art.url != null) ArtImage(art.url, plate = ObiSilk.Ground, maxPixelSize = BANNER_PIXELS, modifier = Modifier.fillMaxSize())
         }
         Column(Modifier.padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 12.dp)) {
             HeaderTitle(entry.title)
@@ -67,5 +69,6 @@ fun HeroHeader(entry: Entry, rows: List<EpisodeRow>?, modifier: Modifier = Modif
 
 @Composable
 private fun HeaderTitle(title: String) {
-    Text(title, style = TvTitle.page, color = ObiSilk.Silk, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    // Two lines before the ellipsis: long titles are common, and the second line costs little.
+    Text(title, style = TvTitle.page, color = ObiSilk.Silk, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
 }

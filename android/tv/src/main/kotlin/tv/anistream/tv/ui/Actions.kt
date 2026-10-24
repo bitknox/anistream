@@ -4,6 +4,13 @@
 package tv.anistream.tv.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,11 +67,29 @@ class ActionsHost {
 
 val LocalActions = staticCompositionLocalOf<ActionsHost?> { null }
 
-/** The open sheet, right-aligned in [modifier]'s box; Back closes it. */
+/**
+ * The open sheet: a black scrim at 32 % over the screen and the panel on its right, fading in and
+ * out together (fade-in, fade-out). Back closes it. Lay it over the whole screen.
+ */
 @Composable
 fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
-    val sheet = host.sheet ?: return
-    BackHandler(onBack = host::close)
+    val open = host.sheet
+    var last by remember { mutableStateOf(open) }
+    if (open != null) last = open
+    if (open != null) BackHandler(onBack = host::close)
+    AnimatedVisibility(open != null, modifier.fillMaxSize(), enter = enterFade(), exit = exitFade()) {
+        Box(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = SCRIM)))
+            last?.let { Sheet(host, it, Modifier.align(Alignment.CenterEnd)) }
+        }
+    }
+}
+
+/** The black scrim under a panel over browse screens: 32 %. */
+private const val SCRIM = 0.32f
+
+@Composable
+private fun Sheet(host: ActionsHost, sheet: ActionSheet, modifier: Modifier) {
     val first = remember(sheet) { FocusRequester() }
     Column(
         modifier
@@ -73,7 +98,12 @@ fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
             .background(ObiSilk.RaisedHigh)
             .padding(horizontal = 16.dp, vertical = 27.dp),
     ) {
-        Text(sheet.title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
+        Text(
+            sheet.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = ObiSilk.Silk,
+            modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() },
+        )
         val body = sheet.body
         if (body != null) {
             body()
@@ -92,7 +122,8 @@ fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
                         }
                     },
                     selected = action.selected,
-                    modifier = if (index == 0) Modifier.focusRequester(first) else Modifier,
+                    // The chosen option takes focus, else the first.
+                    modifier = if (action.selected || (index == 0 && sheet.actions.none { it.selected })) Modifier.focusRequester(first) else Modifier,
                 )
             }
         }

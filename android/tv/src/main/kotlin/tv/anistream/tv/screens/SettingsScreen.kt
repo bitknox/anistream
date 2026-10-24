@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
@@ -36,7 +42,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.launch
+import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
+import tv.anistream.engine.model.ProviderOrigin
+import tv.anistream.engine.model.ProviderRow
+import tv.anistream.engine.model.StoreRow
+import tv.anistream.engine.model.StoreState
+import tv.anistream.store.ProviderStanding
+import tv.anistream.store.standing
 import tv.anistream.engine.ffi.FfiPairedPhone
 import tv.anistream.engine.model.SettingChange
 import tv.anistream.engine.model.SettingKey
@@ -50,7 +63,11 @@ import tv.anistream.tv.remote.ConfirmDialog
 import tv.anistream.tv.remote.LocalRemoteHost
 import tv.anistream.tv.remote.RemovePhoneDialog
 import tv.anistream.tv.shell.TvNavigator
+import tv.anistream.tv.ui.ActionSheet
 import tv.anistream.tv.ui.Canvas
+import tv.anistream.tv.ui.CardAction
+import tv.anistream.tv.ui.LocalActions
+import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.LocalAppStore
@@ -105,7 +122,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
 
     Row(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY, end = Canvas.SafeX)) {
         Column(Modifier.width(256.dp).fillMaxHeight().focusRestorer(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Settings", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp))
+            Text("Settings", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp).semantics { heading() })
             SettingsSection.entries.forEach { each ->
                 TvListRow(
                     each.label,
@@ -113,7 +130,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
                     selected = each == section,
                     modifier = Modifier
                         .onFocusChanged { if (it.isFocused) section = each }
-                        .firstFocus(memory, "section/${each.name}", each == SettingsSection.Playback),
+                        .firstFocus(memory, "section/${each.name}", each == start),
                 )
             }
         }
@@ -134,7 +151,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
                 when (section) {
                     SettingsSection.Playback -> playback(store, view, memory, first)
                     SettingsSection.Sources -> sources(memory, first)
-                    SettingsSection.PluginStores -> pluginStores(memory, first)
+                    SettingsSection.PluginStores -> pluginStores(nav, memory, first)
                     SettingsSection.Accounts -> accounts(nav, memory, first)
                     SettingsSection.Remotes -> remotes(memory, first)
                     SettingsSection.ThisTv -> thisTv(memory, first)
@@ -149,12 +166,24 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
 private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     PlaybackRows.forEachIndexed { index, (key, label) ->
         item(key = key.name, contentType = "setting") {
+            val actions = LocalActions.current
             val row = store.settings.row(key, view)
             val switch = SettingsCatalog.isSwitch(key)
             val overridden = store.settings.overridden(key, view)
+            val options = SettingsCatalog.options(key)
             TvListRow(
                 label,
-                onClick = { change(store, key, row?.change, switch, view) },
+                onClick = {
+                    // A row with choices opens its radio panel; the choice applies at once.
+                    if (!switch && options.isNotEmpty() && actions != null) {
+                        val current = SettingsCatalog.current(row)
+                        actions.open(ActionSheet(label, options.map { option ->
+                            CardAction(option.label, selected = option == current) { store.setSetting(key, option.value) }
+                        }))
+                    } else {
+                        change(store, key, row?.change, switch, view)
+                    }
+                },
                 supporting = overridden,
                 value = if (switch) null else row?.let { SettingsCatalog.current(it)?.label ?: it.value },
                 switch = if (switch) store.settings.isOn(key, view) else null,
@@ -188,12 +217,14 @@ private fun LazyListScope.sources(memory: FocusMemory, first: Modifier) {
             if (rows.isEmpty()) {
                 Quiet("No sources yet. Plugins from a plugin store add them.")
             }
+            val actions = LocalActions.current
             rows.forEachIndexed { index, provider ->
                 TvListRow(
-                    provider.name,
-                    onClick = {},
-                    supporting = provider.version?.let { "Version $it" },
-                    value = if (provider.usable) null else "off",
+                    provider.name.ifEmpty { provider.id },
+                    onClick = { actions?.open(providerSheet(provider)) },
+                    supporting = providerOrigin(provider),
+                    // A word only for a problem.
+                    value = providerProblem(provider),
                     modifier = (if (index == 0) first else Modifier).remembered(memory, "provider/${provider.id}"),
                 )
             }
@@ -201,24 +232,81 @@ private fun LazyListScope.sources(memory: FocusMemory, first: Modifier) {
     }
 }
 
-private fun LazyListScope.pluginStores(memory: FocusMemory, first: Modifier) {
+private fun LazyListScope.pluginStores(nav: TvNavigator, memory: FocusMemory, first: Modifier) {
     item(key = "stores", contentType = "list") {
         val store = LocalAppStore.current
+        val actions = LocalActions.current
         val stores by store.stores.stores.collectAsStateWithLifecycle()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             stores.forEachIndexed { index, row ->
-                TvListRow(row.name, onClick = {}, supporting = row.host, modifier = (if (index == 0) first else Modifier).remembered(memory, "store/${row.id}"))
+                TvListRow(
+                    row.name,
+                    onClick = { actions?.open(storeSheet(store, row)) },
+                    supporting = storeLine(row),
+                    modifier = (if (index == 0) first else Modifier).remembered(memory, "store/${row.id}"),
+                )
             }
             TvListRow(
                 "Add a plugin store",
-                onClick = {},
-                supporting = "From a paired phone",
-                enabled = false,
+                onClick = nav::openJoinStore,
                 modifier = (if (stores.isEmpty()) first else Modifier).remembered(memory, "store/add"),
             )
         }
     }
 }
+
+/** Where a source came from: its store, by hand, or built in. */
+private fun providerOrigin(row: ProviderRow): String = when (val origin = row.origin) {
+    is ProviderOrigin.Store -> origin.name ?: "A store you left"
+    ProviderOrigin.ByHand -> "Added by hand"
+    ProviderOrigin.BuiltIn -> "Built in"
+}
+
+/** A source's word, only for a problem: "Not answering", "Held back". */
+private fun providerProblem(row: ProviderRow): String? = when (row.standing) {
+    ProviderStanding.Failing -> "Not answering"
+    ProviderStanding.HeldBack -> "Held back"
+    else -> null
+}
+
+/** A source's page as a panel: its version, its hosts and how fast it answers. */
+private fun providerSheet(row: ProviderRow): ActionSheet = ActionSheet(
+    row.name.ifEmpty { row.id },
+    body = {
+        InfoLines(
+            listOfNotNull(
+                "From" to providerOrigin(row),
+                row.version?.let { "Version" to it },
+                row.hosts.takeIf { it.isNotEmpty() }?.let { "Contacts" to it.joinToString(", ") },
+                row.latencyMs?.let { "Answers in" to "$it ms" },
+                providerProblem(row)?.let { "State" to it },
+            ),
+        )
+    },
+)
+
+/** A store's line: its host, then why it is not answering. */
+private fun storeLine(row: StoreRow): String = listOfNotNull(
+    row.host,
+    when (row.state) {
+        is StoreState.Offline -> "Not answering"
+        StoreState.Revoked -> "No longer lets this TV in"
+        StoreState.Ready -> null
+    },
+).joinToString(" · ")
+
+/** A store's page as a panel: its plugins with their hosts, its key, and Leave. */
+private fun storeSheet(store: AppStore, row: StoreRow): ActionSheet = ActionSheet(
+    row.name,
+    body = {
+        InfoLines(
+            listOf("Address" to row.host, "Key" to row.fingerprint) +
+                row.plugins.map { plugin -> plugin.name to listOf("Version ${plugin.version}", plugin.hosts.joinToString(", ")).filter { it.isNotEmpty() }.joinToString(" · ") },
+            action = "Leave this store",
+            onAction = { store.leaveStore(row.id) },
+        )
+    },
+)
 
 private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first: Modifier) {
     item(key = "accounts", contentType = "list") {
@@ -269,12 +357,12 @@ private fun LazyListScope.remotes(memory: FocusMemory, first: Modifier) {
         }
         var removing by remember { mutableStateOf<FfiPairedPhone?>(null) }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TvListRow("This TV's name for phones", onClick = {}, value = name, modifier = first.remembered(memory, "remote/name"))
+            InfoRow("This TV's name for phones", name)
             TvListRow(
                 "Pair a phone",
                 onClick = { remote?.openPairing() },
                 enabled = remote != null,
-                modifier = Modifier.remembered(memory, "remote/pair"),
+                modifier = first.remembered(memory, "remote/pair"),
             )
             TvListRow(
                 "Let phones on this network find this TV",
@@ -371,12 +459,61 @@ private fun LazyListScope.about(memory: FocusMemory, first: Modifier) {
         val version = remember {
             runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "unknown"
         }
+        val actions = LocalActions.current
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TvListRow("Version", onClick = {}, value = version, modifier = first.remembered(memory, "about/version"))
-            TvListRow("Licences", onClick = {}, modifier = Modifier.remembered(memory, "about/licences"))
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Nagare(cell = 4)
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text("anistream", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk)
+                    Text("Version $version", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+                }
+            }
+            TvListRow(
+                "Licences",
+                onClick = { actions?.open(ActionSheet("Licences", body = { InfoLines(Licences) })) },
+                modifier = first.remembered(memory, "about/licences"),
+            )
             Quiet("anistream hosts no content.")
         }
     }
+}
+
+/** What anistream is under, and what it uses, as the phone's About lists them. */
+private val Licences = listOf(
+    "Licence" to "MIT, open source and non-commercial",
+    "Typefaces" to "Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1",
+    "Libraries" to "JNA and AndroidX, under the Apache License 2.0",
+)
+
+/** A row that only says something: its label and its value, not focusable. */
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp).semantics(mergeDescendants = true) {}, verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
+    }
+}
+
+/**
+ * A panel's lines, each a label over its value, focusable so Up and Down move through them and
+ * TalkBack reads each; then one action when there is one.
+ */
+@Composable
+private fun InfoLines(lines: List<Pair<String, String>>, action: String? = null, onAction: () -> Unit = {}) {
+    val host = LocalActions.current
+    val first = remember { FocusRequester() }
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        itemsIndexed(lines) { index, (label, value) ->
+            TvListRow(label, onClick = {}, supporting = value, modifier = if (index == 0) Modifier.focusRequester(first) else Modifier)
+        }
+        if (action != null) {
+            item {
+                TvListRow(action, onClick = { host?.close(); onAction() })
+            }
+        }
+    }
+    LaunchedEffect(Unit) { first.focusSoon() }
 }
 
 @Composable

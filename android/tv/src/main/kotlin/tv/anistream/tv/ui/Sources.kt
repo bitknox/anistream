@@ -19,6 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -80,7 +82,7 @@ fun ReleasesPanel(choices: List<SourceCandidate>?, onPick: (SourceCandidate) -> 
             .background(ObiSilk.RaisedHigh)
             .padding(horizontal = 16.dp, vertical = 27.dp),
     ) {
-        Text("Choose a source", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
+        Text("Choose a source", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
         ReleaseList(choices, onPick)
     }
 }

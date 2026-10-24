@@ -44,6 +44,11 @@ sealed interface Page {
     data class SignIn(val tracker: String, override val key: String) : Page {
         override val memory: FocusMemory = FocusMemory()
     }
+
+    /** TVJoinStore: add a plugin store from this TV, with or without a paired phone. */
+    data class JoinStore(override val key: String) : Page {
+        override val memory: FocusMemory = FocusMemory()
+    }
 }
 
 /**
@@ -137,6 +142,7 @@ class TvNavigator(start: Destination = Destination.Continue) {
      * closed; the same one returns to where its focus was.
      */
     fun go(to: Destination) {
+        if (to != Destination.Settings) settingsStart = null
         if (to == destination && pages.isEmpty()) return
         pages.forEach { forget(it.key) }
         pages.clear()
@@ -146,6 +152,21 @@ class TvNavigator(start: Destination = Destination.Continue) {
             memory(to).reset()
             destination = to
         }
+    }
+
+    /** The Settings section to open at, when something sent the TV to one: Accounts, say. */
+    var settingsStart by mutableStateOf<String?>(null)
+        private set
+
+    /** Settings, at the section named [section]. */
+    fun goSettings(section: String) {
+        go(Destination.Settings)
+        settingsStart = section
+    }
+
+    fun openJoinStore() {
+        opened += 1
+        pages += Page.JoinStore("join-store/$opened")
     }
 
     fun openTitle(id: AnilistId) {
