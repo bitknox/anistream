@@ -96,11 +96,13 @@ fun PlayerChrome(
     onEpisodes: () -> Unit = {},
     /** The frames under the scrubbing finger, when there are to be any. */
     preview: SeekPreview? = null,
+    /** Play on TV, where the app can: the episode carries on on a TV from here. */
+    onPlayOnTv: (() -> Unit)? = null,
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(ObiSilk.Ground.copy(alpha = 0.35f)))
         TopBar(
-            model, onClose, onTracks, onEpisodes,
+            model, onClose, onTracks, onEpisodes, onPlayOnTv,
             Modifier.align(Alignment.TopStart).padding(start = 48.dp, end = 48.dp, top = 16.dp).fillMaxWidth().height(48.dp),
         )
         BottomBar(
@@ -112,7 +114,14 @@ fun PlayerChrome(
 }
 
 @Composable
-private fun TopBar(model: PlayerModel, onClose: () -> Unit, onTracks: () -> Unit, onEpisodes: () -> Unit, modifier: Modifier) {
+private fun TopBar(
+    model: PlayerModel,
+    onClose: () -> Unit,
+    onTracks: () -> Unit,
+    onEpisodes: () -> Unit,
+    onPlayOnTv: (() -> Unit)?,
+    modifier: Modifier,
+) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ControlButton(PlayerIcons.Back, "Back", onClick = onClose)
         Column(Modifier.weight(1f)) {
@@ -131,6 +140,7 @@ private fun TopBar(model: PlayerModel, onClose: () -> Unit, onTracks: () -> Unit
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        onPlayOnTv?.let { ControlButton(PlayerIcons.Tv, "Play on TV", onClick = it) }
         ControlButton(PlayerIcons.Subtitles, "Subtitles, audio and picture", onClick = onTracks)
         ControlButton(PlayerIcons.Episodes, "Episodes", onClick = onEpisodes)
     }

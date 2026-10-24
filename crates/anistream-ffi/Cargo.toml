@@ -39,6 +39,7 @@ testing = [
     "dep:anistream-meta",
     "dep:anistream-providers",
     "dep:anistream-track",
+    "anistream-remote?/testing",
 ]
 # `FfiEngine::start_remote`: the remote a TV runs for phones on its network to drive it. On in
 # Android's builds, which the TV app shares with the phone's.

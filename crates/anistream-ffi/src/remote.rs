@@ -82,6 +82,11 @@ impl Attached {
         batch
     }
 
+    /// Where the remote's keys are kept and its files written, for the sender side too.
+    pub(crate) fn home(&self) -> &RemoteHome {
+        &self.home
+    }
+
     /// A hosted player's report, on its way to the engine.
     pub(crate) fn report(&self, report: &PlayerReport) {
         if let Some(remote) = lock(&self.running).as_ref() {

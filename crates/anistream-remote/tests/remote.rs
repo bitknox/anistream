@@ -372,6 +372,44 @@ async fn a_link_reconnects_to_a_tv_that_came_back_and_hears_its_state_again() {
 }
 
 #[tokio::test]
+async fn a_link_told_to_retry_connects_again_without_waiting_out_its_backoff() {
+    let dir = tempfile::tempdir().unwrap();
+    let tv_identity = Identity::generate().unwrap();
+    let trust: Arc<dyn TrustStore> = Arc::new(FileTrust::open(dir.path()).unwrap());
+    let mut tv = Tv::start(local(0), tv_identity.clone(), Arc::clone(&trust)).await;
+    let addr = tv.addr();
+    let (phone, client) = paired_phone(&mut tv, "Hall phone").await;
+    drop(client);
+
+    // A wait far longer than the test gives it: only the nudge reconnects in time.
+    let options = LinkOptions {
+        retry_min: Duration::from_secs(600),
+        retry_max: Duration::from_secs(600),
+        ping: Duration::from_secs(30),
+    };
+    let link = Link::open(addr, phone, tv_identity.fingerprint(), hello("Hall phone"), options);
+    let mut status = link.status();
+    timeout(WAIT, status.wait_for(|s| matches!(s, LinkStatus::Connected { .. })))
+        .await
+        .unwrap()
+        .unwrap();
+
+    tv.server.stop().await;
+    timeout(WAIT, status.wait_for(|s| matches!(s, LinkStatus::Retrying { .. })))
+        .await
+        .unwrap()
+        .unwrap();
+    let reopened: Arc<dyn TrustStore> = Arc::new(FileTrust::open(dir.path()).unwrap());
+    let _tv = Tv::start(addr, tv_identity, reopened).await;
+
+    link.retry_now();
+    timeout(WAIT, status.wait_for(|s| matches!(s, LinkStatus::Connected { .. })))
+        .await
+        .unwrap()
+        .unwrap();
+}
+
+#[tokio::test]
 async fn a_link_will_not_talk_to_another_tv_at_the_same_address() {
     let mut tv = Tv::new().await;
     let addr = tv.addr();

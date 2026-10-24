@@ -119,7 +119,12 @@ typealias VideoContent = @Composable (model: PlayerModel, modifier: Modifier, vi
 
 /** The player's screen. [video] draws the picture: mpv's surface, but for screenshots. */
 @Composable
-fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -> VideoSurface(m, modifier, view) }) {
+fun PlayerScreen(
+    model: PlayerModel,
+    video: VideoContent = { m, modifier, view -> VideoSurface(m, modifier, view) },
+    /** Play on TV, where the app can: the TV picks the episode up from here. */
+    playOnTv: (() -> Unit)? = null,
+) {
     val activity = LocalActivity.current
     val phone = LocalConfiguration.current.smallestScreenWidthDp < 600
     val haptics = LocalHapticFeedback.current
@@ -311,6 +316,7 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
                 onTracks = { sheet = PlayerSheet.Tracks },
                 onEpisodes = { sheet = PlayerSheet.Episodes },
                 preview = preview.takeIf { previewSource != null && !Device.power(context).lowPower },
+                onPlayOnTv = playOnTv,
             )
         }
 

@@ -6,9 +6,11 @@
 #   apple/scripts/engine.sh --sources-hash
 #
 #   release   the engine the app ships: --no-default-features, so without mpv's child process,
-#             and with the Discord presence on macOS alone (`presence`), since a phone has no Discord
-#   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
-#             the Fixtures app, the Swift packages' tests and the dev harness
+#             with the remote, for Play on TV, and with the Discord presence on macOS alone
+#             (`presence`), since a phone has no Discord
+#   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`) and
+#             a fake TV (`startFakeTv`), for the Fixtures app, the Swift packages' tests and the
+#             dev harness
 #
 # The slices default to all three: macos (aarch64-apple-darwin), ios (aarch64-apple-ios) and
 # ios-sim (aarch64-apple-ios-sim). The output, all of it generated and gitignored:
@@ -59,8 +61,8 @@ if [[ "${1:-}" == --check ]]; then
 fi
 flavour="${1:-}"
 case "$flavour" in
-  release) features="" ;;
-  testing) features="testing" ;;
+  release) features="remote" ;;
+  testing) features="testing,remote" ;;
   *) usage ;;
 esac
 shift

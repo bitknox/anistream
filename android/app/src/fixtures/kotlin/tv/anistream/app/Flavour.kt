@@ -18,6 +18,7 @@
 //   widgets   which widgets to offer the launcher to pin, joined by commas: continue-small,
 //             continue-wide, airing-small, airing-wide (the launcher asks before each); and the
 //             widgets' record made at once, with its art
+//   tv        a Play on TV scene, on the two fake TVs: paired, picker, code or remote (TvScene)
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 
@@ -34,6 +35,7 @@ import androidx.work.WorkManager
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -44,7 +46,11 @@ import tv.anistream.store.EngineHome
 import tv.anistream.store.NewEpisode
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.enginePlatform
+import tv.anistream.engine.ffi.FfiTvBrowser
 import tv.anistream.store.FixtureScene
+import tv.anistream.store.FixtureTvs
+import tv.anistream.store.TvPlayRequest
+import tv.anistream.store.TvScene
 import tv.anistream.store.fixtureDownloadClip
 import tv.anistream.store.fixtureMedia
 import tv.anistream.store.fixtures
@@ -142,6 +148,30 @@ internal object Flavour {
         MainScope().launch {
             runCatching { app.makeWidgetRecord() }.onFailure { Log.w(AnistreamApp.TAG, "no widgets' record: ${it.message}") }
         }
+    }
+
+    /** The fake TVs, Living room and Bedroom, on the loopback interface: never the real network. */
+    fun tvBrowser(context: Context, store: AppStore): FfiTvBrowser? = store.engine?.let(FixtureTvs::start)
+
+    /**
+     * The TV scene the `tv` extra names, set up once Play on TV is, and true once it is on
+     * screen: what announceReady waits on besides the store. True with no scene asked for.
+     */
+    suspend fun reachedTv(intent: Intent, store: AppStore): Boolean {
+        val scene = TvScene.named(intent.getStringExtra("tv")) ?: return true
+        val browser = withTimeoutOrNull(60_000) {
+            while (store.tv.attachedBrowser == null) delay(50)
+            store.tv.attachedBrowser
+        } ?: return false
+        val id = 900001u
+        val title = withTimeoutOrNull(30_000) { store.titles.entries.first { id in it }[id]?.title }.orEmpty()
+        FixtureTvs.stage(store.tv, scene, browser, TvPlayRequest(id, title, "3"))
+        return withTimeoutOrNull(10_000) {
+            while (!store.tv.reached(scene)) delay(50)
+            // The sheet's own animation in.
+            delay(700)
+            true
+        } ?: false
     }
 
     /** What the extras ask of the engine once it is up, once per process. */

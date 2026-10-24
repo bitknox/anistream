@@ -19,7 +19,26 @@
 				<string>anistream</string>
 			</array>
 		</dict>
+		<!-- The QR code on a TV's Pair a phone screen, read by the system's camera. -->
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>tv.anistream.remote</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>anistream-remote</string>
+			</array>
+		</dict>
 	</array>
+	<!-- Play on TV: finding the TVs that run anistream on the network, which asks for local
+	     network access the first time, and the camera for the code a TV shows to pair. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>anistream looks for TVs running anistream on your network, so you can play episodes on them and use this device as their remote.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_anistream._tcp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>anistream reads the code a TV shows, to pair with it.</string>
 	<!-- iPhone and iPad: the episode's audio plays on when the screen locks or the app goes to
 	     the background, with the video track off meanwhile. Free signing allows this mode. -->
 	<key>UIBackgroundModes</key>

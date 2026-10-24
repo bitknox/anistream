@@ -55,6 +55,9 @@ struct MacShell: View {
                     // What has run past 600 ms, quietly, beside the section's own items.
                     ToolbarItem(placement: .primaryAction) { ActivityIndicator() }
                     SectionToolbar(section: navigator.section)
+                    if store.tv.connected != nil {
+                        ToolbarItem(placement: .primaryAction) { TVNowPlayingButton() }
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         SyncCapsule { navigator.openSettings(.accounts) }
                     }

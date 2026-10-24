@@ -17,7 +17,9 @@
 //! - registers [`TvRemote::advert`] with the platform's DNS-SD (NsdManager on Android TV) and
 //!   withdraws it when the remote is switched off.
 //!
-//! A phone's build needs none of this: its app holds an `anistream_remote::client::Link`.
+//! A phone's side is [`sender`]: finding TVs, pairing, and driving one.
+
+pub mod sender;
 
 use std::{net::SocketAddr, sync::Arc};
 

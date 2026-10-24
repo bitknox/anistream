@@ -19,7 +19,10 @@
 pub mod client;
 pub mod command;
 pub mod discovery;
+#[cfg(feature = "testing")]
+pub mod fake;
 pub mod identity;
+pub mod known;
 pub mod pairing;
 pub mod server;
 pub mod state;
@@ -57,6 +60,9 @@ pub enum Error {
     NotConnected,
     #[error("the TV did not answer in time")]
     Timeout,
+    /// The TV answered with a key other than the one this phone paired with.
+    #[error("the TV's key changed since it paired")]
+    KeyChanged,
 }
 
 /// Now, in Unix seconds: when a phone paired and was last seen.

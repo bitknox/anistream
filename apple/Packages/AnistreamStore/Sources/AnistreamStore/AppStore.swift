@@ -44,6 +44,8 @@ public final class AppStore {
     public let continued = ContinuedDownloads()
     /// The update check's word, and an update the viewer started.
     public let updates = UpdatesModel()
+    /// Play on TV: the TVs, pairing, and the card of the one driven.
+    public let tv = TVRemoteModel()
     /// The week's ask, waiting a moment in case more ask at once.
     @ObservationIgnored var noticeRefresh: Task<Void, Never>?
     /// The home-screen widgets' snapshot, kept current as what they show changes.
@@ -160,11 +162,42 @@ public final class AppStore {
             stopped: { [weak self] in self?.phase = .stopped }
         )
         phase = .running
+        attachTV(engine)
         for command in early {
             client?.send(command)
         }
         early = []
         artwork.sendUnsent()
+    }
+
+    /// The engine's sender for Play on TV, browsing the network with Bonjour; in the Fixtures
+    /// app, two made-up TVs on the loopback interface instead, set up as `-AnistreamTV` says.
+    private func attachTV(_ engine: FfiEngine) {
+        let sender: FfiTvSender
+        do {
+            sender = try engine.tvSender(deviceName: TVRemoteModel.deviceName, app: TVRemoteModel.appName)
+        } catch {
+            AppLog.error("tv", "no Play on TV: \(error)")
+            return
+        }
+        #if FIXTURES
+        if testing, let fakes = TVRemoteModel.fixtures(engine) {
+            tv.attach(sender, browser: fakes)
+            if let scene = TVScene.named() {
+                // The finished fixture title, its third episode, five minutes in.
+                let play = TVPlayRequest(id: 900_001, title: "", episode: "3", from: 312)
+                Task { await tv.stage(scene, fakes: fakes, play: play) }
+            }
+            return
+        }
+        #endif
+        tv.attach(sender, browser: BonjourTVBrowser())
+    }
+
+    /// Play on TV from a title page or an episode row: the episode, from where it was left when
+    /// it is the one being resumed.
+    public func playOnTV(_ id: AnilistId, episode: String, from: Double? = nil) {
+        tv.offer(TVPlayRequest(id: id, title: titles[id]?.title ?? "", episode: episode, from: from))
     }
 
     /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:

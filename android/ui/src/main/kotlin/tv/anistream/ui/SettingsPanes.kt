@@ -766,6 +766,7 @@ internal fun AccountsPane(actions: AppActions) {
                 }
             },
         )
+        TvSettingsGroup()
     }
     if (reviewing) ConflictsSheet { reviewing = false }
 }

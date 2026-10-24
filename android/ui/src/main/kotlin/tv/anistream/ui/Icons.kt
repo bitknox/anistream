@@ -167,4 +167,25 @@ internal object Icons {
         "M12 7 A3 3 0 1 1 11.99 7 Z",
         "M6.7 18.4 C8.1 16.6 9.9 15.8 12 15.8 C14.1 15.8 15.9 16.6 17.3 18.4",
     )
+
+    // Play on TV
+
+    /** A TV: a screen on its foot. */
+    val Tv = stroked("Tv", "M5 5 H19 A2 2 0 0 1 21 7 V15 A2 2 0 0 1 19 17 H5 A2 2 0 0 1 3 15 V7 A2 2 0 0 1 5 5 Z", "M8 21 H16 M12 17 V21")
+
+    /** Back and forward 10 s: the player's turning arrows, with the 10 set in them by the button. */
+    val Replay = stroked("Replay", "M12 5 A8 8 0 1 1 4.6 10", "M14.5 2.5 L12 5 L14.5 7.5")
+    val Ahead = stroked("Ahead", "M12 5 A8 8 0 1 0 19.4 10", "M9.5 2.5 L12 5 L9.5 7.5")
+
+    /** The next episode: a play mark against a bar. */
+    val SkipNext = stroked("SkipNext", "M6 6.5 V17.5 L14 12 Z", "M17.5 6 V18")
+
+    /** The TV's volume, down and up: a speaker with one wave or two. */
+    val VolumeDown = stroked("VolumeDown", "M4 9.5 H7 L11 6 V18 L7 14.5 H4 Z", "M14.5 9.5 C15.5 10.8 15.5 13.2 14.5 14.5")
+    val VolumeUp = stroked(
+        "VolumeUp",
+        "M4 9.5 H7 L11 6 V18 L7 14.5 H4 Z",
+        "M14.5 9.5 C15.5 10.8 15.5 13.2 14.5 14.5",
+        "M17 7 C19.3 9.6 19.3 14.4 17 17",
+    )
 }
