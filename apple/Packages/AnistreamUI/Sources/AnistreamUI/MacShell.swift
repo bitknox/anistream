@@ -85,7 +85,7 @@ struct MacShell: View {
             }
         }
         .overlay(alignment: .bottom) {
-            NoticeCapsule().padding(.bottom, 20)
+            NoticeCapsule().padding(.bottom, 16)
         }
         .sheet(isPresented: $navigator.messagesShown) {
             MessagesView()
@@ -236,9 +236,6 @@ struct LibraryMenus: View {
                 .fixedSize()
                 Menu {
                     Button("Sync Now") { store.send(.syncNow) }
-                    Divider()
-                    Button("Export…") {}
-                        .disabled(true)
                 } label: {
                     Label("More", systemImage: "ellipsis")
                 }
