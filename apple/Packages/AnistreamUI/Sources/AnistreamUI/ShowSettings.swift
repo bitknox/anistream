@@ -105,7 +105,7 @@ struct ShowSourcePicker<Label: View>: View {
 
     var body: some View {
         Picker(selection: Binding(
-            get: { store.providers.preference },
+            get: { store.showSource(id) },
             set: { store.setProviderPreference(id, to: $0) }
         )) {
             Text("Automatic").tag(String?.none)
@@ -192,7 +192,6 @@ struct ShowSettingsSheet: View {
         .frame(width: 500)
         .background(.raised)
         .closesOnEscape { dismiss() }
-        // The pinned source comes with the title's detail; the rest with the show's sheet.
         .task {
             store.loadDetail(entry.id)
             store.loadShowSettings(entry.id)
@@ -236,7 +235,7 @@ struct ShowSettingsSheet: View {
 
     /// The pinned source's name, or Automatic.
     private var sourceName: String {
-        guard let id = store.providers.preference else { return "Automatic" }
+        guard let id = store.showSource(entry.id) else { return "Automatic" }
         return store.providers.row(id).map { store.info($0).name } ?? id
     }
 }
@@ -348,7 +347,7 @@ struct PhoneShowSettingsSheet: View {
     }
 
     private var sourceName: String {
-        guard let id = store.providers.preference else { return "Automatic" }
+        guard let id = store.showSource(entry.id) else { return "Automatic" }
         return store.providers.row(id).map { store.info($0).name } ?? id
     }
 }

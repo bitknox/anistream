@@ -17,7 +17,7 @@ import Foundation
 ///     -AnistreamPane accounts       Settings' pane, or on iPhone the Settings sheet at its page
 ///     -AnistreamSheet torrent       a sheet over the screen: torrent, join, kitsu, update, show,
 ///                                   filters (Search's filters), typing (the search field focused),
-///                                   welcome (first launch)
+///                                   welcome (first launch), messages
 ///     -AnistreamFold open           the title page's watched episodes, opened
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
 public struct LaunchRoute: Equatable, Sendable {

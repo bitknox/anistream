@@ -120,4 +120,7 @@ pub fn set_provider_preference(
     // many keep one of their own under the source order.
     crate::show_settings::recount(engine, services, tx);
     let _ = tx.send(Event::Toast(toast));
+    // Then the show's sheet, which says the source it keeps: the sheet the change came from
+    // shows the pin, or automatic again, as the other rows do theirs.
+    crate::show_settings::load_show_settings(id, engine, services, tx);
 }
