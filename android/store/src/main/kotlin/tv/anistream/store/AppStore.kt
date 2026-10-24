@@ -34,6 +34,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
@@ -764,6 +765,9 @@ class AppStore(
     }
 
     fun apply(event: Event) {
+        // An alert is also the player's: one while an episode starts is why it could not, which
+        // its "Couldn't play episode 7" says. The notice below still says it too.
+        if (event is Event.Toast && event.v1.kind == NoticeKind.ALERT) onPlayback?.invoke(event)
         when (event) {
             is Event.JobStarted -> jobs.started(event.job, event.activity)
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())

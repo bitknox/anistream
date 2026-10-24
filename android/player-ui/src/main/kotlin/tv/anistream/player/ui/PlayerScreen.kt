@@ -513,7 +513,8 @@ private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onC
                     // It never played: said where the viewer is looking, with another source to choose.
                     Text("Couldn't play episode ${failure.episode}", style = line, color = ObiSilk.Silk)
                     Text(
-                        "No source had a stream that played. Another may.",
+                        // Why, as the engine said it, when it did.
+                        failure.reason?.let { "$it." } ?: "No source had a stream that played. Another may.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ObiSilk.Haze,
                         modifier = Modifier.padding(top = 4.dp),

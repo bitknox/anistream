@@ -83,7 +83,7 @@ fn refreshes(command: &Command) -> bool {
             | Command::LoadSearchFacets
             | Command::LoadDetail(_)
             | Command::LoadEpisodes(_)
-            | Command::LoadDubbedTo(_)
+            | Command::LoadDub(_)
             | Command::LoadLibrary(_)
             | Command::LoadSources { .. }
             | Command::LoadStores

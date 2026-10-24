@@ -7,9 +7,9 @@
 # sourceless (watching with no source set up) or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words>,
 # genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
-# pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|show|about|filters>,
+# pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|show|about|filters|messages>,
 # tv=<paired|picker|code|remote|lost|empty|bar>, Play on TV with the Fixtures app's fake TVs (iPhone and iPad),
-# showcase=<sources|stores|downloads|invite|pale|all>, the invented rows of `Showcase`
+# showcase=<sources|stores|downloads|invite|pale|messages|all>, the invented rows of `Showcase`
 # (pale: 900001's page with a long title on a near-white banner), and watched=<id>:<episodes>,
 # episodes marked watched as the shot starts (900006:8 is caught up), and
 # fold=open, the title page's watched episodes opened:

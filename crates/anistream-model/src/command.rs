@@ -162,10 +162,19 @@ pub enum Command {
     /// when the viewer was already looked up for their library.
     LoadTitleLanguage,
     LoadEpisodes(AnilistId),
-    /// How far a title's dub goes, from the source a play would use: answered by
-    /// [`Event::DubbedTo`](crate::event::Event::DubbedTo). One more listing of that source's,
-    /// in the dub, so a front end asks when it shows the answer.
-    LoadDubbedTo(AnilistId),
+    /// How far a title's dub goes, for the title page's "Dub to episode 6": answered by one
+    /// [`Event::TitleDub`](crate::event::Event::TitleDub), with no job. Sent when the page
+    /// opens, beside [`Command::LoadEpisodes`], and again when it comes back into view.
+    ///
+    /// Never in the way of the page: it waits for the title's episode table to load when one is
+    /// loading, so the two never ask the source at once, and a play, or the page of another
+    /// title asking, stops it. It lists the title in the dub from the source a dubbed play would
+    /// use, the show's own pick where it has one, within 30 seconds, and the answer is kept for
+    /// the title and that source: six hours for a show still airing, a day for any other, and a
+    /// quarter of an hour for a source that could not say. Asked again within that, it answers
+    /// from what was kept and asks nothing; asked while offline, it answers from what was kept
+    /// or with `None`, and asks again once back.
+    LoadDub(AnilistId),
     CheckProviders,
     /// Check where torrent traffic leaves from now, as Sources' Check Now asks, rather than at
     /// the next of the guard's own checks. Answered with
@@ -535,7 +544,7 @@ pub enum Command {
     ///
     /// A show watched dubbed is said when its dub is out rather than at the broadcast, which is
     /// all AniList dates: once a broadcast is ahead of the dub said, each check lists the show in
-    /// the dub from the source a play would use, as [`Command::LoadDubbedTo`] does, and says the
+    /// the dub from the source a play would use, as [`Command::LoadDub`] does, and says the
     /// episodes it lists up to that broadcast, with [`Translation::Dub`]. One listing per such
     /// show, cut off at 8 seconds, and none for a show whose dub has caught up.
     ///

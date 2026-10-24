@@ -16,7 +16,7 @@ use anistream_model::{
 use gtk::glib;
 
 use crate::{
-    nagare,
+    states::{self, Shape, States},
     widgets::{self, PosterGrid},
     window::Ctx,
     words,
@@ -37,7 +37,7 @@ const AHEAD: i32 = 1;
 struct Page {
     ctx: Rc<Ctx>,
     grid: PosterGrid,
-    body: gtk::Stack,
+    body: Rc<States>,
     entries: RefCell<Vec<Entry>>,
     format: Cell<usize>,
     /// The seasons in the picker, newest first, and which is the current one.
@@ -77,21 +77,8 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&grid.widget)
         .build();
-    let loading = adw::Spinner::new();
-    loading.set_size_request(32, 32);
-    loading.set_halign(gtk::Align::Center);
-    loading.set_valign(gtk::Align::Center);
-    let body = gtk::Stack::new();
-    body.add_named(&loading, Some("loading"));
-    body.add_named(&scroll, Some("grid"));
-    body.add_named(
-        &nagare::status_page(
-            "Nothing This Season",
-            "No titles in this format this season.",
-            None,
-        ),
-        Some("empty"),
-    );
+    let empty = states::plain("Nothing This Season", "No titles in this format this season.");
+    let body = States::new(&ctx.hub, &scroll, Shape::Grid, &empty, "Couldn't Load This Season");
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
     let bar = gtk::Box::new(gtk::Orientation::Horizontal, 12);
@@ -100,7 +87,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     bar.set_margin_end(18);
     bar.append(&toggles);
     column.append(&bar);
-    column.append(&body);
+    column.append(&body.widget);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -111,6 +98,16 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         seasons,
         now,
         picked: Cell::new(now),
+    });
+    // Continue asks for this season as the app opens.
+    page.body.loading(Command::LoadSeasonal.activity());
+    page.body.on_retry({
+        let weak = Rc::downgrade(&page);
+        move || {
+            if let Some(page) = weak.upgrade() {
+                page.pick(page.picked.get());
+            }
+        }
     });
     let weak = Rc::downgrade(&page);
     ctx.hub.listen(move |event| {
@@ -123,7 +120,9 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         move |toggles| {
             let name = toggles.active_name().unwrap_or_default();
             page.format.set(FORMATS.iter().position(|(n, _, _)| *n == name).unwrap_or(0));
-            page.show();
+            if page.body.has_answer() {
+                page.show();
+            }
         }
     });
     picker.connect_selected_notify({
@@ -131,19 +130,20 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         move |picker| page.pick(picker.selected() as usize)
     });
 
-    widgets::page("Seasonal", &header, &column)
+    widgets::content_page("Seasonal", &header, &column)
 }
 
 impl Page {
     /// The current season is the engine's own Seasonal list; any other is a search by season.
     fn pick(&self, at: usize) {
         self.picked.set(at);
-        self.body.set_visible_child_name("loading");
-        if at == self.now {
-            self.ctx.hub.send(Command::LoadSeasonal);
+        let command = if at == self.now {
+            Command::LoadSeasonal
         } else {
-            self.ctx.hub.send(Command::Search { query: self.query(at) });
-        }
+            Command::Search { query: self.query(at) }
+        };
+        self.body.loading(Some("loading this season".into()));
+        self.ctx.hub.send(command);
     }
 
     fn query(&self, at: usize) -> SearchQuery {
@@ -164,11 +164,11 @@ impl Page {
             return;
         }
         match content {
-            ContentList::Loading => self.body.set_visible_child_name("loading"),
+            ContentList::Loading => self.body.loading(Some("loading this season".into())),
             ContentList::Failed(why) => {
                 tracing::warn!(%why, "the season did not load");
                 *self.entries.borrow_mut() = Vec::new();
-                self.show();
+                self.body.failed(why);
             }
             _ => {
                 *self.entries.borrow_mut() = content.entries().to_vec();
@@ -192,7 +192,11 @@ impl Page {
             .cloned()
             .collect();
         self.grid.set(&entries);
-        self.body.set_visible_child_name(if entries.is_empty() { "empty" } else { "grid" });
+        if entries.is_empty() {
+            self.body.empty();
+        } else {
+            self.body.content();
+        }
     }
 }
 

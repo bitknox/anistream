@@ -8,6 +8,7 @@
 
 use crate::{
     catalog::{AiringStatus, Entry, ResumePoint, Season},
+    episodes::DubExtent,
     wording,
 };
 
@@ -286,6 +287,14 @@ pub fn cover_caption(entry: &Entry) -> String {
     parts.join(" · ")
 }
 
+/// The title page's line on its dub, beside the episodes: "Dub to episode 6" for a dub that
+/// stops short of what has aired, "Dubbed" for one that has all of it, and nothing when there is
+/// no dub or the source could not say.
+pub fn dub_line(dub: Option<&DubExtent>) -> Option<String> {
+    let dub = dub?;
+    Some(if dub.complete { "Dubbed".into() } else { format!("Dub to episode {}", dub.through) })
+}
+
 /// A tracker's name as the apps show it: "AniList" for `anilist`.
 pub fn tracker_name(id: &str) -> String {
     match id {
@@ -461,5 +470,15 @@ mod tests {
         assert_eq!(clock(3723.0), "1:02:03");
         assert_eq!(minutes(1440), "24 min");
         assert_eq!(format_label("TV_SHORT"), "TV Short");
+    }
+
+    #[test]
+    fn a_dub_reads_as_far_as_it_goes_and_not_at_all_when_there_is_none() {
+        let partial = DubExtent { through: 6, complete: false };
+        assert_eq!(dub_line(Some(&partial)).as_deref(), Some("Dub to episode 6"));
+        let whole = DubExtent { through: 12, complete: true };
+        assert_eq!(dub_line(Some(&whole)).as_deref(), Some("Dubbed"));
+        // No dub, and a source that could not say, read alike: nothing.
+        assert_eq!(dub_line(None), None);
     }
 }

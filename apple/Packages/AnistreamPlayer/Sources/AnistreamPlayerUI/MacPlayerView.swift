@@ -41,6 +41,13 @@ public struct MacPlayerView: View {
 
     private var visible: Bool { (model.controlsVisible || panel != nil || overBar) && !model.stillWatching && model.failure == nil && !curtain }
 
+    /// Whether the pointer may hide over the video (PlayerPointer).
+    private var pointerIdle: Bool {
+        PlayerPointer.idle(
+            controlsShown: model.controlsVisible || panel != nil || overBar,
+            loading: curtain, failed: model.failure != nil, askingStillWatching: model.stillWatching)
+    }
+
     /// The banner holds until the first frame, and comes back between episodes.
     private var curtain: Bool { model.starting != nil || !model.hasPicture || model.holdsCurtain }
 
@@ -82,7 +89,8 @@ public struct MacPlayerView: View {
         .onContinuousHover { phase in
             if case .active = phase { model.poke() }
         }
-        .pointerVisibility(visible ? .automatic : .hidden)
+        // Hidden with the controls, and shown again on any way out (PlayerPointer).
+        .modifier(IdlePointer(idle: pointerIdle, window: window))
         .contextMenu { contextMenu }
         .playerAccessibility(model)
         .focusable()
@@ -523,6 +531,7 @@ public struct MacPlayerView: View {
     /// stops with its place saved.
     private func back() {
         PlayerModel.note(.info, "back from the player")
+        PlayerPointer.shared.release()
         guard zoom != nil, !reduceMotion else {
             model.viewerClosed()
             return

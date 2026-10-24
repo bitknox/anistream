@@ -29,10 +29,12 @@ struct ReportButton: View {
     let context: BugContext
     var height: CGFloat = 28
     var fontSize: CGFloat = 13
+    /// On a raised sheet, where the capsule needs the lighter fill to show.
+    var raisedSurface = false
 
     var body: some View {
         Button("Report") { ReportBugAction(store: store, openURL: openURL)(context) }
-            .buttonStyle(SecondaryCapsuleStyle(height: height, fontSize: fontSize))
+            .buttonStyle(SecondaryCapsuleStyle(height: height, raisedSurface: raisedSurface, fontSize: fontSize))
             .accessibilityLabel("Report this problem")
             .accessibilityHint("Opens a bug report on GitHub in your browser")
     }

@@ -5,6 +5,7 @@
 
 use anistream_model::{
     catalog::{Entry, ResumePoint, Season},
+    episodes::DubExtent,
     present::{self, Casing, Queue, QueueItem, SeasonYear},
     settings::SettingKey,
     wording,
@@ -44,6 +45,16 @@ pub fn calendar_time(seconds: i64) -> String {
 #[uniffi::export]
 pub fn broadcast_line(entry: Entry) -> String {
     wording::broadcast_line(&entry)
+}
+
+/// The title page's line on its dub, from [`Event::TitleDub`]'s `dub`: "Dub to episode 6" for
+/// a dub that stops short, "Dubbed" for one with every aired episode, and `None`, to show
+/// nothing, when there is no dub or the source could not say.
+///
+/// [`Event::TitleDub`]: anistream_model::event::Event::TitleDub
+#[uniffi::export]
+pub fn dub_line(dub: Option<DubExtent>) -> Option<String> {
+    present::dub_line(dub.as_ref())
 }
 
 /// A resume point as a viewer reads it: `10:06`, `1:02:03`.

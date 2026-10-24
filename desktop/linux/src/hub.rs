@@ -13,6 +13,7 @@ use std::{
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
 use anistream_engine::engine::Engine;
+use anistream_model::jobs::JobId;
 use anistream_model::{
     catalog::Entry,
     command::Command,
@@ -36,6 +37,14 @@ pub struct Known {
     pub seeding: Vec<SeedRow>,
     pub providers: Vec<ProviderRow>,
     pub stores: Vec<StoreRow>,
+    /// Whether the device has no network, as the engine last said.
+    pub offline: bool,
+    /// Whether the engine has said what is downloading yet.
+    pub downloads_said: bool,
+    /// Whether the engine has said which providers there are yet.
+    pub providers_said: bool,
+    /// The jobs running, by number, with their activity: "syncing".
+    pub jobs: HashMap<JobId, String>,
 }
 
 impl Known {
@@ -86,6 +95,20 @@ impl Known {
         })
     }
 
+    /// Whether a sync is running.
+    pub fn syncing(&self) -> bool {
+        self.jobs.values().any(|activity| activity == "syncing")
+    }
+
+    /// Whether this install has been used: a source, a tracker signed in, or a watch history.
+    /// First launch is shown only to an install that has none of them.
+    pub fn used(&self) -> bool {
+        self.providers.iter().any(|p| p.kind != "torrent")
+            || !self.stores.is_empty()
+            || self.sync.values().any(|s| s.connected)
+            || self.entries.values().any(|e| e.progress.is_some_and(|p| p.done > 0))
+    }
+
     /// Episodes downloading or waiting to, and those seeding: what closing the window stops.
     pub fn running(&self) -> (usize, usize) {
         let downloading = self
@@ -123,10 +146,23 @@ impl Known {
             Event::Sync(state) => {
                 self.sync.insert(state.tracker.clone(), (**state).clone());
             }
-            Event::Downloads(rows) => self.downloads = rows.clone(),
+            Event::Downloads(rows) => {
+                self.downloads = rows.clone();
+                self.downloads_said = true;
+            }
             Event::Seeding(rows) => self.seeding = rows.clone(),
-            Event::Providers(rows) => self.providers = rows.clone(),
+            Event::Providers(rows) => {
+                self.providers = rows.clone();
+                self.providers_said = true;
+            }
             Event::Stores(rows) => self.stores = rows.clone(),
+            Event::Connectivity { offline } => self.offline = *offline,
+            Event::JobStarted { job, activity } => {
+                self.jobs.insert(*job, activity.clone());
+            }
+            Event::JobDone(job) => {
+                self.jobs.remove(job);
+            }
             _ => {}
         }
     }
@@ -183,9 +219,13 @@ impl Hub {
 
     /// Ask the engine for `command`. Never waits: the engine queues it on its runtime.
     pub fn send(&self, command: Command) {
-        if let Some(engine) = self.engine.upgrade() {
-            engine.send(command);
-        }
+        self.send_job(command);
+    }
+
+    /// [`Hub::send`], and the job it starts when it is work someone waits on, which ends with
+    /// `Event::JobDone` of this number.
+    pub fn send_job(&self, command: Command) -> Option<JobId> {
+        self.engine.upgrade().and_then(|engine| engine.send(command))
     }
 
     /// Hear every event from now on, until [`Hub::forget`] with the number this returns.
@@ -265,6 +305,7 @@ impl Art {
     fn bind(&self, url: &str, picture: &gtk::Picture) -> bool {
         if let Some(texture) = self.ready.borrow().get(url) {
             picture.set_paintable(Some(texture));
+            picture.set_opacity(1.0);
             return false;
         }
         let mut waiting = self.waiting.borrow_mut();
@@ -287,8 +328,10 @@ impl Art {
                 width as usize * 4,
             )
             .upcast();
+            // Art that arrives fades in over its placeholder; it never pops.
             for picture in waiting.iter().filter_map(glib::WeakRef::upgrade) {
                 picture.set_paintable(Some(&texture));
+                crate::motion::fade_in(&picture);
             }
             ready.borrow_mut().insert(url, texture);
         });

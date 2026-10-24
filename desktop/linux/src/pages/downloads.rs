@@ -22,7 +22,9 @@ use anistream_model::{
 use gtk::{gio, glib};
 
 use crate::{
-    catalog, nagare, widgets,
+    catalog, nagare,
+    states::{Shape, States},
+    widgets,
     window::{Ctx, Size},
 };
 
@@ -98,7 +100,9 @@ fn size(bytes: u64) -> String {
 
 struct Page {
     ctx: Rc<Ctx>,
-    body: gtk::Stack,
+    body: Rc<States>,
+    /// Whether the engine has said what is downloading, so an empty list means none.
+    answered: Cell<bool>,
     meter: adw::ActionRow,
     level: gtk::LevelBar,
     titles: gtk::ListBox,
@@ -164,17 +168,27 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .build();
     let empty = nagare::status_page(
         "No Downloads",
-        "Episodes you download show here, to watch offline.",
+        "Downloaded episodes play without a connection.",
         None,
     );
-    let body = gtk::Stack::new();
-    body.add_named(&scroll, Some("list"));
-    body.add_named(&empty, Some("empty"));
-    let navigation = widgets::page("Downloads", &header, &body);
+    let rows = Shape::Rows { count: 3, width: 80, height: 45 };
+    let body = States::new(&ctx.hub, &scroll, rows, &empty, "Couldn't Load Downloads");
+    // The app asks for the downloads as it opens.
+    body.loading(Command::LoadDownloads.activity());
+    body.on_retry({
+        let hub = Rc::downgrade(&ctx.hub);
+        move || {
+            if let Some(hub) = hub.upgrade() {
+                hub.send(Command::LoadDownloads);
+            }
+        }
+    });
+    let navigation = widgets::content_page("Downloads", &header, &body.widget);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
         body,
+        answered: Cell::new(ctx.hub.known.borrow().downloads_said),
         meter,
         level,
         titles,
@@ -265,7 +279,11 @@ impl Page {
 
     fn heard(&self, event: &Event) {
         match event {
-            Event::Downloads(_) | Event::Seeding(_) => self.show(),
+            Event::Downloads(_) => {
+                self.answered.set(true);
+                self.show();
+            }
+            Event::Seeding(_) => self.show(),
             Event::Settings(_) if self.shown.get() => self.meter(),
             _ => {}
         }
@@ -423,11 +441,14 @@ impl Page {
             self.pause_all.set_tooltip_text(None);
         }
         self.pause_all.set_sensitive(running || paused);
-        if rows.is_empty() && seeds.is_empty() {
-            self.body.set_visible_child_name("empty");
+        if !self.answered.get() {
             return;
         }
-        self.body.set_visible_child_name("list");
+        if rows.is_empty() && seeds.is_empty() {
+            self.body.empty();
+            return;
+        }
+        self.body.content();
         self.meter();
         self.remember_open();
         while let Some(child) = self.titles.first_child() {
@@ -505,6 +526,13 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> adw::ActionRow {
     line.set_subtitle_lines(2);
     if row.state == DownloadState::Failed {
         line.add_css_class("failed");
+        // Vermilion on the dot alone; the reason reads in haze.
+        let mark = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        mark.add_css_class("mark");
+        mark.add_css_class("vermilion");
+        mark.set_valign(gtk::Align::Center);
+        mark.update_property(&[gtk::accessible::Property::Label("Failed")]);
+        line.add_prefix(&mark);
     }
     if matches!(
         row.state,
