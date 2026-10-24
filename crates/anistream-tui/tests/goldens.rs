@@ -1231,7 +1231,7 @@ fn play_hoshikuzu(s: &mut Screen) {
     s.press(&["j", "e"]);
     s.episodes(hoshikuzu_episodes());
     s.press(&["enter"]);
-    let play = Command::Play { id: id(101), episode: "4".into() };
+    let play = Command::play(id(101), "4");
     s.start(&play);
 }
 

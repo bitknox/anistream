@@ -467,6 +467,9 @@ impl App {
             Event::Update(_) => {}
             // A TV's remote, which the terminal never runs.
             Event::Remote(_) => {}
+            // A native app's network monitor, which the terminal has none of: it never says the
+            // path, so the engine never says it changed.
+            Event::Connectivity { .. } => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),

@@ -175,7 +175,7 @@ impl App {
     /// a frozen episode table while a provider is being tried.
     pub(super) fn begin_playback(&mut self, id: AnilistId, episode: String) -> Command {
         self.raise_now_playing(id, &episode);
-        Command::Play { id, episode }
+        Command::play(id, episode)
     }
 
     /// The visual half of starting playback, shared with the Sources pick: eyecatch up,

@@ -1059,12 +1059,12 @@ mod tests {
         let (arrivals, _) = mpsc::unbounded_channel();
         let mut engine = EngineState::new(Config::default(), None, &paths, arrivals);
         assert!(!downloads_wait(&engine), "on screen, on Wi-Fi");
-        let cellular = Network { cellular: true, constrained: false };
+        let cellular = Network { cellular: true, ..Network::default() };
         engine.network = cellular;
         assert!(downloads_wait(&engine), "Wi-Fi only");
         engine.config.effective_mut().downloads.on_cellular = true;
         assert!(!downloads_wait(&engine), "downloads on cellular");
-        engine.network = Network { cellular: false, constrained: true };
+        engine.network = Network { constrained: true, ..Network::default() };
         assert!(downloads_wait(&engine), "Low Data Mode");
         engine.network = Network::default();
         engine.phase = AppState::Background { playing: true };

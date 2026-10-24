@@ -581,7 +581,7 @@ mod tests {
         let task = a.handle(Action::Open, 20);
         assert_eq!(
             task,
-            Some(Command::Play { id: AnilistId::new(1), episode: "5".into() }),
+            Some(Command::play(AnilistId::new(1), "5")),
             "Enter must play the selected episode"
         );
         assert!(matches!(a.nav.current(), StageView::NowPlaying));

@@ -223,7 +223,7 @@ impl App {
     }
 
     fn play(&self, id: AnilistId, episode: &str) {
-        self.engine.send(Command::Play { id, episode: episode.into() });
+        self.engine.send(Command::play(id, episode));
     }
 
     fn control(&self, command: PlayerCommand) {
@@ -448,6 +448,41 @@ fn a_file_opens_where_the_viewer_left_it() {
     assert_eq!(playback, load.playback);
     app.opened(playback, &[]);
     app.tick(playback, 600, 603);
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_play_from_the_beginning_opens_at_the_start_and_is_left_where_it_stops() {
+    let app = App::fixtures("[playback]\nauto_next = false\n");
+    let store =
+        anistream_store::Store::open(app.root.path().join("data/anistream.db")).unwrap();
+    let mut left = anistream_store::WatchEvent {
+        duration_secs: Some(1_440.0),
+        watched_secs: 600.0,
+        ..anistream_store::WatchEvent::new(FINISHED, "12", 600.0)
+    };
+    // An hour ago, so the new playback's history is plainly the later.
+    left.at -= 3_600;
+    store.record_event(&left).unwrap();
+    let mut app = app;
+
+    // "Play from the beginning", on an episode left at ten minutes.
+    let from_start = Command::Play { id: FINISHED, episode: "12".into(), from_start: true };
+    app.engine.send(from_start);
+    let load = app.load();
+    assert_eq!(load.option("start"), None, "{:?}", load.options);
+    let playback = load.playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 45);
+    app.stop();
+    let resumed = app.read.iter().filter(|said| said.contains("Resumed")).count();
+    assert_eq!(resumed, 0, "nothing says it resumed:\n{}", app.read.join("\n"));
+
+    // The stored position followed the playback: the next plain play resumes where it stopped.
+    assert_eq!(store.resume_position(FINISHED, "12").unwrap(), Some(45.0));
+    app.play(FINISHED, "12");
+    assert_eq!(app.load().option("start"), Some("45"));
     app.stop();
     app.shutdown();
 }
@@ -788,7 +823,11 @@ fn coming_back_with_nothing_taken_opens_nothing_again() {
     app.tick(playback, 0, 5);
     let phase = |phase| Command::AppPhase { phase };
     app.engine.send(phase(AppState::Background { playing: true }));
-    app.engine.send(Command::NetworkPath { cellular: true, constrained: false });
+    app.engine.send(Command::NetworkPath {
+        cellular: true,
+        constrained: false,
+        offline: false,
+    });
     app.engine.send(phase(AppState::Foreground));
     // Every server still answers: the playback carries on as it was.
     app.control(PlayerCommand::TogglePause);
@@ -1212,12 +1251,9 @@ fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
         source_id: "a".into(),
     };
     for (play, said) in [
-        (Command::Play { id: AIRING, episode: "6".into() }, "episode 6 airs "),
+        (Command::play(AIRING, "6"), "episode 6 airs "),
         (picked, "episode 7 airs "),
-        (
-            Command::Play { id: AIRING, episode: "99".into() },
-            "episode 99 hasn't aired yet; episode 6 airs ",
-        ),
+        (Command::play(AIRING, "99"), "episode 99 hasn't aired yet; episode 6 airs "),
     ] {
         app.engine.send(play);
         let refusal = app.until("the refusal", |event| match event {

@@ -237,6 +237,15 @@ pub enum Event {
         episode_title: Option<String>,
         speed: f64,
     },
+    /// Whether the device has a network, as the front end's monitor last said with
+    /// [`Command::NetworkPath`](crate::command::Command::NetworkPath): said each time that
+    /// changes, and never before the first change, the engine starting online. While
+    /// `offline`, a screen shows what it has with the offline line, and one with nothing to
+    /// show says it is offline. Back online, the engine asks again for what failed meanwhile,
+    /// once, and the screens take the answers as they come.
+    Connectivity {
+        offline: bool,
+    },
     /// Playback started from a stored position rather than the beginning.
     Resumed {
         position: f64,

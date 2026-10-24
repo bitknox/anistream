@@ -281,7 +281,7 @@ async fn commands_reach_the_engine_and_the_front_end_in_order() {
         got.push(timeout(WAIT, tv.engine.recv()).await.unwrap().unwrap());
     }
     assert!(
-        matches!(&got[0], Command::Play { id, episode } if id.get() == 4242 && episode == "3")
+        matches!(&got[0], Command::Play { id, episode, from_start: false } if id.get() == 4242 && episode == "3")
     );
     assert!(matches!(got[1], Command::Player(PlayerCommand::TogglePause)));
     assert!(matches!(got[2], Command::Player(PlayerCommand::Seek(s)) if s == 30.0));

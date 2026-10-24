@@ -784,10 +784,22 @@ impl Actor {
 
     /// Route a command, its job announced first: everything the command does before it returns
     /// is done before the next is routed.
+    ///
+    /// While offline, what it loads is noted; once a command brings the network back, what
+    /// was noted is asked for again, each as its own job: see [`crate::connectivity`].
     fn route(&mut self, job: Option<(JobId, String)>, command: Command) {
         let tx = self.inbox.sender();
+        if self.state.network.offline {
+            self.state.missed.note(&command);
+        }
         let job = job.map(|(id, activity)| JobGuard::announce(id, activity, &tx));
         dispatch(command, job, &mut self.state, &self.services, &tx);
+        for again in self.state.missed.take_due() {
+            let job = again
+                .activity()
+                .map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
+            dispatch(again, job, &mut self.state, &self.services, &tx);
+        }
         #[cfg(feature = "testing")]
         {
             self.routed += 1;
@@ -825,6 +837,10 @@ impl Actor {
         let moved_on = crate::downloads::ahead::after(&event);
         // A table no source could list: its show is not one to download ahead.
         self.state.ahead.observe(&event);
+        // A list that failed while offline: loaded again once back.
+        if self.state.network.offline {
+            self.state.missed.observe(&event);
+        }
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
@@ -894,7 +910,7 @@ impl Actor {
             *rolling_on = true;
         }
         let tx = self.inbox.sender();
-        let play = Command::Play { id: follow.id, episode: follow.episode.clone() };
+        let play = Command::play(follow.id, follow.episode.clone());
         let job =
             play.activity().map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
         Some(play_following(follow, opener, job, &mut self.state, &self.services, &tx))
@@ -1622,7 +1638,7 @@ mod tests {
         events.launch().await;
         let id = anistream_core::ids::AnilistId::new(1);
 
-        let job = engine.send(Command::Play { id, episode: "1".into() }).expect("a job");
+        let job = engine.send(Command::play(id, "1")).expect("a job");
         let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
         let [
             Event::JobStarted { job: started, .. },

@@ -327,7 +327,7 @@ impl Store {
                 .query_row(
                     "SELECT position_secs, duration_secs, completed FROM watch_event
                       WHERE anilist_id = ?1 AND episode = ?2
-                      ORDER BY at DESC LIMIT 1",
+                      ORDER BY at DESC, id DESC LIMIT 1",
                     rusqlite::params![anilist_id.get(), episode],
                     |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
                 )
