@@ -77,15 +77,18 @@ public final class AppStore {
     /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
 
+    /// - Parameter artworkCostLimit: how many bytes of decoded art the cache keeps beside what is
+    ///   on screen; smaller in the dev harness, to see the page with the cache full.
     public init(
         jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed(),
-        downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed()
+        downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed(),
+        artworkCostLimit: Int = ArtworkStore.costLimit
     ) {
         self.jobs = jobs
         self.notices = notices
         self.widgets = widgets
         self.downloadsActivity = downloadsActivity
-        artwork = ArtworkStore { [weak self] url in
+        artwork = ArtworkStore(costLimit: artworkCostLimit) { [weak self] url in
             guard let client = self?.client else { return false }
             client.send(.fetchArtwork(url: url))
             return true
@@ -377,12 +380,34 @@ public final class AppStore {
     // MARK: Applying
 
     public func apply(_ events: [Event]) {
+        var events = events
+        #if FIXTURES
+        if let delay = episodesDelay {
+            // Episode tables held back, as a slow source answers them.
+            let tables = events.filter { if case .episodes = $0 { true } else { false } }
+            events.removeAll { if case .episodes = $0 { true } else { false } }
+            if !tables.isEmpty {
+                Task { [weak self] in
+                    try? await Task.sleep(for: delay)
+                    guard let self else { return }
+                    for event in tables { apply(event) }
+                    lastApplied = .now
+                }
+            }
+        }
+        #endif
         for event in events {
             apply(event)
         }
         lastApplied = .now
         onApplied?(events)
     }
+
+    #if FIXTURES
+    /// How long each episode table waits before the screens see it: the dev harness's slow
+    /// source (`--episodes-delay`). The testing engine only.
+    public var episodesDelay: Duration?
+    #endif
 
     /// Show the invented rows the launch arguments ask for, on the testing engine only, and keep
     /// the engine's own of those kinds off screen from then on. For screenshots.
