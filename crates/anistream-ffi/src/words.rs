@@ -193,7 +193,10 @@ mod tests {
         assert_eq!(play_clock(245.4), "4:05");
         assert_eq!(setting_label(SettingKey::AutoNext), "auto-play next");
         let fresh = Entry::new(AnilistId::new(900_002), "Atelier Hotaru");
-        assert_eq!(queue_item(fresh, Casing::Sentence).button.as_deref(), Some("Start episode 1"));
+        assert_eq!(
+            queue_item(fresh, Casing::Sentence).button.as_deref(),
+            Some("Start episode 1")
+        );
         assert_eq!(setting_category(SettingKey::AutoNext), "playback");
     }
 }
