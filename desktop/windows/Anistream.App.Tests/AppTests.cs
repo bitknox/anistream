@@ -661,3 +661,46 @@ public class TitleSeasonsTests
         Assert.Empty(TitleSeasons.Of(new Entry(Id: 1, Title: "A", Detail: new TitleDetail(Seasons: [Linked(1, null, 2020)]))));
     }
 }
+
+public class NoticesTests
+{
+    [Fact]
+    public void AnEpisodeOutSaysWhereTheViewerIs()
+    {
+        var said = new[]
+        {
+            new NewEpisode(900002, "Lantern Road", 9, 0, CoverUrl: "cover", BannerUrl: "banner"),
+            new NewEpisode(900003, "Hotaru Atelier", 10, 0, NextForYou: 8),
+            new NewEpisode(900004, "Kiriya Pass", 4, 0, Translation: Translation.Dub),
+            new NewEpisode(900002, "Lantern Road", 9, 0),
+        };
+        var notices = Notices.Aired(said);
+        Assert.Equal(3, notices.Length);
+        Assert.Equal(new SystemNotice("aired-900002-9", "Lantern Road", "Episode 9 is out.", 900002, "9", "banner"), notices[0]);
+        Assert.Equal(("Episode 10 is out. Next for you: episode 8.", "8"), (notices[1].Body, notices[1].Play));
+        Assert.Equal("Episode 4 is out, dubbed.", notices[2].Body);
+        Assert.EndsWith("-dub", notices[2].Tag);
+    }
+
+    static DownloadRow Row(long id, uint show, string episode, DownloadState state) =>
+        new(id, show, $"Show {show}", episode, state, state == DownloadState.Done ? 1 : 0.5, 0, 0);
+
+    [Fact]
+    public void AFinishedDownloadIsSaidOncePerShow()
+    {
+        DownloadRow[] before = [Row(1, 7, "3", DownloadState.Active), Row(2, 8, "1", DownloadState.Active), Row(3, 8, "2", DownloadState.Queued), Row(4, 9, "1", DownloadState.Done)];
+        DownloadRow[] now = [Row(1, 7, "3", DownloadState.Done), Row(2, 8, "1", DownloadState.Done), Row(3, 8, "2", DownloadState.Done), Row(4, 9, "1", DownloadState.Done)];
+        var notices = Notices.Downloaded(before, now);
+        Assert.Equal(["Episode 3 downloaded.", "2 episodes downloaded."], notices.Select(n => n.Body));
+        Assert.Equal("1", notices[1].Play);
+        Assert.Empty(Notices.Downloaded(null, now));
+        Assert.Empty(Notices.Downloaded(now, now));
+    }
+
+    [Fact]
+    public void AButtonsArgumentsSayWhatToDo()
+    {
+        Assert.Equal(("play", 900002u, "9"), Notices.Read(new Dictionary<string, string> { ["action"] = "play", ["show"] = "900002", ["episode"] = "9" }));
+        Assert.Null(Notices.Read(new Dictionary<string, string> { ["action"] = "open" }));
+    }
+}

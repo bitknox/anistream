@@ -68,7 +68,9 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "anistream.ico"));
         SystemBackdrop = new TintedMica();
 
-        var host = new AppHost(ui, options.Fixture) { Notified = (title, body) => ShowToast(InfoBarSeverity.Informational, $"{title}: {body}") };
+        // The engine's own notices (the launch digest): in the window while it is in front,
+        // else as a Windows notification.
+        var host = new AppHost(ui, options.Fixture) { Notified = (title, body) => Notified(title, body) };
         (var engine, dirs) = StartEngine(host);
         Size();
         session = new EngineSession(engine, act => ui.TryEnqueue(() => act()));
@@ -112,6 +114,7 @@ public sealed partial class MainWindow : Window
         // online or offline state (Event.Connectivity) the pages show.
         network = new NetworkWatch(c => ctx.Send(c), ui, options.Offline);
         taskbar = Taskbar.For(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        StartNotifications(art);
         Keys();
 #if ANISTREAM_TESTING
         if (options.Showcase)
@@ -314,8 +317,15 @@ public sealed partial class MainWindow : Window
                 case Event.DeviceCode code:
                     Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
                     break;
-                case Event.Downloads:
+                case Event.Downloads d:
                     taskbar?.Downloads(ctx.Known.Downloads);
+                    foreach (var notice in Notices.Downloaded(downloadsSeen, d.V1))
+                        toasts?.Post(notice);
+                    downloadsSeen = d.V1;
+                    break;
+                case Event.NewEpisodes n:
+                    foreach (var notice in Notices.Aired(n.V1))
+                        toasts?.Post(notice);
                     break;
                 case Event.Content { View: ContentFor.Continue, ContentValue: ContentList.Entries } when options.Play && !played:
                     played = true;
@@ -711,6 +721,73 @@ public sealed partial class MainWindow : Window
         keepGoing.Start();
     }
 
+    // Windows notifications: new episodes from the engine's check, finished downloads, and the
+    // engine's own notices while the window is not in front.
+
+    Toasts? toasts;
+    DownloadRow[]? downloadsSeen;
+    DispatcherQueueTimer? newEpisodes;
+    bool inFront = true;
+
+    /// <summary>How often the open app asks the engine what aired; the engine asks AniList at most every five minutes.</summary>
+    static readonly TimeSpan CheckEvery = TimeSpan.FromMinutes(15);
+
+    void StartNotifications(Art art)
+    {
+        Activated += (_, e) => inFront = e.WindowActivationState != WindowActivationState.Deactivated;
+        var asked = options.Show == "toast";
+        if (options.Fixture && !asked)
+            return;
+        toasts = Toasts.Start(Path.Combine(dirs.Cache, "notification-art"), art, (action, show, episode) => ui.TryEnqueue(() => FromNotification(action, show, episode)));
+#if ANISTREAM_TESTING
+        if (asked)
+        {
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(2500);
+                var banner = ctx.Known.Entry(900001)?.BannerUrl ?? ctx.Known.Entry(900001)?.CoverUrl;
+                foreach (var notice in Notices.Aired([new NewEpisode(900001, ctx.Known.Entry(900001)?.Title ?? "Stardust Wayfarer", 8, 0, NextForYou: 7, BannerUrl: banner)]))
+                    toasts?.Post(notice);
+            });
+            return;
+        }
+#endif
+        if (options.Fixture)
+            return;
+        // Soon after launch, then while the app runs, window or notification area.
+        newEpisodes = ui.CreateTimer();
+        newEpisodes.Interval = TimeSpan.FromSeconds(20);
+        newEpisodes.Tick += (_, _) =>
+        {
+            newEpisodes.Interval = CheckEvery;
+            ctx.Send(new Command.CheckNewEpisodes());
+        };
+        newEpisodes.Start();
+    }
+
+    /// <summary>A notification clicked: the window to the front, then the episode playing or the show open.</summary>
+    void FromNotification(string action, uint show, string? episode)
+    {
+        if (!AppWindow.IsVisible)
+            ShowAgain();
+        else
+            Activate();
+        if (show == 0)
+            return;
+        if (action == "play" && episode is not null)
+            ctx.Play(show, episode);
+        else
+            OpenTitle(show);
+    }
+
+    void Notified(string title, string body)
+    {
+        if ((inFront && AppWindow.IsVisible) || toasts is null)
+            ShowToast(InfoBarSeverity.Informational, $"{title}: {body}");
+        else
+            toasts.Post(new SystemNotice($"engine-{title}", title, body, 0, null, null));
+    }
+
     /// <summary>The window back from the notification area; the icon goes with the window's return.</summary>
     void ShowAgain()
     {
@@ -770,6 +847,8 @@ public sealed partial class MainWindow : Window
     {
         closing = true;
         keepGoing?.Stop();
+        newEpisodes?.Stop();
+        toasts?.Stop();
         tray?.Dispose();
         network.Dispose();
         taskbar?.Clear();

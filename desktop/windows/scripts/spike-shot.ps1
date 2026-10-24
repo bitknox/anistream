@@ -15,6 +15,9 @@ param(
   [string]$At = '8',
   [int]$Wait = 0,
   [string]$Arguments = '',
+  # Capture the whole primary screen, for what shows outside the window: a notification, the
+  # media overlay.
+  [switch]$Screen,
   [switch]$Inner
 )
 $ErrorActionPreference = 'Stop'
@@ -26,7 +29,8 @@ if (-not $Inner) {
   $done = Join-Path $Out "$Name.done"
   Remove-Item $done -ErrorAction SilentlyContinue
   $quoted = "'" + ($Arguments -replace "'", "''") + "'"
-  $command = "& '$PSCommandPath' -Inner -Exe '$Exe' -Out '$Out' -Name '$Name' -At '$At' -Wait $Wait -Arguments $quoted *> '$Out\$Name.task.log'; New-Item '$done' | Out-Null"
+  $screenArg = if ($Screen) { ' -Screen' } else { '' }
+  $command = "& '$PSCommandPath' -Inner$screenArg -Exe '$Exe' -Out '$Out' -Name '$Name' -At '$At' -Wait $Wait -Arguments $quoted *> '$Out\$Name.task.log'; New-Item '$done' | Out-Null"
   $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
   $task = 'anistream-player-spike'
   $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand $encoded"
@@ -67,6 +71,11 @@ foreach ($mark in ($marks | Sort-Object)) {
   $r = New-Object SpikeWin+RECT
   # DWMWA_EXTENDED_FRAME_BOUNDS: the window as drawn, without the invisible resize borders.
   [SpikeWin]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16) | Out-Null
+  if ($Screen) {
+    Add-Type -AssemblyName System.Windows.Forms
+    $b = [Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $r.Left = $b.Left; $r.Top = $b.Top; $r.Right = $b.Right; $r.Bottom = $b.Bottom
+  }
   $w = $r.Right - $r.Left; $h = $r.Bottom - $r.Top
   $bmp = New-Object Drawing.Bitmap $w, $h
   $g = [Drawing.Graphics]::FromImage($bmp)
