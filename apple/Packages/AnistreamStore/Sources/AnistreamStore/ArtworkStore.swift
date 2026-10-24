@@ -1,5 +1,6 @@
-// Covers and banners: asked of the engine once per URL, decoded off the main thread, kept
-// decoded in memory for as long as the system lets them be, and asked again while on screen.
+// Covers and banners: asked of the engine once per URL, decoded off the main thread, held for as
+// long as a screen shows them, kept decoded in memory after that for as long as the system lets
+// them be, and asked again while on screen until they are here.
 
 import AnistreamKit
 import CoreGraphics
@@ -48,12 +49,16 @@ public final class Artwork: @unchecked Sendable {
 /// engine has the file on disk by then), and the smaller decode shows until the larger lands: a
 /// cover a list row decoded at 108 pixels is never what a banner stretches across 1,200 points.
 ///
+/// Art on screen is held, not merely cached: the `NSCache` may let go of anything whenever the
+/// system wants memory or the cache is past its limit, and art a screen shows is never what it
+/// lets go of. Each URL's arrivals are observed apart, so art landing redraws only the views that
+/// show it.
+///
 /// Art stays wanted for as long as a screen shows it, and a screen never has to ask twice:
 /// - asked for before there is an engine, it is asked once the engine is there
 ///   (`sendUnsent()`);
 /// - failed, it is asked again after each of `backoff` while it is on screen, and after that only
-///   when a screen shows it again, the last of them later; its plate stays meanwhile;
-/// - let go by the cache while on screen, it is asked again, which the engine answers from disk.
+///   when a screen shows it again, the last of them later; its plate stays meanwhile.
 @Observable @MainActor
 public final class ArtworkStore {
     /// How long a URL that failed waits before it is asked for again, after its first failure,
@@ -64,10 +69,18 @@ public final class ArtworkStore {
     /// How many bytes of decoded pixels the cache keeps, unless the store is told otherwise.
     public static let costLimit = 256 << 20
 
-    /// Bumped for a URL each time its art lands, which is what a view reading it observes.
-    public private(set) var arrivals: [String: Int] = [:]
+    /// What a view reading a URL's art observes: bumped each time that art lands. One per URL,
+    /// so art landing redraws the views showing it and no others.
+    @Observable @MainActor
+    final class Arrivals {
+        var count = 0
+    }
 
+    @ObservationIgnored private var arrivals: [String: Arrivals] = [:]
     @ObservationIgnored private let cache: NSCache<NSString, Artwork>
+    /// The art on screen, by URL: held here as well as cached, so the cache letting go of it
+    /// changes nothing a screen shows.
+    @ObservationIgnored private var held: [String: Artwork] = [:]
     @ObservationIgnored private var inFlight: Set<String> = []
     /// Asked for while there was no engine to ask, in the order asked.
     @ObservationIgnored private var unsent: [String] = []
@@ -76,8 +89,6 @@ public final class ArtworkStore {
     @ObservationIgnored private var failures: [String: (count: Int, at: ContinuousClock.Instant)] = [:]
     /// How many screens show each URL now.
     @ObservationIgnored private var shown: [String: Int] = [:]
-    /// The URLs decoded at least once, which the engine has on disk.
-    @ObservationIgnored private var decodedOnce: Set<String> = []
     /// The retries waiting, by URL.
     @ObservationIgnored private var retries: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private let fetch: @MainActor (String) -> Bool
@@ -108,14 +119,25 @@ public final class ArtworkStore {
 
     /// The art for `url`, when it is here.
     public func image(_ url: String) -> CGImage? {
-        _ = arrivals[url]
-        if let artwork = cache.object(forKey: url as NSString) { return artwork.image }
-        if shown[url] != nil, decodedOnce.contains(url), !inFlight.contains(url) {
-            // The cache let it go while a screen still shows it. Asked again outside the view's
-            // update, which reads this.
-            Task { [weak self] in self?.askAgain(url) }
-        }
-        return nil
+        _ = arrival(url).count
+        return artwork(url)?.image
+    }
+
+    /// How many times `url`'s art has landed.
+    func arrivalCount(_ url: String) -> Int {
+        arrivals[url]?.count ?? 0
+    }
+
+    private func arrival(_ url: String) -> Arrivals {
+        if let arrival = arrivals[url] { return arrival }
+        let arrival = Arrivals()
+        arrivals[url] = arrival
+        return arrival
+    }
+
+    /// The decode for `url`: the one on screen, else the cache's.
+    private func artwork(_ url: String) -> Artwork? {
+        held[url] ?? cache.object(forKey: url as NSString)
     }
 
     /// Show `url`'s art, decoded to at most `maxPixelSize` pixels on its long side, for as long as
@@ -124,6 +146,7 @@ public final class ArtworkStore {
     /// let it go.
     public func show(_ url: String, maxPixelSize: Int) async {
         shown[url, default: 0] += 1
+        if held[url] == nil, let cached = cache.object(forKey: url as NSString) { held[url] = cached }
         defer { hide(url) }
         request(url, maxPixelSize: maxPixelSize)
         scheduleRetry(url)
@@ -135,7 +158,7 @@ public final class ArtworkStore {
     /// Ask for `url`'s art, decoded to at most `maxPixelSize` pixels on its long side.
     public func request(_ url: String, maxPixelSize: Int) {
         sizes[url] = max(sizes[url] ?? 0, maxPixelSize)
-        if let cached = cache.object(forKey: url as NSString), cached.covers(maxPixelSize) { return }
+        if let decoded = artwork(url), decoded.covers(maxPixelSize) { return }
         ask(url)
     }
 
@@ -160,8 +183,8 @@ public final class ArtworkStore {
 
     /// Whether the decode here is enough for the largest size asked for `url`.
     private func covered(_ url: String) -> Bool {
-        guard let cached = cache.object(forKey: url as NSString) else { return false }
-        return cached.covers(sizes[url] ?? 0)
+        guard let decoded = artwork(url) else { return false }
+        return decoded.covers(sizes[url] ?? 0)
     }
 
     /// Ask the engine for `url`, unless it is on its way, or failed and its wait is not over.
@@ -183,12 +206,6 @@ public final class ArtworkStore {
     /// What `url` waits after failing `count` times in a row.
     private func wait(after count: Int) -> Duration {
         backoff[min(max(count, 1), backoff.count) - 1]
-    }
-
-    /// The cache let `url` go while a screen shows it: the engine still has the file.
-    private func askAgain(_ url: String) {
-        guard shown[url] != nil, cache.object(forKey: url as NSString) == nil else { return }
-        send(url)
     }
 
     /// When `url` is on screen and failed, with retries left, ask for it again once its wait is
@@ -219,6 +236,10 @@ public final class ArtworkStore {
         } else {
             shown[url] = nil
             retries.removeValue(forKey: url)?.cancel()
+            // Off screen it is the cache's to keep or let go, as everything else is.
+            if let artwork = held.removeValue(forKey: url), cache.object(forKey: url as NSString) == nil {
+                cache.setObject(artwork, forKey: url as NSString, cost: artwork.cost)
+            }
         }
     }
 
@@ -247,21 +268,24 @@ public final class ArtworkStore {
 
     private func decoded(url: String, size: Int, decoded: (image: CGImage, sourceLongSide: Int)?) {
         inFlight.remove(url)
-        let cached = cache.object(forKey: url as NSString)
+        let kept = artwork(url)
         guard let decoded else {
-            if cached == nil { didFail(url) }
+            if kept == nil { didFail(url) }
             return
         }
         failures[url] = nil
-        decodedOnce.insert(url)
         let artwork = Artwork(decoded.image, decodedFor: size, sourceLongSide: decoded.sourceLongSide)
         // The largest decode is the one kept: a smaller one answering late changes nothing.
-        if cached.map({ $0.longSide < artwork.longSide }) ?? true {
+        let best = kept.map { $0.longSide < artwork.longSide ? artwork : $0 } ?? artwork
+        if best === artwork {
+            if shown[url] != nil { held[url] = artwork }
             cache.setObject(artwork, forKey: url as NSString, cost: artwork.cost)
-            arrivals[url, default: 0] += 1
+            arrival(url).count += 1
         }
-        // A screen asked for more while these bytes were decoding.
-        if let wanted = sizes[url], !(cache.object(forKey: url as NSString)?.covers(wanted) ?? false) {
+        // A screen asked for more while these bytes were decoding. Asked by what this decode
+        // answers, never by what the cache kept of it: a full cache can turn a decode away as it
+        // goes in, and asking again for that would only be turned away again.
+        if let wanted = sizes[url], !best.covers(wanted) {
             ask(url)
         }
     }
