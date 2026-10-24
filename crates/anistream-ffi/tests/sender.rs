@@ -212,7 +212,7 @@ fn a_phone_finds_pairs_plays_and_forgets_a_tv() {
     card_until(&link, "the TV's volume", |card| {
         card.now.as_ref().and_then(|now| now.volume) == Some(35.0)
     });
-    link.close();
+    link.hang_up();
     assert!(block(link.send(FfiTvCommand::TogglePause)).is_err(), "nothing sent once closed");
 
     // Forget: the TV hears it and lets the phone go.

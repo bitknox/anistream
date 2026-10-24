@@ -316,7 +316,7 @@ public final class TVRemoteModel {
     public func disconnect() {
         cards?.cancel()
         cards = nil
-        link?.close()
+        link?.hangUp()
         link = nil
         connected = nil
         card = nil

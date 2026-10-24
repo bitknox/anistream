@@ -645,8 +645,9 @@ impl FfiTvLink {
         }
     }
 
-    /// Close the connection, as the remote card closes or the app leaves the screen.
-    pub fn close(&self) {
+    /// Close the connection, as the remote card closes or the app leaves the screen. Not `close`,
+    /// which Kotlin's bindings keep for freeing the object.
+    pub fn hang_up(&self) {
         let link = self.link.lock().unwrap_or_else(PoisonError::into_inner).take();
         drop(link);
     }
