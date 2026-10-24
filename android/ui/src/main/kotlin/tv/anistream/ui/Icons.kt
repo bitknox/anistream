@@ -188,7 +188,4 @@ internal object Icons {
         "M14.5 9.5 C15.5 10.8 15.5 13.2 14.5 14.5",
         "M17 7 C19.3 9.6 19.3 14.4 17 17",
     )
-
-    /** The camera, for the code on a TV. */
-    val Scan = stroked("Scan", "M4 8 V6 A2 2 0 0 1 6 4 H8 M16 4 H18 A2 2 0 0 1 20 6 V8 M20 16 V18 A2 2 0 0 1 18 20 H16 M8 20 H6 A2 2 0 0 1 4 18 V16", "M8 12 H16")
 }

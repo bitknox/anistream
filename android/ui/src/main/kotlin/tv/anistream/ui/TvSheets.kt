@@ -194,7 +194,6 @@ private fun TvPicker(tv: TvRemoteModel) {
     TvSheetRow(
         "Scan the code on the TV",
         TvWords.SCAN,
-        leading = { Icon(Icons.Scan, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
         onClick = {
             try {
                 context.startActivity(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
@@ -225,11 +224,10 @@ private fun TvPickerRow(row: FfiTvRow, chosen: Boolean, onClick: () -> Unit) {
         row.name,
         row.detail,
         modifier = Modifier.alpha(if (usable) 1f else 0.38f),
-        leading = { Icon(Icons.Tv, contentDescription = null, tint = colors.onSurfaceVariant) },
         trailing = {
             when {
                 row.kind == FfiTvRowKind.NEW -> Text("Pair", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
-                chosen -> Icon(Icons.Check, contentDescription = "Connected", tint = colors.primary)
+                chosen -> Icon(Icons.Check, contentDescription = "Connected", tint = colors.onSurface)
                 usable -> Icon(Icons.Chevron, contentDescription = null, tint = colors.onSurfaceVariant)
             }
         },
@@ -305,8 +303,8 @@ private fun TvCodeBoxes(code: String, onChange: (String) -> Unit, submit: (Strin
                 Box(
                     Modifier
                         .size(44.dp, 56.dp)
-                        .background(colors.surfaceContainerHighest, RoundedCornerShape(8.dp))
-                        .border(if (current) 2.dp else 1.dp, if (current) colors.primary else colors.outlineVariant, RoundedCornerShape(8.dp)),
+                        .background(colors.surfaceContainerHighest, MaterialTheme.shapes.small)
+                        .border(if (current) 2.dp else 1.dp, if (current) colors.onSurface else colors.outlineVariant, MaterialTheme.shapes.small),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(digit, style = TextStyle(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.SemiBold).tabular(), color = colors.onSurface)
@@ -655,7 +653,6 @@ internal fun TvSettingsGroup() {
                     place,
                     paired.name,
                     if (paired.fingerprint == connected) "Connected" else "Paired",
-                    leading = { Icon(Icons.Tv, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     trailing = { QuietButton("Forget") { tv.forget(paired.fingerprint) } },
                 )
             }
