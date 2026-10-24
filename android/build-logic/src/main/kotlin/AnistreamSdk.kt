@@ -5,6 +5,13 @@ object AnistreamSdk {
     /** Android 15: edge to edge and predictive back on by default, which the design assumes. */
     const val MIN = 35
 
+    /**
+     * Android 11, for the TV app and the modules it shares with the phone (the engine, the store,
+     * the design system and the player): TV boxes stay on old releases, and Android TV 14 is the
+     * newest the Chromecast with Google TV has.
+     */
+    const val TV_MIN = 30
+
     /** The newest SDK installed. */
     const val COMPILE = 37
 

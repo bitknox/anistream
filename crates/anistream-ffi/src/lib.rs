@@ -29,6 +29,8 @@ mod bug_report;
 mod engine;
 mod host;
 mod log;
+#[cfg(feature = "remote")]
+mod remote;
 #[cfg(feature = "testing")]
 mod scenes;
 mod start;
@@ -39,6 +41,8 @@ pub use bug_report::bug_report_url;
 pub use engine::FfiEngine;
 pub use host::FfiHost;
 pub use log::{FfiLogLevel, log_line, start_log};
+#[cfg(feature = "remote")]
+pub use remote::{FfiAdvert, FfiPairedPhone, FfiScreen, FfiTvRemote, FfiTxtPair};
 #[cfg(feature = "testing")]
 pub use scenes::FfiScene;
 pub use start::{FfiBackground, FfiDirs, FfiError, FfiPlatform, FfiStart, SecretsMode};
@@ -154,6 +158,7 @@ mod tests {
             FfiPlatform::IpadOs,
             FfiPlatform::Android,
             FfiPlatform::AndroidTablet,
+            FfiPlatform::AndroidTv,
         ] {
             assert_eq!(crossed(platform), platform);
         }

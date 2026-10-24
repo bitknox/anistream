@@ -1,11 +1,10 @@
 // The player: libmpv behind the engine's hosted player protocol, with the JNI shim, the media
-// session and the player's screens (AnistreamPlayer on Apple).
+// session and the model the screens draw from (AnistreamPlayer on Apple). The phone's screens are
+// in :player-ui, so the TV can draw its own on the same player.
 plugins {
     id("anistream.android.library")
     id("anistream.android.compose")
     id("anistream.engine.flavours")
-    // The player's boards drawn on the JVM, as the screens' are.
-    id("anistream.screenshots")
 }
 
 // libmpv and FFmpeg's shared libraries, LGPL, from android/scripts/mpv.sh.
@@ -22,7 +21,9 @@ android {
     ndkVersion = libs.versions.ndk.get()
 
     defaultConfig {
-        ndk { abiFilters += "arm64-v8a" }
+        // The TV app plays here too, on Android 11 and on the 32-bit userspace most TV boxes run.
+        minSdk = AnistreamSdk.TV_MIN
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
         if (native) {
             externalNativeBuild {
                 cmake { arguments += listOf("-DANDROID_STL=none", "-DMPV_DIR=${mpvDir.path}") }
@@ -39,6 +40,8 @@ android {
             }
         }
     }
+    // The scripted mpv and the rig on it, for this module's tests and :player-ui's.
+    testFixtures { enable = true }
     sourceSets {
         named("main") {
             if (native) jniLibs.directories.add(mpvDir.resolve("jniLibs").path)
@@ -58,20 +61,22 @@ android {
 
 dependencies {
     implementation(project(":store"))
-    // The frame's player slot, the art and the page's shared transitions.
-    implementation(project(":ui"))
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.core.ktx)
     implementation(libs.media3.session)
     implementation(libs.media3.common)
 
+    testFixturesImplementation(project(":store"))
+    testFixturesImplementation(libs.coroutines.test)
+    // The Compose compiler runs on the fixtures as on the module, so they need its runtime.
+    testFixturesImplementation(platform(libs.compose.bom))
+    testFixturesImplementation(libs.compose.ui)
+
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(project(":testkit"))
     testImplementation(libs.robolectric)
-    testImplementation(libs.roborazzi)
-    testImplementation(libs.roborazzi.compose)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     testImplementation(libs.compose.ui.test.manifest)
@@ -103,6 +108,11 @@ val playerTestMedia = tasks.register<Sync>("playerTestMedia") {
     description = "Copies the instrumented tests' episode from android/.mpv/media."
     from(rootDir.resolve(".mpv/media")) { include("episode.mkv") }
     into(testMediaDir)
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric's Android 16 reaches into the JDK's file descriptors, which the JDK keeps closed.
+    jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
 }
 
 tasks.configureEach {

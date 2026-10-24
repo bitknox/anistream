@@ -27,13 +27,14 @@ internal fun startScene(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start
 /** The engine's own scene for [this]. */
 private fun FixtureScene.ffi(): FfiScene = when (this) {
     FixtureScene.FRESH -> FfiScene.Fresh
-    FixtureScene.WATCHING -> FfiScene.Watching
+    // With a file to stream, every episode streams it, as the Playing scene's do.
+    FixtureScene.WATCHING -> if (fixtureMedia.isEmpty()) FfiScene.Watching else FfiScene.WatchingMedia(media = fixtureMedia)
     FixtureScene.SOURCELESS -> FfiScene.Sourceless
     // What it streams is the player's business, which comes with A3: a path or URL on the device.
     FixtureScene.PLAYING -> FfiScene.Playing(media = fixtureMedia)
 }
 
-/** What the Playing scene streams: the fixtures' `media` extra, set at launch. */
+/** What the Playing scene streams, and Watching's when set: the fixtures' `media` extra, set at launch. */
 @Volatile
 var fixtureMedia: String = ""
 

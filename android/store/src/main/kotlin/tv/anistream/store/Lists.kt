@@ -147,7 +147,7 @@ class SearchModel {
         list.caption(null)
     }
 
-    internal fun takes(query: String, filter: SearchFilters): Boolean =
+    fun takes(query: String, filter: SearchFilters): Boolean =
         submitted?.let { it.first == query && it.second == filter } ?: false
 }
 

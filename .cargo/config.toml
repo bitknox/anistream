@@ -6,6 +6,7 @@
 # btls-sys links the NDK's shared one (`-lc++`, which is libc++_shared.so), and the app would have
 # to ship it. This links it statically instead: `-bundle` makes rustc pass it at the final link
 # as `-Bstatic -lc++`, which finds the NDK's libc++.a, INPUT(-lc++_static -lc++abi). Named for the
-# one target, so no other build reads it. CI's android job checks the library needs only libc,
-# libm and libdl.
+# two Android targets, arm64 phones and the 32-bit ARM most TV boxes run, so no other build reads
+# it. CI's android job and engine.sh check the library needs only libc, libm and libdl.
 BORING_BSSL_RUST_CPPLIB_aarch64_linux_android = "static:-bundle=c++"
+BORING_BSSL_RUST_CPPLIB_armv7_linux_androideabi = "static:-bundle=c++"

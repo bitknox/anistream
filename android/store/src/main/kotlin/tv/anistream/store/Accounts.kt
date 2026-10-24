@@ -46,7 +46,7 @@ data class SignInRequest(val tracker: String, val url: String, val callbackSchem
                 .flatMap { it.split('&') }
                 .map { it.substringBefore('=') to it.substringAfter('=', "") }
                 .firstOrNull { it.first == name }
-                ?.let { java.net.URLDecoder.decode(it.second, Charsets.UTF_8) }
+                ?.let { java.net.URLDecoder.decode(it.second, "UTF-8") }
         }
     }
 }
@@ -393,7 +393,7 @@ object InviteLinks {
                 "join" -> uri.rawQuery?.split('&')
                     ?.firstOrNull { it.startsWith("link=") }
                     ?.removePrefix("link=")
-                    ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
+                    ?.let { java.net.URLDecoder.decode(it, "UTF-8") }
                     ?.let(::invite)
                 "auth", null -> null
                 else -> invite("https" + url.trim().substring("anistream".length))

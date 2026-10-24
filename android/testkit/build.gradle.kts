@@ -8,6 +8,8 @@ plugins {
 
 android {
     namespace = "tv.anistream.testkit"
+    // The TV app's tests read the scenes too.
+    defaultConfig { minSdk = AnistreamSdk.TV_MIN }
 }
 
 dependencies {
