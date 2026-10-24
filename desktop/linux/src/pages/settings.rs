@@ -376,6 +376,12 @@ impl Inner {
                 group.add(&self.row(&row));
                 any = true;
             }
+            if *title == "Discord"
+                && known.settings.as_ref().is_some_and(|v| !v.presence_available)
+            {
+                // A build without the presence has nothing to switch on.
+                continue;
+            }
             if *title == "Updates" {
                 // Flatpak updates the app: no switch for a check of its own, and nothing to
                 // check now.
