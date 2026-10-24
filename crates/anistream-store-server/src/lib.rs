@@ -14,7 +14,7 @@ use std::{
 
 use anistream_plugin_store::{
     Inspector, PluginInfo, crypto, manifest,
-    protocol::Role,
+    protocol::{Role, ServerInfo},
     server::{self, AnyStore, NewInvite, Storage, TlsFiles},
 };
 
@@ -224,6 +224,38 @@ fn platform() -> Option<String> {
         .or_else(|| var("HEROKU_APP_DEFAULT_DOMAIN_NAME").map(|d| format!("https://{d}")))
 }
 
+/// Where the store runs, for the update steps its admin page shows: named by
+/// `ANISTREAM_STORE_HOST`, or recognised from what the platform sets. `in_app` is a store served
+/// by `anistream store serve`.
+fn host(in_app: bool) -> String {
+    let set = |name: &str| std::env::var(name).is_ok_and(|v| !v.trim().is_empty());
+    if let Ok(named) = std::env::var("ANISTREAM_STORE_HOST")
+        && !named.trim().is_empty()
+    {
+        return named.trim().to_ascii_lowercase();
+    }
+    let found = if set("FLY_APP_NAME") {
+        "fly"
+    } else if set("RENDER") {
+        "render"
+    } else if ["RAILWAY_ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME", "RAILWAY_PROJECT_ID"]
+        .iter()
+        .any(|name| set(name))
+    {
+        "railway"
+    } else if set("DYNO") {
+        "heroku"
+    } else if in_app {
+        "anistream"
+    } else if set("ANISTREAM_STORE_DEFAULT_DIR") {
+        // The container image sets this, and the platforms above run that image too.
+        "docker"
+    } else {
+        "binary"
+    };
+    found.to_owned()
+}
+
 /// Whether this is a platform whose proxy is the only way in.
 fn behind_platform_proxy() -> bool {
     // Railway has renamed its variables before; any of these says the store is there.
@@ -300,6 +332,12 @@ pub async fn serve(args: ServeArgs, cache: Option<&Path>) -> Result<(), String> 
     println!("  storage     {}", storage.describe());
     println!("  address     {shown}");
     println!("  key         {}", store.public_key().fingerprint());
+    let host = host(cache.is_some());
+    println!(
+        "  version     {}, schema {}, on {host}",
+        env!("CARGO_PKG_VERSION"),
+        anistream_plugin_store::schema::VERSION
+    );
     println!(
         "  listening   {local}   {}",
         if acceptor.is_some() { "(HTTPS)" } else { "(plain HTTP)" }
@@ -379,13 +417,16 @@ pub async fn serve(args: ServeArgs, cache: Option<&Path>) -> Result<(), String> 
     }
     println!();
 
-    let server = Arc::new(server::Server::new(
-        store,
-        address,
-        Some(Box::new(inspector(cache)?)),
-        setup_code,
-        trust_proxy,
-    ));
+    let server = Arc::new(
+        server::Server::new(
+            store,
+            address,
+            Some(Box::new(inspector(cache)?)),
+            setup_code,
+            trust_proxy,
+        )
+        .describing(ServerInfo::new(env!("CARGO_PKG_VERSION"), Some(&host))),
+    );
     server::serve(listener, server, acceptor, shutdown()).await.map_err(|e| e.to_string())?;
     println!("stopped");
     Ok(())

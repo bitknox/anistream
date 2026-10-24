@@ -63,6 +63,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Plugin stores', link: 'docs/plugins/stores' },
 						{ label: 'Running a store', link: 'docs/plugins/running-a-store' },
+						{ label: 'Updating a store', link: 'docs/plugins/updating-a-store' },
 						{ label: 'Writing a provider plugin', link: 'docs/plugins/authoring' },
 						{ label: 'The plugin sandbox', link: 'docs/plugins/sandbox' },
 					],

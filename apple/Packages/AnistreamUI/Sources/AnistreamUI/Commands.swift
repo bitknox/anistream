@@ -8,6 +8,7 @@ import SwiftUI
 /// The app's menus beside the system's. The Playback menu's items and Window's player item come
 /// from the player the app hosts, which this package does not know.
 public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Commands {
+    @Environment(\.openURL) private var openURL
     let store: AppStore
     let navigator: Navigator
     let playback: Playback
@@ -122,6 +123,8 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
         }
 
         CommandGroup(replacing: .help) {
+            Button("Report a Bug…") { ReportBugAction(store: store, openURL: openURL)() }
+            Divider()
             Button("anistream Help") {}
                 .disabled(true)
             Button("Keyboard Shortcuts") {}

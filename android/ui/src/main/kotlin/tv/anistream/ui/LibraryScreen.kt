@@ -148,7 +148,7 @@ fun LibraryScreen(actions: AppActions) {
             }
             when (val list = state) {
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
-                    Box(itemMotion()) { Quiet(list.reason) }
+                    Box(itemMotion()) { FailedQuiet(list.reason) }
                 }
                 ListState.Empty -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
                     Box(itemMotion()) { Quiet("Nothing on your ${segment.label} list") }

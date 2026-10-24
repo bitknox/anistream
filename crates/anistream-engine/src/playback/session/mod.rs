@@ -713,6 +713,7 @@ mod tests {
             episodes: Vec::new(),
             cover_url: None,
             banner_url: None,
+            episode_total: None,
         }
     }
 
@@ -760,6 +761,7 @@ mod tests {
             episodes: Vec::new(),
             cover_url: None,
             banner_url: None,
+            episode_total: None,
         };
         assert_eq!(context.mal_id, Some(52_991));
         assert_eq!(context.resume_at, Some(600.0));

@@ -22,7 +22,7 @@ extension SettingKey {
     public var isSwitch: Bool {
         switch self {
         case .motion, .autoNext, .skipOpening, .skipFiller, .markChapters, .skipButton, .fullscreen, .nightMode,
-             .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .torrents, .syncplay,
+             .mergeSubtitles, .keepSeeding, .presence, .presenceTitle, .presenceRich, .torrents, .syncplay,
              .updateCheck, .spoilerProtection, .downloadsOnCellular, .torrentsOnCellular, .adultTitles:
             true
         default:

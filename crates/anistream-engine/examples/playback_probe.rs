@@ -121,6 +121,7 @@ async fn main() {
         episodes: Vec::new(),
         cover_url: None,
         banner_url: None,
+        episode_total: None,
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Event>();

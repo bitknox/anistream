@@ -319,6 +319,7 @@ pub(crate) fn dispatch(
             url,
             services.paths.image_cache(),
             services.http.clone(),
+            services.artwork.clone(),
             tx.clone(),
         ),
 

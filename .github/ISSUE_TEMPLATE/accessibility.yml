@@ -1,0 +1,52 @@
+name: Accessibility barrier
+description: Something you can't use, read or reach with your assistive technology or settings
+labels: ["accessibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for telling us. anistream hosts no content. Don't post links to sources and
+        don't name sites that carry content. Use made-up titles in examples.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Mac app
+        - iPhone or iPad app
+        - Android app
+        - Android TV app
+        - Terminal app
+        - Website
+        - Plugin store admin page
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version and system version
+      placeholder: "Release number, and for example iOS 26.1 or Android 16"
+    validations:
+      required: true
+  - type: input
+    id: tech
+    attributes:
+      label: Assistive technology and settings
+      description: For example VoiceOver, TalkBack, Switch Access, Voice Control, a screen magnifier, the largest text size, Reduce Motion, or a keyboard only.
+      placeholder: "Name and version"
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you tried
+      description: The screen, and the steps you took.
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you heard, saw or could not do, and what you expected instead.
+    validations:
+      required: true

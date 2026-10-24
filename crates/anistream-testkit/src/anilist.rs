@@ -184,6 +184,19 @@ struct State {
     slow: HashMap<Operation, std::time::Duration>,
     /// Where image URLs point once the fake serves art: its own `/art/`.
     art: Option<String>,
+    /// How the art is served when it is served badly: see [`FakeAniList::trouble_art`].
+    art_trouble: ArtTrouble,
+    /// How often each image has been asked for, and in which order they first were.
+    art_asked: HashMap<String, (usize, u32)>,
+}
+
+/// Art served badly, as a busy CDN serves it.
+#[derive(Debug, Clone, Copy, Default)]
+struct ArtTrouble {
+    /// How many times every second image is answered 503 before it is served.
+    fail_first: u32,
+    /// How long every image's answer is held back.
+    delay: std::time::Duration,
 }
 
 impl FakeAniList {
@@ -204,6 +217,8 @@ impl FakeAniList {
             extra: HashMap::new(),
             slow: HashMap::new(),
             art: None,
+            art_trouble: ArtTrouble::default(),
+            art_asked: HashMap::new(),
         }));
         let accept = tokio::spawn({
             let state = Arc::clone(&state);
@@ -290,6 +305,16 @@ impl FakeAniList {
     /// URLs a test sees are the fixtures' own.
     pub fn serve_art(&self) {
         lock(&self.state).art = Some(self.art_base());
+    }
+
+    /// Serve the art badly from now on, as a busy CDN would: every second image asked for (the
+    /// first, the third, and so on, in the order they are first asked for) is answered
+    /// `503 Service Unavailable` its first `fail_first` times, and every answer is held back by
+    /// `delay`. For a front end's test that art on screen still arrives.
+    pub fn trouble_art(&self, fail_first: u32, delay: std::time::Duration) {
+        let mut state = lock(&self.state);
+        state.art_trouble = ArtTrouble { fail_first, delay };
+        state.art_asked.clear();
     }
 
     /// Where [`Self::serve_art`] serves the art from, standing in for
@@ -413,7 +438,11 @@ async fn serve(socket: TcpStream, state: Arc<Mutex<State>>) {
     // Held back as a slow AniList would be, once the request is on the record.
     let payload: Value = serde_json::from_slice(&body).unwrap_or(Value::Null);
     let operation = Operation::of(payload["query"].as_str().unwrap_or_default());
-    let slow = lock(&state).slow.get(&operation).copied();
+    let slow = if head.path.starts_with("/art/") {
+        Some(lock(&state).art_trouble.delay).filter(|wait| !wait.is_zero())
+    } else {
+        lock(&state).slow.get(&operation).copied()
+    };
     if let Some(wait) = slow {
         tokio::time::sleep(wait).await;
     }
@@ -491,11 +520,20 @@ fn reason(status: u16) -> &'static str {
 }
 
 /// Record the request, then answer it: with a failure if one is due, else from the fixtures.
-/// Art, when the fake serves it, is answered without being recorded or failed: it is not
-/// AniList's.
+/// Art, when the fake serves it, is answered without being recorded or failed, as it is not
+/// AniList's, unless [`FakeAniList::trouble_art`] asked for it to be served badly.
 fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
     if let Some(path) = head.path.strip_prefix("/art/") {
-        let serving = lock(state).art.is_some();
+        let mut guard = lock(state);
+        let state = &mut *guard;
+        let serving = state.art.is_some();
+        let first_asked = state.art_asked.len();
+        let (order, times) = state.art_asked.entry(path.to_owned()).or_insert((first_asked, 0));
+        *times += 1;
+        if serving && *order % 2 == 0 && *times <= state.art_trouble.fail_first {
+            return Reply::status(503, json!({ "message": "busy" }));
+        }
+        drop(guard);
         return match crate::art::png(path).filter(|_| serving && head.method == "GET") {
             Some(bytes) => Reply::Image(bytes),
             None => Reply::status(404, json!({ "message": "no such image" })),

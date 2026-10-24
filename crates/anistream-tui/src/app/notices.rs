@@ -3,6 +3,7 @@
 use std::time::{Duration, Instant};
 
 use anistream_model::{
+    bug_report::{BugError, BugReport, DeviceClass, issue_url},
     command::Command,
     downloads::DownloadState,
     jobs::JobId,
@@ -80,6 +81,37 @@ pub fn worded(notice: Notice, keymap: &Keymap) -> Notice {
 }
 
 impl App {
+    /// The bug report: the last problem the interface told of, in a pre-filled GitHub issue. The
+    /// link goes into the log whole, for a terminal that cannot open it, and the browser opens it.
+    pub(super) fn report_bug(&mut self) -> Option<Command> {
+        let url = issue_url(&self.bug_report());
+        self.push_toast(Notice::info(
+            "opening a bug report in the browser; the link is in the log",
+        ));
+        self.log(NoticeKind::Info, format!("bug report: {url}"));
+        Some(Command::OpenExternal { url })
+    }
+
+    /// What a report from here says: this build, the sources, and the newest alert.
+    pub fn bug_report(&self) -> BugReport {
+        let error = self
+            .logs
+            .iter()
+            .rev()
+            .find(|row| row.kind == NoticeKind::Alert)
+            .map(|row| BugError { kind: "message".into(), message: row.text.clone() });
+        BugReport {
+            app_version: env!("CARGO_PKG_VERSION").into(),
+            platform: "Terminal".into(),
+            os_version: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
+            device: DeviceClass::Terminal,
+            build: if cfg!(debug_assertions) { "debug" } else { "release" }.into(),
+            providers: self.providers.clone(),
+            error,
+            private: Vec::new(),
+        }
+    }
+
     pub fn push_toast(&mut self, notice: Notice) {
         // In the terminal's words, before it is logged or compared: the line on screen and in
         // the log is the one with the key in it.
@@ -219,6 +251,32 @@ pub const ACTIVITY_DELAY: Duration = Duration::from_millis(600);
 mod tests {
     use super::*;
     use crate::app::fixtures::*;
+
+    #[test]
+    fn reporting_a_bug_opens_an_issue_with_the_last_alert_and_keeps_the_link() {
+        let mut a = app();
+        a.apply(Event::Toast(Notice::alert(
+            "no stream from lantern.example for \"Hidden Title\"",
+        )));
+        let Some(Command::OpenExternal { url }) = a.handle(Action::ReportBug, 5) else {
+            panic!("the browser opens");
+        };
+        assert!(url.starts_with(
+            "https://github.com/bitknox/anistream/issues/new?template=bug_report.yml"
+        ));
+        assert!(url.contains("diagnostics="));
+        assert!(!url.contains("lantern") && !url.contains("Hidden"), "{url}");
+        let logged = a.logs.last().expect("the link is logged");
+        assert_eq!(logged.text, format!("bug report: {url}"));
+        assert!(a.toasts.last().is_some_and(|t| t.notice.text.contains("bug report")));
+    }
+
+    #[test]
+    fn a_report_from_a_quiet_session_has_no_error() {
+        let report = app().bug_report();
+        assert!(report.error.is_none());
+        assert_eq!(report.device, DeviceClass::Terminal);
+    }
 
     #[test]
     fn a_hint_is_said_in_the_terminal_s_words_where_the_key_used_to_be() {

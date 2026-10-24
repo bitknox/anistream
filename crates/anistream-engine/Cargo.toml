@@ -15,12 +15,17 @@ doctest = false
 # front ends that are not a terminal. tools/check-boundaries.sh holds it to that in CI.
 [features]
 default = ["desktop"]
-# What a desktop has and a phone has not: the mpv child process each playback runs, the Syncplay
+# What a desktop has and a phone has not: the Discord presence (also `presence` alone), the mpv
+# child process each playback runs, the Syncplay
 # party a play can be handed to, the browser redirect AniList and MyAnimeList sign in through,
 # notifications through osascript and notify-send, pmset's word on the battery, and the OS
 # keychain through `keyring`. Without it none of these is built, nor are `anistream-player`,
 # `open` and `keyring`. The crate docs say what a front end without it gets instead.
-desktop = ["dep:anistream-player", "dep:open", "anistream-track/keychain"]
+desktop = ["presence", "dep:anistream-player", "dep:open", "anistream-track/keychain"]
+# The Discord presence an episode shows while it plays, and nothing else of the desktop: the Mac
+# app turns it on beside `--no-default-features`, with no mpv child process. A phone's build
+# leaves it off, and its front end is told so (`SettingsView::presence_available`).
+presence = ["dep:anistream-discord"]
 # What a test stands the engine up with instead of what it builds, and what only a test wants to
 # hear from it: see `options::Parts` and `engine::Traced`. Never on in a build that ships: the
 # binary turns it on for its own tests alone, as a dev-dependency.
@@ -31,6 +36,7 @@ anistream-core.workspace = true
 anistream-meta.workspace = true
 anistream-model.workspace = true
 anistream-net.workspace = true
+anistream-discord = { workspace = true, optional = true }
 anistream-player = { workspace = true, optional = true }
 # The pure half of playback, which the session drives any player with: the policy, the tracks,
 # skips, and what a player reports and is shown. Allowed in a phone's build.

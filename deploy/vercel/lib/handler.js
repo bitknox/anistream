@@ -27,10 +27,11 @@ const NO_BODY = new Set([101, 204, 205, 304]);
  * file would point somewhere else. `databaseUrl` reads the connection string from wherever the
  * platform puts it. `connections` is how many connections one instance may hold,
  * `ANISTREAM_STORE_DB_CONNECTIONS` overriding it for a database that allows fewer. `onPool` sees
- * the pool once it exists. Answers `(request, client) => Response`, where `client` is the caller's
- * address as the platform reports it.
+ * the pool once it exists. `host` names the platform, for the update steps on the admin page.
+ * Answers `(request, client) => Response`, where `client` is the caller's address as the platform
+ * reports it.
  */
-export function storeHandler({ wasm, databaseUrl, connections, onPool }) {
+export function storeHandler({ wasm, databaseUrl, connections, onPool, host }) {
   // Opening runs the schema statements, so it happens once per instance rather than per request.
   // A failed open is forgotten, and the next request tries again.
   let opening = null;
@@ -68,6 +69,7 @@ export function storeHandler({ wasm, databaseUrl, connections, onPool }) {
         name: process.env.ANISTREAM_STORE_NAME,
         url: process.env.ANISTREAM_STORE_URL,
         setupCode: process.env.ANISTREAM_STORE_SETUP_CODE,
+        host,
       });
     } catch (error) {
       await pool.end().catch(() => {});

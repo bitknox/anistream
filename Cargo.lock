@@ -138,10 +138,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "anistream-discord"
+version = "2.0.0"
+dependencies = [
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "anistream-engine"
 version = "2.0.0"
 dependencies = [
  "anistream-core",
+ "anistream-discord",
  "anistream-meta",
  "anistream-model",
  "anistream-net",

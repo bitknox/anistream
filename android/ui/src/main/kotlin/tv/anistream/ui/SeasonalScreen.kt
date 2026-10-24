@@ -49,7 +49,7 @@ fun SeasonalScreen() {
                 is ListState.Loaded -> PosterGrid(grid) {
                     items(list.ids.mapNotNull { titles[it] }, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "seasonal") }
                 }
-                is ListState.Failed -> Column(Modifier.padding(top = padding.calculateTopPadding())) { Quiet(list.reason) }
+                is ListState.Failed -> Column(Modifier.padding(top = padding.calculateTopPadding())) { FailedQuiet(list.reason) }
                 else -> Column(Modifier.padding(top = padding.calculateTopPadding())) { Quiet("Nothing this season yet") }
             }
         }

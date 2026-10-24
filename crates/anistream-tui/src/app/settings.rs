@@ -170,6 +170,7 @@ impl App {
             // The privacy dial. Off still publishes that you are watching *something*, which
             // is the point for anyone who wants the presence without the title.
             S::PresenceTitle => "off shows \"Watching anime\" without naming the show",
+            S::PresenceRich => "cover, progress bar and an AniList link; needs the title shown",
             S::Torrents => "needs a VPN configured; takes effect immediately",
             S::VpnMode => "edit config.toml — turning this off has to be deliberate",
             S::SeedRatio => "keeps watched episodes seeding while anistream is open",

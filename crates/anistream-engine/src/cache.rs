@@ -58,6 +58,8 @@ pub struct PlayHints {
     /// screen.
     pub cover_url: Option<String>,
     pub banner_url: Option<String>,
+    /// How many episodes the title has in all, where it is known: "Episode 5 of 12".
+    pub episode_total: Option<u32>,
 }
 
 /// The engine's record of the titles a front end shows. See the module.
@@ -87,6 +89,8 @@ struct Title {
     /// Its art by URL, as its page or a list showed it.
     cover_url: Option<String>,
     banner_url: Option<String>,
+    /// How many episodes it has in all, where known.
+    episode_total: Option<u32>,
     touched: u64,
 }
 
@@ -256,7 +260,15 @@ impl TitleCache {
             })
             .collect();
         let (cover_url, banner_url) = self.art(id);
-        PlayHints { title: self.name_for(id, kind), next, episodes, cover_url, banner_url }
+        let episode_total = self.titles.get(&id).and_then(|title| title.episode_total);
+        PlayHints {
+            title: self.name_for(id, kind),
+            next,
+            episodes,
+            cover_url,
+            banner_url,
+            episode_total,
+        }
     }
 
     /// The name a play of `id` is announced by: the one its last playback went by, so an
@@ -398,6 +410,7 @@ impl TitleCache {
         let touched = self.touch();
         // A row that carries no art keeps what an earlier one said.
         let (cover_url, banner_url) = self.art(entry.id);
+        let episode_total = self.titles.get(&entry.id).and_then(|title| title.episode_total);
         self.titles.insert(
             entry.id,
             Title {
@@ -406,6 +419,7 @@ impl TitleCache {
                 resume: entry.resume,
                 cover_url: entry.cover_url.clone().or(cover_url),
                 banner_url: entry.banner_url.clone().or(banner_url),
+                episode_total: entry.episodes.or(episode_total),
                 touched,
             },
         );
@@ -431,6 +445,7 @@ impl TitleCache {
             resume: None,
             cover_url: None,
             banner_url: None,
+            episode_total: None,
             touched,
         };
         self.titles.insert(id, title);

@@ -21,6 +21,7 @@ pub mod inspect;
 pub mod invite;
 pub mod manifest;
 pub mod protocol;
+pub mod schema;
 pub mod store;
 
 /// `Send + Sync` natively, nothing in WebAssembly. A Worker's storage handles are JavaScript

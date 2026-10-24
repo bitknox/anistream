@@ -66,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
@@ -101,6 +102,7 @@ import tv.anistream.engine.model.searchStatusLabel
 import tv.anistream.engine.model.searchStatuses
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
+import tv.anistream.store.BugContext
 import tv.anistream.store.ListState
 import tv.anistream.store.label
 import tv.anistream.store.normalized
@@ -576,6 +578,7 @@ private fun LazyGridScope.resultsHeader(query: SearchQuery, caption: String?, li
 @Composable
 private fun SearchResults(query: SearchQuery) {
     val store = LocalAppStore.current
+    val context = LocalContext.current
     val state by store.search.list.state.collectAsStateWithLifecycle()
     val caption by store.search.list.caption.collectAsStateWithLifecycle()
     val status by store.search.status.collectAsStateWithLifecycle()
@@ -609,7 +612,10 @@ private fun SearchResults(query: SearchQuery) {
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "failed") {
                     Column {
                         Text(list.reason, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        QuietButton("Try again") { store.search(store.search.status.value.query) }
+                        Row {
+                            QuietButton("Try again") { store.search(store.search.status.value.query) }
+                            QuietButton("Report") { openBugReport(context, store, BugContext("load", list.reason)) }
+                        }
                     }
                 }
                 else -> item(span = { GridItemSpan(maxLineSpan) }, key = "nothing") { NothingFound(query) }

@@ -435,3 +435,17 @@ async fn art_is_served_only_when_asked_and_then_every_image_points_at_it() {
     // Art is not AniList's: nothing about it is recorded as a request.
     assert!(kit.server.requests().iter().all(|r| !r.path.starts_with("/art/")));
 }
+
+#[tokio::test]
+async fn art_served_badly_fails_every_second_image_a_few_times_first() {
+    let kit = MetaKit::start().await;
+    kit.server.serve_art();
+    kit.server.trouble_art(2, std::time::Duration::ZERO);
+    let base = kit.server.art_base();
+    let (first, second) =
+        (format!("{base}cover/900001-xl.jpg"), format!("{base}banner/900001.jpg"));
+    assert!(fetch(&first).await.is_none(), "the first image fails");
+    assert!(fetch(&second).await.is_some(), "the second does not");
+    assert!(fetch(&first).await.is_none(), "twice");
+    assert!(fetch(&first).await.is_some(), "and then it is served");
+}

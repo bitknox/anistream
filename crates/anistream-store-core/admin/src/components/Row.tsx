@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 
 /**
- * One line of a list: a mono label in the left column, the thing itself, and what can be done
- * to it. The homepage's feature row, with the app's obi marking the row in hand.
+ * One line of a list, as the website's dense rows have it: a small caps label in the left
+ * column, the thing itself, and what can be done to it.
  */
 export function Row({
 	label,
@@ -15,7 +15,7 @@ export function Row({
 }) {
 	return (
 		<div className="row">
-			<span className="row-label">{label}</span>
+			<span className="caps row-label">{label}</span>
 			<div className="row-body">{children}</div>
 			{actions && <div className="row-actions">{actions}</div>}
 		</div>
@@ -62,7 +62,7 @@ export function Confirm({
 
 	if (!armed) {
 		return (
-			<button type="button" className="btn btn-quiet" onClick={() => setArmed(true)}>
+			<button type="button" className="btn btn-small" onClick={() => setArmed(true)}>
 				{label}
 			</button>
 		);
@@ -71,7 +71,7 @@ export function Confirm({
 		<span className="confirm">
 			<button
 				type="button"
-				className={danger ? 'btn btn-danger' : 'btn btn-solid'}
+				className={danger ? 'btn btn-small btn-danger' : 'btn btn-small btn-armed'}
 				autoFocus
 				disabled={busy}
 				onClick={async () => {
@@ -83,8 +83,8 @@ export function Confirm({
 			>
 				{confirm}
 			</button>
-			<button type="button" className="btn btn-quiet" onClick={() => setArmed(false)}>
-				keep
+			<button type="button" className="btn btn-small btn-quiet" onClick={() => setArmed(false)}>
+				Keep
 			</button>
 		</span>
 	);
