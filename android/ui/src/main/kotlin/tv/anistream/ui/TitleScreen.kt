@@ -104,6 +104,7 @@ import tv.anistream.store.AppClock
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
+import tv.anistream.store.TvPlayRequest
 
 /** The episodes past the next one hide their stills, unless the show says otherwise (A2). */
 private const val SPOILER_PROTECTION = true
@@ -1007,6 +1008,12 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
     ) {
         CircleIconButton(Icons.Back, "Back", onBack)
         Spacer(Modifier.weight(1f))
+        val action = TitleAction.of(entry)
+        if (store.tv.available && action.playable) {
+            CircleIconButton(Icons.Tv, "Play on TV", {
+                store.tv.offer(TvPlayRequest(entry.id, entry.showTitle, action.episode.toString(), action.resume?.position))
+            })
+        }
         Box {
             CircleIconButton(Icons.More, "More", { more = true })
             Menu(expanded = more, onDismissRequest = { more = false }) {

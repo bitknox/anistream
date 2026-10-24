@@ -239,6 +239,7 @@ fun AppRoot(
         EngineNotices(onHint = routed.hint)
         UpdatePrompts()
         AccountSheets()
+        TvSheetHost()
         JoinStoreSheetHost()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }
@@ -271,7 +272,12 @@ fun AppRoot(
                     }
                 }
             },
-            bottomBar = { if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go) },
+            bottomBar = {
+                androidx.compose.foundation.layout.Column {
+                    if (!onPlayer) TvNowPlayingBar()
+                    if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go)
+                }
+            },
         ) { padding ->
             Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
                 if (wide && !fullWindow && !onPlayer) Rail(current, entry?.destination?.route, navigator, routed)
