@@ -38,8 +38,8 @@ export GTK_A11Y=none DISPLAY=:99 GDK_BACKEND=x11 GSK_RENDERER=ngl LIBGL_ALWAYS_S
 # name, size, shots
 runs=(
   "wide 1280x800 ${SHOTS:-all}"
-  "medium 900x720 ${SHOTS:-home,calendar,title,downloads,providers,store,settings}"
-  "narrow 400x780 ${SHOTS:-home,calendar,title,library,downloads,providers,store,join,settings}"
+  "medium 900x720 ${SHOTS:-home,calendar,title,downloads,providers,store,settings,settings-upscaling}"
+  "narrow 400x780 ${SHOTS:-home,calendar,title,show-settings,library,downloads,providers,store,join,settings}"
 )
 for run in "${runs[@]}"; do
   read -r name size shots <<<"$run"

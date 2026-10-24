@@ -19,13 +19,14 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 20] = [
+pub const ALL: [&str; 22] = [
     "home",
     "calendar",
     "seasonal",
     "search",
     "search-results",
     "title",
+    "show-settings",
     "library",
     "downloads",
     "providers",
@@ -34,6 +35,7 @@ pub const ALL: [&str; 20] = [
     "store",
     "join",
     "settings",
+    "settings-upscaling",
     "settings-accounts",
     "about",
     "player",
@@ -101,6 +103,18 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                 WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
             3.5
         }
+        "show-settings" => {
+            shell.go(Dest::Continue);
+            let _ =
+                WidgetExt::activate_action(window, "win.open-title", Some(&TITLE.to_variant()));
+            let ctx = Rc::clone(&shell.ctx);
+            glib::timeout_add_local_once(Duration::from_millis(2500), move || {
+                if let Some(page) = ctx.nav().and_then(|nav| nav.visible_page()) {
+                    let _ = WidgetExt::activate_action(&page, "title.show-settings", None);
+                }
+            });
+            5.0
+        }
         "library" => {
             shell.go(Dest::Library);
             3.0
@@ -134,6 +148,12 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "settings" => {
             shell.settings_pane("playback");
             1.5
+        }
+        "settings-upscaling" => {
+            shell.settings_pane("playback");
+            shell.settings_upscaling();
+            upscaling(shell, "natural");
+            2.0
         }
         "settings-accounts" => {
             shell.settings_pane("accounts");
@@ -186,6 +206,16 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
         "about" | "join" => close_dialogs(&shell.ctx.window),
+        "show-settings" => {
+            close_dialogs(&shell.ctx.window);
+            let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+        }
+        "settings-upscaling" => {
+            upscaling(shell, "off");
+            if let Some(nav) = shell.ctx.nav() {
+                nav.pop();
+            }
+        }
         "provider" | "store" => {
             if let Some(nav) = shell.ctx.nav() {
                 nav.pop();
@@ -194,6 +224,14 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "player" | "player-marks" | "mini" => shell.player.close(),
         _ => {}
     }
+}
+
+/// Set upscaling, which the fixture scene keeps off for the player shots.
+fn upscaling(shell: &Rc<Shell>, mode: &str) {
+    shell.ctx.hub.send(Command::SetSetting {
+        key: anistream_model::settings::SettingKey::Upscaling,
+        value: anistream_core::settings::SettingValue::Str(mode.into()),
+    });
 }
 
 /// Play the player shots' episode, paused once it plays so the controls stay up.
