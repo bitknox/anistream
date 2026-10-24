@@ -501,6 +501,14 @@ public final class PlayerModel {
         }
     }
 
+    /// The Subtitles and audio menu asked for from outside the player, as a screenshot of it
+    /// does. Counted, for the player's view to answer.
+    public private(set) var trackMenuRequests = 0
+
+    public func requestTrackMenu() {
+        trackMenuRequests += 1
+    }
+
     /// The viewer closed the player: its close button, the swipe down, the window's close.
     ///
     /// Nothing the engine says brings it back up until it stages another playback: a playback

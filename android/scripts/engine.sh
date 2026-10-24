@@ -4,6 +4,7 @@
 # CI's Linux), which the JVM unit tests load through JNA.
 #
 #   android/scripts/engine.sh [--check] <release|testing>
+#   android/scripts/engine.sh --sources-hash
 #
 #   release   the engine the app flavour ships: --no-default-features, so without mpv's child
 #             process, and with the TV's remote (`startRemote`), which the TV app shares the
@@ -45,10 +46,17 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 usage() {
-  echo "usage: android/scripts/engine.sh [--check] <release|testing>" >&2
+  echo "usage: android/scripts/engine.sh [--check] <release|testing> | --sources-hash" >&2
   exit 2
 }
 
+# --sources-hash prints the hash of what the engine is built from, which its stamp and caches
+# are keyed by, CI's too, and builds nothing.
+sources_only=0
+if [[ "${1:-}" == --sources-hash ]]; then
+  sources_only=1
+  set -- release
+fi
 check=0
 flavour=""
 for arg in "$@"; do
@@ -100,25 +108,22 @@ if [[ -n "$ndk" ]]; then
   for spec in "${android_abis[@]}"; do abis="${abis:+$abis,}${spec%% *}"; done
 fi
 
-# What the build is made from: every file under crates/ and wit/, tracked or not but not ignored,
-# the workspace's manifests and lock file, the toolchain pin and this script, each by its content.
-# A change anywhere in the workspace counts, which costs at most a build cargo finds up to date.
+# What the build is made from: the files tools/engine-sources.sh lists (each crate anistream-ffi
+# builds on, without its tests, benches and examples, with the workspace's manifests, lock file,
+# toolchain pin and .cargo) and this script, each by its content. A change to the terminal, the
+# store's server or a test is no change to the engine.
 sources_hash() {
   (
     cd "$root"
-    {
-      git ls-files -co --exclude-standard -- crates wit Cargo.toml Cargo.lock rust-toolchain.toml \
-        .cargo android/scripts/engine.sh |
-        LC_ALL=C sort -u |
-        while IFS= read -r file; do
-          [[ -f "$file" ]] && printf '%s\n' "$file"
-        done |
-        git hash-object --stdin-paths
-    } | shasum -a 256 | cut -d' ' -f1
-  )
+    tools/engine-sources.sh android/scripts/engine.sh | git hash-object --stdin-paths
+  ) | shasum -a 256 | cut -d' ' -f1
 }
 
 hash="$(sources_hash)"
+if (( sources_only )); then
+  echo "$hash"
+  exit 0
+fi
 if [[ -f "$out/stamp" && -d "$out/kotlin" && -d "$out/host" ]]; then
   fresh=1
   [[ "$(sed -n 's/^sources //p' "$out/stamp")" == "$hash" ]] || fresh=0

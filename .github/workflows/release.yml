@@ -36,7 +36,9 @@ on:
       - '.claude/**'
   # A pull request that would change how a release is built builds it first, saving and
   # publishing nothing, so a release that no longer builds, or no longer starts on older Linux,
-  # shows up before the merge rather than on main.
+  # shows up before the merge rather than on main. One that changes only the dependencies or the
+  # toolchain builds Linux alone, for the old-Linux check, since CI compiles and tests the Mac
+  # and Windows builds already; a change to the packaging or this workflow builds every target.
   pull_request:
     paths:
       - Cargo.lock
@@ -79,15 +81,19 @@ jobs:
   version:
     name: The version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
       commit: ${{ steps.version.outputs.commit }}
       publish: ${{ steps.version.outputs.publish }}
+      targets: ${{ steps.targets.outputs.targets }}
     steps:
       # `inputs.tag` is empty on anything but a dispatch with a tag, and checkout then takes the
       # commit that started the run.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag }}
 
@@ -147,6 +153,42 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "::notice::$tag, on $commit. Published: $publish."
 
+      # What a pull request changes of how a release is packaged, as opposed to what it builds.
+      - uses: dorny/paths-filter@v4
+        if: github.event_name == 'pull_request'
+        id: paths
+        with:
+          filters: |
+            packaging:
+              - '.github/workflows/release.yml'
+              - 'packaging/**'
+
+      # The targets built, as the build job's matrix.
+      #
+      # Linux is linked against glibc 2.28's symbols rather than the runner's, so it starts on
+      # Debian 10, Ubuntu 20.04, RHEL 8 and everything since. Linked against the runner's own, it
+      # needed 2.39, which Debian 12 and Ubuntu 22.04 do not have. The Intel Mac's build is
+      # cross-compiled on Apple silicon: Apple's toolchain builds for both architectures, and the
+      # Intel runner took 28 minutes for 1.0 where Apple silicon took 12.
+      - name: The targets
+        id: targets
+        env:
+          LINUX_ONLY: ${{ github.event_name == 'pull_request' && steps.paths.outputs.packaging != 'true' }}
+        run: |
+          all='[
+            {"os": "ubuntu-latest", "target": "x86_64-unknown-linux-gnu", "glibc": "2.28"},
+            {"os": "macos-latest", "target": "aarch64-apple-darwin"},
+            {"os": "macos-latest", "target": "x86_64-apple-darwin"},
+            {"os": "windows-latest", "target": "x86_64-pc-windows-msvc"}
+          ]'
+          if [[ "$LINUX_ONLY" == true ]]; then
+            targets="$(jq -c '[.[] | select(.os == "ubuntu-latest")]' <<<"$all")"
+            echo "::notice::Only the dependencies or the toolchain changed, so only Linux is built."
+          else
+            targets="$(jq -c . <<<"$all")"
+          fi
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.target }}
     needs: version
@@ -159,24 +201,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Linked against glibc 2.28's symbols rather than the runner's, so it starts on
-          # Debian 10, Ubuntu 20.04, RHEL 8 and everything since. Linked against the runner's
-          # own, it needed 2.39, which Debian 12 and Ubuntu 22.04 do not have.
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            glibc: '2.28'
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          # Cross-compiled on Apple silicon: Apple's toolchain builds for both architectures,
-          # and the Intel runner took 28 minutes for 1.0 where Apple silicon took 12.
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
+        # The version job's list, with why each target is built as it is.
+        include: ${{ fromJSON(needs.version.outputs.targets) }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.commit }}
 
@@ -467,7 +496,7 @@ jobs:
           packaging/rust-licences/generate.sh terminal "dist/anistream-${VERSION}-rust-licences.txt"
           x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-msvc
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: env.PACKAGE == 'true'
         with:
           name: terminal-${{ matrix.target }}
@@ -511,7 +540,7 @@ jobs:
       contents: write
       pull-requests: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.commit }}
           sparse-checkout: packaging

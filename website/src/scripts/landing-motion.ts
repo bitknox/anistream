@@ -7,7 +7,16 @@
  */
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { PLANE_RATES, liveScene, renderScene, sceneConfig, type PlaneName, type SceneState } from './scene';
+import {
+	PLANE_RATES,
+	PLANE_SWAY,
+	SWAY_MARGIN,
+	liveScene,
+	renderScene,
+	sceneConfig,
+	type PlaneName,
+	type SceneState,
+} from './scene';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -56,18 +65,20 @@ function drawScene(): Scene | null {
 	const scene: Scene = { box, canvases, cell: 8, extra: 0, state: null };
 	const draw = () => {
 		// One scene pixel is a whole number of CSS pixels, so the art stays crisp: 6 on a phone, and
-		// on a wider screen as many as keep the scene to about half the window's height, from 6 to 8.
-		const cell = isPhone() ? 6 : Math.min(8, Math.max(6, Math.floor((window.innerHeight * 0.5) / 70)));
+		// on a wider screen as many as keep the scene to about half the window's height, from 5 to 8.
+		// A short laptop window gets 5, so the copy's buttons stay above the fold.
+		const cell = isPhone() ? 6 : Math.min(8, Math.max(5, Math.floor((window.innerHeight * 0.5) / 70)));
 		const width = box.clientWidth;
-		const W = Math.ceil(width / cell);
+		// A few columns past each side, which the box clips, so the planes can sway with the pointer.
+		const W = Math.ceil(width / cell) + 2 * SWAY_MARGIN;
 		// The nav sits over the top of the scene, so the art starts below it.
 		const nav = $('.l-nav');
 		const lift = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
 		const left = Math.floor((width - W * cell) / 2);
 		const cfg = sceneConfig(W);
-		// From 1200 px the Mac window stands beside the copy with its top on the rooftop's edge, and
+		// From 960 px the Mac window stands beside the copy with its top on the rooftop's edge, and
 		// Nagare stands on it, a little right of its middle, rather than on the floor behind it.
-		const mac = window.matchMedia('(min-width: 1200px)').matches ? $('.hero-mac img') : null;
+		const mac = window.matchMedia('(min-width: 960px)').matches ? $('.hero-mac img') : null;
 		if (mac) {
 			const t = mac.getBoundingClientRect();
 			const from = t.left - box.getBoundingClientRect().left - left;
@@ -239,15 +250,42 @@ function full() {
 	const scene = drawScene();
 	paintTermCover();
 
-	// While the scene is on screen it stays alive: stars breathe, a shooting star crosses now and
-	// then, and windows in the city switch on and off.
+	// While the scene is on screen it stays alive: the shower falls, stars breathe, windows in the
+	// city switch on and off, and Nagare blinks. Scrolling it away takes the evening on a little.
 	if (scene) {
-		const live = liveScene(() => scene.state);
+		const live = liveScene(
+			() => scene.state,
+			() => window.scrollY / (0.5 * (scene.box.offsetTop + scene.box.offsetHeight))
+		);
 		const seen = new IntersectionObserver(([e]) => (e.isIntersecting ? live.start() : live.stop()));
 		seen.observe(scene.box);
+
+		// The planes behind the rooftop move a little with a mouse or trackpad, the sky the most,
+		// and settle back when the pointer leaves the window.
+		let target = 0;
+		let at = 0;
+		const aim = (e: PointerEvent) => {
+			if (e.pointerType === 'mouse') target = (e.clientX / window.innerWidth) * 2 - 1;
+		};
+		const settle = () => (target = 0);
+		const sway = () => {
+			if (Math.abs(target - at) < 0.0005) return;
+			at += (target - at) * 0.05;
+			for (const p of PLANES) {
+				if (PLANE_SWAY[p]) gsap.set(scene.canvases[p], { x: at * PLANE_SWAY[p] * scene.cell });
+			}
+		};
+		window.addEventListener('pointermove', aim, { passive: true });
+		document.documentElement.addEventListener('pointerleave', settle);
+		gsap.ticker.add(sway);
+
 		stopLive = () => {
 			seen.disconnect();
 			live.stop();
+			window.removeEventListener('pointermove', aim);
+			document.documentElement.removeEventListener('pointerleave', settle);
+			gsap.ticker.remove(sway);
+			for (const p of PLANES) gsap.set(scene.canvases[p], { x: 0 });
 		};
 	}
 
