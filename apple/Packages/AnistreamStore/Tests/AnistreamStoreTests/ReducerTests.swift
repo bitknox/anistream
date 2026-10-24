@@ -229,10 +229,18 @@ struct ReducerTests {
         let store = AppStore()
         store.searchLive(SearchQuery(text: "hoshi"))
         #expect(!store.search.overdue)
-        try await Task.sleep(for: SearchModel.quiet + .milliseconds(200))
+        try await Task.sleep(for: SearchModel.quiet)
+        // The timer's task can run late while other tests share the main actor.
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !store.search.overdue, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(store.search.overdue)
+        // A further search keeps the placeholders up, not the results before them.
+        store.searchLive(SearchQuery(text: "hoshiku"))
         #expect(store.search.overdue)
         store.apply(.content(
-            view: .search(query: SearchQuery(text: "hoshi")),
+            view: .search(query: SearchQuery(text: "hoshiku")),
             content: .entries([entry(900_001, "Stardust Wayfarer")])
         ))
         #expect(!store.search.overdue)

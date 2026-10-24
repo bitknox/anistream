@@ -219,9 +219,14 @@ public final class SearchModel {
 
     /// Count the 600 ms from now, for what was just asked.
     private func watchOverdue() {
-        overdue = false
         overdueTimer?.cancel()
-        guard pending else { return }
+        guard pending else {
+            overdue = false
+            return
+        }
+        // Placeholders already up stay for the next search, rather than the results before them
+        // coming back until it is overdue in turn.
+        guard !overdue else { return }
         overdueTimer = Task { [weak self] in
             try? await Task.sleep(for: Self.quiet)
             guard let self, !Task.isCancelled, pending, !livePaused else { return }
