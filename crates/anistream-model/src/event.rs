@@ -7,7 +7,7 @@ use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use crate::{
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
     downloads::{DownloadRow, SeedRow},
-    episodes::EpisodeRow,
+    episodes::{DubExtent, EpisodeRow},
     hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
@@ -273,12 +273,15 @@ pub enum Event {
         id: AnilistId,
         rows: Vec<EpisodeRow>,
     },
-    /// How far title `id`'s dub goes, as the source a play would use lists it: its last
-    /// episode in the dub, "Dub to episode 6", or `None` when that source has no dub of it or
-    /// could not say. A dub that has caught up names the same episode as the sub.
-    DubbedTo {
+    /// How far title `id`'s dub goes, as the source a dubbed play would use lists it: the
+    /// answer to [`Command::LoadDub`]. `None` when that source has no dub of it, and when it
+    /// could not say; either way the page shows nothing. [`present::dub_line`] words it.
+    ///
+    /// [`Command::LoadDub`]: crate::command::Command::LoadDub
+    /// [`present::dub_line`]: crate::present::dub_line
+    TitleDub {
         id: AnilistId,
-        episode: Option<String>,
+        dub: Option<DubExtent>,
     },
     /// Where a title stands now, whole, after something moved it: a mark, the playhead of an
     /// episode playing, or how one ended. Sent ahead of the event that moved it, when an event

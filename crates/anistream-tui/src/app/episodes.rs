@@ -5,7 +5,7 @@ use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{
     catalog::{ContentList, ResumePoint},
     command::Command,
-    episodes::EpisodeRow,
+    episodes::{DubExtent, EpisodeRow},
     event::Event,
     notice::Notice,
     progress::{EpisodeProgress, TitleProgress},
@@ -161,6 +161,22 @@ impl App {
         }
     }
 
+    /// How far title `id`'s dub goes, as the engine says: kept for the Episodes screen's line,
+    /// and nothing kept when it has none or could not say.
+    pub(super) fn apply_dub(&mut self, id: AnilistId, dub: Option<DubExtent>) {
+        match dub {
+            Some(dub) => self.dub = Some((id, dub)),
+            None if self.dub.is_some_and(|(kept, _)| kept == id) => self.dub = None,
+            None => {}
+        }
+    }
+
+    /// The Episodes screen's line on the dub of title `id`: "Dub to episode 6", or `None`.
+    pub fn dub_line(&self, id: AnilistId) -> Option<String> {
+        let dub = self.dub.filter(|(kept, _)| *kept == id).map(|(_, dub)| dub);
+        anistream_model::present::dub_line(dub.as_ref())
+    }
+
     /// Where a title stands, and each of its episodes, as the engine says once a watch or a mark
     /// has been written.
     pub(super) fn apply_progress(
@@ -273,6 +289,9 @@ impl App {
             self.episodes.clear();
             self.episodes_loading = true;
             self.nav.push(StageView::Episodes(id));
+            // How far its dub goes, for the line beside the title: the engine asks once the
+            // table is in, and answers at once from what it kept when it has.
+            self.commands.push(Command::LoadDub(id));
             return Some(Command::LoadEpisodes(id));
         }
         None

@@ -47,7 +47,7 @@ use crate::{
     },
     state::EngineState,
     titles::{
-        episodes::{dubbed_to, list_episodes, set_watched},
+        episodes::{list_episodes, set_watched},
         matching::{clear_match, fix_match, manual_search, set_provider_preference},
     },
     tracking::{
@@ -187,37 +187,52 @@ pub(crate) fn dispatch(
         Command::OpenExternal { url } => open_external(url, services, tx),
 
         // A title's episodes, and the source match they come from.
-        Command::LoadDubbedTo(id) => spawn(job, services, tx, move |lent| dubbed_to(lent, id)),
+        // Quietly, with no job, and never in the way of the table or a play: see
+        // `titles::dub`.
+        Command::LoadDub(id) => engine.dubs.ask(id, engine.network.offline, services, tx),
         Command::LoadEpisodes(id) => {
-            spawn(job, services, tx, move |lent| list_episodes(lent, id))
+            // A lookup of the title's dub waits for this.
+            let table = engine.dubs.table(id);
+            spawn(job, services, tx, move |lent| async move {
+                list_episodes(lent, id).await;
+                drop(table);
+            })
         }
         Command::SetWatched { id, episodes, watched } => {
             set_watched(id, &episodes, watched, engine, services, tx);
             ahead::top_up(engine, services, tx);
         }
+        // A title matched afresh may be another title on the source, so its dub is too.
         Command::ClearMatch { id } => {
+            engine.dubs.forget(id);
             spawn(job, services, tx, move |lent| clear_match(lent, id))
         }
         Command::FixMatch { id, provider_id, key } => {
+            engine.dubs.forget(id);
             spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
         }
         Command::ManualSearch { id, query } => {
             manual_search(id, query, job, engine, services, tx)
         }
         Command::SetProviderPreference { id, provider } => {
+            engine.dubs.forget(id);
             set_provider_preference(id, provider, engine, services, tx)
         }
 
         // Playback.
         Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
         // Each refused where this build has no player to play in: see `playback::refuse`.
+        // A play wants the source's time: a dub lookup running stops for it.
         Command::Play { id, episode, from_start } => {
+            engine.dubs.stop();
             play(id, episode, from_start, job, engine, services, tx)
         }
         Command::PlaySource { id, episode, provider_id, source_id } => {
+            engine.dubs.stop();
             play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
         Command::PlayParty { id, episode } => {
+            engine.dubs.stop();
             play_party(id, episode, job, engine, services, tx)
         }
         Command::PlayLocal { id, episode, title, path } => {

@@ -17,7 +17,7 @@ use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     downloads::{DownloadRow, SeedRow},
-    episodes::EpisodeRow,
+    episodes::{DubExtent, EpisodeRow},
     event::Event,
     notice::{Notice, NoticeKind},
     settings::{SettingKey, SettingsView},
@@ -250,6 +250,9 @@ pub struct App {
     /// title the moment one is opened, while the rows stay the last title's until its own load
     /// answers, and asked by `detail` they spoke for a show they were never part of.
     episodes_for: Option<AnilistId>,
+    /// How far a title's dub goes, as the engine last said for it: the Episodes screen's
+    /// "Dub to episode 6", for the title it names alone.
+    pub dub: Option<(AnilistId, DubExtent)>,
     /// The active episode filter, cycled with `f`.
     pub episode_filter: EpisodeFilter,
     /// The provider that actually resolved the most recent stream. The header prefers
@@ -377,6 +380,7 @@ impl App {
             provider_note: None,
             episodes: Vec::new(),
             episodes_all: Vec::new(),
+            dub: None,
             episodes_for: None,
             episode_filter: EpisodeFilter::default(),
             active_provider: None,
@@ -492,8 +496,7 @@ impl App {
             Event::Settings(view) => self.take_settings(view),
             // A native app's show sheet, which the terminal has none of.
             Event::ShowSettings(_) => {}
-            // The terminal's table says what the source has in the translation it plays.
-            Event::DubbedTo { .. } => {}
+            Event::TitleDub { id, dub } => self.apply_dub(id, dub),
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,

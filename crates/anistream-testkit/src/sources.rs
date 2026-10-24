@@ -55,6 +55,10 @@ pub fn episode_count(id: AnilistId) -> u32 {
     }
 }
 
+/// How far the source has [`FINISHED`] dubbed: to episode 6 of its 12, for the title pages'
+/// "Dub to episode 6". Every other title's dub is its whole sub.
+pub const FINISHED_DUBBED_TO: u32 = 6;
+
 /// A title's episodes as the source lists them.
 ///
 /// [`FINISHED`]'s are the full set: titles, still frames, air dates and a synopsis for the
@@ -164,7 +168,8 @@ pub fn provider_with_art(art: &str) -> MockProvider {
             .with_episodes_for(key(id), episodes)
             .with_streams_for(key(id), vec![clip()]);
     }
-    provider
+    let dubbed = episodes(FINISHED).into_iter().take(FINISHED_DUBBED_TO as usize).collect();
+    provider.with_dub_for(key(FINISHED), dubbed)
 }
 
 /// `provider` with the test kit's long franchise beside the six ([`fixtures::long_franchise`]):
