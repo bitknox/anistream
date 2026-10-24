@@ -252,6 +252,7 @@ internal fun PlaybackPane() {
             footer = "Each show remembers its own audio and subtitles.",
             rows = listOf(
                 { place -> TitleLanguageRow(place) },
+                { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, "Show adult titles", note = "Titles AniList marks adult, in Search and Seasonal") },
                 { place -> SettingMenu(place, SettingKey.TRANSLATION, "Translation", label = ::translationWords) },
                 { place -> SubtitlesRow(place) },
                 { place -> FollowCaptionsRow(place) },

@@ -6,10 +6,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.Bounds
+import tv.anistream.engine.model.BrowseRail
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
-import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.SearchFacets
+import tv.anistream.engine.model.SearchQuery
+import tv.anistream.engine.model.SearchSort
+import tv.anistream.engine.model.Season
 
 /** Where a list stands. */
 sealed interface ListState {
@@ -63,6 +68,14 @@ class ListModel(private val clock: () -> Long = System::nanoTime) {
 
     internal fun loading() {
         _state.value = ListState.Loading
+    }
+
+    internal fun idle() {
+        _state.value = ListState.Idle
+    }
+
+    internal fun loaded(ids: List<AnilistId>) {
+        _state.value = ListState.Loaded(ids)
     }
 
     internal fun caption(text: String?) {
@@ -131,24 +144,137 @@ class CalendarModel {
 }
 
 /**
- * Search, which takes only the answer to what was asked last: a slow answer to an earlier query
- * never replaces the results of a later one.
+ * Search: one query, what is typed and every filter, and the answer to it. It takes only the
+ * answer to what was asked last: a slow answer to an earlier query never replaces the results of
+ * a later one.
  */
 class SearchModel {
     val list = ListModel()
 
-    /** The query and filters as last submitted. */
-    var submitted: Pair<String, SearchFilters>? = null
-        private set
-
-    internal fun submit(query: String, filter: SearchFilters) {
-        submitted = query to filter
-        list.loading()
-        list.caption(null)
+    /** Where a search stands besides its list: its query, its paging, and Search's start. */
+    data class Status(
+        /** The search as it stands: what is typed and every filter. Blank is Search's start. */
+        val query: SearchQuery = SearchQuery(),
+        /** What the list answers, as the engine tags it: [query] trimmed. `null` at the start. */
+        val asked: SearchQuery? = null,
+        /** Whether AniList has more pages behind those on screen. */
+        val hasNext: Boolean = false,
+        /** Whether a further page is on its way. */
+        val loadingMore: Boolean = false,
+        /** How many pages of results are on screen. */
+        val pages: UInt = 0u,
+        /** Search's start: rails of titles, each a query of its own. `null` until sent. */
+        val rails: List<BrowseRail>? = null,
+        /** What the filters choose from. `null` until sent. */
+        val facets: SearchFacets? = null,
+        /** The recent searches, newest first, each with its filters. */
+        val recents: List<SearchQuery> = emptyList(),
+        /** Whether typing waits for the search key: the AniList budget ran low. */
+        val livePaused: Boolean = false,
+    ) {
+        /** Whether Search shows its start: rails and recent searches rather than results. */
+        val atStart: Boolean get() = query.isBlank()
     }
 
-    internal fun takes(query: String, filter: SearchFilters): Boolean =
-        submitted?.let { it.first == query && it.second == filter } ?: false
+    private val _status = MutableStateFlow(Status())
+    val status: StateFlow<Status> = _status.asStateFlow()
+
+    /** What the list answers, `null` at the start. */
+    val asked: SearchQuery? get() = _status.value.asked
+
+    private fun update(change: (Status) -> Status) {
+        _status.value = change(_status.value)
+    }
+
+    /**
+     * The search changed. Whether it asks anything new of the engine: not at the start, and not
+     * when only spaces around the text changed.
+     */
+    internal fun edit(query: SearchQuery): Boolean {
+        val normal = query.normalized
+        if (normal.isBlank()) {
+            update { it.copy(query = query, asked = null, hasNext = false, loadingMore = false, pages = 0u) }
+            list.idle()
+            list.caption(null)
+            return false
+        }
+        if (normal == _status.value.asked) {
+            update { it.copy(query = query) }
+            return false
+        }
+        update { it.copy(query = query, asked = normal, hasNext = false, loadingMore = false, pages = 0u) }
+        // What is on screen stays until the answer replaces it, so typing does not flash.
+        list.asked()
+        return true
+    }
+
+    /** Search again for what is asked, as when titles are named another way. */
+    internal fun again(): SearchQuery? {
+        val asked = _status.value.asked ?: return null
+        list.asked()
+        return asked
+    }
+
+    /** Whether an answer tagged with [query] is for what is on screen. */
+    internal fun takes(query: SearchQuery): Boolean = _status.value.asked == query
+
+    internal fun paging(query: SearchQuery, hasNext: Boolean) {
+        if (!takes(query)) return
+        update { it.copy(hasNext = hasNext, pages = 1u, loadingMore = false) }
+    }
+
+    /** The next page to ask for, when there is one and none is on its way. */
+    internal fun nextPage(): Pair<SearchQuery, UInt>? {
+        val now = _status.value
+        val asked = now.asked ?: return null
+        if (!now.hasNext || now.loadingMore || list.state.value !is ListState.Loaded) return null
+        update { it.copy(loadingMore = true) }
+        return asked to now.pages + 1u
+    }
+
+    /**
+     * A further page, after what is there. An empty page failed, and is asked for again on the
+     * next scroll.
+     */
+    internal fun more(query: SearchQuery, page: UInt, entries: List<Entry>, hasNext: Boolean, titles: TitleCache) {
+        if (!takes(query)) return
+        if (entries.isEmpty()) {
+            update { it.copy(loadingMore = false) }
+            return
+        }
+        titles.merge(entries)
+        val ids = list.state.value.ids
+        val seen = ids.toSet()
+        list.loaded(ids + entries.map { it.id }.filterNot { it in seen })
+        update { it.copy(loadingMore = false, pages = maxOf(it.pages, page), hasNext = hasNext) }
+    }
+
+    internal fun rails(rails: List<BrowseRail>, titles: TitleCache) {
+        for (rail in rails) titles.merge(rail.entries)
+        update { it.copy(rails = rails) }
+    }
+
+    internal fun facets(facets: SearchFacets) = update { it.copy(facets = facets) }
+
+    internal fun recents(recents: List<SearchQuery>) = update { it.copy(recents = recents) }
+
+    internal fun live(paused: Boolean) = update { it.copy(livePaused = paused) }
+}
+
+/** The query as the engine searches for it and tags its answer: its text without the spaces around. */
+val SearchQuery.normalized: SearchQuery get() = copy(text = text.trim())
+
+/** The season on now, its most popular first: what Seasonal shows, as a search. In UTC, as the engine reckons it. */
+fun seasonQuery(at: java.time.Instant = java.time.Instant.now()): SearchQuery {
+    val date = at.atZone(java.time.ZoneOffset.UTC)
+    val season = when (date.monthValue) {
+        in 1..3 -> Season.WINTER
+        in 4..6 -> Season.SPRING
+        in 7..9 -> Season.SUMMER
+        else -> Season.FALL
+    }
+    val year = date.year.toUInt()
+    return SearchQuery(sort = SearchSort.POPULARITY, season = season, years = Bounds(min = year, max = year))
 }
 
 /** The tracker's lists, a segment each. */
