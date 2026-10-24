@@ -278,7 +278,7 @@ class TvShots {
         store.apply(events)
         val player = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { 0L }, hwdec = "no")
         val nav = TvNavigator(if (query != null) Destination.Search else start).apply {
-            query?.let { searchText = it }
+            query?.let { typeSearch(it) }
             title?.let(::openTitle)
         }
         compose.setContent {

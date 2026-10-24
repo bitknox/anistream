@@ -28,7 +28,7 @@ class NavigatorTest {
     @Test
     fun another_destination_starts_afresh_and_search_forgets_its_text() {
         val nav = TvNavigator(Destination.Search)
-        nav.searchText = "hoshi"
+        nav.typeSearch("hoshi")
         nav.openTitle(900001u)
         nav.go(Destination.Library)
         assertNull(nav.top)
@@ -37,9 +37,28 @@ class NavigatorTest {
     }
 
     @Test
+    fun a_phone_types_at_the_cursor_and_its_whole_text_replaces_only_its_own() {
+        val nav = TvNavigator(Destination.Search)
+        nav.typeSearch("kiriya")
+        // Each text is the phone's whole field: it goes after what the TV typed.
+        nav.phoneSearch("p")
+        nav.phoneSearch("pass")
+        nav.phoneSearch("pass")
+        assertEquals("kiriya pass", nav.searchText)
+        assertEquals(11, nav.searchCursor)
+        nav.phoneDone()
+        // The system keyboard moved the cursor to the start: the next typing goes there.
+        nav.typeSearch(nav.searchText, cursor = 0)
+        nav.phoneSearch("rain")
+        assertEquals("rain kiriya pass", nav.searchText)
+        nav.phoneSearch("")
+        assertEquals("kiriya pass", nav.searchText)
+    }
+
+    @Test
     fun the_same_destination_keeps_where_focus_was() {
         val nav = TvNavigator(Destination.Search)
-        nav.searchText = "hoshi"
+        nav.typeSearch("hoshi")
         nav.openTitle(900001u)
         nav.go(Destination.Search)
         assertNull(nav.top)

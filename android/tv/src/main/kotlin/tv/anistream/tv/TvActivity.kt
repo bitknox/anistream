@@ -37,7 +37,7 @@ class TvActivity : ComponentActivity() {
         app.start(Flavour.launch(this, intent))
         val start = Flavour.start(intent)
         val nav = TvNavigator(start.destination).apply {
-            start.query?.let { searchText = it }
+            start.query?.let { typeSearch(it) }
             start.title?.let(::openTitle)
         }
         setContent {
@@ -106,8 +106,11 @@ class TvActivity : ComponentActivity() {
             is FrontIntent.Open -> if (!playing) nav.openTitle(intent.id)
             is FrontIntent.Text -> if (!playing) {
                 if (nav.destination != Destination.Search || nav.pages.isNotEmpty()) nav.go(Destination.Search)
-                nav.searchText = intent.text
-                if (intent.submit) nav.submitSearch()
+                nav.phoneSearch(intent.text)
+                if (intent.submit) {
+                    nav.phoneDone()
+                    nav.submitSearch()
+                }
             }
             is FrontIntent.Navigate -> when (intent.key) {
                 RemoteKey.BACK -> onBackPressedDispatcher.onBackPressed()

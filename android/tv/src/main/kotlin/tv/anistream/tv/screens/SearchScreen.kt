@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
@@ -156,7 +158,15 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
     }
 
     Column(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY)) {
-        QueryField(text, onText = { nav.searchText = it }, focus = field, modifier = Modifier.width(Canvas.SafeRight - Canvas.Keyline))
+        QueryField(
+            TextFieldValue(text, TextRange(nav.searchCursor)),
+            onText = {
+                remote?.typing = false
+                nav.typeSearch(it.text, it.selection.end)
+            },
+            focus = field,
+            modifier = Modifier.width(Canvas.SafeRight - Canvas.Keyline),
+        )
         if (remote?.typing == true) {
             Row(Modifier.padding(top = 8.dp, start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(TvIcons.Phone, contentDescription = null, tint = ObiSilk.Haze, modifier = Modifier.size(20.dp))
@@ -169,7 +179,7 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
             Column(Modifier.width(288.dp)) {
                 Keyboard(memory, onKey = {
                     remote?.typing = false
-                    nav.searchText = SearchKeys.type(nav.searchText, it)
+                    nav.typeSearch(SearchKeys.type(nav.searchText, it))
                 })
                 Spacer(Modifier.height(16.dp))
                 val keyboard = LocalSoftwareKeyboardController.current
@@ -190,7 +200,8 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
 
 /** The field across the top: what is typed, or a quiet prompt. The system keyboard types here. */
 @Composable
-private fun QueryField(text: String, onText: (String) -> Unit, focus: FocusRequester, modifier: Modifier) {
+private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, focus: FocusRequester, modifier: Modifier) {
+    val text = value.text
     Box(
         modifier.height(56.dp).background(ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
@@ -203,13 +214,13 @@ private fun QueryField(text: String, onText: (String) -> Unit, focus: FocusReque
                     Text("Search titles", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
                 }
                 BasicTextField(
-                    value = text,
+                    value = value,
                     onValueChange = onText,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = ObiSilk.Silk),
                     cursorBrush = SolidColor(ObiSilk.Amber),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { onText(text) }),
+                    keyboardActions = KeyboardActions(onSearch = { onText(value) }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
             }

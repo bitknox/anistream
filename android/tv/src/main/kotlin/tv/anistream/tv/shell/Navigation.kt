@@ -64,6 +64,42 @@ class TvNavigator(start: Destination = Destination.Continue) {
 
     /** Search's text, kept while the TV stays on Search, title pages included. */
     var searchText by mutableStateOf("")
+        private set
+
+    /** Where the field's cursor is in [searchText]: the end, unless the system keyboard moved it. */
+    var searchCursor by mutableIntStateOf(0)
+        private set
+
+    /**
+     * The field's text either side of where a phone types, from its first text since the TV last
+     * typed: each text it sends, whole, goes between the two, so a lost or repeated one leaves the
+     * same field.
+     */
+    private var phoneAround: Pair<String, String>? = null
+
+    /** The TV typed: [text], the cursor at [cursor] (the end when not given). */
+    fun typeSearch(text: String, cursor: Int = text.length) {
+        phoneAround = null
+        searchText = text
+        searchCursor = cursor.coerceIn(0, text.length)
+    }
+
+    /** A phone's field reads [text]: put in at the TV field's cursor, which is its end unless moved. */
+    fun phoneSearch(text: String) {
+        val (before, after) = phoneAround ?: run {
+            val at = searchCursor.coerceIn(0, searchText.length)
+            (searchText.take(at) to searchText.drop(at)).also { phoneAround = it }
+        }
+        val head = if (before.isNotEmpty() && !before.endsWith(' ') && text.isNotEmpty() && !text.startsWith(' ')) "$before " else before
+        val tail = if (after.isNotEmpty() && !after.startsWith(' ') && text.isNotEmpty() && !text.endsWith(' ')) " $after" else after
+        searchText = head + text + tail
+        searchCursor = head.length + text.length
+    }
+
+    /** The phone's typing ended, by its Enter: what it types next goes in afresh. */
+    fun phoneDone() {
+        phoneAround = null
+    }
 
     /** Counts a phone's Search submits: each moves focus to the first result. */
     var searchSubmits by mutableIntStateOf(0)
@@ -105,7 +141,7 @@ class TvNavigator(start: Destination = Destination.Continue) {
         pages.forEach { forget(it.key) }
         pages.clear()
         if (to != destination) {
-            if (destination == Destination.Search) searchText = ""
+            if (destination == Destination.Search) typeSearch("")
             forget(to.name)
             memory(to).reset()
             destination = to
