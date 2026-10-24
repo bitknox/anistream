@@ -184,13 +184,14 @@ struct EpisodeCommands: View {
             Button("Mark Watched") {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: true)) }
             }
-            .keyboardShortcut("u", modifiers: [.command, .shift])
+            // The same keys as Mark Unwatched, held by whichever of the two can act: a menu on
+            // iPad may not list one shortcut twice.
+            .keyboardShortcut(watched ? nil : KeyboardShortcut("u", modifiers: [.command, .shift]))
             .disabled(entry == nil || watched || !aired)
             Button("Mark Unwatched") {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: false)) }
             }
-            // The same keys as Mark Watched: only one of the two is enabled at a time.
-            .keyboardShortcut("u", modifiers: [.command, .shift])
+            .keyboardShortcut(watched ? KeyboardShortcut("u", modifiers: [.command, .shift]) : nil)
             .disabled(entry == nil || !watched)
             Button("Mark All Previous Watched") {
                 if let entry {
