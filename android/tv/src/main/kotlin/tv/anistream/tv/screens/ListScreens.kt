@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -31,6 +32,8 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.Season
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
 import tv.anistream.store.LibraryModel
@@ -55,34 +58,83 @@ import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.statusSheet
 
-/** "Fall 2026", for the season [date] falls in. */
-fun seasonLabel(date: LocalDate): String {
-    val name = when (date.monthValue) {
-        12, 1, 2 -> "Winter"
-        in 3..5 -> "Spring"
-        in 6..8 -> "Summer"
-        else -> "Fall"
+/** A season of a year, as Seasonal's tabs name it: "Fall 2026". */
+data class SeasonTab(val season: Season, val year: Int) {
+    val label: String get() = "${season.name.lowercase().replaceFirstChar { it.uppercase() }} $year"
+
+    /** [steps] seasons later, or earlier when negative. */
+    fun shift(steps: Int): SeasonTab {
+        val index = year * 4 + season.ordinal + steps
+        return SeasonTab(Season.entries[Math.floorMod(index, 4)], Math.floorDiv(index, 4))
     }
-    // December belongs to the next year's winter, as AniList counts it.
-    val year = if (date.monthValue == 12) date.year + 1 else date.year
-    return "$name $year"
+
+    companion object {
+        /** The season [date] falls in: December is the next year's Winter. */
+        fun of(date: LocalDate): SeasonTab = when (date.monthValue) {
+            12 -> SeasonTab(Season.WINTER, date.year + 1)
+            1, 2 -> SeasonTab(Season.WINTER, date.year)
+            in 3..5 -> SeasonTab(Season.SPRING, date.year)
+            in 6..8 -> SeasonTab(Season.SUMMER, date.year)
+            else -> SeasonTab(Season.FALL, date.year)
+        }
+
+        /** The tabs: two seasons back, the current one, and the next. */
+        fun around(date: LocalDate): List<SeasonTab> = of(date).let { now -> (-2..1).map(now::shift) }
+    }
 }
+
+/** "Fall 2026", for the season [date] falls in. */
+fun seasonLabel(date: LocalDate): String = SeasonTab.of(date).label
+
+/** Seasonal's sorts, under AniList's names. */
+enum class SeasonSort(val label: String, val key: String) {
+    Popular("Popular", "POPULARITY_DESC"),
+    Score("Score", "SCORE_DESC"),
+    AirDay("Air day", "START_DATE"),
+}
+
+/** Seasonal's formats: every one, or one of AniList's. */
+val SeasonFormats: List<Pair<String?, String>> = listOf(null to "All formats", "TV" to "TV", "MOVIE" to "Movie", "ONA" to "ONA", "OVA" to "OVA")
+
+/**
+ * What Seasonal asks the engine for: the current season, popular first, in every format is the
+ * engine's own seasonal list; anything else a browse by filter.
+ */
+fun seasonFilter(tab: SeasonTab, current: SeasonTab, sort: SeasonSort, format: String?): SearchFilters? =
+    if (tab == current && sort == SeasonSort.Popular && format == null) {
+        null
+    } else {
+        SearchFilters(year = tab.year.toUInt(), season = tab.season.name, format = format, sort = sort.key)
+    }
 
 @Composable
 fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
     val actions = LocalActions.current
-    LaunchedEffect(Unit) { store.loadSeasonal() }
+    val today = AppClock.now().atZone(AppClock.zone).toLocalDate()
+    val current = SeasonTab.of(today)
+    val tabs = SeasonTab.around(today)
+    var tabIndex by rememberSaveable { mutableIntStateOf(tabs.indexOf(current)) }
+    var sortIndex by rememberSaveable { mutableIntStateOf(0) }
+    var formatIndex by rememberSaveable { mutableIntStateOf(0) }
+    val tab = tabs[tabIndex]
+    val sort = SeasonSort.entries[sortIndex]
+    val format = SeasonFormats[formatIndex]
+    val filter = seasonFilter(tab, current, sort, format.first)
+    LaunchedEffect(filter) { if (filter == null) store.loadSeasonal() else store.browse(filter) }
     val entries by store.titles.entries.collectAsStateWithLifecycle()
-    val state by store.seasonal.state.collectAsStateWithLifecycle()
+    val seasonal by store.seasonal.state.collectAsStateWithLifecycle()
+    val browsed by store.browse.list.state.collectAsStateWithLifecycle()
+    // A browse answer for another filter, still on screen while the new one loads, is not shown.
+    val state = if (filter == null) seasonal else if (store.browse.takes("", filter)) browsed else ListState.Loading
     val shown = state.ids.mapNotNull { entries[it] }
     val grid = rememberLazyGridState()
+    LaunchedEffect(filter) { grid.scrollToItem(0) }
     ToTop(nav, memory, scrolled = { grid.firstVisibleItemIndex > 0 || grid.firstVisibleItemScrollOffset > 0 }) { grid.scrollToItem(0) }
-    val season = seasonLabel(AppClock.now().atZone(AppClock.zone).toLocalDate())
     PosterGrid(
         shown,
         memory,
-        keyPrefix = "seasonal",
+        keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}",
         onOpen = { onOpen(it.id) },
         state = grid,
         line = { it.posterLine },
@@ -90,13 +142,45 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         placeholders = if (placeholdersAfterWait(state is ListState.Loading || state is ListState.Idle)) GRID_COLUMNS * 2 else 0,
     ) {
         item(key = "tabs", span = { GridItemSpan(maxLineSpan) }, contentType = "tabs") {
-            Row(Modifier.padding(bottom = 8.dp)) {
-                TvTab(season, selected = true, onSelect = {}, settle = null, modifier = Modifier.remembered(memory, "tab"))
+            Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                tabs.forEachIndexed { index, each ->
+                    TvTab(
+                        each.label,
+                        selected = index == tabIndex,
+                        onSelect = { tabIndex = index },
+                        modifier = Modifier.firstFocus(memory, "tab/${each.label}", index == tabIndex && shown.isEmpty()),
+                    )
+                }
             }
         }
-        if (state is ListState.Empty) {
+        item(key = "chips", span = { GridItemSpan(maxLineSpan) }, contentType = "chips") {
+            Row(Modifier.padding(bottom = 8.dp).focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TvTab(
+                    format.second,
+                    selected = format.first != null,
+                    onSelect = { formatIndex = (formatIndex + 1) % SeasonFormats.size },
+                    settle = null,
+                    chip = true,
+                    modifier = Modifier.remembered(memory, "chip/format"),
+                )
+                TvTab(
+                    "Sort: ${sort.label}",
+                    selected = sort != SeasonSort.Popular,
+                    onSelect = { sortIndex = (sortIndex + 1) % SeasonSort.entries.size },
+                    settle = null,
+                    chip = true,
+                    modifier = Modifier.remembered(memory, "chip/sort"),
+                )
+            }
+        }
+        if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
-                Text("Nothing announced for $season yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                Text("Nothing announced for ${tab.label} yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            }
+        }
+        if (state is ListState.Failed) {
+            item(key = "failed", span = { GridItemSpan(maxLineSpan) }) {
+                Text("${tab.label} did not load. ${state.reason}", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
         }
     }

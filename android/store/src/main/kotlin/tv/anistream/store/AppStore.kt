@@ -78,6 +78,9 @@ class AppStore(
     val titles = TitleCache()
     val continuing = ContinueModel()
     val seasonal = ListModel()
+
+    /** A browse by filter alone, nothing typed: another season, sorted another way. Search's own stays. */
+    val browse = SearchModel()
     val calendar = CalendarModel()
     val search = SearchModel()
     val library = LibraryModel()
@@ -251,6 +254,13 @@ class AppStore(
         if (!force && seasonal.answered(LIST_FRESH_MILLIS)) return
         seasonal.asked()
         send(Command.LoadSeasonal)
+    }
+
+    /** Browse [filter] with nothing typed, into [browse], as Seasonal does for another season or sort. */
+    fun browse(filter: SearchFilters) {
+        if (browse.takes("", filter) && browse.list.state.value !is ListState.Failed) return
+        browse.submit("", filter)
+        send(Command.Search("", filter))
     }
 
     fun loadCalendar(force: Boolean = false) {
@@ -698,8 +708,10 @@ class AppStore(
             ContentFor.Continue -> continuing.apply(content, titles)
             ContentFor.Seasonal -> seasonal.apply(content, titles)
             ContentFor.Calendar -> calendar.apply(content, titles)
-            is ContentFor.Search ->
+            is ContentFor.Search -> {
                 if (search.takes(view.query, view.filter)) search.list.apply(content, titles)
+                if (browse.takes(view.query, view.filter)) browse.list.apply(content, titles)
+            }
             is ContentFor.Library -> library.segment(view.v1).apply(content, titles)
         }
     }
@@ -709,8 +721,10 @@ class AppStore(
             ContentFor.Continue -> continuing.list.caption(text)
             ContentFor.Seasonal -> seasonal.caption(text)
             ContentFor.Calendar -> calendar.list.caption(text)
-            is ContentFor.Search ->
+            is ContentFor.Search -> {
                 if (search.takes(view.query, view.filter)) search.list.caption(text)
+                if (browse.takes(view.query, view.filter)) browse.list.caption(text)
+            }
             is ContentFor.Library -> library.segment(view.v1).caption(text)
         }
     }

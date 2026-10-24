@@ -136,6 +136,7 @@ fun TvTab(
     modifier: Modifier = Modifier,
     settle: Long? = 250,
     count: String? = null,
+    chip: Boolean = false,
 ) {
     var focused by remember { mutableStateOf(false) }
     if (settle != null) {
@@ -151,7 +152,11 @@ fun TvTab(
         modifier = modifier.height(40.dp).onFocusChanged { focused = it.isFocused },
         shape = ClickableSurfaceDefaults.shape(CircleShape),
         colors = ClickableSurfaceDefaults.colors(
-            containerColor = if (selected) ObiSilk.AmberContainer else Color.Transparent,
+            containerColor = when {
+                selected -> ObiSilk.AmberContainer
+                chip -> ObiSilk.Raised
+                else -> Color.Transparent
+            },
             contentColor = if (selected) ObiSilk.OnAmberContainer else ObiSilk.Silk,
             focusedContainerColor = ObiSilk.Silk,
             focusedContentColor = ObiSilk.Ground,
