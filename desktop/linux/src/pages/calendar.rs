@@ -320,6 +320,7 @@ impl Page {
         self.title.set_title(&title);
         self.title.set_subtitle(&subtitle);
         self.this_week.set_visible(self.week.get() != 0);
+        self.body.agenda(self.ctx.size() != Size::Wide);
         if !self.loaded.get()
             || self.rows.borrow().is_empty() && self.anchor.get().is_none()
             || !self.answered.get()
