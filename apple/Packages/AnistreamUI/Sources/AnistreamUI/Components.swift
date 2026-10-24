@@ -15,23 +15,64 @@ struct ArtworkView: View {
     let maxPixelSize: Int
     /// A flat plate in place of the cover's colour, muted: the metadata's placeholder.
     var flat: Color? = nil
+    /// Whether the art shown last stays while a new URL's is on its way, for `holdFor` at most,
+    /// and then crossfades to it: for art that changes in place, such as a title page's banner
+    /// across a season switch. Otherwise the plate shows meanwhile.
+    var holds = false
+
+    /// How long held art waits for the next: as long as T8 waits before it shows placeholders.
+    static let holdFor: Duration = .milliseconds(600)
+
+    /// The art on screen, and the URL it is.
+    private struct Shown {
+        let url: String
+        let image: CGImage
+    }
+
+    @State private var last: Shown?
+    /// Raised for each URL shown, so the newest art lies over the art it replaces.
+    @State private var layer = 0.0
+
+    /// Art arriving fades in, over the art it replaces where there was some, which stays whole
+    /// beneath until then and only goes once covered: never the plate showing through between
+    /// two images.
+    private static let swap = AnyTransition.asymmetric(
+        insertion: .opacity,
+        removal: AnyTransition.opacity.animation(.fadeIn.delay(0.2))
+    )
 
     var body: some View {
-        let image = url.flatMap { store.artwork.image($0) }
+        let arrived = url.flatMap { url in store.artwork.image(url).map { Shown(url: url, image: $0) } }
+        let shown = arrived ?? (holds ? last : nil)
         Color.clear
             .overlay {
                 ZStack {
                     if let flat { Rectangle().fill(flat) } else { CoverPlate(color: color) }
-                    if let image {
-                        Image(decorative: image, scale: 1)
+                    if let shown {
+                        // One image per URL: a new URL's crossfades in over the last one's,
+                        // and a larger decode of the same URL takes its place unseen.
+                        Image(decorative: shown.image, scale: 1)
                             .resizable()
                             .scaledToFill()
-                            .transition(.opacity)
+                            .id(shown.url)
+                            .transition(Self.swap)
+                            .zIndex(layer)
                     }
                 }
-                .animation(.fadeIn, value: image != nil)
+                .animation(.fadeIn, value: shown?.url)
             }
             .clipped()
+            .onChange(of: arrived?.url, initial: true) {
+                if holds, let arrived { last = arrived }
+            }
+            .onChange(of: shown?.url) { layer += 1 }
+            .task(id: url) {
+                // Held art waits a moment for the next; past that the plate shows until it lands.
+                if holds, arrived == nil, last != nil {
+                    try? await Task.sleep(for: Self.holdFor)
+                    if !Task.isCancelled, url.flatMap({ store.artwork.image($0) }) == nil { last = nil }
+                }
+            }
             .task(id: url) {
                 // For as long as the art is on screen, so it is asked again if it fails.
                 if let url { await store.artwork.show(url, maxPixelSize: maxPixelSize) }

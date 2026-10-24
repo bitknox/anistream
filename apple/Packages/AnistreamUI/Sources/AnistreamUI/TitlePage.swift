@@ -110,32 +110,44 @@ struct TitlePage: View {
     let id: AnilistId
 
     var body: some View {
-        let entry = store.titles[id] ?? Entry.placeholder(id)
+        let entry = store.titles.page(id)
         let art = store.heroArt(entry)
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                // With no wide art the page starts higher: under the toolbar, not under a banner.
-                Color.clear.frame(height: art.isCompact ? 64 : 96)
-                TitleHero(entry: entry)
-                let family = TitleFamily(entry)
-                if !family.seasons.isEmpty || !family.related.isEmpty {
-                    TitleFamilyRow(entry: entry, family: family)
-                        .padding(.top, 20)
+            // A title of its own, whichever way it came: on the Mac a season picked on the page
+            // changes the page that is open, and without an identity per title every view on it
+            // would carry over to the next season's and spring from where it stood on this one,
+            // the two titles' words sliding over each other and each image dropping to a plate.
+            // The new title's page crossfades in over this one's instead (M2), in the transaction
+            // that opened it.
+            ZStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // With no wide art the page starts higher: under the toolbar, not under a banner.
+                    Color.clear.frame(height: art.isCompact ? 64 : 96)
+                    TitleHero(entry: entry)
+                    let family = TitleFamily(entry)
+                    if !family.seasons.isEmpty || !family.related.isEmpty {
+                        TitleFamilyRow(entry: entry, family: family)
+                            .padding(.top, 20)
+                    }
+                    HStack(alignment: .top, spacing: 32) {
+                        EpisodeList(entry: entry, rotor: rotor)
+                        TitleDetails(entry: entry)
+                            .frame(width: 260)
+                    }
+                    .padding(.top, 24)
                 }
-                HStack(alignment: .top, spacing: 32) {
-                    EpisodeList(entry: entry, rotor: rotor)
-                    TitleDetails(entry: entry)
-                        .frame(width: 260)
-                }
-                .padding(.top, 24)
+                .padding(EdgeInsets(top: 0, leading: 24, bottom: 20, trailing: 28))
+                .id(id)
+                .transition(.opacity)
             }
-            .padding(EdgeInsets(top: 0, leading: 24, bottom: 20, trailing: 28))
             .background(alignment: .top) {
                 // The wide art, under the clear toolbar, with the ground over its lower part,
                 // where the cover and the title sit, and fading up into the art above that, where
-                // a title of two lines starts. None at all where there is none.
+                // a title of two lines starts. None at all where there is none. Outside the
+                // title's own identity: across a season switch the last season's art stays until
+                // the next one's is here, and crossfades to it.
                 if !art.isCompact {
-                    HeroArtView(art: art, entry: entry)
+                    HeroArtView(art: art, entry: entry, holds: true)
                         .frame(height: 280)
                         .clipped()
                         .overlay(alignment: .bottom) {
@@ -206,15 +218,20 @@ struct TitleHero: View {
     static let pad = false
     #endif
 
+    /// The cover's long side in pixels: 225 points at 2x.
+    static let coverPixels = 460
+
     var body: some View {
         let action = TitleAction(entry, handedOff: navigator.handedOff)
         HStack(alignment: .bottom, spacing: 28) {
-            ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 460)
+            ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: Self.coverPixels)
                 .frame(width: 150, height: 225)
                 .clipShape(.rect(cornerRadius: 8))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.glassEdge.opacity(1.25), lineWidth: 1))
             VStack(alignment: .leading, spacing: 0) {
-                Text(entry.showTitle)
+                // A line kept for the title and the metadata while they are on their way, so the
+                // cover and the actions stand where they will.
+                Text(entry.showTitle.isEmpty ? " " : entry.showTitle)
                     .font(.macShowTitle(size: 36, relativeTo: .largeTitle))
                     .macLineHeight(44, relativeTo: .largeTitle)
                     .foregroundStyle(.silk)
@@ -223,7 +240,7 @@ struct TitleHero: View {
                     .accessibilityAddTraits(.isHeader)
                 OtherTitlesLine(entry: entry)
                     .padding(.top, 6)
-                Text(entry.titleMetadata)
+                Text(entry.titleMetadata.isEmpty ? " " : entry.titleMetadata)
                     .groupHeaderStyle()
                     .macLineHeight(14)
                     .padding(.top, 4)
@@ -293,6 +310,25 @@ extension Entry {
         return parts.joined(separator: " · ")
     }
 
+    /// A page's title before it has arrived, from the card another page showed for it: a
+    /// season's from its franchise's picker, with the franchise's seasons, so the page has its
+    /// name, cover, colour, dates and picker from the start and nothing moves as the rest lands.
+    static func provisional(_ id: AnilistId, from card: LinkedTitle, seasons: [LinkedTitle]?) -> Entry {
+        var entry = placeholder(id)
+        entry.title = card.title
+        entry.titleRomaji = card.titleRomaji
+        entry.titleEnglish = card.titleEnglish
+        entry.titleNative = card.titleNative
+        entry.format = card.format
+        entry.coverUrl = card.coverUrl
+        entry.coverColor = card.coverColor
+        entry.season = card.season
+        entry.year = card.year
+        entry.listStatus = card.listStatus
+        if let seasons { entry.detail = TitleDetail(seasons: seasons) }
+        return entry
+    }
+
     /// An entry for a page whose title has not arrived yet.
     static func placeholder(_ id: AnilistId) -> Entry {
         Entry(
@@ -304,6 +340,44 @@ extension Entry {
             season: nil, startDate: nil, endDate: nil, source: nil, adult: false, detail: nil, status: nil,
             synopsisSpans: []
         )
+    }
+}
+
+extension TitleCache {
+    /// What a title's page shows: the title as far as it is here, and before then what another
+    /// page's card said of it. A season not loaded yet, or loaded from a list without its page,
+    /// takes its franchise's seasons from a season that has them, so the picker stays put.
+    func page(_ id: AnilistId) -> Entry {
+        var family: (card: LinkedTitle, seasons: [LinkedTitle])?
+        var related: LinkedTitle?
+        if self[id]?.detail == nil {
+            for known in entries.values {
+                guard let detail = known.detail else { continue }
+                if let seasons = detail.seasons, let card = seasons.first(where: { $0.id == id }) {
+                    family = (card, seasons)
+                    break
+                }
+                if related == nil { related = detail.relations.first { $0.id == id } }
+            }
+        }
+        if var entry = self[id] {
+            if entry.detail == nil, let family { entry.detail = TitleDetail(seasons: family.seasons) }
+            return entry
+        }
+        if let family { return .provisional(id, from: family.card, seasons: family.seasons) }
+        if let related { return .provisional(id, from: related, seasons: nil) }
+        return .placeholder(id)
+    }
+}
+
+extension AppStore {
+    /// Ask for what `id`'s page needs before it opens: its page, and its cover and wide art at
+    /// the sizes the page shows them.
+    func prefetchPage(_ id: AnilistId) {
+        if !titles.detailed.contains(id) { loadDetail(id) }
+        let entry = titles.page(id)
+        if let cover = entry.coverUrl { artwork.request(cover, maxPixelSize: TitleHero.coverPixels) }
+        if let banner = entry.bannerUrl { artwork.request(banner, maxPixelSize: HeroArtView.prefetchPixels) }
     }
 }
 
@@ -469,6 +543,9 @@ struct TitleFamilyRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
+        // Pointed at, it is likely next: its page and its art asked for now, so the page opens
+        // whole.
+        .onHover { inside in if inside, !selected { store.prefetchPage(id) } }
         // The cover, where the page's seasons and relations do not carry it.
         .task { if store.titles[id] == nil, card(id) == nil { store.loadDetail(id) } }
     }
@@ -527,22 +604,34 @@ struct EpisodeList: View {
             }
             .frame(height: 28)
             .padding(.bottom, 6)
-            if store.titles.episodes[entry.id] == nil {
-                ForEach(0..<4, id: \.self) { _ in EpisodePlaceholderRow() }
-            } else if rows.isEmpty {
-                QuietLine(unwatchedOnly ? "Every episode is watched" : "No episodes yet")
-            }
-            // The watched run folds away above the last episode watched; Unwatched has none.
-            let fold = unwatchedOnly ? nil : WatchedFold(rows)
-            if let fold {
-                WatchedFoldSection(
-                    fold: fold, shown: navigator.watchedShown(entry.id), phone: false,
-                    toggle: { navigator.toggleWatched(entry.id) }
-                ) {
-                    ForEach(rows.prefix(fold.count), id: \.number) { row($0) }
+            let loaded = store.titles.episodes[entry.id] != nil
+            // The placeholders and the rows in one place, one crossfading into the other (T8).
+            ZStack(alignment: .topLeading) {
+                if loaded {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if rows.isEmpty {
+                            QuietLine(unwatchedOnly ? "Every episode is watched" : "No episodes yet")
+                        }
+                        // The watched run folds away above the last episode watched; Unwatched
+                        // has none.
+                        let fold = unwatchedOnly ? nil : WatchedFold(rows)
+                        if let fold {
+                            WatchedFoldSection(
+                                fold: fold, shown: navigator.watchedShown(entry.id), phone: false,
+                                toggle: { navigator.toggleWatched(entry.id) }
+                            ) {
+                                ForEach(rows.prefix(fold.count), id: \.number) { row($0) }
+                            }
+                        }
+                        ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) { row($0) }
+                    }
+                    .transition(.opacity)
+                } else {
+                    EpisodePlaceholders(count: entry.episodes)
+                        .transition(.opacity)
                 }
             }
-            ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) { row($0) }
+            .animation(.standard, value: loaded)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -725,6 +814,18 @@ struct EpisodeStill: View {
         }
         .frame(width: size.width, height: size.height)
         .clipShape(.rect(cornerRadius: 6))
+    }
+}
+
+/// The episode rows while the table loads: as many as the title has, where that is known, up to
+/// a screenful, so the rows that replace them take the room they kept.
+struct EpisodePlaceholders: View {
+    let count: UInt32?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<Int(min(max(count ?? 4, 1), 12)), id: \.self) { _ in EpisodePlaceholderRow() }
+        }
     }
 }
 
