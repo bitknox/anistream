@@ -90,6 +90,9 @@ pub struct EngineState {
     /// How far each title's dub goes, kept, and the lookup running: see
     /// [`crate::titles::dub`].
     pub dubs: crate::titles::dub::Dubs,
+    /// Episode titles and stills another source gave a table without them, kept, and the
+    /// lookup running: see [`crate::titles::names`].
+    pub names: crate::titles::names::Names,
 }
 
 impl EngineState {
@@ -122,6 +125,7 @@ impl EngineState {
             ahead: Default::default(),
             search: Default::default(),
             dubs: Default::default(),
+            names: Default::default(),
         }
     }
 
