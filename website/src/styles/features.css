@@ -121,24 +121,26 @@
 	min-width: 0;
 }
 
-/* Finding a show: the Mac's calendar with the iPhone in front, as the landing page's hero has it. */
+/* Finding a show: the Mac's search with its filters, and the iPhone browsing with no query in
+   front of the room the two results leave, as the landing page's hero stands a phone before the
+   Mac. */
 .find-stage {
 	position: relative;
-	aspect-ratio: 100 / 58;
+	aspect-ratio: 100 / 68.5;
 }
 
 .find-mac {
 	position: absolute;
 	top: 0;
 	left: 0;
-	width: 86%;
+	width: 100%;
 }
 
 .find-phone {
 	position: absolute;
-	right: 0;
+	left: 47%;
 	bottom: 0;
-	width: 23%;
+	width: 24%;
 }
 
 /* Play on TV: the phone, a line to the TV, and the TV. */
