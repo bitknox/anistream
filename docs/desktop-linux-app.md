@@ -1,7 +1,7 @@
 # Linux desktop app: phases 1 and 2
 
 Branch `desktop/linux-app`, October 2026, built on the foundations spike
-([desktop-linux-spike.md](desktop-linux-spike.md)) to the design brief on `desktop/design-brief`.
+to the design brief on `desktop/design-brief`.
 GTK 4 and libadwaita in Rust, no web views. Dark only for now.
 
 ## What is in it

@@ -7,7 +7,7 @@
 # Windows comes only from mpv's "development build" pre-release (tag git-release), which CI
 # rebuilds from master and replaces: the file name carries the commit and the CI run, so a pinned
 # name either downloads exactly this build or fails. Mirror the zip before relying on it in CI.
-# docs/desktop-windows-spike.md says why the LGPL build.
+# docs/desktop-windows-build.md says why the LGPL build.
 param([ValidateSet('arm64', 'x64')][string]$Arch = 'arm64')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
