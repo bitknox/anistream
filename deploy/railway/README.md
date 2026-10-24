@@ -15,7 +15,9 @@ After the deploy:
 The deploy log also shows a one-time owner invite, which works the same way.
 
 To pick up new releases on their own, open the service's Settings, choose Configure Auto Updates
-under Source, and pick a maintenance window. Railway redeploys when the `1` tag gets a new image.
+under Source, and pick a maintenance window. Railway redeploys when the `2` tag gets a new image.
+To update by hand, open the service and choose Redeploy. A new major version needs the image tag
+changed under Settings, Source.
 
 ## Making the template
 
@@ -25,7 +27,7 @@ whoever publishes the button. The result is the URL that replaces `TEMPLATE_CODE
 
 1. In Railway, open your workspace's Templates page and choose New Template.
 2. Add a service, choose Docker Image as its source, and enter
-   `ghcr.io/bitknox/anistream-store:1`. Name the service `anistream-store`.
+   `ghcr.io/bitknox/anistream-store:2`. Name the service `anistream-store`.
 3. Right-click the service, choose Attach Volume, and set the mount path to `/data`.
 4. In the service's Variables, add:
 

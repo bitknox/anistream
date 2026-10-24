@@ -3,6 +3,7 @@
 import { storeHandler } from "../../lib/handler.js";
 
 const answer = storeHandler({
+  host: "netlify",
   // Relative to this file, which keeps its place when Netlify bundles the function.
   wasm: new URL("../../store/store_bg.wasm", import.meta.url),
   // DATABASE_URL first, so a database of your own wins. NETLIFY_DB_URL is the Netlify Database

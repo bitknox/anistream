@@ -15,7 +15,7 @@ use crate::{
         AdminLink, AdminLogin, AdminOverview, ClaimRequest, Claimed, ErrorBody, InviteCreated,
         InviteRequest, Me, Member, MemberChange, MemberList, OpenJoinRequest, OpenSetting,
         PART_SIZE, PreviewRequest, PublishRequest, RedeemRequest, RedeemResponse, Role,
-        StoreInfo, UploadRequest, UploadStarted,
+        ServerInfo, StoreInfo, UploadRequest, UploadStarted,
     },
     store::{NewInvite, SESSION_SECS, Store, StoreError},
 };
@@ -122,6 +122,8 @@ pub struct Service<D, B> {
     setup_code: Option<String>,
     /// Take a publisher's SHA-256 rather than computing it, for stores on a tight CPU budget.
     trust_digests: bool,
+    /// What the store runs, for the admin page.
+    server: ServerInfo,
 }
 
 impl<D: Database, B: Blobs> Service<D, B> {
@@ -135,7 +137,14 @@ impl<D: Database, B: Blobs> Service<D, B> {
             inspector,
             setup_code: setup_code.filter(|c| !c.trim().is_empty()),
             trust_digests: false,
+            server: ServerInfo::new(env!("CARGO_PKG_VERSION"), None),
         }
+    }
+
+    /// Say what the store runs: its version, its build and where it runs.
+    pub fn describing(mut self, server: ServerInfo) -> Self {
+        self.server = server;
+        self
     }
 
     /// Take publishers' digests rather than computing them. For a Worker on Cloudflare's free
@@ -342,6 +351,7 @@ impl<D: Database, B: Blobs> Service<D, B> {
                     members: store.members().await?,
                     invites: store.pending_invites(now).await?,
                     open: store.open_state(&site.base).await?,
+                    server: Some(self.server.clone()),
                 };
                 json(200, &overview)
             }

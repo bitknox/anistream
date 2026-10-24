@@ -21,7 +21,8 @@ export class Store {
      *
      * `files` may be `null`, and plugin files then live in the database too — what a platform
      * with a database and no blob store of its own needs. `options`: `{ name?, url?,
-     * setupCode?, trustDigests? }`.
+     * setupCode?, trustDigests?, host? }`, where `host` names the platform, such as
+     * `"cloudflare"`, for the update steps the admin page shows.
      */
     static open(db: any, files: any | null | undefined, options: any): Promise<Store>;
 }
