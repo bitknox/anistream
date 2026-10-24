@@ -168,6 +168,10 @@ impl Shell {
         let top = gtk::Stack::new();
         top.set_transition_type(gtk::StackTransitionType::Crossfade);
         top.set_transition_duration(200);
+        // Sized by the page on screen, so the mini player's window is not held to the main
+        // page's width.
+        top.set_hhomogeneous(false);
+        top.set_vhomogeneous(false);
         top.add_named(&split, Some("main"));
         top.add_named(&player.widget, Some("player"));
         toasts.set_child(Some(&top));
