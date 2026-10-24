@@ -44,7 +44,11 @@ fn the_plain_presence_is_the_default_and_names_the_episode_only() {
     for rich in ["type", "buttons", "status_display_type"] {
         assert!(sent.get(rich).is_none(), "{rich} is the rich presence's");
     }
-    assert!(sent["assets"].get("large_image").is_none());
+    assert_eq!(
+        sent["assets"]["large_image"],
+        anistream_discord::LOGO,
+        "the app icon, never a cover"
+    );
 }
 
 #[test]
@@ -118,7 +122,12 @@ fn a_cover_that_is_not_https_is_not_sent() {
     let mut context = context();
     context.cover_url = Some("http://img.example/cover.jpg".into());
     let plan = Plan::new(&config(true, true), &context, NOW);
-    assert!(plan.activity(&head(0.0), NOW).payload()["assets"].get("large_image").is_none());
+    let sent = plan.activity(&head(0.0), NOW).payload();
+    assert_eq!(
+        sent["assets"]["large_image"],
+        anistream_discord::LOGO,
+        "the app icon in its place"
+    );
 }
 
 fn sent_at(head: &Playhead, at: Instant, rich: bool) -> (Sent, PlayState) {
