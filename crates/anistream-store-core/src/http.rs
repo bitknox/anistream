@@ -175,7 +175,15 @@ impl<D: Database, B: Blobs> Service<D, B> {
         let store = &self.store;
 
         match (request.method.as_str(), segments.as_slice()) {
-            ("GET", []) => Ok(html(&home_page(&store.name().await, self.unclaimed().await))),
+            ("GET", []) => {
+                let name = escape(&store.name().await);
+                let fallback = home_page(&name, self.unclaimed().await);
+                Ok(admin::home(
+                    &escape(&site.prefix),
+                    &format!("{name} · anistream"),
+                    &fallback,
+                ))
+            }
             // Never redeems. A chat app fetching the link for a preview must not spend it.
             ("GET", ["join", code]) => {
                 let open = store.is_open_code(code).await?;
@@ -722,20 +730,18 @@ fn page(title: &str, body: &str) -> String {
     )
 }
 
+/// What the store's root says without script: its name, what it is, and how to join. `name` is
+/// escaped already. Links resolve against the admin page's directory, so `./` is that page.
 fn home_page(name: &str, unclaimed: bool) -> String {
-    let name = escape(name);
     let claim = if unclaimed {
         "<p>Nobody owns this store yet. If you deployed it, \
-         <a href=\"admin/\">open the admin page</a> and claim it with its setup code.</p>"
+         <a href=\"./\">open the admin page</a> and claim it with its setup code.</p>"
     } else {
         ""
     };
-    page(
-        &name,
-        &format!(
-            "<h1>{name}</h1><p class=\"dim\">An anistream plugin store.</p>\
-             <p>People join this store with an invite link from its owner.</p>{claim}"
-        ),
+    format!(
+        "<main class=\"wrap sect\"><h1>{name}</h1><p class=\"dim\">An anistream plugin store.</p>\
+         <p>People join this store with an invite link from its owners.</p>{claim}</main>"
     )
 }
 

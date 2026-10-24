@@ -4,6 +4,7 @@ import { Footer, Nav } from './components/Chrome';
 import { DropBand } from './components/DropBand';
 import { Invites } from './components/Invites';
 import { Joining } from './components/Joining';
+import { Landing } from './components/Landing';
 import { Members } from './components/Members';
 import { Overview } from './components/Overview';
 import { Plugins } from './components/Plugins';
@@ -14,6 +15,7 @@ import type { AdminOverview, StoreInfo } from './types';
 
 type View =
 	| { kind: 'loading' }
+	| { kind: 'home'; store?: StoreInfo }
 	| { kind: 'signed-out'; reason?: string; store?: StoreInfo }
 	| { kind: 'ready'; data: AdminOverview };
 
@@ -37,6 +39,14 @@ async function load(): Promise<View> {
 		return signedOut(describe(error));
 	}
 }
+
+/**
+ * Whether this is the store's root, which the server marks on the page it serves there. The
+ * dev server shows it at `/?home`.
+ */
+const HOME =
+	document.documentElement.dataset.page === 'home' ||
+	(import.meta.env.DEV && window.location.search === '?home');
 
 /**
  * Sign in with the link's code if there is one, then load. Run once per page load, however
@@ -66,7 +76,12 @@ export function App() {
 	const [status, setStatus] = useState<Status | null>(null);
 
 	useEffect(() => {
-		start().then(setView);
+		if (HOME) {
+			api
+				.store()
+				.then((store) => setView({ kind: 'home', store }))
+				.catch(() => setView({ kind: 'home' }));
+		} else start().then(setView);
 	}, []);
 
 	const say = useCallback((text: string, tone: Status['tone'] = 'info', progress?: number) => {
@@ -142,7 +157,7 @@ export function App() {
 			<a className="skip" href="#main">
 				Skip to the page
 			</a>
-			<Nav me={data?.me} onSignOut={signOut} />
+			<Nav me={data?.me} onSignOut={signOut} owners={HOME} view={view.kind} />
 			<main id="main" tabIndex={-1}>
 				{view.kind === 'loading' && <div className="scene-hold" aria-hidden="true" />}
 				{data && (
@@ -156,11 +171,12 @@ export function App() {
 						<Updates server={data.server} update={update} />
 					</>
 				)}
+				{view.kind === 'home' && <Landing store={view.store} />}
 				{view.kind === 'signed-out' && (
 					<SignedOut reason={view.reason} store={view.store} say={say} />
 				)}
 			</main>
-			<Footer />
+			<Footer note={HOME ? 'This page talks only to this store.' : undefined} />
 			<StatusLine status={status} />
 			{data && <DropBand onFiles={publish} />}
 		</>

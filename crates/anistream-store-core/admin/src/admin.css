@@ -519,6 +519,18 @@ input[type="text"]:focus {
 	white-space: nowrap;
 }
 
+/* The landing page's way in for owners: quiet, in the nav's own colour. */
+.nav-owners {
+	color: inherit;
+	font-size: 15px;
+	white-space: nowrap;
+	opacity: 0.8;
+}
+
+.nav-owners:hover {
+	opacity: 1;
+}
+
 @media (max-width: 599px) {
 	.brand {
 		gap: 8px;
@@ -532,7 +544,9 @@ input[type="text"]:focus {
 }
 
 /* ── Hero: the scene, full width, with the copy standing on its rooftop ─── */
-.hero {
+/* The hero and the run are pictures of dusk, so they keep the dark palette in either theme. */
+.hero,
+.run-play {
 	--ani-ground: #161a2e;
 	--ani-text: #e4e0d6;
 	--ani-dim: #9298b5;
@@ -553,7 +567,8 @@ input[type="text"]:focus {
 }
 
 @media (prefers-contrast: more) {
-	.hero {
+	.hero,
+	.run-play {
 		--ani-dim: #b8bdd6;
 		--ani-rule: #5c6073;
 		--ani-rule-faint: #434653;
@@ -596,6 +611,10 @@ input[type="text"]:focus {
 
 .hero-eyebrow {
 	margin-bottom: 8px;
+	font-size: 15px;
+	font-weight: 500;
+	line-height: 22px;
+	color: var(--ani-dim);
 }
 
 .hero-copy h1 {
@@ -1025,6 +1044,79 @@ input[type="text"]:focus {
 		width: 48px;
 		height: 77px;
 	}
+}
+
+/* ── Nagare's run: the dusk rooftops, playable ───────────────────────────
+   A picture like the hero, so it keeps the dusk palette in either theme. */
+.run {
+	margin-top: 28px;
+}
+
+.run-play {
+	position: relative;
+	overflow: hidden;
+	border-radius: var(--ani-r-box);
+	cursor: pointer;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+	touch-action: manipulation;
+}
+
+/* While she runs, a held finger is a held jump, not a scroll. */
+.run-play.is-running {
+	touch-action: none;
+}
+
+.run-play:focus-visible {
+	outline: 2px solid var(--ani-obi);
+	outline-offset: 3px;
+}
+
+/* The ring says where Space goes before a run; during one, the run says it. */
+.run-play.is-running:focus-visible,
+.run-play.is-over:focus-visible {
+	outline: none;
+}
+
+.run-play canvas {
+	display: block;
+	image-rendering: pixelated;
+}
+
+.run-score {
+	position: absolute;
+	top: 12px;
+	right: 16px;
+	display: flex;
+	gap: 16px;
+	font-family: var(--ani-font-mono);
+	font-size: 14px;
+	line-height: 20px;
+	font-variant-numeric: tabular-nums;
+}
+
+.run-best {
+	color: var(--ani-dim);
+}
+
+@media (max-width: 599px) {
+	.run-hint {
+		display: none;
+	}
+}
+
+.run-prompt {
+	position: absolute;
+	top: 12px;
+	left: 16px;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 14px;
+	max-width: min(560px, calc(100% - 150px));
+	font-size: 15px;
+	line-height: 22px;
 }
 
 /* ── Footer: Nagare, the legal line and the font's licence ──────────────── */
