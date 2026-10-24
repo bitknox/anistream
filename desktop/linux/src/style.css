@@ -143,3 +143,17 @@ levelbar block.empty { background: var(--rule); }
   color: white; font-size: 15px; font-weight: 600;
   text-shadow: 0 0 2px black, 0 0 2px black, 0 1px 3px black;
 }
+
+/* Amber stays on the one primary action, progress and switches that are on. A watched mark and a
+   selected row take the neutral fill, as the brief's Linux selection says. */
+checkbutton check:checked, checkbutton check:indeterminate {
+  background: var(--raised-selected);
+  border-color: var(--rule);
+  color: var(--silk);
+}
+row:selected, row:selected:hover, row:selected:focus {
+  background: var(--raised-selected);
+}
+/* An open group's arrow is haze, not the accent. */
+row.expander image.expander-row-arrow,
+row.expander:checked image.expander-row-arrow { color: var(--haze); }
