@@ -507,6 +507,30 @@ public class SceneTests
         DeleteRoot(root);
     }
 
+    /// <summary>The app's own Simkl and Trakt clients turn those trackers on, so Accounts can sign in to them.</summary>
+    [Fact(Timeout = 60_000)]
+    public async Task TheAppsClientsTurnOnSimklAndTrakt()
+    {
+        HomeGuard.Check();
+        var root = AppDirs.NewScratchRoot("cs-trackers");
+        var gate = new object();
+        var engine = FfiEngine.StartScene(AppDirs.Under(root), new QuietHost(), new FfiScene.Fresh(), EngineSession.AppStart());
+        using (var session = new EngineSession(engine, a => { lock (gate) a(); }))
+        {
+            session.Start();
+            string[] trackers = [];
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (!(trackers.Contains("simkl") && trackers.Contains("trakt")) && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(100, TestContext.Current.CancellationToken);
+                lock (gate) trackers = [.. session.Known.Sync.Keys];
+            }
+            Assert.Contains("simkl", trackers);
+            Assert.Contains("trakt", trackers);
+        }
+        DeleteRoot(root);
+    }
+
     static void DeleteRoot(string root)
     {
         var deadline = DateTime.UtcNow.AddSeconds(10);

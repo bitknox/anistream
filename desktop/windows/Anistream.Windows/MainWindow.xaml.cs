@@ -260,6 +260,15 @@ public sealed partial class MainWindow : Window
                 await Task.Delay(2500);
                 AskBeforeClosing();
             });
+#if ANISTREAM_TESTING
+        // --show=devicecode: Trakt's sign-in code, for a screenshot.
+        if (options.Show == "devicecode")
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(1500);
+                Pages.DeviceCodeDialog.Heard(Root.XamlRoot, new DeviceCodePrompt("trakt", "7F3K9QX2", "https://tracker.example/activate"));
+            });
+#endif
         if (options.Shortcuts)
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
             {
@@ -301,6 +310,9 @@ public sealed partial class MainWindow : Window
                     break;
                 case Event.Toast t:
                     ShowToast(t.V1);
+                    break;
+                case Event.DeviceCode code:
+                    Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
                     break;
                 case Event.Downloads:
                     taskbar?.Downloads(ctx.Known.Downloads);

@@ -312,7 +312,7 @@ public sealed partial class SettingsPage : Page
     void ShowAccounts()
     {
         Cards.Children.Add(Heading("Trackers"));
-        foreach (var tracker in new[] { "anilist", "mal", "kitsu" })
+        foreach (var tracker in new[] { "anilist", "mal", "kitsu", "simkl", "trakt" })
         {
             var name = AnistreamFfiMethods.TrackerName(tracker);
             var state = ctx.Known.Sync.GetValueOrDefault(tracker);
@@ -328,7 +328,7 @@ public sealed partial class SettingsPage : Page
             }
             else
             {
-                description = "Not signed in";
+                description = tracker is "simkl" or "trakt" ? "Not signed in · You enter a code on its site" : "Not signed in";
                 action = new Button { Content = "Sign in" };
                 action.Click += (_, _) => ctx.Send(new Command.Connect(tracker));
             }
