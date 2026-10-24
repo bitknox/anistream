@@ -216,7 +216,7 @@ class SearchModel {
     }
 
     /** Whether an answer tagged with [query] is for what is on screen. */
-    internal fun takes(query: SearchQuery): Boolean = _status.value.asked == query
+    fun takes(query: SearchQuery): Boolean = _status.value.asked == query
 
     internal fun paging(query: SearchQuery, hasNext: Boolean) {
         if (!takes(query)) return

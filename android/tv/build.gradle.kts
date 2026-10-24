@@ -64,6 +64,20 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4)
     // The activity a compose rule's content is set in.
     testImplementation(libs.compose.ui.test.manifest)
+    // JNA's JVM build, with this machine's native library: Search asks the engine's model for the
+    // words of its filters, as the app does.
+    testImplementation(libs.jna.jvm)
+}
+
+// The engine's model on this machine's build of it, android/.engine/<engine>/host; no engine runs.
+AnistreamSdk.engines.forEach { (flavour, engine) ->
+    val name = flavour.replaceFirstChar(Char::uppercase)
+    val library = rootDir.resolve(".engine/$engine/host")
+    tasks.withType<Test>().matching { it.name.startsWith("test$name") }.configureEach {
+        systemProperty("jna.library.path", library.path)
+        // JNA loads its native library itself, which Java now asks to be allowed.
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
+    }
 }
 
 // The tests run under a home of their own, a new directory under build/, never the user's.
