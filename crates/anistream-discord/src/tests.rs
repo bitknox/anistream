@@ -88,7 +88,7 @@ fn the_plain_presence_is_a_title_an_episode_and_a_timer() {
     for absent in ["type", "buttons", "status_display_type"] {
         assert!(payload.get(absent).is_none(), "{absent} is the rich presence's");
     }
-    assert!(payload["assets"].get("large_image").is_none());
+    assert_eq!(payload["assets"]["large_image"], LOGO, "the app icon stands in for a cover");
 }
 
 #[test]
@@ -134,11 +134,11 @@ fn a_paused_or_buffering_rich_presence_says_so_and_sends_no_bar() {
 }
 
 #[test]
-fn a_rich_presence_without_a_cover_or_button_sends_neither() {
+fn a_rich_presence_without_a_cover_or_button_shows_the_logo_and_no_button() {
     let mut activity = rich(PlayState::Playing);
     activity.rich = Some(Rich { span: None, ..Rich::default() });
     let payload = activity.payload();
-    assert!(payload["assets"].get("large_image").is_none());
+    assert_eq!(payload["assets"]["large_image"], LOGO);
     assert!(payload.get("buttons").is_none());
     assert!(payload.get("timestamps").is_none());
     assert_eq!(payload["type"], 3);

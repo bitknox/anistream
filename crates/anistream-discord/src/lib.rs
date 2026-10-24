@@ -52,6 +52,10 @@ const TYPE_WATCHING: u8 = 3;
 /// the application's name.
 const STATUS_DISPLAY_DETAILS: u8 = 2;
 
+/// The app icon, uploaded as an art asset of this name in the Discord application. Sent wherever
+/// there is no cover, so a presence never shows an empty square.
+pub const LOGO: &str = "logo";
+
 /// What the player is doing, which the presence says apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlayState {
@@ -130,7 +134,8 @@ impl Activity {
             if let Some(started) = self.started_at.filter(|_| playing) {
                 payload["timestamps"] = serde_json::json!({ "start": started });
             }
-            payload["assets"] = serde_json::json!({ "large_text": self.state.words() });
+            payload["assets"] =
+                serde_json::json!({ "large_image": LOGO, "large_text": self.state.words() });
             return payload;
         };
 
@@ -140,10 +145,8 @@ impl Activity {
             "small_image": self.state.image(),
             "small_text": self.state.words(),
         });
-        if let Some(cover) = &rich.cover_url {
-            assets["large_image"] = cover.clone().into();
-            assets["large_text"] = truncate(&self.title).into();
-        }
+        assets["large_image"] = rich.cover_url.as_deref().unwrap_or(LOGO).into();
+        assets["large_text"] = truncate(&self.title).into();
         payload["assets"] = assets;
         // Start and end together make the bar; either alone would draw a timer instead.
         if let Some((start, end)) = rich.span.filter(|_| playing) {
