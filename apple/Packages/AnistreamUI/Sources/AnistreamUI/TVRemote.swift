@@ -713,6 +713,8 @@ struct MacTVRemote: View {
                 if let skip = now.skip {
                     Button(skip.label.capitalized) { tv.send(.skip) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                        .disabled(!tv.live)
+                        .opacity(tv.live ? 1 : 0.4)
                 }
             }
             .padding(.top, 18)
@@ -722,9 +724,11 @@ struct MacTVRemote: View {
                 SettingsRow(title: "Subtitles") {
                     TVTrackMenu(title: "Subtitles", kind: .subtitle, tracks: now.subtitles, off: now.subtitlesOff, phone: false)
                 }
+                .opacity(tv.live ? 1 : 0.4)
                 SettingsRow(title: "Audio") {
                     TVTrackMenu(title: "Audio", kind: .audio, tracks: now.audio, off: false, phone: false)
                 }
+                .opacity(tv.live ? 1 : 0.4)
                 SettingsRow(title: "TV Volume", note: TVWords.volume(now)) {
                     HStack(spacing: 6) {
                         volume("speaker.wave.1", "Volume Down", -5)
@@ -1001,6 +1005,8 @@ struct PhoneTVRemote: View {
                     .listRowBackground(Palette.raised)
                     if let skip = now.skip {
                         PhoneActionRow(title: skip.label, systemImage: "forward") { tv.send(.skip) }
+                            .disabled(!tv.live)
+                            .opacity(tv.live ? 1 : 0.4)
                     }
                 } else {
                     // What to do from here is said only while the TV can hear it; otherwise the
@@ -1070,6 +1076,7 @@ struct PhoneTVRemote: View {
             Spacer()
             TVTrackMenu(title: title, kind: kind, tracks: tracks, off: off, phone: true)
         }
+        .opacity(store.tv.live ? 1 : 0.4)
         .listRowBackground(Palette.raised)
     }
 
