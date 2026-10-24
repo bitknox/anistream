@@ -343,7 +343,9 @@ struct SearchFilterRow: View {
                 .padding(.vertical, 1)
             }
             .scrollIndicators(.never)
-            .scrollClipDisabled()
+            // On a phone the row runs to the screen's edge. On the Mac it stops short of the sort,
+            // or a narrow window draws capsules over it.
+            .scrollClipDisabled(compact)
             if !compact {
                 Spacer(minLength: 0)
                 sort(query)
