@@ -2,7 +2,8 @@
 // the phone's names:
 //
 //   scene     watching (the default), sourceless, fresh or playing
-//   media     what the playing scene streams: a path or URL on the device
+//   media     what every episode streams: a path or URL on the device, by default the
+//             flavour's own episode.mp4, which seeks, so a resume starts where it should at once
 //   section   the destination to open on: search, continue, calendar, seasonal, library or settings
 //   title     a title page to open, by id
 //   query     a search to type, on Search
@@ -12,6 +13,7 @@ package tv.anistream.tv
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import java.io.File
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.FixtureScene
 import tv.anistream.store.enginePlatform
@@ -24,9 +26,32 @@ internal object Flavour {
         val named = intent.getStringExtra("scene")
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(TvApp.TAG, "no scene named $named")
-        intent.getStringExtra("media")?.let { fixtureMedia = it }
+        fixtureMedia = intent.getStringExtra("media") ?: episode(context)
         return EngineLaunch.fixtures(scene, context.cacheDir).copy(platform = enginePlatform(context))
     }
+
+    /**
+     * The flavour's episode, copied out of the APK the first time, for mpv to open as a file: 24
+     * minutes of colour bars with a counter of seconds, at 2 frames a second and a keyframe every
+     * 10 s, 330 KB. Made with ffmpeg:
+     *
+     *     ffmpeg -f lavfi -i smptebars=duration=1440:size=320x240:rate=2 \
+     *       -f lavfi -i testsrc=duration=1440:size=320x240:rate=2 \
+     *       -filter_complex "[1:v]crop=120:76:196:82[n];[0:v][n]overlay=100:82" \
+     *       -c:v libx264 -preset veryslow -crf 30 -g 20 -pix_fmt yuv420p -movflags +faststart \
+     *       -map_metadata -1 -fflags +bitexact -flags:v +bitexact episode.mp4
+     */
+    private fun episode(context: Context): String {
+        val file = File(context.cacheDir, EPISODE)
+        if (!file.exists()) {
+            val partial = File(context.cacheDir, "$EPISODE.part")
+            context.assets.open(EPISODE).use { from -> partial.outputStream().use { from.copyTo(it) } }
+            partial.renameTo(file)
+        }
+        return file.path
+    }
+
+    private const val EPISODE = "episode.mp4"
 
     fun start(intent: Intent): Start {
         val query = intent.getStringExtra("query")
