@@ -65,14 +65,16 @@ import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.CardPlaceholder
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
+import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
 import tv.anistream.tv.ui.SafeSpec
 import tv.anistream.tv.ui.ScrollRule
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
-import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.firstFocus
+import tv.anistream.tv.ui.placeholdersAfterWait
+import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
 import tv.anistream.tv.ui.tryFocus
 
@@ -305,6 +307,8 @@ private fun Results(
     memory: FocusMemory,
     onOpen: (AnilistId) -> Unit,
 ) {
+    val store = LocalAppStore.current
+    val actions = LocalActions.current
     val leading = with(LocalDensity.current) { Canvas.FocusRoom.toPx() * 2 }
     val trailing = with(LocalDensity.current) { 120.dp.toPx() }
     val spec = remember(leading, trailing) { SafeSpec(leading, trailing) }
@@ -364,6 +368,7 @@ private fun Results(
                     entry,
                     onClick = { onOpen(entry.id) },
                     line = entry.posterLine,
+                    onLongClick = { actions?.open(planSheet(store, entry, onOpen)) },
                     modifier = Modifier.remembered(memory, "result/${entry.id}"),
                 )
             }

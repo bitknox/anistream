@@ -52,7 +52,10 @@ import tv.anistream.tv.screens.SettingsScreen
 import tv.anistream.tv.screens.SettingsSection
 import tv.anistream.tv.screens.TitleScreen
 import tv.anistream.tv.signin.SignInScreen
+import tv.anistream.tv.ui.ActionsHost
+import tv.anistream.tv.ui.ActionsPanel
 import tv.anistream.tv.ui.KeyRepeat
+import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.LocalKeyRepeat
 
@@ -133,6 +136,8 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit) {
     val screens = rememberSaveableStateHolder()
     SideEffect { nav.forget = screens::removeState }
     val open = drawer.currentValue == DrawerValue.Open
+    val actions = remember { ActionsHost() }
+    SideEffect { actions.onClosed = { nav.focus.enter() } }
 
     // Back from the rail on Continue leaves the app: the handler steps aside for the system's.
     BackHandler(enabled = !(open && nav.pages.isEmpty() && nav.destination == Destination.Continue)) {
@@ -166,26 +171,31 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit) {
         },
     ) {
         val shown: Any = nav.top ?: nav.destination
-        Crossfade(targetState = shown, animationSpec = Motion.fadeIn(), label = "screen") { target ->
-            val key = (target as? Page)?.key ?: (target as Destination).name
-            screens.SaveableStateProvider(key) {
-                Box(Modifier.fillMaxSize()) {
-                    when (target) {
-                        is Page.Title -> TitleScreen(target.id, target.memory, onOpen = nav::openTitle, onPlay = play)
-                        is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
-                        Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
-                        Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
-                        Destination.Calendar -> CalendarScreen(nav, nav.memory(Destination.Calendar), onOpen = nav::openTitle)
-                        Destination.Seasonal -> SeasonalScreen(nav, nav.memory(Destination.Seasonal), onOpen = nav::openTitle)
-                        Destination.Library -> LibraryScreen(
-                            nav,
-                            nav.memory(Destination.Library),
-                            onOpen = nav::openTitle,
-                            onAccounts = { nav.go(Destination.Settings) },
-                        )
-                        Destination.Settings -> SettingsScreen(nav, nav.memory(Destination.Settings), start = SettingsSection.Playback)
+        CompositionLocalProvider(LocalActions provides actions) {
+            Box(Modifier.fillMaxSize()) {
+                Crossfade(targetState = shown, animationSpec = Motion.fadeIn(), label = "screen") { target ->
+                    val key = (target as? Page)?.key ?: (target as Destination).name
+                    screens.SaveableStateProvider(key) {
+                        Box(Modifier.fillMaxSize()) {
+                            when (target) {
+                                is Page.Title -> TitleScreen(target.id, target.memory, onOpen = nav::openTitle, onPlay = play)
+                                is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
+                                Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
+                                Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
+                                Destination.Calendar -> CalendarScreen(nav, nav.memory(Destination.Calendar), onOpen = nav::openTitle)
+                                Destination.Seasonal -> SeasonalScreen(nav, nav.memory(Destination.Seasonal), onOpen = nav::openTitle)
+                                Destination.Library -> LibraryScreen(
+                                    nav,
+                                    nav.memory(Destination.Library),
+                                    onOpen = nav::openTitle,
+                                    onAccounts = { nav.go(Destination.Settings) },
+                                )
+                                Destination.Settings -> SettingsScreen(nav, nav.memory(Destination.Settings), start = SettingsSection.Playback)
+                            }
+                        }
                     }
                 }
+                ActionsPanel(actions, Modifier.align(Alignment.CenterEnd))
             }
         }
     }

@@ -33,6 +33,7 @@ fun PosterGrid(
     line: (Entry) -> String? = { null },
     progress: (Entry) -> Float? = { null },
     placeholders: Int = 0,
+    onLongClick: ((Entry) -> Unit)? = null,
     top: LazyGridScope.() -> Unit = {},
 ) {
     val density = LocalDensity.current
@@ -63,6 +64,7 @@ fun PosterGrid(
                     onClick = { onOpen(entry) },
                     line = line(entry),
                     progress = progress(entry),
+                    onLongClick = onLongClick?.let { long -> { long(entry) } },
                     modifier = Modifier
                         .firstFocus(memory, "$keyPrefix/${entry.id}", entry === entries.first()),
                 )

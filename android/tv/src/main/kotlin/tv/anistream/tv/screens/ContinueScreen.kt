@@ -29,37 +29,43 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import kotlinx.coroutines.launch
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.store.AppStore
 import tv.anistream.store.ContinueItem
 import tv.anistream.store.ListState
 import tv.anistream.tv.heroAction
 import tv.anistream.tv.heroLine
 import tv.anistream.tv.posterLine
 import tv.anistream.tv.shell.TvNavigator
+import tv.anistream.tv.ui.ActionSheet
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.BrowseRow
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
+import tv.anistream.tv.ui.CardAction
 import tv.anistream.tv.ui.CardPlaceholder
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.HeldScroll
 import tv.anistream.tv.ui.HeroHeader
+import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
 import tv.anistream.tv.ui.ScrollRule
-import tv.anistream.tv.ui.settlesAt
 import tv.anistream.tv.ui.TextBar
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.WideCard
-import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.firstFocus
+import tv.anistream.tv.ui.placeholdersAfterWait
+import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
+import tv.anistream.tv.ui.settlesAt
 
 /** The y a focused row's header scrolls to. */
 private val RowTop = 48.dp
@@ -82,6 +88,7 @@ fun ContinueScreen(
     val hidden by store.continuing.hidden.collectAsStateWithLifecycle()
     val seasonal by store.seasonal.state.collectAsStateWithLifecycle()
     val queue = remember(entries, state, hidden) { store.continuing.queue(entries) }
+    val actions = LocalActions.current
     val lead = queue.lead
     LaunchedEffect(lead?.id) { lead?.let { store.loadEpisodes(it.id) } }
 
@@ -129,6 +136,7 @@ fun ContinueScreen(
                                 onClick = { onOpen(item.id) },
                                 line = item.action,
                                 progress = item.fraction?.toFloat(),
+                                onLongClick = { actions?.open(continueSheet(store, item, onOpen)) },
                                 modifier = Modifier
                                     .firstFocus(memory, "continue/${item.id}", firstCard),
                             )
@@ -147,6 +155,7 @@ fun ContinueScreen(
                                 onClick = { onOpen(item.id) },
                                 line = item.action,
                                 newDot = true,
+                                onLongClick = { actions?.open(continueSheet(store, item, onOpen)) },
                                 modifier = Modifier
                                     .firstFocus(memory, "new/${item.id}", first && item === newThisWeek.first()),
                             )
@@ -163,6 +172,7 @@ fun ContinueScreen(
                                 entry,
                                 onClick = { onOpen(entry.id) },
                                 line = entry.posterLine,
+                                onLongClick = { actions?.open(planSheet(store, entry, onOpen)) },
                                 modifier = Modifier
                                     .firstFocus(memory, "season/${entry.id}", first && entry === season.first()),
                             )
@@ -250,3 +260,15 @@ private const val HERO = "hero"
 
 /** This season's row stops at twenty posters; Seasonal has the rest. */
 private const val SEASON_CARDS = 20
+
+/** A Continue card's actions: mark its episode watched, hide it, drop the show, or open it. */
+fun continueSheet(store: AppStore, item: ContinueItem, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
+    item.entry.title,
+    listOfNotNull(
+        CardAction("Mark episode ${item.episode} watched") { store.setWatched(item.id, listOf(item.episode.toString())) }
+            .takeIf { item.playable },
+        CardAction("Hide from Continue") { store.hideFromContinue(item.id) },
+        CardAction("Drop") { store.setStatus(item.id, LibrarySegment.DROPPED) },
+        CardAction("Open the title page") { onOpen(item.id) },
+    ),
+)

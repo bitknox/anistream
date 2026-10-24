@@ -54,6 +54,7 @@ import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
+import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.SafeSpec
 import tv.anistream.tv.ui.ScrollRule
@@ -61,6 +62,7 @@ import tv.anistream.tv.ui.TvTab
 import tv.anistream.tv.ui.TvTitle
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.pixels
+import tv.anistream.tv.ui.planSheet
 
 /** One broadcast: a title, its episode, and when it airs. */
 data class Airing(val entry: Entry, val episode: UInt, val at: Instant)
@@ -86,6 +88,7 @@ private const val DAYS = 7
 @Composable
 fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
+    val actions = LocalActions.current
     LaunchedEffect(Unit) { store.loadCalendar() }
     val window by store.calendar.window.collectAsStateWithLifecycle()
     val now = AppClock.now()
@@ -126,6 +129,7 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                         airing,
                         past = airing.at < now,
                         onClick = { onOpen(airing.entry.id) },
+                        onLongClick = { actions?.open(planSheet(store, airing.entry, onOpen)) },
                         modifier = Modifier.firstFocus(memory, "airing/${airing.entry.id}/${airing.episode}", index == lead),
                     )
                 }
@@ -136,9 +140,10 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
 }
 
 @Composable
-private fun AiringRow(airing: Airing, past: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun AiringRow(airing: Airing, past: Boolean, onClick: () -> Unit, onLongClick: () -> Unit, modifier: Modifier) {
     Surface(
         onClick = onClick,
+        onLongClick = onLongClick,
         modifier = modifier.fillMaxWidth().height(72.dp),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
         colors = ClickableSurfaceDefaults.colors(

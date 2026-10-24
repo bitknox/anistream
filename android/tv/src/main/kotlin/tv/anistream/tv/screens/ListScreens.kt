@@ -29,24 +29,31 @@ import androidx.tv.material3.Text
 import java.time.LocalDate
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.store.AppClock
+import tv.anistream.store.AppStore
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ListState
 import tv.anistream.store.label
 import tv.anistream.tv.posterLine
 import tv.anistream.tv.shell.TvNavigator
+import tv.anistream.tv.ui.ActionSheet
 import tv.anistream.tv.ui.ButtonLabel
+import tv.anistream.tv.ui.CardAction
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.GRID_COLUMNS
+import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterGrid
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvTab
-import tv.anistream.tv.ui.placeholdersAfterWait
 import tv.anistream.tv.ui.firstFocus
+import tv.anistream.tv.ui.placeholdersAfterWait
+import tv.anistream.tv.ui.planSheet
 import tv.anistream.tv.ui.remembered
+import tv.anistream.tv.ui.statusSheet
 
 /** "Fall 2026", for the season [date] falls in. */
 fun seasonLabel(date: LocalDate): String {
@@ -64,6 +71,7 @@ fun seasonLabel(date: LocalDate): String {
 @Composable
 fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit) {
     val store = LocalAppStore.current
+    val actions = LocalActions.current
     LaunchedEffect(Unit) { store.loadSeasonal() }
     val entries by store.titles.entries.collectAsStateWithLifecycle()
     val state by store.seasonal.state.collectAsStateWithLifecycle()
@@ -78,6 +86,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
         onOpen = { onOpen(it.id) },
         state = grid,
         line = { it.posterLine },
+        onLongClick = { entry -> actions?.open(planSheet(store, entry, onOpen)) },
         placeholders = if (placeholdersAfterWait(state is ListState.Loading || state is ListState.Idle)) GRID_COLUMNS * 2 else 0,
     ) {
         item(key = "tabs", span = { GridItemSpan(maxLineSpan) }, contentType = "tabs") {
@@ -97,6 +106,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
 @Composable
 fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> Unit, onAccounts: () -> Unit) {
     val store = LocalAppStore.current
+    val actions = LocalActions.current
     var segment by rememberSaveable { mutableStateOf(LibrarySegment.WATCHING) }
     LaunchedEffect(Unit) { LibraryModel.order.forEach(store::loadLibrary) }
     LaunchedEffect(segment) { store.loadLibrary(segment) }
@@ -115,6 +125,7 @@ fun LibraryScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> 
         onOpen = { onOpen(it.id) },
         state = grid,
         line = { entry -> entry.progress?.let { "${it.done} / ${entry.episodes ?: "?"}" } },
+        onLongClick = { entry -> actions?.open(librarySheet(store, entry, segment, onOpen)) },
         progress = { entry ->
             if (segment != LibrarySegment.WATCHING) return@PosterGrid null
             val done = entry.progress?.done?.toFloat() ?: return@PosterGrid null
@@ -161,3 +172,13 @@ private fun NotSignedIn(onAccounts: () -> Unit, memory: FocusMemory) {
         }
     }
 }
+
+/** A Library card's actions: change its list, mark the next episode watched, or open it. */
+fun librarySheet(store: AppStore, entry: Entry, segment: LibrarySegment, onOpen: (AnilistId) -> Unit): ActionSheet = ActionSheet(
+    entry.title,
+    listOfNotNull(
+        CardAction("Change status", then = statusSheet(store, entry.id, entry.title, segment)),
+        entry.progress?.next?.let { next -> CardAction("Mark episode $next watched") { store.setWatched(entry.id, listOf(next.toString())) } },
+        CardAction("Open the title page") { onOpen(entry.id) },
+    ),
+)

@@ -50,24 +50,27 @@ import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SettingKey
+import tv.anistream.store.AppStore
 import tv.anistream.store.label
 import tv.anistream.tv.PlayAction
 import tv.anistream.tv.cardLine
 import tv.anistream.tv.cardTitle
 import tv.anistream.tv.metadataLine
 import tv.anistream.tv.synopsisWithoutSpoilers
-import tv.anistream.tv.ui.settlesAt
+import tv.anistream.tv.ui.ActionSheet
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ArtCard
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.BrowseRow
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
+import tv.anistream.tv.ui.CardAction
 import tv.anistream.tv.ui.CardText
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.HeldScroll
 import tv.anistream.tv.ui.HeroHeader
+import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.PosterCard
 import tv.anistream.tv.ui.ProgressEdge
@@ -75,10 +78,11 @@ import tv.anistream.tv.ui.ScrollRule
 import tv.anistream.tv.ui.TextBar
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
+import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.pixels
 import tv.anistream.tv.ui.placeholdersAfterWait
-import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.remembered
+import tv.anistream.tv.ui.settlesAt
 
 @Composable
 fun TitleScreen(
@@ -193,6 +197,8 @@ private fun Episodes(
     onPlay: (AnilistId, UInt) -> Unit,
     modifier: Modifier,
 ) {
+    val store = LocalAppStore.current
+    val actions = LocalActions.current
     val next = rows?.indexOfFirst { it.number == action.episode.toString() }?.takeIf { it >= 0 } ?: 0
     val state = rememberLazyListState(initialFirstVisibleItemIndex = next)
     val nextRequester = remember { FocusRequester() }
@@ -213,6 +219,7 @@ private fun Episodes(
                 // Only an episode's own still can spoil; the show's banner in its place cannot.
                 spoiler = spoilers && index > next && !row.completed && row.thumbnail != null,
                 onClick = { row.number.toUIntOrNull()?.let { onPlay(entry.id, it) } },
+                onLongClick = { actions?.open(episodeSheet(store, entry, rows, row)) },
                 modifier = Modifier
                     .then(if (playsNext) Modifier.focusRequester(nextRequester) else Modifier)
                     .remembered(memory, "episode/${row.number}"),
@@ -229,10 +236,11 @@ private fun EpisodeCard(
     progress: Float?,
     spoiler: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier,
 ) {
     Column(Modifier.width(Canvas.CardWidth)) {
-        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier) {
+        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, onLongClick) {
             ArtImage(row.thumbnail ?: entry.bannerUrl, CoverPlate.parse(entry.coverColor), pixels(Canvas.CardWidth), Modifier.fillMaxSize(), spoiler = spoiler)
             if (progress != null) ProgressEdge(progress, Modifier.align(Alignment.BottomStart))
             if (row.completed) {
@@ -304,3 +312,19 @@ private fun TitlePlaceholder() {
 }
 
 private const val PLACEHOLDER_CARDS = 5
+
+/** An episode's actions: mark it watched, or every episode up to it. */
+fun episodeSheet(store: AppStore, entry: Entry, rows: List<EpisodeRow>, row: EpisodeRow): ActionSheet {
+    val upTo = rows.takeWhile { it.number != row.number }.map { it.number } + row.number
+    return ActionSheet(
+        "${entry.title} · ${row.cardTitle}",
+        listOf(
+            if (row.completed) {
+                CardAction("Mark unwatched") { store.setWatched(entry.id, listOf(row.number), watched = false) }
+            } else {
+                CardAction("Mark watched") { store.setWatched(entry.id, listOf(row.number)) }
+            },
+            CardAction("Mark watched up to here") { store.setWatched(entry.id, upTo) },
+        ),
+    )
+}
