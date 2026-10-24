@@ -27,6 +27,7 @@ use anistream_mpv_host::{HostEvent, Player, PlayerOptions, PlayerState};
 use gtk::{gdk, gio, glib};
 
 use crate::{
+    mpris::{Action as MediaAction, Mpris, Track},
     video, widgets,
     window::{Ctx, Shell, Size},
     words,
@@ -94,6 +95,8 @@ pub struct PlayerView {
     /// The Subtitles and Audio menu's radio actions, set to the file's tracks as it opens.
     subtitle_action: gio::SimpleAction,
     audio_action: gio::SimpleAction,
+    /// The media controls on the session bus, once served.
+    mpris: RefCell<Option<Rc<Mpris>>>,
 }
 
 /// An automatic skip that can still be undone: where it started, when, and where it landed.
@@ -265,6 +268,7 @@ impl PlayerView {
                 Some(glib::VariantTy::STRING),
                 &"off".to_variant(),
             ),
+            mpris: RefCell::default(),
         });
         view.wire();
         glib::spawn_future_local({
@@ -277,6 +281,47 @@ impl PlayerView {
             }
         });
         view
+    }
+
+    /// Serve the media controls as `name` on the session bus: what they ask comes back here.
+    pub fn serve_media_controls(self: &Rc<Self>, name: &str) {
+        let view = Rc::downgrade(self);
+        let mpris = Mpris::serve(name, move |action| {
+            if let Some(view) = view.upgrade() {
+                view.media_control(action);
+            }
+        });
+        self.mpris.replace(Some(mpris));
+    }
+
+    /// What GNOME's media controls, the lock screen or a media key asked.
+    fn media_control(&self, action: MediaAction) {
+        let paused = self.state.borrow().paused;
+        match action {
+            MediaAction::Raise => self.ctx.window.present(),
+            MediaAction::PlayPause => self.send(PlayerCommand::TogglePause),
+            MediaAction::Play if paused => self.send(PlayerCommand::TogglePause),
+            MediaAction::Pause if !paused => self.send(PlayerCommand::TogglePause),
+            MediaAction::Play | MediaAction::Pause => {}
+            MediaAction::Stop => self.close(),
+            MediaAction::Next => self.send(PlayerCommand::Step(1)),
+            MediaAction::Previous => self.send(PlayerCommand::Step(-1)),
+            MediaAction::SeekBy(by) => self.send(PlayerCommand::Seek(by)),
+            MediaAction::SeekTo(to) => self.send(PlayerCommand::SeekTo(to)),
+            MediaAction::Volume(level) => {
+                let now = self
+                    .player
+                    .as_ref()
+                    .and_then(|p| p.mpv().get("volume"))
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(100.0);
+                self.send(PlayerCommand::Volume(level * 100.0 - now));
+            }
+        }
+    }
+
+    fn media(&self) -> Option<Rc<Mpris>> {
+        self.mpris.borrow().clone()
     }
 
     /// The window the player shows in, once it is built.
@@ -328,6 +373,9 @@ impl PlayerView {
         }
         self.clear_cards();
         self.forget_undo();
+        if let Some(media) = self.media() {
+            media.stopped();
+        }
         self.ui.starting.set_visible(true);
         self.ui.starting.set_opacity(1.0);
     }
@@ -440,7 +488,15 @@ impl PlayerView {
                 title, episode, episode_title, banner_url, cover_url, ..
             } => {
                 self.ui.show.set_label(title);
-                self.ui.episode.set_label(&episode_line(episode, episode_title.as_deref()));
+                let line = episode_line(episode, episode_title.as_deref());
+                self.ui.episode.set_label(&line);
+                if let Some(media) = self.media() {
+                    media.track(Track {
+                        show: title.clone(),
+                        title: line,
+                        art: banner_url.clone().or_else(|| cover_url.clone()),
+                    });
+                }
                 self.tick_starting(episode);
                 self.resumed_done();
                 self.ui.starting.set_visible(true);
@@ -454,7 +510,11 @@ impl PlayerView {
             }
             PlayerUi::Episode { number, title, show, .. } => {
                 self.ui.show.set_label(show);
-                self.ui.episode.set_label(&episode_line(number, title.as_deref()));
+                let line = episode_line(number, title.as_deref());
+                self.ui.episode.set_label(&line);
+                if let Some(media) = self.media() {
+                    media.retitle(show, &line);
+                }
             }
             PlayerUi::Menus { episodes, sources, upscaling, night_mode, .. } => {
                 self.menus.replace(Some((
@@ -708,6 +768,9 @@ impl PlayerView {
     }
 
     fn show_state(&self, state: PlayerState) {
+        if let Some(media) = self.media() {
+            media.state(state.paused, state.position, state.duration);
+        }
         let ui = &self.ui;
         let (icon, tip) = if state.paused {
             ("media-playback-start-symbolic", "Play")

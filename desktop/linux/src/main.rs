@@ -13,6 +13,7 @@ mod fit;
 mod fixtures;
 mod hub;
 mod motion;
+mod mpris;
 mod nagare;
 mod pages;
 mod player;
@@ -266,6 +267,13 @@ fn build(
     let hub = Hub::new(engine);
     let prefs = Rc::new(Prefs::open(files.prefs.clone()));
     let shell = Shell::build(app, Rc::clone(&hub), prefs, player, args.fixtures);
+    // A scene's media controls sit beside the user's own copy's, as MPRIS has instances do.
+    let media_name = if args.fixtures {
+        format!("{}.instance{}", mpris::NAME, std::process::id())
+    } else {
+        mpris::NAME.to_owned()
+    };
+    shell.player.serve_media_controls(&media_name);
     if let Some((width, height)) = args.size {
         shell.ctx.window.unmaximize();
         shell.ctx.window.set_default_size(width, height);
