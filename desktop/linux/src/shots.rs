@@ -7,10 +7,10 @@
 use std::{path::PathBuf, rc::Rc, time::Duration};
 
 use adw::prelude::*;
-use anistream_model::command::Command;
+use anistream_model::{command::Command, sync::DeviceCodePrompt};
 use gtk::glib;
 
-use crate::{pages::Dest, window::Shell};
+use crate::{hub::SignIn, pages::Dest, window::Shell};
 
 /// The title the title shots open: the fixture scene's finished title, part-way through
 /// episode 7.
@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 27] = [
+pub const ALL: [&str; 29] = [
     "home",
     "welcome",
     "offline",
@@ -39,6 +39,8 @@ pub const ALL: [&str; 27] = [
     "settings",
     "settings-upscaling",
     "settings-accounts",
+    "accounts-kitsu",
+    "accounts-code",
     "about",
     "player",
     "player-marks",
@@ -198,6 +200,22 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.settings_pane("accounts");
             1.5
         }
+        "accounts-kitsu" => {
+            shell.settings_pane("accounts");
+            crate::pages::accounts::kitsu(&shell.ctx, Rc::new(|| {}));
+            1.5
+        }
+        "accounts-code" => {
+            shell.ctx.hub.known.borrow_mut().signing.insert("simkl".into(), SignIn::Job(None));
+            shell.settings_pane("accounts");
+            let prompt = DeviceCodePrompt {
+                tracker: "simkl".into(),
+                code: "7KQ2M4".into(),
+                url: "https://example.test/pin".into(),
+            };
+            crate::pages::accounts::device_code(&shell.ctx, Some(&prompt));
+            1.5
+        }
         "about" => {
             let _ = WidgetExt::activate_action(window, "win.about", None);
             1.5
@@ -276,7 +294,11 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "title" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
-        "about" | "join" | "welcome" => close_dialogs(&shell.ctx.window),
+        "about" | "join" | "welcome" | "accounts-kitsu" => close_dialogs(&shell.ctx.window),
+        "accounts-code" => {
+            crate::pages::accounts::device_code(&shell.ctx, None);
+            shell.ctx.hub.known.borrow_mut().signing.remove("simkl");
+        }
         "offline" => shell.ctx.hub.send(Command::NetworkPath {
             cellular: false,
             constrained: false,

@@ -581,6 +581,9 @@ impl Shell {
                     shell.welcome();
                 }
                 Event::Authorize { url, .. } => shell.open_url(url),
+                Event::DeviceCode(prompt) => {
+                    pages::accounts::device_code(&shell.ctx, prompt.as_ref())
+                }
                 Event::PlaybackEnded { rolling_on: false, .. } => {
                     shell.ctx.hub.send(Command::LoadContinue);
                 }
@@ -658,14 +661,35 @@ impl Shell {
 
     fn open_url(&self, url: &str) {
         if self.fixtures {
-            tracing::info!(%url, "a link, not opened in a scene");
+            tracing::info!(url = %anistream_mpv_host::log::address(url), "a link, not opened in a scene");
             return;
         }
-        gtk::UriLauncher::new(url).launch(
-            Some(&self.ctx.window),
-            gio::Cancellable::NONE,
-            |_| {},
-        );
+        let ctx = Rc::downgrade(&self.ctx);
+        crate::portal::open_uri(&self.ctx.window, url, move || {
+            if let Some(ctx) = ctx.upgrade() {
+                ctx.toast("Couldn't open your browser");
+            }
+        });
+    }
+
+    /// An `anistream://` link handed to the app: a tracker's sign-in coming back from the
+    /// browser, `anistream://auth/<tracker>` with the token or code it carries.
+    pub fn open_link(&self, link: &str) {
+        match sign_in_return(link) {
+            Some(tracker) => {
+                let hub = &self.ctx.hub;
+                let job = hub.send_job(Command::FinishSignIn {
+                    tracker: tracker.clone(),
+                    callback: anistream_model::stores::Secret(link.to_owned()),
+                });
+                hub.known.borrow_mut().signing.insert(tracker, crate::hub::SignIn::Job(job));
+                self.settings_pane("accounts");
+            }
+            None => {
+                tracing::info!("a link this app does not open");
+                self.ctx.toast("anistream can't open that link");
+            }
+        }
     }
 
     /// Closing with nothing running quits. Closing while episodes download or seed asks first.
@@ -747,6 +771,14 @@ impl Shell {
     pub fn is_player(&self) -> bool {
         self.top.visible_child_name().as_deref() == Some("player")
     }
+}
+
+/// The tracker an `anistream://auth/<tracker>` sign-in return is for.
+fn sign_in_return(link: &str) -> Option<String> {
+    let rest = link.strip_prefix("anistream://auth/")?;
+    let tracker: String =
+        rest.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+    (!tracker.is_empty()).then_some(tracker)
 }
 
 /// A notice as a sentence: the engine words its notices for the terminal, in lower case.
@@ -874,7 +906,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
         move || {
             let Some(hub) = hub.upgrade() else { return };
             let known = hub.known.borrow();
-            match known.anilist() {
+            match known.account() {
                 Some(state) => {
                     let user = state
                         .user
@@ -891,7 +923,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                             anistream_model::wording::plural(waiting as usize, "change")
                         )
                     } else {
-                        "AniList synced".into()
+                        format!("{} synced", words::tracker_name(&state.tracker))
                     });
                     dot.set_visible(waiting == 0 && !state.needs_reauth && !known.syncing());
                 }
@@ -911,4 +943,23 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
         }
     });
     row
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_sign_in_return_names_its_tracker() {
+        assert_eq!(
+            sign_in_return("anistream://auth/anilist#access_token=x&state=y").as_deref(),
+            Some("anilist")
+        );
+        assert_eq!(
+            sign_in_return("anistream://auth/mal?code=x&state=y").as_deref(),
+            Some("mal")
+        );
+        assert_eq!(sign_in_return("anistream://join/abc"), None);
+        assert_eq!(sign_in_return("anistream://auth/"), None);
+    }
 }

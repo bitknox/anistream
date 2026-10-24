@@ -1,5 +1,6 @@
 //! The screens: one module each, and what the window shows for destinations not built yet.
 
+pub mod accounts;
 pub mod calendar;
 pub mod continue_page;
 pub mod downloads;

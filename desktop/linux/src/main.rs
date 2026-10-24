@@ -2,7 +2,7 @@
 //! runtime of its own and its player hosted on libmpv. The engine's events reach GTK's main loop
 //! over a channel; the window only ever queues commands, so nothing on the loop waits for it.
 //!
-//!   anistream-desktop [--hwdec <mode>] [--ao <output>]
+//!   anistream-desktop [--hwdec <mode>] [--ao <output>] [anistream://…]
 //!   anistream-desktop --fixtures [--data <dir>] [--media <file>] [--downloading] [--showcase]
 //!                     [--shots <dir> [--shot <a,b,...>] [--prefix <name>]] [--size <w>x<h>]
 
@@ -56,6 +56,8 @@ struct Args {
     size: Option<(i32, i32)>,
     hwdec: Option<String>,
     audio_output: Option<String>,
+    /// `anistream://` links to open: a tracker's sign-in coming back from the browser.
+    links: Vec<String>,
 }
 
 fn args() -> Args {
@@ -79,6 +81,7 @@ fn args() -> Args {
             }
             "--hwdec" => args.hwdec = it.next(),
             "--ao" => args.audio_output = it.next(),
+            link if link.starts_with("anistream:") => args.links.push(link.to_owned()),
             other => tracing::warn!(arg = other, "an argument this app does not take"),
         }
     }
@@ -94,6 +97,22 @@ fn main() -> glib::ExitCode {
         .with_writer(std::io::stderr)
         .init();
     let args = args();
+
+    adw::init().expect("libadwaita");
+    // A scene runs beside the user's own copy, never in it.
+    let flags = if args.fixtures {
+        gio::ApplicationFlags::NON_UNIQUE | gio::ApplicationFlags::HANDLES_OPEN
+    } else {
+        gio::ApplicationFlags::HANDLES_OPEN
+    };
+    let app = adw::Application::builder().application_id(APP_ID).flags(flags).build();
+    // GApplication is given only the links: the app's own options are its own.
+    let argv: Vec<String> =
+        std::iter::once("anistream-desktop".to_owned()).chain(args.links.clone()).collect();
+    // Already running: the links go to that copy, and this one starts nothing of its own.
+    if app.register(gio::Cancellable::NONE).is_ok() && app.is_remote() {
+        return app.run_with_args(&argv);
+    }
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -125,14 +144,6 @@ fn main() -> glib::ExitCode {
         }
     });
 
-    adw::init().expect("libadwaita");
-    // A scene runs beside the user's own copy, never in it.
-    let flags = if args.fixtures {
-        gio::ApplicationFlags::NON_UNIQUE
-    } else {
-        gio::ApplicationFlags::empty()
-    };
-    let app = adw::Application::builder().application_id(APP_ID).flags(flags).build();
     let player = PlayerOptions {
         hwdec: args.hwdec.clone().unwrap_or_else(|| "auto-safe".into()),
         cache_dir: Some(cache_dir.join("mpv").display().to_string()),
@@ -143,21 +154,38 @@ fn main() -> glib::ExitCode {
     let pending = Rc::new(RefCell::new(Some((events_rx, host_rx))));
     let shell_slot: Rc<RefCell<Option<Rc<Shell>>>> = Rc::default();
     let args = Rc::new(args);
-    app.connect_activate({
+    // The window, built the first time the app is activated or handed a link.
+    let shown = Rc::new({
         let engine = Arc::downgrade(&engine);
         let shell_slot = Rc::clone(&shell_slot);
         let args = Rc::clone(&args);
-        move |app| {
+        move |app: &adw::Application| -> Option<Rc<Shell>> {
             if let Some(shell) = shell_slot.borrow().as_ref() {
                 shell.ctx.window.present();
-                return;
+                return Some(Rc::clone(shell));
             }
-            let Some((events, requests)) = pending.borrow_mut().take() else { return };
+            let (events, requests) = pending.borrow_mut().take()?;
             let shell = build(app, engine.clone(), &args, &files, &player, events, requests);
-            shell_slot.replace(Some(shell));
+            shell_slot.replace(Some(Rc::clone(&shell)));
+            Some(shell)
         }
     });
-    let code = app.run_with_args::<&str>(&[]);
+    app.connect_activate({
+        let shown = Rc::clone(&shown);
+        move |app| {
+            shown(app);
+        }
+    });
+    app.connect_open({
+        let shown = Rc::clone(&shown);
+        move |app, files, _| {
+            let Some(shell) = shown(app) else { return };
+            for file in files {
+                shell.open_link(&file.uri());
+            }
+        }
+    });
+    let code = app.run_with_args(&argv);
     shell_slot.replace(None);
 
     match Arc::try_unwrap(engine) {

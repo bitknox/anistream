@@ -23,7 +23,6 @@ use crate::{
     prefs::CloseChoice,
     widgets,
     window::{Ctx, Size},
-    words,
 };
 
 use SettingKey as K;
@@ -296,7 +295,13 @@ impl Inner {
                     self.show(pane);
                 }
             }
-            Event::Sync(_) | Event::Authorize { .. } if *self.pane.borrow() == "accounts" => {
+            Event::Sync(_)
+            | Event::Authorize { .. }
+            | Event::DeviceCode(_)
+            | Event::JobDone(_)
+            | Event::Connectivity { .. }
+                if *self.pane.borrow() == "accounts" =>
+            {
                 self.built.replace(None);
                 self.show("accounts");
             }
@@ -740,64 +745,16 @@ impl Inner {
         }
     }
 
-    /// Accounts: AniList, signed in or not.
+    /// Accounts: the trackers, each signed in or not.
     fn accounts(self: &Rc<Self>, page: &adw::PreferencesPage) {
-        let group = adw::PreferencesGroup::builder()
-            .title("Trackers")
-            .description("Your lists and progress sync with the tracker you sign in to.")
-            .build();
-        let known = self.ctx.hub.known.borrow();
-        let row = adw::ActionRow::builder().title("AniList").build();
-        match known.anilist() {
-            Some(state) => {
-                let user = state
-                    .user
-                    .clone()
-                    .unwrap_or_else(|| words::tracker_name(&state.tracker).into());
-                let avatar = adw::Avatar::new(32, Some(&user), true);
-                row.add_prefix(&avatar);
-                row.set_title(&user);
-                let line = match (state.outbox, &state.last) {
-                    (0, Some(last)) => format!("AniList · synced {last}"),
-                    (0, None) => "AniList · synced".to_owned(),
-                    (n, _) => format!(
-                        "AniList · {} waiting to sync",
-                        anistream_model::wording::plural(n as usize, "change")
-                    ),
-                };
-                row.set_subtitle(&line);
-                let sync = gtk::Button::with_label("Sync Now");
-                sync.set_valign(gtk::Align::Center);
-                sync.set_action_name(Some("win.sync"));
-                row.add_suffix(&sync);
+        let inner = Rc::downgrade(self);
+        let rebuild: Rc<dyn Fn()> = Rc::new(move || {
+            if let Some(inner) = inner.upgrade() {
+                inner.built.replace(None);
+                inner.show("accounts");
             }
-            None => {
-                row.add_prefix(&gtk::Image::from_icon_name("avatar-default-symbolic"));
-                row.set_subtitle("Not signed in");
-                let sign_in = gtk::Button::with_label("Sign In…");
-                sign_in.add_css_class("suggested-action");
-                sign_in.set_valign(gtk::Align::Center);
-                let waiting = row.clone();
-                let hub = Rc::downgrade(&self.ctx.hub);
-                sign_in.connect_clicked(move |button| {
-                    if button.has_css_class("suggested-action") {
-                        if let Some(hub) = hub.upgrade() {
-                            hub.send(Command::Connect { tracker: "anilist".into() });
-                        }
-                        waiting.set_subtitle("Waiting for the browser…");
-                        button.set_label("Cancel");
-                        button.remove_css_class("suggested-action");
-                    } else {
-                        waiting.set_subtitle("Not signed in");
-                        button.set_label("Sign In…");
-                        button.add_css_class("suggested-action");
-                    }
-                });
-                row.add_suffix(&sign_in);
-            }
-        }
-        group.add(&row);
-        page.add(&group);
+        });
+        crate::pages::accounts::fill(&self.ctx, page, rebuild);
     }
 }
 
