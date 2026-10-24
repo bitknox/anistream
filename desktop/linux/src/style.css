@@ -131,3 +131,15 @@ levelbar block.empty { background: var(--rule); }
 
 /* The setup card. */
 .setup { padding: 12px; }
+
+/* Settings' preview column: a raised card on the pane's end. */
+.settings-preview { background: var(--raised); border-radius: 12px; padding: 16px; }
+.preview-frame { border-radius: 8px; }
+.chip {
+  font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 999px;
+  background: alpha(#0B0D18, 0.6); border: 1px solid alpha(white, 0.16);
+}
+.caption-sample {
+  color: white; font-size: 15px; font-weight: 600;
+  text-shadow: 0 0 2px black, 0 0 2px black, 0 1px 3px black;
+}

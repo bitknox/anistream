@@ -19,6 +19,7 @@ use gtk::gio;
 
 use crate::{
     catalog,
+    pages::settings_preview::{self as preview, Topic},
     prefs::CloseChoice,
     widgets,
     window::{Ctx, Size},
@@ -148,6 +149,12 @@ struct Inner {
     quiet: Cell<bool>,
     pane: RefCell<&'static str>,
     built: RefCell<Option<&'static str>>,
+    /// The preview column on the pane's end, while the pane has one.
+    aside: RefCell<Option<gtk::Box>>,
+    topic: Cell<Topic>,
+    /// The buttons that open a row's preview on a page of its own, hidden while the column
+    /// shows it.
+    openers: RefCell<Vec<gtk::Button>>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
@@ -189,6 +196,9 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
         quiet: Cell::new(false),
         pane: RefCell::new("playback"),
         built: RefCell::default(),
+        aside: RefCell::default(),
+        topic: Cell::new(Topic::Pane("playback")),
+        openers: RefCell::default(),
     });
     list.connect_row_selected({
         let inner = Rc::downgrade(&inner);
@@ -245,6 +255,13 @@ impl SettingsPage {
     }
 }
 
+impl SettingsPage {
+    /// Upscaling on its own page.
+    pub fn upscaling(&self) {
+        self.inner.push_upscaling();
+    }
+}
+
 impl Inner {
     fn select_row(&self, name: &str) {
         if self.split.is_collapsed() {
@@ -273,6 +290,7 @@ impl Inner {
                     }
                 }
                 self.quiet.set(false);
+                self.refresh_aside();
                 if self.built.borrow().is_none() {
                     let pane = *self.pane.borrow();
                     self.show(pane);
@@ -293,6 +311,8 @@ impl Inner {
         }
         let Some(pane) = PANES.iter().find(|p| p.name == name) else { return };
         self.rows.borrow_mut().clear();
+        self.openers.borrow_mut().clear();
+        self.topic.set(Topic::Pane(name));
         let page = adw::PreferencesPage::new();
         match name {
             "accounts" => self.accounts(&page),
@@ -325,11 +345,12 @@ impl Inner {
                 .build();
             page.add(&legal);
         }
+        let has_aside = preview::content(Topic::Pane(name), &known).is_some();
         drop(known);
         let header = adw::HeaderBar::new();
         let view = adw::ToolbarView::new();
         view.add_top_bar(&header);
-        view.set_content(Some(&page));
+        view.set_content(Some(&self.with_aside(&page, has_aside)));
         self.content.set_child(Some(&view));
         self.content.set_title(pane.title);
         if ready || pane.groups.is_empty() {
@@ -339,8 +360,49 @@ impl Inner {
         }
     }
 
-    /// The row for one setting, by the kind of value it takes.
+    /// The row for one setting, and where the preview column follows it.
     fn row(self: &Rc<Self>, row: &SettingRow) -> gtk::Widget {
+        let widget = self.row_for(row);
+        if let Some(topic) = preview::topic_of(row.key) {
+            let focus = gtk::EventControllerFocus::new();
+            let inner = Rc::downgrade(self);
+            focus.connect_enter(move |_| {
+                if let Some(inner) = inner.upgrade() {
+                    inner.follow(topic);
+                }
+            });
+            widget.add_controller(focus);
+            let click = gtk::GestureClick::new();
+            click.set_propagation_phase(gtk::PropagationPhase::Capture);
+            let inner = Rc::downgrade(self);
+            click.connect_pressed(move |_, _, _, _| {
+                if let Some(inner) = inner.upgrade() {
+                    inner.follow(topic);
+                }
+            });
+            widget.add_controller(click);
+        }
+        if row.key == K::Upscaling
+            && let Some(line) = widget.downcast_ref::<adw::ComboRow>()
+        {
+            let open = gtk::Button::from_icon_name("go-next-symbolic");
+            open.add_css_class("flat");
+            open.set_valign(gtk::Align::Center);
+            open.set_tooltip_text(Some("Preview"));
+            let inner = Rc::downgrade(self);
+            open.connect_clicked(move |_| {
+                if let Some(inner) = inner.upgrade() {
+                    inner.push_upscaling();
+                }
+            });
+            line.add_suffix(&open);
+            self.openers.borrow_mut().push(open);
+        }
+        widget
+    }
+
+    /// The row for one setting, by the kind of value it takes.
+    fn row_for(self: &Rc<Self>, row: &SettingRow) -> gtk::Widget {
         let key = row.key;
         let title = catalog::shown(key.label());
         let overridden = self
@@ -538,6 +600,134 @@ impl Inner {
             }
         });
         line
+    }
+
+    /// `page` with the preview column on its end, shown while the content is 800 wide or more:
+    /// 1280 and wider for the window.
+    fn with_aside(&self, page: &adw::PreferencesPage, has_aside: bool) -> gtk::Widget {
+        self.aside.replace(None);
+        if !has_aside {
+            return page.clone().upcast();
+        }
+        let aside = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        aside.add_css_class("settings-preview");
+        aside.set_size_request(280, -1);
+        aside.set_valign(gtk::Align::Start);
+        aside.set_margin_top(24);
+        aside.set_margin_end(24);
+        aside.set_visible(false);
+        page.set_hexpand(true);
+        let line = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        line.append(page);
+        // The clamp keeps the frames' own width from widening the column.
+        line.append(&adw::Clamp::builder().maximum_size(320).child(&aside).build());
+        let bin = adw::BreakpointBin::new();
+        bin.set_size_request(280, 240);
+        bin.set_child(Some(&line));
+        let wide = adw::Breakpoint::new(
+            adw::BreakpointCondition::parse("min-width: 800sp").expect("a condition"),
+        );
+        wide.add_setter(&aside, "visible", Some(&true.to_value()));
+        for open in self.openers.borrow().iter() {
+            wide.add_setter(open, "visible", Some(&false.to_value()));
+        }
+        bin.add_breakpoint(wide);
+        self.aside.replace(Some(aside));
+        self.refresh_aside();
+        bin.upcast()
+    }
+
+    /// The column on `topic`, when a row with an effect of its own is chosen.
+    fn follow(&self, topic: Topic) {
+        if self.topic.get() != topic {
+            self.topic.set(topic);
+            self.refresh_aside();
+        }
+    }
+
+    fn refresh_aside(&self) {
+        let Some(aside) = self.aside.borrow().clone() else { return };
+        while let Some(child) = aside.first_child() {
+            aside.remove(&child);
+        }
+        if let Some(content) = preview::content(self.topic.get(), &self.ctx.hub.known.borrow())
+        {
+            aside.append(&content);
+        }
+    }
+
+    /// Upscaling on a page of its own, for windows too small for the column: the frame over
+    /// the modes to pick from.
+    fn push_upscaling(self: &Rc<Self>) {
+        let Some(nav) = self.ctx.nav() else { return };
+        let column = gtk::Box::new(gtk::Orientation::Vertical, 18);
+        let shown = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        column.append(&shown);
+        let list = widgets::boxed_list();
+        column.append(&list);
+        let mut checks = Vec::new();
+        let mut group: Option<gtk::CheckButton> = None;
+        // Set while the checks take the engine's value, so a check does not send it back.
+        let quiet = Rc::new(Cell::new(false));
+        for choice in catalog::choices(K::Upscaling) {
+            let check = gtk::CheckButton::new();
+            check.set_group(group.as_ref());
+            group.get_or_insert_with(|| check.clone());
+            let line = adw::ActionRow::builder()
+                .title(choice.label())
+                .activatable_widget(&check)
+                .build();
+            line.add_prefix(&check);
+            list.append(&line);
+            let hub = Rc::downgrade(&self.ctx.hub);
+            let value = choice.value.clone();
+            let still = Rc::clone(&quiet);
+            check.connect_toggled(move |check| {
+                if check.is_active()
+                    && !still.get()
+                    && let Some(hub) = hub.upgrade()
+                {
+                    hub.send(Command::SetSetting { key: K::Upscaling, value: value.clone() });
+                }
+            });
+            checks.push(check);
+        }
+        let header = adw::HeaderBar::new();
+        let page = widgets::page("Upscaling", &header, &widgets::column_page(&column, 640));
+        let fill = {
+            let hub = Rc::downgrade(&self.ctx.hub);
+            let shown = shown.downgrade();
+            move || {
+                let (Some(hub), Some(shown)) = (hub.upgrade(), shown.upgrade()) else { return };
+                let row = hub.known.borrow().setting(K::Upscaling);
+                let value = row.as_ref().map(|r| r.value.clone()).unwrap_or_default();
+                while let Some(child) = shown.first_child() {
+                    shown.remove(&child);
+                }
+                shown.append(&preview::upscaling(&value));
+                if let Some(at) = row.as_ref().and_then(catalog::current)
+                    && let Some(check) = checks.get(at)
+                    && !check.is_active()
+                {
+                    quiet.set(true);
+                    check.set_active(true);
+                    quiet.set(false);
+                }
+            }
+        };
+        fill();
+        let listening = self.ctx.hub.listen(move |event| {
+            if matches!(event, Event::Settings(_)) {
+                fill();
+            }
+        });
+        let hub = Rc::downgrade(&self.ctx.hub);
+        page.connect_destroy(move |_| {
+            if let Some(hub) = hub.upgrade() {
+                hub.forget(listening);
+            }
+        });
+        nav.push(&page);
     }
 
     fn keep(&self, key: SettingKey, update: impl Fn(&SettingRow) + 'static) {

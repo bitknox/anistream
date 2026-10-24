@@ -228,6 +228,11 @@ impl Shell {
         self.settings.select(pane);
     }
 
+    /// Settings' upscaling page, as a window too small for the preview column opens it.
+    pub fn settings_upscaling(&self) {
+        self.settings.upscaling();
+    }
+
     /// A title's page, over the destination on screen.
     pub fn open_title(&self, id: AnilistId) {
         if let Some(nav) = self.ctx.nav() {
