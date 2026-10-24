@@ -35,8 +35,8 @@ export function Joining({
 	};
 	const toggle = open ? (
 		<Confirm
-			label="invites only"
-			confirm="stop the link, keep the devices"
+			label="Invites only"
+			confirm="Stop the link, keep the devices"
 			danger={false}
 			onConfirm={() =>
 				act(
@@ -49,61 +49,62 @@ export function Joining({
 		/>
 	) : (
 		<Confirm
-			label="let anyone with the link join"
-			confirm="make the store's link"
+			label="Let anyone with the link join"
+			confirm="Make the store's link"
 			danger={false}
-			onConfirm={() => act(() => api.setOpen(true), 'Anyone with the link can join now. Copy it below.')}
+			onConfirm={() =>
+				act(() => api.setOpen(true), 'Anyone with the link can join now. Copy it below.')
+			}
 		/>
 	);
 
 	return (
 		<Section
 			id="joining"
-			glyph="⇄"
 			title="Who can join"
 			lede={
 				open
 					? 'Anyone with this link can join, as often as they like, without a name. Members see that the store is open. Going back to invites only stops the link; opening again makes a new one.'
-					: 'Only people you invite can join. You can let anyone with the store\'s link join instead: they join without a name, and the store keeps nothing about who they are.'
+					: "Only people you invite can join. You can let anyone with the store's link join instead: they join without a name, and the store keeps nothing about who they are."
 			}
 		>
-			<Row label={open ? 'open' : 'invites'} actions={toggle}>
+			<Row label={open ? 'Open' : 'Invites'} actions={toggle}>
 				<h3>{open ? "Anyone with the store's link" : 'Only people you invite'}</h3>
 				<Facts
 					items={
 						open
 							? [
-									['joins', 'without a name'],
-									['the link', 'works until the store goes back to invites only'],
+									['Joins', 'without a name'],
+									['The link', 'works until the store goes back to invites only'],
 								]
-							: [['joins', 'with an invite, as the person it names']]
+							: [['Joins', 'with an invite, as the person it names']]
 					}
 				/>
 			</Row>
 
 			{open && state.link && (
-				<div className="made" role="group" aria-label="The store's link">
-					<p className="made-for">the store's link, for anyone</p>
+				<fieldset className="made" aria-label="The store's link">
+					<p className="caps made-for">The store's link, for anyone</p>
 					<p className="made-link">{state.link}</p>
-					<div className="made-actions">
-						<button type="button" className="btn btn-solid" onClick={copy}>
-							copy link
+					<div className="actions">
+						<button type="button" className="btn btn-small" onClick={copy}>
+							Copy link
 						</button>
 					</div>
-				</div>
+				</fieldset>
 			)}
 
 			{(state.devices > 0 || open) && (
 				<Row
-					label="devices"
+					label="Devices"
 					actions={
 						state.devices > 0 && (
 							<Confirm
-								label="remove all"
+								label="Remove all"
 								confirm={
 									state.devices === 1
-										? 'remove the device'
-										: `remove all ${plural(state.devices, 'device')}`
+										? 'Remove the device'
+										: `Remove all ${plural(state.devices, 'device')}`
 								}
 								onConfirm={() =>
 									act(
@@ -122,9 +123,9 @@ export function Joining({
 					</h3>
 					<Facts
 						items={[
-							['names', 'none kept'],
+							['Names', 'none kept'],
 							...(state.devices > state.device_list.length
-								? ([['shown', `the newest ${state.device_list.length}`]] as [string, string][])
+								? ([['Shown', `the newest ${state.device_list.length}`]] as [string, string][])
 								: []),
 						]}
 					/>
@@ -132,11 +133,11 @@ export function Joining({
 						<ul className="devices">
 							{state.device_list.map((device) => (
 								<li key={device.id}>
-									<span className="device-label">joined {ago(device.created_at)}</span>
-									<span className="dim">seen {ago(device.last_seen)}</span>
+									<span className="device-label">Joined {ago(device.created_at)}</span>
+									<span className="dim">Seen {ago(device.last_seen)}</span>
 									<Confirm
-										label="revoke"
-										confirm="revoke this device"
+										label="Revoke"
+										confirm="Revoke this device"
 										onConfirm={() =>
 											act(
 												() => api.revokeDevice(device.id),

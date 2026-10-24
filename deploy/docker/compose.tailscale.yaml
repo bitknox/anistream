@@ -32,7 +32,7 @@ services:
       - ./tailscale:/config:ro
 
   store:
-    image: ghcr.io/bitknox/anistream-store:1
+    image: ghcr.io/bitknox/anistream-store:2
     restart: unless-stopped
     # The tailscale container's network, so Serve and the store reach each other on loopback.
     network_mode: service:tailscale

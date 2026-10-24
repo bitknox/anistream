@@ -86,8 +86,12 @@ fun PlayerSheets(model: PlayerModel, sheet: PlayerSheet?, onDismiss: () -> Unit)
         dragHandle = { BottomSheetDefaults.DragHandle(color = ObiSilk.Haze.copy(alpha = 0.4f)) },
     ) {
         ImmersiveSheet()
-        // The Episodes sheet opens on the episode playing.
-        val current = if (sheet == PlayerSheet.Episodes) model.menus?.episodes?.indexOfFirst { it.current }?.takeIf { it > 1 } ?: 0 else 0
+        // The Episodes sheet opens on the episode playing, the Tracks sheet on the subtitles in use.
+        val current = when (sheet) {
+            PlayerSheet.Episodes -> model.menus?.episodes?.indexOfFirst { it.current }?.takeIf { it > 1 } ?: 0
+            PlayerSheet.Tracks -> tracksOpeningRow(model.subtitleTracks.map { it.id }, model.subtitleTrack)
+            PlayerSheet.Sources -> 0
+        }
         LazyColumn(state = rememberLazyListState(initialFirstVisibleItemIndex = current), contentPadding = PaddingValues(bottom = 24.dp)) {
             when (sheet) {
                 PlayerSheet.Tracks -> tracks(model)
@@ -112,6 +116,16 @@ private fun ImmersiveSheet() {
         }
         onDispose {}
     }
+}
+
+/**
+ * The row the Tracks sheet opens on: the one above the subtitles in use, so a list of many
+ * tracks shows it. The sheet's title, the Subtitles heading and Off come before the tracks.
+ */
+internal fun tracksOpeningRow(subtitles: List<Long>, current: Long?): Int {
+    val inUse = current?.let { id -> subtitles.indexOf(id).takeIf { it >= 0 }?.let { it + 3 } } ?: 2
+    // Near the top, the top shows it already, with the sheet's title.
+    return if (inUse > 5) inUse - 1 else 0
 }
 
 private fun LazyListScope.tracks(model: PlayerModel) {

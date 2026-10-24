@@ -10,6 +10,7 @@ import SwiftUI
 
 struct PhoneAboutPage: View {
     @Environment(\.openURL) private var openURL
+    @Environment(AppStore.self) private var store
 
     var body: some View {
         ScrollView {
@@ -39,6 +40,14 @@ struct PhoneAboutPage: View {
                         .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 17))
                 }
                 .padding(.top, 28)
+                Button("Report a bug") { ReportBugAction(store: store, openURL: openURL)() }
+                    .buttonStyle(SecondaryCapsuleStyle(height: 44, fontSize: 17))
+                    .padding(.top, 10)
+                Text("Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.")
+                    .font(.ui(13))
+                    .foregroundStyle(.haze)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
                 PhoneUpdatesCard()
                     .padding(.top, 32)
             }

@@ -144,7 +144,10 @@ pub async fn self_update(http: &HttpClient) -> Result<()> {
         .next()
         .map(str::to_lowercase)
         .context("empty checksum file")?;
-    let actual = format!("{:x}", sha2::Sha256::digest(&archive));
+    let actual = sha2::Sha256::digest(&archive)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
     if actual != expected {
         bail!("checksum mismatch — expected {expected}, got {actual}; not installing");
     }

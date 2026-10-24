@@ -66,7 +66,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
@@ -866,10 +869,40 @@ private fun TitleHead(entry: Entry, episodes: List<EpisodeRow>?, list: LazyListS
                     // the page on screen takes part, not one waiting off screen.
                     .then(if (shared) Modifier.shared(Shared.Player, entry.id).shared(Shared.Art, entry.id) else Modifier),
             )
+            // Over the banner and moving with it, but no part of what the player grows out of.
+            BannerScrim(
+                Modifier
+                    .fillMaxWidth()
+                    .height(inset + 156.dp)
+                    .graphicsLayer {
+                        translationY = (if (list.firstVisibleItemIndex == 0) list.firstVisibleItemScrollOffset else 0) * 0.5f
+                    },
+            )
         }
         TitleHeader(entry, shared, Modifier.padding(top = inset + if (art == HeroArt.Compact) 64.dp else 112.dp))
     }
 }
+
+/**
+ * The ground rising over the banner's foot, where a title of two lines wraps up onto it: opaque
+ * where it meets the page, and still 70% of it [held] above, at the top of the first line's
+ * letters, which keeps silk text above 4.5:1 even over a pure white banner. Then gone by [height],
+ * low and light, so the art looks as it did; the title's shadow does the rest.
+ */
+@Composable
+private fun BannerScrim(modifier: Modifier = Modifier, held: Dp = 19.dp, height: Dp = 46.dp) {
+    val ground = MaterialTheme.colorScheme.surface
+    Box(modifier, contentAlignment = Alignment.BottomCenter) {
+        val fade = height - held
+        // Stops by their distance above the foot, eased out from the held part to nothing.
+        val stops = listOf(height to 0f, held + fade * 0.5f to 0.28f, held to 0.7f, 0.dp to 1f)
+            .map { (above, alpha) -> (1f - above / height) to ground.copy(alpha = alpha) }
+        Box(Modifier.fillMaxWidth().height(height).background(Brush.verticalGradient(*stops.toTypedArray())))
+    }
+}
+
+/** The page's title with a soft edge of the ground, so its letters hold on light or busy art. */
+private val TitleOverArt = ShowTitle.page.copy(shadow = Shadow(ObiSilk.Ground.copy(alpha = 0.75f), Offset(0f, 2f), 14f))
 
 /** The facts on one line, then the top three tags on another, each cut at the end. */
 @Composable
@@ -951,7 +984,7 @@ private fun TitleHeader(entry: Entry, shared: Boolean, modifier: Modifier = Modi
         Column(Modifier.weight(1f)) {
             Text(
                 entry.showTitle,
-                style = ShowTitle.page,
+                style = TitleOverArt,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { heading() },
@@ -1682,6 +1715,7 @@ private fun TabletTitle(
                                 maxPixelSize = 1600,
                                 modifier = Modifier.fillMaxWidth().height(inset + 208.dp).shared(Shared.Art, entry.id),
                             )
+                            BannerScrim(Modifier.fillMaxWidth().height(inset + 208.dp))
                         }
                         // The cover overlaps the banner's foot, the title block sits level with
                         // the cover's foot, and the details column starts below the banner, so it
@@ -1708,7 +1742,7 @@ private fun TabletTitle(
                                     .border(1.dp, ObiSilk.Silk.copy(alpha = 0.1f), ArtShape.cover(150.dp)),
                             )
                             Column(Modifier.weight(1f).padding(bottom = 0.dp)) {
-                                Text(entry.showTitle, style = ShowTitle.page, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
+                                Text(entry.showTitle, style = TitleOverArt, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
                                 entry.alternateTitle?.let {
                                     Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }

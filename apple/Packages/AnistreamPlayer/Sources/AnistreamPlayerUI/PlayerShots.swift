@@ -34,6 +34,9 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     case pictureInPicture = "picture-in-picture"
     /// "Couldn't play episode 7", with Choose source and Close.
     case couldntPlay = "couldnt-play"
+    /// Playing, paused, with the Subtitles and audio menu open over it and the last subtitle
+    /// track picked, which a long list scrolls into view.
+    case tracks
 
     /// The launch argument that names one: `-AnistreamPlayerShot up-next`.
     public static let argument = "-AnistreamPlayerShot"
@@ -70,6 +73,14 @@ extension PlayerModel {
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
             pinnedControls = true
+        case .tracks:
+            seek(to: 31)
+            there = await waited(10) { self.position >= 31.5 && !self.subtitleTracks.isEmpty }
+            togglePause()
+            if let last = subtitleTracks.last { selectSubtitle(last.id) }
+            pinnedControls = true
+            try? await Task.sleep(for: .seconds(0.5))
+            requestTrackMenu()
         case .fading:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }

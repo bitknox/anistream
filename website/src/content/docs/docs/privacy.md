@@ -173,17 +173,25 @@ peer discovery. The guard is a safety net. Your VPN or proxy is what protects yo
 
 Seeding after an episode is off by default.
 
-## The terminal app's integrations
+## Integrations
 
-Discord presence is off by default. When it is on, your Discord profile shows the title and episode
-while one plays, or only "Watching anime" if you keep the title off. The app tells the Discord app
-on your computer, and Discord shows it to others.
+Discord presence is off by default, and only the desktop apps (the terminal app and the Mac app) have
+it. When it is on, your Discord profile shows the title and episode while one plays, or only
+"Watching anime" if you keep the title off. The app tells the Discord app on your computer, and
+Discord shows it to others.
+
+Rich presence is a second switch, also off by default. It adds the show's cover, a progress bar, a
+"View on AniList" button and whether the episode is paused or buffering. Discord fetches the cover
+from AniList's image server itself, so that server learns which cover your Discord asked for, and
+anyone who looks at your profile can follow the button to the show's AniList page. Every part of it
+names the show, so it goes out only while the title is shown: with the title off you get only
+"Watching anime".
 
 Watch parties hand playback to Syncplay, a separate program, which connects to the server you set.
 The server and the people in the room see the name you join with and what is playing, as Syncplay
 shares it. Progress isn't recorded during a party.
 
-The Mac app's Integrations settings set both for the terminal app, which shares its config.
+The Mac app's Integrations settings set these for the terminal app too, which shares its config.
 
 ## On your device
 

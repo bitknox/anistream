@@ -338,7 +338,7 @@ private fun Results(query: String) {
                     items(yours + rest, key = { it.id.toLong() }, contentType = { "poster" }) { PosterCell(it, itemMotion(), from = "search", detail = searchDetail(it)) }
                 }
             }
-            is ListState.Failed -> Quiet(list.reason)
+            is ListState.Failed -> FailedQuiet(list.reason)
             else -> Quiet(if (query.isBlank()) "Nothing matches these filters" else "Nothing matches “$query”")
         }
     }

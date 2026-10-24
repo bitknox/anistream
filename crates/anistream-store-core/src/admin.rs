@@ -17,11 +17,7 @@ const FILES: &[(&str, &str, &[u8])] = &[
     ("admin.js", "text/javascript; charset=utf-8", asset!("admin.js")),
     ("admin.css", "text/css; charset=utf-8", asset!("admin.css")),
     ("favicon.svg", "image/svg+xml", asset!("favicon.svg")),
-    (
-        "fonts/zen-kaku-gothic-new-latin-400-normal.woff2",
-        "font/woff2",
-        asset!("fonts/zen-kaku-gothic-new-latin-400-normal.woff2"),
-    ),
+    ("icon.svg", "image/svg+xml", asset!("icon.svg")),
     (
         "fonts/zen-kaku-gothic-new-latin-500-normal.woff2",
         "font/woff2",
@@ -41,10 +37,13 @@ const FILES: &[(&str, &str, &[u8])] = &[
 ];
 
 /// The page holds owner rights, so it runs nothing it did not come with: no inline script, no
-/// outside resource, no framing, and nothing to send a referrer to.
+/// outside resource, no framing, and nothing to send a referrer to. The one place it may reach
+/// besides the store is GitHub's public release information, for the update check an owner turns
+/// on or asks for, which sends nothing about the store.
 const POLICY: &str = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; \
-                      img-src 'self' data:; connect-src 'self'; base-uri 'none'; \
-                      form-action 'none'; frame-ancestors 'none'";
+                      img-src 'self' data:; \
+                      connect-src 'self' https://api.github.com https://raw.githubusercontent.com; \
+                      base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 /// One of the page's files, or `None` for a path that is not one.
 pub(crate) fn asset(path: &str) -> Option<Response> {
@@ -79,6 +78,9 @@ mod tests {
             assert!(page.contains(reference), "index.html no longer loads {reference}");
             assert!(asset(reference.trim_start_matches("./")).is_some());
         }
+        let script = std::str::from_utf8(asset!("admin.js")).unwrap();
+        assert!(script.contains("./icon.svg"), "admin.js no longer shows ./icon.svg");
+        assert!(asset("icon.svg").is_some());
         let css = std::str::from_utf8(asset!("admin.css")).unwrap();
         for (name, _, _) in FILES.iter().filter(|(name, _, _)| name.ends_with(".woff2")) {
             assert!(css.contains(&format!("./{name}")), "admin.css does not use {name}");

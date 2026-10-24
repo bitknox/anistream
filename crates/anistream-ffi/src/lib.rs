@@ -25,6 +25,7 @@
 
 uniffi::setup_scaffolding!();
 
+mod bug_report;
 mod engine;
 mod host;
 mod log;
@@ -38,6 +39,7 @@ mod start;
 #[cfg(feature = "testing")]
 mod testing;
 
+pub use bug_report::bug_report_url;
 pub use engine::FfiEngine;
 pub use host::FfiHost;
 pub use log::{FfiLogLevel, log_line, start_log};

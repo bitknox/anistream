@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, api } from './api';
-import { DropBand } from './components/DropBand';
-import { Depth } from './components/Depth';
-import { Eyecatch } from './components/Eyecatch';
 import { Footer, Nav } from './components/Chrome';
-import { Hero } from './components/Hero';
+import { DropBand } from './components/DropBand';
 import { Invites } from './components/Invites';
 import { Joining } from './components/Joining';
 import { Members } from './components/Members';
+import { Overview } from './components/Overview';
 import { Plugins } from './components/Plugins';
 import { SignedOut } from './components/SignedOut';
-import { StatusLine, type Status } from './components/StatusLine';
+import { type Status, StatusLine } from './components/StatusLine';
+import { UpdateBanner, Updates, useUpdate } from './components/Updates';
 import type { AdminOverview, StoreInfo } from './types';
 
 type View =
@@ -136,30 +135,33 @@ export function App() {
 	}, []);
 
 	const data = view.kind === 'ready' ? view.data : null;
+	const update = useUpdate(data?.server);
 
 	return (
 		<>
-			<Eyecatch />
-			<Depth />
-			<div className="wrap">
-				<Nav me={data?.me} onSignOut={signOut} />
-				<main>
-					{data && (
-						<>
-							<Hero data={data} />
-							<Plugins plugins={data.plugins} act={act} onPublish={publish} />
-							<Members members={data.members} me={data.me} act={act} />
-							<Joining state={data.open} act={act} say={say} />
-							<Invites invites={data.invites} act={act} say={say} />
-						</>
-					)}
-					{view.kind === 'signed-out' && (
-						<SignedOut reason={view.reason} store={view.store} say={say} />
-					)}
-				</main>
-				<Footer />
-			</div>
-			<StatusLine status={status} idle={data ? data.url : 'plugin store'} />
+			<a className="skip" href="#main">
+				Skip to the page
+			</a>
+			<Nav me={data?.me} onSignOut={signOut} />
+			<main id="main" tabIndex={-1}>
+				{view.kind === 'loading' && <div className="scene-hold" aria-hidden="true" />}
+				{data && (
+					<>
+						<Overview data={data} />
+						<UpdateBanner update={update} />
+						<Plugins plugins={data.plugins} act={act} onPublish={publish} />
+						<Members members={data.members} me={data.me} act={act} />
+						<Joining state={data.open} act={act} say={say} />
+						<Invites invites={data.invites} act={act} say={say} />
+						<Updates server={data.server} update={update} />
+					</>
+				)}
+				{view.kind === 'signed-out' && (
+					<SignedOut reason={view.reason} store={view.store} say={say} />
+				)}
+			</main>
+			<Footer />
+			<StatusLine status={status} />
 			{data && <DropBand onFiles={publish} />}
 		</>
 	);

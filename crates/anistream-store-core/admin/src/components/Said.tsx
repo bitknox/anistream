@@ -6,5 +6,13 @@ export function Said({ text }: { text: string }) {
 	const pieces = text.split('`');
 	// An odd count of backticks would leave one unpaired; show the words as they came.
 	if (pieces.length % 2 === 0) return <>{text}</>;
-	return <>{pieces.map((piece, i) => (i % 2 ? <code key={i}>{piece}</code> : piece))}</>;
+	return (
+		<>
+			{pieces.map((piece, i) =>
+				// The pieces never move: their place in the sentence is who they are.
+				// biome-ignore lint/suspicious/noArrayIndexKey: a fixed split of one string
+				i % 2 ? <code key={i}>{piece}</code> : piece,
+			)}
+		</>
+	);
 }

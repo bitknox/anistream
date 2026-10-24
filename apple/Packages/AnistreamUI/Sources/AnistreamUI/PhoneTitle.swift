@@ -25,6 +25,9 @@ struct PhoneTitle: View {
                 if !art.isCompact {
                     HeroArtView(art: art, entry: entry)
                         .frame(height: 250)
+                        // The ground fading up from the art's foot, under the cover and a title
+                        // of three lines.
+                        .overlay(alignment: .bottom) { BannerScrim(held: 38, height: 82) }
                         .visualEffect { [reduceMotion] content, proxy in
                             let y = proxy.frame(in: .scrollView(axis: .vertical)).minY
                             let h = proxy.size.height
@@ -46,6 +49,7 @@ struct PhoneTitle: View {
                             // As large as `.accessibility3`, in four lines at most.
                             .lineLimit(4)
                             .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+                            .titleOverArt()
                             .accessibilityAddTraits(.isHeader)
                         OtherTitlesLine(entry: entry, phone: true)
                         Text(entry.phoneMetadata)

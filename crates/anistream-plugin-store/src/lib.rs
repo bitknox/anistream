@@ -16,7 +16,7 @@ pub mod install;
 pub mod local;
 pub mod server;
 
-pub use anistream_store_core::{crypto, inspect, invite, manifest, protocol};
+pub use anistream_store_core::{crypto, inspect, invite, manifest, protocol, schema};
 
 pub use client::{ClientError, StoreClient};
 pub use inspect::{Inspector, PluginInfo};

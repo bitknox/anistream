@@ -19,8 +19,8 @@ export function Plugins({
 	const input = useRef<HTMLInputElement>(null);
 	const action = (
 		<>
-			<button type="button" className="btn btn-solid" onClick={() => input.current?.click()}>
-				publish a plugin
+			<button type="button" className="btn btn-primary" onClick={() => input.current?.click()}>
+				Publish a plugin
 			</button>
 			<input
 				ref={input}
@@ -38,15 +38,18 @@ export function Plugins({
 	return (
 		<Section
 			id="plugins"
-			glyph="▢"
 			title={plugins.length ? `${plural(plugins.length, 'plugin')} offered` : 'Nothing offered yet'}
 			action={action}
 			lede="Members install these from the store's page in anistream. A new version replaces the old one for everyone, and each member is asked before it can reach a host it could not reach before."
 		>
 			{plugins.length === 0 ? (
-				<Nagare>
-					<p>Publish a plugin from your plugin directory, or drop its .wasm file anywhere on this page.</p>
-				</Nagare>
+				<div className="empty">
+					<Nagare cell={3} decorative />
+					<p>
+						Publish a plugin from your plugin directory, or drop its .wasm file anywhere on this
+						page.
+					</p>
+				</div>
 			) : (
 				plugins.map((plugin) => (
 					<Row
@@ -54,8 +57,8 @@ export function Plugins({
 						label={plugin.version}
 						actions={
 							<Confirm
-								label="stop offering"
-								confirm={`stop offering ${plugin.name}`}
+								label="Stop offering"
+								confirm={`Stop offering ${plugin.name}`}
 								onConfirm={() =>
 									act(() => api.unpublish(plugin.id), `${plugin.name} is no longer offered.`)
 								}
@@ -66,16 +69,23 @@ export function Plugins({
 						<Facts
 							items={[
 								[
-									'may contact',
+									'May contact',
 									plugin.allowed_hosts.length ? (
-										<span className="mono">{plugin.allowed_hosts.join(', ')}</span>
+										<span key="hosts" className="mono">
+											{plugin.allowed_hosts.join(', ')}
+										</span>
 									) : (
-										'nothing'
+										'Nothing'
 									),
 								],
-								['id', <span className="mono">{plugin.id}</span>],
-								['size', bytes(plugin.size)],
-								['published', ago(plugin.published_at)],
+								[
+									'ID',
+									<span key="id" className="mono">
+										{plugin.id}
+									</span>,
+								],
+								['Size', bytes(plugin.size)],
+								['Published', ago(plugin.published_at)],
 							]}
 						/>
 					</Row>

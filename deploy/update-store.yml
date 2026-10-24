@@ -1,0 +1,83 @@
+# Updates a plugin store deployed from one of anistream's serverless templates (Cloudflare,
+# Vercel or Netlify) to a newer release. deploy/sync.sh copies this file into each template.
+#
+# The deploy buttons make a copy of the template, not a fork, so GitHub's Sync fork does not
+# apply. This does the same job: it fetches the template from an anistream release, copies it over
+# this repository, keeps this repository's settings file, and pushes. The host then deploys the
+# push like any other, and the store brings its database up to date on its first request.
+#
+# To use it, move this file to .github/workflows/update-store.yml and commit it once. It then
+# appears under Actions as "Update the store", with a Run workflow button. It only runs when you
+# run it.
+
+name: Update the store
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: A release tag, such as v2.1.0. Leave it empty for the newest release.
+        required: false
+  # To update on a schedule instead, remove the # from the two lines below. Every Monday at 06:00 UTC:
+  # schedule:
+  #   - cron: '0 6 * * 1'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-store
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy the release's template over this repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          # Which template this is, by its settings file, which the host may have written to and
+          # which is kept as it is.
+          if [ -f wrangler.jsonc ]; then template=cloudflare; config=wrangler.jsonc
+          elif [ -f vercel.json ]; then template=vercel; config=vercel.json
+          elif [ -f netlify.toml ]; then template=netlify; config=netlify.toml
+          else
+            echo "::error::No wrangler.jsonc, vercel.json or netlify.toml here, so this is not a store template."
+            exit 1
+          fi
+
+          tag="${TAG:-$(gh release view --repo bitknox/anistream --json tagName --jq .tagName)}"
+          echo "Updating the $template template to anistream $tag."
+          upstream="$RUNNER_TEMP/anistream"
+          git clone --quiet --depth 1 --branch "$tag" --filter=blob:none --sparse \
+            https://github.com/bitknox/anistream.git "$upstream"
+          git -C "$upstream" sparse-checkout set "deploy/$template"
+          from="$upstream/deploy/$template"
+          if [ ! -f "$from/$config" ]; then
+            echo "::error::anistream $tag has no $template template."
+            exit 1
+          fi
+
+          if ! cmp -s "$from/$config" "$config"; then
+            echo "::warning::$config differs from the one in anistream $tag. Yours is kept. Compare them below and bring over anything new by hand."
+            diff -u "$config" "$from/$config" || true
+          fi
+
+          rsync -a --delete \
+            --exclude .git --exclude .github --exclude node_modules --exclude .dev.vars \
+            --exclude "$config" --exclude update-store.yml \
+            "$from/" ./
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Already on anistream $tag."
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit --quiet -m "Update the plugin store to anistream $tag"
+          git push

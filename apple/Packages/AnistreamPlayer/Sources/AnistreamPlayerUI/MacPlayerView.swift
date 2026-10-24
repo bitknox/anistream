@@ -94,6 +94,7 @@ public struct MacPlayerView: View {
         .onChange(of: visible, initial: true) { _, on in titleBar(on) }
         .onChange(of: window) { _, window in if let window { opened(window) } }
         .onChange(of: model.backRequests) { back() }
+        .onChange(of: model.trackMenuRequests) { panel = .tracks }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
             guard let window, (note.object as? NSWindow) === window else { return }
             PlayerModel.note(.info, "player window full screen, \(Self.describe(window))")
@@ -330,28 +331,40 @@ public struct MacPlayerView: View {
         Color.clear
             .contentShape(.rect)
             .onTapGesture { panel = nil }
-        VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    switch which {
-                    case .tracks: TrackLists(model: model, metrics: metrics)
-                    case .episodes: EpisodeList(model: model, metrics: metrics)
-                    case .more: MoreLists(model: model, metrics: metrics)
+        MenuPanelFrame {
+            ScrollViewReader { list in
+                MenuScroll {
+                    VStack(alignment: .leading, spacing: 0) {
+                        switch which {
+                        case .tracks: TrackLists(model: model, metrics: metrics)
+                        case .episodes: EpisodeList(model: model, metrics: metrics)
+                        case .more: MoreLists(model: model, metrics: metrics)
+                        }
                     }
+                    .padding(5)
                 }
-                .padding(5)
+                .onAppear {
+                    if let row = selectedRow(which) { list.scrollTo(row, anchor: .center) }
+                }
             }
-            .scrollBounceBehavior(.basedOnSize)
         }
         .frame(width: 264)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxHeight: 420)
         .background(.glassFill, in: .rect(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
         .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
-        .padding(which == .more ? EdgeInsets(top: 0, leading: 0, bottom: 60, trailing: 84) : EdgeInsets(top: 50, leading: 0, bottom: 0, trailing: 16))
+        // Below the title strip and above the control row, whichever end it hangs from.
+        .padding(EdgeInsets(top: 50, leading: 0, bottom: 60, trailing: which == .more ? 84 : 16))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: which == .more ? .bottomTrailing : .topTrailing)
         .transition(.opacity)
+    }
+
+    /// The row in use in a panel, which a list too long for the window scrolls to as it opens.
+    private func selectedRow(_ which: Panel) -> String? {
+        switch which {
+        case .tracks: TrackLists.selectedRow(model)
+        case .episodes: EpisodeList.selectedRow(model)
+        case .more: nil
+        }
     }
 
     // MARK: Keys
@@ -487,10 +500,19 @@ public struct MacPlayerView: View {
         return "\(Int(frame.width))×\(Int(frame.height)) pt at (\(Int(frame.minX)), \(Int(frame.minY))), \(content), \(screen), full screen \(window.styleMask.contains(.fullScreen) ? "yes" : "no")"
     }
 
+    /// Into or out of full screen as the model asks, on the next turn of the run loop. The
+    /// change arrives in SwiftUI's update, inside the hosting view's layout: a transition started
+    /// there resizes the window under that layout, which then sizes the window back from the
+    /// size it had, and leaves the content view off by the difference (the video in a box at
+    /// the window's corner, the title strip in mid-window). By the time it runs, the window may
+    /// already be where the model says, or between the two, and AppKit's own notices bring the
+    /// model back to what the window does.
     private func fullScreen(_ on: Bool) {
-        guard let window, window.styleMask.contains(.fullScreen) != on else { return }
-        if on { enteredFullScreen = true }
-        window.toggleFullScreen(nil)
+        DispatchQueue.main.async { [weak window, model] in
+            guard let window, model.fullScreen == on, window.styleMask.contains(.fullScreen) != on else { return }
+            if on { enteredFullScreen = true }
+            window.toggleFullScreen(nil)
+        }
     }
 
     /// The title bar is transparent and hides with the controls.

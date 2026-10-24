@@ -132,13 +132,17 @@ struct TitlePage: View {
             .padding(EdgeInsets(top: 0, leading: 24, bottom: 20, trailing: 28))
             .background(alignment: .top) {
                 // The wide art, under the clear toolbar, with the ground over its lower part,
-                // where the cover and the title sit. None at all where there is none.
+                // where the cover and the title sit, and fading up into the art above that, where
+                // a title of two lines starts. None at all where there is none.
                 if !art.isCompact {
                     HeroArtView(art: art, entry: entry)
                         .frame(height: 280)
                         .clipped()
                         .overlay(alignment: .bottom) {
-                            Palette.ground.frame(height: 96)
+                            VStack(spacing: 0) {
+                                BannerScrim()
+                                Palette.ground.frame(height: 96)
+                            }
                         }
                         .modifier(BannerMatch(id: entry.id, space: bannerSpace))
                         .playerZoomSource(entry.id)
@@ -215,6 +219,7 @@ struct TitleHero: View {
                     .macLineHeight(44, relativeTo: .largeTitle)
                     .foregroundStyle(.silk)
                     .lineLimit(2)
+                    .titleOverArt()
                     .accessibilityAddTraits(.isHeader)
                 OtherTitlesLine(entry: entry)
                     .padding(.top, 6)

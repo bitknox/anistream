@@ -11,7 +11,6 @@ export function Members({ members, me, act }: { members: MemberRow[]; me: Member
 	return (
 		<Section
 			id="members"
-			glyph="◎"
 			title={`${plural(members.length, 'member')}, ${plural(owners, 'owner')}`}
 			lede="Removing someone stops every one of their devices at once. Plugins they already installed stay on their machines."
 		>
@@ -27,21 +26,21 @@ function MemberLine({ member, you, act }: { member: MemberRow; you: boolean; act
 	const [renaming, setRenaming] = useState(false);
 	const promote = member.role === 'member';
 	const rename = (
-		<button type="button" className="btn btn-quiet" onClick={() => setRenaming(true)}>
-			rename
+		<button type="button" className="btn btn-small" onClick={() => setRenaming(true)}>
+			Rename
 		</button>
 	);
 	const actions = you ? (
 		<>
 			{rename}
-			<span className="row-note">you</span>
+			<span className="row-note">You</span>
 		</>
 	) : (
 		<>
 			{rename}
 			<Confirm
-				label={promote ? 'make owner' : 'make member'}
-				confirm={promote ? `make ${member.name} an owner` : `make ${member.name} a member`}
+				label={promote ? 'Make owner' : 'Make member'}
+				confirm={promote ? `Make ${member.name} an owner` : `Make ${member.name} a member`}
 				danger={false}
 				onConfirm={() =>
 					act(
@@ -51,8 +50,8 @@ function MemberLine({ member, you, act }: { member: MemberRow; you: boolean; act
 				}
 			/>
 			<Confirm
-				label="remove"
-				confirm={`remove ${member.name}`}
+				label="Remove"
+				confirm={`Remove ${member.name}`}
 				onConfirm={() =>
 					act(
 						() => api.removeMember(member.id),
@@ -86,11 +85,12 @@ function MemberLine({ member, you, act }: { member: MemberRow; you: boolean; act
 			<Facts
 				items={[
 					[
-						'devices',
+						'Devices',
 						member.devices === 0 ? (
-							'none'
+							'None'
 						) : (
 							<button
+								key="devices"
 								type="button"
 								className="link"
 								aria-expanded={open}
@@ -100,8 +100,8 @@ function MemberLine({ member, you, act }: { member: MemberRow; you: boolean; act
 							</button>
 						),
 					],
-					['seen', ago(member.last_seen)],
-					['joined', ago(member.joined_at)],
+					['Seen', ago(member.last_seen)],
+					['Joined', ago(member.joined_at)],
 				]}
 			/>
 			{open && member.device_list.length > 0 && (
@@ -109,10 +109,10 @@ function MemberLine({ member, you, act }: { member: MemberRow; you: boolean; act
 					{member.device_list.map((device) => (
 						<li key={device.id}>
 							<span className="device-label">{device.label}</span>
-							<span className="dim">seen {ago(device.last_seen)}</span>
+							<span className="dim">Seen {ago(device.last_seen)}</span>
 							<Confirm
-								label="revoke"
-								confirm={`revoke ${device.label}`}
+								label="Revoke"
+								confirm={`Revoke ${device.label}`}
 								onConfirm={() =>
 									act(
 										() => api.revokeDevice(device.id),
@@ -160,11 +160,15 @@ function RenameForm({
 				spellCheck={false}
 				onChange={(event) => setValue(event.target.value)}
 			/>
-			<button type="submit" className="btn btn-solid" disabled={!trimmed || trimmed === name}>
-				save
+			<button
+				type="submit"
+				className="btn btn-small btn-armed"
+				disabled={!trimmed || trimmed === name}
+			>
+				Save
 			</button>
-			<button type="button" className="btn btn-quiet" onClick={onCancel}>
-				cancel
+			<button type="button" className="btn btn-small btn-quiet" onClick={onCancel}>
+				Cancel
 			</button>
 		</form>
 	);

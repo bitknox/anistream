@@ -77,6 +77,17 @@ impl FfiEngine {
             kept.server.advance(secs);
         }
     }
+
+    /// Serve the fixtures' art badly from now on, as a busy CDN would: every second image is
+    /// answered `503` its first `fail_first` times, and every image waits `delay_ms` before it
+    /// is answered. For a test or the dev harness that art on screen still arrives. Does nothing
+    /// on an engine that is not on the fake. Only in a build with the `testing` feature.
+    pub fn testing_trouble_art(&self, fail_first: u32, delay_ms: u32) {
+        if let Some(kept) = self.kept::<Testing>() {
+            kept.server
+                .trouble_art(fail_first, std::time::Duration::from_millis(u64::from(delay_ms)));
+        }
+    }
 }
 
 /// What a test's engine is kept beside: the fake AniList it asks, and the clock it goes by.

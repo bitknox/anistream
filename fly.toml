@@ -14,7 +14,7 @@
 swap_size_mb = 512
 
 [build]
-  image = "ghcr.io/bitknox/anistream-store:1"
+  image = "ghcr.io/bitknox/anistream-store:2"
 
 # One volume, so one machine: flyctl creates a single machine for a process group with a mount.
 # The volume's mount point is given to the image's user, so the store writes to it unprivileged.
