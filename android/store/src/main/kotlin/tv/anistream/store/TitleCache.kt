@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.ffi.dubLine
+import tv.anistream.engine.model.DubExtent
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeProgress
 import tv.anistream.engine.model.EpisodeRow
@@ -27,6 +29,11 @@ class TitleCache {
 
     /** Each title's episode table, as last loaded. */
     val episodes: StateFlow<Map<AnilistId, List<EpisodeRow>>> = _episodes.asStateFlow()
+
+    private val _dubLines = MutableStateFlow<Map<AnilistId, String>>(emptyMap())
+
+    /** Each title's line on its dub ("Dub to episode 6"), where its source could say one. */
+    val dubLines: StateFlow<Map<AnilistId, String>> = _dubLines.asStateFlow()
 
     /** The titles whose page has been loaded, so their detail-only fields are known. */
     var detailed: Set<AnilistId> = emptySet()
@@ -120,6 +127,12 @@ class TitleCache {
 
     internal fun episodes(id: AnilistId, rows: List<EpisodeRow>) {
         _episodes.value = _episodes.value + (id to rows)
+    }
+
+    /** How far [id]'s dub goes, worded for the page; nothing when there is none to say. */
+    internal fun dub(id: AnilistId, extent: DubExtent?) {
+        val line = dubLine(extent)
+        _dubLines.value = if (line == null) _dubLines.value - id else _dubLines.value + (id to line)
     }
 
     /**

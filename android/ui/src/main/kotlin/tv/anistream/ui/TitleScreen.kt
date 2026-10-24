@@ -6,6 +6,7 @@ package tv.anistream.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -191,6 +193,7 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     LaunchedEffect(shown) {
         ask(shown)
         store.loadEpisodes(shown)
+        store.loadDub(shown)
         // The show's own settings, for its spoiler protection.
         store.loadShowSettings(shown)
     }
@@ -715,6 +718,7 @@ private fun SeasonPage(
     val marks = remember(entry.id) { UserMarks() }
     val unfolded by store.episodeFolds.unfolded.collectAsStateWithLifecycle()
     val fold = rememberEpisodeFold(entry.id, list)
+    val dubs by store.titles.dubLines.collectAsStateWithLifecycle()
     val failedIds by store.titles.failed.collectAsStateWithLifecycle()
     val failed = !loaded && entry.id in failedIds
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
@@ -767,7 +771,7 @@ private fun SeasonPage(
             }
             val related = entry.relatedCards()
             if (related.isNotEmpty()) item(key = "related", contentType = "related") { Box(itemMotion()) { RelatedRail(related) } }
-            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead)
+            episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead, dub = dubs[entry.id])
         }
     }
 }
@@ -1459,6 +1463,7 @@ private fun Seasons(
                         // The season's episodes are asked for as the finger lands, ahead of the pick.
                         onPress = {
                             store.loadEpisodes(season.id)
+                            store.loadDub(season.id)
                             onPress(season.id)
                         },
                         onRelease = onLift,
@@ -1526,6 +1531,8 @@ private fun LazyListScope.episodeRows(
     onFold: (anchor: String) -> Unit,
     /** Whether the placeholders wait 600 ms first (T8): not on a page composed ahead, off screen. */
     wait: Boolean = true,
+    /** How far the dub goes: on the fold row's own line, or a row of its own without a fold. */
+    dub: String? = null,
 ) {
     if (episodes == null) {
         // Crossfading with the rows as they arrive (T8), as every item comes and goes.
@@ -1543,7 +1550,17 @@ private fun LazyListScope.episodeRows(
     val folded = entry.foldedEpisodes(listed)
     if (folded.isNotEmpty()) {
         val anchor = episodeKey(entry.id, listed[folded.size])
-        item(key = watchedFold(entry.id), contentType = "fold") { WatchedFoldRow(folded, unfolded, itemMotion().padding(horizontal = 16.dp)) { onFold(anchor) } }
+        item(key = watchedFold(entry.id), contentType = "fold") { WatchedFoldRow(folded, unfolded, itemMotion().padding(horizontal = 16.dp), dub = dub) { onFold(anchor) } }
+    }
+    if (folded.isEmpty() && dub != null) {
+        item(key = "dub-line", contentType = "dub-line") {
+            Text(
+                dub,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = itemMotion().fillMaxWidth().heightIn(min = 56.dp).wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 16.dp),
+            )
+        }
     }
     val shown = if (folded.isNotEmpty() && !unfolded) listed.drop(folded.size) else listed
     items(shown, key = { episodeKey(entry.id, it) }, contentType = { "episode" }) { row ->
@@ -1624,7 +1641,7 @@ private fun rememberEpisodeFold(id: AnilistId, grid: androidx.compose.foundation
  * quiet one-line row with a chevron, not a button.
  */
 @Composable
-private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, onToggle: () -> Unit) {
+private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, dub: String? = null, onToggle: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val turn by androidx.compose.animation.core.animateFloatAsState(if (unfolded) 180f else 0f, Motion.quick(), label = "fold")
     Row(
@@ -1641,6 +1658,10 @@ private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier
             color = colors.onSurfaceVariant,
             modifier = Modifier.weight(1f),
         )
+        // The dub line on this row's own line, so its arrival moves nothing.
+        androidx.compose.animation.AnimatedVisibility(dub != null, enter = fadeIn(Motion.fadeIn()), exit = ExitTransition.None) {
+            Text(dub.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, modifier = Modifier.padding(end = 12.dp))
+        }
         Icon(Icons.Down, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.graphicsLayer { rotationZ = turn })
     }
 }

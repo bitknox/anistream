@@ -13,6 +13,8 @@ public final class TitleCache {
     public private(set) var detailed: Set<AnilistId> = []
     /// Each title's episode table, as last loaded.
     public private(set) var episodes: [AnilistId: [EpisodeRow]] = [:]
+    /// Each title's line on its dub ("Dub to episode 6"), where the source could say one.
+    public private(set) var dubLines: [AnilistId: String] = [:]
 
     public init() {}
 
@@ -84,6 +86,11 @@ public final class TitleCache {
 
     func episodes(id: AnilistId, rows: [EpisodeRow]) {
         episodes[id] = rows
+    }
+
+    /// How far a title's dub goes, as the page words it; nothing when there is none to say.
+    func dub(id: AnilistId, extent: DubExtent?) {
+        dubLines[id] = dubLine(dub: extent)
     }
 
     /// Whether title `id`'s episodes, as last loaded, are AniList's alone: no source set up has
