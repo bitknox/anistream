@@ -860,20 +860,9 @@ fn played_through(app: &mut App, playback: PlaybackId, next: &str) -> PlaybackId
 #[test]
 fn a_binge_marks_every_episode_watched_on_a_table_loaded_before_another_titles() {
     let mut app = App::fixtures("");
-    // The airing title's page, its episodes listed: five of twelve are out.
-    app.engine.send(Command::LoadDetail(AIRING));
-    app.until("the page", |event| matches!(event, Event::Detail(_)).then_some(()));
-    app.engine.send(Command::LoadEpisodes(AIRING));
-    app.until("its table", |event| {
-        matches!(event, Event::Episodes { id, .. } if *id == AIRING).then_some(())
-    });
+    // Five of the airing title's twelve episodes are out. The app keeps both tables.
+    airing_open_then_another(&mut app);
     assert_eq!(app.titles.tables[&AIRING].len(), 5);
-    // Another title's table, as Continue loads the one it selects, or Downloads each of its
-    // shows': the app keeps both.
-    app.engine.send(Command::LoadEpisodes(FINISHED));
-    app.until("the other table", |event| {
-        matches!(event, Event::Episodes { id, .. } if *id == FINISHED).then_some(())
-    });
 
     // Episodes 1 to 3 in one sitting, each rolling on to the next.
     app.play(AIRING, "1");
@@ -901,6 +890,56 @@ fn a_binge_marks_every_episode_watched_on_a_table_loaded_before_another_titles()
     });
     assert_eq!(row.progress, Some(TitleProgress { done: 3, next: 4 }));
     assert_eq!(row.next_episode, Some(6), "4 has aired, so Continue is not caught up");
+    app.shutdown();
+}
+
+/// The airing title's page and table open, then another title's table loaded, as Continue or
+/// Downloads loads one: the airing title's table is no longer the one the engine holds.
+fn airing_open_then_another(app: &mut App) {
+    app.engine.send(Command::LoadDetail(AIRING));
+    app.until("the page", |event| matches!(event, Event::Detail(_)).then_some(()));
+    app.engine.send(Command::LoadEpisodes(AIRING));
+    app.until("its table", |event| {
+        matches!(event, Event::Episodes { id, .. } if *id == AIRING).then_some(())
+    });
+    app.engine.send(Command::LoadEpisodes(FINISHED));
+    app.until("the other table", |event| {
+        matches!(event, Event::Episodes { id, .. } if *id == FINISHED).then_some(())
+    });
+}
+
+/// The answer to a mark of the airing title's `episodes`: episodes done and the one Continue
+/// offers, and the rows that read as watched.
+fn mark(app: &mut App, episodes: &[&str], watched: bool) -> ((u32, u32), Vec<String>) {
+    let episodes = episodes.iter().map(|e| (*e).to_owned()).collect();
+    app.engine.send(Command::SetWatched { id: AIRING, episodes, watched });
+    let progress = app.until("the mark's answer", |event| match event {
+        Event::Progress { id, progress, .. } if *id == AIRING => Some(*progress),
+        _ => None,
+    });
+    let progress = progress.map(|p| (p.done, p.next)).expect("a standing");
+    (progress, app.titles.watched(AIRING).into_iter().map(str::to_owned).collect())
+}
+
+#[test]
+fn a_mark_out_of_order_or_undone_moves_the_count_with_the_rows() {
+    let mut app = App::fixtures("");
+    airing_open_then_another(&mut app);
+    assert_eq!(mark(&mut app, &["3"], true), ((1, 4), vec!["3".to_owned()]));
+    // Before the episode Continue offers: counted all the same, and Continue goes back to 2.
+    assert_eq!(mark(&mut app, &["1"], true), ((2, 2), vec!["1".to_owned(), "3".to_owned()]));
+    assert_eq!(mark(&mut app, &["3"], false), ((1, 2), vec!["1".to_owned()]));
+
+    // As the store has it: the count and Continue read from history agree.
+    app.engine.send(Command::LoadContinue);
+    let row = app.until("Continue", |event| match event {
+        Event::Content {
+            view: anistream_model::catalog::ContentFor::Continue,
+            content: anistream_model::catalog::ContentList::Entries(entries),
+        } => entries.iter().find(|entry| entry.id == AIRING).cloned(),
+        _ => None,
+    });
+    assert_eq!(row.progress, Some(TitleProgress { done: 1, next: 2 }));
     app.shutdown();
 }
 

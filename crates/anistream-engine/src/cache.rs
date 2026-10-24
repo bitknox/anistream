@@ -362,9 +362,16 @@ impl TitleCache {
 
     /// A watch on a title: its entry first, read against its table as the table stood, then the
     /// table. Returns the title when that moved it.
+    ///
+    /// The entry is read against the table held when it is this title's, and otherwise against
+    /// the list kept of the title's episodes, so that its count and Continue move with its rows.
     fn watch(&mut self, id: AnilistId, watch: &Watch) -> Option<AnilistId> {
         let touched = self.touch();
         let rows = self.table.as_mut().filter(|(table, _)| *table == id).map(|(_, rows)| rows);
+        let listed = match rows {
+            Some(_) => None,
+            None => self.episodes.get(&id).map(|listed| as_rows(listed)),
+        };
         let row_state = |rows: &Option<&mut Vec<EpisodeRow>>| {
             let row = rows.as_ref()?.iter().find(|row| row.number == watch.episode)?;
             Some((row.watched, row.completed))
@@ -374,9 +381,8 @@ impl TitleCache {
         if let Some(title) = self.titles.get_mut(&id) {
             title.touched = touched;
             let before = (title.progress, title.resume);
-            title.with_entry(id, |entry| {
-                progress::watch_entry(entry, rows.as_deref().map(Vec::as_slice), watch)
-            });
+            let read = rows.as_deref().map(Vec::as_slice).or(listed.as_deref());
+            title.with_entry(id, |entry| progress::watch_entry(entry, read, watch));
             moved |= before != (title.progress, title.resume);
         }
         let mut rows = rows;
@@ -400,19 +406,31 @@ impl TitleCache {
 
     /// An episode marked not watched: its row emptied, and when it had been watched, the
     /// title's count and Continue put back by the unmark's rule.
+    ///
+    /// Read against the table held when it is this title's, and otherwise against the list kept
+    /// of the title's episodes, as a watch is.
     fn unmark(&mut self, id: AnilistId, episode: &str) {
         let touched = self.touch();
-        if let Some(listed) = self.episode(id, episode) {
+        let listed_done = self.episode(id, episode).map(|listed| {
+            let was_done = listed.completed;
             (listed.watched, listed.completed) = (0.0, false);
-        }
-        let Some((_, rows)) = self.table.as_mut().filter(|(table, _)| *table == id) else {
-            return;
+            was_done
+        });
+        let held = self.table.as_mut().filter(|(table, _)| *table == id);
+        let (was_done, rows) = match held {
+            Some((_, rows)) => {
+                let was_done = rows.iter().any(|row| row.number == episode && row.completed);
+                progress::mark_row(rows, episode, false);
+                (was_done, rows.clone())
+            }
+            None => match (listed_done, self.episodes.get(&id)) {
+                (Some(was_done), Some(listed)) => (was_done, as_rows(listed)),
+                _ => return,
+            },
         };
-        let was_done = rows.iter().any(|row| row.number == episode && row.completed);
-        progress::mark_row(rows, episode, false);
         if was_done && let Some(title) = self.titles.get_mut(&id) {
             title.touched = touched;
-            title.with_entry(id, |entry| progress::unmark_entry(entry, rows, episode));
+            title.with_entry(id, |entry| progress::unmark_entry(entry, &rows, episode));
         }
     }
 
@@ -490,6 +508,28 @@ impl TitleCache {
             self.episodes.retain(|id, _| Some(*id) == held || titles.contains_key(id));
         }
     }
+}
+
+/// A title's episodes as rows, for the progress rules, which read only their numbers and whether
+/// each is finished.
+fn as_rows(episodes: &[EpisodeProgress]) -> Vec<EpisodeRow> {
+    episodes
+        .iter()
+        .map(|episode| EpisodeRow {
+            number: episode.number.clone(),
+            title: None,
+            thumbnail: None,
+            description: None,
+            duration_secs: None,
+            watched: episode.watched,
+            completed: episode.completed,
+            kind: None,
+            skippable: false,
+            airs_at: None,
+            delayed_from: None,
+            metadata_only: false,
+        })
+        .collect()
 }
 
 impl Title {
@@ -663,6 +703,17 @@ mod tests {
             panic!("the second title is known")
         };
         assert!(episodes.iter().all(|e| !e.completed) && episodes.len() == 3);
+    }
+
+    #[test]
+    fn a_mark_out_of_order_or_undone_moves_the_count_of_a_title_whose_table_is_not_held() {
+        // Read against the list kept of the title's episodes, as against its table when held.
+        let mut cache = at_episodes(Some((1, 2)), &[1]);
+        cache.observe(&Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3) }, None);
+        cache.marked(SHOW, &["5".into()], true, |_| true);
+        assert_eq!(standing(&cache, SHOW).0, Some((2, 6)), "out of order, counted");
+        cache.marked(SHOW, &["1".into()], false, |_| false);
+        assert_eq!(standing(&cache, SHOW).0, Some((1, 6)), "undone, the count goes down");
     }
 
     #[test]
