@@ -906,7 +906,7 @@ struct MenuScroll<Rows: View>: View {
                     LinearGradient(colors: [.black, .black.opacity(0.15)], startPoint: .top, endPoint: .bottom)
                         .frame(height: room.below ? Self.fade : 0)
                 }
-                .animation(.easeOut(duration: 0.15), value: room)
+                .animation(.quick, value: room)
             }
     }
 }
