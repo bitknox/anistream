@@ -61,8 +61,8 @@ impl Tv {
         let root = tempfile::tempdir().expect("a temporary directory");
         let dir = |name: &str| root.path().join(name).display().to_string();
         let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
-        let engine =
-            FfiEngine::start_testing(dirs, host, FfiStart::default()).expect("the engine starts");
+        let engine = FfiEngine::start_testing(dirs, host, FfiStart::default())
+            .expect("the engine starts");
         let (tx, events) = mpsc::channel();
         let reader = Arc::clone(&engine);
         thread::spawn(move || {

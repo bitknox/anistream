@@ -89,6 +89,7 @@ import tv.anistream.store.AppClock
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.LocalAppStore
+import tv.anistream.tv.ui.ReleasesPanel
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.TvListRow
@@ -154,8 +155,9 @@ fun TvPlayerScreen(
     }
 
     // Back, top to bottom: a panel closes, a scrub cancels, Up Next cancels, else the player closes.
-    BackHandler(enabled = model.isPresented) {
+    fun back() {
         when {
+            model.choosingSource -> model.cancelChoosingSource()
             panel != null -> closePanel()
             headAt != null -> {
                 head = null
@@ -165,6 +167,7 @@ fun TvPlayerScreen(
             else -> model.viewerClosed()
         }
     }
+    BackHandler(enabled = model.isPresented, onBack = ::back)
 
     // The settled seek: one seek half a second after the last press, the count shown a moment more.
     LaunchedEffect(presses) {
@@ -241,6 +244,12 @@ fun TvPlayerScreen(
             .background(Color.Black)
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) heldSince = model.clock
+                // The remote's Back, here before Compose spends it on moving focus out to this
+                // focusable root, which would leave a panel open with focus behind it.
+                if (event.key == Key.Back) {
+                    if (event.type == KeyEventType.KeyUp && !event.nativeKeyEvent.isCanceled) back()
+                    return@onPreviewKeyEvent true
+                }
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 // Any key, the TV's remote's or a phone's: somebody is there.
                 model.viewerThere()
@@ -315,6 +324,9 @@ fun TvPlayerScreen(
         }
         panel?.let { open ->
             Panel(model, open, onDone = { closePanel() }, modifier = Modifier.align(Alignment.CenterEnd))
+        }
+        if (model.choosingSource) {
+            ReleasesPanel(model.sourceChoices, onPick = model::play, onClose = model::cancelChoosingSource, modifier = Modifier.align(Alignment.CenterEnd))
         }
         if (model.stillWatching) StillWatchingDialog(model)
     }
@@ -740,7 +752,8 @@ private fun InfoPanel(model: PlayerModel, modifier: Modifier) {
 fun playbackDetails(model: PlayerModel): List<String> = buildList {
     val picture = listOfNotNull(
         model.videoHeight?.let { "${it}p" },
-        model.videoCodec?.let { codec ->
+        // A frame mpv's own filters made carries no codec of its own: "wrapped_avframe" names none.
+        model.videoCodec?.takeIf { it.lowercase() != "wrapped_avframe" }?.let { codec ->
             val name = codecName(codec)
             if (model.pixelFormat?.contains("10") == true) "$name 10-bit" else name
         },

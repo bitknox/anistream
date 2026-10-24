@@ -117,6 +117,7 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     var tabIndex by rememberSaveable { mutableIntStateOf(tabs.indexOf(current)) }
     var sortIndex by rememberSaveable { mutableIntStateOf(0) }
     var formatIndex by rememberSaveable { mutableIntStateOf(0) }
+    var onList by rememberSaveable { mutableStateOf(false) }
     val tab = tabs[tabIndex]
     val sort = SeasonSort.entries[sortIndex]
     val format = SeasonFormats[formatIndex]
@@ -127,19 +128,28 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     val browsed by store.browse.list.state.collectAsStateWithLifecycle()
     // A browse answer for another filter, still on screen while the new one loads, is not shown.
     val state = if (filter == null) seasonal else if (store.browse.takes("", filter)) browsed else ListState.Loading
-    val shown = state.ids.mapNotNull { entries[it] }
+    val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
+    val signedIn = trackers.values.any { it.connected }
+    // On my list: the season's titles already on one of the tracker's lists, which this loads, as
+    // a season's own rows do not always say.
+    val listed = onList && signedIn
+    LaunchedEffect(listed) { if (listed) LibraryModel.order.forEach(store::loadLibrary) }
+    val lists = LibraryModel.order.map { store.library.segment(it).state.collectAsStateWithLifecycle().value }
+    val waiting = listed && lists.any { it is ListState.Idle || it is ListState.Loading }
+    val onLists = lists.flatMap { it.ids }.toSet()
+    val shown = state.ids.mapNotNull { entries[it] }.filter { !listed || it.listStatus != null || it.id in onLists }
     val grid = rememberLazyGridState()
     LaunchedEffect(filter) { grid.scrollToItem(0) }
     ToTop(nav, memory, scrolled = { grid.firstVisibleItemIndex > 0 || grid.firstVisibleItemScrollOffset > 0 }) { grid.scrollToItem(0) }
     PosterGrid(
         shown,
         memory,
-        keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}",
+        keyPrefix = "seasonal/${tab.label}/${sort.name}/${format.first}/$listed",
         onOpen = { onOpen(it.id) },
         state = grid,
         line = { it.posterLine },
         onLongClick = { entry -> actions?.open(planSheet(store, entry, onOpen)) },
-        placeholders = if (placeholdersAfterWait(state is ListState.Loading || state is ListState.Idle)) GRID_COLUMNS * 2 else 0,
+        placeholders = if (placeholdersAfterWait(state is ListState.Loading || state is ListState.Idle || waiting)) GRID_COLUMNS * 2 else 0,
     ) {
         item(key = "tabs", span = { GridItemSpan(maxLineSpan) }, contentType = "tabs") {
             Row(Modifier.focusRestorer(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -171,9 +181,25 @@ fun SeasonalScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
                     chip = true,
                     modifier = Modifier.remembered(memory, "chip/sort"),
                 )
+                if (signedIn) {
+                    TvTab(
+                        "On my list",
+                        selected = onList,
+                        onSelect = { onList = !onList },
+                        settle = null,
+                        chip = true,
+                        modifier = Modifier.remembered(memory, "chip/list"),
+                    )
+                }
             }
         }
-        if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
+        if (waiting) {
+            // The lists are on their way: no line yet saying there is nothing.
+        } else if (listed && state is ListState.Loaded && state.ids.isNotEmpty() && shown.isEmpty()) {
+            item(key = "unlisted", span = { GridItemSpan(maxLineSpan) }) {
+                Text("Nothing from ${tab.label} is on your lists yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            }
+        } else if (state is ListState.Empty || (state is ListState.Loaded && shown.isEmpty())) {
             item(key = "empty", span = { GridItemSpan(maxLineSpan) }) {
                 Text("Nothing announced for ${tab.label} yet.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }

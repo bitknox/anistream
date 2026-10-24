@@ -120,7 +120,7 @@ private fun RailItem(destination: Destination, current: Boolean, open: Boolean, 
         ),
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
-        Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxHeight().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(24.dp)) {
                 Icon(destination.icon, contentDescription = if (open) null else destination.label, modifier = Modifier.size(24.dp))
             }

@@ -35,7 +35,7 @@ tokio-rustls = { version = "0.26", default-features = false, features = ["ring"]
 ring = "0.17"
 # The password-authenticated exchange the six-digit pairing code runs through.
 spake2 = "0.4"
-base64 = "0.22"
+base64 = "0.23"
 hex = "0.4"
 
 [dev-dependencies]

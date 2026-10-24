@@ -1,10 +1,9 @@
 // Where the player's sheets open: a list of many tracks shows the one in use.
 
-package tv.anistream.player
+package tv.anistream.player.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import tv.anistream.player.ui.tracksOpeningRow
 
 class PlayerSheetsTest {
     private val twenty = (1L..20L).toList()

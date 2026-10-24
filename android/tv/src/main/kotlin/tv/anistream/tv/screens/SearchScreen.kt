@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
@@ -156,7 +159,15 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
     }
 
     Column(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY)) {
-        QueryField(text, onText = { nav.searchText = it }, focus = field, modifier = Modifier.width(Canvas.SafeRight - Canvas.Keyline))
+        QueryField(
+            TextFieldValue(text, TextRange(nav.searchCursor)),
+            onText = {
+                remote?.typing = false
+                nav.typeSearch(it.text, it.selection.end)
+            },
+            focus = field,
+            modifier = Modifier.width(Canvas.SafeRight - Canvas.Keyline),
+        )
         if (remote?.typing == true) {
             Row(Modifier.padding(top = 8.dp, start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(TvIcons.Phone, contentDescription = null, tint = ObiSilk.Haze, modifier = Modifier.size(20.dp))
@@ -169,7 +180,7 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
             Column(Modifier.width(288.dp)) {
                 Keyboard(memory, onKey = {
                     remote?.typing = false
-                    nav.searchText = SearchKeys.type(nav.searchText, it)
+                    nav.typeSearch(SearchKeys.type(nav.searchText, it))
                 })
                 Spacer(Modifier.height(16.dp))
                 val keyboard = LocalSoftwareKeyboardController.current
@@ -190,7 +201,8 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
 
 /** The field across the top: what is typed, or a quiet prompt. The system keyboard types here. */
 @Composable
-private fun QueryField(text: String, onText: (String) -> Unit, focus: FocusRequester, modifier: Modifier) {
+private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, focus: FocusRequester, modifier: Modifier) {
+    val text = value.text
     Box(
         modifier.height(56.dp).background(ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
@@ -203,13 +215,13 @@ private fun QueryField(text: String, onText: (String) -> Unit, focus: FocusReque
                     Text("Search titles", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
                 }
                 BasicTextField(
-                    value = text,
+                    value = value,
                     onValueChange = onText,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = ObiSilk.Silk),
                     cursorBrush = SolidColor(ObiSilk.Amber),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = { onText(text) }),
+                    keyboardActions = KeyboardActions(onSearch = { onText(value) }),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 )
             }
@@ -309,7 +321,7 @@ private fun Results(
 ) {
     val store = LocalAppStore.current
     val actions = LocalActions.current
-    val leading = with(LocalDensity.current) { Canvas.FocusRoom.toPx() * 2 }
+    val leading = with(LocalDensity.current) { (Canvas.FocusRoom * 2 + RingRoom).toPx() }
     val trailing = with(LocalDensity.current) { 120.dp.toPx() }
     val spec = remember(leading, trailing) { SafeSpec(leading, trailing) }
     val searching = query.isNotEmpty()
@@ -342,8 +354,10 @@ private fun Results(
     ScrollRule(spec) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
-            modifier = Modifier.width(Canvas.SafeRight - 444.dp).fillMaxHeight(),
-            contentPadding = PaddingValues(top = Canvas.FocusRoom, bottom = 80.dp, start = Canvas.FocusRoom, end = Canvas.FocusRoom),
+            // The grid reaches up into the gap under the field, so a focused poster in the first
+            // row has room for its ring while still lining up with the keyboard.
+            modifier = Modifier.width(Canvas.SafeRight - 444.dp).fillMaxHeight().offset(y = -RingRoom),
+            contentPadding = PaddingValues(top = Canvas.FocusRoom + RingRoom, bottom = 80.dp, start = Canvas.FocusRoom, end = Canvas.FocusRoom),
             horizontalArrangement = Arrangement.spacedBy(Canvas.CardGap),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
@@ -375,3 +389,6 @@ private fun Results(
         }
     }
 }
+
+/** How far the results grid reaches above its row, for the first row's focus ring. */
+private val RingRoom = 10.dp

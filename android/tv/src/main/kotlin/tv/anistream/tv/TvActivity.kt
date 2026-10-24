@@ -37,7 +37,7 @@ class TvActivity : ComponentActivity() {
         app.start(Flavour.launch(this, intent))
         val start = Flavour.start(intent)
         val nav = TvNavigator(start.destination).apply {
-            start.query?.let { searchText = it }
+            start.query?.let { typeSearch(it) }
             start.title?.let(::openTitle)
         }
         setContent {
@@ -47,6 +47,10 @@ class TvActivity : ComponentActivity() {
                     player = app.player,
                     nav = nav,
                     play = { id, episode -> app.store.send(Command.Play(id, episode.toString())) },
+                    playFromStart = { id, episode ->
+                        app.player.playFromStart()
+                        app.store.send(Command.Play(id, episode.toString()))
+                    },
                     remote = app.remote,
                     watchNext = app.watchNext,
                 )
@@ -102,8 +106,11 @@ class TvActivity : ComponentActivity() {
             is FrontIntent.Open -> if (!playing) nav.openTitle(intent.id)
             is FrontIntent.Text -> if (!playing) {
                 if (nav.destination != Destination.Search || nav.pages.isNotEmpty()) nav.go(Destination.Search)
-                nav.searchText = intent.text
-                if (intent.submit) nav.submitSearch()
+                nav.phoneSearch(intent.text)
+                if (intent.submit) {
+                    nav.phoneDone()
+                    nav.submitSearch()
+                }
             }
             is FrontIntent.Navigate -> when (intent.key) {
                 RemoteKey.BACK -> onBackPressedDispatcher.onBackPressed()
@@ -122,11 +129,12 @@ class TvActivity : ComponentActivity() {
         else -> KeyEvent.KEYCODE_DPAD_CENTER
     }
 
-    /** A key as the TV's own remote sends it: down, then up. */
+    /** A key as the TV's own remote sends it: down, then up, through the window to this activity. */
     private fun press(code: Int) {
         val now = SystemClock.uptimeMillis()
-        dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0))
-        dispatchKeyEvent(KeyEvent(now, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, code, 0))
+        val decor = window.decorView
+        decor.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0))
+        decor.dispatchKeyEvent(KeyEvent(now, SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, code, 0))
     }
 
     /** Android 17 asks before an app reaches the local network, which the remote needs. */

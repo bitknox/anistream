@@ -80,7 +80,10 @@ class TvApp : Application(), PlayerHost {
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
         // Before the engine, so no playback event finds no player.
         player
-        val prepare: () -> Unit = { traced("startLog") { startLog(launch.home.cache.path) } }
+        val prepare: () -> Unit = {
+            traced("startLog") { startLog(launch.home.cache.path) }
+            traced("flavour") { Flavour.prepare(this) }
+        }
         store.start(launch, host(), prepare)
         ProcessLifecycleOwner.get().lifecycle.addObserver(remote)
         watchNext.start()

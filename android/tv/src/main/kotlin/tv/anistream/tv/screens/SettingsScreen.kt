@@ -25,6 +25,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
@@ -118,21 +120,25 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
         Spacer(Modifier.width(32.dp))
         val density = LocalDensity.current
         val spec = remember(density) { with(density) { SafeSpec(Canvas.FocusRoom.toPx(), 40.dp.toPx()) } }
+        // Coming over from the sections, focus goes back to the row it left in this section, or to
+        // the section's first row, never to whichever row happens to sit level with the section.
+        val firstRow = remember { FocusRequester() }
+        val first = Modifier.focusRequester(firstRow)
         ScrollRule(spec) {
             LazyColumn(
                 state = rememberLazyListState(),
-                modifier = Modifier.fillMaxHeight().padding(top = 56.dp).focusRestorer(),
+                modifier = Modifier.fillMaxHeight().padding(top = 56.dp).focusRestorer(firstRow),
                 contentPadding = PaddingValues(bottom = 60.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 when (section) {
-                    SettingsSection.Playback -> playback(store, view, memory)
-                    SettingsSection.Sources -> sources(memory)
-                    SettingsSection.PluginStores -> pluginStores(memory)
-                    SettingsSection.Accounts -> accounts(nav, memory)
-                    SettingsSection.Remotes -> remotes(memory)
-                    SettingsSection.ThisTv -> thisTv(memory)
-                    SettingsSection.About -> about(memory)
+                    SettingsSection.Playback -> playback(store, view, memory, first)
+                    SettingsSection.Sources -> sources(memory, first)
+                    SettingsSection.PluginStores -> pluginStores(memory, first)
+                    SettingsSection.Accounts -> accounts(nav, memory, first)
+                    SettingsSection.Remotes -> remotes(memory, first)
+                    SettingsSection.ThisTv -> thisTv(memory, first)
+                    SettingsSection.About -> about(memory, first)
                 }
             }
         }
@@ -140,8 +146,8 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
     EnterFocus(memory)
 }
 
-private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory) {
-    PlaybackRows.forEach { (key, label) ->
+private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
+    PlaybackRows.forEachIndexed { index, (key, label) ->
         item(key = key.name, contentType = "setting") {
             val row = store.settings.row(key, view)
             val switch = SettingsCatalog.isSwitch(key)
@@ -153,7 +159,7 @@ private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory:
                 value = if (switch) null else row?.let { SettingsCatalog.current(it)?.label ?: it.value },
                 switch = if (switch) store.settings.isOn(key, view) else null,
                 enabled = SettingsCatalog.editable(row),
-                modifier = Modifier.remembered(memory, "row/${key.name}"),
+                modifier = (if (index == 0) first else Modifier).remembered(memory, "row/${key.name}"),
             )
         }
     }
@@ -174,7 +180,7 @@ private fun change(store: AppStore, key: SettingKey, change: SettingChange?, swi
     }
 }
 
-private fun LazyListScope.sources(memory: FocusMemory) {
+private fun LazyListScope.sources(memory: FocusMemory, first: Modifier) {
     item(key = "sources", contentType = "list") {
         val store = LocalAppStore.current
         val rows by store.providers.rows.collectAsStateWithLifecycle()
@@ -182,50 +188,50 @@ private fun LazyListScope.sources(memory: FocusMemory) {
             if (rows.isEmpty()) {
                 Quiet("No sources yet. Plugins from a plugin store add them.")
             }
-            rows.forEach { provider ->
+            rows.forEachIndexed { index, provider ->
                 TvListRow(
                     provider.name,
                     onClick = {},
                     supporting = provider.version?.let { "Version $it" },
                     value = if (provider.usable) null else "off",
-                    modifier = Modifier.remembered(memory, "provider/${provider.id}"),
+                    modifier = (if (index == 0) first else Modifier).remembered(memory, "provider/${provider.id}"),
                 )
             }
         }
     }
 }
 
-private fun LazyListScope.pluginStores(memory: FocusMemory) {
+private fun LazyListScope.pluginStores(memory: FocusMemory, first: Modifier) {
     item(key = "stores", contentType = "list") {
         val store = LocalAppStore.current
         val stores by store.stores.stores.collectAsStateWithLifecycle()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            stores.forEach { row ->
-                TvListRow(row.name, onClick = {}, supporting = row.host, modifier = Modifier.remembered(memory, "store/${row.id}"))
+            stores.forEachIndexed { index, row ->
+                TvListRow(row.name, onClick = {}, supporting = row.host, modifier = (if (index == 0) first else Modifier).remembered(memory, "store/${row.id}"))
             }
             TvListRow(
                 "Add a plugin store",
                 onClick = {},
                 supporting = "From a paired phone",
                 enabled = false,
-                modifier = Modifier.remembered(memory, "store/add"),
+                modifier = (if (stores.isEmpty()) first else Modifier).remembered(memory, "store/add"),
             )
         }
     }
 }
 
-private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory) {
+private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory, first: Modifier) {
     item(key = "accounts", contentType = "list") {
         val store = LocalAppStore.current
         val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
         var signingOut by remember { mutableStateOf<String?>(null) }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Trackers.forEach { (id, name) ->
+            Trackers.forEachIndexed { index, (id, name) ->
                 TvListRow(
                     name,
                     onClick = { if (trackers[id]?.connected == true) signingOut = id else nav.openSignIn(id) },
                     supporting = accountLine(trackers[id]),
-                    modifier = Modifier.remembered(memory, "account/$id"),
+                    modifier = (if (index == 0) first else Modifier).remembered(memory, "account/$id"),
                 )
             }
         }
@@ -252,7 +258,7 @@ fun accountLine(state: SyncState?): String = when {
     else -> "Signed in"
 }
 
-private fun LazyListScope.remotes(memory: FocusMemory) {
+private fun LazyListScope.remotes(memory: FocusMemory, first: Modifier) {
     item(key = "remotes", contentType = "list") {
         val remote = LocalRemoteHost.current
         val context = LocalContext.current
@@ -263,7 +269,7 @@ private fun LazyListScope.remotes(memory: FocusMemory) {
         }
         var removing by remember { mutableStateOf<FfiPairedPhone?>(null) }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TvListRow("This TV's name for phones", onClick = {}, value = name, modifier = Modifier.remembered(memory, "remote/name"))
+            TvListRow("This TV's name for phones", onClick = {}, value = name, modifier = first.remembered(memory, "remote/name"))
             TvListRow(
                 "Pair a phone",
                 onClick = { remote?.openPairing() },
@@ -314,7 +320,7 @@ fun phoneLine(phone: FfiPairedPhone, now: Long): String {
     return phone.lastSeen?.let { "Used ${ago(days(it))}" } ?: "Paired ${ago(days(phone.pairedAt))}"
 }
 
-private fun LazyListScope.thisTv(memory: FocusMemory) {
+private fun LazyListScope.thisTv(memory: FocusMemory, first: Modifier) {
     item(key = "this-tv", contentType = "list") {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             val watchNext = LocalWatchNext.current
@@ -324,7 +330,7 @@ private fun LazyListScope.thisTv(memory: FocusMemory) {
                 supporting = "Watch Next",
                 switch = watchNext?.enabled ?: false,
                 enabled = watchNext != null,
-                modifier = Modifier.remembered(memory, "tv/watch-next"),
+                modifier = first.remembered(memory, "tv/watch-next"),
             )
             ImageCacheRow(memory)
         }
@@ -359,14 +365,14 @@ private fun ImageCacheRow(memory: FocusMemory) {
 /** "84 MB", to the nearest megabyte. */
 fun megabytes(bytes: Long): String = "${(bytes + (1L shl 19)) shr 20} MB"
 
-private fun LazyListScope.about(memory: FocusMemory) {
+private fun LazyListScope.about(memory: FocusMemory, first: Modifier) {
     item(key = "about", contentType = "list") {
         val context = LocalContext.current
         val version = remember {
             runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "unknown"
         }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            TvListRow("Version", onClick = {}, value = version, modifier = Modifier.remembered(memory, "about/version"))
+            TvListRow("Version", onClick = {}, value = version, modifier = first.remembered(memory, "about/version"))
             TvListRow("Licences", onClick = {}, modifier = Modifier.remembered(memory, "about/licences"))
             Quiet("anistream hosts no content.")
         }

@@ -348,7 +348,7 @@ version = "2.0.0"
 dependencies = [
  "anistream-core",
  "anistream-model",
- "base64 0.22.1",
+ "base64 0.23.1",
  "hex",
  "ring",
  "rustls",

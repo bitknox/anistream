@@ -50,6 +50,10 @@ pub enum FfiScene {
     /// HLS behind a referer lock, as provider CDNs have them, which goes through the engine's
     /// mender with its header ([`SCENE_REFERER`]).
     Playing { media: String },
+    /// [`Self::Watching`], with every episode streaming `media` as [`Self::Playing`]'s do: a TV
+    /// on a fixture resumes episode 7 at once from a file it can seek, where the test kit's clip
+    /// is a test pattern mpv must play through to the resume point.
+    WatchingMedia { media: String },
 }
 
 #[uniffi::export]
@@ -94,14 +98,19 @@ impl FfiEngine {
         clock: Clock,
     ) -> Result<Arc<Self>, FfiError> {
         match scene {
-            FfiScene::Watching | FfiScene::Sourceless => sign_in_config(&dirs)?,
+            FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless => {
+                sign_in_config(&dirs)?;
+            }
             FfiScene::Playing { .. } => offer_skips(&dirs)?,
             FfiScene::Fresh => {}
         }
         let opened = Opened::open(&dirs)?;
         let now = clock.now();
         seed_scene(&opened.store, &scene, now);
-        if matches!(scene, FfiScene::Watching | FfiScene::Sourceless) {
+        if matches!(
+            scene,
+            FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless
+        ) {
             // Where the testing engine keeps tokens: files under the data directory.
             TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
                 .set("anilist", "fixture-anilist-token")
@@ -122,7 +131,9 @@ impl FfiEngine {
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing)), home),
+            Ok((started, testing)) => {
+                Self::hold(runtime, Ok(started), Some(Box::new(testing)), home)
+            }
             Err(e) => Self::hold(runtime, Err(e), None, home),
         }
     }
@@ -165,7 +176,7 @@ fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
         return ProviderRegistry::new(Vec::new());
     }
     let franchise = || sources::with_long_franchise(sources::provider_with_art(art));
-    let FfiScene::Playing { media } = scene else {
+    let (FfiScene::Playing { media } | FfiScene::WatchingMedia { media }) = scene else {
         let clip = sources::episode_clip();
         let mut provider = franchise();
         for id in fixtures::ALL {
@@ -230,7 +241,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
     match scene {
         FfiScene::Fresh => {}
         FfiScene::Playing { .. } => seed::watched(store, FINISHED, 6, now - HOUR),
-        FfiScene::Watching | FfiScene::Sourceless => {
+        FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless => {
             // Oldest first, since each watch moves its title to the top.
             seed::watched(store, AIRING_NO_MAL, 7, now - 3 * DAY);
             seed::watched(store, AIRING, 3, now - 2 * DAY);
@@ -288,6 +299,15 @@ mod tests {
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), None);
         let playing = scene_sources(&scene, "http://127.0.0.1:9/art/");
         assert_eq!(playing.ids(), [sources::PROVIDER_ID]);
+        // Watching on a file of its own: Watching's history, and the file for every episode.
+        let file = FfiScene::WatchingMedia { media: "/tmp/episode.mp4".into() };
+        let store = Store::open(dir.path().join("watching.db")).expect("a database");
+        seed_scene(&store, &file, 1_800_000_000);
+        assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), Some(606.0));
+        assert_eq!(
+            scene_sources(&file, "http://127.0.0.1:9/art/").ids(),
+            [sources::PROVIDER_ID]
+        );
         // Every scene has the fixture provider, with the long franchise beside the six.
         let watching = scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/");
         assert_eq!(watching.ids(), [sources::PROVIDER_ID]);

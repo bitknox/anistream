@@ -36,8 +36,8 @@ import tv.anistream.store.label
 /** One row of the panel. A [then] sheet replaces the panel instead of closing it. */
 data class CardAction(val label: String, val selected: Boolean = false, val then: ActionSheet? = null, val run: () -> Unit = {})
 
-/** A card's actions, under its title. */
-data class ActionSheet(val title: String, val actions: List<CardAction>)
+/** A card's actions, under its title; or, with a [body], what it draws in their place. */
+data class ActionSheet(val title: String, val actions: List<CardAction> = emptyList(), val body: (@Composable () -> Unit)? = null)
 
 /** The panel showing now, if any; the browse UI draws it over the screen. */
 @Stable
@@ -74,6 +74,11 @@ fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
             .padding(horizontal = 16.dp, vertical = 27.dp),
     ) {
         Text(sheet.title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp))
+        val body = sheet.body
+        if (body != null) {
+            body()
+            return@Column
+        }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             itemsIndexed(sheet.actions, key = { index, action -> "$index/${action.label}" }) { index, action ->
                 TvListRow(
@@ -93,6 +98,8 @@ fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
         }
     }
     LaunchedEffect(sheet) {
+        // A body focuses its own.
+        if (sheet.body != null) return@LaunchedEffect
         repeat(5) {
             androidx.compose.runtime.withFrameNanos { }
             if (first.tryFocus()) return@LaunchedEffect

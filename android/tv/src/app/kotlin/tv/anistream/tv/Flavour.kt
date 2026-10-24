@@ -13,5 +13,8 @@ internal object Flavour {
         EngineLaunch.app(EngineHome.sandbox(files = context.filesDir, cache = context.cacheDir))
             .copy(platform = enginePlatform(context))
 
+    /** Off the main thread, before the engine starts: nothing for the app. */
+    fun prepare(context: Context) = Unit
+
     fun start(intent: Intent): Start = Start()
 }
