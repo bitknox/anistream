@@ -25,6 +25,7 @@ import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiTvBrowser
 import tv.anistream.engine.ffi.FfiTvRemote
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ContentFor
@@ -36,6 +37,7 @@ import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
+import tv.anistream.engine.model.DownloadState
 
 /**
  * Where the app's state lives, on the main thread.
@@ -92,6 +94,9 @@ class AppStore(
     val showSettings = ShowSettingsModel()
     val episodeFolds = EpisodeFolds()
     val coming = ComingModel()
+
+    /** Play on TV: the TVs found and paired, pairing, and the card of the TV driven. */
+    val tv = TvRemoteModel(scope, clock)
 
     /** The app's own update: the newer release, and the download and install the viewer started. */
     val updates = UpdateModel(notices)
@@ -188,6 +193,24 @@ class AppStore(
             null
         }
     }
+
+    /**
+     * Play on TV's sender, as [device] ("Android phone") running [app], browsing with [browser]:
+     * false with no engine, or one built without the remote, and why in the log.
+     */
+    fun startTv(browser: FfiTvBrowser, device: String, app: String): Boolean {
+        val engine = client?.engine ?: return false
+        return try {
+            tv.attach(engine.tvSender(device, app), browser)
+            true
+        } catch (e: FfiException) {
+            android.util.Log.w("anistream", "Play on TV did not start: ${e.reason}")
+            false
+        }
+    }
+
+    /** The engine, for the fixtures' fake TVs. */
+    val engine: FfiEngine? get() = client?.engine
 
     /** Read [engine]'s events from now on. */
     fun attach(engine: FfiEngine) {
@@ -386,13 +409,13 @@ class AppStore(
     /** Pause every download that runs or waits. */
     fun pauseAllDownloads() {
         for (row in downloads.rows.value) {
-            if (row.state == tv.anistream.engine.model.DownloadState.ACTIVE || row.state == tv.anistream.engine.model.DownloadState.QUEUED) toggleDownload(row.id)
+            if (row.state == DownloadState.ACTIVE || row.state == DownloadState.QUEUED) toggleDownload(row.id)
         }
     }
 
     /** Resume every paused download. */
     fun resumeAllDownloads() {
-        for (row in downloads.rows.value) if (row.state == tv.anistream.engine.model.DownloadState.PAUSED) toggleDownload(row.id)
+        for (row in downloads.rows.value) if (row.state == DownloadState.PAUSED) toggleDownload(row.id)
     }
 
     /** Play a finished download from its file, with the history, resume and sync a stream has. */
