@@ -6,7 +6,7 @@
 # A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default),
 # sourceless (watching with no source set up) or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
-# palette=<words>, with more joined by +: pane=<Settings pane>, sheet=<torrent|join|kitsu|update|
+# palette=<words>, with more joined by +: pane=<Settings pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|
 # show|about>, showcase=<sources|stores|downloads|invite|pale|all>, the invented rows of `Showcase`
 # (pale: 900001's page with a long title on a near-white banner), and watched=<id>:<episodes>,
 # episodes marked watched as the shot starts (900006:8 is caught up), and
@@ -85,6 +85,7 @@ arguments() {
       query=*) printf '%s\n' -AnistreamSection search -AnistreamQuery "${screen#query=}" ;;
       palette=*) printf '%s\n' -AnistreamPalette "${screen#palette=}" ;;
       pane=*) printf '%s\n' -AnistreamPane "${screen#pane=}" ;;
+      notice=*) printf '%s\n' -AnistreamNotice "${screen#notice=}" ;;
       sheet=*) printf '%s\n' -AnistreamSheet "${screen#sheet=}" ;;
       showcase=*) printf '%s\n' -AnistreamShowcase "${screen#showcase=}" ;;
       watched=*) printf '%s\n' -AnistreamWatched "${screen#watched=}" ;;

@@ -1,6 +1,7 @@
 // The Mac dev harness: the app's own window, on the testing engine, from `swift run`.
 
 import AnistreamDesign
+import AnistreamKit
 import AnistreamPlayer
 import AnistreamPlayerUI
 import AnistreamStore
@@ -111,6 +112,12 @@ final class Delegate: NSObject, NSApplicationDelegate {
         if ProcessInfo.processInfo.arguments.contains("-AnistreamUpdating") {
             store.updates.update()
             try? await Task.sleep(for: .milliseconds(1800))
+        }
+        // `-AnistreamNotice alert`: a failure toast, for the shot of its Report action.
+        if let at = ProcessInfo.processInfo.arguments.firstIndex(of: "-AnistreamNotice"),
+           ProcessInfo.processInfo.arguments.dropFirst(at + 1).first == "alert" {
+            store.apply(.toast(Notice(kind: .alert, text: "could not reach the source list", hint: nil)))
+            try? await Task.sleep(for: .milliseconds(300))
         }
         print(settled ? "ANISTREAM_READY" : "AnistreamDev: did not settle; going on")
         if let shot = options.playerShot {

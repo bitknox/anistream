@@ -573,6 +573,7 @@ struct IntegrationsPane: View {
                 .opacity(presence ? 1 : 0.45)
         }
         UpdatesGroup()
+        AboutGroup()
     }
 }
 

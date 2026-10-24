@@ -55,6 +55,8 @@ struct StartFailed: View {
                 .multilineTextAlignment(.center)
                 .textSelection(.enabled)
                 .frame(maxWidth: 480)
+            ReportButton(context: BugContext(kind: "start", message: reason))
+                .padding(.top, 8)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
