@@ -6,14 +6,18 @@ package tv.anistream.app
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import tv.anistream.design.ObiSilk
 
 class Notifier(private val context: Context) {
     private val manager = context.getSystemService(NotificationManager::class.java)
@@ -47,10 +51,18 @@ class Notifier(private val context: Context) {
             .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle(title)
             .setContentText(body)
+            .setColor(ObiSilk.Amber.toArgb())
             .setAutoCancel(true)
+            // A tap opens the app, where the notice itself is.
+            .setContentIntent(open())
             .build()
         manager.notify(ids.getAndIncrement(), notification)
     }
+
+    /** The app, as it was left: the notice is in it. */
+    private fun open(): PendingIntent? = context.packageManager.getLaunchIntentForPackage(context.packageName)
+        ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+        ?.let { PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT) }
 
     /**
      * A notification is about to be needed, the download job's, which the system posts itself:

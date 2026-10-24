@@ -132,6 +132,9 @@ fun LibraryScreen(actions: AppActions) {
                 LibrarySort.Score -> list.sortedByDescending { it.score ?: 0u }
             }
         }
+        val offline by store.offline.collectAsStateWithLifecycle()
+        // Pulled, the list loads again and the tracker syncs.
+        Refreshable({ store.loadLibrary(segment); store.syncNow() }, top = padding.calculateTopPadding()) {
         PosterGrid(PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 24.dp)) {
             // Every item moves with the rest, the rows above the posters too, so switching lists
             // never slides a poster over a line that snapped into place.
@@ -148,7 +151,7 @@ fun LibraryScreen(actions: AppActions) {
             }
             when (val list = state) {
                 is ListState.Failed -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
-                    Box(itemMotion()) { FailedQuiet(list.reason) }
+                    Box(itemMotion()) { FailedState("Couldn't load your ${segment.label} list", list.reason, retry = { store.loadLibrary(segment) }) }
                 }
                 ListState.Empty -> item(span = { GridItemSpan(maxLineSpan) }, key = "quiet", contentType = "quiet") {
                     Box(itemMotion()) { Quiet("Nothing on your ${segment.label} list") }
@@ -156,8 +159,13 @@ fun LibraryScreen(actions: AppActions) {
                 is ListState.Loaded -> items(entries, key = { it.id.toLong() }, contentType = { "poster" }) { entry ->
                     PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
                 }
-                else -> items(9, key = { "placeholder-$it" }, contentType = { "placeholder" }) { Box(itemMotion()) { AfterWait { PosterPlaceholder() } } }
+                else -> if (offline) {
+                    item(span = { GridItemSpan(maxLineSpan) }, key = "offline", contentType = "quiet") { Box(itemMotion()) { AfterWait { OfflineState() } } }
+                } else {
+                    items(9, key = { "placeholder-$it" }, contentType = { "placeholder" }) { Box(itemMotion()) { AfterWait { PosterPlaceholder() } } }
+                }
             }
+        }
         }
     }
 }
@@ -233,16 +241,16 @@ private fun SignedOutLibrary(actions: AppActions, modifier: Modifier = Modifier)
         verticalArrangement = Arrangement.Center,
     ) {
         Spacer(Modifier.weight(1f))
-        Nagare(cell = 6)
+        Nagare(cell = 5)
         Text("Your lists come from AniList", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 24.dp))
         Text(
-            "Connect AniList to see your Watching, Planning and Completed lists here.",
+            "Sign in to sync what you watch and where you stopped.",
             style = MaterialTheme.typography.bodyMedium,
             color = colors.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 6.dp).width(320.dp),
         )
-        Button(onClick = actions.connectAniList, modifier = Modifier.padding(top = 20.dp)) { Text("Connect AniList") }
+        Button(onClick = actions.connectAniList, modifier = Modifier.padding(top = 20.dp)) { Text("Sign in to AniList") }
         Spacer(Modifier.weight(1f))
         Text(
             LEGAL_LINE,

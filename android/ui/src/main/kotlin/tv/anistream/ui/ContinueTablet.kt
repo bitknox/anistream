@@ -71,6 +71,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -190,11 +191,15 @@ private fun QueueList(
     onSelect: (ContinueItem) -> Unit,
     actions: AppActions,
 ) {
+    // Under the title, as on a phone: the offline line, a job past 4 s, or the engine's status.
+    val status by LocalAppStore.current.notices.status.collectAsStateWithLifecycle()
+    val line = frameLine(status)
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
         // The headings move with the rows, so a row never slides over a heading that snapped.
         item(key = "title", contentType = "title") {
-            Box(itemMotion().heightIn(min = 64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Column(itemMotion().heightIn(min = 64.dp).padding(horizontal = 12.dp), verticalArrangement = Arrangement.Center) {
                 Text("Continue", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+                line?.let { FrameLineText(it, MaterialTheme.typography.bodyMedium, Modifier.padding(bottom = 8.dp)) }
             }
         }
         if (queue.inProgress.isNotEmpty()) {
@@ -224,7 +229,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
     val store = LocalAppStore.current
     val navigator = LocalNavigator.current
     var menu by remember { mutableStateOf(false) }
-    val haptics = LocalHapticFeedback.current
+    val menuActions = continueMenuActions(item, actions, "queue")
     // The fill leaves the old row and arrives on the new one on quick (AT2).
     val fill by animateColorAsState(
         if (selected) colors.primaryContainer else colors.primaryContainer.copy(alpha = 0f),
@@ -241,6 +246,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
             // row's own focus, so it stands ahead of it.
             .onFocusChanged { if (it.isFocused && !selected) onSelect(item) }
             .selectable(selected = selected, onClick = { onSelect(item) })
+            .semantics { customActions = menuActions.accessibility }
             .padding(start = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -280,40 +286,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
                     Icon(Icons.More, contentDescription = null)
                 }
             }
-            Menu(expanded = menu, onDismissRequest = { menu = false }) {
-                DropdownMenuItem(
-                    text = { Text(item.action) },
-                    leadingIcon = { Icon(Icons.Play, contentDescription = null) },
-                    enabled = item.playable,
-                    onClick = { menu = false; actions.play(item.id, item.episode.toString()) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Mark E${item.episode} watched") },
-                    leadingIcon = { Icon(Icons.Check, contentDescription = null) },
-                    onClick = {
-                        menu = false
-                        // Marked watched from the queue plays T9's toggle, as from the title page.
-                        haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
-                        store.setWatched(item.id, listOf(item.episode.toString()))
-                    },
-                )
-                DropdownMenuItem(
-                    text = { Text("Go to title") },
-                    leadingIcon = { Icon(Icons.External, contentDescription = null) },
-                    onClick = { menu = false; navigator.openTitle(item.id, "queue") },
-                )
-                HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outline)
-                DropdownMenuItem(
-                    text = { Text("Hide from Continue") },
-                    leadingIcon = { Icon(Icons.HideRow, contentDescription = null) },
-                    onClick = { menu = false; store.hideFromContinue(item.id) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Drop") },
-                    leadingIcon = { Icon(Icons.Clear, contentDescription = null) },
-                    onClick = { menu = false; store.setStatus(item.id, LibrarySegment.DROPPED) },
-                )
-            }
+            ContinueMenu(menuActions, expanded = menu, onDismiss = { menu = false })
         }
     }
 }
@@ -325,7 +298,10 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
     val episodes by store.titles.episodes.collectAsStateWithLifecycle()
-    LaunchedEffect(item.id) { store.loadEpisodes(item.id) }
+    LaunchedEffect(item.id) {
+        store.loadEpisodes(item.id)
+        store.loadShowSettings(item.id)
+    }
     val rows = episodes[item.id]
     val name = rows?.firstOrNull { it.number == item.episode.toString() }?.title
     val upNext = rows?.firstOrNull { it.number == (item.episode + 1u).toString() }
@@ -377,7 +353,7 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(96.dp, 54.dp)) {
-                    EpisodeStill(item.entry, row, hidden = !row.completed, unaired = false)
+                    EpisodeStill(item.entry, row, hidden = spoilerProtected(item.id) && !row.completed, unaired = false)
                 }
                 Column {
                     row.title?.let { Text(it, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis) }

@@ -1,0 +1,55 @@
+---
+// The terminal app's home screen as a still, drawn in SVG so it scales with the pictures beside
+// it. The same screen as the landing page's demo at rest (TerminalDemo.astro), with the cover as
+// the app draws it over a graphics protocol. Dark in either theme, as a terminal is.
+import coverUrl from '../../assets/covers/hoshikuzu.svg?url';
+
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const COLOURS: Record<string, string> = { a: '#f2a64b', d: '#9298b5', w: '#7fc7d9' };
+// {a|…} amber, {d|…} haze, {w|…} water, as in TerminalDemo.
+const mk = (src: string) => esc(src).replace(/\{(\w)\|([^}]*)\}/g, (_m, c, t) => `<tspan fill="${COLOURS[c]}">${t}</tspan>`);
+
+const RULE = `{d|${'─'.repeat(82)}}`;
+const lines = [
+	'anistream                                              sources {a|●}  vpn {a|●}  anilist {w|⇅}',
+	RULE,
+	'{a|▌} ▸  CONTINUE   {a|4} │  {a|▌} Hoshikuzu no Tabibito',
+	'  ▤  CALENDAR     │    {d|Stardust Wayfarer}',
+	'  ▦  SEASONAL     │',
+	'  /  SEARCH       │    {d|TV · 24 EP · SUMMER 2026 · 79%}',
+	'  ▥  LIBRARY      │    {d|ADVENTURE · FANTASY}',
+	'  ↓  DOWNLOADS  {a|2} │',
+	'  ◇  PROVIDERS    │    {d|EP 9 out 5d ago · EP 10 in 1d 21h}',
+	'  ⚙  SETTINGS     │',
+	'                  │',
+	'                  │    {a|▌▌▌▌▏}{d|░░░░░░░░░░░░}  6 / 24',
+	'                  │',
+	'                  │    {d|resume · EP 7 · 14 min left}',
+	'                  │',
+	'                  │',
+	RULE,
+	'{d|sub · 1080p}                                   {a|↵} play   {a|e} episodes   {a|?} keys',
+];
+
+// 82 columns of 12 px mono at 0.6 em, 18 px lines.
+const CH = 7.2;
+const PAD = 18;
+const TOP = 30;
+const TERMINAL_W = 640;
+const TERMINAL_H = TOP + 14 + lines.length * 18 + 14;
+---
+
+<svg
+	class="term-still"
+	viewBox={`0 0 ${TERMINAL_W} ${TERMINAL_H}`}
+	role="img"
+	aria-label="The terminal app on its home screen: the sections down the side, and the show in progress with its cover and how far you are"
+>
+	<rect x="0.5" y="0.5" width={TERMINAL_W - 1} height={TERMINAL_H - 1} rx="10" fill="#10131f" stroke="#2f3242" />
+	<path d={`M1 ${TOP}.5 H${TERMINAL_W - 1}`} stroke="#2f3242" />
+	<text x={PAD} y="19" fill="#9298b5" font-size="11" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">anistream · ghostty</text>
+	<g font-size="12" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" fill="#e4e0d6" xml:space="preserve" style="white-space: pre">
+		{lines.map((l, i) => <text x={PAD} y={TOP + 14 + i * 18 + 13} set:html={mk(l)} />)}
+	</g>
+	<image href={coverUrl} x={PAD + 58 * CH} y={TOP + 14 + 2.1 * 18} width={21 * CH} height={13.5 * 18} preserveAspectRatio="xMidYMid slice" />
+</svg>

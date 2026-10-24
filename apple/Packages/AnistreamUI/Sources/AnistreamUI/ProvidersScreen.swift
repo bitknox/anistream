@@ -49,12 +49,50 @@ extension AppStore {
     }
 }
 
+extension AppStore {
+    /// Whether the engine has said there is nothing to watch from: no plugin, and no torrent
+    /// source that can play.
+    var hasNoSources: Bool {
+        providers.loaded && providers.rows.allSatisfy { $0.kind == "torrent" && !$0.usable }
+    }
+}
+
+/// Providers with no source: Nagare, what a source is and where one comes from, and the one way
+/// to get one (the spec's empty states).
+struct NoSources: View {
+    @Environment(Navigator.self) private var navigator
+    /// Whether the legal line closes it, where no footer under the list says it.
+    var legal = true
+
+    var body: some View {
+        EmptyState(
+            title: "No sources yet",
+            line: "Sources come as plugins from a plugin store." + (legal ? " anistream hosts no content." : "")
+        ) {
+            Button(cased(mac: "Join a Plugin Store…", touch: "Join a plugin store")) { navigator.invite = "" }
+                .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
+        }
+    }
+}
+
 struct ProvidersScreen: View {
     @Environment(AppStore.self) private var store
     @State private var selection: String?
 
     var body: some View {
         let rows = store.orderedProviders
+        if store.hasNoSources {
+            NoSources()
+                .task {
+                    store.checkProviders()
+                    if !store.stores.loaded { store.loadStores() }
+                }
+        } else {
+            list(rows)
+        }
+    }
+
+    private func list(_ rows: [ProviderRow]) -> some View {
         HStack(alignment: .top, spacing: 0) {
             SourceOrderList(rows: rows, selection: $selection)
                 .frame(width: 460)
@@ -242,7 +280,7 @@ struct ProviderDetail: View {
                         Text(line)
                             .font(.mac(13))
                             .macLineHeight(18)
-                            .foregroundStyle(info.row.standing == .failing ? .vermilion : .haze)
+                            .foregroundStyle(.haze)
                     }
                     .padding(.top, 14)
                 }
@@ -265,7 +303,8 @@ struct ProviderDetail: View {
 
     private var stateLine: String? {
         switch info.row.standing {
-        case .failing: "Not answering." + (info.row.lastError.map { " \($0.firstCapitalized)" } ?? "")
+        // The site's own error is in Messages and the bug report, not here (copy rule 5).
+        case .failing: "Not answering."
         case .heldBack: "Held back until the connection check passes."
         default: nil
         }
@@ -277,9 +316,9 @@ struct ProviderDetail: View {
                 if store.settings.isOn(.torrents) {
                     Button("Disable") { store.setSwitch(.torrents, on: false) }
                 } else {
-                    Button("Enable…") { turningOn = true }
+                    Button(cased(mac: "Enable…", touch: "Enable")) { turningOn = true }
                 }
-                Button("Open Sources Settings") { navigator.openSettings(.sources) }
+                Button(cased(mac: "Open Sources Settings", touch: "Open sources settings")) { navigator.openSettings(.sources) }
             }
             .buttonStyle(SecondaryCapsuleStyle())
             Text("Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings › Sources.")
@@ -298,14 +337,17 @@ struct ProviderDetail: View {
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
             }
             if info.row.standing == .failing {
-                Button("Check Again") { store.checkProviders() }
+                let checking = store.jobs.running.contains { $0.activity == "checking providers" }
+                Button(cased(mac: "Check Again", touch: "Check again")) { store.checkProviders() }
                     .buttonStyle(SecondaryCapsuleStyle())
+                    .disabled(checking)
+                Working(checking)
             }
             // Off without removing it: its source leaves the chain until it is on again.
             let disabled = store.isPluginDisabled(info.row.id)
             Button(disabled ? "Enable" : "Disable") { store.setPluginDisabled(info.row.id, !disabled) }
                 .buttonStyle(SecondaryCapsuleStyle())
-            Button("Remove…") { removing = true }
+            Button(cased(mac: "Remove…", touch: "Remove")) { removing = true }
                 .buttonStyle(SecondaryCapsuleStyle())
                 .disabled(store.stores.isWorking(.remove(plugin: info.row.id)))
         }

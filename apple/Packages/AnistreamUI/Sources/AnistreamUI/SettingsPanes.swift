@@ -3,6 +3,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import Network
 import SwiftUI
 
 // MARK: - Downloads
@@ -45,7 +46,7 @@ struct DownloadsPane: View {
         let watched = WatchedDownloads(store)
         SettingsGroup {
             SettingsRow(title: "Watched downloads", note: watched.line) {
-                Button("Delete Watched Downloads…") { confirmDelete = true }
+                Button(cased(mac: "Delete Watched Downloads…", touch: "Delete watched downloads")) { confirmDelete = true }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     // Whole in a narrow pane, as on an iPad in portrait: the label wraps instead.
                     .fixedSize()
@@ -103,7 +104,7 @@ struct DownloadFolderMenu: View {
     var body: some View {
         Menu {
             #if os(macOS)
-            Button("Choose…") { choose() }
+            Button(cased(mac: "Choose…", touch: "Choose")) { choose() }
             if let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty {
                 Button("Show in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
@@ -266,6 +267,8 @@ struct SourcesPane: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @State private var turningOn = false
+    /// Whether this device has a cellular connection to choose about: an iPad with one.
+    @State private var cellular = false
 
     var body: some View {
         let on = store.settings.isOn(.torrents)
@@ -305,12 +308,15 @@ struct SourcesPane: View {
                 .labelsHidden()
             }
             if on {
-                SettingsRow(title: SettingKey.torrentIndex.title, note: "The RSS search address anistream asks for torrents. anistream ships none.") {
+                SettingsRow(title: SettingKey.torrentIndex.title, note: "The RSS search address anistream asks for torrents. anistream hosts no content.") {
                     TorrentIndexField()
                         .padding(.horizontal, 10)
                         .frame(width: 280, height: 28)
                         .background(.ground, in: .rect(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Palette.glassRule, lineWidth: 1))
+                }
+                if cellular {
+                    SettingsRow(title: SettingKey.torrentsOnCellular.title) { SettingSwitch(key: .torrentsOnCellular) }
                 }
                 SettingsRow(title: "Protect with") { ProtectionMenu() }
                 GuardRow()
@@ -327,8 +333,33 @@ struct SourcesPane: View {
         Color.clear.frame(height: 0)
             .sheet(isPresented: $turningOn) { TorrentSheet() }
             .onLaunchSheet("torrent", navigator) { turningOn = true }
+            #if os(iOS)
+            .task { cellular = await CellularCheck.available() }
+            #endif
     }
 }
+
+#if os(iOS)
+/// Whether the device has a cellular interface the system could use, from one look at its paths.
+enum CellularCheck {
+    static func available() async -> Bool {
+        let monitor = NWPathMonitor()
+        let queue = DispatchQueue(label: "anistream.cellular-check")
+        let path: NWPath = await withCheckedContinuation { done in
+            // Called on the serial queue: the first path answers, and later ones are dropped.
+            nonisolated(unsafe) var answered = false
+            monitor.pathUpdateHandler = { path in
+                guard !answered else { return }
+                answered = true
+                done.resume(returning: path)
+            }
+            monitor.start(queue: queue)
+        }
+        monitor.cancel()
+        return path.availableInterfaces.contains { $0.type == .cellular }
+    }
+}
+#endif
 
 /// The VPN guard's last word: where traffic left through and when, and whether it passed.
 struct GuardRow: View {
@@ -337,17 +368,11 @@ struct GuardRow: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let (note, status, color) = words(now: context.date)
-            SettingsRow(title: "Last check", note: note, selected: true) {
-                HStack(spacing: 12) {
-                    HStack(spacing: 6) {
-                        Circle().fill(color).frame(width: 6, height: 6)
-                        Text(status).font(.mac(13)).foregroundStyle(.silk)
-                    }
-                    // The guard re-checks on its own every minute; no command re-runs it now.
-                    Button("Check Now") {}
-                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                        .disabled(true)
-                        .help("Waits on an engine command to run the check")
+            // The guard checks again on its own every minute; no command runs it sooner.
+            SettingsRow(title: "Last check", note: note) {
+                HStack(spacing: 6) {
+                    Circle().fill(color).frame(width: 6, height: 6)
+                    Text(status).font(.mac(13)).foregroundStyle(.silk)
                 }
             }
         }
@@ -397,23 +422,27 @@ struct AccountsPane: View {
             if let anilist, anilist.connected {
                 AccountRow(state: anilist) {
                     HStack(spacing: 8) {
-                        Button("Sync Now") { store.syncNow() }
+                        Working(store.accounts.isWorking("sync"))
+                        Button(cased(mac: "Sync Now", touch: "Sync now")) { store.syncNow() }
                             .disabled(store.accounts.isWorking("sync"))
-                        Button("Sign Out") { store.disconnect("anilist") }
+                        Button(cased(mac: "Sign Out", touch: "Sign out")) { store.disconnect("anilist") }
                     }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 }
                 if !store.accounts.conflicts.isEmpty {
                     SettingsRow(title: "\(Wording.plural(store.accounts.conflicts.count, "title")) differ from AniList") {
-                        Button("Review…") { sheet = .conflicts }
+                        Button(cased(mac: "Review…", touch: "Review")) { sheet = .conflicts }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                 }
             } else {
                 SettingsRow(title: "AniList", note: "Brings in your lists and fills Continue with what you are watching.") {
-                    Button("Sign In…") { store.connect("anilist") }
-                        .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                        .disabled(store.accounts.isWorking("anilist"))
+                    HStack(spacing: 8) {
+                        Working(store.accounts.isWorking("anilist"))
+                        Button(cased(mac: "Sign In…", touch: "Sign in")) { store.connect("anilist") }
+                            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                            .disabled(store.accounts.isWorking("anilist"))
+                    }
                 }
             }
         }
@@ -424,7 +453,7 @@ struct AccountsPane: View {
         }
         SettingsGroup {
             SettingsRow(title: "Privacy", note: "What anistream sends, and what stays on this \(Device.name)") {
-                Button("Read Online") { openURL(AppVersion.privacy) }
+                Button(cased(mac: "Read Online", touch: "Read online")) { openURL(AppVersion.privacy) }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             }
         }
@@ -492,16 +521,19 @@ struct TrackerRow: View {
         ) {
             Group {
                 if state?.connected == true {
-                    Button("Sign Out") { store.disconnect(tracker) }
+                    Button(cased(mac: "Sign Out", touch: "Sign out")) { store.disconnect(tracker) }
                 } else {
                     switch tracker {
                     case "kitsu":
-                        Button("Sign In…") { sheet = .kitsu }
+                        Button(cased(mac: "Sign In…", touch: "Sign in")) { sheet = .kitsu }
                     default:
                         // MyAnimeList through the system's sign-in sheet, Simkl and Trakt with a
                         // code to type on another device.
-                        Button("Sign In…") { store.connect(tracker) }
-                            .disabled(store.accounts.isWorking(tracker))
+                        HStack(spacing: 8) {
+                            Working(store.accounts.isWorking(tracker))
+                            Button(cased(mac: "Sign In…", touch: "Sign in")) { store.connect(tracker) }
+                                .disabled(store.accounts.isWorking(tracker))
+                        }
                     }
                 }
             }
@@ -574,7 +606,7 @@ struct IntegrationsPane: View {
                 title: "Discord",
                 footnote: "Rich presence shows the cover, a progress bar and a link to the show on AniList. Discord fetches the cover from AniList itself. It needs the title shown."
             ) {
-                SettingsRow(title: SettingKey.presence.title, selected: true) { SettingSwitch(key: .presence) }
+                SettingsRow(title: SettingKey.presence.title) { SettingSwitch(key: .presence) }
                 SettingsRow(title: SettingKey.presenceTitle.title) { SettingSwitch(key: .presenceTitle) }
                     .disabled(!presence)
                     .opacity(presence ? 1 : 0.45)

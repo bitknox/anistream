@@ -137,6 +137,7 @@ internal fun RowFrame(
     onClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
     focus: String? = null,
+    container: Color? = null,
     content: @Composable (selected: Boolean) -> Unit,
 ) {
     val rowFocus = LocalRowFocus.current
@@ -154,7 +155,7 @@ internal fun RowFrame(
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clip(place.shape)
-            .background(if (selected) colors.primaryContainer else colors.surfaceContainer)
+            .background(if (selected) colors.primaryContainer else container ?: colors.surfaceContainer)
             .then(if (click != null) Modifier.clickable(onClick = click) else Modifier)
             .semantics { if (focus != null && rowFocus != null) this.selected = selected }
             .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -168,11 +169,18 @@ internal fun RowFrame(
 
 /** The row's headline in titleMedium, its value under it, and a note under that, both haze. */
 @Composable
-internal fun RowText(title: String, value: String?, note: String?, selected: Boolean, modifier: Modifier = Modifier) {
+internal fun RowText(
+    title: String,
+    value: String?,
+    note: String?,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
+) {
     val colors = MaterialTheme.colorScheme
     val secondary = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant
     Column(modifier) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = LocalContentColor.current)
+        Text(title, style = titleStyle, color = LocalContentColor.current)
         value?.let { Text(it, style = MaterialTheme.typography.bodyMedium.tabular(), color = secondary) }
         note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = secondary) }
     }
@@ -214,7 +222,7 @@ fun <T> MenuRow(
                 Icon(
                     Icons.DropDown,
                     contentDescription = null,
-                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -335,7 +343,7 @@ fun LinkRow(
         contentAlignment = Alignment.CenterStart,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            icon?.let { Icon(it, contentDescription = null, tint = if (selected) colors.primary else colors.onSurfaceVariant) }
+            icon?.let { Icon(it, contentDescription = null, tint = if (selected) colors.onPrimaryContainer else colors.onSurfaceVariant) }
             CompositionLocalProvider(LocalContentColor provides if (selected) colors.primary else colors.onSurface) {
                 RowText(title, value, null, selected, Modifier.weight(1f))
             }
@@ -355,11 +363,12 @@ fun InfoRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
+    titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
 ) {
     RowFrame(place, onClick = onClick, focus = focus, modifier = modifier.heightIn(min = if (value != null) 72.dp else 56.dp)) { selected ->
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             leading?.invoke()
-            RowText(title, value, note, selected, Modifier.weight(1f))
+            RowText(title, value, note, selected, Modifier.weight(1f), titleStyle)
             trailing?.invoke()
         }
     }

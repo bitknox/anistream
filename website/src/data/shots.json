@@ -31,6 +31,14 @@
 			2560
 		]
 	},
+	"mac-search": {
+		"w": 2560,
+		"h": 1600,
+		"widths": [
+			1280,
+			2560
+		]
+	},
 	"iphone-continue": {
 		"w": 1206,
 		"h": 2622,
@@ -61,6 +69,14 @@
 		"widths": [
 			1200,
 			2400
+		]
+	},
+	"iphone-search": {
+		"w": 1206,
+		"h": 2622,
+		"widths": [
+			540,
+			1080
 		]
 	},
 	"ipad-continue": {
@@ -141,6 +157,65 @@
 		"widths": [
 			1280,
 			2560
+		]
+	},
+	"iphone-tv-remote": {
+		"w": 1206,
+		"h": 2622,
+		"widths": [
+			540,
+			1080
+		]
+	},
+	"tv-continue": {
+		"w": 1920,
+		"h": 1080,
+		"widths": [
+			1280,
+			1920
+		]
+	},
+	"tv-title": {
+		"w": 1920,
+		"h": 1080,
+		"widths": [
+			1280,
+			1920
+		]
+	},
+	"windows-title": {
+		"w": 1010,
+		"h": 600,
+		"widths": [
+			1010
+		]
+	},
+	"windows-stores": {
+		"w": 1030,
+		"h": 640,
+		"widths": [
+			1030
+		]
+	},
+	"linux-continue": {
+		"w": 1270,
+		"h": 790,
+		"widths": [
+			1270
+		]
+	},
+	"linux-title": {
+		"w": 1270,
+		"h": 790,
+		"widths": [
+			1270
+		]
+	},
+	"linux-calendar": {
+		"w": 1270,
+		"h": 790,
+		"widths": [
+			1270
 		]
 	}
 }

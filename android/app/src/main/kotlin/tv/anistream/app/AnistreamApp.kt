@@ -247,25 +247,30 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost, WidgetHost {
     }
 
     /**
-     * Tell the engine the network the device is on, as it changes: cellular, and Data Saver as
-     * constrained. Either holds downloads and seeding as the settings say.
+     * Tell the engine the network the device is on, as it changes: cellular, Data Saver as
+     * constrained, and no network that reaches the internet as offline. Cellular and constrained
+     * hold downloads and seeding as the settings say; offline the engine turns into its one
+     * offline state, which every screen shows.
      */
     private fun watchNetwork() {
         val connectivity = getSystemService(ConnectivityManager::class.java) ?: return
-        var said: Pair<Boolean, Boolean>? = null
+        var said: Triple<Boolean, Boolean, Boolean>? = null
         val say = { capabilities: NetworkCapabilities? ->
             val cellular = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
             val constrained = connectivity.restrictBackgroundStatus == ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED
-            val now = cellular to constrained
+            val offline = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) != true
+            val now = Triple(cellular, constrained, offline)
             if (now != said) {
                 said = now
-                scope.launch { store.networkPath(cellular, constrained) }
+                scope.launch { store.networkPath(cellular, constrained, offline) }
             }
         }
         say(connectivity.getNetworkCapabilities(connectivity.activeNetwork))
         connectivity.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) = say(capabilities)
-            override fun onLost(network: Network) = say(null)
+
+            // Another network may already be the default; only none at all is offline.
+            override fun onLost(network: Network) = say(connectivity.activeNetwork?.let(connectivity::getNetworkCapabilities))
         })
     }
 

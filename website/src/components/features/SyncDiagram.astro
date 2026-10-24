@@ -1,0 +1,57 @@
+---
+// How history syncs: it is written on the device, changes queue in an outbox, the outbox sends
+// them to your trackers in order, and a pull from a tracker comes back to the device. A wide
+// drawing where the figure is 720 or wider, a tall one below that.
+import { arrow, box, node, svg, text } from './draw';
+
+const TRACKERS = ['AniList', 'MyAnimeList', 'Kitsu', 'Simkl', 'Trakt'];
+
+const trackers = (x: number, y: number, w: number) =>
+	[box(x, y, w, 164), text(x + 16, y + 30, 'label', 'Your trackers'), ...TRACKERS.map((t, i) => text(x + 16, y + 58 + i * 22, 'name', t))].join('');
+
+const wide = svg(
+	720,
+	236,
+	'wide',
+	[
+		node(0, 46, 176, 72, 'Watch history', 'On your device'),
+		arrow([[177, 82], [261, 82]]),
+		text(219, 72, 'note', 'each change', 'middle'),
+		node(262, 46, 176, 72, 'Outbox', 'Waits while offline'),
+		arrow([[439, 82], [523, 82]]),
+		text(481, 72, 'note', 'in order', 'middle'),
+		trackers(524, 0, 196),
+		arrow([[622, 165], [622, 206], [88, 206], [88, 119]]),
+		text(355, 228, 'note', 'A pull only moves your progress forward', 'middle'),
+	].join(''),
+);
+
+const narrow = svg(
+	358,
+	388,
+	'narrow',
+	[
+		node(0, 0, 236, 64, 'Watch history', 'On your device'),
+		arrow([[118, 65], [118, 111]]),
+		text(130, 93, 'note', 'each change'),
+		node(0, 112, 236, 64, 'Outbox', 'Waits while offline'),
+		arrow([[118, 177], [118, 223]]),
+		text(130, 205, 'note', 'in order'),
+		trackers(0, 224, 236),
+		arrow([[237, 306], [282, 306], [282, 32], [237, 32]]),
+		text(292, 150, 'note', 'A pull'),
+		text(292, 166, 'note', 'only moves'),
+		text(292, 182, 'note', 'progress'),
+		text(292, 198, 'note', 'forward'),
+	].join(''),
+);
+---
+
+<div
+	class="fdiag"
+	role="img"
+	aria-label="Watch history on your device sends each change to an outbox, which waits while you are offline and sends the changes in order to AniList, MyAnimeList, Kitsu, Simkl and Trakt. A pull from a tracker comes back to your history and only moves your progress forward."
+>
+	<Fragment set:html={wide} />
+	<Fragment set:html={narrow} />
+</div>

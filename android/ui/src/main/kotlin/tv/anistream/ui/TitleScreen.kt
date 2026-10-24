@@ -109,9 +109,6 @@ import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
 import tv.anistream.store.TvPlayRequest
 
-/** The episodes past the next one hide their stills, unless the show says otherwise (A2). */
-private const val SPOILER_PROTECTION = true
-
 /** What a page shows before its title has arrived. */
 private fun placeholderEntry(id: AnilistId) = Entry(
     id = id, title = "", secondary = null, format = null, episodes = null, year = null, score = null,
@@ -194,6 +191,8 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     LaunchedEffect(shown) {
         ask(shown)
         store.loadEpisodes(shown)
+        // The show's own settings, for its spoiler protection.
+        store.loadShowSettings(shown)
     }
     // The season the pickers mark: the one picked last, ahead of the page while it changes.
     val marked = remember(id) { mutableLongStateOf(picked) }
@@ -716,6 +715,8 @@ private fun SeasonPage(
     val marks = remember(entry.id) { UserMarks() }
     val unfolded by store.episodeFolds.unfolded.collectAsStateWithLifecycle()
     val fold = rememberEpisodeFold(entry.id, list)
+    val failedIds by store.titles.failed.collectAsStateWithLifecycle()
+    val failed = !loaded && entry.id in failedIds
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
         // Every item moves as one when another comes or goes, as the title's details arrive: the
         // synopsis, the facts and Related fade in above the episodes as they make room, and the
@@ -744,11 +745,20 @@ private fun SeasonPage(
                 if (synopsis.isNotEmpty()) item(key = "synopsis", contentType = "synopsis") { Box(itemMotion()) { Synopsis(synopsis) } }
                 item(key = "facts", contentType = "facts") { Box(itemMotion()) { FactsLines(entry) } }
                 item(key = "more-about", contentType = "more-about") { Box(itemMotion()) { MoreAboutRow(onAbout) } }
+            } else if (failed && !ahead) {
+                // The fetch ended without the title: why, and Try again, in place of placeholders
+                // that would otherwise stand for good.
+                item(key = "failed", contentType = "failed") {
+                    Box(itemMotion()) {
+                        FailedState("Couldn't load this title", TITLE_FAILED, retry = { store.loadDetail(entry.id) })
+                    }
+                }
             } else {
-                // In the layout of what replaces them, so the picker stands where it will.
-                item(key = "actions-placeholder", contentType = "actions-placeholder") { Box(itemMotion()) { ActionsPlaceholder() } }
-                item(key = "facts-placeholder", contentType = "facts-placeholder") { Box(itemMotion()) { FactsPlaceholder() } }
-                item(key = "more-about-placeholder", contentType = "more-about-placeholder") { Box(itemMotion()) { MoreAboutPlaceholder() } }
+                // In the layout of what replaces them, so the picker stands where it will: at once
+                // on a page composed ahead, and after 600 ms on the one on screen (T8).
+                item(key = "actions-placeholder", contentType = "actions-placeholder") { Box(itemMotion()) { WaitFor(!ahead) { ActionsPlaceholder() } } }
+                item(key = "facts-placeholder", contentType = "facts-placeholder") { Box(itemMotion()) { WaitFor(!ahead) { FactsPlaceholder() } } }
+                item(key = "more-about-placeholder", contentType = "more-about-placeholder") { Box(itemMotion()) { WaitFor(!ahead) { MoreAboutPlaceholder() } } }
             }
             if (hasSeasons) item(key = SEASONS, contentType = SEASONS) {
                 val picked = chosen.longValue.toUInt()
@@ -760,6 +770,15 @@ private fun SeasonPage(
             episodeRows(entry, episodes, actions, unfolded = entry.id in unfolded, onFold = fold, wait = !ahead)
         }
     }
+}
+
+/** What a page says when its title's fetch ended without it: the engine says no more. */
+private const val TITLE_FAILED = "AniList didn't answer."
+
+/** [content] after 600 ms when [wait], else at once. */
+@Composable
+private fun WaitFor(wait: Boolean, content: @Composable () -> Unit) {
+    if (wait) AfterWait(content) else content()
 }
 
 /** The actions' places while a season's title is on its way: the main button's, then the list's and the trailer's. */
@@ -901,8 +920,11 @@ private fun BannerScrim(modifier: Modifier = Modifier, held: Dp = 19.dp, height:
     }
 }
 
-/** The page's title with a soft edge of the ground, so its letters hold on light or busy art. */
-private val TitleOverArt = ShowTitle.page.copy(shadow = Shadow(ObiSilk.Ground.copy(alpha = 0.75f), Offset(0f, 2f), 14f))
+/**
+ * The page's title over art: the scrim beneath does the work, and a 2 px edge of the ground keeps
+ * its letters on light art, as the player's lines do. No glow.
+ */
+private val TitleOverArt = ShowTitle.page.copy(shadow = Shadow(ObiSilk.Ground.copy(alpha = 0.75f), Offset(0f, 1f), 2f))
 
 /** The facts on one line, then the top three tags on another, each cut at the end. */
 @Composable
@@ -1648,7 +1670,7 @@ private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: A
     val current = number == next
     val airsAt = row.airsAt
     val unaired = airsAt != null && airsAt > nowSeconds()
-    val hidden = SPOILER_PROTECTION && number > next && !row.completed && !unaired
+    val hidden = spoilerProtected(entry.id) && number > next && !row.completed && !unaired
     var menu by remember { mutableStateOf(false) }
     Box {
         EpisodeLine(

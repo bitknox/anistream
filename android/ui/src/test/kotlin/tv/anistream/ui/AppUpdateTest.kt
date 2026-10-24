@@ -252,7 +252,7 @@ class AppUpdateTest {
         assertEquals("Checking", UpdateWords.check(UpdateCheck.Checking))
         assertEquals("anistream is up to date", UpdateWords.check(UpdateCheck.UpToDate))
         assertEquals(null, UpdateWords.check(UpdateCheck.Found))
-        assertEquals("Not checked: GitHub could not be reached", UpdateWords.check(UpdateCheck.Failed("GitHub could not be reached.")))
+        assertEquals("Not checked. GitHub could not be reached.", UpdateWords.check(UpdateCheck.Failed("GitHub could not be reached.")))
     }
 
     @Test

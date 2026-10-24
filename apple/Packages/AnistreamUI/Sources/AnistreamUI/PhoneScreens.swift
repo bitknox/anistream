@@ -14,56 +14,48 @@ struct PhoneContinue: View {
     @Environment(AppStore.self) private var store
     @Environment(\.playerUp) private var playerUp
     @Environment(Navigator.self) private var navigator
+    /// Whether the queue is what shows, so New this week's rows stand under its hero.
+    @State private var rowsShown = false
 
     var body: some View {
         let queue = store.continuing.queue(store.titles)
-        ScrollView {
-            switch store.continuing.list.state {
-            case .empty:
+        let fresh = Self.fresh(queue)
+        // A list, so New this week's rows take their swipes (native-ux), drawn as the scroll
+        // view was: the states, the hero and the rail one row, then a row each.
+        List {
+            ListStates(
+                state: store.continuing.list.state,
+                placeholder: AnyView(PhoneContinuePlaceholder().padding(.horizontal, 16)),
+                activity: "loading continue watching",
+                failure: "Couldn't load Continue",
+                retry: { store.loadContinue(force: true) },
+                offlineInset: 16,
+                rowsShown: $rowsShown
+            ) { _ in
+                if queue.all.isEmpty {
+                    NothingToContinue().frame(minHeight: 480)
+                } else {
+                    queueView(queue, fresh: fresh)
+                }
+            } empty: {
                 WelcomeContinue(compact: true)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 24)
-            case .failed(let reason):
-                ListFailed(reason: reason)
-            default:
-                VStack(alignment: .leading, spacing: 0) {
-                    if let hero = queue.inProgress.first ?? queue.newThisWeek.first {
-                        PhoneHero(item: hero)
-                            .padding(.top, 8)
-                    }
-                    let rail = Array(queue.inProgress.dropFirst())
-                    if !rail.isEmpty {
-                        PhoneHeading("In progress").padding(.top, 18)
-                        ScrollView(.horizontal) {
-                            HStack(alignment: .top, spacing: 12) {
-                                ForEach(rail) { PhoneCard(item: $0) }
-                            }
-                            .padding(.horizontal, 16)
-                        }
-                        .scrollIndicators(.never)
-                        .padding(.horizontal, -16)
-                        .padding(.top, 10)
-                    }
-                    let fresh = queue.inProgress.isEmpty ? Array(queue.newThisWeek.dropFirst()) : queue.newThisWeek
-                    if !fresh.isEmpty {
-                        PhoneHeading("New this week").padding(.top, 16)
-                        ForEach(fresh) { PhoneNewRow(item: $0) }
-                            .padding(.top, 2)
-                    }
+            }
+            .bareRow()
+            if rowsShown, !fresh.isEmpty {
+                ForEach(fresh) { item in
+                    PhoneNewRow(item: item)
+                        .continueSwipes(item)
+                        .bareRow(EdgeInsets(top: 2, leading: 16, bottom: 0, trailing: 16))
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 24)
+                Color.clear.frame(height: 24).bareRow()
             }
         }
-        .scrollContentBackground(.hidden)
-        .navigationSubtitle(store.continuing.list.state == .empty ? "Nothing watched yet" : "")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Accounts and settings", systemImage: "person.crop.circle") {
-                    navigator.phoneSettings = .root
-                }
-            }
-        }
+        .bareList()
+        .navigationSubtitle(store.syncSubtitle(nothingWatched: store.continuing.list.state == .empty))
+        .toolbar { AccountButton() }
+        .pullToRefresh(store, .continueWatching)
         .task { store.loadContinue() }
         // A watch moves the queue on: asked again once the player has gone, fresh or not.
         .onChange(of: playerUp) { _, up in if !up { store.loadContinue(force: true) } }
@@ -72,6 +64,99 @@ struct PhoneContinue: View {
                 store.loadEpisodes(id)
             }
         }
+    }
+
+    /// New this week's titles, less the one the hero shows.
+    private static func fresh(_ queue: ContinueQueue) -> [ContinueItem] {
+        queue.inProgress.isEmpty ? Array(queue.newThisWeek.dropFirst()) : queue.newThisWeek
+    }
+
+    private func queueView(_ queue: ContinueQueue, fresh: [ContinueItem]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let hero = queue.inProgress.first ?? queue.newThisWeek.first {
+                PhoneHero(item: hero)
+                    .padding(.top, 8)
+            }
+            let rail = Array(queue.inProgress.dropFirst())
+            if !rail.isEmpty {
+                PhoneHeading("In progress").padding(.top, 18)
+                ScrollView(.horizontal) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(rail) { PhoneCard(item: $0) }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .scrollIndicators(.never)
+                .padding(.horizontal, -16)
+                .padding(.top, 10)
+            }
+            if !fresh.isEmpty {
+                // Its rows follow as rows of the list.
+                PhoneHeading("New this week").padding(.top, 16)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, fresh.isEmpty ? 24 : 0)
+    }
+}
+
+/// Continue on an iPhone while it loads, past 600 ms: the hero and a row as they will stand,
+/// static and redacted.
+struct PhoneContinuePlaceholder: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RoundedRectangle(cornerRadius: ArtShape.bannerRadius)
+                .fill(.raised)
+                .aspectRatio(16 / 9, contentMode: .fit)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Hoshikuzu no Tabibito").font(.showTitle(size: 22, relativeTo: .title2))
+                Text("Episode 7 · The Lantern Road").font(.ui(15))
+            }
+            .padding(.top, 8)
+            Text("In progress").font(.ui(20, weight: .semibold)).padding(.top, 18)
+            HStack(spacing: 12) {
+                ForEach(0..<2, id: \.self) { _ in
+                    VStack(alignment: .leading, spacing: 6) {
+                        RoundedRectangle(cornerRadius: ArtShape.bannerRadius).fill(.raised).frame(width: 208, height: 117)
+                        Text("Kumo no Ue no Toshokan").font(.showTitle(size: 17, relativeTo: .body))
+                        Text("E4 · 12 min left").font(.ui(15))
+                    }
+                }
+            }
+            .padding(.top, 10)
+        }
+        .redacted(reason: .placeholder)
+        .foregroundStyle(.haze)
+        .padding(.top, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+        .accessibilityHidden(true)
+    }
+}
+
+
+/// The account button on Continue and Library: Accounts, Providers, Plugin stores and Settings
+/// in a sheet.
+struct AccountButton: ToolbarContent {
+    @Environment(Navigator.self) private var navigator
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("Accounts and settings", systemImage: "person.crop.circle") {
+                navigator.phoneSettings = .root
+            }
+        }
+    }
+}
+
+extension AppStore {
+    /// Where sync stands, as the iPhone's Continue and Library say it under their titles: the
+    /// tracker's state, or with none signed in, that nothing is watched yet when that is so.
+    func syncSubtitle(nothingWatched: Bool = false) -> String {
+        let summary = accounts.summary
+        if summary.state == .signedOut { return nothingWatched ? "Nothing watched yet" : "" }
+        if jobs.shown.contains(where: { $0.activity == "syncing" }) { return "Syncing" }
+        return summary.text
     }
 }
 
@@ -132,7 +217,7 @@ struct PhoneHero: View {
             layout {
                 VStack(alignment: .leading, spacing: 6) {
                     Held(value: item.fraction) { fraction in
-                        if let fraction { Meter(fraction: fraction, height: 4) }
+                        if let fraction { Meter(fraction: fraction, height: 4, spoken: item.timeLeft) }
                     }
                     Held(value: item.minutesLeft) { minutes in
                         if let minutes { MinutesLeft(minutes: minutes) }
@@ -212,7 +297,7 @@ struct PhoneCard: View {
                 .playerZoomSource(item.id)
                 Held(value: item.fraction) { fraction in
                     if let fraction {
-                        Meter(fraction: fraction, height: 3)
+                        Meter(fraction: fraction, height: 3, spoken: item.timeLeft)
                     } else {
                         Color.clear.frame(height: 3)
                     }
@@ -313,7 +398,13 @@ struct PhoneCalendar: View {
                 // Seven to a row: no larger than `.xxxLarge`, as controls are.
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .padding(.vertical, 8)
-                ListStates(state: store.calendar.list.state, placeholder: AnyView(Color.clear.frame(height: 200))) { _ in
+                ListStates(
+                    state: store.calendar.list.state,
+                    placeholder: AnyView(PhoneCalendarPlaceholder()),
+                    activity: "loading the calendar",
+                    failure: "Couldn't load the calendar",
+                    retry: { store.loadCalendar() }
+                ) { _ in
                     VStack(alignment: .leading, spacing: 20) {
                         ForEach(days.filter { $0 >= chosen }, id: \.self) { day in
                             let today = broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) }
@@ -344,6 +435,7 @@ struct PhoneCalendar: View {
             .padding(.bottom, 24)
         }
         .daysRotor(days.filter { $0 >= chosen }, broadcasts: broadcasts, in: rotor)
+        .pullToRefresh(store, .calendar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Picker("Show", selection: $navigator.calendarMine) {
@@ -392,6 +484,31 @@ struct PhoneCalendar: View {
     }
 }
 
+/// The day while the calendar loads, past 600 ms: rows as they will stand, static and redacted.
+struct PhoneCalendarPlaceholder: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Today").font(.ui(20, weight: .semibold))
+            ForEach(0..<3, id: \.self) { _ in
+                HStack(spacing: 14) {
+                    Text("17:30").font(.ui(15)).frame(minWidth: 52, alignment: .leading)
+                    RoundedRectangle(cornerRadius: 6).fill(.raised).frame(width: 50, height: 75)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Natsukaze Relay").font(.showTitle(size: 17, relativeTo: .body))
+                        Text("Episode 9 in 1h 30m").font(.ui(15))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .redacted(reason: .placeholder)
+        .foregroundStyle(.haze)
+        .padding(.top, 8)
+        .accessibilityHidden(true)
+    }
+}
+
 /// A broadcast in the iPhone's calendar: its time, its cover, the title and what it is.
 struct PhoneBroadcastRow: View {
     @Environment(Navigator.self) private var navigator
@@ -430,6 +547,12 @@ struct PhoneBroadcastRow: View {
                     }
                     .font(.ui(15))
                     .foregroundStyle(.haze)
+                    if !broadcast.watched, let note = broadcast.delayNote {
+                        Text("Delayed \(note)")
+                            .font(.ui(13))
+                            .monospacedDigit()
+                            .foregroundStyle(.haze)
+                    }
                 }
                 Spacer(minLength: 0)
                 if broadcast.watched {
@@ -456,6 +579,7 @@ struct PhoneBroadcastRow: View {
 struct PhoneLibrary: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         @Bindable var navigator = navigator
@@ -507,6 +631,9 @@ struct PhoneLibrary: View {
                 }
             }
         }
+        .pullToRefresh(store, .library(navigator.librarySegment))
+        .navigationSubtitle(sizeClass == .compact ? store.syncSubtitle() : "")
+        .toolbar { if sizeClass == .compact { AccountButton() } }
         .task {
             for segment in LibraryModel.order where store.library.segment(segment).state == .idle {
                 store.loadLibrary(segment)
@@ -515,27 +642,37 @@ struct PhoneLibrary: View {
     }
 }
 
-/// The Downloads row at the top of the Library.
+/// The Downloads row at the top of the Library, with how many there are: Downloads in the
+/// sidebar of a wide iPad, pushed over the Library on iPhone and in a narrow window.
 struct DownloadsRow: View {
+    @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
+        let count = store.downloads.rows.count
         Button {
-            navigator.open(.downloads)
+            navigator.showDownloads(compact: sizeClass == .compact)
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "arrow.down.to.line").font(.ui(17))
+            HStack(spacing: 12) {
+                Image(systemName: "arrow.down.to.line").font(.ui(17)).accessibilityHidden(true)
                 Text("Downloads").font(.ui(17))
                 Spacer()
+                if count > 0 {
+                    Text("\(count)").font(.ui(17)).monospacedDigit().foregroundStyle(.haze)
+                }
                 Image(systemName: "chevron.right").font(.ui(13, weight: .semibold)).foregroundStyle(.haze)
             }
             .foregroundStyle(.silk)
-            .padding(.horizontal, 18)
-            .frame(minHeight: 56)
-            .background(.raised, in: .rect(cornerRadius: 16))
+            .padding(.horizontal, 16)
+            .frame(minHeight: 52)
+            .background(.raised, in: .rect(cornerRadius: 20))
+            .contentShape(.rect(cornerRadius: 20))
         }
         .buttonStyle(.plain)
         .pointerHover()
+        .accessibilityValue(count > 0 ? Wording.plural(count, "episode") : "")
+        .task { store.loadDownloads() }
     }
 }
 

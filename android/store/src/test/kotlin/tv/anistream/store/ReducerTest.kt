@@ -183,10 +183,70 @@ class ReducerTest {
     fun a_blank_search_is_the_start_and_asks_nothing() {
         store.search("kumo")
         store.searchLive("  ")
-        assertEquals(listOf(Command.Search(SearchQuery(text = "kumo"))), store.waiting)
+        // Told all the same, so the engine drops the search it was waiting to make.
+        assertEquals(listOf(Command.Search(SearchQuery(text = "kumo")), Command.SearchLive(SearchQuery())), store.waiting)
         assertTrue(store.search.status.value.atStart)
         assertNull(store.search.asked)
         assertEquals(ListState.Idle, store.search.list.state.value)
+    }
+
+    @Test
+    fun one_typed_letter_waits_for_the_next_as_the_engine_does() {
+        val kumo = SearchQuery(text = "kumo")
+        store.searchLive(kumo)
+        store.apply(Event.Content(ContentFor.Search(kumo), ContentList.Entries(listOf(entry(900001u, "Kumo")))))
+        // Back to one letter: the start again, nothing asked, not the answer to "kumo".
+        store.searchLive("k")
+        assertTrue(store.search.status.value.atStart)
+        assertNull(store.search.asked)
+        assertFalse(store.search.status.value.pending)
+        // One kana is a word.
+        store.searchLive("く")
+        assertFalse(store.search.status.value.atStart)
+        assertEquals(SearchQuery(text = "く"), store.search.asked)
+        // The search key searches for one letter all the same.
+        store.search("k")
+        assertEquals(SearchQuery(text = "k"), store.search.asked)
+        assertFalse(store.search.status.value.atStart)
+    }
+
+    @Test
+    fun one_letter_with_filters_keeps_the_filters_answer() {
+        val mecha = SearchQuery(genres = listOf("Mecha"))
+        store.searchLive(mecha)
+        store.apply(Event.Content(ContentFor.Search(mecha), ContentList.Entries(listOf(entry(900001u, "Kumo")))))
+        store.searchLive("s")
+        assertFalse(store.search.status.value.atStart)
+        assertEquals(mecha, store.search.asked)
+        assertEquals(mecha, store.search.status.value.answered)
+        assertFalse(store.search.status.value.pending)
+    }
+
+    @Test
+    fun the_earlier_answer_is_known_for_what_it_answers() {
+        val hoshi = SearchQuery(text = "hoshi")
+        val kumo = SearchQuery(text = "kumo")
+        store.searchLive(hoshi)
+        assertTrue(store.search.status.value.pending)
+        store.apply(Event.Content(ContentFor.Search(hoshi), ContentList.Entries(listOf(entry(900001u, "Hoshi")))))
+        assertEquals(hoshi, store.search.status.value.answered)
+        store.searchLive(kumo)
+        // The earlier results stay, known to answer "hoshi", and no page of them is asked for.
+        assertTrue(store.search.status.value.pending)
+        assertEquals(hoshi, store.search.status.value.answered)
+        assertEquals(listOf(900001u), store.search.list.state.value.ids)
+        store.apply(Event.Content(ContentFor.Search(kumo), ContentList.Empty))
+        assertEquals(kumo, store.search.status.value.answered)
+        assertFalse(store.search.status.value.pending)
+    }
+
+    @Test
+    fun try_again_shows_placeholders_and_asks_the_same_search() {
+        store.search("kumo")
+        store.apply(Event.Content(ContentFor.Search(SearchQuery(text = "kumo")), ContentList.Failed("AniList is unavailable")))
+        store.retrySearch()
+        assertEquals(ListState.Loading, store.search.list.state.value)
+        assertEquals(Command.Search(SearchQuery(text = "kumo")), store.waiting.last())
     }
 
     @Test

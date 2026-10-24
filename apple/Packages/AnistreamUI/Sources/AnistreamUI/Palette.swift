@@ -55,7 +55,7 @@ func paletteItems(query: String, store: AppStore, navigator: Navigator) -> (titl
         command("Hide from Continue", "eye.slash", detail: "Progress is kept", shortcut: "⌘⌫",
                 enabled: entry.progress != nil) { store.hideFromContinue(id) }
         command("Show Settings for This Show…", "slider.horizontal.3",
-                detail: "Audio, subtitles, auto-skip, source", shortcut: "⌘I", enabled: false) {}
+                detail: "Audio, subtitles, auto-skip, source", shortcut: "⌘I") { navigator.showSettings = id }
     }
     for (index, section) in [AppSection.continue, .calendar, .seasonal, .library, .downloads].enumerated() {
         command(section.title, section.symbol, shortcut: "⌘\(index + 1)") { navigator.open(section) }

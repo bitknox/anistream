@@ -139,9 +139,9 @@ fun Entry.foldedEpisodes(rows: List<EpisodeRow>, columns: Int = 1): List<Episode
     return if (folded < 2) emptyList() else rows.take(folded)
 }
 
-/** The folded episodes' row: "Episodes 1–5 watched". */
+/** The folded episodes' row: "Episodes 1 to 5 watched". */
 fun watchedRangeWords(folded: List<EpisodeRow>): String =
-    "Episodes ${folded.first().number}\u2013${folded.last().number} watched"
+    "Episodes ${folded.first().number} to ${folded.last().number} watched"
 
 /**
  * A title's seasons, and what else it has: films, OVAs and specials.

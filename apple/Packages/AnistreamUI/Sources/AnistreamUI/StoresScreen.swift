@@ -45,19 +45,13 @@ struct NoStores: View {
     @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        VStack(spacing: 12) {
-            Text("No plugin stores yet")
-                .font(.mac(15, weight: .semibold))
-                .foregroundStyle(.silk)
-            Text("Plugin stores are run by people you know. Join one with the invite link its owner sends you.")
-                .font(.mac(13))
-                .foregroundStyle(.haze)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 360)
-            Button("Join Store…") { navigator.invite = "" }
-                .buttonStyle(SecondaryCapsuleStyle())
+        EmptyState(
+            title: "No plugin stores yet",
+            line: "Plugin stores are run by people you know. Join one with the invite link its owner sends you."
+        ) {
+            Button(cased(mac: "Join Store…", touch: "Join a store")) { navigator.invite = "" }
+                .buttonStyle(SecondaryCapsuleStyle(height: ScreenFailed.buttonHeight, fontSize: ScreenFailed.buttonFont))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -119,7 +113,7 @@ struct StoreStanding: View {
     var body: some View {
         switch row.state {
         case .revoked:
-            label("Access removed", dot: .vermilion, color: selected ? .silk : .vermilion)
+            label("Access removed", dot: .vermilion, color: .silk)
         case .offline:
             label("Offline", ring: true, color: .haze)
         case .ready where row.updates > 0:
@@ -172,16 +166,14 @@ struct StoreDetail: View {
                     Spacer()
                     StoreMenu(row: row, sheet: $sheet, leaving: $leaving)
                 }
-                if case .offline(let reason) = row.state {
-                    Text("Offline: \(reason). The plugins below are the last list that was checked.")
+                if case .offline = row.state {
+                    Text("Offline. Showing the last list it sent.")
                         .font(.mac(12))
                         .foregroundStyle(.haze)
                         .padding(.top, 8)
                 }
                 if row.state == .revoked {
-                    Text("This store no longer lets this \(Device.name) in. Its plugins stay installed until you remove them.")
-                        .font(.mac(12))
-                        .foregroundStyle(.vermilion)
+                    FailedLine("This store no longer lets this \(Device.name) in. Its plugins stay installed until you remove them.", size: 12)
                         .padding(.top, 8)
                 }
                 Text("Plugins")
@@ -223,7 +215,7 @@ struct StoreDetail: View {
             }
         }
         .confirmationDialog("Leave \(row.name)?", isPresented: $leaving) {
-            Button("Leave Store", role: .destructive) { store.leaveStore(row.id) }
+            Button(cased(mac: "Leave Store", touch: "Leave store"), role: .destructive) { store.leaveStore(row.id) }
         } message: {
             Text("This \(Device.name) can no longer install or update its plugins. Plugins already installed stay.")
         }
@@ -332,20 +324,20 @@ struct StoreMenu: View {
         Menu {
             if row.state != .revoked {
                 if row.owner {
-                    Button("Invite Someone…") { sheet = .invite(device: false) }
-                    Button("Show Members") { sheet = .members }
-                    Button("Who Can Join…") { sheet = .joining }
-                    Button("Publish a Plugin…") { sheet = .publish }
-                    Button("Open Admin Page") { store.openAdmin(row.id) }
+                    Button(cased(mac: "Invite Someone…", touch: "Invite someone")) { sheet = .invite(device: false) }
+                    Button(cased(mac: "Show Members", touch: "Show members")) { sheet = .members }
+                    Button(cased(mac: "Who Can Join…", touch: "Who can join")) { sheet = .joining }
+                    Button(cased(mac: "Publish a Plugin…", touch: "Publish a plugin")) { sheet = .publish }
+                    Button(cased(mac: "Open Admin Page", touch: "Open admin page")) { store.openAdmin(row.id) }
                     Divider()
                 }
                 // A device that joined with the store's link joins another the same way.
                 if !row.anonymous {
-                    Button("Link Another Device…") { sheet = .invite(device: true) }
+                    Button(cased(mac: "Link Another Device…", touch: "Link another device")) { sheet = .invite(device: true) }
                     Divider()
                 }
             }
-            Button("Leave Store…") { leaving = true }
+            Button(cased(mac: "Leave Store…", touch: "Leave store")) { leaving = true }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.mac(13, weight: .semibold))
@@ -510,7 +502,7 @@ struct JoinStoreSheet: View {
                 Button("Cancel") { dismiss() }
                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     .keyboardShortcut(.cancelAction)
-                Button("Join Store") { store.joinStore(link) }
+                Button(cased(mac: "Join Store", touch: "Join store")) { store.joinStore(link) }
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
                     .disabled(!canJoin || working)
@@ -573,10 +565,9 @@ struct JoinStoreSheet: View {
                 ProgressView().controlSize(.small)
                 Text("Checking the link…").font(.mac(13)).foregroundStyle(.haze)
             }
-        case .failed(let reason)?:
-            Text(reason.firstCapitalized + ".")
-                .font(.mac(13))
-                .foregroundStyle(.vermilion)
+        case .failed?:
+            FailedLine(notAStoreWords)
+                .fixedSize(horizontal: false, vertical: true)
         case .store(let invited)?:
             JoinPreview(invited: invited)
         case nil:
@@ -703,7 +694,7 @@ struct InviteSheet: View {
                     Spacer()
                     ShareLink(item: link.link) { Text("Share…") }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    Button("Copy Link") { Pasteboard.copy(link.link) }
+                    Button(cased(mac: "Copy Link", touch: "Copy link")) { Pasteboard.copy(link.link) }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     Button("Done") { dismiss() }
                         .buttonStyle(PrimaryCapsuleStyle(height: 28))
@@ -719,7 +710,7 @@ struct InviteSheet: View {
                     Button("Cancel") { dismiss() }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         .keyboardShortcut(.cancelAction)
-                    Button("Make Link") { appStore.createInvite(store.id, for: device ? nil : name) }
+                    Button(cased(mac: "Make Link", touch: "Make link")) { appStore.createInvite(store.id, for: device ? nil : name) }
                         .buttonStyle(PrimaryCapsuleStyle(height: 28))
                         .keyboardShortcut(.defaultAction)
                         .disabled((!device && name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -743,6 +734,8 @@ struct MembersSheet: View {
     @Environment(AppStore.self) private var appStore
     @Environment(\.dismiss) private var dismiss
     let store: StoreRow
+    /// The member Remove asks about, until the viewer answers.
+    @State private var removing: StoreMemberRow?
 
     var body: some View {
         let list = appStore.stores.members[store.id]
@@ -762,7 +755,7 @@ struct MembersSheet: View {
                             }
                             Spacer()
                             if !member.you {
-                                Button("Remove") { appStore.removeMember(member.id, from: store.id) }
+                                Button(cased(mac: "Remove…", touch: "Remove")) { removing = member }
                                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             }
                         }
@@ -777,12 +770,25 @@ struct MembersSheet: View {
                                     .font(.mac(12)).foregroundStyle(.haze)
                             }
                             Spacer()
-                            Button("Cancel Invite") { appStore.cancelInvite(invite.id, in: store.id) }
+                            Button(cased(mac: "Cancel Invite", touch: "Cancel invite")) { appStore.cancelInvite(invite.id, in: store.id) }
                                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         }
                         .font(.mac(13))
                         .padding(.vertical, 8)
                     }
+                }
+                .confirmationDialog(
+                    removing.map { "Remove \($0.name) from \(store.name)?" } ?? "",
+                    isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
+                    titleVisibility: .visible,
+                    presenting: removing
+                ) { member in
+                    Button(cased(mac: "Remove Member", touch: "Remove member"), role: .destructive) {
+                        appStore.removeMember(member.id, from: store.id)
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: { member in
+                    Text("Their \(Wording.plural(Int(member.devices), "device")) lose access to this store.")
                 }
             } else {
                 ProgressView().controlSize(.small)
@@ -850,7 +856,7 @@ struct OpenJoinSheet: View {
                         Spacer()
                         ShareLink(item: link) { Text("Share…") }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                        Button("Copy Link") { Pasteboard.copy(link) }
+                        Button(cased(mac: "Copy Link", touch: "Copy link")) { Pasteboard.copy(link) }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                     }
                 }

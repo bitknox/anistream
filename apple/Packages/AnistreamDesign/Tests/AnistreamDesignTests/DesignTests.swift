@@ -56,6 +56,7 @@ struct DesignTests {
 
     @Test func aPlateWithoutAColourIsTheRaisedOne() {
         #expect(CoverPlate.muted(nil) == Palette.raised)
-        #expect(components(CoverPlate.muted(Palette.ground)) == [0x16, 0x1A, 0x2E])
+        // A cover's colour at half strength over Raised: Ground halfway from Raised.
+        #expect(components(CoverPlate.muted(Palette.ground)) == [0x1C, 0x20, 0x33])
     }
 }

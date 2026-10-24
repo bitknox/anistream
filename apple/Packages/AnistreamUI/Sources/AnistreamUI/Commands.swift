@@ -52,11 +52,8 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             Button("Join Store…") { navigator.invite = "" }
             // The invite link on the pasteboard, into the join sheet.
             Button("Open Invite Link") { navigator.invite = Pasteboard.invite ?? "" }
-            Divider()
-            // Exporting lists and history has no engine command yet.
-            Button("Export Lists and History…") {}
-                .disabled(true)
             #if os(macOS)
+            Divider()
             Button("Show in Finder") { DownloadFolder.show(store) }
                 .disabled((store.settings.row(.downloadDir)?.typedText ?? "").isEmpty)
             #endif
@@ -124,12 +121,6 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
 
         CommandGroup(replacing: .help) {
             Button("Report a Bug…") { ReportBugAction(store: store, openURL: openURL)() }
-            Divider()
-            Button("anistream Help") {}
-                .disabled(true)
-            Button("Keyboard Shortcuts") {}
-                .keyboardShortcut("/", modifiers: .command)
-                .disabled(true)
         }
     }
 
@@ -193,11 +184,14 @@ struct EpisodeCommands: View {
             Button("Mark Watched") {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: true)) }
             }
-            .keyboardShortcut("u", modifiers: [.command, .shift])
+            // The same keys as Mark Unwatched, held by whichever of the two can act: a menu on
+            // iPad may not list one shortcut twice.
+            .keyboardShortcut(watched ? nil : KeyboardShortcut("u", modifiers: [.command, .shift]))
             .disabled(entry == nil || watched || !aired)
             Button("Mark Unwatched") {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: false)) }
             }
+            .keyboardShortcut(watched ? KeyboardShortcut("u", modifiers: [.command, .shift]) : nil)
             .disabled(entry == nil || !watched)
             Button("Mark All Previous Watched") {
                 if let entry {
@@ -205,8 +199,10 @@ struct EpisodeCommands: View {
                 }
             }
             .disabled(entry == nil || next <= 1)
-            Button("Download") {}.disabled(true)
-            Button("Play in Syncplay Party") {}.disabled(true)
+            Button("Download") {
+                if let entry { store.send(.downloadEpisode(id: entry.id, episode: String(next))) }
+            }
+            .disabled(entry.map { store.hasDownload($0.id, episode: String(next)) } ?? true || !aired)
         }
         Section(entry?.showTitle ?? "No Title Selected") {
             Menu("Status") {
@@ -229,7 +225,7 @@ struct EpisodeCommands: View {
             Button("More About This Show…") {
                 if let entry { navigator.moreAbout = entry.id }
             }
-            .keyboardShortcut("i", modifiers: .command)
+            .keyboardShortcut("i", modifiers: [.command, .option])
             .disabled(entry == nil)
             Button("Open on AniList") {
                 if let entry { store.openOnAniList(entry.id) }
@@ -240,8 +236,8 @@ struct EpisodeCommands: View {
         Button("Show Settings for This Show…") {
             if let entry { navigator.showSettings = entry.id }
         }
-        // ⌘I is More About This Show (native-spec/metadata.md).
-        .keyboardShortcut("i", modifiers: [.command, .option])
+        // ⌘I, as the boards have it (Johan, 24 October 2026); More About This Show is ⌥⌘I.
+        .keyboardShortcut("i", modifiers: .command)
         .disabled(entry == nil)
     }
 }

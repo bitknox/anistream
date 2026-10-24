@@ -23,10 +23,10 @@ struct TitleMenu: View {
             // Still to air: when, said and not offered.
             .disabled(!action.playable)
         }
-        Button("Go to Title") { navigator.openTitle(entry.id) }
+        Button(cased(mac: "Go to Title", touch: "Go to title")) { navigator.openTitle(entry.id) }
         Divider()
         Menu("Status") { StatusItems(id: entry.id) }
-        Button("Open on AniList") { store.openOnAniList(entry.id) }
+        Button(cased(mac: "Open on AniList", touch: "Open on AniList")) { store.openOnAniList(entry.id) }
     }
 }
 
@@ -54,14 +54,15 @@ struct TitleMoreItems: View {
 
     var body: some View {
         let next = entry.progress?.next ?? 1
-        Button("Mark All Previous Watched") {
+        Button(cased(mac: "Mark All Previous Watched", touch: "Mark all previous watched")) {
             store.send(.setWatched(id: entry.id, episodes: (1..<next).map(String.init), watched: true))
+            navigator.watchedByHand += 1
         }
         .disabled(next <= 1)
-        Button("Hide from Continue") { store.hideFromContinue(entry.id) }
+        Button(cased(mac: "Hide from Continue", touch: "Hide from Continue")) { store.hideFromContinue(entry.id) }
             .disabled(entry.progress == nil)
         Divider()
-        Button("Play Trailer") {
+        Button(cased(mac: "Play Trailer", touch: "Play trailer")) {
             if let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
         }
         .disabled(entry.trailerUrl == nil)
@@ -74,7 +75,9 @@ struct TitleMoreItems: View {
         }
         #endif
         Divider()
-        Button("Show Settings for This Show…") { navigator.showSettings = entry.id }
+        Button(cased(mac: "Show Settings for This Show…", touch: "Show settings for this show")) {
+            navigator.showSettings = entry.id
+        }
     }
 }
 
@@ -92,37 +95,51 @@ struct EpisodeMenu: View {
         if row.metadataOnly {
             Button(AddSourceWords.menu) { navigator.openProviders() }
         } else {
-            Button(resuming ? "Resume Episode \(number)" : "Play Episode \(number)") {
+            Button(resuming ? cased(mac: "Resume Episode \(number)", touch: "Resume episode \(number)")
+                            : cased(mac: "Play Episode \(number)", touch: "Play episode \(number)")) {
                 store.send(.play(id: entry.id, episode: row.number))
             }
+            // A part watched: the episode again from its first second, its place let go.
+            if resuming {
+                Button(cased(mac: "Play from the Beginning", touch: "Play from the beginning")) {
+                    store.send(.play(id: entry.id, episode: row.number, fromStart: true))
+                }
+            }
             if store.tv.available {
-                Button("Play on TV", systemImage: "tv") {
+                Button(cased(mac: "Play on TV", touch: "Play on TV"), systemImage: "tv") {
                     store.playOnTV(entry.id, episode: row.number, from: resuming ? entry.resume?.position : nil)
                 }
             }
         }
         Divider()
         if row.completed {
-            Button("Mark Unwatched") {
+            Button(cased(mac: "Mark Unwatched", touch: "Mark unwatched")) {
                 store.send(.setWatched(id: entry.id, episodes: [row.number], watched: false))
             }
         } else {
-            Button("Mark Watched") {
+            Button(cased(mac: "Mark Watched", touch: "Mark watched")) {
                 store.send(.setWatched(id: entry.id, episodes: [row.number], watched: true))
+                navigator.watchedByHand += 1
             }
         }
-        Button("Mark All Previous Watched") {
+        Button(cased(mac: "Mark All Previous Watched", touch: "Mark all previous watched")) {
             store.send(.setWatched(id: entry.id, episodes: (1...max(number, 1)).map(String.init), watched: true))
+            navigator.watchedByHand += 1
         }
         if !row.metadataOnly {
             Divider()
             Button("Download") { store.send(.downloadEpisode(id: entry.id, episode: row.number)) }
-                .disabled(true)
+                .disabled(store.hasDownload(entry.id, episode: row.number))
         }
     }
 }
 
 extension AppStore {
+    /// Whether the episode is downloaded or on its way: Download has nothing more to do.
+    func hasDownload(_ id: AnilistId, episode: String) -> Bool {
+        downloads.rows.contains { $0.anilistId == id && $0.episode == episode && $0.state != .failed }
+    }
+
     /// Put a title on a list, the change shown at once and the tracker told.
     func setStatus(_ id: AnilistId, _ segment: LibrarySegment) {
         titles.setStatus(id, segment)

@@ -9,6 +9,37 @@ import SwiftUI
 
 // MARK: - Providers
 
+extension View {
+    /// "Update Mukashi Archive?" before a plugin's update installs: the version it replaces and
+    /// the hosts it adds, as the PhoneStore board asks (F19).
+    func pluginUpdateAlert(isPresented: Binding<Bool>, store: StoreRow, plugin: StorePluginRow) -> some View {
+        modifier(PluginUpdateAlert(isPresented: isPresented, store: store, plugin: plugin))
+    }
+}
+
+private struct PluginUpdateAlert: ViewModifier {
+    @Environment(AppStore.self) private var appStore
+    @Binding var isPresented: Bool
+    let store: StoreRow
+    let plugin: StorePluginRow
+
+    func body(content: Content) -> some View {
+        content.alert("Update \(plugin.name)?", isPresented: $isPresented) {
+            Button("Update") { appStore.installPlugin(plugin.id, from: store.id) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(message)
+        }
+    }
+
+    private var message: String {
+        guard case .update(let from, let added) = plugin.status else { return "" }
+        var words = "Version \(plugin.version) from \(store.name) replaces \(from)."
+        if !added.isEmpty { words += " This update also contacts \(added.joined(separator: ", "))." }
+        return words
+    }
+}
+
 /// The sources in failover order, each with its switch; Edit to drag them into another order.
 struct PhoneProvidersPage: View {
     @Environment(AppStore.self) private var store
@@ -17,6 +48,11 @@ struct PhoneProvidersPage: View {
     var body: some View {
         let rows = store.orderedProviders
         PhoneList {
+            if store.hasNoSources {
+                NoSources(legal: false)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            }
             Section {
                 ForEach(rows, id: \.id) { row in
                     PhoneProviderRow(info: store.info(row), turningOn: $turningOn)
@@ -175,9 +211,9 @@ struct PhoneStorePage: View {
             .navigationTitle(row.name)
             .navigationBarTitleDisplayMode(.inline)
             .confirmationDialog("Leave \(row.name)?", isPresented: $leaving, titleVisibility: .visible) {
-                Button("Leave Store", role: .destructive) { appStore.leaveStore(row.id) }
+                Button("Leave store", role: .destructive) { appStore.leaveStore(row.id) }
             } message: {
-                Text("This iPhone can no longer install or update its plugins. Plugins already installed stay.")
+                Text("This \(Device.name) can no longer install or update its plugins. Plugins already installed stay.")
             }
             .sheet(isPresented: $inviting) { InviteSheet(store: row, device: true) }
         } else {
@@ -191,6 +227,8 @@ struct PhonePluginAction: View {
     @Environment(AppStore.self) private var appStore
     let store: StoreRow
     let plugin: StorePluginRow
+    /// Whether the update is asking first, with the hosts it adds.
+    @State private var confirming = false
 
     var body: some View {
         let working = appStore.stores.isWorking(.install(store: store.id, plugin: plugin.id))
@@ -202,13 +240,10 @@ struct PhonePluginAction: View {
             }
             .font(.ui(15))
         case .update where store.state != .revoked:
-            Text("Update")
-                .font(.ui(15, weight: .semibold))
-                .foregroundStyle(.ground)
-                .padding(.horizontal, 14)
-                .frame(height: 30)
-                .background(.amber, in: .capsule)
-                .opacity(working ? 0.45 : 1)
+            Button("Update") { confirming = true }
+                .buttonStyle(PrimaryCapsuleStyle(height: 30, fontSize: 15))
+                .disabled(working)
+                .pluginUpdateAlert(isPresented: $confirming, store: store, plugin: plugin)
         case .available where store.state == .ready:
             Button("Install") { appStore.installPlugin(plugin.id, from: store.id) }
                 .buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15))
@@ -227,6 +262,7 @@ struct PhonePluginPage: View {
     @Environment(AppStore.self) private var store
     let id: String
     @State private var removing = false
+    @State private var confirmingUpdate = false
 
     var body: some View {
         let row = store.providers.row(id)
@@ -251,12 +287,13 @@ struct PhonePluginPage: View {
             if let listing, case .update(_, let added) = listing.row.status {
                 Section {
                     Button {
-                        store.installPlugin(id, from: listing.store.id)
+                        confirmingUpdate = true
                     } label: {
                         Text("Update to \(listing.row.version)").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
                     .disabled(store.stores.isWorking(.install(store: listing.store.id, plugin: id)))
+                    .pluginUpdateAlert(isPresented: $confirmingUpdate, store: listing.store, plugin: listing.row)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 } footer: {
@@ -383,9 +420,9 @@ struct PhoneJoinStoreSheet: View {
                 }
                 .listRowBackground(Palette.raised)
             }
-        case .failed(let reason)?:
+        case .failed?:
             Section {
-                Text(reason.firstCapitalized + ".").foregroundStyle(.vermilion).listRowBackground(Palette.raised)
+                FailedLine(notAStoreWords, size: 15).listRowBackground(Palette.raised)
             }
         case .store(let invited)?:
             Section {
@@ -476,7 +513,7 @@ struct PhoneTorrentSheet: View {
                     } header: {
                         PhoneSectionHeader("Torrent index")
                     } footer: {
-                        Text("The RSS search address anistream asks for torrents. anistream ships none.")
+                        Text("The RSS search address anistream asks for torrents. anistream hosts no content.")
                     }
                 }
                 Section {
@@ -489,7 +526,10 @@ struct PhoneTorrentSheet: View {
                 } header: {
                     PhoneSectionHeader("Protect with")
                 } footer: {
-                    Text(ProtectionWords.checkNote)
+                    // With none, nothing checks the connection, so the check's note would mislead.
+                    Text(draft.wrappedValue.protection == TorrentProtection.none
+                         ? "With no protection, anistream does not check the connection."
+                         : ProtectionWords.checkNote)
                 }
                 if draft.wrappedValue.protection == .proxy {
                     Section {
@@ -535,7 +575,7 @@ struct PhoneTorrentSheet: View {
             self.draft = first
         }
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
-            Button(turningOn ? "Turn on without protection" : "Use no protection", role: .destructive) {
+            Button("No protection", role: .destructive) {
                 send(draft.wrappedValue)
             }
             Button("Cancel", role: .cancel) {}

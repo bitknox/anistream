@@ -1,6 +1,7 @@
 ---
-// The <head> the landing page and the apps page share: their title and description, the icons,
-// the theme colours, and the theme the docs remember, set before the first paint.
+// The <head> the landing, apps and features pages share: their title and description, the
+// social preview, the icons, the theme colours, and the theme the docs remember, set before the
+// first paint.
 interface Props {
 	title: string;
 	description: string;
@@ -19,6 +20,11 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <meta property="og:description" content={description} />
 <meta property="og:url" content={canonical} />
 <meta property="og:type" content="website" />
+<meta property="og:image" content={new URL('/og.png', Astro.site)} />
+<meta property="og:image:width" content="1280" />
+<meta property="og:image:height" content="640" />
+<meta property="og:image:alt" content="Browse, watch, track and sync anime in one client, over a rooftop at dusk with Nagare, anistream’s mascot" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

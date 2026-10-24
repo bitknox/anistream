@@ -28,12 +28,19 @@ public final class Navigator {
     public var paletteShown = false
     /// Whether Messages is up.
     public var messagesShown = false
+    /// Whether Kitsu's sign-in sheet is up, as a notice's Sign in asks.
+    public var kitsuShown = false
     /// What Search's field holds.
     public var query = ""
-    /// Whether every filter is up: the inspector on the Mac and iPad, a sheet on iPhone.
+    /// Whether every filter is up: a panel on the Mac, the inspector on iPad, a sheet on iPhone.
     public var searchFiltersShown = false
     /// The search the launch arguments ask for, for a screenshot, until Search runs it.
     public var launchSearch: SearchQuery?
+    /// Whether Downloads is pushed over the Library, as its first row does on iPhone.
+    public var downloadsPushed = false
+    /// Counts the viewer's own marks of an episode as watched, for the light impact on iPhone:
+    /// a mark the engine makes, from sync or the player closing, has none (Haptics rule 1).
+    public var watchedByHand = 0
     /// The Library's list on screen.
     public var librarySegment: LibrarySegment = .watching
     /// The calendar's week, as weeks from this one.
@@ -54,6 +61,8 @@ public final class Navigator {
     public var showSettings: AnilistId?
     /// A selection asked of Continue's list from outside it, as the list itself would move it.
     public var continueSelection: AnilistId?
+    /// Whether the title search field is up for typing. The launch route's "typing" sheet sets it.
+    public var searchPresented = false
     /// The title whose "More about this show" sheet is open.
     public var moreAbout: AnilistId?
     /// The titles whose watched episodes are open in their episode lists, for the session.

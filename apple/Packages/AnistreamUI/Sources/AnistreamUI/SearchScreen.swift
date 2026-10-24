@@ -106,6 +106,7 @@ struct TitleSearchField: ViewModifier {
                 text: text,
                 tokens: tokens,
                 suggestedTokens: .constant(titles ? suggestions : []),
+                isPresented: Binding(get: { navigator.searchPresented }, set: { navigator.searchPresented = $0 }),
                 placement: placement,
                 prompt: prompt
             ) { token in
@@ -164,15 +165,32 @@ extension View {
 
 // MARK: - The screen
 
+extension SearchModel {
+    /// The search as a job, once its answer has been waited for past 600 ms: "Searching for
+    /// “hoshi”". `nil` otherwise.
+    var searchingLine: String? {
+        guard overdue, let asked else { return nil }
+        return asked.isBrowse() ? "Searching for \(asked.headline())" : "Searching for “\(asked.text)”"
+    }
+
+    /// Whether Search's start stays on screen: before anything is asked, and while the first
+    /// answer is under 600 ms away, as the earlier screen stays until an answer replaces it.
+    var startShown: Bool {
+        atStart || (answered == nil && pending && !overdue)
+    }
+}
+
 /// Search: the filters, always there, over Search's start or the titles found.
 struct SearchScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The iPhone's: sentence case, larger type, three columns.
     var compact = false
 
     var body: some View {
         @Bindable var navigator = navigator
+        let startShown = store.search.startShown
         ScrollView {
             VStack(alignment: .leading, spacing: compact ? 16 : 20) {
                 SearchFilterRow(compact: compact)
@@ -180,24 +198,45 @@ struct SearchScreen: View {
                 if store.search.livePaused, !store.search.query.isBrowse() {
                     LivePaused(compact: compact)
                 }
-                if store.search.atStart {
-                    SearchStart(compact: compact)
-                } else {
-                    SearchResults(compact: compact)
+                // Start and results crossfade (standard), the one in place of the other.
+                ZStack(alignment: .topLeading) {
+                    if startShown {
+                        SearchStart(compact: compact)
+                            .transition(.opacity)
+                    } else {
+                        SearchResults(compact: compact)
+                            .transition(.opacity)
+                    }
                 }
+                .animation(.standard, value: startShown)
             }
             .padding(compact ? EdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16)
                              : EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
         }
         .scrollIndicators(.never)
         #if os(iOS)
-        // The Mac's is on the window's detail column, beside the toolbar it shares (MacShell).
+        .navigationSubtitle(store.search.searchingLine ?? "")
+        // The ground inside the inspector: it hosts the screen in a column of its own, which
+        // draws the system's black over the ground TabStack puts behind it.
+        .background(Palette.ground)
         .inspector(isPresented: $navigator.searchFiltersShown) {
             SearchFiltersPanel(compact: compact)
                 .inspectorColumnWidth(min: 300, ideal: 340, max: 420)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        #else
+        // Every filter in a panel at the trailing edge, inside Search rather than the system's
+        // inspector column: an inspector splits the window's title bar and AppKit draws its own
+        // toolbar backdrop across it, a grey band in place of the ground. Here the results'
+        // scroll view still spans the window under the toolbar, so the header never changes.
+        .safeAreaInset(edge: .trailing, spacing: 0) {
+            if navigator.searchFiltersShown {
+                MacFiltersPanel()
+                    .transition(reduceMotion ? .opacity : .move(edge: .trailing))
+            }
+        }
+        .animation(.standard, value: navigator.searchFiltersShown)
         #endif
         .task {
             store.loadSearchStart()
@@ -207,9 +246,15 @@ struct SearchScreen: View {
             } else if store.search.asked == nil, !navigator.query.isEmpty {
                 store.search(text: navigator.query)
             }
+            if navigator.launchSheet == "typing" {
+                navigator.launchSheet = nil
+                try? await Task.sleep(for: .milliseconds(300))
+                navigator.searchPresented = true
+            }
             if navigator.launchSheet == "filters" {
                 navigator.launchSheet = nil
-                // Once the window is up: an inspector open as the window first lays out loops.
+                // Once the window is up: an inspector open as the window first lays out loops
+                // (iPad).
                 try? await Task.sleep(for: .milliseconds(300))
                 navigator.searchFiltersShown = true
             }
@@ -221,6 +266,19 @@ struct SearchScreen: View {
         }
     }
 }
+
+#if os(macOS)
+/// The Mac's filters panel: every filter, beside the results, a hairline at its edge.
+private struct MacFiltersPanel: View {
+    var body: some View {
+        SearchFiltersPanel()
+            .frame(width: 340)
+            .overlay(alignment: .leading) {
+                Rectangle().fill(Palette.faintRule).frame(width: 1)
+            }
+    }
+}
+#endif
 
 /// Typing waits for Return: the AniList budget is nearly spent. Filters still search.
 private struct LivePaused: View {
@@ -294,7 +352,9 @@ struct SearchFilterRow: View {
                 .padding(.vertical, 1)
             }
             .scrollIndicators(.never)
-            .scrollClipDisabled()
+            // On a phone the row runs to the screen's edge. On the Mac it stops short of the sort,
+            // or a narrow window draws capsules over it.
+            .scrollClipDisabled(compact)
             if !compact {
                 Spacer(minLength: 0)
                 sort(query)
@@ -536,36 +596,46 @@ struct SearchResults: View {
     var body: some View {
         let search = store.search
         let minimum: CGFloat = compact ? 100 : 128
+        let spacing: CGFloat = compact ? 12 : 20
+        // The earlier results stay while the answer is under 600 ms away, then give way to
+        // placeholders: never results that answer something else for long.
+        let state: ListState = search.overdue ? .loading : search.list.state
         VStack(alignment: .leading, spacing: 16) {
-            if let caption = search.list.caption {
+            if let caption = search.list.caption, !search.overdue {
                 Text(caption)
                     .font(compact ? .ui(15) : .mac(13))
                     .foregroundStyle(.haze)
             }
-            ListStates(state: search.list.state,
-                       placeholder: AnyView(PosterGridPlaceholder(minimum: minimum))) { ids in
-                VStack(spacing: 0) {
-                    PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: minimum,
-                               spacing: compact ? 12 : 20) { entry in
+            ListStates(
+                state: state,
+                placeholder: AnyView(PosterGridPlaceholder(count: compact ? 12 : 14, minimum: minimum, spacing: spacing)),
+                retry: { store.retrySearch() }
+            ) { ids in
+                VStack(alignment: .leading, spacing: 24) {
+                    PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: minimum, spacing: spacing) { entry in
                         PosterCell(entry: entry, detail: searchLine(entry), width: minimum)
                     }
+                    // One answer replaces another in one crossfade, not cell by cell.
+                    .id(search.answered)
+                    .transition(.opacity)
                     if search.hasNext {
-                        ProgressView()
-                            .controlSize(.small)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                            // Anew for each page, so a page that still leaves it in sight asks
-                            // for the next.
+                        // The next page's covers to come, in the grid's own columns: they ask
+                        // for it as they come into sight.
+                        PosterGridPlaceholder(count: compact ? 6 : 8, minimum: minimum, spacing: spacing)
+                            // Anew for each page, so a page that still leaves them in sight
+                            // asks for the next.
                             .id(search.pages)
                             .onScrollVisibilityChange(threshold: 0.01) { visible in
                                 if visible { store.searchMore() }
                             }
+                            .accessibilityElement()
                             .accessibilityLabel("Loading more titles")
                     }
                 }
             } empty: {
                 NothingFound(compact: compact)
             }
+            .animation(.standard, value: search.answered)
         }
     }
 
@@ -578,24 +648,28 @@ struct SearchResults: View {
     }
 }
 
-/// Nothing found: what was asked, in the engine's words, and the way out when filters are set.
+/// Nothing found: the system's search empty state, which repeats the words, and with filters set,
+/// what was asked in the engine's words and the way out.
 private struct NothingFound: View {
     @Environment(AppStore.self) private var store
     var compact = false
 
     var body: some View {
-        let query = store.search.query
-        VStack(spacing: 16) {
-            Nagare(cell: 4)
-            Text(query.nothingFound())
-                .font(compact ? .ui(15) : .mac(13))
-                .foregroundStyle(.haze)
-                .multilineTextAlignment(.center)
+        let query = store.search.asked ?? store.search.query.normalized
+        Group {
             if query.hasFilters() {
-                Button(compact ? "Clear filters" : "Clear Filters") {
-                    store.searchLive(query.cleared())
+                ContentUnavailableView {
+                    Label(compact ? "No results" : "No Results", systemImage: "magnifyingglass")
+                } description: {
+                    Text(query.nothingFound())
+                } actions: {
+                    Button(compact ? "Clear filters" : "Clear Filters") {
+                        store.searchLive(store.search.query.cleared())
+                    }
+                    .buttonStyle(SecondaryCapsuleStyle(height: compact ? 44 : 28, fontSize: compact ? 17 : 13))
                 }
-                .buttonStyle(SecondaryCapsuleStyle(height: compact ? 44 : 28, fontSize: compact ? 17 : 13))
+            } else {
+                ContentUnavailableView.search(text: query.text)
             }
         }
         .frame(maxWidth: .infinity, minHeight: 240)
@@ -615,13 +689,20 @@ struct SearchStart: View {
             if !store.search.recents.isEmpty {
                 RecentSearchList(compact: compact)
             }
-            if let rails = store.search.rails {
-                ForEach(rails.filter { !$0.entries.isEmpty }, id: \.title) { rail in
-                    RailRow(rail: rail, compact: compact)
+            Group {
+                if let rails = store.search.rails {
+                    VStack(alignment: .leading, spacing: 28) {
+                        ForEach(rails.filter { !$0.entries.isEmpty }, id: \.title) { rail in
+                            RailRow(rail: rail, compact: compact)
+                        }
+                    }
+                    .transition(.opacity)
+                } else {
+                    RailPlaceholder(compact: compact)
+                        .transition(.opacity)
                 }
-            } else {
-                RailPlaceholder(compact: compact)
             }
+            .animation(.standard, value: store.search.rails == nil)
             if let genres = store.search.facets?.genres, !genres.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionHeading("Genres", compact: compact)
@@ -729,33 +810,45 @@ private struct RailRow: View {
     }
 }
 
-/// Covers to come, while the rails are on their way.
+/// Covers to come, while the rails are on their way: nothing for 600 ms, then rails of plates at
+/// the size the rails will have.
 private struct RailPlaceholder: View {
     var compact = false
+    @State private var shown = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Trending now").font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
-            HStack(alignment: .top, spacing: compact ? 12 : 20) {
-                ForEach(0..<6, id: \.self) { _ in
-                    VStack(alignment: .leading, spacing: 8) {
-                        RoundedRectangle(cornerRadius: 8).fill(.raised).aspectRatio(2 / 3, contentMode: .fit)
-                        Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 14))
+        let width: CGFloat = compact ? 112 : 128
+        VStack(alignment: .leading, spacing: 28) {
+            ForEach(0..<3, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionHeading("Trending Now", compact: compact)
+                        .frame(minHeight: compact ? 44 : 28)
+                    HStack(alignment: .top, spacing: compact ? 12 : 20) {
+                        ForEach(0..<8, id: \.self) { _ in
+                            PosterCellPlaceholder(width: width).frame(width: width)
+                        }
                     }
-                    .frame(width: compact ? 112 : 128)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .clipped()
                 }
             }
         }
         .redacted(reason: .placeholder)
         .foregroundStyle(.haze)
+        .opacity(shown ? 1 : 0)
+        .task {
+            try? await Task.sleep(for: SearchModel.quiet)
+            withAnimation(.standard) { shown = true }
+        }
         .accessibilityHidden(true)
     }
 }
 
 // MARK: - Every filter
 
-/// Every filter, in sections: the Mac's and iPad's inspector, the iPhone's sheet. Each change
-/// searches; there is nothing to apply.
+/// Every filter, in sections: the Mac's panel beside the results, the iPad's inspector, the
+/// iPhone's sheet. Each change searches; there is nothing to apply.
 struct SearchFiltersPanel: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
@@ -775,8 +868,8 @@ struct SearchFiltersPanel: View {
         let query = store.search.query
         let facets = store.search.facets
         return ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                    header(query)
+            VStack(alignment: .leading, spacing: compact ? 28 : 24) {
+                header(query)
                 PanelSection(compact: compact, "Genres") {
                     FlowLayout(spacing: 6, lineSpacing: 6) {
                         ForEach(facets?.genres ?? [], id: \.self) { name in
@@ -936,7 +1029,7 @@ struct SearchFiltersPanel: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 10)
                 .frame(minHeight: compact ? 44 : 28)
-                .background(Palette.ground, in: .rect(cornerRadius: 8))
+                .background(Palette.raised, in: .rect(cornerRadius: 8))
             Stepper(value: Binding(
                 get: { Int(store.search.query.minTagRank ?? defaultTagRank) },
                 set: { rank in
@@ -1015,19 +1108,19 @@ private struct PanelSection<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: compact ? 10 : 8) {
+            // Search's own section heading, as over its rails and recent searches: sentence
+            // case, the hierarchy from type and space, with no box around the section.
             Text(title)
-                .groupHeaderStyle()
-                .padding(.leading, 12)
+                .font(compact ? .ui(15, weight: .semibold) : .mac(13, weight: .semibold))
+                .foregroundStyle(.silk)
                 .accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: 10) {
                 content
             }
             .font(compact ? .ui(17) : .mac(13))
             .foregroundStyle(.silk)
-            .padding(compact ? 16 : 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.raised, in: .rect(cornerRadius: compact ? 16 : 12))
         }
     }
 }
@@ -1156,9 +1249,10 @@ private struct RangeFields: View {
         LabeledContent(title) {
             HStack(spacing: 6) {
                 field("From", \.min)
-                Text("to").foregroundStyle(.haze)
+                // Never broken a letter to a line where the panel is narrow.
+                Text("to").foregroundStyle(.haze).fixedSize()
                 field("To", \.max)
-                if let unit { Text(unit).foregroundStyle(.haze) }
+                if let unit { Text(unit).foregroundStyle(.haze).fixedSize() }
             }
         }
     }

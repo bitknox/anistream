@@ -163,13 +163,14 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
     val working by store.accounts.working.collectAsStateWithLifecycle()
     val downloads by store.downloads.rows.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
+    val providersLoaded by store.providers.loaded.collectAsStateWithLifecycle()
     val update by store.updates.state.collectAsStateWithLifecycle()
     AccountCard(trackers["anilist"], AccountWords.status(trackers["anilist"], syncedAt, working)) { open(SettingsPane.Accounts) }
     val panes = listOf(
         SettingsPane.Playback to playbackSummary(view),
         SettingsPane.Notifications to notificationsSummary(view),
         SettingsPane.Downloads to storageLine(store.downloads.bytes(downloads)),
-        SettingsPane.Sources to sourcesSummary(view, providers.size),
+        SettingsPane.Sources to sourcesSummary(view, providers.size.takeIf { providersLoaded }),
         SettingsPane.Accounts to AccountWords.connected(trackers),
     )
     SettingsGroup(
@@ -212,8 +213,10 @@ private fun playbackSummary(view: SettingsView?): String? {
 }
 
 /** "5 sources · torrents on": the providers on screen, and whether torrents are. */
-private fun sourcesSummary(view: SettingsView?, providers: Int): String? {
+private fun sourcesSummary(view: SettingsView?, providers: Int?): String? {
     val sources = view?.sources ?: return null
+    // Before the engine has said its providers, the summary says nothing of them.
+    providers ?: return null
     val count = if (providers > 0) Wording.plural(providers, "source") else "No sources yet"
     return "$count · torrents ${if (sources.torrent) "on" else "off"}"
 }
@@ -385,7 +388,7 @@ internal object AccountWords {
         state ?: return AccountStatus("Not signed in", null)
         if (!state.connected) return AccountStatus("Not signed in", null)
         if (state.needsReauth) return AccountStatus("Sign in again to keep syncing", colors.error)
-        state.pullError?.let { return AccountStatus("Not synced: ${it.reason}", colors.error) }
+        state.pullError?.let { return AccountStatus("Not synced. ${plainReason(it.reason)}", colors.error) }
         if ("sync" in working.values) return AccountStatus("Syncing", colors.onSurfaceVariant)
         if (state.outbox > 0u) return AccountStatus("${Wording.plural(state.outbox.toInt(), "change")} waiting to sync", colors.onSurfaceVariant)
         val at = syncedAt[state.tracker]

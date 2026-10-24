@@ -1,7 +1,7 @@
 ---
 // The foot of the landing page and the apps page: Nagare, the legal line, the licence and links.
 import Nagare from '../Nagare.astro';
-import { APPS, GITHUB, LEGAL, PRIVACY, RELEASES } from '../../data/site';
+import { APPS, FEATURES, GITHUB, LEGAL, PRIVACY, RELEASES } from '../../data/site';
 ---
 
 <footer class="l-footer">
@@ -15,6 +15,7 @@ import { APPS, GITHUB, LEGAL, PRIVACY, RELEASES } from '../../data/site';
 	</div>
 	<nav aria-label="Footer">
 		<a href={APPS}>Apps</a>
+		<a href={FEATURES}>Features</a>
 		<a href="/docs/">Docs</a>
 		<a href={PRIVACY}>Privacy</a>
 		<a href={RELEASES}>Releases</a>

@@ -19,6 +19,12 @@ public enum MotionDemo: String, CaseIterable, Sendable {
     case t9
     /// The title page's next season opened from its season picker, as a click on its cell does.
     case season
+    /// Search: the words `-AnistreamType` gives typed into the field, a key every 120 ms.
+    case type
+    /// Search: the filters panel opened, or closed when it is open.
+    case filters
+    /// Search: TV toggled in the format filter, as a click in its menu does.
+    case refine
 
     /// The one the launch arguments name.
     public static func from(arguments: [String] = ProcessInfo.processInfo.arguments) -> MotionDemo? {
@@ -50,6 +56,21 @@ public enum MotionDemo: String, CaseIterable, Sendable {
                   let at = seasons.firstIndex(where: { $0.id == id }), seasons.indices.contains(at + 1)
             else { return }
             navigator.openTitle(seasons[at + 1].id)
+        case .type:
+            let arguments = ProcessInfo.processInfo.arguments
+            guard let at = arguments.firstIndex(of: "-AnistreamType"), arguments.indices.contains(at + 1)
+            else { return }
+            let words = arguments[at + 1]
+            Task { @MainActor in
+                for end in words.indices {
+                    navigator.query = String(words[...end])
+                    try? await Task.sleep(for: .milliseconds(120))
+                }
+            }
+        case .filters:
+            navigator.searchFiltersShown.toggle()
+        case .refine:
+            store.searchLive(store.search.query.togglingFormat(format: .tv))
         }
     }
 }

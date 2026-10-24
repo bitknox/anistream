@@ -4,6 +4,9 @@
 
 package tv.anistream.player.ui
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -132,13 +135,22 @@ private fun TopBar(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
+            // Into the next episode, the line crossfades on standard (T5).
+            androidx.compose.animation.AnimatedContent(
                 model.episodeLine,
-                style = MaterialTheme.typography.bodyMedium.copy(shadow = ControlShadow),
-                color = ObiSilk.Silk,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+                transitionSpec = {
+                    androidx.compose.animation.fadeIn(Motion.standard()) togetherWith androidx.compose.animation.fadeOut(Motion.standard())
+                },
+                label = "episode line",
+            ) { line ->
+                Text(
+                    line,
+                    style = MaterialTheme.typography.bodyMedium.copy(shadow = ControlShadow),
+                    color = ObiSilk.Silk,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         onPlayOnTv?.let { ControlButton(PlayerIcons.Tv, "Play on TV", onClick = it) }
         ControlButton(PlayerIcons.Subtitles, "Subtitles, audio and picture", onClick = onTracks)
@@ -235,6 +247,16 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
     var sliderLeft by remember { mutableFloatStateOf(0f) }
     var sliderWidth by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
+    // Precision scrubbing: the finger 48 dp above the line moves it at half speed, 96 dp above at
+    // a quarter. The line keeps the finger's travel since the last move, scaled.
+    var fingerY by remember { mutableFloatStateOf(0f) }
+    var lastRaw by remember { mutableStateOf<Float?>(null) }
+    val above = with(density) { -fingerY.toDp() }
+    val scale = when {
+        above >= 96.dp -> 0.25f
+        above >= 48.dp -> 0.5f
+        else -> 1f
+    }
     Box(modifier.onGloballyPositioned { sliderLeft = it.positionInWindow().x; sliderWidth = it.size.width }) {
     if (active && scrubbing != null) {
         val handle = (scrubbing / duration).toFloat().coerceIn(0f, 1f) * sliderWidth
@@ -246,8 +268,12 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
             frame = preview?.frame,
             label = buildString {
                 append(PlayerClock.label(scrubbing))
-                model.chapter(scrubbing)?.takeIf { model.segments.any { s -> s.kind != SeekSegment.Kind.Plain && scrubbing >= s.start && scrubbing < s.end } }
-                    ?.let { append(" · $it") }
+                when (scale) {
+                    0.25f -> append(" · Quarter-speed scrubbing")
+                    0.5f -> append(" · Half-speed scrubbing")
+                    else -> model.chapter(scrubbing)?.takeIf { model.segments.any { s -> s.kind != SeekSegment.Kind.Plain && scrubbing >= s.start && scrubbing < s.end } }
+                        ?.let { append(" · $it") }
+                }
             },
             // Measured free of the slider's 48 dp, and set with its foot 12 dp above the handle's top.
             modifier = Modifier.layout { measurable, _ ->
@@ -258,14 +284,29 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
     }
     Slider(
         state = state,
-        onValueChange = { value ->
+        onValueChange = { raw ->
+            val previous = lastRaw
+            val value = if (previous == null || scale == 1f) raw else (state.value + (raw - previous) * scale).coerceIn(0f, duration.toFloat())
+            lastRaw = raw
             state.value = value
             model.scrub(value.toDouble())
             model.previewSource?.let { source -> preview?.show(value.toDouble(), source) }
         },
-        onValueChangeFinished = { model.endScrub() },
+        onValueChangeFinished = {
+            lastRaw = null
+            model.endScrub()
+        },
         interactionSource = touch,
-        modifier = Modifier.fillMaxWidth().height(48.dp).semantics {
+        modifier = Modifier.fillMaxWidth().height(48.dp).pointerInput(Unit) {
+            // Where the finger is above the line, read as it passes and never taken from the slider.
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial)
+                    val change = event.changes.firstOrNull() ?: continue
+                    fingerY = if (change.pressed) change.position.y else 0f
+                }
+            }
+        }.semantics {
             contentDescription = "Position"
             stateDescription = label
         },
@@ -329,7 +370,7 @@ private fun SeekTrack(state: SliderState, segments: List<SeekSegment>, duration:
             val left = if (i == 0) start else start + seam / 2
             val right = if (last) size.width else end - seam / 2
             if (right - left < 1f) return@forEachIndexed
-            val color = if (kind == SeekSegment.Kind.Plain) ObiSilk.Rule else ObiSilk.Haze
+            val color = if (kind == SeekSegment.Kind.Plain) ObiSilk.Rule else ObiSilk.Water
             piece(left, right, color, inner, if (last) outer else inner)
             at = end
         }

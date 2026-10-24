@@ -172,6 +172,92 @@ struct ReducerTests {
         #expect(store.search.list.state == .loading)
     }
 
+    @Test func oneTypedLetterWaitsForTheNextAsTheEngineDoes() {
+        let store = AppStore()
+        let hoshi = SearchQuery(text: "hoshi")
+        store.searchLive(hoshi)
+        store.apply(.content(view: .search(query: hoshi), content: .entries([entry(900_001, "Stardust Wayfarer")])))
+        // Back to one letter: the start again, nothing asked, not the answer to "hoshi".
+        store.searchLive(SearchQuery(text: "h"))
+        #expect(store.search.atStart)
+        #expect(store.search.asked == nil)
+        #expect(!store.search.pending)
+        // One kana is a word.
+        store.searchLive(SearchQuery(text: "ほ"))
+        #expect(!store.search.atStart)
+        #expect(store.search.asked == SearchQuery(text: "ほ"))
+        // Return searches for one letter all the same.
+        store.search(SearchQuery(text: "h"))
+        #expect(store.search.asked == SearchQuery(text: "h"))
+        #expect(!store.search.atStart)
+    }
+
+    @Test func oneLetterWithFiltersKeepsTheFiltersAnswer() {
+        let store = AppStore()
+        let mecha = SearchQuery(genres: ["Mecha"])
+        store.searchLive(mecha)
+        store.apply(.content(view: .search(query: mecha), content: .entries([entry(900_001, "Stardust Wayfarer")])))
+        store.searchLive(SearchQuery(text: "s", genres: ["Mecha"]))
+        #expect(!store.search.atStart)
+        #expect(store.search.asked == mecha)
+        #expect(store.search.answered == mecha)
+        #expect(!store.search.pending)
+    }
+
+    @Test func theEarlierAnswerIsKnownForWhatItAnswers() {
+        let store = AppStore()
+        let hoshi = SearchQuery(text: "hoshi")
+        let moon = SearchQuery(text: "moon")
+        store.searchLive(hoshi)
+        #expect(store.search.pending)
+        #expect(store.search.answered == nil)
+        store.apply(.content(view: .search(query: hoshi), content: .entries([entry(900_001, "Stardust Wayfarer")])))
+        #expect(!store.search.pending)
+        #expect(store.search.answered == hoshi)
+        store.searchLive(moon)
+        // The earlier results stay on screen, known to answer "hoshi".
+        #expect(store.search.pending)
+        #expect(store.search.answered == hoshi)
+        #expect(store.search.list.state == .loaded([900_001]))
+        #expect(!store.search.overdue)
+        store.apply(.content(view: .search(query: moon), content: .entries([entry(900_003, "Moonlit Platform")])))
+        #expect(store.search.answered == moon)
+        #expect(store.search.list.state == .loaded([900_003]))
+    }
+
+    @Test func anAnswerWaitedForPastTheQuietIsOverdue() async throws {
+        let store = AppStore()
+        store.searchLive(SearchQuery(text: "hoshi"))
+        #expect(!store.search.overdue)
+        try await Task.sleep(for: SearchModel.quiet)
+        // The timer's task can run late while other tests share the main actor.
+        let deadline = ContinuousClock.now + .seconds(5)
+        while !store.search.overdue, ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(store.search.overdue)
+        // A further search keeps the placeholders up, not the results before them.
+        store.searchLive(SearchQuery(text: "hoshiku"))
+        #expect(store.search.overdue)
+        store.apply(.content(
+            view: .search(query: SearchQuery(text: "hoshiku")),
+            content: .entries([entry(900_001, "Stardust Wayfarer")])
+        ))
+        #expect(!store.search.overdue)
+    }
+
+    @Test func aSearchThatChangesNothingIsNotSentAgain() {
+        let store = AppStore()
+        #expect(store.search.edit(SearchQuery(text: "hoshi")))
+        #expect(!store.search.edit(SearchQuery(text: " hoshi ")))
+        // Blank and one letter are told, so the engine drops the search it waits to make.
+        #expect(store.search.edit(SearchQuery(text: "h")))
+        #expect(!store.search.edit(SearchQuery(text: "h ")))
+        #expect(store.search.edit(SearchQuery(text: "")))
+        // Return always is.
+        #expect(store.search.edit(SearchQuery(text: ""), submitted: true))
+    }
+
     @Test func furtherPagesGoAfterWhatIsThereAndAFailedOneIsAskedAgain() {
         let store = AppStore()
         let mecha = SearchQuery(genres: ["Mecha"])

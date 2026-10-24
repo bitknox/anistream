@@ -96,7 +96,6 @@ fun Entry.isMine(): Boolean =
 private val SHOW_CHOICES = listOf("My list", "All airing")
 
 private val dayHeading = DateTimeFormatter.ofPattern("EEEE d MMMM", AirTime.locale)
-private val clock = DateTimeFormatter.ofPattern("HH:mm", AirTime.locale)
 
 /** "Today", "Tomorrow", "Yesterday", or "Thursday 22 October". */
 private fun dayName(day: LocalDate, today: LocalDate): String = when (day) {
@@ -194,7 +193,8 @@ fun CalendarScreen() {
     // frame of a scroll or a transition. The time the rows read their words off is taken then too.
     val page = remember(window, titles, mine) { CalendarPage.of(window, titles, mine, AppClock.now(), AppClock.zone) }
     val showMine = mine ?: page.anyMine
-    val answered = state is ListState.Loaded || state is ListState.Empty || state is ListState.Failed
+    val answered = state is ListState.Loaded || state is ListState.Empty
+    val offline by store.offline.collectAsStateWithLifecycle()
 
     // The list opens on today: it is made once the calendar is here, with today's heading at its
     // top, so the page never draws another day first and then jumps. It is kept with the
@@ -233,8 +233,21 @@ fun CalendarScreen() {
             // Nothing for the first 600 ms, then placeholders, then the days in one crossfade (T8).
             // The gap above the days is outside the list, so a day scrolled to the top leaves
             // nothing of the one before it showing under the strip.
-            Loading(page.takeIf { answered }, Modifier.padding(top = 8.dp), placeholders = { CalendarPlaceholders() }) {
-                CalendarDays(page, list) { navigator.openTitle(it, "calendar") }
+            // A failure is its own state, never a week of empty days; offline with nothing here
+            // says so in place of the placeholders.
+            val failed = state as? ListState.Failed
+            if (failed != null) {
+                FailedState("Couldn't load the calendar", failed.reason, retry = { store.loadCalendar(force = true) })
+            } else {
+                Loading(
+                    page.takeIf { answered },
+                    Modifier.padding(top = 8.dp),
+                    placeholders = { if (offline) OfflineState() else CalendarPlaceholders() },
+                ) {
+                    Refreshable({ store.loadCalendar(force = true) }) {
+                        CalendarDays(page, list) { navigator.openTitle(it, "calendar") }
+                    }
+                }
             }
         }
     }
@@ -421,7 +434,7 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: () -> L
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         for (day in week) {
-            val name = day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale).uppercase(Locale.ROOT)
+            val name = day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)
             // The pill moves from day to day on quick, as the page scrolls past them or one is
             // tapped: drawn, so it redraws the pill alone.
             val on by animateFloatAsState(if (day == chosenDay) 1f else 0f, Motion.quick(), label = "day")
@@ -496,7 +509,7 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
             }
         }
         Text(
-            clock.format(broadcast.airs.atZone(AppClock.zone)),
+            AirTime.clock(broadcast.airs),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = colors.onSurfaceVariant,
         )

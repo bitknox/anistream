@@ -64,13 +64,6 @@ struct MacShell: View {
                 }
             }
             .toolbarBackgroundVisibility(navigator.titleOnMac == nil ? .automatic : .hidden, for: .windowToolbar)
-            .inspector(isPresented: Binding(
-                get: { navigator.section == .search && navigator.titleOnMac == nil && navigator.searchFiltersShown },
-                set: { navigator.searchFiltersShown = $0 }
-            )) {
-                SearchFiltersPanel()
-                    .inspectorColumnWidth(min: 300, ideal: 340, max: 420)
-            }
             .titleSearchField(
                 text: navigator.section == .settings ? $navigator.settingsQuery : $navigator.query,
                 titles: navigator.section != .settings,
@@ -85,7 +78,7 @@ struct MacShell: View {
             }
         }
         .overlay(alignment: .bottom) {
-            NoticeCapsule().padding(.bottom, 20)
+            NoticeCapsule().padding(.bottom, 16)
         }
         .sheet(isPresented: $navigator.messagesShown) {
             MessagesView()
@@ -111,7 +104,8 @@ struct MacShell: View {
         case .seasonal:
             return store.seasonName ?? ""
         case .search:
-            return store.search.atStart ? "" : store.search.query.headline()
+            // The search as a job past 600 ms, then what is asked (Running jobs, native-ux.md).
+            return store.search.searchingLine ?? (store.search.atStart ? "" : store.search.query.headline())
         case .downloads:
             return downloadsSubtitle(store)
         default:
@@ -236,9 +230,6 @@ struct LibraryMenus: View {
                 .fixedSize()
                 Menu {
                     Button("Sync Now") { store.send(.syncNow) }
-                    Divider()
-                    Button("Export…") {}
-                        .disabled(true)
                 } label: {
                     Label("More", systemImage: "ellipsis")
                 }

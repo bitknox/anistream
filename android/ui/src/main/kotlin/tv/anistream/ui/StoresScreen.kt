@@ -91,6 +91,8 @@ internal fun StoresScreen() {
     val store = LocalAppStore.current
     val navigator = LocalNavigator.current
     val stores by store.stores.stores.collectAsStateWithLifecycle()
+    val loaded by store.stores.loaded.collectAsStateWithLifecycle()
+    val offline by store.offline.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadStores() }
     ScreenFrame(title = "Plugin stores", onBack = navigator::back) { padding ->
         Column(
@@ -98,10 +100,13 @@ internal fun StoresScreen() {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(top = padding.calculateTopPadding() + 8.dp, bottom = 48.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .readingWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (stores.isEmpty()) {
+            if (!loaded && stores.isEmpty()) {
+                PlaceholderRows(2)
+            } else if (stores.isEmpty()) {
                 Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     tv.anistream.design.Nagare(cell = 5)
                     Text("No plugin stores yet", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
@@ -114,7 +119,7 @@ internal fun StoresScreen() {
                             InfoRow(
                                 place,
                                 row.name,
-                                storeLine(row),
+                                storeLine(row, offline),
                                 onClick = { navigator.open(storeRoute(row.id)) },
                             )
                         }
@@ -130,10 +135,11 @@ internal fun StoresScreen() {
 }
 
 /** A store's one line: its host, then what it has waiting or why it is not answering. */
-private fun storeLine(row: StoreRow): String = listOfNotNull(
+private fun storeLine(row: StoreRow, offline: Boolean): String = listOfNotNull(
     row.host,
     when (val state = row.state) {
-        is StoreState.Offline -> "Not answering"
+        // Offline, no store is said to be failing: the one offline line says why.
+        is StoreState.Offline -> if (offline) null else "Not answering"
         StoreState.Revoked -> "No longer lets this device in"
         StoreState.Ready -> row.updates.takeIf { it > 0 }?.let { Wording.plural(it, "update") }
     },
@@ -147,6 +153,7 @@ internal fun StoreScreen(id: String) {
     val stores by store.stores.stores.collectAsStateWithLifecycle()
     val working by store.stores.working.collectAsStateWithLifecycle()
     val row = stores.firstOrNull { it.id == id }
+    val offline by store.offline.collectAsStateWithLifecycle()
     var updating by remember { mutableStateOf<StorePluginRow?>(null) }
     var leaving by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (!store.stores.loaded.value) store.loadStores() }
@@ -157,11 +164,12 @@ internal fun StoreScreen(id: String) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(top = padding.calculateTopPadding() + 8.dp, bottom = 48.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .readingWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             when (val state = row.state) {
-                is StoreState.Offline -> SettingsFootnote("Not answering: ${state.v1}. The plugins below are the last list that was checked.")
+                is StoreState.Offline -> if (!offline) SettingsFootnote("${plainReason(state.v1).trimEnd('.')}. The plugins below are the last list that was checked.")
                 StoreState.Revoked -> SettingsFootnote("This store no longer lets this device in. Its plugins stay installed until you remove them.")
                 StoreState.Ready -> {}
             }
@@ -202,7 +210,8 @@ internal fun StoreScreen(id: String) {
                         enabled = !store.stores.isWorking(working, StoresModel.Work.Invite(row.id)),
                     ) { Text("Link another device", color = MaterialTheme.colorScheme.onSurface) }
                 }
-                TextButton(onClick = { leaving = true }) { Text("Leave store", color = MaterialTheme.colorScheme.error) }
+                // Destructive, so confirmed; in silk, as vermilion is only for a problem.
+                TextButton(onClick = { leaving = true }) { Text("Leave store", color = MaterialTheme.colorScheme.onSurface) }
             }
         }
     }
@@ -230,7 +239,7 @@ internal fun StoreScreen(id: String) {
                     leaving = false
                     store.leaveStore(row.id)
                     navigator.back()
-                }) { Text("Leave", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Leave", color = MaterialTheme.colorScheme.onSurface) }
             },
             dismissButton = { QuietButton("Cancel") { leaving = false } },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -249,7 +258,7 @@ private fun PluginAction(plugin: StorePluginRow, installing: Boolean, onUpdate: 
             Text("Installed", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
         }
         is StorePluginStatus.Update -> Button(onClick = onUpdate, enabled = !installing) { Text("Update") }
-        StorePluginStatus.Available -> FilledTonalButton(onClick = onInstall, enabled = !installing) { Text(if (installing) "Installing" else "Install") }
+        StorePluginStatus.Available -> FilledTonalButton(onClick = onInstall, enabled = !installing) { WorkLabel("Install", installing) }
         StorePluginStatus.AddedByHand -> FilledTonalButton(onClick = onUpdate, enabled = !installing) { Text("Replace") }
         is StorePluginStatus.OtherStore -> Text("From ${status.v1}", style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
     }
@@ -275,13 +284,14 @@ internal fun PluginScreen(storeId: String, pluginId: String) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(top = padding.calculateTopPadding() + 8.dp, bottom = 48.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .readingWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(Modifier.padding(horizontal = 4.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (status) {
                     is StorePluginStatus.Update -> Button(onClick = { updating = true }, enabled = !installing) { Text("Update to ${plugin.version}") }
-                    StorePluginStatus.Available -> Button(onClick = { store.installPlugin(row.id, plugin.id) }, enabled = !installing) { Text(if (installing) "Installing" else "Install") }
+                    StorePluginStatus.Available -> Button(onClick = { store.installPlugin(row.id, plugin.id) }, enabled = !installing) { WorkLabel("Install", installing) }
                     else -> {}
                 }
                 if (status is StorePluginStatus.Installed || status is StorePluginStatus.Update) {
@@ -345,6 +355,7 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
     val deviceName by store.stores.deviceName.collectAsStateWithLifecycle()
     var link by rememberSaveable(start) { mutableStateOf(start) }
     val busy = store.stores.isWorking(working, StoresModel.Work.Join)
+    val offline by store.offline.collectAsStateWithLifecycle()
     LaunchedEffect(link) {
         delay(300)
         val checked = (store.stores.preview.value as? StoresModel.Preview.Store)?.store?.link
@@ -374,13 +385,31 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
             trailing = clear.takeIf { link.isNotEmpty() },
         )
         when (val shown = preview) {
-            is StoresModel.Preview.Checking -> SheetText("Checking the link", Modifier.padding(top = 16.dp))
-            is StoresModel.Preview.Failed -> Text(
-                shown.reason.replaceFirstChar { it.uppercase() } + ".",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 16.dp),
-            )
+            is StoresModel.Preview.Checking -> Row(
+                Modifier.padding(top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WorkRing(true)
+                SheetText("Checking the link")
+            }
+            is StoresModel.Preview.Failed -> {
+                // The link was refused in place: the error glyph, the reason in silk, and Reject.
+                val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+                LaunchedEffect(shown) { haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.Reject) }
+                Row(
+                    Modifier.padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Problem, contentDescription = "Problem", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                    Text(
+                        if (offline) OFFLINE_LINE else plainReason(shown.reason),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
             is StoresModel.Preview.Store -> InvitedStorePreview(shown.store)
             null -> {}
         }
@@ -402,7 +431,7 @@ internal fun JoinStoreSheet(start: String, onDismiss: () -> Unit) {
             Button(
                 onClick = { store.joinStore(link) },
                 enabled = invited != null && !invited.alreadyJoined && !busy,
-            ) { Text(if (busy) "Joining" else "Join store") }
+            ) { WorkLabel("Join store", busy) }
         }
     }
 }

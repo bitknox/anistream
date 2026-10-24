@@ -17,8 +17,14 @@ struct AppSheets: ViewModifier {
             // Over the iPhone's Settings sheet, the sheet itself shows the code: a window shows
             // one sheet at a time.
             .modifier(DeviceCodePresenter(here: navigator.phoneSettings == nil))
+            // Kitsu's sign-in, as a notice's Sign in asks for it.
+            .modifier(KitsuPresenter(here: navigator.phoneSettings == nil))
             // Play on TV: the picker and the now-playing card.
             .modifier(TVRemoteSheets())
+            .modifier(FirstLaunchPresenter())
+            #if os(iOS)
+            .sensoryFeedback(.impact(weight: .light), trigger: navigator.watchedByHand)
+            #endif
             .sheet(item: Binding<InviteItem?>(
                 get: { navigator.invite.map(InviteItem.init) },
                 set: { (item: InviteItem?) in navigator.invite = item?.link }
@@ -65,6 +71,24 @@ struct DeviceCodePresenter: ViewModifier {
             }
         )) { item in
             DeviceCodeSheet(prompt: item.prompt)
+                #if os(iOS)
+                .presentationDetents([.medium])
+                #endif
+        }
+    }
+}
+
+/// Kitsu's sign-in sheet over the view, while `here` says this is where it shows.
+struct KitsuPresenter: ViewModifier {
+    @Environment(Navigator.self) private var navigator
+    let here: Bool
+
+    func body(content: Content) -> some View {
+        content.sheet(isPresented: Binding(
+            get: { here && navigator.kitsuShown },
+            set: { if !$0 { navigator.kitsuShown = false } }
+        )) {
+            KitsuSheet()
                 #if os(iOS)
                 .presentationDetents([.medium])
                 #endif

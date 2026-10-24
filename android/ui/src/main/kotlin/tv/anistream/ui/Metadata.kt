@@ -85,10 +85,10 @@ fun Entry.airingState(today: LocalDate = LocalDate.ofInstant(AppClock.now(), App
             val value = if (end.year == start.year && end.month == start.month && end.day == start.day) {
                 start.words()
             } else if (start.year == end.year && start.day != null && end.day != null && start.month != null) {
-                // "4 Apr – 22 Jun 2024": the year once when both ends share it.
-                "${start.words().removeSuffix(" ${start.year}")} – ${end.words()}"
+                // "4 Apr to 22 Jun 2024": the year once when both ends share it.
+                "${start.words().removeSuffix(" ${start.year}")} to ${end.words()}"
             } else {
-                "${start.words()} – ${end.words()}"
+                "${start.words()} to ${end.words()}"
             }
             AiringState("Aired", value)
         }

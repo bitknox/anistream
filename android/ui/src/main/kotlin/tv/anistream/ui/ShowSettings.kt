@@ -89,7 +89,7 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         ) {
             CoverArt(entry, 40.dp, Modifier.size(40.dp, 60.dp))
             Column {
-                Text("Settings for this show", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+                Text("Settings for this show", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
                 Text(entry.showTitle, style = ShowTitle.row, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -109,7 +109,7 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         ) { set(ShowSettingKey.TRANSLATION, it) }
         val remembered = view?.remembered?.firstOrNull { it.translation == translation }?.subtitles
         SubtitlesRow(view, remembered)
-        SheetNote(if (remembered != null) "Remembered from your last episode." else "Following Settings › Playback.")
+        SheetNote(if (remembered != null) "Chosen in the player. Remembered from your last episode." else "Chosen in the player. Following Settings › Playback.")
 
         SheetHeading("Episodes")
         SwitchChoiceRow("Skip opening", row(ShowSettingKey.SKIP_OPENING), "On", "Off") { set(ShowSettingKey.SKIP_OPENING, it) }
@@ -150,34 +150,32 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
 }
 
 /**
- * The show's subtitles: Settings' language, or what the player remembers for the show, one
- * choice for each audio it was watched in, the one for the audio in effect checked.
+ * The show's subtitles, read only: what the player remembers for the audio in effect, or
+ * Settings' language. They are chosen in the player, so the row offers no menu.
  */
 @Composable
 private fun SubtitlesRow(view: ShowSettingsView?, remembered: RememberedSubtitles?) {
     val store = LocalAppStore.current
-    val snackbars = LocalSnackbars.current
     val settings by store.settings.view.collectAsStateWithLifecycle()
     val language = store.settings.row(tv.anistream.engine.model.SettingKey.SUBTITLES, settings)?.value
         ?.let(::languageName)
-    val default = listOfNotNull("Use default", language).joinToString(" · ")
-    val choices = listOf(Choice(null, default)) +
-        view?.remembered.orEmpty().mapNotNull { it.subtitles }.distinct().map { Choice(SettingValue.Str(subtitleWords(it)), subtitleWords(it)) }
-    ChoiceRow(
-        title = "Subtitles",
-        value = remembered?.let(::subtitleWords) ?: default,
-        choices = choices,
-        current = remembered?.let { SettingValue.Str(subtitleWords(it)) },
-        enabled = view != null,
-        currentIsDefault = remembered == null,
-    ) { picked ->
-        val now = remembered?.let { SettingValue.Str(subtitleWords(it)) }
-        if (picked != now) {
-            // TODO(engine): no command sets or forgets a show's remembered subtitles outside the
-            // player (`ChooseTrack` while it plays, `ResetShowSettings` for everything). Until
-            // one does, a pick here says where the choice is made.
-            snackbars.show("Subtitles are chosen in the player, and the show remembers them.")
-        }
+    val default = listOfNotNull("Default", language).joinToString(" · ")
+    // TODO(engine): no command sets or forgets a show's remembered subtitles outside the player;
+    // once one does, this becomes a menu like Audio.
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 72.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text("Subtitles", style = MaterialTheme.typography.bodyLarge)
+        Text(
+            remembered?.let(::subtitleWords) ?: default,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

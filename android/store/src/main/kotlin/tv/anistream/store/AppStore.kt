@@ -77,6 +77,11 @@ class AppStore(
     private val _phase = MutableStateFlow<Phase>(Phase.Starting)
     val phase: StateFlow<Phase> = _phase.asStateFlow()
 
+    private val _offline = MutableStateFlow(false)
+
+    /** The one offline state, as the engine says it from the network path the app reports. */
+    val offline: StateFlow<Boolean> = _offline.asStateFlow()
+
     val titles = TitleCache()
     val continuing = ContinueModel()
     val seasonal = ListModel()
@@ -298,7 +303,7 @@ class AppStore(
      * a failed search can be asked again.
      */
     fun search(query: SearchQuery) {
-        search.edit(query)
+        search.edit(query, submitted = true)
         if (query.normalized.isBlank()) return
         send(Command.Search(query.normalized))
     }
@@ -306,7 +311,10 @@ class AppStore(
     /** Search for these words with the filters already set. */
     fun search(text: String) = search(search.status.value.query.copy(text = text))
 
-    /** The search changed, a keystroke or a filter: the engine searches once the changes stop. */
+    /**
+     * The search changed, a keystroke or a filter: the engine searches once the changes stop. A
+     * blank or one-letter search is sent too, so the engine drops the search it was waiting to make.
+     */
     fun searchLive(query: SearchQuery) {
         if (!search.edit(query)) return
         send(Command.SearchLive(query.normalized))
@@ -317,6 +325,12 @@ class AppStore(
         val now = search.status.value.query
         if (text == now.text) return
         searchLive(now.copy(text = text))
+    }
+
+    /** Search again after the search failed. */
+    fun retrySearch() {
+        val query = search.retry() ?: return
+        send(Command.Search(query))
     }
 
     /** The next page of results, when there is one and none is on its way. */
@@ -486,9 +500,12 @@ class AppStore(
         send(Command.PlayLocal(row.anilistId, row.episode, row.title, path))
     }
 
-    /** The device's network, as the system says it: cellular, and Data Saver as constrained. */
-    fun networkPath(cellular: Boolean, constrained: Boolean) {
-        send(Command.NetworkPath(cellular, constrained))
+    /**
+     * The device's network, as the system says it: cellular, Data Saver as constrained, and no
+     * network at all as offline. The engine answers with the one offline state.
+     */
+    fun networkPath(cellular: Boolean, constrained: Boolean, offline: Boolean = false) {
+        send(Command.NetworkPath(cellular, constrained, offline))
     }
 
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
@@ -779,6 +796,7 @@ class AppStore(
             is Event.Episodes -> titles.episodes(event.id, event.rows)
 
             is Event.Status -> notices.status(event.v1)
+            is Event.Connectivity -> _offline.value = event.offline
             is Event.Toast -> notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
@@ -835,7 +853,7 @@ class AppStore(
             ContentFor.Seasonal -> seasonal.apply(content, titles)
             ContentFor.Calendar -> calendar.apply(content, titles)
             is ContentFor.Search -> {
-                if (search.takes(view.query)) search.list.apply(content, titles)
+                search.answer(content, view.query, titles)
                 if (browse.takes(view.query)) browse.list.apply(content, titles)
             }
             is ContentFor.Library -> library.segment(view.v1).apply(content, titles)

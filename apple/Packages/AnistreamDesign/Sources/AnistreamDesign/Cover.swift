@@ -34,14 +34,13 @@ public struct CoverPlate: View {
             .accessibilityHidden(true)
     }
 
-    /// How much of the cover's colour shows through the ground: enough to tell covers apart,
-    /// little enough that a column of plates reads as quiet.
-    public static let strength = 0.3
+    /// How much of the cover's colour lies over Raised, as the boards draw the plate: half.
+    public static let strength = 0.5
 
-    /// `color` muted into the ground.
+    /// `color` at half strength over Raised, as if laid over it at 50 % opacity.
     public static func muted(_ color: Color?) -> Color {
         guard let color else { return Palette.raised }
-        return Palette.ground.mix(with: color, by: strength, in: .perceptual)
+        return Palette.raised.mix(with: color, by: strength, in: .device)
     }
 }
 

@@ -39,17 +39,27 @@ private const val PLACEHOLDERS_HOLD = 300L
  * [placeholders] in the real layout, fading in, and staying at least 0.3 s so they never blink.
  * A value already here when this first draws shows at once; one that arrives within 600 ms fades
  * in on standard, and one that replaces placeholders crossfades with them on standard.
+ *
+ * With [returns], a value that goes again brings the placeholders straight back in a crossfade,
+ * for a caller that has already waited its 600 ms (Search, asked anew). Otherwise the content
+ * stays until the next value. [waited] says the caller waited its 600 ms before this first drew:
+ * the placeholders show at once.
  */
 @Composable
 fun <T : Any> Loading(
     value: T?,
     modifier: Modifier = Modifier,
+    returns: Boolean = false,
+    waited: Boolean = false,
     placeholders: @Composable () -> Unit,
     content: @Composable (T) -> Unit,
 ) {
     val here = remember { value != null }
-    var phase by remember { mutableStateOf(if (here) LoadPhase.Content else LoadPhase.Waiting) }
-    var shownAt by remember { mutableLongStateOf(0L) }
+    var phase by remember {
+        mutableStateOf(if (here) LoadPhase.Content else if (waited) LoadPhase.Placeholders else LoadPhase.Waiting)
+    }
+    var fades by remember { mutableStateOf(!here) }
+    var shownAt by remember { mutableLongStateOf(System.nanoTime() / 1_000_000) }
     var latest by remember { mutableStateOf(value) }
     if (value != null) latest = value
 
@@ -62,6 +72,11 @@ fun <T : Any> Loading(
         }
     }
     LaunchedEffect(value != null) {
+        if (value == null && returns && phase == LoadPhase.Content) {
+            fades = true
+            phase = LoadPhase.Placeholders
+            shownAt = System.nanoTime() / 1_000_000
+        }
         if (value == null || phase == LoadPhase.Content) return@LaunchedEffect
         if (phase == LoadPhase.Placeholders) {
             val shown = System.nanoTime() / 1_000_000 - shownAt
@@ -78,8 +93,8 @@ fun <T : Any> Loading(
         ) { placeholders() }
         AnimatedVisibility(
             phase == LoadPhase.Content,
-            enter = if (here) EnterTransition.None else fadeIn(Motion.standard()),
-            exit = ExitTransition.None,
+            enter = if (fades) fadeIn(Motion.standard()) else EnterTransition.None,
+            exit = if (returns) fadeOut(Motion.standard()) else ExitTransition.None,
         ) { latest?.let { content(it) } }
     }
 }

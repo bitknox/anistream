@@ -242,7 +242,8 @@ html.js .l-nav-over.is-solid::before {
 		padding: 0 3px;
 	}
 
-	.l-nav-links .l-nav-releases {
+	.l-nav-links .l-nav-releases,
+	.l-nav-links .l-nav-github {
 		display: none;
 	}
 }
@@ -574,6 +575,18 @@ html:not(.js) .scene {
 
 .shot-tablet.shot-landscape img {
 	border-radius: 2.8cqi;
+}
+
+/* A TV: a thin dark bezel around a 16:9 screen with small corners. */
+.shot-screen .shot-frame {
+	padding: var(--bezel, max(3px, 0.6cqi));
+	border-radius: 1.4cqi;
+	background: #0b0d17;
+	box-shadow: 0 0 0 1px #2f3242;
+}
+
+.shot-screen img {
+	border-radius: 0.8cqi;
 }
 
 /* Pictures of different shapes in one row, all the same height: each grows by its width over its
@@ -1104,6 +1117,15 @@ html:not(.js) .scene {
 	}
 }
 
+/* Each app and its toolkit, above the pictures */
+.rows.toolkits {
+	max-width: 792px;
+}
+
+.rows.toolkits .row {
+	grid-template-columns: minmax(0, 280fr) minmax(0, 512fr);
+}
+
 /* The apps on the landing page: three shapes in one row */
 .app-strip {
 	margin-top: 32px;
@@ -1472,7 +1494,8 @@ html:not(.js) .scene {
 	}
 
 	.l-footer nav {
-		gap: 24px;
+		flex-wrap: wrap;
+		gap: 0 24px;
 	}
 }
 

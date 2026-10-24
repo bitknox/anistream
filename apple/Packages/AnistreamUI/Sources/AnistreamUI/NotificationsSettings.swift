@@ -163,7 +163,7 @@ struct NotificationsPane: View {
 
     var body: some View {
         SettingsGroup(title: "New episodes", footnote: NoticeWords.permission) {
-            SettingsRow(title: "New episodes", note: NoticeWords.line(store), selected: true) {
+            SettingsRow(title: "New episodes", note: NoticeWords.line(store)) {
                 EpisodeNoticesToggle { Text("New episodes") }
                     .toggleStyle(.switch)
                     .labelsHidden()
@@ -214,7 +214,7 @@ struct NotificationsAside: View {
             .foregroundStyle(.silk)
             .fixedSize(horizontal: false, vertical: true)
         #if os(macOS)
-        Button("Notification Settings…") { NoticeWords.settingsURL.map { openURL($0) } }
+        Button(cased(mac: "Notification Settings…", touch: "Notification settings")) { NoticeWords.settingsURL.map { openURL($0) } }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
         Text("Opens System Settings, where the banner style, sound and badges are set.")
             .font(.mac(12))
@@ -236,8 +236,11 @@ struct NoticePreview: View {
     var body: some View {
         let words = row.map { NoticePlan.words(episode: $0.episode, nextToWatch: $0.nextToWatch).body }
         HStack(alignment: .top, spacing: 10) {
+            AppIconImage()
+                .frame(width: 32, height: 32)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("ANISTREAM").font(.mac(10, weight: .medium)).kerning(0.6).foregroundStyle(.haze)
+                Text("anistream").font(.mac(11, weight: .medium)).foregroundStyle(.haze)
                 Text(row?.title ?? "A show you watch")
                     .font(.mac(13, weight: .semibold))
                     .foregroundStyle(.silk)
@@ -250,10 +253,39 @@ struct NoticePreview: View {
                 .clipShape(.rect(cornerRadius: 8))
         }
         .padding(12)
-        .background(Palette.selection, in: .rect(cornerRadius: 14))
+        .chromeGlass(in: .rect(cornerRadius: 18))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("A notification: \(row?.title ?? "a show you watch"), \(words ?? "Episode 9 is out.")")
     }
+}
+
+/// The app's own icon, as the system draws it beside a notification.
+struct AppIconImage: View {
+    var body: some View {
+        #if os(macOS)
+        Image(nsImage: NSApplication.shared.applicationIconImage)
+            .resizable()
+            .interpolation(.high)
+        #else
+        if let icon = Self.icon {
+            Image(uiImage: icon)
+                .resizable()
+                .clipShape(.rect(cornerRadius: 7, style: .continuous))
+        } else {
+            RoundedRectangle(cornerRadius: 7, style: .continuous).fill(.raised)
+        }
+        #endif
+    }
+
+    #if os(iOS)
+    /// The primary icon the bundle names, at its largest.
+    static let icon: UIImage? = {
+        let icons = Bundle.main.object(forInfoDictionaryKey: "CFBundleIcons") as? [String: Any]
+        let primary = icons?["CFBundlePrimaryIcon"] as? [String: Any]
+        let files = primary?["CFBundleIconFiles"] as? [String]
+        return files?.last.flatMap(UIImage.init(named:)) ?? UIImage(named: "AppIcon")
+    }()
+    #endif
 }
 
 // MARK: - A show's own switch
