@@ -2,7 +2,7 @@
 //! is, and mpv's events as the `PlayerReport`s the engine reads. After the Android app's
 //! `HostedOps.kt` and the Apple app's `HostedOps.swift`, so all three hosts agree.
 
-use anistream_model::hosted::{MpvValue, PlayerEnd, PlayerOp};
+use anistream_model::hosted::{MpvValue, PlayerEnd, PlayerOp, TrackKind};
 use serde_json::{Value, json};
 
 /// How `seek` lands: exactly where asked, or on the keyframe nearest, for scrubbing.
@@ -200,6 +200,57 @@ pub const REPORTED_PROPERTIES: &[&str] = &[
     "seeking",
 ];
 
+/// One of the file's audio or subtitle tracks, as a Tracks menu lists it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PlayerTrack {
+    pub kind: TrackKind,
+    /// mpv's id for it, which `PlayerCommand::ChooseTrack` takes.
+    pub id: i64,
+    /// The language code the file gives, `jpn` or `en`.
+    pub language: Option<String>,
+    pub title: Option<String>,
+    pub selected: bool,
+    /// Added from a file beside the stream rather than carried in it.
+    pub external: bool,
+}
+
+/// The audio and subtitle tracks in mpv's `track-list`, in its order; video and anything
+/// unreadable is left out.
+pub fn tracks(value: &Value) -> Vec<PlayerTrack> {
+    let Some(entries) = value.as_array() else {
+        return Vec::new();
+    };
+    entries
+        .iter()
+        .filter_map(|entry| {
+            let kind = match entry.get("type")?.as_str()? {
+                "audio" => TrackKind::Audio,
+                "sub" => TrackKind::Subtitle,
+                _ => return None,
+            };
+            let text = |key: &str| {
+                entry
+                    .get(key)
+                    .and_then(Value::as_str)
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_owned)
+            };
+            let flag = |key: &str| {
+                entry.get(key).is_some_and(|v| v.as_bool().unwrap_or(v.as_str() == Some("yes")))
+            };
+            Some(PlayerTrack {
+                kind,
+                id: entry.get("id")?.as_i64()?,
+                language: text("lang"),
+                title: text("title"),
+                selected: flag("selected"),
+                external: flag("external"),
+            })
+        })
+        .collect()
+}
+
 /// mpv's `end-file` reason, by its number in `mpv_end_file_reason`.
 pub fn player_end(reason: i32) -> PlayerEnd {
     match reason {
@@ -324,6 +375,34 @@ mod tests {
             sub.command_node().unwrap(),
             json!({"name": "sub-add", "url": "/tmp/a.ass", "flags": "auto", "title": "Signs"})
         );
+    }
+
+    #[test]
+    fn the_track_list_gives_the_audio_and_subtitles_in_order() {
+        let list = json!([
+            {"id": 1, "type": "video", "selected": true},
+            {"id": 1, "type": "audio", "lang": "jpn", "title": " ", "selected": true},
+            {"id": 2, "type": "audio", "lang": "eng", "title": "Commentary"},
+            {"id": 1, "type": "sub", "lang": "eng", "title": "Signs & Songs", "selected": "yes"},
+            {"id": 2, "type": "sub", "external": true},
+            {"type": "sub", "lang": "fre"},
+        ]);
+        let found = tracks(&list);
+        assert_eq!(found.len(), 4);
+        assert_eq!(
+            found[0],
+            PlayerTrack {
+                kind: TrackKind::Audio,
+                id: 1,
+                language: Some("jpn".into()),
+                title: None,
+                selected: true,
+                external: false,
+            }
+        );
+        assert_eq!((found[2].kind, found[2].selected), (TrackKind::Subtitle, true));
+        assert!(found[3].external && found[3].language.is_none());
+        assert!(tracks(&json!(null)).is_empty());
     }
 
     #[test]

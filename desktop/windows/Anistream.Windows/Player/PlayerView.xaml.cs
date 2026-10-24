@@ -36,6 +36,12 @@ public sealed partial class PlayerView : UserControl
     double position, duration, volume = 100;
     Coming? upNext;
     PlayerUi.Menus? menus;
+    /// <summary>The file's audio and subtitle tracks, as mpv last listed them.</summary>
+    FfiTrack[] tracks = [];
+    string tracksSeen = "";
+#if ANISTREAM_TESTING
+    bool tracksHeld;
+#endif
     readonly StillWatching still = new();
     bool pictureSeen, pointerHidden, mini, miniTipShown;
     SeekPreview? preview;
@@ -476,6 +482,7 @@ public sealed partial class PlayerView : UserControl
             timelineStatus = status;
             AutomationProperties.SetItemStatus(Timeline, status);
         }
+        ShowTracks(state.Tracks);
         ShowUpNext();
         fromPlayer = true;
         Timeline.Maximum = Math.Max(1, duration);
@@ -772,6 +779,77 @@ public sealed partial class PlayerView : UserControl
         }
     }
 
+    /// <summary>mpv listed the file's tracks again: rebuild the menu when what it offers changed.</summary>
+    void ShowTracks(FfiTrack[] now)
+    {
+#if ANISTREAM_TESTING
+        if (tracksHeld)
+            return;
+#endif
+        var seen = string.Join(";", now.Select(t => $"{t.Kind}{t.Id}{(t.Selected ? "*" : "")}{t.Language}{t.Title}"));
+        if (seen == tracksSeen)
+            return;
+        tracksSeen = seen;
+        tracks = now;
+        BuildTracks();
+    }
+
+    /// <summary>
+    /// The Tracks menu: Subtitled or Dubbed, then the file's own subtitles (Off first) and audio,
+    /// each by its language and title. A pick goes to the engine, which applies it and keeps it
+    /// for the series.
+    /// </summary>
+    void BuildTracks()
+    {
+        TracksMenu.Items.Clear();
+        if (menus is { } m)
+            foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Subtitled"), (Engine.Core.Translation.Dub, "Dubbed") })
+            {
+                var item = new RadioMenuFlyoutItem { Text = label, GroupName = "translation", IsChecked = m.Translation == translation };
+                item.Click += (_, _) => Send(new PlayerCommand.Choose(new PlayerChoice.Translation(translation)));
+                TracksMenu.Items.Add(item);
+            }
+        var subtitles = tracks.Where(t => t.Kind == TrackKind.Subtitle).ToArray();
+        var audio = tracks.Where(t => t.Kind == TrackKind.Audio).ToArray();
+        if (subtitles.Length == 0 && audio.Length == 0)
+            return;
+        if (TracksMenu.Items.Count > 0)
+            TracksMenu.Items.Add(new MenuFlyoutSeparator());
+
+        var subs = new MenuFlyoutSubItem { Text = "Subtitles" };
+        var off = new RadioMenuFlyoutItem { Text = "Off", GroupName = "subtitles", IsChecked = !subtitles.Any(t => t.Selected) };
+        off.Click += (_, _) => Send(new PlayerCommand.ChooseTrack(TrackKind.Subtitle, null));
+        subs.Items.Add(off);
+        foreach (var track in subtitles)
+            subs.Items.Add(TrackItem(track, "subtitles"));
+        TracksMenu.Items.Add(subs);
+
+        var sound = new MenuFlyoutSubItem { Text = "Audio", IsEnabled = audio.Length > 0 };
+        foreach (var track in audio)
+            sound.Items.Add(TrackItem(track, "audio"));
+        TracksMenu.Items.Add(sound);
+    }
+
+    RadioMenuFlyoutItem TrackItem(FfiTrack track, string group)
+    {
+        var item = new RadioMenuFlyoutItem
+        {
+            Text = TrackLabel(track),
+            GroupName = group,
+            IsChecked = track.Selected,
+        };
+        var (kind, id) = (track.Kind, track.Id);
+        item.Click += (_, _) => Send(new PlayerCommand.ChooseTrack(kind, id));
+        return item;
+    }
+
+    /// <summary>"English · Signs &amp; Songs": the language, then the track's own words when it has any.</summary>
+    static string TrackLabel(FfiTrack track)
+    {
+        var name = AnistreamFfiMethods.TrackName(track.Language, track.Title ?? "");
+        return track.External ? $"{name} · Added" : name;
+    }
+
     void BuildMenus()
     {
         if (menus is null)
@@ -790,13 +868,7 @@ public sealed partial class PlayerView : UserControl
         }
         EpisodesButton.IsEnabled = menus.Episodes.Length > 0;
 
-        TracksMenu.Items.Clear();
-        foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Subtitled"), (Engine.Core.Translation.Dub, "Dubbed") })
-        {
-            var item = new RadioMenuFlyoutItem { Text = label, GroupName = "translation", IsChecked = menus.Translation == translation };
-            item.Click += (_, _) => Send(new PlayerCommand.Choose(new PlayerChoice.Translation(translation)));
-            TracksMenu.Items.Add(item);
-        }
+        BuildTracks();
 
         SettingsMenu.Items.Clear();
         if (menus.Sources.Length > 0)
@@ -1002,7 +1074,7 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash</c>.
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks</c>.
     /// </summary>
     async void Demo(string what)
     {
@@ -1047,6 +1119,26 @@ public sealed partial class PlayerView : UserControl
                 startingHeld = true;
                 ShowStarting();
                 startingFrom -= 21 * Stopwatch.Frequency;
+                break;
+            case "tracks":
+                tracksHeld = true;
+                tracks =
+                [
+                    new FfiTrack(TrackKind.Audio, 1, "jpn", null, true, false),
+                    new FfiTrack(TrackKind.Audio, 2, "eng", null, false, false),
+                    new FfiTrack(TrackKind.Subtitle, 1, "eng", "Signs & Songs", false, false),
+                    new FfiTrack(TrackKind.Subtitle, 2, "eng", "Full", true, false),
+                    new FfiTrack(TrackKind.Subtitle, 3, "spa", null, false, false),
+                ];
+                BuildTracks();
+                ShowControls();
+                TracksMenu.ShowAt(TracksButton);
+                await Task.Delay(400);
+                // Open Subtitles, as a viewer's arrow key would.
+                if (TracksMenu.Items.OfType<MenuFlyoutSubItem>().FirstOrDefault() is { } sub
+                    && FrameworkElementAutomationPeer.CreatePeerForElement(sub)?.GetPattern(PatternInterface.ExpandCollapse)
+                        is Microsoft.UI.Xaml.Automation.Provider.IExpandCollapseProvider peer)
+                    peer.Expand();
                 break;
             case "flash":
                 flash.Interval = TimeSpan.FromSeconds(600);

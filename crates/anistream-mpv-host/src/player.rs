@@ -164,6 +164,8 @@ pub struct PlayerState {
     /// The file on screen has shown its first frame.
     pub has_picture: bool,
     pub frame_drops: i64,
+    /// The file's audio and subtitle tracks, from `track-list`.
+    pub tracks: Vec<ops::PlayerTrack>,
 }
 
 /// What the player tells the app, on its event thread.
@@ -594,6 +596,7 @@ fn update(shared: &Shared, name: &str, value: &Value) -> Option<PlayerState> {
         "paused-for-cache" => state.buffering = value.as_bool().unwrap_or(false),
         "seeking" => state.seeking = value.as_bool().unwrap_or(false),
         "frame-drop-count" => state.frame_drops = value.as_i64().unwrap_or(0),
+        "track-list" => state.tracks = ops::tracks(value),
         _ => return None,
     }
     (*state != before).then(|| state.clone())
