@@ -911,13 +911,21 @@ struct MenuScroll<Rows: View>: View {
     }
 }
 
-/// What a viewer's pick sends: the engine's menus as rows.
+extension EnvironmentValues {
+    /// The menu row drawn as if the pointer were over it, by its title: a screenshot's.
+    @Entry var pointedMenuRow: String?
+}
+
+/// What a viewer's pick sends: the engine's menus as rows. `indent` sets a row in a group
+/// nested under another row, as the playing episode's sources are.
 struct MenuRow: View {
     let title: String
     var detail: String? = nil
     let checked: Bool
+    var indent: CGFloat = 0
     let metrics: PlayerMetrics
     let action: () -> Void
+    @Environment(\.pointedMenuRow) private var pointed
 
     var body: some View {
         Button(action: action) {
@@ -934,38 +942,79 @@ struct MenuRow: View {
             }
             .font(.system(size: metrics.body))
             .foregroundStyle(.silk)
-            .padding(.leading, 6)
+            .padding(.leading, 6 + indent)
             .padding(.trailing, 10)
             .frame(height: metrics.touch ? 44 : 24)
             .contentShape(.rect)
         }
-        .buttonStyle(MenuRowStyle())
+        .buttonStyle(MenuRowStyle(lit: pointed == title))
         .accessibilityAddTraits(checked ? .isSelected : [])
     }
 }
 
-/// A menu's row: lit on press only, as Mac rows are (motion.md), with the pointing hand.
+/// A menu's row: lit at 10% silk under the pointer, as the player's buttons over the video are,
+/// and at their 16% pressed, with the pointing hand. Menus light their rows under the pointer
+/// where the browse screens' rows do not (motion.md). On iPad, the pointer's own highlight.
+/// `lit` draws it under the pointer for a screenshot.
 struct MenuRowStyle: ButtonStyle {
+    var lit = false
+
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Palette.silk.opacity(configuration.isPressed ? 0.16 : 0))
-            )
-            .pointingHand()
+        Lit(configuration: configuration, lit: lit)
+    }
+
+    private struct Lit: View {
+        let configuration: Configuration
+        let lit: Bool
+        @State private var hovering = false
+
+        var body: some View {
+            configuration.label
+                .background(RoundedRectangle(cornerRadius: 6).fill(Palette.silk.opacity(fill)))
+                .animation(.quick, value: hovering || lit)
+                #if os(macOS)
+                .onHover { hovering = $0 }
+                #else
+                .contentShape(.hoverEffect, .rect(cornerRadius: 6))
+                .hoverEffect(.highlight)
+                #endif
+                .pointingHand()
+        }
+
+        private var fill: Double {
+            if configuration.isPressed { return 0.16 }
+            return hovering || lit ? 0.1 : 0
+        }
     }
 }
 
+/// A menu's section name, over its rows' titles.
 struct MenuHeading: View {
     let title: String
+    var indent: CGFloat = 0
 
     var body: some View {
         Text(title)
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(.haze)
-            .padding(.leading, 26)
+            .padding(.leading, 26 + indent)
             .padding(.bottom, 3)
             .frame(height: 22, alignment: .bottomLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// A line of a menu that is not a choice: "Remembered for this show", "Finding releases…".
+struct MenuNote: View {
+    let text: String
+    var indent: CGFloat = 0
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 12))
+            .foregroundStyle(.haze)
+            .padding(.leading, 26 + indent)
+            .frame(height: 24, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -1005,12 +1054,7 @@ struct TrackLists: View {
             }
         }
         MenuDivider()
-        Text("Remembered for this show")
-            .font(.system(size: 12))
-            .foregroundStyle(.haze)
-            .padding(.leading, 26)
-            .frame(height: 24, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        MenuNote(text: "Remembered for this show")
     }
 
     /// The Subtitles row for a track, or for Off.
@@ -1022,22 +1066,41 @@ struct TrackLists: View {
     static func selectedRow(_ model: PlayerModel) -> String { subtitleRow(model.subtitleTrack) }
 }
 
-/// The Episodes list, from the engine's menus.
+/// The Episodes list, from the engine's menus, with the playing episode's sources nested under
+/// it.
 struct EpisodeList: View {
     let model: PlayerModel
     let metrics: PlayerMetrics
 
     var body: some View {
+        let episodes = model.menus?.episodes ?? []
         MenuHeading(title: "Episodes")
-        ForEach(model.menus?.episodes ?? [], id: \.number) { row in
-            MenuRow(
-                title: row.title.map { "\(row.label) · \($0)" } ?? row.label,
-                detail: row.filler ? "Filler" : row.watched ? "Watched" : nil,
-                checked: row.current, metrics: metrics
-            ) {
-                model.choose(.episode(row.number))
+        ForEach(episodes, id: \.number) { row in
+            if row.current {
+                // One block, which the list scrolls into view whole as it opens.
+                VStack(alignment: .leading, spacing: 0) {
+                    episode(row)
+                    SourceGroup(model: model, metrics: metrics)
+                }
+                .id(Self.row(row.number))
+            } else {
+                episode(row)
+                    .id(Self.row(row.number))
             }
-            .id(Self.row(row.number))
+        }
+        // Before the engine has listed the episodes, or with none of them playing.
+        if !episodes.contains(where: \.current) {
+            SourceGroup(model: model, metrics: metrics)
+        }
+    }
+
+    private func episode(_ row: MenuEpisode) -> some View {
+        MenuRow(
+            title: row.title.map { "\(row.label) · \($0)" } ?? row.label,
+            detail: row.filler ? "Filler" : row.watched ? "Watched" : nil,
+            checked: row.current, metrics: metrics
+        ) {
+            model.choose(.episode(row.number))
         }
     }
 
@@ -1049,8 +1112,54 @@ struct EpisodeList: View {
     }
 }
 
-/// Speed, Upscaling, Night mode and Sources.
-struct MoreLists: View {
+/// The playing episode's releases, under it in the Episodes list: the one playing checked, and a
+/// pick plays that one from where the playhead is.
+struct SourceGroup: View {
+    let model: PlayerModel
+    let metrics: PlayerMetrics
+    /// How far the group sits in from the episode it belongs to.
+    static let indent: CGFloat = 20
+
+    /// What the group shows.
+    enum Listing: Equatable {
+        /// The playback is still being found, or the engine has not listed its streams yet.
+        case finding
+        /// The engine found none.
+        case none
+        case sources([MenuSource])
+    }
+
+    static func listing(_ menus: PlayerMenus?, starting: Bool) -> Listing {
+        guard let menus, !starting else { return .finding }
+        return menus.sources.isEmpty ? .none : .sources(menus.sources)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            MenuHeading(title: "Source", indent: Self.indent)
+            switch Self.listing(model.menus, starting: model.starting != nil) {
+            case .finding:
+                MenuNote(text: "Finding releases…", indent: Self.indent)
+            case .none:
+                MenuNote(text: "No releases found", indent: Self.indent)
+            case .sources(let sources):
+                ForEach(sources, id: \.id) { source in
+                    MenuRow(
+                        title: source.label, detail: source.detail, checked: source.current, indent: Self.indent,
+                        metrics: metrics
+                    ) {
+                        model.choose(.source(source.id))
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Source")
+    }
+}
+
+/// The speeds, slowest first.
+struct SpeedList: View {
     let model: PlayerModel
     let metrics: PlayerMetrics
     static let speeds: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 2]
@@ -1062,8 +1171,17 @@ struct MoreLists: View {
                 model.setSpeed(speed)
             }
         }
+    }
+}
+
+/// Picture and sound: the upscaling looks, and night mode, which evens out the loud and the
+/// quiet. Nothing until the engine has sent its menus.
+struct PictureLists: View {
+    let model: PlayerModel
+    let metrics: PlayerMetrics
+
+    var body: some View {
         if let menus = model.menus {
-            MenuDivider()
             MenuHeading(title: "Upscaling")
             ForEach(menus.upscaling.options, id: \.id) { choice in
                 MenuRow(title: choice.label, detail: choice.hint, checked: menus.upscaling.current == choice.id, metrics: metrics) {
@@ -1071,17 +1189,9 @@ struct MoreLists: View {
                 }
             }
             MenuDivider()
+            MenuHeading(title: "Sound")
             MenuRow(title: "Night mode", checked: menus.nightMode, metrics: metrics) {
                 model.setNightMode(!menus.nightMode)
-            }
-            if !menus.sources.isEmpty {
-                MenuDivider()
-                MenuHeading(title: "Sources")
-                ForEach(menus.sources, id: \.id) { source in
-                    MenuRow(title: source.label, detail: source.detail, checked: source.current, metrics: metrics) {
-                        model.choose(.source(source.id))
-                    }
-                }
             }
         }
     }

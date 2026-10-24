@@ -637,8 +637,8 @@ playback. What the Simulator cannot show, and a device has to:
 ## Not yet
 
 - The player: Sync subtitles, and telling the engine of a shader hook
-  libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's merged Audio and subtitles
-  sheet also holds Speed, Upscaling, Night mode and Sources, for want of a More menu on its board.
+  libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's
+  Picture and sound sheet also holds Speed, for want of a speed button on its board.
 - Settings' "Show titles in Spotlight" switch, which waits for the design: Settings has no
   Privacy pane. The indexer already honours `anistream.showInSpotlight` in the app's defaults,
   on unless set off. The Library's lists are indexed as they are shown, not asked for at launch.
