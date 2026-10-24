@@ -55,7 +55,7 @@ class EpisodeFoldTest {
     @Test
     fun the_row_names_the_range_it_folds() {
         val (title, episodes) = watched(6)
-        assertEquals("Episodes 1–5 watched", watchedRangeWords(title.foldedEpisodes(episodes)))
-        assertEquals("Episodes 1–2 watched", watchedRangeWords(episodes.take(2)))
+        assertEquals("Episodes 1 to 5 watched", watchedRangeWords(title.foldedEpisodes(episodes)))
+        assertEquals("Episodes 1 to 2 watched", watchedRangeWords(episodes.take(2)))
     }
 }

@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -88,8 +89,8 @@ enum class Destination(val route: String, val label: String, val icon: ImageVect
     Continue("continue", "Continue", Icons.Continue, Icons.ContinueSelected),
     Calendar("calendar", "Calendar", Icons.Calendar, Icons.CalendarSelected),
     Seasonal("seasonal", "Seasonal", Icons.Seasonal, Icons.SeasonalSelected),
-    Library("library", "Library", Icons.Library, Icons.Library),
-    Search("search", "Search", Icons.Search, Icons.Search);
+    Library("library", "Library", Icons.Library, Icons.LibrarySelected),
+    Search("search", "Search", Icons.Search, Icons.SearchSelected);
 
     companion object {
         /** The destination [name] names, by its route or label, case aside. */
@@ -108,6 +109,8 @@ data class AppActions(
     val openSettings: () -> Unit = {},
     /** Play an episode: the player, from A3. */
     val play: (id: AnilistId, episode: String) -> Unit = { _, _ -> },
+    /** Play an episode from its first frame, whatever position it kept: Play from the beginning. */
+    val playFromStart: (id: AnilistId, episode: String) -> Unit = { _, _ -> },
     /**
      * What a notice's button asks for: the stores, the player. Kitsu's sign-in [AppRoot] opens
      * itself.
@@ -201,6 +204,8 @@ fun AppRoot(
     links: Flow<AppLink> = emptyFlow(),
     /** The destination on screen, each time it changes: where the Updated notification comes back to. */
     onSection: (Destination) -> Unit = {},
+    /** Whether first launch's pages may show, until this device has been through them. */
+    firstLaunch: Boolean = false,
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
@@ -263,7 +268,10 @@ fun AppRoot(
             // A new link takes over from one still waiting to play.
             links.collectLatest { link -> navigator.follow(link, store, following) { searchOpening = true } }
         }
+        // First launch's pages stand over the app, which TalkBack then does not reach.
+        var covered by remember { mutableStateOf(false) }
         Scaffold(
+            modifier = if (covered) Modifier.clearAndSetSemantics {} else Modifier,
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
             // The player says its own notices on the video; the snackbars wait for it to close.
@@ -331,6 +339,7 @@ fun AppRoot(
                 }
             }
         }
+        if (firstLaunch) FirstLaunch(onCover = { covered = it })
     }
 }
 

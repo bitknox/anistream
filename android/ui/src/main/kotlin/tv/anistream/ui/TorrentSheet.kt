@@ -50,20 +50,24 @@ internal enum class TorrentSheetMode { TurnOn, Change }
  * picked.
  */
 @Composable
-internal fun TorrentSheet(mode: TorrentSheetMode, onDismiss: () -> Unit) {
+internal fun TorrentSheet(mode: TorrentSheetMode, start: TorrentProtection? = null, onDismiss: () -> Unit) {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val torrent = view?.torrent
     val saved = torrent?.proxy
-    var protection by rememberSaveable { mutableStateOf(torrent?.protection?.takeIf { mode == TorrentSheetMode.Change } ?: TorrentProtection.DEVICE) }
+    val savedProtection = torrent?.protection?.takeIf { mode == TorrentSheetMode.Change } ?: TorrentProtection.DEVICE
+    var acknowledged by rememberSaveable { mutableStateOf(torrent?.protection == TorrentProtection.NONE) }
+    // The protection picked in Settings' menu is where the sheet starts; no protection is confirmed first.
+    var protection by rememberSaveable {
+        mutableStateOf(start?.takeIf { it != TorrentProtection.NONE || acknowledged } ?: savedProtection)
+    }
     var host by rememberSaveable { mutableStateOf(saved?.host.orEmpty()) }
     var port by rememberSaveable { mutableStateOf(saved?.port?.toString().orEmpty()) }
     var user by rememberSaveable { mutableStateOf(saved?.user.orEmpty()) }
     // Never saved with the screen's state: it goes to the keystore-sealed store, and nowhere else.
     var password by remember { mutableStateOf("") }
     var index by rememberSaveable { mutableStateOf(view?.sources?.index.orEmpty()) }
-    var asking by remember { mutableStateOf(false) }
-    var acknowledged by rememberSaveable { mutableStateOf(torrent?.protection == TorrentProtection.NONE) }
+    var asking by remember { mutableStateOf(start == TorrentProtection.NONE && !acknowledged) }
 
     val trimmed = index.trim()
     val indexOk = Regex("^https?://\\S+$").matches(trimmed)
@@ -101,7 +105,7 @@ internal fun TorrentSheet(mode: TorrentSheetMode, onDismiss: () -> Unit) {
                     SheetText("User name and password only if the proxy asks for them.")
                 }
             }
-            ProtectionChoice("VPN on this device", "Uses the VPN already running on this phone.", protection == TorrentProtection.DEVICE) {
+            ProtectionChoice("VPN on this device", "Uses the VPN already running on this ${deviceWord()}.", protection == TorrentProtection.DEVICE) {
                 protection = TorrentProtection.DEVICE
             }
             ProtectionChoice("No protection", "Your address is visible to everyone in the torrent.", protection == TorrentProtection.NONE) {
@@ -120,7 +124,7 @@ internal fun TorrentSheet(mode: TorrentSheetMode, onDismiss: () -> Unit) {
             error = !indexOk,
         )
         SheetText(
-            if (protection == TorrentProtection.NONE) "With no protection, anistream does not check the connection." else CHECK_NOTE,
+            checkNote(torrent?.onFailure, protection),
             Modifier.padding(top = 16.dp),
         )
         SheetButtons {
@@ -202,7 +206,7 @@ internal fun WarnOnlyDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Keep torrents running if a check fails?") },
-        text = { Text("If the connection check fails, torrents keep running, and other people may see your IP address. anistream only says the check failed.") },
+        text = { Text("anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.") },
         confirmButton = { TextButton(onClick = onConfirm) { Text("Warn only") } },
         dismissButton = { QuietButton("Cancel", onClick = onDismiss) },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

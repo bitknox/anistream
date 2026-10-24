@@ -4,6 +4,8 @@
 
 package tv.anistream.ui
 
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -73,7 +75,7 @@ internal fun SettingsAside(pane: SettingsPane, focus: String?) {
                 "Downloads stay in anistream's own space on this device, which other apps cannot read. Removing the app removes them.",
             )
             SettingsPane.Sources -> if (store.settings.isOn(SettingKey.TORRENTS, view)) {
-                Aside("Connection check", CHECK_NOTE)
+                Aside("Connection check", checkNote(view?.torrent?.onFailure, view?.torrent?.protection))
             } else {
                 Aside("Sources", "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.")
             }
@@ -149,18 +151,19 @@ private fun tone(saturation: Float, contrast: Float): ColorMatrix {
     return matrix
 }
 
-/** A chip over the drawing: labelMedium silk on the ground at 72 %, with a faint edge. */
+/** A label over the drawing, as the board has it: labelSmall silk, 24 high, on the ground at 80 %. */
 @Composable
 private fun Chip(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
-        style = MaterialTheme.typography.labelMedium,
+        style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
-            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 2.dp),
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+            .heightIn(min = 24.dp)
+            .wrapContentHeight(Alignment.CenterVertically)
+            .padding(horizontal = 8.dp),
     )
 }
 

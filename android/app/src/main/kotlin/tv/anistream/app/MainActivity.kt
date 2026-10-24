@@ -2,6 +2,8 @@
 
 package tv.anistream.app
 
+import android.text.format.DateFormat
+import tv.anistream.store.AirTime
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -171,11 +173,16 @@ class MainActivity : ComponentActivity() {
         val search = if (query != null || genre != null) SearchQuery(text = query.orEmpty(), genres = listOfNotNull(genre)) else null
         val sheet = intent.getStringExtra(SHEET)?.takeIf { steerable }
         val page = intent.getStringExtra(PAGE)?.takeIf { steerable }
+        // The fixtures and debug builds open on the screen asked for; their pages only when asked.
+        val firstLaunch = if (steerable) intent.getBooleanExtra(FIRST_LAUNCH, false) else true
+        // Air times in the clock the system is set to.
+        AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
 
         // Play from the title page, the Continue hero or an episode row: the engine finds the
         // stream and opens the player, which the frame then shows.
         val actions = AppActions(
             play = { id, episode -> app.store.send(Command.Play(id, episode)) },
+            playFromStart = { id, episode -> app.store.send(Command.Play(id, episode, fromStart = true)) },
             notifications = NotificationActions(
                 turn = ::setEpisodeNotifications,
                 refused = app.episodeAlerts.refused,
@@ -208,6 +215,7 @@ class MainActivity : ComponentActivity() {
                     player = player,
                     links = linkFlow,
                     onSection = { section -> app.appUpdates?.section = section },
+                    firstLaunch = firstLaunch,
                 )
             }
         } }
@@ -317,6 +325,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         signIn.resumed()
+        AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         // Back from Android's "Install unknown apps" page: the update goes on, if it may.
         app.store.updates.resumed()
     }
@@ -416,6 +425,9 @@ class MainActivity : ComponentActivity() {
 
         /** A page to open over the destination, by its route: `settings`, `settings/playback`. */
         const val PAGE = "page"
+
+        /** Whether first launch's pages show, on a fixtures or debug build: `--ez firstLaunch true`. */
+        const val FIRST_LAUNCH = "firstLaunch"
 
         private const val NOTIFICATIONS_ASKED = "notificationsAsked"
 

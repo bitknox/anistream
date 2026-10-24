@@ -30,6 +30,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.github.takahirom.roborazzi.captureScreenRoboImage
+import androidx.compose.ui.test.longClick
+import tv.anistream.engine.model.ContentFor
+import tv.anistream.engine.model.ContentList
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
 import java.time.Clock
 import java.time.ZoneId
@@ -95,6 +99,77 @@ class BoardShots {
     @Test
     @Config(qualifiers = PHONE)
     fun phone_welcome() = shoot("phone-welcome", FRESH)
+
+    // The audit's states: failed, offline, first launch, the phone's Continue menu.
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_continue_failed() = shoot("phone-continue-failed", WATCHING, exclude = ::continueList) {
+        compose.runOnUiThread { it.apply(listOf(Event.Content(ContentFor.Continue, ContentList.Failed(FAILURE)))) }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_continue_offline() = shoot("phone-continue-offline", WATCHING) {
+        compose.runOnUiThread { it.apply(listOf(Event.Connectivity(offline = true))) }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_continue_offline_failed() = shoot("phone-continue-offline-failed", WATCHING, exclude = ::continueList) {
+        compose.runOnUiThread {
+            it.apply(listOf(Event.Connectivity(offline = true), Event.Content(ContentFor.Continue, ContentList.Failed(FAILURE))))
+        }
+    }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_home_offline() = shoot("tablet-home-offline", WATCHING) {
+        compose.runOnUiThread { it.apply(listOf(Event.Connectivity(offline = true))) }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_calendar_failed() = shoot("phone-calendar-failed", WATCHING, start = Destination.Calendar, exclude = ::calendarList) {
+        compose.runOnUiThread { it.apply(listOf(Event.Content(ContentFor.Calendar, ContentList.Failed(FAILURE)))) }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_seasonal_failed() = shoot("phone-seasonal-failed", WATCHING, start = Destination.Seasonal, exclude = ::seasonalList) {
+        compose.runOnUiThread { it.apply(listOf(Event.Content(ContentFor.Seasonal, ContentList.Failed(FAILURE)))) }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_library_signed_out() = shoot("phone-library-signed-out", FRESH, start = Destination.Library)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_continue_menu() = shoot("phone-continue-menu", WATCHING, screen = true) { store ->
+        val lead = checkNotNull(store.continuing.queue(store.titles.entries.value).lead)
+        compose.onAllNodesWithText(lead.entry.showTitle)[0].performTouchInput { longClick() }
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_first_launch() = shoot("phone-first-launch", FRESH, firstLaunch = true)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_first_launch_anilist() = shoot("phone-first-launch-anilist", FRESH, firstLaunch = true) { open("Continue") }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_first_launch_sources() = shoot("phone-first-launch-sources", FRESH, firstLaunch = true) {
+        open("Continue")
+        compose.mainClock.advanceTimeBy(1_000)
+        open("Not now")
+    }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_first_launch() = shoot("tablet-first-launch", FRESH, firstLaunch = true)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -358,13 +433,19 @@ class BoardShots {
         sourceless: Boolean = false,
         /** Whether 900001 has the long title and the near-white banner of [PaleBanner]. */
         pale: Boolean = false,
-        then: (() -> Unit)? = null,
+        /** Events of the scene left out, as a list that never answered. */
+        exclude: (Event) -> Boolean = { false },
+        /** Whether the whole screen is captured, so a menu's window shows. */
+        screen: Boolean = false,
+        /** Whether first launch's pages show, as on the app's first launch. */
+        firstLaunch: Boolean = false,
+        then: ((AppStore) -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         // The art the screens ask for, as the fake AniList serves it.
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = { url -> PaleBanner.bytes(url) ?: FixtureArt.bytes(url) })
-        val events = recorded.events.filter(::replayed).map { if (sourceless) withoutSources(it) else it }
+        val events = recorded.events.filter { replayed(it) && !exclude(it) }.map { if (sourceless) withoutSources(it) else it }
         // After the scene each time, so its own detail never wins over the pale one.
         fun replay() {
             store.apply(events)
@@ -375,7 +456,7 @@ class BoardShots {
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
         compose.setContent {
             AnistreamTheme {
-                AppRoot(store, if (search != null) Destination.Search else start, startTitle = title, startSearch = search, startSheet = sheet)
+                AppRoot(store, if (search != null) Destination.Search else start, startTitle = title, startSearch = search, startSheet = sheet, firstLaunch = firstLaunch)
             }
         }
         compose.waitForIdle()
@@ -383,8 +464,13 @@ class BoardShots {
         // What the screens asked for as they opened is answered as the engine answered it.
         replay()
         awaitArt(store)
+        // First launch decides once the engine has said what is set up, or after its wait.
+        if (firstLaunch) {
+            compose.mainClock.advanceTimeBy(3_500)
+            compose.waitForIdle()
+        }
         then?.let {
-            it()
+            it(store)
             if (settle) {
                 compose.waitForIdle()
                 awaitArt(store)
@@ -394,8 +480,10 @@ class BoardShots {
             compose.mainClock.advanceTimeBy(3_000)
             compose.waitForIdle()
         }
-        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
+        val file = "${roborazziSystemPropertyOutputDirectory()}/$name.png"
+        if (screen) captureScreenRoboImage(file) else compose.onRoot().captureRoboImage(file)
     }
+
 
     /** Tap what [label] names, scrolled to first where it sits in a list. */
     private fun open(label: String) {
@@ -447,6 +535,14 @@ class BoardShots {
 
         /** The tablet boards: 1280 × 800 dp, landscape, at 320 dpi. */
         const val TABLET = "w1280dp-h800dp-land-xhdpi"
+
+        /** A list's failure as the engine says it: a request error's whole chain. */
+        const val FAILURE = "error sending request for url (https://graphql.anilist.example/): connection refused"
+
+        fun continueList(event: Event) = event is Event.Content && event.view == ContentFor.Continue
+        fun calendarList(event: Event) =
+            (event is Event.Content && event.view == ContentFor.Calendar) || event is Event.CalendarWindow || event is Event.CalendarBackfill
+        fun seasonalList(event: Event) = event is Event.Content && event.view == ContentFor.Seasonal
 
         const val WATCHING = "watching"
         const val FRESH = "fresh"

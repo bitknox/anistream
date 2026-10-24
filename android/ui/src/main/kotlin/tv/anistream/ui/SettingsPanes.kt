@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.Instant
 import java.util.Locale
 import tv.anistream.design.Nagare
+import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
@@ -233,6 +234,8 @@ private fun ComingRow(place: Place, episode: UpcomingNotice, onClick: () -> Unit
         },
         trailing = { Icon(Icons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
         modifier = Modifier.alpha(if (dimmed) 0.4f else 1f),
+        // A show's title, so the show-title face, as everywhere a title is named.
+        titleStyle = ShowTitle.row,
     )
 }
 
@@ -289,9 +292,9 @@ private fun FollowCaptionsRow(place: Place) {
     var follow by remember { mutableStateOf(DevicePreferences.followsSystemCaptions(context)) }
     SwitchRow(
         place,
-        "Subtitles follow your system caption style",
+        "Follow system caption style",
         follow,
-        note = "From Caption preferences in Accessibility, while captions are on there. Styled subtitles keep their own look",
+        note = "Plain subtitles use your caption preferences from Accessibility. Styled (ASS) subtitles keep their own look.",
     ) {
         follow = it
         DevicePreferences.of(context).edit().putBoolean(DevicePreferences.FOLLOW_SYSTEM_CAPTIONS, it).apply()
@@ -487,7 +490,8 @@ private fun StorageRow(place: Place, used: Long, free: Long?) {
                 progress = { share.coerceIn(0f, 1f) },
                 modifier = Modifier.padding(top = 8.dp).fillMaxWidth().height(4.dp)
                     .semantics { contentDescription = "Downloads take ${Wording.bytes(used)}" },
-                color = colors.primary,
+                // Water, not amber: a share of the disk is neither an action nor progress.
+                color = colors.secondary,
                 trackColor = colors.outline,
                 gapSize = if (share > 0f) 4.dp else 0.dp,
                 drawStopIndicator = {},
@@ -514,7 +518,9 @@ internal fun SourcesPane(actions: AppActions) {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
+    val providersLoaded by store.providers.loaded.collectAsStateWithLifecycle()
     val stores by store.stores.stores.collectAsStateWithLifecycle()
+    val storesLoaded by store.stores.loaded.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
         store.checkProviders()
         store.loadStores()
@@ -522,12 +528,16 @@ internal fun SourcesPane(actions: AppActions) {
     val torrents = store.settings.isOn(SettingKey.TORRENTS, view)
     val updates = stores.sumOf { it.updates }
     var sheet by rememberSaveable { mutableStateOf<TorrentSheetMode?>(null) }
+    // The protection picked in the menu, which the sheet then starts from.
+    var picked by rememberSaveable { mutableStateOf<TorrentProtection?>(null) }
+    val context = LocalContext.current
+    val cellular = remember { context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY) }
     Pane {
         SettingsGroup(
             rows = listOf(
                 { place ->
                     val navigator = LocalNavigator.current
-                    InfoRow(place, "Source order", Wording.plural(providers.size, "source"), onClick = { navigator.open(PROVIDERS_ROUTE) })
+                    InfoRow(place, "Source order", Wording.plural(providers.size, "source").takeIf { providersLoaded }, onClick = { navigator.open(PROVIDERS_ROUTE) })
                 },
                 { place ->
                     val navigator = LocalNavigator.current
@@ -535,6 +545,7 @@ internal fun SourcesPane(actions: AppActions) {
                         place,
                         "Plugin stores",
                         when {
+                            !storesLoaded && stores.isEmpty() -> null
                             stores.isEmpty() -> "None joined"
                             updates > 0 -> "${stores.size} · ${Wording.plural(updates, "update")}"
                             else -> "${stores.size}"
@@ -546,11 +557,11 @@ internal fun SourcesPane(actions: AppActions) {
         )
         SettingsGroup(
             title = "Torrents",
-            footer = if (torrents) CHECK_NOTE else "Off by default. Turning this on asks how to protect your connection first.",
+            footer = if (torrents) checkNote(view?.torrent?.onFailure, view?.torrent?.protection) else "Off by default. Turning this on asks how to protect your connection first.",
             rows = listOfNotNull(
                 @Composable { place: Place -> TorrentSourceRow(place, torrents) { sheet = TorrentSheetMode.TurnOn } },
                 if (torrents) @Composable { place: Place ->
-                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { sheet = TorrentSheetMode.Change })
+                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { picked = null; sheet = TorrentSheetMode.Change })
                 } else null,
                 if (torrents) @Composable { place: Place ->
                     MenuRow(
@@ -559,17 +570,23 @@ internal fun SourcesPane(actions: AppActions) {
                         protectionWords(view?.torrent?.protection),
                         listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE).map { MenuChoice(it, protectionWords(it)) },
                         view?.torrent?.protection,
-                    ) { picked -> if (picked != view?.torrent?.protection) sheet = TorrentSheetMode.Change }
+                    ) { choice ->
+                        if (choice != view?.torrent?.protection) {
+                            picked = choice
+                            sheet = TorrentSheetMode.Change
+                        }
+                    }
                 } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
-                if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.TORRENTS_ON_CELLULAR, "Torrents on cellular") } else null,
+                // Only where the device has a cellular radio to spare.
+                if (torrents && cellular) @Composable { place: Place -> SettingSwitch(place, SettingKey.TORRENTS_ON_CELLULAR, "Torrents on cellular") } else null,
             ),
         )
         if (torrents) {
             SettingsGroup(
                 title = "Seeding",
-                footer = "Seeding runs while anistream is open.",
+                footer = "Best effort on this ${deviceWord()}: seeding runs only while anistream is open.",
                 rows = listOf(
                     { place -> SettingMenu(place, SettingKey.SEED_RATIO, "Seed after watching") },
                     { place -> SettingMenu(place, SettingKey.SEED_HOURS, "Seed for at most") },
@@ -578,13 +595,26 @@ internal fun SourcesPane(actions: AppActions) {
             )
         }
     }
-    sheet?.let { mode -> TorrentSheet(mode) { sheet = null } }
+    sheet?.let { mode ->
+        TorrentSheet(mode, start = picked) {
+            sheet = null
+            picked = null
+        }
+    }
 }
 
 /** What the connection check does, said wherever torrents are on. */
 internal const val CHECK_NOTE =
     "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, " +
         "and pauses torrents if that check fails. Your VPN or proxy is what protects you."
+
+/** The check's note for what a failed check does, and that none runs with no protection. */
+internal fun checkNote(onFailure: FailedCheck?, protection: TorrentProtection?): String = when {
+    protection == TorrentProtection.NONE -> "With no protection, anistream does not check the connection."
+    onFailure == FailedCheck.WARN -> CHECK_NOTE.replace("pauses torrents if that check fails", "warns you if that check fails")
+    onFailure == FailedCheck.STOP -> CHECK_NOTE.replace("pauses torrents if that check fails", "stops torrents if that check fails")
+    else -> CHECK_NOTE
+}
 
 /** The torrent source's switch. Turning it off is a switch; turning it on asks for protection first. */
 @Composable
@@ -652,7 +682,8 @@ internal fun protectionWords(protection: TorrentProtection?): String = when (pro
 private fun LastCheckRow(place: Place) {
     val store = LocalAppStore.current
     val check by store.providers.check.collectAsStateWithLifecycle()
-    val words = guardWords(check)
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val words = guardWords(check, onFailure = view?.torrent?.onFailure)
     val colors = MaterialTheme.colorScheme
     RowFrame(place, onClick = null, modifier = Modifier.heightIn(min = 88.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -670,8 +701,11 @@ private fun LastCheckRow(place: Place) {
                 }
                 words.note?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) }
             }
-            TextButton(onClick = store::checkProviders) {
-                Text("Check now", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            TextButton(onClick = store::checkProviders, enabled = check?.view != GuardView.Checking) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    WorkRing(check?.view == GuardView.Checking)
+                    Text("Check now", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                }
             }
         }
     }
@@ -680,7 +714,13 @@ private fun LastCheckRow(place: Place) {
 /** The check's verdict as the row says it: its status, the line under it, and its dot's colour. */
 internal data class GuardWords(val status: String, val note: String?, val problem: Boolean, val passed: Boolean)
 
-internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.currentTimeMillis()): GuardWords {
+internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.currentTimeMillis(), onFailure: FailedCheck? = null): GuardWords {
+    // What happened to torrents on a failed check, as "If a check fails" has it.
+    val then = when (onFailure) {
+        FailedCheck.WARN -> "Torrents keep running."
+        FailedCheck.STOP -> "Torrents are stopped."
+        else -> "Torrents are paused."
+    }
     val ago = check?.let {
         val seconds = ((now - it.at) / 1000).coerceAtLeast(0)
         if (seconds < 60) "$seconds s ago" else AccountWords.agoWords(seconds)
@@ -688,8 +728,8 @@ internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.current
     return when (val view = check?.view) {
         is GuardView.Protected -> GuardWords("Passed" + (ago?.let { " · $it" } ?: ""), "Leaving through ${view.exit}", problem = false, passed = true)
         GuardView.Checking -> GuardWords("Checking", "Checking where torrent traffic leaves from", problem = false, passed = false)
-        GuardView.Leaking -> GuardWords("Failed", "Traffic left outside the protection. Torrents are paused.", problem = true, passed = false)
-        GuardView.Unreachable -> GuardWords("Failed", "The check could not be made. Torrents are paused.", problem = true, passed = false)
+        GuardView.Leaking -> GuardWords("Failed", "Traffic left outside the protection. $then", problem = true, passed = false)
+        GuardView.Unreachable -> GuardWords("Failed", "The check could not be made. $then", problem = true, passed = false)
         GuardView.Unprotected -> GuardWords("Unprotected", "No protection is set", problem = false, passed = false)
         null -> GuardWords("Not checked yet", null, problem = false, passed = false)
     }
@@ -774,7 +814,7 @@ internal fun AccountsPane(actions: AppActions) {
 /** Sign in, tonal: a row's own action, with the screen's one amber action kept for elsewhere. */
 @Composable
 private fun SignInButton(label: String, busy: Boolean, onClick: () -> Unit) {
-    FilledTonalButton(onClick = onClick, enabled = !busy) { Text(if (busy) "Signing in" else label) }
+    FilledTonalButton(onClick = onClick, enabled = !busy) { WorkLabel(label, busy) }
 }
 
 /** A row that is one action in silk, such as Sync now or Sign out. */

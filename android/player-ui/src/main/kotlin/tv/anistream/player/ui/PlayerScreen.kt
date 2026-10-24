@@ -90,6 +90,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import tv.anistream.design.Motion
+import tv.anistream.design.tabular
 import tv.anistream.design.ObiSilk
 import tv.anistream.player.Device
 import tv.anistream.player.PlayerModel
@@ -250,7 +251,12 @@ fun PlayerScreen(
         }
 
         // Taps on the video: the middle third shows and hides the controls at once; the sides
-        // wait for a second tap, which seeks 10 s.
+        // wait for a second tap, which seeks 10 s, and each tap after it within 0.6 s 10 s more.
+        // A press held anywhere plays at 2× until it lifts.
+        var run by remember { mutableStateOf<SeekRun?>(null) }
+        var runShown by remember { mutableStateOf(false) }
+        var pressedAt by remember { mutableStateOf(0L) }
+        var holding by remember { mutableStateOf<Double?>(null) }
         val dragState = rememberDraggableState { delta ->
             val before = drag.value
             val after = (before + with(density) { delta.toDp().value }).coerceAtLeast(0f)
@@ -282,17 +288,66 @@ fun PlayerScreen(
                         .fillMaxHeight()
                         .pointerInput(third, chromeVisible) {
                             val toggle = { if (chromeVisible) model.hideControls() else model.poke() }
+                            // Each press: held past the long-press time, 2× until it lifts.
+                            val press: suspend androidx.compose.foundation.gestures.PressGestureScope.(androidx.compose.ui.geometry.Offset) -> Unit = {
+                                pressedAt = System.nanoTime() / 1_000_000
+                                tryAwaitRelease()
+                                holding?.let { before ->
+                                    holding = null
+                                    model.playAt(before)
+                                }
+                            }
+                            val hold: (androidx.compose.ui.geometry.Offset) -> Unit = {
+                                if (holding == null && model.speed < HOLD_SPEED) {
+                                    holding = model.speed
+                                    model.playAt(HOLD_SPEED)
+                                    haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+                                }
+                            }
                             if (third == Third.Middle) {
-                                detectTapGestures(onTap = { toggle() })
+                                detectTapGestures(onPress = press, onLongPress = hold, onTap = { toggle() })
                             } else {
+                                val step = if (third == Third.Start) -SEEK_STEP else SEEK_STEP
+                                // A tap within 0.6 s of the last seek on this side seeks another 10 s.
+                                val seek = {
+                                    val going = run?.takeIf { it.third == third && pressedAt - it.at <= SEEK_RUN_MS }
+                                    model.seekBy(step)
+                                    run = SeekRun(third, (going?.taps ?: 0) + 1, pressedAt)
+                                    runShown = true
+                                }
                                 detectTapGestures(
-                                    onTap = { toggle() },
-                                    onDoubleTap = { model.seekBy(if (third == Third.Start) -10.0 else 10.0) },
+                                    onPress = press,
+                                    onLongPress = hold,
+                                    onTap = {
+                                        val going = run?.let { it.third == third && pressedAt - it.at <= SEEK_RUN_MS } == true
+                                        if (going) seek() else toggle()
+                                    },
+                                    onDoubleTap = { seek() },
                                 )
                             }
                         },
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    // "+30 s": counts up with each tap of a run, gone 0.6 s after the last.
+                    val shown = run?.takeIf { it.third == third }
+                    FadingLabel(runShown && shown != null, "${if (third == Third.Start) "\u2212" else "+"}${(shown?.taps ?: 1) * SEEK_STEP.toInt()} s")
+                }
             }
+        }
+        LaunchedEffect(run) {
+            if (run != null) {
+                kotlinx.coroutines.delay(SEEK_RUN_MS)
+                runShown = false
+            }
+        }
+        // "2×" while a press holds the speed up.
+        AnimatedVisibility(
+            holding != null,
+            enter = fadeIn(Motion.fadeIn()),
+            exit = fadeOut(Motion.fadeOut()),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 80.dp),
+        ) {
+            GestureLabel("2\u00d7")
         }
 
         // Over the taps, so its own buttons take theirs: Choose source, and Close on a play that
@@ -536,5 +591,34 @@ private class StillFrame {
 
     fun unfreeze() {
         frame = null
+    }
+}
+
+/** A run of seeking taps on one side: how many, and when the last was pressed. */
+private data class SeekRun(val third: Third, val taps: Int, val at: Long)
+
+private const val SEEK_STEP = 10.0
+private const val SEEK_RUN_MS = 600L
+private const val HOLD_SPEED = 2.0
+
+/** A gesture's word over the video: "+30 s", "2×", in silk on the ground at 80 %. */
+@Composable
+private fun GestureLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium.tabular(),
+        color = ObiSilk.Silk,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(ObiSilk.Ground.copy(alpha = 0.8f))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+}
+
+/** [text] as a gesture's label, fading in and out with [visible]. */
+@Composable
+private fun FadingLabel(visible: Boolean, text: String) {
+    AnimatedVisibility(visible, enter = fadeIn(Motion.fadeIn()), exit = fadeOut(Motion.fadeOut())) {
+        GestureLabel(text)
     }
 }

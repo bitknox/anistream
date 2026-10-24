@@ -59,7 +59,38 @@ internal object Icons {
     val SeasonalSelected = filled("SeasonalSelected", LEAF, listOf("M5 19 L12.5 11.5"), markStroke = 2f)
 
     val Library = stroked("Library", "M5.5 4.5 V19.5 M10 4.5 V19.5 M14 5.5 L18.5 19")
+    val LibrarySelected = filled(
+        "LibrarySelected",
+        "M4 4.5 A1 1 0 0 1 5 3.5 H6 A1 1 0 0 1 7 4.5 V19.5 A1 1 0 0 1 6 20.5 H5 A1 1 0 0 1 4 19.5 Z " +
+            "M8.5 4.5 A1 1 0 0 1 9.5 3.5 H10.5 A1 1 0 0 1 11.5 4.5 V19.5 A1 1 0 0 1 10.5 20.5 H9.5 A1 1 0 0 1 8.5 19.5 Z " +
+            "M12.6 5.6 A1 1 0 0 1 13.3 4.4 L14.2 4.1 A1 1 0 0 1 15.5 4.8 L19.9 18.9 A1 1 0 0 1 19.2 20.1 L18.3 20.4 A1 1 0 0 1 17 19.7 Z",
+        emptyList(),
+    )
     val Search = stroked("Search", "M10.5 4.5 A6 6 0 1 1 10.49 4.5 Z", "M15 15 L19.5 19.5")
+    val SearchSelected = ImageVector.Builder(
+        name = "SearchSelected", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+    ).apply {
+        addPath(pathData = addPathNodes("M10.5 3.5 A7 7 0 1 1 10.49 3.5 Z"), fill = SolidColor(ObiSilk.OnAmberContainer))
+        addPath(
+            pathData = addPathNodes("M15.5 15.5 L19.5 19.5"),
+            stroke = SolidColor(ObiSilk.OnAmberContainer),
+            strokeLineWidth = 2.5f,
+            strokeLineCap = StrokeCap.Round,
+        )
+    }.build()
+
+    /** No network: the signal's arcs with a stroke through them. */
+    val Offline = stroked(
+        "Offline",
+        "M2.5 8.5 C5 6.3 8 5 11.2 4.9 M15.6 5.6 C17.9 6.2 19.8 7.2 21.5 8.5",
+        "M5.5 12 C6.8 10.9 8.3 10.2 9.9 9.9 M15.8 10.9 C16.8 11.2 17.7 11.6 18.5 12.2",
+        "M8.8 15.5 C10.6 14.2 13.4 14.2 15.2 15.5",
+        "M12 19 V19.01",
+        "M4 3 L20 21",
+    )
+
+    /** Something failed: the warning triangle, in vermilion where it is used. */
+    val Problem = stroked("Problem", "M10.3 4.4 A2 2 0 0 1 13.7 4.4 L21 17.5 A2 2 0 0 1 19.3 20.5 H4.7 A2 2 0 0 1 3 17.5 Z", "M12 9.5 V13.5 M12 16.8 V16.81")
 
     /** The play glyph on the amber action, filled in the action's text colour. */
     val Play = ImageVector.Builder(

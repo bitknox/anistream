@@ -106,7 +106,7 @@ private fun SkipButton(model: PlayerModel) {
         Modifier
             .height(48.dp)
             .graphicsLayer { alpha = strength }
-            .clickable(interactionSource = touch, indication = null) {
+            .clickable(interactionSource = touch, indication = null, role = androidx.compose.ui.semantics.Role.Button) {
                 haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
                 model.takeSkip()
             },

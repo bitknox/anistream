@@ -87,7 +87,7 @@ internal object UpdateWords {
         UpdateCheck.Checking -> "Checking"
         UpdateCheck.UpToDate -> "anistream is up to date"
         UpdateCheck.Found -> null
-        is UpdateCheck.Failed -> "Not checked: ${check.reason.trimEnd('.')}"
+        is UpdateCheck.Failed -> "Not checked. ${plainReason(check.reason)}"
     }
 
     /** The notice that a release is out. */
@@ -107,7 +107,7 @@ internal object UpdateWords {
 /**
  * Settings' row for the update, in About's Updates group while a newer release is known: the
  * glyph in amber while pressing it starts the update, the bar in water while it downloads, and
- * Cancel while it is under way. A failure says why under it, in vermilion.
+ * Cancel while it is under way. A failure says why under it, in silk.
  */
 @Composable
 internal fun UpdateRow(place: Place) {
@@ -131,7 +131,7 @@ internal fun UpdateRow(place: Place) {
                     Text(it, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
                 }
                 (state as? UpdateState.Failed)?.let {
-                    Text(it.failure.text, style = MaterialTheme.typography.bodyMedium, color = colors.error)
+                    Text(it.failure.text, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
                 }
                 if (progress != null) UpdateBar(progress, Modifier.padding(top = 8.dp))
             }
@@ -151,6 +151,7 @@ internal fun CheckNowRow(place: Place) {
         "Check now",
         UpdateWords.check(check),
         onClick = if (checking) null else store::checkForUpdates,
+        trailing = { WorkRing(checking) },
         modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
     )
 }

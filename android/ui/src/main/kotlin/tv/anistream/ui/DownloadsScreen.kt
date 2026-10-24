@@ -40,6 +40,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -93,6 +98,7 @@ internal fun DownloadsScreen() {
     val seeding by store.downloads.seeding.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     val episodes by store.titles.episodes.collectAsStateWithLifecycle()
+    val loaded by store.downloads.loaded.collectAsStateWithLifecycle()
     val free = freeBytes()
     var menu by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { store.loadDownloads(force = true) }
@@ -155,6 +161,12 @@ internal fun DownloadsScreen() {
             )
         },
     ) { padding ->
+        // Before the first answer, nothing for 600 ms and then the rows' places; never the empty
+        // state ahead of the answer (A6).
+        if (!loaded && rows.isEmpty()) {
+            Column(Modifier.padding(top = padding.calculateTopPadding())) { AfterWait { DownloadPlaceholders() } }
+            return@Scaffold
+        }
         if (rows.isEmpty() && seeding.isEmpty()) {
             Column(
                 Modifier.fillMaxSize().padding(padding).padding(horizontal = 32.dp),
@@ -162,12 +174,13 @@ internal fun DownloadsScreen() {
                 verticalArrangement = Arrangement.Center,
             ) {
                 tv.anistream.design.Nagare(cell = 5)
-                Text("No downloads yet", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-                SheetText("An episode downloaded from its title page plays here without a connection.", Modifier.padding(top = 4.dp))
+                Text("No downloads", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
+                SheetText("Downloaded episodes play without a connection.", Modifier.padding(top = 4.dp))
             }
             return@Scaffold
         }
         val groups = DownloadsModel.groups(rows)
+        Refreshable({ store.loadDownloads(force = true) }, top = padding.calculateTopPadding()) {
         LazyColumn(
             Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 48.dp),
@@ -197,6 +210,7 @@ internal fun DownloadsScreen() {
                     Box(itemMotion()) { SettingsFootnote("Watched episodes seed while anistream is open, until the ratio or the time limit set in Sources.") }
                 }
             }
+        }
         }
     }
 }
@@ -237,14 +251,37 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
     val rates by store.downloads.rates.collectAsStateWithLifecycle()
     val colors = MaterialTheme.colorScheme
     var menu by remember { mutableStateOf(false) }
+    // Deleting a download and its file asks first, from the menu or a swipe.
+    var deleting by remember { mutableStateOf(false) }
     val name = listOfNotNull("Episode ${row.episode}", episode?.title?.takeIf { it.isNotBlank() }).joinToString(" · ")
     val progress = row.state == DownloadState.ACTIVE || row.state == DownloadState.PAUSED
-    Box {
+    val hasFile = row.state == DownloadState.DONE || row.path != null
+    val remove = { store.cancelDownload(row.id) }
+    val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
+    // The menu's items, for TalkBack too.
+    val talkback = listOfNotNull(
+        if (hasFile) androidx.compose.ui.semantics.CustomAccessibilityAction("Delete download") { deleting = true; true } else null,
+        if (row.state != DownloadState.DONE) androidx.compose.ui.semantics.CustomAccessibilityAction("Remove from the list") { remove(); true } else null,
+    )
+    Swipeable(
+        start = null,
+        // From the end: Delete for a file, which asks first, or Cancel for one not done.
+        end = if (hasFile) SwipeAction("Delete", Icons.Clear) { deleting = true } else SwipeAction("Cancel", Icons.Clear, remove),
+    ) {
+    Box(Modifier.background(colors.surface)) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = if (progress) 88.dp else 72.dp)
-                .combinedClickable(onClick = { if (row.state == DownloadState.DONE) store.playDownload(row) }, onLongClick = { menu = true })
+                .semantics { customActions = talkback }
+                .combinedClickable(
+                    onClick = { if (row.state == DownloadState.DONE) store.playDownload(row) },
+                    onLongClickLabel = "More",
+                    onLongClick = {
+                        haptics.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        menu = true
+                    },
+                )
                 .padding(start = 72.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -285,17 +322,56 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
             shape = MaterialTheme.shapes.extraSmall,
             containerColor = colors.surfaceContainerHigh,
         ) {
-            if (row.state == DownloadState.DONE || row.path != null) {
+            if (hasFile) {
                 DropdownMenuItem(text = { Text("Delete download") }, onClick = {
                     menu = false
-                    store.deleteDownload(row.id)
+                    deleting = true
                 })
             }
             if (row.state != DownloadState.DONE) {
                 DropdownMenuItem(text = { Text("Remove from the list") }, onClick = {
                     menu = false
-                    store.cancelDownload(row.id)
+                    remove()
                 })
+            }
+        }
+    }
+    }
+    if (deleting) {
+        AlertDialog(
+            onDismissRequest = { deleting = false },
+            title = { Text("Delete episode ${row.episode}?") },
+            text = { Text("Its file is removed from this device.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        deleting = false
+                        store.deleteDownload(row.id)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
+                ) { Text("Delete") }
+            },
+            dismissButton = { QuietButton("Cancel") { deleting = false } },
+            containerColor = colors.surfaceContainerHigh,
+        )
+    }
+}
+
+/** The rows' places before the downloads first answer: a show's head and two episodes. */
+@Composable
+private fun DownloadPlaceholders() {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(Modifier.heightIn(min = 72.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            tv.anistream.design.CoverPlate(null, Modifier.size(40.dp, 60.dp))
+            Column(Modifier.weight(1f)) {
+                TextPlaceholder(0.6f, 24.dp)
+                TextPlaceholder(0.35f, 20.dp)
+            }
+        }
+        repeat(2) {
+            Column(Modifier.padding(start = 56.dp).heightIn(min = 72.dp), verticalArrangement = Arrangement.Center) {
+                TextPlaceholder(0.7f, 24.dp)
+                TextPlaceholder(0.45f, 20.dp)
             }
         }
     }
@@ -325,11 +401,18 @@ private fun StateLine(row: DownloadRow, secondsLeft: Long?, rate: Double?) {
         )
         DownloadState.PAUSED -> Text("Paused at $sizes", style = style, color = colors.onSurfaceVariant)
         DownloadState.QUEUED -> Text("Queued · starts when a download slot is free", style = style, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        DownloadState.FAILED -> Text(
-            "Failed" + (row.error?.let { ": $it" } ?: ""),
-            style = style,
-            color = colors.error,
-        )
+        // The dot is the error's; the words are haze, the first clause in plain words. The whole
+        // error goes to the bug report from the notice the engine posted.
+        DownloadState.FAILED -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            StateDot(colors.error)
+            Text(
+                "Failed" + (row.error?.let { ". ${plainReason(it)}" } ?: ""),
+                style = style,
+                color = colors.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -340,16 +423,20 @@ internal fun countdownWords(seconds: Long): String = when {
     else -> "${seconds}s"
 }
 
-/** A watched episode still seeding: how much has gone up, toward what ratio, and for how long more. */
+/**
+ * A watched episode still seeding, as the board says it: "450 MB · 0.2 of 1.0 · 18h left · 90 MB
+ * up". The size is what was downloaded, which the ratio is of.
+ */
 @Composable
 private fun SeedItem(row: SeedRow) {
     Column(Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
         Text(row.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
-            listOf(
-                "${Wording.bytes(row.uploadedBytes.toLong())} up",
-                String.format(Locale.ROOT, "ratio %.1f of %.1f", row.ratio, row.goal),
+            listOfNotNull(
+                row.ratio.takeIf { it >= 0.01 }?.let { Wording.bytes((row.uploadedBytes.toDouble() / it).toLong()) },
+                String.format(Locale.ROOT, "%.1f of %.1f", row.ratio, row.goal),
                 "${countdownWords(row.leftSecs.toLong())} left",
+                "${Wording.bytes(row.uploadedBytes.toLong())} up",
             ).joinToString(" · "),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
