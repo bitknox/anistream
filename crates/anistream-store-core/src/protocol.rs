@@ -244,6 +244,43 @@ pub struct AdminOverview {
     /// predate open joining, which read as invite-only.
     #[serde(default)]
     pub open: OpenState,
+    /// What the store runs. Absent from servers that predate it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub server: Option<ServerInfo>,
+}
+
+/// What a store runs, for its owners: the overview's `server`, which the admin page compares with
+/// the newest release.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ServerInfo {
+    /// The release it was built from, such as `2.0.8`. A store built from the workspace without a
+    /// release carries the workspace's version.
+    pub version: String,
+    /// For a store compiled to WebAssembly, the first 16 hex digits of the SHA-256 of
+    /// `deploy/store-wasm/SOURCE` it was built from. Its `version` is then only the major and
+    /// minor version, since the package is not rebuilt for each release, and this is what tells
+    /// one build from another.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub build: Option<String>,
+    /// The schema version its database is at.
+    pub schema: u32,
+    /// Where it runs, as far as it can tell: `docker`, `fly`, `render`, `railway`, `heroku`,
+    /// `cloudflare`, `vercel`, `netlify`, `anistream` for one that `anistream store serve` runs,
+    /// or `binary` for `anistream-store` run by hand.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub host: Option<String>,
+}
+
+impl ServerInfo {
+    /// A store built from this workspace, on a host it names if it can.
+    pub fn new(version: &str, host: Option<&str>) -> Self {
+        Self {
+            version: version.to_owned(),
+            build: None,
+            schema: crate::schema::VERSION,
+            host: host.map(str::to_owned),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

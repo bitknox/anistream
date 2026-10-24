@@ -5,6 +5,7 @@ import { attachDatabasePool, ipAddress } from "@vercel/functions";
 import { storeHandler } from "../lib/handler.js";
 
 const answer = storeHandler({
+  host: "vercel",
   wasm: new URL("../store/store_bg.wasm", import.meta.url),
   // Neon, added from the Vercel Marketplace, sets both. DATABASE_URL is its pooled connection.
   databaseUrl: () => process.env.DATABASE_URL || process.env.POSTGRES_URL,

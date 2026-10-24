@@ -25,6 +25,8 @@ function open(env) {
     // upload. It no longer catches a wrong one itself, but members check every download against
     // it, so a wrong digest makes downloads fail rather than letting other bytes through.
     trustDigests: true,
+    // For the update steps on the admin page.
+    host: "cloudflare",
   }).catch((error) => {
     opening = null;
     throw error;

@@ -67,9 +67,20 @@ connects it, which sets `DATABASE_URL`. Any other Postgres works too: put its co
 Your members, invites and plugins live in the database, so updating the function keeps all of
 them.
 
-If you used the button, replace the files in your copy of the repository with the ones from this
-folder in the latest anistream release, and commit. Vercel deploys every commit to your
-repository's main branch.
+If you used the button, your repository is a copy of this folder, not a fork, so GitHub's Sync
+fork does not apply. It comes with `update-store.yml`, a workflow that does the same job:
+
+1. Once, move `update-store.yml` to `.github/workflows/update-store.yml` and commit it.
+2. To update, open your repository's Actions tab, choose Update the store and Run workflow.
+
+It copies this folder from the newest anistream release over your repository, keeps your
+`vercel.json`, and commits. Vercel deploys every commit to your repository's main branch, and the
+store brings its database up to date on its first request. If the release changed `vercel.json`,
+the run shows the difference as a warning for you to bring over by hand. To update on a schedule,
+remove the `#` from the `schedule` lines in the workflow.
+
+Without the workflow, replace the files in your copy with the ones from this folder in the latest
+release, keep your `vercel.json`, and commit.
 
 If you deployed by hand, fetch the latest anistream, then run `bun install` and
 `bunx vercel deploy --prod` in this folder again.

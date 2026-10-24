@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { api } from '../api';
 import { until } from '../format';
 import type { Claimed, StoreInfo } from '../types';
-import { Nagare } from './Nagare';
+import { Hero } from './Hero';
+import { Row } from './Row';
 import { Said } from './Said';
+import { Section } from './Section';
 import type { Status } from './StatusLine';
 
 type Say = (text: string, tone?: Status['tone']) => void;
@@ -19,31 +21,31 @@ export function SignedOut({
 }) {
 	if (store?.claimable) return <Claim store={store} reason={reason} say={say} />;
 	return (
-		<header className="hero hero-signed-out">
-			<Spine />
-			<p className="hero-eyebrow prefade">$ anistream store</p>
-			<h1 className="hero-h1 hero-h1-static prefade">Sign in from anistream</h1>
-			{reason && <p className="hero-reason prefade">{reason}</p>}
-			<ol className="steps prefade">
-				<li>
-					<span>Open this store's page in anistream: Providers, then Enter, then the store.</span>
-				</li>
-				<li>
-					<span>
-						Choose <b>open the admin page</b>. Your browser opens here, signed in.
-					</span>
-				</li>
-			</ol>
-			<p className="hero-alt prefade">
-				On the machine that runs the store, <code>anistream store admin &lt;dir&gt;</code> prints a
-				sign-in link instead. A link works once, for ten minutes.
-			</p>
-			<div className="prefade">
-				<Nagare>
-					<p>Only the store's owners can sign in here.</p>
-				</Nagare>
-			</div>
-		</header>
+		<>
+			<Hero title="Sign in from anistream">
+				{reason && <p className="hero-reason">{reason}</p>}
+				<p className="hero-sub">
+					Only the store's owners can sign in here, with a link from anistream or from the machine
+					that runs the store. A link works once, for ten minutes.
+				</p>
+			</Hero>
+			<Section id="sign-in" title="How to sign in">
+				<Row label="Step 1">
+					<p>Open this store's page in anistream: Providers, then Enter, then the store.</p>
+				</Row>
+				<Row label="Step 2">
+					<p>
+						Choose <b>Open the admin page</b>. Your browser opens here, signed in.
+					</p>
+				</Row>
+				<Row label="Or">
+					<p>
+						On the machine that runs the store, <code>anistream store admin &lt;dir&gt;</code>{' '}
+						prints a sign-in link.
+					</p>
+				</Row>
+			</Section>
+		</>
 	);
 }
 
@@ -85,84 +87,91 @@ function Claim({ store, reason, say }: { store: StoreInfo; reason?: string; say:
 
 	if (claimed) {
 		return (
-			<header className="hero hero-signed-out">
-				<Spine />
-				<p className="hero-eyebrow prefade">$ anistream store</p>
-				<h1 className="hero-h1 hero-h1-static prefade">Join from anistream</h1>
-				<div className="made" role="group" aria-label="Owner invite link">
-					<p className="made-for">owner invite · works once · {until(claimed.expires_at)}</p>
-					<p className="made-link">{claimed.link}</p>
-					<div className="made-actions">
-						<button type="button" className="btn btn-solid" autoFocus onClick={copy}>
-							copy link
-						</button>
-					</div>
-				</div>
-				<ol className="steps">
-					<li>
-						<span>
-							Open anistream, go to <b>Providers</b>, choose <b>join a store</b> and paste the
-							link. The first device to join with it becomes the owner.
-						</span>
-					</li>
-					<li>
-						<span>
-							Then choose <b>open the admin page</b> from the store in anistream to come back here
-							signed in.
-						</span>
-					</li>
-				</ol>
-				<p className="hero-alt">
-					The link works once. Claiming the store again before anyone joins makes a new link, and
-					this one stops working.
-				</p>
-			</header>
+			<>
+				<Hero title="Join from anistream">
+					<p className="hero-sub">
+						This is the owner invite for <b>{store.name}</b>. The first device to join with it owns
+						the store.
+					</p>
+					<fieldset className="made" aria-label="Owner invite link">
+						<p className="caps made-for">Owner invite · works once · {until(claimed.expires_at)}</p>
+						<p className="made-link">{claimed.link}</p>
+						<div className="actions">
+							<button type="button" className="btn btn-primary" autoFocus onClick={copy}>
+								Copy link
+							</button>
+						</div>
+					</fieldset>
+				</Hero>
+				<Section id="next" title="What to do with it">
+					<Row label="Step 1">
+						<p>
+							Open anistream, go to <b>Providers</b>, choose <b>Join a store</b> and paste the link.
+						</p>
+					</Row>
+					<Row label="Step 2">
+						<p>
+							Choose <b>Open the admin page</b> from the store in anistream to come back here signed
+							in.
+						</p>
+					</Row>
+					<Row label="Note">
+						<p>
+							The link works once. Claiming the store again before anyone joins makes a new link,
+							and this one stops working.
+						</p>
+					</Row>
+				</Section>
+			</>
 		);
 	}
 
 	return (
-		<header className="hero hero-signed-out">
-			<Spine />
-			<p className="hero-eyebrow prefade">$ anistream store</p>
-			<h1 className="hero-h1 hero-h1-static prefade">Claim this store</h1>
-			{reason && <p className="hero-reason prefade">{reason}</p>}
-			<p className="hero-alt prefade">
-				Nobody owns <b>{store.name}</b> yet. Enter the setup code it was deployed with, its{' '}
-				<code>ANISTREAM_STORE_SETUP_CODE</code>, to get the owner invite link.
-			</p>
-			<form className="claim-form prefade" onSubmit={submit}>
-				<label className="field">
-					<span>setup code</span>
-					<input
-						value={code}
-						autoComplete="off"
-						autoCapitalize="off"
-						spellCheck={false}
-						onChange={(event) => setCode(event.target.value)}
-					/>
-				</label>
-				<button type="submit" className="btn btn-solid" disabled={busy || !code.trim()}>
-					{busy ? 'claiming…' : 'claim the store'}
-				</button>
-			</form>
-			{error && (
-				<p className="hero-reason" role="alert">
-					<Said text={error} />
+		<>
+			<Hero title="Claim this store">
+				{reason && <p className="hero-reason">{reason}</p>}
+				<p className="hero-sub">
+					Nobody owns <b>{store.name}</b> yet. Enter the setup code it was deployed with, its{' '}
+					<code>ANISTREAM_STORE_SETUP_CODE</code>, to get the owner invite link.
 				</p>
-			)}
-			<div className="prefade">
-				<Nagare>
+				<form className="claim-form" onSubmit={submit}>
+					<label className="field">
+						<span>Setup code</span>
+						<input
+							value={code}
+							autoComplete="off"
+							autoCapitalize="off"
+							spellCheck={false}
+							onChange={(event) => setCode(event.target.value)}
+						/>
+					</label>
+					<button type="submit" className="btn btn-primary" disabled={busy || !code.trim()}>
+						{busy ? 'Claiming…' : 'Claim the store'}
+					</button>
+				</form>
+				{error && (
+					<p className="hero-reason" role="alert">
+						<Said text={error} />
+					</p>
+				)}
+			</Hero>
+			<Section id="setup" title="Where the code is">
+				<Row label="Hosted">
+					<p>
+						Templates for hosting platforms generate the code or ask you for one. Look for it with
+						the service's environment variables.
+					</p>
+				</Row>
+				<Row label="Log">
+					<p>
+						Without a code, the store prints a one-time owner invite in its log when it starts,
+						which works the same way.
+					</p>
+				</Row>
+				<Row label="After">
 					<p>Once someone owns the store, its setup code stops working.</p>
-				</Nagare>
-			</div>
-		</header>
-	);
-}
-
-function Spine() {
-	return (
-		<span className="spine" aria-hidden="true">
-			プラグインストア
-		</span>
+				</Row>
+			</Section>
+		</>
 	);
 }

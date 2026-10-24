@@ -48,13 +48,12 @@ export function Invites({
 	return (
 		<Section
 			id="invites"
-			glyph="+"
 			title="Invite someone"
 			lede="An invite link works once and lasts seven days. Opening it in a browser shows how to join without using it up."
 		>
 			<form className="invite-form" onSubmit={create}>
 				<label className="field">
-					<span>their name, as the members list will show it</span>
+					<span>Their name, as the members list will show it</span>
 					<input
 						value={name}
 						maxLength={64}
@@ -69,26 +68,26 @@ export function Invites({
 						checked={owner}
 						onChange={(event) => setOwner(event.target.checked)}
 					/>
-					<span>as an owner, who can invite, remove and publish</span>
+					<span>As an owner, who can invite, remove and publish</span>
 				</label>
-				<button type="submit" className="btn btn-solid" disabled={!name.trim()}>
-					make an invite link
+				<button type="submit" className="btn invite-submit" disabled={!name.trim()}>
+					Make an invite link
 				</button>
 			</form>
 
 			{made && (
-				<div className="made" role="group" aria-label={`Invite link for ${made.name}`}>
-					<p className="made-for">for {made.name}</p>
+				<fieldset className="made" aria-label={`Invite link for ${made.name}`}>
+					<p className="caps made-for">For {made.name}</p>
 					<p className="made-link">{made.link}</p>
-					<div className="made-actions">
-						<button type="button" className="btn btn-solid" onClick={copy}>
-							copy link
+					<div className="actions">
+						<button type="button" className="btn btn-small" onClick={copy}>
+							Copy link
 						</button>
-						<button type="button" className="btn btn-quiet" onClick={() => setMade(null)}>
-							done
+						<button type="button" className="btn btn-small btn-quiet" onClick={() => setMade(null)}>
+							Done
 						</button>
 					</div>
-				</div>
+				</fieldset>
 			)}
 
 			{invites.length > 0 && (
@@ -97,11 +96,11 @@ export function Invites({
 					{invites.map((invite) => (
 						<Row
 							key={invite.id}
-							label={invite.kind === 'device' ? 'device' : invite.role}
+							label={invite.kind === 'device' ? 'Device' : invite.role}
 							actions={
 								<Confirm
-									label="cancel"
-									confirm={`cancel the invite for ${invite.name}`}
+									label="Cancel"
+									confirm={`Cancel the invite for ${invite.name}`}
 									onConfirm={() =>
 										act(
 											() => api.cancelInvite(invite.id),
@@ -112,7 +111,7 @@ export function Invites({
 							}
 						>
 							<h3>{invite.kind === 'device' ? `${invite.name}, another device` : invite.name}</h3>
-							<Facts items={[['link', until(invite.expires_at)]]} />
+							<Facts items={[['Link', until(invite.expires_at)]]} />
 						</Row>
 					))}
 				</div>

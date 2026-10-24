@@ -1,35 +1,27 @@
 import type { ReactNode } from 'react';
 
-/** A ruled section: the rule draws itself, then the glyph label and the heading. */
+/** A section as the website sets one: a display heading, a lede, then dense rows. */
 export function Section({
 	id,
-	glyph,
 	title,
 	action,
 	lede,
 	children,
 }: {
 	id: string;
-	glyph: string;
 	title: string;
 	action?: ReactNode;
 	lede?: ReactNode;
 	children: ReactNode;
 }) {
 	return (
-		<section className="sect" aria-labelledby={`${id}-h`}>
-			<div className="rule" />
+		<section id={id} className="wrap sect" aria-labelledby={`${id}-h`}>
 			<header className="sect-head">
-				<span className="eyebrow" aria-hidden="true">
-					{glyph} {id}
-				</span>
-				<div className="sect-title">
-					<h2 id={`${id}-h`}>{title}</h2>
-					{action}
-				</div>
-				{lede && <p className="sect-lede">{lede}</p>}
+				<h2 id={`${id}-h`}>{title}</h2>
+				{action && <div className="sect-action">{action}</div>}
 			</header>
-			{children}
+			{lede && <p className="lede">{lede}</p>}
+			<div className="rows">{children}</div>
 		</section>
 	);
 }
