@@ -92,7 +92,7 @@ Native surfaces, following `native-ux.md` and `desktop-design-brief.md`:
   the name and size hashed or not at all; we send the episode's title and length only, never the
   stream address, which can carry tokens.
 - A public server is run by people we do not know. The website's privacy page needs updating to
-  match what is chosen below.
+  match these decisions.
 
 ## Decided
 
