@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="Anistream.App.Core/Anistream.App.Core.csproj" />
+  <Project Path="Anistream.App.Tests/Anistream.App.Tests.csproj" />
+  <Project Path="Anistream.Engine.Tests/Anistream.Engine.Tests.csproj" />
+  <Project Path="Anistream.Engine/Anistream.Engine.csproj" />
+  <Project Path="Anistream.Windows/Anistream.Windows.csproj" />
+</Solution>

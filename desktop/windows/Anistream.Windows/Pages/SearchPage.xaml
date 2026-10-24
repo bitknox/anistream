@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Anistream.Windows.Pages.SearchPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:app="using:Anistream.Windows"
+    Background="{ThemeResource GroundBrush}">
+  <Grid Padding="36,20,36,0" RowSpacing="12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <TextBlock x:Name="Heading" Text="Search" Style="{StaticResource PageTitleStyle}" />
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Padding="0,4,0,24" Spacing="12">
+        <TextBlock x:Name="Section" Style="{StaticResource SectionTitleStyle}" Visibility="Collapsed" />
+        <app:CoverGrid x:Name="Grid" />
+        <TextBlock x:Name="Empty" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Page>

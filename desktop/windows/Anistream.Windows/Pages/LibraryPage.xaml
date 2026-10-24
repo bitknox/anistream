@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Anistream.Windows.Pages.LibraryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:app="using:Anistream.Windows"
+    Background="{ThemeResource GroundBrush}">
+  <Grid Padding="36,20,36,0" RowSpacing="12">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <TextBlock Text="Library" Style="{StaticResource PageTitleStyle}" />
+    <Grid x:Name="Bar" Grid.Row="1" ColumnSpacing="12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="Auto" />
+      </Grid.ColumnDefinitions>
+      <SelectorBar x:Name="Lists" SelectionChanged="OnListChanged" Margin="-8,0,0,0" />
+      <DropDownButton x:Name="OrderButton" Grid.Column="1" Content="Last updated" Height="32" AutomationProperties.Name="Order">
+        <DropDownButton.Flyout>
+          <MenuFlyout Placement="BottomEdgeAlignedRight">
+            <RadioMenuFlyoutItem Text="Last updated" GroupName="order" Tag="updated" IsChecked="True" Click="OnOrder" />
+            <RadioMenuFlyoutItem Text="Title" GroupName="order" Tag="title" Click="OnOrder" />
+            <RadioMenuFlyoutItem Text="Score" GroupName="order" Tag="score" Click="OnOrder" />
+          </MenuFlyout>
+        </DropDownButton.Flyout>
+      </DropDownButton>
+    </Grid>
+    <ScrollViewer x:Name="Scroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+      <StackPanel Padding="0,4,0,24">
+        <app:CoverGrid x:Name="Grid" />
+        <TextBlock x:Name="Empty" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" Margin="0,24,0,0" />
+      </StackPanel>
+    </ScrollViewer>
+    <!-- Signed out: Nagare, a line and one action. -->
+    <StackPanel x:Name="SignedOut" Grid.Row="1" Grid.RowSpan="2" Spacing="16" HorizontalAlignment="Center"
+                VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,0,80">
+      <Border x:Name="NagareSlot" HorizontalAlignment="Center" />
+      <TextBlock Text="Your lists come from your tracker." Style="{StaticResource BodyLargeTextBlockStyle}" HorizontalAlignment="Center" />
+      <Button Content="Connect AniList" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Center" Click="OnConnect" />
+    </StackPanel>
+  </Grid>
+</Page>

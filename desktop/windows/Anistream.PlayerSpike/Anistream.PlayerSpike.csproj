@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The player spike: libmpv's d3d11 composition mode drawing into a XAML SwapChainPanel, with
+       XAML controls over the video. Unpackaged and with the Windows App SDK self-contained, so it
+       runs from its output folder. docs/desktop-windows-spike.md says what it showed. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Anistream.PlayerSpike</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>ARM64;x64</Platforms>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LibmpvArch Condition="'$(Platform)' == 'x64'">x64</LibmpvArch>
+    <LibmpvArch Condition="'$(LibmpvArch)' == ''">arm64</LibmpvArch>
+    <LibmpvDir>$(MSBuildThisFileDirectory)../.libmpv/$(LibmpvArch)/</LibmpvDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Anistream.Engine/Anistream.Engine.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(LibmpvDir)libmpv-2.dll" Link="libmpv-2.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
+  <Target Name="CheckLibmpv" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(LibmpvDir)libmpv-2.dll')" Text="libmpv is missing: run scripts/libmpv.ps1 -Arch $(LibmpvArch)" />
+  </Target>
+</Project>

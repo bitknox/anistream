@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What the Windows app knows of the engine without any of WinUI: where its files live, the
+       engine's events kept where several pages read them, and the loop that brings them in. The
+       app and its tests share it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Anistream.App</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <!-- The same constants Engine.props defines for the bindings it compiles. -->
+  <PropertyGroup>
+    <DefineConstants Condition="'$(EngineFlavour)' == 'testing'">$(DefineConstants);ANISTREAM_TESTING</DefineConstants>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);ANISTREAM_MPV_HOST</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Anistream.Engine/Anistream.Engine.csproj" AdditionalProperties="EngineFlavour=$(EngineFlavour)" />
+  </ItemGroup>
+</Project>

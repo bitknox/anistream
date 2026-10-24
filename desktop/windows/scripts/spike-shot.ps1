@@ -1,0 +1,83 @@
+# Runs the player spike on the signed-in desktop and captures its window, for a machine reached
+# over SSH: an SSH session has no desktop, so the run happens in a scheduled task in the console
+# user's interactive session, and this script waits for it.
+#
+#   powershell -File spike-shot.ps1 -Exe <Anistream.PlayerSpike.exe> -Out <dir> -Name <shot>
+#              [-At 6,12] [-Wait 30] [-Arguments '<the spike's arguments>']
+#
+# -At lists the seconds after launch at which to take a PNG each (<Name>-<seconds>.png). The
+# spike's report.txt and mpv.log land in -Out as well.
+param(
+  [Parameter(Mandatory)][string]$Exe,
+  [Parameter(Mandatory)][string]$Out,
+  [Parameter(Mandatory)][string]$Name,
+  # A string, since powershell -File passes "6,12" as one argument.
+  [string]$At = '8',
+  [int]$Wait = 0,
+  [string]$Arguments = '',
+  [switch]$Inner
+)
+$ErrorActionPreference = 'Stop'
+$marks = @($At -split ',' | ForEach-Object { [int]$_ })
+New-Item -ItemType Directory -Force $Out | Out-Null
+
+if (-not $Inner) {
+  # Outer half: hand the run to the console session, and wait for its done file.
+  $done = Join-Path $Out "$Name.done"
+  Remove-Item $done -ErrorAction SilentlyContinue
+  $quoted = "'" + ($Arguments -replace "'", "''") + "'"
+  $command = "& '$PSCommandPath' -Inner -Exe '$Exe' -Out '$Out' -Name '$Name' -At '$At' -Wait $Wait -Arguments $quoted *> '$Out\$Name.task.log'; New-Item '$done' | Out-Null"
+  $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+  $task = 'anistream-player-spike'
+  $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand $encoded"
+  $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Limited
+  Register-ScheduledTask -TaskName $task -Action $action -Principal $principal -Force | Out-Null
+  Start-ScheduledTask -TaskName $task
+  $deadline = (Get-Date).AddSeconds(($marks | Measure-Object -Maximum).Maximum + $Wait + 90)
+  while (-not (Test-Path $done) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 500 }
+  Unregister-ScheduledTask -TaskName $task -Confirm:$false
+  Get-Content "$Out\$Name.task.log" -ErrorAction SilentlyContinue
+  if (-not (Test-Path $done)) { throw "spike-shot.ps1: the run did not finish" }
+  exit 0
+}
+
+# Inner half, on the desktop: start the spike, capture its window at each mark, then close it.
+Add-Type -AssemblyName System.Drawing
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class SpikeWin {
+  [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+  [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int size);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
+  [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+}
+'@
+[SpikeWin]::SetProcessDPIAware() | Out-Null
+
+$proc = Start-Process -FilePath $Exe -ArgumentList $Arguments -PassThru -WorkingDirectory (Split-Path $Exe)
+$start = Get-Date
+foreach ($mark in ($marks | Sort-Object)) {
+  while (((Get-Date) - $start).TotalSeconds -lt $mark) { Start-Sleep -Milliseconds 200 }
+  $proc.Refresh()
+  if ($proc.HasExited) { Write-Output "the spike exited with $($proc.ExitCode) before $mark s"; break }
+  $hwnd = $proc.MainWindowHandle
+  [SpikeWin]::SetForegroundWindow($hwnd) | Out-Null
+  Start-Sleep -Milliseconds 300
+  $r = New-Object SpikeWin+RECT
+  # DWMWA_EXTENDED_FRAME_BOUNDS: the window as drawn, without the invisible resize borders.
+  [SpikeWin]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16) | Out-Null
+  $w = $r.Right - $r.Left; $h = $r.Bottom - $r.Top
+  $bmp = New-Object Drawing.Bitmap $w, $h
+  $g = [Drawing.Graphics]::FromImage($bmp)
+  $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object Drawing.Size $w, $h))
+  $png = Join-Path $Out "$Name-$mark.png"
+  $bmp.Save($png, [Drawing.Imaging.ImageFormat]::Png)
+  $g.Dispose(); $bmp.Dispose()
+  Write-Output "captured $png (${w}x${h})"
+}
+if ($Wait -gt 0) { $proc.WaitForExit($Wait * 1000) | Out-Null }
+$proc.Refresh()
+if (-not $proc.HasExited) { $proc.CloseMainWindow() | Out-Null; $proc.WaitForExit(5000) | Out-Null }
+if (-not $proc.HasExited) { $proc.Kill() }
+Write-Output "the spike exited with $($proc.ExitCode)"

@@ -47,6 +47,7 @@ jobs:
       engine: ${{ steps.diff.outputs.engine }}
       apple: ${{ steps.diff.outputs.apple }}
       android: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.android == 'true' }}
+      windows: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.windows == 'true' }}
     steps:
       # Two commits: on a pull request the merge, whose first parent is the base, and on a push
       # main's new head, beside which the previous head is fetched below.
@@ -74,6 +75,8 @@ jobs:
               - '.github/workflows/ci.yml'
             android:
               - 'android/**'
+            windows:
+              - 'desktop/windows/**'
 
       # The files this change touches, and from them the three things the macOS and Windows jobs
       # are decided by:
@@ -581,6 +584,55 @@ jobs:
   #
   # The app's engine comes from a cache saved on main, keyed by what engine.sh builds it from, so
   # a pull request that leaves the engine's crates alone compiles none.
+  # The Windows app: the engine for x86_64-pc-windows-msvc and the C# bindings generated from it,
+  # the C# tests of the engine's bindings and of the app's logic, then the app itself built
+  # against them. Its libmpv is the pinned download libmpv.ps1 checks by SHA-256. The windows-latest
+  # runner is x64, so the app is built here for x64; the ARM64 build is the same code.
+  windows:
+    needs: changes
+    if: needs.changes.outputs.windows == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: tools/ci-toolchain.sh
+        shell: bash
+      - uses: ilammy/setup-nasm@v1
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      # Only main saves, as in the jobs above.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: windows-app
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The bindings generator, built once per pin and patch series: bindings.sh keeps it in
+      # ~/.cache/anistream-bindgen-cs, by a key of that pin and those patches.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/anistream-bindgen-cs
+          key: ci-bindgen-cs-${{ hashFiles('desktop/windows/bindgen-cs/**') }}
+      # libmpv, from mpv's development builds, whose file names carry the commit. The cache is
+      # keyed by the script, whose pin and checksum are the file's; a miss fetches and verifies.
+      - uses: actions/cache@v6
+        with:
+          path: desktop/windows/.libmpv
+          key: ci-libmpv-x64-${{ hashFiles('desktop/windows/scripts/libmpv.ps1') }}
+      - name: libmpv
+        run: ./desktop/windows/scripts/libmpv.ps1 -Arch x64
+        shell: pwsh
+      # The testing engine, the generated bindings and both C# test projects, under a temporary
+      # profile, as scripts/test.sh does everywhere.
+      - name: Test
+        run: desktop/windows/scripts/test.sh
+        shell: bash
+      # The app, against the bindings the tests just used. Building is the check: the XAML
+      # compiler and the C# compiler both have to accept every page.
+      - name: Build the app
+        run: >-
+          dotnet build desktop/windows/Anistream.Windows -c Release -p:Platform=x64 -r win-x64
+          -p:EngineFlavour=testing
+        shell: bash
+
   android:
     needs: changes
     if: needs.changes.outputs.android == 'true'
