@@ -348,7 +348,7 @@ version = "2.0.0"
 dependencies = [
  "anistream-core",
  "anistream-model",
- "base64",
+ "base64 0.22.1",
  "hex",
  "ring",
  "rustls",
@@ -356,7 +356,7 @@ dependencies = [
  "serde_json",
  "spake2",
  "tempfile",
- "thiserror 2.0.19",
+ "thiserror 2.0.21",
  "tokio",
  "tokio-rustls",
  "tracing",
