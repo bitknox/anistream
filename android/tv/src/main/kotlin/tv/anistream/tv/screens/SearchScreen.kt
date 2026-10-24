@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -320,7 +321,7 @@ private fun Results(
 ) {
     val store = LocalAppStore.current
     val actions = LocalActions.current
-    val leading = with(LocalDensity.current) { Canvas.FocusRoom.toPx() * 2 }
+    val leading = with(LocalDensity.current) { (Canvas.FocusRoom * 2 + RingRoom).toPx() }
     val trailing = with(LocalDensity.current) { 120.dp.toPx() }
     val spec = remember(leading, trailing) { SafeSpec(leading, trailing) }
     val searching = query.isNotEmpty()
@@ -353,8 +354,10 @@ private fun Results(
     ScrollRule(spec) {
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),
-            modifier = Modifier.width(Canvas.SafeRight - 444.dp).fillMaxHeight(),
-            contentPadding = PaddingValues(top = Canvas.FocusRoom, bottom = 80.dp, start = Canvas.FocusRoom, end = Canvas.FocusRoom),
+            // The grid reaches up into the gap under the field, so a focused poster in the first
+            // row has room for its ring while still lining up with the keyboard.
+            modifier = Modifier.width(Canvas.SafeRight - 444.dp).fillMaxHeight().offset(y = -RingRoom),
+            contentPadding = PaddingValues(top = Canvas.FocusRoom + RingRoom, bottom = 80.dp, start = Canvas.FocusRoom, end = Canvas.FocusRoom),
             horizontalArrangement = Arrangement.spacedBy(Canvas.CardGap),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
@@ -386,3 +389,6 @@ private fun Results(
         }
     }
 }
+
+/** How far the results grid reaches above its row, for the first row's focus ring. */
+private val RingRoom = 10.dp
