@@ -6,6 +6,7 @@ use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
+use super::names;
 use crate::{
     data, dispatch::Lent, now_epoch, outbox::Outbox, services::Services, state::EngineState,
 };
@@ -38,6 +39,17 @@ pub async fn load_episodes(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
 ) -> std::result::Result<EpisodeLoad, String> {
+    load_listed(meta, store, registry, id).await.map(|(load, _)| load)
+}
+
+/// [`load_episodes`], and what naming its rows takes when a source listed them and left some
+/// without a title or a still: see [`names`].
+async fn load_listed(
+    meta: &Meta,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: anistream_core::ids::AnilistId,
+) -> std::result::Result<(EpisodeLoad, Option<names::Unnamed>), String> {
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
     // Numbered by the source a play would use, which may be one still compiling.
     crate::sources::arrived(registry, || ()).await;
@@ -47,34 +59,32 @@ pub async fn load_episodes(
         dated(rows, &media, data::Numbering::Same, store, id, now)
     };
     if registry.is_empty() {
-        return Ok(EpisodeLoad::Unlisted { rows: from_metadata(), reason: None });
+        return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason: None }, None));
     }
     let answer = listed(&media, store, registry, id, Translation::Sub, now).await;
 
-    let mut episodes = match answer {
-        anistream_providers::Answer::Answered { value, .. } => value,
+    let (provider_id, mut episodes) = match answer {
+        anistream_providers::Answer::Answered { provider_id, value, .. } => {
+            (provider_id, value)
+        }
         // Candidates exist, none confidently enough to pick. That is a question, not a
         // failure: the user can see which of these is their show, and the answer is
         // remembered as an override so it is asked once.
         anistream_providers::Answer::Ambiguous { provider_id, candidates } => {
-            return Ok(EpisodeLoad::Choose {
-                provider_id,
-                candidates: candidates
-                    .iter()
-                    .map(|candidate| anistream_model::sources::MatchCandidate {
-                        title: candidate.hit.title.clone(),
-                        key: candidate.hit.key.clone(),
-                        similarity: candidate.score,
-                        rejected: candidate.rejected.map(str::to_owned),
-                    })
-                    .collect(),
-            });
+            let candidates = candidates
+                .iter()
+                .map(|candidate| anistream_model::sources::MatchCandidate {
+                    title: candidate.hit.title.clone(),
+                    key: candidate.hit.key.clone(),
+                    similarity: candidate.score,
+                    rejected: candidate.rejected.map(str::to_owned),
+                })
+                .collect();
+            return Ok((EpisodeLoad::Choose { provider_id, candidates }, None));
         }
         anistream_providers::Answer::Unanswered { .. } => {
-            return Ok(EpisodeLoad::Unlisted {
-                rows: from_metadata(),
-                reason: Some(answer.explain()),
-            });
+            let reason = Some(answer.explain());
+            return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason }, None));
         }
     };
 
@@ -83,13 +93,15 @@ pub async fn load_episodes(
     // fills in what they lack before they reach the table.
     let numbering = data::enrich_episodes(&mut episodes, &media, now);
     let rows = data::episode_rows(&episodes, store, id);
-    Ok(EpisodeLoad::Rows(dated(rows, &media, numbering, store, id, now)))
+    let rows = dated(rows, &media, numbering, store, id, now);
+    let unnamed = names::Unnamed::of(&media, &episodes, numbering, &provider_id, now);
+    Ok((EpisodeLoad::Rows(rows), unnamed))
 }
 
 /// `rows`, dated by when each aired or airs, so an episode not out yet can be told from one
 /// that is, and marked with when one the schedule has moved later was to air before: each by
 /// the number AniList gives it, as `numbering` has the rows' numbers stand to AniList's.
-fn dated(
+pub(crate) fn dated(
     mut rows: Vec<EpisodeRow>,
     media: &anistream_meta::anilist::Media,
     numbering: data::Numbering,
@@ -235,10 +247,18 @@ pub(crate) async fn dub_answer(
 }
 
 /// A title's episodes, from the source playback would use, or the candidates to choose
-/// between when the ladder could not choose.
-pub async fn list_episodes(lent: Lent, id: AnilistId) {
+/// between when the ladder could not choose. A table that left episodes without a title or a
+/// still is named by `naming`, from what another source said of them: see [`names`].
+pub(crate) async fn list_episodes(lent: Lent, id: AnilistId, naming: names::Naming) {
     let Lent { meta, store, registry, tx, .. } = lent;
-    for event in said(id, load_episodes(&meta, &store, &registry, id).await) {
+    let load = match load_listed(&meta, &store, &registry, id).await {
+        Ok((EpisodeLoad::Rows(_), Some(unnamed))) => {
+            naming.say(id, unnamed, &store, &registry, &tx);
+            return;
+        }
+        load => load.map(|(load, _)| load),
+    };
+    for event in said(id, load) {
         let _ = tx.send(event);
     }
 }

@@ -4,3 +4,4 @@
 pub mod dub;
 pub mod episodes;
 pub mod matching;
+pub mod names;
