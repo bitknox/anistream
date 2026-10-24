@@ -119,31 +119,66 @@ struct QueueColumn: View {
     var opensOnTap = false
 
     var body: some View {
+        #if os(iOS)
+        // On iPad a list, so the rows take their swipes (native-ux), drawn as the Mac's scroll
+        // view is: the same insets, and 2 points between rows.
+        List {
+            rows(first: EdgeInsets(top: 4, leading: 4, bottom: 0, trailing: 8),
+                 rest: EdgeInsets(top: 2, leading: 4, bottom: 0, trailing: 8))
+            Color.clear.frame(height: 16).bareRow()
+        }
+        .bareList()
+        .scrollIndicators(.never)
+        .modifier(QueueKeys(queue: queue, selection: $selection, opensOnTap: opensOnTap))
+        #else
         ScrollView {
             VStack(alignment: .leading, spacing: 2) {
-                if let queue {
-                    if !queue.inProgress.isEmpty {
-                        GroupHeader(title: "In progress", first: true)
-                        ForEach(queue.inProgress) { QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap) }
-                    }
-                    if !queue.newThisWeek.isEmpty {
-                        GroupHeader(title: "New this week", first: queue.inProgress.isEmpty)
-                        ForEach(queue.newThisWeek) { QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap) }
-                    }
-                } else {
-                    GroupHeader(title: "In progress", first: true)
-                    ForEach(0..<3, id: \.self) { _ in PlaceholderRow() }
-                }
+                rows(first: nil, rest: nil)
             }
             .padding(EdgeInsets(top: 4, leading: 4, bottom: 16, trailing: 8))
         }
         .scrollIndicators(.never)
-        .frame(width: opensOnTap ? nil : 360)
-        .frame(maxWidth: opensOnTap ? .infinity : nil, alignment: .leading)
-        .focusable()
-        .listFocusEffect()
-        .onKeyPress(.upArrow) { step(-1) }
-        .onKeyPress(.downArrow) { step(1) }
+        .modifier(QueueKeys(queue: queue, selection: $selection, opensOnTap: opensOnTap))
+        #endif
+    }
+
+    /// The headers and the rows, set in by `first` and `rest` in a list.
+    @ViewBuilder
+    private func rows(first: EdgeInsets?, rest: EdgeInsets?) -> some View {
+        if let queue {
+            if !queue.inProgress.isEmpty {
+                GroupHeader(title: "In progress", first: true).listed(first)
+                ForEach(queue.inProgress) {
+                    QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap).swiped($0).listed(rest)
+                }
+            }
+            if !queue.newThisWeek.isEmpty {
+                GroupHeader(title: "New this week", first: queue.inProgress.isEmpty).listed(queue.inProgress.isEmpty ? first : rest)
+                ForEach(queue.newThisWeek) {
+                    QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap).swiped($0).listed(rest)
+                }
+            }
+        } else {
+            GroupHeader(title: "In progress", first: true).listed(first)
+            ForEach(0..<3, id: \.self) { _ in PlaceholderRow().listed(rest) }
+        }
+    }
+}
+
+/// The queue's width, focus and arrow keys, the same in a list and a scroll view.
+private struct QueueKeys: ViewModifier {
+    let queue: ContinueQueue?
+    @Binding var selection: AnilistId?
+    let opensOnTap: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .frame(width: opensOnTap ? nil : 360)
+            .frame(maxWidth: opensOnTap ? .infinity : nil, alignment: .leading)
+            .focusable()
+            .listFocusEffect()
+            .onKeyPress(.upArrow) { step(-1) }
+            .onKeyPress(.downArrow) { step(1) }
     }
 
     /// Move the selection `delta` rows, stopping at the ends.

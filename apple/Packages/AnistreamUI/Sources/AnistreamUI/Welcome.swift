@@ -1,157 +1,24 @@
-// Continue on a first launch: nothing watched yet, so a compact setup card with Nagare, then
-// what airs today and this season, which AniList's public data gives with no account.
+// Continue with nothing watched yet: what airs today and this season, which AniList's public data
+// gives with no account. Setting up is first launch's, before this.
 
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
 import SwiftUI
 
-/// Whether the setup card has been hidden on this device.
-let setupHiddenKey = "anistream.setupHidden"
-
 /// Continue with nothing watched yet.
 struct WelcomeContinue: View {
     @Environment(AppStore.self) private var store
-    @AppStorage(setupHiddenKey) private var setupHidden = false
     var compact = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            if !setupHidden {
-                SetupCard(compact: compact) { withAnimation(.standard) { setupHidden = true } }
-            }
             AiringToday(compact: compact)
             ThisSeason(compact: compact)
         }
         .task {
             if store.calendar.list.state == .idle { store.loadCalendar() }
             if store.seasonal.state == .idle { store.loadSeasonal() }
-        }
-    }
-}
-
-/// The two things to set up: AniList, which is optional, and a plugin store, which is how
-/// anistream plays episodes. And the legal line.
-struct SetupCard: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
-    var compact = false
-    let hide: () -> Void
-
-    var body: some View {
-        Group {
-            if compact { phone } else { mac }
-        }
-        .background(.raised, in: .rect(cornerRadius: compact ? 16 : 12))
-    }
-
-    private var mac: some View {
-        HStack(spacing: 20) {
-            Nagare(cell: 4)
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Set up anistream")
-                    .font(.mac(15, weight: .semibold))
-                    .macLineHeight(20)
-                    .foregroundStyle(.silk)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer(minLength: 8)
-                HStack(spacing: 40) {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                Text("AniList").font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
-                                Text("Optional").font(.mac(12)).foregroundStyle(.haze)
-                            }
-                            Text("Brings in your lists and fills Continue with what you are watching.")
-                                .font(.mac(12))
-                                .foregroundStyle(.haze)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        Button(cased(mac: "Sign In to AniList…", touch: "Sign in to AniList")) { store.send(.connect(tracker: "anilist")) }
-                            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    }
-                    .frame(maxWidth: .infinity)
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Plugin store").font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
-                            Text("Episodes play from plugin stores. You join one with an invite link from its owner.")
-                                .font(.mac(12))
-                                .foregroundStyle(.haze)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        Button(cased(mac: "Add Plugin Store…", touch: "Add plugin store")) { navigator.invite = "" }
-                            .buttonStyle(PrimaryCapsuleStyle(height: 28))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .macLineHeight(16)
-                Spacer(minLength: 8)
-                HStack(spacing: 16) {
-                    Text("Episodes play from the plugins you add. anistream hosts no content.")
-                        .font(.mac(11))
-                        .macLineHeight(14)
-                        .foregroundStyle(.haze)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Button("Hide", action: hide)
-                        .buttonStyle(.plain)
-                        .pointerHover()
-                        .font(.mac(13, weight: .semibold))
-                        .foregroundStyle(.silk)
-                        .accessibilityLabel("Hide setup")
-                }
-            }
-            .frame(height: 128)
-        }
-        .padding(EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 20))
-    }
-
-    private var phone: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 16) {
-                Nagare(cell: 4)
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("Set up anistream")
-                            .font(.mac(17, weight: .semibold))
-                            .foregroundStyle(.silk)
-                        Spacer()
-                        Button("Hide", action: hide)
-                            .buttonStyle(.plain)
-                            .pointerHover()
-                            .font(.mac(15, weight: .semibold))
-                            .foregroundStyle(.silk)
-                    }
-                    setupRow("AniList", note: "Optional", detail: "Syncs your lists") {
-                        Button("Connect") { store.send(.connect(tracker: "anilist")) }
-                            .buttonStyle(SecondaryCapsuleStyle(height: 44, raisedSurface: true, fontSize: 17))
-                    }
-                    Divider().overlay(.faintRule)
-                    setupRow("Plugin store", note: nil, detail: "Needed for playback") {
-                        Button("Add") { navigator.invite = "" }
-                            .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
-                    }
-                }
-            }
-            Text("Episodes play from the plugins you add. anistream hosts no content.")
-                .font(.mac(13))
-                .foregroundStyle(.haze)
-        }
-        .padding(18)
-    }
-
-    private func setupRow<Action: View>(
-        _ name: String, note: String?, detail: String, @ViewBuilder action: () -> Action
-    ) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(name).font(.mac(17)).foregroundStyle(.silk)
-                    if let note { Text(note).font(.mac(13)).foregroundStyle(.haze) }
-                }
-                Text(detail).font(.mac(13)).foregroundStyle(.haze)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            action()
         }
     }
 }

@@ -12,18 +12,23 @@ import SwiftUI
 enum FirstLaunchFlag {
     static let key = "firstLaunchSeen"
 
-    /// Whether to show it on this launch: once, in the app itself. The Fixtures app and the dev
-    /// harness show it only when a shot asks with `sheet=welcome`.
+    /// Whether to show it on this launch: once, in the app itself, and not to an install already
+    /// in use (a source, a signed-in tracker or something watched), which is marked seen instead.
+    /// The Fixtures app and the dev harness show it only when a shot asks with `sheet=welcome`.
     @MainActor
-    static func shows(_ navigator: Navigator) -> Bool {
+    static func shows(_ navigator: Navigator, store: AppStore) async -> Bool {
         if navigator.launchSheet == "welcome" { return true }
         guard Bundle.main.bundleIdentifier == "tv.anistream.app" else { return false }
-        return !UserDefaults.standard.bool(forKey: key)
+        let seen = UserDefaults.standard.bool(forKey: key)
+        let due = await store.firstLaunchDue(seen: seen)
+        if !seen, !due { UserDefaults.standard.set(true, forKey: key) }
+        return due
     }
 }
 
 /// Puts first launch over the app while it is due.
 struct FirstLaunchPresenter: ViewModifier {
+    @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @State private var showing = false
     /// The invite link Join took, opened in the join sheet once first launch has gone.
@@ -35,7 +40,7 @@ struct FirstLaunchPresenter: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task {
-                if FirstLaunchFlag.shows(navigator) {
+                if await FirstLaunchFlag.shows(navigator, store: store) {
                     if navigator.launchSheet == "welcome" { navigator.launchSheet = nil }
                     showing = true
                 }
