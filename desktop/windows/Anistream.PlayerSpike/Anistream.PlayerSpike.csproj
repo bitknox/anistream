@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- The player spike: libmpv's d3d11 composition mode drawing into a XAML SwapChainPanel, with
        XAML controls over the video. Unpackaged and with the Windows App SDK self-contained, so it
-       runs from its output folder. docs/desktop-windows-spike.md says what it showed. -->
+       runs from its output folder. -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>

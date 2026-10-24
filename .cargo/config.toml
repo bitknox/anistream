@@ -15,7 +15,7 @@ BORING_BSSL_RUST_CPPLIB_armv7_linux_androideabi = "static:-bundle=c++"
 # Visual Studio generator leaves those objects out (LNK1181). For Windows on Arm the build uses
 # clang-cl, which compiles the C and the assembly alike, under Ninja, which honours a compiler
 # that is not cl.exe. desktop/windows/scripts/bindings.sh puts Visual Studio's clang-cl and Ninja
-# on the PATH; docs/desktop-windows-spike.md has the rest of the toolchain.
+# on the PATH; docs/desktop-windows-build.md has the rest of the toolchain.
 CC_aarch64_pc_windows_msvc = "clang-cl"
 CXX_aarch64_pc_windows_msvc = "clang-cl"
 CMAKE_GENERATOR_aarch64_pc_windows_msvc = "Ninja"

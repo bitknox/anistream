@@ -10,7 +10,7 @@
 # To bump: download the new zips from mpv's git-release, upload them as new assets on the
 # deps-libmpv release (gh release upload deps-libmpv <zip>), then change $build and the two SHA-256
 # values below. Leave the old assets in place so older commits still build.
-# docs/desktop-windows-spike.md says why the LGPL build.
+# docs/desktop-windows-build.md says why the LGPL build.
 param([ValidateSet('arm64', 'x64')][string]$Arch = 'arm64')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
