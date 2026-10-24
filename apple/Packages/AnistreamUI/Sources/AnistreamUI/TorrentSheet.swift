@@ -35,7 +35,7 @@ struct TorrentSheet: View {
             if turningOn {
                 label("Torrent index").padding(.top, 18)
                 field("https://…/?q={query}", text: draft.index).padding(.top, 6)
-                note("The RSS search address anistream asks for torrents. anistream ships none.").padding(.top, 6)
+                note("The RSS search address anistream asks for torrents. anistream hosts no content.").padding(.top, 6)
             }
 
             label("Protect with").padding(.top, 18)
@@ -92,7 +92,7 @@ struct TorrentSheet: View {
             self.draft = first
         }
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
-            Button(turningOn ? "Turn On Without Protection" : "Use No Protection", role: .destructive) {
+            Button("No Protection", role: .destructive) {
                 send(draft.wrappedValue)
             }
             Button("Cancel", role: .cancel) {}

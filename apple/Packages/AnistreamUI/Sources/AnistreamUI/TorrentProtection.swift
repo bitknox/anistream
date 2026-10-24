@@ -43,11 +43,11 @@ enum ProtectionWords {
     static let checkNote = "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."
 
     /// What confirming no protection says.
-    static let noneTitle = "Torrent with no protection?"
-    static let noneMessage = "Everyone in a torrent will see your IP address."
+    static let noneTitle = "Use torrents without protection?"
+    static let noneMessage = "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection."
     /// What confirming Warn only says.
-    static let warnTitle = "Keep torrents running when a check fails?"
-    static let warnMessage = "anistream will say the check failed, and torrents will go on with your address showing."
+    static let warnTitle = "Keep torrents running if a check fails?"
+    static let warnMessage = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
 }
 
 /// The turn-on sheet's choices before they are sent: the index, the protection, and the proxy's
@@ -162,7 +162,7 @@ struct ProtectionMenu: View {
         .accessibilityLabel("Protect with")
         .sheet(isPresented: $askingProxy) { protectionSheet }
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
-            Button("Use No Protection", role: .destructive) {
+            Button(cased(mac: "No Protection", touch: "No protection"), role: .destructive) {
                 store.setTorrentProtection(TorrentProtection.none, acknowledged: true)
             }
             Button("Cancel", role: .cancel) {}
@@ -209,7 +209,7 @@ struct FailedCheckMenu: View {
         .disabled(current == nil)
         .accessibilityLabel("If a check fails")
         .confirmationDialog(ProtectionWords.warnTitle, isPresented: $confirmingWarn, titleVisibility: .visible) {
-            Button("Warn Only", role: .destructive) { store.setFailedCheck(.warn) }
+            Button(cased(mac: "Warn Only", touch: "Warn only"), role: .destructive) { store.setFailedCheck(.warn) }
             Button("Cancel", role: .cancel) {}
         } message: {
             Text(ProtectionWords.warnMessage)
