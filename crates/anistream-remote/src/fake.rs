@@ -259,13 +259,13 @@ fn tracks(server: &RemoteServer, playing: &Playing) {
 
 fn engine(server: &RemoteServer, script: &mut Script, titles: &[FakeTitle], command: Command) {
     let named = match &command {
-        Command::Play { id, episode } => format!("play {id} {episode}"),
+        Command::Play { id, episode, .. } => format!("play {id} {episode}"),
         Command::Player(player) => format!("{player:?}"),
         other => format!("{other:?}"),
     };
     script.commands.push(named);
     match command {
-        Command::Play { id, episode } => {
+        Command::Play { id, episode, .. } => {
             let title =
                 titles.iter().find(|t| t.id == id).cloned().unwrap_or_else(|| FakeTitle {
                     id,

@@ -37,6 +37,9 @@ pub struct Network {
     pub cellular: bool,
     /// Low Data Mode, the system asking for less: what can wait, waits.
     pub constrained: bool,
+    /// No path at all: see [`crate::connectivity`]. Nothing waits on it here, since nothing
+    /// would run anyway.
+    pub offline: bool,
 }
 
 /// What the torrent session is told: which torrents wait, and why no torrent may start, when
@@ -95,9 +98,12 @@ pub fn app_phase(phase: AppState, engine: &mut EngineState, tx: &Outbox) {
     });
 }
 
-/// The device uses another network now.
-pub fn network_path(cellular: bool, constrained: bool, engine: &mut EngineState, tx: &Outbox) {
-    engine.network = Network { cellular, constrained };
+/// The device uses another network now, or none: a change to having one is said, and coming
+/// back online leaves the engine its refresh to run. See [`crate::connectivity`].
+pub fn network_path(network: Network, engine: &mut EngineState, tx: &Outbox) {
+    let was = engine.network;
+    engine.network = network;
+    crate::connectivity::moved(was.offline, network.offline, &mut engine.missed, tx);
     reapply(engine, tx);
 }
 
@@ -166,9 +172,9 @@ async fn apply(
 mod tests {
     use super::*;
 
-    const WIFI: Network = Network { cellular: false, constrained: false };
-    const CELL: Network = Network { cellular: true, constrained: false };
-    const LOW_DATA: Network = Network { cellular: false, constrained: true };
+    const WIFI: Network = Network { cellular: false, constrained: false, offline: false };
+    const CELL: Network = Network { cellular: true, constrained: false, offline: false };
+    const LOW_DATA: Network = Network { cellular: false, constrained: true, offline: false };
 
     /// The config with torrents and downloads let run on cellular, or not.
     fn on_cellular(torrents: bool, downloads: bool) -> Config {
@@ -216,7 +222,7 @@ mod tests {
         assert_eq!(foreground(CELL, &on_cellular(true, true)), Gate::default());
 
         // Low Data Mode spares what can wait, whatever the settings say.
-        let low = Network { cellular: true, constrained: true };
+        let low = Network { cellular: true, constrained: true, offline: false };
         assert_eq!(foreground(low, &on_cellular(true, true)).hold, Hold::ALL_BUT_STREAMING);
         assert_eq!(foreground(LOW_DATA, &Config::default()).hold, Hold::ALL_BUT_STREAMING);
         assert_eq!(foreground(LOW_DATA, &Config::default()).refusal, None);

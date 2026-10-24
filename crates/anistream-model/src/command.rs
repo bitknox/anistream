@@ -15,6 +15,12 @@ use crate::{
 };
 
 impl Command {
+    /// Play `episode` of `id` from where it was left, or the start when it was not: see
+    /// [`Command::Play`].
+    pub fn play(id: AnilistId, episode: impl Into<String>) -> Self {
+        Self::Play { id, episode: episode.into(), from_start: false }
+    }
+
     /// What to call this in the activity row, or `None` for work nobody waits on: writes that
     /// land in the outbox, player commands, and anything that finishes as it is asked.
     pub fn activity(&self) -> Option<String> {
@@ -220,9 +226,16 @@ pub enum Command {
         tracker: String,
     },
     /// Resolve a stream and play it. The eyecatch covers this.
+    ///
+    /// It opens where the episode was left, said with
+    /// [`Event::Resumed`](crate::event::Event::Resumed), unless `from_start`: then it opens at
+    /// the beginning, as "Play from the beginning" asks, and says nothing of where it was left.
+    /// Either way the stored position follows the playback from there, as it plays.
     Play {
         id: AnilistId,
         episode: String,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        from_start: bool,
     },
     /// Resolve an episode and hand it to a Syncplay party instead of a private session.
     PlayParty {
@@ -350,13 +363,21 @@ pub enum Command {
     AppPhase {
         phase: AppState,
     },
-    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. On
-    /// cellular, torrents and downloads run only as `TorrentsOnCellular` and
+    /// The network the device uses now, as the platform's monitor says each time it changes:
+    /// `cellular`, `constrained` for Low Data Mode, and `offline` when there is no path at all.
+    /// On cellular, torrents and downloads run only as `TorrentsOnCellular` and
     /// `DownloadsOnCellular` let them, the torrent source being unavailable there while the
     /// first is off; in Low Data Mode downloads and seeding wait, whatever those say.
+    ///
+    /// The engine owns being offline: it says each change with
+    /// [`Event::Connectivity`](crate::event::Event::Connectivity), and when the path comes
+    /// back it asks once more for what the screens asked for, or failed to load, while it was
+    /// gone. Nothing is refused while offline. The engine counts as online until told it is not.
     NetworkPath {
         cellular: bool,
         constrained: bool,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        offline: bool,
     },
     /// Protect torrent traffic with `mode`, through `proxy` when it is one, and have a failed
     /// connection check do `on_failure`: written to the file as one change, the proxy's

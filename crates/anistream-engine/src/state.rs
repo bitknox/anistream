@@ -71,6 +71,8 @@ pub struct EngineState {
     /// The network the device uses, as the front end last said: on cellular only what the
     /// settings let run there runs, and in Low Data Mode downloads and seeding wait.
     pub network: crate::phases::Network,
+    /// What to ask for again once the network is back: see [`crate::connectivity`].
+    pub missed: crate::connectivity::Missed,
     /// What the torrent session was last told of it, for a setting saved to tell whether that
     /// changed: see [`crate::phases::gate_for`].
     pub gated: Option<crate::phases::Gate>,
@@ -110,6 +112,7 @@ impl EngineState {
             staging: Staging::default(),
             phase: Default::default(),
             network: Default::default(),
+            missed: Default::default(),
             gated: None,
             episode_check: Arc::default(),
             widget_schedule: Schedule::default(),

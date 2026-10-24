@@ -211,7 +211,9 @@ pub(crate) fn dispatch(
         // Playback.
         Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
         // Each refused where this build has no player to play in: see `playback::refuse`.
-        Command::Play { id, episode } => play(id, episode, job, engine, services, tx),
+        Command::Play { id, episode, from_start } => {
+            play(id, episode, from_start, job, engine, services, tx)
+        }
         Command::PlaySource { id, episode, provider_id, source_id } => {
             play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
@@ -233,8 +235,9 @@ pub(crate) fn dispatch(
             crate::phases::app_phase(phase, engine, tx);
             ahead::top_up(engine, services, tx);
         }
-        Command::NetworkPath { cellular, constrained } => {
-            crate::phases::network_path(cellular, constrained, engine, tx);
+        Command::NetworkPath { cellular, constrained, offline } => {
+            let network = crate::phases::Network { cellular, constrained, offline };
+            crate::phases::network_path(network, engine, tx);
             ahead::top_up(engine, services, tx);
         }
         // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
