@@ -1,7 +1,8 @@
 # Platform parity
 
 What each front end does, read from its code on 2026-10-24. The features page on the website
-(`website/src/pages/features.astro`) shows the same table in short form; keep the two in step.
+(`website/src/pages/features.astro`) shows 18 of these rows, and names the rows every app has in
+one line above its table; keep the two in step.
 
 Where the code was read:
 

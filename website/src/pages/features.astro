@@ -3,226 +3,244 @@ import '../styles/theme.css';
 import '../styles/landing.css';
 import '../styles/apps.css';
 import '../styles/features.css';
+import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
 import SiteNav from '../components/site/SiteNav.astro';
+import UpscaleCompare from '../components/UpscaleCompare.astro';
+import StoreDiagram from '../components/features/StoreDiagram.astro';
+import SyncDiagram from '../components/features/SyncDiagram.astro';
+import TerminalStill from '../components/features/TerminalStill.astro';
+import shots from '../data/shots.json';
 import { APPS, INSTALL_GUIDE, LEGAL } from '../data/site';
 
-// What anistream does, by task. The matrix below says which app does each; docs/parity.md has
-// where in each app's code it lives.
-const tasks: { id: string; title: string; lede?: string; rows: [string, string][] }[] = [
-	{
-		id: 'finding',
-		title: 'Finding a show',
-		rows: [
-			['Search and browse', 'Search by name, or browse with no query by genre, year, season, format and sort. AniList’s public API answers, so it needs no account.'],
-			['Seasonal charts', 'Every show of a season, with the seasons before and after one step away.'],
-			['Airing calendar', 'The week’s episodes laid out by day, for your list or for everything airing.'],
-			['Title pages', 'A show’s details, its seasons, films and specials in one place, related titles, and the episode list with what you have watched.'],
-			['Titles the way you read them', 'Names as your AniList account shows them, or always in English or in romaji.'],
-			['Continue and your library', 'What you are in the middle of comes first, and your lists sort by status: watching, planning, completed and the rest.'],
-		],
-	},
-	{
-		id: 'watching',
-		title: 'Watching',
-		rows: [
-			['mpv in every app', 'The apps build mpv into their own player, and the terminal app runs the mpv you install. MKV files and styled subtitles play as they were made.'],
-			['Upscaling', 'ArtCNN for a natural look or Anime4K for a sharp one, chosen per file for the source, the display and the battery.'],
-			['Skip and Up Next', 'A skip button while the opening or ending runs, and the next episode ready at the ending.'],
-			['Resume', 'Each episode starts again where you stopped it, to the second.'],
-			['Sources you can see', 'Automatic selection ranks the candidates and says in one line why it chose one. You can list every source and pick one yourself.'],
-			['Sub or dub, and tracks', 'Subbed or dubbed as a default and per show, and subtitle and audio tracks from the player’s menu.'],
-			['Picture in Picture', 'The episode keeps playing in a small window while you do something else.'],
-			['Watch parties', 'An episode can open in a Syncplay room, with everyone’s player in step. Pauses in the room stay out of your watch history.'],
-		],
-	},
-	{
-		id: 'tracking',
-		title: 'Tracking and syncing',
-		rows: [
-			['History on your device', 'Watch history is a SQLite database on your device and works with no account. Trackers receive a copy of it.'],
-			['Five trackers', 'AniList, MyAnimeList, Kitsu, Simkl and Trakt. A pull from one only moves your progress forward.'],
-			['Sync that works offline', 'Changes wait in an outbox on the device. Watch offline for a week and they go out in order when you are back.'],
-			['Marking episodes', 'Mark an episode watched or unwatched, or everything before it, and your trackers follow.'],
-			['Per-show settings', 'Sub or dub, subtitles, skipping and the source, set for one show without changing the rest.'],
-		],
-	},
-	{
-		id: 'downloads',
-		title: 'Downloads',
-		rows: [
-			['Offline episodes', 'Episodes download to the device and play offline, with the same history and resume as a stream.'],
-			['The next episodes, ahead', 'Keep the next few episodes of each show you watch downloaded, as many as you choose.'],
-			['A downloads page', 'Pause, resume, retry and delete, with the space downloads take.'],
-		],
-	},
-	{
-		id: 'tv',
-		title: 'On the TV',
-		rows: [
-			['An app for Android TV', 'Made for the remote’s arrow keys, with the same player, history and trackers as the other apps.'],
-			['Play on TV', 'Send an episode from the Mac, iPhone, iPad or Android app to the TV. The TV fetches and plays the stream itself.'],
-			['Your phone as the remote', 'Pause, seek, switch subtitles and audio, set the TV’s volume and type a search. Pair once with a code or a QR code.'],
-			['Watch Next', 'The show you are watching appears in the TV’s own Watch Next row.'],
-		],
-	},
-	{
-		id: 'plugins',
-		title: 'Plugins and stores',
-		lede: LEGAL,
-		rows: [
-			['Sources as plugins', 'Sandboxed WebAssembly components in Rust, JavaScript or any language that builds for WASI 0.2. The host lends fetch, and only to the hosts a plugin declares.'],
-			['Plugin stores by invite', 'Run a small private plugin store and invite the people you choose. Each device gets its own token, and every plugin list is signed with the store’s key.'],
-			['Torrents behind a VPN guard', 'Off by default, and unreachable until you set up the VPN guard, which checks the connection and pauses torrents when a check fails.'],
-		],
-	},
-	{
-		id: 'device',
-		title: 'On your device',
-		rows: [
-			['Widgets', 'Continue watching and Airing today on the home screen.'],
-			['New-episode notifications', 'An alert when a new episode of a show you watch comes out, off until you turn it on, with a switch for each show.'],
-			['Handoff, Spotlight and Shortcuts', 'On Apple devices, pick up a title on another device, find your shows in Spotlight, and ask Siri to continue watching.'],
-			['Updates', 'The apps say when a new release is out. The Mac and Android apps and the terminal app update themselves.'],
-			['A command line', 'In the terminal app, --search, --stats and --random take --json for scripts, and --continue resumes the episode you left half watched.'],
-		],
-	},
+// Each highlight's picture sits in a .hl-media slot. A short video can take a slot's place later,
+// as a <video> with a poster, and the text beside it stays where it is.
+
+/** A screenshot's width over its height, for a row of pictures at one height. */
+const ratio = (name: keyof typeof shots) => shots[name].w / shots[name].h;
+/** The terminal still's viewBox, from TerminalStill.astro. */
+const TERMINAL = 640 / 382;
+
+const also: [string, string][] = [
+	['Downloads ahead', 'The next episodes, ready offline.'],
+	['Widgets', 'Continue and Airing today on your home screen.'],
+	['New-episode alerts', 'Off until you turn them on, per show.'],
+	['Picture in Picture', 'Keep watching while you browse.'],
+	['Syncplay parties', 'Everyone’s player in step.'],
+	['Skip and Up Next', 'Skip the opening, then straight to the next episode.'],
+	['Resume', 'Back where you stopped, to the second.'],
+	['Sub or dub per show', 'Each show can keep its own choice.'],
+	['Handoff, Spotlight, Shortcuts', 'Pick up a show on another Apple device.'],
+	['Self-updates', 'Mac, Android and terminal apps update themselves.'],
+	['A CLI with JSON', '--json output for your scripts.'],
 ];
 
 const platforms = ['Mac', 'iPhone', 'iPad', 'Android', 'Android TV', 'Windows', 'Linux', 'Terminal'];
 
-// One cell per platform, in the order above. Y: the app does it. D: in development. N: not on this
-// platform. Any other text: what the app does, where it does part of it.
+// From docs/parity.md, which says where in each app's code a cell comes from. Rows every app has
+// are named in the line above the table instead. Y: the app does it. D: in development. N: not on
+// this platform. Any other text: what the app does, where it does part of it.
 type Cell = 'Y' | 'D' | 'N' | (string & {});
 const matrix: [string, [string, Cell[]][]][] = [
 	[
-		'Finding a show',
+		'Finding and watching',
 		[
-			['Search by name', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
 			['Browse with filters', ['Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y', 'Y']],
-			['Seasonal charts', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['Airing calendar', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
 			['Seasons on the title page', ['Y', 'Y', 'Y', 'Y', 'Related titles', 'Related titles', 'Y', 'Y']],
-			['English or romaji titles', ['Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y', 'Y']],
-			['Continue and library', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-		],
-	],
-	[
-		'Watching',
-		[
-			['Plays in mpv', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Your mpv']],
+			['Built-in mpv', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Your mpv']],
 			['Upscaling', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
-			['Skip opening and ending', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['Up Next', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['Resume', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['Pick a source yourself', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['Sub or dub', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
 			['Subtitle and audio tracks', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y']],
 			['Picture in Picture', ['Y', 'Y', 'Y', 'Y', 'N', 'Mini player', 'Mini player', 'N']],
-			['Syncplay watch parties', ['D', 'N', 'N', 'N', 'N', 'D', 'D', 'Y']],
-			['Discord status', ['Y', 'N', 'N', 'N', 'N', 'D', 'D', 'Y']],
+			['Syncplay parties', ['D', 'N', 'N', 'N', 'N', 'D', 'D', 'Y']],
 		],
 	],
 	[
-		'Tracking and syncing',
+		'Tracking and downloads',
 		[
-			['History with no account', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['AniList', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
-			['MyAnimeList, Kitsu, Simkl, Trakt', ['Y', 'Y', 'Y', 'Y', 'Y', 'MyAnimeList, Kitsu', 'D', 'Y']],
-			['Mark episodes watched', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y']],
+			['MyAnimeList and Kitsu', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'D', 'Y']],
+			['Simkl and Trakt', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y']],
 			['Per-show settings', ['Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y', 'Source only']],
-		],
-	],
-	[
-		'Downloads',
-		[
 			['Download an episode', ['D', 'D', 'D', 'Y', 'N', 'D', 'D', 'Y']],
 			['Keep the next episodes', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
-			['Downloads page', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
 		],
 	],
 	[
-		'On the TV',
+		'Around the apps',
 		[
-			['Play on TV', ['Y', 'Y', 'Y', 'Y', 'Receives', 'D', 'D', 'D']],
-			['Phone or Mac as the remote', ['Y', 'Y', 'Y', 'Y', 'Pairs', 'D', 'D', 'D']],
-			['Arrow-key TV interface', ['N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N']],
-		],
-	],
-	[
-		'Plugins and stores',
-		[
-			['Add and order sources', ['Y', 'Y', 'Y', 'Y', 'Lists them', 'Y', 'Y', 'Y']],
+			['Play on TV and remote', ['Y', 'Y', 'Y', 'Y', 'Receives', 'D', 'D', 'D']],
 			['Join plugin stores', ['Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y', 'Y']],
-			['Torrents with the VPN guard', ['Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y', 'Y']],
-		],
-	],
-	[
-		'On your device',
-		[
 			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
-			['New-episode notifications', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'Y', 'In config']],
+			['New-episode alerts', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'Y', 'In config']],
 			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
 			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'D', 'D', 'D', 'Y']],
-			['Command line with JSON', ['N', 'N', 'N', 'N', 'N', 'N', 'N', 'Y']],
 		],
 	],
 ];
+
+const MARK: Record<string, [string, string]> = {
+	Y: ['mk-yes', 'Available'],
+	D: ['mk-dev', 'In development'],
+	N: ['mk-none', 'Not on this platform'],
+};
 ---
 
 <html lang="en">
 	<head>
 		<SiteHead
-			title="anistream features · what each app does"
-			description="What anistream does, by task: finding a show, watching, tracking and syncing, downloads, the TV, and plugins and stores. Then which of the Mac, iPhone, iPad, Android, Android TV, Windows, Linux and terminal apps does each."
+			title="anistream features"
+			description="What anistream does: native apps on every platform over one engine, browsing with no account, mpv with upscaling, Play on TV, history synced to your trackers, and plugins from private stores. Then which app does what."
 		/>
 	</head>
 	<body class="landing apps-page features-page">
 		<SiteNav current="features" />
 
 		<main>
-			<header class="wrap apps-head">
+			<header class="wrap apps-head feat-head">
 				<h1>Features</h1>
-				<p class="lede">
-					What anistream does, grouped by what you are doing, and then which app does each. Every
-					app runs the same engine, so most of it works the same everywhere. Where an app does not
-					have something yet, the table at the end says so.
-				</p>
-				<nav class="feat-index" aria-label="On this page">
-					{tasks.map((t) => <a href={`#${t.id}`}>{t.title}</a>)}
-					<a href="#platforms">By platform</a>
-				</nav>
+				<p class="lede">What anistream does, and which app does it.</p>
 			</header>
 
-			{
-				tasks.map((t) => (
-					<section class="wrap apps-sect feat-sect" id={t.id} aria-labelledby={`${t.id}-h`}>
-						<h2 id={`${t.id}-h`}>{t.title}</h2>
-						{t.lede && <p class="legal-lead">{t.lede}</p>}
-						<dl class="rows">
-							{t.rows.map(([name, text]) => (
-								<div class="row">
-									<dt>{name}</dt>
-									<dd>{text}</dd>
-								</div>
-							))}
-						</dl>
-					</section>
-				))
-			}
+			<section class="wrap hl hl-wide" aria-labelledby="native-h">
+				<div class="hl-text">
+					<h2 id="native-h">Native on every platform, one engine</h2>
+					<p>Each app uses its platform’s own toolkit, over one Rust engine shared with the terminal app.</p>
+				</div>
+				<div class="hl-media devices">
+					<div class="ratio-row dev-row">
+						<figure class="dev dev-flat" style={`--ratio: ${ratio('mac-continue')}`}>
+							<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 734px, 60vw" alt="The Mac app on Continue, with a button to resume the show in progress" />
+							<figcaption>Mac</figcaption>
+						</figure>
+						<figure class="dev" style={`--ratio: ${ratio('iphone-title')}`}>
+							<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 212px, 18vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
+							<figcaption>iPhone</figcaption>
+						</figure>
+						<figure class="dev" style={`--ratio: ${ratio('android-continue')}`}>
+							<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 208px, 18vw" alt="The Android app on Continue" />
+							<figcaption>Android</figcaption>
+						</figure>
+					</div>
+					<div class="dev-row dev-row-small">
+						<div class="ratio-row" style={`--ratio: ${ratio('windows-title') + ratio('linux-continue')}`}>
+							<figure class="dev dev-flat" style={`--ratio: ${ratio('windows-title')}`}>
+								<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 290px, 48vw" alt="The Windows app on a title page" />
+								<figcaption>Windows</figcaption>
+							</figure>
+							<figure class="dev dev-flat" style={`--ratio: ${ratio('linux-continue')}`}>
+								<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 280px, 48vw" alt="The Linux app on Continue" />
+								<figcaption>Linux</figcaption>
+							</figure>
+						</div>
+						<div class="ratio-row" style={`--ratio: ${ratio('tv-continue') + TERMINAL}`}>
+							<figure class="dev" style={`--ratio: ${ratio('tv-continue')}`}>
+								<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 300px, 48vw" alt="The Android TV app on Continue, with a large button to resume episode 7" />
+								<figcaption>Android TV</figcaption>
+							</figure>
+							<figure class="dev dev-flat dev-term" style={`--ratio: ${TERMINAL}`}>
+								<TerminalStill />
+								<figcaption>Terminal</figcaption>
+							</figure>
+						</div>
+					</div>
+				</div>
+			</section>
 
-			<section class="wrap apps-sect feat-sect" id="platforms" aria-labelledby="platforms-h">
-				<h2 id="platforms-h">By platform</h2>
-				<p class="lede">
-					Each app is written in its platform’s own toolkit over the same engine. What differs is
-					what a platform has room for, and what each app has built so far.
-				</p>
-				<dl class="matrix-key">
-					<div><dt>Yes</dt><dd>The app does it.</dd></div>
-					<div><dt class="m-dev">In development</dt><dd>Being built for this app.</dd></div>
-					<div><dt class="m-none">–</dt><dd>Not on this platform.</dd></div>
+			<section class="wrap hl" aria-labelledby="find-h">
+				<div class="hl-text">
+					<h2 id="find-h">Find something to watch</h2>
+					<p>Browse by genre, year and season, or follow the seasonal charts and the week’s calendar, with no account.</p>
+				</div>
+				<div class="hl-media find-stage">
+					<Shot name="mac-calendar" frame="window" class="find-mac" sizes="(min-width: 1200px) 650px, 86vw" alt="The Mac app’s calendar, with the week’s episodes laid out by day" />
+					<Shot name="iphone-title" frame="phone" class="find-phone" sizes="(min-width: 1200px) 174px, 23vw" alt="The iPhone app on a title page, with the show’s seasons and its episode list" />
+				</div>
+			</section>
+
+			<section class="wrap hl hl-flip" aria-labelledby="player-h">
+				<div class="hl-text">
+					<h2 id="player-h">The mpv player, upscaled</h2>
+					<p>Episodes play in mpv, upscaled by ArtCNN or Anime4K. Drag the line to compare a 480p stream.</p>
+				</div>
+				<div class="hl-media">
+					<UpscaleCompare
+						alt="A close-up of a character's face from a 480p stream, shown at 1080p"
+						off="/player/compare-off.webp"
+						looks={[
+							{ id: 'natural', label: 'Natural', note: 'ArtCNN', src: '/player/compare-natural.webp' },
+							{ id: 'sharp', label: 'Sharp', note: 'Anime4K', src: '/player/compare-sharp.webp' },
+							{ id: 'original', label: 'Original', note: '1080p', src: '/player/compare-original.webp' },
+						]}
+						width={720}
+						height={480}
+					>
+						From <a href="https://opap.jp/">こうしす！ #3.2</a> by OPAP-JP contributors,{' '}
+						<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+					</UpscaleCompare>
+				</div>
+			</section>
+
+			<section class="wrap hl" aria-labelledby="tv-h">
+				<div class="hl-text">
+					<h2 id="tv-h">Play on TV, phone as the remote</h2>
+					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone.</p>
+				</div>
+				<div class="hl-media tv-stage">
+					<Shot name="iphone-tv-remote" frame="phone" class="tv-phone" sizes="(min-width: 1200px) 160px, 21vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
+					<svg class="tv-link" viewBox="0 0 1000 470" aria-hidden="true" focusable="false">
+						<circle cx="236" cy="235" r="4" class="tv-link-end"></circle>
+						<path d="M248 235 H306 M298 228 L306 235 L298 242" class="tv-link-line"></path>
+					</svg>
+					<Shot name="tv-title" frame="screen" class="tv-screen" sizes="(min-width: 1200px) 520px, 68vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
+				</div>
+			</section>
+
+			<section class="wrap hl hl-flip" aria-labelledby="sync-h">
+				<div class="hl-text">
+					<h2 id="sync-h">Your history, synced everywhere</h2>
+					<p>History lives on your device and needs no account. An outbox sends changes to your trackers in order, even after a week offline.</p>
+				</div>
+				<div class="hl-media">
+					<SyncDiagram />
+				</div>
+			</section>
+
+			<section class="wrap hl" aria-labelledby="plugins-h">
+				<div class="hl-text">
+					<h2 id="plugins-h">Plugins and private stores</h2>
+					<p>Sources are sandboxed plugins. A friend can run a small store and invite you, and its plugin list arrives signed.</p>
+					<p class="legal-lead">{LEGAL}</p>
+				</div>
+				<div class="hl-media">
+					<StoreDiagram />
+				</div>
+			</section>
+
+			<section class="wrap feat-sect" aria-labelledby="also-h">
+				<h2 id="also-h">Also in anistream</h2>
+				<dl class="also">
+					{
+						also.map(([name, text]) => (
+							<div>
+								<dt>{name}</dt>
+								<dd>{text}</dd>
+							</div>
+						))
+					}
 				</dl>
+			</section>
+
+			<section class="wrap feat-sect" id="platforms" aria-labelledby="platforms-h">
+				<h2 id="platforms-h">Compare the apps</h2>
+				<p class="lede">
+					Every app searches, follows the seasonal charts and the calendar, syncs with AniList, and
+					skips, resumes and plays the next episode.
+				</p>
+				<ul class="matrix-key" aria-label="Key">
+					<li><span class="mk mk-yes" aria-hidden="true"></span>Available</li>
+					<li><span class="mk mk-dev" aria-hidden="true"></span>In development</li>
+					<li><span class="mk mk-none" aria-hidden="true"></span>Not on this platform</li>
+				</ul>
 				<div class="matrix-scroll" tabindex="0" role="region" aria-labelledby="platforms-h">
 					<table class="matrix">
 						<caption class="sr-only">Which app does each feature</caption>
@@ -242,14 +260,10 @@ const matrix: [string, [string, Cell[]][]][] = [
 										<tr>
 											<th scope="row">{name}</th>
 											{cells.map((c) =>
-												c === 'Y' ? (
-													<td>Yes</td>
-												) : c === 'D' ? (
-													<td class="m-dev">In development</td>
-												) : c === 'N' ? (
-													<td class="m-none">
-														<span aria-hidden="true">–</span>
-														<span class="sr-only">Not on this platform</span>
+												MARK[c] ? (
+													<td>
+														<span class:list={['mk', MARK[c][0]]} aria-hidden="true" />
+														<span class="sr-only">{MARK[c][1]}</span>
 													</td>
 												) : (
 													<td class="m-part">{c}</td>
@@ -262,10 +276,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 						}
 					</table>
 				</div>
-				<p class="caption matrix-note">
-					The Windows and Linux apps come with the next release. The TV app’s Play on TV and remote
-					cells are the TV’s side: it plays what the other apps send, and pairs with phones.
-				</p>
+				<p class="caption matrix-note">The Windows and Linux apps come with the next release.</p>
 				<div class="actions sect-actions">
 					<a class="btn btn-primary" href={APPS}>Get the apps</a>
 					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>
