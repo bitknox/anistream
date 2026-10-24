@@ -78,7 +78,17 @@
           <TextBlock x:Name="Synopsis" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="WrapWholeWords" MaxWidth="720" HorizontalAlignment="Left" />
 
           <StackPanel Spacing="4">
-            <TextBlock Text="Episodes" Style="{StaticResource SectionTitleStyle}" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="Episodes" Style="{StaticResource SectionTitleStyle}" />
+              <!-- How far the dub goes. Faded in when the engine says, in the header's own line,
+                   so it moves nothing. -->
+              <TextBlock x:Name="DubLine" Style="{StaticResource HazeCaptionStyle}" VerticalAlignment="Bottom"
+                         Margin="0,0,0,3" Opacity="0">
+                <TextBlock.OpacityTransition>
+                  <ScalarTransition Duration="0:0:0.2" />
+                </TextBlock.OpacityTransition>
+              </TextBlock>
+            </StackPanel>
             <TextBlock x:Name="EpisodesNote" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
             <ListView x:Name="EpisodeList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEpisodeClick"
                       Margin="-12,4,0,0" AutomationProperties.Name="Episodes">

@@ -50,6 +50,9 @@ struct WatchedFoldRow: View {
     let fold: WatchedFold
     let shown: Bool
     let phone: Bool
+    /// The title's dub line, where the page has no Episodes header to carry it: on this row's own
+    /// line, so its arrival moves nothing.
+    var dub: String?
     let toggle: () -> Void
 
     var body: some View {
@@ -60,7 +63,14 @@ struct WatchedFoldRow: View {
                 Image(systemName: shown ? "chevron.up" : "chevron.down")
                     .font(phone ? .ui(12, weight: .semibold) : .mac(10, weight: .semibold))
                 Spacer(minLength: 0)
+                if let dub {
+                    Text(dub)
+                        .lineLimit(1)
+                        .padding(.trailing, 16)
+                        .transition(.opacity.animation(.fadeIn))
+                }
             }
+            .animation(.fadeIn, value: dub)
             .font(phone ? .ui(15) : .mac(13))
             .foregroundStyle(.haze)
             // Where the stills start: the number's column and the gap after it.
@@ -81,6 +91,7 @@ struct WatchedFoldSection<Rows: View>: View {
     let fold: WatchedFold
     let shown: Bool
     let phone: Bool
+    var dub: String?
     let toggle: () -> Void
     @ViewBuilder let rows: () -> Rows
     /// Set by a tap, so only the change it makes moves the page: not the rows' own changes, nor
@@ -96,7 +107,7 @@ struct WatchedFoldSection<Rows: View>: View {
             armed = false
             nudge?.by(new - old)
         }
-        WatchedFoldRow(fold: fold, shown: shown, phone: phone) {
+        WatchedFoldRow(fold: fold, shown: shown, phone: phone, dub: dub) {
             armed = true
             toggle()
         }
