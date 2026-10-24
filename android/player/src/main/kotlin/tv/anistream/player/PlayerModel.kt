@@ -233,6 +233,19 @@ class PlayerModel(
         private set
     var duration by mutableStateOf<Double?>(null)
         private set
+
+    /** How often this file's length changed: a stream that grows as it is read never settles. */
+    private var durationChanges = 0
+
+    /** The playhead went past this file's length, so the length is not the file's end. */
+    private var passedDuration = false
+
+    /**
+     * The length Up Next counts from: none once it has kept changing, or the playhead has passed
+     * it, so a stream that grows as it is read never seems to be near its end.
+     */
+    private val knownDuration: Double?
+        get() = duration.takeIf { durationChanges <= DURATION_CHANGES_MAX && !passedDuration }
     var paused by mutableStateOf(false)
         private set
     var speed by mutableStateOf(1.0)
@@ -690,6 +703,8 @@ class PlayerModel(
         position = 0.0
         playhead = 0.0
         duration = null
+        durationChanges = 0
+        passedDuration = false
         paused = false
         chapters = emptyList()
         tracks = emptyList()
@@ -756,12 +771,14 @@ class PlayerModel(
             "time-pos" -> {
                 val time = value.double ?: return
                 playhead = time
+                duration?.let { if (time > it + 1) passedDuration = true }
                 if (scrubbing == null && (kotlin.math.abs(time - position) >= 0.25 || time < position)) position = time
                 played()
             }
             "duration" -> {
                 val before = duration
                 duration = value.double
+                if (duration != before) durationChanges++
                 // The media session hears of whole seconds only: a stream whose length grows as it
                 // is read sends this many times a second, and each rebuilds the session's metadata.
                 val after = duration
@@ -809,8 +826,9 @@ class PlayerModel(
      */
     private fun played() {
         val card = upNext
-        if (card != null && !card.played && !assisted && scrubbing == null) {
-            val left = card.remaining(playhead, duration)
+        // Not while a file is replacing this one: the playhead is still the old file's.
+        if (card != null && !card.played && !assisted && scrubbing == null && loads.isEmpty()) {
+            val left = card.remaining(playhead, knownDuration)
             if (left != null && left <= 0) {
                 upNext = card.copy(played = true)
                 // Asked for by someone there when they sought into the ending: not one in a row with
@@ -839,7 +857,7 @@ class PlayerModel(
     private fun restartCountdown(target: Double) {
         val card = upNext ?: return
         if (card.played) return
-        val start = card.showsAt(duration) ?: return
+        val start = card.showsAt(knownDuration) ?: return
         upNext = card.copy(restartedAt = target.takeIf { it >= start })
     }
 
@@ -1012,7 +1030,7 @@ class PlayerModel(
         get() {
             val card = upNext ?: return false
             if (card.cancelled) return false
-            val at = card.showsAt(duration) ?: return false
+            val at = card.showsAt(knownDuration) ?: return false
             return position >= at
         }
 
@@ -1021,7 +1039,7 @@ class PlayerModel(
         get() {
             if (!upNextShown || assisted) return null
             val card = upNext ?: return null
-            val left = card.remaining(position, duration) ?: return null
+            val left = card.remaining(position, knownDuration) ?: return null
             val progress = 1 - left / maxOf(card.countdown, 1.0)
             return kotlin.math.ceil(left).toInt() to progress.toFloat().coerceIn(0f, 1f)
         }
@@ -1330,6 +1348,9 @@ class PlayerModel(
 
     companion object {
         const val TAG = "player"
+
+        /** A file whose length changed more often than this is still being written, or a live stream. */
+        private const val DURATION_CHANGES_MAX = 5
 
         /** The ops worth a line in the log: the ones that change what plays. */
         private fun loud(op: PlayerOp): Boolean = op is PlayerOp.Open || op is PlayerOp.Load || op == PlayerOp.Stop ||
