@@ -1,0 +1,106 @@
+#if ANISTREAM_TESTING
+using Anistream.Engine.Model;
+
+namespace Anistream.Windows;
+
+/// <summary>
+/// Rows the testing engine has none of, for screenshots of the pages that show them: sources
+/// from plugin stores, the stores themselves, a download queue and what is seeding. Invented, as
+/// the design boards invent them, and applied only by <c>--showcase</c> on the testing build,
+/// which also holds back the engine's own events of the same kinds so these stay on screen.
+/// </summary>
+static class Showcase
+{
+    /// <summary>Events of these kinds from the engine are dropped while a showcase is up.</summary>
+    public static bool Holds(Event e) => e is Event.Providers or Event.Stores or Event.Downloads or Event.Seeding or Event.StorePreview;
+
+    public static Event[] Events() =>
+    [
+        new Event.Providers(Providers),
+        new Event.Stores(StoreRows),
+        new Event.Downloads(Downloads),
+        new Event.Seeding(Seeds),
+    ];
+
+    /// <summary>What a pasted invite leads to, in place of asking a store that does not exist.</summary>
+    public static Event Preview(string link) => new Event.StorePreview(new InvitePreview.Store(new InvitedStore(
+        Link: link, Name: "Hotaru Plugins", Url: "https://plugins.hotaru.example", Host: "plugins.hotaru.example",
+        Fingerprint: "9f3c 1a2b 77de 0c41", AlreadyJoined: false, Owners: ["Ren"],
+        Plugins: StoreRows[0].Plugins, Open: false, Anonymous: false, DeviceLabel: "Computer")));
+
+    static ProviderRow Plugin(string id, string name, string version, string[] hosts, ProviderOrigin origin,
+        string state = "ready", string? error = null, ProviderUpdate? update = null, ulong? latency = 200) =>
+        new(Id: id, Kind: "plugin", State: state, Usable: state != "down", Name: name, Origin: origin,
+            LatencyMs: state == "down" ? null : latency, LastError: error, HeldBack: false, Version: version,
+            Hosts: hosts, Disabled: false, Update: update);
+
+    static readonly ProviderOrigin Hotaru = new ProviderOrigin.Store("hotaru", "Hotaru Plugins");
+
+    static readonly ProviderRow[] Providers =
+    [
+        Plugin("hotaru-open-archive", "Hotaru Open Archive", "2.3.0",
+            ["open-archive.hotaru.example", "media.open-archive.hotaru.example"], Hotaru, latency: 180),
+        Plugin("mukashi-archive", "Mukashi Archive", "1.4.0", ["mukashi-archive.example"], Hotaru, latency: 320,
+            update: new ProviderUpdate("1.5.0", ["media2.mukashi-archive.example"])),
+        Plugin("machi-library-films", "Machi Library Films", "0.3.0", ["films.machi-library.example"],
+            new ProviderOrigin.ByHand(), state: "down", error: "the site did not answer in 15 s."),
+        new ProviderRow(Id: "torrent", Kind: "torrent", State: "ready", Usable: true, Name: "Torrent source",
+            Origin: new ProviderOrigin.BuiltIn(), Hosts: [], Version: null),
+    ];
+
+    static StorePluginRow Listing(string id, string name, string version, string[] hosts, StorePluginStatus status) =>
+        new(id, name, version, status, hosts);
+
+    static readonly StoreRow[] StoreRows =
+    [
+        new(Id: "hotaru", Name: "Hotaru Plugins", Url: "https://plugins.hotaru.example", Host: "plugins.hotaru.example",
+            Fingerprint: "9f3c 1a2b 77de 0c41", Member: "Mika", State: new StoreState.Ready(), Owner: false, Owners: ["Ren"],
+            Plugins:
+            [
+                Listing("hotaru-open-archive", "Hotaru Open Archive", "2.3.0",
+                    ["open-archive.hotaru.example", "media.open-archive.hotaru.example"], new StorePluginStatus.Installed()),
+                Listing("mukashi-archive", "Mukashi Archive", "1.5.0",
+                    ["mukashi-archive.example", "media2.mukashi-archive.example"],
+                    new StorePluginStatus.Update("1.4.0", ["media2.mukashi-archive.example"])),
+                Listing("atelier-hotaru-shorts", "Atelier Hotaru Shorts", "1.0.2",
+                    ["shorts.atelier-hotaru.example"], new StorePluginStatus.Available()),
+            ]),
+        new(Id: "mika", Name: "Mika's plugins", Url: "https://plugins.mika.example", Host: "plugins.mika.example",
+            Fingerprint: "2b7e 90c4 d1f3 5a68", Member: "Mika", State: new StoreState.Ready(), Owner: true, Owners: ["Mika"],
+            Plugins:
+            [
+                Listing("machi-library-films", "Machi Library Films", "0.3.0",
+                    ["films.machi-library.example"], new StorePluginStatus.AddedByHand()),
+            ]),
+        new(Id: "tsuki", Name: "Tsuki Club", Url: "https://tsuki-club.example", Host: "tsuki-club.example",
+            Fingerprint: "e815 3c6a 0b9d 42f7", Member: "Mika", State: new StoreState.Offline("the store did not answer"),
+            Owner: false, Plugins:
+            [
+                Listing("sora-festival", "Sora Animation Festival", "1.1.0",
+                    ["archive.sora-festival.example"], new StorePluginStatus.Available()),
+            ]),
+    ];
+
+    static DownloadRow Row(long id, uint title, string name, string episode, DownloadState state, ulong done, ulong total,
+        string? path = null, string? error = null) =>
+        new(id, title, name, episode, state, total > 0 ? (double)done / total : 0, done, total, error, path);
+
+    static readonly DownloadRow[] Downloads =
+    [
+        Row(1, 900001, "Hoshikuzu no Tabibito", "8", DownloadState.Done, 1_400_000_000, 1_400_000_000, path: @"C:\clip-8.mkv"),
+        Row(2, 900001, "Hoshikuzu no Tabibito", "9", DownloadState.Active, 300_000_000, 1_400_000_000),
+        Row(3, 900001, "Hoshikuzu no Tabibito", "10", DownloadState.Queued, 0, 0),
+        Row(5, 900002, "Kumo no Ue no Toshokan", "5", DownloadState.Paused, 210_000_000, 480_000_000),
+        Row(6, 900002, "Kumo no Ue no Toshokan", "6", DownloadState.Queued, 0, 0),
+        Row(7, 900005, "Hagane no Niwashi", "1", DownloadState.Done, 460_000_000, 460_000_000, path: @"C:\clip-1.mkv"),
+        Row(8, 900005, "Hagane no Niwashi", "4", DownloadState.Failed, 130_000_000, 470_000_000,
+            error: "the source stopped responding at 130 MB"),
+    ];
+
+    static readonly SeedRow[] Seeds =
+    [
+        new("Hoshikuzu no Tabibito - 06.mkv", 90_000_000, 0.2, 1, 64_800),
+        new("Hoshikuzu no Tabibito - 05.mkv", 360_000_000, 0.8, 1, 21_600),
+    ];
+}
+#endif

@@ -50,6 +50,16 @@
         <NavigationViewItem Content="Library" Tag="library" ToolTipService.ToolTip="Library">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
+        <NavigationViewItem Content="Downloads" Tag="downloads" ToolTipService.ToolTip="Downloads">
+          <NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon>
+        </NavigationViewItem>
+        <NavigationViewItemHeader Content="Sources" />
+        <NavigationViewItem Content="Providers" Tag="providers" ToolTipService.ToolTip="Providers">
+          <NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon>
+        </NavigationViewItem>
+        <NavigationViewItem Content="Plugin stores" Tag="stores" ToolTipService.ToolTip="Plugin stores">
+          <NavigationViewItem.Icon><FontIcon Glyph="&#xE719;" /></NavigationViewItem.Icon>
+        </NavigationViewItem>
       </NavigationView.MenuItems>
       <NavigationView.FooterMenuItems>
         <NavigationViewItem x:Name="AccountItem" Tag="account" SelectsOnInvoked="True">

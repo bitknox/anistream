@@ -34,6 +34,7 @@
     <KeyboardAccelerator Key="N" Invoked="OnKeyNext" />
     <KeyboardAccelerator Key="N" Modifiers="Shift" Invoked="OnKeyPrevious" />
     <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnKeyClose" />
+    <KeyboardAccelerator Key="P" Invoked="OnKeyMini" />
   </UserControl.KeyboardAccelerators>
   <Grid x:Name="Root" Background="Black" PointerMoved="OnPointerMoved" Tapped="OnVideoTapped"
         DoubleTapped="OnVideoDoubleTapped" PointerWheelChanged="OnWheel">
@@ -67,7 +68,7 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <Button Style="{StaticResource PlayerButtonStyle}" Click="OnClose" ToolTipService.ToolTip="Back (Alt+Left)" AutomationProperties.Name="Back">
+          <Button x:Name="BackButton" Style="{StaticResource PlayerButtonStyle}" Click="OnClose" ToolTipService.ToolTip="Back (Alt+Left)" AutomationProperties.Name="Back">
             <FontIcon Glyph="&#xE72B;" FontSize="16" />
           </Button>
           <StackPanel x:Name="TitleArea" Grid.Column="1" VerticalAlignment="Center" Spacing="0" Background="Transparent">
@@ -87,11 +88,25 @@
                 <MenuFlyout x:Name="EpisodesMenu" Placement="BottomEdgeAlignedRight" Opened="OnMenuOpened" Closed="OnMenuClosed" />
               </Button.Flyout>
             </Button>
-            <Button Style="{StaticResource PlayerButtonStyle}" Click="OnFullscreen" ToolTipService.ToolTip="Fullscreen (F)" AutomationProperties.Name="Fullscreen">
+            <Button x:Name="MiniButton" Style="{StaticResource PlayerButtonStyle}" Click="OnMini" ToolTipService.ToolTip="Mini player (P)" AutomationProperties.Name="Mini player">
+              <FontIcon x:Name="MiniIcon" Glyph="&#xE8A7;" FontSize="16" />
+            </Button>
+            <Button x:Name="FullscreenButton" Style="{StaticResource PlayerButtonStyle}" Click="OnFullscreen" ToolTipService.ToolTip="Fullscreen (F)" AutomationProperties.Name="Fullscreen">
               <FontIcon x:Name="FullscreenIcon" Glyph="&#xE740;" FontSize="16" />
             </Button>
           </StackPanel>
         </Grid>
+
+        <!-- The frame under the pointer on the timeline, from a second, hidden mpv. -->
+        <Border x:Name="PreviewBox" Grid.Row="1" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                Margin="0,0,0,8" Background="{ThemeResource RaisedBrush}" CornerRadius="8" Padding="4" IsHitTestVisible="False">
+          <StackPanel Spacing="4">
+            <Border CornerRadius="4" Width="160" Height="90" Background="Black">
+              <SwapChainPanel x:Name="PreviewPanel" Width="160" Height="90" />
+            </Border>
+            <TextBlock x:Name="PreviewTime" HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}" />
+          </StackPanel>
+        </Border>
 
         <!-- Bottom bar: play, back and forward 10 s, the timeline and the times, volume and settings. -->
         <Grid x:Name="BottomBar" Grid.Row="2" Padding="12,0,12,12" ColumnSpacing="6" PointerEntered="OnBarEntered" PointerExited="OnBarExited">
@@ -124,7 +139,8 @@
           </Button>
           <TextBlock x:Name="Elapsed" Grid.Column="3" Text="0:00" VerticalAlignment="Center" Margin="6,0,4,0" Style="{StaticResource CaptionTextBlockStyle}" />
           <Slider x:Name="Timeline" Grid.Column="4" VerticalAlignment="Center" Minimum="0" Maximum="1" StepFrequency="1"
-                  IsThumbToolTipEnabled="False" ValueChanged="OnTimelineChanged" AutomationProperties.Name="Timeline" />
+                  IsThumbToolTipEnabled="False" ValueChanged="OnTimelineChanged" AutomationProperties.Name="Timeline"
+                  PointerExited="OnTimelineExited" />
           <TextBlock x:Name="Remaining" Grid.Column="5" Text="-0:00" VerticalAlignment="Center" Margin="4,0,6,0" Style="{StaticResource CaptionTextBlockStyle}" />
           <Button x:Name="VolumeButton" Grid.Column="6" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Volume" AutomationProperties.Name="Volume">
             <FontIcon x:Name="VolumeIcon" Glyph="&#xE767;" FontSize="16" />
@@ -135,7 +151,7 @@
               </Flyout>
             </Button.Flyout>
           </Button>
-          <Button Grid.Column="7" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Settings" AutomationProperties.Name="Playback settings">
+          <Button x:Name="SettingsButton" Grid.Column="7" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Settings" AutomationProperties.Name="Playback settings">
             <FontIcon Glyph="&#xE713;" FontSize="16" />
             <Button.Flyout>
               <MenuFlyout x:Name="SettingsMenu" Placement="TopEdgeAlignedRight" Opened="OnMenuOpened" Closed="OnMenuClosed" />
@@ -180,6 +196,33 @@
           </StackPanel>
         </Grid>
       </StackPanel>
+
+      <!-- "Still watching?": after a run of episodes nobody was there for, paused until answered. -->
+      <Grid x:Name="StillLayer" Visibility="Collapsed" Background="#99000000">
+        <Grid Background="{ThemeResource RaisedBrush}" CornerRadius="12" Padding="24,20,24,16" Width="340"
+              HorizontalAlignment="Center" VerticalAlignment="Center" RowSpacing="6">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <TextBlock Text="Still watching?" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+          <TextBlock x:Name="StillLine" Grid.Row="1" Style="{StaticResource HazeBodyStyle}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="WrapWholeWords" />
+          <Grid Grid.Row="2" Margin="0,14,0,0" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="StillStop" Content="Stop" HorizontalAlignment="Stretch" Click="OnStillStop" />
+            <Button x:Name="StillContinue" Grid.Column="1" Content="Continue watching" HorizontalAlignment="Stretch"
+                    Style="{StaticResource AccentButtonStyle}" Click="OnStillContinue" />
+          </Grid>
+        </Grid>
+      </Grid>
+
+      <TeachingTip x:Name="MiniTip" Target="{x:Bind MiniButton}" Title="Mini player"
+                   Subtitle="Stays on top. Press P to go back."
+                   PreferredPlacement="Bottom" IsLightDismissEnabled="True" MaxWidth="260" />
 
       <!-- What the player says on the video: an alert, briefly. -->
       <Border x:Name="AlertCard" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,72,0,0"

@@ -23,7 +23,33 @@ sealed class Ctx
 
     public void Heard(IReadOnlyList<Event> batch) => Batch?.Invoke(batch);
 
-    public ulong? Send(Command command) => Session.Send(command);
+    public ulong? Send(Command command)
+    {
+#if ANISTREAM_TESTING
+        // A showcase has no store to ask: the invite preview is the one it invented.
+        if (Options.Showcase && command is Command.PreviewStore preview)
+        {
+            Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                var events = new[] { Showcase.Preview(preview.Link) };
+                Session.Known.Take(events[0]);
+                Heard(events);
+            });
+            return null;
+        }
+        if (Options.Showcase && command is Command.JoinStore)
+        {
+            Window.DispatcherQueue.TryEnqueue(() =>
+            {
+                var events = new Event[] { new Event.StoreJoined("hotaru") };
+                Session.Known.Take(events[0]);
+                Heard(events);
+            });
+            return null;
+        }
+#endif
+        return Session.Send(command);
+    }
 
     public void OpenTitle(uint id) => Window.OpenTitle(id);
 

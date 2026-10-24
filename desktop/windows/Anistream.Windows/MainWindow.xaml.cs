@@ -28,6 +28,9 @@ public sealed partial class MainWindow : Window
         ["calendar"] = typeof(CalendarPage),
         ["seasonal"] = typeof(SeasonalPage),
         ["library"] = typeof(LibraryPage),
+        ["downloads"] = typeof(DownloadsPage),
+        ["providers"] = typeof(ProvidersPage),
+        ["stores"] = typeof(StoresPage),
         ["search"] = typeof(SearchPage),
         ["settings"] = typeof(SettingsPage),
     };
@@ -83,14 +86,34 @@ public sealed partial class MainWindow : Window
             if (Player.Showing)
                 AppWindow.TitleBar.PreferredHeightOption = shown ? TitleBarHeightOption.Tall : TitleBarHeightOption.Collapsed;
         };
+        Player.MiniRequested += Mini;
         session.OffThread = e =>
         {
+#if ANISTREAM_TESTING
+            if (options.Showcase && Showcase.Holds(e))
+                return true;
+#endif
             if (e is not Event.PlayerOps ops)
                 return false;
+            Player.NoteLoad(ops.Ops);
             player?.Apply(ops.PlaybackValue, ops.Ops);
             return true;
         };
         session.Start();
+#if ANISTREAM_TESTING
+        if (options.Showcase)
+        {
+            // After the first batch, so the pages that read the engine's entries have them.
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(1500);
+                var events = Showcase.Events();
+                foreach (var e in events)
+                    session.Known.Take(e);
+                ctx.Heard(events);
+            });
+        }
+#endif
 
         AppWindow.Closing += OnClosing;
         Closed += (_, _) => Shutdown();
@@ -174,6 +197,12 @@ public sealed partial class MainWindow : Window
             Navigate(page, options.Pane);
         if (options.Title is { } id)
             OpenTitle(id);
+        if (options.Join)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(1800);
+                ShowJoinStore("https://plugins.hotaru.example/join/fixture#key");
+            });
         if (options.AskClose)
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
             {
@@ -251,28 +280,15 @@ public sealed partial class MainWindow : Window
         ContentFrame.Navigate(typeof(SearchPage), query, new SuppressNavigationTransitionInfo());
     }
 
-    internal async void ShowJoinStore()
+    /// <summary>The join-store dialog, with an invite already pasted when one is given.</summary>
+    internal async void ShowJoinStore(string? pasted = null)
     {
-        var box = new TextBox { PlaceholderText = "Invite link" };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, "Invite link");
-        var body = new StackPanel { Spacing = 12 };
-        body.Children.Add(new TextBlock
+        await new JoinStoreDialog(ctx, Root.XamlRoot, pasted).ShowAsync(options.Show == "preview");
+        if (ctx.Known.Joined is { } store)
         {
-            Text = "Paste the invite link a plugin store's owner sent you. The store's plugins then show under Sources.",
-            TextWrapping = TextWrapping.WrapWholeWords,
-        });
-        body.Children.Add(box);
-        var dialog = new ContentDialog
-        {
-            XamlRoot = Root.XamlRoot,
-            Title = "Add a plugin store",
-            Content = body,
-            PrimaryButtonText = "Join",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary && box.Text.Trim() is { Length: > 0 } invite)
-            ctx.Send(new Command.JoinStore(invite, null));
+            ctx.Known.Joined = null;
+            ContentFrame.Navigate(typeof(StoresPage), store, new SuppressNavigationTransitionInfo());
+        }
     }
 
     void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -297,7 +313,7 @@ public sealed partial class MainWindow : Window
         if (e.SourcePageType == typeof(SettingsPage))
             Nav.SelectedItem = e.Parameter as string == "accounts" ? AccountItem : Nav.SettingsItem;
         else if (Destinations.FirstOrDefault(d => d.Value == e.SourcePageType).Key is { } tag && tag != "search")
-            Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag);
+            Nav.SelectedItem = Nav.MenuItems.OfType<NavigationViewItem>().FirstOrDefault(i => (string?)i.Tag == tag);
         else
             Nav.SelectedItem = null;
         selecting = false;
@@ -371,6 +387,35 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         if (!showing && AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen)
             Fullscreen(false);
+    }
+
+    RectInt32? beforeMini;
+
+    /// <summary>
+    /// The mini player: the window as a small one that stays on top of the others, the video and
+    /// its few controls in it, and the way back to where the window was.
+    /// </summary>
+    void Mini(bool on)
+    {
+        var now = AppWindow.Presenter.Kind == AppWindowPresenterKind.CompactOverlay;
+        if (on == now)
+            return;
+        if (on)
+        {
+            if (AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen)
+                Fullscreen(false);
+            beforeMini = new RectInt32(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+            AppWindow.SetPresenter(AppWindowPresenterKind.CompactOverlay);
+            var scale = GetDpiForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this)) / 96.0;
+            AppWindow.Resize(new SizeInt32((int)(480 * scale), (int)(270 * scale)));
+        }
+        else
+        {
+            AppWindow.SetPresenter(AppWindowPresenterKind.Default);
+            if (beforeMini is { } was)
+                AppWindow.MoveAndResize(was);
+            beforeMini = null;
+        }
     }
 
     void Fullscreen(bool? on)

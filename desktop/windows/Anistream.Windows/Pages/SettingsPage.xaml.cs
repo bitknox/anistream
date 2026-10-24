@@ -1,3 +1,4 @@
+using Anistream.App;
 using Anistream.Engine.Core;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
@@ -11,7 +12,7 @@ namespace Anistream.Windows.Pages;
 /// <summary>
 /// Settings, styled as Windows 11 Settings: the panes as a list with icons, the pane's rows as
 /// setting cards grouped under their headings. Rows follow the engine's settings view: a switch
-/// for a setting that is on or off, previous and next for one stepped through a fixed set, a box
+/// for a setting that is on or off, a drop-down of the catalog's values for a stepped one, a box
 /// for a typed one. Tracker tokens live in Credential Manager, so token storage is not a row, and
 /// the theme is dark only in this version.
 /// </summary>
@@ -151,20 +152,17 @@ public sealed partial class SettingsPage : Page
         return card;
     }
 
-    static bool IsOn(string value) => value is "on" or "yes" or "true";
-    static bool IsOnOff(string value) => value is "on" or "off" or "yes" or "no" or "true" or "false";
-
     FrameworkElement Card(SettingRow row)
     {
         var title = Words.SettingTitle(row.Key);
         var overridden = ctx.Known.Settings?.Overridden?.FirstOrDefault(o => o.Key == row.Key);
         string? description = overridden is { Shows: > 0 } o ? $"Overridden for {AnistreamFfiMethods.Plural(o.Shows, "show")}" : null;
         FrameworkElement control;
-        switch (row.Change)
+        switch (SettingsCatalog.ControlFor(row))
         {
-            case SettingChange.Steps steps when IsOnOff(row.Value):
+            case SettingControl.Switch:
             {
-                var toggle = new ToggleSwitch { IsOn = IsOn(row.Value), OnContent = "", OffContent = "", MinWidth = 0 };
+                var toggle = new ToggleSwitch { IsOn = SettingsCatalog.IsOn(row), OnContent = "", OffContent = "", MinWidth = 0 };
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(toggle, title);
                 toggle.Toggled += (_, _) =>
                 {
@@ -174,29 +172,32 @@ public sealed partial class SettingsPage : Page
                 control = toggle;
                 break;
             }
-            case SettingChange.Steps steps:
+            case SettingControl.Choice:
             {
-                var stepper = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-                var back = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, IsEnabled = steps.Back, Height = 32 };
-                var value = new TextBlock { Text = Shown(row.Value), VerticalAlignment = VerticalAlignment.Center, MinWidth = 96, TextAlignment = TextAlignment.Center };
-                var forward = new Button { Content = new FontIcon { Glyph = "", FontSize = 12 }, IsEnabled = steps.Forward, Height = 32 };
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(back, $"{title}: previous");
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(forward, $"{title}: next");
-                back.Click += (_, _) => ctx.Send(new Command.StepSetting(row.Key, -1));
-                forward.Click += (_, _) => ctx.Send(new Command.StepSetting(row.Key, 1));
-                stepper.Children.Add(back);
-                stepper.Children.Add(value);
-                stepper.Children.Add(forward);
-                control = stepper;
+                var options = SettingsCatalog.Options(row.Key);
+                var box = new ComboBox { MinWidth = 200, ItemsSource = options.Select(o => Shown(o.Label)).ToList() };
+                var at = SettingsCatalog.Current(row) is { } current ? options.ToList().IndexOf(current) : -1;
+                if (at < 0)
+                    box.PlaceholderText = Shown(row.Value);
+                else
+                    box.SelectedIndex = at;
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, title);
+                box.SelectionChanged += (_, _) =>
+                {
+                    if (!quiet && box.SelectedIndex >= 0 && box.SelectedIndex != at)
+                        ctx.Send(new Command.SetSetting(row.Key, options[box.SelectedIndex].Value));
+                };
+                control = box;
                 break;
             }
-            case SettingChange.Typed typed:
+            case SettingControl.Text:
             {
-                var box = new TextBox { Text = typed.Text, MinWidth = 220, PlaceholderText = "Not set" };
+                var text = SettingsCatalog.TypedText(row) ?? "";
+                var box = new TextBox { Text = text, MinWidth = 220, PlaceholderText = "Not set" };
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, title);
                 void Commit()
                 {
-                    if (!quiet && box.Text.Trim() != typed.Text)
+                    if (!quiet && box.Text.Trim() != text)
                         ctx.Send(new Command.SetSetting(row.Key, new SettingValue.Str(box.Text.Trim())));
                 }
                 box.LostFocus += (_, _) => Commit();

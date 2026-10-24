@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Dispatching;
@@ -30,6 +31,13 @@ public sealed partial class PlayerView : UserControl
     double position, duration, volume = 100;
     Coming? upNext;
     PlayerUi.Menus? menus;
+    readonly StillWatching still = new();
+    bool pictureSeen, pointerHidden, mini, miniTipShown;
+    SeekPreview? preview;
+    PreviewSource? stream, thumbs, previewSource;
+    string? thumbnails;
+    readonly object loads = new();
+    PreviewSource? lastLoad;
 
     public PlayerView()
     {
@@ -41,6 +49,8 @@ public sealed partial class PlayerView : UserControl
         idle.Interval = IdleHide;
         idle.IsRepeating = false;
         idle.Tick += (_, _) => HideControlsIfIdle();
+        // A slider takes its pointer events: the preview listens even to the handled ones.
+        Timeline.AddHandler(PointerMovedEvent, new PointerEventHandler(OnTimelinePointerMoved), true);
     }
 
     /// <summary>True while the player is on screen.</summary>
@@ -62,7 +72,15 @@ public sealed partial class PlayerView : UserControl
         keepControls = ctx.Options.KeepControls;
     }
 
-    void Send(PlayerCommand command) => ctx?.Send(new Command.Player(command));
+    /// <summary>A player command that comes from the viewer: it also says somebody is there.</summary>
+    void Send(PlayerCommand command)
+    {
+        still.Input();
+        ctx?.Send(new Command.Player(command));
+    }
+
+    /// <summary>A player command the player sends itself, such as playing on when the countdown ends.</summary>
+    void SendQuietly(PlayerCommand command) => ctx?.Send(new Command.Player(command));
 
     // The window's side: show, hide, and what the player and the engine say.
 
@@ -71,6 +89,7 @@ public sealed partial class PlayerView : UserControl
         if (Showing)
             return;
         Visibility = Visibility.Visible;
+        still.Reset();
         ShowControls();
         tick.Start();
         Focus(FocusState.Programmatic);
@@ -83,10 +102,19 @@ public sealed partial class PlayerView : UserControl
             return;
         tick.Stop();
         idle.Stop();
+        ShowPointer();
+        ClosePreview();
+        if (mini)
+            MiniRequested?.Invoke(false);
+        SetMini(false);
+        still.Reset();
+        StillLayer.Visibility = Visibility.Collapsed;
         Visibility = Visibility.Collapsed;
         Starting.Visibility = Visibility.Collapsed;
         SkipCard.Visibility = UpNextCard.Visibility = StallCard.Visibility = AlertCard.Visibility = Visibility.Collapsed;
         upNext = null;
+        thumbnails = null;
+        thumbs = null;
         ShowingChanged?.Invoke(false);
     }
 
@@ -137,6 +165,11 @@ public sealed partial class PlayerView : UserControl
         {
             case PlayerUi.Starting s:
                 Open();
+                still.Started();
+                pictureSeen = false;
+                ClosePreview();
+                StillLayer.Visibility = Visibility.Collapsed;
+                still.Answered();
                 ShowTitle.Text = s.Title;
                 EpisodeTitle.Text = s.EpisodeTitle is { Length: > 0 } t ? $"Episode {s.EpisodeValue} · {t}" : $"Episode {s.EpisodeValue}";
                 StartingShow.Text = s.Title;
@@ -171,6 +204,7 @@ public sealed partial class PlayerView : UserControl
             case PlayerUi.UpNext next:
                 UpNextTitle.Text = next.Next.Title is { Length: > 0 } nt ? $"Episode {next.Next.Number} · {nt}" : $"Episode {next.Next.Number}";
                 upNext = new Coming(next.Auto, next.EndingAt, next.Countdown);
+                still.After = (int)next.StillWatchingAfter;
                 ShowUpNext();
                 break;
             case PlayerUi.UpNextCleared:
@@ -186,6 +220,12 @@ public sealed partial class PlayerView : UserControl
                 break;
             case PlayerUi.Alert alert:
                 Alert(alert.Text);
+                break;
+            case PlayerUi.Thumbnails thumb:
+                if (thumb.Url != thumbnails)
+                    ClosePreview();
+                thumbnails = thumb.Url;
+                thumbs = null;
                 break;
         }
     }
@@ -203,6 +243,11 @@ public sealed partial class PlayerView : UserControl
     {
         if (state.HasPicture && Starting.Visibility == Visibility.Visible)
             Starting.Visibility = Visibility.Collapsed;
+        if (state.HasPicture && !pictureSeen)
+        {
+            pictureSeen = true;
+            FirstPicture();
+        }
         paused = state.Paused;
         PlayPauseIcon.Glyph = paused ? "" : "";
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PlayPause, paused ? "Play" : "Pause");
@@ -262,6 +307,9 @@ public sealed partial class PlayerView : UserControl
 
     void ShowControls()
     {
+        ShowPointer();
+        if (still.Asking)
+            return;
         if (Chrome.Visibility != Visibility.Visible)
         {
             Chrome.Visibility = Visibility.Visible;
@@ -277,7 +325,35 @@ public sealed partial class PlayerView : UserControl
         if (keepControls || paused || overBar || menuOpen)
             return;
         Chrome.Visibility = Visibility.Collapsed;
+        PreviewBox.Visibility = Visibility.Collapsed;
         ControlsChanged?.Invoke(false);
+        HidePointer();
+    }
+
+    [LibraryImport("user32.dll")]
+    private static partial int ShowCursor([MarshalAs(UnmanagedType.Bool)] bool show);
+
+    /// <summary>The pointer goes with the controls when nobody is using it.</summary>
+    void HidePointer()
+    {
+        if (pointerHidden || !Showing)
+            return;
+        pointerHidden = true;
+        while (ShowCursor(false) >= 0)
+        {
+            // The count falls below zero and the pointer is gone.
+        }
+    }
+
+    void ShowPointer()
+    {
+        if (!pointerHidden)
+            return;
+        pointerHidden = false;
+        while (ShowCursor(true) < 0)
+        {
+            // Back to zero or above: the pointer is shown again.
+        }
     }
 
     void OnPointerMoved(object sender, PointerRoutedEventArgs e) => ShowControls();
@@ -342,7 +418,7 @@ public sealed partial class PlayerView : UserControl
     void OnForward10(object sender, RoutedEventArgs e) => Send(new PlayerCommand.Seek(10));
     void OnFullscreen(object sender, RoutedEventArgs e) => FullscreenRequested?.Invoke(null);
     void OnSkip(object sender, RoutedEventArgs e) => Send(new PlayerCommand.TakeSkip());
-    void OnPlayNext(object sender, RoutedEventArgs e) => PlayNext();
+    void OnPlayNext(object sender, RoutedEventArgs e) => PlayNext(auto: false);
     void OnCancelNext(object sender, RoutedEventArgs e) => CancelNext();
 
     /// <summary>
@@ -385,17 +461,23 @@ public sealed partial class PlayerView : UserControl
             UpNextBar.Value = l / card.Countdown;
             UpNextLine.Text = $"Plays in {Math.Ceiling(l)} s";
             if (l <= 0)
-                PlayNext();
+                PlayNext(auto: true);
         }
     }
 
-    void PlayNext()
+    void PlayNext(bool auto)
     {
         if (upNext is { Played: true })
             return;
         if (upNext is not null)
             upNext.Played = true;
-        Send(new PlayerCommand.PlayNext());
+        if (auto)
+        {
+            still.RollingOn();
+            SendQuietly(new PlayerCommand.PlayNext());
+        }
+        else
+            Send(new PlayerCommand.PlayNext());
     }
 
     void CancelNext()
@@ -514,14 +596,17 @@ public sealed partial class PlayerView : UserControl
     void OnKeySkip(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.TakeSkip()), show: false);
     void OnKeyNext(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Step(1)));
     void OnKeyPrevious(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Step(-1)));
+    void OnKeyMini(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => ToggleMini());
     void OnKeyClose(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, Close, show: false);
 
     void OnKeyEnter(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () =>
     {
-        if (StallCard.Visibility == Visibility.Visible)
+        if (still.Asking)
+            ContinueWatching();
+        else if (StallCard.Visibility == Visibility.Visible)
             Send(new PlayerCommand.StallSwitch());
         else if (UpNextCard.Visibility == Visibility.Visible)
-            PlayNext();
+            PlayNext(auto: false);
         else if (SkipCard.Visibility == Visibility.Visible)
             Send(new PlayerCommand.TakeSkip());
     });
@@ -529,7 +614,11 @@ public sealed partial class PlayerView : UserControl
     /// <summary>Esc: cancel Up Next or the stall prompt, then leave fullscreen, then close.</summary>
     void OnKeyEscape(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () =>
     {
-        if (UpNextCard.Visibility == Visibility.Visible)
+        if (still.Asking)
+            StillStopNow();
+        else if (mini)
+            ToggleMini();
+        else if (UpNextCard.Visibility == Visibility.Visible)
             CancelNext();
         else if (StallCard.Visibility == Visibility.Visible)
             Send(new PlayerCommand.StallWait());
@@ -538,6 +627,166 @@ public sealed partial class PlayerView : UserControl
         else
             Close();
     }, show: false);
+
+    // Still watching?
+
+    /// <summary>The new episode has its first picture: pause and ask when nobody has been here for a run of them.</summary>
+    void FirstPicture()
+    {
+        if (still.FirstPicture())
+            AskStillWatching();
+#if ANISTREAM_TESTING
+        else if (ctx?.Options.Show is { } show)
+            Demo(show);
+#endif
+    }
+
+    void AskStillWatching()
+    {
+        StillLine.Text = $"Paused after {still.After} episodes in a row.";
+        StillLayer.Visibility = Visibility.Visible;
+        Chrome.Visibility = Visibility.Collapsed;
+        ControlsChanged?.Invoke(false);
+        ShowPointer();
+        if (!paused)
+            SendQuietly(new PlayerCommand.TogglePause());
+        StillContinue.Focus(FocusState.Programmatic);
+    }
+
+    void ContinueWatching()
+    {
+        still.Input();
+        still.Answered();
+        StillLayer.Visibility = Visibility.Collapsed;
+        if (paused)
+            SendQuietly(new PlayerCommand.TogglePause());
+        ShowControls();
+    }
+
+    void StillStopNow()
+    {
+        still.Answered();
+        StillLayer.Visibility = Visibility.Collapsed;
+        Close();
+    }
+
+    void OnStillContinue(object sender, RoutedEventArgs e) => ContinueWatching();
+    void OnStillStop(object sender, RoutedEventArgs e) => StillStopNow();
+
+#if ANISTREAM_TESTING
+    /// <summary>A state to bring up for a screenshot, on the testing build: <c>--show=still|mini|preview</c>.</summary>
+    async void Demo(string what)
+    {
+        await Task.Delay(1200);
+        switch (what)
+        {
+            case "still":
+                still.After = 3;
+                AskStillWatching();
+                break;
+            case "mini":
+                ToggleMini();
+                break;
+            case "preview":
+                ShowControls();
+                PreviewAtFraction(0.4);
+                break;
+        }
+    }
+#endif
+
+    // The mini player: the video in a small window that stays on top.
+
+    /// <summary>Asked to go into the mini window (true), or back (false).</summary>
+    internal event Action<bool>? MiniRequested;
+
+    void OnMini(object sender, RoutedEventArgs e) => ToggleMini();
+
+    void ToggleMini()
+    {
+        var on = !mini;
+        SetMini(on);
+        MiniRequested?.Invoke(on);
+        if (on && !miniTipShown)
+        {
+            miniTipShown = true;
+            MiniTip.IsOpen = true;
+            _ = Task.Delay(TimeSpan.FromSeconds(6)).ContinueWith(_ => DispatcherQueue.TryEnqueue(() => MiniTip.IsOpen = false));
+        }
+        ShowControls();
+    }
+
+    /// <summary>The controls of the small window: play, skip, the timeline, and the way back.</summary>
+    void SetMini(bool on)
+    {
+        mini = on;
+        var big = on ? Visibility.Collapsed : Visibility.Visible;
+        BackButton.Visibility = TracksButton.Visibility = EpisodesButton.Visibility = FullscreenButton.Visibility = big;
+        Elapsed.Visibility = Remaining.Visibility = VolumeButton.Visibility = SettingsButton.Visibility = big;
+        Corner.Visibility = big;
+        ShowTitle.FontSize = on ? 14 : 18;
+        ShowTitle.LineHeight = on ? 20 : 24;
+        EpisodeTitle.Visibility = big;
+        TopBar.Padding = on ? new Thickness(12, 6, 140, 6) : new Thickness(8, 8, 148, 8);
+        MiniIcon.Glyph = on ? "\uE73F" : "\uE8A7";
+        ToolTipService.SetToolTip(MiniButton, on ? "Back to the window (P)" : "Mini player (P)");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MiniButton, on ? "Back to the window" : "Mini player");
+        if (on)
+            ClosePreview();
+    }
+
+    // Previews on the timeline.
+
+    internal void NoteLoad(PlayerOp[] ops)
+    {
+        foreach (var op in ops)
+        {
+            if (op is PlayerOp.Load load)
+            {
+                lock (loads)
+                    lastLoad = new PreviewSource(load.Url, PreviewSource.Reach(load.Options));
+            }
+        }
+    }
+
+    PreviewSource? Source()
+    {
+        PreviewSource? now;
+        lock (loads)
+            now = lastLoad;
+        if (thumbnails is { Length: > 0 } url)
+            return thumbs ??= new PreviewSource(url, now?.Options ?? []);
+        return stream is not null && now is not null && stream.Url == now.Url ? stream : stream = now;
+    }
+
+    void OnTimelinePointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (mini || duration <= 0)
+            return;
+        var point = e.GetCurrentPoint(Timeline).Position;
+        PreviewAtFraction(Math.Clamp((point.X - 10) / Math.Max(1, Timeline.ActualWidth - 20), 0, 1));
+    }
+
+    void PreviewAtFraction(double fraction)
+    {
+        if (duration <= 0 || ctx is null || Source() is not { } from)
+            return;
+        var seconds = PreviewSource.TimeAt(fraction * (Timeline.ActualWidth - 20), Timeline.ActualWidth - 20, duration);
+        preview ??= new SeekPreview(ctx.Session.Engine, PreviewPanel, DispatcherQueue);
+        preview.Show(seconds, from, XamlRoot?.RasterizationScale ?? 1.0);
+        PreviewTime.Text = AnistreamFfiMethods.PlayClock(seconds);
+        var left = Timeline.TransformToVisual(Chrome).TransformPoint(new global::Windows.Foundation.Point(10 + fraction * (Timeline.ActualWidth - 20), 0)).X;
+        PreviewBox.Margin = new Thickness(Math.Clamp(left - 84, 8, Math.Max(8, Chrome.ActualWidth - 176)), 0, 0, 8);
+        PreviewBox.Visibility = Visibility.Visible;
+    }
+
+    void OnTimelineExited(object sender, PointerRoutedEventArgs e) => PreviewBox.Visibility = Visibility.Collapsed;
+
+    void ClosePreview()
+    {
+        PreviewBox.Visibility = Visibility.Collapsed;
+        preview?.Close();
+    }
 
     /// <summary>The top bar's title: what drags the window while the player is up.</summary>
     internal UIElement DragArea => TitleArea;
