@@ -760,8 +760,14 @@ class PlayerModel(
                 played()
             }
             "duration" -> {
+                val before = duration
                 duration = value.double
-                changed()
+                // The media session hears of whole seconds only: a stream whose length grows as it
+                // is read sends this many times a second, and each rebuilds the session's metadata.
+                val after = duration
+                if ((before == null) != (after == null) || (before != null && after != null && kotlin.math.abs(after - before) >= 1.0)) {
+                    changed()
+                }
             }
             "pause" -> {
                 paused = value.bool ?: paused
