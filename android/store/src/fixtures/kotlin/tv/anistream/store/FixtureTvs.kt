@@ -5,6 +5,7 @@
 package tv.anistream.store
 
 import android.util.Log
+import kotlinx.coroutines.delay
 import tv.anistream.engine.ffi.FfiDiscoverySink
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
@@ -39,7 +40,8 @@ object FixtureTvs {
 
     /**
      * Set up [scene] on [model], whose browse is [fakes]: Bedroom paired first in every scene, then
-     * the picker, Living room's code, or Living room playing [play] with its card open.
+     * the picker, Living room's code, or Living room playing [play] with its card open, and in the lost
+     * scene then gone from the network.
      */
     suspend fun stage(model: TvRemoteModel, scene: TvScene, browser: FfiTvBrowser, play: TvPlayRequest) {
         val sender = model.attachedSender ?: return
@@ -56,11 +58,19 @@ object FixtureTvs {
                     model.openPicker()
                     model.begin(model.rows.value.firstOrNull { it.name == "Living room" }?.key ?: living.pairLink(null))
                 }
-                TvScene.REMOTE -> {
+                TvScene.REMOTE, TvScene.LOST -> {
                     val tv = sender.pair(living.pairLink(living.openCode())).pair(null)
                     model.refresh()
                     model.offer(play)
                     model.use(tv.fingerprint)
+                    if (scene == TvScene.LOST) {
+                        var waited = 0
+                        while (model.card.value?.card?.now?.loading != false && waited < 100) {
+                            delay(100)
+                            waited++
+                        }
+                        living.stop()
+                    }
                 }
             }
         } catch (e: FfiTvException) {

@@ -112,6 +112,8 @@ class TvRemoteTest {
         val playing = tv.card.until { it?.card?.now?.let { now -> !now.loading && now.episode == "3" } == true }!!
         assertEquals(900001u, playing.card.now!!.id)
         assertFalse(playing.card.over)
+        // Once the TV names the episode, the card shows the TV's own state, not the request's.
+        assertNull(tv.starting.until { it == null })
         assertNotNull(withContext(main) { tv.playhead() })
 
         val paused = playing.card.now!!.paused
@@ -130,5 +132,24 @@ class TvRemoteTest {
             assertNull(tv.sheet.value)
         }
         tv.paired.until { it.isEmpty() }
+    }
+
+    @Test
+    fun a_tv_gone_mid_episode_stops_the_playhead_where_it_went(): Unit = runBlocking {
+        val link = requireNotNull(FixtureTvs.openLink(browser, 0))
+        withContext(main) { assertTrue(tv.open(link)) }
+        tv.card.until { it?.card?.phase == FfiLinkPhase.CONNECTED }
+        withContext(main) { tv.offer(TvPlayRequest(900001u, "Fixture title", "3")) }
+        tv.card.until { it?.card?.now?.let { now -> !now.loading } == true }
+        assertTrue(tv.card.value!!.live)
+
+        (browser as FixtureTvBrowser).tvs[0].stop()
+        val lost = tv.card.until { it != null && it.card.phase != FfiLinkPhase.CONNECTED }!!
+        assertFalse(lost.live)
+        assertNotNull(lost.lostAt)
+        assertNotNull(lost.card.now)
+        val stopped = withContext(main) { tv.playhead() }
+        delay(1_200)
+        assertEquals(stopped, withContext(main) { tv.playhead() })
     }
 }
