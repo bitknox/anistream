@@ -177,6 +177,9 @@ public struct PhonePlayerView: View {
                         .disabled(!model.pictureInPictureAvailable)
                         .opacity(model.pictureInPictureAvailable ? 1 : 0.4)
                 }
+                if model.playOnTVAvailable {
+                    headerButton("tv", "Play on TV") { model.playOnTV() }
+                }
                 AirPlayButton()
                     .frame(width: 44, height: 44)
                     .accessibilityLabel("AirPlay")

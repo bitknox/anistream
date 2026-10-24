@@ -15,13 +15,21 @@ extension View {
     /// iPad it covers the window. On both it moves to the system's Picture in Picture window and
     /// back.
     public func hostsPlayer(_ model: PlayerModel) -> some View {
-        modifier(HostsPlayer(model: model))
+        modifier(HostsPlayer(model: model, over: EmptyModifier()))
+    }
+
+    /// The same, with `over` on the player on iPhone and iPad, where it covers the window: the
+    /// sheets the player's own buttons open, Play on TV's among them, which the window cannot
+    /// present while the cover is up.
+    public func hostsPlayer<Over: ViewModifier>(_ model: PlayerModel, over: Over) -> some View {
+        modifier(HostsPlayer(model: model, over: over))
     }
 }
 
-struct HostsPlayer: ViewModifier {
+struct HostsPlayer<Over: ViewModifier>: ViewModifier {
     @Environment(AppStore.self) private var store
     let model: PlayerModel
+    let over: Over
     @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
     @Namespace private var zoom
     @State private var pip: PictureInPicture?
@@ -101,6 +109,7 @@ struct HostsPlayer: ViewModifier {
                     set: { up in if !up, model.inMainWindow { model.viewerClosed() } })
             ) {
                 PhonePlayerView(model: model)
+                    .modifier(over)
                     .environment(store)
                     .navigationTransition(.zoom(sourceID: model.staged?.id ?? 0, in: zoom))
                     .interactiveDismissDisabled()
