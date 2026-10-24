@@ -42,6 +42,10 @@ final class AppDelegate: NSObject {
         playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
+        // Play on TV from the player: the TV picker over it, and the player closed once the TV
+        // plays the episode.
+        player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
+        store.tv.handedOff = { [weak player = self.player] in player?.viewerClosed() }
         // The App Intents reach the app here, from its first moment: an intent can be what
         // launched it, before any window has started the engine.
         let intents = IntentsBridge.shared
@@ -150,6 +154,10 @@ final class AppDelegate: NSObject {
         // A screenshot of the player: play the Playing scene's episode to the state named.
         if let shot = PlayerShot.named(in: ProcessInfo.processInfo.arguments) {
             ready = await player.stage(shot, store: store)
+        }
+        // A screenshot of Play on TV: the scene the arguments name, on screen.
+        if let scene = TVScene.named() {
+            ready = await store.tv.reached(scene) && ready
         }
         #endif
         if ready {
