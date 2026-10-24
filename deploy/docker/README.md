@@ -1,6 +1,6 @@
 # Run a plugin store with Docker
 
-The store's image, `ghcr.io/bitknox/anistream-store:1`, runs on any machine with Docker: a VPS, a
+The store's image, `ghcr.io/bitknox/anistream-store:2`, runs on any machine with Docker: a VPS, a
 NAS or a computer at home. It is built for x86-64 and 64-bit ARM, and keeps everything in one
 volume mounted at `/data`.
 
@@ -71,7 +71,7 @@ docker run -d --name anistream-store --restart unless-stopped \
   -v anistream-store:/data \
   -e ANISTREAM_STORE_URL=https://plugins.example.com \
   -e ANISTREAM_STORE_TRUST_PROXY=true \
-  ghcr.io/bitknox/anistream-store:1
+  ghcr.io/bitknox/anistream-store:2
 ```
 
 Point the proxy at `127.0.0.1:7878`. `ANISTREAM_STORE_TRUST_PROXY` makes the store believe the
@@ -114,8 +114,15 @@ docker compose pull
 docker compose up -d
 ```
 
-The `1` tag follows every 1.x release. To stay on one release, use a full version such as
-`ghcr.io/bitknox/anistream-store:1.0.0` in the compose file.
+The store brings its database up to date when the new version starts, and refuses to start on a
+database a newer version has used, so going back means restoring a backup.
+
+The `2` tag follows every 2.x release. A new major version needs the tag changed by hand, after
+reading its release notes. To stay on one release, use a full version such as
+`ghcr.io/bitknox/anistream-store:2.0.8` in the compose file.
+
+The store's admin page can tell you when a new release is out: open This store and choose Check
+for updates. The check runs in your browser and asks GitHub, not the store.
 
 ## Back up
 
