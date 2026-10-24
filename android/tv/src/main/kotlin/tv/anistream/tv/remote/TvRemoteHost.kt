@@ -40,6 +40,15 @@ import tv.anistream.engine.ffi.FfiTvRemote
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.store.AppStore
 
+/** This TV's IPv4 address on its network, for QR codes: the pairing link, the sign-in page. */
+fun localAddress(context: Context): String? {
+    val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return null
+    val links = connectivity.getLinkProperties(connectivity.activeNetwork) ?: return null
+    return links.linkAddresses.map { it.address }
+        .firstOrNull { it is Inet4Address && !it.isLoopbackAddress }
+        ?.hostAddress
+}
+
 /** A phone asked to pair: the code to show it, and what it is called. */
 data class PairRequest(val code: String, val phone: String)
 
@@ -302,7 +311,8 @@ class TvRemoteHost(
         }
     }
 
-    private fun say(line: String) {
+    /** Show [line] in the top right for a few seconds. */
+    fun say(line: String) {
         notice = line
         noticeJob?.cancel()
         noticeJob = scope.launch {
@@ -328,14 +338,7 @@ class TvRemoteHost(
         remote?.setVolume(audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100.0 / max)
     }
 
-    /** This TV's IPv4 address on its network, for the QR code. */
-    private fun address(): String? {
-        val connectivity = context.getSystemService(ConnectivityManager::class.java) ?: return null
-        val links = connectivity.getLinkProperties(connectivity.activeNetwork) ?: return null
-        return links.linkAddresses.map { it.address }
-            .firstOrNull { it is Inet4Address && !it.isLoopbackAddress }
-            ?.hostAddress
-    }
+    private fun address(): String? = localAddress(context)
 
     companion object {
         const val TAG = "anistream-remote"

@@ -40,9 +40,11 @@ import tv.anistream.engine.model.SettingChange
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.SettingsView
 import tv.anistream.engine.model.SyncState
+import tv.anistream.store.AccountsModel
 import tv.anistream.store.AppStore
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.tv.home.LocalWatchNext
+import tv.anistream.tv.remote.ConfirmDialog
 import tv.anistream.tv.remote.LocalRemoteHost
 import tv.anistream.tv.remote.RemovePhoneDialog
 import tv.anistream.tv.shell.TvNavigator
@@ -127,7 +129,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
                     SettingsSection.Playback -> playback(store, view, memory)
                     SettingsSection.Sources -> sources(memory)
                     SettingsSection.PluginStores -> pluginStores(memory)
-                    SettingsSection.Accounts -> accounts(memory)
+                    SettingsSection.Accounts -> accounts(nav, memory)
                     SettingsSection.Remotes -> remotes(memory)
                     SettingsSection.ThisTv -> thisTv(memory)
                     SettingsSection.About -> about(memory)
@@ -212,19 +214,33 @@ private fun LazyListScope.pluginStores(memory: FocusMemory) {
     }
 }
 
-private fun LazyListScope.accounts(memory: FocusMemory) {
+private fun LazyListScope.accounts(nav: TvNavigator, memory: FocusMemory) {
     item(key = "accounts", contentType = "list") {
         val store = LocalAppStore.current
         val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
+        var signingOut by remember { mutableStateOf<String?>(null) }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Trackers.forEach { (id, name) ->
                 TvListRow(
                     name,
-                    onClick = {},
+                    onClick = { if (trackers[id]?.connected == true) signingOut = id else nav.openSignIn(id) },
                     supporting = accountLine(trackers[id]),
                     modifier = Modifier.remembered(memory, "account/$id"),
                 )
             }
+        }
+        signingOut?.let { id ->
+            val name = AccountsModel.name(id)
+            ConfirmDialog(
+                title = "Sign out of $name?",
+                body = "This TV stops syncing with $name. Your list stays on $name.",
+                action = "Sign out",
+                onConfirm = {
+                    store.disconnect(id)
+                    signingOut = null
+                },
+                onCancel = { signingOut = null },
+            )
         }
     }
 }

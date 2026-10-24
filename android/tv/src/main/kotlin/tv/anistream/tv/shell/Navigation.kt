@@ -39,6 +39,11 @@ sealed interface Page {
     data class Title(val id: AnilistId, override val key: String) : Page {
         override val memory: FocusMemory = FocusMemory()
     }
+
+    /** TVSignIn for a tracker, over Settings › Accounts. */
+    data class SignIn(val tracker: String, override val key: String) : Page {
+        override val memory: FocusMemory = FocusMemory()
+    }
 }
 
 /**
@@ -110,6 +115,11 @@ class TvNavigator(start: Destination = Destination.Continue) {
     fun openTitle(id: AnilistId) {
         opened += 1
         pages += Page.Title(id, "title/$id/$opened")
+    }
+
+    fun openSignIn(tracker: String) {
+        opened += 1
+        pages += Page.SignIn(tracker, "sign-in/$tracker/$opened")
     }
 
     /** Close the top page; false when there was none. */

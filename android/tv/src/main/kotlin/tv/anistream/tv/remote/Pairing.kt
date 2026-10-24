@@ -109,9 +109,9 @@ fun PairRequestDialog(request: PairRequest, onCancel: () -> Unit) {
     }
 }
 
-/** Settings › Remotes › a paired phone: remove it, after asking. */
+/** A question with one action and Cancel, Cancel focused: removing a phone, signing out. */
 @Composable
-fun RemovePhoneDialog(phone: String, onRemove: () -> Unit, onCancel: () -> Unit) {
+fun ConfirmDialog(title: String, body: String, action: String, onConfirm: () -> Unit, onCancel: () -> Unit) {
     Dialog(onDismissRequest = onCancel) {
         val cancel = remember { FocusRequester() }
         LaunchedEffect(Unit) { runCatching { cancel.requestFocus() } }
@@ -122,20 +122,26 @@ fun RemovePhoneDialog(phone: String, onRemove: () -> Unit, onCancel: () -> Unit)
                 .padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Remove $phone?", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
-            Text(
-                "It stops working as a remote for this TV. It can pair again with a new code.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = ObiSilk.Haze,
-            )
+            Text(title, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+            Text(body, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TonalButton(onClick = onCancel, modifier = Modifier.focusRequester(cancel)) { ButtonLabel("Cancel") }
-                TonalButton(onClick = onRemove) { ButtonLabel("Remove") }
+                TonalButton(onClick = onConfirm) { ButtonLabel(action) }
             }
         }
     }
 }
+
+/** Settings › Remotes › a paired phone: remove it, after asking. */
+@Composable
+fun RemovePhoneDialog(phone: String, onRemove: () -> Unit, onCancel: () -> Unit) = ConfirmDialog(
+    title = "Remove $phone?",
+    body = "It stops working as a remote for this TV. It can pair again with a new code.",
+    action = "Remove",
+    onConfirm = onRemove,
+    onCancel = onCancel,
+)
 
 /**
  * TVPair: Settings › Remotes › Pair a phone. A QR code of this TV's address, key and code, the

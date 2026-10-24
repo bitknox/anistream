@@ -51,6 +51,7 @@ import tv.anistream.tv.screens.SeasonalScreen
 import tv.anistream.tv.screens.SettingsScreen
 import tv.anistream.tv.screens.SettingsSection
 import tv.anistream.tv.screens.TitleScreen
+import tv.anistream.tv.signin.SignInScreen
 import tv.anistream.tv.ui.KeyRepeat
 import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.LocalKeyRepeat
@@ -171,6 +172,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit) {
                 Box(Modifier.fillMaxSize()) {
                     when (target) {
                         is Page.Title -> TitleScreen(target.id, target.memory, onOpen = nav::openTitle, onPlay = play)
+                        is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
                         Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
                         Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
                         Destination.Calendar -> CalendarScreen(nav, nav.memory(Destination.Calendar), onOpen = nav::openTitle)
