@@ -14,30 +14,45 @@ struct PhoneContinue: View {
     @Environment(AppStore.self) private var store
     @Environment(\.playerUp) private var playerUp
     @Environment(Navigator.self) private var navigator
+    /// Whether the queue is what shows, so New this week's rows stand under its hero.
+    @State private var rowsShown = false
 
     var body: some View {
         let queue = store.continuing.queue(store.titles)
-        ScrollView {
+        let fresh = Self.fresh(queue)
+        // A list, so New this week's rows take their swipes (native-ux), drawn as the scroll
+        // view was: the states, the hero and the rail one row, then a row each.
+        List {
             ListStates(
                 state: store.continuing.list.state,
                 placeholder: AnyView(PhoneContinuePlaceholder().padding(.horizontal, 16)),
                 activity: "loading continue watching",
                 failure: "Couldn't load Continue",
                 retry: { store.loadContinue(force: true) },
-                offlineInset: 16
+                offlineInset: 16,
+                rowsShown: $rowsShown
             ) { _ in
                 if queue.all.isEmpty {
                     NothingToContinue().frame(minHeight: 480)
                 } else {
-                    queueView(queue)
+                    queueView(queue, fresh: fresh)
                 }
             } empty: {
                 WelcomeContinue(compact: true)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 24)
             }
+            .bareRow()
+            if rowsShown, !fresh.isEmpty {
+                ForEach(fresh) { item in
+                    PhoneNewRow(item: item)
+                        .continueSwipes(item)
+                        .bareRow(EdgeInsets(top: 2, leading: 16, bottom: 0, trailing: 16))
+                }
+                Color.clear.frame(height: 24).bareRow()
+            }
         }
-        .scrollContentBackground(.hidden)
+        .bareList()
         .navigationSubtitle(store.syncSubtitle(nothingWatched: store.continuing.list.state == .empty))
         .toolbar { AccountButton() }
         .pullToRefresh(store, .continueWatching)
@@ -51,7 +66,12 @@ struct PhoneContinue: View {
         }
     }
 
-    private func queueView(_ queue: ContinueQueue) -> some View {
+    /// New this week's titles, less the one the hero shows.
+    private static func fresh(_ queue: ContinueQueue) -> [ContinueItem] {
+        queue.inProgress.isEmpty ? Array(queue.newThisWeek.dropFirst()) : queue.newThisWeek
+    }
+
+    private func queueView(_ queue: ContinueQueue, fresh: [ContinueItem]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             if let hero = queue.inProgress.first ?? queue.newThisWeek.first {
                 PhoneHero(item: hero)
@@ -70,15 +90,13 @@ struct PhoneContinue: View {
                 .padding(.horizontal, -16)
                 .padding(.top, 10)
             }
-            let fresh = queue.inProgress.isEmpty ? Array(queue.newThisWeek.dropFirst()) : queue.newThisWeek
             if !fresh.isEmpty {
+                // Its rows follow as rows of the list.
                 PhoneHeading("New this week").padding(.top, 16)
-                ForEach(fresh) { PhoneNewRow(item: $0) }
-                    .padding(.top, 2)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.bottom, 24)
+        .padding(.bottom, fresh.isEmpty ? 24 : 0)
     }
 }
 

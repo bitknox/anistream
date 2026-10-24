@@ -222,6 +222,9 @@ struct ListStates<Loaded: View, Empty: View>: View {
     /// How far the offline line sits in from the sides, where the list's own rows set their
     /// margins themselves.
     var offlineInset: CGFloat = 0
+    /// Set while the loaded list is what shows, for a List that draws rows of its own under it:
+    /// they come and go with the answer, in its crossfade.
+    var rowsShown: Binding<Bool>?
     @ViewBuilder let loaded: ([AnilistId]) -> Loaded
     @ViewBuilder let empty: () -> Empty
 
@@ -267,6 +270,16 @@ struct ListStates<Loaded: View, Empty: View>: View {
             }
         }
         .task(id: state) { await follow(state) }
+        .onChange(of: rowsOnScreen, initial: true) { old, now in
+            guard let rowsShown, rowsShown.wrappedValue != now else { return }
+            withAnimation(old == now ? nil : .standard) { rowsShown.wrappedValue = now }
+        }
+    }
+
+    /// Whether the answer on screen is a loaded list with something in it.
+    private var rowsOnScreen: Bool {
+        guard stage != .placeholders, case .loaded(let ids) = shown else { return false }
+        return !ids.isEmpty
     }
 
     @ViewBuilder
