@@ -321,14 +321,25 @@ class TvRemoteHost(
         }
     }
 
-    /** Step the system's own volume by [step] points of 100, at least one of its steps. */
+    /**
+     * Step the system's own volume by [step] points of 100, at least one of its steps. A box on
+     * HDMI keeps its own volume at full and leaves loudness to the TV: there the step goes to the
+     * TV over HDMI-CEC as presses of its volume key, one for every 5 points, when CEC allows it.
+     */
     private fun stepVolume(step: Double) {
         val audio = context.getSystemService(AudioManager::class.java) ?: return
+        if (step == 0.0) return
         val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
         val now = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
         var target = ((now * 100.0 / max + step) * max / 100.0).roundToInt().coerceIn(0, max)
-        if (target == now && step != 0.0) target = (now + step.sign.toInt()).coerceIn(0, max)
-        audio.setStreamVolume(AudioManager.STREAM_MUSIC, target, AudioManager.FLAG_SHOW_UI)
+        if (target == now) target = (now + step.sign.toInt()).coerceIn(0, max)
+        if (!audio.isVolumeFixed) audio.setStreamVolume(AudioManager.STREAM_MUSIC, target, AudioManager.FLAG_SHOW_UI)
+        if (audio.getStreamVolume(AudioManager.STREAM_MUSIC) == now) {
+            val direction = if (step > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER
+            repeat((kotlin.math.abs(step) / CEC_STEP).roundToInt().coerceIn(1, CEC_PRESSES_MAX)) {
+                audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+            }
+        }
         reportVolume()
     }
 
@@ -350,6 +361,9 @@ class TvRemoteHost(
         const val CODE_REFRESH_MILLIS = 290_000L
         const val NOTICE_MILLIS = 4_000L
         private const val FINDABLE = "findable"
+        /** Points of a phone's volume step per press of the TV's volume key over HDMI-CEC. */
+        private const val CEC_STEP = 5.0
+        private const val CEC_PRESSES_MAX = 5
         private const val STARTING_TRIES = 50
         private const val STARTING_PAUSE_MILLIS = 100L
     }
