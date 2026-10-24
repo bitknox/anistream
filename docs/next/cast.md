@@ -109,9 +109,9 @@ The card and the picker use Play on TV's motion: rows insert and remove with sta
 | Platform | Sender | Discovery | Transport | Staying alive while relaying |
 | --- | --- | --- | --- | --- |
 | Mac | Yes | `NWBrowser` for `_googlecast._tcp`; the Local Network prompt (macOS 15 and later) | The engine's Cast v2 | `ProcessInfo.beginActivity(.idleSystemSleepDisabled)` for the cast |
-| iPhone | Yes, see the open questions | `NWBrowser`, with `NSBonjourServices` listing `_googlecast._tcp` and `NSLocalNetworkUsageDescription` | The engine's Cast v2 | Direct routes need nothing. Relayed routes need the app running: iOS suspends it seconds after it leaves the screen |
+| iPhone | Yes, on screen for relayed streams (see Decided) | `NWBrowser`, with `NSBonjourServices` listing `_googlecast._tcp` and `NSLocalNetworkUsageDescription` | The engine's Cast v2 | Direct routes need nothing. Relayed routes need the app running: iOS suspends it seconds after it leaves the screen |
 | iPad | As iPhone | As iPhone | As iPhone | As iPhone, though an iPad on a stand with the card open is the common case |
-| Android | Yes | `NsdManager`, with `ACCESS_LOCAL_NETWORK` on Android 17 | The engine's Cast v2, or the Cast SDK (open question 1) | The `mediaPlayback` foreground service and its notification, a `WIFI_MODE_FULL_LOW_LATENCY` Wi-Fi lock and a partial wake lock while the relay serves |
+| Android | Yes | `NsdManager`, with `ACCESS_LOCAL_NETWORK` on Android 17 | The engine's Cast v2 | The `mediaPlayback` foreground service and its notification, a `WIFI_MODE_FULL_LOW_LATENCY` Wi-Fi lock and a partial wake lock while the relay serves |
 | Android TV | No | | | A TV is a receiver; it doesn't cast to another TV |
 | Windows | Yes | `DnsServiceBrowse` (Win32 DNS-SD) | The engine's Cast v2 | The relay's first listen raises Windows Defender Firewall's prompt; the picker says beforehand "Windows will ask to let anistream reach your TV" |
 | Linux | Yes | Avahi over D-Bus, or the spike's own one-shot mDNS query where Avahi is absent | The engine's Cast v2 | A firewall (firewalld, ufw) may drop the TV's requests; the state above names it |
@@ -225,14 +225,16 @@ Large, about four weeks, after the gate.
 - Android: four days. Mac and terminal: three days together. iPhone and iPad: four days, including the background decision. Windows and Linux: three days together.
 - Then the polish pass on each sender's picker and card.
 
-## Open questions for Johan
+## Decided
 
-1. Android transport. Options: the engine's own Cast v2 everywhere, with discovery through `NsdManager`; or Google's Cast SDK on Android, which brings the system's Output Switcher entry, its cast dialog and reconnection, and needs Google Play services. Recommended: the engine's own. You chose no Play services for Play on TV's pairing, it keeps one implementation for every sender, and the media session notification already gives lock-screen control.
-2. iPhone and iPad in the background with a relayed stream. Options: keep the app alive with a silent audio session, which SideStore builds can use (no App Review applies) at a battery cost; cast relayed streams only while the app is on screen, with the idle timer off and the card saying so; or relay only on Mac, Android, Windows, Linux and the terminal, with iPhone casting direct routes alone. Recommended: on screen only for the first release, with direct routes free to run in the background, then measure the silent-audio path on a phone before offering it.
-3. Subtitles. Options: WebVTT on the Default Media Receiver (signs and songs lost); a custom receiver with libass in WebAssembly from the start ($5 once, an HTTPS page, untested on a Chromecast's CPU). Recommended: WebVTT first. It is built, and the receiver can follow if the loss bothers people.
-4. Torrents while casting from a phone. Options: allow them, with the battery cost said once; allow them only while charging; keep them to computers. Recommended: off by default on phones and tablets, a switch to allow them (the Settings row above).
-5. The relay's exposure: an HTTP listener on the LAN for the length of a cast, behind the token and the allow-list, closed after 10 minutes paused. Options: accept it as designed; also require the sender and the TV on the same subnet and refuse otherwise. Recommended: accept it, with the subnet check added, since a TV on another subnet is almost always a guest network.
-6. AirPlay to Apple TVs and AirPlay TVs. The spike found AVPlayer plays our relayed HLS and remuxes, and external playback keeps an iPhone alive legitimately. Options: a separate spec after this one; fold it into this release. Recommended: a separate spec. It needs a test device you don't have, and the Chromecast work stands alone.
+Settled on 24 October 2026. Each question took the recommended default.
+
+1. Android transport: the engine's own Cast v2 everywhere, with discovery through `NsdManager`, the default chosen. No Google Play services, as for Play on TV's pairing; the media session notification gives lock-screen control.
+2. iPhone and iPad in the background: relayed streams cast only while the app is on screen, with the idle timer off and the card saying so; direct routes run in the background. The default chosen. The silent-audio path gets measured on a phone before it is offered.
+3. Subtitles: WebVTT on the Default Media Receiver first, the default chosen. A custom receiver with libass can follow if the loss of signs and songs bothers people.
+4. Torrents while casting from a phone or tablet: off by default, with the Settings row to allow them. The default chosen.
+5. The relay's exposure: accepted as designed, with the same-subnet check added, the default chosen.
+6. AirPlay: a separate spec after this one, the default chosen.
 
 ## Sources
 

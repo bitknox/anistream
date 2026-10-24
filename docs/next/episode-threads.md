@@ -214,7 +214,7 @@ Spoiler protection, the existing row, also covers discussions; its footnote gain
 - Comments are AniList users' words. The app shows them as AniList returns them, attributes each to its author, and links to the thread on AniList. It doesn't keep them beyond the 7-day offline cache.
 - Images in comments come from wherever their authors host them. Loading them off by default means the app makes no request to third-party hosts unless the viewer asks.
 - Comments may mention where people watched. The app neither filters nor links them in any special way: links open in the browser like any other. anistream hosts no content.
-- Reporting a comment goes through Open on AniList; AniList's moderation applies.
+- Moderation is AniList's. The app builds no reporting, blocking or filtering of its own: it posts to AniList, so AniList's rules and moderators apply, and a viewer who wants to report a comment does it on AniList through Open on AniList.
 
 ## Size
 
@@ -225,13 +225,15 @@ About two weeks, then the polish pass:
 - The engine's view, commands, caching and budget: two days.
 - The sheet or pane on each app (Mac, iPhone and iPad together, Android, Windows, Linux): four days.
 
-## Open questions for Johan
+## Decided
 
-1. Read only first, or posting too. Options: ship reading first and add posting later; ship both. Recommended: both, since replying is most of why people open a thread and the token is already there.
-2. Images in comments. Options: off by default, a line that opens the browser; on by default; never load them. Recommended: off by default with the setting.
-3. Where it shows in the player. Options: the More menu from 85%; a quiet line on the Up Next card too; nowhere in the player. Recommended: the More menu only, so the end of an episode stays about the next one.
-4. The quiet row after an episode. Options: show it whenever a thread exists; show it only on the episode screen, not the title page's list. Recommended: whenever a thread exists.
-5. Shows with no thread. Options: show nothing; offer Start a discussion, which opens AniList's new-thread page. Recommended: show nothing, so the app doesn't encourage threads that break the convention.
+Settled on 24 October 2026. Where Johan answered, it says so; every other question took the recommended default.
+
+1. Reading and posting: both from the start, with the viewer's AniList account. Johan's choice. Since everything posts to AniList, there is no moderation surface in the app to build.
+2. Images in comments: off by default, a line that opens the browser, with the setting to load them. The default chosen.
+3. In the player: the More menu from 85% only. The default chosen.
+4. The quiet row after an episode: shown whenever a thread exists. The default chosen.
+5. Shows with no thread: nothing shown. The default chosen.
 
 ## Sources
 

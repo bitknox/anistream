@@ -155,12 +155,14 @@ Small to medium.
 - Android's skip action and the permission note: one day. The setting on every app: one day.
 - Then the polish pass, with screen recordings of leaving and restoring on each device.
 
-## Open questions for Johan
+## Decided
 
-1. The default. Options: on, as the system's own switch and most video apps behave; off, so leaving the app keeps today's audio-only behaviour unless asked. Recommended: on.
-2. If iOS refuses the GPU in the background. Options: build the software renderer path at 540p; keep Picture in Picture on iPhone and iPad to the button while in front, with leaving staying audio-only. Recommended: build path 2 if the test shows it holds 24 fps on an iPhone 15; otherwise the button only.
-3. The skip action in Android's floating window. Options: swap back 10 s for Skip opening during the offer; keep the three actions fixed. Recommended: swap it. Skipping is the one thing worth doing from a floating window that the system's buttons can't.
-4. Up Next while floating with auto-play next on. Options: play the next episode in the window, as the player does; stop at the end and wait for the viewer. Recommended: follow the setting, as in the player, so the window never behaves differently from the full screen.
+Settled on 24 October 2026. Where Johan answered, it says so; every other question took the recommended default.
+
+1. The default: on, Johan's choice.
+2. If iOS refuses the GPU in the background: build the software path at 540p if the test shows it holds 24 fps on an iPhone 15; otherwise Picture in Picture on iPhone and iPad starts from the button only, and leaving stays audio-only. The default chosen.
+3. The skip action in Android's floating window: back 10 s becomes Skip opening or Skip ending for the length of the offer. The default chosen.
+4. Up Next while floating: follows the auto-play next setting, as in the player. The default chosen.
 
 ## Sources
 

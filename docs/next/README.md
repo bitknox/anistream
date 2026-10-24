@@ -1,6 +1,6 @@
 # Next features
 
-Six features to build once the parity follow-up and the website are done, each specified in its own file here. They follow `docs/native-ux.md` for states, motion and copy, and the engine owns the logic in all of them: the apps render what the engine says.
+Six features to build once the parity follow-up and the website are done, each specified in its own file here. Their questions were settled on 24 October 2026; each spec lists the decisions at its end. They follow `docs/native-ux.md` for states, motion and copy, and the engine owns the logic in all of them: the apps render what the engine says.
 
 Hayase has a version of each. The specs use it as the bar to beat, not as a design to copy. Each one says what Hayase does, where it falls short, and what we do better with what we have and it doesn't: native toolkits on every platform, a shared Rust engine, embedded libmpv, the Android TV app, Play on TV and the casting spike.
 
@@ -8,7 +8,7 @@ Hayase has a version of each. The specs use it as the bar to beat, not as a desi
 
 | # | Feature | Spec | Size | Better than Hayase |
 | --- | --- | --- | --- | --- |
-| 1 | Playback details | [player-stats.md](player-stats.md) | About 4 days | Reads mpv, so it names the decoder, shaders, display, HDR and network speed a browser can't, at one read a second |
+| 1 | Stats for nerds | [player-stats.md](player-stats.md) | About 4 days | Reads mpv, so it names the decoder, shaders, display, HDR and network speed a browser can't, at one read a second |
 | 2 | Picture in Picture when leaving the app | [auto-pip.md](auto-pip.md) | About 1.5 weeks, less if the iOS GPU test passes | The floating window shows mpv's own frames with shaders and ASS subtitles, with no second copied video, and Android gets a Skip button |
 | 3 | Trailers | [trailers.md](trailers.md) | About 2 weeks | Follows YouTube's embed rules, checks the network, battery, Reduce Motion and screen readers before playing, and uses each platform's own popover for hover previews |
 | 4 | Episode discussions | [episode-threads.md](episode-threads.md) | About 2 weeks | Opens the one thread for the episode just watched, held back until it is watched, in a native sheet or pane, within the engine's shared AniList budget |
@@ -17,7 +17,7 @@ Hayase has a version of each. The specs use it as the bar to beat, not as a desi
 
 ## Why this order
 
-- Playback details first. It is small, touches the hosted player protocol that two later features also extend (`Sample` here, `Presentation` and `FloatingActions` for Picture in Picture), and makes every later feature easier to test and to report bugs against.
+- Stats for nerds first. It is small, touches the hosted player protocol that two later features also extend (`Sample` here, `Presentation` and `FloatingActions` for Picture in Picture), and makes every later feature easier to test and to report bugs against.
 - Picture in Picture second, because most of it exists. What it needs first is a day on real iPhones and iPads, and that test decides whether the larger fallback gets built. Better to learn that early.
 - Trailers third. It adds the device state (`Command::DeviceState`) and the autoplay rule that the rest of the app can use, and is the feature people see most.
 - Episode discussions fourth. It is self-contained in the engine's AniList client and each app's sheet, so it can move in parallel with trailers if two people work on it.

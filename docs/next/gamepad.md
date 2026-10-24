@@ -85,7 +85,7 @@ As the TV's D-pad rules, with the extra buttons doing what a remote's media keys
 | X | Subtitles and audio popover | The same |
 | Y | Episodes popover | The same |
 | Menu | The More menu | The same |
-| View | Playback details (see `player-stats.md`) | The same |
+| View | Stats for nerds (see `player-stats.md`) | The same |
 | Up Next showing | A plays now, B cancels | The same |
 | Stall prompt showing | A switches source, B keeps waiting | The same |
 
@@ -128,7 +128,7 @@ No scale on focus, unlike TV. At the Deck's distance a 7-inch screen reads the r
 
 - The display is 1280 × 800 at 7 inches. The app's medium layout fits it, with the sidebar collapsed by default below 1360 pt wide.
 - In game mode (gamescope, `SteamGamepadUI` set) the app starts full screen and stays there; the window controls hide.
-- Text follows the system's scale, which SteamOS's desktop sets to 1.0 at that size; see the open questions for a larger scale in game mode.
+- Text follows the system's scale, which SteamOS's desktop sets to 1.0 at that size; in game mode it is 1.25, as decided below.
 - On battery, the engine's power check already starts upscaling one step lighter. The Deck's sysfs battery reads like any laptop's.
 
 ## Platforms
@@ -190,7 +190,7 @@ pub enum PlayerPanel {
     Tracks,
     Episodes,
     More,
-    Details,
+    Stats,
 }
 
 pub fn pad_action(button: PadButton, pressed: bool, context: &PadContext, swap_face: bool)
@@ -230,12 +230,14 @@ Medium, about a week and a half.
 - The player map, typing and the help window: two days.
 - A day on a Steam Deck in game mode and desktop mode, then the polish pass.
 
-## Open questions for Johan
+## Decided
 
-1. Input path. Options: libmanette through generated bindings, with Steam Input's keyboard layouts as the fallback; gilrs, a pure-Rust library on evdev with SDL's mappings, which sees Steam's virtual pad but has no Deck driver; or Steam Input's keyboard layouts only, with no controller code. Recommended: libmanette. It is GNOME's own, reads the Deck's every button with or without Steam, and the keyboard fallback costs nothing.
-2. B with the player's controls hidden. Options: close the player, as Back does on TV; or do nothing, with Menu then Close as the only way out. Recommended: close, keeping the position, the same as the TV. A press of B to leave a video is what every couch app does.
-3. A larger scale in game mode. Options: the system's 1.0; 1.25 for text and targets while in game mode only. Recommended: 1.25 in game mode. The Deck sits at arm's length, and the app's 28 pt rows are small there.
-4. Windows in the same release. Options: build the WinUI app's controller support right after, from the same map; leave Windows without it. Recommended: right after, as its own small task, since a Windows handheld is the same case.
+Settled on 24 October 2026. Each question took the recommended default.
+
+1. Input path: libmanette through generated bindings, with Steam Input's keyboard layouts as the fallback. The default chosen.
+2. B with the player's controls hidden: closes the player and keeps the position, as on TV. The default chosen.
+3. Scale in game mode: 1.25 for text and targets, in game mode only. The default chosen.
+4. Windows: the WinUI app's controller support follows right after, from the same map, as its own small task. The default chosen.
 
 ## Sources
 

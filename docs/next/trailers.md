@@ -73,7 +73,7 @@ Play trailer, from the menu or the title's context menu, stays the way to watch 
 
 The engine decides, from what the device says, and tells the front ends one answer. A trailer starts automatically only when all of these hold:
 
-- the Trailers setting allows it on this network: Off never, On Wi-Fi only when the path is neither cellular nor constrained, Always unless the path is constrained;
+- the Trailers setting allows it on this network: Off never, Wi-Fi only when the path is neither cellular nor constrained, Always unless the path is constrained (Low Data Mode or Data Saver);
 - the device is online;
 - the system's Reduce Motion is off, and on iPhone and iPad the system's Auto-Play Video Previews is on;
 - Low Power Mode or battery saver is off, and the thermal state is below serious;
@@ -137,7 +137,7 @@ On Linux, YouTube's player needs Media Source Extensions with H.264 or VP9 throu
 | Android | Yes | No | Same rules as iPhone. On tablets the list-detail pane's banner behaves as on Mac |
 | Android TV | No autoplay | No | The TV brief forbids autoplaying video and trailers in browse, and a WebView on a 2 GB box costs memory the player needs. Play trailer opens a full-screen WebView with YouTube's controls; Center plays and pauses through the player API and Back closes |
 | Windows | Yes | Yes | WebView2 is part of Windows 11. A missing runtime (an old Windows 10 install) means no trailers, silently, and Play trailer opens the browser |
-| Linux | Yes | Yes | Adds WebKitGTK, the app's first web view. See the open questions |
+| Linux | Yes | Yes | Adds WebKitGTK, the app's first web view. See Decided |
 | Terminal | No | No | No web view. Play trailer keeps opening mpv or the browser |
 
 ## Engine and model changes
@@ -163,7 +163,7 @@ pub enum TrailerHost {
 impl Trailer {
     /// Where Play trailer goes when the embed refuses: today's watch URL.
     pub fn watch_url(&self) -> String;
-    /// Whether the in-app player can play it. YouTube only; see the open questions.
+    /// Whether the in-app player can play it. YouTube only, as decided below.
     pub fn embeddable(&self) -> bool;
 }
 
@@ -241,7 +241,7 @@ pub fn trailer_may_autoplay(entry: &Entry, library: &LibraryView, settings: &Set
 
 | Row | Values | Default | Where |
 | --- | --- | --- | --- |
-| Play trailers | Always, On Wi-Fi, Off | On Wi-Fi | Settings > General, under the titles row |
+| Play trailers | Always, Wi-Fi only, Off | Always | Settings > General, under the titles row |
 
 Footnote: "Trailers play muted from YouTube, which sees your IP address. They don't play in Low Data Mode, with Reduce Motion on or in Low Power Mode." On Android the footnote names Data Saver and Battery Saver instead.
 
@@ -265,14 +265,16 @@ About two weeks in all.
 - Windows: two days. Linux: three days, most of it the WebKitGTK dependency and packaging.
 - Then the polish pass on every platform, with screen recordings of the fade.
 
-## Open questions for Johan
+## Decided
 
-1. Dailymotion trailers. A few titles list Dailymotion instead of YouTube. Options: embed Dailymotion's player too, with its own rules and a second page; or play YouTube trailers only and keep Dailymotion on the browser link. Recommended: YouTube only. It covers nearly every title, and a second player means a second set of terms to keep to.
-2. Hover preview without a trailer. Options: open the preview for every title, with the video only where one plays; or open it only for titles with a trailer. Recommended: every title, so the pointer's behaviour is the same on every cover.
-3. At the end of a trailer. Options: fade back to the banner and stay; loop until the page closes. Recommended: fade back. A loop keeps the network busy and draws the eye from the episode list.
-4. The default of Play trailers. Options: On Wi-Fi, Always, Off. Recommended: On Wi-Fi, so cellular data is never spent on an extra without asking.
-5. WebKitGTK on Linux. The Linux app has no web view today. Options: add WebKitGTK 6 for trailers, loaded only when a trailer is about to play; or no trailers on Linux, with Play trailer opening the browser. Recommended: add it. The GNOME runtime already ships it, so the Flatpak grows little, and the Steam Deck is a good trailer screen.
-6. Sequel trailers and spoilers. Options: hold autoplay for a sequel whose earlier season is unfinished on the viewer's list, while Spoiler protection is on; or play every title's trailer. Recommended: hold it. A later season's trailer is the most common way a season's ending is spoiled.
+Settled on 24 October 2026. Where Johan answered, it says so; every other question took the recommended default.
+
+1. Dailymotion trailers: YouTube only, the default chosen. Dailymotion trailers keep the browser link. YouTube covers nearly every title, and a second player means a second set of terms to keep to.
+2. Hover preview without a trailer: the preview opens for every title, the default chosen, with the video only where one plays, so the pointer behaves the same on every cover.
+3. The end of a trailer: fade back to the banner and stay, the default chosen. No loop.
+4. The default of Play trailers: Always, Johan's choice, on any connection. The setting keeps Wi-Fi only and Off. Low Data Mode (Data Saver on Android), Reduce Motion, Low Power Mode, a screen reader and the other checks under "When trailers play" still hold a trailer back whatever the setting.
+5. WebKitGTK on Linux: added for trailers, the default chosen, loaded only when a trailer is about to play.
+6. Sequel trailers: held while Spoiler protection is on and an earlier season is unfinished on the viewer's list, the default chosen.
 
 ## Sources
 
