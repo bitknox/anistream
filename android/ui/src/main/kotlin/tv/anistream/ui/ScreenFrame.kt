@@ -6,9 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,15 +13,12 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFlexibleTopAppBar
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -37,7 +31,9 @@ import androidx.compose.ui.unit.dp
  * The large flexible top app bar, 112 at rest under the status bar (136 with a [subtitle]), which
  * collapses to the 64 small bar on surfaceContainer as the content scrolls and opens again at the
  * top. Continue and Library carry the [account] button, which opens Settings; a page pushed over
- * them carries the back arrow, [onBack].
+ * them carries the back arrow, [onBack]. Under the title stands the one offline line while
+ * offline, a job's activity once it runs past 4 s, or [subtitle]. Work shorter than that shows
+ * where its result lands, as placeholders or a ring in its button, never as a bar here.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -52,6 +48,8 @@ fun ScreenFrame(
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val colors = MaterialTheme.colorScheme
     val type = MaterialTheme.typography
+    // Under the title: the offline line, a job past 4 s in words, or the screen's own line.
+    val line = frameLine(subtitle)
     Scaffold(
         modifier = Modifier.nestedScroll(scroll.nestedScrollConnection),
         containerColor = colors.surface,
@@ -62,8 +60,8 @@ fun ScreenFrame(
                 // text style of its own: the large one in the brief's role rather than the bar's
                 // default displaySmall, and the subtitle in bodyLarge rather than titleMedium.
                 title = { Text(title, style = expanded(type.headlineMedium)) },
-                subtitle = subtitle?.let {
-                    { Text(it, style = expanded(type.bodyLarge), color = colors.onSurfaceVariant) }
+                subtitle = line?.let {
+                    { FrameLineText(it, expanded(type.bodyLarge)) }
                 },
                 navigationIcon = {
                     if (onBack != null) {
@@ -74,7 +72,7 @@ fun ScreenFrame(
                     actions()
                     if (account != null) AccountButton(account)
                 },
-                expandedHeight = if (subtitle == null) 112.dp else 136.dp,
+                expandedHeight = if (line == null) 112.dp else 136.dp,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colors.surface,
                     scrolledContainerColor = colors.surfaceContainer,
@@ -86,32 +84,8 @@ fun ScreenFrame(
             )
         },
     ) { padding ->
-        Box {
-            content(padding)
-            WorkLine(Modifier.padding(top = padding.calculateTopPadding()))
-        }
+        content(padding)
     }
-}
-
-/**
- * Work the user waits on that has run past 600 ms, as a plain amber line under the bar, its
- * activity read out: the brief's linear progress, never a spinner. Most work answers sooner and
- * never shows it.
- */
-@Composable
-private fun WorkLine(modifier: Modifier = Modifier) {
-    val store = LocalAppStore.current
-    val shown by store.jobs.shown.collectAsStateWithLifecycle()
-    val job = shown.firstOrNull() ?: return
-    LinearProgressIndicator(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(4.dp)
-            .semantics { contentDescription = job.note ?: job.activity },
-        color = MaterialTheme.colorScheme.primary,
-        trackColor = MaterialTheme.colorScheme.outline,
-        gapSize = 0.dp,
-    )
 }
 
 /**

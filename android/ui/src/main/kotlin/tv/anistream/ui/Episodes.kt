@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.compositionLocalOf
@@ -62,17 +63,23 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import tv.anistream.design.ArtShape
 import tv.anistream.design.Motion
+import tv.anistream.design.ObiSilk
 import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeKind
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.store.TvPlayRequest
+import tv.anistream.store.SettingsCatalog
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.SettingKey
+import tv.anistream.engine.model.ShowSettingKey
 
 /**
  * The episodes the user marked or unmarked on this page, until their row has shown the change:
@@ -259,6 +266,22 @@ private fun DrawnCheck(progress: Float, color: androidx.compose.ui.graphics.Colo
 }
 
 /**
+ * Whether [id]'s stills past the next episode are hidden (A11, F8): the show's own setting when it
+ * sets one, once its settings are asked for, else Settings' Spoiler protection. Hidden until
+ * Settings has answered, so a still is never shown and then covered.
+ */
+@Composable
+internal fun spoilerProtected(id: AnilistId): Boolean {
+    val store = LocalAppStore.current
+    val sheets by store.showSettings.sheets.collectAsStateWithLifecycle()
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    // The show's row says the value in effect for it, its own or Settings'.
+    sheets[id]?.rows?.firstOrNull { it.key == ShowSettingKey.SPOILER_PROTECTION }?.let { return SettingsCatalog.isOnWords(it.value) }
+    if (view == null) return true
+    return store.settings.isOn(SettingKey.SPOILER_PROTECTION, view)
+}
+
+/**
  * An episode's still: its art, blurred with the hidden glyph when spoiler protection hides it, and
  * a plain plate before it airs. Hidden and clear crossfade on standard when the next episode moves.
  */
@@ -268,7 +291,7 @@ internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaire
     Box(Modifier.fillMaxSize().clip(ArtShape.cover(96.dp))) {
         if (unaired) {
             // A flat plate before it airs.
-            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF1F2440)))
+            Box(Modifier.fillMaxSize().background(ObiSilk.Raised))
             return@Box
         }
         Crossfade(hidden, animationSpec = Motion.standard(), label = "still") { blurred ->
@@ -346,7 +369,7 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
                 leadingIcon = { Icon(Icons.Restart, contentDescription = null) },
                 onClick = {
                     onDismiss()
-                    actions.play(entry.id, row.number)
+                    actions.playFromStart(entry.id, row.number)
                 },
             )
         }

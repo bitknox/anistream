@@ -99,11 +99,13 @@ internal data class ProviderInfo(val row: ProviderRow) {
             ProviderOrigin.BuiltIn -> if (row.kind == "remote") "Set in the config file" else "Built in"
         }
 
-    /** The state beside the origin: only for a problem, an update or off. */
-    val state: Pair<String, StateKind>?
-        get() = when {
+    /**
+     * The state beside the origin: only for a problem, an update or off. Offline, no source is
+     * said to be failing: the one offline line says why nothing answers.
+     */
+    fun state(offline: Boolean): Pair<String, StateKind>? = when {
             row.disabled -> "Off" to StateKind.Off
-            row.standing == ProviderStanding.Failing -> "Not answering" to StateKind.Problem
+            row.standing == ProviderStanding.Failing && !offline -> "Not answering" to StateKind.Problem
             row.standing == ProviderStanding.HeldBack -> "Held back" to StateKind.Off
             row.update != null -> "Update available" to StateKind.Update
             else -> null
@@ -118,8 +120,10 @@ internal fun ProvidersScreen() {
     val navigator = LocalNavigator.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val rows by store.providers.rows.collectAsStateWithLifecycle()
-    val note by store.providers.note.collectAsStateWithLifecycle()
+    val loaded by store.providers.loaded.collectAsStateWithLifecycle()
+    val offline by store.offline.collectAsStateWithLifecycle()
     var editing by rememberSaveable { mutableStateOf(false) }
+    var sheet by rememberSaveable { mutableStateOf<TorrentSheetMode?>(null) }
     LaunchedEffect(Unit) {
         store.checkProviders()
         store.loadStores()
@@ -142,22 +146,37 @@ internal fun ProvidersScreen() {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState(), enabled = true)
                 .padding(top = padding.calculateTopPadding() + 8.dp, bottom = 48.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .readingWidth(),
         ) {
-            if (sorted.isEmpty()) {
-                SettingsFootnote(note ?: "No sources yet. A plugin store adds them.")
-            } else {
-                SourceList(sorted, editing) { id, target ->
-                    SourceOrder.movedTo(order, sorted, id, target)?.let { store.setSetting(SettingKey.SOURCE_ORDER, SettingValue.Strings(it)) }
+            when {
+                !loaded -> PlaceholderRows()
+                sorted.isEmpty() -> EmptyState(
+                    title = "No sources yet",
+                    line = "Sources come as plugins from a plugin store. $LEGAL_LINE",
+                    action = "Join a plugin store",
+                    onAction = { store.stores.openJoin() },
+                )
+                else -> {
+                    SourceList(
+                        sorted,
+                        editing,
+                        offline,
+                        torrents = store.settings.isOn(SettingKey.TORRENTS, view),
+                        onTorrents = { on -> if (on) sheet = TorrentSheetMode.TurnOn else store.setSwitch(SettingKey.TORRENTS, false) },
+                    ) { id, target ->
+                        SourceOrder.movedTo(order, sorted, id, target)?.let { store.setSetting(SettingKey.SOURCE_ORDER, SettingValue.Strings(it)) }
+                    }
+                    SettingsFootnote(
+                        if (editing) "Drag a source by its handle to change when it is tried."
+                        else "Sources are tried top to bottom. To change the order, tap Reorder in the top bar.",
+                    )
+                    SettingsFootnote(LEGAL_LINE)
                 }
             }
-            SettingsFootnote(
-                if (editing) "Drag a source by its handle to change when it is tried."
-                else "Sources are tried top to bottom. To change the order, tap Reorder in the top bar.",
-            )
-            SettingsFootnote(LEGAL_LINE)
         }
     }
+    sheet?.let { mode -> TorrentSheet(mode) { sheet = null } }
 }
 
 /**
@@ -166,7 +185,14 @@ internal fun ProvidersScreen() {
  * go, the order is written. Each row also offers Move up and Move down to TalkBack.
  */
 @Composable
-private fun SourceList(rows: List<ProviderRow>, editing: Boolean, move: (id: String, target: Int) -> Unit) {
+private fun SourceList(
+    rows: List<ProviderRow>,
+    editing: Boolean,
+    offline: Boolean,
+    torrents: Boolean,
+    onTorrents: (Boolean) -> Unit,
+    move: (id: String, target: Int) -> Unit,
+) {
     val store = LocalAppStore.current
     val navigator = LocalNavigator.current
     val haptics = LocalHapticFeedback.current
@@ -196,7 +222,6 @@ private fun SourceList(rows: List<ProviderRow>, editing: Boolean, move: (id: Str
                     .onSizeChanged { heights[row.id] = it.height }
                     .graphicsLayer { translationY = if (lifted) offset else 0f }
                     .offset { IntOffset(0, if (lifted) 0 else shiftPx.value.roundToInt()) }
-                    .then(if (lifted) Modifier.shadow(6.dp, MaterialTheme.shapes.large) else Modifier)
                     .semantics {
                         customActions = listOfNotNull(
                             if (index > 0) CustomAccessibilityAction("Move up") { move(row.id, index - 1); true } else null,
@@ -208,10 +233,14 @@ private fun SourceList(rows: List<ProviderRow>, editing: Boolean, move: (id: Str
                     Place.of(index, rows.size),
                     info,
                     editing = editing,
+                    offline = offline,
+                    lifted = lifted,
                     onOpen = {
                         if (info.isTorrent) navigator.openSettings(SettingsPane.Sources) else navigator.open(providerRoute(row.id))
                     },
-                    onToggle = { on -> store.disablePlugin(row.id, disabled = !on) },
+                    // Torrents' switch is the setting's: turning it on asks how to protect the connection.
+                    switchOn = if (info.isTorrent) torrents else !row.disabled,
+                    onToggle = { on -> if (info.isTorrent) onTorrents(on) else store.disablePlugin(row.id, disabled = !on) },
                     handle = Modifier.pointerInput(row.id, rows) {
                         detectDragGestures(
                             onDragStart = {
@@ -277,19 +306,28 @@ private fun ProviderListRow(
     place: Place,
     info: ProviderInfo,
     editing: Boolean,
+    offline: Boolean,
+    lifted: Boolean,
+    switchOn: Boolean,
     onOpen: () -> Unit,
     onToggle: (Boolean) -> Unit,
     handle: Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
     val on = !info.row.disabled
-    RowFrame(place, onClick = if (editing) null else onOpen, modifier = Modifier.heightIn(min = 72.dp)) {
+    // Lifted by its handle, the row rises a container role, not onto a shadow.
+    RowFrame(
+        place,
+        onClick = if (editing) null else onOpen,
+        modifier = Modifier.heightIn(min = 72.dp),
+        container = if (lifted) colors.surfaceContainerHigh else null,
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(Modifier.weight(1f)) {
                 Text(info.name, style = MaterialTheme.typography.titleMedium, color = if (on) colors.onSurface else colors.onSurfaceVariant)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(info.origin, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-                    info.state?.let { (text, kind) ->
+                    info.state(offline)?.let { (text, kind) ->
                         StateDot(
                             when (kind) {
                                 ProviderInfo.StateKind.Problem -> colors.error
@@ -314,12 +352,12 @@ private fun ProviderListRow(
                 ) {
                     Icon(Icons.DragHandle, contentDescription = null, tint = colors.onSurfaceVariant)
                 }
-            } else if (info.isPlugin) {
+            } else if (info.isPlugin || info.isTorrent) {
                 Box(
                     Modifier.semantics(mergeDescendants = true) { contentDescription = "Use ${info.name}" },
                 ) {
                     androidx.compose.material3.Switch(
-                        checked = on,
+                        checked = switchOn,
                         onCheckedChange = onToggle,
                         colors = androidx.compose.material3.SwitchDefaults.colors(
                             checkedTrackColor = colors.primary,
@@ -346,6 +384,16 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
     val navigator = LocalNavigator.current
     val rows by store.providers.rows.collectAsStateWithLifecycle()
     val row = rows.firstOrNull { it.id == id }
+    val offline by store.offline.collectAsStateWithLifecycle()
+    var checking by remember { mutableStateOf(false) }
+    // Check again works until the engine says the providers again, or for 15 s at most.
+    LaunchedEffect(rows) { checking = false }
+    LaunchedEffect(checking) {
+        if (checking) {
+            kotlinx.coroutines.delay(15_000)
+            checking = false
+        }
+    }
     var removing by remember { mutableStateOf(false) }
     var updating by remember { mutableStateOf(false) }
     val info = row?.let(::ProviderInfo)
@@ -356,10 +404,11 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(top = padding.calculateTopPadding() + 8.dp, bottom = 48.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .readingWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            stateLine(info)?.let { (text, problem) ->
+            stateLine(info, offline)?.let { (text, problem) ->
                 Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     StateDot(if (problem) MaterialTheme.colorScheme.error else null)
                     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -370,8 +419,20 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
                     Button(onClick = { updating = true }) { Text("Update to ${update.version}") }
                 }
                 val silk = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
-                if (info.row.standing == ProviderStanding.Failing) {
-                    OutlinedButton(onClick = store::checkProviders, colors = silk) { Text("Check again") }
+                if (info.row.standing == ProviderStanding.Failing && !offline) {
+                    OutlinedButton(
+                        onClick = {
+                            checking = true
+                            store.checkProviders()
+                        },
+                        enabled = !checking,
+                        colors = silk,
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            WorkRing(checking)
+                            Text("Check again")
+                        }
+                    }
                 }
                 if (info.isPlugin) OutlinedButton(onClick = { removing = true }, colors = silk) { Text("Remove") }
             }
@@ -392,7 +453,7 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
                                 place,
                                 "Response time",
                                 when {
-                                    info.row.standing == ProviderStanding.Failing -> "No answer"
+                                    info.row.standing == ProviderStanding.Failing && !offline -> "No answer"
                                     info.row.latencyMs != null -> "${info.row.latencyMs} ms"
                                     else -> "Not checked yet"
                                 },
@@ -432,9 +493,11 @@ internal fun ProviderScreen(id: String, actions: AppActions) {
     }
 }
 
-private fun stateLine(info: ProviderInfo): Pair<String, Boolean>? = when {
+/** The page's state line. The engine's error goes to Messages whole; the page says it plainly. */
+private fun stateLine(info: ProviderInfo, offline: Boolean): Pair<String, Boolean>? = when {
     info.row.disabled -> "Off. It keeps its place and is not tried until it is on again." to false
-    info.row.standing == ProviderStanding.Failing -> ("Not answering." + (info.row.lastError?.let { " ${it.replaceFirstChar { c -> c.uppercase() }}" } ?: "")) to true
+    info.row.standing == ProviderStanding.Failing && offline -> null
+    info.row.standing == ProviderStanding.Failing -> ("Not answering." + (info.row.lastError?.let { " ${providerReason(it)}" } ?: "")) to true
     info.row.standing == ProviderStanding.HeldBack -> "Held back until the connection check passes." to false
     else -> null
 }
@@ -468,4 +531,18 @@ internal fun UpdateDialog(
         dismissButton = { QuietButton("Cancel", onClick = onDismiss) },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
     )
+}
+
+/** A provider's error in plain words: what kind of failure it was, never the request chain. */
+internal fun providerReason(raw: String): String {
+    val lower = raw.lowercase(java.util.Locale.ROOT)
+    return when {
+        "timed out" in lower || "timeout" in lower -> "It took too long to answer."
+        "429" in lower || "too many requests" in lower -> "It is busy. Try again in a minute."
+        Regex("\\b5\\d\\d\\b").containsMatchIn(lower) -> "It had a problem."
+        Regex("\\b40[34]\\b").containsMatchIn(lower) -> "It turned the request away."
+        "dns" in lower || "resolve" in lower -> "Its address could not be found."
+        "error sending request" in lower || "connect" in lower -> "It could not be reached."
+        else -> firstClause(raw)
+    }
 }

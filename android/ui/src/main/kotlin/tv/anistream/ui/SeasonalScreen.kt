@@ -3,6 +3,8 @@
 package tv.anistream.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -39,18 +41,27 @@ fun SeasonalScreen() {
     ) { padding ->
         val grid = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 24.dp)
         val answered = state.takeIf { it is ListState.Loaded || it is ListState.Empty || it is ListState.Failed }
+        val offline by store.offline.collectAsStateWithLifecycle()
         Loading(
             answered,
             placeholders = {
-                PosterGrid(grid) { items(9) { PosterPlaceholder() } }
+                if (offline) {
+                    Column(Modifier.padding(top = padding.calculateTopPadding())) { OfflineState() }
+                } else {
+                    PosterGrid(grid) { items(9) { PosterPlaceholder() } }
+                }
             },
         ) { list ->
-            when (list) {
-                is ListState.Loaded -> PosterGrid(grid) {
-                    items(list.ids.mapNotNull { titles[it] }, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "seasonal") }
+            Refreshable({ store.loadSeasonal(force = true) }, top = padding.calculateTopPadding()) {
+                when (list) {
+                    is ListState.Loaded -> PosterGrid(grid) {
+                        items(list.ids.mapNotNull { titles[it] }, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "seasonal") }
+                    }
+                    is ListState.Failed -> Column(Modifier.padding(top = padding.calculateTopPadding()).verticalScroll(rememberScrollState())) {
+                        FailedState("Couldn't load this season", list.reason, retry = { store.loadSeasonal(force = true) })
+                    }
+                    else -> Column(Modifier.padding(top = padding.calculateTopPadding()).verticalScroll(rememberScrollState())) { Quiet("Nothing this season yet") }
                 }
-                is ListState.Failed -> Column(Modifier.padding(top = padding.calculateTopPadding())) { FailedQuiet(list.reason) }
-                else -> Column(Modifier.padding(top = padding.calculateTopPadding())) { Quiet("Nothing this season yet") }
             }
         }
     }

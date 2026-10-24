@@ -79,13 +79,27 @@ sealed interface EpisodeAiring {
 }
 
 /**
- * A broadcast's time as the screens say it, in English on a 24-hour clock as the boards set it:
- * "Saturday 18:30" within the week, "22 October 18:30" further off.
+ * A broadcast's time as the screens say it, in English on the system's clock: "Saturday 18:30"
+ * within the week, "22 October 18:30" further off, and "Saturday 6:30 pm" where the system
+ * reads 12 hours.
  */
 object AirTime {
     val locale: Locale = Locale.UK
-    private val time = DateTimeFormatter.ofPattern("HH:mm", locale)
+
+    /** Whether the system reads a 24-hour clock: the app sets it from Android's own setting. */
+    @Volatile
+    var twentyFourHour: Boolean = true
+
+    private val time24 = DateTimeFormatter.ofPattern("HH:mm", locale)
+    private val time12 = DateTimeFormatter.ofPattern("h:mm a", locale)
+    private val time: DateTimeFormatter get() = if (twentyFourHour) time24 else time12
     private val date = DateTimeFormatter.ofPattern("d MMMM", locale)
+
+    /** The time of day alone, on the system's clock: "18:30" or "6:30 pm". */
+    fun clock(at: Instant, zone: ZoneId = AppClock.zone): String = time.format(at.atZone(zone))
+
+    /** [local]'s time of day, on the system's clock. */
+    fun clock(local: java.time.temporal.TemporalAccessor): String = time.format(local)
 
     /**
      * A time coming up this week, as Notifications' "Coming up" says it: "Today 22:00",

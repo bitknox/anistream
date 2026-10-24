@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -167,6 +169,45 @@ class SettingsShots {
         store.apply(listOf(Event.DeviceCode(DeviceCodePrompt(tracker = "trakt", code = "4F2K9QX1", url = "https://trakt.example/activate"))))
     }
 
+    // The audit's states: before an answer, empty, the delete confirmation, tablet widths.
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_providers_empty() = shoot("phone-providers-empty", PROVIDERS_ROUTE) { it.apply(listOf(Event.Providers(emptyList()))) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_providers_unanswered() = shoot("phone-providers-unanswered", PROVIDERS_ROUTE, exclude = { it is Event.Providers })
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_stores_unanswered() = shoot("phone-stores-unanswered", STORES_ROUTE, exclude = { it is Event.Stores })
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_downloads_empty() = shoot("phone-downloads-empty", DOWNLOADS_ROUTE) { it.apply(listOf(Event.Downloads(emptyList()))) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_downloads_delete() =
+        shoot("phone-downloads-delete", DOWNLOADS_ROUTE, tap = "Episode 8", longPress = true, thenTap = "Delete download") {
+            it.apply(listOf(Event.Downloads(DOWNLOADS)))
+        }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_providers_offline() = shoot("phone-providers-offline", PROVIDERS_ROUTE) {
+        it.apply(listOf(Event.Connectivity(offline = true), Event.Providers(PROVIDERS)))
+    }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_providers() = shoot("tablet-providers", PROVIDERS_ROUTE) { it.apply(listOf(Event.Providers(PROVIDERS))) }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_store() = shoot("tablet-store", storeRoute("hotaru")) { it.apply(listOf(Event.Stores(listOf(HOTARU)))) }
+
     @Test
     @Config(qualifiers = PHONE)
     fun phone_providers() = shoot("phone-providers", PROVIDERS_ROUTE) { it.apply(listOf(Event.Providers(PROVIDERS))) }
@@ -291,12 +332,18 @@ class SettingsShots {
         tapIndex: Int = 0,
         screen: Boolean = false,
         byDescription: Boolean = false,
+        /** Events of the scene left out, as an answer that never came. */
+        exclude: (Event) -> Boolean = { false },
+        /** Whether [tap] is a long press. */
+        longPress: Boolean = false,
+        /** What to tap next, in the menu or sheet [tap] opened. */
+        thenTap: String? = null,
         then: (AppStore) -> Unit = {},
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
-        val events = recorded.events.filter(::replayed)
+        val events = recorded.events.filter { replayed(it) && !exclude(it) }
         store.apply(events)
 
         compose.runOnUiThread { WindowCompat.setDecorFitsSystemWindows(compose.activity.window, false) }
@@ -318,10 +365,15 @@ class SettingsShots {
             return
         }
         compose.waitForIdle()
-        val nodes = if (byDescription) compose.onAllNodesWithContentDescription(tap) else compose.onAllNodesWithText(tap)
-        nodes[tapIndex].performClick()
+        val nodes = if (byDescription) compose.onAllNodesWithContentDescription(tap) else compose.onAllNodesWithText(tap, substring = longPress)
+        if (longPress) nodes[tapIndex].performTouchInput { longClick() } else nodes[tapIndex].performClick()
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        if (thenTap != null) {
+            compose.onAllNodesWithText(thenTap)[0].performClick()
+            compose.mainClock.advanceTimeBy(1_000)
+            compose.waitForIdle()
+        }
         if (dismiss) {
             compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
             compose.mainClock.advanceTimeBy(1_000)

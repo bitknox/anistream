@@ -61,7 +61,7 @@ class MetadataTest {
     fun the_airing_state_comes_from_the_dates() {
         val today = LocalDate.of(2026, 10, 21)
         val finished = entry.copy(startDate = date(2024, 4, 6), endDate = date(2024, 6, 22))
-        assertEquals(AiringState("Aired", "6 Apr – 22 Jun 2024"), finished.airingState(today))
+        assertEquals(AiringState("Aired", "6 Apr to 22 Jun 2024"), finished.airingState(today))
         val film = entry.copy(startDate = date(2025, 3, 1), endDate = date(2025, 3, 1))
         assertEquals("1 Mar 2025", film.airingState(today)?.value)
         val airing = entry.copy(startDate = date(2026, 8, 20), endDate = null)

@@ -16,7 +16,7 @@ object CoverPlate {
      * How much of the cover's colour shows through the ground: enough to tell covers apart, little
      * enough that a column of plates reads as quiet.
      */
-    const val STRENGTH = 0.3f
+    const val STRENGTH = 0.4f
 
     /** [color] muted into the ground, in a perceptual space; the raised colour when there is none. */
     fun muted(color: Color?): Color = color?.let { lerp(ObiSilk.Ground, it, STRENGTH) } ?: ObiSilk.Raised

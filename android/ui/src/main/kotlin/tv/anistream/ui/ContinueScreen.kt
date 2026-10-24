@@ -1,9 +1,8 @@
-// Continue. On a first launch, with nothing watched yet: a compact setup card with Nagare, then
-// what airs today and this season, which AniList's public data gives with no account.
+// Continue. With nothing watched yet: what airs today and this season, which AniList's public
+// data gives with no account. Setting up is first launch's, not a card here.
 
 package tv.anistream.ui
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +13,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.store.AirTime
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
@@ -55,7 +62,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.Instant
-import java.time.format.DateTimeFormatter
 import tv.anistream.design.ArtShape
 import tv.anistream.design.Nagare
 import tv.anistream.design.ShowTitle
@@ -69,11 +75,6 @@ import tv.anistream.engine.model.Entry
 
 /** The legal line, everywhere it appears. */
 const val LEGAL_LINE = "anistream hosts no content."
-
-/** Whether the setup card has been hidden on this device. */
-private const val SETUP_HIDDEN = "setupHidden"
-
-private fun Context.preferences() = getSharedPreferences("anistream", Context.MODE_PRIVATE)
 
 @Composable
 fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: () -> Unit) {
@@ -96,19 +97,86 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
             return
         }
     }
-    // The engine's status, when it has one: offline, or changes waiting to sync.
+    // The engine's status, when it has one: changes waiting to sync.
     val status by store.notices.status.collectAsStateWithLifecycle()
+    val offline by store.offline.collectAsStateWithLifecycle()
+    // Rows swiped off, gone from the list while their Undo stands.
+    val leaving = remember { mutableStateListOf<AnilistId>() }
+    val leave = rememberLeave(leaving)
     ScreenFrame(
         title = "Continue",
         subtitle = status ?: if (empty) "Nothing watched yet" else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
-        LazyColumn(contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 24.dp)) {
-            when (val list = state) {
-                ListState.Empty -> welcome(actions, openCalendar, openSeasonal)
-                is ListState.Failed -> item { FailedQuiet(list.reason) }
-                is ListState.Loaded -> queue(store.continuing.queue(titles), actions)
-                else -> {}
+        Refreshable({ store.loadContinue(force = true) }, top = padding.calculateTopPadding()) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 24.dp)) {
+                when (val list = state) {
+                    ListState.Empty -> welcome(openCalendar, openSeasonal)
+                    is ListState.Failed -> item(key = "failed") {
+                        FailedState("Couldn't load Continue", list.reason, retry = { store.loadContinue(force = true) })
+                    }
+                    is ListState.Loaded -> queue(store.continuing.queue(titles).without(leaving), actions, leave)
+                    // Nothing cached: offline says so, and a slow load draws the layout to come.
+                    else -> item(key = "loading") { AfterWait { if (offline) OfflineState() else ContinuePlaceholders() } }
+                }
+            }
+        }
+    }
+}
+
+/** The queue without the titles swiped off it. */
+private fun ContinueQueue.without(leaving: List<AnilistId>): ContinueQueue =
+    if (leaving.isEmpty()) this else ContinueQueue(inProgress.filterNot { it.id in leaving }, newThisWeek.filterNot { it.id in leaving })
+
+/**
+ * Hide from Continue by a swipe: the row goes at once and a notice offers Undo; only once the
+ * notice has gone does the engine hide it, as there is nothing to undo there.
+ */
+@Composable
+private fun rememberLeave(leaving: MutableList<AnilistId>): (ContinueItem) -> Unit {
+    val store = LocalAppStore.current
+    val snackbars = LocalSnackbars.current
+    val scope = rememberCoroutineScope()
+    return remember(store, snackbars) {
+        { item ->
+            leaving += item.id
+            scope.launch {
+                var undone = false
+                try {
+                    val result = kotlinx.coroutines.withTimeoutOrNull(snackbarMillis("Hidden from Continue", true)) {
+                        snackbars.host.currentSnackbarData?.dismiss()
+                        snackbars.host.showSnackbar("Hidden from Continue", actionLabel = "Undo", duration = SnackbarDuration.Indefinite)
+                    }
+                    if (result == null) snackbars.host.currentSnackbarData?.dismiss()
+                    undone = result == SnackbarResult.ActionPerformed
+                } finally {
+                    if (!undone) store.hideFromContinue(item.id)
+                    leaving -= item.id
+                }
+            }
+        }
+    }
+}
+
+/** Continue's layout before it loads: the hero's banner and lines, then two rows. */
+@Composable
+private fun ContinuePlaceholders() {
+    Column(Modifier.padding(horizontal = 16.dp)) {
+        tv.anistream.design.CoverPlate(null, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(ArtShape.banner))
+        TextPlaceholder(0.6f, 28.dp, Modifier.padding(top = 8.dp))
+        TextPlaceholder(0.4f, 20.dp)
+        TextPlaceholder(1f, 56.dp, Modifier.padding(top = 12.dp))
+        repeat(2) {
+            Row(
+                Modifier.padding(top = 16.dp).heightIn(min = 72.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                tv.anistream.design.CoverPlate(null, Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
+                Column(Modifier.weight(1f)) {
+                    TextPlaceholder(0.7f, 24.dp)
+                    TextPlaceholder(0.4f, 20.dp)
+                }
             }
         }
     }
@@ -129,7 +197,7 @@ internal fun Quiet(text: String) {
  * The queue: the next episode as the hero, the rest under way as a rail of wide cards, then New
  * this week as rows.
  */
-private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
+private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions, leave: (ContinueItem) -> Unit) {
     val hero = queue.lead ?: return
     // Every item moves as one list does, the headings with the rows, so a change never slides a
     // row over a heading that snapped into place.
@@ -144,7 +212,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    items(rail, key = { it.id.toLong() }, contentType = { "card" }) { Box(itemMotion()) { ProgressCard(it) } }
+                    items(rail, key = { it.id.toLong() }, contentType = { "card" }) { Box(itemMotion()) { ProgressCard(it, actions) } }
                 }
             }
         }
@@ -152,7 +220,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
     val fresh = if (queue.inProgress.isEmpty()) queue.newThisWeek.drop(1) else queue.newThisWeek
     if (fresh.isNotEmpty()) {
         item(key = "new", contentType = "heading") { Heading("New this week", itemMotion().padding(top = 16.dp)) }
-        items(fresh, key = { "new-${it.id}" }, contentType = { "new-row" }) { Box(itemMotion()) { NewRow(it) } }
+        items(fresh, key = { "new-${it.id}" }, contentType = { "new-row" }) { Box(itemMotion()) { SwipeRow(it, actions, leave) { NewRow(it, actions) } } }
     }
 }
 
@@ -181,13 +249,16 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
     val colors = MaterialTheme.colorScheme
     val navigator = LocalNavigator.current
     LaunchedEffect(item.id) { store.loadEpisodes(item.id) }
+    val menuActions = continueMenuActions(item, actions, "hero")
+    var menu by remember { mutableStateOf(false) }
     Column(Modifier.padding(horizontal = 16.dp)) {
         // Not clipped to the banner's corners: those are the art's, and would cut into the
         // episode line's first letter at the foot of the block.
+        Box {
         Column(
             Modifier
                 .shared(Shared.Page, item.id, "hero")
-                .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "hero") },
+                .openOrMenu(menuActions) { menu = true },
         ) {
         BannerArt(
             item.entry,
@@ -199,6 +270,8 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
         )
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 8.dp))
         Text(episodeLine(item), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
+        ContinueMenu(menuActions, expanded = menu, onDismiss = { menu = false })
         }
         // Side by side, or, with text large enough to crowd the button, the progress above it.
         val stacked = LocalDensity.current.fontScale > 1.3f
@@ -255,13 +328,16 @@ private fun Meter(fraction: Double, modifier: Modifier = Modifier) {
 
 /** A title under way: its banner, its meter, its name and what it plays. */
 @Composable
-private fun ProgressCard(item: ContinueItem) {
-    val navigator = LocalNavigator.current
+private fun ProgressCard(item: ContinueItem, actions: AppActions) {
+    val menuActions = continueMenuActions(item, actions, "rail")
+    var menu by remember { mutableStateOf(false) }
+    Box {
+    ContinueMenu(menuActions, expanded = menu, onDismiss = { menu = false })
     Column(
         Modifier
             .width(208.dp)
             .shared(Shared.Page, item.id, "rail")
-            .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "rail") },
+            .openOrMenu(menuActions) { menu = true },
     ) {
         BannerArt(item.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, item.id, "rail").clip(ArtShape.banner))
         Box(Modifier.padding(top = 8.dp).height(4.dp)) { item.fraction?.let { Meter(it) } }
@@ -279,18 +355,22 @@ private fun ProgressCard(item: ContinueItem) {
             maxLines = 1,
         )
     }
+    }
 }
 
 /** A new episode: the cover, the title, and what plays with how long it has been out. */
 @Composable
-private fun NewRow(item: ContinueItem) {
+private fun NewRow(item: ContinueItem, actions: AppActions) {
     val colors = MaterialTheme.colorScheme
-    val navigator = LocalNavigator.current
+    val menuActions = continueMenuActions(item, actions, "new")
+    var menu by remember { mutableStateOf(false) }
+    ContinueMenu(menuActions, expanded = menu, onDismiss = { menu = false })
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
-            .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "new") }
+            .background(colors.surface)
+            .openOrMenu(menuActions) { menu = true }
             .padding(start = 16.dp, end = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -306,99 +386,9 @@ private fun NewRow(item: ContinueItem) {
     }
 }
 
-private fun LazyListScope.welcome(actions: AppActions, openCalendar: () -> Unit, openSeasonal: () -> Unit) {
-    item(key = "setup", contentType = "setup") {
-        val context = LocalContext.current
-        var hidden by remember { mutableStateOf(context.preferences().getBoolean(SETUP_HIDDEN, false)) }
-        Box(itemMotion()) {
-            if (!hidden) {
-                SetupCard(
-                    actions,
-                    hide = {
-                        hidden = true
-                        context.preferences().edit().putBoolean(SETUP_HIDDEN, true).apply()
-                    },
-                )
-            }
-        }
-    }
+private fun LazyListScope.welcome(openCalendar: () -> Unit, openSeasonal: () -> Unit) {
     item(key = "airing", contentType = "airing") { Box(itemMotion()) { AiringToday(openCalendar) } }
     item(key = "season", contentType = "season") { Box(itemMotion()) { ThisSeason(openSeasonal) } }
-}
-
-/**
- * The two things to set up: AniList, which is optional, and a plugin store, which is how anistream
- * plays episodes. And the legal line.
- */
-@Composable
-private fun SetupCard(actions: AppActions, hide: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val type = MaterialTheme.typography
-    Column(
-        Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(colors.surfaceContainer)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Nagare(cell = 4)
-            Column(Modifier.weight(1f)) {
-                Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Set up anistream",
-                        style = type.titleMedium,
-                        modifier = Modifier.weight(1f).semantics { heading() },
-                    )
-                    TextButton(
-                        onClick = hide,
-                        colors = ButtonDefaults.textButtonColors(contentColor = colors.onSurface),
-                        contentPadding = PaddingValues(horizontal = 12.dp),
-                        // Its label flush with the rows' trailing edge, as the board sets it.
-                        modifier = Modifier.offset(x = 12.dp).semantics { contentDescription = "Hide setup" },
-                    ) { Text("Hide") }
-                }
-                SetupRow("AniList", note = "Optional", detail = "Syncs your lists") {
-                    FilledTonalButton(
-                        onClick = actions.connectAniList,
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        modifier = Modifier.widthIn(min = 88.dp).semantics { contentDescription = "Connect AniList" },
-                    ) { Text("Connect") }
-                }
-                HorizontalDivider(color = colors.outlineVariant)
-                SetupRow("Plugin store", note = null, detail = "Needed for playback") {
-                    Button(
-                        onClick = actions.addStore,
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        modifier = Modifier.widthIn(min = 88.dp).semantics { contentDescription = "Add plugin store" },
-                    ) { Text("Add") }
-                }
-            }
-        }
-        Text("Episodes play from the plugins you add. $LEGAL_LINE", style = type.bodySmall, color = colors.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun SetupRow(name: String, note: String?, detail: String, action: @Composable () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val type = MaterialTheme.typography
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 72.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
-                Text(name, style = type.bodyLarge)
-                if (note != null) Text(note, style = type.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(bottom = 2.dp))
-            }
-            Text(detail, style = type.bodyMedium, color = colors.onSurfaceVariant)
-        }
-        action()
-    }
 }
 
 /** A section's heading, 48 high, with the arrow that opens the whole of it. */
@@ -458,13 +448,12 @@ private fun AiringToday(openCalendar: () -> Unit) {
     }
 }
 
-private val clock = DateTimeFormatter.ofPattern("HH:mm")
 
 @Composable
 private fun AiringCard(broadcast: Broadcast, now: Instant) {
     val colors = MaterialTheme.colorScheme
     val seconds = broadcast.airs.epochSecond - now.epochSecond
-    val time = clock.format(broadcast.airs.atZone(AppClock.zone))
+    val time = AirTime.clock(broadcast.airs)
     val out = seconds <= 0
     val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(-seconds)}" else "in ${Wording.countdown(seconds)}"
     val navigator = LocalNavigator.current
