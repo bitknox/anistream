@@ -16,7 +16,7 @@ use anistream_testkit::{
 use anistream_track::secret::{Backend, TokenStore};
 
 use crate::{
-    engine::{FfiEngine, Opened, runtime},
+    engine::{FfiEngine, Opened, RemoteHome, runtime},
     host::{Adapter, FfiHost},
     start::{FfiDirs, FfiError, FfiStart, SecretsMode},
     testing,
@@ -50,6 +50,10 @@ pub enum FfiScene {
     /// HLS behind a referer lock, as provider CDNs have them, which goes through the engine's
     /// mender with its header ([`SCENE_REFERER`]).
     Playing { media: String },
+    /// [`Self::Watching`], with every episode streaming `media` as [`Self::Playing`]'s do: a TV
+    /// on a fixture resumes episode 7 at once from a file it can seek, where the test kit's clip
+    /// is a test pattern mpv must play through to the resume point.
+    WatchingMedia { media: String },
 }
 
 #[uniffi::export]
@@ -94,20 +98,26 @@ impl FfiEngine {
         clock: Clock,
     ) -> Result<Arc<Self>, FfiError> {
         match scene {
-            FfiScene::Watching | FfiScene::Sourceless => sign_in_config(&dirs)?,
+            FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless => {
+                sign_in_config(&dirs)?;
+            }
             FfiScene::Playing { .. } => offer_skips(&dirs)?,
             FfiScene::Fresh => {}
         }
         let opened = Opened::open(&dirs)?;
         let now = clock.now();
         seed_scene(&opened.store, &scene, now);
-        if matches!(scene, FfiScene::Watching | FfiScene::Sourceless) {
+        if matches!(
+            scene,
+            FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless
+        ) {
             // Where the testing engine keeps tokens: files under the data directory.
             TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
                 .set("anilist", "fixture-anilist-token")
                 .map_err(|e| FfiError::Engine { reason: e.to_string() })?;
         }
         let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
+        let home = RemoteHome::of(&host, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             let server = FakeAniList::start().await;
@@ -121,8 +131,10 @@ impl FfiEngine {
             Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing))),
-            Err(e) => Self::hold(runtime, Err(e), None),
+            Ok((started, testing)) => {
+                Self::hold(runtime, Ok(started), Some(Box::new(testing)), home)
+            }
+            Err(e) => Self::hold(runtime, Err(e), None, home),
         }
     }
 }
@@ -156,15 +168,24 @@ fn seed_downloads(store: &Store, clip: &str, size: u64) -> anistream_store::Resu
 }
 
 /// The scene's sources: the test kit's fixture provider, its stills under `art`, with the long
-/// franchise's titles beside the six, which the scene's fake AniList has too. For a scene that
-/// plays, every episode streams `media`. None at all for [`FfiScene::Sourceless`].
+/// franchise's titles beside the six, which the scene's fake AniList has too. Every episode
+/// streams the test kit's episode-long clip, or `media` in a scene that plays. None at all for
+/// [`FfiScene::Sourceless`].
 fn scene_sources(scene: &FfiScene, art: &str) -> ProviderRegistry {
     if *scene == FfiScene::Sourceless {
         return ProviderRegistry::new(Vec::new());
     }
     let franchise = || sources::with_long_franchise(sources::provider_with_art(art));
-    let FfiScene::Playing { media } = scene else {
-        return ProviderRegistry::new(vec![franchise().arc()]);
+    let (FfiScene::Playing { media } | FfiScene::WatchingMedia { media }) = scene else {
+        let clip = sources::episode_clip();
+        let mut provider = franchise();
+        for id in fixtures::ALL {
+            provider = provider.with_streams_for(sources::key(id), vec![clip.clone()]);
+        }
+        for media in fixtures::long_franchise_media() {
+            provider = provider.with_streams_for(sources::key(media.id), vec![clip.clone()]);
+        }
+        return ProviderRegistry::new(vec![provider.arc()]);
     };
     let web = media.starts_with("http")
         && media.split('?').next().is_some_and(|path| path.ends_with(".m3u8"));
@@ -220,7 +241,7 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
     match scene {
         FfiScene::Fresh => {}
         FfiScene::Playing { .. } => seed::watched(store, FINISHED, 6, now - HOUR),
-        FfiScene::Watching | FfiScene::Sourceless => {
+        FfiScene::Watching | FfiScene::WatchingMedia { .. } | FfiScene::Sourceless => {
             // Oldest first, since each watch moves its title to the top.
             seed::watched(store, AIRING_NO_MAL, 7, now - 3 * DAY);
             seed::watched(store, AIRING, 3, now - 2 * DAY);
@@ -278,6 +299,15 @@ mod tests {
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), None);
         let playing = scene_sources(&scene, "http://127.0.0.1:9/art/");
         assert_eq!(playing.ids(), [sources::PROVIDER_ID]);
+        // Watching on a file of its own: Watching's history, and the file for every episode.
+        let file = FfiScene::WatchingMedia { media: "/tmp/episode.mp4".into() };
+        let store = Store::open(dir.path().join("watching.db")).expect("a database");
+        seed_scene(&store, &file, 1_800_000_000);
+        assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), Some(606.0));
+        assert_eq!(
+            scene_sources(&file, "http://127.0.0.1:9/art/").ids(),
+            [sources::PROVIDER_ID]
+        );
         // Every scene has the fixture provider, with the long franchise beside the six.
         let watching = scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/");
         assert_eq!(watching.ids(), [sources::PROVIDER_ID]);

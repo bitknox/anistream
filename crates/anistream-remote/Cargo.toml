@@ -1,0 +1,40 @@
+[package]
+name = "anistream-remote"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The remote: a phone finds an anistream TV on the local network, pairs with it and drives it"
+publish = false
+
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
+# Light enough for a 32-bit TV box with 2 GB: no HTTP stack, no WebSocket library and no mDNS
+# daemon of its own. Every crate below is already in the workspace's tree except spake2, whose own
+# dependencies (curve25519-dalek, hkdf, sha2, rand_core) are too. See docs/remote-protocol.md.
+[dependencies]
+anistream-core.workspace = true
+anistream-model.workspace = true
+# The model's commands and events are what a remote's messages turn into and are read from.
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+# TLS 1.3 with raw Ed25519 keys on both sides (RFC 7250), on ring: in the tree through rustls, on
+# every platform the apps build for.
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "logging"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+ring = "0.17"
+# The password-authenticated exchange the six-digit pairing code runs through.
+spake2 = "0.4"
+base64 = "0.23"
+hex = "0.4"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

@@ -11,6 +11,8 @@
 - `anistream-player` and `anistream-playback`: the terminal's mpv control. `anistream-tui`: the
   terminal UI (goldens in `tests/goldens`). `anistream`: the binary and the contract tests
   (`src/contract/`). `anistream-testkit`: the fake AniList, fixtures and scenes.
+- `anistream-remote`: the TV remote, a phone pairing with a TV and driving it
+  (`docs/remote-protocol.md`); the engine's `remote` feature holds the TV's side.
 - `anistream-store-core`, `-server`, `-wasm`: the plugin store. Changing them or their
   dependencies needs `deploy/sync.sh` (then `deploy/sync.sh --check` passes).
 

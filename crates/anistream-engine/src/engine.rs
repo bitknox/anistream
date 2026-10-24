@@ -85,6 +85,26 @@ pub struct Engine {
     sent: AtomicU64,
 }
 
+/// [`Engine::send`] for the remote, held apart from the engine so the remote's server can keep
+/// one. A remote sends no player reports, which only the hosted player makes, and is not counted
+/// in `Engine::sent`: a test that reads `Traced::Idle` sends through the engine itself.
+#[cfg(feature = "remote")]
+#[derive(Clone)]
+pub struct RemoteSender {
+    commands: mpsc::UnboundedSender<Message>,
+    jobs: Jobs,
+}
+
+#[cfg(feature = "remote")]
+impl RemoteSender {
+    pub fn send(&self, command: Command) -> Option<JobId> {
+        let job = command.activity().map(|activity| (self.jobs.next(), activity));
+        let id = job.as_ref().map(|(id, _)| *id);
+        self.commands.send(Message::Command { job, command }).ok()?;
+        id
+    }
+}
+
 /// What the front end hands the actor.
 enum Message {
     /// A command, with the job [`Engine::send`] numbered for it, and its activity.
@@ -405,6 +425,14 @@ impl Engine {
         self.sent.fetch_add(1, Ordering::Relaxed);
         self.commands.send(Message::Command { job, command }).ok()?;
         id
+    }
+
+    /// What a TV's remote sends its commands through: routed as [`Self::send`] routes them, in
+    /// the same order as the front end's own, and numbered from the same count. See
+    /// [`crate::remote`].
+    #[cfg(feature = "remote")]
+    pub fn remote_sender(&self) -> RemoteSender {
+        RemoteSender { commands: self.commands.clone(), jobs: self.jobs.clone() }
     }
 
     /// Stop as the app quits, after everything sent before.

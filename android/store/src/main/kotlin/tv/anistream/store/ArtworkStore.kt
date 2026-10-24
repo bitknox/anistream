@@ -63,13 +63,15 @@ object BitmapDecoder : ArtworkDecoder {
  * enough. A larger ask asks again, and the smaller decode shows until the larger lands. A URL that
  * failed is asked for again only after [RETRY_AFTER_MILLIS]; its plate stays meanwhile.
  *
+ * @param costLimit how many bytes of decoded pixels are kept at most, the oldest shown dropped
+ *   first: [DEFAULT_BUDGET] on a phone, less on a TV with 2 GB to share with the video.
  * @param fetch asks the engine for a URL (`FetchArtwork`); false when there is no engine to ask
  *   yet, so a later ask tries again.
  */
 class ArtworkStore(
     private val scope: CoroutineScope,
     private val decoder: ArtworkDecoder = BitmapDecoder,
-    private val costLimit: Long = 96L shl 20,
+    private val costLimit: Long = DEFAULT_BUDGET,
     private val now: () -> Long = { System.nanoTime() / 1_000_000 },
     private val decoding: CoroutineDispatcher = Dispatchers.Default,
     private val main: CoroutineDispatcher = Dispatchers.Main,
@@ -92,6 +94,14 @@ class ArtworkStore(
 
     private val cache = object : LinkedHashMap<String, Artwork>(64, 0.75f, true) {}
     private var cost = 0L
+        set(value) {
+            field = value
+            _held.value = value
+        }
+    private val _held = MutableStateFlow(0L)
+
+    /** How many bytes of decoded pixels are kept now. */
+    val held: StateFlow<Long> = _held.asStateFlow()
     private val inFlight = mutableSetOf<String>()
     private val sizes = mutableMapOf<String, Int>()
     private val failedAt = mutableMapOf<String, Long>()
@@ -118,6 +128,19 @@ class ArtworkStore(
 
     /** Whether any art has been asked for and not answered. */
     val hasPending: Boolean get() = inFlight.isNotEmpty()
+
+    /**
+     * Drop every decode kept, and what was remembered of failures and sizes. Each URL's arrivals
+     * are bumped, so a screen showing one draws its plate and asks again. Art on its way still
+     * lands.
+     */
+    fun clear() {
+        cache.clear()
+        cost = 0L
+        sizes.clear()
+        failedAt.clear()
+        for (flow in arrivals.values) flow.value += 1
+    }
 
     internal fun ready(url: String, bytes: ByteArray) {
         val size = sizes[url] ?: 1024
@@ -165,6 +188,9 @@ class ArtworkStore(
     }
 
     companion object {
+        /** How many bytes of decoded pixels a phone keeps: 96 MB. */
+        const val DEFAULT_BUDGET = 96L shl 20
+
         /** How long a URL that failed waits before it is asked for again. */
         const val RETRY_AFTER_MILLIS = 60_000L
     }

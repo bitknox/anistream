@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds libmpv for the Android app as an LGPL build: libmpv.so, which exports only mpv's client
-# API (`mpv_*`), and FFmpeg's own shared libraries beside it, for arm64-v8a on API 35 and up,
-# with every library aligned for 16 KB pages.
+# API (`mpv_*`), and FFmpeg's own shared libraries beside it, for arm64-v8a and armeabi-v7a (the
+# 32-bit Android most TV boxes run) on API 30 and up, with every library aligned for 16 KB pages.
+# Each ABI builds in its own work tree, one after the other, into the one output.
 #
 #   android/scripts/mpv.sh [--check] [--vulkan]
 #                                      build what is missing (--check: build nothing, fail if
@@ -33,12 +34,14 @@
 #
 # --vulkan builds a second variant for the plan's spike question AS4, in android/.mpv/<pin>-vk
 # (linked as android/.mpv/vulkan): libplacebo and mpv with Vulkan (mpv's androidvk context),
-# compiling GLSL with the shaderc the NDK carries the sources of. The app's default is GLES.
+# compiling GLSL with the shaderc the NDK carries the sources of, for arm64-v8a only. The app's
+# default is GLES.
 #
 # The output, all of it generated and gitignored:
 #
-#   android/.mpv/<pin>/jniLibs/arm64-v8a/   libmpv.so and FFmpeg's libraries, stripped
-#   android/.mpv/<pin>/include/             mpv's headers and FFmpeg's, for the JNI shim
+#   android/.mpv/<pin>/jniLibs/<abi>/       libmpv.so and FFmpeg's libraries, stripped
+#   android/.mpv/<pin>/include/<abi>/       mpv's headers and FFmpeg's, for the JNI shim (FFmpeg's
+#                                           configuration headers differ by architecture)
 #   android/.mpv/<pin>/licenses/            every project's licence and notice files
 #   android/.mpv/<pin>/stamp                what it was made from, how long it took, sizes
 #   android/.mpv/<pin>/features             FFmpeg's licence line and mpv's feature list
@@ -59,8 +62,9 @@ shopt -s inherit_errexit 2>/dev/null || true
 # --- Pins ------------------------------------------------------------------------------------------
 
 pin=0.41.0-n9.0.2
-api=35
-triple=aarch64-linux-android
+# The TV app's minimum, Android 11; the phone app's Android 15 is above it.
+api=30
+abis=(arm64-v8a armeabi-v7a)
 meson_version=1.12.1
 ninja_version=1.13.2
 pkgconf_version=3.0.7.post0
@@ -103,6 +107,7 @@ if (( vulkan )); then
   pin="$pin-vk"
   out="$cache/$pin"
   link=vulkan
+  abis=(arm64-v8a)
 fi
 
 # --- The NDK ---------------------------------------------------------------------------------------
@@ -214,11 +219,34 @@ if [[ "$(cat "$tools/pins" 2>/dev/null)" != "$tool_pins" ]]; then
   echo "$tool_pins" >"$tools/pins"
 fi
 
+peak=0
+stage="$out.partial"
+rm -rf "$stage"
+mkdir -p "$stage/jniLibs" "$stage/include" "$stage/licenses"
+
+# One ABI's build, from the sources to the checked libraries in the output.
+build_abi() {
+abi="$1"
+case "$abi" in
+  arm64-v8a)
+    triple=aarch64-linux-android host=aarch64-linux-android cpu_family=aarch64 cpu=armv8-a
+    ffmpeg_arch=(--arch=aarch64 --cpu=armv8-a)
+    # libass has hand-written NEON for 64-bit ARM, and none for 32-bit.
+    ass_asm=enabled
+    ;;
+  armeabi-v7a)
+    triple=armv7a-linux-androideabi host=arm-linux-androideabi cpu_family=arm cpu=armv7-a
+    ffmpeg_arch=(--arch=arm --cpu=armv7-a --enable-neon)
+    ass_asm=disabled
+    ;;
+  *) echo "mpv.sh: no ABI named $abi" >&2; exit 1 ;;
+esac
+work="$cache/work/$pin/$abi"
 rm -rf "$work"
 mkdir -p "$work/src" "$work/build" "$work/bin"
 prefix="$work/prefix"
 log="$work/build.log"
-peak=0
+step "building for $abi"
 measure() {
   local kb
   kb="$(du -sk "$cache" | cut -f1)"
@@ -301,8 +329,8 @@ needs_exe_wrapper = true
 
 [host_machine]
 system = 'android'
-cpu_family = 'aarch64'
-cpu = 'armv8-a'
+cpu_family = '$cpu_family'
+cpu = '$cpu'
 endian = 'little'
 
 [built-in options]
@@ -366,7 +394,7 @@ mkdir -p "$work/build/ffmpeg"
 (
   cd "$work/build/ffmpeg"
   clean PKG_CONFIG_LIBDIR="$prefix/lib/pkgconfig" "$work/src/ffmpeg/configure" \
-    --prefix="$prefix" --target-os=android --arch=aarch64 --cpu=armv8-a --enable-cross-compile \
+    --prefix="$prefix" --target-os=android "${ffmpeg_arch[@]}" --enable-cross-compile \
     --cc="$cc" --cxx="$cxx" --nm="$llvm/llvm-nm" --ar="$llvm/llvm-ar" --ranlib="$llvm/llvm-ranlib" \
     --strip="$llvm/llvm-strip" --pkg-config="$tools/bin/pkgconf" --pkg-config-flags=--static \
     --extra-cflags="-I$prefix/include" --extra-ldflags="-L$prefix/lib $pagesize" \
@@ -411,7 +439,7 @@ step "building unibreak"
 mkdir -p "$work/build/unibreak"
 (
   cd "$work/build/unibreak"
-  clean "${cross_env[@]}" "$work/src/unibreak/configure" --host="$triple" --prefix="$prefix" \
+  clean "${cross_env[@]}" "$work/src/unibreak/configure" --host="$host" --prefix="$prefix" \
     --with-pic --enable-static --disable-shared >>"$log" 2>&1
   clean make -j"$jobs" install >>"$log" 2>&1
 ) || fail "unibreak did not build"
@@ -420,7 +448,7 @@ finish unibreak LICENCE
 
 unpack libass
 meson_build libass -Dfontconfig=enabled -Dlibunibreak=enabled -Ddirectwrite=disabled \
-  -Dcoretext=disabled -Dasm=enabled -Dtest=disabled -Dcheckasm=disabled -Dprofile=disabled \
+  -Dcoretext=disabled -Dasm="$ass_asm" -Dtest=disabled -Dcheckasm=disabled -Dprofile=disabled \
   -Dcompare=disabled -Dfuzz=disabled
 finish libass COPYING
 
@@ -478,18 +506,14 @@ meson_build mpv --default-library=shared \
   -Dmanpage-build=disabled -Dhtml-build=disabled -Dpdf-build=disabled
 finish mpv LICENSE.LGPL Copyright
 
-# --- Output ----------------------------------------------------------------------------------------
-
-step "collecting the libraries"
-stage="$out.partial"
-rm -rf "$stage"
-libs="$stage/jniLibs/arm64-v8a"
-mkdir -p "$libs" "$stage/include" "$stage/licenses"
+step "collecting the libraries for $abi"
+libs="$stage/jniLibs/$abi"
+mkdir -p "$libs" "$stage/include/$abi"
 for lib in mpv avcodec avdevice avfilter avformat avutil swresample swscale; do
   [[ -f "$prefix/lib/lib$lib.so" ]] || fail "no lib$lib.so"
   clean "$llvm/llvm-strip" --strip-unneeded -o "$libs/lib$lib.so" "$prefix/lib/lib$lib.so"
 done
-cp -R "$prefix/include/mpv" "$prefix/include/libavcodec" "$prefix/include/libavutil" "$stage/include/"
+cp -R "$prefix/include/mpv" "$prefix/include/libavcodec" "$prefix/include/libavutil" "$stage/include/$abi/"
 
 # Each library's dependencies must be the system's or each other's, under the names they ship as.
 for so in "$libs"/*.so; do
@@ -513,38 +537,48 @@ for so in "$libs"/*.so; do
   fi
 done
 
-# Which archives libmpv.so took code from, for the notices.
+# Which archives libmpv.so took code from, for the notices: the same projects for every ABI.
 LC_ALL=C sed -n -E 's#.*/prefix/lib/lib([^/]*)\.a\(.*#\1#p; s#.*/lib(c\+\+_static|c\+\+abi)\.a\(.*#\1#p' \
-  "$work/libmpv.map" | sort -u >"$stage/contents"
+  "$work/libmpv.map" >>"$stage/contents"
 
-# Licences, as each project ships them (kept by finish as each build ended).
+# Licences, as each project ships them (kept by finish as each build ended), the same for every ABI.
 cp -R "$licences/." "$stage/licenses/"
+
+{
+  grep -E '^License:' "$work/ffmpeg-configure.txt" | sed "s/^/ffmpeg $abi /"
+  sed -n "s/.*List of enabled features: /mpv $abi features: /p" "$log" | tail -1
+} >>"$stage/features"
+cp "$log" "$stage/build-$abi.log"
+measure
+rm -rf "$work"
+}
+
+for abi in "${abis[@]}"; do build_abi "$abi"; done
+
+# --- Output ----------------------------------------------------------------------------------------
+
+LC_ALL=C sort -u -o "$stage/contents" "$stage/contents"
 cp "$ndk/NOTICE.toolchain" "$stage/licenses/ndk-libc++-NOTICE.toolchain"
 cp "$root/android/mpv/NOTICE" "$stage/licenses/NOTICE"
 
-{
-  grep -E '^License:' "$work/ffmpeg-configure.txt" | sed 's/^/ffmpeg /'
-  sed -n 's/.*List of enabled features: /mpv features: /p' "$log" | tail -1
-} >"$stage/features"
-cp "$log" "$stage/build.log"
-measure
-
 elapsed=$((SECONDS - started))
-sizes="$(cd "$libs" && for so in *.so; do printf '%s=%sKB ' "${so%.so}" "$(size_kb "$so")"; done)"
-total_kb=$(($(cat "$libs"/*.so | wc -c) / 1024))
+total_kb=$(($(cat "$stage"/jniLibs/*/*.so | wc -c) / 1024))
 {
   echo "sources $hash"
   echo "ndk $ndk_revision"
-  echo "abi arm64-v8a api $api page-size 16384 vulkan $vulkan"
+  echo "abis ${abis[*]} api $api page-size 16384 vulkan $vulkan"
   for entry in "${sources[@]}"; do IFS='|' read -r name version _ <<<"$entry"; printf '%s %s\n' "$name" "$version"; done
   echo "libplacebo $libplacebo_tag $libplacebo_commit"
   echo "tools $tool_pins"
   echo "seconds $elapsed"
   echo "peak-disk-kb $peak"
   echo "total-kb $total_kb"
-  echo "binaries ${sizes% }"
+  for abi in "${abis[@]}"; do
+    sizes="$(cd "$stage/jniLibs/$abi" && for so in *.so; do printf '%s=%sKB ' "${so%.so}" "$(size_kb "$so")"; done)"
+    echo "binaries $abi ${sizes% }"
+  done
 } >"$stage/stamp"
-rm -rf "$out" "$work"
+rm -rf "$out" "$cache/work/$pin"
 mv "$stage" "$out"
 ln -sfn "$pin" "$cache/$link"
 echo "mpv.sh: wrote $out in ${elapsed} s (peak $((peak / 1024)) MB in android/.mpv; $((total_kb / 1024)) MB of libraries)"

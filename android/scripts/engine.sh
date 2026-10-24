@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
-# Builds the engine for the Android app: anistream-ffi as a shared library for arm64 phones, with
-# the Kotlin bindings generated from it, and the same library built for this machine (a Mac, or
+# Builds the engine for the Android apps: anistream-ffi as a shared library for arm64 phones and
+# for the 32-bit Android most TV boxes run, with the Kotlin bindings generated from it, and the same library built for this machine (a Mac, or
 # CI's Linux), which the JVM unit tests load through JNA.
 #
 #   android/scripts/engine.sh [--check] <release|testing>
 #   android/scripts/engine.sh --sources-hash
 #
 #   release   the engine the app flavour ships: --no-default-features, so without mpv's child
-#             process
+#             process, and with the TV's remote (`startRemote`), which the TV app shares the
+#             build with the phone's for
 #   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
 #             the fixtures flavour and the unit tests
 #
 # The output, all of it generated and gitignored:
 #
-#   android/.engine/<flavour>/jniLibs/arm64-v8a/libanistream_ffi.so   what the APK carries
+#   android/.engine/<flavour>/jniLibs/<abi>/libanistream_ffi.so       what the APKs carry: arm64-v8a
+#                                                                      and armeabi-v7a
 #   android/.engine/<flavour>/kotlin/                                  the bindings, a package per crate
 #   android/.engine/<flavour>/host/libanistream_ffi.dylib              this machine's build, for the unit
 #                                                                      tests (.so on Linux, as in CI)
@@ -31,7 +33,7 @@
 # renamed into place, so two builds at once never leave half of one, and entries unused for 14
 # days are removed. It says "engine: reused <hash>" or "engine: built <hash>".
 #
-# The arm64 library needs the NDK (the newest under $ANDROID_HOME/ndk, or $ANDROID_NDK_HOME).
+# The Android libraries need the NDK (the newest under $ANDROID_HOME/ndk, or $ANDROID_NDK_HOME).
 # Without one the host library and the bindings are still built, so Gradle and the unit tests run,
 # and the APK has no engine in it; the stamp says so, and once an NDK is there the build is no
 # longer current.
@@ -68,18 +70,22 @@ for arg in "$@"; do
   esac
 done
 case "$flavour" in
-  release) features="" ;;
-  testing) features="testing" ;;
+  release) features="remote" ;;
+  testing) features="testing,remote" ;;
   *) usage ;;
 esac
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 out="$root/android/.engine/$flavour"
 profile="${ANISTREAM_ENGINE_PROFILE:-app-dev}"
-# The app's minimum, Android 15.
-api=35
-abi=arm64-v8a
-target=aarch64-linux-android
+# The TV app's minimum, Android 11, which the phone app's Android 15 is above. Both apps carry
+# these libraries.
+api=30
+# Each ABI with its Rust target and the NDK's clang target.
+android_abis=(
+  "arm64-v8a aarch64-linux-android aarch64-linux-android"
+  "armeabi-v7a armv7-linux-androideabi armv7a-linux-androideabi"
+)
 # Shared by every worktree that builds the Android app's engine, since disk is what runs out.
 # Incremental compilation only adds to it, for builds that are mostly of dependencies.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/anistream-target-android}"
@@ -97,7 +103,10 @@ else
   done < <(ls -d "$sdk"/ndk/*/ 2>/dev/null | sed 's:/$::' | sort -V)
 fi
 abis="none"
-[[ -n "$ndk" ]] && abis="$abi"
+if [[ -n "$ndk" ]]; then
+  abis=""
+  for spec in "${android_abis[@]}"; do abis="${abis:+$abis,}${spec%% *}"; done
+fi
 
 # What the build is made from: the files tools/engine-sources.sh lists (each crate anistream-ffi
 # builds on, without its tests, benches and examples, with the workspace's manifests, lock file,
@@ -135,7 +144,9 @@ if (( check )); then
   if [[ -n "$built" && "$built" != "$profile" ]]; then
     echo "error: the $flavour engine was built in the $built profile, and this build needs $profile." >&2
   elif [[ "$built_abis" == none && "$abis" != none ]]; then
-    echo "error: the $flavour engine was built before the NDK was installed, so it has no $abi library." >&2
+    echo "error: the $flavour engine was built before the NDK was installed, so it has no Android libraries." >&2
+  elif [[ -n "$built_abis" && "$built_abis" != "$abis" ]]; then
+    echo "error: the $flavour engine was built for $built_abis, and this build needs $abis." >&2
   else
     echo "error: the $flavour engine is missing or older than the Rust sources." >&2
   fi
@@ -193,12 +204,37 @@ cargo_clean() {
     # named, without an API level, and the NDK's headers refuse an unversioned one. cargo-ndk 4
     # sets the underscored variable to its sysroot arguments, over whatever it held, so the API
     # level goes in the hyphenated one, which bindgen reads first, with cargo-ndk's own beside it.
+    # 32-bit ARM's headers are under arm-linux-androideabi, and clang names it armv7a.
     local sysroot="$ndk/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64/sysroot"
-    pass+=(ANDROID_NDK_HOME="$ndk"
-      BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=$target$api"
-      "BINDGEN_EXTRA_CLANG_ARGS_$target=--target=$target$api --sysroot=$sysroot -I$sysroot/usr/include/$target")
+    pass+=(ANDROID_NDK_HOME="$ndk")
+    local spec abi target clang headers
+    for spec in "${android_abis[@]}"; do
+      read -r abi target clang <<<"$spec"
+      headers="$target"
+      [[ "$abi" == armeabi-v7a ]] && headers=arm-linux-androideabi
+      pass+=("BINDGEN_EXTRA_CLANG_ARGS_${target//-/_}=--target=$clang$api"
+        "BINDGEN_EXTRA_CLANG_ARGS_$target=--target=$clang$api --sysroot=$sysroot -I$sysroot/usr/include/$headers")
+    done
   fi
   (cd "$root" && env -i "${pass[@]}" "$@")
+}
+
+# Fail when the library at $1 needs one the APK does not carry: only Android's own may be needed,
+# as mpv.sh holds its libraries to. libc++_shared.so, which the NDK's -lc++ means when nothing says
+# static, would otherwise show only as a crash at launch.
+needs_only_system_libraries() {
+  local readelf needed
+  readelf="$ndk/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64/bin/llvm-readelf"
+  while IFS= read -r needed; do
+    case "$needed" in
+      libc.so | libm.so | libdl.so | liblog.so | libandroid.so) ;;
+      *)
+        echo "error: $1 needs $needed, which the APK does not carry." >&2
+        [[ "$needed" == libc++_shared.so ]] && echo "error: link the C++ runtime statically (BORING_BSSL_RUST_CPPLIB_<target> in .cargo/config.toml)." >&2
+        exit 1
+        ;;
+    esac
+  done < <("$readelf" -d "$1" | sed -n 's/.*(NEEDED).*\[\(.*\)\]/\1/p')
 }
 
 profile_dir() {
@@ -222,7 +258,6 @@ stage="$out.partial"
 rm -rf "$stage"
 mkdir -p "$stage/kotlin" "$stage/host"
 host_built="$CARGO_TARGET_DIR/$(profile_dir)"
-android_built="$CARGO_TARGET_DIR/$target/$(profile_dir)"
 
 # This Mac's library and the bindings generator in one build, so the generator comes from the
 # same UniFFI release as the scaffolding, and turning `cli` on rebuilds nothing beneath it.
@@ -233,15 +268,19 @@ cp "$host_built/$host_library" "$stage/host/"
 
 library="$host_built/$host_library"
 if [[ -n "$ndk" ]]; then
-  echo "engine.sh: building the $flavour engine for $abi (Android $api, NDK $(basename "$ndk"), $profile)"
-  cargo_clean cargo ndk -t "$abi" --platform "$api" build -p anistream-ffi --no-default-features \
-    ${features:+--features "$features"} --lib --profile "$profile"
-  mkdir -p "$stage/jniLibs/$abi"
-  cp "$android_built/libanistream_ffi.so" "$stage/jniLibs/$abi/"
-  # The bindings from the library the APK carries.
-  library="$android_built/libanistream_ffi.so"
+  for spec in "${android_abis[@]}"; do
+    read -r abi target _ <<<"$spec"
+    echo "engine.sh: building the $flavour engine for $abi (Android $api, NDK $(basename "$ndk"), $profile)"
+    cargo_clean cargo ndk -t "$abi" --platform "$api" build -p anistream-ffi --no-default-features \
+      ${features:+--features "$features"} --lib --profile "$profile"
+    mkdir -p "$stage/jniLibs/$abi"
+    cp "$CARGO_TARGET_DIR/$target/$(profile_dir)/libanistream_ffi.so" "$stage/jniLibs/$abi/"
+    needs_only_system_libraries "$stage/jniLibs/$abi/libanistream_ffi.so"
+  done
+  # The bindings from the phone's library, which has the same interface as every other.
+  library="$CARGO_TARGET_DIR/aarch64-linux-android/$(profile_dir)/libanistream_ffi.so"
 else
-  echo "engine.sh: no NDK under ${sdk:-\$ANDROID_HOME}/ndk, so no $abi library: the APK will have no engine" >&2
+  echo "engine.sh: no NDK under ${sdk:-\$ANDROID_HOME}/ndk, so no Android libraries: the APKs will have no engine" >&2
 fi
 
 # Library mode: the interface is read from the built library. One package per crate with UniFFI

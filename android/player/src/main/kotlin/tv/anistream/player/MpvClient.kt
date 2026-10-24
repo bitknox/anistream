@@ -51,13 +51,33 @@ class MpvClient(private val name: String) {
     /** Each event, on the main thread. Set before [start], so nothing is missed. */
     @Volatile var listener: ((MpvEvent) -> Unit)? = null
 
+    /**
+     * The fast-changing properties waiting for the main thread, by name: only the latest of each
+     * is delivered. A stream read faster than it plays changes `duration` hundreds of times a
+     * second, and one post for each kept a TV box's main thread busy until Android called it not
+     * responding. Any other event starts a new batch, so nothing is delivered ahead of it.
+     */
+    private var batch = HashMap<String, MpvEvent>()
+    private val batchLock = Any()
+
+    private fun deliver(event: MpvEvent) {
+        val property = event.name
+        if (event.id == MpvNative.Event.PROPERTY_CHANGE && property != null && property in LATEST_ONLY) {
+            val (map, first) = synchronized(batchLock) { batch to (batch.put(property, event) == null) }
+            if (first) main.post { synchronized(batchLock) { map.remove(property) }?.let { listener?.invoke(it) } }
+        } else {
+            synchronized(batchLock) { if (batch.isNotEmpty()) batch = HashMap() }
+            main.post { listener?.invoke(event) }
+        }
+    }
+
     /** Creates and initialises mpv with [options], set in order, observing [observed]. */
     suspend fun start(options: List<Pair<String, String>>, observed: List<String>, logLevel: String = "warn") = call {
         check(handle == 0L) { "mpv $name has already started" }
         val h = MpvNative.create { id, prop, data ->
             val event = MpvEvent(id, prop, data?.toString(Charsets.UTF_8))
             if (id == MpvNative.Event.LOG_MESSAGE) MpvLog.said(event)?.let { (priority, line) -> Log.println(priority, MpvLog.TAG, line) }
-            main.post { listener?.invoke(event) }
+            deliver(event)
         }
         check(h != 0L) { "mpv_create failed" }
         for ((key, value) in options) MpvNative.setOption(h, key, value)
@@ -189,5 +209,8 @@ class MpvClient(private val name: String) {
 
     companion object {
         const val TAG = "mpv"
+
+        /** The properties whose latest value is all anyone needs: see [batch]. */
+        private val LATEST_ONLY = setOf("time-pos", "duration", "frame-drop-count")
     }
 }

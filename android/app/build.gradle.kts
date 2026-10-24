@@ -126,7 +126,7 @@ androidComponents {
 
 dependencies {
     implementation(project(":ui"))
-    implementation(project(":player"))
+    implementation(project(":player-ui"))
     implementation(project(":widgets"))
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)

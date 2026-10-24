@@ -1,0 +1,36 @@
+# The TV app's baseline profile: the code on the way to the first focused card and through
+# browsing, compiled ahead of time so a low-end box doesn't interpret it on every cold start.
+# Compose, Compose for TV and the other AndroidX libraries ship their own profiles; these rules
+# cover the app's code, the store and the design system, and the engine's bindings.
+# Profileinstaller writes it on install for a sideloaded build. A debug build ignores it.
+
+# Start-up: the application, the activity and the root of the UI.
+HSPLtv/anistream/tv/TvApp;->**(**)**
+HSPLtv/anistream/tv/TvActivity;->**(**)**
+HSPLtv/anistream/tv/TvRootKt**;->**(**)**
+Ltv/anistream/tv/TvApp;
+Ltv/anistream/tv/TvActivity;
+
+# Browsing: the shell, the rows and cards, the screens, focus and navigation.
+HSPLtv/anistream/tv/shell/**;->**(**)**
+HSPLtv/anistream/tv/ui/**;->**(**)**
+HSPLtv/anistream/tv/screens/**;->**(**)**
+HSPLtv/anistream/tv/home/**;->**(**)**
+HSPLtv/anistream/tv/*;->**(**)**
+Ltv/anistream/tv/shell/**;
+Ltv/anistream/tv/ui/**;
+Ltv/anistream/tv/screens/**;
+
+# The player's screen and its model, opened from any card.
+HSPLtv/anistream/tv/player/**;->**(**)**
+HSPLtv/anistream/player/**;->**(**)**
+
+# The store the screens read, the artwork it decodes, and the design system's colours and type.
+HSPLtv/anistream/store/**;->**(**)**
+HSPLtv/anistream/design/**;->**(**)**
+Ltv/anistream/store/**;
+Ltv/anistream/design/**;
+
+# The engine's generated bindings: every event and command crosses them.
+HSPLtv/anistream/engine/**;->**(**)**
+Ltv/anistream/engine/**;
