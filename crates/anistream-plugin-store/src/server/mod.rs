@@ -22,6 +22,7 @@ use anistream_store_core::{
     db::Database,
     http::{MAX_BODY_BYTES, Request, Service, Site},
     inspect::Inspector,
+    protocol::ServerInfo,
 };
 use bytes::Bytes;
 use http_body_util::{BodyExt, Full, Limited};
@@ -182,6 +183,12 @@ impl Server {
             site: url.map(|url| Site::from_base(&url)),
             trust_proxy,
         }
+    }
+
+    /// Say what the store runs, for its admin page.
+    pub fn describing(mut self, server: ServerInfo) -> Self {
+        self.service = self.service.describing(server);
+        self
     }
 
     pub fn store(&self) -> &AnyStore {
@@ -356,6 +363,8 @@ pub fn now() -> i64 {
         .unwrap_or(0)
 }
 
+#[cfg(test)]
+mod schema_tests;
 #[cfg(test)]
 mod store_tests;
 #[cfg(test)]

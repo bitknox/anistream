@@ -16,7 +16,10 @@ use anistream_plugin_store::{
     protocol::{PART_SIZE, Role},
     server::{self, NewInvite, Storage, StoreError},
 };
-use anistream_store_core::inspect::fake::{FakeInspector, plugin};
+use anistream_store_core::{
+    db::Database,
+    inspect::fake::{FakeInspector, plugin},
+};
 
 const NOW: i64 = 1_800_000_000;
 const BASE: &str = "https://plugins.example";
@@ -121,4 +124,40 @@ async fn the_store_keeps_its_rules_on_postgres() {
     store.remove_member(&alex.id, &owner.id, NOW).await.unwrap();
     assert!(store.authenticate(&laptop, NOW).await.unwrap().is_none());
     assert!(store.authenticate(&phone, NOW).await.unwrap().is_none());
+    drop(store);
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+
+    // The schema is recorded at this code's version, once, however often the store opened.
+    let db = postgres_db(&storage).await;
+    let rows = db
+        .query("SELECT COUNT(*), COALESCE(MAX(version), 0) FROM migrations", &[])
+        .await
+        .unwrap();
+    let version = i64::from(anistream_plugin_store::schema::VERSION);
+    assert_eq!((rows[0].int(0).unwrap(), rows[0].int(1).unwrap()), (version, version));
+
+    // A version this code does not know is refused, and left as it was.
+    db.batch(&[anistream_store_core::sql!(
+        "INSERT INTO migrations (version, applied_by) VALUES ($1, 'newer')",
+        version + 1
+    )])
+    .await
+    .unwrap();
+    drop(db);
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    let refused = server::open(&storage, None, None).await.unwrap_err();
+    assert!(refused.contains("newer than this version"), "{refused}");
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    let db = postgres_db(&storage).await;
+    db.batch(&[anistream_store_core::sql!(
+        "DELETE FROM migrations WHERE applied_by = 'newer'"
+    )])
+    .await
+    .unwrap();
+}
+
+/// A connection of the test's own, for looking at the tables directly.
+async fn postgres_db(storage: &Storage) -> Box<dyn Database> {
+    let Storage::Postgres(url) = storage else { unreachable!() };
+    Box::new(server::postgres::PostgresDb::connect(url).await.unwrap())
 }

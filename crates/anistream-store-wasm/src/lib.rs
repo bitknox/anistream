@@ -5,7 +5,7 @@
 //! as plain objects, and passes each request in and each response out:
 //!
 //! ```js
-//! const store = await Store.open(db, files, { name, setupCode, trustDigests });
+//! const store = await Store.open(db, files, { name, setupCode, trustDigests, host });
 //! const response = await store.handle({ method, path, headers, body, client, base, now });
 //! ```
 //!
@@ -25,8 +25,19 @@ use anistream_store_core::{
     blobs::{BlobError, Blobs, SqlBlobs, cut},
     db::{Database, DbError, Dialect, Row, Statement, Value},
     http::{Request, Service, Site},
+    protocol::ServerInfo,
     store::Store as CoreStore,
 };
+
+/// The package's build: the start of the SHA-256 of `deploy/store-wasm/SOURCE`, which
+/// `deploy/sync.sh` computes and passes in. The admin page compares it with the newest release's.
+const BUILD: Option<&str> = option_env!("ANISTREAM_STORE_BUILD");
+
+/// The package is rebuilt when its sources change rather than for each release, so it carries
+/// the workspace's major and minor version and leaves the patch to [`BUILD`].
+fn version() -> String {
+    format!("{}.{}", env!("CARGO_PKG_VERSION_MAJOR"), env!("CARGO_PKG_VERSION_MINOR"))
+}
 use js_sys::{Array, Promise, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue, prelude::wasm_bindgen};
 use wasm_bindgen_futures::JsFuture;
@@ -215,7 +226,8 @@ impl Store {
     ///
     /// `files` may be `null`, and plugin files then live in the database too — what a platform
     /// with a database and no blob store of its own needs. `options`: `{ name?, url?,
-    /// setupCode?, trustDigests? }`.
+    /// setupCode?, trustDigests?, host? }`, where `host` names the platform, such as
+    /// `"cloudflare"`, for the update steps the admin page shows.
     pub async fn open(
         db: DbAdapter,
         files: Option<FilesAdapter>,
@@ -226,6 +238,7 @@ impl Store {
             _ => Dialect::Sqlite,
         };
         let name = option_string(&options, "name");
+        let host = option_string(&options, "host");
         let url = option_string(&options, "url");
         let setup_code = option_string(&options, "setupCode");
         let trust = Reflect::get(&options, &"trustDigests".into())
@@ -243,7 +256,11 @@ impl Store {
         let store = CoreStore::open(db, files, url.as_deref(), name.as_deref())
             .await
             .map_err(|e| failed(e.to_string()))?;
-        let service = Service::new(store, None, setup_code);
+        let server = ServerInfo {
+            build: BUILD.filter(|b| !b.is_empty()).map(str::to_owned),
+            ..ServerInfo::new(&version(), host.as_deref())
+        };
+        let service = Service::new(store, None, setup_code).describing(server);
         Ok(Store { service: if trust { service.trusting_digests() } else { service } })
     }
 
