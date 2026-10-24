@@ -15,9 +15,10 @@ import UIKit
 /// What a screenshot can ask the Fixtures app to show beside the testing engine's own data, with
 /// `-AnistreamShowcase <name>`: `sources`, `stores`, `downloads`, `invite`, or `all`; and
 /// `update`, a newer release with its notice, and `pale`, 900001 renamed to a title long enough to
-/// wrap and given a near-white banner, which `all` leaves out.
+/// wrap and given a near-white banner, and `messages`, a session's notices for Messages, which
+/// `all` leaves out.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, update, pale, all
+    case sources, stores, downloads, invite, update, pale, messages, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -67,12 +68,24 @@ public enum Showcase: String, CaseIterable, Sendable {
                     events.append(.artworkReady(url: Self.paleBannerUrl, bytes: bytes))
                     events.append(.detail(Self.pale(title)))
                 }
+            case .messages:
+                events += Self.sessionNotices.map { .toast(Notice(kind: $0.kind, text: $0.text, hint: nil)) }
             case .all:
                 break
             }
         }
         return (events, held)
     }
+
+    /// A session's notices, oldest first: a few passing ones, and two failures, one long.
+    static let sessionNotices: [(kind: NoticeKind, text: String)] = [
+        (.info, "added to Watching"),
+        (.alert, "could not reach the source list: the request to sources.example timed out after 30 s"),
+        (.info, "episode 7 downloaded"),
+        (.info, "synced with AniList"),
+        (.alert, "not saved: the database is locked"),
+        (.info, "back to automatic source selection"),
+    ]
 
     /// What the engine offers a store to call this device: its kind.
     @MainActor static var deviceKind: String {
