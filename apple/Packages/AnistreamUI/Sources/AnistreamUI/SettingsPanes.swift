@@ -583,6 +583,7 @@ struct IntegrationsPane: View {
             }
         }
         UpdatesGroup()
+        AboutGroup()
     }
 }
 

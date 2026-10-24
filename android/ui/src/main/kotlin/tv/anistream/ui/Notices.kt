@@ -86,11 +86,19 @@ fun NoticeHint.label(): String = when (this) {
 internal fun EngineNotices(onHint: (NoticeHint) -> Unit) {
     val store = LocalAppStore.current
     val snackbars = LocalSnackbars.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val current by store.notices.current.collectAsStateWithLifecycle()
     LaunchedEffect(current?.id) {
         val item = current ?: return@LaunchedEffect
         val hint = item.notice.hint
-        snackbars.show(item.notice.text, hint?.label()) { hint?.let(onHint) }
+        // An alert's button is its hint when it has one, and Report when it has none.
+        if (hint == null && item.isAlert) {
+            snackbars.show(item.notice.text, "Report") {
+                openBugReport(context, store, tv.anistream.store.BugContext("message", item.notice.text))
+            }
+        } else {
+            snackbars.show(item.notice.text, hint?.label()) { hint?.let(onHint) }
+        }
         store.notices.dismiss(item)
     }
 }

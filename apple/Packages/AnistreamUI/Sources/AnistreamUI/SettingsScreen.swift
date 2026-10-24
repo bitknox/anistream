@@ -540,6 +540,8 @@ struct AdvancedPane: View {
             // The iPad's: the Mac has these under Integrations, which an iPad does not show.
             UpdatesGroup()
                 .padding(.top, 24)
+            AboutGroup()
+                .padding(.top, 24)
             #endif
         }
     }

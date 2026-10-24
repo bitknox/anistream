@@ -27,6 +27,8 @@ pub enum Action {
     ShowLogs,
     /// The website's privacy page, in the browser: what anistream sends, and what it keeps.
     OpenPrivacy,
+    /// A bug report: a pre-filled GitHub issue in the browser, with the last error in it.
+    ReportBug,
 
     // Movement
     Up,
@@ -128,6 +130,7 @@ impl Action {
         Self::ShowConflicts,
         Self::ShowLogs,
         Self::OpenPrivacy,
+        Self::ReportBug,
         Self::JumpSection(1),
         Self::JumpSection(2),
         Self::JumpSection(3),
@@ -214,6 +217,7 @@ impl Action {
             Self::ShowConflicts => "Resolve sync conflicts",
             Self::ShowLogs => "Recent messages",
             Self::OpenPrivacy => "Open the privacy page",
+            Self::ReportBug => "Report a bug",
             Self::Up => "Move up",
             Self::Down => "Move down",
             Self::Left => "Move left",
@@ -309,7 +313,8 @@ impl Action {
             | Self::ShowAccounts
             | Self::ShowConflicts
             | Self::ShowLogs
-            | Self::OpenPrivacy => Scope::Global,
+            | Self::OpenPrivacy
+            | Self::ReportBug => Scope::Global,
 
             Self::Up
             | Self::Down
