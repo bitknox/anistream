@@ -4,18 +4,61 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:app="using:Anistream.Windows"
+    xmlns:local="using:Anistream.Windows.Pages"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <TextBlock x:Name="Heading" Text="Search" Style="{StaticResource PageTitleStyle}" />
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+    <StackPanel>
+      <TextBlock x:Name="Heading" Text="Search" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+      <local:OfflineLine />
+    </StackPanel>
+    <!-- The filters: each drop-down says its name until set, then what it has, in amber. -->
+    <ScrollViewer Grid.Row="1" HorizontalScrollMode="Auto" HorizontalScrollBarVisibility="Hidden" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Margin="0,0,-36,0">
+      <StackPanel x:Name="FilterRow" Orientation="Horizontal" Spacing="8" Padding="0,0,36,0">
+        <DropDownButton x:Name="GenreButton" Content="Genre" Height="32" MinWidth="96" AutomationProperties.Name="Genre">
+          <DropDownButton.Flyout>
+            <Flyout x:Name="GenreFlyout" Placement="BottomEdgeAlignedLeft">
+              <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="GenreList" Spacing="2" MinWidth="200" />
+              </ScrollViewer>
+            </Flyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+        <DropDownButton x:Name="FormatButton" Content="Format" Height="32" MinWidth="96" AutomationProperties.Name="Format">
+          <DropDownButton.Flyout>
+            <Flyout x:Name="FormatFlyout" Placement="BottomEdgeAlignedLeft">
+              <StackPanel x:Name="FormatList" Spacing="2" MinWidth="180" />
+            </Flyout>
+          </DropDownButton.Flyout>
+        </DropDownButton>
+        <DropDownButton x:Name="SeasonButton" Content="Season" Height="32" MinWidth="96" AutomationProperties.Name="Season">
+          <DropDownButton.Flyout>
+            <MenuFlyout x:Name="SeasonMenu" Placement="BottomEdgeAlignedLeft" />
+          </DropDownButton.Flyout>
+        </DropDownButton>
+        <DropDownButton x:Name="YearButton" Content="Year" Height="32" MinWidth="88" AutomationProperties.Name="Year">
+          <DropDownButton.Flyout>
+            <MenuFlyout x:Name="YearMenu" Placement="BottomEdgeAlignedLeft" />
+          </DropDownButton.Flyout>
+        </DropDownButton>
+        <DropDownButton x:Name="SortButton" Content="Sort" Height="32" MinWidth="88" AutomationProperties.Name="Sort">
+          <DropDownButton.Flyout>
+            <MenuFlyout x:Name="SortMenu" Placement="BottomEdgeAlignedLeft" />
+          </DropDownButton.Flyout>
+        </DropDownButton>
+        <HyperlinkButton x:Name="ClearButton" Content="Clear filters" Click="OnClear" Height="32" Visibility="Collapsed" />
+      </StackPanel>
+    </ScrollViewer>
+    <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
       <StackPanel Padding="0,4,0,24" Spacing="12">
         <TextBlock x:Name="Section" Style="{StaticResource SectionTitleStyle}" Visibility="Collapsed" />
-        <app:CoverGrid x:Name="Grid" />
-        <TextBlock x:Name="Empty" Style="{StaticResource HazeBodyStyle}" Visibility="Collapsed" />
+        <local:StateHost x:Name="State">
+          <app:CoverGrid x:Name="Grid" />
+        </local:StateHost>
       </StackPanel>
     </ScrollViewer>
   </Grid>

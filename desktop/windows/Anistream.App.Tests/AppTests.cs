@@ -562,3 +562,54 @@ public class ShowSettingsTests
         Assert.Equal(SettingKey.KeepNextEpisodes, ShowSettingsCatalog.Setting(ShowSettingKey.KeepNext));
     }
 }
+
+public class SearchTests
+{
+    [Fact]
+    public void AFilterWithNothingTypedBrowses()
+    {
+        var filters = SearchFilters.None with { Genres = ["Drama"], Formats = [MediaFormat.Movie], Year = 2019 };
+        var query = Searches.With("", filters);
+        Assert.Equal("", query.Text);
+        Assert.Equal(["Drama"], query.Genres);
+        Assert.Equal([MediaFormat.Movie], query.Formats);
+        Assert.Equal(new Bounds(2019, 2019), query.Years);
+        Assert.True(filters.Narrows);
+        Assert.False(SearchFilters.None.Narrows);
+        Assert.True((SearchFilters.None with { Sort = SearchSort.Score }) is { Narrows: false, IsEmpty: false });
+    }
+
+    [Fact]
+    public void AQueryIsTheSameQueryWhateverArraysCarryIt()
+    {
+        var filters = SearchFilters.None with { Genres = ["Drama", "Mystery"] };
+        var a = Searches.With("lamp", filters);
+        var b = Searches.With("lamp", filters with { Genres = ["Drama", "Mystery"] });
+        Assert.NotEqual(a, b);
+        Assert.True(Searches.Same(a, b));
+        Assert.False(Searches.Same(a, Searches.With("lamp", SearchFilters.None)));
+        Assert.True(Searches.Same(Searches.Text("x"), new SearchQuery(Text: "x", Years: new Bounds(), Episodes: new Bounds(), Minutes: new Bounds())));
+
+        var known = new Known();
+        known.Take(new Event.Content(new ContentFor.Search(a), new ContentList.Empty()));
+        Assert.IsType<ContentList.Empty>(known.List(new ContentFor.Search(b)));
+        known.Take(new Event.Content(new ContentFor.Search(b), new ContentList.Failed("down")));
+        Assert.Single(known.Lists);
+        Assert.IsType<ContentList.Failed>(known.List(new ContentFor.Search(a)));
+    }
+
+    [Fact]
+    public void GenresKeepTheListsOrderAndADropDownSaysWhatItHas()
+    {
+        var order = Searches.Genres;
+        var filters = SearchFilters.None.Toggle("Mystery", order).Toggle("Action", order);
+        Assert.Equal(["Action", "Mystery"], filters.Genres);
+        Assert.Equal(["Mystery"], filters.Toggle("Action", order).Genres);
+        Assert.Equal([MediaFormat.Tv, MediaFormat.Movie], SearchFilters.None.Toggle(MediaFormat.Movie).Toggle(MediaFormat.Tv).Formats);
+        Assert.Equal("Genre", SearchFilters.Say("Genre", []));
+        Assert.Equal("Action, Mystery", SearchFilters.Say("Genre", ["Action", "Mystery"]));
+        Assert.Equal("Action +2", SearchFilters.Say("Genre", ["Action", "Drama", "Mystery"]));
+        Assert.Equal(2027u, Searches.Years(2026)[0]);
+        Assert.Equal(1970u, Searches.Years(2026)[^1]);
+    }
+}
