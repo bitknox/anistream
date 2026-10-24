@@ -46,7 +46,8 @@ field() { sed -n "s/^$1 //p" "$2"; }
 android_sources="$(grep -v -E '^(sources|ndk|abi|tools|seconds|peak-disk-kb|total-kb|binaries) ' "$android/stamp")"
 [[ -n "$android_sources" ]] || { echo "third-party.sh: $android/stamp names no sources" >&2; exit 1; }
 ndk="$(field ndk "$android/stamp")"
-# One licence line per ABI, "ffmpeg <abi> License: ...", which must agree: the notice names one.
+# One licence line per ABI (arm64-v8a and armeabi-v7a), "ffmpeg <abi> License: ...", which must
+# agree: the notice names one.
 ffmpeg_licence="$(sed -n 's/^ffmpeg [^ ]* License: //p' "$android/features" | sort -u)"
 [[ -n "$ffmpeg_licence" ]] || { echo "third-party.sh: $android/features has no FFmpeg licence" >&2; exit 1; }
 [[ "$ffmpeg_licence" != *$'\n'* ]] || { echo "third-party.sh: $android/features has FFmpeg licences that differ by ABI" >&2; exit 1; }
@@ -98,9 +99,10 @@ $repo
 The source those libraries were built from, every archive by its SHA-256, is in
 anistream-$version-apps-sources.tar, beside this zip in the release.
 
-android/   anistream-$version-android-arm64.apk
+android/   anistream-$version-android-arm64.apk, anistream-$version-android-tv.apk
 
-  libmpv.so and FFmpeg's libraries, built from source by build/mpv.sh with NDK $ndk:
+  libmpv.so and FFmpeg's libraries, built from source by build/mpv.sh with NDK $ndk, for
+  arm64-v8a (both APKs) and armeabi-v7a (the TV APK):
 
 $(sed 's/^/    /' <<<"$android_sources")
 
@@ -158,7 +160,7 @@ android_list="$(awk '
 The apps play video with libmpv and FFmpeg, which anistream builds as LGPL, without their GPL
 parts, and ships as dynamic libraries of their own:
 
-- **Android**, built from source with NDK $ndk: $android_list.
+- **Android phone and TV**, built from source with NDK $ndk: $android_list.
 - **Mac, iPhone and iPad**: mpv $apple_mpv and libass $apple_libass, built from source with
   anistream's patches, over MPVKit $mpvkit's LGPL builds of FFmpeg $apple_ffmpeg and the
   libraries beneath it.
