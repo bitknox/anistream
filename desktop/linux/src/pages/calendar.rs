@@ -316,10 +316,11 @@ impl Page {
 
     fn show(&self) {
         let days = week_days(self.week.get());
-        let (title, subtitle) = week_name(&days);
+        let (title, subtitle) = week_name(&days, month_first());
         self.title.set_title(&title);
         self.title.set_subtitle(&subtitle);
         self.this_week.set_visible(self.week.get() != 0);
+        self.body.agenda(self.ctx.size() != Size::Wide);
         if !self.loaded.get()
             || self.rows.borrow().is_empty() && self.anchor.get().is_none()
             || !self.answered.get()
@@ -428,7 +429,7 @@ impl Page {
                 continue;
             }
             let is_today = today.as_ref().is_some_and(|t| same_day(t, day));
-            let name = day.format("%A %-d %B").map(|s| s.to_string()).unwrap_or_default();
+            let name = day_heading(day, month_first());
             let heading =
                 widgets::heading(&if is_today { format!("Today, {name}") } else { name });
             let list = gtk::ListBox::new();
@@ -540,9 +541,13 @@ fn time(unix: i64) -> String {
     local(unix).format(format).map(|s| s.trim().to_string()).unwrap_or_default()
 }
 
-/// Whether times read on a 12-hour clock: GNOME's clock setting where the app can read it,
-/// otherwise the locale's own way of writing a time.
+/// Whether times read on a 12-hour clock: GNOME's clock setting, through the settings portal
+/// (which a sandbox allows) or else straight from GSettings, otherwise the locale's own way of
+/// writing a time.
 fn twelve_hour() -> bool {
+    if let Some(format) = portal_clock_format() {
+        return format == "12h";
+    }
     let sandboxed = std::path::Path::new("/.flatpak-info").exists();
     if !sandboxed
         && let Some(source) = gio::SettingsSchemaSource::default()
@@ -554,6 +559,32 @@ fn twelve_hour() -> bool {
             == "12h";
     }
     locale_twelve_hour()
+}
+
+/// GNOME's clock-format, "12h" or "24h", as the desktop's settings portal reads it out.
+fn portal_clock_format() -> Option<String> {
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).ok()?;
+    let ask = |method: &str| {
+        bus.call_sync(
+            Some("org.freedesktop.portal.Desktop"),
+            "/org/freedesktop/portal/desktop",
+            "org.freedesktop.portal.Settings",
+            method,
+            Some(&("org.gnome.desktop.interface", "clock-format").to_variant()),
+            None,
+            gio::DBusCallFlags::NONE,
+            1000,
+            gio::Cancellable::NONE,
+        )
+        .ok()
+    };
+    // ReadOne answers (v); the older Read answers the value wrapped once more.
+    let answer = ask("ReadOne").or_else(|| ask("Read"))?;
+    let mut value = answer.try_child_value(0)?;
+    while let Some(inner) = value.as_variant() {
+        value = inner;
+    }
+    value.str().map(str::to_owned)
 }
 
 /// Whether the locale writes three in the afternoon without a 15.
@@ -582,22 +613,51 @@ fn week_of(day: &glib::DateTime, offset: i32) -> Vec<glib::DateTime> {
     (0..7).map(|n| monday.add_days(n).expect("a day in range")).collect()
 }
 
-/// The week as the header's title says it, "19 to 25 October", and its year under it.
-fn week_name(days: &[glib::DateTime]) -> (String, String) {
+/// Whether the locale writes a date's month before its day: "10/19/26" or "2026-10-19", where
+/// another writes "19/10/26".
+fn month_first() -> bool {
+    thread_local! {
+        static MONTH_FIRST: bool = glib::DateTime::new(&glib::TimeZone::utc(), 2026, 11, 22, 12, 0, 0.0)
+            .ok()
+            .and_then(|t| t.format("%x").ok())
+            .is_some_and(|text| month_before_day(&text));
+    }
+    MONTH_FIRST.with(|m| *m)
+}
+
+/// Whether `text`, the locale's way of writing 22 November, puts the 11 before the 22.
+fn month_before_day(text: &str) -> bool {
+    match (text.find("11"), text.find("22")) {
+        (Some(month), Some(day)) => month < day,
+        _ => false,
+    }
+}
+
+/// A day over the agenda's section, in the locale's order: "Monday 19 October", or
+/// "Monday, October 19" where the month comes first.
+fn day_heading(day: &glib::DateTime, month_first: bool) -> String {
+    let format = if month_first { "%A, %B %-d" } else { "%A %-d %B" };
+    day.format(format).map(|s| s.to_string()).unwrap_or_default()
+}
+
+/// The week as the header's title says it, "19 to 25 October" (or "October 19 to 25" where the
+/// month comes first), and its year under it.
+fn week_name(days: &[glib::DateTime], month_first: bool) -> (String, String) {
     let (Some(first), Some(last)) = (days.first(), days.last()) else {
         return (String::new(), String::new());
     };
     let month = |d: &glib::DateTime| d.format("%B").map(|s| s.to_string()).unwrap_or_default();
-    let title = if first.month() == last.month() {
-        format!("{} to {} {}", first.day_of_month(), last.day_of_month(), month(last))
-    } else {
-        format!(
-            "{} {} to {} {}",
-            first.day_of_month(),
-            month(first),
-            last.day_of_month(),
-            month(last)
-        )
+    let date = |d: &glib::DateTime| {
+        if month_first {
+            format!("{} {}", month(d), d.day_of_month())
+        } else {
+            format!("{} {}", d.day_of_month(), month(d))
+        }
+    };
+    let title = match (first.month() == last.month(), month_first) {
+        (true, true) => format!("{} to {}", date(first), last.day_of_month()),
+        (true, false) => format!("{} to {}", first.day_of_month(), date(last)),
+        (false, _) => format!("{} to {}", date(first), date(last)),
     };
     let year = if first.year() == last.year() {
         last.year().to_string()
@@ -621,17 +681,31 @@ mod tests {
         let days = week_of(&day(2026, 10, 23), 0);
         assert_eq!(days[0].ymd(), (2026, 10, 19));
         assert_eq!(days[6].ymd(), (2026, 10, 25));
-        assert_eq!(week_name(&days), ("19 to 25 October".into(), "2026".into()));
+        assert_eq!(week_name(&days, false), ("19 to 25 October".into(), "2026".into()));
+        assert_eq!(week_name(&days, true).0, "October 19 to 25");
         // A Monday is its own week's first day.
         assert_eq!(week_of(&day(2026, 10, 19), 0)[0].ymd(), (2026, 10, 19));
         // Across months, and across years.
         let days = week_of(&day(2026, 10, 23), -4);
-        assert_eq!(week_name(&days).0, "21 to 27 September");
+        assert_eq!(week_name(&days, false).0, "21 to 27 September");
         let days = week_of(&day(2026, 12, 30), 0);
         assert_eq!(
-            week_name(&days),
+            week_name(&days, false),
             ("28 December to 3 January".into(), "2026 to 2027".into())
         );
+        assert_eq!(week_name(&days, true).0, "December 28 to January 3");
+    }
+
+    #[test]
+    fn a_day_heading_follows_the_locales_order() {
+        assert!(month_before_day("11/22/26"));
+        assert!(month_before_day("2026-11-22"));
+        assert!(!month_before_day("22/11/26"));
+        assert!(!month_before_day("22.11.2026"));
+        assert!(!month_before_day(""));
+        let monday = day(2026, 10, 19);
+        assert_eq!(day_heading(&monday, false), "Monday 19 October");
+        assert_eq!(day_heading(&monday, true), "Monday, October 19");
     }
 
     #[test]

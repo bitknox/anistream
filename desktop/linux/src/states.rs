@@ -32,7 +32,8 @@ pub enum Shape {
     Grid,
     /// `count` rows, each with art `width` by `height` and two lines of text.
     Rows { count: usize, width: i32, height: i32 },
-    /// The calendar's week: seven columns of banners.
+    /// The calendar: seven columns of banners on a wide window, day sections of rows on a
+    /// narrower one, as `States::agenda` picks.
     Week,
 }
 
@@ -60,6 +61,8 @@ pub struct States {
     pending: RefCell<Option<glib::SourceId>>,
     retry: RefCell<Option<Rc<dyn Fn()>>>,
     listening: Cell<u64>,
+    /// The calendar's placeholders, "week" or "agenda".
+    shapes: Option<gtk::Stack>,
 }
 
 impl States {
@@ -86,7 +89,8 @@ impl States {
         held.set_can_target(false);
         held.update_property(&[gtk::accessible::Property::Label("Loading")]);
         held.append(&activity);
-        held.append(&placeholders(shape));
+        let drawn = placeholders(shape);
+        held.append(&drawn);
         match shape {
             Shape::Grid => {
                 activity.set_margin_start(32);
@@ -139,6 +143,7 @@ impl States {
             pending: RefCell::default(),
             retry: RefCell::default(),
             listening: Cell::new(0),
+            shapes: drawn.downcast::<gtk::Stack>().ok(),
         });
         again.connect_clicked({
             let weak = Rc::downgrade(&states);
@@ -230,6 +235,13 @@ impl States {
             states.timers.borrow_mut().push(line);
         });
         self.timers.borrow_mut().push(show);
+    }
+
+    /// The calendar's placeholders as an agenda, for a window too narrow for the week.
+    pub fn agenda(&self, agenda: bool) {
+        if let Some(shapes) = &self.shapes {
+            shapes.set_visible_child_name(if agenda { "agenda" } else { "week" });
+        }
     }
 
     pub fn content(self: &Rc<Self>) {
@@ -414,7 +426,31 @@ fn placeholders(shape: Shape) -> gtk::Widget {
                 }
                 week.append(&day);
             }
-            week.upcast()
+            let agenda = gtk::Box::new(gtk::Orientation::Vertical, 18);
+            agenda.set_margin_start(18);
+            agenda.set_margin_end(18);
+            agenda.set_margin_top(6);
+            for rows in [2, 1] {
+                let section = gtk::Box::new(gtk::Orientation::Vertical, 10);
+                section.append(&plate(180, 18, "bar"));
+                for _ in 0..rows {
+                    let row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+                    row.append(&plate(80, 45, ""));
+                    let text = gtk::Box::new(gtk::Orientation::Vertical, 8);
+                    text.set_valign(gtk::Align::Center);
+                    text.append(&plate(160, 14, "bar"));
+                    text.append(&plate(90, 10, "bar"));
+                    row.append(&text);
+                    section.append(&row);
+                }
+                agenda.append(&section);
+            }
+            let shapes = gtk::Stack::new();
+            shapes.set_hhomogeneous(false);
+            shapes.set_vhomogeneous(false);
+            shapes.add_named(&week, Some("week"));
+            shapes.add_named(&agenda, Some("agenda"));
+            shapes.upcast()
         }
     }
 }
