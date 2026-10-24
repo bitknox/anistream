@@ -59,6 +59,23 @@ impl ClientError {
     }
 }
 
+/// The resolver behind [`StoreClient::offline`]: every name is refused.
+#[derive(Debug)]
+struct Unresolved;
+
+impl reqwest::dns::Resolve for Unresolved {
+    fn resolve(&self, name: reqwest::dns::Name) -> reqwest::dns::Resolving {
+        let refusal: Box<dyn std::error::Error + Send + Sync> = Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!(
+                "{} was not resolved: an offline client reaches IP addresses only",
+                name.as_str()
+            ),
+        ));
+        Box::pin(std::future::ready(Err(refusal)))
+    }
+}
+
 /// A connection to any number of stores.
 #[derive(Debug, Clone)]
 pub struct StoreClient {
@@ -72,6 +89,16 @@ impl StoreClient {
     /// the header on a cross-origin hop, but a store has no reason to redirect at all, so the
     /// simpler rule is to not follow one.
     pub fn new(timeout: Duration) -> Result<Self, ClientError> {
+        Self::build(timeout, false)
+    }
+
+    /// A client for fixtures and tests that reaches IP addresses only: every name is refused
+    /// without asking anyone, so no store on the internet is ever called.
+    pub fn offline(timeout: Duration) -> Result<Self, ClientError> {
+        Self::build(timeout, true)
+    }
+
+    fn build(timeout: Duration, offline: bool) -> Result<Self, ClientError> {
         let http = reqwest::Client::builder()
             .timeout(timeout)
             .redirect(reqwest::redirect::Policy::none())
@@ -87,6 +114,11 @@ impl StoreClient {
                 .iter()
                 .filter_map(|der| reqwest::Certificate::from_der(der).ok()),
         );
+        let http = if offline {
+            http.no_proxy().dns_resolver(std::sync::Arc::new(Unresolved))
+        } else {
+            http
+        };
         let http = http.build().map_err(|e| ClientError::Network(e.to_string()))?;
         Ok(Self { http })
     }
@@ -626,6 +658,13 @@ fn describe(error: &reqwest::Error) -> String {
 mod tests {
     use super::*;
     use crate::crypto::SigningKey;
+
+    #[tokio::test]
+    async fn an_offline_client_resolves_no_name() {
+        let client = StoreClient::offline(Duration::from_secs(5)).unwrap();
+        let error = client.info("https://store.example").await.unwrap_err();
+        assert!(matches!(error, ClientError::Network(_)), "{error}");
+    }
 
     fn signed(key: &SigningKey, sequence: u64, ids: &[&str]) -> SignedIndex {
         let index = Index {

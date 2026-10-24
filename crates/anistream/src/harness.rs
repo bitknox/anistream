@@ -229,8 +229,9 @@ impl Harness {
             sync.trackers[at] = tracker.clone();
             sync.anilist = Some(tracker);
         }
-        let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens.clone())
-            .expect("the plugin stores open");
+        let stores =
+            plugin_stores::Stores::with_offline_tokens(&config, &paths, tokens.clone())
+                .expect("the plugin stores open");
         let registry = options.registry.unwrap_or_else(anistream_testkit::sources::registry);
 
         // `run`'s start, short of the terminal.
@@ -261,7 +262,13 @@ impl Harness {
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = Background { keep_next: options.keep_next, ..Background::none() };
-        start.parts = Some(Parts { meta, sync, stores, clock: Default::default() });
+        start.parts = Some(Parts {
+            meta,
+            sync,
+            stores,
+            clock: Default::default(),
+            fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+        });
         start.free_space = Some(1_000_000_000_000);
         if let Some(seed) = options.before_start {
             seed(&store);

@@ -246,6 +246,7 @@ impl Engine {
                     app_clients: Default::default(),
                     host,
                     clock: parts.clock,
+                    fixture_exit: parts.fixture_exit,
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)

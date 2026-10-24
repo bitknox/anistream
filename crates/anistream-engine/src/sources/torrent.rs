@@ -101,6 +101,7 @@ impl TorrentTasks {
         let _ = tx.send(Event::Vpn(Some(anistream_model::sources::GuardView::Checking)));
         let generation = self.generation;
         let check = Arc::clone(&self.check);
+        let fixture = services.fixture_exit.clone();
         let (config, http, paths, store, tx, arrivals) = (
             // With the proxy's password, which only this copy holds.
             crate::protection::with_proxy_password(config, services),
@@ -111,8 +112,14 @@ impl TorrentTasks {
             arrivals.clone(),
         );
         self.bring_up = Some(tokio::spawn(async move {
+            // A fixture build says what the check finds and starts no session: a session reaches
+            // the DHT and the trackers, which no fixture may.
+            if fixture.is_some() {
+                check_alone(&config, &tx, fixture.as_ref());
+                return;
+            }
             let outcome =
-                sources::bring_up_torrent(config, http, paths, store, tx, check).await;
+                sources::bring_up_torrent(config, http, paths, store, tx, check, fixture).await;
             let _ = arrivals.send((generation, outcome));
         }));
     }
@@ -166,7 +173,11 @@ impl TorrentTasks {
     /// nothing else follows from it.
     pub(crate) fn check_now(&self, config: &Config, services: &Services, tx: &Outbox) {
         if self.bring_forward(config, tx) {
-            check_alone(&crate::protection::with_proxy_password(config, services), tx);
+            check_alone(
+                &crate::protection::with_proxy_password(config, services),
+                tx,
+                services.fixture_exit.as_ref(),
+            );
         }
     }
 
@@ -235,8 +246,12 @@ impl TorrentTasks {
 
 /// Check the guard `config` describes on its own, with no session or bring-up to act on what it
 /// finds, and say the verdict.
-fn check_alone(config: &Config, tx: &Outbox) {
-    let guard = match VpnGuard::new(config.providers.torrent.vpn.clone()) {
+fn check_alone(
+    config: &Config,
+    tx: &Outbox,
+    fixture: Option<&anistream_providers::vpn::Egress>,
+) {
+    let guard = match sources::guard_for(config, fixture) {
         Ok(guard) => guard,
         Err(reason) => {
             let _ = tx.send(Event::Vpn(Some(GuardView::Unreachable)));
@@ -382,7 +397,7 @@ mod tests {
         let config = torrents(VpnMode::None);
         assert!(tasks.bring_forward(&config, &tx));
         assert_eq!(badges(said(&mut rx)), [Some(GuardView::Checking)]);
-        check_alone(&config, &tx);
+        check_alone(&config, &tx, None);
         let verdict = rx.recv().await.into_iter().collect();
         assert_eq!(badges(verdict), [Some(GuardView::Unprotected)]);
 
@@ -411,7 +426,7 @@ mod tests {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let tx: Outbox = tx.into();
         // A proxy with no address.
-        check_alone(&torrents(VpnMode::Socks5), &tx);
+        check_alone(&torrents(VpnMode::Socks5), &tx, None);
         let mut said = said(&mut rx);
         let Some(Event::Toast(notice)) = said.pop() else { panic!("{said:?}") };
         assert_eq!(badges(said), [Some(GuardView::Unreachable)]);
