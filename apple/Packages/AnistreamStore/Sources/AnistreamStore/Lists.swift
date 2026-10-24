@@ -147,7 +147,7 @@ public final class SearchModel {
     /// letter, which the engine does not search for as it is typed, is the start still.
     public var atStart: Bool {
         let normal = query.normalized
-        return normal.isBlank() || (normal.waitsForWords && normal.withoutWords.isBlank() && asked != normal)
+        return normal.isBlank() || (normal.waitsForWords() && normal.withoutWords.isBlank() && asked != normal)
     }
 
     /// Whether the answer to what was asked is still on its way.
@@ -160,8 +160,8 @@ public final class SearchModel {
     func edit(_ query: SearchQuery, submitted: Bool = false) -> Bool {
         self.query = query
         let normal = query.normalized
-        // One letter as it is typed: the engine waits for a second (its `too_short`).
-        let waits = !submitted && normal.waitsForWords
+        // One letter as it is typed: the engine waits for a second (the model's rule).
+        let waits = !submitted && normal.waitsForWords()
         if normal.isBlank() || (waits && normal.withoutWords.isBlank()) {
             asked = nil
             answered = nil
@@ -277,18 +277,6 @@ public final class SearchModel {
 }
 
 extension SearchQuery {
-    /// Whether the engine waits for more words before it searches as they are typed: one
-    /// letter, except a Chinese, Japanese or Korean character, which is a word. The engine's
-    /// `too_short`; Return searches for it anyway.
-    public var waitsForWords: Bool {
-        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let only = text.unicodeScalars.first, text.unicodeScalars.count == 1 else { return false }
-        switch only.value {
-        case 0x3040...0x30FF, 0x3400...0x4DBF, 0x4E00...0x9FFF, 0xF900...0xFAFF, 0xAC00...0xD7AF: return false
-        default: return true
-        }
-    }
-
     /// The query without its words: the filters and sort alone.
     public var withoutWords: SearchQuery {
         var query = self

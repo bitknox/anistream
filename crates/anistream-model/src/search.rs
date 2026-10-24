@@ -347,6 +347,15 @@ pub struct ActiveFilter {
     pub label: String,
 }
 
+/// Kana, CJK ideographs and Hangul: scripts where one character is a word.
+fn is_cjk(c: char) -> bool {
+    matches!(c as u32,
+        0x3040..=0x30FF // kana
+        | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF // ideographs
+        | 0xAC00..=0xD7AF // hangul
+    )
+}
+
 fn joined<T: Copy>(items: &[T], label: impl Fn(T) -> &'static str) -> String {
     items.iter().map(|item| label(*item)).collect::<Vec<_>>().join(", ")
 }
@@ -422,6 +431,13 @@ impl SearchQuery {
     /// Nothing at all: no text, no sort, no filter. Search's start, which shows the rails.
     pub fn is_blank(&self) -> bool {
         self.is_browse() && self.sort.is_none() && !self.has_filters()
+    }
+
+    /// Text too short to search for as it is typed: one character, except in Chinese, Japanese
+    /// and Korean, where one is a word. Search as you type waits for more; Return searches anyway.
+    pub fn waits_for_words(&self) -> bool {
+        let mut chars = self.trimmed_text().chars();
+        matches!((chars.next(), chars.next()), (Some(only), None) if !is_cjk(only))
     }
 
     /// The sort the results come in: the one chosen, or relevance with text and popularity
@@ -659,6 +675,11 @@ impl SearchQuery {
     #[uniffi::method(name = "is_blank")]
     fn ffi_is_blank(&self) -> bool {
         self.is_blank()
+    }
+
+    #[uniffi::method(name = "waits_for_words")]
+    fn ffi_waits_for_words(&self) -> bool {
+        self.waits_for_words()
     }
 
     #[uniffi::method(name = "sort_in_effect")]
@@ -953,6 +974,16 @@ mod tests {
 
     fn labels(query: &SearchQuery) -> Vec<String> {
         query.active().into_iter().map(|f| f.label).collect()
+    }
+
+    #[test]
+    fn one_typed_letter_waits_except_where_one_character_is_a_word() {
+        assert!(SearchQuery::text("k").waits_for_words());
+        assert!(SearchQuery::text(" k ").waits_for_words());
+        assert!(!SearchQuery::text("ka").waits_for_words());
+        assert!(!SearchQuery::text("星").waits_for_words());
+        assert!(!SearchQuery::text("구").waits_for_words());
+        assert!(!SearchQuery::default().waits_for_words());
     }
 
     #[test]

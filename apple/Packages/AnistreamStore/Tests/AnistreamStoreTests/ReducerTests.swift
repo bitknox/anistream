@@ -250,15 +250,6 @@ struct ReducerTests {
         #expect(store.search.edit(SearchQuery(text: ""), submitted: true))
     }
 
-    @Test func whichTextWaitsForMoreWords() {
-        #expect(SearchQuery(text: "k").waitsForWords)
-        #expect(SearchQuery(text: " k ").waitsForWords)
-        #expect(!SearchQuery(text: "ka").waitsForWords)
-        #expect(!SearchQuery(text: "星").waitsForWords)
-        #expect(!SearchQuery(text: "구").waitsForWords)
-        #expect(!SearchQuery(text: "").waitsForWords)
-    }
-
     @Test func furtherPagesGoAfterWhatIsThereAndAFailedOneIsAskedAgain() {
         let store = AppStore()
         let mecha = SearchQuery(genres: ["Mecha"])

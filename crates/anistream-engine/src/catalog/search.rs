@@ -149,7 +149,7 @@ pub fn live(query: SearchQuery, engine: &mut EngineState, services: &Services, t
         changed
     };
     // Nothing to search for: Search's start shows, or the text is too short to mean much yet.
-    if query.is_blank() || (!query.is_browse() && too_short(&query.text)) {
+    if query.is_blank() || query.waits_for_words() {
         searches.replace(None);
         return;
     }
@@ -168,25 +168,6 @@ pub fn live(query: SearchQuery, engine: &mut EngineState, services: &Services, t
         first_page(lent, &running, query, adult).await;
     });
     searches.replace(Some(task.abort_handle()));
-}
-
-/// Too short to search for: one character, or none, except in Chinese, Japanese and Korean,
-/// where one is a word.
-fn too_short(text: &str) -> bool {
-    let mut chars = text.chars();
-    match (chars.next(), chars.next()) {
-        (None, _) => true,
-        (Some(only), None) => !is_cjk(only),
-        _ => false,
-    }
-}
-
-fn is_cjk(c: char) -> bool {
-    matches!(c as u32,
-        0x3040..=0x30FF // kana
-        | 0x3400..=0x4DBF | 0x4E00..=0x9FFF | 0xF900..=0xFAFF // ideographs
-        | 0xAC00..=0xD7AF // hangul
-    )
 }
 
 /// The first page of `query`: whether there is more, any caption, then the titles.
@@ -424,14 +405,6 @@ mod tests {
         let filter = browse_filter(&one_year, false);
         assert_eq!((filter.year, filter.started_after), (Some(2024), None));
         assert_eq!(filter.sort, ["SEARCH_MATCH"]);
-    }
-
-    #[test]
-    fn short_text_waits_except_where_one_character_is_a_word() {
-        assert!(too_short("k"));
-        assert!(!too_short("ka"));
-        assert!(!too_short("星"));
-        assert!(!too_short("구"));
     }
 
     #[test]
