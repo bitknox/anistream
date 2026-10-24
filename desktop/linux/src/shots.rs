@@ -60,14 +60,13 @@ pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
             // A window that has just changed its size or decorations can have no frame drawn
             // yet: asked to draw, and tried again.
             for _ in 0..4 {
-                let over =
-                    if shot == "player-marks" { shell.player.shot_popover() } else { None };
-                taken = capture(&shell.ctx.window, &path, over);
+                // Taken just after a frame is painted, when the window is laid out: between
+                // frames a relayout can be pending, and a widget waiting for one draws nothing.
+                let marks = shot == "player-marks";
+                taken = painted(&shell, &path, marks).await;
                 if taken.is_ok() {
                     break;
                 }
-                shell.ctx.window.queue_resize();
-                shell.ctx.window.queue_draw();
                 wait(1.5).await;
             }
             match taken {
@@ -188,6 +187,12 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                     player.shot_marks("/out/media/lantern-road.srt");
                 });
                 let player = Rc::clone(&shell.player);
+                // The preview opens the stream the first time it shows and has its frame a
+                // moment later; shown again then, so the controls are still up for the shot.
+                glib::timeout_add_local_once(Duration::from_millis(6500), move || {
+                    player.shot_preview(0.4);
+                });
+                let player = Rc::clone(&shell.player);
                 glib::timeout_add_local_once(Duration::from_millis(8500), move || {
                     player.shot_preview(0.4);
                 });
@@ -291,9 +296,23 @@ fn capture(
     if width <= 0 || height <= 0 {
         return Err("the window has no size".into());
     }
+    // The window on its own first: with a popover on top, an empty window would still give a
+    // picture, of the popover alone.
     let paintable = gtk::WidgetPaintable::new(Some(window));
+    let drawn = gtk::Snapshot::new();
+    paintable.snapshot(&drawn, f64::from(width), f64::from(height));
+    let page = drawn.to_node();
+    let page = page.ok_or_else(|| {
+        format!(
+            "the window drew nothing: {width}x{height}, mapped {}, decorated {}, needs {}x{}",
+            window.is_mapped(),
+            window.is_decorated(),
+            window.measure(gtk::Orientation::Horizontal, -1).0,
+            window.measure(gtk::Orientation::Vertical, -1).0,
+        )
+    })?;
     let snapshot = gtk::Snapshot::new();
-    paintable.snapshot(&snapshot, f64::from(width), f64::from(height));
+    snapshot.append_node(&page);
     // A popover is a surface of its own, which the window's drawing leaves out: drawn on top.
     if let Some((widget, x, y)) = over {
         let popover = gtk::WidgetPaintable::new(Some(&widget));
@@ -302,15 +321,7 @@ fn capture(
         popover.snapshot(&snapshot, f64::from(widget.width()), f64::from(widget.height()));
         snapshot.restore();
     }
-    let node = snapshot.to_node().ok_or_else(|| {
-        format!(
-            "nothing drawn: {width}x{height}, mapped {}, decorated {}, needs {}x{}",
-            window.is_mapped(),
-            window.is_decorated(),
-            window.measure(gtk::Orientation::Horizontal, -1).0,
-            window.measure(gtk::Orientation::Vertical, -1).0,
-        )
-    })?;
+    let node = snapshot.to_node().ok_or("nothing drawn")?;
     let renderer = window.renderer().ok_or("no renderer")?;
     let bounds = gtk::graphene::Rect::new(0.0, 0.0, width as f32, height as f32);
     let texture = renderer.render_texture(&node, Some(&bounds));
@@ -318,6 +329,41 @@ fn capture(
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
     texture.save_to_png(path).map_err(|e| e.to_string())
+}
+
+/// The window drawn into `path` just after its next frame is painted, with the seek preview on
+/// top when `marks`; captured at once if no frame comes within a second.
+async fn painted(shell: &Rc<Shell>, path: &std::path::Path, marks: bool) -> Result<(), String> {
+    let window = shell.ctx.window.clone();
+    let take = {
+        let (player, window, path) =
+            (Rc::clone(&shell.player), window.clone(), path.to_owned());
+        move || {
+            let over = if marks { player.shot_popover() } else { None };
+            capture(&window, &path, over)
+        }
+    };
+    let Some(clock) = window.frame_clock() else { return take() };
+    let (tx, rx) = async_channel::bounded::<Result<(), String>>(1);
+    let once = std::cell::Cell::new(Some(take.clone()));
+    let handler = clock.connect_after_paint(move |_| {
+        // Drawn outside the frame, so the capture's own rendering does not run inside the
+        // window's, but before anything else on the loop can ask for a new layout.
+        if let Some(take) = once.take() {
+            let tx = tx.clone();
+            glib::idle_add_local_full(glib::Priority::HIGH, move || {
+                let _ = tx.try_send(take());
+                glib::ControlFlow::Break
+            });
+        }
+    });
+    window.queue_draw();
+    let taken = glib::future_with_timeout(Duration::from_secs(1), rx.recv()).await;
+    clock.disconnect(handler);
+    match taken {
+        Ok(Ok(taken)) => taken,
+        _ => take(),
+    }
 }
 
 async fn wait(seconds: f64) {
