@@ -73,9 +73,9 @@ which CI rebuilds from master. The spike pins this build:
 
 | | |
 |---|---|
-| Build | `v0.41.0-dev-g1140d3cc2` (master at 1140d3cc2), client API 2.6 |
-| arm64 | `https://github.com/mpv-player/mpv/releases/download/git-release/libmpv-v0.41.0-dev-g1140d3cc2-40019941042-aarch64-w64-mingw32-lgpl.zip`, SHA-256 `a69bf1c29f504b172f796f755d34bde47e6c307caaa5828d1e6f9fc873261f15` |
-| x64 | `https://github.com/mpv-player/mpv/releases/download/git-release/libmpv-v0.41.0-dev-g1140d3cc2-40019941042-x86_64-w64-mingw32-lgpl.zip`, SHA-256 `0b903278de16d36faac6b007dd2f7873956ae51a0a2d674bb87939cfe891dc4e` |
+| Build | `v0.41.0-dev-ga39482e7a` (master at a39482e7a), client API 2.6 |
+| arm64 | `https://github.com/mpv-player/mpv/releases/download/git-release/libmpv-v0.41.0-dev-ga39482e7a-40099161509-aarch64-w64-mingw32-lgpl.zip`, SHA-256 `e1ae51475cb81b8ba643890db877d39d9e178403a40e77320afb7a686f45c031` |
+| x64 | `https://github.com/mpv-player/mpv/releases/download/git-release/libmpv-v0.41.0-dev-ga39482e7a-40099161509-x86_64-w64-mingw32-lgpl.zip`, SHA-256 `9a084eab0b0b04e82f5f4b3cdd314fcc91eddae4ca1756d3ce24aa3718e1fb72` |
 
 - The LGPL build, so the app's MIT code stays separate from it as a DLL; the GPL build adds
   nothing the app needs.

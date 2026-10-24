@@ -12,10 +12,10 @@ param([ValidateSet('arm64', 'x64')][string]$Arch = 'arm64')
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-$build = 'v0.41.0-dev-g1140d3cc2-40019941042'
+$build = 'v0.41.0-dev-ga39482e7a-40099161509'
 $pins = @{
-  arm64 = @{ name = "libmpv-$build-aarch64-w64-mingw32-lgpl.zip"; sha256 = 'a69bf1c29f504b172f796f755d34bde47e6c307caaa5828d1e6f9fc873261f15' }
-  x64   = @{ name = "libmpv-$build-x86_64-w64-mingw32-lgpl.zip"; sha256 = '0b903278de16d36faac6b007dd2f7873956ae51a0a2d674bb87939cfe891dc4e' }
+  arm64 = @{ name = "libmpv-$build-aarch64-w64-mingw32-lgpl.zip"; sha256 = 'e1ae51475cb81b8ba643890db877d39d9e178403a40e77320afb7a686f45c031' }
+  x64   = @{ name = "libmpv-$build-x86_64-w64-mingw32-lgpl.zip"; sha256 = '9a084eab0b0b04e82f5f4b3cdd314fcc91eddae4ca1756d3ce24aa3718e1fb72' }
 }
 $pin = $pins[$Arch]
 $url = "https://github.com/mpv-player/mpv/releases/download/git-release/$($pin.name)"
