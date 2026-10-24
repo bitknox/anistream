@@ -56,8 +56,20 @@ pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
             let settle = stage(&shell, shot);
             wait(settle).await;
             let path = dir.join(format!("{prefix}{shot}.png"));
-            let over = if shot == "player-marks" { shell.player.shot_popover() } else { None };
-            let taken = capture(&shell.ctx.window, &path, over);
+            let mut taken = Err(String::new());
+            // A window that has just changed its size or decorations can have no frame drawn
+            // yet: asked to draw, and tried again.
+            for _ in 0..4 {
+                let over =
+                    if shot == "player-marks" { shell.player.shot_popover() } else { None };
+                taken = capture(&shell.ctx.window, &path, over);
+                if taken.is_ok() {
+                    break;
+                }
+                shell.ctx.window.queue_resize();
+                shell.ctx.window.queue_draw();
+                wait(1.5).await;
+            }
             match taken {
                 Ok(()) => tracing::info!(path = %path.display(), "a shot"),
                 Err(e) => tracing::error!(shot, error = %e, "a shot did not save"),
@@ -292,9 +304,11 @@ fn capture(
     }
     let node = snapshot.to_node().ok_or_else(|| {
         format!(
-            "nothing drawn: {width}x{height}, mapped {}, decorated {}",
+            "nothing drawn: {width}x{height}, mapped {}, decorated {}, needs {}x{}",
             window.is_mapped(),
-            window.is_decorated()
+            window.is_decorated(),
+            window.measure(gtk::Orientation::Horizontal, -1).0,
+            window.measure(gtk::Orientation::Vertical, -1).0,
         )
     })?;
     let renderer = window.renderer().ok_or("no renderer")?;
