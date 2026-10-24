@@ -128,7 +128,7 @@ struct IPadProvidersToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("Check for Updates") { store.loadStores() }
+            Button("Check for updates") { store.loadStores() }
         }
     }
 }
