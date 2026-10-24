@@ -12,10 +12,11 @@ doctest = false
 
 # The protocol's half, what each op is on mpv and what each of mpv's events reports, builds with
 # no libmpv, so the workspace builds and tests it on any machine. The `libmpv` feature adds the
-# player itself and its renderer, and links the system's libmpv through pkg-config: the desktop
-# apps turn it on, and the build then needs libmpv's development files.
+# player itself and its renderer, and links libmpv: the desktop apps turn it on. On Linux and
+# macOS it is the system's, found through pkg-config, and the build needs libmpv's development
+# files. With MSVC on Windows it is the DLL in ANISTREAM_LIBMPV_DIR (build.rs says how).
 [features]
-libmpv = ["dep:pkg-config"]
+libmpv = ["dep:pkg-config", "dep:find-msvc-tools"]
 
 [dependencies]
 anistream-model.workspace = true
@@ -24,6 +25,8 @@ tracing.workspace = true
 
 [build-dependencies]
 pkg-config = { version = "0.3", optional = true }
+# lib.exe, for the import library of a libmpv built with mingw.
+find-msvc-tools = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tempfile = "3"

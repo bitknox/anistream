@@ -7,8 +7,12 @@
 //! - `render` (feature `libmpv`): the video drawn into the app's OpenGL framebuffer through
 //!   libmpv's render API, for a `GtkGLArea` or any other GL widget.
 //!
+//! On Windows the picture takes the other way, [`VideoOutput::D3d11Composition`]: mpv presents
+//! into a swapchain made for composition, and the app hands it to a XAML `SwapChainPanel`.
+//!
 //! The crate knows no toolkit: the app hands in a GL function loader, its native display and
-//! a sink for what the player says, and moves that to its own main thread.
+//! a sink for what the player says, or binds the swapchain itself, and moves what the player
+//! says to its own main thread.
 
 pub mod log;
 mod node;
@@ -25,6 +29,8 @@ pub mod render;
 #[cfg(feature = "libmpv")]
 pub use crate::{
     mpv::{Mpv, MpvError},
-    player::{HostEvent, Player, PlayerOptions, PlayerState, Sink},
+    player::{
+        HostEvent, Player, PlayerOptions, PlayerState, Sink, VideoOutput, composition_size,
+    },
     render::{GetProcAddress, GlRenderer, NativeDisplay},
 };

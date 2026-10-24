@@ -35,6 +35,7 @@ fn rig() -> Rig {
         audio_output: Some("null".into()),
         log_level: "warn".into(),
         extra: vec![("vo".into(), "null".into())],
+        ..PlayerOptions::default()
     };
     let player = Player::new(
         &options,

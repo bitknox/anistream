@@ -226,6 +226,7 @@ name = "anistream-mpv-host"
 version = "2.0.0"
 dependencies = [
  "anistream-model",
+ "find-msvc-tools",
  "pkg-config",
  "serde_json",
  "tempfile",

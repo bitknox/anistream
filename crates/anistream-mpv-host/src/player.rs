@@ -51,8 +51,48 @@ pub struct PlayerOptions {
     pub audio_output: Option<String>,
     /// mpv's log level for the app's log: `warn` normally, `v` to see the renderer pick.
     pub log_level: String,
+    /// Where the picture goes: the app's own framebuffer, or a swapchain for composition.
+    pub video: VideoOutput,
     /// Anything else, set last, so it wins.
     pub extra: Vec<(String, String)>,
+}
+
+/// Where the player's picture goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum VideoOutput {
+    /// libmpv's render API (`vo=libmpv`): the app draws each frame into its own framebuffer, as
+    /// a `GtkGLArea` does.
+    #[default]
+    RenderApi,
+    /// mpv's own renderer on Direct3D 11, presenting into a swapchain made for composition, with
+    /// no window: the app reads its address from [`Player::swapchain`] and hands it to a XAML
+    /// `SwapChainPanel`. `width` and `height` are the panel's size in pixels, which mpv cannot
+    /// measure; [`Player::composition_size`] says it again when the panel resizes.
+    D3d11Composition { width: u32, height: u32 },
+}
+
+impl VideoOutput {
+    /// The options that send the picture there.
+    fn options(self) -> Vec<(&'static str, String)> {
+        match self {
+            Self::RenderApi => vec![("vo", "libmpv".into())],
+            Self::D3d11Composition { width, height } => vec![
+                ("vo", "gpu-next".into()),
+                ("gpu-api", "d3d11".into()),
+                ("gpu-context", "d3d11".into()),
+                ("d3d11-output-mode", "composition".into()),
+                ("d3d11-composition-size", composition_size(width, height)),
+                // SDR until the app says the display is HDR: in composition mode mpv cannot
+                // see the display (mpv #16795), and the hint alone would send PQ to any.
+                ("target-colorspace-hint", "no".into()),
+            ],
+        }
+    }
+}
+
+/// `d3d11-composition-size` as mpv reads it: `1280x720`, at least a pixel each way.
+pub fn composition_size(width: u32, height: u32) -> String {
+    format!("{}x{}", width.max(1), height.max(1))
 }
 
 impl Default for PlayerOptions {
@@ -63,6 +103,7 @@ impl Default for PlayerOptions {
             cache_dir: None,
             audio_output: None,
             log_level: "warn".into(),
+            video: VideoOutput::default(),
             extra: Vec::new(),
         }
     }
@@ -72,23 +113,25 @@ impl PlayerOptions {
     /// Every option, in order: the ones every desktop host shares, after the phones' where
     /// they apply, then the decoding, the directories and the extras.
     pub fn resolved(&self) -> Vec<(String, String)> {
-        let mut options: Vec<(String, String)> = [
-            // The render API's video output: the app draws, mpv makes no window.
-            ("vo", "libmpv"),
-            ("idle", "yes"),
-            ("keep-open", "no"),
-            ("input-default-bindings", "no"),
-            ("input-vo-keyboard", "no"),
-            ("osc", "no"),
-            ("osd-level", "0"),
-            ("embeddedfonts", "yes"),
-            ("ytdl", "no"),
-            ("save-position-on-quit", "no"),
-            ("audio-client-name", "anistream"),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-        .collect();
+        // Where the picture goes, first: mpv makes no window either way.
+        let mut options: Vec<(String, String)> =
+            self.video.options().into_iter().map(|(k, v)| (k.to_owned(), v)).collect();
+        options.extend(
+            [
+                ("idle", "yes"),
+                ("keep-open", "no"),
+                ("input-default-bindings", "no"),
+                ("input-vo-keyboard", "no"),
+                ("osc", "no"),
+                ("osd-level", "0"),
+                ("embeddedfonts", "yes"),
+                ("ytdl", "no"),
+                ("save-position-on-quit", "no"),
+                ("audio-client-name", "anistream"),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), v.to_owned())),
+        );
         options.push(("hwdec".into(), self.hwdec.clone()));
         match &self.config_dir {
             Some(dir) => {
@@ -366,6 +409,33 @@ impl Player {
         self.shared.report(PlayerReport::Power { on_battery, low_power });
     }
 
+    /// The composition panel's new size in pixels: mpv resizes the buffers of the swapchain it
+    /// has, which keeps its address. Only for [`VideoOutput::D3d11Composition`].
+    pub fn composition_size(&self, width: u32, height: u32) {
+        self.enqueue(Work::Call(MpvCall::Set {
+            property: "d3d11-composition-size".into(),
+            value: composition_size(width, height).into(),
+        }));
+    }
+
+    /// The swapchain mpv presents into in composition mode, as an `IDXGISwapChain` address:
+    /// `None` until the first video reconfig has made one. Anything that rebuilds the video
+    /// output, such as a change of a `d3d11-output-*` option, makes a new one, and mpv says
+    /// nothing when it does, so the app asks again from time to time and binds what is new.
+    pub fn swapchain(&self) -> Option<u64> {
+        self.shared.mpv.get("display-swapchain")?.as_i64().filter(|&a| a != 0).map(|a| a as u64)
+    }
+
+    /// The display's HDR, for composition mode, where mpv cannot see the display: with
+    /// `Some(peak)`, the display shows HDR and libplacebo may switch the same swapchain to
+    /// HDR10, tone-mapped to `peak` nits; with `None`, it tone-maps to SDR itself, which looks
+    /// far better than Windows clipping PQ on an SDR display. Changes in place while playing.
+    pub fn hdr_output(&self, peak: Option<f64>) {
+        for (property, value) in hdr_properties(peak) {
+            self.enqueue(Work::Call(MpvCall::Set { property: property.into(), value }));
+        }
+    }
+
     fn close(&self, reporting: bool) {
         let shared = &self.shared;
         if reporting {
@@ -403,6 +473,14 @@ impl Drop for Player {
         for thread in self.threads.drain(..) {
             let _ = thread.join();
         }
+    }
+}
+
+/// What [`Player::hdr_output`] sets: the colour-space hint, and the peak it tone-maps to.
+fn hdr_properties(peak: Option<f64>) -> [(&'static str, Value); 2] {
+    match peak {
+        Some(nits) => [("target-colorspace-hint", true.into()), ("target-peak", nits.into())],
+        None => [("target-colorspace-hint", false.into()), ("target-peak", "auto".into())],
     }
 }
 
@@ -513,4 +591,48 @@ fn update(shared: &Shared, name: &str, value: &Value) -> Option<PlayerState> {
         _ => return None,
     }
     (*state != before).then(|| state.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn option<'a>(options: &'a [(String, String)], name: &str) -> Option<&'a str> {
+        options.iter().rev().find(|(k, _)| k == name).map(|(_, v)| v.as_str())
+    }
+
+    #[test]
+    fn the_render_api_draws_into_the_apps_framebuffer() {
+        let options = PlayerOptions::default().resolved();
+        assert_eq!(options[0], ("vo".into(), "libmpv".into()));
+        assert_eq!(option(&options, "d3d11-output-mode"), None);
+    }
+
+    #[test]
+    fn composition_presents_into_a_swapchain_of_the_panels_size_in_sdr() {
+        let options = PlayerOptions {
+            video: VideoOutput::D3d11Composition { width: 1280, height: 0 },
+            ..PlayerOptions::default()
+        }
+        .resolved();
+        assert_eq!(option(&options, "vo"), Some("gpu-next"));
+        assert_eq!(option(&options, "gpu-api"), Some("d3d11"));
+        assert_eq!(option(&options, "d3d11-output-mode"), Some("composition"));
+        assert_eq!(option(&options, "d3d11-composition-size"), Some("1280x1"));
+        assert_eq!(option(&options, "target-colorspace-hint"), Some("no"));
+        // The rest is every host's.
+        assert_eq!(option(&options, "idle"), Some("yes"));
+    }
+
+    #[test]
+    fn hdr_is_the_hint_with_the_displays_peak_and_sdr_is_neither() {
+        assert_eq!(
+            hdr_properties(Some(600.0)),
+            [("target-colorspace-hint", true.into()), ("target-peak", 600.0.into())]
+        );
+        assert_eq!(
+            hdr_properties(None),
+            [("target-colorspace-hint", false.into()), ("target-peak", "auto".into())]
+        );
+    }
 }
