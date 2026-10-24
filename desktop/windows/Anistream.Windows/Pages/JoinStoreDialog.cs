@@ -111,7 +111,7 @@ sealed class JoinStoreDialog
                     SecondStep(s.V1);
                     break;
                 case Event.StorePreview { V1: InvitePreview.Failed f }:
-                    problem.Text = f.Reason.Length > 0 ? char.ToUpperInvariant(f.Reason[0]) + f.Reason[1..] : "The invite could not be checked.";
+                    problem.Text = Words.InviteFailure(f.Reason);
                     dialog.IsPrimaryButtonEnabled = true;
                     break;
                 case Event.StoreJoined:

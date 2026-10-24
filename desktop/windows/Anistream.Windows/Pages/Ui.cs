@@ -78,7 +78,7 @@ static class Ui
             Width = width,
             Height = height,
             CornerRadius = new CornerRadius(6),
-            Background = new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x34, 0x3A, 0x57)),
+            Background = new SolidColorBrush(Colours.Raised),
         };
         if (ctx.Known.Entries.TryGetValue(id, out var entry))
         {
@@ -89,4 +89,19 @@ static class Ui
     }
 
     public static string Bytes(ulong n) => AnistreamFfiMethods.HumanBytes(n);
+
+    /// <summary>A destructive action's confirmation: Cancel is the default, the action names itself.</summary>
+    public static async Task<bool> Confirm(XamlRoot root, string title, string text, string action)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root,
+            Title = title,
+            Content = Text(text, "BodyTextBlockStyle"),
+            PrimaryButtonText = action,
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
 }

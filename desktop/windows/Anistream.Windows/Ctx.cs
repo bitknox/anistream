@@ -53,7 +53,15 @@ sealed class Ctx
 
     public void OpenTitle(uint id) => Window.OpenTitle(id);
 
-    public void Play(uint id, string episode) => Send(new Command.Play(id, episode, false));
+    /// <summary>Plays an episode from where it was left, or from its start with <paramref name="fromStart"/>.</summary>
+    public void Play(uint id, string episode, bool fromStart = false) => Send(new Command.Play(id, episode, fromStart));
 
     public void Search(string query) => Window.ShowSearch(query);
+
+    /// <summary>Pauses every download that runs or waits; each resumes from its own row.</summary>
+    public void PauseAllDownloads()
+    {
+        foreach (var row in Known.Downloads.Where(r => r.State is DownloadState.Active or DownloadState.Queued))
+            Send(new Command.DownloadPause(row.Id));
+    }
 }

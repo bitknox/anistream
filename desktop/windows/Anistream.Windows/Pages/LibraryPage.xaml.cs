@@ -27,7 +27,11 @@ public sealed partial class LibraryPage : Page
     public LibraryPage()
     {
         InitializeComponent();
-        NagareSlot.Child = new Nagare(5);
+        SignedOut.Child = States.Empty("Your lists come from AniList", "Sign in to see what you're watching, planning and have finished.", "Sign in to AniList", () => ctx.Send(new Command.Connect("anilist")));
+        if (SignedOut.Child is StackPanel panel && panel.Children[^1] is Button signIn)
+            signIn.Style = Ui.Res<Style>("AccentButtonStyle");
+        State.Placeholders = () => States.Covers();
+        State.ActivityText = "Loading your lists";
         foreach (var (s, name) in Segments)
             Lists.Items.Add(new SelectorBarItem { Text = name, Tag = s, IsSelected = s == segment });
         // Heard from the start: what arrives before the page is loaded is not missed.
@@ -72,9 +76,15 @@ public sealed partial class LibraryPage : Page
         };
         var covers = entries.Select(e => new CoverItem(e).Load(ctx.Art)).ToList();
         Grid.Covers = covers;
-        var loaded = ctx.Known.Lists.ContainsKey(new ContentFor.Library(segment));
-        Empty.Text = $"Nothing on {Segments.First(x => x.Segment == segment).Name} yet.";
-        Empty.Visibility = loaded && covers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ctx.Known.Lists.TryGetValue(new ContentFor.Library(segment), out var shown);
+        if (covers.Count > 0)
+            State.Done();
+        else if (shown is ContentList.Failed f)
+            State.Failed(f.V1, () => ctx.Send(new Command.LoadLibrary(segment)));
+        else if (shown is ContentList.Entries or ContentList.Empty)
+            State.Empty(States.Unavailable($"Nothing on {Segments.First(x => x.Segment == segment).Name} yet", "Titles you add on AniList show up here."));
+        else
+            State.Wait();
     }
 
     void OnListChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs e)
@@ -96,5 +106,4 @@ public sealed partial class LibraryPage : Page
         }
     }
 
-    void OnConnect(object sender, RoutedEventArgs e) => ctx.Send(new Command.Connect("anilist"));
 }

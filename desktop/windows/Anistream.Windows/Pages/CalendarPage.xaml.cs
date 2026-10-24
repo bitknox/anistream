@@ -27,10 +27,23 @@ public sealed partial class CalendarPage : Page
     Entry[] rows = [];
     uint pages;
     bool morePast, askingPast;
+    /// <summary>Whether the engine has answered once, and the 600 ms of silence before placeholders passed.</summary>
+    bool loaded, placeholders;
+    string? failed;
+    readonly Microsoft.UI.Dispatching.DispatcherQueueTimer silence;
 
     public CalendarPage()
     {
         InitializeComponent();
+        silence = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().CreateTimer();
+        silence.Interval = TimeSpan.FromMilliseconds(600);
+        silence.IsRepeating = false;
+        silence.Tick += (_, _) =>
+        {
+            placeholders = true;
+            if (!loaded)
+                Show();
+        };
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
         Unloaded += (_, _) => ctx.Batch -= Heard;
@@ -40,6 +53,18 @@ public sealed partial class CalendarPage : Page
     {
         base.OnNavigatedTo(e);
         rows = ctx.Known.ListRows(new ContentFor.Calendar());
+        loaded = ctx.Known.Lists.TryGetValue(new ContentFor.Calendar(), out var list) && list is ContentList.Entries or ContentList.Empty || rows.Length > 0;
+        if (!loaded)
+            silence.Start();
+        ctx.Send(new Command.LoadCalendar());
+        Show();
+    }
+
+    void Load()
+    {
+        failed = null;
+        placeholders = false;
+        silence.Start();
         ctx.Send(new Command.LoadCalendar());
         Show();
     }
@@ -53,6 +78,9 @@ public sealed partial class CalendarPage : Page
             {
                 case Event.Content { View: ContentFor.Calendar } c when c.ContentValue is not ContentList.Loading:
                     rows = ctx.Known.ListRows(new ContentFor.Calendar());
+                    failed = c.ContentValue is ContentList.Failed f && rows.Length == 0 ? f.V1 : null;
+                    loaded = failed is null;
+                    silence.Stop();
                     again = true;
                     break;
                 case Event.CalendarWindow w:
@@ -91,6 +119,16 @@ public sealed partial class CalendarPage : Page
         Days.ColumnDefinitions.Clear();
         Days.RowDefinitions.Clear();
         wide = Scroll.ActualWidth == 0 || Scroll.ActualWidth >= WeekWidth;
+        if (failed is not null)
+        {
+            Days.Children.Add(States.Unavailable(Words.Failure(failed), null, "Try again", Load, error: true));
+            return;
+        }
+        if (!loaded && ctx.Known.Offline)
+        {
+            Days.Children.Add(States.Unavailable("You're offline", "Downloaded episodes still play.", "Show downloads", () => ctx.Window.Go("downloads")));
+            return;
+        }
         if (wide == true)
             ShowWeek(days, today);
         else
@@ -109,7 +147,14 @@ public sealed partial class CalendarPage : Page
             if (day == today)
                 column.Background = (Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"];
             column.Children.Add(DayHeading(day, today));
-            if (broadcasts.Count == 0)
+            if (!loaded)
+            {
+                // Never "Nothing airs" before the answer: nothing for 600 ms, then plates.
+                if (placeholders)
+                    for (var p = 0; p < (i % 3) + 1; p++)
+                        column.Children.Add(CellPlaceholder());
+            }
+            else if (broadcasts.Count == 0)
                 column.Children.Add(Haze("Nothing airs"));
             foreach (var b in broadcasts)
                 column.Children.Add(Cell(b));
@@ -126,11 +171,16 @@ public sealed partial class CalendarPage : Page
         var order = days.OrderBy(d => d.Day < today ? 1 : 0).ThenBy(d => d.Day);
         foreach (var (day, broadcasts) in order)
         {
-            if (broadcasts.Count == 0 && day != today)
+            if (broadcasts.Count == 0 && day != today && loaded)
                 continue;
             var section = new StackPanel { Spacing = 8 };
             section.Children.Add(DayHeading(day, today));
-            if (broadcasts.Count == 0)
+            if (!loaded)
+            {
+                if (placeholders)
+                    section.Children.Add(States.Rows(1, 96, 54));
+            }
+            else if (broadcasts.Count == 0)
                 section.Children.Add(Haze("Nothing airs today"));
             foreach (var b in broadcasts)
                 section.Children.Add(AgendaRow(b));
@@ -139,15 +189,33 @@ public sealed partial class CalendarPage : Page
         Days.Children.Add(list);
     }
 
+    /// <summary>The day in the system's locale; today in silk and the others in haze, by weight not colour.</summary>
     static TextBlock DayHeading(DateOnly day, DateOnly today)
     {
-        var text = day == today ? $"Today · {day:ddd d}" : day.ToString("ddd d", System.Globalization.CultureInfo.GetCultureInfo("en-GB"));
-        return new TextBlock
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        var text = day == today ? $"Today · {day.ToString("ddd d", culture)}" : day.ToString("ddd d", culture);
+        var heading = new TextBlock
         {
             Text = text,
             Style = (Style)Application.Current.Resources["BodyStrongTextBlockStyle"],
-            Foreground = day == today ? (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"] : null,
         };
+        if (day != today)
+        {
+            heading.Foreground = (Brush)Application.Current.Resources["HazeBrush"];
+            heading.FontWeight = Microsoft.UI.Text.FontWeights.Normal;
+        }
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHeadingLevel(heading, Microsoft.UI.Xaml.Automation.Peers.AutomationHeadingLevel.Level2);
+        return heading;
+    }
+
+    static StackPanel CellPlaceholder()
+    {
+        var cell = new StackPanel { Spacing = 6 };
+        cell.Children.Add(new Border { Height = 56, CornerRadius = new CornerRadius(6), Background = (Brush)Application.Current.Resources["RaisedBrush"] });
+        cell.Children.Add(States.Plate(90, 12, 3));
+        cell.Children.Add(States.Plate(60, 10, 3));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAccessibilityView(cell, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
+        return cell;
     }
 
     static TextBlock Haze(string text) => new() { Text = text, Style = (Style)Application.Current.Resources["HazeCaptionStyle"] };

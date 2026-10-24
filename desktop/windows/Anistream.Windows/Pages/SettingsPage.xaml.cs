@@ -4,6 +4,7 @@ using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using K = Anistream.Engine.Model.SettingKey;
 
@@ -49,7 +50,7 @@ public sealed partial class SettingsPage : Page
 
     readonly Ctx ctx = Ctx.Current;
     Pane pane = PaneList[0];
-    bool quiet;
+    bool quiet, narrow, picking;
 
     public SettingsPage()
     {
@@ -61,6 +62,15 @@ public sealed partial class SettingsPage : Page
             line.Children.Add(new TextBlock { Text = p.Title, VerticalAlignment = VerticalAlignment.Center });
             Panes.Items.Add(new ListViewItem { Content = line, Tag = p });
         }
+        State.Placeholders = () =>
+        {
+            var plates = new StackPanel { Spacing = 4 };
+            plates.Children.Add(States.Plate(120, 14, 3));
+            for (var i = 0; i < 5; i++)
+                plates.Children.Add(new Border { Height = 48, CornerRadius = new CornerRadius(4), Background = Ui.Res<Microsoft.UI.Xaml.Media.Brush>("RaisedBrush") });
+            return plates;
+        };
+        State.ActivityText = "Loading settings";
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
         Unloaded += (_, _) => ctx.Batch -= Heard;
@@ -89,12 +99,52 @@ public sealed partial class SettingsPage : Page
         }
     }
 
+    /// <summary>Narrow, a click on a pane opens it in the panes' place.</summary>
+    void OnPaneClicked(object sender, ItemClickEventArgs e)
+    {
+        if (!narrow)
+            return;
+        picking = false;
+        Layout();
+    }
+
+    void OnCrumb(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs e)
+    {
+        if (e.Index == 0)
+        {
+            picking = true;
+            Layout();
+        }
+    }
+
+    void OnColumnsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var now = e.NewSize.Width < 760;
+        if (now == narrow)
+            return;
+        narrow = now;
+        picking = false;
+        Layout();
+    }
+
+    void Layout()
+    {
+        PaneColumn.Width = narrow ? (picking ? new GridLength(1, GridUnitType.Star) : new GridLength(0)) : new GridLength(200);
+        Panes.Visibility = !narrow || picking ? Visibility.Visible : Visibility.Collapsed;
+        CardScroll.Visibility = !narrow || !picking ? Visibility.Visible : Visibility.Collapsed;
+        Grid.SetColumn(Panes, 0);
+        Crumbs.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
+        Crumbs.ItemsSource = picking ? new[] { "Settings" } : new[] { "Settings", pane.Title };
+    }
+
     static T Res<T>(string key) => (T)Application.Current.Resources[key];
 
     void Show()
     {
         quiet = true;
         Cards.Children.Clear();
+        if (narrow)
+            Layout();
         switch (pane.Name)
         {
             case "accounts":
@@ -104,6 +154,11 @@ public sealed partial class SettingsPage : Page
                 ShowAbout();
                 break;
             default:
+                if (ctx.Known.Settings is null)
+                {
+                    State.Wait();
+                    break;
+                }
                 foreach (var (heading, keys) in pane.Groups)
                 {
                     var rows = keys.Select(k => ctx.Known.Setting(k)).OfType<SettingRow>().ToList();
@@ -112,9 +167,10 @@ public sealed partial class SettingsPage : Page
                     Cards.Children.Add(Heading(heading));
                     foreach (var row in rows)
                         Cards.Children.Add(Card(row));
+                    if (pane.Name == "downloads" && heading == "Files")
+                        Cards.Children.Add(WhenClosingCard());
                 }
-                if (Cards.Children.Count == 0)
-                    Cards.Children.Add(new TextBlock { Text = "Loading settings", Style = Res<Style>("HazeBodyStyle") });
+                State.Done();
                 break;
         }
         quiet = false;
@@ -127,29 +183,59 @@ public sealed partial class SettingsPage : Page
         Margin = new Thickness(0, 16, 0, 4),
     };
 
-    static Grid CardFrame(string title, string? description, FrameworkElement? control, string? glyph = null)
+    /// <summary>A row as Windows 11 Settings draws one: the Toolkit's SettingsCard.</summary>
+    static SettingsCard CardFrame(string title, string? description, FrameworkElement? control, string? glyph = null)
     {
-        var card = new Grid { Style = Res<Style>("SettingCardStyle") };
-        if (description is not null)
-            card.MinHeight = 68;
-        card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        card.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        card.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var card = new SettingsCard { Header = title, Description = description, Content = control };
         if (glyph is not null)
-            card.Children.Add(new FontIcon { Glyph = glyph, FontSize = 16, VerticalAlignment = VerticalAlignment.Center });
-        var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
-        text.Children.Add(new TextBlock { Text = title, TextWrapping = TextWrapping.WrapWholeWords });
-        if (description is not null)
-            text.Children.Add(new TextBlock { Text = description, Style = Res<Style>("HazeCaptionStyle"), TextWrapping = TextWrapping.WrapWholeWords });
-        Grid.SetColumn(text, 1);
-        card.Children.Add(text);
-        if (control is not null)
-        {
-            control.VerticalAlignment = VerticalAlignment.Center;
-            Grid.SetColumn(control, 2);
-            card.Children.Add(control);
-        }
+            card.HeaderIcon = new FontIcon { Glyph = glyph };
         return card;
+    }
+
+    /// <summary>What closing the window does while episodes download: ask, keep going, or stop.</summary>
+    SettingsCard WhenClosingCard()
+    {
+        var choices = new[] { (CloseChoice.Ask, "Ask"), (CloseChoice.KeepGoing, "Keep going"), (CloseChoice.Stop, "Stop") };
+        var box = new ComboBox { MinWidth = 200, ItemsSource = choices.Select(c => c.Item2).ToList() };
+        box.SelectedIndex = Array.FindIndex(choices, c => c.Item1 == ctx.Window.WhenClosing);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, "When the window closes with downloads running");
+        box.SelectionChanged += (_, _) =>
+        {
+            if (!quiet && box.SelectedIndex >= 0)
+                ctx.Window.WhenClosing = choices[box.SelectedIndex].Item1;
+        };
+        return CardFrame("When the window closes with downloads running", "Keep going leaves anistream in the notification area until they finish.", box);
+    }
+
+    /// <summary>
+    /// Turning torrents on says what it means first, and without protection asks plainly: the
+    /// switch goes back off unless the answer is Turn on.
+    /// </summary>
+    async void ConfirmTorrents(ToggleSwitch toggle, SettingRow row)
+    {
+        var unprotected = ctx.Known.Setting(K.VpnMode)?.Value == "none";
+        var body = new StackPanel { Spacing = 10 };
+        body.Children.Add(Ui.Text("Torrents download from other people and share what you download with them while you watch. They can see your IP address.", "BodyTextBlockStyle"));
+        body.Children.Add(Ui.Haze(unprotected
+            ? "Torrent protection is off, so nothing hides your IP address."
+            : "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."));
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = unprotected ? "Use torrents without protection?" : "Turn on torrents?",
+            Content = body,
+            PrimaryButtonText = "Turn on",
+            CloseButtonText = "Cancel",
+            DefaultButton = unprotected ? ContentDialogButton.Close : ContentDialogButton.Primary,
+        };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            ctx.Send(new Command.SetSetting(row.Key, new SettingValue.Bool(true)));
+        else
+        {
+            quiet = true;
+            toggle.IsOn = false;
+            quiet = false;
+        }
     }
 
     FrameworkElement Card(SettingRow row)
@@ -166,7 +252,11 @@ public sealed partial class SettingsPage : Page
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(toggle, title);
                 toggle.Toggled += (_, _) =>
                 {
-                    if (!quiet)
+                    if (quiet)
+                        return;
+                    if (row.Key == K.Torrents && toggle.IsOn)
+                        ConfirmTorrents(toggle, row);
+                    else
                         ctx.Send(new Command.SetSetting(row.Key, new SettingValue.Bool(toggle.IsOn)));
                 };
                 control = toggle;
@@ -238,16 +328,16 @@ public sealed partial class SettingsPage : Page
             }
             else
             {
-                description = "Not connected";
-                action = new Button { Content = "Connect" };
+                description = "Not signed in";
+                action = new Button { Content = "Sign in" };
                 action.Click += (_, _) => ctx.Send(new Command.Connect(tracker));
             }
-            Cards.Children.Add(CardFrame(name, description, action, ""));
+            Cards.Children.Add(CardFrame(name, description, action));
         }
         var sync = new Button { Content = "Sync now" };
         sync.Click += (_, _) => ctx.Send(new Command.SyncNow());
         Cards.Children.Add(Heading("Sync"));
-        Cards.Children.Add(CardFrame("Sync with the trackers", "Sends what changed here and fetches what changed elsewhere.", sync, ""));
+        Cards.Children.Add(CardFrame("Sync with the trackers", "Sends what changed here and fetches what changed elsewhere.", sync));
     }
 
     void ShowAbout()
@@ -255,7 +345,7 @@ public sealed partial class SettingsPage : Page
         var top = new Grid { ColumnSpacing = 24, Margin = new Thickness(0, 8, 0, 8) };
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        top.Children.Add(new Nagare(4));
+        top.Children.Add(new Nagare(6));
         var text = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(new TextBlock { Text = "anistream", Style = Res<Style>("SubtitleTextBlockStyle") });
         var version = typeof(SettingsPage).Assembly.GetName().Version;

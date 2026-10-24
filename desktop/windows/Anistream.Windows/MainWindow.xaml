@@ -38,26 +38,26 @@
                     OpenPaneLength="240" IsTitleBarAutoPaddingEnabled="False"
                     SelectionChanged="OnNavSelectionChanged">
       <NavigationView.MenuItems>
-        <NavigationViewItem Content="Continue" Tag="continue" ToolTipService.ToolTip="Continue">
+        <NavigationViewItem Content="Continue" Tag="continue" ToolTipService.ToolTip="Continue (Ctrl+1)" AccessKey="C">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE768;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
-        <NavigationViewItem Content="Calendar" Tag="calendar" ToolTipService.ToolTip="Calendar">
+        <NavigationViewItem Content="Calendar" Tag="calendar" ToolTipService.ToolTip="Calendar (Ctrl+2)" AccessKey="A">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE787;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
-        <NavigationViewItem Content="Seasonal" Tag="seasonal" ToolTipService.ToolTip="Seasonal">
+        <NavigationViewItem Content="Seasonal" Tag="seasonal" ToolTipService.ToolTip="Seasonal (Ctrl+3)" AccessKey="S">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE734;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
-        <NavigationViewItem Content="Library" Tag="library" ToolTipService.ToolTip="Library">
+        <NavigationViewItem Content="Library" Tag="library" ToolTipService.ToolTip="Library (Ctrl+4)" AccessKey="L">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F1;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
-        <NavigationViewItem Content="Downloads" Tag="downloads" ToolTipService.ToolTip="Downloads">
+        <NavigationViewItem Content="Downloads" Tag="downloads" ToolTipService.ToolTip="Downloads (Ctrl+5)" AccessKey="D">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE896;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
         <NavigationViewItemHeader Content="Sources" />
-        <NavigationViewItem Content="Providers" Tag="providers" ToolTipService.ToolTip="Providers">
+        <NavigationViewItem Content="Providers" Tag="providers" ToolTipService.ToolTip="Providers (Ctrl+6)" AccessKey="P">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
-        <NavigationViewItem Content="Plugin stores" Tag="stores" ToolTipService.ToolTip="Plugin stores">
+        <NavigationViewItem Content="Plugin stores" Tag="stores" ToolTipService.ToolTip="Plugin stores (Ctrl+7)" AccessKey="T">
           <NavigationViewItem.Icon><FontIcon Glyph="&#xE719;" /></NavigationViewItem.Icon>
         </NavigationViewItem>
       </NavigationView.MenuItems>
@@ -68,6 +68,8 @@
             <TextBlock x:Name="AccountText" Text="Not signed in" VerticalAlignment="Center" />
             <Ellipse x:Name="AccountDot" Width="6" Height="6" Fill="{ThemeResource WaterBrush}"
                      VerticalAlignment="Center" Visibility="Collapsed" />
+            <FontIcon x:Name="AccountAlert" Glyph="&#xE7BA;" FontSize="12" Foreground="#E06B54"
+                      VerticalAlignment="Center" Visibility="Collapsed" />
           </StackPanel>
         </NavigationViewItem>
       </NavigationView.FooterMenuItems>
@@ -76,7 +78,9 @@
 
     <!-- What the engine says in passing: marked watched, a sync failed. -->
     <InfoBar x:Name="Toast" Grid.Row="1" IsOpen="False" IsClosable="True" MaxWidth="480"
-             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="24" />
+             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="24"
+             AutomationProperties.LiveSetting="Polite"
+             PointerEntered="OnToastPointerEntered" PointerExited="OnToastPointerExited" />
 
     <!-- The player, over the page it came from, with the title bar as its top bar. -->
     <player:PlayerView x:Name="Player" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" />

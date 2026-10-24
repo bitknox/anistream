@@ -51,8 +51,22 @@ public sealed partial class ProvidersPage : Page
         quiet = true;
         var rows = ctx.Known.OrderedProviders;
         Rebuilding.Visibility = ctx.Known.Rebuilding ? Visibility.Visible : Visibility.Collapsed;
-        Note.Text = ctx.Known.ProviderNote ?? "";
-        Note.Visibility = rows.Length == 0 && ctx.Known.ProviderNote is not null ? Visibility.Visible : Visibility.Collapsed;
+        Note.Visibility = Visibility.Collapsed;
+        // No sources at all: the spec's empty state, not the engine's note.
+        var none = rows.Length == 0 && ctx.Known.ProvidersLoaded;
+        NoSources.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
+        Columns.Visibility = none ? Visibility.Collapsed : Visibility.Visible;
+        if (none && NoSources.Child is null)
+        {
+            var empty = States.Empty("No sources yet", "anistream ships no sources of its own. Sources come as plugins from a plugin store.", "Join a plugin store", () => ctx.Window.ShowJoinStore());
+            if (empty.Children[^1] is Button join)
+                join.Style = Ui.Res<Style>("AccentButtonStyle");
+            var legal = Ui.Text("anistream hosts no content.", "HazeCaptionStyle");
+            legal.HorizontalAlignment = HorizontalAlignment.Center;
+            legal.Margin = new Thickness(0, 16, 0, 0);
+            empty.Children.Add(legal);
+            NoSources.Child = empty;
+        }
         var current = rows.FirstOrDefault(r => r.Id == selected) ?? rows.FirstOrDefault();
         selected = current?.Id;
         Order.Items.Clear();
@@ -110,8 +124,6 @@ public sealed partial class ProvidersPage : Page
             line.Children.Add(Ui.Dot(Colours.Haze));
             line.Children.Add(Ui.Text("Update", "HazeCaptionStyle", wrap: false));
         }
-        else if (info.Row.LatencyMs is { } ms)
-            line.Children.Add(Ui.Text($"{ms} ms", "HazeCaptionStyle", wrap: false));
         return line;
     }
 
@@ -133,8 +145,6 @@ public sealed partial class ProvidersPage : Page
         state.Children.Add(Ui.Text("Standing"));
         state.Children.Add(standing.Children.Count > 0 ? standing : Ui.Haze("Working"));
         facts.Children.Add(state);
-        if (row.LatencyMs is { } ms)
-            facts.Children.Add(Ui.Haze($"Answers in {ms} ms"));
         if (row.State == "down" && row.LastError is { } error)
             facts.Children.Add(Ui.Haze(char.ToUpperInvariant(error[0]) + error[1..]));
         if (row.HeldBack)
@@ -154,13 +164,15 @@ public sealed partial class ProvidersPage : Page
             update.Children.Add(Ui.Text($"Version {next} is ready", "BodyStrongTextBlockStyle"));
             if (row.Update?.NewHosts is { Length: > 0 } added)
                 update.Children.Add(Ui.Haze("It would also contact " + string.Join(", ", added) + "."));
-            update.Children.Add(Ui.Label("Update", (_, _) => ctx.Send(new Command.InstallPlugin(store.Id, listing.Id))));
+            var install = Ui.Label("Update", (_, _) => ConfirmUpdate(info, store.Id, listing.Id, row.Update?.NewHosts ?? []), accent: true);
+            install.HorizontalAlignment = HorizontalAlignment.Left;
+            update.Children.Add(install);
             Detail.Children.Add(Ui.Card(update));
         }
 
         if (info.IsPlugin)
         {
-            var off = new ToggleSwitch { IsOn = !row.Disabled, OnContent = "On", OffContent = "Off" };
+            var off = new ToggleSwitch { IsOn = !row.Disabled, OnContent = "", OffContent = "", Header = "Use this source" };
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(off, $"{info.Name} on");
             off.Toggled += (_, _) =>
             {
@@ -172,6 +184,39 @@ public sealed partial class ProvidersPage : Page
             remove.HorizontalAlignment = HorizontalAlignment.Left;
             Detail.Children.Add(remove);
         }
+    }
+
+    /// <summary>An update that would contact new hosts says which, and asks; otherwise it installs.</summary>
+    async void ConfirmUpdate(ProviderInfo info, string store, string plugin, string[] added)
+    {
+        if (added.Length > 0)
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = XamlRoot,
+                Title = $"Update {info.Name}?",
+                Content = Ui.Text($"This version would also contact {string.Join(", ", added)}.", "BodyTextBlockStyle"),
+                PrimaryButtonText = "Update",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+            };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+                return;
+        }
+        ctx.Send(new Command.InstallPlugin(store, plugin));
+    }
+
+    /// <summary>Below about 760 the detail goes under the list, as one column.</summary>
+    void OnColumnsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var narrow = e.NewSize.Width < 760;
+        ListColumn.Width = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(420);
+        DetailColumn.Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        ListRow.Height = narrow ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
+        DetailRow.Height = narrow ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        Grid.SetColumn(DetailScroll, narrow ? 0 : 1);
+        Grid.SetRow(DetailScroll, narrow ? 1 : 0);
+        ListScroll.MaxHeight = narrow ? Math.Max(200, e.NewSize.Height * 0.45) : double.PositiveInfinity;
     }
 
     async void ConfirmRemove(ProviderInfo info)

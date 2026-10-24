@@ -15,12 +15,16 @@
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
-    <TextBlock Text="Continue" Style="{StaticResource PageTitleStyle}" />
+    <StackPanel>
+      <TextBlock Text="Continue" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+      <local:OfflineLine />
+    </StackPanel>
     <TextBlock x:Name="SyncLine" Grid.Row="1" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
 
     <!-- The queue down the start edge, 360 wide; the selected row's preview beside it when the
          content is 780 wide or more. Narrower, the queue alone, a row opening its title. -->
-    <Grid x:Name="Body" Grid.Row="2" ColumnSpacing="32" Visibility="Collapsed" SizeChanged="OnBodySizeChanged">
+    <local:StateHost x:Name="State" Grid.Row="2">
+    <Grid x:Name="Body" ColumnSpacing="32" Visibility="Collapsed" SizeChanged="OnBodySizeChanged">
       <Grid.ColumnDefinitions>
         <ColumnDefinition x:Name="QueueColumn" Width="360" />
         <ColumnDefinition x:Name="PreviewColumn" Width="*" />
@@ -46,10 +50,14 @@
                   <MenuFlyoutItem Text="{x:Bind MenuPlay}" Click="OnMenuPlay" Tag="{x:Bind}" IsEnabled="{x:Bind Item.Playable}">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE768;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="Mark watched" Click="OnMenuWatched" Tag="{x:Bind}">
+                  <MenuFlyoutItem Text="Play from the beginning" Click="OnMenuFromStart" Tag="{x:Bind}"
+                                  Visibility="{x:Bind FromStartShown}" IsEnabled="{x:Bind Item.Playable}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
+                  </MenuFlyoutItem>
+                  <MenuFlyoutItem Text="Mark as watched" Click="OnMenuWatched" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Ctrl+Shift+M">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
-                  <MenuFlyoutItem Text="Hide from Continue" Click="OnMenuHide" Tag="{x:Bind}">
+                  <MenuFlyoutItem Text="Hide from Continue" Click="OnMenuHide" Tag="{x:Bind}" KeyboardAcceleratorTextOverride="Delete">
                     <MenuFlyoutItem.Icon><FontIcon Glyph="&#xED1A;" /></MenuFlyoutItem.Icon>
                   </MenuFlyoutItem>
                   <MenuFlyoutItem Text="Drop" Click="OnMenuDrop" Tag="{x:Bind}">
@@ -78,7 +86,7 @@
       </ListView>
 
       <ScrollViewer Grid.Column="1" x:Name="Preview" VerticalScrollBarVisibility="Auto" Padding="0,0,0,24">
-        <StackPanel Spacing="12" MaxWidth="720" HorizontalAlignment="Stretch">
+        <StackPanel x:Name="PreviewBody" Spacing="12" MaxWidth="720" HorizontalAlignment="Stretch">
           <Grid x:Name="Banner" CornerRadius="8" Background="{ThemeResource RaisedBrush}" MaxHeight="360"
                 Tapped="OnBannerTapped" SizeChanged="OnBannerSizeChanged" AutomationProperties.Name="Open the title page">
             <Image x:Name="BannerImage" Stretch="UniformToFill" />
@@ -97,55 +105,6 @@
       </ScrollViewer>
     </Grid>
 
-    <!-- First launch: Nagare and the two ways in, over what is airing. -->
-    <ScrollViewer x:Name="FirstLaunch" Grid.Row="2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-      <StackPanel Spacing="28" Padding="0,0,0,24">
-        <Grid Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="24" ColumnSpacing="24"
-              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" MaxWidth="760" HorizontalAlignment="Left">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-          </Grid.ColumnDefinitions>
-          <Border x:Name="NagareSlot" VerticalAlignment="Center" />
-          <StackPanel Grid.Column="1" Spacing="8">
-            <TextBlock Text="Set up anistream" Style="{StaticResource SubtitleTextBlockStyle}" />
-            <TextBlock Style="{StaticResource HazeBodyStyle}" TextWrapping="WrapWholeWords"
-                       Text="anistream plays episodes through plugins from a store you join. Your lists come from your tracker." />
-            <Button x:Name="ConnectRow" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MinHeight="56" Click="OnConnect" Margin="0,8,0,0">
-              <Grid ColumnSpacing="16">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <FontIcon Glyph="&#xE77B;" />
-                <StackPanel Grid.Column="1">
-                  <TextBlock Text="Connect AniList" />
-                  <TextBlock Text="Optional. Brings your lists and progress." Style="{StaticResource HazeCaptionStyle}" />
-                </StackPanel>
-                <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" />
-              </Grid>
-            </Button>
-            <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MinHeight="56" Click="OnAddStore">
-              <Grid ColumnSpacing="16">
-                <Grid.ColumnDefinitions>
-                  <ColumnDefinition Width="Auto" />
-                  <ColumnDefinition Width="*" />
-                  <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <FontIcon Glyph="&#xE719;" />
-                <StackPanel Grid.Column="1">
-                  <TextBlock Text="Add a plugin store" />
-                  <TextBlock Text="Paste an invite link to join one." Style="{StaticResource HazeCaptionStyle}" />
-                </StackPanel>
-                <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" />
-              </Grid>
-            </Button>
-          </StackPanel>
-        </Grid>
-        <TextBlock Text="This season" Style="{StaticResource SectionTitleStyle}" />
-        <app:CoverGrid x:Name="ThisSeason" />
-      </StackPanel>
-    </ScrollViewer>
+    </local:StateHost>
   </Grid>
 </Page>

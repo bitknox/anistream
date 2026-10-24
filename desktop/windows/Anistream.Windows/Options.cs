@@ -20,11 +20,15 @@ namespace Anistream.Windows;
 /// <param name="Showcase">Testing build: invented providers, stores, downloads and seeding on screen.</param>
 /// <param name="Join">Testing build: open the join-store dialog with an invite already pasted.</param>
 /// <param name="Select">The row to select on Providers or Plugin stores, by id.</param>
-/// <param name="Show">A player state to bring up for a screenshot: still, mini, preview or idle.</param>
+/// <param name="Show">A player state to bring up for a screenshot: still, mini, preview or idle; with --welcome, the page: anilist or sources.</param>
+/// <param name="Welcome">Show the first-launch pages, which a fixture run otherwise skips.</param>
+/// <param name="Offline">Tell the engine there is no network, to show the offline states.</param>
+/// <param name="Shortcuts">Open the keyboard shortcuts dialog once the window is up.</param>
 public sealed record Options(
     string? Scene, string? Media, string? Page, uint? Title, string? Query, bool Play,
     string? Pane, int? Width, int? Height, bool KeepControls, bool Downloads, bool AskClose,
-    bool Showcase = false, bool Join = false, string? Select = null, string? Show = null)
+    bool Showcase = false, bool Join = false, string? Select = null, string? Show = null,
+    bool Welcome = false, bool Offline = false, bool Shortcuts = false)
 {
     public bool Fixture => Scene is not null;
 
@@ -34,6 +38,7 @@ public sealed record Options(
         uint? title = null;
         int? width = null, height = null;
         bool play = false, keep = false, downloads = false, askClose = false, showcase = false, join = false;
+        bool welcome = false, offline = false, shortcuts = false;
         foreach (var arg in args)
         {
             var (name, value) = arg.Split('=', 2) is [var n, var v] ? (n, v) : (arg, "");
@@ -53,12 +58,15 @@ public sealed record Options(
                 case "--join": join = true; break;
                 case "--select": select = value; break;
                 case "--show": show = value; break;
+                case "--welcome": welcome = true; break;
+                case "--offline": offline = true; break;
+                case "--shortcuts": shortcuts = true; break;
                 case "--size":
                     if (value.Split('x') is [var w, var h] && int.TryParse(w, out var wi) && int.TryParse(h, out var hi))
                         (width, height) = (wi, hi);
                     break;
             }
         }
-        return new(scene, media, page, title, query, play, pane, width, height, keep, downloads, askClose, showcase, join, select, show);
+        return new(scene, media, page, title, query, play, pane, width, height, keep, downloads, askClose, showcase, join, select, show, welcome, offline, shortcuts);
     }
 }

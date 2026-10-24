@@ -1,3 +1,4 @@
+using System.Globalization;
 using Anistream.Engine.Model;
 
 namespace Anistream.App;
@@ -69,11 +70,14 @@ public static class Calendar
         return days;
     }
 
-    /// <summary>"19 to 25 October 2026", or across months "28 September to 4 October 2026".</summary>
-    public static string WeekTitle(DateOnly monday)
+    /// <summary>
+    /// "19 to 25 October 2026", or across months "28 September to 4 October 2026", with the
+    /// month names of the system's locale.
+    /// </summary>
+    public static string WeekTitle(DateOnly monday, CultureInfo? culture = null)
     {
+        culture ??= CultureInfo.CurrentCulture;
         var sunday = monday.AddDays(6);
-        var culture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
         if (monday.Year != sunday.Year)
             return $"{monday.ToString("d MMMM yyyy", culture)} to {sunday.ToString("d MMMM yyyy", culture)}";
         if (monday.Month != sunday.Month)
@@ -81,7 +85,7 @@ public static class Calendar
         return $"{monday.Day} to {sunday.ToString("d MMMM yyyy", culture)}";
     }
 
-    /// <summary>A clock time, 24-hour: "16:30".</summary>
-    public static string Time(long unix, TimeZoneInfo zone) =>
-        TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeSeconds(unix), zone).ToString("HH:mm");
+    /// <summary>A clock time on the system's clock: "16:30", or "4:30 PM" where the locale says so.</summary>
+    public static string Time(long unix, TimeZoneInfo zone, CultureInfo? culture = null) =>
+        TimeZoneInfo.ConvertTime(DateTimeOffset.FromUnixTimeSeconds(unix), zone).ToString("t", culture ?? CultureInfo.CurrentCulture);
 }

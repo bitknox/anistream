@@ -6,7 +6,8 @@
     xmlns:local="using:Anistream.Windows.Pages"
     Background="{ThemeResource GroundBrush}">
   <ScrollViewer x:Name="Scroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnSizeChanged">
-    <Grid>
+    <local:StateHost x:Name="State">
+    <Grid x:Name="Body">
       <!-- The banner across the content, up to 360 high, the ground over its lower part. -->
       <Grid x:Name="Banner" VerticalAlignment="Top" Height="300">
         <Image x:Name="BannerImage" Stretch="UniformToFill" VerticalAlignment="Center" />
@@ -37,7 +38,8 @@
             <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Spacing="6">
               <TextBlock x:Name="ShowTitle" Style="{StaticResource ShowTitleLargeStyle}" />
               <TextBlock x:Name="Secondary" Style="{StaticResource HazeBodyStyle}" />
-              <TextBlock x:Name="Meta" Style="{StaticResource HazeBodyStyle}" />
+              <TextBlock x:Name="Meta" Style="{StaticResource HazeCaptionStyle}" />
+              <local:OfflineLine />
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
                 <Button x:Name="PrimaryAction" Style="{StaticResource PrimaryActionStyle}" Click="OnPrimary" />
                 <DropDownButton x:Name="StatusButton" Height="40" AutomationProperties.Name="List">
@@ -49,6 +51,13 @@
                   <FontIcon Glyph="&#xE712;" />
                   <Button.Flyout>
                     <MenuFlyout x:Name="MoreMenu" Placement="BottomEdgeAlignedLeft">
+                      <MenuFlyoutItem Text="Show settings…" Click="OnShowSettings" KeyboardAcceleratorTextOverride="Ctrl+I">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE713;" /></MenuFlyoutItem.Icon>
+                      </MenuFlyoutItem>
+                      <MenuFlyoutItem x:Name="DownloadItem" Text="Download…" Click="OnDownloadRange">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE896;" /></MenuFlyoutItem.Icon>
+                      </MenuFlyoutItem>
+                      <MenuFlyoutSeparator />
                       <MenuFlyoutItem Text="Mark all previous watched" Click="OnMarkPrevious">
                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>
                       </MenuFlyoutItem>
@@ -81,19 +90,41 @@
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <Grid.ContextFlyout>
+                      <MenuFlyout>
+                        <MenuFlyoutItem Text="Play" Click="OnEpisodePlay" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}" />
+                        <MenuFlyoutItem Text="Play from the beginning" Click="OnEpisodeFromStart" Tag="{x:Bind}" Visibility="{x:Bind PartWay}" />
+                        <MenuFlyoutItem Text="{x:Bind WatchedAction}" Click="OnEpisodeWatched" Tag="{x:Bind}" />
+                        <MenuFlyoutItem Text="Download" Click="OnEpisodeDownload" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}" />
+                      </MenuFlyout>
+                    </Grid.ContextFlyout>
                     <Grid Width="128" Height="72" CornerRadius="6" Background="{ThemeResource RaisedBrush}">
                       <Image Source="{x:Bind Still, Mode=OneWay}" Stretch="UniformToFill" />
+                      <!-- A still past the next episode, blurred: the spoiler pattern. -->
+                      <Border Visibility="{x:Bind SpoilerShown}" Background="{ThemeResource SpoilerBrush}" />
                     </Grid>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                       <TextBlock Text="{x:Bind Heading}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
                       <TextBlock Text="{x:Bind Line}" Style="{StaticResource HazeCaptionStyle}" />
                       <ProgressBar Value="{x:Bind Watched}" Maximum="1" Width="160" HorizontalAlignment="Left" Visibility="{x:Bind PartWay}" />
                     </StackPanel>
-                    <ToggleButton Grid.Column="2" Width="36" Height="32" Padding="0" IsChecked="{x:Bind Completed}"
-                                  Click="OnWatchedToggle" Tag="{x:Bind}" ToolTipService.ToolTip="Watched"
-                                  AutomationProperties.Name="Watched" VerticalAlignment="Center">
-                      <FontIcon Glyph="&#xE73E;" FontSize="14" />
-                    </ToggleButton>
+                    <!-- Watched is a state: a neutral check box, not an amber toggle. -->
+                    <CheckBox Grid.Column="2" MinWidth="0" Padding="0" IsChecked="{x:Bind Completed}"
+                              Click="OnWatchedToggle" Tag="{x:Bind}" ToolTipService.ToolTip="Watched"
+                              AutomationProperties.Name="Watched" VerticalAlignment="Center">
+                      <!-- On the control itself: the app's theme overrides do not reach a template's check box. -->
+                      <CheckBox.Resources>
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#E4E0D6" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#E4E0D6" Opacity="0.9" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#9298B5" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#E4E0D6" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#E4E0D6" />
+                        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#9298B5" />
+                        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#161A2E" />
+                        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#161A2E" />
+                        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#161A2E" />
+                      </CheckBox.Resources>
+                    </CheckBox>
                   </Grid>
                 </DataTemplate>
               </ListView.ItemTemplate>
@@ -104,5 +135,6 @@
         <StackPanel x:Name="Side" Grid.Column="1" Spacing="16" Margin="0,190,0,0" />
       </Grid>
     </Grid>
+    </local:StateHost>
   </ScrollViewer>
 </Page>

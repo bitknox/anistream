@@ -20,6 +20,7 @@ public sealed class QueueRow
     public CoverItem Cover { get; }
     public string Name => $"{Item.Entry.Title}, {Item.Action}";
     public string MenuPlay => Item.Resume is not null ? "Resume" : "Play";
+    public Visibility FromStartShown => Item.Resume is not null ? Visibility.Visible : Visibility.Collapsed;
 }
 
 public sealed class QueueGroup(string key, IEnumerable<QueueRow> rows) : List<QueueRow>(rows)
@@ -32,16 +33,18 @@ public sealed class QueueGroup(string key, IEnumerable<QueueRow> rows) : List<Qu
 /// saying what it plays. Beside it the selected row's preview with the one amber action. The
 /// queue's rules are the model's (<c>present::Queue</c>), the same the other apps read.
 /// </summary>
-public sealed partial class ContinuePage : Page
+public sealed partial class ContinuePage : Page, IPageKeys
 {
     readonly Ctx ctx = Ctx.Current;
     QueueRow? selected;
     bool loaded;
+    DateTimeOffset lastPick;
 
     public ContinuePage()
     {
         InitializeComponent();
-        NagareSlot.Child = new Nagare(4);
+        State.Placeholders = () => States.Rows(5, 36, 54);
+        State.ActivityText = "Loading what you're watching";
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
         Unloaded += (_, _) => ctx.Batch -= Heard;
@@ -65,7 +68,6 @@ public sealed partial class ContinuePage : Page
                     loaded = true;
                     again = true;
                     break;
-                case Event.Content { View: ContentFor.Seasonal }:
                 case Event.Progress:
                 case Event.Sync:
                     again = true;
@@ -92,16 +94,26 @@ public sealed partial class ContinuePage : Page
             groups.Add(new("New this week", queue.NewThisWeek.Select(Row)));
 
         var empty = groups.Count == 0;
-        Body.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
-        FirstLaunch.Visibility = empty && loaded ? Visibility.Visible : Visibility.Collapsed;
-        ConnectRow.Visibility = known.Anilist is null ? Visibility.Visible : Visibility.Collapsed;
         ShowSyncLine();
-        if (empty)
+        if (!loaded)
         {
-            if (loaded)
-                ShowFirstLaunch();
+            State.Wait(hasContent: !empty);
+            if (empty)
+                return;
+            Body.Visibility = Visibility.Visible;
+        }
+        else if (known.Lists.GetValueOrDefault(new ContentFor.Continue()) is ContentList.Failed failed && empty)
+        {
+            State.Failed(failed.V1, () => ctx.Send(new Command.LoadContinue()));
             return;
         }
+        else if (empty)
+        {
+            State.Empty(States.Empty("Nothing watched yet", "Pick something from Seasonal, or search for a title.", "Browse Seasonal", () => ctx.Window.Go("seasonal")));
+            return;
+        }
+        else
+            State.Done();
 
         var keep = selected?.Item.Entry.Id;
         Groups.Source = groups;
@@ -130,18 +142,15 @@ public sealed partial class ContinuePage : Page
         SyncLine.Visibility = waiting > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    void ShowFirstLaunch()
-    {
-        var season = ctx.Known.ListEntries(new ContentFor.Seasonal());
-        if (season.Length == 0 && !ctx.Known.Lists.ContainsKey(new ContentFor.Seasonal()))
-            ctx.Send(new Command.LoadSeasonal());
-        ThisSeason.Covers = [.. season.Take(12).Select(e => new CoverItem(e).Load(ctx.Art))];
-    }
-
     void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (Queue.SelectedItem is QueueRow row && row != selected)
         {
+            // The preview crossfades in, unless the selection is still moving (M2).
+            var now = DateTimeOffset.UtcNow;
+            if (selected is not null && now - lastPick > TimeSpan.FromMilliseconds(150))
+                Motion.FadeIn(PreviewBody);
+            lastPick = now;
             ShowPreview(row);
             ctx.Send(new Command.LoadDetail(row.Item.Entry.Id));
             ctx.Send(new Command.LoadEpisodes(row.Item.Entry.Id));
@@ -230,19 +239,42 @@ public sealed partial class ContinuePage : Page
 
     void OnMenuPlay(object sender, RoutedEventArgs e) => Play(Of(sender));
 
-    void OnMenuWatched(object sender, RoutedEventArgs e)
+    void OnMenuFromStart(object sender, RoutedEventArgs e)
     {
-        if (Of(sender) is { } row)
+        if (Of(sender) is { Item.Playable: true } row)
+            ctx.Play(row.Item.Entry.Id, row.Item.Episode.ToString(), fromStart: true);
+    }
+
+    void OnMenuWatched(object sender, RoutedEventArgs e) => MarkWatched(Of(sender));
+
+    void MarkWatched(QueueRow? row)
+    {
+        if (row is not null)
             ctx.Send(new Command.SetWatched(row.Item.Entry.Id, [row.Item.Episode.ToString()], true));
     }
 
-    void OnMenuHide(object sender, RoutedEventArgs e)
+    void OnMenuHide(object sender, RoutedEventArgs e) => Hide(Of(sender));
+
+    void Hide(QueueRow? row)
     {
-        if (Of(sender) is not { } row)
+        if (row is null)
             return;
         ctx.Known.HiddenFromContinue.Add(row.Item.Entry.Id);
         ctx.Send(new Command.HideFromContinue(row.Item.Entry.Id));
         Show();
+    }
+
+    // Ctrl+Shift+M and Delete, from the window, on the selected row.
+    bool IPageKeys.MarkWatched()
+    {
+        MarkWatched(selected);
+        return selected is not null;
+    }
+
+    bool IPageKeys.Delete()
+    {
+        Hide(selected);
+        return selected is not null;
     }
 
     void OnMenuDrop(object sender, RoutedEventArgs e)
@@ -257,7 +289,11 @@ public sealed partial class ContinuePage : Page
             ctx.OpenTitle(row.Item.Entry.Id);
     }
 
-    void OnConnect(object sender, RoutedEventArgs e) => ctx.Send(new Command.Connect("anilist"));
+}
 
-    void OnAddStore(object sender, RoutedEventArgs e) => ctx.Window.ShowJoinStore();
+/// <summary>The window's Ctrl+Shift+M and Delete, for the page that has something selected.</summary>
+interface IPageKeys
+{
+    bool MarkWatched();
+    bool Delete() => false;
 }

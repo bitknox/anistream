@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using Anistream.App;
@@ -7,7 +8,11 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using VirtualKey = global::Windows.System.VirtualKey;
 
 namespace Anistream.Windows.Player;
 
@@ -39,9 +44,54 @@ public sealed partial class PlayerView : UserControl
     readonly object loads = new();
     PreviewSource? lastLoad;
 
+    // Motion and the corner: what is shown, so a fade in progress does not read as a state.
+    readonly DispatcherQueueTimer click;
+    readonly DispatcherQueueTimer flash;
+    bool chromeShown = true, startingShown;
+    UIElement? cornerCard;
+    bool skipShown, stallShown, upNextShown, skipHover;
+    string skipDone = "";
+    readonly Stopwatch skipSince = new(), stallSince = new();
+    long startingFrom;
+    bool startingHeld;
+    ulong stallBase;
+    Undoable? undo;
+    string startingEpisode = "";
+    double speed = 1, mutedFrom, wheelSeek;
+    bool volumeFlash;
+    string timelineStatus = "";
+
+    static readonly double[] Speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+    /// <summary>An automatic skip that can be undone: back to <c>To</c>, for 6 s of playback or 15 s paused.</summary>
+    sealed class Undoable(double to, string line)
+    {
+        public double To { get; } = to;
+        public string Line { get; } = line;
+        public double Played { get; set; }
+        public double Waited { get; set; }
+    }
+
     public PlayerView()
     {
         InitializeComponent();
+        click = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        click.Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime());
+        click.IsRepeating = false;
+        click.Tick += (_, _) => Send(new PlayerCommand.TogglePause());
+        flash = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        flash.Interval = TimeSpan.FromMilliseconds(1200);
+        flash.IsRepeating = false;
+        flash.Tick += (_, _) => Motion.Hide(Flash);
+        Motion.QuickOpacity(SkipCard);
+        AutomationProperties.SetLiveSetting(SkipCard, AutomationLiveSetting.Polite);
+        // ] and [ have no VirtualKey names.
+        foreach (var (key, step) in new[] { ((VirtualKey)221, 1), ((VirtualKey)219, -1) })
+        {
+            var accelerator = new KeyboardAccelerator { Key = key };
+            accelerator.Invoked += (_, e) => Key(e, () => SpeedStep(step));
+            KeyboardAccelerators.Add(accelerator);
+        }
         tick = DispatcherQueue.GetForCurrentThread().CreateTimer();
         tick.Interval = TimeSpan.FromMilliseconds(250);
         tick.Tick += (_, _) => Tick();
@@ -108,10 +158,13 @@ public sealed partial class PlayerView : UserControl
             MiniRequested?.Invoke(false);
         SetMini(false);
         still.Reset();
-        StillLayer.Visibility = Visibility.Collapsed;
+        click.Stop();
         Visibility = Visibility.Collapsed;
-        Starting.Visibility = Visibility.Collapsed;
-        SkipCard.Visibility = UpNextCard.Visibility = StallCard.Visibility = AlertCard.Visibility = Visibility.Collapsed;
+        foreach (var layer in new UIElement[] { StillLayer, Starting, SkipSlot, UndoCard, UpNextCard, StallCard, AlertCard, Flash })
+            Motion.Set(layer, false);
+        startingShown = skipShown = stallShown = upNextShown = false;
+        cornerCard = null;
+        undo = null;
         upNext = null;
         thumbnails = null;
         thumbs = null;
@@ -154,6 +207,11 @@ public sealed partial class PlayerView : UserControl
                     VolumeSlider.Value = Math.Clamp(volume, 0, 100);
                     fromPlayer = false;
                     VolumeIcon.Glyph = volume <= 0 ? "" : "";
+                    if (volumeFlash)
+                    {
+                        volumeFlash = false;
+                        ShowFlash(volume <= 0 ? "Muted" : $"Volume {Math.Round(volume)}%");
+                    }
                     break;
             }
         }
@@ -168,15 +226,17 @@ public sealed partial class PlayerView : UserControl
                 still.Started();
                 pictureSeen = false;
                 ClosePreview();
-                StillLayer.Visibility = Visibility.Collapsed;
+                Motion.Set(StillLayer, false);
                 still.Answered();
                 ShowTitle.Text = s.Title;
                 EpisodeTitle.Text = s.EpisodeTitle is { Length: > 0 } t ? $"Episode {s.EpisodeValue} · {t}" : $"Episode {s.EpisodeValue}";
                 StartingShow.Text = s.Title;
-                StartingLine.Text = $"Starting episode {s.EpisodeValue}";
+                startingEpisode = s.EpisodeValue;
                 StartingArt.Source = null;
                 ctx?.Art.Bind(s.BannerUrl ?? s.CoverUrl, image => StartingArt.Source = image);
-                Starting.Visibility = Visibility.Visible;
+                ShowStarting();
+                undo = null;
+                UpdateCorner();
                 break;
             case PlayerUi.Episode ep:
                 ShowTitle.Text = ep.Show;
@@ -187,23 +247,27 @@ public sealed partial class PlayerView : UserControl
                 BuildMenus();
                 break;
             case PlayerUi.Skip skip:
-                SkipCard.Content = skip.Kind switch
-                {
-                    SkipKind.Opening => "Skip opening",
-                    SkipKind.Ending => "Skip ending",
-                    _ => "Skip",
-                };
-                SkipCard.Visibility = Visibility.Visible;
+                var part = Words.Sentence(skip.Kind.ToString()).ToLowerInvariant();
+                SkipCard.Content = $"Skip {part}";
+                skipDone = $"Skipped {part}";
+                skipShown = true;
+                UpdateCorner();
                 break;
             case PlayerUi.SkipCleared:
-                SkipCard.Visibility = Visibility.Collapsed;
+                skipShown = false;
+                UpdateCorner();
                 break;
             case PlayerUi.AutoSkipped auto:
-                Alert($"Skipped the {Words.Sentence(auto.Kind.ToString()).ToLowerInvariant()}");
+                undo = new Undoable(auto.UndoTo, $"Skipped {Words.Sentence(auto.Kind.ToString()).ToLowerInvariant()}");
+                UndoLine.Text = undo.Line;
+                UpdateCorner();
                 break;
             case PlayerUi.UpNext next:
                 UpNextTitle.Text = next.Next.Title is { Length: > 0 } nt ? $"Episode {next.Next.Number} · {nt}" : $"Episode {next.Next.Number}";
                 upNext = new Coming(next.Auto, next.EndingAt, next.Countdown);
+                UpNextStill.Source = null;
+                UpNextStillFrame.Visibility = next.Next.Thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
+                ctx?.Art.Bind(next.Next.Thumbnail, image => UpNextStill.Source = image);
                 still.After = (int)next.StillWatchingAfter;
                 ShowUpNext();
                 break;
@@ -212,11 +276,15 @@ public sealed partial class PlayerView : UserControl
                 ShowUpNext();
                 break;
             case PlayerUi.Stall stall:
-                StallLine.Text = $"This stream has stalled for {stall.Seconds} s.";
-                StallCard.Visibility = Visibility.Visible;
+                stallBase = stall.Seconds;
+                stallSince.Restart();
+                StallLine.Text = $"Source is buffering · {stall.Seconds} s";
+                stallShown = true;
+                UpdateCorner();
                 break;
             case PlayerUi.StallCleared:
-                StallCard.Visibility = Visibility.Collapsed;
+                stallShown = false;
+                UpdateCorner();
                 break;
             case PlayerUi.Alert alert:
                 Alert(alert.Text);
@@ -233,16 +301,157 @@ public sealed partial class PlayerView : UserControl
     async void Alert(string text)
     {
         AlertText.Text = text;
-        AlertCard.Visibility = Visibility.Visible;
+        Motion.Show(AlertCard);
+        Announce(AlertText);
         await Task.Delay(TimeSpan.FromSeconds(4));
         if (AlertText.Text == text)
-            AlertCard.Visibility = Visibility.Collapsed;
+            Motion.Hide(AlertCard);
+    }
+
+    /// <summary>
+    /// The corner's one card, by rank: the stall prompt, the Undo note, Up Next, the Skip button.
+    /// A change fades the old card out and the new one in (standard) and announces the new one once.
+    /// </summary>
+    void UpdateCorner()
+    {
+        UIElement? want = stallShown ? StallCard : undo is not null ? UndoCard : upNextShown ? UpNextCard : skipShown ? SkipSlot : null;
+        if (want == cornerCard)
+            return;
+        if (cornerCard is not null)
+            Motion.HideStandard(cornerCard);
+        cornerCard = want;
+        if (want is null)
+            return;
+        if (want == SkipSlot)
+        {
+            skipSince.Restart();
+            SkipCard.Opacity = 1;
+        }
+        Motion.ShowStandard(want);
+        Announce(want == StallCard ? StallLine : want == UndoCard ? UndoLine : want == UpNextCard ? UpNextTitle : SkipCard);
+    }
+
+    /// <summary>Has a screen reader say what an element now says, once.</summary>
+    static void Announce(UIElement element) =>
+        FrameworkElementAutomationPeer.CreatePeerForElement(element)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+
+    /// <summary>What a key did, while the controls stay hidden: 1.2 s in the middle of the video.</summary>
+    void ShowFlash(string text)
+    {
+        FlashText.Text = text;
+        Motion.Show(Flash);
+        Announce(FlashText);
+        flash.Stop();
+        flash.Start();
+    }
+
+    // The starting screen: the episode, then after 3 s the wait, and after 20 s a way out.
+
+    void ShowStarting()
+    {
+        startingShown = true;
+        startingFrom = Stopwatch.GetTimestamp();
+        StartingLine.Text = $"Starting episode {startingEpisode}";
+        StartingRing.Visibility = Visibility.Visible;
+        StartingChoices.Visibility = Visibility.Collapsed;
+        Motion.Set(Starting, true);
+    }
+
+    void StartingClock()
+    {
+        if (!startingShown || StartingChoices.Visibility == Visibility.Visible)
+            return;
+        var waited = Stopwatch.GetElapsedTime(startingFrom).TotalSeconds;
+        if (waited >= 20)
+        {
+            StartingLine.Text = $"Couldn't start episode {startingEpisode}";
+            StartingRing.Visibility = Visibility.Collapsed;
+            // The source menu, once the player has one; before that, the next stream, as the stall card does.
+            var listed = menus is { Sources.Length: > 0 };
+            StartingChoose.Content = listed ? "Choose source" : "Switch source";
+            StartingChoose.Flyout = listed ? StartingSources : null;
+            StartingChoices.Visibility = Visibility.Visible;
+            Announce(StartingLine);
+            ShowPointer();
+        }
+        else if (waited >= 3)
+            StartingLine.Text = $"Finding a source · {(int)waited} s";
+    }
+
+    void OnStartingStop(object sender, RoutedEventArgs e) => Close();
+
+    void OnStartingChoose(object sender, RoutedEventArgs e)
+    {
+        if (StartingChoose.Flyout is not null)
+            return;
+        Send(new PlayerCommand.StallSwitch());
+        ShowStarting();
+    }
+
+    void OnStartingSourcesOpening(object? sender, object e)
+    {
+        StartingSources.Items.Clear();
+        foreach (var source in menus?.Sources ?? [])
+        {
+            var item = new MenuFlyoutItem { Text = source.Detail is { Length: > 0 } d ? $"{source.Label} · {d}" : source.Label };
+            var id = source.Id;
+            item.Click += (_, _) =>
+            {
+                Send(new PlayerCommand.Choose(new PlayerChoice.Source(id)));
+                ShowStarting();
+            };
+            StartingSources.Items.Add(item);
+        }
+    }
+
+    /// <summary>The corner's clocks, four times a second: the stall count, the Undo window, Skip's dim.</summary>
+    void CornerClock()
+    {
+        if (stallShown)
+            StallLine.Text = $"Source is buffering · {stallBase + (ulong)stallSince.Elapsed.TotalSeconds} s";
+        if (undo is { } u)
+        {
+            if (paused)
+                u.Waited += 0.25;
+            else
+                u.Played += 0.25;
+            if (u.Played >= 6 || u.Waited >= 15)
+            {
+                undo = null;
+                UpdateCorner();
+            }
+        }
+        if (cornerCard == SkipSlot)
+            SkipCard.Opacity = skipHover || skipSince.Elapsed < TimeSpan.FromSeconds(8) ? 1 : 0.7;
+    }
+
+    void OnSkipEntered(object sender, PointerRoutedEventArgs e) => skipHover = true;
+
+    void OnSkipExited(object sender, PointerRoutedEventArgs e)
+    {
+        skipHover = false;
+        skipSince.Restart();
+    }
+
+    void OnUndo(object sender, RoutedEventArgs e) => Undo();
+
+    void Undo()
+    {
+        if (undo is not { } u)
+            return;
+        undo = null;
+        Send(new PlayerCommand.UndoSkip(u.To));
+        UpdateCorner();
     }
 
     void ShowState(FfiPlayerState state)
     {
-        if (state.HasPicture && Starting.Visibility == Visibility.Visible)
-            Starting.Visibility = Visibility.Collapsed;
+        if (state.HasPicture && startingShown && !startingHeld)
+        {
+            // The first frame fades in over the starting screen.
+            startingShown = false;
+            Motion.Hide(Starting);
+        }
         if (state.HasPicture && !pictureSeen)
         {
             pictureSeen = true;
@@ -253,7 +462,7 @@ public sealed partial class PlayerView : UserControl
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(PlayPause, paused ? "Play" : "Pause");
         if (paused)
             ShowControls();
-        else if (Chrome.Visibility == Visibility.Visible && !idle.IsRunning)
+        else if (chromeShown && !idle.IsRunning)
             idle.Start();
         if (state.Position is { } p)
             position = p;
@@ -261,6 +470,12 @@ public sealed partial class PlayerView : UserControl
             duration = d;
         Elapsed.Text = AnistreamFfiMethods.PlayClock(position);
         Remaining.Text = "-" + AnistreamFfiMethods.PlayClock(Math.Max(0, duration - position));
+        var status = $"{(paused ? "Paused" : "Playing")}, {Elapsed.Text} of {AnistreamFfiMethods.PlayClock(duration)}";
+        if (status != timelineStatus)
+        {
+            timelineStatus = status;
+            AutomationProperties.SetItemStatus(Timeline, status);
+        }
         ShowUpNext();
         fromPlayer = true;
         Timeline.Maximum = Math.Max(1, duration);
@@ -272,6 +487,8 @@ public sealed partial class PlayerView : UserControl
 
     void Tick()
     {
+        StartingClock();
+        CornerClock();
         if (player is null)
             return;
         var swapchain = (nint)player.Swapchain();
@@ -310,9 +527,10 @@ public sealed partial class PlayerView : UserControl
         ShowPointer();
         if (still.Asking)
             return;
-        if (Chrome.Visibility != Visibility.Visible)
+        if (!chromeShown)
         {
-            Chrome.Visibility = Visibility.Visible;
+            chromeShown = true;
+            Motion.Show(Chrome);
             ControlsChanged?.Invoke(true);
         }
         idle.Stop();
@@ -320,15 +538,46 @@ public sealed partial class PlayerView : UserControl
             idle.Start();
     }
 
+    /// <summary>The controls fade out (fade-out), then collapse so the video scans out alone.</summary>
+    void HideChrome()
+    {
+        if (!chromeShown)
+            return;
+        chromeShown = false;
+        Motion.Hide(Chrome);
+        PreviewBox.Visibility = Visibility.Collapsed;
+        ControlsChanged?.Invoke(false);
+    }
+
     void HideControlsIfIdle()
     {
         if (keepControls || paused || overBar || menuOpen)
             return;
-        Chrome.Visibility = Visibility.Collapsed;
-        PreviewBox.Visibility = Visibility.Collapsed;
-        ControlsChanged?.Invoke(false);
+        if (KeyboardInChrome())
+        {
+            // Someone is on the controls with the keyboard or a screen reader: hold them.
+            idle.Start();
+            return;
+        }
+        HideChrome();
         HidePointer();
     }
+
+    /// <summary>Whether keyboard focus is on one of the controls.</summary>
+    bool KeyboardInChrome()
+    {
+        if (XamlRoot is null || FocusManager.GetFocusedElement(XamlRoot) is not Control { FocusState: FocusState.Keyboard } focused)
+            return false;
+        for (DependencyObject? at = focused; at is not null; at = VisualTreeHelper.GetParent(at))
+        {
+            if (at == Chrome)
+                return true;
+        }
+        return false;
+    }
+
+    [LibraryImport("user32.dll")]
+    private static partial uint GetDoubleClickTime();
 
     [LibraryImport("user32.dll")]
     private static partial int ShowCursor([MarshalAs(UnmanagedType.Bool)] bool show);
@@ -374,32 +623,44 @@ public sealed partial class PlayerView : UserControl
         if (e.PointerDeviceType == Microsoft.UI.Input.PointerDeviceType.Touch)
         {
             // Touch: a tap toggles the controls rather than pausing.
-            if (Chrome.Visibility == Visibility.Visible)
-            {
-                Chrome.Visibility = Visibility.Collapsed;
-                ControlsChanged?.Invoke(false);
-            }
+            if (chromeShown)
+                HideChrome();
             else
                 ShowControls();
             return;
         }
-        Send(new PlayerCommand.TogglePause());
+        // A click pauses after the double-click interval, so a double-click is fullscreen only.
+        click.Stop();
+        click.Start();
     }
 
     void OnVideoDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     {
+        click.Stop();
         if (e.OriginalSource == VideoPanel || e.OriginalSource == Chrome)
             FullscreenRequested?.Invoke(null);
     }
 
     void OnWheel(object sender, PointerRoutedEventArgs e)
     {
+        // Volume 2% a notch; a horizontal scroll seeks 0.25 s a step, gathered into whole steps.
         var point = e.GetCurrentPoint(this);
-        var delta = point.Properties.MouseWheelDelta;
+        var notches = point.Properties.MouseWheelDelta / 120.0;
         if (point.Properties.IsHorizontalMouseWheel)
-            Send(new PlayerCommand.Seek(delta > 0 ? 5 : -5));
+        {
+            wheelSeek += notches * 2.5;
+            var by = Math.Truncate(wheelSeek / 0.25) * 0.25;
+            if (by != 0)
+            {
+                wheelSeek -= by;
+                SeekBy(by);
+            }
+        }
         else
-            Send(new PlayerCommand.Volume(delta > 0 ? 5 : -5));
+        {
+            volumeFlash = true;
+            Send(new PlayerCommand.Volume(notches * 2));
+        }
         e.Handled = true;
     }
 
@@ -450,7 +711,8 @@ public sealed partial class PlayerView : UserControl
     {
         var card = upNext;
         var shown = card is { Cancelled: false } && card.ShowsAt(duration) is { } at && position >= at;
-        UpNextCard.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        upNextShown = shown;
+        UpdateCorner();
         if (!shown || card is null)
             return;
         var left = card.Remaining(position, duration);
@@ -562,7 +824,11 @@ public sealed partial class PlayerView : UserControl
         foreach (var s in new[] { 0.75, 1.0, 1.25, 1.5, 2.0 })
         {
             var item = new MenuFlyoutItem { Text = s == 1 ? "Normal" : $"{s.ToString(CultureInfo.InvariantCulture)}×" };
-            item.Click += (_, _) => Send(new PlayerCommand.SpeedTo(s));
+            item.Click += (_, _) =>
+            {
+                this.speed = s;
+                Send(new PlayerCommand.SpeedTo(s));
+            };
             speed.Items.Add(item);
         }
         SettingsMenu.Items.Add(speed);
@@ -586,14 +852,73 @@ public sealed partial class PlayerView : UserControl
     void OnKeyPause(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.TogglePause()));
     void OnKeyBack10(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Seek(-10)));
     void OnKeyForward10(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Seek(10)));
-    void OnKeyBack5(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Seek(-5)), show: false);
-    void OnKeyForward5(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Seek(5)), show: false);
-    void OnKeyBack30(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Seek(-30)), show: false);
-    void OnKeyForward30(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Seek(30)), show: false);
-    void OnKeyVolumeUp(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Volume(5)), show: false);
-    void OnKeyVolumeDown(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Volume(-5)), show: false);
+    void OnKeyBack5(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => SeekBy(-5), show: false);
+    void OnKeyForward5(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => SeekBy(5), show: false);
+    void OnKeyBack30(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => SeekBy(-30), show: false);
+    void OnKeyForward30(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => SeekBy(30), show: false);
+    void OnKeyVolumeUp(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => StepVolume(5), show: false);
+    void OnKeyVolumeDown(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => StepVolume(-5), show: false);
+    void OnKeyMute(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, Mute, show: false);
+    void OnKeyUndo(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, Undo, show: false);
+    void OnKeySpeedNormal(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => SpeedTo(1));
+    void OnKeyEpisodes(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => OpenMenu(EpisodesButton));
+    void OnKeyTracks(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => OpenMenu(TracksButton));
+
+    /// <summary>A seek by key or scroll, with the time it lands on in the flash.</summary>
+    void SeekBy(double seconds)
+    {
+        Send(new PlayerCommand.Seek(seconds));
+        ShowFlash(AnistreamFfiMethods.PlayClock(Math.Clamp(position + seconds, 0, Math.Max(0, duration))));
+    }
+
+    void StepVolume(double by)
+    {
+        volumeFlash = true;
+        Send(new PlayerCommand.Volume(by));
+    }
+
+    /// <summary>M: to silence and back to where it was.</summary>
+    void Mute()
+    {
+        volumeFlash = true;
+        if (volume > 0)
+        {
+            mutedFrom = volume;
+            Send(new PlayerCommand.Volume(-volume));
+        }
+        else
+            Send(new PlayerCommand.Volume(mutedFrom > 0 ? mutedFrom : 100));
+    }
+
+    /// <summary>] and [: a step along the speeds the Speed menu lists.</summary>
+    void SpeedStep(int step)
+    {
+        var at = Array.FindIndex(Speeds, x => x >= speed - 0.01);
+        at = at < 0 ? Speeds.Length - 1 : at;
+        if (step < 0 && Speeds[at] > speed + 0.01)
+            at--;
+        SpeedTo(Speeds[Math.Clamp(at + step, 0, Speeds.Length - 1)]);
+    }
+
+    void SpeedTo(double to)
+    {
+        speed = to;
+        Send(new PlayerCommand.SpeedTo(to));
+        ShowFlash(to == 1 ? "Normal speed" : $"{to.ToString(CultureInfo.CurrentCulture)}×");
+    }
+
+    void OpenMenu(Button button)
+    {
+        if (button.Visibility == Visibility.Visible && button.IsEnabled)
+            button.Flyout?.ShowAt(button);
+    }
     void OnKeyFullscreen(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => FullscreenRequested?.Invoke(null));
-    void OnKeySkip(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.TakeSkip()), show: false);
+    void OnKeySkip(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () =>
+    {
+        if (skipShown)
+            ShowFlash(skipDone);
+        Send(new PlayerCommand.TakeSkip());
+    }, show: false);
     void OnKeyNext(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Step(1)));
     void OnKeyPrevious(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => Send(new PlayerCommand.Step(-1)));
     void OnKeyMini(KeyboardAccelerator s, KeyboardAcceleratorInvokedEventArgs e) => Key(e, () => ToggleMini());
@@ -603,11 +928,13 @@ public sealed partial class PlayerView : UserControl
     {
         if (still.Asking)
             ContinueWatching();
-        else if (StallCard.Visibility == Visibility.Visible)
+        else if (cornerCard == StallCard)
             Send(new PlayerCommand.StallSwitch());
-        else if (UpNextCard.Visibility == Visibility.Visible)
+        else if (cornerCard == UndoCard)
+            Undo();
+        else if (cornerCard == UpNextCard)
             PlayNext(auto: false);
-        else if (SkipCard.Visibility == Visibility.Visible)
+        else if (cornerCard == SkipSlot)
             Send(new PlayerCommand.TakeSkip());
     });
 
@@ -618,9 +945,9 @@ public sealed partial class PlayerView : UserControl
             StillStopNow();
         else if (mini)
             ToggleMini();
-        else if (UpNextCard.Visibility == Visibility.Visible)
+        else if (cornerCard == UpNextCard)
             CancelNext();
-        else if (StallCard.Visibility == Visibility.Visible)
+        else if (cornerCard == StallCard)
             Send(new PlayerCommand.StallWait());
         else if (FullscreenOn?.Invoke() == true)
             FullscreenRequested?.Invoke(false);
@@ -644,9 +971,8 @@ public sealed partial class PlayerView : UserControl
     void AskStillWatching()
     {
         StillLine.Text = $"Paused after {still.After} episodes in a row.";
-        StillLayer.Visibility = Visibility.Visible;
-        Chrome.Visibility = Visibility.Collapsed;
-        ControlsChanged?.Invoke(false);
+        Motion.Show(StillLayer);
+        HideChrome();
         ShowPointer();
         if (!paused)
             SendQuietly(new PlayerCommand.TogglePause());
@@ -657,7 +983,7 @@ public sealed partial class PlayerView : UserControl
     {
         still.Input();
         still.Answered();
-        StillLayer.Visibility = Visibility.Collapsed;
+        Motion.Hide(StillLayer);
         if (paused)
             SendQuietly(new PlayerCommand.TogglePause());
         ShowControls();
@@ -666,7 +992,7 @@ public sealed partial class PlayerView : UserControl
     void StillStopNow()
     {
         still.Answered();
-        StillLayer.Visibility = Visibility.Collapsed;
+        Motion.Set(StillLayer, false);
         Close();
     }
 
@@ -674,7 +1000,10 @@ public sealed partial class PlayerView : UserControl
     void OnStillStop(object sender, RoutedEventArgs e) => StillStopNow();
 
 #if ANISTREAM_TESTING
-    /// <summary>A state to bring up for a screenshot, on the testing build: <c>--show=still|mini|preview</c>.</summary>
+    /// <summary>
+    /// A state to bring up for a screenshot, on the testing build:
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash</c>.
+    /// </summary>
     async void Demo(string what)
     {
         await Task.Delay(1200);
@@ -690,6 +1019,38 @@ public sealed partial class PlayerView : UserControl
             case "preview":
                 ShowControls();
                 PreviewAtFraction(0.4);
+                break;
+            case "undo":
+                undo = new Undoable(0, "Skipped opening") { Played = -600, Waited = -600 };
+                UndoLine.Text = undo.Line;
+                UpdateCorner();
+                break;
+            case "stall":
+                stallBase = 9;
+                stallSince.Restart();
+                stallShown = true;
+                UpdateCorner();
+                break;
+            case "upnext":
+                UpNextTitle.Text = "Episode 2";
+                UpNextStillFrame.Visibility = Visibility.Visible;
+                upNext = new Coming(false, position, 0);
+                ShowUpNext();
+                break;
+            case "skip":
+                SkipCard.Content = "Skip opening";
+                skipShown = true;
+                UpdateCorner();
+                break;
+            case "starting":
+                startingEpisode = "1";
+                startingHeld = true;
+                ShowStarting();
+                startingFrom -= 21 * Stopwatch.Frequency;
+                break;
+            case "flash":
+                flash.Interval = TimeSpan.FromSeconds(600);
+                ShowFlash("12:04");
                 break;
         }
     }

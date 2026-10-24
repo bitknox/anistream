@@ -61,6 +61,9 @@ public sealed class Known
     /// <summary>Titles hidden from Continue in this run, until the engine's next list.</summary>
     public HashSet<uint> HiddenFromContinue { get; } = [];
 
+    /// <summary>The engine has no network path: from <c>Connectivity</c>, fed by the window's network watch.</summary>
+    public bool Offline { get; private set; }
+
     /// <summary>The AniList account, when signed in.</summary>
     public SyncState? Anilist => Sync.TryGetValue("anilist", out var s) && s.Connected ? s : null;
 
@@ -157,6 +160,9 @@ public sealed class Known
                 break;
             case Event.Seeding s:
                 Seeding = s.V1;
+                break;
+            case Event.Connectivity c:
+                Offline = c.Offline;
                 break;
         }
     }
