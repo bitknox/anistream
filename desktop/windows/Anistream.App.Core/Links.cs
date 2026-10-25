@@ -1,8 +1,8 @@
 namespace Anistream.App;
 
 /// <summary>
-/// The <c>anistream://</c> links the app is opened with, as the Mac answers them: a plugin
-/// store's invite, as the https link it wraps, and the widgets' destinations, a title, an episode
+/// The <c>anistream://</c> links the app is opened with, as the Mac answers them: a watch
+/// party's invite, a plugin store's invite, as the https link it wraps, and the widgets' destinations, a title, an episode
 /// to play, the Calendar, Settings › Accounts and a finished download.
 /// </summary>
 public abstract record Link
@@ -26,6 +26,12 @@ public abstract record Link
 
     /// <summary>A finished download playing, or Downloads while it is not there: <c>anistream://download/42</c>.</summary>
     public sealed record Download(long Id) : Link;
+
+    /// <summary>
+    /// A watch party's invite, <c>anistream://party?server=…&amp;room=…&amp;title=…&amp;episode=…</c>, as
+    /// it came: the engine reads it (<c>parse_party_invite</c>), so every app agrees on what it says.
+    /// </summary>
+    public sealed record Party(string Text) : Link;
 
     /// <summary>
     /// What <paramref name="text"/> opens, or null when it is not a link the app answers. A store
@@ -55,6 +61,8 @@ public abstract record Link
                 return Query(tail, "link") is { } wrapped && InviteIn(wrapped) is { } inner ? new Invite(inner) : null;
             case "auth":
                 return null;
+            case "party":
+                return new Party(text);
             case "title" when parts is [var id] && uint.TryParse(id, out var t) && t > 0:
                 return new Title(t);
             case "play" when parts is [var id, var ep] && uint.TryParse(id, out var p) && p > 0

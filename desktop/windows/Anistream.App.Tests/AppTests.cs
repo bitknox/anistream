@@ -806,6 +806,15 @@ public class LinkTests
     }
 
     [Fact]
+    public void APartyInviteIsHandedOnWholeForTheEngineToRead()
+    {
+        const string invite = "anistream://party?server=party.example%3A8999&room=quiet-harbor-k7m2xq9ad4tnwe3p&title=900001&episode=7";
+        Assert.Equal(new Link.Party(invite), Link.Parse(invite));
+        Assert.Equal(new Link.Party("ANISTREAM://party?room=x"), Link.Parse("\"ANISTREAM://party?room=x\""));
+        Assert.Equal(invite, Link.InCommandLine($"\"C:\\anistream.exe\" \"{invite}\""));
+    }
+
+    [Fact]
     public void ALaunchCarriesItsLinkAsAnArgumentOrInItsCommandLine()
     {
         Assert.Equal("anistream://calendar", Link.InArguments(["--scene=watching", "anistream://calendar"]));
@@ -929,5 +938,60 @@ public class UpdateTests
             Updates.Line(available, new UpdateState(UpdateStep.Failed, "2.1.0", Reason: "The download stopped: the connection was lost."), false, true));
         Assert.Equal(0.5, new UpdateState(UpdateStep.Downloading, "2.1.0", 50, 100).Fraction);
         Assert.Null(new UpdateState(UpdateStep.Failed, "2.1.0").Fraction);
+    }
+}
+
+public class PartyTests
+{
+    static PartyMember Member(string name, bool? ready, bool you = false, string? file = "Stardust Wayfarer · Episode 7", bool? matches = true) =>
+        new(Name: name, Ready: ready, File: file, Duration: 30, FileMatches: matches, You: you);
+
+    [Fact]
+    public void TheRoomWaitsForWhoeverIsNotReady()
+    {
+        var you = Member("Ada", false, you: true);
+        Assert.Equal("Nobody else is here yet. Send the invite link.", Parties.ReadyLine([you]));
+        Assert.Equal("Play starts once you're ready", Parties.ReadyLine([you, Member("Mika", true)]));
+        Assert.Equal("Play starts once Ren is ready", Parties.ReadyLine([you with { Ready = true }, Member("Ren", false)]));
+        Assert.Equal("Play starts once you and Ren are ready", Parties.ReadyLine([you, Member("Mika", true), Member("Ren", false)]));
+        Assert.Equal("Everyone is ready", Parties.ReadyLine([you with { Ready = true }, Member("Mika", true), Member("Ren", null)]));
+        Assert.False(Parties.AllReady([you with { Ready = true }]));
+    }
+
+    [Fact]
+    public void AMemberSaysTheirStateAndAFileThatDiffers()
+    {
+        Assert.Equal("Ada (you)", Parties.MemberName(Member("Ada", true, you: true)));
+        Assert.Equal("Ready", Parties.MemberState(Member("Mika", true)));
+        Assert.Equal("No ready state", Parties.MemberState(Member("Ren", null)));
+        Assert.Equal("Playing a different file", Parties.MemberFile(Member("Ren", false, matches: false)));
+        Assert.Equal("Nothing open yet", Parties.MemberFile(Member("Ren", false, file: null, matches: null)));
+        Assert.Null(Parties.MemberFile(Member("Mika", true)));
+    }
+
+    [Fact]
+    public void TheConnectionLineSaysEncryptionTheRoundTripAndRetries()
+    {
+        var view = new PartyView(Server: "party.example:8999", Room: "r", Name: "Ada", Connection: new PartyConnection.Connected(),
+            Encrypted: true, Ready: false, Episode: null, Invite: null, Motd: null, LatencyMs: 32);
+        Assert.Equal("Connected, encrypted · 32 ms", Parties.ConnectionLine(view));
+        Assert.Equal("Connection lost. Trying again, 2 of 6", Parties.ConnectionLine(view with { Connection = new PartyConnection.Reconnecting(2, 6) }));
+    }
+
+    [Fact]
+    public void TheSuggestedServerSaysWhoRunsIt()
+    {
+        var form = new PartyForm(RecentServers: [], SuggestedServer: "syncplay.pl:8995", SuggestedRunBy: "the Syncplay project", Room: "r", Name: "Ada");
+        Assert.Equal("No server of your own? syncplay.pl:8995 is a public one, run by the Syncplay project.", Parties.ServerHint("", form));
+        Assert.Equal("A public server run by the Syncplay project, not by anistream.", Parties.ServerHint(" syncplay.pl:8995 ", form));
+    }
+
+    [Fact]
+    public void AServerReadsAsAHostAndAPort()
+    {
+        foreach (var ok in new[] { "", "party.example", "party.example:8999", "[::1]:8999", "127.0.0.1:8999" })
+            Assert.Null(Parties.ServerProblem(ok));
+        foreach (var bad in new[] { "party.example:", "party.example:0", "party.example:99999", "https://party.example", "a:b:c", ":8999", "[::1" })
+            Assert.NotNull(Parties.ServerProblem(bad));
     }
 }

@@ -40,7 +40,6 @@ public sealed partial class SettingsPage : Page
         new("accounts", "Accounts", "", []),
         new("integrations", "Integrations", "",
         [
-            ("Watch together", [K.Syncplay, K.SyncplayServer, K.SyncplayRoom]),
             ("Discord", [K.Presence, K.PresenceTitle, K.PresenceRich]),
             ("Updates", [K.UpdateCheck]),
         ]),

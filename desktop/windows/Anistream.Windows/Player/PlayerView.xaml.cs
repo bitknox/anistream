@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
+using Anistream.Windows.Pages;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -210,6 +211,9 @@ public sealed partial class PlayerView : UserControl
                 case Event.PlayerUi ui:
                     Heard(ui.Ui);
                     break;
+                case Event.PartyJoined or Event.PartyLeft:
+                    ShowPartyButton();
+                    break;
                 case Event.PlayerTimeline t:
                     timelineMarks = t.Marks ?? [];
                     DrawTimeline();
@@ -279,6 +283,8 @@ public sealed partial class PlayerView : UserControl
                 UndoLine.Text = undo.Line;
                 UpdateCorner();
                 break;
+            case PlayerUi.UpNext when HoldUpNext:
+                break;
             case PlayerUi.UpNext next:
                 UpNextTitle.Text = next.Next.Title is { Length: > 0 } nt ? $"Episode {next.Next.Number} · {nt}" : $"Episode {next.Next.Number}";
                 upNext = new Coming(next.Auto, next.EndingAt, next.Countdown);
@@ -314,6 +320,15 @@ public sealed partial class PlayerView : UserControl
                 break;
         }
     }
+
+    /// <summary>
+    /// A screenshot run's: no Up next card, for a fixture clip short enough to be near its end
+    /// from the start.
+    /// </summary>
+    internal bool HoldUpNext { get; set; }
+
+    /// <summary>A line for the viewer over the video, where the window's toasts can't be seen.</summary>
+    internal void Say(string text) => Alert(text);
 
     async void Alert(string text)
     {
@@ -689,6 +704,41 @@ public sealed partial class PlayerView : UserControl
     void OnBarEntered(object sender, PointerRoutedEventArgs e) => overBar = true;
     void OnBarExited(object sender, PointerRoutedEventArgs e) => overBar = false;
     void OnMenuOpened(object? sender, object e) => menuOpen = true;
+
+    // Watch together.
+
+    PartyPanel? partyPanel;
+
+    void OnParty(object sender, RoutedEventArgs e) => ShowParty();
+
+    /// <summary>The party's panel when in one; the form that starts one when not.</summary>
+    internal void ShowParty()
+    {
+        if (ctx is null)
+            return;
+        if (ctx.Known.Party is null)
+        {
+            ctx.Window.ShowParty(new PartyDialog.For.Playing());
+            return;
+        }
+        if (partyPanel is null)
+        {
+            partyPanel = new PartyPanel(ctx);
+            partyPanel.Flyout.Opened += OnMenuOpened;
+            partyPanel.Flyout.Closed += OnMenuClosed;
+        }
+        ShowControls();
+        partyPanel.Flyout.ShowAt(PartyButton);
+    }
+
+    void ShowPartyButton()
+    {
+        var inParty = ctx?.Known.Party is not null;
+        PartyDot.Opacity = inParty ? 1 : 0;
+        var name = inParty ? "Watch party" : "Watch together";
+        ToolTipService.SetToolTip(PartyButton, name);
+        AutomationProperties.SetName(PartyButton, name);
+    }
 
     void OnMenuClosed(object? sender, object e)
     {

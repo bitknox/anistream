@@ -57,6 +57,9 @@
                       <MenuFlyoutItem x:Name="DownloadItem" Text="Download…" Click="OnDownloadRange">
                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE896;" /></MenuFlyoutItem.Icon>
                       </MenuFlyoutItem>
+                      <MenuFlyoutItem x:Name="PartyItem" Text="Watch together…" Click="OnWatchTogether">
+                        <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE716;" /></MenuFlyoutItem.Icon>
+                      </MenuFlyoutItem>
                       <MenuFlyoutSeparator />
                       <MenuFlyoutItem Text="Mark all previous watched" Click="OnMarkPrevious">
                         <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" /></MenuFlyoutItem.Icon>
