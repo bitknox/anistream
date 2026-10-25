@@ -559,28 +559,90 @@ extension View {
     }
 }
 
-/// A pill: Play Now in amber, the rest raised.
+/// A button over the video: its symbol or words on silk that lights at 10% under the pointer,
+/// and at the board's 16% pressed and while its menu is open, with the pointing hand. `lit`
+/// says the pointer is over it where its own hover cannot see, in the title bar strip.
+struct OverVideoButtonStyle: ButtonStyle {
+    var on = false
+    var lit = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Lit(configuration: configuration, on: on, lit: lit)
+    }
+
+    private struct Lit: View {
+        let configuration: Configuration
+        let on: Bool
+        let lit: Bool
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            configuration.label
+                .background(Palette.silk.opacity(fill), in: .capsule)
+                .animation(.quick, value: hovering || lit)
+                #if os(macOS)
+                .onHover { hovering = $0 }
+                #else
+                .contentShape(.hoverEffect, .capsule)
+                .hoverEffect(.highlight)
+                #endif
+                .pointingHand(enabled)
+        }
+
+        private var fill: Double {
+            if configuration.isPressed || on { return 0.16 }
+            return (hovering || lit) && enabled ? 0.1 : 0
+        }
+    }
+}
+
+/// A pill: Play Now in amber, the rest raised. A raised or quiet one lights at 8% silk under the
+/// pointer, as the buttons over the video do; every one dims to 80% pressed.
 struct PillButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, quiet }
     let kind: Kind
     let metrics: PlayerMetrics
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: metrics.body, weight: kind == .primary ? .semibold : .regular))
-            .foregroundStyle(kind == .primary ? Palette.ground : kind == .quiet ? Palette.haze : Palette.silk)
-            .padding(.horizontal, metrics.touch ? (kind == .primary ? 18 : 16) : (kind == .primary ? 14 : 12))
-            .frame(height: metrics.button)
-            .background {
-                switch kind {
-                case .primary: Capsule().fill(.amber)
-                case .secondary: Capsule().fill(.raisedSelected)
-                case .quiet: Color.clear
+        Pill(configuration: configuration, kind: kind, metrics: metrics)
+    }
+
+    private struct Pill: View {
+        let configuration: Configuration
+        let kind: Kind
+        let metrics: PlayerMetrics
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: metrics.body, weight: kind == .primary ? .semibold : .regular))
+                .foregroundStyle(kind == .primary ? Palette.ground : kind == .quiet ? Palette.haze : Palette.silk)
+                .padding(.horizontal, metrics.touch ? (kind == .primary ? 18 : 16) : (kind == .primary ? 14 : 12))
+                .frame(height: metrics.button)
+                .background {
+                    switch kind {
+                    case .primary: Capsule().fill(.amber)
+                    case .secondary: Capsule().fill(.raisedSelected)
+                    case .quiet: Color.clear
+                    }
                 }
-            }
-            .opacity(configuration.isPressed ? 0.8 : 1)
-            .contentShape(.capsule)
-            .pointingHand()
+                .overlay {
+                    if kind != .primary {
+                        Capsule().fill(Palette.silk.opacity(hovering && enabled ? 0.08 : 0))
+                    }
+                }
+                .animation(.quick, value: hovering)
+                .opacity(configuration.isPressed ? 0.8 : 1)
+                .contentShape(.capsule)
+                #if os(macOS)
+                .onHover { hovering = $0 }
+                #else
+                .hoverEffect(.highlight)
+                #endif
+                .pointingHand(enabled)
+        }
     }
 }
 

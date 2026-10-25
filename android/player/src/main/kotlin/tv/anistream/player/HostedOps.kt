@@ -35,6 +35,9 @@ sealed interface MpvCall {
 
     /** Read a property and report it as it stands: `chapter-list` for `RestateChapters`. */
     data class Restate(val property: String) : MpvCall
+
+    /** Read each property and report the ones mpv has, for stats for nerds. */
+    data class Sample(val properties: List<String>) : MpvCall
 }
 
 /** What the host does for one of the engine's ops. */
@@ -73,6 +76,7 @@ sealed interface HostedStep {
             is PlayerOp.Shaders -> Call(MpvCall.Shaders(op.paths))
             is PlayerOp.AudioFilter -> Call(MpvCall.Command(listOf("af", if (op.add) "add" else "remove", op.filter)))
             PlayerOp.RestateChapters -> Call(MpvCall.Restate("chapter-list"))
+            is PlayerOp.Sample -> Call(MpvCall.Sample(op.properties))
             PlayerOp.Stop -> Call(MpvCall.Command(listOf("stop")))
             PlayerOp.Quit -> Quit
             PlayerOp.Close -> Close
@@ -93,7 +97,7 @@ fun mpvValue(value: EngineValue): MpvValue = when (value) {
 val reportedProperties = listOf(
     "time-pos", "duration", "pause", "speed", "volume", "chapter-list", "video-params",
     "current-tracks/video", "track-list", "aid", "sid", "sub-delay", "paused-for-cache",
-    "demuxer-cache-state", "frame-drop-count", "seeking",
+    "demuxer-cache-state", "frame-drop-count", "seeking", "hwdec-current",
 )
 
 /** The report for one of mpv's events, when the engine reads it: a property, a file loaded or ended. */

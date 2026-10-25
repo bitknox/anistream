@@ -112,6 +112,7 @@ The keys follow the mpv companion, so the same hands work in both players.
 | Picture in Picture | ⌥⌘P | none |
 | Sync Subtitles | ⌥Z | Alt-Z |
 | Episodes, Subtitles, Audio | E, ⌥S, ⌥A (open their popovers) | menu |
+| Stats for nerds | I | I, ⇧I (mpv's own) |
 | Show the main window, keep playing | ⌘0 | q |
 | Stop | ⌘. or ⌘W | x |
 

@@ -41,6 +41,8 @@ pub struct Player {
     pub tracks_for: Option<(AnilistId, Translation)>,
     /// The upscaling chain and what it has learned about this machine.
     pub picture: crate::playback::PictureState,
+    /// Stats for nerds is open in this window: it stays open as the next episode loads.
+    pub stats: bool,
 }
 
 impl Player {
@@ -52,6 +54,7 @@ impl Player {
             tracks: TrackPolicy::new(preferences, None),
             tracks_for: None,
             picture: Default::default(),
+            stats: false,
         }
     }
 }

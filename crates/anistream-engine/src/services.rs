@@ -55,6 +55,9 @@ pub struct Services {
     pub power: Arc<dyn PowerSource>,
     /// The players a front end hosts, and where what they report is taken in.
     pub hosted: Arc<HostedPlayers>,
+    /// Whether the device has no network path, as its front end last said: what a playback's
+    /// Stats for nerds says of the network.
+    pub offline: Arc<std::sync::atomic::AtomicBool>,
     /// Whether a play opens the front end's hosted player rather than mpv's process: always
     /// without the desktop feature, and on the desktop when the front end asks for it.
     pub hosted_player: bool,
@@ -121,6 +124,7 @@ impl Services {
             sync,
             stores,
             slot: Default::default(),
+            offline: Default::default(),
             power,
             hosted,
             hosted_player: !cfg!(feature = "desktop"),

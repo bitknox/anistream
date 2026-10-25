@@ -778,6 +778,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::PlayerUi { .. } => "PlayerUi",
         Event::PlayerTimeline { .. } => "PlayerTimeline",
         Event::PlayerBuffered { .. } => "PlayerBuffered",
+        Event::PlayerStats { .. } => "PlayerStats",
+        Event::Clipboard { .. } => "Clipboard",
         Event::Sync(_) => "Sync",
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
@@ -937,6 +939,10 @@ fn copy(update: &Event) -> Event {
         Event::PlayerBuffered { playback, ranges } => {
             Event::PlayerBuffered { playback: *playback, ranges: ranges.clone() }
         }
+        Event::PlayerStats { playback, stats } => {
+            Event::PlayerStats { playback: *playback, stats: stats.clone() }
+        }
+        Event::Clipboard { text } => Event::Clipboard { text: text.clone() },
         Event::Sync(state) => Event::Sync(state.clone()),
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),

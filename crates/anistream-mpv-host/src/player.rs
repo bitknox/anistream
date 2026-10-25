@@ -511,6 +511,19 @@ fn run(shared: &Shared, work: Work) {
                 });
                 Ok(())
             }
+            // A property mpv can't read now, `avsync` with no audio, is left out: the row it
+            // feeds is left out with it.
+            MpvCall::Sample(properties) => {
+                for property in properties {
+                    if let Some(value) = mpv.get(property) {
+                        shared.report(PlayerReport::Property {
+                            name: property.clone(),
+                            json: value.to_string(),
+                        });
+                    }
+                }
+                Ok(())
+            }
             MpvCall::Load { .. } | MpvCall::AddSubtitle { .. } | MpvCall::Seek { .. } => {
                 mpv.command_node(&call.command_node().expect("a command"))
             }

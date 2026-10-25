@@ -558,7 +558,9 @@ impl App {
             Event::PlayerOps { .. }
             | Event::PlayerUi { .. }
             | Event::PlayerTimeline { .. }
-            | Event::PlayerBuffered { .. } => {}
+            | Event::PlayerBuffered { .. }
+            | Event::PlayerStats { .. }
+            | Event::Clipboard { .. } => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
             //

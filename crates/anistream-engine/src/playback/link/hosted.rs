@@ -33,7 +33,7 @@ use tokio::sync::mpsc;
 use super::{LinkError, Opened, Overlay, PlaybackEvent, PlayerLink, PlayerOpener};
 use crate::{
     outbox::Outbox,
-    playback::{STILL_WATCHING_AFTER, offered, power::ReportedPower},
+    playback::{STILL_WATCHING_AFTER, offered, power::ReportedPower, stats},
 };
 
 /// The windows a front end hosts, by the playbacks driving them, and where what they report
@@ -144,6 +144,7 @@ impl PlayerOpener for HostedPlayers {
 impl Window {
     /// A report, read as mpv's event would be and handed to the session.
     fn take(&self, report: PlayerReport) {
+        let mut sampled = None;
         let read = match report {
             PlayerReport::FileLoaded => self.read(protocol::Event::FileLoaded),
             PlayerReport::Property { name, json } => {
@@ -151,6 +152,13 @@ impl Window {
                     Ok(value) => {
                         if let Some(number) = value.as_f64() {
                             lock(&self.numbers).insert(name.clone(), number);
+                        }
+                        // Stats for nerds reads it as it is, after whatever else reads it.
+                        if stats::reads(&name) {
+                            sampled = Some(PlaybackEvent::Sampled {
+                                name: name.clone(),
+                                value: value.clone(),
+                            });
                         }
                         self.read(protocol::property_change(Some(&name), Some(value)))
                     }
@@ -168,15 +176,26 @@ impl Window {
                 }
                 self.read(protocol::Event::EndFile(reason))
             }
-            PlayerReport::Display { width, height, compute, .. } => {
-                Some(PlaybackEvent::Display { width, height, compute })
-            }
+            PlayerReport::Display {
+                width, height, compute, refresh_hz, edr_headroom, ..
+            } => Some(PlaybackEvent::Display {
+                width,
+                height,
+                compute,
+                refresh_hz,
+                edr_headroom,
+            }),
             PlayerReport::HookDisabled { hook } => Some(PlaybackEvent::HookDisabled(hook)),
             PlayerReport::Closed | PlayerReport::Power { .. } => None,
         };
-        if let Some(event) = read
-            && let Some(events) = lock(&self.events).as_ref()
-        {
+        for event in [read, sampled].into_iter().flatten() {
+            self.send(event);
+        }
+    }
+
+    /// Hand `event` to the session, while one reads.
+    fn send(&self, event: PlaybackEvent) {
+        if let Some(events) = lock(&self.events).as_ref() {
             let _ = events.send(event);
         }
     }
@@ -298,6 +317,10 @@ impl PlayerLink for HostedLink {
         self.op(PlayerOp::RestateChapters)
     }
 
+    async fn sample(&self, properties: Vec<String>) -> Result<(), LinkError> {
+        self.op(PlayerOp::Sample { properties })
+    }
+
     async fn overlay(&self, overlay: Overlay) -> Result<(), LinkError> {
         // Events of their own rather than `PlayerUi`'s: an app that does not draw them yet
         // passes over them, where a new kind of `PlayerUi` would stop its build.
@@ -317,6 +340,9 @@ impl PlayerLink for HostedLink {
                 let ranges =
                     ranges.into_iter().map(|(start, end)| TimeRange { start, end }).collect();
                 return self.say(|playback| Event::PlayerBuffered { playback, ranges });
+            }
+            Overlay::Stats(stats) => {
+                return self.say(|playback| Event::PlayerStats { playback, stats });
             }
             _ => {}
         }
@@ -398,7 +424,7 @@ fn ui(overlay: Overlay) -> Option<PlayerUi> {
         Overlay::Stall { seconds } => PlayerUi::Stall { seconds },
         Overlay::StallCleared => PlayerUi::StallCleared,
         // Said as events of their own, in `overlay`.
-        Overlay::Timeline(_) | Overlay::Buffered(_) => return None,
+        Overlay::Timeline(_) | Overlay::Buffered(_) | Overlay::Stats(_) => return None,
     })
 }
 
@@ -640,5 +666,10 @@ mod tests {
             },
         );
         assert_eq!(events.recv().await, Some(PlaybackEvent::Cached(vec![(0.0, 42.0)])));
+        // And stats for nerds hears it as it came, after.
+        let Some(PlaybackEvent::Sampled { name, .. }) = events.recv().await else {
+            panic!("the figure for the panel")
+        };
+        assert_eq!(name, "demuxer-cache-state");
     }
 }

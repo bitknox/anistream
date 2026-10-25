@@ -867,42 +867,15 @@ private fun InfoPanel(model: PlayerModel, modifier: Modifier) {
         row?.description?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 8, overflow = TextOverflow.Ellipsis)
         }
-        Text("Playback details", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
-        playbackDetails(model).forEach { line ->
+        Text("Stats for nerds", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
+        // The engine's lines, the same every app shows; until it knows the picture, says so.
+        if (model.statsSummary.isEmpty()) {
+            Text("Waiting for the stream", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
+        }
+        model.statsSummary.forEach { line ->
             Text(line, style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
         }
     }
-}
-
-/**
- * The Info panel's playback lines: "1080p · HEVC 10-bit · hardware decoding", the source, the
- * dropped frames, and the upscaling.
- */
-fun playbackDetails(model: PlayerModel): List<String> = buildList {
-    val picture = listOfNotNull(
-        model.videoHeight?.let { "${it}p" },
-        // A frame mpv's own filters made carries no codec of its own: "wrapped_avframe" names none.
-        model.videoCodec?.takeIf { it.lowercase() != "wrapped_avframe" }?.let { codec ->
-            val name = codecName(codec)
-            if (model.pixelFormat?.contains("10") == true) "$name 10-bit" else name
-        },
-        if (model.decoding.trim() == "no") "software decoding" else "hardware decoding",
-    )
-    add(picture.joinToString(" · "))
-    model.menus?.sources?.firstOrNull { it.current }?.let { add(it.label) }
-    add("Dropped frames: ${model.droppedFrames}")
-    val upscaling = model.menus?.upscaling
-    val chosen = upscaling?.options?.firstOrNull { it.id == upscaling.current }?.label
-    add("Upscaling: ${chosen?.lowercase() ?: "off on this TV"}")
-}
-
-/** mpv's codec names as people read them. */
-fun codecName(codec: String): String = when (codec.lowercase()) {
-    "hevc", "h265" -> "HEVC"
-    "h264", "avc" -> "H.264"
-    "av1" -> "AV1"
-    "vp9" -> "VP9"
-    else -> codec.uppercase()
 }
 
 /**

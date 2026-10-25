@@ -22,7 +22,7 @@ use anistream_core::{
     ids::AnilistId,
     traits::PlaybackRequest,
 };
-use anistream_model::playback::PlayerTheme;
+use anistream_model::{hosted::PlayerStats, playback::PlayerTheme};
 use anistream_playback::{
     SkipInterval, SkipKind,
     companion::{EpisodeInfo, Level, Media, Menus, NextUp, Status},
@@ -110,6 +110,12 @@ pub trait PlayerLink: Send + Sync {
     /// Ask the player to report the chapter list again, as it stands now: what decides, once
     /// the file has loaded, whether the stream brought chapters of its own.
     async fn restate_chapters(&self) -> Result<(), LinkError>;
+
+    /// Ask the player to report each of `properties` once, as it stands now: Stats for nerds'
+    /// figures, while its panel is open. Nothing for mpv's own window, which has its own stats.
+    async fn sample(&self, _properties: Vec<String>) -> Result<(), LinkError> {
+        Ok(())
+    }
 
     /// Tell the player's own interface something.
     async fn overlay(&self, overlay: Overlay) -> Result<(), LinkError>;
@@ -221,4 +227,6 @@ pub enum Overlay {
     /// What the player holds of the file, as `(start, end)` in seconds: the seek bar's
     /// buffered stretches. Paced by the session, never while paused.
     Buffered(Vec<(f64, f64)>),
+    /// Stats for nerds: the panel's rows while it is open, and the TV's summary.
+    Stats(PlayerStats),
 }

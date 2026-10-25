@@ -92,6 +92,7 @@ public struct PhonePlayerView: View {
                     .padding(.top, 72)
                     .frame(maxHeight: .infinity, alignment: .top)
                     .animation(.standard, value: model.alert)
+                stats(in: proxy.size)
                 if held {
                     Text("2×")
                         .font(.system(size: 15, weight: .semibold))
@@ -263,6 +264,13 @@ public struct PhonePlayerView: View {
                             MenuDivider()
                             PictureLists(model: model, metrics: metrics)
                         }
+                        MenuDivider()
+                        // The Mac's More menu is this sheet here: Stats for nerds goes up over
+                        // the picture, so the sheet goes down to show it.
+                        MenuRow(title: "Stats for nerds", checked: model.statsShown, metrics: metrics) {
+                            model.toggleStats()
+                            if model.statsShown { self.sheet = nil }
+                        }
                     case .episodes:
                         EpisodeList(model: model, metrics: metrics)
                     }
@@ -286,6 +294,35 @@ public struct PhonePlayerView: View {
         .presentationBackground(Palette.ground)
         .presentationDragIndicator(.visible)
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: Stats for nerds
+
+    /// Stats for nerds, which stays up while the controls hide. Over the picture at the top
+    /// trailing corner, under the top bar, as on the Mac. An iPhone held sideways is too short
+    /// for that: the panel is compact there and ends above the subtitles, which sit higher
+    /// while the controls are up; its rows scroll when that leaves them too little room. On an
+    /// upright window too narrow for it, under the picture at the full width less 16 pt.
+    private func stats(in size: CGSize) -> some View {
+        let upright = size.height > size.width && size.width < 600
+        let short = size.height < 500
+        let picture = BufferingLine.picture(in: size, aspect: model.videoAspect ?? 16 / 9)
+        let insets =
+            if upright {
+                EdgeInsets(top: picture.maxY + 16, leading: 16, bottom: 32, trailing: 16)
+            } else if short {
+                // The subtitles' two lines from 18 pt above the bottom, lifted with the controls.
+                EdgeInsets(top: visible ? 72 : 16, leading: 0, bottom: 90 + (visible ? metrics.subtitleLift : 0), trailing: 56)
+            } else {
+                EdgeInsets(top: 72, leading: 0, bottom: 84, trailing: 56)
+            }
+        return StatsPanel(
+            model: model, metrics: metrics, width: upright ? size.width - 32 : StatsPanel.width, compact: short && !upright
+        )
+        .padding(insets)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: upright ? .top : .topTrailing)
+        .animation(.standard, value: insets)
+        .animation(model.statsPanel != nil ? .fadeIn : .fadeOut, value: model.statsPanel != nil)
     }
 
     // MARK: Gestures

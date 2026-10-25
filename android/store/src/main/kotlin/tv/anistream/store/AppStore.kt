@@ -870,7 +870,8 @@ class AppStore(
             }
 
             is Event.PlayerOps, is Event.PlayerUi, is Event.PlayerTimeline, is Event.PlayerBuffered,
-            is Event.PlaybackStaged, is Event.PlaybackEnded, Event.PlaybackKept -> onPlayback?.invoke(event)
+            is Event.PlaybackStaged, is Event.PlaybackEnded, Event.PlaybackKept,
+            is Event.PlayerStats -> onPlayback?.invoke(event)
 
             // Everything else is said in the events above, or has no screen yet.
             else -> {}
