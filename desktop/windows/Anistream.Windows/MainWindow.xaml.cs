@@ -277,7 +277,8 @@ public sealed partial class MainWindow : Window
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
             {
                 await Task.Delay(1500);
-                Pages.DeviceCodeDialog.Heard(Root.XamlRoot, new DeviceCodePrompt("trakt", "7F3K9QX2", "https://tracker.example/activate"));
+                Pages.DeviceCodeDialog.Heard(Root.XamlRoot, new DeviceCodePrompt("trakt", "7F3K9QX2", "https://tracker.example/activate",
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 15 * 60 - 1));
             });
 #endif
         if (options.Shortcuts)
