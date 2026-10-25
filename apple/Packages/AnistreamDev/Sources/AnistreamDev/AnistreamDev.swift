@@ -63,6 +63,8 @@ final class Delegate: NSObject, NSApplicationDelegate {
         store.onPlayback = { [weak player] event in player?.apply(event) }
         player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
         store.tv.handedOff = { [weak player] in player?.viewerClosed() }
+        store.party.playerUp = { [weak player] in player?.isPresented ?? false }
+        store.playerSays = { [weak player] text, kind in player?.say(text, kind: kind) }
         return player
     }()
     private var temporary: URL?
@@ -135,6 +137,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
             let there = await player.stage(shot, store: store)
             print(there ? "AnistreamDev: the player is at \(shot.rawValue)" : "AnistreamDev: the player did not reach \(shot.rawValue)")
         }
+        if let scene = PartyScene.named() {
+            let there = await player.stage(scene, store: store)
+            print(there ? "AnistreamDev: the party is at \(scene.rawValue)" : "AnistreamDev: the party did not reach \(scene.rawValue)")
+        }
         guard let url = options.snapshot else { return }
         // The art's and the preview's fade-ins.
         try? await Task.sleep(for: .milliseconds(400))
@@ -164,7 +170,8 @@ final class Delegate: NSObject, NSApplicationDelegate {
         } catch {
             FileHandle.standardError.write(Data("AnistreamDev: \(error)\n".utf8))
         }
-        if options.playerShot != nil {
+        if options.playerShot != nil || PartyScene.named() != nil {
+            store.party.leave()
             player.viewerClosed()
             try? await Task.sleep(for: .milliseconds(300))
         }
