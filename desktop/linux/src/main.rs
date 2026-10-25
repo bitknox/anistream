@@ -137,7 +137,7 @@ fn main() -> glib::ExitCode {
             return glib::ExitCode::FAILURE;
         }
     };
-    let engine::Started { engine, mut events, keep } = started;
+    let engine::Started { engine, mut events, keep, rebuilt } = started;
     let engine = Arc::new(engine);
 
     // The engine's events, in batches, onto the main loop.
@@ -145,6 +145,12 @@ fn main() -> glib::ExitCode {
     runtime.spawn(async move {
         loop {
             let batch = events.next_events().await;
+            // Said once the rebuild is done, so what is put back stays.
+            if let Some(rebuilt) = &rebuilt
+                && batch.iter().any(|event| matches!(event, Event::SourcesChanged))
+            {
+                rebuilt();
+            }
             if batch.is_empty() || events_tx.send(batch).await.is_err() {
                 return;
             }
