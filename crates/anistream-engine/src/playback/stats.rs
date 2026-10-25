@@ -415,7 +415,8 @@ fn dropped(f: &Figures) -> Option<(String, bool)> {
 }
 
 /// "42 s ahead · 61 MB", or "0 s ahead, waiting" held waiting for data. In amber under two
-/// seconds while playing, unless what is held runs to the end of the file.
+/// seconds while playing, unless what is held runs to the end of the file, or the file is on
+/// the device, where mpv reads only a little ahead and never waits on a network.
 fn buffer(f: &Figures) -> Option<(String, bool)> {
     if f.buffering {
         return Some(("0 s ahead, waiting".into(), true));
@@ -427,7 +428,7 @@ fn buffer(f: &Figures) -> Option<(String, bool)> {
         value.push_str(&format!(" · {}", human_bytes(bytes)));
     }
     let to_the_end = state.and_then(|s| s.get("eof")).and_then(Value::as_bool) == Some(true);
-    Some((value, !f.paused && ahead < LOW_BUFFER && !to_the_end))
+    Some((value, !f.paused && !f.local && ahead < LOW_BUFFER && !to_the_end))
 }
 
 /// "2.4 MB/s", "Offline", nothing for a file on the device.
@@ -505,7 +506,9 @@ fn language(track: &Value) -> Option<String> {
 /// "+0.004 s", in amber past a tenth of a second while playing.
 fn sync(f: &Figures) -> Option<(String, bool)> {
     let drift = number(f, "avsync")?;
-    Some((format!("{drift:+.3} s"), !f.paused && drift.abs() > AV_DRIFT))
+    // In step to the millisecond reads "+0.000 s", never "-0.000 s".
+    let shown = if drift.abs() < 0.0005 { 0.0 } else { drift };
+    Some((format!("{shown:+.3} s"), !f.paused && drift.abs() > AV_DRIFT))
 }
 
 /// `value` with at most `places` decimals and none it does not need: 23.976, 24, 29.97.
@@ -753,6 +756,18 @@ mod tests {
         let stats = fixture(StatsFixture::Local);
         assert_eq!(row(&stats, "Network"), None);
         assert_eq!(value(&stats, "Buffer").unwrap(), "180 s ahead · 240 MB");
+        // mpv reads a file on the device only a little ahead, and that is no problem.
+        let mut f = fixture_figures(StatsFixture::Local);
+        f.mpv.insert("demuxer-cache-duration".into(), json!(1.0));
+        f.mpv.insert("demuxer-cache-state".into(), json!({"fw-bytes": 304_000}));
+        assert!(stats_of(&f).rows.iter().all(|r| !r.warn), "{:?}", stats_of(&f).rows);
+    }
+
+    #[test]
+    fn in_step_the_sound_reads_plus_zero() {
+        let mut f = fixture_figures(StatsFixture::Playing);
+        f.mpv.insert("avsync".into(), json!(-0.0001));
+        assert_eq!(value(&stats_of(&f), "A/V sync").unwrap(), "+0.000 s");
     }
 
     #[test]
@@ -852,7 +867,10 @@ mod tests {
         assert_eq!(value(&stats_of(&f), "Subtitles").unwrap(), "Off");
         f.mpv.insert("current-tracks/sub".into(), json!({"codec": "subrip", "title": "Signs"}));
         f.mpv.insert("sub-delay".into(), json!(-0.25));
-        assert_eq!(value(&stats_of(&f), "Subtitles").unwrap(), "SRT · Signs, -0.25 s delay");
+        assert_eq!(
+            value(&stats_of(&f), "Subtitles").unwrap(),
+            "SRT · Signs, -0.25 s delay"
+        );
     }
 
     #[test]

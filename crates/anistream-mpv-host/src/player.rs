@@ -513,7 +513,7 @@ fn run(shared: &Shared, work: Work) {
             // feeds is left out with it.
             MpvCall::Sample(properties) => {
                 for property in properties {
-                    if let Ok(value) = mpv.get(property) {
+                    if let Some(value) = mpv.get(property) {
                         shared.report(PlayerReport::Property {
                             name: property.clone(),
                             json: value.to_string(),
