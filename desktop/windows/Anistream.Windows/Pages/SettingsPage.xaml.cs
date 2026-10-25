@@ -356,12 +356,9 @@ public sealed partial class SettingsPage : Page
         top.Children.Add(new Nagare(6));
         var text = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         text.Children.Add(new TextBlock { Text = "anistream", Style = Res<Style>("SubtitleTextBlockStyle") });
-        var version = typeof(SettingsPage).Assembly.GetName().Version;
-        text.Children.Add(new TextBlock { Text = $"Version {version?.ToString(3) ?? "unknown"}", Style = Res<Style>("HazeBodyStyle") });
+        text.Children.Add(new TextBlock { Text = $"Version {Updater.Current}", Style = Res<Style>("HazeBodyStyle") });
         text.Children.Add(new TextBlock { Text = "anistream hosts no content.", Style = Res<Style>("HazeBodyStyle") });
-        var check = new Button { Content = "Check for updates", Margin = new Thickness(0, 6, 0, 0) };
-        check.Click += (_, _) => ctx.Send(new Command.CheckForUpdates());
-        text.Children.Add(check);
+        text.Children.Add(new UpdatePanel(ctx, ctx.Updater) { Margin = new Thickness(0, 6, 0, 0) });
         Grid.SetColumn(text, 1);
         top.Children.Add(text);
         Cards.Children.Add(top);

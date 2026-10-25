@@ -15,6 +15,7 @@ sealed class Ctx
     public required Art Art { get; init; }
     public required MainWindow Window { get; init; }
     public required Options Options { get; init; }
+    public required Updater Updater { get; init; }
 
     public Known Known => Session.Known;
 

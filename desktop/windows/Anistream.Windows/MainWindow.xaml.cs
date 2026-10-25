@@ -79,7 +79,19 @@ public sealed partial class MainWindow : Window
         Size();
         session = new EngineSession(engine, act => ui.TryEnqueue(() => act()));
         var art = new Art(session.Send);
-        ctx = new Ctx { Session = session, Art = art, Window = this, Options = options };
+        var updater = new Updater(ui, staged: options.Fixture && options.UpdateFrom is null) { Quit = CloseNow };
+        updater.Ready += version =>
+        {
+            ShowToast(InfoBarSeverity.Informational, $"Version {version} is ready to install", "Restart to update", updater.Install);
+            readyToast = toastShown;
+        };
+        // The offer goes once the update moves on, from About or a failure.
+        updater.Changed += () =>
+        {
+            if (updater.State.Step != UpdateStep.Ready && readyToast == toastShown && Toast.IsOpen)
+                Toast.IsOpen = false;
+        };
+        ctx = new Ctx { Session = session, Art = art, Window = this, Options = options, Updater = updater };
         Ctx.Current = ctx;
         session.Batch += batch =>
         {
@@ -263,6 +275,37 @@ public sealed partial class MainWindow : Window
             if (link is not null)
                 OpenLink(link);
         }));
+        // After Restart to update: whether the new version is the one running.
+        if (ctx.Updater.AfterRestart() is { } restarted)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, () =>
+            {
+                if (restarted.Installed)
+                    ShowToast(InfoBarSeverity.Success, $"Updated to version {Updater.Current}");
+                else
+                    ShowToast(InfoBarSeverity.Warning, $"Version {restarted.Version} didn't install. About can try again.", "Open About",
+                        () => ContentFrame.Navigate(typeof(SettingsPage), "about", new SuppressNavigationTransitionInfo()));
+            });
+#if ANISTREAM_TESTING
+        // --show=update: a newer release with this machine's installer, as the engine's check
+        // tells of one, which a fixture run stages without fetching.
+        // --update-from=<url>,<sha256>,<size>,<version> offers that installer instead, fetched
+        // and installed for real; --show=update-install presses Restart to update once it is ready.
+        if (options.Show is "update" or "update-install" || options.UpdateFrom is not null)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(1200);
+                var events = new Event[] { new Event.Update(new UpdateStatus.Available(Showcase.Release(options.UpdateFrom), true)) };
+                ctx.Known.Take(events[0]);
+                Heard(events);
+                ctx.Heard(events);
+                if (options.Show != "update-install")
+                    return;
+                while (ctx.Updater.State.Step is not (UpdateStep.Ready or UpdateStep.Failed))
+                    await Task.Delay(250);
+                await Task.Delay(1500);
+                ctx.Updater.Install();
+            });
+#endif
         if (options.Opens is { } opens)
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
             {
@@ -344,6 +387,9 @@ public sealed partial class MainWindow : Window
                 case Event.DeviceCode code:
                     Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
                     break;
+                case Event.Update update:
+                    ctx.Updater.Heard(update.V1);
+                    break;
                 case Event.Downloads d:
                     taskbar?.Downloads(ctx.Known.Downloads);
                     foreach (var notice in Notices.Downloaded(downloadsSeen, d.V1))
@@ -389,6 +435,7 @@ public sealed partial class MainWindow : Window
     // under the pointer, with the hint as the one button.
 
     int toastShown;
+    int readyToast = -1;
     bool toastHeld;
     DateTimeOffset toastUntil;
 
