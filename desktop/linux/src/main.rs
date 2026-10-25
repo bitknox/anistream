@@ -24,6 +24,7 @@ mod shots;
 mod showcase;
 mod states;
 mod style;
+mod updater;
 mod updates;
 mod video;
 mod widgets;
@@ -272,7 +273,8 @@ fn build(
     }
     let hub = Hub::new(engine);
     let prefs = Rc::new(Prefs::open(files.prefs.clone()));
-    let shell = Shell::build(app, Rc::clone(&hub), prefs, player, args.fixtures);
+    let updater = updater::Updater::new(&files.cache, args.fixtures);
+    let shell = Shell::build(app, Rc::clone(&hub), prefs, player, updater, args.fixtures);
     // A scene's media controls sit beside the user's own copy's, as MPRIS has instances do.
     let media_name = if args.fixtures {
         format!("{}.instance{}", mpris::NAME, std::process::id())
