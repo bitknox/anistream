@@ -38,6 +38,8 @@ public enum PartyScene: String, CaseIterable, Sendable {
     case unaired
     /// Quitting while in a party (Mac): Leave the party?
     case quit
+    /// Closing the window while in a party (Mac): the same question, Leave and Close.
+    case close
 
     public static let argument = "-AnistreamParty"
 
@@ -119,12 +121,12 @@ extension PlayerModel {
             }
             try? await Task.sleep(for: .milliseconds(900))
             return true
-        case .quit:
+        case .quit, .close:
             guard let fake = PartyScene.server(store) else { return false }
             store.send(.partyJoin(server: fake.server(), room: room, name: "Ada"))
             guard await partyWaited(10, { party.inParty }) else { return false }
             quiet(store)
-            party.askingToQuit = true
+            party.askingToLeave = scene == .quit ? .quit : .close
             try? await Task.sleep(for: .milliseconds(900))
             return true
         case .panel, .ready, .sync, .chat, .lost, .left:

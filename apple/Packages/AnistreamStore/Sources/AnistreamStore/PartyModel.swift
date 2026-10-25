@@ -46,6 +46,13 @@ public struct PartyNoSourceAsk: Equatable, Sendable, Identifiable {
     public var reason: String
 }
 
+/// What leaving a party asks about: quitting the app, or closing the window that holds the
+/// player.
+public enum PartyLeaving: Sendable {
+    case quit
+    case close
+}
+
 /// The no-source sheet's second step: what each source lists for the episode.
 public enum PartySourceChoice: Equatable, Sendable {
     case looking
@@ -90,10 +97,11 @@ public final class PartyModel {
 
     // MARK: Elsewhere
 
-    /// Quitting was asked while in a party: the question before it leaves (Mac).
-    public var askingToQuit = false
-    /// Leave and Quit was pressed: the quit goes ahead.
-    public private(set) var quitAgreed = false
+    /// Quitting, or closing the window that holds the player, was asked while in a party: the
+    /// question before it leaves (Mac), as the Windows app asks on closing.
+    public var askingToLeave: PartyLeaving?
+    /// Leave and Quit, or Leave and Close, was pressed: what was asked goes ahead.
+    public private(set) var leaveAgreed = false
     /// Counts the asks to open the party panel on the player's people button.
     public private(set) var panelRequests = 0
 
@@ -188,17 +196,28 @@ public final class PartyModel {
         send(.partyLeave)
     }
 
-    /// Leave and Quit: the party is left, and quitting asks no more.
-    public func agreeToQuit() {
-        quitAgreed = true
-        askingToQuit = false
+    /// Leave and Quit, or Leave and Close: the party is left, and the quit or the close asks no
+    /// more.
+    public func agreeToLeave() {
+        leaveAgreed = true
+        askingToLeave = nil
         leave()
     }
 
     /// Whether quitting now leaves a party, and so asks first: asked once per quit.
     public func asksBeforeQuitting() -> Bool {
-        guard inParty, !quitAgreed else { return false }
-        askingToQuit = true
+        asks(.quit)
+    }
+
+    /// Whether closing the window that holds the player now leaves a party, and so asks first:
+    /// the red button and ⌘W, as Windows asks on closing. Nothing is asked outside a party.
+    public func asksBeforeClosing() -> Bool {
+        asks(.close)
+    }
+
+    private func asks(_ leaving: PartyLeaving) -> Bool {
+        guard inParty, !leaveAgreed else { return false }
+        askingToLeave = leaving
         return true
     }
 
@@ -243,6 +262,8 @@ public final class PartyModel {
             }
         case .partyJoined(let view):
             let fresh = party == nil
+            // A party joined after one was left asks again before it is left by a close.
+            if fresh { leaveAgreed = false }
             // A room joined afresh lists its members afresh.
             if party?.server != view.server || party?.room != view.room { members = nil }
             party = view
@@ -270,7 +291,7 @@ public final class PartyModel {
             leaving = false
             noSource = nil
             choice = nil
-            askingToQuit = false
+            askingToLeave = nil
             if joining {
                 // The form says why itself, and Try again keeps what was typed.
                 joining = false

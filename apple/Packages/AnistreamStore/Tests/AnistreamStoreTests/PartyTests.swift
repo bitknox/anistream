@@ -133,11 +133,30 @@ struct PartyTests {
         try await waitFor { party.party?.ready == true && party.members?.first?.ready == true }
         #expect(PartyWords.readyLine(party.members ?? []) == "Everyone is ready")
 
-        party.leave()
+        // Closing the window or quitting asks first while in the party, once agreed no more.
+        #expect(party.asksBeforeClosing())
+        #expect(party.askingToLeave == .close)
+        party.askingToLeave = nil
+        #expect(party.asksBeforeQuitting())
+        #expect(party.askingToLeave == .quit)
+        party.agreeToLeave()
+        #expect(party.askingToLeave == nil)
         #expect(party.leaving)
+        #expect(!party.asksBeforeClosing())
+        #expect(!party.asksBeforeQuitting())
         try await waitFor { party.party == nil }
         #expect(party.members == nil)
         #expect(store.notices.current?.notice.text == "You left the party. What's playing goes on, just for you.")
+    }
+
+    @Test func closingOutsideAPartyAsksNothing() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try await started(root: root)
+        defer { store.shutdown() }
+        #expect(!store.party.asksBeforeClosing())
+        #expect(!store.party.asksBeforeQuitting())
+        #expect(store.party.askingToLeave == nil)
     }
 
     @Test func aServerThatRefusesSaysWhyInTheForm() async throws {

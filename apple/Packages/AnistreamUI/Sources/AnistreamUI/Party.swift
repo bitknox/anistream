@@ -20,6 +20,10 @@ public struct PartySheets: ViewModifier {
     @Environment(Navigator.self) private var navigator
     @Environment(\.playerUp) private var playerUp
     let overPlayer: Bool
+    #if os(macOS)
+    /// The window these sheets are on, for Leave and Close to close.
+    @State private var window: NSWindow?
+    #endif
 
     /// The window's, or with `overPlayer` the player's cover's.
     public init(overPlayer: Bool = false) {
@@ -77,17 +81,31 @@ public struct PartySheets: ViewModifier {
             #if os(macOS)
             .alert(
                 "Leave the party?",
-                isPresented: Binding(get: { party.askingToQuit }, set: { party.askingToQuit = $0 })
-            ) {
+                isPresented: Binding(
+                    get: { here && party.askingToLeave != nil },
+                    set: { if !$0 { party.askingToLeave = nil } }
+                ),
+                presenting: party.askingToLeave
+            ) { leaving in
                 // Stay is the default: Return and Escape both keep the party.
                 Button("Stay", role: .cancel) {}
                     .keyboardShortcut(.defaultAction)
-                Button("Leave and Quit") {
-                    party.agreeToQuit()
-                    NSApp.terminate(nil)
+                Button(leaving == .quit ? "Leave and Quit" : "Leave and Close") {
+                    party.agreeToLeave()
+                    switch leaving {
+                    case .quit: NSApp.terminate(nil)
+                    case .close: window?.performClose(nil)
+                    }
                 }
-            } message: {
-                Text("Quitting anistream leaves \(party.party?.room ?? "the party"). Everyone else carries on without you.")
+            } message: { leaving in
+                let room = party.party?.room ?? "the party"
+                Text(leaving == .quit
+                     ? "Quitting anistream leaves \(room). Everyone else carries on without you."
+                     : "Closing the window leaves \(room). Everyone else carries on without you.")
+            }
+            // The red button and ⌘W ask first while in a party, as quitting does.
+            .background {
+                if here { PartyCloseGuard(asks: { party.asksBeforeClosing() }) { window = $0 } }
             }
             #endif
     }
@@ -257,6 +275,73 @@ extension SourceCandidate {
     /// The row's identity in the list: its source and its own id.
     var partyKey: String { "\(providerId)/\(id)" }
 }
+
+#if os(macOS)
+/// Asks before the window closes while in a party: its delegate stands behind one that asks
+/// first, and answers everything else as it did. SwiftUI keeps the window's delegate; this one
+/// only wraps it.
+struct PartyCloseGuard: NSViewRepresentable {
+    let asks: @MainActor () -> Bool
+    let found: (NSWindow?) -> Void
+
+    func makeNSView(context: Context) -> Holder { Holder(asks: asks, found: found) }
+    func updateNSView(_ view: Holder, context: Context) {
+        view.asker.asks = asks
+        view.install()
+    }
+
+    final class Holder: NSView {
+        let asker: CloseAsker
+        let found: (NSWindow?) -> Void
+
+        init(asks: @escaping @MainActor () -> Bool, found: @escaping (NSWindow?) -> Void) {
+            asker = CloseAsker(asks: asks)
+            self.found = found
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) { fatalError("not used") }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            install()
+            found(window)
+        }
+
+        /// In front of the window's own delegate, once, and again should SwiftUI set another.
+        func install() {
+            guard let window, window.delegate !== asker else { return }
+            asker.original = window.delegate
+            window.delegate = asker
+        }
+    }
+}
+
+/// The window delegate that asks: `windowShouldClose` asks while in a party, and every other
+/// message goes to the delegate it stands in front of.
+final class CloseAsker: NSObject, NSWindowDelegate {
+    var asks: @MainActor () -> Bool
+    weak var original: NSWindowDelegate?
+
+    init(asks: @escaping @MainActor () -> Bool) {
+        self.asks = asks
+    }
+
+    @MainActor
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if asks() { return false }
+        return original?.windowShouldClose?(sender) ?? true
+    }
+
+    override func responds(to selector: Selector!) -> Bool {
+        super.responds(to: selector) || (original?.responds(to: selector) ?? false)
+    }
+
+    override func forwardingTarget(for selector: Selector!) -> Any? {
+        original?.responds(to: selector) == true ? original : super.forwardingTarget(for: selector)
+    }
+}
+#endif
 
 // MARK: - Mac
 
