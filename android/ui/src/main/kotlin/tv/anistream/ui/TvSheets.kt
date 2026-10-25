@@ -65,6 +65,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -765,12 +766,13 @@ internal fun TvSettingsGroup() {
 /** A problem under a field: the error's dot, then its words in the surface's own colour, never vermilion text. */
 @Composable
 private fun ProblemLine(text: String) {
-    Row(
-        Modifier.padding(top = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StateDot(MaterialTheme.colorScheme.error)
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+    val style = MaterialTheme.typography.bodyMedium
+    // The dot sits level with the first line, however many lines the words wrap to.
+    val line = with(LocalDensity.current) { style.lineHeight.toDp() }
+    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.height(line), contentAlignment = Alignment.Center) {
+            StateDot(MaterialTheme.colorScheme.error)
+        }
+        Text(text, style = style, color = MaterialTheme.colorScheme.onSurface)
     }
 }
