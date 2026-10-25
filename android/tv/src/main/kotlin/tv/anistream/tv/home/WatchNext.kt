@@ -83,7 +83,7 @@ data class WatchNextCard(
                     episode = item.episode,
                     kind = kind,
                     title = item.entry.title,
-                    description = listOfNotNull("Episode ${item.episode}", row?.title).joinToString(" · "),
+                    description = listOfNotNull(item.longEpisode, row?.title).joinToString(" · "),
                     art = item.entry.bannerUrl ?: item.entry.coverUrl,
                     positionMillis = if (started) (resume.position * 1000).toLong() else 0L,
                     durationMillis = ((duration ?: 0.0) * 1000).toLong(),

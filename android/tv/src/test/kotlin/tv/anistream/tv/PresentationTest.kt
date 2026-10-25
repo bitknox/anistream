@@ -10,6 +10,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.EpisodeAiring
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.ResumePoint
@@ -47,6 +48,15 @@ class PresentationTest {
         assertEquals(7u, action.episode)
         assertTrue(action.playable)
         assertEquals("Resume episode 7", action.label())
+    }
+
+    @Test
+    fun a_dub_is_marked_on_the_action_and_a_sub_is_not() {
+        val progress = TitleProgress(6u, 7u)
+        val resume = ResumePoint(606.0, 0.42)
+        assertEquals("Resume episode 7 · Dub", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.DUB)).label())
+        assertEquals("Resume episode 7", PlayAction.of(entry(progress, resume).copy(watchedIn = Translation.SUB)).label())
+        assertEquals("Play episode 7 · Dub", PlayAction.of(entry(progress).copy(watchedIn = Translation.DUB)).label())
     }
 
     @Test

@@ -54,6 +54,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.store.AppClock
@@ -95,6 +96,11 @@ class BoardShots {
     @Test
     @Config(qualifiers = PHONE)
     fun phone_home() = shoot("phone-home", WATCHING)
+
+    /** Continue with a dub on its rows: "Resume E7 · Dub · 10:06". */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_continue_dub() = shoot("phone-continue-dub", WATCHING, dub = true)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -451,6 +457,8 @@ class BoardShots {
         pale: Boolean = false,
         /** Events of the scene left out, as a list that never answered. */
         exclude: (Event) -> Boolean = { false },
+        /** Whether every show on Continue was last watched dubbed. */
+        dub: Boolean = false,
         /** Whether the whole screen is captured, so a menu's window shows. */
         screen: Boolean = false,
         /** Whether first launch's pages show, as on the app's first launch. */
@@ -461,7 +469,7 @@ class BoardShots {
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         // The art the screens ask for, as the fake AniList serves it.
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = { url -> PaleBanner.bytes(url) ?: FixtureArt.bytes(url) })
-        val events = recorded.events.filter { replayed(it) && !exclude(it) }.map { if (sourceless) withoutSources(it) else it }
+        val events = recorded.events.filter { replayed(it) && !exclude(it) }.map { if (sourceless) withoutSources(it) else it }.map { if (dub) dubbed(it) else it }
         // After the scene each time, so its own detail never wins over the pale one.
         fun replay() {
             store.apply(events)
@@ -583,4 +591,15 @@ class BoardShots {
             else -> true
         }
     }
+}
+
+/** [event], when it is a list of titles, with every one last watched dubbed, as the engine would send them. */
+private fun dubbed(event: Event): Event = when (event) {
+    is Event.Detail -> Event.Detail(event.v1.copy(watchedIn = Translation.DUB))
+    is Event.Browse -> Event.Browse(event.v1.map { rail -> rail.copy(entries = rail.entries.map { it.copy(watchedIn = Translation.DUB) }) })
+    is Event.CalendarBackfill -> event.copy(entries = event.entries.map { it.copy(watchedIn = Translation.DUB) })
+    is Event.Content -> (event.content as? ContentList.Entries)
+        ?.let { event.copy(content = it.copy(v1 = it.v1.map { entry -> entry.copy(watchedIn = Translation.DUB) })) }
+        ?: event
+    else -> event
 }
