@@ -58,6 +58,9 @@ async-channel = "2"
 serde_json = "1"
 # Covers and banners decoded off the main loop.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+# The AppImage's own update: downloaded with the engine's HTTP stack and checked by its SHA-256.
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "webpki-roots", "http2"] }
+sha2 = "0.11"
 tokio = { version = "1.53", features = ["rt-multi-thread", "sync", "time"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }

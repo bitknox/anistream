@@ -73,9 +73,10 @@ library and settings.
 carries GTK 4, libadwaita and the player.
 
 Make it executable with `chmod +x anistream-@VERSION@-linux-x86_64.AppImage` and open it. The first
-run registers it for anistream:// links. AppImageUpdate, AppImageLauncher and Gear Lever can update
-it in place from the release's `.zsync` file. Without FUSE, run it with
-`--appimage-extract-and-run`.
+run registers it for anistream:// links. The app updates itself: it downloads each new version,
+checks it, and puts it in place of the AppImage when you choose Restart to Update in its notice or
+in Settings. AppImageUpdate, AppImageLauncher and Gear Lever can update it in place too, from the
+release's `.zsync` file. Without FUSE, run it with `--appimage-extract-and-run`.
 
 ### Checking a download
 

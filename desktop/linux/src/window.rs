@@ -53,6 +53,8 @@ pub struct Ctx {
     pub split: adw::OverlaySplitView,
     pub toasts: adw::ToastOverlay,
     pub prefs: Rc<Prefs>,
+    /// The app updating itself from its AppImage.
+    pub updater: Rc<crate::updater::Updater>,
     size: Cell<Size>,
     sized: RefCell<Vec<OnSize>>,
     /// Pushes a page on the destination on screen.
@@ -113,6 +115,11 @@ impl Ctx {
         self.show_notice(text, false, Some((label, action, None)))
     }
 
+    /// A notice of the app's own with a button running the window's `action` on `target`.
+    pub fn toast_to(&self, text: &str, label: &str, action: &str, target: &str) -> adw::Toast {
+        self.show_notice(text, false, Some((label, action, Some(target))))
+    }
+
     fn show_notice(
         &self,
         text: &str,
@@ -123,6 +130,8 @@ impl Ctx {
         // The words as the toast's own title, so a click on them dismisses it.
         let title = gtk::Label::new(Some(text));
         title.set_wrap(true);
+        // Asks for the width of the words on one line, and wraps only when the toast has less.
+        title.set_natural_wrap_mode(gtk::NaturalWrapMode::None);
         title.set_xalign(0.0);
         let click = gtk::GestureClick::new();
         click.connect_released({
@@ -134,13 +143,31 @@ impl Ctx {
             }
         });
         title.add_controller(click);
-        toast.set_custom_title(Some(&title));
-        if let Some((label, action, target)) = button {
-            toast.set_button_label(Some(label));
-            toast.set_action_name(Some(action));
-            if let Some(target) = target {
-                toast.set_action_target_value(Some(&target.to_variant()));
+        match button {
+            // The button beside the words in the title, not the toast's own: that one gives up its
+            // width first and is cut short on a narrow window, where these words wrap instead.
+            Some((label, action, target)) => {
+                title.set_hexpand(true);
+                let button = gtk::Button::with_label(label);
+                button.set_valign(gtk::Align::Center);
+                button.set_action_name(Some(action));
+                if let Some(target) = target {
+                    button.set_action_target_value(Some(&target.to_variant()));
+                }
+                button.connect_clicked({
+                    let toast = toast.downgrade();
+                    move |_| {
+                        if let Some(toast) = toast.upgrade() {
+                            toast.dismiss();
+                        }
+                    }
+                });
+                let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+                line.append(&title);
+                line.append(&button);
+                toast.set_custom_title(Some(&line));
             }
+            None => toast.set_custom_title(Some(&title)),
         }
         if alert {
             toast.set_priority(adw::ToastPriority::High);
@@ -175,6 +202,7 @@ impl Shell {
         hub: Rc<Hub>,
         prefs: Rc<Prefs>,
         player: &PlayerOptions,
+        updater: Rc<crate::updater::Updater>,
         fixtures: bool,
     ) -> Rc<Self> {
         let window = adw::ApplicationWindow::builder()
@@ -202,6 +230,7 @@ impl Shell {
             split: split.clone(),
             toasts: toasts.clone(),
             prefs,
+            updater,
             size: Cell::new(Size::Wide),
             sized: RefCell::default(),
             navs: RefCell::default(),
@@ -263,6 +292,7 @@ impl Shell {
         shell.breakpoints();
         shell.actions(app);
         shell.listen();
+        shell.updates();
         if !fixtures {
             shell.watch_network();
         }
@@ -533,6 +563,9 @@ impl Shell {
             }),
         );
         add("check-updates", None, Box::new(|s, _| s.ctx.hub.send(Command::CheckForUpdates)));
+        add("update-download", None, Box::new(|s, _| s.ctx.updater.download()));
+        add("update-cancel", None, Box::new(|s, _| s.ctx.updater.stop()));
+        add("update-install", None, Box::new(|s, _| s.ctx.updater.install()));
         add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
         add(
             "connect",
@@ -588,11 +621,49 @@ impl Shell {
         window.add_controller(click);
     }
 
+    /// The app's own update: a notice once the new version is ready, how the app quits for
+    /// it, and after a restart to update, whether it went in.
+    fn updates(self: &Rc<Self>) {
+        let updater = &self.ctx.updater;
+        updater.on_ready({
+            let ctx = Rc::downgrade(&self.ctx);
+            move |version| {
+                if let Some(ctx) = ctx.upgrade() {
+                    let text = format!("Version {version} is ready to install");
+                    ctx.toast_with(&text, "Restart", "win.update-install");
+                }
+            }
+        });
+        updater.on_quit({
+            let weak = Rc::downgrade(self);
+            move || {
+                let Some(shell) = weak.upgrade() else { return };
+                shell.stop_and_close();
+                if let Some(app) = shell.ctx.window.application() {
+                    app.quit();
+                }
+            }
+        });
+        match updater.after_restart() {
+            Some((true, _)) => self
+                .ctx
+                .toast(&format!("Updated to version {}", anistream_engine::updates::CURRENT)),
+            Some((false, version)) => {
+                let text = format!("Version {version} didn't install. About can try again.");
+                self.ctx.toast_to(&text, "Open About", "win.settings-pane", "about");
+            }
+            None => {}
+        }
+    }
+
     /// The engine's events the window itself answers: notices, sign-in pages, the player.
     fn listen(self: &Rc<Self>) {
         let weak = Rc::downgrade(self);
         self.ctx.hub.listen(move |event| {
             let Some(shell) = weak.upgrade() else { return };
+            if let Event::Update(status) = event {
+                shell.ctx.updater.heard(status);
+            }
             match event {
                 Event::Toast(notice) => shell.ctx.notice(notice),
                 Event::Connectivity { offline } => widgets::set_offline(*offline),
@@ -602,9 +673,10 @@ impl Shell {
                 {
                     shell.welcome();
                 }
-                // A newer version, told once: Flatpak tells of its own.
+                // A newer version, told once: Flatpak tells of its own, and an AppImage once
+                // the new one is ready to install.
                 Event::Update(UpdateStatus::Available { release, notify: true })
-                    if !crate::updates::flatpak() =>
+                    if !crate::updates::flatpak() && !shell.ctx.updater.installs(release) =>
                 {
                     let text = format!("Version {} of anistream is out", release.version);
                     shell.ctx.toast_with(&text, "View", "win.release-page");
