@@ -297,7 +297,7 @@ private fun TvPairing(tv: TvRemoteModel, step: TvPairingStep) {
         SheetText(TvWords.pairingLine(step.tvName, deviceWord()))
         TvHeading("Code on ${step.tvName}")
         TvCodeBoxes(code, { code = it }) { digits -> if (!step.working) tv.submit(digits) }
-        step.problem?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.error, modifier = Modifier.padding(top = 8.dp)) }
+        step.problem?.let { ProblemLine(it) }
         SheetButtons {
             QuietButton("Back", onClick = tv::cancelPairing)
             QuietButton("Show a new code", enabled = !step.working) {
@@ -420,7 +420,7 @@ private fun TvRemote(tv: TvRemoteModel) {
         actions = KeyboardActions(onSearch = { tv.send(FfiTvCommand.Text(search, submit = true)) }),
         enabled = live,
     )
-    problem?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.error, modifier = Modifier.padding(top = 8.dp)) }
+    problem?.let { ProblemLine(it) }
     SheetButtons {
         if (TvWords.lost(card)) {
             QuietButton("Pair again") {
@@ -760,4 +760,17 @@ internal fun TvSettingsGroup() {
             }
         } + listOf(@Composable { place: Place -> ActionRow(place, "Pair a TV", onClick = tv::openPicker) }),
     )
+}
+
+/** A problem under a field: the error's dot, then its words in the surface's own colour, never vermilion text. */
+@Composable
+private fun ProblemLine(text: String) {
+    Row(
+        Modifier.padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StateDot(MaterialTheme.colorScheme.error)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+    }
 }

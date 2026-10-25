@@ -103,6 +103,13 @@ class ListModel(private val clock: () -> Long = System::nanoTime) {
 class CalendarModel {
     val list = ListModel()
 
+    /**
+     * How many days after today the calendar opens on: today, unless a fixtures build's `day`
+     * extra says another, for a shot of a day with broadcasts on it.
+     */
+    @Volatile
+    var opensOn: Int = 0
+
     /** The calendar's anchor, its pages, whether AniList has more behind them, and its rows. */
     data class Window(
         val anchor: Long? = null,

@@ -64,6 +64,7 @@ import tv.anistream.store.Wording
 
 /** The panes of Settings, in the list's order. */
 enum class SettingsPane(val route: String, val title: String) {
+    General("general", "General"),
     Playback("playback", "Playback"),
     Notifications("notifications", "Notifications"),
     Downloads("downloads", "Downloads"),
@@ -151,7 +152,7 @@ private fun PhonePane(pane: SettingsPane, actions: AppActions) {
 // The list
 
 /**
- * The account, then Playback, Downloads, Sources and Accounts as one group, then About: each with
+ * The account, then General, Playback, Notifications, Downloads, Sources and Accounts as one group, then About: each with
  * what it says of itself. On a tablet [selected] is the pane beside it, filled primaryContainer.
  */
 @Composable
@@ -167,6 +168,7 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
     val update by store.updates.state.collectAsStateWithLifecycle()
     AccountCard(trackers["anilist"], AccountWords.status(trackers["anilist"], syncedAt, working)) { open(SettingsPane.Accounts) }
     val panes = listOf(
+        SettingsPane.General to generalSummary(view),
         SettingsPane.Playback to playbackSummary(view),
         SettingsPane.Notifications to notificationsSummary(view),
         SettingsPane.Downloads to storageLine(store.downloads.bytes(downloads)),
@@ -190,6 +192,7 @@ internal fun SettingsList(selected: SettingsPane?, open: (SettingsPane) -> Unit)
 
 private val SettingsPane.icon
     get() = when (this) {
+        SettingsPane.General -> Icons.Settings
         SettingsPane.Playback -> Icons.PlaybackPage
         SettingsPane.Notifications -> Icons.NotificationsPage
         SettingsPane.Downloads -> Icons.DownloadsPage
@@ -202,6 +205,12 @@ private val SettingsPane.icon
 private fun notificationsSummary(view: SettingsView?): String? {
     val row = view?.let { (it.rows + it.nativeRows).firstOrNull { row -> row.key == SettingKey.EPISODE_NOTIFICATIONS } } ?: return null
     return if (SettingsCatalog.isOn(row)) "New episodes on" else "New episodes off"
+}
+
+/** The title language's choice: "AniList's choice", "English" or "Romaji". */
+private fun generalSummary(view: SettingsView?): String? {
+    val row = view?.rows?.firstOrNull { it.key == SettingKey.TITLES } ?: return null
+    return TitleChoice.of(SettingsCatalog.current(row)?.value).label
 }
 
 /** "Subtitled · 1080p". */
@@ -359,6 +368,7 @@ private fun TabletSettings(start: SettingsPane, actions: AppActions) {
 /** The row a pane's column is about before any is tapped: Playback's upscaling, as the board has it. */
 private val SettingsPane.defaultFocus: String?
     get() = when (this) {
+        SettingsPane.General -> FOCUS_TITLES
         SettingsPane.Playback -> FOCUS_UPSCALING
         else -> null
     }
@@ -367,6 +377,7 @@ private val SettingsPane.defaultFocus: String?
 @Composable
 internal fun PaneContent(pane: SettingsPane, actions: AppActions) {
     when (pane) {
+        SettingsPane.General -> GeneralPane()
         SettingsPane.Playback -> PlaybackPane()
         SettingsPane.Notifications -> NotificationsPane(actions)
         SettingsPane.Downloads -> DownloadsPane(actions)

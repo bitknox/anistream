@@ -242,6 +242,22 @@ private fun ComingRow(place: Place, episode: UpcomingNotice, onClick: () -> Unit
 /** What the switch's line says once Android has not let notifications go on. */
 internal const val NOTIFICATIONS_REFUSED = "Off: Android isn’t allowing anistream’s notifications"
 
+// General
+
+/** How titles read and which are listed: nothing here is about playing an episode. */
+@Composable
+internal fun GeneralPane() {
+    Pane {
+        SettingsGroup(
+            title = "Titles",
+            rows = listOf(
+                { place -> TitleLanguageRow(place) },
+                { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, "Show adult titles", note = "Titles AniList marks adult, in Search and Seasonal") },
+            ),
+        )
+    }
+}
+
 // Playback
 
 @Composable
@@ -254,8 +270,6 @@ internal fun PlaybackPane() {
             title = "Language",
             footer = "Each show remembers its own audio and subtitles.",
             rows = listOf(
-                { place -> TitleLanguageRow(place) },
-                { place -> SettingSwitch(place, SettingKey.ADULT_TITLES, "Show adult titles", note = "Titles AniList marks adult, in Search and Seasonal") },
                 { place -> SettingMenu(place, SettingKey.TRANSLATION, "Translation", label = ::translationWords) },
                 { place -> SubtitlesRow(place) },
                 { place -> FollowCaptionsRow(place) },

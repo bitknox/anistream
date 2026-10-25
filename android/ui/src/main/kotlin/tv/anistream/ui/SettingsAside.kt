@@ -65,7 +65,8 @@ internal fun SettingsAside(pane: SettingsPane, focus: String?) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         when (pane) {
-            SettingsPane.Playback -> if (focus == FOCUS_TITLES) TitleLanguagePreview() else UpscalingPreview()
+            SettingsPane.General -> TitleLanguagePreview()
+            SettingsPane.Playback -> UpscalingPreview()
             SettingsPane.Notifications -> Aside(
                 "New episodes",
                 "One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.",

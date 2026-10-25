@@ -182,7 +182,9 @@ private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onD
             is UpdateState.Installing -> {
                 StateLine("Android is asking to install the update. Confirm on its screen; your sign-ins, lists and settings stay.")
                 Bar(1f)
-                Buttons { cancel() }
+                // Nothing here can stop Android's installer, so no Cancel; its place stays, a tonal
+                // button high, so nothing above moves.
+                Spacer(Modifier.height(48.dp))
             }
             is UpdateState.Done -> {
                 StateLine("Updated to ${state.offer.name}. It opens next time you start anistream.")

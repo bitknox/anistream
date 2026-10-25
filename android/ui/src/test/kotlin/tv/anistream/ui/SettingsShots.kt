@@ -97,6 +97,11 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_settings_playback() = shoot("phone-settings-playback", settingsRoute(SettingsPane.Playback))
 
+    /** General: Title language and Show adult titles, under Titles, as the TV's General has them. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_settings_general() = shoot("phone-settings-general", settingsRoute(SettingsPane.General))
+
     @Test
     @Config(qualifiers = PHONE)
     fun phone_settings_notifications() = shoot("phone-settings-notifications", settingsRoute(SettingsPane.Notifications)) { store ->
@@ -129,7 +134,7 @@ class SettingsShots {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun phone_settings_titles() = shoot("phone-settings-titles", settingsRoute(SettingsPane.Playback), tap = "Title language")
+    fun phone_settings_titles() = shoot("phone-settings-titles", settingsRoute(SettingsPane.General), tap = "Title language")
 
     @Test
     @Config(qualifiers = PHONE)
@@ -153,7 +158,7 @@ class SettingsShots {
 
     @Test
     @Config(qualifiers = TABLET)
-    fun tablet_settings_titles() = shoot("tablet-settings-titles", settingsRoute(SettingsPane.Playback), tap = "Title language", dismiss = true)
+    fun tablet_settings_titles() = shoot("tablet-settings-titles", settingsRoute(SettingsPane.General), tap = "Title language", dismiss = true)
 
     @Test
     @Config(qualifiers = PHONE)

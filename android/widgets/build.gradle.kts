@@ -23,4 +23,20 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.glance.appwidget.testing)
+    // JNA's JVM build, with this machine's native library: the record's marks are the engine's words.
+    testImplementation(libs.jna.jvm)
+}
+
+// The record's marks are the engine's own words, read from this Mac's build of the testing engine,
+// android/.engine/<engine>/host, through JNA.
+AnistreamSdk.engines.forEach { (flavour, engine) ->
+    val name = flavour.replaceFirstChar(Char::uppercase)
+    val library = rootDir.resolve(".engine/$engine/host")
+    tasks.withType<Test>().matching { it.name.startsWith("test$name") }.configureEach {
+        systemProperty("jna.library.path", library.path)
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
+        // The bindings free the engine's objects with Android's SystemCleaner, which Robolectric
+        // builds on the JDK's own cleaner.
+        jvmArgs("--add-exports=java.base/jdk.internal.ref=ALL-UNNAMED")
+    }
 }

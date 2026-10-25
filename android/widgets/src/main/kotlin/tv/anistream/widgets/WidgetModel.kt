@@ -11,7 +11,7 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import tv.anistream.engine.core.AnilistId
-import tv.anistream.engine.core.Translation
+import tv.anistream.engine.ffi.episodeMark
 import tv.anistream.engine.model.WidgetAiring
 import tv.anistream.engine.model.WidgetData
 import tv.anistream.ui.airsWords
@@ -51,6 +51,8 @@ data class Record(
         val bannerUrl: String? = null,
         /** The cover's colour, `#5d9be4`, for the plate drawn before the art is there. */
         val coverColor: String? = null,
+        /** The engine's mark for [episode]: "Dub" for a show watched dubbed, nothing for a sub. */
+        val mark: String? = null,
     )
 
     data class Airing(
@@ -62,7 +64,7 @@ data class Record(
         val onList: Boolean,
         /** Whether the episode has been watched. Unknown in a first-shape record. */
         val watched: Boolean? = null,
-        /** "Sub" or "Dub", where the two air apart. */
+        /** The engine's mark for a broadcast of the dub alone: "Dub". A sub's is not marked. */
         val translation: String? = null,
     )
 
@@ -79,7 +81,7 @@ data class Record(
                 airsAt = Instant.ofEpochSecond(row.airsAt),
                 onList = row.onList,
                 watched = row.watched.takeIf { second },
-                translation = row.translation?.let(::translationWord),
+                translation = episodeMark(row.translation),
             )
             return Record(
                 generatedAt = Instant.ofEpochSecond(data.generatedAt),
@@ -96,17 +98,13 @@ data class Record(
                         coverUrl = it.coverUrl,
                         bannerUrl = it.bannerUrl,
                         coverColor = it.coverColor,
+                        mark = it.mark,
                     )
                 },
                 nextAiring = data.nextAiring?.let { Next(it.id, it.title, it.episode, Instant.ofEpochSecond(it.airsAt)) },
                 airing = (data.airingToday + data.nextDays).map(::airing).sortedBy { it.airsAt },
                 days = if (second) 7 else 1,
             )
-        }
-
-        private fun translationWord(translation: Translation): String = when (translation) {
-            Translation.SUB -> "Sub"
-            Translation.DUB -> "Dub"
         }
     }
 }
@@ -129,8 +127,13 @@ sealed interface ContinueView {
         val id: AnilistId,
         val title: String,
         val episode: UInt,
-        /** "E7 · 14 min left", "E7 of 24", or "Start E4" for an episode not begun. */
+        /**
+         * "E7 · 14 min left", "E7 of 24", or "Start E4" for an episode not begun, each with the
+         * engine's mark after the episode for a dub: "E7 · Dub · 14 min left".
+         */
         val line: String,
+        /** The engine's mark, "Dub", or nothing for a sub. */
+        val mark: String? = null,
         /** How far into the episode, for the bar; `null` when it was not begun. */
         val progress: Float?,
         /** The art for the wide places: the banner, or the poster where there is none. */
@@ -233,17 +236,19 @@ object WidgetModel {
 
     private fun show(row: Record.Continuing): ContinueView.Show {
         val begun = row.resume ?: ((row.fraction ?: 0.0) > 0.0)
+        val episode = listOfNotNull("E${row.episode}", row.mark).joinToString(" · ")
         val line = when {
-            !begun -> "Start E${row.episode}"
-            row.minutesLeft != null -> "E${row.episode} · ${row.minutesLeft} min left"
-            row.episodes != null -> "E${row.episode} of ${row.episodes}"
-            else -> "E${row.episode}"
+            !begun -> "Start $episode"
+            row.minutesLeft != null -> "$episode · ${row.minutesLeft} min left"
+            row.episodes != null -> listOfNotNull("E${row.episode} of ${row.episodes}", row.mark).joinToString(" · ")
+            else -> episode
         }
         return ContinueView.Show(
             id = row.id,
             title = row.title,
             episode = row.episode,
             line = line,
+            mark = row.mark,
             progress = if (begun) (row.fraction ?: 0.0).toFloat().coerceIn(0f, 1f) else null,
             wideUrl = row.bannerUrl ?: row.coverUrl,
             posterUrl = row.coverUrl,

@@ -254,6 +254,11 @@ private fun Tall(shows: List<ContinueView.Show>, updated: String?, drawing: Draw
     }
 }
 
-/** What the play button says to a screen reader: "Resume episode 7 of …", or "Play episode 4 of …". */
-private fun playLabel(show: ContinueView.Show): String =
-    "${if (show.progress != null) "Resume" else "Play"} episode ${show.episode} of ${show.title}"
+/**
+ * What the play button says to a screen reader: "Resume episode 7 of …", or "Play episode 4 of …",
+ * and for a dub the mark as the row shows it: "Resume episode 7, Dub, of …".
+ */
+internal fun playLabel(show: ContinueView.Show): String {
+    val episode = listOfNotNull("episode ${show.episode}", show.mark).joinToString(", ")
+    return "${if (show.progress != null) "Resume" else "Play"} $episode${if (show.mark != null) "," else ""} of ${show.title}"
+}
