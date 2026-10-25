@@ -342,6 +342,7 @@ mod tests {
             macos: Some(file("anistream-2.0.3-macos.dmg", 56_208_258)),
             ios: None,
             android: Some(file("anistream-2.0.3-android-arm64.apk", 5_000_000_000)),
+            android_tv: Some(file("anistream-2.0.3-android-tv.apk", 40_000_000)),
         };
         for status in [
             UpdateStatus::Checking,

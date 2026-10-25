@@ -25,6 +25,8 @@ android {
         versionCode = providers.gradleProperty("ANISTREAM_VERSION_CODE").map(String::toInt).getOrElse(1)
         versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse("2.0.0")
         ndk { abiFilters += "arm64-v8a" }
+        // The feature videos' flows, src/androidTestFixtures (website/scripts/videos).
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // The release key, from Gradle properties (~/.gradle/gradle.properties on the machine that
     // signs). Where they are not set, as in CI, the release build is left unsigned rather than
@@ -143,6 +145,10 @@ dependencies {
     testImplementation(libs.work.testing)
     // The scenes the engine recorded, for the settings it says.
     testImplementation(project(":testkit"))
+
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }
 
 tasks.withType<Test>().configureEach {

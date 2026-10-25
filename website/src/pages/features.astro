@@ -3,6 +3,7 @@ import '../styles/theme.css';
 import '../styles/landing.css';
 import '../styles/apps.css';
 import '../styles/features.css';
+import FeatureVideo from '../components/FeatureVideo.astro';
 import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
@@ -12,10 +13,15 @@ import StoreDiagram from '../components/features/StoreDiagram.astro';
 import SyncDiagram from '../components/features/SyncDiagram.astro';
 import TerminalStill from '../components/features/TerminalStill.astro';
 import shots from '../data/shots.json';
+import videos from '../data/videos.json';
 import { APPS, INSTALL_GUIDE, LEGAL } from '../data/site';
 
-// Each highlight's picture sits in a .hl-media slot. A short video can take a slot's place later,
-// as a <video> with a poster, and the text beside it stays where it is.
+// Each highlight's picture sits in a .hl-media slot, and a FeatureVideo in each slot plays a short
+// loop of the task in place of a picture once scripts/videos/record.sh has recorded it. Until
+// then the picture stays.
+
+/** Whether a recorded clip shows the episode in the player, which the page then credits. */
+const episodeShown = Object.values(videos as Record<string, { episode: boolean }>).some((v) => v.episode);
 
 /** A screenshot's width over its height, for a row of pictures at one height. */
 const ratio = (name: keyof typeof shots) => shots[name].w / shots[name].h;
@@ -46,8 +52,8 @@ const matrix: [string, [string, Cell[]][]][] = [
 	[
 		'Finding and watching',
 		[
-			['Browse with filters', ['Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y', 'Y']],
-			['Seasons on the title page', ['Y', 'Y', 'Y', 'Y', 'Related titles', 'Related titles', 'Y', 'Y']],
+			['Browse with filters', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Y']],
+			['Seasons on the title page', ['Y', 'Y', 'Y', 'Y', 'Y', 'Related titles', 'Y', 'Y']],
 			['Built-in mpv', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Your mpv']],
 			['Upscaling', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'Y']],
 			['Subtitle and audio tracks', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y']],
@@ -60,7 +66,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 		[
 			['MyAnimeList and Kitsu', ['Y', 'Y', 'Y', 'Y', 'Kitsu only', 'Y', 'D', 'Y']],
 			['Simkl and Trakt', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'D', 'Y']],
-			['Per-show settings', ['Y', 'Y', 'Y', 'Y', 'Audio and skips', 'D', 'Y', 'Source only']],
+			['Per-show settings', ['Y', 'Y', 'Y', 'Y', 'Y', 'D', 'Y', 'Source only']],
 			['Download an episode', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'Y', 'Y']],
 			['Keep the next episodes', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
 		],
@@ -73,7 +79,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
 			['New-episode alerts', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'Y', 'In config']],
 			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
-			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'D', 'D', 'D', 'Y']],
+			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'D', 'D', 'Y']],
 		],
 	],
 ];
@@ -113,11 +119,15 @@ const MARK: Record<string, [string, string]> = {
 							<figcaption>Mac</figcaption>
 						</figure>
 						<figure class="dev" style={`--ratio: ${ratio('iphone-title')}`}>
-							<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 212px, 18vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
+							<FeatureVideo name="iphone-calendar" frame="phone" alt="The iPhone app’s calendar: the days of the week, then every show airing">
+								<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 212px, 18vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
+							</FeatureVideo>
 							<figcaption>iPhone</figcaption>
 						</figure>
 						<figure class="dev" style={`--ratio: ${ratio('android-continue')}`}>
-							<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 208px, 18vw" alt="The Android app on Continue" />
+							<FeatureVideo name="android-title" frame="phone" alt="The Android app on Continue, then a show’s page and its episodes">
+								<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 208px, 18vw" alt="The Android app on Continue" />
+							</FeatureVideo>
 							<figcaption>Android</figcaption>
 						</figure>
 					</div>
@@ -152,8 +162,12 @@ const MARK: Record<string, [string, string]> = {
 					<p>Browse by genre, year and season, or follow the seasonal charts and the week’s calendar, with no account.</p>
 				</div>
 				<div class="hl-media find-stage">
-					<Shot name="mac-search" frame="window" class="find-mac" sizes="(min-width: 1200px) 757px, calc(100vw - 32px)" alt="The Mac app’s search, with a query, its two results and the filters panel open: genres, tags, years and length" />
-					<Shot name="iphone-search" frame="phone" class="find-phone" sizes="(min-width: 1200px) 182px, 24vw" alt="The iPhone app’s search with no query: sort and filter buttons, then Trending now and Popular this season" />
+					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt="The Mac app’s search: a query, then a genre from the filters panel">
+						<Shot name="mac-search" frame="window" class="find-mac" sizes="(min-width: 1200px) 757px, calc(100vw - 32px)" alt="The Mac app’s search, with a query, its two results and the filters panel open: genres, tags, years and length" />
+					</FeatureVideo>
+					<FeatureVideo name="iphone-search" frame="phone" class="find-phone" alt="The iPhone app’s search: a query, its results, then a genre from the filters">
+						<Shot name="iphone-search" frame="phone" class="find-phone" sizes="(min-width: 1200px) 182px, 24vw" alt="The iPhone app’s search with no query: sort and filter buttons, then Trending now and Popular this season" />
+					</FeatureVideo>
 				</div>
 			</section>
 
@@ -186,12 +200,16 @@ const MARK: Record<string, [string, string]> = {
 					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone.</p>
 				</div>
 				<div class="hl-media tv-stage">
-					<Shot name="iphone-tv-remote" frame="phone" class="tv-phone" sizes="(min-width: 1200px) 160px, 21vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
+					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt="The iPhone app sending an episode to a TV, then pausing it as the remote">
+						<Shot name="iphone-tv-remote" frame="phone" class="tv-phone" sizes="(min-width: 1200px) 160px, 21vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
+					</FeatureVideo>
 					<svg class="tv-link" viewBox="0 0 1000 470" aria-hidden="true" focusable="false">
 						<circle cx="236" cy="235" r="4" class="tv-link-end"></circle>
 						<path d="M248 235 H306 M298 228 L306 235 L298 242" class="tv-link-line"></path>
 					</svg>
-					<Shot name="tv-title" frame="screen" class="tv-screen" sizes="(min-width: 1200px) 520px, 68vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
+					<FeatureVideo name="tv-resume" frame="screen" class="tv-screen" alt="The Android TV app resuming episode 7 from its title page">
+						<Shot name="tv-title" frame="screen" class="tv-screen" sizes="(min-width: 1200px) 520px, 68vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
+					</FeatureVideo>
 				</div>
 			</section>
 
@@ -215,6 +233,18 @@ const MARK: Record<string, [string, string]> = {
 					<StoreDiagram />
 				</div>
 			</section>
+
+			{
+				episodeShown && (
+					<p class="wrap apps-credit feat-credit">
+						The player in the videos shows{' '}
+						<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
+						by OPAP-JP contributors, licensed{' '}
+						<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Every other title and
+						picture in them is made up.
+					</p>
+				)
+			}
 
 			<section class="wrap feat-sect" aria-labelledby="also-h">
 				<h2 id="also-h">Also in anistream</h2>

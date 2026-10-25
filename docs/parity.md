@@ -27,23 +27,22 @@ Android TV, Windows, Linux, Terminal.
 | Feature | Mac | iPhone | iPad | Android | TV | Windows | Linux | Terminal |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Search by name | yes | yes | yes | yes | yes | yes | yes | yes |
-| Browse with filters, no query | yes | yes | yes | yes | dev (1) | dev (2) | yes (3) | yes |
+| Browse with filters, no query | yes | yes | yes | yes | yes (1) | dev (2) | yes (3) | yes |
 | Seasonal charts | yes | yes | yes | yes | yes | yes | yes | yes |
 | Airing calendar | yes | yes | yes | yes | yes | yes | yes | yes |
-| Seasons on the title page | yes | yes | yes | yes | partial (4) | partial (4) | yes | yes (5) |
-| English or romaji titles | yes | yes | yes | yes | dev (6) | yes | yes (7) | yes |
+| Seasons on the title page | yes | yes | yes | yes | yes | partial (4) | yes | yes (5) |
+| English or romaji titles | yes | yes | yes | yes | yes (6) | yes | yes (7) | yes |
 | How far the dub goes | dev (8) | dev (8) | dev (8) | dev (8) | dev (8) | dev (8) | yes | yes |
 | Continue | yes | yes | yes | yes | yes | yes | yes | yes |
 | Library by status | yes | yes | yes | yes | yes | yes | yes | yes |
 
-1. Search is by name; Seasonal has season tabs and format and sort chips.
-   `android/tv/.../screens/SearchScreen.kt`, `screens/ListScreens.kt`.
+1. Sort, genre, year, season and format chips over the results, each a panel on the right; no
+   status filter or All filters. `android/tv/.../screens/SearchScreen.kt`.
 2. `SearchPage.xaml.cs` sends the query text only; its comment says the filters come later.
 3. Genre, format, season, status and sort; no year filter. `desktop/linux/src/pages/search.rs`.
-4. A Related row or list, with no season picker. TV `screens/TitleScreen.kt`, Windows
-   `Pages/TitlePage.xaml.cs`.
+4. A Related list, with no season picker. `Pages/TitlePage.xaml.cs`.
 5. The franchise is a watch-order list (`Action::WatchOrder`).
-6. No Titles row; the TV's Settings leaves it out.
+6. Settings > Playback > Title language.
 7. Linux does not handle `Event::TitlesChanged`, so pages already on screen keep the old names
    until they load again.
 8. The engine answers `Command::LoadDub` with `Event::TitleDub`, and `present::dub_line` (also
@@ -113,14 +112,15 @@ binds T for the tracks the desktop brief gives it.
 | Kitsu | yes | yes | yes | yes | yes | yes | dev | yes |
 | Simkl, Trakt | yes | yes | yes | yes | yes | dev | dev | yes |
 | Mark episodes watched | yes | yes | yes | yes | yes | yes | yes | yes |
-| Per-show settings | yes | yes | yes | yes | partial (2) | dev (3) | yes | partial (4) |
+| Per-show settings | yes | yes | yes | yes | yes (2) | dev (3) | yes | partial (4) |
 
 1. The TV says MyAnimeList "signs in from a paired anistream phone", but no phone sends it, and
    the remote protocol keeps sign-ins off the wire (`docs/remote-protocol.md`). AniList and Kitsu
    sign in on a page the TV serves on the network, opened from a QR code; Simkl and Trakt show a
    device code with "Get a new code" and no countdown. `android/tv/.../signin/SignInScreen.kt`.
-2. On `fix/android-tv-audit`: More > Show settings (`ui/ShowSettings.kt`) has Audio, Skip opening,
-   Skip filler and Spoilers; not Subtitles, Source, New episodes or Reset, which phones have.
+2. More > Show settings (`ui/ShowSettings.kt`) has Audio, Subtitles (shown, chosen in the player),
+   Skip opening, Skip filler, Spoilers, Source and Reset; not New episodes, since the TV posts no
+   notifications.
 3. Settings shows "Overridden for N shows" but there is no editor.
 4. A preferred source per title (`Action::PickProvider`); the TUI drops `Event::ShowSettings`.
 
@@ -192,7 +192,7 @@ TV, through the remote's "Pair again".
 | Home screen widgets | yes | yes | yes | yes | n/a | dev | n/a | n/a |
 | New-episode notifications | yes | yes | yes | yes | n/a (1) | dev (2) | yes | config (3) |
 | Handoff, Spotlight, Shortcuts | yes | yes | yes | n/a (4) | n/a | n/a | n/a | n/a |
-| Updates from the app | yes | via SideStore | via SideStore | yes | dev (5) | dev (6) | dev (7) | yes |
+| Updates from the app | yes | via SideStore | via SideStore | yes | yes (5) | dev (6) | dev (7) | yes |
 | Export lists and history | dev (8) | n/a | n/a | n/a | n/a | dev (8) | dev (8) | yes (9) |
 | Command line with JSON | n/a | n/a | n/a | n/a | n/a | n/a | n/a | yes |
 
@@ -202,7 +202,8 @@ TV, through the remote's "Pair again".
    `[notifications] desktop`; there is no background check and the TUI does not draw the row.
 4. Android has launcher shortcuts (Search, Downloads, Continue a title) and deep links, which
    are not counted here.
-5. About shows the version and licences only.
+5. Settings > About checks the GitHub releases, downloads the TV's APK, checks its size and
+   SHA-256 and hands it to Android's installer, which asks to confirm.
 6. A Check for updates button asks the engine; there is no installer or self-update.
 7. An Updates settings row only; nothing sends `Command::CheckForUpdates`.
 8. The engine has no export command. Linux shows a disabled "Export Lists and History…"

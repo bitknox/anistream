@@ -1,5 +1,8 @@
 // Show settings (TVShowSettings): the panel of one show's own choices, each row opening its radio
-// panel. A choice applies at once; "Use default" has the show follow Settings again.
+// panel. A choice applies at once; "Use default" has the show follow Settings again. Below the
+// choices: the subtitles the player remembers, the source the show keeps, and Reset. New episodes
+// is left out, since the TV posts no notifications (the launcher's Watch Next row takes their
+// place), and so are Quality and Keep next for now.
 
 package tv.anistream.tv.ui
 
@@ -21,8 +24,14 @@ import java.util.Locale
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.core.Translation
+import tv.anistream.engine.model.ProviderRow
+import tv.anistream.engine.model.RememberedSubtitles
+import tv.anistream.engine.model.RememberedTrack
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
 import tv.anistream.engine.model.ShowSettingRow
+import tv.anistream.engine.model.ShowSettingsView
 import tv.anistream.store.AppStore
 
 /** The Show settings panel for [id], titled by the show. */
@@ -61,9 +70,107 @@ private fun ShowSettingsBody(store: AppStore, id: AnilistId, title: String) {
                 enabled = row != null,
                 modifier = if (choice === ShowChoices.first()) Modifier.focusRequester(first) else Modifier,
             )
+            // The subtitles go with the audio: what the player remembers for it, chosen there.
+            if (choice.key == ShowSettingKey.TRANSLATION) SubtitlesRow(store, view)
+        }
+        item(key = "source") { SourceRow(store, id, view) }
+        item(key = "reset") {
+            TvListRow(
+                "Reset to defaults",
+                onClick = { store.resetShowSettings(id) },
+                supporting = "Also clears the remembered audio and subtitles",
+                enabled = view != null,
+            )
         }
     }
     LaunchedEffect(view != null) { if (view != null) first.focusSoon() }
+}
+
+/**
+ * The show's subtitles, read only: what the player remembers for the audio in effect, or
+ * Settings' language. They are chosen in the player, so Center opens nothing.
+ */
+@Composable
+private fun SubtitlesRow(store: AppStore, view: ShowSettingsView?) {
+    val settings by store.settings.view.collectAsStateWithLifecycle()
+    val audio = view?.rows?.firstOrNull { it.key == ShowSettingKey.TRANSLATION }
+    val translation = if (audio?.value?.startsWith("dub") == true) Translation.DUB else Translation.SUB
+    val remembered = view?.remembered?.firstOrNull { it.translation == translation }?.subtitles
+    val language = store.settings.row(SettingKey.SUBTITLES, settings)?.value?.let(::languageName)
+    TvListRow(
+        "Subtitles",
+        onClick = {},
+        supporting = if (remembered != null) "Chosen in the player, remembered from your last episode" else "Chosen in the player",
+        value = remembered?.let(::subtitleWords) ?: listOfNotNull("Default", language).joinToString(" · "),
+        enabled = view != null,
+    )
+}
+
+/**
+ * The source the show keeps: Automatic, or one of the sources on, in the order failover tries
+ * them. Picking one pins it for this show; Automatic gives the show back to the order.
+ */
+@Composable
+private fun SourceRow(store: AppStore, id: AnilistId, view: ShowSettingsView?) {
+    val host = LocalActions.current
+    val rows by store.providers.rows.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { if (rows.isEmpty()) store.checkProviders() }
+    val sources = remember(rows) { store.orderedProviders().filter { !it.disabled } }
+    val kept = view?.source
+    val name = { source: String -> sources.firstOrNull { it.id == source }?.let(::sourceName) ?: source }
+    TvListRow(
+        "Source",
+        onClick = {
+            val pick = { source: String? ->
+                store.setProviderPreference(id, source)
+                // The panel says the show's source as the engine now keeps it.
+                store.loadShowSettings(id)
+            }
+            host?.open(
+                ActionSheet(
+                    "Source",
+                    listOf(CardAction("Automatic", selected = kept == null) { pick(null) }) +
+                        sources.map { source -> CardAction(sourceName(source), selected = source.id == kept) { pick(source.id) } },
+                ),
+            )
+        },
+        supporting = "Automatic tries your sources in order",
+        value = kept?.let(name) ?: "Automatic",
+        enabled = view != null && sources.isNotEmpty(),
+    )
+}
+
+/** A source as a person names it: the plugin's own name, or Torrents. */
+private fun sourceName(row: ProviderRow): String = when (row.kind) {
+    "torrent" -> "Torrents"
+    "remote" -> "Remote"
+    else -> row.name.ifEmpty { row.id }
+}
+
+/** A language by its name in English: "Japanese" for `ja`, or the code where none is known. */
+fun languageName(code: String): String {
+    if (code.isEmpty()) return "–"
+    val name = Locale.forLanguageTag(code).getDisplayLanguage(Locale.UK)
+    return if (name.isNullOrEmpty() || name.equals(code, ignoreCase = true)) code else name
+}
+
+/** A remembered subtitle track: "Off", "English", or "English (Signs)" with its title. */
+fun subtitleWords(subtitles: RememberedSubtitles): String = when (subtitles) {
+    RememberedSubtitles.Off -> "Off"
+    is RememberedSubtitles.Track -> trackWords(subtitles.track)
+}
+
+/** A track by its language, then its own title past the language it repeats. */
+fun trackWords(track: RememberedTrack): String {
+    val language = track.language?.let(::languageName)
+    val title = track.title.split(' ').filter { word -> language == null || !word.equals(language, ignoreCase = true) }
+        .joinToString(" ").trim().replaceFirstChar { it.titlecase(Locale.UK) }
+    return when {
+        language == null && title.isEmpty() -> "Unnamed track"
+        language == null -> title
+        title.isEmpty() -> language
+        else -> "$language ($title)"
+    }
 }
 
 /** What a row says now: the show's own choice, else what following Settings gives. */

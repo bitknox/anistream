@@ -45,6 +45,11 @@ sealed interface Page {
         override val memory: FocusMemory = FocusMemory()
     }
 
+    /** The TV's own update: the newer release, its download and Android's installer. */
+    data class Update(override val key: String) : Page {
+        override val memory: FocusMemory = FocusMemory()
+    }
+
     /** TVJoinStore: add a plugin store from this TV, with or without a paired phone. */
     data class JoinStore(override val key: String) : Page {
         override val memory: FocusMemory = FocusMemory()
@@ -172,6 +177,30 @@ class TvNavigator(start: Destination = Destination.Continue) {
     fun openTitle(id: AnilistId) {
         opened += 1
         pages += Page.Title(id, "title/$id/$opened")
+    }
+
+    /**
+     * Show another season of the title page on top in its place, so Back still returns to what
+     * opened the first, not through every season visited.
+     */
+    fun switchTitle(id: AnilistId) {
+        val top = pages.lastOrNull() as? Page.Title
+        if (top == null) {
+            openTitle(id)
+            return
+        }
+        if (top.id == id) return
+        opened += 1
+        // Focus comes in on the season picked, where it was, rather than on the page's first.
+        pages[pages.lastIndex] = Page.Title(id, "title/$id/$opened").also { it.memory.focused("season/$id") }
+        forget(top.key)
+    }
+
+    /** The update's page, once: a second press returns to the one open. */
+    fun openUpdate() {
+        if (pages.lastOrNull() is Page.Update) return
+        opened += 1
+        pages += Page.Update("update/$opened")
     }
 
     fun openSignIn(tracker: String) {

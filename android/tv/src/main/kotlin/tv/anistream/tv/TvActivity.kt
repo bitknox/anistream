@@ -4,6 +4,7 @@
 package tv.anistream.tv
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -38,10 +39,12 @@ class TvActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         app.start(Flavour.launch(this, intent))
+        app.attachUpdater(intent)
         val start = Flavour.start(intent)
         val nav = TvNavigator(start.destination).apply {
             start.query?.let { typeSearch(it) }
             start.title?.let(::openTitle)
+            if (start.update) openUpdate()
         }
         setContent {
             TvTheme {
@@ -65,6 +68,25 @@ class TvActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 app.remote.intents.collect { act(nav, it) }
+            }
+        }
+        // Android's pages the update opens: the switch for installing, and the installer's own.
+        app.updater?.let { updater ->
+            lifecycleScope.launch {
+                repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                    updater.launch.collect { intent ->
+                        if (intent == null) return@collect
+                        val started = try {
+                            startActivity(intent)
+                            true
+                        } catch (_: ActivityNotFoundException) {
+                            false
+                        } catch (_: SecurityException) {
+                            false
+                        }
+                        updater.launched(intent, started)
+                    }
+                }
             }
         }
         // The screen stays on while an episode plays, and the screensaver may come once it stops.
@@ -149,6 +171,8 @@ class TvActivity : ComponentActivity() {
         super.onResume()
         // The system's 12 or 24 hour clock, which can change while the app is away.
         AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
+        // Back from Android's page for the switch, the update goes on where it was.
+        app.updater?.resumed()
     }
 
     override fun onStop() {

@@ -517,7 +517,7 @@ html:not(.js) .scene {
 	height: auto;
 }
 
-.shot-window img {
+.shot-window :is(img, .fv-box) {
 	border-radius: 1.6cqi;
 	box-shadow: 0 0 0 1px var(--ani-rule-faint);
 }
@@ -534,7 +534,7 @@ html:not(.js) .scene {
 	box-shadow: 0 0 0 1px #2f3242;
 }
 
-.shot-phone img {
+.shot-phone :is(img, .fv-box) {
 	border-radius: 12.4cqi;
 }
 
@@ -543,7 +543,7 @@ html:not(.js) .scene {
 	border-radius: 5.4cqi;
 }
 
-.shot-tablet img {
+.shot-tablet :is(img, .fv-box) {
 	border-radius: 4.4cqi;
 }
 
@@ -553,7 +553,7 @@ html:not(.js) .scene {
 	border-radius: 6.5cqi;
 }
 
-.shot-phone.shot-landscape img {
+.shot-phone.shot-landscape :is(img, .fv-box) {
 	border-radius: 5.7cqi;
 }
 
@@ -563,7 +563,7 @@ html:not(.js) .scene {
 	border-radius: 9cqi;
 }
 
-.shot-android.shot-phone:not(.shot-landscape) img {
+.shot-android.shot-phone:not(.shot-landscape) :is(img, .fv-box) {
 	border-radius: 7.4cqi;
 }
 
@@ -573,7 +573,7 @@ html:not(.js) .scene {
 	border-radius: 3.4cqi;
 }
 
-.shot-tablet.shot-landscape img {
+.shot-tablet.shot-landscape :is(img, .fv-box) {
 	border-radius: 2.8cqi;
 }
 
@@ -585,7 +585,7 @@ html:not(.js) .scene {
 	box-shadow: 0 0 0 1px #2f3242;
 }
 
-.shot-screen img {
+.shot-screen :is(img, .fv-box) {
 	border-radius: 0.8cqi;
 }
 

@@ -40,17 +40,10 @@
 	line-height: 26px;
 }
 
-/* The slot a highlight's picture fills. A short video can take its place later, at the width
-   the stills have now. */
+/* The slot a highlight's picture fills. A FeatureVideo plays the task there once it is recorded,
+   in the frame the picture has. */
 .hl-media {
 	margin-top: 36px;
-}
-
-.hl-media > video {
-	display: block;
-	width: 100%;
-	height: auto;
-	border-radius: var(--ani-r-banner);
 }
 
 @media (min-width: 1100px) {
@@ -252,6 +245,11 @@
 	text-decoration-thickness: 1px;
 	text-decoration-color: var(--ani-rule);
 	text-underline-offset: 3px;
+}
+
+/* The videos' credit, under the last highlight. */
+.feat-credit {
+	margin-top: 40px;
 }
 
 /* ── Also in anistream: labels in four columns, each under a faint rule ─── */

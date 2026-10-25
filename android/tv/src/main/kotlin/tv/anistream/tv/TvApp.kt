@@ -40,7 +40,23 @@ class TvApp : Application(), PlayerHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
-    val store: AppStore by lazy { AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET) }
+    // The TV updates from the release's TV APK, never the phone's.
+    val store: AppStore by lazy {
+        AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, updateAsset = { it.androidTv })
+    }
+
+    /** The TV's own update, where the flavour has one: the release build's, or a staged fixture. */
+    var updater: UpdateLauncher? = null
+        private set
+
+    private var updaterAsked = false
+
+    /** Attach the flavour's updater, once per process, from the first activity's launch. */
+    fun attachUpdater(intent: Intent) {
+        if (updaterAsked) return
+        updaterAsked = true
+        updater = Flavour.updater(this, scope, intent)
+    }
 
     /** The player, for the life of the process: mpv and the media session outlive the activity. */
     override val player: PlayerModel by lazy {
