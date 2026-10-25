@@ -8,8 +8,9 @@ There is no anistream account, and nothing the apps do is reported to the people
 anistream. Every request an app makes goes straight to one of the services on this page, and most
 of them only happen once you set something up.
 
-This page covers the Mac, iPhone, iPad and Android apps and the terminal app. They all run the
-same engine, so unless a section names one of them, it applies to every one.
+This page covers the Mac, iPhone, iPad, Android, Android TV, Windows and Linux apps and the
+terminal app. They all run the same engine, so unless a section names one of them, it applies to
+every one.
 
 - There is no telemetry, analytics or crash reporting, in any app or on this website.
 - Your watch history is kept on your device. A tracker gets it only if you sign in to one.
@@ -187,11 +188,33 @@ anyone who looks at your profile can follow the button to the show's AniList pag
 names the show, so it goes out only while the title is shown: with the title off you get only
 "Watching anime".
 
-A watch party connects anistream to the Syncplay server you set. The server and the people in the
-room see the name you join with and what is playing. A party doesn't save your position in the
-episode.
-
 The Mac app's Integrations settings set these for the terminal app too, which shares its config.
+
+## Watch parties
+
+A watch party connects anistream to the Syncplay server you choose. anistream has no server of its
+own and suggests the Syncplay project's public one, which other people run. Anyone can run a
+server, so pick one you trust.
+
+The server, and everyone in the room, sees:
+
+- the name you join with and the room's name;
+- the show and episode you have open, as "Title · Episode 3", and its length;
+- when you play, pause and seek, with the position, and whether you're ready;
+- how long messages take to reach you.
+
+They never see the stream's address, your sources or your sign-ins. anistream hosts no content, and a
+party shares none: everyone plays the episode from their own sources.
+
+The connection is encrypted when the server supports it. The party panel says whether it is.
+
+An invite link carries the server, the room, the show's AniList id and the episode number, and
+nothing else. Anyone with the link can join the room, so share it with the people you want there.
+
+Messages others send in the room show up on your player. anistream doesn't send any.
+
+A party doesn't save your position while you watch. When the episode ends, it's marked watched and
+synced to your trackers, as any other play is.
 
 ## On your device
 
