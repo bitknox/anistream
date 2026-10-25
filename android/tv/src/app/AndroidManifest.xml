@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The TV's own update: the release's TV APK, checked, handed to Android's installer once the
+         viewer presses Update, and confirmed in the installer's own screen. The app flavour's
+         alone: the fixtures flavour installs nothing. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application>
+        <!-- What the installer says of the update's session. -->
+        <receiver
+            android:name=".TvUpdateReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

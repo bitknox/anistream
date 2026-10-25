@@ -62,6 +62,7 @@ import tv.anistream.tv.screens.SeasonalScreen
 import tv.anistream.tv.screens.SettingsScreen
 import tv.anistream.tv.screens.SettingsSection
 import tv.anistream.tv.screens.TitleScreen
+import tv.anistream.tv.screens.UpdateScreen
 import tv.anistream.tv.signin.JoinStoreScreen
 import tv.anistream.tv.signin.SignInScreen
 import tv.anistream.tv.ui.LocalNotices
@@ -154,6 +155,13 @@ private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRem
     }
     val alert = player.alert
     LaunchedEffect(alert?.since) { alert?.let { notices.say(it.text) } }
+    // A newer release, when the engine says to tell of it: the update's page is in Settings › About.
+    val update by store.updates.notice.collectAsStateWithLifecycle()
+    LaunchedEffect(update) {
+        val offer = update ?: return@LaunchedEffect
+        notices.say("Update available: anistream ${offer.name}. Settings › About")
+        store.updates.told(offer)
+    }
     val said = remote?.notices ?: 0
     LaunchedEffect(said) { if (said > 0) remote?.notice?.let(notices::say) }
     val request = remote?.request
@@ -253,9 +261,11 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                                     onPlay = play,
                                     onPlayFromStart = playFromStart,
                                     onAddStore = nav::openJoinStore,
+                                    onSeason = nav::switchTitle,
                                 )
                                 is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
                                 is Page.JoinStore -> JoinStoreScreen(onDone = { nav.pop() })
+                                is Page.Update -> UpdateScreen(target.memory, onDone = { nav.pop() })
                                 Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
                                 Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
                                 Destination.Calendar -> CalendarScreen(nav, nav.memory(Destination.Calendar), onOpen = nav::openTitle)

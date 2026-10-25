@@ -44,8 +44,9 @@ class UpdateModelTest {
     private fun sha256(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
     /** Android, as the model sees it: what it was asked, and what it answers. */
-    private inner class FakeHost : UpdateHost {
+    private inner class FakeHost(override val packageName: String = ApkIdentity.PACKAGE) : UpdateHost {
         var allowed = true
+        var room = true
         var schedules = true
         var installed = ApkFacts(ApkIdentity.PACKAGE, 200000099, setOf(RELEASE_KEY))
         var apk: ApkFacts? = ApkFacts(ApkIdentity.PACKAGE, 200000399, setOf(RELEASE_KEY))
@@ -56,6 +57,7 @@ class UpdateModelTest {
         var handed: ByteArray? = null
 
         override fun canInstall() = allowed
+        override fun hasRoom(offer: UpdateOffer) = room
         override fun openInstallSettings(offer: UpdateOffer) {
             calls += "settings ${offer.version}"
         }
@@ -450,6 +452,52 @@ class UpdateModelTest {
     }
 
     @Test
+    fun the_tv_is_offered_the_tv_s_apk_and_no_other() = runTest {
+        val tv = ReleaseAsset(
+            name = "anistream-2.0.3-android-tv.apk",
+            url = "https://github.com/bitknox/anistream/releases/download/v2.0.3/anistream-2.0.3-android-tv.apk",
+            sha256 = "1e".repeat(32),
+            size = 48_000_000uL,
+        )
+        val store = AppStore(this, updateAsset = { it.androidTv })
+        store.apply(Event.Update(UpdateStatus.Available(release.copy(androidTv = tv), notify = false)))
+        val offered = store.updates.state.value.offer!!
+        assertEquals(tv.url, offered.url)
+        assertEquals("1e".repeat(32), offered.sha256)
+        assertEquals(48_000_000L, offered.bytes)
+        assertTrue(offered.installable)
+        // A release with the phone's APK alone has nothing the TV installs: its page only.
+        store.apply(Event.Update(UpdateStatus.Available(release, notify = false)))
+        assertFalse(store.updates.state.value.offer!!.installable)
+    }
+
+    @Test
+    fun the_tv_s_apk_must_be_the_tv_s_package() = runTest {
+        val host = FakeHost(packageName = TV_PACKAGE).apply {
+            installed = ApkFacts(TV_PACKAGE, 200000099, setOf(RELEASE_KEY))
+            apk = ApkFacts(ApkIdentity.PACKAGE, 200000399, setOf(RELEASE_KEY))
+        }
+        val apk = dir.resolve("phone.apk").apply { writeBytes(apkBytes) }
+        assertEquals(UpdateFailure.Package(ApkIdentity.PACKAGE), UpdateModel.verify(apk, offer, host))
+        host.apk = ApkFacts(TV_PACKAGE, 200000399, setOf(RELEASE_KEY))
+        assertNull(UpdateModel.verify(apk, offer, host))
+    }
+
+    @Test
+    fun too_little_room_fails_before_anything_downloads() = runTest {
+        val host = FakeHost().apply { room = false }
+        val model = model(host)
+        model.press()
+        assertEquals(UpdateState.Failed(offer, UpdateFailure.Storage), model.state.value)
+        assertTrue("nothing was asked of the download", host.calls.isEmpty())
+        assertEquals(UpdateFailure.Storage.text, notices.current.value!!.notice.text)
+        // With room again, Update starts over.
+        host.room = true
+        model.press()
+        assertEquals(listOf("download 2.0.3"), host.calls)
+    }
+
+    @Test
     fun a_release_without_an_apk_offers_its_page() = runTest {
         val store = AppStore(this)
         store.apply(Event.Update(UpdateStatus.Available(release.copy(android = null), notify = true)))
@@ -473,6 +521,7 @@ class UpdateModelTest {
     }
 
     companion object {
+        const val TV_PACKAGE = "tv.anistream.tv"
         /** The release key's fingerprint, as assetlinks.json has it. */
         const val RELEASE_KEY = "4D:66:4A:AB:A3:15:8B:C1:C0:27:81:34:3A:2C:E2:F2:9E:E2:8E:9A:64:10:C9:4F:F1:89:A2:5D:2D:4C:9F:95"
         const val OTHER_KEY = "0E:2B:8C:11:5A:90:3D:44:7F:C2:19:A6:E8:3B:72:0D:91:5C:4E:A8:16:F3:B0:27:6D:89:C4:5E:1A:7B:33:F0"

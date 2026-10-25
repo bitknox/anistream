@@ -58,6 +58,12 @@ import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.AppStore
 import tv.anistream.store.SettingsCatalog
+import tv.anistream.store.UpdateCheck
+import tv.anistream.store.UpdateState
+import tv.anistream.store.Wording
+import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.TitleLanguage
+import tv.anistream.tv.ui.plainReason
 import tv.anistream.tv.home.LocalWatchNext
 import tv.anistream.tv.remote.ConfirmDialog
 import tv.anistream.tv.remote.LocalRemoteHost
@@ -117,7 +123,11 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
     val store = LocalAppStore.current
     var section by rememberSaveable { mutableStateOf(start) }
     val view by store.settings.view.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { store.loadStores() }
+    LaunchedEffect(Unit) {
+        store.loadStores()
+        // What the title language's line says of AniList's choice.
+        store.loadTitleLanguage()
+    }
     ToTop(nav, memory, scrolled = { false }) {}
 
     Row(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY, end = Canvas.SafeX)) {
@@ -155,7 +165,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
                     SettingsSection.Accounts -> accounts(nav, memory, first)
                     SettingsSection.Remotes -> remotes(memory, first)
                     SettingsSection.ThisTv -> thisTv(memory, first)
-                    SettingsSection.About -> about(memory, first)
+                    SettingsSection.About -> about(nav, memory, first)
                 }
             }
         }
@@ -164,6 +174,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
 }
 
 private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
+    item(key = "titles", contentType = "setting") { TitleLanguageRow(store, view, memory, first) }
     PlaybackRows.forEachIndexed { index, (key, label) ->
         item(key = key.name, contentType = "setting") {
             val actions = LocalActions.current
@@ -188,8 +199,70 @@ private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory:
                 value = if (switch) null else row?.let { SettingsCatalog.current(it)?.label ?: it.value },
                 switch = if (switch) store.settings.isOn(key, view) else null,
                 enabled = SettingsCatalog.editable(row),
-                modifier = (if (index == 0) first else Modifier).remembered(memory, "row/${key.name}"),
+                modifier = Modifier.remembered(memory, "row/${key.name}"),
             )
+        }
+    }
+}
+
+/**
+ * Title language, Playback's first row as on the phone: AniList's choice, English or Romaji, in a
+ * radio panel, with a line under the label saying what the choice does now.
+ */
+@Composable
+private fun TitleLanguageRow(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
+    val actions = LocalActions.current
+    val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
+    val viewer by store.accounts.viewerTitleLanguage.collectAsStateWithLifecycle()
+    val signedIn = trackers["anilist"]?.connected == true
+    val row = store.settings.row(SettingKey.TITLES, view)
+    val choice = TitleChoice.of(SettingsCatalog.current(row)?.value)
+    TvListRow(
+        "Title language",
+        onClick = {
+            actions?.open(
+                ActionSheet(
+                    "Title language",
+                    TitleChoice.entries.map { each ->
+                        CardAction(each.label, selected = each == choice) {
+                            if (each != choice) store.setSetting(SettingKey.TITLES, SettingValue.Str(each.value))
+                        }
+                    },
+                ),
+            )
+        },
+        supporting = TitleChoice.line(choice, signedIn, viewer),
+        value = choice.label,
+        enabled = row != null,
+        modifier = first.remembered(memory, "row/titles"),
+    )
+}
+
+/** The three forms a title can be named in, as the settings file names them. */
+enum class TitleChoice(val value: String, val label: String) {
+    AniList("anilist", "AniList's choice"),
+    English("english", "English"),
+    Romaji("romaji", "Romaji"),
+    ;
+
+    companion object {
+        fun of(value: SettingValue?): TitleChoice = entries.firstOrNull { (value as? SettingValue.Str)?.v1 == it.value } ?: AniList
+
+        /** The line under the label: what the choice does now, the phone's words. */
+        fun line(choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?): String = when (choice) {
+            AniList -> when {
+                !signedIn -> "English while signed out of AniList"
+                viewer != null -> "${name(viewer)}, from your AniList account"
+                else -> "Follows your AniList account"
+            }
+            English -> "Romaji where there is no English title"
+            Romaji -> "Japanese titles in Latin letters"
+        }
+
+        private fun name(language: TitleLanguage): String = when (language) {
+            TitleLanguage.ROMAJI -> "Romaji"
+            TitleLanguage.ENGLISH -> "English"
+            TitleLanguage.NATIVE -> "Native"
         }
     }
 }
@@ -453,7 +526,7 @@ private fun ImageCacheRow(memory: FocusMemory) {
 /** "84 MB", to the nearest megabyte. */
 fun megabytes(bytes: Long): String = "${(bytes + (1L shl 19)) shr 20} MB"
 
-private fun LazyListScope.about(memory: FocusMemory, first: Modifier) {
+private fun LazyListScope.about(nav: TvNavigator, memory: FocusMemory, first: Modifier) {
     item(key = "about", contentType = "list") {
         val context = LocalContext.current
         val version = remember {
@@ -469,14 +542,75 @@ private fun LazyListScope.about(memory: FocusMemory, first: Modifier) {
                     Text("Version $version", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
                 }
             }
+            val updating = UpdateRows(nav, memory, first)
             TvListRow(
                 "Licences",
                 onClick = { actions?.open(ActionSheet("Licences", body = { InfoLines(Licences) })) },
-                modifier = first.remembered(memory, "about/licences"),
+                modifier = (if (updating) Modifier else first).remembered(memory, "about/licences"),
             )
             Quiet("anistream hosts no content.")
         }
     }
+}
+
+/**
+ * About's update rows, where this build updates itself or a release is staged: the newer release,
+ * which opens the update's page, or Check for updates with what the last check said; then the
+ * daily check's switch. Whether there were any, so the first focus goes to the first of them.
+ */
+@Composable
+private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): Boolean {
+    val store = LocalAppStore.current
+    val state by store.updates.state.collectAsStateWithLifecycle()
+    val check by store.updates.check.collectAsStateWithLifecycle()
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val offer = state.offer
+    if (offer == null && !store.updates.updatesItself) return false
+    if (offer != null) {
+        TvListRow(
+            "Update to anistream ${offer.name}",
+            onClick = nav::openUpdate,
+            supporting = updateLine(state),
+            icon = TvIcons.Update,
+            modifier = first.remembered(memory, "about/update"),
+        )
+    } else {
+        TvListRow(
+            "Check for updates",
+            onClick = { if (check != UpdateCheck.Checking) store.checkForUpdates() },
+            value = when (val now = check) {
+                UpdateCheck.Unknown, UpdateCheck.Found -> null
+                UpdateCheck.Checking -> "Checking"
+                UpdateCheck.UpToDate -> "Up to date"
+                is UpdateCheck.Failed -> "Couldn't check"
+            },
+            supporting = (check as? UpdateCheck.Failed)?.let { plainReason(it.reason) },
+            modifier = first.remembered(memory, "about/check"),
+        )
+    }
+    if (store.updates.updatesItself) {
+        TvListRow(
+            "Check for updates automatically",
+            onClick = { store.setSwitch(SettingKey.UPDATE_CHECK, !store.settings.isOn(SettingKey.UPDATE_CHECK, view)) },
+            supporting = "Once a day, from anistream's releases",
+            switch = store.settings.isOn(SettingKey.UPDATE_CHECK, view),
+            enabled = store.settings.row(SettingKey.UPDATE_CHECK, view) != null,
+            modifier = Modifier.remembered(memory, "about/auto-check"),
+        )
+    }
+    return true
+}
+
+/** The update row's line: "Available · 48 MB", "Downloading 34 %", or why it stopped. */
+fun updateLine(state: UpdateState): String = when (state) {
+    UpdateState.None -> ""
+    is UpdateState.Available -> listOfNotNull("Available", state.offer.bytes.takeIf { it > 0 }?.let(Wording::bytes)).joinToString(" · ")
+    is UpdateState.Allowing -> "Waiting for Android to allow installs"
+    is UpdateState.Downloading -> state.fraction?.let { "Downloading ${(it * 100).toInt()} %" } ?: "Downloading"
+    is UpdateState.Verifying -> "Checking the download"
+    is UpdateState.Installing -> "Waiting for you to confirm"
+    is UpdateState.Done -> "Installed"
+    is UpdateState.Failed -> "Couldn't update"
 }
 
 /** What anistream is under, and what it uses, as the phone's About lists them. */

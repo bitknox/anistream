@@ -35,6 +35,8 @@ import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.NoticeKind
+import tv.anistream.engine.model.Release
+import tv.anistream.engine.model.ReleaseAsset
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
@@ -64,6 +66,8 @@ class AppStore(
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
     private val artworkWithoutEngine: ((String) -> ByteArray?)? = null,
     artworkBudget: Long = ArtworkStore.DEFAULT_BUDGET,
+    /** The file of a release this app updates itself from: the phone's APK unless it says. */
+    updateAsset: (Release) -> ReleaseAsset? = { it.android },
 ) {
     /** Where the engine stands. */
     sealed interface Phase {
@@ -105,7 +109,7 @@ class AppStore(
     val tv = TvRemoteModel(scope, clock)
 
     /** The app's own update: the newer release, and the download and install the viewer started. */
-    val updates = UpdateModel(notices)
+    val updates = UpdateModel(notices, asset = updateAsset)
     val artwork = ArtworkStore(scope, decoder, costLimit = artworkBudget) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -346,6 +350,11 @@ class AppStore(
         if (now.rails == null) send(Command.LoadBrowse)
         if (now.facets == null) send(Command.LoadSearchFacets)
         send(Command.LoadRecentSearches)
+    }
+
+    /** Only what the filters choose from, as the TV's Search asks: no rails, no recent searches. */
+    fun loadSearchFacets() {
+        if (search.status.value.facets == null) send(Command.LoadSearchFacets)
     }
 
     /** Keep what is searched for among the recent searches, as opening one of its titles does. */

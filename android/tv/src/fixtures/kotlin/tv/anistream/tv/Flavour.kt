@@ -8,6 +8,8 @@
 //   title     a title page to open, by id
 //   query     a search to type, on Search
 //   firstLaunch  true to show first launch's pages, which fixtures leave out otherwise
+//   update    a made-up release staged for the update's page, which opens over the section:
+//             available, allowing, downloading, failed or storage; nothing is fetched or installed
 
 package tv.anistream.tv
 
@@ -15,6 +17,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.FixtureScene
 import tv.anistream.store.enginePlatform
@@ -61,6 +64,13 @@ internal object Flavour {
             title = intent.getStringExtra("title")?.toUIntOrNull(),
             query = query,
             firstLaunch = intent.getBooleanExtra("firstLaunch", false),
+            update = UpdateStage.named(intent.getStringExtra("update")) != null,
         )
     }
+
+    /** The fixtures never check for, fetch or install an update: only a staged one, for its page. */
+    fun updater(app: TvApp, scope: CoroutineScope, intent: Intent): UpdateLauncher? =
+        UpdateStage.named(intent.getStringExtra("update"))?.let { StagedUpdate(app.store.updates, scope, it, app.cacheDir.resolve("staged-update")) }
+
+    const val UPDATES = false
 }
