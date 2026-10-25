@@ -194,7 +194,8 @@ struct AiringStateTests {
     @Test("A row's words")
     func words() {
         #expect(AiringPresentation.episodeShort(tuesday[3]) == "E9 · Dub")
-        #expect(AiringPresentation.episodeLong(tuesday[1]) == "Episode 9 · Sub")
+        #expect(AiringPresentation.episodeLong(tuesday[1]) == "Episode 9", "only dubs are marked")
+        #expect(AiringPresentation.episodeShort(tuesday[1]) == "E9")
         #expect(AiringPresentation.episodeShort(tuesday[4]) == "E6")
         let row = AiringPresentation.row(for: tuesday[1], marks: true, at: now)
         #expect(AiringPresentation.accessibilityLabel(row, format: format)
