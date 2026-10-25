@@ -148,6 +148,7 @@ public sealed partial class PlayerView : UserControl
         Visibility = Visibility.Visible;
         still.Reset();
         ShowControls();
+        LiftSubtitles(animated: false);
         tick.Start();
         Focus(FocusState.Programmatic);
         ShowingChanged?.Invoke(true);
@@ -178,6 +179,7 @@ public sealed partial class PlayerView : UserControl
         timelineMarks = [];
         buffered = [];
         DrawTimeline();
+        DropSubtitleLift();
         ShowingChanged?.Invoke(false);
     }
 
@@ -646,6 +648,7 @@ public sealed partial class PlayerView : UserControl
         var h = (uint)Math.Max(1, Math.Round(e.NewSize.Height * scale));
         player.CompositionSize(w, h);
         player.Display(w, h, scale, null);
+        LiftSubtitles(animated: false);
     }
 
     // Showing and hiding the controls.
@@ -659,6 +662,7 @@ public sealed partial class PlayerView : UserControl
         {
             chromeShown = true;
             Motion.Show(Chrome);
+            LiftSubtitles();
             ControlsChanged?.Invoke(true);
         }
         idle.Stop();
@@ -673,6 +677,7 @@ public sealed partial class PlayerView : UserControl
             return;
         chromeShown = false;
         Motion.Hide(Chrome);
+        LiftSubtitles();
         PreviewBox.Visibility = Visibility.Collapsed;
         ControlsChanged?.Invoke(false);
     }
@@ -1290,7 +1295,8 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline</c>.
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline|subtitles</c>;
+    /// a <c>.srt</c> beside the clip is loaded for <c>subtitles</c>.
     /// </summary>
     async void Demo(string what)
     {
@@ -1377,6 +1383,17 @@ public sealed partial class PlayerView : UserControl
                 flash.Interval = TimeSpan.FromSeconds(600);
                 ShowFlash("12:04");
                 break;
+            case "subtitles":
+                // The short clip is near its end from the start: no Up Next card over the shot.
+                HoldUpNext = true;
+                upNext = null;
+                ShowUpNext();
+                // Subtitles from a file beside the clip, to show them clear of the bottom bar.
+                if (player is { } p && Path.ChangeExtension(ctx?.Options.Media ?? @"C:\setup\sdr-testsrc.mp4", ".srt") is { } srt
+                    && File.Exists(srt))
+                    await Task.Run(() => p.LoadTrack(TrackKind.Subtitle, srt));
+                ShowControls();
+                break;
         }
     }
 #endif
@@ -1423,8 +1440,10 @@ public sealed partial class PlayerView : UserControl
 
     // Previews on the timeline.
 
-    internal void NoteLoad(PlayerOp[] ops)
+    internal void NoteLoad(ulong playback, PlayerOp[] ops)
     {
+        lock (loads)
+            this.playback = playback;
         foreach (var op in ops)
         {
             if (op is PlayerOp.Load load)
