@@ -1053,8 +1053,18 @@ struct TrackLists: View {
                 model.selectAudio(track.id)
             }
         }
-        MenuDivider()
+        // Said of the picks above, which the engine keeps; a file loaded below is this
+        // episode's alone.
         MenuNote(text: "Remembered for this show")
+        #if os(macOS)
+        MenuDivider()
+        MenuRow(title: TrackFiles.title(.sub), checked: false, metrics: metrics) {
+            TrackFiles.load(.sub, into: model)
+        }
+        MenuRow(title: TrackFiles.title(.audio), checked: false, metrics: metrics) {
+            TrackFiles.load(.audio, into: model)
+        }
+        #endif
     }
 
     /// The Subtitles row for a track, or for Off.

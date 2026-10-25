@@ -86,6 +86,12 @@ public struct PlaybackMenu: View {
                     ))
                 }
             }
+            #if os(macOS)
+            // Last, apart from the picks the engine remembers: a file is this episode's alone.
+            Divider()
+            Button(TrackFiles.title(.sub)) { TrackFiles.load(.sub, into: model) }
+            Button(TrackFiles.title(.audio)) { TrackFiles.load(.audio, into: model) }
+            #endif
         }
         .disabled(!playing)
         Divider()

@@ -203,6 +203,12 @@ public enum ShowNoticeChoice: Hashable, Sendable, CaseIterable {
 }
 
 extension AppStore {
+    /// Whether the week is worth asking for: the app schedules notifications from it, or the
+    /// airing Live Activity can show here.
+    public var wantsWeek: Bool {
+        notifications.schedules || airingActivity.wantsWeek
+    }
+
     /// Ask the engine for the week, which schedules it: soon, and once however many ask at once.
     public func refreshNotices() {
         noticeRefresh?.cancel()

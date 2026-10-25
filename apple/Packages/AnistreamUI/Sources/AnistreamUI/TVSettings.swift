@@ -23,7 +23,8 @@ enum TVSettingsWords {
     }
 }
 
-/// Mac and iPad: a group of the Playback pane.
+/// Mac: a group of the Integrations pane. iPad: a group of the Playback pane, under Picture and
+/// sound. The iPhone has its own page for them (PhoneTVsPage).
 struct TVsGroup: View {
     @Environment(AppStore.self) private var store
     @State private var forgetting: FfiPairedTv?

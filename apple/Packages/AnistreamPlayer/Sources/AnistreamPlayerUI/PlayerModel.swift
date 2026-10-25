@@ -56,6 +56,8 @@ public final class PlayerModel {
         case resized
         /// A wait in `handedOver()`: reached once mpv has had everything queued before it.
         case mark(Int)
+        /// A subtitle or audio file the viewer picked, added and selected (`loadTrack`).
+        case trackFile(Track.Kind, path: String)
     }
 
     /// `send` hands the engine a command; `backend` makes the mpv for each player opened, and
@@ -212,6 +214,10 @@ public final class PlayerModel {
     /// What Play on TV hands the episode playing to: the app's TV picker. None, and the player
     /// has no Play on TV button.
     @ObservationIgnored public var playOnTVHandler: (@MainActor (TVPlayRequest) -> Void)?
+
+    /// Told what plays whenever Now Playing is, and `nil` once the player closes: the playback's
+    /// Live Activity on iPhone (AppStore's `playbackChanged`).
+    @ObservationIgnored public var onLiveActivity: (@MainActor (PlaybackActivityFeed.Playing?) -> Void)?
 
     /// Play on TV can be asked for: an episode is staged, and the app has a TV picker.
     public var playOnTVAvailable: Bool { playOnTVHandler != nil && staged != nil }
@@ -488,6 +494,13 @@ public final class PlayerModel {
                             await backend.resized()
                         case .mark(let mark):
                             self?.marks.removeValue(forKey: mark)?.resume()
+                        case .trackFile(let kind, let path):
+                            do {
+                                _ = try await backend.perform(.command([Self.addCommand(kind), path, "select"]))
+                            } catch {
+                                Self.note(.warn, "mpv did not load the \(kind == .audio ? "audio" : "subtitle") file: \(AppLog.redacting("\(error)"))")
+                                self?.trackFileFailed(kind)
+                            }
                         }
                     } catch {
                         Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
@@ -987,6 +1000,7 @@ public final class PlayerModel {
         case .display: "the display"
         case .resized: "a resize"
         case .mark: "a mark"
+        case .trackFile(let kind, _): kind == .audio ? "an audio file" : "a subtitle file"
         }
     }
 
@@ -1249,6 +1263,26 @@ public final class PlayerModel {
     public func selectSubtitle(_ id: Int64?) {
         input()
         control(.chooseTrack(kind: .subtitle, id: id))
+    }
+
+    /// A subtitle or audio track from a file the viewer picked, the Mac's Load Subtitle File… and
+    /// Load Audio File…: mpv's `sub-add` or `audio-add`, selected. It is mpv's alone, for this
+    /// episode, as on Linux: the engine is not told, so nothing is remembered for the series. A
+    /// file mpv can't load is said over the video.
+    public func loadTrack(_ kind: Track.Kind, from path: String) {
+        input()
+        guard kind != .video else { return }
+        enqueue(.trackFile(kind, path: path))
+    }
+
+    /// mpv's command that adds a file as a track of `kind` and selects it.
+    static func addCommand(_ kind: Track.Kind) -> String {
+        kind == .audio ? "audio-add" : "sub-add"
+    }
+
+    private func trackFileFailed(_ kind: Track.Kind) {
+        let text = kind == .audio ? "Couldn't load that audio file" : "Couldn't load that subtitle file"
+        alert = PlayerAlert(text: text, kind: .alert, since: ContinuousClock.now)
     }
 
     public func takeSkip() {

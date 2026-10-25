@@ -368,6 +368,37 @@ struct FilterCapsule: View {
     }
 }
 
+/// Whether a sideways scroll has more beyond its leading or trailing edge.
+struct ScrollEdges: Equatable {
+    var leading = false
+    var trailing = false
+
+    init() {}
+
+    init(_ geometry: ScrollGeometry) {
+        let x = geometry.contentOffset.x + geometry.contentInsets.leading
+        leading = x > 1
+        trailing = x + geometry.containerSize.width < geometry.contentSize.width - 1
+    }
+}
+
+/// A mask that fades a sideways scroll at an edge with more beyond it, and leaves it whole at an
+/// edge it reaches.
+struct ScrollEdgeFade: View {
+    let edges: ScrollEdges
+    var width: CGFloat = 24
+
+    var body: some View {
+        HStack(spacing: 0) {
+            LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                .frame(width: edges.leading ? width : 0)
+            Rectangle()
+            LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                .frame(width: edges.trailing ? width : 0)
+        }
+    }
+}
+
 /// The filters up front: genres, year, season, format and status, each a menu, then Filters for
 /// the rest and the sort. Changing one searches.
 struct SearchFilterRow: View {
@@ -377,28 +408,53 @@ struct SearchFilterRow: View {
 
     var body: some View {
         let query = store.search.query
-        HStack(spacing: 8) {
+        if compact {
+            // On a phone the row scrolls, to the screen's edge, the sort first.
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    if compact { sort(query) }
-                    genres(query)
-                    year(query)
-                    season(query)
-                    formats(query)
-                    statuses(query)
-                    filters(query)
+                    sort(query)
+                    capsules(query)
                 }
                 .padding(.vertical, 1)
             }
             .scrollIndicators(.never)
-            // On a phone the row runs to the screen's edge. On the Mac it stops short of the sort,
-            // or a narrow window draws capsules over it.
-            .scrollClipDisabled(compact)
-            if !compact {
-                Spacer(minLength: 0)
+            .scrollClipDisabled()
+        } else {
+            // On the Mac and a wide iPad the row stays one line, so it is the same height with
+            // the filters open or closed and the results never move. The capsules scroll where
+            // they don't fit, as in a narrow window or beside the open filters, fading at an edge
+            // with more beyond it; the sort stays at the end, outside the scroll, so none slides
+            // under it.
+            HStack(spacing: 8) {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        capsules(query)
+                    }
+                    .padding(.vertical, 1)
+                }
+                .scrollIndicators(.never)
+                .onScrollGeometryChange(for: ScrollEdges.self) { geometry in
+                    ScrollEdges(geometry)
+                } action: { _, edges in
+                    more = edges
+                }
+                .mask { ScrollEdgeFade(edges: more) }
                 sort(query)
             }
         }
+    }
+
+    /// Whether the capsules run on past either edge of the row.
+    @State private var more = ScrollEdges()
+
+    @ViewBuilder
+    private func capsules(_ query: SearchQuery) -> some View {
+        genres(query)
+        year(query)
+        season(query)
+        formats(query)
+        statuses(query)
+        filters(query)
     }
 
     private func words(_ mac: String, _ phone: String) -> String {

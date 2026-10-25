@@ -98,6 +98,10 @@ a row, are on no platform: the engine's calendar `Entry` (`anistream-model/src/c
     Syncplay Party" stub is gone, and nothing sends `.playParty`.
 13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
 
+The Mac's Subtitles and Audio menus, in the player and in the menu bar, also load a subtitle or
+audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's do: mpv's
+alone, not remembered for the show. iPhone and iPad have no such items.
+
 Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
 companion binds u. Windows and Linux bind neither, and Linux's skip toast has no Undo. No player
 binds T for the tracks the desktop brief gives it.
@@ -145,8 +149,11 @@ sign-in and sign-out row.
 3. `[downloads] keep_next` in config.toml; the TUI does not draw the row.
 
 On iPhone, downloads show as a Live Activity (`DownloadsActivityFeed.swift`, the widget bundle's
-`DownloadsLiveActivity`); there is none for playback or airing. A queued download has no "start
-now" on any app, since the engine has no command for it.
+`DownloadsLiveActivity`), and so do the episode playing (`PlaybackActivityFeed.swift`, with Play
+and Pause) and an episode of a followed show airing within the hour (`AiringActivityFeed.swift`,
+a countdown, then "Out now"). All three are local, with no push; playback ranks first in the
+Dynamic Island, then airing, then downloads. A queued download has no "start now" on any app,
+since the engine has no command for it.
 
 ## On the TV
 
@@ -161,9 +168,8 @@ now" on any app, since the engine has no command for it.
    advertises itself over mDNS when allowed. Play on TV arrives as the engine's `Command::Play`
    (docs/remote-protocol.md), not as a `FrontIntent`.
 
-On iPad the sender and the remote work, but the paired-TV list (`TVsGroup`) is in the Mac's
-Integrations pane only and the iPhone's settings sheet, so an iPad can forget only the connected
-TV, through the remote's "Pair again".
+The paired-TV list (`TVsGroup`) is in the Mac's Integrations pane, the iPad's Playback pane and
+the iPhone's settings sheet, so every Apple device can see and forget any TV it paired.
 
 ## Plugins and stores
 

@@ -418,7 +418,7 @@ v1 takes what a video app is expected to have and what the TUI already does. The
 | Mini player on iPhone | After v1 | T3 closes the player; a live mini player needs its own design |
 | External display scene for mirroring | v1.1 | A second render target; mirroring covers it meanwhile |
 | HTTP downloads that finish in the background on iPhone | v1.1 | `BGContinuedProcessingTask` (iOS 26) lets user-started work finish, with its own system progress UI |
-| Live Activities | Not planned | That task already shows download progress |
+| Live Activities | v1 | Downloads, the episode playing, and an episode of a show you follow airing within the hour. Local updates only, no push: the views run on dates and a stale date |
 | Handoff of the playback position | Later | Handoff needs both apps signed by one team; ad-hoc Mac builds have none |
 | Widgets | Later | Needs an app group shared with an extension; check that free signing allows one |
 | Shortcuts, App Intents, Spotlight | Later | Once the engine's API settles. App Intents bring Spotlight and Siri with them |

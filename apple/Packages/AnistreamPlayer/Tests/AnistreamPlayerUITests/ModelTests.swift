@@ -739,3 +739,32 @@ struct LogLineTests {
         #expect(PlayerModel.said(line) == "ffmpeg: https: HTTP error 403 for https://cdn.example")
     }
 }
+
+/// Load Subtitle File… and Load Audio File…: the file added and selected on mpv, the engine not
+/// told, and a file mpv can't load said over the video.
+@MainActor
+struct TrackFileTests {
+    @Test func aFileIsAddedAndSelectedOnMpvAlone() async {
+        let rig = Rig()
+        rig.ops(1, [.open(fullscreen: false, speed: nil, volume: nil)])
+        rig.model.loadTrack(.sub, from: "/Users/viewer/Lantern Road.ass")
+        rig.model.loadTrack(.audio, from: "/Users/viewer/commentary.mka")
+        await rig.handedOver()
+        #expect(rig.mpv.calls.suffix(2) == [
+            .command(["sub-add", "/Users/viewer/Lantern Road.ass", "select"]),
+            .command(["audio-add", "/Users/viewer/commentary.mka", "select"]),
+        ])
+        #expect(!rig.controls.contains { if case .chooseTrack = $0 { true } else { false } })
+        #expect(rig.model.alert == nil)
+    }
+
+    @Test func aFileMpvCantLoadIsSaid() async {
+        let rig = Rig()
+        rig.ops(1, [.open(fullscreen: false, speed: nil, volume: nil)])
+        rig.mpv.state.withLock { $0.refuses = ["sub-add"] }
+        rig.model.loadTrack(.sub, from: "/Users/viewer/notes.txt")
+        await rig.handedOver()
+        #expect(rig.model.alert?.text == "Couldn't load that subtitle file")
+        #expect(rig.model.alert?.kind == .alert)
+    }
+}
