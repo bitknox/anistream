@@ -45,12 +45,11 @@ public sealed partial class PlayerView
     /// <summary>Stats for nerds up or away, for the rest of this window's playbacks.</summary>
     void ToggleStats()
     {
-        var shown = !stats.Shown;
         var hadFocus = StatsHasFocus();
-        stats.Show(shown);
+        var told = stats.Toggle();
         if (statsItem is not null)
-            statsItem.IsChecked = shown;
-        Send(new PlayerCommand.Stats(shown));
+            statsItem.IsChecked = stats.Shown;
+        Send(told);
         ShowStats();
         // The close button goes with the panel: the keys stay with the player.
         if (hadFocus)

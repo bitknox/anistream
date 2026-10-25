@@ -43,6 +43,16 @@ public sealed class StatsPanel(Func<TimeSpan> clock)
         waitingSince = shown ? clock() : null;
     }
 
+    /// <summary>
+    /// I, the close button or the Settings menu's check: the panel up if it was away and away if
+    /// it was up. Returns what the engine's player is told, so its figures start or stop with it.
+    /// </summary>
+    public PlayerCommand Toggle()
+    {
+        Show(!Shown);
+        return new PlayerCommand.Stats(Shown);
+    }
+
     /// <summary>A new playback: the engine's player starts with its stats off, so the panel waits again.</summary>
     public void Restart()
     {

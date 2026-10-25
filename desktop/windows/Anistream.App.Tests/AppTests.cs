@@ -1042,6 +1042,24 @@ public class StatsPanelTests
         new([.. rows.Select(r => new DetailRow(r.Label, r.Value, r.Warn))], [], waiting);
 
     [Fact]
+    public void ToggledItComesUpThenGoesAwayAndTellsThePlayerEachTime()
+    {
+        // I, the close button and the Settings check all toggle; the key itself is a XAML
+        // accelerator, which these tests without WinUI can't press.
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        Assert.Equal(new PlayerCommand.Stats(true), panel.Toggle());
+        Assert.True(panel.Shown);
+        clock.Pass(0.7);
+        Assert.NotNull(panel.View());
+        Assert.Equal(new PlayerCommand.Stats(false), panel.Toggle());
+        Assert.False(panel.Shown);
+        Assert.Null(panel.View());
+        Assert.Equal(new PlayerCommand.Stats(true), panel.Toggle());
+        Assert.True(panel.Shown);
+    }
+
+    [Fact]
     public void OpenedBeforeTheFileItShowsNothingThenDashesThenTheWaitingLine()
     {
         var clock = new Clock();
