@@ -3,7 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 use anistream_meta::Meta;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{event::Event, notice::Notice, party::NoSourceWhy};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
@@ -54,20 +54,40 @@ fn not_aired_in(
     }
 }
 
-/// Which kind of answer a failed lookup's `reason` is, for a party's no-source dialog: read
-/// from the words [`not_aired`] and [`NO_SOURCES`] say, which are kept beside it.
-pub(crate) fn no_source_why(reason: &str) -> anistream_model::party::NoSourceWhy {
-    use anistream_model::party::NoSourceWhy;
-    if reason == NO_SOURCES {
-        NoSourceWhy::NoSources
-    } else if reason.starts_with("episode ")
-        && (reason.contains(" airs ") || reason.contains(" hasn't aired yet"))
-    {
-        NoSourceWhy::NotAired
-    } else {
-        NoSourceWhy::NotFound
+/// Why a play found nothing to play, as the lookup decided it: its kind, for a party's
+/// no-source dialog to offer what fits, and its words, for a toast or the terminal.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unplayable {
+    pub why: NoSourceWhy,
+    pub text: String,
+}
+
+impl Unplayable {
+    /// No source is set up to ask: [`NO_SOURCES`].
+    pub(crate) fn no_sources() -> Self {
+        Self { why: NoSourceWhy::NoSources, text: NO_SOURCES.into() }
+    }
+
+    /// The schedule rules the episode out: [`not_aired`]'s words.
+    pub(crate) fn not_aired(text: String) -> Self {
+        Self { why: NoSourceWhy::NotAired, text }
     }
 }
+
+/// Any other failure: the sources were asked, and none of them played it.
+impl From<String> for Unplayable {
+    fn from(text: String) -> Self {
+        Self { why: NoSourceWhy::NotFound, text }
+    }
+}
+
+impl std::fmt::Display for Unplayable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.text)
+    }
+}
+
+impl std::error::Error for Unplayable {}
 
 /// When a broadcast at `at` is, as someone in `zone` says it at `now`: "today 18:30",
 /// "tomorrow 18:30", "Saturday 18:30" within the week and "Saturday 2 November 18:30" after.
@@ -99,8 +119,10 @@ pub async fn resolve_for_playback(
     playback: &anistream_core::config::PlaybackConfig,
     job: Option<&JobGuard>,
     tx: &Outbox,
-) -> std::result::Result<(Vec<anistream_core::stream::Stream>, playback::PlaybackContext), String>
-{
+) -> std::result::Result<
+    (Vec<anistream_core::stream::Stream>, playback::PlaybackContext),
+    Unplayable,
+> {
     // The step under way, on the job when there is one; the CLI has no activity row and reads
     // the status channel instead.
     let step = |text: String| match job {
@@ -116,7 +138,7 @@ pub async fn resolve_for_playback(
     );
     if registry.is_empty() && !registry.is_arriving() {
         tracing::warn!("no sources to resolve against");
-        return Err(NO_SOURCES.into());
+        return Err(Unplayable::no_sources());
     }
     // Phase-labelled, because the wait between Enter and mpv is where every tool in
     // this category earns its "is it frozen?" issues. The status line names the rung
@@ -128,14 +150,14 @@ pub async fn resolve_for_playback(
     })?;
     tracing::info!(elapsed_ms = began.elapsed().as_millis() as u64, "title looked up");
     if let Some(reason) = not_aired(&media, episode) {
-        return Err(reason);
+        return Err(Unplayable::not_aired(reason));
     }
     // Plugins still compiling are part of the chain a moment from now. Looked up without
     // them, the episode would come from whichever source was ready first, or from none.
     crate::sources::arrived(registry, || step("loading sources".into())).await;
     if registry.is_empty() {
         tracing::warn!("no sources to resolve against");
-        return Err(NO_SOURCES.into());
+        return Err(Unplayable::no_sources());
     }
     let now = now_epoch();
 
@@ -214,9 +236,13 @@ pub async fn resolve_for_playback(
             match answer {
                 anistream_providers::Answer::Answered { value, .. } => value,
                 anistream_providers::Answer::Ambiguous { .. } => {
-                    return Err(format!("could not match this title: {}", answer.explain()));
+                    return Err(
+                        format!("could not match this title: {}", answer.explain()).into()
+                    );
                 }
-                anistream_providers::Answer::Unanswered { .. } => return Err(answer.explain()),
+                anistream_providers::Answer::Unanswered { .. } => {
+                    return Err(answer.explain().into());
+                }
             }
         }
     };
@@ -233,7 +259,7 @@ pub async fn resolve_for_playback(
             elapsed_ms = began.elapsed().as_millis() as u64,
             "the source answered with no stream"
         );
-        return Err("no playable stream".into());
+        return Err(String::from("no playable stream").into());
     }
     if let Some(first) = streams.first() {
         tracing::info!(
@@ -349,21 +375,76 @@ pub fn load_sources(
 
 #[cfg(test)]
 mod tests {
+    use anistream_core::config::NetworkConfig;
+    use anistream_meta::AniList;
+    use anistream_providers::MockProvider;
+
     use super::*;
 
     const HOUR: i64 = 3_600;
+    const DAY: i64 = 86_400;
 
-    #[test]
-    fn a_failed_lookup_is_read_as_its_kind() {
-        use anistream_model::party::NoSourceWhy;
-        let zone = jiff::tz::TimeZone::UTC;
-        let now = 1_700_000_000;
-        let aired = not_aired_in(&airing(4, now, 3 * HOUR), "4", &zone).unwrap();
-        assert_eq!(no_source_why(&aired), NoSourceWhy::NotAired);
-        let later = not_aired_in(&airing(4, now, 3 * HOUR), "9", &zone).unwrap();
-        assert_eq!(no_source_why(&later), NoSourceWhy::NotAired);
-        assert_eq!(no_source_why(NO_SOURCES), NoSourceWhy::NoSources);
-        assert_eq!(no_source_why("no source has episode 6"), NoSourceWhy::NotFound);
+    /// What a play of `episode` of the cached title `media` fails with, against `sources`,
+    /// offline.
+    async fn failure(
+        media: serde_json::Value,
+        episode: &str,
+        sources: Vec<MockProvider>,
+    ) -> Unplayable {
+        let store = Store::open_in_memory().unwrap();
+        store.cache_media(AnilistId::new(900_201), &media.to_string(), now_epoch()).unwrap();
+        let http = anistream_net::HttpClient::offline(&NetworkConfig::default()).unwrap();
+        let meta = Meta::new(AniList::new(http, 30), None, store.clone());
+        let registry =
+            ProviderRegistry::new(sources.into_iter().map(MockProvider::arc).collect());
+        let tx = Outbox::from(tokio::sync::mpsc::unbounded_channel().0);
+        let playback = anistream_core::config::PlaybackConfig::default();
+        let found = resolve_for_playback(
+            &meta,
+            &store,
+            &registry,
+            AnilistId::new(900_201),
+            episode,
+            None,
+            &playback,
+            None,
+            &tx,
+        )
+        .await;
+        found.expect_err("the play fails")
+    }
+
+    fn show(airing: bool) -> serde_json::Value {
+        let mut media = serde_json::json!({
+            "id": 900_201,
+            "title": { "romaji": "Hoshi no Kakurega", "english": "The Hidden Star" },
+            "format": "TV",
+            "status": if airing { "RELEASING" } else { "FINISHED" },
+            "episodes": 12,
+        });
+        if airing {
+            media["nextAiringEpisode"] = serde_json::json!({ "episode": 6, "airingAt": now_epoch() + DAY, "timeUntilAiring": DAY });
+        }
+        media
+    }
+
+    #[tokio::test]
+    async fn each_failure_says_its_kind_where_it_is_decided() {
+        // No source to ask.
+        let none = failure(show(false), "3", Vec::new()).await;
+        assert_eq!(none.why, NoSourceWhy::NoSources);
+        assert_eq!(none.text, NO_SOURCES);
+        // The schedule rules the episode out before any source is asked.
+        let unaired = failure(show(true), "8", vec![MockProvider::new("sample")]).await;
+        assert_eq!(unaired.why, NoSourceWhy::NotAired);
+        // Asked, and no source had it.
+        let missing = failure(show(false), "3", vec![MockProvider::new("sample")]).await;
+        assert_eq!(missing.why, NoSourceWhy::NotFound);
+        assert!(
+            missing.text.contains("sample"),
+            "the source's answer, not the title's lookup: {}",
+            missing.text
+        );
     }
 
     /// A title whose episode `next` airs `in_secs` after the moment `now` it was asked for.

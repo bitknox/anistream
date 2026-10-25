@@ -505,19 +505,19 @@ fn spawn_playback(
             // failed, and closing what was playing over it would punish the viewer for asking.
             Err(reason) if handoff.live() => {
                 // In a party the dialog says why, and a toast would say it twice.
+                // The kind comes as the lookup decided it.
                 if party {
-                    let why = crate::playback::resolve::no_source_why(&reason);
                     let _ = tx.send(Event::PartyNoSource {
                         id,
                         episode: episode.clone(),
-                        why,
-                        reason: reason.clone(),
+                        why: reason.why,
+                        reason: reason.text.clone(),
                     });
                 } else {
-                    let _ = tx.send(Event::Toast(Notice::alert(reason.clone())));
+                    let _ = tx.send(Event::Toast(Notice::alert(reason.text.clone())));
                 }
                 let _ = tx.send(Event::PlaybackKept);
-                handoff.keep(commands, reason).await;
+                handoff.keep(commands, reason.text).await;
                 return;
             }
             Err(reason) => {
@@ -527,15 +527,14 @@ fn spawn_playback(
                 // empty screen. Releasing the eyecatch is what the alert does for us. In a
                 // party the dialog names it instead, and the ending below releases it.
                 if party {
-                    let why = crate::playback::resolve::no_source_why(&reason);
                     let _ = tx.send(Event::PartyNoSource {
                         id,
                         episode: episode.clone(),
-                        why,
-                        reason,
+                        why: reason.why,
+                        reason: reason.text,
                     });
                 } else {
-                    let _ = tx.send(Event::Toast(Notice::alert(reason)));
+                    let _ = tx.send(Event::Toast(Notice::alert(reason.text)));
                 }
                 // A window left open for this episode would wait for nothing.
                 slot.release();
