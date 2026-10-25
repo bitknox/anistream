@@ -99,6 +99,10 @@ a row, are on no platform: the engine's calendar `Entry` (`anistream-model/src/c
     Syncplay Party" stub is gone, and nothing sends `.playParty`.
 13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
 
+The Mac's Subtitles and Audio menus, in the player and in the menu bar, also load a subtitle or
+audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's do: mpv's
+alone, not remembered for the show. iPhone and iPad have no such items.
+
 Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
 companion binds u. Windows and Linux bind neither, and Linux's skip toast has no Undo. No player
 binds T for the tracks the desktop brief gives it.

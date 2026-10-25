@@ -1046,6 +1046,11 @@ struct TrackLists: View {
             }
             .id(Self.subtitleRow(track.id))
         }
+        #if os(macOS)
+        MenuRow(title: TrackFiles.title(.sub), checked: false, metrics: metrics) {
+            TrackFiles.load(.sub, into: model)
+        }
+        #endif
         MenuDivider()
         MenuHeading(title: "Audio")
         ForEach(model.audioTracks) { track in
@@ -1053,6 +1058,11 @@ struct TrackLists: View {
                 model.selectAudio(track.id)
             }
         }
+        #if os(macOS)
+        MenuRow(title: TrackFiles.title(.audio), checked: false, metrics: metrics) {
+            TrackFiles.load(.audio, into: model)
+        }
+        #endif
         MenuDivider()
         MenuNote(text: "Remembered for this show")
     }

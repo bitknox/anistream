@@ -73,6 +73,9 @@ public struct PlaybackMenu: View {
                         set: { _ in model.selectAudio(track.id) }
                     ))
                 }
+                #if os(macOS)
+                Button(TrackFiles.title(.audio)) { TrackFiles.load(.audio, into: model) }
+                #endif
             }
             Section("Subtitles") {
                 Toggle("Off", isOn: Binding(
@@ -85,6 +88,9 @@ public struct PlaybackMenu: View {
                         set: { _ in model.selectSubtitle(track.id) }
                     ))
                 }
+                #if os(macOS)
+                Button(TrackFiles.title(.sub)) { TrackFiles.load(.sub, into: model) }
+                #endif
             }
         }
         .disabled(!playing)
