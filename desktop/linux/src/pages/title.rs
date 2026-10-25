@@ -475,6 +475,13 @@ impl Page {
             let rows = self.rows.borrow();
             !rows.is_empty() && !rows.iter().any(|r| r.metadata_only)
         };
+        // A party plays the episode the primary action would.
+        if item.button().is_some() {
+            first.append(
+                Some("Watch Together…"),
+                Some(&format!("win.watch-together((uint32 {id}, '{}'))", item.episode)),
+            );
+        }
         if playable {
             first.append(
                 Some(&format!("Download Episode {}", item.episode)),

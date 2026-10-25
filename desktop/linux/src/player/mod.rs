@@ -78,6 +78,9 @@ pub struct PlayerView {
     held_until: Cell<Instant>,
     state: RefCell<PlayerState>,
     over_bar: Cell<bool>,
+    /// A screenshot run's: no Up next card, for a fixture clip short enough to be near its
+    /// end from the start.
+    pub hold_up_next: Cell<bool>,
     inhibit: Cell<Option<u32>>,
     countdown: RefCell<Option<glib::SourceId>>,
     menus: RefCell<Option<Menus>>,
@@ -121,6 +124,8 @@ pub struct PlayerView {
     stall_tick: RefCell<Option<glib::SourceId>>,
     /// The media controls on the session bus, once served.
     mpris: RefCell<Option<Rc<Mpris>>>,
+    /// The watch party's panel, on the people button.
+    party: Rc<crate::party::panel::Panel>,
 }
 
 /// An automatic skip that can still be undone: where it started, when, and where it landed.
@@ -193,6 +198,10 @@ struct Ui {
     resumed_line: gtk::Label,
     episodes: gtk::MenuButton,
     tracks: gtk::MenuButton,
+    /// Watch together: the form that starts a party, or the party's panel once in one, with a
+    /// dot on the people while in one.
+    people: gtk::Button,
+    people_dot: gtk::Box,
     settings: gtk::MenuButton,
     speed: gtk::MenuButton,
     menu_buttons: Vec<gtk::MenuButton>,
@@ -250,6 +259,8 @@ impl PlayerView {
 
         let ui = build_ui(&video_widget);
         let preview = Preview::new(&ui.timeline, false);
+        let party = crate::party::panel::Panel::new(ctx);
+        party.popover.set_parent(&ui.people);
         ctx.on_size({
             let roomy = ui.roomy.clone();
             move |size| {
@@ -274,6 +285,7 @@ impl PlayerView {
             held_until: Cell::new(Instant::now()),
             state: RefCell::default(),
             over_bar: Cell::new(false),
+            hold_up_next: Cell::new(false),
             inhibit: Cell::new(None),
             countdown: RefCell::default(),
             menus: RefCell::default(),
@@ -305,6 +317,7 @@ impl PlayerView {
             stall_since: Cell::new(None),
             stall_tick: RefCell::default(),
             mpris: RefCell::default(),
+            party,
         });
         view.wire();
         glib::spawn_future_local({
@@ -465,6 +478,7 @@ impl PlayerView {
                 }
             }
             Event::PlayerUi { ui, .. } => self.player_ui(ui),
+            Event::PartyJoined(_) | Event::PartyLeft { .. } => self.show_party_button(),
             Event::PlayerTimeline { marks, .. } => {
                 // The engine's marks are the ones skipping uses; they replace the chapters'.
                 self.engine_marks.replace(Some(timeline::from_marks(marks)));
@@ -622,6 +636,7 @@ impl PlayerView {
             }
             PlayerUi::SkipCleared => self.ui.skip.set(false),
             PlayerUi::AutoSkipped { kind, undo_to } => self.auto_skipped(*kind, *undo_to),
+            PlayerUi::UpNext { .. } if self.hold_up_next.get() => {}
             PlayerUi::UpNext { next, countdown, auto, .. } => {
                 let translation = self.episode_line.borrow().2;
                 self.ui.up_next_title.set_label(&episode_line(
@@ -1058,7 +1073,8 @@ impl PlayerView {
 
     /// Hide the controls, unless paused, scrubbing, a menu is open or the pointer is on a bar.
     fn rest(&self) {
-        let menu_open = self.ui.menu_buttons.iter().any(|b| b.is_active());
+        let menu_open = self.ui.menu_buttons.iter().any(|b| b.is_active())
+            || self.party.popover.is_visible();
         let card = self.ui.stall.shown();
         if self.state.borrow().paused
             || self.over_bar.get()
@@ -1314,6 +1330,15 @@ impl PlayerView {
             });
             group.add_action(action);
         }
+        add("party", None, Box::new(|v, _| v.show_party()));
+        self.party.popover.connect_closed({
+            let weak = Rc::downgrade(self);
+            move |_| {
+                if let Some(view) = weak.upgrade() {
+                    view.wake();
+                }
+            }
+        });
         add("play-next", None, Box::new(|v, _| v.send(PlayerCommand::PlayNext)));
         add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));
         add("stall-switch", None, Box::new(|v, _| v.send(PlayerCommand::StallSwitch)));
@@ -1658,6 +1683,41 @@ impl PlayerView {
         for button in &self.ui.menu_buttons {
             button.popdown();
         }
+        self.party.popover.popdown();
+    }
+
+    /// The party's panel when in one; the form that starts one when not.
+    pub fn show_party(&self) {
+        if self.ctx.hub.known.borrow().party.is_none() {
+            crate::party::form::open(&self.ctx, crate::party::form::For::Playing);
+            return;
+        }
+        self.wake();
+        self.party.popover.popup();
+    }
+
+    /// The people button as the party stands: a dot while in one, and its name.
+    fn show_party_button(&self) {
+        let in_party = self.ctx.hub.known.borrow().party.is_some();
+        // Faded rather than added, so nothing moves.
+        self.ui.people_dot.set_opacity(if in_party { 1.0 } else { 0.0 });
+        let name = if in_party { "Watch Party" } else { "Watch Together" };
+        self.ui.people.set_tooltip_text(Some(name));
+        self.ui.people.update_property(&[gtk::accessible::Property::Label(name)]);
+    }
+
+    /// For a shot: the party's panel, under the people button, over the window.
+    pub fn shot_party_popover(&self) -> Option<(gtk::Widget, f32, f32)> {
+        let popover = &self.party.popover;
+        if !popover.is_visible() {
+            return None;
+        }
+        let window = &self.ctx.window;
+        let button = self.ui.people.compute_bounds(window)?;
+        let width = popover.width() as f32;
+        let x = (button.x() + button.width() / 2.0 - width / 2.0)
+            .clamp(0.0, (window.width() as f32 - width).max(0.0));
+        Some((popover.clone().upcast(), x, button.y() + button.height()))
     }
 
     fn rest_now(&self) {
@@ -1884,6 +1944,23 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         .valign(gtk::Align::Center)
         .build();
     tracks.add_css_class("flat");
+    let people_dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    people_dot.add_css_class("party-dot");
+    people_dot.set_halign(gtk::Align::End);
+    people_dot.set_valign(gtk::Align::Start);
+    people_dot.set_opacity(0.0);
+    people_dot.set_can_target(false);
+    let people_icon = gtk::Overlay::new();
+    people_icon.set_child(Some(&gtk::Image::from_icon_name("anistream-party-symbolic")));
+    people_icon.add_overlay(&people_dot);
+    let people = gtk::Button::builder()
+        .child(&people_icon)
+        .tooltip_text("Watch Together")
+        .action_name("player.party")
+        .valign(gtk::Align::Center)
+        .build();
+    people.add_css_class("flat");
+    people.add_css_class("image-button");
     let full = icon_button("view-fullscreen-symbolic", "Fullscreen", "player.fullscreen");
     let mini_button =
         icon_button("anistream-mini-player-symbolic", "Mini Player", "player.mini");
@@ -1896,6 +1973,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     top.pack_end(&mini_button);
     top.pack_end(&episodes);
     top.pack_end(&tracks);
+    top.pack_end(&people);
 
     // The bottom bar.
     let play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
@@ -2149,7 +2227,14 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         volume_button,
     ];
     Ui {
-        roomy: vec![back10.upcast(), forward10.upcast(), speed_button.clone().upcast()],
+        // The mini player's button too, so a narrow window's title keeps room beside the people
+        // button.
+        roomy: vec![
+            back10.upcast(),
+            forward10.upcast(),
+            speed_button.clone().upcast(),
+            mini_button.clone().upcast(),
+        ],
         page,
         top,
         bottom,
@@ -2181,6 +2266,8 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         resumed_line,
         episodes,
         tracks,
+        people,
+        people_dot,
         settings,
         speed: speed_button,
         menu_buttons,
