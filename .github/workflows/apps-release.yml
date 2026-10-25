@@ -1,7 +1,8 @@
 name: Apps release
 
-# The apps a release ships beside the terminal binaries: the Android APKs (phone and TV), the Mac app in a .dmg
-# and the iPhone and iPad app as an .ipa for AltStore or SideStore to sign, with the notices for
+# The apps a release ships beside the terminal binaries: the Android APKs (phone and TV), the Mac app in a .dmg,
+# the iPhone and iPad app as an .ipa for AltStore or SideStore to sign, the Windows app's
+# installers for x64 and Arm64, and the Linux app as an AppImage for x86_64 and aarch64, with the notices for
 # the LGPL libmpv and FFmpeg inside them and for the engine's Rust crates, and the source those
 # libraries were built from. release.yml calls this for each release, from the commit it releases
 # and with the tag it will make, and publishes what it built once every build has succeeded.
@@ -70,6 +71,19 @@ on:
       - android/scripts/engine.sh
       - android/scripts/mpv.sh
       - android/mpv/**
+      - desktop/windows/scripts/package.sh
+      - desktop/windows/scripts/libmpv.ps1
+      - desktop/windows/scripts/bindings.sh
+      - desktop/windows/Anistream.Windows/Anistream.Windows.csproj
+      - packaging/windows/anistream-app.iss
+      - packaging/windows/check-installer.ps1
+      - desktop/linux/Cargo.toml
+      - desktop/linux/appimage/**
+      - desktop/linux/scripts/appimage.sh
+      - desktop/linux/scripts/appimage-check.sh
+      - desktop/linux/scripts/libmpv.sh
+      - desktop/linux/data/tv.anistream.desktop.desktop
+      - packaging/linux/glibc-floor.sh
   workflow_dispatch:
     inputs:
       tag:
@@ -630,6 +644,259 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # The Windows app, unpackaged and self-contained, in an Inno Setup installer for each
+  # architecture (desktop/windows/scripts/package.sh). The engine builds for the machine it is on,
+  # so each architecture has a runner of its own. The installer is not code-signed. Each is
+  # installed silently, started, and uninstalled again (packaging/windows/check-installer.ps1).
+  # After the sources job, whose Rust crates' licences the installer carries.
+  windows:
+    name: Windows (${{ matrix.arch }})
+    needs: sources
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+            rust: x86_64
+          - arch: arm64
+            runner: windows-11-arm
+            rust: aarch64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      # The Inno Setup the installer is tested with, by its SHA-256.
+      INNO_SETUP: "6.7.3"
+      INNO_SETUP_SHA256: 9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732
+    steps:
+      - name: Only a dry run
+        if: toJSON(inputs.dry_run) == 'false'
+        run: |
+          echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || inputs.tag }}
+      - name: The version
+        run: |
+          version="$(packaging/apps/version.sh "$TAG")"
+          echo "$version" | tee -a "$GITHUB_ENV"
+      - name: The workspace's version
+        if: env.TAG != ''
+        run: packaging/set-version.sh "$VERSION"
+
+      # The Arm image may come without rustup.
+      - name: rustup
+        run: |
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl -sSfL -o "$RUNNER_TEMP/rustup-init.exe" \
+              "https://static.rust-lang.org/rustup/dist/${{ matrix.rust }}-pc-windows-msvc/rustup-init.exe"
+            "$RUNNER_TEMP/rustup-init.exe" -y --default-toolchain none --profile minimal
+            printf '%s\n' "$USERPROFILE\\.cargo\\bin" >> "$GITHUB_PATH"
+          fi
+      - run: tools/ci-toolchain.sh
+      - uses: ilammy/setup-nasm@v1
+        if: matrix.arch == 'x64'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          $setup = Join-Path $env:RUNNER_TEMP "innosetup-$env:INNO_SETUP.exe"
+          $tag = 'is-' + $env:INNO_SETUP.Replace('.', '_')
+          Invoke-WebRequest -Uri "https://github.com/jrsoftware/issrc/releases/download/$tag/innosetup-$env:INNO_SETUP.exe" -OutFile $setup
+          if ((Get-FileHash $setup -Algorithm SHA256).Hash -ne $env:INNO_SETUP_SHA256) { throw "innosetup-$env:INNO_SETUP.exe does not match its SHA-256" }
+          $dir = Join-Path $env:RUNNER_TEMP 'inno-setup'
+          $install = Start-Process -FilePath $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/CURRENTUSER', "/DIR=`"$dir`"" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Inno Setup's installer exited with $($install.ExitCode)" }
+          "ISCC=$dir\ISCC.exe" >> $env:GITHUB_ENV
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: record-rust
+          path: ${{ runner.temp }}/rust
+      - name: The app and its installer
+        run: |
+          RUST_LICENCES="$RUNNER_TEMP/rust/rust/THIRD-PARTY-rust-windows.txt" \
+            VERSION_NUMBER="$APPLE_VERSION" ISCC="$(cygpath -u "$ISCC")" \
+            desktop/windows/scripts/package.sh "$VERSION" ${{ matrix.arch }} dist
+      - name: Install, start and uninstall it
+        shell: pwsh
+        run: ./packaging/windows/check-installer.ps1 -Setup "dist/anistream-$env:VERSION-windows-${{ matrix.arch }}-setup.exe" -Version $env:VERSION
+
+      - name: The build's record
+        run: mkdir -p record/windows && mv "dist/windows-${{ matrix.arch }}" record/windows/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apps-windows-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: record-windows-${{ matrix.arch }}
+          path: record/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Sizes
+        if: always()
+        run: |
+          {
+            echo "### Windows (${{ matrix.arch }})"
+            echo
+            echo '```'
+            ls -l dist 2>/dev/null || true
+            cat record/windows/*/sizes 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # The Linux app as an AppImage for each architecture (desktop/linux/scripts/appimage.sh), built
+  # in Debian 13, whose GTK 4 and libadwaita it carries, with libmpv built from source as LGPL.
+  # After the sources job, whose Rust crates' licences the AppImage carries.
+  linux:
+    name: Linux (${{ matrix.arch }})
+    needs: sources
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    container: debian:trixie
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - name: Only a dry run
+        if: toJSON(inputs.dry_run) == 'false'
+        run: |
+          echo "::error::This workflow builds without publishing. release.yml publishes a release for each push to main."
+          exit 1
+
+      # git, so the checkout is a repository the scripts can read the commit of.
+      - name: git
+        run: apt-get update && apt-get install -y --no-install-recommends git ca-certificates
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || inputs.tag }}
+      - name: The version
+        run: |
+          version="$(packaging/apps/version.sh "$TAG")"
+          echo "$version" | tee -a "$GITHUB_ENV"
+      - name: The workspace's version
+        if: env.TAG != ''
+        run: packaging/set-version.sh "$VERSION"
+
+      - name: The build's packages
+        run: desktop/linux/scripts/appimage.sh --deps
+      - name: rustup
+        run: |
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - run: tools/ci-toolchain.sh
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: record-rust
+          path: ${{ runner.temp }}/rust
+      - name: The AppImage
+        run: |
+          RUST_LICENCES="$RUNNER_TEMP/rust/rust/THIRD-PARTY-rust-linux.txt" \
+            desktop/linux/scripts/appimage.sh "$VERSION" dist
+
+      - name: The build's record
+        run: |
+          mkdir -p record/linux && mv "dist/linux-${{ matrix.arch }}" record/linux/
+          rm -rf dist/.appimage-*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apps-linux-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: record-linux-${{ matrix.arch }}
+          path: record/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Sizes
+        if: always()
+        run: |
+          {
+            echo "### Linux (${{ matrix.arch }})"
+            echo
+            echo '```'
+            ls -l dist 2>/dev/null || true
+            cat record/linux/*/sizes 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Each AppImage where people will run it: a fresh container of distributions other than the one
+  # it was built on, with only what a desktop has (desktop/linux/scripts/appimage-check.sh), and
+  # Ubuntu 24.04, below the glibc floor, which it has to turn away with a plain message.
+  linux-check:
+    name: Linux (${{ matrix.arch }}) on other distributions
+    needs: linux
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || inputs.tag }}
+          sparse-checkout: |
+            desktop/linux/scripts
+            packaging/apps
+          sparse-checkout-cone-mode: false
+      - name: The version
+        run: packaging/apps/version.sh "$TAG" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v8
+        with:
+          name: apps-linux-${{ matrix.arch }}
+          path: dist
+      - name: Run it
+        run: |
+          appimage="anistream-$VERSION-linux-${{ matrix.arch }}.AppImage"
+          chmod +x "dist/$appimage"
+          (cd dist && sha256sum -c "$appimage.sha256")
+          # The version the engine says: the release's, or the workspace's on a run without a tag.
+          want="$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' <(git show HEAD:Cargo.toml))"
+          if [[ -n "$TAG" ]]; then want="$VERSION"; fi
+          for image in fedora:42 ubuntu:26.04 debian:trixie; do
+            echo "::group::$image"
+            docker run --rm -v "$PWD/dist:/a:ro" -v "$PWD/desktop/linux/scripts:/s:ro" "$image" \
+              /s/appimage-check.sh "/a/$appimage" "$want"
+            echo "::endgroup::"
+          done
+          said="$(docker run --rm -v "$PWD/dist:/a:ro" ubuntu:24.04 "/a/$appimage" --appimage-extract-and-run --version 2>&1)" &&
+            { echo "::error::The AppImage ran on Ubuntu 24.04, below its glibc floor: $said"; exit 1; }
+          grep -q 'needs glibc 2.41 or newer' <<<"$said" ||
+            { echo "::error::On Ubuntu 24.04 the AppImage said: $said"; exit 1; }
+          echo "Ubuntu 24.04: $said"
+
   # Beside the builds, since it needs none of them: the source of every library in the apps'
   # player, as the release attaches it for the LGPL (packaging/apps/sources.sh), and the licences
   # of the Rust crates in the engine (packaging/rust-licences), for the notices.
@@ -658,6 +925,11 @@ jobs:
           tool: cargo-about@0.9.2
       - name: The engine's Rust crates
         run: packaging/rust-licences/generate.sh apps record/rust/THIRD-PARTY-rust.txt
+      # The Windows and Linux apps', which their jobs put inside the installer and the AppImage.
+      - name: The desktop apps' Rust crates
+        run: |
+          packaging/rust-licences/generate.sh windows record/rust/THIRD-PARTY-rust-windows.txt
+          packaging/rust-licences/generate.sh linux record/rust/THIRD-PARTY-rust-linux.txt
       - uses: actions/upload-artifact@v7
         with:
           name: apps-sources
@@ -675,7 +947,7 @@ jobs:
   # summary shows, so a dry run's can be read before a release publishes them.
   notices:
     name: Notices and release notes
-    needs: [android, apple, sources]
+    needs: [android, apple, sources, windows, linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -691,7 +963,8 @@ jobs:
       - name: The notices and notes
         run: |
           packaging/apps/third-party.sh "$VERSION" "${TAG:-$GITHUB_SHA}" \
-            record/android record/apple record/rust/THIRD-PARTY-rust.txt dist
+            record/android record/apple record/rust/THIRD-PARTY-rust.txt \
+            record/windows record/linux dist
           cat dist/apps-release-notes.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
