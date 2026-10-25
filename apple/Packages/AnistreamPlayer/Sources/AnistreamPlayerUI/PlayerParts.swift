@@ -322,8 +322,9 @@ struct FilledArt: View {
 
 // MARK: The seek line
 
-/// The playhead across the file: played time amber, openings and endings water, the rest silk at
-/// 22%. Dragging scrubs, with keyframe seeks as it moves and an exact one on release; the frame
+/// The playhead across the file: silk at 22%, what mpv holds ahead lighter, played time amber,
+/// and openings and endings in water on top of all of it, so a mark reads the same played or
+/// not. Dragging scrubs, with keyframe seeks as it moves and an exact one on release; the frame
 /// under the thumb shows above it with the time and the chapter. Moving the finger up slows the
 /// scrub to half speed past 48 pt and a quarter past 96 pt, as ⌥ does on the Mac, and crossing
 /// an opening or ending mark gives a selection tick.
@@ -347,7 +348,7 @@ struct SeekLine: View {
                     let width = duration > 0 ? usable * (segment.end - segment.start) / duration : 0
                     let played = min(1, max(0, (model.position - segment.start) / max(segment.end - segment.start, 0.001)))
                     Capsule()
-                        .fill(track(segment.kind))
+                        .fill(Palette.silk.opacity(0.22))
                         .overlay(alignment: .leading) {
                             // What mpv holds ahead, lighter than the track, under the played time.
                             ForEach(Array(held(in: segment).enumerated()), id: \.offset) { _, range in
@@ -361,6 +362,9 @@ struct SeekLine: View {
                             Rectangle()
                                 .fill(.amber)
                                 .frame(width: width * played)
+                        }
+                        .overlay {
+                            if segment.kind != .plain { Rectangle().fill(Palette.water) }
                         }
                         .clipShape(.capsule)
                         .frame(width: width, height: lineHeight)
@@ -459,13 +463,6 @@ struct SeekLine: View {
     /// The buffered stretches inside `segment`, as fractions of it: where each starts, and how much.
     private func held(in segment: SeekSegment) -> [(from: Double, length: Double)] {
         bufferedSpans(model.buffered, in: segment)
-    }
-
-    private func track(_ kind: SeekSegment.Kind) -> Color {
-        switch kind {
-        case .plain: Palette.silk.opacity(0.22)
-        case .opening, .ending: Palette.water.opacity(0.72)
-        }
     }
 }
 
