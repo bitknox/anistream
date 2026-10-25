@@ -48,7 +48,7 @@ public final class Navigator {
     /// Whether the calendar shows only the titles on your lists.
     public var calendarMine = true
     /// The Settings pane on screen, on the Mac and iPad.
-    public var settingsPane: SettingsPane = .playback
+    public var settingsPane: SettingsPane = .general
     /// What Settings' own search field holds.
     public var settingsQuery = ""
     /// The iPhone's Settings sheet, open at a page when it is up.
@@ -67,8 +67,6 @@ public final class Navigator {
     public var moreAbout: AnilistId?
     /// The titles whose watched episodes are open in their episode lists, for the session.
     var watchedOpen: Set<AnilistId> = []
-    /// The Playback pane's row the column beside it is about.
-    public var playbackFocus: PlaybackFocus = .upscaling
     /// An episode handed over from another device, which its title's page offers to resume.
     public var handedOff: HandedOff?
 
@@ -80,9 +78,7 @@ public final class Navigator {
         librarySegment = route.library ?? .watching
         paletteShown = route.palette != nil
         settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)).flatMap { SettingsPane.shown.contains($0) ? $0 : nil }
-            ?? .playback
-        // "titles": Playback, its title-language row selected (MacSettingsTitles).
-        if route.pane == "titles" { playbackFocus = .titleLanguage }
+            ?? .general
         launchSheet = route.sheet
         if let genre = route.genre { launchSearch = SearchQuery(text: route.query ?? "", genres: [genre]) }
         if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }

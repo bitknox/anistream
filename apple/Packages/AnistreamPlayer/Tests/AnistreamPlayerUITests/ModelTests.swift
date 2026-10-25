@@ -702,6 +702,19 @@ struct ViewerTests {
         #expect(PlayerClock.label(3729) == "1:02:09")
     }
 
+    @Test func theEpisodeLineSaysTheTranslation() {
+        var episode = EpisodeOnScreen(
+            number: "7", label: "Episode 7", title: "Rain over Kiriya Pass", show: "Stardust Wayfarer",
+            translation: .dub)
+        #expect(episode.line == "Episode 7 · Dub · Rain over Kiriya Pass")
+        episode.translation = .sub
+        #expect(episode.line == "Episode 7 · Rain over Kiriya Pass", "only dubs are marked")
+        episode.title = nil
+        #expect(episode.line == "Episode 7")
+        episode.translation = .dub
+        #expect(episode.line == "Episode 7 · Dub")
+    }
+
     @Test func theEngineMarksTakeOverFromTheChaptersAndTheBufferedRangesFollowTheFile() async throws {
         let rig = Rig()
         try await rig.opened(1)

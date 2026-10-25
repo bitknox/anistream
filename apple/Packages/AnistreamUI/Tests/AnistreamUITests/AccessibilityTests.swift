@@ -36,7 +36,7 @@ struct AccessibilityTests {
         #expect(estimated.clock == "~" + CalendarWords.time(airs))
         #expect(estimated.mark == "Dub")
         #expect(estimated.spoken(now: now) == "Episode 9, Dub at about \(CalendarWords.time(airs)), in 1 hour 30 minutes")
-        #expect(Broadcast(entry: entry { $0.airingTranslation = .sub }, episode: 9, airs: airs).mark == "Sub")
+        #expect(Broadcast(entry: entry { $0.airingTranslation = .sub }, episode: 9, airs: airs).mark == nil, "only dubs are marked")
     }
 
     @Test func anEpisodeIsNamedThenSaysWhereItStands() {
