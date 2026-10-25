@@ -23,6 +23,16 @@ struct Broadcast: Identifiable, Equatable {
         delayedFrom.map { "(was \(CalendarWords.time($0)))" }
     }
 
+    /// When it airs, "~16:30" when the time is the engine's estimate.
+    var clock: String {
+        airTime(time: CalendarWords.time(airs), approximate: entry.airingApproximate)
+    }
+
+    /// "Dub" or "Sub" after the time, when the engine marks the row; nil for most.
+    var mark: String? {
+        calendarMark(entry: entry)
+    }
+
     /// Whether you have watched this episode.
     var watched: Bool {
         (entry.progress?.done ?? 0) >= episode
@@ -269,7 +279,10 @@ struct BroadcastCell: View {
             if broadcast.watched {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(CalendarWords.time(broadcast.airs)).font(.mac(13)).monospacedDigit()
+                        Text(broadcast.clock).font(.mac(13)).monospacedDigit()
+                        if let mark = broadcast.mark {
+                            Text("· \(mark)").font(.mac(12)).lineLimit(1)
+                        }
                         Spacer(minLength: 4)
                         HStack(spacing: 4) {
                             Text("Ep \(broadcast.episode)")
@@ -293,10 +306,16 @@ struct BroadcastCell: View {
                         .clipShape(.rect(cornerRadius: 6))
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text(CalendarWords.time(broadcast.airs))
+                            Text(broadcast.clock)
                                 .font(.mac(13))
                                 .monospacedDigit()
                                 .foregroundStyle(.silk)
+                            if let mark = broadcast.mark {
+                                Text("· \(mark)")
+                                    .font(.mac(12))
+                                    .foregroundStyle(.haze)
+                                    .lineLimit(1)
+                            }
                             if let note = broadcast.delayNote {
                                 Text(note)
                                     .font(.mac(12))

@@ -166,6 +166,11 @@ public final class PlayerModel {
     public private(set) var volume: Double = 100
     public private(set) var muted = false
     public private(set) var chapters: [Chapter] = []
+    /// The openings and endings the engine marked, by playback: the ones skipping goes by. Until
+    /// it has said for the file playing, the chapters stand in.
+    public private(set) var timelines: [PlaybackId: [TimelineMark]] = [:]
+    /// What mpv holds ahead, as the engine last said for the file playing.
+    public private(set) var buffered: [TimeRange] = []
     public private(set) var tracks: [Track] = []
     public private(set) var audioTrack: Int64?
     public private(set) var subtitleTrack: Int64?
@@ -301,6 +306,12 @@ public final class PlayerModel {
         case .playbackKept:
             // The playback staged found nothing; the one before plays on.
             starting = nil
+        case .playerTimeline(let playback, let marks):
+            guard accepts(playback) else { return }
+            timelines[playback] = marks
+        case .playerBuffered(let playback, let ranges):
+            guard accepts(playback), playback == current else { return }
+            buffered = ranges
         default:
             break
         }
@@ -626,6 +637,7 @@ public final class PlayerModel {
         current = nil
         loads = []
         sources = [:]
+        timelines = [:]
         thumbnails = nil
         guard awaitingVerdict, isPresented else {
             dismiss()
@@ -684,6 +696,7 @@ public final class PlayerModel {
         duration = nil
         paused = false
         chapters = []
+        buffered = []
         tracks = []
         audioTrack = nil
         subtitleTrack = nil
@@ -951,7 +964,7 @@ public final class PlayerModel {
     private static func logReport(_ report: PlayerReport, for playback: PlaybackId) {
         switch report {
         case .property(let name, let json):
-            guard !["time-pos", "frame-drop-count", "seeking", "paused-for-cache"].contains(name) else { return }
+            guard !["time-pos", "frame-drop-count", "seeking", "paused-for-cache", "demuxer-cache-state"].contains(name) else { return }
             let value = json.count > 120 ? json.prefix(120) + "…" : Substring(json)
             note(.info, "#\(playback) report \(name) = \(value)")
         case .display, .power:
@@ -1089,8 +1102,14 @@ public final class PlayerModel {
         return nil
     }
 
-    /// The seek line's stretches, from the file's chapters.
-    public var segments: [SeekSegment] { seekSegments(chapters: chapters, duration: duration) }
+    /// The seek line's stretches: the engine's openings and endings for the file playing, or
+    /// the file's chapters until it has said.
+    public var segments: [SeekSegment] {
+        if let marks = current.flatMap({ timelines[$0] }) {
+            return seekSegments(marks: marks, duration: duration)
+        }
+        return seekSegments(chapters: chapters, duration: duration)
+    }
 
     /// What the seek preview opens: the `Thumbnails` address, or the stream playing.
     public var previewSource: PreviewSource? {

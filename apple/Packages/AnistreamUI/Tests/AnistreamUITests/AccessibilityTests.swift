@@ -26,6 +26,19 @@ struct AccessibilityTests {
         #expect(Broadcast(entry: e, episode: 8, airs: aired.airs).spoken(now: now) == "Episode 8, watched")
     }
 
+    @Test func aBroadcastSaysAnEstimatedTimeAndItsMark() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let airs = now.addingTimeInterval(90 * 60)
+        let plain = Broadcast(entry: entry { _ in }, episode: 9, airs: airs)
+        #expect(plain.clock == CalendarWords.time(airs))
+        #expect(plain.mark == nil)
+        let estimated = Broadcast(entry: entry { $0.airingApproximate = true; $0.airingDubbed = true }, episode: 9, airs: airs)
+        #expect(estimated.clock == "~" + CalendarWords.time(airs))
+        #expect(estimated.mark == "Dub")
+        #expect(estimated.spoken(now: now) == "Episode 9, Dub at about \(CalendarWords.time(airs)), in 1 hour 30 minutes")
+        #expect(Broadcast(entry: entry { $0.airingTranslation = .sub }, episode: 9, airs: airs).mark == "Sub")
+    }
+
     @Test func anEpisodeIsNamedThenSaysWhereItStands() {
         let e = entry {
             $0.progress = TitleProgress(done: 6, next: 7)

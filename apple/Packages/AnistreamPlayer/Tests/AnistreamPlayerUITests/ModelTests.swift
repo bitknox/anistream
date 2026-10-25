@@ -701,6 +701,51 @@ struct ViewerTests {
         #expect(PlayerClock.remaining(149) == "−2:29")
         #expect(PlayerClock.label(3729) == "1:02:09")
     }
+
+    @Test func theEngineMarksTakeOverFromTheChaptersAndTheBufferedRangesFollowTheFile() async throws {
+        let rig = Rig()
+        try await rig.opened(1)
+        rig.mpv.emit(.property(name: "duration", value: .double(60)))
+        rig.mpv.emit(.property(name: "chapter-list", value: .array([
+            .map(["title": .string("Opening"), "time": .double(4)]),
+            .map(["title": .string("Part A"), "time": .double(18)]),
+        ])))
+        try await until("the chapters taken") { rig.model.chapters.count == 2 && rig.model.duration == 60 }
+        #expect(rig.model.segments.map(\.kind) == [.plain, .opening, .plain], "the chapters stand in")
+
+        rig.model.apply(.playerTimeline(playback: 1, marks: [
+            TimelineMark(kind: .ending, start: 42, end: 56), TimelineMark(kind: .opening, start: 5, end: 20),
+        ]))
+        #expect(rig.model.segments == [
+            SeekSegment(kind: .plain, start: 0, end: 5), SeekSegment(kind: .opening, start: 5, end: 20),
+            SeekSegment(kind: .plain, start: 20, end: 42), SeekSegment(kind: .ending, start: 42, end: 56),
+            SeekSegment(kind: .plain, start: 56, end: 60),
+        ])
+
+        rig.model.apply(.playerBuffered(playback: 1, ranges: [TimeRange(start: 0, end: 30)]))
+        #expect(rig.model.buffered == [TimeRange(start: 0, end: 30)])
+        rig.model.apply(.playerBuffered(playback: 2, ranges: [TimeRange(start: 0, end: 60)]))
+        #expect(rig.model.buffered == [TimeRange(start: 0, end: 30)], "another playback's is not this file's")
+        let spans = bufferedSpans(rig.model.buffered, in: SeekSegment(kind: .opening, start: 5, end: 20))
+        #expect(spans.count == 1 && spans[0].from == 0 && spans[0].length == 1)
+        #expect(bufferedSpans(rig.model.buffered, in: SeekSegment(kind: .ending, start: 42, end: 56)).isEmpty)
+
+        rig.mpv.emit(.startFile)
+        try await until("the next file") { rig.model.buffered.isEmpty }
+    }
+
+    @Test func mpvsCacheIsReportedToTheEngine() async throws {
+        #expect(reportedProperties.contains("demuxer-cache-state"))
+        let rig = Rig()
+        try await rig.opened(1)
+        let cache = AnistreamPlayer.MpvValue.map([
+            "seekable-ranges": .array([.map(["start": .double(0), "end": .double(30)])]),
+        ])
+        rig.mpv.emit(.property(name: "demuxer-cache-state", value: cache))
+        try await until("the cache reported") {
+            rig.reports.contains { $0.0 == 1 && $0.1 == .property(name: "demuxer-cache-state", json: cache.json) }
+        }
+    }
 }
 
 /// Buffering mid-episode: the amber line along the picture's top, after a second.

@@ -491,7 +491,9 @@ public final class AppStore {
     public func applyShowcase(arguments: [String] = ProcessInfo.processInfo.arguments) {
         #if FIXTURES
         guard testing, let showcase = Showcase.from(arguments: arguments) else { return }
-        let (events, held) = showcase.events(settings: settings.view) { [titles] in titles[$0] }
+        let (events, held) = showcase.events(
+            settings: settings.view, entry: { [titles] in titles[$0] }, calendar: calendar.rows,
+            anchor: calendar.anchor)
         self.held = []
         for event in events { apply(event) }
         self.held = held
@@ -647,7 +649,7 @@ public final class AppStore {
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
             widgetsChanged()
-        case .playerOps, .playerUi, .playbackKept, .sources:
+        case .playerOps, .playerUi, .playbackKept, .sources, .playerTimeline, .playerBuffered:
             onPlayback?(event)
 
         case .widgetSnapshot(let data):

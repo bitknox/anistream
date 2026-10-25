@@ -51,8 +51,9 @@ Android TV, Windows, Linux, Terminal.
    `screens/episodes.rs`) send it and draw it.
 
 The calendar marks the native UX spec describes, "~" for an estimated air time and Sub or Dub on
-a row, are on no platform: the engine's calendar `Entry` (`anistream-model/src/catalog.rs`) has
-`airing_in`, `airing_episode` and `delayed_from`, with no estimate flag and no translation.
+a row, come from the engine's calendar `Entry` (`airing_approximate`, `airing_translation`,
+`airing_dubbed`), worded by `present::air_time` and `present::calendar_mark`. Mac, iPhone and iPad
+show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 
 ## Watching
 
@@ -102,6 +103,10 @@ The Mac's Subtitles and Audio menus, in the player and in the menu bar, also loa
 audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's do: mpv's
 alone, not remembered for the show. iPhone and iPad have no such items.
 
+On Mac, iPhone and iPad the seek line draws the engine's own opening and ending marks
+(`Event::PlayerTimeline`, the chapters standing in until it has said) and the buffered ranges it
+reads from mpv's `demuxer-cache-state` (`Event::PlayerBuffered`), in `PlayerParts.swift`.
+
 Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
 companion binds u. Windows and Linux bind neither, and Linux's skip toast has no Undo. No player
 binds T for the tracks the desktop brief gives it.
@@ -132,7 +137,9 @@ The engine's `ShowSettingKey` also has Quality, DownloadQuality and KeepNext
 (`anistream-model/src/show.rs`); no app's show settings offers them yet.
 
 On Apple, Library, Sync now and conflict review are AniList's only; the other four trackers get a
-sign-in and sign-out row.
+sign-in and sign-out row. Simkl's and Trakt's device code counts down under the code ("Expires in
+14:59", `present::device_code_expiry`) and, once it has run out, the sheet stays with Get a New
+Code (`AccountsSheets.swift`).
 
 ## Downloads
 
@@ -152,8 +159,9 @@ On iPhone, downloads show as a Live Activity (`DownloadsActivityFeed.swift`, the
 `DownloadsLiveActivity`), and so do the episode playing (`PlaybackActivityFeed.swift`, with Play
 and Pause) and an episode of a followed show airing within the hour (`AiringActivityFeed.swift`,
 a countdown, then "Out now"). All three are local, with no push; playback ranks first in the
-Dynamic Island, then airing, then downloads. A queued download has no "start now" on any app,
-since the engine has no command for it.
+Dynamic Island, then airing, then downloads.
+On Mac and iPad a queued download has Start Now beside it, and on iPhone a Start now swipe
+(`Command::DownloadStartNow`).
 
 ## On the TV
 
