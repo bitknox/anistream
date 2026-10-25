@@ -168,7 +168,7 @@ pub(crate) fn options(
         sync.trackers[at] = tracker.clone();
         sync.anilist = Some(tracker);
     }
-    let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens)
+    let stores = plugin_stores::Stores::with_offline_tokens(&config, &paths, tokens)
         .map_err(|reason| FfiError::Engine { reason })?;
 
     let mut options = Opened { paths, config, store }.options(http, start);
@@ -178,6 +178,12 @@ pub(crate) fn options(
         }));
     options.background = Background::none();
     options.hosted_player = true;
-    options.parts = Some(Parts { meta, sync, stores, clock: testing.clock.clone() });
+    options.parts = Some(Parts {
+        meta,
+        sync,
+        stores,
+        clock: testing.clock.clone(),
+        fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+    });
     Ok(options)
 }

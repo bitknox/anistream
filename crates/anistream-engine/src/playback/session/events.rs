@@ -12,7 +12,8 @@ use anistream_model::{
     notice::{Notice, NoticeHint},
 };
 use anistream_playback::{
-    Action, Choice, PlaybackEvent, PlaybackTracker, ScriptEvent, SkipKind, TrackInput,
+    Action, Choice, PlaybackEvent, PlaybackTracker, ScriptEvent, SkipInterval, SkipKind,
+    TrackInput,
 };
 use anistream_store::ServerFailure;
 use tokio::sync::mpsc;
@@ -109,6 +110,10 @@ impl Run<'_> {
         let mut drops = 0_u64;
         let mut seeking = false;
         let mut buffering = false;
+        // The seek bar's marks as last said, and the pace for what the player holds.
+        let mut marked: Option<Vec<SkipInterval>> = None;
+        let mut buffered = super::timeline::Buffered::default();
+        let clock = tokio::time::Instant::now();
         let mut picture_tick = tokio::time::interval(Duration::from_secs(1));
         // The governor keeps its steps across episodes in this window, but its evidence is
         // per file.
@@ -163,6 +168,12 @@ impl Run<'_> {
                     continue;
                 }
                 _ = picture_tick.tick() => {
+                    // What the player holds and the pace kept back, now due: when nothing
+                    // more arrives, as once the whole file is held.
+                    let now = clock.elapsed().as_secs_f64();
+                    if let Some(ranges) = buffered.due(now, tracker.is_paused()) {
+                        let _ = link.overlay(Overlay::Buffered(ranges)).await;
+                    }
                     let picture = &mut player.picture;
                     let mut changed = false;
                     // Battery about once a minute: cheap, but a subprocess on macOS.
@@ -467,6 +478,15 @@ impl Run<'_> {
                         }
                     }
                 }
+                PlaybackEvent::Cached(ranges) => {
+                    let now = clock.elapsed().as_secs_f64();
+                    if let Some(ranges) =
+                        buffered.offer(ranges.clone(), now, tracker.is_paused())
+                    {
+                        let _ = link.overlay(Overlay::Buffered(ranges)).await;
+                    }
+                    continue;
+                }
                 // Our own `loadfile` ending the file it replaced; nothing to record.
                 PlaybackEvent::Replaced => continue,
                 PlaybackEvent::Progress { position, duration } => {
@@ -569,6 +589,17 @@ impl Run<'_> {
                 if let Some(next) = self.up_next() {
                     let _ = link.overlay(next).await;
                 }
+            }
+            // The seek bar marks the same segments: said for the file once, then as they change.
+            if marked.as_deref() != Some(tracker.skips()) {
+                marked = Some(tracker.skips().to_vec());
+                let _ = link.overlay(Overlay::Timeline(tracker.skips().to_vec())).await;
+            }
+            // Play carrying on says what the player came to hold while paused.
+            if matches!(event, PlaybackEvent::Paused(false))
+                && let Some(ranges) = buffered.resumed(clock.elapsed().as_secs_f64())
+            {
+                let _ = link.overlay(Overlay::Buffered(ranges)).await;
             }
 
             if let PlaybackEvent::Ended { complete } = event

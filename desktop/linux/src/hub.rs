@@ -20,11 +20,22 @@ use anistream_model::{
     downloads::{DownloadRow, DownloadState, SeedRow},
     event::Event,
     settings::{SettingKey, SettingRow, SettingsView},
-    sources::{ProviderOrigin, ProviderRow},
+    sources::{GuardView, ProviderOrigin, ProviderRow},
     stores::{StorePluginRow, StorePluginStatus, StoreRow},
     sync::SyncState,
 };
 use gtk::{gdk, gio, glib};
+
+/// A tracker's sign-in under way.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SignIn {
+    /// Waiting on the engine's work: the device code's wait, Kitsu's password, or the
+    /// browser's redirect being finished. Over when the job is.
+    Job(Option<JobId>),
+    /// The sign-in page is open in the browser, until its redirect comes back or the viewer
+    /// cancels.
+    Browser,
+}
 
 /// What several screens read, kept as the engine last said it.
 #[derive(Default)]
@@ -45,12 +56,29 @@ pub struct Known {
     pub providers_said: bool,
     /// The jobs running, by number, with their activity: "syncing".
     pub jobs: HashMap<JobId, String>,
+    /// The trackers being signed in to, and how.
+    pub signing: HashMap<String, SignIn>,
+    /// The torrent connection check's last verdict, and when it was heard; `None` while
+    /// torrents are off or before the first.
+    pub guard: Option<(GuardView, std::time::Instant)>,
+    /// The update check's last word.
+    pub update: Option<anistream_model::updates::UpdateStatus>,
 }
 
 impl Known {
     pub fn setting(&self, key: SettingKey) -> Option<SettingRow> {
         let view = self.settings.as_ref()?;
         view.rows.iter().chain(&view.native_rows).find(|r| r.key == key).cloned()
+    }
+
+    /// The account the sidebar shows: AniList when signed in, else the first other tracker
+    /// that is, in the order Accounts lists them.
+    pub fn account(&self) -> Option<&SyncState> {
+        self.anilist().or_else(|| {
+            ["mal", "kitsu", "simkl", "trakt"]
+                .iter()
+                .find_map(|t| self.sync.get(*t).filter(|s| s.connected))
+        })
     }
 
     /// The AniList account, when signed in.
@@ -144,7 +172,13 @@ impl Known {
             }
             Event::Settings(view) => self.settings = Some(view.clone()),
             Event::Sync(state) => {
+                if state.connected {
+                    self.signing.remove(&state.tracker);
+                }
                 self.sync.insert(state.tracker.clone(), (**state).clone());
+            }
+            Event::Authorize { tracker, .. } => {
+                self.signing.insert(tracker.clone(), SignIn::Browser);
             }
             Event::Downloads(rows) => {
                 self.downloads = rows.clone();
@@ -157,11 +191,16 @@ impl Known {
             }
             Event::Stores(rows) => self.stores = rows.clone(),
             Event::Connectivity { offline } => self.offline = *offline,
+            Event::Update(status) => self.update = Some(status.clone()),
+            Event::Vpn(guard) => {
+                self.guard = guard.clone().map(|g| (g, std::time::Instant::now()));
+            }
             Event::JobStarted { job, activity } => {
                 self.jobs.insert(*job, activity.clone());
             }
             Event::JobDone(job) => {
                 self.jobs.remove(job);
+                self.signing.retain(|_, way| *way != SignIn::Job(Some(*job)));
             }
             _ => {}
         }
@@ -385,6 +424,31 @@ mod tests {
         let entry = &known.entries[&7];
         assert_eq!(entry.progress, Some(TitleProgress { done: 3, next: 4 }));
         assert_eq!(entry.resume.map(|r| r.position), Some(60.0));
+    }
+
+    #[test]
+    fn a_sign_in_waits_through_the_browser_and_ends_with_its_job_or_the_account() {
+        let mut known = Known::default();
+        let connect = JobId::new(1);
+        known.signing.insert("mal".into(), SignIn::Job(Some(connect)));
+        known.take(&Event::Authorize {
+            tracker: "mal".into(),
+            url: "https://tracker.example/authorize".into(),
+            callback_scheme: "anistream".into(),
+        });
+        // The job that opened the browser ends; the sign-in goes on.
+        known.take(&Event::JobDone(connect));
+        assert_eq!(known.signing.get("mal"), Some(&SignIn::Browser));
+        let finish = JobId::new(2);
+        known.signing.insert("mal".into(), SignIn::Job(Some(finish)));
+        known.take(&Event::JobDone(finish));
+        assert!(known.signing.is_empty(), "a finished redirect ends it");
+
+        known.signing.insert("simkl".into(), SignIn::Job(Some(JobId::new(3))));
+        let mut state = anistream_model::sync::SyncState::new("simkl");
+        state.connected = true;
+        known.take(&Event::Sync(Box::new(state)));
+        assert!(known.signing.is_empty(), "signed in ends it");
     }
 
     #[test]

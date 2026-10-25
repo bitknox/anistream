@@ -229,8 +229,9 @@ impl Harness {
             sync.trackers[at] = tracker.clone();
             sync.anilist = Some(tracker);
         }
-        let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens.clone())
-            .expect("the plugin stores open");
+        let stores =
+            plugin_stores::Stores::with_offline_tokens(&config, &paths, tokens.clone())
+                .expect("the plugin stores open");
         let registry = options.registry.unwrap_or_else(anistream_testkit::sources::registry);
 
         // `run`'s start, short of the terminal.
@@ -261,7 +262,13 @@ impl Harness {
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = Background { keep_next: options.keep_next, ..Background::none() };
-        start.parts = Some(Parts { meta, sync, stores, clock: Default::default() });
+        start.parts = Some(Parts {
+            meta,
+            sync,
+            stores,
+            clock: Default::default(),
+            fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+        });
         start.free_space = Some(1_000_000_000_000);
         if let Some(seed) = options.before_start {
             seed(&store);
@@ -769,6 +776,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::Resumed { .. } => "Resumed",
         Event::PlayerOps { .. } => "PlayerOps",
         Event::PlayerUi { .. } => "PlayerUi",
+        Event::PlayerTimeline { .. } => "PlayerTimeline",
+        Event::PlayerBuffered { .. } => "PlayerBuffered",
         Event::Sync(_) => "Sync",
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
@@ -914,6 +923,12 @@ fn copy(update: &Event) -> Event {
         }
         Event::PlayerUi { playback, ui } => {
             Event::PlayerUi { playback: *playback, ui: ui.clone() }
+        }
+        Event::PlayerTimeline { playback, marks } => {
+            Event::PlayerTimeline { playback: *playback, marks: marks.clone() }
+        }
+        Event::PlayerBuffered { playback, ranges } => {
+            Event::PlayerBuffered { playback: *playback, ranges: ranges.clone() }
         }
         Event::Sync(state) => Event::Sync(state.clone()),
         Event::ProgressQueued => Event::ProgressQueued,

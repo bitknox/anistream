@@ -203,6 +203,9 @@ pub struct Parts {
     /// The clock the new-episode check, the widgets' record and the notifications' week go by,
     /// which the test can move on, and the zone they read days in, which it can choose.
     pub clock: crate::clock::Clock,
+    /// The exit network the connection check answers with, so that it makes no lookup and brings
+    /// no torrent session up: fixtures, never a real one.
+    pub fixture_exit: Option<anistream_providers::vpn::Egress>,
 }
 
 #[cfg(test)]

@@ -10,6 +10,7 @@
 //!   thread like everything else.
 
 pub mod commands;
+pub mod device;
 pub mod native;
 
 use std::sync::Arc;
@@ -72,6 +73,8 @@ pub struct Sync {
     pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, PullError>>>,
     /// The sign-ins a native app's sheet is showing, each waiting for its redirect.
     pub pending: native::PendingSignIns,
+    /// The device-code sign-ins running, one per tracker: see [`device`].
+    pub device: device::DeviceFlows,
 }
 
 impl Sync {
@@ -212,6 +215,7 @@ impl Sync {
             http: http.clone(),
             pull_errors: Arc::default(),
             pending: native::PendingSignIns::default(),
+            device: device::DeviceFlows::default(),
         }
     }
 
@@ -1063,12 +1067,16 @@ async fn connect_device(
         return;
     };
 
+    // Replacing the code on screen, if one is: see `device`.
+    let flow = sync.device.begin(&tracker_id);
     let http = sync.http.plain().clone();
-    let code = match anistream_track::device::request_code(&http, &endpoints, &client_id).await
-    {
-        Ok(code) => code,
+    let asked = flow.run(anistream_track::device::request_code(&http, &endpoints, &client_id));
+    let code = match asked.await {
+        // Stopped: what stopped it says what follows.
+        None => return,
+        Some(Ok(code)) => code,
         // Its own sentence, naming the service and saying what it said: not its JSON.
-        Err(e) => {
+        Some(Err(e)) => {
             let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
             return;
         }
@@ -1078,23 +1086,33 @@ async fn connect_device(
     // wrong twice over: it is drawn in the dimmest role in the palette, and any background task
     // setting a status — a rate-limit notice, a finished download — would wipe the one thing the
     // user has to read. Reported as the code never being displayed, which it effectively was not.
-    let _ = tx.send(Event::DeviceCode(Some(anistream_model::sync::DeviceCodePrompt {
-        tracker: tracker_id.clone(),
-        code: code.user_code.clone(),
-        url: code.verification_url.clone(),
-    })));
+    // With when it stops working, for the TV's countdown, which asks for a new code then.
+    let _ = tx.send(Event::DeviceCode(Some(device::prompt(
+        &tracker_id,
+        &code.user_code,
+        &code.verification_url,
+        code.expires_in,
+        crate::now_epoch(),
+    ))));
     if let Err(e) = host.open_url(&code.verification_url) {
         tracing::info!(url = %code.verification_url, error = %e, "open this to approve");
     }
 
-    match anistream_track::device::poll_for_token(
-        &http,
-        &client_id,
-        client_secret.as_deref(),
-        &code,
-    )
-    .await
-    {
+    let polled = flow
+        .run(anistream_track::device::poll_for_token(
+            &http,
+            &client_id,
+            client_secret.as_deref(),
+            &code,
+        ))
+        .await;
+    // A new code asked for, or the sign-in closed: the code on screen is the next flow's, or
+    // nothing, and this one has nothing to say over it.
+    let Some(polled) = polled else {
+        tracing::info!(tracker = %tracker_id, "device sign-in stopped");
+        return;
+    };
+    match polled {
         Ok(pair) => {
             let storage = sync.tokens.set_pair(
                 &tracker_id,
@@ -1120,8 +1138,11 @@ async fn connect_device(
         }
     }
     // Cleared however the flow ended — approved, refused or expired. A prompt left up after a
-    // successful sign-in would be asking for a code that no longer does anything.
-    let _ = tx.send(Event::DeviceCode(None));
+    // successful sign-in would be asking for a code that no longer does anything. Not when a
+    // new code has replaced this one since, which is the prompt on screen now.
+    if flow.current() {
+        let _ = tx.send(Event::DeviceCode(None));
+    }
     let _ = tx.send(Event::Status(String::new()));
 }
 

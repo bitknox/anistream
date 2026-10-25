@@ -80,6 +80,19 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             truncate(&spaced, area.width.saturating_sub(13) as usize),
             app.palette.style(Role::Obi).add_modifier(Modifier::BOLD),
         );
+        // How long the code has left, under it; once it expires, Enter on the row asks again.
+        if let Some(at) = prompt.expires_at {
+            y += 1;
+            buf.set_string(
+                area.left() + 12,
+                y,
+                truncate(
+                    &anistream_model::present::device_code_expiry(at - app.clock.now_epoch()),
+                    area.width.saturating_sub(13) as usize,
+                ),
+                app.palette.style(Role::TextDim),
+            );
+        }
         y += 2;
         Hairline::new(&app.palette).render(Rect { y, height: 1, ..area }, buf);
         y += 2;
@@ -404,6 +417,7 @@ mod tests {
                 tracker: "simkl".into(),
                 code: "FA433".into(),
                 url: "https://simkl.com/pin".into(),
+                expires_at: None,
             },
         )));
 
@@ -429,6 +443,7 @@ mod tests {
                 tracker: "simkl".into(),
                 code: "FA433".into(),
                 url: "https://simkl.com/pin".into(),
+                expires_at: None,
             },
         )));
         let buf = render_to_buffer(&mut app, 110, 20);
@@ -452,6 +467,7 @@ mod tests {
                 tracker: "simkl".into(),
                 code: "FA433".into(),
                 url: "https://simkl.com/pin".into(),
+                expires_at: None,
             },
         )));
         assert!(text_of(&render_to_buffer(&mut app, 110, 20)).contains("F A 4 3 3"));

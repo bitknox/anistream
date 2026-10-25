@@ -309,6 +309,7 @@ pub struct TorrentUp {
 /// guard the configuration can build. Both missing are mistakes a retry cannot fix.
 fn prepare_torrent(
     config: &Config,
+    fixture: Option<&anistream_providers::vpn::Egress>,
 ) -> std::result::Result<
     (anistream_providers::torrent::provider::IndexerSettings, VpnGuard),
     String,
@@ -321,8 +322,21 @@ fn prepare_torrent(
     .ok_or_else(|| {
         "no providers.torrent.rss_url configured (anistream ships no indexer)".to_owned()
     })?;
-    let guard = VpnGuard::new(config.providers.torrent.vpn.clone())?;
+    let guard = guard_for(config, fixture)?;
     Ok((settings, guard))
+}
+
+/// The guard `config` describes: one that looks the exit up, or in a fixture build one that
+/// answers with `fixture` and makes no request.
+pub fn guard_for(
+    config: &Config,
+    fixture: Option<&anistream_providers::vpn::Egress>,
+) -> std::result::Result<VpnGuard, String> {
+    let vpn = config.providers.torrent.vpn.clone();
+    match fixture {
+        Some(egress) => VpnGuard::fixed(vpn, egress.clone()),
+        None => VpnGuard::new(vpn),
+    }
 }
 
 /// Bring up the VPN guard, verify egress, then start the torrent session.
@@ -335,7 +349,7 @@ async fn start_torrent_provider(
     paths: &Paths,
     store: &anistream_store::Store,
 ) -> std::result::Result<TorrentUp, (String, Option<GuardState>)> {
-    let (settings, guard) = prepare_torrent(config).map_err(|reason| (reason, None))?;
+    let (settings, guard) = prepare_torrent(config, None).map_err(|reason| (reason, None))?;
 
     let state = guard.verify().await;
     if !state.is_protected() {
@@ -367,11 +381,12 @@ pub async fn bring_up_torrent(
     store: anistream_store::Store,
     tx: crate::outbox::Outbox,
     check: std::sync::Arc<tokio::sync::Notify>,
+    fixture: Option<anistream_providers::vpn::Egress>,
 ) -> std::result::Result<TorrentUp, String> {
     use anistream_model::event::Event;
     use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};
 
-    let (settings, guard) = prepare_torrent(&config)?;
+    let (settings, guard) = prepare_torrent(&config, fixture.as_ref())?;
     // Before the wait rather than after it: a cache left full by an earlier run should not stay
     // full for as long as the tunnel is down.
     sweep_before_session(&config, &paths, &store).await;

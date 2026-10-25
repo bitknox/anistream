@@ -14,6 +14,7 @@ use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
     notice::{Notice, NoticeHint, NoticeKind},
+    updates::UpdateStatus,
 };
 use gtk::{gio, glib};
 
@@ -104,7 +105,17 @@ impl Ctx {
         );
     }
 
-    fn show_notice(&self, text: &str, alert: bool, button: Option<(&str, &str, Option<&str>)>) {
+    /// A notice of the app's own with a button: `label`, running the window's `action`.
+    pub fn toast_with(&self, text: &str, label: &str, action: &str) -> adw::Toast {
+        self.show_notice(text, false, Some((label, action, None)))
+    }
+
+    fn show_notice(
+        &self,
+        text: &str,
+        alert: bool,
+        button: Option<(&str, &str, Option<&str>)>,
+    ) -> adw::Toast {
         let toast = adw::Toast::new(text);
         // The words as the toast's own title, so a click on them dismisses it.
         let title = gtk::Label::new(Some(text));
@@ -132,7 +143,8 @@ impl Ctx {
             toast.set_priority(adw::ToastPriority::High);
         }
         toast.set_timeout(words::notice_seconds(text, alert || button.is_some()));
-        self.toasts.add_toast(toast);
+        self.toasts.add_toast(toast.clone());
+        toast
     }
 }
 
@@ -500,6 +512,24 @@ impl Shell {
         add("back", None, Box::new(|s, _| s.back()));
         add("sync", None, Box::new(|s, _| s.ctx.hub.send(Command::SyncNow)));
         add("about", None, Box::new(|s, _| pages::settings::about(&s.ctx)));
+        add(
+            "release-page",
+            None,
+            Box::new(|s, _| {
+                let page = s
+                    .ctx
+                    .hub
+                    .known
+                    .borrow()
+                    .update
+                    .as_ref()
+                    .and_then(|u| crate::updates::page(Some(u)).map(str::to_owned));
+                if let Some(page) = page {
+                    s.open_url(&page);
+                }
+            }),
+        );
+        add("check-updates", None, Box::new(|s, _| s.ctx.hub.send(Command::CheckForUpdates)));
         add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
         add(
             "connect",
@@ -569,7 +599,17 @@ impl Shell {
                 {
                     shell.welcome();
                 }
+                // A newer version, told once: Flatpak tells of its own.
+                Event::Update(UpdateStatus::Available { release, notify: true })
+                    if !crate::updates::flatpak() =>
+                {
+                    let text = format!("Version {} of anistream is out", release.version);
+                    shell.ctx.toast_with(&text, "View", "win.release-page");
+                }
                 Event::Authorize { url, .. } => shell.open_url(url),
+                Event::DeviceCode(prompt) => {
+                    pages::accounts::device_code(&shell.ctx, prompt.as_ref())
+                }
                 Event::PlaybackEnded { rolling_on: false, .. } => {
                     shell.ctx.hub.send(Command::LoadContinue);
                 }
@@ -647,14 +687,35 @@ impl Shell {
 
     fn open_url(&self, url: &str) {
         if self.fixtures {
-            tracing::info!(%url, "a link, not opened in a scene");
+            tracing::info!(url = %anistream_mpv_host::log::address(url), "a link, not opened in a scene");
             return;
         }
-        gtk::UriLauncher::new(url).launch(
-            Some(&self.ctx.window),
-            gio::Cancellable::NONE,
-            |_| {},
-        );
+        let ctx = Rc::downgrade(&self.ctx);
+        crate::portal::open_uri(&self.ctx.window, url, move || {
+            if let Some(ctx) = ctx.upgrade() {
+                ctx.toast("Couldn't open your browser");
+            }
+        });
+    }
+
+    /// An `anistream://` link handed to the app: a tracker's sign-in coming back from the
+    /// browser, `anistream://auth/<tracker>` with the token or code it carries.
+    pub fn open_link(&self, link: &str) {
+        match sign_in_return(link) {
+            Some(tracker) => {
+                let hub = &self.ctx.hub;
+                let job = hub.send_job(Command::FinishSignIn {
+                    tracker: tracker.clone(),
+                    callback: anistream_model::stores::Secret(link.to_owned()),
+                });
+                hub.known.borrow_mut().signing.insert(tracker, crate::hub::SignIn::Job(job));
+                self.settings_pane("accounts");
+            }
+            None => {
+                tracing::info!("a link this app does not open");
+                self.ctx.toast("anistream can't open that link");
+            }
+        }
     }
 
     /// Closing with nothing running quits. Closing while episodes download or seed asks first.
@@ -736,6 +797,14 @@ impl Shell {
     pub fn is_player(&self) -> bool {
         self.top.visible_child_name().as_deref() == Some("player")
     }
+}
+
+/// The tracker an `anistream://auth/<tracker>` sign-in return is for.
+fn sign_in_return(link: &str) -> Option<String> {
+    let rest = link.strip_prefix("anistream://auth/")?;
+    let tracker: String =
+        rest.chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '-').collect();
+    (!tracker.is_empty()).then_some(tracker)
 }
 
 /// A notice as a sentence: the engine words its notices for the terminal, in lower case.
@@ -863,7 +932,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
         move || {
             let Some(hub) = hub.upgrade() else { return };
             let known = hub.known.borrow();
-            match known.anilist() {
+            match known.account() {
                 Some(state) => {
                     let user = state
                         .user
@@ -880,7 +949,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                             anistream_model::wording::plural(waiting as usize, "change")
                         )
                     } else {
-                        "AniList synced".into()
+                        format!("{} synced", words::tracker_name(&state.tracker))
                     });
                     dot.set_visible(waiting == 0 && !state.needs_reauth && !known.syncing());
                 }
@@ -900,4 +969,23 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
         }
     });
     row
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_sign_in_return_names_its_tracker() {
+        assert_eq!(
+            sign_in_return("anistream://auth/anilist#access_token=x&state=y").as_deref(),
+            Some("anilist")
+        );
+        assert_eq!(
+            sign_in_return("anistream://auth/mal?code=x&state=y").as_deref(),
+            Some("mal")
+        );
+        assert_eq!(sign_in_return("anistream://join/abc"), None);
+        assert_eq!(sign_in_return("anistream://auth/"), None);
+    }
 }

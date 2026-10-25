@@ -286,6 +286,49 @@ async fn a_playback_opens_a_window_loads_the_file_and_plays_it_to_its_end() {
 }
 
 #[tokio::test]
+async fn the_seek_bar_is_told_its_marks_and_what_is_held_but_nothing_held_while_paused() {
+    let cached = |end: f64| PlaybackEvent::Cached(vec![(0.0, end)]);
+    let events = [
+        opening(&[("Opening", 0.0), ("Part A", 30.0)]),
+        vec![
+            cached(10.0),
+            PlaybackEvent::Paused(true),
+            cached(50.0),
+            cached(60.0),
+            PlaybackEvent::Paused(false),
+        ],
+        playing((1920, 1080)),
+    ]
+    .concat();
+    let rig = Rig::new(vec![events]);
+    rig.play(stream(StreamKind::Mp4), context("1", None), settings()).await;
+    let calls = rig.opener.calls();
+
+    let marks: Vec<_> = calls
+        .iter()
+        .filter_map(|call| match call {
+            Call::Overlay(Overlay::Timeline(marks)) => Some(marks.clone()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        marks.last().is_some_and(|marks| marks.len() == 1
+            && marks[0].kind == SkipKind::Opening
+            && marks[0].start == 0.0
+            && marks[0].end == 30.0),
+        "the file's opening, once its chapters are in: {marks:#?}"
+    );
+    let held: Vec<_> = calls
+        .iter()
+        .filter_map(|call| match call {
+            Call::Overlay(Overlay::Buffered(ranges)) => Some(ranges.clone()),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(held, [vec![(0.0, 10.0)], vec![(0.0, 60.0)]], "the latest once play carries on");
+}
+
+#[tokio::test]
 async fn the_next_episode_plays_in_the_window_the_last_one_left() {
     let rig = Rig::new(vec![file(&[], (1920, 1080)), file(&[], (1920, 1080))]);
     let first = rig.play(stream(StreamKind::Mp4), context("1", Some("2")), settings()).await;
