@@ -245,6 +245,12 @@ struct DownloadsTests {
         #expect(model.rates[3] == nil)
     }
 
+    @Test func aQueuedDownloadIsStartedAheadOfTheQueue() {
+        let store = AppStore()
+        store.startDownloadNow(2)
+        #expect(store.sentLog.last == "downloadStartNow")
+    }
+
     @Test func aSeedingFilesSizeIsWhatWentUpOverItsRatio() {
         let row = SeedRow(name: "Hoshikuzu no Tabibito - 05.mkv", uploadedBytes: 360_000_000, ratio: 0.8, goal: 1, leftSecs: 21_600)
         #expect(row.size == 450_000_000)

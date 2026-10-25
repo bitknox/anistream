@@ -146,8 +146,8 @@ sign-in and sign-out row.
 3. `[downloads] keep_next` in config.toml; the TUI does not draw the row.
 
 On iPhone, downloads show as a Live Activity (`DownloadsActivityFeed.swift`, the widget bundle's
-`DownloadsLiveActivity`); there is none for playback or airing. A queued download has no "start
-now" on any app, since the engine has no command for it.
+`DownloadsLiveActivity`); there is none for playback or airing. On Mac and iPad a queued download
+has Start Now beside it, and on iPhone a Start now swipe (`Command::DownloadStartNow`).
 
 ## On the TV
 

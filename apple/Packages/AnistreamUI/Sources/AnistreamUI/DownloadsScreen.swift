@@ -274,7 +274,10 @@ struct DownloadLine: View {
                 icon("play", "Resume") { store.toggleDownload(row.id) }
                 icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
             case .queued:
-                // Starting one ahead of the queue is no command the engine has, so no menu offers it.
+                Button(cased(mac: "Start Now", touch: "Start now")) { store.startDownloadNow(row.id) }
+                    .buttonStyle(SecondaryCapsuleStyle())
+                    .fixedSize()
+                    .help("Start this download ahead of the queue")
                 icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
             case .failed:
                 Button("Retry") { store.retryDownload(row) }

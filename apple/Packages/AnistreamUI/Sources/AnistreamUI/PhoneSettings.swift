@@ -466,7 +466,10 @@ struct PhoneDownloadRow: View {
         .swipeActions(edge: .leading) {
             switch row.state {
             case .done: Button("Play") { store.playDownload(row) }
-            case .active, .queued: Button("Pause") { store.toggleDownload(row.id) }
+            case .active: Button("Pause") { store.toggleDownload(row.id) }
+            case .queued:
+                Button("Start now") { store.startDownloadNow(row.id) }
+                Button("Pause") { store.toggleDownload(row.id) }
             case .paused: Button("Resume") { store.toggleDownload(row.id) }
             case .failed: Button("Retry") { store.retryDownload(row) }
             }
