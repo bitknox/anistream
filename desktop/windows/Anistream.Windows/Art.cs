@@ -14,6 +14,19 @@ sealed class Art(Func<Command, ulong?> send)
 {
     readonly Dictionary<string, ImageSource> ready = [];
     readonly Dictionary<string, List<Action<ImageSource>>> waiting = [];
+    readonly Dictionary<string, List<Action<byte[]>>> raw = [];
+
+    /// <summary>The art's own bytes, once they are here: for a picture outside the window, such as a notification's.</summary>
+    public void Bytes(string url, Action<byte[]> got)
+    {
+        if (raw.TryGetValue(url, out var list))
+        {
+            list.Add(got);
+            return;
+        }
+        raw[url] = [got];
+        send(new Command.FetchArtwork(url));
+    }
 
     /// <summary>Show <paramref name="url"/>'s art through <paramref name="show"/>: now, or once it is here.</summary>
     public void Bind(string? url, Action<ImageSource> show)
@@ -36,6 +49,9 @@ sealed class Art(Func<Command, ulong?> send)
 
     public async void Arrived(string url, byte[] bytes)
     {
+        if (raw.Remove(url, out var gots))
+            foreach (var got in gots)
+                got(bytes);
         if (!waiting.Remove(url, out var shows))
             shows = [];
         try
@@ -56,7 +72,11 @@ sealed class Art(Func<Command, ulong?> send)
     }
 
     /// <summary>Asked again the next time a page shows it.</summary>
-    public void Failed(string url) => waiting.Remove(url);
+    public void Failed(string url)
+    {
+        waiting.Remove(url);
+        raw.Remove(url);
+    }
 
     public void Take(IReadOnlyList<Event> batch)
     {

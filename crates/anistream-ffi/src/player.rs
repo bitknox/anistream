@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 
 use anistream_model::{
     command::Command,
-    hosted::{MpvOption, PlayerOp},
+    hosted::{MpvOption, PlayerOp, TrackKind},
     playback::PlaybackId,
 };
 use anistream_mpv_host::{HostEvent, Player, PlayerOptions, PlayerState, VideoOutput};
@@ -61,6 +61,22 @@ pub struct FfiPlayerState {
     /// The file on screen has shown its first frame.
     pub has_picture: bool,
     pub frame_drops: i64,
+    /// The file's audio and subtitle tracks, for the Tracks menu; a pick goes to the engine as
+    /// `PlayerCommand::ChooseTrack`, which keeps it for the series.
+    pub tracks: Vec<FfiTrack>,
+}
+
+/// One of the file's audio or subtitle tracks.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct FfiTrack {
+    pub kind: TrackKind,
+    pub id: i64,
+    /// The language code the file gives; `track_name` turns it and the title into words.
+    pub language: Option<String>,
+    pub title: Option<String>,
+    pub selected: bool,
+    /// Added from a file beside the stream.
+    pub external: bool,
 }
 
 impl From<PlayerState> for FfiPlayerState {
@@ -73,6 +89,18 @@ impl From<PlayerState> for FfiPlayerState {
             seeking: s.seeking,
             has_picture: s.has_picture,
             frame_drops: s.frame_drops,
+            tracks: s
+                .tracks
+                .into_iter()
+                .map(|t| FfiTrack {
+                    kind: t.kind,
+                    id: t.id,
+                    language: t.language,
+                    title: t.title,
+                    selected: t.selected,
+                    external: t.external,
+                })
+                .collect(),
         }
     }
 }

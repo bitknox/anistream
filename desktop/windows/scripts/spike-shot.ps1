@@ -15,6 +15,16 @@ param(
   [string]$At = '8',
   [int]$Wait = 0,
   [string]$Arguments = '',
+  # Capture the whole primary screen, for what shows outside the window: a notification, the
+  # media overlay.
+  [switch]$Screen,
+  # Before each capture: the pointer to 'x,y' on the screen (over the taskbar button, for its
+  # thumbnail), and with -Volume a volume key up and down, which opens the media overlay.
+  [string]$Point = '',
+  [switch]$Volume,
+  # Before each capture: Win+T, then this many presses of Right, which shows that taskbar
+  # button's thumbnail as a hover would. -1 for none.
+  [int]$Taskbar = -1,
   [switch]$Inner
 )
 $ErrorActionPreference = 'Stop'
@@ -26,7 +36,11 @@ if (-not $Inner) {
   $done = Join-Path $Out "$Name.done"
   Remove-Item $done -ErrorAction SilentlyContinue
   $quoted = "'" + ($Arguments -replace "'", "''") + "'"
-  $command = "& '$PSCommandPath' -Inner -Exe '$Exe' -Out '$Out' -Name '$Name' -At '$At' -Wait $Wait -Arguments $quoted *> '$Out\$Name.task.log'; New-Item '$done' | Out-Null"
+  $screenArg = if ($Screen) { ' -Screen' } else { '' }
+  if ($Volume) { $screenArg += ' -Volume' }
+  if ($Point) { $screenArg += " -Point '$Point'" }
+  if ($Taskbar -ge 0) { $screenArg += " -Taskbar $Taskbar" }
+  $command = "& '$PSCommandPath' -Inner$screenArg -Exe '$Exe' -Out '$Out' -Name '$Name' -At '$At' -Wait $Wait -Arguments $quoted *> '$Out\$Name.task.log'; New-Item '$done' | Out-Null"
   $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
   $task = 'anistream-player-spike'
   $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand $encoded"
@@ -51,6 +65,9 @@ public static class SpikeWin {
   [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out RECT rect, int size);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
   [DllImport("user32.dll")] public static extern bool SetProcessDPIAware();
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extra);
+  [DllImport("user32.dll")] public static extern void keybd_event(byte key, byte scan, uint flags, UIntPtr extra);
 }
 '@
 [SpikeWin]::SetProcessDPIAware() | Out-Null
@@ -64,9 +81,48 @@ foreach ($mark in ($marks | Sort-Object)) {
   $hwnd = $proc.MainWindowHandle
   [SpikeWin]::SetForegroundWindow($hwnd) | Out-Null
   Start-Sleep -Milliseconds 300
+  if ($Point) {
+    $xy = $Point -split ','
+    # Moved onto it in steps, as a hand would: the taskbar shows a thumbnail on hover, not on a jump.
+    foreach ($dy in 40, 20, 8, 0) {
+      [SpikeWin]::SetCursorPos([int]$xy[0], [int]$xy[1] - $dy) | Out-Null
+      [SpikeWin]::mouse_event(1, 0, 0, 0, [UIntPtr]::Zero)
+      Start-Sleep -Milliseconds 120
+    }
+    Start-Sleep -Milliseconds 2500
+  }
+  if ($Taskbar -ge 0) {
+    [SpikeWin]::keybd_event(0x5B, 0, 0, [UIntPtr]::Zero)
+    [SpikeWin]::keybd_event(0x54, 0, 0, [UIntPtr]::Zero)
+    [SpikeWin]::keybd_event(0x54, 0, 2, [UIntPtr]::Zero)
+    [SpikeWin]::keybd_event(0x5B, 0, 2, [UIntPtr]::Zero)
+    Start-Sleep -Milliseconds 600
+    if ($Taskbar -gt 0) {
+      1..$Taskbar | ForEach-Object {
+        [SpikeWin]::keybd_event(0x27, 0, 0, [UIntPtr]::Zero)
+        [SpikeWin]::keybd_event(0x27, 0, 2, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 400
+      }
+    }
+    Start-Sleep -Milliseconds 2000
+  }
+  if ($Volume) {
+    # VK_VOLUME_UP then VK_VOLUME_DOWN: the level ends where it was, the overlay shows.
+    foreach ($key in 0xAF, 0xAE) {
+      [SpikeWin]::keybd_event($key, 0, 0, [UIntPtr]::Zero)
+      [SpikeWin]::keybd_event($key, 0, 2, [UIntPtr]::Zero)
+      Start-Sleep -Milliseconds 150
+    }
+    Start-Sleep -Milliseconds 900
+  }
   $r = New-Object SpikeWin+RECT
   # DWMWA_EXTENDED_FRAME_BOUNDS: the window as drawn, without the invisible resize borders.
   [SpikeWin]::DwmGetWindowAttribute($hwnd, 9, [ref]$r, 16) | Out-Null
+  if ($Screen) {
+    Add-Type -AssemblyName System.Windows.Forms
+    $b = [Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $r.Left = $b.Left; $r.Top = $b.Top; $r.Right = $b.Right; $r.Bottom = $b.Bottom
+  }
   $w = $r.Right - $r.Left; $h = $r.Bottom - $r.Top
   $bmp = New-Object Drawing.Bitmap $w, $h
   $g = [Drawing.Graphics]::FromImage($bmp)

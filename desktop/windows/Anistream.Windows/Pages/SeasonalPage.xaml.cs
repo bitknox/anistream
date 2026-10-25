@@ -59,7 +59,7 @@ public sealed partial class SeasonalPage : Page
         Earlier.IsEnabled = season != last;
         ContentFor view = season == now ? new ContentFor.Seasonal() : new ContentFor.Search(Query(season));
         entries = ctx.Known.ListEntries(view);
-        answered = ctx.Known.Lists.TryGetValue(view, out var list) && list is ContentList.Entries or ContentList.Empty;
+        answered = ctx.Known.List(view) is ContentList.Entries or ContentList.Empty;
         State.Wait(hasContent: entries.Length > 0);
         ctx.Send(season == now ? new Command.LoadSeasonal() : new Command.Search(Query(season)));
         if (entries.Length > 0 || answered)
@@ -75,7 +75,7 @@ public sealed partial class SeasonalPage : Page
             var ours = c.View switch
             {
                 ContentFor.Seasonal => picked == now,
-                ContentFor.Search s => picked != now && s.Query == Query(picked),
+                ContentFor.Search s => picked != now && Anistream.App.Searches.Same(s.Query, Query(picked)),
                 _ => false,
             };
             if (!ours || c.ContentValue is ContentList.Loading)

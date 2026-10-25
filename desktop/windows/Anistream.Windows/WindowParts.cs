@@ -146,5 +146,47 @@ sealed class Taskbar
         // ITaskbarList3
         void SetProgressValue(nint hwnd, ulong completed, ulong total);
         void SetProgressState(nint hwnd, int flags);
+        void RegisterTab(nint tab, nint hwnd);
+        void UnregisterTab(nint tab);
+        void SetTabOrder(nint tab, nint insertBefore);
+        void SetTabActive(nint tab, nint hwnd, uint reserved);
+        void ThumbBarAddButtons(nint hwnd, uint count, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] ThumbButton[] buttons);
+        void ThumbBarUpdateButtons(nint hwnd, uint count, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] ThumbButton[] buttons);
+    }
+
+    /// <summary>THUMBBUTTON: one button under the window's taskbar thumbnail.</summary>
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct ThumbButton
+    {
+        public const uint Icon = 2, Tooltip = 4, Flags = 8;
+        public const uint Enabled = 0, Hidden = 8;
+
+        public uint Mask;
+        public uint Id;
+        public uint Bitmap;
+        public nint IconHandle;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string Tip;
+        public uint State;
+    }
+
+    /// <summary>
+    /// Puts <paramref name="buttons"/> under the window's thumbnail, which takes them once per
+    /// window and then only updates them; false when the taskbar would not.
+    /// </summary>
+    public bool ThumbButtons(ThumbButton[] buttons, bool first)
+    {
+        try
+        {
+            if (first)
+                list.ThumbBarAddButtons(hwnd, (uint)buttons.Length, buttons);
+            else
+                list.ThumbBarUpdateButtons(hwnd, (uint)buttons.Length, buttons);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 }

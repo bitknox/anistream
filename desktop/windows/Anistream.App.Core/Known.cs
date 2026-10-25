@@ -19,6 +19,9 @@ public sealed class Known
     public Dictionary<uint, EpisodeRow[]> Episodes { get; } = [];
 
     public SettingsView? Settings { get; private set; }
+
+    /// <summary>What the search filters choose from, once the engine has said.</summary>
+    public SearchFacets? Facets { get; private set; }
     public Dictionary<string, SyncState> Sync { get; } = [];
     public DownloadRow[] Downloads => Queue.Rows;
     public SeedRow[] Seeding { get; private set; } = [];
@@ -73,7 +76,7 @@ public sealed class Known
 
     /// <summary>The list's titles, each as it now stands, or none when it has not loaded.</summary>
     public Entry[] ListEntries(ContentFor view) =>
-        Lists.TryGetValue(view, out var list) && list is ContentList.Entries e
+        List(view) is ContentList.Entries e
             ? [.. e.V1.Select(x => Entries.GetValueOrDefault(x.Id, x))]
             : [];
 
@@ -83,7 +86,16 @@ public sealed class Known
     /// stand would lose.
     /// </summary>
     public Entry[] ListRows(ContentFor view) =>
-        Lists.TryGetValue(view, out var list) && list is ContentList.Entries e ? e.V1 : [];
+        List(view) is ContentList.Entries e ? e.V1 : [];
+
+    /// <summary>
+    /// The list as the engine last sent it, or null. A search is found by what it asks: the query
+    /// the engine sends back carries arrays of its own, which a record compares by reference.
+    /// </summary>
+    public ContentList? List(ContentFor view) =>
+        Lists.TryGetValue(view, out var list) ? list
+        : view is ContentFor.Search ? Lists.FirstOrDefault(p => Searches.Same(p.Key, view)).Value
+        : null;
 
     public Entry? Entry(uint id) => Entries.GetValueOrDefault(id);
 
@@ -92,7 +104,11 @@ public sealed class Known
         switch (e)
         {
             case Event.Content c:
-                Lists[c.View] = c.ContentValue;
+                // One key per search, whichever instance of its query asked it.
+                var key = c.View is ContentFor.Search && !Lists.ContainsKey(c.View)
+                    ? Lists.Keys.FirstOrDefault(k => Searches.Same(k, c.View)) ?? c.View
+                    : c.View;
+                Lists[key] = c.ContentValue;
                 if (c.ContentValue is ContentList.Entries list)
                 {
                     foreach (var entry in list.V1)
@@ -121,6 +137,9 @@ public sealed class Known
                 break;
             case Event.Settings s:
                 Settings = s.V1;
+                break;
+            case Event.Facets f:
+                Facets = f.V1;
                 break;
             case Event.Sync s:
                 Sync[s.V1.Tracker] = s.V1;

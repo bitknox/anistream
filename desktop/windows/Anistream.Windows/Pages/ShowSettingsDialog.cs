@@ -11,16 +11,23 @@ namespace Anistream.Windows.Pages;
 
 /// <summary>
 /// One show's own settings, from the title page's More menu (Ctrl+I): its audio and the
-/// subtitles the player remembers for it (read-only), its skips and spoiler protection,
+/// subtitles the player remembers for it (read-only), the quality it plays in, its skips and
+/// spoiler protection, its downloads' quality and how many episodes it keeps ahead,
 /// new-episode notifications, the source it keeps, and a reset that puts it all back. Each row
-/// follows Settings until the show sets its own. The rows are the Mac's and Linux's.
+/// follows Settings until the show sets its own. The rows are the engine's (<c>ShowSettingKey</c>),
+/// the Mac's and Android's among them. Until the engine answers, every row stands on "–" and
+/// cannot be changed; a line under the title, in a slot of its own, says it is loading after
+/// 600 ms and that it failed after 8 s, with Try again, so nothing moves when the answer lands.
 /// </summary>
 sealed class ShowSettingsDialog
 {
+    static readonly TimeSpan Silence = TimeSpan.FromMilliseconds(600), GiveUp = TimeSpan.FromSeconds(8);
+
     static readonly (string Heading, ShowSettingKey[] Keys)[] Groups =
     [
         ("Audio and subtitles", [ShowSettingKey.Translation]),
-        ("Episodes", [ShowSettingKey.SkipOpening, ShowSettingKey.SkipFiller, ShowSettingKey.SpoilerProtection]),
+        ("Playback", [ShowSettingKey.Quality, ShowSettingKey.SkipOpening, ShowSettingKey.SkipFiller, ShowSettingKey.SpoilerProtection]),
+        ("Downloads", [ShowSettingKey.DownloadQuality, ShowSettingKey.KeepNext]),
         ("Notifications", [ShowSettingKey.NotifyNewEpisodes]),
     ];
 
@@ -28,9 +35,12 @@ sealed class ShowSettingsDialog
     readonly uint id;
     readonly ContentDialog dialog;
     readonly List<(ShowSettingKey Key, ComboBox Box)> rows = [];
-    readonly TextBlock subtitles = Ui.Text("Use default", "HazeBodyStyle", wrap: false);
+    readonly TextBlock subtitles = Ui.Text("–", "HazeBodyStyle", wrap: false);
     readonly ComboBox source = new() { MinWidth = 200 };
+    readonly Button reset = new() { Content = "Reset to defaults", Margin = new Thickness(0, 4, 0, 0), IsEnabled = false };
     readonly string[] sources;
+    readonly Grid status = new() { Height = 20, Margin = new Thickness(0, 0, 0, -8) };
+    readonly Microsoft.UI.Dispatching.DispatcherQueueTimer silence, giveUp;
     ShowSettingsView? view;
     bool quiet = true;
 
@@ -38,20 +48,24 @@ sealed class ShowSettingsDialog
     {
         this.ctx = ctx;
         this.id = id;
-        var body = new StackPanel { Spacing = 20, MinWidth = 420 };
+        var body = new StackPanel { Spacing = 20, MinWidth = 440 };
+        AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
+        body.Children.Add(status);
         foreach (var (heading, keys) in Groups)
         {
             var group = Group(heading);
             foreach (var key in keys)
             {
-                var box = new ComboBox { MinWidth = 200 };
+                var box = new ComboBox { MinWidth = 200, IsEnabled = false };
+                box.Items.Add("–");
+                box.SelectedIndex = 0;
                 AutomationProperties.SetName(box, TitleOf(key));
                 var k = key;
                 box.SelectionChanged += (_, _) => Chosen(k, box);
-                group.Children.Add(Row(TitleOf(key), key == ShowSettingKey.SpoilerProtection ? "Blurs stills after the next episode." : null, box));
+                group.Children.Add(Row(TitleOf(key), NoteOf(key), box));
                 rows.Add((key, box));
             }
-            if (keys is [ShowSettingKey.Translation])
+            if (keys is [ShowSettingKey.Translation, ..])
                 group.Children.Add(Row("Subtitles", "Remembered from your last episode.", subtitles));
             body.Children.Add(group);
         }
@@ -61,6 +75,8 @@ sealed class ShowSettingsDialog
         source.Items.Add("Automatic");
         foreach (var p in ordered)
             source.Items.Add(ProviderInfo.Of(p, ctx.Known.Stores).Name);
+        source.SelectedIndex = 0;
+        source.IsEnabled = false;
         AutomationProperties.SetName(source, "Source");
         source.SelectionChanged += (_, _) =>
         {
@@ -71,15 +87,24 @@ sealed class ShowSettingsDialog
             ctx.Send(new Command.LoadShowSettings(id));
         };
         var sourceGroup = Group("Source");
-        sourceGroup.Children.Add(Row("Source", "Automatic tries your sources in order.", source));
+        sourceGroup.Children.Add(Row("Source", sources.Length > 0 ? "Automatic tries your sources in order." : "Add a source to keep one for this show.", source));
         body.Children.Add(sourceGroup);
 
-        var reset = new Button { Content = "Reset to defaults", Margin = new Thickness(0, 4, 0, 0) };
         reset.Click += (_, _) => ctx.Send(new Command.ResetShowSettings(id));
         var resetGroup = new StackPanel { Spacing = 6 };
         resetGroup.Children.Add(reset);
         resetGroup.Children.Add(Ui.Text("Also clears the remembered audio and subtitles.", "HazeCaptionStyle"));
         body.Children.Add(resetGroup);
+
+        var queue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
+        silence = queue.CreateTimer();
+        silence.Interval = Silence;
+        silence.IsRepeating = false;
+        silence.Tick += (_, _) => Say(Loading());
+        giveUp = queue.CreateTimer();
+        giveUp.Interval = GiveUp;
+        giveUp.IsRepeating = false;
+        giveUp.Tick += (_, _) => Say(Failed());
 
         dialog = new ContentDialog
         {
@@ -92,12 +117,69 @@ sealed class ShowSettingsDialog
         AutomationProperties.SetName(dialog, $"Settings for {title}");
     }
 
+    /// <summary>Asks the engine for the show's values, and starts the clocks that say it is taking a while.</summary>
+    void Ask()
+    {
+        silence.Stop();
+        giveUp.Stop();
+        if (view is null)
+        {
+            silence.Start();
+            giveUp.Start();
+        }
+        ctx.Send(new Command.LoadShowSettings(id));
+    }
+
+    static UIElement Loading()
+    {
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        line.Children.Add(new ProgressRing { Width = 14, Height = 14, IsActive = true });
+        line.Children.Add(Ui.Text("Loading this show's settings", "HazeCaptionStyle", wrap: false));
+        return line;
+    }
+
+    UIElement Failed()
+    {
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        line.Children.Add(States.ErrorGlyph(14));
+        line.Children.Add(Ui.Text("Couldn't load this show's settings.", "HazeCaptionStyle", wrap: false));
+        var again = new HyperlinkButton { Content = "Try again", Padding = new Thickness(4, 0, 4, 0), MinHeight = 0 };
+        again.Click += (_, _) =>
+        {
+            Say(null);
+            Ask();
+        };
+        line.Children.Add(again);
+        return line;
+    }
+
+    /// <summary>The status slot's line, or none: it keeps its height either way.</summary>
+    void Say(UIElement? line)
+    {
+        status.Children.Clear();
+        if (line is null)
+            return;
+        status.Children.Add(line);
+        Motion.FadeIn(line, Motion.Quick);
+    }
+
     /// <summary>Opens the sheet for show <paramref name="id"/> and asks the engine for its values.</summary>
     public static async Task Open(Ctx ctx, uint id, string title, XamlRoot root)
     {
         var sheet = new ShowSettingsDialog(ctx, id, title, root);
         ctx.Batch += sheet.Heard;
-        ctx.Send(new Command.LoadShowSettings(id));
+#if ANISTREAM_TESTING
+        // --show=settings-loading or settings-failed: the sheet with no answer, for a screenshot.
+        if (ctx.Options.Show is "settings-loading" or "settings-failed")
+        {
+            if (ctx.Options.Show == "settings-failed")
+                sheet.giveUp.Interval = TimeSpan.FromSeconds(1);
+            sheet.silence.Start();
+            sheet.giveUp.Start();
+        }
+        else
+#endif
+        sheet.Ask();
         try
         {
             await sheet.dialog.ShowAsync();
@@ -105,6 +187,8 @@ sealed class ShowSettingsDialog
         finally
         {
             ctx.Batch -= sheet.Heard;
+            sheet.silence.Stop();
+            sheet.giveUp.Stop();
         }
     }
 
@@ -127,21 +211,28 @@ sealed class ShowSettingsDialog
     void Fill(ShowSettingsView sheet)
     {
         quiet = true;
+        var first = view is null;
         view = sheet;
+        silence.Stop();
+        giveUp.Stop();
+        if (first)
+            Say(null);
         foreach (var (key, box) in rows)
         {
             if (sheet.Rows.FirstOrDefault(r => r.Key == key) is not { } row)
                 continue;
             box.Items.Clear();
-            box.Items.Add($"Use default · {Shown(key, row.Default)}");
-            foreach (var (_, label) in Choices(key))
-                box.Items.Add(label);
-            var at = row.Own is { } own ? Array.FindIndex(Choices(key), c => Same(c.Value, own)) : -1;
-            box.SelectedIndex = at + 1;
+            box.Items.Add($"Use default · {ShowSettingsCatalog.Shown(key, row.Default)}");
+            foreach (var choice in ShowSettingsCatalog.Choices(key))
+                box.Items.Add(choice.Label);
+            box.SelectedIndex = ShowSettingsCatalog.IndexOf(key, row.Own) + 1;
+            box.IsEnabled = true;
         }
         subtitles.Text = Subtitles(sheet, ctx.Known.Setting(SettingKey.Subtitles)?.Value ?? "");
         var chosen = sheet.Source is { } s ? Array.IndexOf(sources, s) : -1;
         source.SelectedIndex = chosen + 1;
+        source.IsEnabled = sources.Length > 0;
+        reset.IsEnabled = true;
         quiet = false;
     }
 
@@ -149,7 +240,7 @@ sealed class ShowSettingsDialog
     {
         if (quiet || box.SelectedIndex < 0)
             return;
-        SettingValue? value = box.SelectedIndex == 0 ? null : Choices(key)[box.SelectedIndex - 1].Value;
+        SettingValue? value = box.SelectedIndex == 0 ? null : ShowSettingsCatalog.Choices(key)[box.SelectedIndex - 1].Value;
         ctx.Send(new Command.SetShowSetting(id, key, value));
     }
 
@@ -190,22 +281,12 @@ sealed class ShowSettingsDialog
         _ => "Keep next episodes",
     };
 
-    /// <summary>A row's value in the sheet's words: Japanese or English for the audio, On or Off.</summary>
-    internal static string Shown(ShowSettingKey key, string value) => key switch
+    static string? NoteOf(ShowSettingKey key) => key switch
     {
-        ShowSettingKey.Translation => value.StartsWith("dub", StringComparison.Ordinal) ? "English" : "Japanese",
-        _ => value is "on" or "true" ? "On" : "Off",
-    };
-
-    static (SettingValue Value, string Label)[] Choices(ShowSettingKey key) => key == ShowSettingKey.Translation
-        ? [(new SettingValue.Str("sub"), "Japanese"), (new SettingValue.Str("dub"), "English")]
-        : [(new SettingValue.Bool(true), "On"), (new SettingValue.Bool(false), "Off")];
-
-    static bool Same(SettingValue a, SettingValue b) => (a, b) switch
-    {
-        (SettingValue.Str x, SettingValue.Str y) => x.V1 == y.V1,
-        (SettingValue.Bool x, SettingValue.Bool y) => x.V1 == y.V1,
-        _ => false,
+        ShowSettingKey.SpoilerProtection => "Blurs stills after the next episode.",
+        ShowSettingKey.KeepNext => "Downloads the episodes after the one you watch.",
+        ShowSettingKey.NotifyNewEpisodes => "A notification when an episode comes out.",
+        _ => null,
     };
 
     /// <summary>The subtitles remembered for the audio in effect, or following Settings when none are.</summary>
