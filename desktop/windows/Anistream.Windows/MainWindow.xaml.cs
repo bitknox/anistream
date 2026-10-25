@@ -384,7 +384,7 @@ public sealed partial class MainWindow : Window
                 case Event.Sync:
                     ShowAccount();
                     break;
-                case Event.Toast t:
+                case Event.Toast t when !Lines.SettingSaved(t.V1):
                     ShowToast(t.V1);
                     break;
                 case Event.DeviceCode code:

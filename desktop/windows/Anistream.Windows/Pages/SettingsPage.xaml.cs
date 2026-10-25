@@ -25,7 +25,9 @@ public sealed partial class SettingsPage : Page
     [
         new("playback", "Playback", "",
         [
-            ("Watching", [K.Translation, K.Quality, K.Subtitles, K.Titles, K.CommitThreshold]),
+            // How titles read everywhere, not only while watching, so it heads the pane on its own.
+            ("General", [K.Titles]),
+            ("Watching", [K.Translation, K.Quality, K.Subtitles, K.CommitThreshold]),
             ("Player", [K.AutoNext, K.UpNextCountdown, K.SkipOpening, K.SkipFiller, K.MarkChapters, K.SkipButton, K.Fullscreen]),
             ("Picture", [K.Upscaling, K.NightMode, K.SpoilerProtection, K.Motion]),
         ]),

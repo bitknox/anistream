@@ -165,8 +165,9 @@
           </Button>
           <TextBlock x:Name="Elapsed" Grid.Column="3" Text="0:00" VerticalAlignment="Center" Margin="6,0,4,0" Style="{StaticResource BodyTextBlockStyle}"
                      Typography.NumeralAlignment="Tabular" AutomationProperties.AccessibilityView="Raw" />
-          <!-- The seek bar over its own track: the whole length, what is buffered, and the opening
-               and ending marks, drawn under the slider, whose own track is clear. -->
+          <!-- The seek bar over its own track: the whole length, what is buffered, what has played,
+               and the opening and ending marks on top, drawn under the slider, whose own track and
+               fill are clear so only its thumb shows. -->
           <Grid Grid.Column="4" VerticalAlignment="Center">
             <Canvas x:Name="TimelineUnder" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
             <Slider x:Name="Timeline" VerticalAlignment="Center" Minimum="0" Maximum="1" StepFrequency="1"
@@ -176,6 +177,9 @@
                 <SolidColorBrush x:Key="SliderTrackFill" Color="Transparent" />
                 <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="Transparent" />
                 <SolidColorBrush x:Key="SliderTrackFillPressed" Color="Transparent" />
+                <SolidColorBrush x:Key="SliderTrackValueFill" Color="Transparent" />
+                <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="Transparent" />
+                <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="Transparent" />
               </Slider.Resources>
             </Slider>
           </Grid>
