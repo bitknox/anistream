@@ -1,0 +1,157 @@
+---
+/**
+ * A short silent loop of a task done in one of the apps, in the frame its screenshot has (see
+ * Shot.astro), from scripts/feature-videos.ts. Until a clip is recorded, whatever is inside the
+ * component shows in its place, the screenshot or drawing the slot had.
+ *
+ * The poster, the task done, holds the clip's size from the start, so nothing moves when it
+ * loads. The video loads and plays only while it is on screen, and pauses when it leaves. Under
+ * Reduce Motion it never loads: the poster stays.
+ */
+import videos from '../data/videos.json';
+
+interface Video {
+	w: number;
+	h: number;
+	seconds: number;
+	episode: boolean;
+}
+
+interface Props {
+	/** The clip, as scripts/feature-videos.ts names it: the platform, then the task. */
+	name: string;
+	/** What the clip shows, for anyone who cannot see it. */
+	alt: string;
+	frame: 'window' | 'phone' | 'tablet' | 'screen';
+	class?: string;
+}
+
+const { name, alt, frame, class: className } = Astro.props;
+const video = (videos as Record<string, Video>)[name];
+const base = `/features/${name}`;
+---
+
+{
+	video ? (
+		<span
+			class:list={['shot', `shot-${frame}`, `shot-${name.split('-')[0]}`, { 'shot-landscape': video.w > video.h }, 'fv', className]}
+			style={`--ratio: ${(video.w / video.h).toFixed(4)}`}
+			data-feature-video
+		>
+			<span class="shot-frame">
+				<span class="fv-box" style={`aspect-ratio: ${video.w} / ${video.h}`}>
+					<picture>
+						<source type="image/avif" srcset={`${base}-poster.avif`} />
+						<img src={`${base}-poster.webp`} width={video.w} height={video.h} alt={alt} loading="lazy" decoding="async" />
+					</picture>
+					<video muted playsinline loop preload="none" disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1">
+						<source src={`${base}.webm`} type='video/webm; codecs="av01.0.05M.08"' />
+						<source src={`${base}.mp4`} type='video/mp4; codecs="avc1.640028"' />
+					</video>
+				</span>
+			</span>
+		</span>
+	) : (
+		<slot />
+	)
+}
+
+<style>
+	.fv-box {
+		position: relative;
+		display: block;
+		overflow: hidden;
+	}
+
+	.fv-box img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	/* Over the poster, shown once it plays: the first frame fades in over the task done. */
+	.fv-box video {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0;
+		transition: opacity 300ms ease-out;
+	}
+
+	.fv-on .fv-box video {
+		opacity: 1;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.fv-box video {
+			display: none;
+		}
+	}
+</style>
+
+<script>
+	const still = window.matchMedia('(prefers-reduced-motion: reduce)');
+	const clips = [...document.querySelectorAll<HTMLElement>('[data-feature-video]')];
+	const videoOf = (clip: Element) => clip.querySelector('video')!;
+	/** When each clip's picture last moved. */
+	const moved = new Map<Element, number>();
+
+	for (const clip of clips) {
+		const video = videoOf(clip);
+		video.addEventListener('playing', () => clip.classList.add('fv-on'));
+		// A source that fails leaves the poster, as Reduce Motion does.
+		video.addEventListener('error', () => clip.classList.remove('fv-on'), true);
+		for (const event of ['play', 'timeupdate']) video.addEventListener(event, () => moved.set(clip, performance.now()));
+	}
+
+	const seen = new Set<Element>();
+	const play = (clip: Element) => {
+		if (still.matches) return;
+		const video = videoOf(clip);
+		if (video.preload !== 'auto') video.preload = 'auto';
+		video.play().catch(() => {});
+	};
+
+	// WebKit can stall a WebM at its end instead of looping, with no event to say so: a clip
+	// on screen whose picture has not moved for a second and a half plays its MP4 from then on.
+	window.setInterval(() => {
+		for (const clip of seen) {
+			const video = videoOf(clip);
+			const mp4 = video.querySelector<HTMLSourceElement>('source[type^="video/mp4"]');
+			if (video.paused || !mp4 || video.currentSrc.endsWith('.mp4')) continue;
+			if (performance.now() - (moved.get(clip) ?? performance.now()) < 1500) continue;
+			video.src = mp4.src;
+			play(clip);
+		}
+	}, 1000);
+
+	// On screen when a quarter of it shows.
+	const watch = new IntersectionObserver(
+		(entries) => {
+			for (const entry of entries) {
+				if (entry.isIntersecting) {
+					seen.add(entry.target);
+					play(entry.target);
+				} else {
+					seen.delete(entry.target);
+					videoOf(entry.target).pause();
+				}
+			}
+		},
+		{ threshold: 0.25 },
+	);
+	for (const clip of clips) watch.observe(clip);
+
+	still.addEventListener('change', () => {
+		for (const clip of clips) {
+			if (still.matches) {
+				videoOf(clip).pause();
+				clip.classList.remove('fv-on');
+			} else if (seen.has(clip)) {
+				play(clip);
+			}
+		}
+	});
+</script>
