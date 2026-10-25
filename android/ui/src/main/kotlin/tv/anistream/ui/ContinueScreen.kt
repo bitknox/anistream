@@ -239,7 +239,7 @@ private fun episodeLine(item: ContinueItem): String {
     val store = LocalAppStore.current
     val episodes by store.titles.episodes.collectAsStateWithLifecycle()
     val name = episodes[item.id]?.firstOrNull { it.number == item.episode.toString() }?.title
-    return if (name != null) "Episode ${item.episode} · $name" else "Episode ${item.episode}"
+    return if (name != null) "${item.longEpisode} · $name" else item.longEpisode
 }
 
 /** The next episode: its wide art, the title, the episode, how far into it, and the one amber action. */
@@ -349,7 +349,7 @@ private fun ProgressCard(item: ContinueItem, actions: AppActions) {
             modifier = Modifier.padding(top = 4.dp),
         )
         Text(
-            item.minutesLeft?.let { "E${item.episode} · $it min left" } ?: item.action,
+            item.minutesLeft?.let { "${item.shortEpisode} · $it min left" } ?: item.action,
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,

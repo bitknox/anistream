@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.ffi.episodeLine
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.ResumePoint
@@ -37,11 +38,17 @@ data class ContinueItem(
      */
     val action: String
         get() = when {
-            resume != null -> "Resume E$episode · ${resume.clock()}"
+            resume != null -> "Resume $shortEpisode · ${resume.clock()}"
             !playable -> "Caught up · E$episode " + (airing.airs() ?: "not out yet")
-            airedAgo != null -> "Start E$episode · out ${Wording.ago(airedAgo)}"
-            else -> "Start E$episode"
+            airedAgo != null -> "Start $shortEpisode · out ${Wording.ago(airedAgo)}"
+            else -> "Start $shortEpisode"
         }
+
+    /** "E7", or "E7 · Dub" for a title last watched dubbed: only a dub is marked, by the engine's rule. */
+    val shortEpisode: String get() = episodeLine("E$episode", entry.watchedIn)
+
+    /** "Episode 7", or "Episode 7 · Dub": the long form, for the lines that name the episode. */
+    val longEpisode: String get() = episodeLine("Episode $episode", entry.watchedIn)
 
     /** How far into the episode, for the row's meter, when it was left part-way. */
     val fraction: Double? get() = resume?.fraction

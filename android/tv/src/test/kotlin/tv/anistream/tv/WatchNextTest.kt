@@ -6,6 +6,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.ResumePoint
@@ -38,6 +39,14 @@ class WatchNextTest {
         assertEquals(600_000L, card.positionMillis)
         assertEquals(1_200_000L, card.durationMillis)
         assertEquals("Episode 4", card.description)
+    }
+
+    @Test
+    fun a_dub_is_marked_on_the_episode_line_and_a_sub_is_not() {
+        val dub = cards(entry(1u).copy(watchedIn = Translation.DUB)).single()
+        assertEquals("Episode 4 · Dub", dub.description)
+        val sub = cards(entry(2u).copy(watchedIn = Translation.SUB)).single()
+        assertEquals("Episode 4", sub.description)
     }
 
     @Test

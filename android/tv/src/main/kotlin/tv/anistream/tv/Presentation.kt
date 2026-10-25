@@ -6,6 +6,8 @@ package tv.anistream.tv
 import java.time.Instant
 import java.time.format.TextStyle
 import java.util.Locale
+import tv.anistream.engine.core.Translation
+import tv.anistream.engine.ffi.episodeLine
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.ResumePoint
@@ -16,7 +18,7 @@ import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
 
 /** The episode a title's amber action plays, and how it says so. */
-data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null) {
+data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null, val translation: Translation? = null) {
     /** Whether it plays now: never an episode still to air. */
     val playable: Boolean get() = airing.hasAired
 
@@ -25,8 +27,8 @@ data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: E
      * which stays disabled until it is out.
      */
     fun label(now: Instant = AppClock.now()): String = when {
-        resume != null -> "Resume episode $episode"
-        playable -> "Play episode $episode"
+        resume != null -> "Resume ${episodeLine("episode $episode", translation)}"
+        playable -> "Play ${episodeLine("episode $episode", translation)}"
         else -> outDay(now)?.let { "Play episode $episode (out $it)" } ?: "Play episode $episode (not out yet)"
     }
 
@@ -48,16 +50,17 @@ data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: E
         fun of(entry: Entry, now: Long = AppClock.now().epochSecond): PlayAction {
             val episode = entry.progress?.next ?: 1u
             val resume = entry.resume
-            if (resume != null) return PlayAction(episode, resume, EpisodeAiring.Aired)
+            val dub = entry.watchedIn
+            if (resume != null) return PlayAction(episode, resume, EpisodeAiring.Aired, translation = dub)
             val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
             if (scheduled != null) {
                 return if (scheduled.airsAt > now) {
-                    PlayAction(episode, null, EpisodeAiring.Upcoming(scheduled.airsAt - now), scheduled.airsAt)
+                    PlayAction(episode, null, EpisodeAiring.Upcoming(scheduled.airsAt - now), scheduled.airsAt, dub)
                 } else {
-                    PlayAction(episode, null, EpisodeAiring.Aired)
+                    PlayAction(episode, null, EpisodeAiring.Aired, translation = dub)
                 }
             }
-            return PlayAction(episode, null, entry.airing(episode))
+            return PlayAction(episode, null, entry.airing(episode), translation = dub)
         }
     }
 }
@@ -66,12 +69,12 @@ data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: E
 fun ContinueItem.heroLine(rows: List<EpisodeRow>?): String {
     val title = rows?.firstOrNull { it.number == episode.toString() }?.title?.takeIf { it.isNotBlank() }
     val left = minutesLeft?.let { "$it min left" }
-    return listOfNotNull("Episode $episode", title, left).joinToString(" · ")
+    return listOfNotNull(longEpisode, title, left).joinToString(" · ")
 }
 
 /** What the hero's amber action says: "Resume episode 7", "Start episode 8". */
 val ContinueItem.heroAction: String
-    get() = if (resume != null) "Resume episode $episode" else "Start episode $episode"
+    get() = if (resume != null) "Resume ${longEpisode.replaceFirstChar { it.lowercase() }}" else "Start ${longEpisode.replaceFirstChar { it.lowercase() }}"
 
 /**
  * The title page's metadata line, set in capitals: "TV · SUMMER 2026 · 24 EPS · 79 % ·

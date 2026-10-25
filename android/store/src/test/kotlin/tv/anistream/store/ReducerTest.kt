@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Aired
 import tv.anistream.engine.model.Bounds
 import tv.anistream.engine.model.BrowseRail
@@ -99,6 +100,34 @@ class ReducerTest {
         assertEquals(2, store.waiting.size)
         store.loadContinue(force = true)
         assertEquals(3, store.waiting.size)
+    }
+
+    @Test
+    fun continue_marks_a_dub_and_leaves_a_sub_unmarked() {
+        val dub = entry(900001u, "Stardust Wayfarer").copy(
+            progress = TitleProgress(done = 6u, next = 7u),
+            resume = ResumePoint(position = 606.0, fraction = 606.0 / 1440.0),
+            watchedIn = Translation.DUB,
+        )
+        val sub = entry(900002u, "The Library Above the Clouds").copy(
+            progress = TitleProgress(done = 3u, next = 4u),
+            watchedIn = Translation.SUB,
+        )
+        val unknown = entry(900003u, "Summer Wind Relay").copy(progress = TitleProgress(done = 3u, next = 4u))
+        val fresh = entry(900004u, "Harbour Lights").copy(
+            progress = TitleProgress(done = 8u, next = 9u),
+            lastAired = Aired(episode = 9u, ago = 7_200),
+            watchedIn = Translation.DUB,
+        )
+        store.apply(Event.Content(ContentFor.Continue, ContentList.Entries(listOf(dub, sub, unknown, fresh))))
+        val queue = store.continuing.queue(store.titles.entries.value)
+        assertEquals(
+            listOf("Resume E7 · Dub · 10:06", "Start E4", "Start E4"),
+            queue.inProgress.map { it.action },
+        )
+        assertEquals(listOf("Start E9 · Dub · out 2h ago"), queue.newThisWeek.map { it.action })
+        assertEquals("Episode 7 · Dub", queue.inProgress[0].longEpisode)
+        assertEquals("Episode 4", queue.inProgress[1].longEpisode)
     }
 
     @Test
