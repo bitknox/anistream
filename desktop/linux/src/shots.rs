@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 34] = [
+pub const ALL: [&str; 35] = [
     "home",
     "welcome",
     "offline",
