@@ -27,7 +27,6 @@
 //!   `anistream-player` beneath them. The session itself, the window kept between episodes and
 //!   handed from one to the next, the upscaling shaders and the governor that picks them run
 //!   in any build, behind `playback::link::PlayerLink`;
-//! - **Syncplay**, which a play can be handed to as a watch party;
 //! - **Discord's presence**, said while an episode plays;
 //! - **the browser redirect** AniList and MyAnimeList sign in through: a listener on
 //!   `127.0.0.1` waiting for the code;
@@ -42,8 +41,7 @@
 //! - every play in the player the front end hosts, driven as mpv is through
 //!   `playback::link::hosted`: what it is to do comes as `Event::PlayerOps`, what its own
 //!   interface shows as `Event::PlayerUi`, and what it reports goes back as
-//!   `Command::PlayerReport`. A watch party is answered with an alert, Syncplay being a desktop
-//!   program; a front end that turns the hosted player off (`EngineOptions::hosted_player`) has
+//!   `Command::PlayerReport`. A front end that turns the hosted player off (`EngineOptions::hosted_player`) has
 //!   every play answered with an alert that playback isn't built into it;
 //! - the battery as the front end reports it, `playback::power::ReportedPower`, unknown until
 //!   it does;
@@ -74,6 +72,17 @@
 //! - not offer playback, or a sign-in to AniList or MyAnimeList, until the engine can hand it
 //!   a stream to play and a redirect to take.
 
+//!
+//! # The `party` feature
+//!
+//! Watch parties: a room on a Syncplay server that every play here plays with, through
+//! `anistream-party`, the protocol's client. On in `desktop`, and turned on beside
+//! `--no-default-features` by an app that offers parties. It needs no player of its own: the
+//! session drives whichever player the play has, mpv or the front end's, as the room asks, and
+//! tells the room what the viewer does in it (`playback::seat`). Without it every party
+//! command is answered with an alert that parties aren't built in. See [`party`] and
+//! `docs/party-protocol.md`.
+
 /// Configuration shared with the long-running background tasks.
 ///
 /// The Settings screen edits the app's own copy, and anything holding a snapshot from
@@ -101,6 +110,8 @@ pub mod logged;
 pub mod new_episodes;
 pub mod options;
 pub mod outbox;
+#[cfg(feature = "party")]
+pub mod party;
 pub mod phases;
 pub mod playback;
 pub mod plugin_stores;

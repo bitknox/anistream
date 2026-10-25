@@ -182,7 +182,7 @@ pub async fn play_cli(
     let tracker_ids = signed_in_tracker_ids(&sync);
     let settings = playback::PlaySettings {
         shader_dir: shader_dir(config, paths),
-        ..play_settings(config, tracker_ids.clone(), config.syncplay.enabled)
+        ..play_settings(config, tracker_ids.clone(), Default::default())
     };
     // Headless plays one episode: nothing would ever claim a parked window.
     let settings = playback::PlaySettings { auto_next: false, ..settings };

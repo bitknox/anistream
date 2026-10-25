@@ -683,10 +683,7 @@ mod tests {
             a.handle(Action::ShowSources, 5),
             Some(Command::LoadSources { id: row, episode: first() })
         );
-        assert_eq!(
-            a.handle(Action::PlayParty, 5),
-            Some(Command::PlayParty { id: row, episode: first() })
-        );
+        assert_eq!(a.handle(Action::PlayParty, 5), Some(Command::play_party(row, first())));
         assert_eq!(
             a.handle(Action::OpenInBrowser, 5),
             Some(Command::OpenExternal { url: "https://anilist.co/anime/3".into() })

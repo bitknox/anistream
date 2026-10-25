@@ -30,6 +30,7 @@ mod bug_report;
 mod engine;
 mod host;
 mod log;
+mod party;
 #[cfg(feature = "mpv-host")]
 mod player;
 #[cfg(feature = "remote")]
@@ -47,6 +48,9 @@ pub use bug_report::bug_report_url;
 pub use engine::FfiEngine;
 pub use host::FfiHost;
 pub use log::{FfiLogLevel, log_line, start_log};
+#[cfg(all(feature = "party", feature = "testing"))]
+pub use party::FfiFakeParty;
+pub use party::{parse_party_invite, party_invite_link};
 #[cfg(feature = "mpv-host")]
 pub use player::{
     FfiPlayer, FfiPlayerEvent, FfiPlayerOptions, FfiPlayerSink, FfiPlayerState, FfiVideo,

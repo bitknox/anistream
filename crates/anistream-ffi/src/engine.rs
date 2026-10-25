@@ -192,15 +192,19 @@ impl FfiEngine {
     }
 }
 
+#[cfg(any(feature = "remote", all(feature = "party", feature = "testing")))]
+impl FfiEngine {
+    /// The runtime the engine runs on, for a server started beside it.
+    pub(crate) fn runtime_handle(&self) -> Handle {
+        self.handle.clone()
+    }
+}
+
 #[cfg(feature = "remote")]
 impl FfiEngine {
     /// What the remote sends the engine's commands through, until the engine stops.
     pub(crate) fn remote_sender(&self) -> Option<anistream_engine::engine::RemoteSender> {
         lock(&self.engine).as_ref().map(Engine::remote_sender)
-    }
-
-    pub(crate) fn runtime_handle(&self) -> Handle {
-        self.handle.clone()
     }
 
     pub(crate) fn remote(&self) -> &crate::remote::Attached {

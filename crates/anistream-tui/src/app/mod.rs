@@ -471,6 +471,22 @@ impl App {
             Event::Update(_) => {}
             // A TV's remote, which the terminal never runs.
             Event::Remote(_) => {}
+            // A watch party: joined, left, and an episode the room plays that no source here
+            // has, said as toasts. What the room says comes on the player, where the viewer is;
+            // the members and the form are a native app's.
+            Event::PartyJoined(view) => self.push_toast(Notice::info(format!(
+                "watch party · room {} on {}",
+                view.room, view.server
+            ))),
+            Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::alert(reason)),
+            Event::PartyNoSource { episode, .. } => self.push_toast(Notice::alert(format!(
+                "no source has episode {episode}; still in the party"
+            ))),
+            Event::PartyLeft { reason: None }
+            | Event::PartyForm(_)
+            | Event::PartyState(_)
+            | Event::PartyMembers(_)
+            | Event::PartyMessage(_) => {}
             // A native app's network monitor, which the terminal has none of: it never says the
             // path, so the engine never says it changed.
             Event::Connectivity { .. } => {}

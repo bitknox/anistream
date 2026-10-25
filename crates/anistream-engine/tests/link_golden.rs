@@ -318,8 +318,7 @@ fn settings() -> PlaySettings {
         tone_mapping: "auto".into(),
         tracker_ids: Vec::new(),
         presence: Default::default(),
-        syncplay: Default::default(),
-        party: false,
+        party: Default::default(),
         up_next_countdown: 10,
         mpv_options: Vec::new(),
     }

@@ -21,6 +21,11 @@ impl Command {
         Self::Play { id, episode: episode.into(), from_start: false }
     }
 
+    /// Play `episode` of `id` with a party set up in the settings: see [`Command::PlayParty`].
+    pub fn play_party(id: AnilistId, episode: impl Into<String>) -> Self {
+        Self::PlayParty { id, episode: episode.into(), server: None, room: None, name: None }
+    }
+
     /// What to call this in the activity row, or `None` for work nobody waits on: writes that
     /// land in the outbox, player commands, and anything that finishes as it is asked.
     pub fn activity(&self) -> Option<String> {
@@ -251,11 +256,53 @@ pub enum Command {
         #[cfg_attr(feature = "ffi", uniffi(default))]
         from_start: bool,
     },
-    /// Resolve an episode and hand it to a Syncplay party instead of a private session.
+    /// Play an episode with a watch party: join the room on a Syncplay server, then resolve the
+    /// episode from this device's own sources and play it, kept with the room. Answered with
+    /// [`Event::PartyJoined`] once in the room, and [`Event::PartyLeft`] with why when the server
+    /// can't be reached or refuses.
+    ///
+    /// An episode none of the sources has leaves this device in the room without playing, with
+    /// [`Event::PartyNoSource`] for the dialog that offers Choose source; any play after that
+    /// plays with the room.
+    ///
+    /// Each of `server`, `room` and `name` left out is the party's already joined, or else the
+    /// settings': the last server used, a room set there or a new one, and the name. What the
+    /// terminal sends, from its settings.
+    ///
+    /// [`Event::PartyJoined`]: crate::event::Event::PartyJoined
+    /// [`Event::PartyLeft`]: crate::event::Event::PartyLeft
+    /// [`Event::PartyNoSource`]: crate::event::Event::PartyNoSource
     PlayParty {
         id: AnilistId,
         episode: String,
+        /// `host:port`, or a host on Syncplay's port.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        server: Option<String>,
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        room: Option<String>,
+        /// The name the room sees.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        name: Option<String>,
     },
+    /// Ask for what the form that starts a party opens with: answered with
+    /// [`Event::PartyForm`](crate::event::Event::PartyForm).
+    LoadPartyForm,
+    /// Join a party without starting anything: what is playing now plays with the room, and so
+    /// does every play after, until [`Command::PartyLeave`]. What the player's people button
+    /// starts. Joining another room leaves the one before.
+    PartyJoin {
+        server: String,
+        room: String,
+        /// The settings' name when `None`.
+        #[cfg_attr(feature = "ffi", uniffi(default))]
+        name: Option<String>,
+    },
+    /// Say whether this member is ready. When every member is, play starts.
+    PartyReady {
+        ready: bool,
+    },
+    /// Leave the party. What is playing goes on from where it is, as a private session.
+    PartyLeave,
     /// List the selectable releases for one episode, for the Sources overlay.
     LoadSources {
         id: AnilistId,

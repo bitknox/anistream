@@ -138,8 +138,7 @@ pub(super) fn settings() -> PlaySettings {
         tone_mapping: "auto".into(),
         tracker_ids: Vec::new(),
         presence: Default::default(),
-        syncplay: Default::default(),
-        party: false,
+        party: Default::default(),
         up_next_countdown: 10,
         mpv_options: Vec::new(),
     }
@@ -593,4 +592,101 @@ async fn the_sources_menu_says_which_server_has_been_failing() {
     let notes: Vec<Option<String>> =
         menus.expect("the menus").sources.into_iter().map(|s| s.health).collect();
     assert_eq!(notes, [None, Some("failed the last 2 times · just now".into())]);
+}
+
+/// A playback at a watch party, as the party sees it: its seat taken, what the room asks of
+/// the player done, and what the player does reported. The file ends after `last` seconds,
+/// played to its end when `complete`.
+async fn at_a_party(
+    complete: bool,
+    last: f64,
+) -> (Rig, Vec<Event>, Vec<crate::playback::seat::SeatReport>) {
+    use crate::playback::seat::{PartyHub, SeatCue, SeatMessage};
+
+    let hub = PartyHub::default();
+    let mut party = hub.open();
+    let rig = Rig::new(vec![opening(&[])]);
+    let settings = PlaySettings { party: hub.clone(), ..settings() };
+    let driving = async {
+        let Some(SeatMessage::Seated(cues)) = party.recv().await else { panic!("no seat") };
+        for cue in
+            [SeatCue::Pause(true), SeatCue::Seek(42.0), SeatCue::Notice("Mika paused".into())]
+        {
+            cues.send(cue).unwrap();
+        }
+        let asked = |calls: &[Call]| {
+            calls.contains(&Call::Set { property: "pause", value: json!(true) })
+                && calls.contains(&Call::Seek { seconds: 42.0, absolute: true })
+                && calls.iter().any(|c| matches!(c, Call::Overlay(Overlay::Toast { text, .. }) if text == "Mika paused"))
+        };
+        for _ in 0..200 {
+            if asked(&rig.opener.calls()) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        assert!(asked(&rig.opener.calls()), "{:#?}", rig.opener.calls());
+        let window = rig.opener.window().expect("a window is open");
+        // A few seconds in, the viewer pauses and plays on; the party hears both.
+        for second in 0..=last as u32 {
+            let position = f64::from(second);
+            window.send(PlaybackEvent::Progress { position, duration: Some(RUNTIME) }).unwrap();
+            if second == 3 {
+                window.send(PlaybackEvent::Paused(true)).unwrap();
+                window.send(PlaybackEvent::Paused(false)).unwrap();
+            }
+        }
+        window.send(PlaybackEvent::Ended { complete }).unwrap();
+        let mut reports = Vec::new();
+        while let Some(message) = party.recv().await {
+            if let SeatMessage::Report(report) = message {
+                let ended = matches!(report, crate::playback::seat::SeatReport::Ended { .. });
+                reports.push(report);
+                if ended {
+                    break;
+                }
+            }
+        }
+        reports
+    };
+    let (events, reports) = tokio::join!(
+        rig.play(stream(StreamKind::Mp4), context("1", Some("2")), settings),
+        driving
+    );
+    (rig, events, reports)
+}
+
+#[tokio::test]
+async fn a_party_steers_the_player_and_hears_what_it_does() {
+    use crate::playback::seat::SeatReport;
+
+    let (rig, events, reports) = at_a_party(true, RUNTIME - 1.0).await;
+    let id = AnilistId::new(900_001);
+    assert!(
+        matches!(reports.first(), Some(SeatReport::Playing { id: played, episode, name, .. })
+            if *played == id && episode == "1" && name == "Stardust Wayfarer · Episode 1"),
+        "{reports:?}"
+    );
+    assert!(reports.iter().any(|r| matches!(r, SeatReport::Sample { paused: true, .. })));
+    assert!(reports.iter().any(|r| matches!(r, SeatReport::Sample { paused: false, .. })));
+    // Played to its end, it stays in the party and is marked watched; with the party there is
+    // no rolling on to the next episode.
+    assert_eq!(reports.last(), Some(&SeatReport::Ended { leave: false }));
+    assert_eq!(rig.store.completed_episodes(id).unwrap(), ["1"]);
+    assert!(
+        !events.iter().any(|e| matches!(e, Event::PlaybackEnded { rolling_on: true, .. })),
+        "{events:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_party_play_left_part_way_keeps_no_position() {
+    let (rig, _, reports) = at_a_party(false, 50.0).await;
+    assert!(
+        matches!(reports.last(), Some(crate::playback::seat::SeatReport::Ended { .. })),
+        "{reports:?}"
+    );
+    let id = AnilistId::new(900_001);
+    assert_eq!(rig.store.resume_position(id, "1").unwrap(), None);
+    assert!(rig.store.completed_episodes(id).unwrap().is_empty());
 }

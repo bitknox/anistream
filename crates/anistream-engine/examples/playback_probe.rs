@@ -186,9 +186,8 @@ async fn main() {
             // Presence off: the probe measures the torrent-to-mpv-to-history path, and reaching
             // out to a Discord socket would add a variable that has nothing to do with it.
             presence: Default::default(),
-            // Syncplay off, same reasoning.
-            syncplay: Default::default(),
-            party: false,
+            // No watch party, same reasoning.
+            party: Default::default(),
             up_next_countdown: 10,
             mpv_options: Vec::new(),
         };

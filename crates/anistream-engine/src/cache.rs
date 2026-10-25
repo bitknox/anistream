@@ -49,7 +49,8 @@ const TITLES: usize = 1024;
 pub enum PlayKind {
     /// `Play` or `PlaySource`: staged on Now Playing, by the name the title goes by here.
     Staged,
-    /// `PlayParty`: Syncplay owns the player, and nothing is staged.
+    /// A play nothing stages, with no name of its own to go by. No command plays one now: a
+    /// watch party's play is staged as any other.
     Party,
 }
 
