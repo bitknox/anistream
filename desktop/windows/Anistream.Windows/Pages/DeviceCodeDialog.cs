@@ -1,3 +1,4 @@
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Text;
@@ -133,7 +134,7 @@ sealed class DeviceCodeDialog
         ShowExpiry();
     }
 
-    /// <summary>"Expires in 14:59" under the code, each second, then Code expired and Get a new code.</summary>
+    /// <summary>"Expires in 9 min" under the code, by the second in the last minute, then Code expired and Get a new code.</summary>
     void ShowExpiry()
     {
         if (prompt.ExpiresAt is not { } at)
@@ -143,7 +144,7 @@ sealed class DeviceCodeDialog
             return;
         }
         var left = at - DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        expiry.Text = AnistreamFfiMethods.DeviceCodeExpiry(left);
+        expiry.Text = Lines.Expiry(left);
         var expired = left <= 0;
         code.Opacity = expired ? 0.4 : 1;
         ring.IsActive = !expired;

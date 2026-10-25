@@ -18,6 +18,12 @@ public sealed class Known
     /// <summary>A title's episodes, by AniList id.</summary>
     public Dictionary<uint, EpisodeRow[]> Episodes { get; } = [];
 
+    /// <summary>
+    /// Whether a title has a dub, by AniList id, once the engine has said. A title its source
+    /// could not say for counts as without one.
+    /// </summary>
+    public Dictionary<uint, bool> Dubbed { get; } = [];
+
     public SettingsView? Settings { get; private set; }
 
     /// <summary>What the search filters choose from, once the engine has said.</summary>
@@ -122,6 +128,9 @@ public sealed class Known
                 break;
             case Event.Episodes ep:
                 Episodes[ep.Id] = ep.Rows;
+                break;
+            case Event.TitleDub td:
+                Dubbed[td.Id] = td.Dub is not null;
                 break;
             case Event.Progress p:
                 if (Entries.TryGetValue(p.Id, out var known))

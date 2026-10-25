@@ -45,6 +45,17 @@ public class KnownTests
     }
 
     [Fact]
+    public void ATitleHasADubOnlyWhenItsSourceSaidOne()
+    {
+        var known = new Known();
+        Assert.False(known.Dubbed.ContainsKey(7));
+        known.Take(new Event.TitleDub(7, new DubExtent(Through: 6, Complete: false)));
+        known.Take(new Event.TitleDub(8, null));
+        Assert.True(known.Dubbed[7]);
+        Assert.False(known.Dubbed[8]);
+    }
+
+    [Fact]
     public void ProgressMovesTheTitleWhereverItWasSeen()
     {
         var known = new Known();
@@ -162,6 +173,39 @@ public class SharedWordsTests
         Assert.Equal("Resume E7 · 10:06", queue.InProgress[0].Action);
         Assert.Equal("4:05", AnistreamFfiMethods.PlayClock(245.4));
         Assert.Equal("auto-play next", AnistreamFfiMethods.SettingLabel(SettingKey.AutoNext));
+    }
+}
+
+public class LinesTests
+{
+    [Fact]
+    public void ADubSaysSoAfterTheEpisodeAndASubSaysNothing()
+    {
+        Assert.Equal("Episode 10 · Dub", Lines.Episode("Episode 10", null, Translation.Dub));
+        Assert.Equal("Episode 10 · Dub · The Return", Lines.Episode("Episode 10", "The Return", Translation.Dub));
+        Assert.Equal("Episode 10 · The Return", Lines.Episode("Episode 10", "The Return", Translation.Sub));
+        Assert.Equal("Episode 10", Lines.Episode("Episode 10", "", Translation.Sub));
+    }
+
+    [Fact]
+    public void ACodeCountsInMinutesThenSecondsInItsLastMinute()
+    {
+        Assert.Equal("Expires in 15 min", Lines.Expiry(900));
+        Assert.Equal("Expires in 15 min", Lines.Expiry(899));
+        Assert.Equal("Expires in 9 min", Lines.Expiry(540));
+        Assert.Equal("Expires in 1 min", Lines.Expiry(60));
+        Assert.Equal("Expires in 59 sec", Lines.Expiry(59));
+        Assert.Equal("Expires in 1 sec", Lines.Expiry(1));
+        Assert.Equal("Code expired", Lines.Expiry(0));
+        Assert.Equal("Code expired", Lines.Expiry(-4));
+    }
+
+    [Fact]
+    public void ASavedSettingGoesUnsaidAndARefusalStillShows()
+    {
+        Assert.True(Lines.SettingSaved(new Notice(NoticeKind.Info, "saved · auto-play next", null)));
+        Assert.False(Lines.SettingSaved(new Notice(NoticeKind.Alert, "not saved: the file is read-only", null)));
+        Assert.False(Lines.SettingSaved(new Notice(NoticeKind.Info, "Episode 3 downloaded", null)));
     }
 }
 
