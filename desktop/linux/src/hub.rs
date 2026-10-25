@@ -261,11 +261,14 @@ pub struct Hub {
     /// Kinds of event the engine's own are set aside for, while a showcase shows its own.
     #[cfg(feature = "fixtures")]
     held: RefCell<Vec<&'static str>>,
+    /// The hub itself, for a showcase's answers, which arrive a moment after they are asked.
+    #[cfg(feature = "fixtures")]
+    me: std::rc::Weak<Hub>,
 }
 
 impl Hub {
     pub fn new(engine: Weak<Engine>) -> Rc<Self> {
-        Rc::new(Self {
+        Rc::new_cyclic(|_me| Self {
             engine,
             known: RefCell::default(),
             listeners: RefCell::default(),
@@ -273,6 +276,8 @@ impl Hub {
             art: Art::default(),
             #[cfg(feature = "fixtures")]
             held: RefCell::default(),
+            #[cfg(feature = "fixtures")]
+            me: _me.clone(),
         })
     }
 
@@ -289,6 +294,19 @@ impl Hub {
     /// [`Hub::send`], and the job it starts when it is work someone waits on, which ends with
     /// `Event::JobDone` of this number.
     pub fn send_job(&self, command: Command) -> Option<JobId> {
+        // The showcase's stores are not the engine's: their owners' tools are answered here.
+        #[cfg(feature = "fixtures")]
+        if self.held.borrow().contains(&"stores")
+            && let Some(events) = crate::showcase::answer(&command)
+        {
+            let me = self.me.clone();
+            glib::timeout_add_local_once(std::time::Duration::from_millis(300), move || {
+                if let Some(hub) = me.upgrade() {
+                    hub.take(events);
+                }
+            });
+            return None;
+        }
         self.engine.upgrade().and_then(|engine| engine.send(command))
     }
 

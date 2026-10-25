@@ -1186,6 +1186,7 @@ impl Inner {
                     Step::Ready(_) => {
                         Some(("Restart to Update", "win.update-install", true, true))
                     }
+                    Step::Saved(_) => Some(("Show in Files", "win.update-show", true, true)),
                     Step::Installing => {
                         Some(("Restart to Update", "win.update-install", true, false))
                     }

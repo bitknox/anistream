@@ -240,6 +240,8 @@ impl Page {
                     self.show(*segment);
                 }
             },
+            // Titles are named another way now: the lists again, once they have been shown.
+            Event::TitlesChanged(_) if !self.entries.borrow().is_empty() => self.load(),
             Event::Sync(_) => {
                 let signed_in = self.ctx.hub.known.borrow().anilist().is_some();
                 self.signed(signed_in);

@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 35] = [
+pub const ALL: [&str; 44] = [
     "home",
     "welcome",
     "offline",
@@ -27,14 +27,22 @@ pub const ALL: [&str; 35] = [
     "seasonal",
     "search",
     "search-results",
+    "search-filters",
+    "search-filters-none",
     "title",
     "show-settings",
     "library",
+    "library-focus",
     "downloads",
     "providers",
     "provider",
     "stores",
     "store",
+    "store-menu",
+    "store-invite",
+    "store-members",
+    "store-joining",
+    "store-publish",
     "join",
     "settings",
     "settings-general",
@@ -47,6 +55,7 @@ pub const ALL: [&str; 35] = [
     "torrents-on",
     "settings-updates",
     "update-ready",
+    "update-saved",
     "about",
     "player",
     "player-marks",
@@ -175,6 +184,31 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             shell.search_page().search_for("hoshikuzu");
             3.0
         }
+        #[cfg(feature = "fixtures")]
+        "search-filters" => {
+            // Browsing without a word typed: a genre left out, two formats, a status.
+            use anistream_model::{catalog::AiringStatus, search::*};
+            shell.go(Dest::Search);
+            let query = SearchQuery::default()
+                .picking_genre("Romance", Pick::Exclude)
+                .toggling_format(MediaFormat::Tv)
+                .toggling_format(MediaFormat::Movie)
+                .toggling_status(AiringStatus::Finished);
+            shell.search_page().browse(&query);
+            3.0
+        }
+        #[cfg(feature = "fixtures")]
+        "search-filters-none" => {
+            // Filters nothing matches: two genres wanted, a year.
+            use anistream_model::search::{Pick, SearchQuery};
+            shell.go(Dest::Search);
+            let query = SearchQuery::default()
+                .picking_genre("Action", Pick::Include)
+                .picking_genre("Mecha", Pick::Include)
+                .in_year(Some(2024));
+            shell.search_page().browse(&query);
+            3.0
+        }
         "title" => {
             shell.go(Dest::Continue);
             let _ =
@@ -195,6 +229,18 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "library" => {
             shell.go(Dest::Library);
+            3.0
+        }
+        "library-focus" => {
+            // Moved to by keyboard: the first cover holds the focus ring.
+            shell.go(Dest::Library);
+            let window = shell.ctx.window.clone();
+            glib::timeout_add_local_once(Duration::from_millis(2000), move || {
+                if let Some(grid) = mapped_grid(window.upcast_ref()) {
+                    window.set_focus_visible(true);
+                    grid.grab_focus();
+                }
+            });
             3.0
         }
         "downloads" => {
@@ -219,6 +265,8 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             crate::pages::stores::push_store(&shell.ctx, "hotaru");
             1.5
         }
+        #[cfg(feature = "fixtures")]
+        owner if owner.starts_with("store-") => store_owner(shell, owner),
         "join" => {
             join(shell);
             2.0
@@ -289,43 +337,24 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             3.0
         }
         "settings-updates" => {
-            use anistream_model::updates::{Release, UpdateStatus};
             shell.settings_pane("integrations");
-            // As the daily check tells of a release with an AppImage for each machine: a scene
-            // goes through the update's steps, fetching nothing.
-            let appimage = |arch: &str| anistream_model::updates::ReleaseAsset {
-                name: format!("anistream-2.1.0-linux-{arch}.AppImage"),
-                url: format!(
-                    "https://releases.example/v2.1.0/anistream-2.1.0-linux-{arch}.AppImage"
-                ),
-                sha256: "5e".repeat(32),
-                size: 118_400_000,
-            };
-            shell.ctx.hub.take(vec![anistream_model::event::Event::Update(
-                UpdateStatus::Available {
-                    release: Box::new(Release {
-                        version: "2.1.0".into(),
-                        published_at: 0,
-                        page_url: "https://example.test/releases/v2.1.0".into(),
-                        notes: String::new(),
-                        macos: None,
-                        ios: None,
-                        android: None,
-                        android_tv: None,
-                        windows_x64: None,
-                        windows_arm64: None,
-                        linux_x86_64: Some(appimage("x86_64")),
-                        linux_aarch64: Some(appimage("aarch64")),
-                    }),
-                    notify: true,
-                },
-            )]);
+            offer_update(shell);
             1.5
         }
         // The download rehearsed and checked: the row offers Restart to Update, and so does the
         // notice.
         "update-ready" => {
             shell.settings_pane("integrations");
+            4.5
+        }
+        // The same from an AppImage in a folder the app can't write to: saved to Downloads, and
+        // Show in Files in the row and the notice.
+        #[cfg(feature = "fixtures")]
+        "update-saved" => {
+            shell.settings_pane("integrations");
+            shell.ctx.updater.rehearse_unwritable();
+            offer_update(shell);
+            shell.ctx.updater.download();
             4.5
         }
         "accounts-kitsu" => {
@@ -477,6 +506,10 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         }),
         "resumed" => shell.player.close(),
         #[cfg(feature = "fixtures")]
+        "search-filters" | "search-filters-none" => {
+            shell.search_page().browse(&anistream_model::search::SearchQuery::default())
+        }
+        #[cfg(feature = "fixtures")]
         stats if stats.starts_with("player-stats") => {
             shell.player.shot_stats_away();
             shell.player.hold_up_next.set(false);
@@ -488,6 +521,16 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         }
         "settings-upscaling" => {
             upscaling(shell, "off");
+            if let Some(nav) = shell.ctx.nav() {
+                nav.pop();
+            }
+        }
+        #[cfg(feature = "fixtures")]
+        owner if owner.starts_with("store-") => {
+            if let Some(more) = more_button(&shell.ctx.window) {
+                more.popdown();
+            }
+            close_dialogs(&shell.ctx.window);
             if let Some(nav) = shell.ctx.nav() {
                 nav.pop();
             }
@@ -505,6 +548,37 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         party if party.starts_with("party-") => party_unstage(shell, party),
         _ => {}
     }
+}
+
+/// A newer release with an AppImage for each machine, as the daily check tells of one: a scene
+/// goes through the update's steps, fetching nothing.
+fn offer_update(shell: &Rc<Shell>) {
+    use anistream_model::updates::{Release, UpdateStatus};
+    // As the daily check tells of a release with an AppImage for each machine: a scene
+    // goes through the update's steps, fetching nothing.
+    let appimage = |arch: &str| anistream_model::updates::ReleaseAsset {
+        name: format!("anistream-2.1.0-linux-{arch}.AppImage"),
+        url: format!("https://releases.example/v2.1.0/anistream-2.1.0-linux-{arch}.AppImage"),
+        sha256: "5e".repeat(32),
+        size: 118_400_000,
+    };
+    shell.ctx.hub.take(vec![anistream_model::event::Event::Update(UpdateStatus::Available {
+        release: Box::new(Release {
+            version: "2.1.0".into(),
+            published_at: 0,
+            page_url: "https://example.test/releases/v2.1.0".into(),
+            notes: String::new(),
+            macos: None,
+            ios: None,
+            android: None,
+            android_tv: None,
+            windows_x64: None,
+            windows_arm64: None,
+            linux_x86_64: Some(appimage("x86_64")),
+            linux_aarch64: Some(appimage("aarch64")),
+        }),
+        notify: true,
+    })]);
 }
 
 /// Set upscaling, which the fixture scene keeps off for the player shots.
@@ -537,6 +611,60 @@ fn join(shell: &Rc<Shell>) {
     glib::timeout_add_local_once(Duration::from_millis(900), move || {
         hub.show_instead(vec![crate::showcase::invite()]);
     });
+}
+
+/// The showcase's store that this computer owns, with its owner's tools: the menu, or one of
+/// its dialogs answered by the showcase.
+#[cfg(feature = "fixtures")]
+fn store_owner(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use crate::pages::store_owner;
+    let ctx = &shell.ctx;
+    shell.go(Dest::Stores);
+    crate::pages::stores::push_store(ctx, "mika");
+    match shot {
+        "store-menu" => {
+            let window = ctx.window.clone();
+            glib::timeout_add_local_once(Duration::from_millis(800), move || {
+                if let Some(more) = more_button(&window) {
+                    more.popup();
+                }
+            });
+        }
+        "store-invite" => {
+            store_owner::invite(ctx, "mika", false);
+            let window = ctx.window.clone();
+            glib::timeout_add_local_once(Duration::from_millis(600), move || {
+                let Some(dialog) = window.visible_dialog() else { return };
+                if let Some(field) = first::<adw::EntryRow>(dialog.upcast_ref()) {
+                    field.set_text("Kai");
+                }
+                if let Some(make) = default_button(&dialog) {
+                    make.emit_clicked();
+                }
+            });
+        }
+        "store-members" => store_owner::members(ctx, "mika"),
+        "store-joining" => store_owner::joining(ctx, "mika"),
+        "store-publish" => store_owner::publish(ctx, "mika"),
+        _ => {}
+    }
+    2.0
+}
+
+/// The first widget of type `T` under `widget`, depth first.
+#[cfg(feature = "fixtures")]
+fn first<T: IsA<gtk::Widget>>(widget: &gtk::Widget) -> Option<T> {
+    if let Some(found) = widget.downcast_ref::<T>() {
+        return Some(found.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(next) = child {
+        if let Some(found) = first(&next) {
+            return Some(found);
+        }
+        child = next.next_sibling();
+    }
+    None
 }
 
 #[cfg(not(feature = "fixtures"))]
@@ -612,7 +740,7 @@ async fn painted(shell: &Rc<Shell>, path: &std::path::Path, shot: &str) -> Resul
             let over = match shot.as_str() {
                 "player-marks" => player.shot_popover(),
                 "player-tracks" => player.shot_tracks_popover(),
-                "party-title-menu" => title_menu_popover(&window),
+                "party-title-menu" | "store-menu" => title_menu_popover(&window),
                 party if party.starts_with("party-") => player.shot_party_popover(),
                 _ => None,
             };
@@ -983,6 +1111,23 @@ fn party_stage(_: &Rc<Shell>, _: &str) -> f64 {
 
 #[cfg(not(feature = "fixtures"))]
 fn party_unstage(_: &Rc<Shell>, _: &str) {}
+
+/// The poster grid on screen.
+fn mapped_grid(widget: &gtk::Widget) -> Option<gtk::GridView> {
+    if let Some(grid) = widget.downcast_ref::<gtk::GridView>()
+        && grid.is_mapped()
+    {
+        return Some(grid.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(next) = child {
+        if let Some(found) = mapped_grid(&next) {
+            return Some(found);
+        }
+        child = next.next_sibling();
+    }
+    None
+}
 
 /// The title page's More button, on the page on screen.
 fn more_button(window: &adw::ApplicationWindow) -> Option<gtk::MenuButton> {

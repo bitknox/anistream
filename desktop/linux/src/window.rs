@@ -589,6 +589,18 @@ impl Shell {
         add("update-download", None, Box::new(|s, _| s.ctx.updater.download()));
         add("update-cancel", None, Box::new(|s, _| s.ctx.updater.stop()));
         add("update-install", None, Box::new(|s, _| s.ctx.updater.install()));
+        add(
+            "update-show",
+            None,
+            Box::new(|s, _| {
+                let ctx = Rc::downgrade(&s.ctx);
+                s.ctx.updater.show_saved(&s.ctx.window, move || {
+                    if let Some(ctx) = ctx.upgrade() {
+                        ctx.toast("Couldn't open the Downloads folder");
+                    }
+                });
+            }),
+        );
         add("shortcuts", None, Box::new(|s, _| pages::shortcuts(&s.ctx)));
         add(
             "connect",
@@ -599,9 +611,8 @@ impl Shell {
                 }
             }),
         );
-        add("join-store", None, Box::new(|s, _| pages::join::open(&s.ctx, None)));
-        // Not in this build yet: shown, and greyed out.
-        add("export", None, Box::new(|_, _| {})).set_enabled(false);
+        // With the invite link on the clipboard in it, when there is one.
+        add("join-store", None, Box::new(|s, _| pages::join::open_from_clipboard(&s.ctx)));
         let _ = hub;
 
         for (i, dest) in Dest::ALL.iter().take(7).enumerate() {
@@ -630,6 +641,24 @@ impl Shell {
         app.add_action(&quit);
         app.set_accels_for_action("app.quit", &["<Control>q"]);
 
+        // A paste that no text field takes: an invite link on the clipboard opens Join Store.
+        let paste = gtk::ShortcutController::new();
+        paste.add_shortcut(gtk::Shortcut::new(
+            gtk::ShortcutTrigger::parse_string("<Control>v"),
+            Some(gtk::CallbackAction::new({
+                let weak = Rc::downgrade(self);
+                move |_, _| {
+                    let Some(shell) = weak.upgrade() else { return glib::Propagation::Proceed };
+                    if shell.is_player() {
+                        return glib::Propagation::Proceed;
+                    }
+                    pages::join::paste(&shell.ctx);
+                    glib::Propagation::Stop
+                }
+            })),
+        ));
+        window.add_controller(paste);
+
         // The mouse's back button.
         let click = gtk::GestureClick::new();
         click.set_button(8);
@@ -650,8 +679,12 @@ impl Shell {
         let updater = &self.ctx.updater;
         updater.on_ready({
             let ctx = Rc::downgrade(&self.ctx);
-            move |version| {
-                if let Some(ctx) = ctx.upgrade() {
+            move |version, saved| {
+                let Some(ctx) = ctx.upgrade() else { return };
+                if saved {
+                    let text = crate::updates::saved_words(version);
+                    ctx.toast_with(&text, "Show in Files", "win.update-show");
+                } else {
                     let text = format!("Version {version} is ready to install");
                     ctx.toast_with(&text, "Restart", "win.update-install");
                 }
@@ -800,12 +833,16 @@ impl Shell {
         });
     }
 
-    /// An `anistream://` link handed to the app: a watch party's invite, or a tracker's sign-in
-    /// coming back from the browser, `anistream://auth/<tracker>` with the token or code it
-    /// carries.
+    /// An `anistream://` link handed to the app: a watch party's invite, a plugin store's invite,
+    /// or a tracker's sign-in coming back from the browser, `anistream://auth/<tracker>` with the
+    /// token or code it carries.
     pub fn open_link(self: &Rc<Self>, link: &str) {
         if is_party_link(link) {
             crate::party::open_invite(self, link);
+            return;
+        }
+        if let Some(invite) = pages::join::invite_in(link) {
+            pages::join::open(&self.ctx, Some(&invite));
             return;
         }
         match sign_in_return(link) {
@@ -1004,7 +1041,6 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
     let first = gio::Menu::new();
     first.append(Some("Sync Now"), Some("win.sync"));
     first.append(Some("Join Store…"), Some("win.join-store"));
-    first.append(Some("Export Lists and History…"), Some("win.export"));
     menu.append_section(None, &first);
     let second = gio::Menu::new();
     second.append(Some("Keyboard Shortcuts"), Some("win.shortcuts"));

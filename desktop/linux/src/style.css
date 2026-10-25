@@ -106,6 +106,10 @@ levelbar block.empty { background: var(--rule); }
 .genre-tile { border-radius: 12px; padding: 18px; background: var(--raised); }
 .genre-tile:hover { background: var(--raised-selected); }
 
+/* Search's filters: what is set, each a chip that takes it off. */
+.filter-chip { padding: 2px 6px 2px 12px; min-height: 28px; }
+.filter-chip image { -gtk-icon-size: 12px; opacity: 0.7; }
+
 /* Episode rows. */
 .episode-row { min-height: 72px; padding: 6px 0; }
 .watched .episode-name { color: var(--haze); }
@@ -197,3 +201,5 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 }
 /* A device code: a flat raised plate inside its dialog, no shadow. */
 .code-plate { background: var(--raised); border-radius: 12px; padding: 6px 6px 6px 18px; }
+/* An invite link to copy, on a plate inside a dialog. */
+.link-plate { background: var(--raised); border-radius: 8px; padding: 12px; }
