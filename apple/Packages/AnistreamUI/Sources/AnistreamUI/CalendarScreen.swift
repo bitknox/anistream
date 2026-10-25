@@ -28,9 +28,16 @@ struct Broadcast: Identifiable, Equatable {
         airTime(time: CalendarWords.time(airs), approximate: entry.airingApproximate)
     }
 
-    /// "Dub" or "Sub" after the time, when the engine marks the row; nil for most.
+    /// "Dub" or "Sub" on the episode line, when the engine marks the row; nil for most.
     var mark: String? {
         calendarMark(entry: entry)
+    }
+
+    /// The mark as the episode line ends with it: " · Dub", or nothing. The spaces don't break,
+    /// so a line that wraps in a narrow column takes its last word down with the mark rather
+    /// than leaving "· Dub" alone on a line.
+    var markSuffix: String {
+        mark.map { "\u{00A0}·\u{00A0}\($0)" } ?? ""
     }
 
     /// Whether you have watched this episode.
@@ -280,12 +287,10 @@ struct BroadcastCell: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(broadcast.clock).font(.mac(13)).monospacedDigit()
-                        if let mark = broadcast.mark {
-                            Text("· \(mark)").font(.mac(12)).lineLimit(1)
-                        }
                         Spacer(minLength: 4)
                         HStack(spacing: 4) {
-                            Text("Ep \(broadcast.episode)")
+                            Text("Ep \(broadcast.episode)" + broadcast.markSuffix)
+                                .lineLimit(1)
                             Image(systemName: "checkmark").font(.mac(10, weight: .semibold))
                         }
                         .font(.mac(12))
@@ -310,12 +315,6 @@ struct BroadcastCell: View {
                                 .font(.mac(13))
                                 .monospacedDigit()
                                 .foregroundStyle(.silk)
-                            if let mark = broadcast.mark {
-                                Text("· \(mark)")
-                                    .font(.mac(12))
-                                    .foregroundStyle(.haze)
-                                    .lineLimit(1)
-                            }
                             if let note = broadcast.delayNote {
                                 Text(note)
                                     .font(.mac(12))
@@ -341,7 +340,7 @@ struct BroadcastCell: View {
                             }
                             // Two lines in a column narrower than the line, as on an iPad in
                             // portrait, rather than cut before it says when.
-                            Text(broadcast.line(now: now))
+                            Text(broadcast.line(now: now) + broadcast.markSuffix)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
                         }

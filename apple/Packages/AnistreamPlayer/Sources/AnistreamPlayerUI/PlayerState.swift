@@ -117,10 +117,12 @@ public struct EpisodeOnScreen: Equatable, Sendable {
     public var show: String
     public var translation: Translation
 
-    /// "Episode 7 · The Lantern Road", or the label alone.
+    /// "Episode 7 · Dub · The Lantern Road", or without the name when it has none: the
+    /// translation on the episode line, wherever an episode is described.
     public var line: String {
-        guard let title, !title.isEmpty else { return label }
-        return "\(label) · \(title)"
+        let episode = "\(label) · \(translation.label)"
+        guard let title, !title.isEmpty else { return episode }
+        return "\(episode) · \(title)"
     }
 }
 
