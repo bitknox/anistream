@@ -24,11 +24,12 @@ namespace Anistream.Windows;
 /// <param name="Welcome">Show the first-launch pages, which a fixture run otherwise skips.</param>
 /// <param name="Offline">Tell the engine there is no network, to show the offline states.</param>
 /// <param name="Shortcuts">Open the keyboard shortcuts dialog once the window is up.</param>
+/// <param name="Opens">The <c>anistream://</c> link the app was opened with, as the installer's <c>anistream.exe "%1"</c> hands it over.</param>
 public sealed record Options(
     string? Scene, string? Media, string? Page, uint? Title, string? Query, bool Play,
     string? Pane, int? Width, int? Height, bool KeepControls, bool Downloads, bool AskClose,
     bool Showcase = false, bool Join = false, string? Select = null, string? Show = null,
-    bool Welcome = false, bool Offline = false, bool Shortcuts = false)
+    bool Welcome = false, bool Offline = false, bool Shortcuts = false, string? Opens = null)
 {
     public bool Fixture => Scene is not null;
 
@@ -39,6 +40,7 @@ public sealed record Options(
         int? width = null, height = null;
         bool play = false, keep = false, downloads = false, askClose = false, showcase = false, join = false;
         bool welcome = false, offline = false, shortcuts = false;
+        var opens = Anistream.App.Link.InArguments(args);
         foreach (var arg in args)
         {
             var (name, value) = arg.Split('=', 2) is [var n, var v] ? (n, v) : (arg, "");
@@ -67,6 +69,6 @@ public sealed record Options(
                     break;
             }
         }
-        return new(scene, media, page, title, query, play, pane, width, height, keep, downloads, askClose, showcase, join, select, show, welcome, offline, shortcuts);
+        return new(scene, media, page, title, query, play, pane, width, height, keep, downloads, askClose, showcase, join, select, show, welcome, offline, shortcuts, opens);
     }
 }
