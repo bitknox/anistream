@@ -63,6 +63,10 @@ desktop/linux/scripts/docker.sh cargo test --manifest-path desktop/linux/Cargo.t
 desktop/linux/scripts/docker.sh desktop/linux/scripts/shots.sh
 ```
 
+The build goes to a Docker volume named after `CARGO_TARGET_DIR`, not to that folder, so nothing
+lands there. `desktop/linux/scripts/docker.sh --clean` deletes it, and `docker volume ls` lists
+them. Only what a command writes to `OUT` comes back to the host.
+
 `--features fixtures` builds in the test kit's scene: a fake AniList on loopback, made-up titles
 and a watch history, under a data directory of its own. The app then takes `--fixtures`, and
 `shots.sh` has it screenshot its own pages at the brief's three sizes into `OUT`. `SIZES` picks
