@@ -30,7 +30,7 @@ struct PlayerAccessibility: ViewModifier {
             .onChange(of: model.upNextShown) { _, shown in
                 guard shown, let card = model.upNext else { return }
                 let episode = "Up next: episode \(card.next.number)"
-                    + (model.episode.map { ", \($0.translation.label.lowercased())" } ?? "")
+                    + (model.episode?.translation == .dub ? ", dub" : "")
                 announce(card.next.title.map { "\(episode), \($0)" } ?? episode)
             }
             .onChange(of: model.countdown?.seconds) { _, seconds in

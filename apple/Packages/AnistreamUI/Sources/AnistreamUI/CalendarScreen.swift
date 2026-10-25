@@ -28,9 +28,10 @@ struct Broadcast: Identifiable, Equatable {
         airTime(time: CalendarWords.time(airs), approximate: entry.airingApproximate)
     }
 
-    /// "Dub" or "Sub" on the episode line, when the engine marks the row; nil for most.
+    /// "Dub" on the episode line, when the engine marks the row as the dub's. Only dubs are
+    /// marked: a subbed episode is the usual case, so the engine's "Sub" says nothing here.
     var mark: String? {
-        calendarMark(entry: entry)
+        calendarMark(entry: entry).flatMap { $0 == "Dub" ? $0 : nil }
     }
 
     /// The mark as the episode line ends with it: " · Dub", or nothing. The spaces don't break,

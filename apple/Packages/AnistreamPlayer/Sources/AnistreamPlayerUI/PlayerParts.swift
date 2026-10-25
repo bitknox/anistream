@@ -601,7 +601,7 @@ struct UpNextCardView: View {
                             .font(.system(size: 11, weight: .medium))
                             .tracking(0.88)
                             .foregroundStyle(.haze)
-                        Text("Episode \(card.next.number)" + (model.episode.map { " · \($0.translation.label)" } ?? ""))
+                        Text("Episode \(card.next.number)" + (model.episode?.dubMark ?? ""))
                             .font(.system(size: metrics.body, weight: .semibold))
                         if let title = card.next.title {
                             Text(title)
