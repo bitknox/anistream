@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.Release
+import tv.anistream.engine.model.ReleaseAsset
 import tv.anistream.engine.model.UpdateStatus
 
 /**
@@ -49,12 +50,15 @@ data class UpdateOffer(
     val installable: Boolean get() = url.isNotEmpty() && ApkChecksum.expected(sha256) != null
 
     companion object {
-        /** What [release] offers this app: its APK, or its page alone where it has none. */
-        fun of(release: Release): UpdateOffer = UpdateOffer(
+        /**
+         * What [release] offers this app: its APK, the phone's unless [asset] picks another (the
+         * TV's), or its page alone where it has none.
+         */
+        fun of(release: Release, asset: ReleaseAsset? = release.android): UpdateOffer = UpdateOffer(
             version = release.version,
-            url = release.android?.url.orEmpty(),
-            sha256 = release.android?.sha256.orEmpty(),
-            bytes = release.android?.size?.toLong() ?: 0,
+            url = asset?.url.orEmpty(),
+            sha256 = asset?.sha256.orEmpty(),
+            bytes = asset?.size?.toLong() ?: 0,
             page = release.pageUrl,
             notes = release.notes,
         )
@@ -114,6 +118,11 @@ sealed interface UpdateFailure {
     /** The file is this version or an older one. */
     data object NotNewer : UpdateFailure {
         override val text get() = "The download is not newer than this version, so it was not installed."
+    }
+
+    /** The device has too little room for the APK and the installer's copy of it. */
+    data object Storage : UpdateFailure {
+        override val text get() = "There isn't enough free space for the update. Free some space and try again."
     }
 
     /** Android's installer said no, in its own words when it gave any. */
@@ -181,6 +190,12 @@ sealed interface InstallResult {
 
 /** What the update needs of Android, which the app gives it. */
 interface UpdateHost {
+    /** The package the APK must be: the app flavour's own, the phone's unless the host says. */
+    val packageName: String get() = ApkIdentity.PACKAGE
+
+    /** Whether there is room for [offer]'s APK and the installer's copy of it. */
+    fun hasRoom(offer: UpdateOffer): Boolean = true
+
     /** Whether Android lets the app install packages: its "Install unknown apps" switch. */
     fun canInstall(): Boolean
 
@@ -222,10 +237,12 @@ interface UpdateHost {
  *
  * @param notices where a failure is said, as a notice.
  * @param io where the download and the checks run.
+ * @param asset the file of a release this app installs: the phone's APK, or the TV's.
  */
 class UpdateModel(
     private val notices: NoticesModel? = null,
     private val io: CoroutineDispatcher = Dispatchers.IO,
+    private val asset: (Release) -> ReleaseAsset? = { it.android },
 ) {
     private val _state = MutableStateFlow<UpdateState>(UpdateState.None)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
@@ -286,7 +303,7 @@ class UpdateModel(
         when (status) {
             is UpdateStatus.Checking -> checking()
             is UpdateStatus.UpToDate -> offer(null)
-            is UpdateStatus.Available -> offer(UpdateOffer.of(status.release), tell = status.notify)
+            is UpdateStatus.Available -> offer(UpdateOffer.of(status.release, asset(status.release)), tell = status.notify)
             is UpdateStatus.Failed -> checkFailed(status.reason)
         }
     }
@@ -357,6 +374,11 @@ class UpdateModel(
     }
 
     private fun download(offer: UpdateOffer) {
+        if (host?.hasRoom(offer) == false) {
+            _state.value = UpdateState.Downloading(offer, 0, offer.bytes)
+            fail(offer, UpdateFailure.Storage)
+            return
+        }
         _state.value = UpdateState.Downloading(offer, 0, offer.bytes)
         if (host?.startDownload(offer) != true) fail(offer, UpdateFailure.NotStarted)
     }
@@ -500,7 +522,7 @@ class UpdateModel(
          */
         fun verify(apk: File, offer: UpdateOffer, host: UpdateHost): UpdateFailure? {
             if (!ApkChecksum.matches(apk, offer.sha256)) return UpdateFailure.Checksum
-            return ApkIdentity.check(host.inspect(apk), host.installed())
+            return ApkIdentity.check(host.inspect(apk), host.installed(), host.packageName)
         }
     }
 }

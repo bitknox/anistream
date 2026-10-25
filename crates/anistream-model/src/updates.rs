@@ -29,6 +29,9 @@ pub struct Release {
     /// The Android app, `anistream-<version>-android-arm64.apk`.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub android: Option<ReleaseAsset>,
+    /// The Android TV app, `anistream-<version>-android-tv.apk`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub android_tv: Option<ReleaseAsset>,
 }
 
 /// One file of a release, with what it has to match once downloaded.

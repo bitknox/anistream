@@ -60,6 +60,7 @@ object TvIcons {
         listOf(6f, 12f, 18f).map { y -> "M12 ${y - 1.5f} A1.5 1.5 0 1 1 11.99 ${y - 1.5f} Z" },
     )
     val Down = icon("Down", listOf("M7 10 L12 15 L17 10"))
+    val Update = icon("Update", listOf("M12 4 V15 M7.5 10.5 L12 15 L16.5 10.5 M5 19.5 H19"))
     val Check = icon("Check", listOf("M5 12.5 L10 17.5 L19 7"))
     val Sort = icon("Sort", listOf("M4 7 H20 M7 12 H17 M10 17 H14"))
     val Keyboard = icon(

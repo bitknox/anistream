@@ -195,6 +195,7 @@ impl Answer {
             macos: file(format!("anistream-{version}-macos.dmg")),
             ios: file(format!("anistream-{version}-ios-unsigned.ipa")),
             android: file(format!("anistream-{version}-android-arm64.apk")),
+            android_tv: file(format!("anistream-{version}-android-tv.apk")),
             version,
         })
     }
@@ -383,6 +384,7 @@ async fn ask(http: &HttpClient, api: &str, current: &str, now: i64) -> Result<An
         format!("anistream-{version}-macos.dmg"),
         format!("anistream-{version}-ios-unsigned.ipa"),
         format!("anistream-{version}-android-arm64.apk"),
+        format!("anistream-{version}-android-tv.apk"),
     ] {
         let Some(url) = asset_named(&answer.latest, &format!("{name}.sha256"))
             .and_then(|sidecar| sidecar.get("browser_download_url")?.as_str())
@@ -661,7 +663,9 @@ mod tests {
             let version = tag.trim_start_matches('v');
             let mut assets = Vec::new();
             for (i, suffix) in
-                ["macos.dmg", "ios-unsigned.ipa", "android-arm64.apk"].iter().enumerate()
+                ["macos.dmg", "ios-unsigned.ipa", "android-arm64.apk", "android-tv.apk"]
+                    .iter()
+                    .enumerate()
             {
                 let name = format!("anistream-{version}-{suffix}");
                 let hex = format!("{i}").repeat(64);
@@ -788,6 +792,9 @@ mod tests {
         let android = release.android.expect("Android's file");
         assert_eq!(android.name, "anistream-2.0.3-android-arm64.apk");
         assert_eq!((android.sha256, android.size), ("2".repeat(64), 1002));
+        let tv = release.android_tv.expect("the TV's file");
+        assert_eq!(tv.name, "anistream-2.0.3-android-tv.apk");
+        assert_eq!((tv.sha256, tv.size), ("3".repeat(64), 1003));
     }
 
     #[tokio::test]

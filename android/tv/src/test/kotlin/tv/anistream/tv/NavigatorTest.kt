@@ -26,6 +26,19 @@ class NavigatorTest {
     }
 
     @Test
+    fun another_season_takes_the_title_page_s_place_so_back_returns_to_the_opener() {
+        val forgotten = mutableListOf<String>()
+        val nav = TvNavigator().apply { forget = { forgotten += it } }
+        nav.openTitle(920001u)
+        nav.switchTitle(920002u)
+        nav.switchTitle(920003u)
+        assertEquals(920003u, (nav.top as Page.Title).id)
+        assertEquals(2, forgotten.size)
+        assertTrue(nav.pop())
+        assertNull(nav.top)
+    }
+
+    @Test
     fun another_destination_starts_afresh_and_search_forgets_its_text() {
         val nav = TvNavigator(Destination.Search)
         nav.typeSearch("hoshi")

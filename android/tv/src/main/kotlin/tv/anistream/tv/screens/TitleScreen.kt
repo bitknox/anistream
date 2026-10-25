@@ -1,6 +1,7 @@
 // The title page: the banner header, the title, its metadata in caps and the action row with the
-// amber action focused; then the episodes, focus landing on the next one to play; Related; and the
-// details. Back returns to the opener.
+// amber action focused; then the franchise's seasons as a row of tabs, when it has more than one;
+// the episodes, focus landing on the next one to play; Related; and the details. Back returns to
+// the opener, whichever season the tabs went to.
 
 package tv.anistream.tv.screens
 
@@ -61,6 +62,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.LinkedTitle
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.AppStore
 import tv.anistream.store.label
@@ -98,6 +100,7 @@ import tv.anistream.tv.ui.showSettingsSheet
 import tv.anistream.tv.ui.statusSheet
 import tv.anistream.tv.ui.swapFade
 import tv.anistream.tv.ui.TvIcons
+import tv.anistream.tv.ui.TvTab
 import tv.anistream.tv.ui.firstFocus
 import tv.anistream.tv.ui.pixels
 import tv.anistream.tv.ui.placeholdersAfterWait
@@ -112,6 +115,8 @@ fun TitleScreen(
     onPlay: (AnilistId, UInt) -> Unit,
     onPlayFromStart: (AnilistId, UInt) -> Unit = onPlay,
     onAddStore: () -> Unit = {},
+    /** Another season's page in this one's place. */
+    onSeason: (AnilistId) -> Unit = onOpen,
 ) {
     val store = LocalAppStore.current
     LaunchedEffect(id) {
@@ -163,6 +168,12 @@ fun TitleScreen(
                 Header(entry, rows, action, noSources, memory, onPlay, onAddStore, swapFade().onFocusChanged {
                     if (it.hasFocus) scope.launch { list.animateScrollToItem(0) }
                 })
+            }
+            val seasons = entry.detail?.seasons.orEmpty()
+            if (seasons.size > 1) {
+                item(key = "seasons", contentType = "seasons") {
+                    Seasons(entry.id, seasons, memory, onSeason, swapFade().settlesAt(list, scope, "seasons", rowTop))
+                }
             }
             if (rows == null || rows.isNotEmpty()) {
                 item(key = "episodes", contentType = "row") {
@@ -236,6 +247,48 @@ private fun Header(
                 "More",
                 onClick = { actions?.open(titleSheet(store, entry, rows, action)) },
                 modifier = Modifier.remembered(memory, "more"),
+            )
+        }
+    }
+}
+
+/**
+ * The season picker: the franchise's seasons in watch order as tabs, "Season 1" first, the one on
+ * screen selected; a film or an OVA, which is none of them, has none selected. Focus comes in on
+ * the selected tab, and Center on another shows that season's page in this one's place.
+ */
+@Composable
+private fun Seasons(
+    id: AnilistId,
+    seasons: List<LinkedTitle>,
+    memory: FocusMemory,
+    onSeason: (AnilistId) -> Unit,
+    modifier: Modifier,
+) {
+    val at = seasons.indexOfFirst { it.id == id }
+    // The season before this one shows too, so the row says there are earlier ones.
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = (at - 1).coerceAtLeast(0))
+    val selected = remember { FocusRequester() }
+    BrowseRow(
+        "Seasons",
+        modifier = modifier,
+        state = state,
+        subtitle = if (at >= 0) "${at + 1} of ${seasons.size}" else "${seasons.size}",
+        fallback = if (at >= 0) selected else FocusRequester.Default,
+    ) {
+        items(seasons.size, key = { seasons[it].id.toLong() }, contentType = { "season" }) { index ->
+            val season = seasons[index]
+            val chosen = season.id == id
+            TvTab(
+                "Season ${index + 1}",
+                selected = chosen,
+                onSelect = { if (!chosen) onSeason(season.id) },
+                settle = null,
+                chip = true,
+                count = season.year?.toString(),
+                modifier = Modifier
+                    .then(if (chosen) Modifier.focusRequester(selected) else Modifier)
+                    .remembered(memory, "season/${season.id}"),
             )
         }
     }
