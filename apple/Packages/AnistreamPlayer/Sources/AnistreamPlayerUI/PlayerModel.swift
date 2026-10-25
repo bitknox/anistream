@@ -151,6 +151,8 @@ public final class PlayerModel {
     public private(set) var sourceChoices: [SourceCandidate]?
     /// The player closed before a frame: waiting for the engine to say whether it failed.
     @ObservationIgnored private var verdictPending = false
+    /// A party play found no source: the party's sheet says so, and the player closes.
+    @ObservationIgnored private var partySaysWhy = false
     /// "Still watching?": the episodes rolled on in a row with nobody there, which pauses.
     public private(set) var stillWatching = false
     /// Skips the viewer has taken, for the haptic that answers each (T4).
@@ -306,13 +308,14 @@ public final class PlayerModel {
             choosingSource = false
             sourceChoices = nil
             verdictPending = false
+            partySaysWhy = false
             staged = StagedPlayback(id: id, title: title, episode: episode, episodeTitle: episodeTitle)
             present()
         case .playbackEnded(_, let ending, let rollingOn):
             if rollingOn {
                 // Not when the viewer sought into the ending: someone was there.
                 rollPending = !(upNext?.sought ?? false)
-            } else if backend == nil, ending == .failed, isPresented, let episode = startingEpisode {
+            } else if backend == nil, ending == .failed, isPresented, !partySaysWhy, let episode = startingEpisode {
                 // It never played: no stream was found, or none showed a frame. Say so where the
                 // viewer is looking, with another source to choose, rather than vanish.
                 verdictPending = false
@@ -323,6 +326,10 @@ public final class PlayerModel {
                 verdictPending = false
                 dismiss()
             }
+        case .partyNoSource:
+            // The party's own sheet says why nothing plays and offers its sources: the player's
+            // failure would say it twice, under it.
+            partySaysWhy = true
         case .sources(let id, let episode, let candidates):
             guard choosingSource else { return }
             Self.note(.info, "\(candidates.count) sources for \(id) episode \(episode)")
@@ -1424,6 +1431,12 @@ public final class PlayerModel {
     /// mpv's command that adds a file as a track of `kind` and selects it.
     static func addCommand(_ kind: Track.Kind) -> String {
         kind == .audio ? "audio-add" : "sub-add"
+    }
+
+    /// Say `text` over the video, as the engine's notices are: what the app says there of a
+    /// watch party.
+    public func say(_ text: String, kind: NoticeKind = .info) {
+        alert = PlayerAlert(text: text, kind: kind, since: ContinuousClock.now)
     }
 
     private func trackFileFailed(_ kind: Track.Kind) {

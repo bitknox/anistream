@@ -28,7 +28,10 @@ public struct MacPlayerView: View {
     /// The top bar's control under the pointer, as the title bar strip says it: where the
     /// controls' own hover cannot see it.
     @State private var pointed: String?
+    /// The watch party's popover on the people button.
+    @State private var partyOpen = false
     @FocusState private var focused: Bool
+    @Environment(AppStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.playerZoom) private var zoom
     private let metrics = PlayerMetrics.mac
@@ -39,12 +42,12 @@ public struct MacPlayerView: View {
         self.model = model
     }
 
-    private var visible: Bool { (model.controlsVisible || panel != nil || overBar) && !model.stillWatching && model.failure == nil && !curtain }
+    private var visible: Bool { (model.controlsVisible || panel != nil || partyOpen || overBar) && !model.stillWatching && model.failure == nil && !curtain }
 
     /// Whether the pointer may hide over the video (PlayerPointer).
     private var pointerIdle: Bool {
         PlayerPointer.idle(
-            controlsShown: model.controlsVisible || panel != nil || overBar,
+            controlsShown: model.controlsVisible || panel != nil || partyOpen || overBar,
             loading: curtain, failed: model.failure != nil, askingStillWatching: model.stillWatching)
     }
 
@@ -103,6 +106,12 @@ public struct MacPlayerView: View {
         .onChange(of: window) { _, window in if let window { opened(window) } }
         .onChange(of: model.backRequests) { back() }
         .onChange(of: model.menuRequests) { panel = model.requestedMenu }
+        .onChange(of: store.party.panelRequests) {
+            panel = nil
+            partyOpen = store.party.inParty
+        }
+        // The party is over: its popover goes with it.
+        .onChange(of: store.party.inParty) { _, inParty in if !inParty { partyOpen = false } }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
             guard let window, (note.object as? NSWindow) === window else { return }
             PlayerModel.note(.info, "player window full screen, \(Self.describe(window))")
@@ -186,6 +195,7 @@ public struct MacPlayerView: View {
         if model.playOnTVAvailable {
             Button("Play on TV…") { model.playOnTV() }
         }
+        Button(store.party.inParty ? "Watch Party…" : "Watch Together…") { people() }
     }
 
     // MARK: Chrome
@@ -235,6 +245,7 @@ public struct MacPlayerView: View {
             .overVideoText()
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 0) {
+                partyButton
                 capsuleButton("captions.bubble", "Subtitles and audio", on: panel == .tracks) { toggle(.tracks) }
                 capsuleButton("list.bullet", "Episodes", on: panel == .episodes) { toggle(.episodes) }
             }
@@ -349,6 +360,29 @@ public struct MacPlayerView: View {
 
     private func toggle(_ which: Panel) {
         panel = panel == which ? nil : which
+        partyOpen = false
+        model.poke()
+    }
+
+    /// The people button: the party's popover while in one, the form that starts one otherwise
+    /// (a sheet over the player, as from a title).
+    private var partyButton: some View {
+        let inParty = store.party.inParty
+        return capsuleButton(PartyButton.symbol(inParty: inParty), PartyButton.label(inParty: inParty), on: partyOpen) { people() }
+            .popover(isPresented: $partyOpen, arrowEdge: .bottom) {
+                PartyPanel(metrics: metrics)
+                    .environment(store)
+                    .preferredColorScheme(.dark)
+            }
+    }
+
+    private func people() {
+        panel = nil
+        if store.party.inParty {
+            partyOpen.toggle()
+        } else {
+            store.party.open(.playing)
+        }
         model.poke()
     }
 

@@ -49,6 +49,10 @@ public final class AppStore {
     public let updates = UpdatesModel()
     /// Play on TV: the TVs, pairing, and the card of the one driven.
     public let tv = TVRemoteModel()
+    /// The watch party this device is in, and the sheets that start one.
+    public let party = PartyModel()
+    /// Says a line over the video, when the player is up: what the app's player shows.
+    @ObservationIgnored public var playerSays: (@MainActor (String, NoticeKind) -> Void)?
     /// The week's ask, waiting a moment in case more ask at once.
     @ObservationIgnored var noticeRefresh: Task<Void, Never>?
     /// The home-screen widgets' snapshot, kept current as what they show changes.
@@ -108,6 +112,15 @@ public final class AppStore {
         }
         continued.send = { [weak self] command in self?.send(command) }
         updates.send = { [weak self] command in self?.send(command) }
+        party.send = { [weak self] command in self?.send(command) }
+        party.say = { [weak self] notice, player, kind in
+            guard let self else { return }
+            if party.playerUp() {
+                if let player { playerSays?(player, kind) }
+            } else {
+                notices.post(Notice(kind: kind, text: notice, hint: nil))
+            }
+        }
         // The downloads' Live Activity and the system's own progress for them never show at once.
         continued.runningChanged = { [weak self] running in self?.downloadsActivity.systemShowsProgress = running }
     }
@@ -162,6 +175,17 @@ public final class AppStore {
     public func troubleArt(failFirst: Int, delay: Duration) {
         let ms = delay.components.seconds * 1000 + delay.components.attoseconds / 1_000_000_000_000_000
         client?.engine.testingTroubleArt(failFirst: UInt32(max(0, failFirst)), delayMs: UInt32(max(0, ms)))
+    }
+
+    /// A Syncplay server on the loopback interface beside the engine, with members a screenshot
+    /// run plays (`startFakeParty`). The Fixtures app only.
+    public func startFakeParty() -> FfiFakeParty? {
+        do {
+            return try client?.engine.startFakeParty()
+        } catch {
+            AppLog.error("party", "the fake party server did not start: \(error)")
+            return nil
+        }
     }
     #endif
 
@@ -569,6 +593,7 @@ public final class AppStore {
         case .status(let text):
             notices.status(text)
         case .toast(let notice):
+            party.apply(event)
             notices.post(notice)
         case .connectivity(let offline):
             AppLog.info("store", offline ? "offline" : "online")
@@ -649,7 +674,17 @@ public final class AppStore {
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
             widgetsChanged()
-        case .playerOps, .playerUi, .playbackKept, .sources, .playerTimeline, .playerBuffered, .playerStats, .clipboard:
+        case .sources:
+            party.apply(event)
+            onPlayback?(event)
+        case .playerOps, .playerUi, .playbackKept, .playerTimeline, .playerBuffered, .playerStats, .clipboard:
+            onPlayback?(event)
+
+        case .partyForm, .partyJoined, .partyState, .partyMembers, .partyLeft:
+            party.apply(event)
+        case .partyNoSource:
+            // The party's sheet says it, and the player steps aside for it.
+            party.apply(event)
             onPlayback?(event)
 
         case .widgetSnapshot(let data):

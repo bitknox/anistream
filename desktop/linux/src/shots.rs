@@ -57,6 +57,27 @@ pub const ALL: [&str; 35] = [
     "close",
 ];
 
+/// The watch party's shots, apart from the rest: each holds a party on the scene's own server,
+/// and they take long enough that a run of every shot would not fit its time. `--shot party`
+/// takes them all.
+pub const PARTY: [&str; 15] = [
+    "party-form",
+    "party-joining",
+    "party-refused",
+    "party-invite",
+    "party-panel",
+    "party-ready",
+    "party-chat",
+    "party-left",
+    "party-lost",
+    "party-close",
+    "party-nosource",
+    "party-choose",
+    "party-unaired",
+    "party-nosources",
+    "party-title-menu",
+];
+
 /// Take `shots` into `dir`, each named `<prefix><shot>.png`, then quit.
 pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
     glib::spawn_future_local(async move {
@@ -379,6 +400,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             window.close();
             1.5
         }
+        party if party.starts_with("party-") => party_stage(shell, party),
         other => {
             tracing::warn!(shot = other, "no such shot");
             0.0
@@ -433,6 +455,7 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
             shell.player.close();
         }
         "player" | "player-marks" | "player-undo" | "mini" => shell.player.close(),
+        party if party.starts_with("party-") => party_unstage(shell, party),
         _ => {}
     }
 }
@@ -542,6 +565,8 @@ async fn painted(shell: &Rc<Shell>, path: &std::path::Path, shot: &str) -> Resul
             let over = match shot.as_str() {
                 "player-marks" => player.shot_popover(),
                 "player-tracks" => player.shot_tracks_popover(),
+                "party-title-menu" => title_menu_popover(&window),
+                party if party.starts_with("party-") => player.shot_party_popover(),
                 _ => None,
             };
             capture(&window, &path, over)
@@ -582,7 +607,10 @@ pub fn named(list: Option<&str>) -> Vec<String> {
             .split(',')
             .map(str::trim)
             .filter(|s| !s.is_empty())
-            .map(str::to_owned)
+            .flat_map(|s| match s {
+                "party" => PARTY.iter().map(|p| (*p).to_owned()).collect(),
+                one => vec![one.to_owned()],
+            })
             .collect(),
     }
 }
@@ -608,6 +636,341 @@ fn wide_widgets(widget: &gtk::Widget, depth: usize, limit: i32) {
     }
 }
 
+/// The room the party shots hold their party in.
+#[cfg(feature = "fixtures")]
+const ROOM: &str = "quiet-harbor-k7m2xq9ad4tnwe3p";
+
+#[cfg(feature = "fixtures")]
+thread_local! {
+    /// The party shot's server, kept until the shot is taken.
+    static PARTY_SERVER: std::cell::RefCell<Option<crate::fixtures::FakeParty>> =
+        const { std::cell::RefCell::new(None) };
+    /// The address the joining shot waits on, which never answers.
+    static SILENT: std::cell::RefCell<Option<std::net::TcpListener>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// Put the window in the party state `shot` shows, and say how long to let it settle.
+#[cfg(feature = "fixtures")]
+fn party_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use crate::{
+        fixtures::FakeParty,
+        party::{form, source},
+    };
+    use anistream_core::ids::AnilistId;
+    use anistream_model::party::{NoSourceWhy, PartyInvite};
+
+    let ctx = Rc::clone(&shell.ctx);
+    let title = AnilistId::new(TITLE);
+    let open_title = || {
+        shell.go(Dest::Continue);
+        let _ = WidgetExt::activate_action(
+            &shell.ctx.window,
+            "win.open-title",
+            Some(&TITLE.to_variant()),
+        );
+    };
+    let serve = |refuse: Option<&str>| {
+        let party = FakeParty::start(refuse)?;
+        let server = party.server();
+        PARTY_SERVER.with(|p| p.replace(Some(party)));
+        Some(server)
+    };
+    // Each scene's own notices, not the last one's still queued.
+    shell.ctx.toasts.dismiss_all();
+    match shot {
+        "party-form" => {
+            open_title();
+            let ctx = Rc::clone(&ctx);
+            glib::timeout_add_local_once(Duration::from_millis(1500), move || {
+                form::open(&ctx, form::For::Episode(title, "7".into()));
+            });
+            3.5
+        }
+        "party-title-menu" => {
+            open_title();
+            let window = shell.ctx.window.clone();
+            glib::timeout_add_local_once(Duration::from_millis(2000), move || {
+                if let Some(more) = more_button(&window) {
+                    more.popup();
+                }
+            });
+            3.5
+        }
+        "party-joining" | "party-refused" => {
+            let server = if shot == "party-joining" {
+                crate::fixtures::silent_server().map(|(listener, address)| {
+                    SILENT.with(|s| s.replace(Some(listener)));
+                    address
+                })
+            } else {
+                serve(Some("this room takes members by invitation only"))
+            };
+            open_title();
+            let ctx = Rc::clone(&ctx);
+            glib::timeout_add_local_once(Duration::from_millis(1500), move || {
+                form::open(&ctx, form::For::Episode(title, "7".into()));
+                form::rehearse(server, true);
+            });
+            4.5
+        }
+        "party-invite" | "party-unaired" => {
+            let Some(server) = serve(None) else { return 0.0 };
+            let (id, episode) =
+                if shot == "party-invite" { (TITLE, "7") } else { (PLAYING.0, "6") };
+            let link = PartyInvite {
+                server,
+                room: ROOM.into(),
+                id: AnilistId::new(id),
+                episode: episode.into(),
+            }
+            .link();
+            shell.go(Dest::Continue);
+            shell.open_link(&link);
+            if shot == "party-unaired" {
+                glib::timeout_add_local_once(Duration::from_millis(2500), || {
+                    form::rehearse(None, true);
+                });
+                return 7.0;
+            }
+            3.5
+        }
+        "party-nosource" | "party-nosources" | "party-choose" => {
+            let Some(server) = serve(None) else { return 0.0 };
+            ctx.hub.send(Command::PartyJoin {
+                server,
+                room: ROOM.into(),
+                name: Some("Ada".into()),
+            });
+            let ctx = Rc::clone(&ctx);
+            let shot = shot.to_owned();
+            glib::spawn_future_local(async move {
+                for _ in 0..50 {
+                    if ctx.hub.known.borrow().party.is_some() {
+                        break;
+                    }
+                    wait(0.2).await;
+                }
+                match shot.as_str() {
+                    "party-nosources" => source::open(
+                        &ctx,
+                        title,
+                        "7",
+                        NoSourceWhy::NoSources,
+                        "no source is set up",
+                    ),
+                    "party-nosource" => source::open(
+                        &ctx,
+                        title,
+                        "7",
+                        NoSourceWhy::NotFound,
+                        "could not match this title: sample-source has no episode 7",
+                    ),
+                    _ => {
+                        source::rehearse_choose(&ctx, title, "7");
+                        // Before the engine's own answer, which has no sources to give.
+                        ctx.hub.take(vec![anistream_model::event::Event::Sources {
+                            id: title,
+                            episode: "7".into(),
+                            candidates: choices(),
+                        }]);
+                    }
+                }
+            });
+            4.0
+        }
+        playing => {
+            let Some(server) = serve(None) else { return 0.0 };
+            party_playing(shell, server, playing.to_owned());
+            match playing {
+                "party-lost" => 18.0,
+                "party-left" | "party-ready" => 16.0,
+                _ => 14.0,
+            }
+        }
+    }
+}
+
+/// A party playing the title's episode 7, held paused at the start as a room waiting to be
+/// ready is, with Mika ready and Ren not, then the state `shot` shows.
+#[cfg(feature = "fixtures")]
+fn party_playing(shell: &Rc<Shell>, server: String, shot: String) {
+    use anistream_core::ids::AnilistId;
+    use anistream_model::command::PlayerCommand;
+    let shell = Rc::clone(shell);
+    shell.player.hold_up_next.set(true);
+    let started = std::time::Instant::now();
+    // Until `at` seconds into the scene, so a notice is still up when the shot is taken.
+    let until = move |at: f64| wait((at - started.elapsed().as_secs_f64()).max(0.0));
+    glib::spawn_future_local(async move {
+        let hub = Rc::clone(&shell.ctx.hub);
+        hub.send(Command::PartyJoin { server, room: ROOM.into(), name: Some("Ada".into()) });
+        hub.send(Command::Play {
+            id: AnilistId::new(TITLE),
+            episode: "7".into(),
+            from_start: true,
+        });
+        // Until this device's member has the episode open, for the others to open the same.
+        let mut you = None;
+        for _ in 0..100 {
+            wait(0.2).await;
+            you = hub
+                .known
+                .borrow()
+                .party_members
+                .as_ref()
+                .and_then(|m| m.iter().find(|m| m.you).cloned());
+            if you.as_ref().is_some_and(|y| y.file.is_some() && y.duration.is_some()) {
+                break;
+            }
+        }
+        let file = you.as_ref().and_then(|y| y.file.clone()).unwrap_or_default();
+        let length = you.and_then(|y| y.duration).unwrap_or(60.0);
+        hub.send(Command::Player(PlayerCommand::TogglePause));
+        PARTY_SERVER.with(|p| {
+            let p = p.borrow();
+            let Some(party) = p.as_ref() else { return };
+            party.add(ROOM, "Mika");
+            party.opens("Mika", &file, length);
+            party.add(ROOM, "Ren");
+            let other = file.replace("Episode 7", "Episode 8");
+            party.opens("Ren", if shot == "party-panel" { &other } else { &file }, length);
+            party.ready("Mika", true);
+            party.ready("Ren", false);
+        });
+        wait(0.8).await;
+        // The joins said, so the shot shows its own notice.
+        shell.ctx.toasts.dismiss_all();
+        let party = |act: &dyn Fn(&crate::fixtures::FakeParty)| {
+            PARTY_SERVER.with(|p| {
+                if let Some(party) = p.borrow().as_ref() {
+                    act(party);
+                }
+            });
+        };
+        match shot.as_str() {
+            "party-panel" => shell.player.show_party(),
+            "party-ready" => {
+                party(&|p| p.ready("Ren", true));
+                wait(0.4).await;
+                hub.send(Command::PartyReady { ready: true });
+                wait(0.6).await;
+                shell.player.show_party();
+            }
+            "party-chat" => {
+                until(11.5).await;
+                party(&|p| p.says("Mika", "Starting in a minute, grabbing tea"));
+            }
+            "party-left" => {
+                until(11.5).await;
+                shell.player.show_party();
+                until(13.0).await;
+                hub.send(Command::PartyLeave);
+            }
+            "party-lost" => {
+                party(&|p| p.go_down(true));
+                wait(2.5).await;
+                shell.player.show_party();
+            }
+            "party-close" => shell.ctx.window.close(),
+            _ => {}
+        }
+    });
+}
+
+/// Leave the party state a shot put the window in.
+#[cfg(feature = "fixtures")]
+fn party_unstage(shell: &Rc<Shell>, shot: &str) {
+    shell.player.close_menus();
+    if let Some(more) = more_button(&shell.ctx.window) {
+        more.popdown();
+    }
+    // Twice: the alert, and the dialog it opened.
+    close_dialogs(&shell.ctx.window);
+    close_dialogs(&shell.ctx.window);
+    shell.ctx.hub.send(Command::PartyLeave);
+    if shell.is_player() {
+        shell.player.close();
+    }
+    if !matches!(shot, "party-nosource" | "party-nosources" | "party-choose") {
+        let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+    }
+    shell.player.hold_up_next.set(false);
+    shell.go(Dest::Continue);
+    let toasts = shell.ctx.toasts.clone();
+    glib::timeout_add_local_once(Duration::from_millis(400), move || {
+        PARTY_SERVER.with(|p| p.replace(None));
+        SILENT.with(|s| s.replace(None));
+        toasts.dismiss_all();
+    });
+}
+
+/// What the sources list for the choose shot's episode.
+#[cfg(feature = "fixtures")]
+fn choices() -> Vec<anistream_core::traits::SourceCandidate> {
+    use anistream_core::traits::SourceCandidate;
+    let choice =
+        |id: &str, title: &str, quality, size: &str, seeders, auto_pick| SourceCandidate {
+            id: id.into(),
+            provider_id: "sample-source".into(),
+            title: title.into(),
+            quality: Some(quality),
+            seeders: Some(seeders),
+            size: Some(size.into()),
+            dual_audio: false,
+            dubbed: false,
+            auto_pick,
+        };
+    vec![
+        choice("a", "Stardust Wayfarer - 07 (1080p)", 1080, "1.4 GiB", 42, true),
+        choice("b", "Stardust Wayfarer - 07 (720p)", 720, "690 MiB", 18, false),
+        choice("c", "Stardust Wayfarer - 07 (480p)", 480, "310 MiB", 5, false),
+    ]
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn party_stage(_: &Rc<Shell>, _: &str) -> f64 {
+    0.0
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn party_unstage(_: &Rc<Shell>, _: &str) {}
+
+/// The title page's More button, on the page on screen.
+fn more_button(window: &adw::ApplicationWindow) -> Option<gtk::MenuButton> {
+    fn find(widget: &gtk::Widget) -> Option<gtk::MenuButton> {
+        if let Some(button) = widget.downcast_ref::<gtk::MenuButton>()
+            && button.tooltip_text().as_deref() == Some("More")
+            && button.is_mapped()
+        {
+            return Some(button.clone());
+        }
+        let mut child = widget.first_child();
+        while let Some(next) = child {
+            if let Some(found) = find(&next) {
+                return Some(found);
+            }
+            child = next.next_sibling();
+        }
+        None
+    }
+    find(window.upcast_ref())
+}
+
+/// The More menu's popover, under its button, over the window.
+fn title_menu_popover(window: &adw::ApplicationWindow) -> Option<(gtk::Widget, f32, f32)> {
+    let button = more_button(window)?;
+    let popover = button.popover()?;
+    if !popover.is_visible() {
+        return None;
+    }
+    let bounds = button.compute_bounds(window)?;
+    let width = popover.width() as f32;
+    let x = (bounds.x() + bounds.width() / 2.0 - width / 2.0)
+        .clamp(0.0, (window.width() as f32 - width).max(0.0));
+    Some((popover.upcast(), x, bounds.y() + bounds.height()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -616,5 +979,6 @@ mod tests {
     fn shots_are_named_or_all() {
         assert_eq!(named(Some("home, title")), ["home", "title"]);
         assert_eq!(named(None).len(), ALL.len());
+        assert_eq!(named(Some("home,party")).len(), PARTY.len() + 1);
     }
 }

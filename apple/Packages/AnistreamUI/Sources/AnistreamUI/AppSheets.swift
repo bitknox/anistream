@@ -21,6 +21,8 @@ struct AppSheets: ViewModifier {
             .modifier(KitsuPresenter(here: navigator.phoneSettings == nil))
             // Play on TV: the picker and the now-playing card.
             .modifier(TVRemoteSheets())
+            // Watch parties: the form, an episode no source has, and their links.
+            .modifier(PartySheets())
             .modifier(FirstLaunchPresenter())
             #if os(iOS)
             .sensoryFeedback(.impact(weight: .light), trigger: navigator.watchedByHand)

@@ -25,8 +25,8 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
         }
     }
 
-    /// The panes this device shows. Integrations is the Mac's: Syncplay and Discord are desktop
-    /// programs, neither of which an iPad or iPhone runs. The iPad has Updates under Advanced.
+    /// The panes this device shows. Integrations is the Mac's: Discord is a desktop program, which
+    /// an iPad or iPhone does not run. The iPad has Updates under Advanced.
     static var shown: [SettingsPane] {
         #if os(macOS)
         allCases
@@ -207,8 +207,7 @@ struct SettingsResults: View {
         ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
         ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
         ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts), ("Privacy", .accounts),
-        ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
-        ("Syncplay room", .integrations), ("Check for updates", updatesPane),
+        ("Check for updates", updatesPane),
         ("mpv options", .advanced),
     ].filter { SettingsPane.shown.contains($0.pane) }
 

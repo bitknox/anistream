@@ -45,6 +45,9 @@ final class AppDelegate: NSObject {
         // Play on TV from the player: the TV picker over it, and the player closed once the TV
         // plays the episode.
         player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
+        // What a watch party says goes over the video while the player is up.
+        store.party.playerUp = { [weak player] in player?.isPresented ?? false }
+        store.playerSays = { [weak player] text, kind in player?.say(text, kind: kind) }
         #if os(iOS)
         // The playback's Live Activity, told what plays as Now Playing is, and its Play and Pause.
         player.onLiveActivity = { [weak store] playing in store?.playbackChanged(playing) }
@@ -174,6 +177,10 @@ final class AppDelegate: NSObject {
         if let scene = TVScene.named() {
             ready = await store.tv.reached(scene) && ready
         }
+        // A screenshot of a watch party: the fake server's room, in the state named.
+        if let scene = PartyScene.named() {
+            ready = await player.stage(scene, store: store) && ready
+        }
         #endif
         if ready {
             print("ANISTREAM_READY")
@@ -233,6 +240,11 @@ final class AppDelegate: NSObject {
 
 #if os(macOS)
 extension AppDelegate: NSApplicationDelegate {
+    /// Quitting in a watch party leaves it: asked first, with Stay the default.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        store.party.asksBeforeQuitting() ? .terminateCancel : .terminateNow
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         quit()
     }
