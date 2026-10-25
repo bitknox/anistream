@@ -54,6 +54,7 @@ mod tests {
                 macos: None,
                 ios: None,
                 android: None,
+                android_tv: None,
             }),
             notify: true,
         }
