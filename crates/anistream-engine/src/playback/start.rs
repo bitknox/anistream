@@ -65,12 +65,6 @@ pub(crate) fn opener_for(
     opener(engine.config.effective(), &services.paths, &services.player_theme, hosted)
 }
 
-/// Whether a play goes to a Syncplay party when nobody asked for one: when the config sends
-/// every play there, on the desktop, which is where Syncplay runs.
-fn party_by_default(config: &Config) -> bool {
-    cfg!(feature = "desktop") && config.syncplay.enabled
-}
-
 /// Play an episode from whichever source the resolution ladder chooses, staged for Now Playing
 /// as the engine's record of the titles names it, which the front end is told: where it was
 /// left, or from the beginning when `from_start`. Refused, with nothing staged, where this build
@@ -88,8 +82,9 @@ pub fn play(
         return playback::refuse(job, tx);
     };
     let billing = named(id, &episode, engine);
-    let staged =
-        play_staged(id, episode, None, from_start, billing, opener, job, engine, services, tx);
+    let staged = play_staged(
+        id, episode, None, from_start, false, billing, opener, job, engine, services, tx,
+    );
     let _ = tx.send(staged);
 }
 
@@ -110,8 +105,9 @@ pub fn play_source(
     };
     let billing = named(id, &episode, engine);
     let pick = Some((provider_id, source_id));
-    let staged =
-        play_staged(id, episode, pick, false, billing, opener, job, engine, services, tx);
+    let staged = play_staged(
+        id, episode, pick, false, false, billing, opener, job, engine, services, tx,
+    );
     let _ = tx.send(staged);
 }
 
@@ -128,7 +124,7 @@ pub(crate) fn play_following(
 ) -> Event {
     let Follow { id, episode, title, episode_title } = follow;
     let billing = (title, episode_title);
-    play_staged(id, episode, None, false, billing, opener, job, engine, services, tx)
+    play_staged(id, episode, None, false, false, billing, opener, job, engine, services, tx)
 }
 
 /// What a play the front end asked for is staged as: the name the engine's record of the titles
@@ -174,6 +170,8 @@ fn play_staged(
     // `(provider_id, source_id)` when the user picked an exact release in the Sources overlay.
     pick: Option<(String, String)>,
     from_start: bool,
+    // Asked for by a party: an episode with no source here says so for the party's dialog.
+    party: bool,
     (title, episode_title): (String, Option<String>),
     opener: Arc<dyn PlayerOpener>,
     job: Option<JobGuard>,
@@ -212,7 +210,7 @@ fn play_staged(
         episode,
         pick,
         from_start,
-        party_by_default(config),
+        party,
         prx,
         stopped,
         handoff,
@@ -229,7 +227,9 @@ fn play_staged(
     staged
 }
 
-/// Play an episode for a Syncplay party rather than in a session of its own.
+/// Play an episode with the watch party, which the caller has joined: staged and played as any
+/// play is, with a seat at the party. An episode none of the sources has leaves the viewer in
+/// the room with nothing playing, and says so with [`Event::PartyNoSource`].
 pub fn play_party(
     id: AnilistId,
     episode: String,
@@ -238,45 +238,13 @@ pub fn play_party(
     services: &Services,
     tx: &Outbox,
 ) {
-    // Syncplay is a desktop program: without it there is nothing to hand a party to.
-    if !cfg!(feature = "desktop") {
-        let _ = tx.send(Event::Toast(Notice::alert(playback::NO_PARTY)));
-        drop(job);
-        return;
-    }
     let Some(opener) = opener_for(engine, services) else {
         return playback::refuse(job, tx);
     };
-    let Services { paths, sync, store, .. } = services;
-    let played = engine.next_playback(id, &episode);
-    let for_show = show_settings::for_show(engine.config.effective(), store, id);
-    let hints = hints_for(id, &episode, PlayKind::Party, for_show.playback.skip_filler, engine);
-    let EngineState { player_tx, finding, .. } = engine;
-    let config = &for_show;
-    // Same resolution as Play; the handoff at the end is the only difference.
-    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
-    let stopped = watch_for_stop(finding);
-    let prefetched = None;
-    let tracker_ids = signed_in_tracker_ids(sync);
-    spawn_playback(
-        id,
-        episode,
-        None,
-        false,
-        true,
-        prx,
-        stopped,
-        handoff,
-        config,
-        services,
-        opener,
-        tracker_ids,
-        hints,
-        shader_dir(config, paths),
-        prefetched,
-        job,
-        &tx.for_playback(played),
-    );
+    let billing = named(id, &episode, engine);
+    let staged =
+        play_staged(id, episode, None, false, true, billing, opener, job, engine, services, tx);
+    let _ = tx.send(staged);
 }
 
 /// Play a downloaded episode from disk, in the full playback session all the same.
@@ -322,6 +290,7 @@ pub fn play_local(
         fill_episodes(id, &episode, services, player_tx);
     }
     let shaders = shader_dir(config, paths);
+    let party = services.party.clone();
     let (config, store, http, machine, tx) = (
         config.clone(),
         store.clone(),
@@ -360,7 +329,7 @@ pub fn play_local(
         };
         let settings = playback::PlaySettings {
             shader_dir: shaders,
-            ..play_settings(&config, tracker_ids, party_by_default(&config))
+            ..play_settings(&config, tracker_ids, party)
         };
         playback::play(vec![stream], context, store, http, machine, settings, tx, prx).await;
     });
@@ -461,7 +430,8 @@ fn spawn_playback(
     pick: Option<(String, String)>,
     // Open at the beginning, whatever position the episode was left at.
     from_start: bool,
-    // Hand the resolved stream to a Syncplay party instead of a private session.
+    // Asked for by a party: an episode with no source here says so, for the party's dialog
+    // that offers Choose source.
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
     // Whether a Stop reached this playback before it opened: see `control_player`.
@@ -480,6 +450,7 @@ fn spawn_playback(
     job: Option<JobGuard>,
     tx: &Outbox,
 ) {
+    let hub = services.party.clone();
     let (config, meta, store, registry, http, machine, slot, tx) = (
         config.clone(),
         services.meta.clone(),
@@ -533,12 +504,20 @@ fn spawn_playback(
             // The episode being watched carries on, and the window with it: only the lookup
             // failed, and closing what was playing over it would punish the viewer for asking.
             Err(reason) if handoff.live() => {
+                if party {
+                    let _ = tx.send(Event::PartyNoSource { id, episode: episode.clone() });
+                }
                 let _ = tx.send(Event::Toast(Notice::alert(reason.clone())));
                 let _ = tx.send(Event::PlaybackKept);
                 handoff.keep(commands, reason).await;
                 return;
             }
             Err(reason) => {
+                // In the room all the same, with nothing playing: the party's dialog offers
+                // Choose source.
+                if party {
+                    let _ = tx.send(Event::PartyNoSource { id, episode: episode.clone() });
+                }
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
                 let _ = tx.send(Event::Toast(Notice::alert(reason)));
@@ -576,7 +555,7 @@ fn spawn_playback(
         }
 
         let settings =
-            playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
+            playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, hub) };
         handoff.complete().await;
         // Stopped while the window was handed over: the one parked for it closes.
         if *stopped.borrow() {
@@ -593,7 +572,7 @@ fn spawn_playback(
 pub fn play_settings(
     config: &Config,
     tracker_ids: Vec<String>,
-    party: bool,
+    party: playback::seat::PartyHub,
 ) -> playback::PlaySettings {
     let playback = &config.playback;
     playback::PlaySettings {
@@ -612,7 +591,6 @@ pub fn play_settings(
         tone_mapping: playback.tone_mapping.clone(),
         tracker_ids,
         presence: config.presence.clone(),
-        syncplay: config.syncplay.clone(),
         party,
         up_next_countdown: playback::UP_NEXT_COUNTDOWN,
         mpv_options: anistream_playback::protocol::option_pairs(&playback.mpv_args),

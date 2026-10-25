@@ -5,9 +5,10 @@
 #
 #   desktop/windows/scripts/bindings.sh [--check] <release|testing>
 #
-#   release   the engine the app ships: --no-default-features, so without mpv's child process
-#   testing   the same, plus the test kit's fake AniList and fixture source (`StartTesting`), for
-#             the tests and the app's fixture runs
+#   release   the engine the app ships: --no-default-features, so without mpv's child process,
+#             with watch parties (`party`)
+#   testing   the same, plus the test kit's fake AniList and fixture source (`StartTesting`) and
+#             a fake party server (`StartFakeParty`), for the tests and the app's fixture runs
 #
 # On Windows both have the `mpv-host` feature too: `FfiPlayer`, anistream-mpv-host's libmpv
 # player, which links the libmpv that scripts/libmpv.ps1 fetched into .libmpv/<arch>
@@ -59,8 +60,8 @@ for arg in "$@"; do
   esac
 done
 case "$flavour" in
-  release) features="" ;;
-  testing) features="testing" ;;
+  release) features="party" ;;
+  testing) features="testing,party" ;;
   *) usage ;;
 esac
 

@@ -20,7 +20,7 @@ anistream                                                                       
     Move up                     k / ↑    Recommendations                 b    Previous episode                N
     Move down                   j / ↓    Play the trailer                v    Skip opening                    S
     Move left                   h / ←    Open on AniList                 o    Slower                          [
-    Move right                  l / →    Play in a Syncplay party        y    Faster                          ]
+    Move right                  l / →    Play in a watch party           y    Faster                          ]
     Jump to top                     g  EPISODES                               Volume down                     9
     Jump to bottom                  G    Download a range of episodes    D    Volume up                       0
     Page up                    ctrl+u    Toggle watched                  u    Fullscreen                      F
@@ -251,8 +251,8 @@ r22 c02-13 fg=text-dim bg=ground
 r22 c14-31 fg=rule bg=ground
 r22 c32-36 fg=text bg=ground
 r22 c37-38 fg=rule bg=ground
-r22 c39-64 fg=text-dim bg=ground
-r22 c65-69 fg=rule bg=ground
+r22 c39-61 fg=text-dim bg=ground
+r22 c62-69 fg=rule bg=ground
 r22 c70-72 fg=rule bg=ground mod=BOLD
 r22 c73-73 fg=text bg=ground mod=BOLD
 r22 c74-75 fg=rule bg=ground mod=BOLD

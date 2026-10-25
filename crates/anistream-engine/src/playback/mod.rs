@@ -29,6 +29,7 @@ pub mod power;
 pub mod prefetch;
 pub mod remux;
 pub mod resolve;
+pub mod seat;
 pub mod shaders;
 pub mod slot;
 pub mod start;

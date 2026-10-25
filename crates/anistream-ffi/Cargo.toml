@@ -26,9 +26,9 @@ required-features = ["cli"]
 
 [features]
 default = ["desktop"]
-# The engine's desktop parts, mpv among them. A phone's build turns it off, with
-# `--no-default-features`.
-desktop = ["anistream-engine/desktop"]
+# The engine's desktop parts, mpv and watch parties among them. A phone's build turns it off,
+# with `--no-default-features`.
+desktop = ["anistream-engine/desktop", "party"]
 # Only the Discord presence of them, for the Mac app, whose player is libmpv in its own process.
 presence = ["anistream-engine/presence"]
 # `FfiEngine::start_testing`: the engine on a fake AniList, the test kit's fixture source and a
@@ -40,7 +40,13 @@ testing = [
     "dep:anistream-providers",
     "dep:anistream-track",
     "anistream-remote?/testing",
+    "anistream-party?/testing",
 ]
+# Watch parties: the engine's party commands, and with `testing` `FfiEngine::start_fake_party`,
+# a Syncplay server on the loopback interface. On in the desktop apps' builds beside
+# `--no-default-features`: desktop/windows/scripts/bindings.sh, apple/scripts/engine.sh and
+# desktop/linux.
+party = ["anistream-engine/party", "dep:anistream-party"]
 # `FfiEngine::start_remote`: the remote a TV runs for phones on its network to drive it. On in
 # Android's builds, which the TV app shares with the phone's.
 remote = ["anistream-engine/remote", "dep:anistream-remote"]
@@ -71,6 +77,8 @@ tracing-subscriber.workspace = true
 uniffi.workspace = true
 # The remote's protocol, for `start_remote`.
 anistream-remote = { workspace = true, optional = true }
+# The fake party server, behind `party` and `testing`.
+anistream-party = { workspace = true, optional = true }
 # The hosted player, behind `mpv-host`.
 anistream-mpv-host = { workspace = true, optional = true }
 # What `start_testing` builds the engine's parts from.

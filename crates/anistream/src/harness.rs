@@ -803,6 +803,13 @@ pub fn name(update: &Event) -> &'static str {
         Event::OpenJoin { .. } => "OpenJoin",
         Event::Update(_) => "Update",
         Event::Remote(_) => "Remote",
+        Event::PartyForm(_) => "PartyForm",
+        Event::PartyJoined(_) => "PartyJoined",
+        Event::PartyState(_) => "PartyState",
+        Event::PartyMembers(_) => "PartyMembers",
+        Event::PartyMessage(_) => "PartyMessage",
+        Event::PartyLeft { .. } => "PartyLeft",
+        Event::PartyNoSource { .. } => "PartyNoSource",
     }
 }
 
@@ -972,5 +979,14 @@ fn copy(update: &Event) -> Event {
         }
         Event::Update(status) => Event::Update(status.clone()),
         Event::Remote(intent) => Event::Remote(intent.clone()),
+        Event::PartyForm(form) => Event::PartyForm(form.clone()),
+        Event::PartyJoined(view) => Event::PartyJoined(view.clone()),
+        Event::PartyState(view) => Event::PartyState(view.clone()),
+        Event::PartyMembers(members) => Event::PartyMembers(members.clone()),
+        Event::PartyMessage(message) => Event::PartyMessage(message.clone()),
+        Event::PartyLeft { reason } => Event::PartyLeft { reason: reason.clone() },
+        Event::PartyNoSource { id, episode } => {
+            Event::PartyNoSource { id: *id, episode: episode.clone() }
+        }
     }
 }

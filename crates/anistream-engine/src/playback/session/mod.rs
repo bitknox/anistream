@@ -48,6 +48,7 @@ use crate::{
         link::{LinkError, Overlay, PlayerLink, PlayerOpener},
         picture::HdrKind,
         power::PowerSource,
+        seat::{PartyHub, Seat, SeatReport},
         shaders::Look,
         slot::{Player, PlayerSlot},
     },
@@ -122,10 +123,9 @@ pub struct PlaySettings {
     /// Tracker ids to queue progress against when the episode completes.
     pub tracker_ids: Vec<String>,
     pub presence: anistream_core::config::PresenceConfig,
-    pub syncplay: anistream_core::config::SyncplayConfig,
-    /// Whether this play joins the party — from the `y` key, or `[syncplay] enabled`
-    /// sending every play there.
-    pub party: bool,
+    /// Where the watch party is, when there is one: a playback takes a seat at it, at the start
+    /// or the moment it opens, and plays with the room until it ends. See [`crate::playback::seat`].
+    pub party: PartyHub,
     /// How many seconds a hosted player's Up Next counts down before it plays the next
     /// episode, `0` for none: [`UP_NEXT_COUNTDOWN`] until the config keeps one. The terminal's
     /// companion keeps its own ten.
@@ -237,20 +237,6 @@ pub async fn play(
         return;
     }
 
-    // A watch party is a shared session: Syncplay owns the player and the pacing, so no
-    // private history is recorded — the room pausing must not read as you abandoning the
-    // episode. The torrent session stays alive underneath, serving the loopback URL.
-    if settings.party {
-        slot.release();
-        #[cfg(feature = "desktop")]
-        hand_to_syncplay(&settings.syncplay, &first.url, &tx);
-        // Syncplay is a desktop program, and a phone has no other to hand a party to.
-        #[cfg(not(feature = "desktop"))]
-        let _ = tx.send(Event::Toast(Notice::alert(NO_PARTY)));
-        let _ = tx.send(Event::playback_ended(false, Ending::Elsewhere));
-        return;
-    }
-
     let skips = SkipTimes::shared()
         .for_playback(&http, &settings, context.mal_id, &context.episode, context.runtime_secs)
         .await;
@@ -284,6 +270,8 @@ pub async fn play(
             tokio::spawn(fetch_still(http.clone(), url, opener.scratch_dir().to_path_buf()))
         }),
         servers: Servers::load(&store, &streams).await,
+        seat: None,
+        in_party: false,
     };
 
     // Read once: every stream this playback tries is the same series in the same translation.
@@ -440,6 +428,10 @@ pub async fn play(
                 tried = vec![false; total];
             }
             FileOutcome::Handover(successor) => {
+                // The playback taking the window takes the seat too.
+                if let Some(seat) = run.seat.take() {
+                    seat.report(SeatReport::Ended { leave: false });
+                }
                 if let Some(player) = player.take() {
                     let card = companion::Status::loading(context.handing_to(&successor), None);
                     // Art the record of the titles did not have, this playback's when it is the
@@ -503,11 +495,19 @@ pub async fn play(
 
                 // Keep the window for the next episode when one is coming: auto-next is on, the
                 // episode table knows what is next, and the viewer did not say no.
+                // Not in a party: the room decides what it watches next, and each member's
+                // next episode would be found and started on their own.
                 let rolls_on = complete
                     && settings.auto_next
                     && !run.cancel_next
                     && !exited
+                    && !run.in_party
                     && run.next.is_some();
+                // Stopping the player or closing its window leaves the party; an episode that
+                // ended, or failed, stays in it, for the next to play with the room.
+                if let Some(seat) = run.seat.take() {
+                    seat.report(SeatReport::Ended { leave: stopped || quit });
+                }
                 let next = run.next.as_ref().filter(|_| rolls_on);
                 if let Some(player) = player.take() {
                     if let Some(next) = next {
@@ -604,59 +604,9 @@ fn next_untried(tried: &[bool], current: usize) -> usize {
         .unwrap_or(current)
 }
 
-/// What a party is answered with where there is no Syncplay to hand it to.
+/// What a party is answered with where this build has no watch parties: see the `party`
+/// feature.
 pub const NO_PARTY: &str = "watch parties aren't built into this front end";
-
-/// Start a Syncplay party on a stream.
-#[cfg(feature = "desktop")]
-fn hand_to_syncplay(syncplay: &anistream_core::config::SyncplayConfig, url: &str, tx: &Outbox) {
-    // Syncplay's no-gui mode refuses to start without a room, so asking first beats
-    // spawning a process whose refusal we would have to fish out of its stderr.
-    let Some(room) = syncplay.room.clone().filter(|r| !r.trim().is_empty()) else {
-        let _ = tx.send(Event::Toast(Notice::alert(
-            "syncplay needs a room — set syncplay.room in config.toml",
-        )));
-        return;
-    };
-
-    let mut command = std::process::Command::new(&syncplay.binary);
-    command.arg("--no-gui");
-    command.args(["--host", &syncplay.server]);
-    command.args(["--name", &syncplay.name]);
-    command.args(["--room", &room]);
-    command.arg(url);
-    // The TUI owns the terminal. One line of child stderr — Syncplay greets with a
-    // Python deprecation warning — scribbles straight over the alternate screen, so
-    // the party speaks through toasts and nothing else.
-    command.stdin(std::process::Stdio::null());
-    command.stdout(std::process::Stdio::null());
-    command.stderr(std::process::Stdio::null());
-
-    match command.spawn() {
-        Ok(mut child) => {
-            let _ = tx
-                .send(Event::Toast(Notice::info(format!("handed to syncplay — room {room}"))));
-            // With stdio silenced, a failed start would otherwise be a party that
-            // just never happens. Watch the exit instead: quiet on success, a toast
-            // naming the failure whenever it dies unhappy.
-            let tx = tx.clone();
-            tokio::task::spawn_blocking(move || {
-                if let Ok(status) = child.wait()
-                    && !status.success()
-                {
-                    let _ = tx.send(Event::Toast(Notice::alert(format!(
-                        "syncplay exited with {status} — check server and room in config.toml"
-                    ))));
-                }
-            });
-        }
-        Err(e) => {
-            let _ = tx.send(Event::Toast(Notice::alert(format!(
-                "syncplay would not start: {e} — is it installed?"
-            ))));
-        }
-    }
-}
 
 /// One playback's state across the streams it tries.
 struct Run<'a> {
@@ -691,6 +641,11 @@ struct Run<'a> {
     power: Arc<dyn PowerSource>,
     /// How the servers of the streams tried have fared, and the attempt under way.
     servers: Servers,
+    /// The seat at the watch party, between files; the file playing holds it while it plays.
+    seat: Option<Seat>,
+    /// Whether this playback plays with a party now: what it writes down and whether it rolls
+    /// on go by it.
+    in_party: bool,
 }
 
 #[cfg(test)]

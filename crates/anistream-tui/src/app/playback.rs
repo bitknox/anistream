@@ -140,10 +140,10 @@ impl App {
         Some(self.begin_playback(id, episode))
     }
 
-    /// The episode Enter would play, with the Syncplay room.
+    /// The episode Enter would play, with the watch party set up in the settings: played here,
+    /// kept with the room. Now Playing comes up with the engine's `PlaybackStaged`, which only
+    /// a party joined sends: one refused, for want of a server, leaves the screen as it was.
     pub(super) fn play_party(&mut self) -> Option<Command> {
-        // The same episode Enter would play, but with the room. No Now Playing
-        // view: Syncplay owns the player, and a dead session screen would lie.
         let (id, episode) = match self.nav.current() {
             StageView::Episodes(id) => {
                 (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
@@ -154,7 +154,7 @@ impl App {
                 (entry.id, episode)
             }
         };
-        Some(Command::PlayParty { id, episode })
+        Some(Command::play_party(id, episode))
     }
 
     /// Step to an adjacent episode of what is playing, from whichever view is up.

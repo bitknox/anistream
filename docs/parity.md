@@ -70,7 +70,7 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 | Subtitle and audio tracks | yes | yes | yes | yes | yes | dev (8) | dev (9) | yes (10) |
 | Media keys and now playing | yes | yes | yes | yes | yes | dev (11) | dev (11) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
-| Syncplay watch parties | dev (12) | n/a | n/a | n/a | n/a | dev (12) | dev (12) | yes |
+| Watch parties (Syncplay) | dev (12) | dev (12) | dev (12) | n/a | n/a | dev (12) | dev (12) | yes |
 | Discord presence | yes | n/a | n/a | n/a | n/a | dev (13) | dev (13) | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
@@ -95,8 +95,11 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 11. Apple has `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` (`PlayerSystem.swift`);
     Android and TV a media3 `MediaSession` (`player/PlayerService.kt`). Windows has no
     SystemMediaTransportControls or taskbar thumbnail buttons; Linux has no MPRIS.
-12. Settings rows only (on, server, room), with no way to start a party. Apple's "Play in
-    Syncplay Party" stub is gone, and nothing sends `.playParty`.
+12. The engine holds the party and drives the app's own player (`party` feature, on in these
+    apps' builds, every Apple slice included), and the commands and events are in the bindings;
+    no screen starts a party yet. The settings rows (on, server, room) are the terminal's: in an
+    app the on switch does nothing, as apps start parties when asked. See
+    `docs/party-protocol.md`.
 13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
 
 The Mac's Subtitles and Audio menus, in the player and in the menu bar, also load a subtitle or

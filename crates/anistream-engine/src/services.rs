@@ -58,6 +58,9 @@ pub struct Services {
     /// Whether a play opens the front end's hosted player rather than mpv's process: always
     /// without the desktop feature, and on the desktop when the front end asks for it.
     pub hosted_player: bool,
+    /// Whether `syncplay.enabled` sends every play to a party: see
+    /// [`EngineOptions::every_play_a_party`](crate::options::EngineOptions::every_play_a_party).
+    pub every_play_a_party: bool,
     /// The next episode's streams, found while the current one's ending plays.
     pub prefetch: Prefetch,
     /// The covers downloading, a few at a time.
@@ -77,6 +80,9 @@ pub struct Services {
     /// The exit network the connection check answers with, in a fixture build or a test: the
     /// guard then makes no lookup. `None` for the app, which looks it up.
     pub fixture_exit: Option<anistream_providers::vpn::Egress>,
+    /// Where playbacks find the watch party, when there is one. Opened by the `party` feature's
+    /// party, and never without it.
+    pub party: crate::playback::seat::PartyHub,
 }
 
 impl Services {
@@ -118,6 +124,7 @@ impl Services {
             power,
             hosted,
             hosted_player: !cfg!(feature = "desktop"),
+            every_play_a_party: false,
             prefetch: Prefetch::default(),
             artwork: Default::default(),
             player_theme,
@@ -125,6 +132,7 @@ impl Services {
             host,
             clock: Default::default(),
             fixture_exit: None,
+            party: Default::default(),
         })
     }
 }

@@ -29,6 +29,7 @@ use super::{
 };
 use crate::playback::{
     link::{LinkError, Overlay, PlayerLink},
+    seat::{SeatCue, SeatReport},
     shaders::{self, Look},
     slot::Player,
 };
@@ -44,6 +45,10 @@ const STALL_PROMPT: Duration = Duration::from_secs(8);
 
 /// How often the battery is asked about during playback.
 const BATTERY_POLL: Duration = Duration::from_secs(60);
+
+/// How often a party hears where the player is while it plays. A pause, a resume or a new speed
+/// is said at once.
+const SEAT_REPORTS: Duration = Duration::from_millis(200);
 
 impl Run<'_> {
     /// Play one file to its end, feeding the tracker and answering the viewer.
@@ -119,6 +124,19 @@ impl Run<'_> {
         // per file.
         player.picture.governor.new_file();
         self.hdr = None;
+
+        // The watch party's seat, when there is a party: this file's while it plays, taken at
+        // the start or the moment a party opens.
+        let mut seat = self.seat.take().or_else(|| settings.party.seat());
+        let mut parties = settings.party.changes();
+        parties.borrow_and_update();
+        let mut parties_open = true;
+        self.in_party = seat.is_some();
+        if let Some(seat) = &seat {
+            seat.report(self.seat_playing(None));
+        }
+        let mut seat_sent: Option<tokio::time::Instant> = None;
+        let mut seat_length = false;
 
         // Whether the file has loaded, which a track has to wait for before it can be added.
         let mut loaded = false;
@@ -219,6 +237,37 @@ impl Run<'_> {
                         Some(subtitle) if loaded => add_subtitle(link, &subtitle).await,
                         Some(subtitle) => waiting.push(subtitle),
                         None => late = None,
+                    }
+                    continue;
+                }
+                cue = async { seat.as_mut().expect("guarded").cue().await }, if seat.is_some() => {
+                    match cue {
+                        Some(cue) => apply_cue(link, cue).await,
+                        // The party is over: this plays on as a private session, from here.
+                        None => {
+                            seat = None;
+                            self.in_party = false;
+                        }
+                    }
+                    continue;
+                }
+                opened = parties.changed(), if seat.is_none() && parties_open => {
+                    if opened.is_err() {
+                        parties_open = false;
+                        continue;
+                    }
+                    seat = settings.party.seat();
+                    self.in_party = seat.is_some();
+                    if let Some(seat) = &seat {
+                        seat.report(self.seat_playing(tracker.duration()));
+                        seat_length = tracker.duration().is_some();
+                        if ever_played {
+                            seat.report(SeatReport::Sample {
+                                position: tracker.position(),
+                                paused: tracker.is_paused(),
+                                speed: tracker.speed(),
+                            });
+                        }
                     }
                     continue;
                 }
@@ -563,6 +612,34 @@ impl Run<'_> {
                 }
             }
 
+            // The party hears where the player is: a pause, a resume or a new speed at once, and
+            // the position as it plays, a few times a second. Not before the first frame, when
+            // the position is only where the player was asked to start.
+            if let Some(seat) = &seat
+                && ever_played
+            {
+                if !seat_length && tracker.duration().is_some() {
+                    seat_length = true;
+                    seat.report(self.seat_playing(tracker.duration()));
+                }
+                let now = tokio::time::Instant::now();
+                let due = match event {
+                    PlaybackEvent::Paused(_) | PlaybackEvent::Speed(_) => true,
+                    PlaybackEvent::Progress { .. } => {
+                        seat_sent.is_none_or(|sent| now.duration_since(sent) >= SEAT_REPORTS)
+                    }
+                    _ => false,
+                };
+                if due {
+                    seat_sent = Some(now);
+                    seat.report(SeatReport::Sample {
+                        position: tracker.position(),
+                        paused: tracker.is_paused(),
+                        speed: tracker.speed(),
+                    });
+                }
+            }
+
             // A pause, a stall or a new speed is said at once, where the position has not moved
             // to bring the next tick: the tracker has just taken it in.
             if matches!(
@@ -618,12 +695,44 @@ impl Run<'_> {
             }
         };
 
-        // An unfinished fetch carries over to the next stream this playback tries.
+        // An unfinished fetch carries over to the next stream this playback tries, and the seat
+        // with it.
         self.still_fetch = still_fetch;
+        self.seat = seat;
         // Cleared before anything else, so quitting never leaves a stale "watching" up.
         rpc.finish().await;
         let _ = link.overlay(Overlay::SkipCleared).await;
         outcome
+    }
+}
+
+impl Run<'_> {
+    /// What the party is told plays: the episode, and the name the room sees for it, which is
+    /// the title and the episode and never the stream's address.
+    fn seat_playing(&self, duration: Option<f64>) -> SeatReport {
+        let context = self.context;
+        SeatReport::Playing {
+            id: context.anilist_id,
+            episode: context.episode.clone(),
+            name: format!("{} · Episode {}", context.title, context.episode),
+            duration,
+        }
+    }
+}
+
+/// Do what the party asks of the player.
+async fn apply_cue(link: &dyn PlayerLink, cue: SeatCue) {
+    let done = match cue {
+        SeatCue::Pause(paused) => link.set("pause", paused.into()).await,
+        SeatCue::Seek(to) => link.seek(to, true).await,
+        SeatCue::Speed(speed) => link.set("speed", speed.into()).await,
+        SeatCue::Notice(text) => {
+            let level = anistream_playback::companion::Level::Info;
+            link.overlay(Overlay::Toast { text, level }).await
+        }
+    };
+    if let Err(e) = done {
+        tracing::debug!(error = %e, "the player did not take what the party asked");
     }
 }
 
