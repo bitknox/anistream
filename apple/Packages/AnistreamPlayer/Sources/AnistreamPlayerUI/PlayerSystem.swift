@@ -1,6 +1,7 @@
-// What the player tells the system: Now Playing and the remote commands, the display kept
-// awake, the audio session, and the power the device runs on.
+// What the player tells the system: Now Playing and the remote commands, the Live Activity, the
+// display kept awake, the audio session, and the power the device runs on.
 
+import AnistreamStore
 import Foundation
 import MediaPlayer
 
@@ -13,7 +14,8 @@ import UIKit
 
 /// `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter`, set while a playback exists and cleared
 /// when it stops. Timing is written on play, pause, seek, speed and episode changes, never on a
-/// timer: the system runs the clock between.
+/// timer: the system runs the clock between. The Live Activity is told at the same moments, and
+/// runs on its dates in the same way.
 @MainActor
 final class NowPlaying {
     weak var model: PlayerModel?
@@ -36,9 +38,22 @@ final class NowPlaying {
         #if os(macOS)
         center.playbackState = model.paused ? .paused : .playing
         #endif
+        model.onLiveActivity?(Self.playing(model))
+    }
+
+    /// What the Live Activity shows: once the episode's first picture is up and its length known.
+    static func playing(_ model: PlayerModel) -> PlaybackActivityFeed.Playing? {
+        guard model.hasPicture, let duration = model.duration, duration > 0,
+              let id = model.staged?.id ?? model.starting?.id
+        else { return nil }
+        let episode = model.episode?.number ?? model.staged?.episode ?? model.starting?.episode ?? ""
+        return PlaybackActivityFeed.Playing(
+            id: id, title: model.showTitle, episode: episode, position: model.playhead,
+            duration: duration, rate: model.speed, paused: model.paused)
     }
 
     func clear() {
+        model?.onLiveActivity?(nil)
         let center = MPNowPlayingInfoCenter.default()
         center.nowPlayingInfo = nil
         #if os(macOS)

@@ -145,8 +145,11 @@ sign-in and sign-out row.
 3. `[downloads] keep_next` in config.toml; the TUI does not draw the row.
 
 On iPhone, downloads show as a Live Activity (`DownloadsActivityFeed.swift`, the widget bundle's
-`DownloadsLiveActivity`); there is none for playback or airing. A queued download has no "start
-now" on any app, since the engine has no command for it.
+`DownloadsLiveActivity`), and so do the episode playing (`PlaybackActivityFeed.swift`, with Play
+and Pause) and an episode of a followed show airing within the hour (`AiringActivityFeed.swift`,
+a countdown, then "Out now"). All three are local, with no push; playback ranks first in the
+Dynamic Island, then airing, then downloads. A queued download has no "start now" on any app,
+since the engine has no command for it.
 
 ## On the TV
 

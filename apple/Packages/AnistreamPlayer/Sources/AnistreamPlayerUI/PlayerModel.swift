@@ -213,6 +213,10 @@ public final class PlayerModel {
     /// has no Play on TV button.
     @ObservationIgnored public var playOnTVHandler: (@MainActor (TVPlayRequest) -> Void)?
 
+    /// Told what plays whenever Now Playing is, and `nil` once the player closes: the playback's
+    /// Live Activity on iPhone (AppStore's `playbackChanged`).
+    @ObservationIgnored public var onLiveActivity: (@MainActor (PlaybackActivityFeed.Playing?) -> Void)?
+
     /// Play on TV can be asked for: an episode is staged, and the app has a TV picker.
     public var playOnTVAvailable: Bool { playOnTVHandler != nil && staged != nil }
 

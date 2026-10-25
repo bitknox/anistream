@@ -45,6 +45,13 @@ final class AppDelegate: NSObject {
         // Play on TV from the player: the TV picker over it, and the player closed once the TV
         // plays the episode.
         player.playOnTVHandler = { [weak store] request in store?.tv.offer(request) }
+        #if os(iOS)
+        // The playback's Live Activity, told what plays as Now Playing is, and its Play and Pause.
+        player.onLiveActivity = { [weak store] playing in store?.playbackChanged(playing) }
+        store.playbackActivity.takeControls(
+            play: { [weak player = self.player] in if player?.paused == true { player?.togglePause() } },
+            pause: { [weak player = self.player] in player?.pause() })
+        #endif
         store.tv.handedOff = { [weak player = self.player, weak store] in
             player?.viewerClosed()
             #if os(iOS)
@@ -157,7 +164,7 @@ final class AppDelegate: NSObject {
         store.applyShowcase()
         // The week's notifications, scheduled, when there are any to schedule.
         await store.notifications.refreshPermission()
-        if store.notifications.schedules { store.refreshNotices() }
+        if store.wantsWeek { store.refreshNotices() }
         #if FIXTURES
         // A screenshot of the player: play the Playing scene's episode to the state named.
         if let shot = PlayerShot.named(in: ProcessInfo.processInfo.arguments) {

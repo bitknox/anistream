@@ -269,6 +269,7 @@ enum Shots {
             let content = view
                 .environment(\.widgetFiles, files)
                 .environment(\.widgetDrawsTaps, false)
+                .environment(\.widgetRunsTimers, false)
                 .environment(\.locale, Locale(identifier: "en_GB"))
                 .environment(\.colorScheme, .dark)
                 .frame(width: width, height: height)
@@ -310,6 +311,76 @@ enum Shots {
         }
         .padding(EdgeInsets(top: 18, leading: 20, bottom: 14, trailing: 16))
         draw(expanded, "island-expanded", width: 371, height: 160, radius: 44, background: .black)
+
+        // MARK: The playback and airing Live Activities
+
+        // Their dates are the drawing's moment, which is when the countdowns are read.
+        let moment = Date()
+        let airingPoster = art(900002, in: files).poster
+        if let airingPoster {
+            try? FileManager.default.copyItem(at: files.art(airingPoster), to: files.liveDirectory.appending(path: airingPoster))
+        }
+        let playing = PlaybackActivityState(
+            titleID: 900001, title: "Hoshikuzu no Tabibito", episode: "7", coverFile: poster,
+            position: 600, duration: 1_440, at: moment)
+        var pausedPlay = playing
+        pausedPlay.paused = true
+        draw(PlaybackLockScreenView(state: playing), "playback", width: 358, height: nil, radius: 24, background: card)
+        draw(PlaybackLockScreenView(state: pausedPlay), "playback-paused", width: 358, height: nil, radius: 24, background: card)
+        draw(PlaybackLockScreenView(state: playing, stale: true), "playback-stale", width: 358, height: nil, radius: 24, background: card)
+        let playCompact = HStack {
+            LiveActivityCover(file: playing.coverFile)
+            Spacer()
+            PlaybackIslandTimeLeft(state: playing, compact: true)
+        }
+        .padding(.horizontal, 8)
+        draw(playCompact, "playback-island-compact", width: 250, height: 37, radius: 18.5, background: .black)
+        let playExpanded = VStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                LiveActivityCoverLarge(file: playing.coverFile)
+                PlaybackIslandTitle(state: playing).padding(.top, 4)
+                PlaybackIslandTimeLeft(state: playing).padding(.top, 6)
+            }
+            PlaybackIslandBottom(state: playing)
+        }
+        .padding(EdgeInsets(top: 18, leading: 20, bottom: 14, trailing: 16))
+        draw(playExpanded, "playback-island-expanded", width: 371, height: 160, radius: 44, background: .black)
+
+        let airing = AiringActivityState(
+            titleID: 900002, title: "Kumo no Ue no Toshokan", episode: 6, airsAt: moment.addingTimeInterval(12 * 60 + 4),
+            since: moment.addingTimeInterval(-20 * 60), coverFile: airingPoster)
+        draw(AiringLockScreenView(state: airing, out: false), "airing", width: 358, height: nil, radius: 24, background: card)
+        draw(AiringLockScreenView(state: airing, out: true), "airing-out", width: 358, height: nil, radius: 24, background: card)
+        let airCompact = HStack {
+            LiveActivityCover(file: airing.coverFile)
+            Spacer()
+            AiringIslandCountdown(state: airing, out: false, compact: true)
+        }
+        .padding(.horizontal, 8)
+        draw(airCompact, "airing-island-compact", width: 250, height: 37, radius: 18.5, background: .black)
+        let airExpanded = HStack(alignment: .top, spacing: 12) {
+            LiveActivityCoverLarge(file: airing.coverFile)
+            AiringIslandTitle(state: airing, out: false).padding(.top, 4)
+            AiringIslandCountdown(state: airing, out: false).padding(.top, 6)
+        }
+        .padding(EdgeInsets(top: 18, leading: 20, bottom: 18, trailing: 16))
+        draw(airExpanded, "airing-island-expanded", width: 371, height: 96, radius: 44, background: .black)
+    }
+}
+
+/// The expanded island's leading cover for the playback and airing activities.
+struct LiveActivityCoverLarge: View {
+    let file: String?
+    @Environment(\.widgetFiles) private var files
+
+    var body: some View {
+        if let file, let files, let image = ArtThumbnail.image(at: files.liveDirectory.appending(path: file)) {
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 36, height: 54)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
     }
 }
 
