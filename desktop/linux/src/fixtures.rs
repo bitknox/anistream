@@ -84,7 +84,13 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     options.hosted_player = true;
     options.background = Background::none();
     options.sources = Some(registry(&server.art_base(), scene.media.as_deref()));
-    options.parts = Some(Parts { meta, sync, stores, clock });
+    options.parts = Some(Parts {
+        meta,
+        sync,
+        stores,
+        clock,
+        fixture_exit: Some(anistream_providers::vpn::VpnGuard::fixture_egress()),
+    });
     let (engine, events): (Engine, _) =
         Engine::start(options, host).await.map_err(|e| e.to_string())?;
     Ok(Started { engine, events, keep: Some(Box::new(server)) })
