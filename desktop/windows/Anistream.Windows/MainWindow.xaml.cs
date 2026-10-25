@@ -48,6 +48,7 @@ public sealed partial class MainWindow : Window
     readonly Ctx ctx;
     readonly NetworkWatch network;
     readonly Taskbar? taskbar;
+    readonly MediaControls? media;
     Tray? tray;
     bool selecting, played, closing, askedClose, firstRun;
 
@@ -81,6 +82,7 @@ public sealed partial class MainWindow : Window
         {
             art.Take(batch);
             Player.Heard(batch);
+            media?.Heard(batch);
             Heard(batch);
             ctx.Heard(batch);
         };
@@ -114,6 +116,8 @@ public sealed partial class MainWindow : Window
         // online or offline state (Event.Connectivity) the pages show.
         network = new NetworkWatch(c => ctx.Send(c), ui, options.Offline);
         taskbar = Taskbar.For(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        // The media overlay, the media keys and the thumbnail's buttons, while an episode plays.
+        media = MediaControls.Start(WinRT.Interop.WindowNative.GetWindowHandle(this), taskbar, art, ui, c => ctx.Send(new Command.Player(c)));
         StartNotifications(art);
         Keys();
 #if ANISTREAM_TESTING
@@ -237,7 +241,11 @@ public sealed partial class MainWindow : Window
     /// <summary>The player's events, from mpv's threads to the UI's.</summary>
     sealed class Sink(MainWindow window) : FfiPlayerSink
     {
-        public void Event(FfiPlayerEvent e) => window.ui.TryEnqueue(() => window.Player.Heard(e));
+        public void Event(FfiPlayerEvent e) => window.ui.TryEnqueue(() =>
+        {
+            window.Player.Heard(e);
+            window.media?.Heard(e);
+        });
     }
 
     // The first page, and what the command line asks for once the engine has a list to show.
