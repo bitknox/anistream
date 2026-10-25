@@ -45,6 +45,7 @@ import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.ffi.FfiScreen
 import tv.anistream.player.PlayerModel
 import tv.anistream.store.AppStore
+import tv.anistream.store.UpdateState
 import tv.anistream.tv.home.LocalWatchNext
 import tv.anistream.tv.home.WatchNext
 import tv.anistream.tv.player.LocalAddStore
@@ -136,28 +137,32 @@ fun TvRoot(
             }
             if (firstLaunch && !player.isPresented) FirstLaunch(onCover = { covered = it })
             if (remote != null) RemoteOverlays(remote, playing = player.isPresented, nav = nav)
-            Notices(store, player, remote, notices)
+            Notices(store, player, remote, notices, onUpdatePage = nav.top is Page.Update)
         }
     }
 }
 
 /**
  * The one notice surface, top right: the engine's notices, the player's alerts and the remote's
- * lines, each said for its time. A phone asking to pair during playback holds its line there.
+ * lines, each said for its time. A phone asking to pair during playback holds its line there. An
+ * update that failed is not said again over its own page, which says why already.
  */
 @Composable
-private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRemoteHost?, notices: TvNotices) {
+private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRemoteHost?, notices: TvNotices, onUpdatePage: Boolean) {
     val current by store.notices.current.collectAsStateWithLifecycle()
     LaunchedEffect(current?.id) {
         val item = current ?: return@LaunchedEffect
-        notices.say(item.notice.text)
+        val failure = (store.updates.state.value as? UpdateState.Failed)?.failure?.text
+        if (!(onUpdatePage && item.notice.text == failure)) notices.say(item.notice.text)
         store.notices.dismiss(item)
     }
     val alert = player.alert
     LaunchedEffect(alert?.since) { alert?.let { notices.say(it.text) } }
     // A newer release, when the engine says to tell of it: the update's page is in Settings › About.
+    // Held while something plays, as a phone asking to pair is, and said once it stops.
     val update by store.updates.notice.collectAsStateWithLifecycle()
-    LaunchedEffect(update) {
+    LaunchedEffect(update, player.isPresented) {
+        if (player.isPresented) return@LaunchedEffect
         val offer = update ?: return@LaunchedEffect
         notices.say("Update available: anistream ${offer.name}. Settings › About")
         store.updates.told(offer)
@@ -278,7 +283,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                                 )
                                 Destination.Settings -> key(nav.settingsStart) {
                                     val start = nav.settingsStart?.let { name -> SettingsSection.entries.firstOrNull { it.name == name } }
-                                    SettingsScreen(nav, nav.memory(Destination.Settings), start = start ?: SettingsSection.Playback)
+                                    SettingsScreen(nav, nav.memory(Destination.Settings), start = start ?: SettingsSection.General)
                                 }
                             }
                         }

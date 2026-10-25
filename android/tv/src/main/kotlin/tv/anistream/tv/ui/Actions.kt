@@ -40,27 +40,36 @@ import tv.anistream.engine.model.Entry
 import tv.anistream.store.AppStore
 import tv.anistream.store.label
 
-/** One row of the panel. A [then] sheet replaces the panel instead of closing it. */
+/** One row of the panel. A [then] sheet opens over the panel instead of closing it, and Back returns from it. */
 data class CardAction(val label: String, val selected: Boolean = false, val then: ActionSheet? = null, val run: () -> Unit = {})
 
 /** A card's actions, under its title; or, with a [body], what it draws in their place. */
 data class ActionSheet(val title: String, val actions: List<CardAction> = emptyList(), val body: (@Composable () -> Unit)? = null)
 
-/** The panel showing now, if any; the browse UI draws it over the screen. */
+/**
+ * The panel showing now, if any; the browse UI draws it over the screen. A sheet opened while one
+ * shows goes over it, and [back] returns to the one under it, as Back does.
+ */
 @Stable
 class ActionsHost {
-    var sheet by mutableStateOf<ActionSheet?>(null)
-        private set
+    private var stack by mutableStateOf(emptyList<ActionSheet>())
+
+    val sheet: ActionSheet? get() = stack.lastOrNull()
 
     /** Where focus goes back once the panel closes: the screen's last focused item. */
     var onClosed: () -> Unit = {}
 
     fun open(sheet: ActionSheet) {
-        this.sheet = sheet
+        stack = stack + sheet
+    }
+
+    /** One sheet back, or closed when this was the first. */
+    fun back() {
+        if (stack.size > 1) stack = stack.dropLast(1) else close()
     }
 
     fun close() {
-        sheet = null
+        stack = emptyList()
         onClosed()
     }
 }
@@ -69,14 +78,15 @@ val LocalActions = staticCompositionLocalOf<ActionsHost?> { null }
 
 /**
  * The open sheet: a black scrim at 32 % over the screen and the panel on its right, fading in and
- * out together (fade-in, fade-out). Back closes it. Lay it over the whole screen.
+ * out together (fade-in, fade-out). Back returns to the sheet under it, or closes the first. Lay it
+ * over the whole screen.
  */
 @Composable
 fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
     val open = host.sheet
     var last by remember { mutableStateOf(open) }
     if (open != null) last = open
-    if (open != null) BackHandler(onBack = host::close)
+    if (open != null) BackHandler(onBack = host::back)
     AnimatedVisibility(open != null, modifier.fillMaxSize(), enter = enterFade(), exit = exitFade()) {
         Box(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = SCRIM)))
@@ -84,6 +94,9 @@ fun ActionsPanel(host: ActionsHost, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** A panel's end padding: its rows stop at the safe area's edge, 48 in from the screen's. */
+val PANEL_END = 48.dp
 
 /** The black scrim under a panel over browse screens: 32 %. */
 private const val SCRIM = 0.32f
@@ -96,11 +109,12 @@ private fun Sheet(host: ActionsHost, sheet: ActionSheet, modifier: Modifier) {
             .width(400.dp)
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
-            .padding(horizontal = 16.dp, vertical = 27.dp),
+            // Rows end on the safe area's edge, 48 in from the screen's.
+            .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
     ) {
         Text(
             sheet.title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.headlineSmall,
             color = ObiSilk.Silk,
             modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() },
         )

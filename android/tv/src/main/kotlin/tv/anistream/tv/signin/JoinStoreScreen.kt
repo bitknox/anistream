@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tv.anistream.design.ObiSilk
@@ -71,7 +73,7 @@ import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.plainReason
 
 /** The line under every Join. */
-const val JOIN_LEGAL_LINE = "anistream ships no sources of its own and hosts no content. Every source is external."
+const val JOIN_LEGAL_LINE = "anistream hosts no content."
 
 /**
  * TVJoinStore, until a store is joined ([onDone] with true) or Back ([onDone] with false). On
@@ -126,10 +128,16 @@ fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String = "Ca
                 Ways(onAnswer = check, onType = { typing = true }, onCancel = { done(false) }, cancelLabel = cancelLabel)
             }
             is StoresModel.Preview.Checking -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Spinner()
+                // The spinner comes after a moment, so a quick answer never flashes it.
+                var spin by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay(SPINNER_WAIT)
+                    spin = true
+                }
+                Box(Modifier.size(32.dp)) { if (spin) Spinner() }
                 Text("Checking the store", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             }
-            is StoresModel.Preview.Failed -> Failed(shown.reason, onAgain = { store.stores.clearPreview() })
+            is StoresModel.Preview.Failed -> Failed(shown.reason, onAgain = { store.stores.clearPreview() }, onCancel = { done(false) }, cancelLabel = cancelLabel)
             is StoresModel.Preview.Store -> Preview(
                 shown.store,
                 onJoin = { store.joinStore(link) },
@@ -139,7 +147,11 @@ fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String = "Ca
     }
 }
 
-/** The ways to hand the TV a link: the TV's page from a QR code, or typing it. */
+/**
+ * The ways to hand the TV a link: the TV's page from a QR code, or typing it. The page closes
+ * after its 10 minutes; the QR code goes with it, "Code expired" in its place, and Get a new code
+ * opens another page.
+ */
 @Composable
 private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () -> Unit, cancelLabel: String) {
     val context = LocalContext.current
@@ -147,7 +159,11 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
     val answer by rememberUpdatedState(onAnswer)
     var address by remember { mutableStateOf<String?>(null) }
     var started by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) {
+    // Each page in turn: a new one once the last has expired and Get a new code is pressed.
+    var opened by remember { mutableIntStateOf(0) }
+    var expired by remember { mutableStateOf(false) }
+    DisposableEffect(opened) {
+        expired = false
         val page = SignInPage(tracker = "a plugin store", form = PageForm.Link, authorizeUrl = null) { pasted ->
             if (pasted is PageAnswer.Link) scope.launch { answer(pasted.text) }
         }
@@ -156,6 +172,11 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
             val local = localAddress(context)
             address = if (port != null && local != null) "http://$local:$port/${page.path}" else null
             started = true
+            if (port != null) {
+                delay(SignInPage.LIFETIME_NANOS / 1_000_000)
+                expired = true
+                page.stop()
+            }
         }
         onDispose {
             job.cancel()
@@ -163,23 +184,32 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
         }
     }
     val type = remember { FocusRequester() }
+    val again = remember { FocusRequester() }
+    LaunchedEffect(expired) { if (expired) again.focusSoon() }
     Text(
-        "Scan with your phone, then paste the store's invite link on the page.",
+        "Scan the QR code with your phone, then paste the store's invite link on the page that opens.",
         style = MaterialTheme.typography.bodyLarge,
-        color = ObiSilk.Haze,
+        color = ObiSilk.Silk,
         modifier = Modifier.widthIn(max = 640.dp),
     )
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
-        val shown = address
+        val shown = address.takeIf { !expired }
         if (shown != null) {
             QrCode(shown, label = "QR code for the page that takes the link")
         } else {
-            Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
+            Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                if (expired) Text("Code expired", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
+            }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 520.dp)) {
             Text("Or open this address", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
             Text(
-                shown ?: if (started) "This TV isn't on a network a phone can reach." else "Starting",
+                when {
+                    expired -> "The page closed after 10 minutes."
+                    shown != null -> shown
+                    started -> "This TV isn't on a network a phone can reach."
+                    else -> "Starting"
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = ObiSilk.Silk,
             )
@@ -187,6 +217,9 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
         }
     }
     Row(Modifier.entryFocus(type), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (expired) {
+            TonalButton(onClick = { opened += 1 }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
+        }
         TonalButton(onClick = onType, modifier = Modifier.focusRequester(type)) { ButtonLabel("Type the link") }
         TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }
     }
@@ -224,14 +257,18 @@ private fun TypeLink(start: String, onCheck: (String) -> Unit, onCancel: () -> U
     }
 }
 
-/** The link did not lead to a store: why, in plain words, and another try. */
+/** The link did not lead to a store: an error's vermilion dot, why in plain words, another try, and Cancel. */
 @Composable
-private fun Failed(reason: String, onAgain: () -> Unit) {
+private fun Failed(reason: String, onAgain: () -> Unit, onCancel: () -> Unit, cancelLabel: String) {
     val again = remember { FocusRequester() }
-    Text("Couldn't open this link.", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
-    Text(plainReason(reason), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, modifier = Modifier.widthIn(max = 640.dp))
-    Box(Modifier.entryFocus(again)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
+        Text("Couldn't open this link.", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk)
+    }
+    Text(plainReason(reason), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+    Row(Modifier.entryFocus(again), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         TonalButton(onClick = onAgain, modifier = Modifier.focusRequester(again)) { ButtonLabel("Try another link") }
+        TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }
     }
 }
 
@@ -278,6 +315,9 @@ private fun Preview(invited: InvitedStore, onJoin: () -> Unit, onCancel: () -> U
         Text(JOIN_LEGAL_LINE, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, modifier = Modifier.widthIn(max = 640.dp))
     }
 }
+
+/** How long Checking the store waits before its spinner shows. */
+private const val SPINNER_WAIT = 400L
 
 /** A store with many plugins shows the first few; the store's page in Settings has the rest. */
 private const val PREVIEW_PLUGINS = 5

@@ -87,12 +87,12 @@ sealed interface UpdateFailure {
 
     /** The download did not finish: no connection, the server's answer, a short or long file. */
     data class Download(val reason: String?) : UpdateFailure {
-        override val text get() = "The update did not download. Check the connection and try again."
+        override val text get() = "Couldn't download the update. Check the connection and try again."
     }
 
     /** Android did not start the download job. */
     data object NotStarted : UpdateFailure {
-        override val text get() = "Android did not start the download. Try again."
+        override val text get() = "Couldn't start the download. Try again."
     }
 
     /** The file is not the one the release names. */
@@ -122,12 +122,15 @@ sealed interface UpdateFailure {
 
     /** The device has too little room for the APK and the installer's copy of it. */
     data object Storage : UpdateFailure {
-        override val text get() = "There isn't enough free space for the update. Free some space and try again."
+        override val text get() = "Not enough free space for the update. Free some and try again."
     }
 
-    /** Android's installer said no, in its own words when it gave any. */
+    /**
+     * Android's installer said no. Its own words are for the log: they are the installer's codes
+     * ("INSTALL_FAILED_…"), not sentences, so the screen says ours.
+     */
     data class Install(val message: String?) : UpdateFailure {
-        override val text get() = if (message.isNullOrBlank()) "Android did not install the update." else "Android did not install the update: ${message.trimEnd('.')}."
+        override val text get() = "Couldn't install the update. Try again."
     }
 }
 
@@ -184,6 +187,9 @@ sealed interface InstallResult {
 
     /** The viewer said no in Android's dialog. */
     data object Cancelled : InstallResult
+
+    /** The installer had too little room for its copy. */
+    data object NoSpace : InstallResult
 
     data class Failed(val message: String?) : InstallResult
 }
@@ -479,6 +485,7 @@ class UpdateModel(
             }
             // Kept, so pressing Update again goes to the installer without downloading again.
             InstallResult.Cancelled -> _state.value = UpdateState.Available(latest ?: current.offer)
+            InstallResult.NoSpace -> fail(current.offer, UpdateFailure.Storage)
             is InstallResult.Failed -> fail(current.offer, UpdateFailure.Install(result.message))
         }
     }

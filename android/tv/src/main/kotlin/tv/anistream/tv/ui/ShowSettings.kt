@@ -7,13 +7,16 @@
 package tv.anistream.tv.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -43,8 +46,8 @@ private data class ShowChoice(val label: String, val key: ShowSettingKey, val ch
 
 private val ShowChoices = listOf(
     ShowChoice("Audio", ShowSettingKey.TRANSLATION, listOf(SettingValue.Str("sub") to "Japanese", SettingValue.Str("dub") to "English")),
-    ShowChoice("Skip opening automatically", ShowSettingKey.SKIP_OPENING, onOff("On", "Off")),
-    ShowChoice("Skip filler automatically", ShowSettingKey.SKIP_FILLER, onOff("On", "Off")),
+    ShowChoice("Skip opening", ShowSettingKey.SKIP_OPENING, onOff("On", "Off")),
+    ShowChoice("Skip filler", ShowSettingKey.SKIP_FILLER, onOff("On", "Off")),
     ShowChoice("Spoilers", ShowSettingKey.SPOILER_PROTECTION, onOff("Blur stills ahead", "Show everything")),
 )
 
@@ -57,10 +60,13 @@ private fun ShowSettingsBody(store: AppStore, id: AnilistId, title: String) {
     LaunchedEffect(id) { store.loadShowSettings(id) }
     val view = sheets[id]
     val first = remember { FocusRequester() }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        item(key = "title") {
-            Text(title, style = TvTitle.list, color = ObiSilk.Haze, maxLines = 1, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
-        }
+    // Pressed this time the panel is open, so the row says what it did.
+    var reset by remember { mutableStateOf(false) }
+    val anySet = view != null && (view.rows.any { it.own != null } || view.remembered.isNotEmpty() || view.source != null)
+    LaunchedEffect(anySet) { if (anySet) reset = false }
+    // The show's name stays under the panel title while the rows scroll.
+    Text(title, style = TvTitle.list, color = ObiSilk.Haze, maxLines = 1, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(bottom = 27.dp)) {
         items(ShowChoices, key = { it.key.name }) { choice ->
             val row = view?.rows?.firstOrNull { it.key == choice.key }
             TvListRow(
@@ -77,9 +83,18 @@ private fun ShowSettingsBody(store: AppStore, id: AnilistId, title: String) {
         item(key = "reset") {
             TvListRow(
                 "Reset to defaults",
-                onClick = { store.resetShowSettings(id) },
-                supporting = "Also clears the remembered audio and subtitles",
-                enabled = view != null,
+                onClick = {
+                    reset = true
+                    store.resetShowSettings(id)
+                },
+                supporting = when {
+                    reset && !anySet -> "Back to defaults"
+                    anySet -> "Also clears the remembered audio and subtitles"
+                    else -> "Nothing set for this show"
+                },
+                // Nothing to reset: the row stays, dimmed, so the panel doesn't change shape. Once
+                // pressed it stays enabled, so focus isn't dropped from under the viewer.
+                enabled = anySet || reset,
             )
         }
     }
@@ -97,12 +112,11 @@ private fun SubtitlesRow(store: AppStore, view: ShowSettingsView?) {
     val translation = if (audio?.value?.startsWith("dub") == true) Translation.DUB else Translation.SUB
     val remembered = view?.remembered?.firstOrNull { it.translation == translation }?.subtitles
     val language = store.settings.row(SettingKey.SUBTITLES, settings)?.value?.let(::languageName)
-    TvListRow(
+    // Text, not a row to land on: Center would open nothing.
+    TvInfoRow(
         "Subtitles",
-        onClick = {},
         supporting = if (remembered != null) "Chosen in the player, remembered from your last episode" else "Chosen in the player",
         value = remembered?.let(::subtitleWords) ?: listOfNotNull("Default", language).joinToString(" · "),
-        enabled = view != null,
     )
 }
 
@@ -177,7 +191,7 @@ fun trackWords(track: RememberedTrack): String {
 private fun valueWords(choice: ShowChoice, row: ShowSettingRow): String {
     val own = row.own
     if (own != null) return choice.choices.firstOrNull { matches(it.first, own) }?.second ?: row.value
-    return defaultWords(row.default)
+    return defaultWords(choice.key, row.default)
 }
 
 private fun matches(a: SettingValue, b: SettingValue): Boolean = when {
@@ -185,16 +199,22 @@ private fun matches(a: SettingValue, b: SettingValue): Boolean = when {
     else -> a == b
 }
 
-/** "Use default · on", as the phone writes following Settings. */
-private fun defaultWords(value: String): String =
-    "Use default · " + value.removePrefix("Use Default · ").replaceFirstChar { it.titlecase(Locale.UK) }
+/**
+ * "Use default · On", as the phone writes following Settings. Audio says the language, as its
+ * choices do: "Use default · Japanese", not the engine's "Sub".
+ */
+private fun defaultWords(key: ShowSettingKey, value: String): String {
+    val words = value.removePrefix("Use Default · ")
+    if (key == ShowSettingKey.TRANSLATION) return "Use default · " + if (words.lowercase(Locale.UK).startsWith("dub")) "English" else "Japanese"
+    return "Use default · " + words.replaceFirstChar { it.titlecase(Locale.UK) }
+}
 
 /** A row's radio panel: Use default, then its choices; the one in effect marked. */
 private fun choiceSheet(store: AppStore, id: AnilistId, choice: ShowChoice, row: ShowSettingRow?): ActionSheet {
     val own = row?.own
     return ActionSheet(
         choice.label,
-        listOf(CardAction(row?.let { defaultWords(it.default) } ?: "Use default", selected = own == null) { store.setShowSetting(id, choice.key, null) }) +
+        listOf(CardAction(row?.let { defaultWords(choice.key, it.default) } ?: "Use default", selected = own == null) { store.setShowSetting(id, choice.key, null) }) +
             choice.choices.map { (value, words) ->
                 CardAction(words, selected = own != null && matches(value, own)) { store.setShowSetting(id, choice.key, value) }
             },

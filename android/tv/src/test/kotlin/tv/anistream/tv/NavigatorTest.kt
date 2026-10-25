@@ -3,6 +3,7 @@ package tv.anistream.tv
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tv.anistream.tv.shell.Destination
@@ -26,14 +27,17 @@ class NavigatorTest {
     }
 
     @Test
-    fun another_season_takes_the_title_page_s_place_so_back_returns_to_the_opener() {
+    fun another_season_changes_the_title_page_in_place_so_back_returns_to_the_opener() {
         val forgotten = mutableListOf<String>()
         val nav = TvNavigator().apply { forget = { forgotten += it } }
         nav.openTitle(920001u)
+        val page = nav.top as Page.Title
         nav.switchTitle(920002u)
         nav.switchTitle(920003u)
-        assertEquals(920003u, (nav.top as Page.Title).id)
-        assertEquals(2, forgotten.size)
+        // The same page, its saved state kept: no new screen to fade to.
+        assertSame(page, nav.top)
+        assertEquals(920003u, page.id)
+        assertTrue(forgotten.isEmpty())
         assertTrue(nav.pop())
         assertNull(nav.top)
     }
