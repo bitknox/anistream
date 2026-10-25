@@ -16,6 +16,7 @@ use anistream_model::{
     command::Command,
     episodes::EpisodeRow,
     event::Event,
+    present::episode_line,
 };
 use gtk::{gdk, gio, glib};
 
@@ -174,7 +175,7 @@ impl Page {
             let ctrl_shift = gdk::ModifierType::CONTROL_MASK | gdk::ModifierType::SHIFT_MASK;
             match key {
                 gdk::Key::Return | gdk::Key::KP_Enter if !page.split.is_collapsed() => {
-                    if item.playable() {
+                    if item.playable {
                         let _ = page.list.activate_action("win.play", Some(&play));
                     }
                     glib::Propagation::Stop
@@ -263,7 +264,7 @@ impl Page {
             let known = self.ctx.hub.known.borrow();
             self.ids.borrow().iter().filter_map(|id| known.entries.get(id).cloned()).collect()
         };
-        let queue = Queue::of(&entries, &[]);
+        let queue = words::queue(&entries, &[]);
         let same = *self.queue.borrow() == queue;
         *self.queue.borrow_mut() = queue;
         if same && self.list.first_child().is_some() && self.body.has_answer() {
@@ -299,14 +300,14 @@ impl Page {
         title.set_wrap(false);
         title.set_ellipsize(gtk::pango::EllipsizeMode::End);
         text.append(&title);
-        let action = widgets::haze(&item.action(), "caption");
+        let action = widgets::haze(&item.action, "caption");
         action.add_css_class("numeric");
-        if item.is_new() {
+        if item.aired_ago.is_some() {
             action.remove_css_class("haze");
             action.add_css_class("state");
         }
         text.append(&action);
-        if let Some(fraction) = item.fraction() {
+        if let Some(fraction) = item.fraction {
             let bar = gtk::ProgressBar::new();
             bar.set_fraction(fraction);
             bar.set_margin_top(4);
@@ -318,8 +319,7 @@ impl Page {
         row.set_widget_name(group);
         row.update_property(&[gtk::accessible::Property::Label(&format!(
             "{}, {}",
-            item.entry.title,
-            item.action()
+            item.entry.title, item.action
         ))]);
 
         let id = item.entry.id.get();
@@ -327,10 +327,10 @@ impl Page {
         let play = format!("(uint32 {id}, '{}')", item.episode);
         let n = item.episode;
         let first = gio::Menu::new();
-        if item.playable() {
+        if item.playable {
             let verb = if item.resume.is_some() { "Resume" } else { "Play" };
             first.append(
-                Some(&format!("{verb} Episode {n}")),
+                Some(&episode_line(&format!("{verb} Episode {n}"), item.entry.watched_in)),
                 Some(&format!("win.play({play})")),
             );
             if item.resume.is_some() {
@@ -492,9 +492,10 @@ impl Page {
                 rows.iter().find(|r| r.number == item.episode.to_string()).cloned()
             })
             .and_then(|r| r.title);
+        let episode = episode_line(&format!("Episode {}", item.episode), entry.watched_in);
         let line = match episode_title {
-            Some(name) => format!("Episode {} · {name}", item.episode),
-            None => format!("Episode {}", item.episode),
+            Some(name) => format!("{episode} · {name}"),
+            None => episode,
         };
         let episode = gtk::Label::new(Some(&line));
         episode.add_css_class("title-4");
@@ -502,14 +503,14 @@ impl Page {
         episode.set_wrap(true);
         column.append(&episode);
 
-        if let Some(fraction) = item.fraction() {
+        if let Some(fraction) = item.fraction {
             let meter = gtk::Box::new(gtk::Orientation::Horizontal, 12);
             let bar = gtk::ProgressBar::new();
             bar.set_fraction(fraction);
             bar.set_hexpand(true);
             bar.set_valign(gtk::Align::Center);
             meter.append(&bar);
-            if let Some(left) = item.left() {
+            if let Some(left) = item.left.clone() {
                 let left = widgets::haze(&left, "caption");
                 left.add_css_class("numeric");
                 left.set_wrap(false);
@@ -519,7 +520,7 @@ impl Page {
             column.append(&meter);
         }
 
-        match (item.button(), item.waiting()) {
+        match (item.button.clone(), item.waiting.clone()) {
             (Some(label), _) => {
                 let button = gtk::Button::with_label(&label);
                 button.add_css_class("pill");
