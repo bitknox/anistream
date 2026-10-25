@@ -113,6 +113,14 @@ public sealed partial class CalendarPage : Page
         WeekTitle.Text = Calendar.WeekTitle(monday);
         ThisWeek.IsEnabled = week != 0;
         var broadcasts = Calendar.Broadcasts(rows, anchor, ctx.Known, mine);
+#if ANISTREAM_TESTING
+        // --show=calendar-marks: the fixture has no estimated or dubbed broadcast, so every other
+        // row becomes an estimated dub, and the rest sub rows beside one, for a screenshot.
+        if (ctx.Options.Show == "calendar-marks")
+            broadcasts = [.. broadcasts.Select((b, i) => i % 2 == 0
+                ? b with { Entry = b.Entry with { AiringApproximate = true, AiringTranslation = Anistream.Engine.Core.Translation.Dub } }
+                : b with { Entry = b.Entry with { AiringTranslation = Anistream.Engine.Core.Translation.Sub } })];
+#endif
         var days = Calendar.Week(monday, broadcasts, zone);
         var today = Calendar.Day(Now, zone);
         Days.Children.Clear();
@@ -231,7 +239,7 @@ public sealed partial class CalendarPage : Page
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, $"{b.Entry.Title}, {b.Line(zone)}");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, b.Mark is { } said ? $"{b.Entry.Title}, {b.Line(zone)}, {said}" : $"{b.Entry.Title}, {b.Line(zone)}");
         button.Click += (_, _) => ctx.OpenTitle(b.Entry.Id);
         if (b.Watched)
         {
@@ -286,6 +294,17 @@ public sealed partial class CalendarPage : Page
         if (b.IsNew(Now))
             line.Children.Add(new Ellipse { Width = 6, Height = 6, Fill = (Brush)Application.Current.Resources["WaterBrush"], VerticalAlignment = VerticalAlignment.Center });
         line.Children.Add(new TextBlock { Text = b.Line(zone), Style = (Style)Application.Current.Resources["HazeCaptionStyle"], TextWrapping = TextWrapping.WrapWholeWords });
+        // Sub or Dub: a small outlined tag after the time, quiet as the line it ends.
+        if (b.Mark is { } mark)
+            line.Children.Add(new Border
+            {
+                BorderBrush = (Brush)Application.Current.Resources["HazeBrush"],
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(5, 0, 5, 1),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock { Text = mark, FontSize = 11, Foreground = (Brush)Application.Current.Resources["HazeBrush"] },
+            });
         return line;
     }
 
