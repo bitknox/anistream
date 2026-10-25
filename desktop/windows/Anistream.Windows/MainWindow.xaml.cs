@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
 using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
@@ -12,6 +14,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.Graphics;
@@ -252,6 +255,20 @@ public sealed partial class MainWindow : Window
 
     void FirstPage()
     {
+        // Later launches, and anistream:// links clicked while the app runs, come here; the one
+        // this launch came with opens once the welcome, if it shows, is up to take it.
+        Program.Listen(link => ui.TryEnqueue(() =>
+        {
+            Forward();
+            if (link is not null)
+                OpenLink(link);
+        }));
+        if (options.Opens is { } opens)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(900);
+                OpenLink(opens);
+            });
         var page = options.Page ?? "continue";
         if (options.Query is not null)
             ShowSearch(options.Query);
@@ -302,10 +319,11 @@ public sealed partial class MainWindow : Window
                 {
                     // Not kept: it shows again next time, which is harmless.
                 }
-                var welcome = new WelcomeDialog(ctx, Root.XamlRoot);
+                var welcome = welcoming = new WelcomeDialog(ctx, Root.XamlRoot);
                 if (options.Welcome && options.Show is { } step)
                     welcome.Step(step);
                 await welcome.ShowAsync();
+                welcoming = null;
                 if (welcome.Invite is { } invite)
                     ShowJoinStore(invite);
             });
@@ -480,7 +498,21 @@ public sealed partial class MainWindow : Window
     /// <summary>The join-store dialog, with an invite already pasted when one is given.</summary>
     internal async void ShowJoinStore(string? pasted = null)
     {
-        await new JoinStoreDialog(ctx, Root.XamlRoot, pasted).ShowAsync(options.Show == "preview");
+        var dialog = joining = new JoinStoreDialog(ctx, Root.XamlRoot, pasted);
+        try
+        {
+            await dialog.ShowAsync(options.Show == "preview");
+        }
+        catch (COMException)
+        {
+            // Another dialog came up first: the link waits for the viewer to open it again.
+            return;
+        }
+        finally
+        {
+            if (joining == dialog)
+                joining = null;
+        }
         if (ctx.Known.Joined is { } store)
         {
             ctx.Known.Joined = null;
@@ -796,6 +828,103 @@ public sealed partial class MainWindow : Window
         else
             toasts.Post(new SystemNotice($"engine-{title}", title, body, 0, null, null));
     }
+
+    // anistream:// links, as the Mac opens them (Link).
+
+    JoinStoreDialog? joining;
+    WelcomeDialog? welcoming;
+
+    /// <summary>
+    /// The window to the front for another launch: back from the notification area, or up from
+    /// the taskbar, and given the foreground the launch handed over.
+    /// </summary>
+    void Forward()
+    {
+        if (!AppWindow.IsVisible)
+        {
+            ShowAgain();
+            return;
+        }
+        if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } overlapped)
+            overlapped.Restore();
+        Activate();
+        SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+    }
+
+    /// <summary>
+    /// A link the app was opened with. An invite fills in the welcome or the join dialog when one
+    /// is up, and opens the join dialog otherwise, over any other dialog; the widgets' links go
+    /// where the Mac takes them; any other link says it can't be opened.
+    /// </summary>
+    internal async void OpenLink(string text)
+    {
+        var link = Link.Parse(text);
+        if (link is Link.Invite invite)
+        {
+            if (welcoming is { } welcome)
+                welcome.Fill(invite.Https);
+            else if (joining is { } join)
+                join.Fill(invite.Https);
+            else
+            {
+                if (Player.Showing)
+                    Player.Close();
+                if (CloseDialogs())
+                    await Task.Delay(250);
+                ShowJoinStore(invite.Https);
+            }
+            return;
+        }
+        switch (link)
+        {
+            case Link.Title title:
+                OpenTitle(title.Id);
+                break;
+            case Link.Play play:
+                OpenTitle(play.Id);
+                ctx.Play(play.Id, play.Episode.ToString(CultureInfo.InvariantCulture));
+                break;
+            case Link.Calendar:
+                Go("calendar");
+                break;
+            case Link.Accounts:
+                if (Player.Showing)
+                    Player.Close();
+                ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo());
+                break;
+            case Link.Download download:
+                // A finished download plays, from its title's page; otherwise Downloads, where it is.
+                if (ctx.Known.Downloads.FirstOrDefault(r => r.Id == download.Id && r.State == DownloadState.Done) is { Path: { } path } row)
+                {
+                    OpenTitle(row.AnilistId);
+                    ctx.Send(new Command.PlayLocal(row.AnilistId, row.Episode, row.Title, path));
+                }
+                else
+                    Go("downloads");
+                break;
+            default:
+                AnistreamFfiMethods.LogLine(FfiLogLevel.Info, "windows", "a link this app does not open");
+                ShowToast(InfoBarSeverity.Warning, "anistream can't open that link");
+                break;
+        }
+    }
+
+    /// <summary>Closes the dialog that is up, if one is: whether one was.</summary>
+    bool CloseDialogs()
+    {
+        var closed = false;
+        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(Root.XamlRoot))
+            if (popup.Child is ContentDialog dialog)
+            {
+                dialog.Hide();
+                closed = true;
+            }
+        return closed;
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetForegroundWindow(nint hwnd);
 
     /// <summary>The window back from the notification area; the icon goes with the window's return.</summary>
     void ShowAgain()

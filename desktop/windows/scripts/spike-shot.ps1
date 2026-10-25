@@ -25,6 +25,9 @@ param(
   # Before each capture: Win+T, then this many presses of Right, which shows that taskbar
   # button's thumbnail as a hover would. -1 for none.
   [int]$Taskbar = -1,
+  # An anistream:// link opened through the shell 5 s after launch, as a click on it would: it
+  # reaches the running copy, which is the one captured.
+  [string]$Open = '',
   [switch]$Inner
 )
 $ErrorActionPreference = 'Stop'
@@ -40,6 +43,7 @@ if (-not $Inner) {
   if ($Volume) { $screenArg += ' -Volume' }
   if ($Point) { $screenArg += " -Point '$Point'" }
   if ($Taskbar -ge 0) { $screenArg += " -Taskbar $Taskbar" }
+  if ($Open) { $screenArg += " -Open '" + ($Open -replace "'", "''") + "'" }
   $command = "& '$PSCommandPath' -Inner$screenArg -Exe '$Exe' -Out '$Out' -Name '$Name' -At '$At' -Wait $Wait -Arguments $quoted *> '$Out\$Name.task.log'; New-Item '$done' | Out-Null"
   $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
   $task = 'anistream-player-spike'
@@ -72,10 +76,20 @@ public static class SpikeWin {
 '@
 [SpikeWin]::SetProcessDPIAware() | Out-Null
 
+# One copy runs at a time: a second launch hands its link to the first and exits.
+Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($Exe)) -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Milliseconds 500
 $proc = Start-Process -FilePath $Exe -ArgumentList $Arguments -PassThru -WorkingDirectory (Split-Path $Exe)
 $start = Get-Date
+$opened = -not $Open
 foreach ($mark in ($marks | Sort-Object)) {
-  while (((Get-Date) - $start).TotalSeconds -lt $mark) { Start-Sleep -Milliseconds 200 }
+  while (((Get-Date) - $start).TotalSeconds -lt $mark) {
+    if (-not $opened -and ((Get-Date) - $start).TotalSeconds -ge 5) {
+      Start-Process $Open
+      $opened = $true
+    }
+    Start-Sleep -Milliseconds 200
+  }
   $proc.Refresh()
   if ($proc.HasExited) { Write-Output "the spike exited with $($proc.ExitCode) before $mark s"; break }
   $hwnd = $proc.MainWindowHandle

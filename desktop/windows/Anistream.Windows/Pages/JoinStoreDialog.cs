@@ -59,6 +59,13 @@ sealed class JoinStoreDialog
         }
     }
 
+    /// <summary>Another invite link opened while this is up: back to the first step, filled in with it.</summary>
+    public void Fill(string link)
+    {
+        invite.Text = link;
+        FirstStep();
+    }
+
     void FirstStep()
     {
         preview = null;

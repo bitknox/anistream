@@ -764,3 +764,55 @@ public class EpisodeDownloadTests
         Assert.True(EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed)], 7, "3").Asks);
     }
 }
+
+public class LinkTests
+{
+    const string Https = "https://plugins.example/join/abc#key";
+
+    [Fact]
+    public void AnInviteIsReadFromTheStoresAddressOrTheAppsOwn()
+    {
+        Assert.Equal(new Link.Invite(Https), Link.Parse(Https));
+        Assert.Equal(new Link.Invite(Https), Link.Parse("anistream://plugins.example/join/abc#key"));
+        Assert.Equal(new Link.Invite(Https), Link.Parse("anistream://join?link=" + Uri.EscapeDataString(Https)));
+        Assert.Equal(new Link.Invite(Https), Link.Parse($" \"{Https}\"\n"));
+        Assert.Null(Link.Parse("anistream://auth/anilist#token=x"));
+        Assert.Null(Link.Parse("https://plugins.example/about"));
+        Assert.Null(Link.Parse("anistream://join?link=" + Uri.EscapeDataString("http://plugins.example/join/abc#key")));
+    }
+
+    [Fact]
+    public void AStoresOpenLinkIsReadWholeWithItsMark()
+    {
+        const string open = "https://plugins.example/join/abc?open#key";
+        Assert.Equal(new Link.Invite(open), Link.Parse("anistream://plugins.example/join/abc?open#key"));
+        Assert.Equal(new Link.Invite(open), Link.Parse("anistream://join?link=" + Uri.EscapeDataString(open)));
+    }
+
+    [Fact]
+    public void TheWidgetsDestinationsAreReadAsTheMacReadsThem()
+    {
+        Assert.Equal(new Link.Title(900001), Link.Parse("anistream://title/900001"));
+        Assert.Equal(new Link.Play(900001, 7), Link.Parse("anistream://play/900001/7"));
+        Assert.Equal(new Link.Calendar(), Link.Parse("anistream://calendar"));
+        Assert.Equal(new Link.Accounts(), Link.Parse("ANISTREAM://settings/accounts"));
+        Assert.Equal(new Link.Download(42), Link.Parse("anistream://download/42"));
+        Assert.Null(Link.Parse("anistream://download/x"));
+        Assert.Null(Link.Parse("anistream://title/0"));
+        Assert.Null(Link.Parse("anistream://play/900001"));
+        Assert.Null(Link.Parse("anistream://settings/playback"));
+        Assert.Null(Link.Parse("anistream://"));
+        Assert.Null(Link.Parse("--scene=watching"));
+    }
+
+    [Fact]
+    public void ALaunchCarriesItsLinkAsAnArgumentOrInItsCommandLine()
+    {
+        Assert.Equal("anistream://calendar", Link.InArguments(["--scene=watching", "anistream://calendar"]));
+        Assert.Null(Link.InArguments(["--scene=watching"]));
+        Assert.Equal("anistream://plugins.example/join/abc#key",
+            Link.InCommandLine("\"C:\\Program Files\\anistream\\anistream.exe\" \"anistream://plugins.example/join/abc#key\""));
+        Assert.Equal("anistream://calendar", Link.InCommandLine("anistream.exe anistream://calendar --x"));
+        Assert.Null(Link.InCommandLine("\"C:\\anistream\\anistream.exe\""));
+    }
+}
