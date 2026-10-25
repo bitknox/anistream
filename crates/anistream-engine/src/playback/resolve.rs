@@ -54,6 +54,21 @@ fn not_aired_in(
     }
 }
 
+/// Which kind of answer a failed lookup's `reason` is, for a party's no-source dialog: read
+/// from the words [`not_aired`] and [`NO_SOURCES`] say, which are kept beside it.
+pub(crate) fn no_source_why(reason: &str) -> anistream_model::party::NoSourceWhy {
+    use anistream_model::party::NoSourceWhy;
+    if reason == NO_SOURCES {
+        NoSourceWhy::NoSources
+    } else if reason.starts_with("episode ")
+        && (reason.contains(" airs ") || reason.contains(" hasn't aired yet"))
+    {
+        NoSourceWhy::NotAired
+    } else {
+        NoSourceWhy::NotFound
+    }
+}
+
 /// When a broadcast at `at` is, as someone in `zone` says it at `now`: "today 18:30",
 /// "tomorrow 18:30", "Saturday 18:30" within the week and "Saturday 2 November 18:30" after.
 fn airs_when(at: i64, now: i64, zone: &jiff::tz::TimeZone) -> Option<String> {
@@ -337,6 +352,19 @@ mod tests {
     use super::*;
 
     const HOUR: i64 = 3_600;
+
+    #[test]
+    fn a_failed_lookup_is_read_as_its_kind() {
+        use anistream_model::party::NoSourceWhy;
+        let zone = jiff::tz::TimeZone::UTC;
+        let now = 1_700_000_000;
+        let aired = not_aired_in(&airing(4, now, 3 * HOUR), "4", &zone).unwrap();
+        assert_eq!(no_source_why(&aired), NoSourceWhy::NotAired);
+        let later = not_aired_in(&airing(4, now, 3 * HOUR), "9", &zone).unwrap();
+        assert_eq!(no_source_why(&later), NoSourceWhy::NotAired);
+        assert_eq!(no_source_why(NO_SOURCES), NoSourceWhy::NoSources);
+        assert_eq!(no_source_why("no source has episode 6"), NoSourceWhy::NotFound);
+    }
 
     /// A title whose episode `next` airs `in_secs` after the moment `now` it was asked for.
     fn airing(next: u32, now: i64, in_secs: i64) -> anistream_meta::Media {
