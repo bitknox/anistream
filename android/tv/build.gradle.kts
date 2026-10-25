@@ -19,6 +19,8 @@ android {
         versionCode = providers.gradleProperty("ANISTREAM_VERSION_CODE").map(String::toInt).getOrElse(1)
         versionName = providers.gradleProperty("ANISTREAM_VERSION_NAME").getOrElse("2.0.0")
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        // The feature videos' flow, src/androidTestFixtures (website/scripts/videos).
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     // The phone app's release key, from the same Gradle properties (~/.gradle/gradle.properties on
     // the machine that signs, the ANDROID_RELEASE_* secrets in CI). Where they are not set the
@@ -94,6 +96,10 @@ dependencies {
     // JNA's JVM build, with this machine's native library: Search asks the engine's model for the
     // words of its filters, as the app does.
     testImplementation(libs.jna.jvm)
+
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.junit)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }
 
 // The engine's model on this machine's build of it, android/.engine/<engine>/host; no engine runs.

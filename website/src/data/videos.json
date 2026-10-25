@@ -1,0 +1,42 @@
+{
+	"android-title": {
+		"w": 540,
+		"h": 1200,
+		"seconds": 8.4,
+		"episode": false,
+		"webm": 211134,
+		"mp4": 343741
+	},
+	"iphone-calendar": {
+		"w": 540,
+		"h": 1174,
+		"seconds": 6.267,
+		"episode": false,
+		"webm": 136939,
+		"mp4": 141967
+	},
+	"iphone-search": {
+		"w": 540,
+		"h": 1174,
+		"seconds": 7.633,
+		"episode": false,
+		"webm": 251353,
+		"mp4": 388443
+	},
+	"iphone-tv-remote": {
+		"w": 540,
+		"h": 1174,
+		"seconds": 4.2,
+		"episode": false,
+		"webm": 170955,
+		"mp4": 181717
+	},
+	"tv-resume": {
+		"w": 960,
+		"h": 540,
+		"seconds": 7.7,
+		"episode": true,
+		"webm": 360064,
+		"mp4": 341075
+	}
+}

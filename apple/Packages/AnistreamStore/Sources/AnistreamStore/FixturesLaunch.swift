@@ -10,6 +10,7 @@ extension EngineLaunch {
     public static let sceneArgument = "-AnistreamScene"
 
     /// The launch argument that names what the Playing scene streams: `-AnistreamMedia <path>`.
+    /// With the Watching scene, every episode streams it, so a resume plays it at once.
     public static let mediaArgument = "-AnistreamMedia"
 
     /// What the Playing scene streams when the arguments name nothing: the episode
@@ -24,7 +25,10 @@ extension EngineLaunch {
         guard let index = arguments.firstIndex(of: sceneArgument) else { return .watching }
         guard arguments.indices.contains(index + 1) else { return nil }
         switch arguments[index + 1].lowercased() {
-        case "watching": return .watching
+        case "watching":
+            guard let index = arguments.firstIndex(of: mediaArgument), arguments.indices.contains(index + 1)
+            else { return .watching }
+            return .watchingMedia(media: arguments[index + 1])
         case "fresh": return .fresh
         case "sourceless": return .sourceless
         case "playing": return .playing(media: media(arguments: arguments))
