@@ -84,7 +84,7 @@ struct AiringToday: View {
                     .lineLimit(1)
                     .padding(.top, 8)
                 HStack(spacing: 8) {
-                    Text("Episode \(broadcast.episode) · \(CalendarWords.time(broadcast.airs))").monospacedDigit()
+                    Text("Episode \(broadcast.episode) · \(broadcast.clock)").monospacedDigit()
                     Spacer(minLength: 0)
                     let seconds = Int64(broadcast.airs.timeIntervalSince(now))
                     if seconds <= 0 {

@@ -52,8 +52,9 @@ Android TV, Windows, Linux, Terminal.
    `screens/episodes.rs`) send it and draw it.
 
 The calendar marks the native UX spec describes, "~" for an estimated air time and Sub or Dub on
-a row, are on no platform: the engine's calendar `Entry` (`anistream-model/src/catalog.rs`) has
-`airing_in`, `airing_episode` and `delayed_from`, with no estimate flag and no translation.
+a row, come from the engine's calendar `Entry` (`airing_approximate`, `airing_translation`,
+`airing_dubbed`), worded by `present::air_time` and `present::calendar_mark`. Mac, iPhone and iPad
+show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 
 ## Watching
 
