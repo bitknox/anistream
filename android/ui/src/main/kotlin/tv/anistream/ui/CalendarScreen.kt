@@ -491,7 +491,7 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
         else -> "$episode in ${Wording.countdown(seconds)}"
     }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClickLabel = "Open title", onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
+        Modifier.fillMaxWidth().heightIn(min = 72.dp).shared(Shared.Page, entry.id, "calendar").clickable(onClickLabel = "Open title", onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
