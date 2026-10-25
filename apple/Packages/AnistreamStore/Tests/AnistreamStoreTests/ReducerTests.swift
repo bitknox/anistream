@@ -57,6 +57,41 @@ struct ReducerTests {
         #expect(queue.inProgress[2].buttonTitle == "Start Episode 4")
     }
 
+    @Test func aShowWatchedDubbedIsMarkedAndASubIsNot() {
+        let rows = watching().map { row in
+            var row = row
+            if row.id == 900_005 || row.id == 900_006 { row.watchedIn = .dub }
+            if row.id == 900_002 { row.watchedIn = .sub }
+            return row
+        }
+        let store = AppStore()
+        store.apply([
+            .content(view: .continue, content: .entries(rows)),
+            .lastAired([TitleAired(id: 900_006, aired: Aired(episode: 8, ago: 19 * 3600))]),
+        ])
+        let queue = store.continuing.queue(store.titles)
+        #expect(queue.inProgress.map(\.action) == [
+            "Resume E7 · 10:06", "Resume E2 · Dub · 13:30", "Start E4",
+        ])
+        #expect(queue.inProgress.map(\.buttonTitle) == [
+            "Resume Episode 7 · 10:06", "Resume Episode 2 · Dub · 13:30", "Start Episode 4",
+        ])
+        #expect(queue.newThisWeek.map(\.action) == ["Start E8 · Dub · out 19h ago"])
+        #expect(queue.newThisWeek.map(\.buttonTitle) == ["Start Episode 8 · Dub"])
+        #expect(queue.all.map(\.mark) == [nil, "Dub", nil, "Dub"])
+    }
+
+    @Test func aDubCaughtUpIsNotMarkedAsTheEpisodeIsStillToAir() {
+        var row = watching()[3]
+        row.watchedIn = .dub
+        row.progress = TitleProgress(done: 8, next: 9)
+        let item = ContinueQueue.item(row)
+        #expect(!item.playable)
+        #expect(item.action.hasPrefix("Caught up · E9 "), "\(item.action)")
+        #expect(!item.action.contains("Dub"))
+        #expect(!item.buttonTitle.contains("Dub"))
+    }
+
     @Test func anEpisodeOutMoreThanAWeekAgoIsNotNew() {
         let store = AppStore()
         store.apply([

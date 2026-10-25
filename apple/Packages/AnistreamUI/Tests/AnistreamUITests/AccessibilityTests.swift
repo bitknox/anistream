@@ -63,5 +63,12 @@ struct AccessibilityTests {
         let fresh = ContinueItem(entry: e, episode: 9, resume: nil, airedAgo: 2 * 3600)
         #expect(fresh.spokenProgress == "Episode 9, out 2 hours ago")
         #expect(ContinueItem(entry: e, episode: 4, resume: nil, airedAgo: nil).spokenProgress == "Episode 4")
+        // A dub is read as the row marks it, a sub as before.
+        let dub = entry { $0.watchedIn = .dub }
+        let dubbed = ContinueItem(entry: dub, episode: 7, resume: ResumePoint(position: 606, fraction: 0.42), airedAgo: nil)
+        #expect(dubbed.spokenProgress == "Episode 7, Dub, 14 minutes left")
+        #expect(ContinueItem(entry: dub, episode: 4, resume: nil, airedAgo: nil).spokenProgress == "Episode 4, Dub")
+        let sub = entry { $0.watchedIn = .sub }
+        #expect(ContinueItem(entry: sub, episode: 4, resume: nil, airedAgo: nil).spokenProgress == "Episode 4")
     }
 }

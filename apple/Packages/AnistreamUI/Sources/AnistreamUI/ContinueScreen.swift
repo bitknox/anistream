@@ -270,8 +270,9 @@ struct QueueMenu: View {
     var body: some View {
         let n = item.episode
         if item.playable {
-            Button(item.resume == nil ? cased(mac: "Start Episode \(n)", touch: "Start episode \(n)")
-                                      : cased(mac: "Resume Episode \(n)", touch: "Resume episode \(n)")) {
+            // Marked as the row is: "Resume Episode 7 · Dub".
+            let episode = item.marked(cased(mac: "Episode \(n)", touch: "episode \(n)"))
+            Button(item.resume == nil ? "Start \(episode)" : "Resume \(episode)") {
                 store.send(.play(id: item.id, episode: String(n)))
             }
             // A part watched: the episode again from its first second, its place let go.

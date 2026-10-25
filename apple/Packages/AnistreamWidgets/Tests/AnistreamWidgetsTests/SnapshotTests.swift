@@ -62,6 +62,10 @@ struct SnapshotTests {
         #expect(ContinuePresentation.episodeLine(first) == "Episode 7 · The Lantern Road")
         #expect(snapshot.continueWatching[1].nextAiring == at(day: 22, 16, 30))
         #expect(snapshot.continueWatching[1].nextAiringEpisode == 6)
+        // The engine's mark: the second is watched dubbed, the first subbed and unmarked.
+        #expect(first.mark == nil)
+        #expect(snapshot.continueWatching[1].mark == "Dub")
+        #expect(ContinuePresentation.line(snapshot.continueWatching[1]) == "Start E4 · Dub")
         #expect(snapshot.airingToday[0].translation == .dub)
         // A translation this build does not know is none, and the rest of the file still reads.
         #expect(snapshot.airingToday[1].translation == nil)
@@ -90,6 +94,7 @@ struct SnapshotTests {
         #expect(text.contains(#""generated_at":1792516200"#))
         #expect(text.contains(#""continue_watching""#))
         #expect(text.contains(#""minutes_left":14"#))
+        #expect(text.contains(#""mark":"Dub""#))
     }
 
     @Test("The schedule is today's and the next days', in the order they air")

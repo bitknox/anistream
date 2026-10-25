@@ -43,12 +43,14 @@ extension Entry {
 }
 
 extension ContinueItem {
-    /// "Episode 7 · The Lantern Road", with the episode's name when its table has one.
+    /// "Episode 7 · The Lantern Road", with the episode's name when its table has one, and a dub
+    /// marked after the episode: "Episode 7 · Dub · The Lantern Road".
     @MainActor
     func episodeLine(_ titles: TitleCache) -> String {
         let number = String(episode)
         let name = titles.episodes[id]?.first { $0.number == number }?.title
-        return name.map { "Episode \(number) · \($0)" } ?? "Episode \(number)"
+        let episode = marked("Episode \(number)")
+        return name.map { "\(episode) · \($0)" } ?? episode
     }
 
     /// "14 min left", when the episode was left part-way and its runtime is known.

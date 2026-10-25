@@ -51,12 +51,13 @@ enum Spoken {
 }
 
 extension ContinueItem {
-    /// Where it stands, in words: "Episode 7, 14 minutes left", "Episode 9, out 2 hours ago".
+    /// Where it stands, in words: "Episode 7, 14 minutes left", "Episode 9, out 2 hours ago", and
+    /// for a dub, as the row marks it, "Episode 7, Dub, 14 minutes left".
     var spokenProgress: String {
         if !playable {
             return "Caught up, episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet")
         }
-        var parts = ["Episode \(episode)"]
+        var parts = ["Episode \(episode)"] + (mark.map { [$0] } ?? [])
         if let minutes = minutesLeft {
             parts.append(Wording.plural(minutes, "minute") + " left")
         } else if let resume {
