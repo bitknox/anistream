@@ -1310,10 +1310,10 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline|settings|subtitles</c>, and
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline|settings|subtitles|subtitles-mini</c>, and
     /// Stats for nerds as <c>stats</c>, <c>stats-waiting</c>, <c>stats-buffering</c>, <c>stats-hdr</c>,
     /// <c>stats-copied</c> or <c>stats-mini</c>; a <c>.srt</c> beside the clip is loaded for those and for
-    /// <c>subtitles</c>.
+    /// <c>subtitles</c> and <c>subtitles-mini</c>.
     /// </summary>
     async void Demo(string what)
     {
@@ -1412,6 +1412,7 @@ public sealed partial class PlayerView : UserControl
             case "stats-copied":
             case "stats-mini":
             case "subtitles":
+            case "subtitles-mini":
                 // The short clip is near its end from the start: no Up Next card over the shot.
                 HoldUpNext = true;
                 upNext = null;
@@ -1444,6 +1445,12 @@ public sealed partial class PlayerView : UserControl
                         ToggleMini();
                         break;
                     case "subtitles":
+                        ShowControls();
+                        break;
+                    case "subtitles-mini":
+                        // In the mini window, its controls up: the subtitles clear of them.
+                        ToggleMini();
+                        await Task.Delay(800);
                         ShowControls();
                         break;
                     default:

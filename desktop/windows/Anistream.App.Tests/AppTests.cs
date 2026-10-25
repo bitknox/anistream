@@ -100,6 +100,24 @@ public class KnownTests
         known.Take(new Event.Downloads([Row(DownloadState.Active), Row(DownloadState.Queued), Row(DownloadState.Done), Row(DownloadState.Paused)]));
         Assert.Equal((2, 0), known.Running());
     }
+
+    [Fact]
+    public void ANewTitleLanguageAsksAgainForWhatWasShown()
+    {
+        var known = new Known();
+        Assert.Empty(known.AskAgain());
+        var list = new ContentList.Entries([Title(1, "Atelier Hotaru")]);
+        known.Take(new Event.Content(new ContentFor.Continue(), list));
+        known.Take(new Event.Content(new ContentFor.Library(LibrarySegment.Watching), list));
+        known.Take(new Event.Content(new ContentFor.Search(Searches.Text("lamp")), new ContentList.Empty()));
+        known.Take(new Event.Content(new ContentFor.Search(Searches.Text("relay")), list));
+        var again = known.AskAgain().ToList();
+        Assert.Equal(3, again.Count);
+        Assert.IsType<Command.LoadContinue>(again[0]);
+        Assert.Equal(LibrarySegment.Watching, Assert.IsType<Command.LoadLibrary>(again[1]).V1);
+        // Only the search asked last, not every one asked before it.
+        Assert.Equal("relay", Assert.IsType<Command.Search>(again[2]).Query.Text);
+    }
 }
 
 public class CalendarTests
@@ -155,10 +173,14 @@ public class CalendarTests
         };
         var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
         Func<uint, Broadcast> broadcast = id => broadcasts.Single(b => b.Entry.Id == id);
-        Assert.Equal("Ep 10 · ~16:30", broadcast(1).Line(Utc));
+        // The dub's mark is in the line after its episode; a sub row, or one not known, has none.
+        Assert.Equal("Ep 10 · Dub · ~16:30", broadcast(1).Line(Utc));
+        Assert.Equal("Ep 10 · Dub", broadcast(1).EpisodeText);
         Assert.Equal("Dub", broadcast(1).Mark);
         Assert.Null(broadcast(2).Mark);
         Assert.Null(broadcast(3).Mark);
+        Assert.Equal("Ep 8", broadcast(2).EpisodeText);
+        Assert.Equal("Ep 3 · 14:00", broadcast(3).Line(Utc));
     }
 }
 
@@ -191,6 +213,8 @@ public class LinesTests
         Assert.Equal("Episode 10 · Dub · The Return", Lines.Episode("Episode 10", "The Return", Translation.Dub));
         Assert.Equal("Episode 10 · The Return", Lines.Episode("Episode 10", "The Return", Translation.Sub));
         Assert.Equal("Episode 10", Lines.Episode("Episode 10", "", Translation.Sub));
+        // Continue's preview, for a show whose translation is not known yet.
+        Assert.Equal("Episode 10 · The Return", Lines.Episode("Episode 10", "The Return", null));
     }
 
     [Fact]
@@ -199,6 +223,79 @@ public class LinesTests
         Assert.True(Lines.SettingSaved(new Notice(NoticeKind.Info, "saved · auto-play next", null)));
         Assert.False(Lines.SettingSaved(new Notice(NoticeKind.Alert, "not saved: the file is read-only", null)));
         Assert.False(Lines.SettingSaved(new Notice(NoticeKind.Info, "Episode 3 downloaded", null)));
+    }
+}
+
+public class TorrentsTests
+{
+    static SettingsView Settings(ProtectionView torrent, string? index = null) => new(
+        Translation: Translation.Sub, Quality: 1080, Theme: ThemeMode.Adaptive,
+        Sources: new ConfiguredSources(Index: index), PresenceClient: false, Torrent: torrent);
+
+    [Fact]
+    public void AProxyNeedsItsHostAndAPortAndTurningOnNeedsTheIndex()
+    {
+        var draft = TorrentDraft.From(null, turningOn: true) with { Index = "https://torrents.example/rss?q={query}" };
+        Assert.Equal(TorrentProtection.Proxy, draft.Protection);
+        Assert.False(draft.Complete);
+        draft = draft with { Host = " proxy.example ", Port = "0" };
+        Assert.False(draft.Complete, "port 0 is no port");
+        draft = draft with { Port = "1080" };
+        Assert.True(draft.Complete);
+        Assert.Equal(("proxy.example", (ushort)1080), (draft.Proxy!.Host, draft.Proxy.Port));
+        Assert.Null(draft.Proxy.User);
+        Assert.Null(draft.Proxy.Password);
+        Assert.False((draft with { Index = " " }).Complete, "the engine refuses torrents without an index");
+        Assert.True((draft with { Protection = TorrentProtection.Device, Host = "" }).Complete);
+        Assert.Null((draft with { Protection = TorrentProtection.Device }).Proxy);
+    }
+
+    [Fact]
+    public void TheDialogSendsTheIndexTheProtectionAndThenTorrentsOn()
+    {
+        var settings = Settings(new ProtectionView(TorrentProtection.Device, FailedCheck.Stop));
+        var draft = TorrentDraft.From(settings, turningOn: true) with { Index = "https://torrents.example/rss?q={query}" };
+        var sent = Torrents.Apply(draft, settings, turningOn: true).ToList();
+        Assert.Equal(3, sent.Count);
+        Assert.Equal(SettingKey.TorrentIndex, Assert.IsType<Command.SetSetting>(sent[0]).Key);
+        var protect = Assert.IsType<Command.SetTorrentProtection>(sent[1]);
+        Assert.Equal((TorrentProtection.Device, FailedCheck.Stop, false), (protect.Mode, protect.OnFailure, protect.Acknowledged));
+        Assert.Null(protect.Proxy);
+        Assert.Equal(SettingKey.Torrents, Assert.IsType<Command.SetSetting>(sent[2]).Key);
+
+        // No protection goes acknowledged, and an index already kept is not sent again.
+        var none = Torrents.Apply(draft with { Protection = TorrentProtection.None }, Settings(settings.Torrent, draft.Index), turningOn: false).ToList();
+        Assert.True(Assert.IsType<Command.SetTorrentProtection>(Assert.Single(none)).Acknowledged);
+    }
+
+    [Fact]
+    public void WarnOnlyGoesAcknowledgedAndAKeptProxyStays()
+    {
+        var current = new ProtectionView(TorrentProtection.Proxy, FailedCheck.Pause, new ProxyView("proxy.example", 1080, "kai"));
+        var warn = Assert.IsType<Command.SetTorrentProtection>(Torrents.FailedCheckCommand(current, FailedCheck.Warn));
+        Assert.True(warn.Acknowledged);
+        Assert.Equal(FailedCheck.Warn, warn.OnFailure);
+        Assert.Equal(("proxy.example", (ushort)1080, "kai"), (warn.Proxy!.Host, warn.Proxy.Port, warn.Proxy.User));
+        Assert.Null(warn.Proxy.Password);
+        var stop = Assert.IsType<Command.SetSetting>(Torrents.FailedCheckCommand(current, FailedCheck.Stop));
+        Assert.Equal(SettingKey.VpnOnFailure, stop.Key);
+        Assert.Null(Torrents.FailedCheckCommand(current, FailedCheck.Pause));
+        Assert.Equal("Protected by a SOCKS5 proxy at proxy.example:1080.", TorrentWords.OnNote(current));
+    }
+
+    [Fact]
+    public void TheCheckSaysWhereTrafficLeftAndWhen()
+    {
+        Assert.Equal(("Leaving through a test network · just now", "Passed", false),
+            TorrentWords.Guard(new GuardView.Protected("a test network"), 5));
+        Assert.Equal("Failed", TorrentWords.Guard(new GuardView.Leaking(), null).Word);
+        Assert.True(TorrentWords.Guard(new GuardView.Unreachable(), null).Failed);
+        Assert.Equal("Not checked yet", TorrentWords.Guard(null, null).Note);
+        var known = new Known();
+        known.Take(new Event.Vpn(new GuardView.Checking()));
+        Assert.IsType<GuardView.Checking>(known.Guard!.Value.View);
+        known.Take(new Event.Vpn(null));
+        Assert.Null(known.Guard);
     }
 }
 

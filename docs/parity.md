@@ -12,6 +12,8 @@ Where the code was read:
   PRs #136 to #142) plus the Mac fixes, the engine's dub extent and the Linux audit.
 - Android TV: `fix/android-tv-audit` at `9b761d52` (PR #148), which adds joining plugin stores
   with a QR code and the TV's show settings. Marks that come only from that branch say so.
+- Windows, read again on 2026-10-25: main at `c79ee13f` (train #207) with
+  `fix/windows-parity-leftovers`, which adds the torrent dialog and live title language.
 
 Marks:
 
@@ -29,33 +31,32 @@ Android TV, Windows, Linux, Terminal.
 | Feature | Mac | iPhone | iPad | Android | TV | Windows | Linux | Terminal |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Search by name | yes | yes | yes | yes | yes | yes | yes | yes |
-| Browse with filters, no query | yes | yes | yes | yes | yes (1) | dev (2) | yes (3) | yes |
+| Browse with filters, no query | yes | yes | yes | yes | yes (1) | yes | yes (2) | yes |
 | Seasonal charts | yes | yes | yes | yes | yes | yes | yes | yes |
 | Airing calendar | yes | yes | yes | yes | yes | yes | yes | yes |
-| Seasons on the title page | yes | yes | yes | yes | yes | partial (4) | yes | yes (5) |
-| English or romaji titles | yes | yes | yes | yes | yes (6) | yes | yes (7) | yes |
-| How far the dub goes | dev (8) | dev (8) | dev (8) | dev (8) | dev (8) | dev (8) | yes | yes |
+| Seasons on the title page | yes | yes | yes | yes | yes | yes | yes | yes (3) |
+| English or romaji titles | yes | yes | yes | yes | yes (4) | yes | yes (5) | yes |
+| How far the dub goes | dev (6) | dev (6) | dev (6) | dev (6) | dev (6) | yes | yes | yes |
 | Continue | yes | yes | yes | yes | yes | yes | yes | yes |
 | Library by status | yes | yes | yes | yes | yes | yes | yes | yes |
 
 1. Sort, genre, year, season and format chips over the results, each a panel on the right; no
    status filter or All filters. `android/tv/.../screens/SearchScreen.kt`.
-2. `SearchPage.xaml.cs` sends the query text only; its comment says the filters come later.
-3. Genre, format, season, status and sort; no year filter. `desktop/linux/src/pages/search.rs`.
-4. A Related list, with no season picker. `Pages/TitlePage.xaml.cs`.
-5. The franchise is a watch-order list (`Action::WatchOrder`).
-6. Settings > Playback > Title language.
-7. Linux does not handle `Event::TitlesChanged`, so pages already on screen keep the old names
+2. Genre, format, season, status and sort; no year filter. `desktop/linux/src/pages/search.rs`.
+3. The franchise is a watch-order list (`Action::WatchOrder`).
+4. Settings > Playback > Title language.
+5. Linux does not handle `Event::TitlesChanged`, so pages already on screen keep the old names
    until they load again.
-8. The engine answers `Command::LoadDub` with `Event::TitleDub`, and `present::dub_line` (also
-   `words::dub_line` over FFI) words it as "Dub to episode 6" or "Dubbed". Only Linux
-   (`pages/title.rs`, under the meta line) and the terminal (the Episodes header,
-   `screens/episodes.rs`) send it and draw it.
+6. The engine answers `Command::LoadDub` with `Event::TitleDub`, and `present::dub_line` (also
+   `words::dub_line` over FFI) words it as "Dub to episode 6" or "Dubbed". Only Windows
+   (`Pages/TitlePage.xaml.cs`), Linux (`pages/title.rs`, under the meta line) and the terminal
+   (the Episodes header, `screens/episodes.rs`) send it and draw it.
 
 The calendar marks the native UX spec describes, "~" for an estimated air time and Sub or Dub on
 a row, come from the engine's calendar `Entry` (`airing_approximate`, `airing_translation`,
 `airing_dubbed`), worded by `present::air_time` and `present::calendar_mark`. Mac, iPhone and iPad
-show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
+show them (`CalendarScreen.swift`, `PhoneScreens.swift`), and so does Windows, with Dub after the
+episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are marked.
 
 ## Watching
 
@@ -64,45 +65,41 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 | mpv | built in | built in | built in | built in | built in | built in | built in | external (1) |
 | Upscaling, ArtCNN or Anime4K | yes | yes | yes | yes | n/a (2) | yes | yes | yes |
 | Skip opening and ending | yes | yes | yes | yes | yes | yes | yes | yes |
-| Opening and ending on the timeline | yes | yes | yes | yes | yes | dev (3) | yes (4) | mpv's (5) |
-| Up Next | yes | yes | yes | yes | yes | yes | yes | yes (6) |
+| Opening and ending on the timeline | yes | yes | yes | yes | yes | yes | yes (3) | mpv's (4) |
+| Up Next | yes | yes | yes | yes | yes | yes | yes | yes (5) |
 | Resume | yes | yes | yes | yes | yes | yes | yes | yes |
 | Pick a source by hand | yes | yes | yes | yes | yes | yes | yes | yes |
-| Sub or dub | yes | yes | yes | yes | yes (7) | yes | yes (7) | yes |
-| Subtitle and audio tracks | yes | yes | yes | yes | yes | dev (8) | dev (9) | yes (10) |
-| Media keys and now playing | yes | yes | yes | yes | yes | dev (11) | dev (11) | mpv's |
+| Sub or dub | yes | yes | yes | yes | yes (6) | yes | yes (6) | yes |
+| Subtitle and audio tracks | yes | yes | yes | yes | yes | yes | dev (7) | yes (8) |
+| Media keys and now playing | yes | yes | yes | yes | yes | yes | dev (9) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
-| Watch parties | dev (12) | dev (12) | dev (12) | n/a | n/a | dev (12) | dev (12) | yes |
-| Discord presence | yes | n/a | n/a | n/a | n/a | dev (13) | dev (13) | yes |
+| Watch parties | dev (10) | dev (10) | dev (10) | n/a | n/a | yes | dev (10) | yes |
+| Discord presence | yes | n/a | n/a | n/a | n/a | yes | dev (11) | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
    through MoltenVK on Apple, GLES into a SurfaceView on Android and TV, a d3d11 swap chain in a
    `SwapChainPanel` on Windows, GL in a `GtkGLArea` on Linux.
 2. `android/tv/.../screens/SettingsScreen.kt`: the Playback rows leave out upscaling as not
    applying on a TV, which scales the picture itself.
-3. The timeline is a plain `Slider`. The engine writes the opening and ending into mpv's
-   `chapter-list` (`anistream-playback/src/tracker.rs`) and publishes no event for them, and
-   `FfiPlayerState` (`anistream-ffi/src/player.rs`) has no chapters or cache field.
-4. Linux also draws the buffered range, from its own `demuxer-cache-time`
+3. Linux also draws the buffered range, from its own `demuxer-cache-time`
    (`desktop/linux/src/player/mod.rs`); no other app does.
-5. mpv's own chapter marks, from the engine's `chapter-list`.
-6. Next episode and auto-next; the countdown card is the apps' own.
-7. The default Translation setting and the show settings' Audio row, with a Dub tag on releases;
+4. mpv's own chapter marks, from the engine's `chapter-list`.
+5. Next episode and auto-next; the countdown card is the apps' own.
+6. The default Translation setting and the show settings' Audio row, with a Dub tag on releases;
    no switch during playback (Android phones have none either, only the tag). The TV's Audio row
    is on `fix/android-tv-audit`.
-8. The Tracks menu has sub or dub only, not the file's own subtitle and audio tracks
-   (`Player/PlayerView.xaml.cs`).
-9. The player's menus are Source and Upscaling only (`desktop/linux/src/player/mod.rs`).
-10. Through anistream's menu inside mpv; the TUI has no track action of its own.
-11. Apple has `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` (`PlayerSystem.swift`);
-    Android and TV a media3 `MediaSession` (`player/PlayerService.kt`). Windows has no
-    SystemMediaTransportControls or taskbar thumbnail buttons; Linux has no MPRIS.
-12. The engine holds the party and drives the app's own player (`party` feature, on in these
+7. The player's menus are Source and Upscaling only (`desktop/linux/src/player/mod.rs`).
+8. Through anistream's menu inside mpv; the TUI has no track action of its own.
+9. Apple has `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` (`PlayerSystem.swift`);
+   Android and TV a media3 `MediaSession` (`player/PlayerService.kt`), and Windows the
+   SystemMediaTransportControls and taskbar thumbnail buttons (`Player/MediaControls.cs`). Linux
+   has no MPRIS.
+10. The engine holds the party and drives the app's own player (`party` feature, on in these
     apps' builds, every Apple slice included), and the commands and events are in the bindings;
     no screen starts a party yet. The settings rows (on, server, room) are the terminal's: in an
     app the on switch does nothing, as apps start parties when asked. See
     `docs/party-protocol.md`.
-13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
+11. Settings rows exist, but the engine is built without the `presence` feature for these apps.
 
 The Mac's Subtitles and Audio menus, in the player and in the menu bar, also load a subtitle or
 audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's do: mpv's
@@ -112,9 +109,10 @@ On Mac, iPhone and iPad the seek line draws the engine's own opening and ending 
 (`Event::PlayerTimeline`, the chapters standing in until it has said) and the buffered ranges it
 reads from mpv's `demuxer-cache-state` (`Event::PlayerBuffered`), in `PlayerParts.swift`.
 
-Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
-companion binds u. Windows and Linux bind neither, and Linux's skip toast has no Undo. No player
-binds T for the tracks the desktop brief gives it.
+Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`), Windows U and
+Ctrl+Z (`Player/PlayerView.xaml`), and the mpv companion binds u. Linux binds neither, and its
+skip toast has no Undo. Of the players, only Windows binds T for the tracks the desktop brief
+gives it.
 
 ## Tracking and syncing
 
@@ -124,9 +122,9 @@ binds T for the tracks the desktop brief gives it.
 | AniList | yes | yes | yes | yes | yes | yes | yes | yes |
 | MyAnimeList | yes | yes | yes | yes | no (1) | yes | dev | yes |
 | Kitsu | yes | yes | yes | yes | yes | yes | dev | yes |
-| Simkl, Trakt | yes | yes | yes | yes | yes | dev | dev | yes |
+| Simkl, Trakt | yes | yes | yes | yes | yes | yes | dev | yes |
 | Mark episodes watched | yes | yes | yes | yes | yes | yes | yes | yes |
-| Per-show settings | yes | yes | yes | yes | yes (2) | dev (3) | yes | partial (4) |
+| Per-show settings | yes | yes | yes | yes | yes (2) | yes | yes | partial (3) |
 
 1. The TV says MyAnimeList "signs in from a paired anistream phone", but no phone sends it, and
    the remote protocol keeps sign-ins off the wire (`docs/remote-protocol.md`). AniList and Kitsu
@@ -135,8 +133,7 @@ binds T for the tracks the desktop brief gives it.
 2. More > Show settings (`ui/ShowSettings.kt`) has Audio, Subtitles (shown, chosen in the player),
    Skip opening, Skip filler, Spoilers, Source and Reset; not New episodes, since the TV posts no
    notifications.
-3. Settings shows "Overridden for N shows" but there is no editor.
-4. A preferred source per title (`Action::PickProvider`); the TUI drops `Event::ShowSettings`.
+3. A preferred source per title (`Action::PickProvider`); the TUI drops `Event::ShowSettings`.
 
 The engine's `ShowSettingKey` also has Quality, DownloadQuality and KeepNext
 (`anistream-model/src/show.rs`); no app's show settings offers them yet.
@@ -150,15 +147,13 @@ Code (`AccountsSheets.swift`).
 
 | Feature | Mac | iPhone | iPad | Android | TV | Windows | Linux | Terminal |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Download an episode | yes | yes | yes | yes | n/a (1) | dev (2) | yes | yes |
-| Keep the next episodes | yes | yes | yes | yes | n/a | yes | yes | config (3) |
+| Download an episode | yes | yes | yes | yes | n/a (1) | yes | yes | yes |
+| Keep the next episodes | yes | yes | yes | yes | n/a | yes | yes | config (2) |
 | Downloads page | yes | yes | yes | yes | n/a | yes | yes | yes |
 
 1. No download code in the TV app. Treated as not for the platform, since TV storage is small;
    revisit if that changes.
-2. `Command::DownloadEpisode` is sent only by Retry on the Downloads page; there is no download
-   button on a title page.
-3. `[downloads] keep_next` in config.toml; the TUI does not draw the row.
+2. `[downloads] keep_next` in config.toml; the TUI does not draw the row.
 
 On iPhone, downloads show as a Live Activity (`DownloadsActivityFeed.swift`, the widget bundle's
 `DownloadsLiveActivity`), and so do the episode playing (`PlaybackActivityFeed.swift`, with Play
@@ -190,44 +185,40 @@ the iPhone's settings sheet, so every Apple device can see and forget any TV it 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Add and order sources | yes | yes | yes | yes | partial (1) | yes | yes | yes |
 | Join plugin stores | yes | yes | yes | yes | yes (2) | yes | yes | yes |
-| Torrents with the VPN guard | yes | yes | yes | yes | dev | yes (3) | partial (4) | yes (5) |
+| Torrents with the VPN guard | yes | yes | yes | yes | dev | yes | partial (3) | yes (4) |
 
 1. Settings > Sources lists them read-only; sources arrive only by joining a store.
 2. On `fix/android-tv-audit`: `signin/JoinStoreScreen.kt` takes the invite through a QR code to
    a page the TV serves, or typed on the TV, previews the store and joins; Settings > Plugin
    stores lists them with Leave. A phone cannot send a store link to a paired TV: the remote
    protocol keeps stores off the wire, and its `text` command always lands in Search.
-3. A plain switch, without the confirm sheet Apple and Android show ("Protect with" and the IP
-   check, `TorrentSheet.swift`, `TorrentSheet.kt`).
-4. The Torrents switch is insensitive ("Set up from Providers in a later build",
+3. The Torrents switch is insensitive ("Set up from Providers in a later build",
    `pages/settings.rs`) and the plugin page offers only Disable, so torrents work only when
    config.toml already has them on.
-5. VPN mode is set in config.toml, not in the TUI.
+4. VPN mode is set in config.toml, not in the TUI.
 
 ## On the device
 
 | Feature | Mac | iPhone | iPad | Android | TV | Windows | Linux | Terminal |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Home screen widgets | yes | yes | yes | yes | n/a | dev | n/a | n/a |
-| New-episode notifications | yes | yes | yes | yes | n/a (1) | dev (2) | yes | config (3) |
-| Handoff, Spotlight, Shortcuts | yes | yes | yes | n/a (4) | n/a | n/a | n/a | n/a |
-| Updates from the app | yes | via SideStore | via SideStore | yes | yes (5) | dev (6) | dev (7) | yes |
-| Export lists and history | dev (8) | n/a | n/a | n/a | n/a | dev (8) | dev (8) | yes (9) |
+| New-episode notifications | yes | yes | yes | yes | n/a (1) | yes | yes | config (2) |
+| Handoff, Spotlight, Shortcuts | yes | yes | yes | n/a (3) | n/a | n/a | n/a | n/a |
+| Updates from the app | yes | via SideStore | via SideStore | yes | yes (4) | yes | dev (5) | yes |
+| Export lists and history | dev (6) | n/a | n/a | n/a | n/a | dev (6) | dev (6) | yes (7) |
 | Command line with JSON | n/a | n/a | n/a | n/a | n/a | n/a | n/a | yes |
 
 1. The TV app keeps the launcher's Watch Next row instead.
-2. `AppHost.Notify` raises an in-app InfoBar only, not a Windows notification.
-3. A digest of new episodes at launch (`airing_digest`), sent to the desktop with
+2. A digest of new episodes at launch (`airing_digest`), sent to the desktop with
    `[notifications] desktop`; there is no background check and the TUI does not draw the row.
-4. Android has launcher shortcuts (Search, Downloads, Continue a title) and deep links, which
+3. Android has launcher shortcuts (Search, Downloads, Continue a title) and deep links, which
    are not counted here.
-5. Settings > About checks the GitHub releases, downloads the TV's APK, checks its size and
+4. Settings > About checks the GitHub releases, downloads the TV's APK, checks its size and
    SHA-256 and hands it to Android's installer, which asks to confirm.
-6. A Check for updates button asks the engine; there is no installer or self-update.
-7. An Updates settings row only; nothing sends `Command::CheckForUpdates`.
-8. The engine has no export command. Linux shows a disabled "Export Lists and History…"
+5. An Updates settings row only; nothing sends `Command::CheckForUpdates`.
+6. The engine has no export command. Linux shows a disabled "Export Lists and History…"
    (`window.rs`); the Mac's More menu holds Sync Now only.
-9. `anistream --export` (`crates/anistream/src/main.rs`).
+7. `anistream --export` (`crates/anistream/src/main.rs`).
 
 ## Other gaps worth knowing
 

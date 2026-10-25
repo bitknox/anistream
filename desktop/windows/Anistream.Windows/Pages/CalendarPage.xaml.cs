@@ -12,8 +12,8 @@ namespace Anistream.Windows.Pages;
 /// <summary>
 /// Calendar: the week, Monday first, Mine or All airing. Seven columns with today's raised from
 /// heading to foot while the content is wide enough; an agenda of days below that. Each
-/// broadcast says "Ep 10 · 16:30", "(was 23:00)" when it moved, and carries a water dot when it
-/// has aired and is not watched.
+/// broadcast says "Ep 10 · 16:30", "Ep 10 · Dub · 16:30" for a dub, "(was 23:00)" when it moved,
+/// and carries a water dot when it has aired and is not watched.
 /// </summary>
 public sealed partial class CalendarPage : Page
 {
@@ -239,14 +239,16 @@ public sealed partial class CalendarPage : Page
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, b.Mark is { } said ? $"{b.Entry.Title}, {b.Line(zone)}, {said}" : $"{b.Entry.Title}, {b.Line(zone)}");
         button.Click += (_, _) => ctx.OpenTitle(b.Entry.Id);
         if (b.Watched)
         {
-            // Watched: one quiet line.
-            button.Content = new TextBlock { Text = $"{b.Entry.Title} · Ep {b.Episode}", Style = (Style)Application.Current.Resources["HazeCaptionStyle"] };
+            // Watched: one quiet line, a dub still marked.
+            var quiet = $"{b.Entry.Title} · {b.EpisodeText}";
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, $"{b.Entry.Title}, {b.EpisodeText}, watched");
+            button.Content = new TextBlock { Text = quiet, Style = (Style)Application.Current.Resources["HazeCaptionStyle"] };
             return button;
         }
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, Spoken(b));
         var panel = new StackPanel { Spacing = 4 };
         var banner = new Grid { CornerRadius = new CornerRadius(6), Background = item.Placeholder, Height = 56 };
         var image = new Image { Stretch = Stretch.UniformToFill };
@@ -284,27 +286,21 @@ public sealed partial class CalendarPage : Page
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
         };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, Spoken(b));
         button.Click += (_, _) => ctx.OpenTitle(b.Entry.Id);
         return button;
     }
+
+    /// <summary>What Narrator reads for a broadcast: its title and the line as it shows, the dub's mark in it.</summary>
+    string Spoken(Broadcast b) => $"{b.Entry.Title}, {b.Line(zone)}";
 
     FrameworkElement EpisodeLine(Broadcast b)
     {
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         if (b.IsNew(Now))
             line.Children.Add(new Ellipse { Width = 6, Height = 6, Fill = (Brush)Application.Current.Resources["WaterBrush"], VerticalAlignment = VerticalAlignment.Center });
+        // A dub is marked in the line after its episode, "Ep 10 · Dub · 16:30", as every episode line is.
         line.Children.Add(new TextBlock { Text = b.Line(zone), Style = (Style)Application.Current.Resources["HazeCaptionStyle"], TextWrapping = TextWrapping.WrapWholeWords });
-        // Dub: a small outlined tag after the time, quiet as the line it ends.
-        if (b.Mark is { } mark)
-            line.Children.Add(new Border
-            {
-                BorderBrush = (Brush)Application.Current.Resources["HazeBrush"],
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(5, 0, 5, 1),
-                VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock { Text = mark, FontSize = 11, Foreground = (Brush)Application.Current.Resources["HazeBrush"] },
-            });
         return line;
     }
 

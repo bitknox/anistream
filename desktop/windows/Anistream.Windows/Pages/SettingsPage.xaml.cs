@@ -38,7 +38,12 @@ public sealed partial class SettingsPage : Page
         ]),
         new("notifications", "Notifications", "", [("New episodes", [K.EpisodeNotifications])]),
         new("sources", "Sources", "",
-            [("Torrents", [K.Torrents, K.VpnMode, K.VpnOnFailure, K.KeepSeeding, K.SeedRatio, K.SeedHours, K.UploadLimit])]),
+        [
+            // Laid out by ShowTorrents: the switch, the index, what protects them, the last
+            // check and what a failed one does.
+            ("Torrents", [K.Torrents, K.VpnMode, K.VpnOnFailure]),
+            ("Seeding", [K.KeepSeeding, K.SeedRatio, K.SeedHours, K.UploadLimit]),
+        ]),
         new("accounts", "Accounts", "", []),
         new("integrations", "Integrations", "",
         [
@@ -52,6 +57,9 @@ public sealed partial class SettingsPage : Page
     readonly Ctx ctx = Ctx.Current;
     Pane pane = PaneList[0];
     bool quiet, narrow, picking;
+    /// <summary>The Last check card while it shows, kept up to date in place: the guard's word and how long ago.</summary>
+    SettingsCard? guardCard;
+    readonly Microsoft.UI.Dispatching.DispatcherQueueTimer guardClock;
 
     public SettingsPage()
     {
@@ -72,9 +80,17 @@ public sealed partial class SettingsPage : Page
             return plates;
         };
         State.ActivityText = "Loading settings";
+        // "· 2 min ago" moves on while the Last check card is on screen.
+        guardClock = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().CreateTimer();
+        guardClock.Interval = TimeSpan.FromSeconds(30);
+        guardClock.Tick += (_, _) => ShowGuard();
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
-        Unloaded += (_, _) => ctx.Batch -= Heard;
+        Unloaded += (_, _) =>
+        {
+            ctx.Batch -= Heard;
+            guardClock.Stop();
+        };
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -89,6 +105,8 @@ public sealed partial class SettingsPage : Page
     {
         if (batch.Any(e => e is Event.Settings || e is Event.Sync && pane.Name == "accounts"))
             Show();
+        else if (batch.Any(e => e is Event.Vpn))
+            ShowGuard();
     }
 
     void OnPaneChanged(object sender, SelectionChangedEventArgs e)
@@ -144,6 +162,8 @@ public sealed partial class SettingsPage : Page
     {
         quiet = true;
         Cards.Children.Clear();
+        guardCard = null;
+        guardClock.Stop();
         if (narrow)
             Layout();
         switch (pane.Name)
@@ -165,16 +185,29 @@ public sealed partial class SettingsPage : Page
                     // Only where the engine was built with a presence to publish.
                     if (keys.Contains(K.Presence) && ctx.Known.Settings is { PresenceAvailable: false })
                         continue;
+                    if (heading == "Torrents")
+                    {
+                        ShowTorrents();
+                        continue;
+                    }
+                    // Seeding only says anything once torrents are on.
+                    if (heading == "Seeding" && !SettingsCatalog.IsOn(ctx.Known.Setting(K.Torrents)))
+                        continue;
                     var rows = keys.Select(k => ctx.Known.Setting(k)).OfType<SettingRow>().ToList();
                     if (rows.Count == 0)
                         continue;
                     Cards.Children.Add(Heading(heading));
+                    if (heading == "Seeding")
+                        Cards.Children.Add(Note("Seeding runs only while anistream is open."));
                     foreach (var row in rows)
                         Cards.Children.Add(Card(row));
                     if (pane.Name == "downloads" && heading == "Files")
                         Cards.Children.Add(WhenClosingCard());
                 }
                 State.Done();
+#if ANISTREAM_TESTING
+                Demo();
+#endif
                 break;
         }
         quiet = false;
@@ -211,35 +244,209 @@ public sealed partial class SettingsPage : Page
         return CardFrame("When the window closes with downloads running", "Keep going leaves anistream in the notification area until they finish.", box);
     }
 
-    /// <summary>
-    /// Turning torrents on says what it means first, and without protection asks plainly: the
-    /// switch goes back off unless the answer is Turn on.
-    /// </summary>
-    async void ConfirmTorrents(ToggleSwitch toggle, SettingRow row)
+    static TextBlock Note(string text)
     {
-        var unprotected = ctx.Known.Setting(K.VpnMode)?.Value == "none";
-        var body = new StackPanel { Spacing = 10 };
-        body.Children.Add(Ui.Text("Torrents download from other people and share what you download with them while you watch. They can see your IP address.", "BodyTextBlockStyle"));
-        body.Children.Add(Ui.Haze(unprotected
-            ? "Torrent protection is off, so nothing hides your IP address."
-            : "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you."));
-        var dialog = new ContentDialog
+        var note = Ui.Text(text, "HazeCaptionStyle");
+        note.Margin = new Thickness(0, -2, 0, 6);
+        return note;
+    }
+
+    /// <summary>
+    /// Turning torrents on asks how to protect them first, in the dialog that also takes the
+    /// index: the switch goes back off unless it is sent.
+    /// </summary>
+    async void TurnOnTorrents(ToggleSwitch toggle)
+    {
+        if (await TorrentDialog.Ask(ctx, XamlRoot, turningOn: true))
+            return;
+        quiet = true;
+        toggle.IsOn = false;
+        quiet = false;
+    }
+
+    /// <summary>
+    /// Torrents: the switch, saying what protects them, and once they are on the index, Protect
+    /// with, the last connection check and what a failed one does. The Mac's Sources pane and
+    /// Linux's torrents group.
+    /// </summary>
+    void ShowTorrents()
+    {
+        if (ctx.Known.Setting(K.Torrents) is not { } row || ctx.Known.Settings is not { } settings)
+            return;
+        var on = SettingsCatalog.IsOn(row);
+        var view = settings.Torrent;
+        Cards.Children.Add(Heading("Torrents"));
+        if (Card(row) is SettingsCard toggle)
         {
-            XamlRoot = XamlRoot,
-            Title = unprotected ? "Use torrents without protection?" : "Turn on torrents?",
-            Content = body,
-            PrimaryButtonText = "Turn on",
-            CloseButtonText = "Cancel",
-            DefaultButton = unprotected ? ContentDialogButton.Close : ContentDialogButton.Primary,
-        };
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
-            ctx.Send(new Command.SetSetting(row.Key, new SettingValue.Bool(true)));
-        else
-        {
-            quiet = true;
-            toggle.IsOn = false;
-            quiet = false;
+            toggle.Description = on ? TorrentWords.OnNote(view) : TorrentWords.OffNote;
+            Cards.Children.Add(toggle);
         }
+        if (!on)
+            return;
+
+        // The index, sent when the box is left or Enter is pressed.
+        var saved = settings.Sources.Index ?? "";
+        var index = new TextBox { Text = saved, MinWidth = 280, PlaceholderText = "https://…/?q={query}" };
+        var indexTitle = Words.SettingTitle(K.TorrentIndex);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(index, indexTitle);
+        void Commit()
+        {
+            var typed = index.Text.Trim();
+            if (!quiet && typed.Length > 0 && typed != saved)
+                ctx.Send(new Command.SetSetting(K.TorrentIndex, new SettingValue.Str(typed)));
+        }
+        index.LostFocus += (_, _) => Commit();
+        index.KeyDown += (_, e) =>
+        {
+            if (e.Key == global::Windows.System.VirtualKey.Enter)
+                Commit();
+        };
+        Cards.Children.Add(CardFrame(indexTitle, TorrentWords.IndexNote, index));
+
+        // Protect with: the device's VPN at once, a proxy through the dialog that asks for it,
+        // no protection once confirmed. A choice not made puts the box back.
+        var protect = new ComboBox
+        {
+            MinWidth = 200,
+            ItemsSource = TorrentWords.Order.Select(p => TorrentWords.Label(p) + (p == TorrentProtection.Proxy ? "…" : "")).ToList(),
+            SelectedIndex = Array.IndexOf(TorrentWords.Order, view.Protection),
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protect, "Protect with");
+        protect.SelectionChanged += async (_, _) =>
+        {
+            var current = ctx.Known.Settings?.Torrent ?? view;
+            var was = Array.IndexOf(TorrentWords.Order, current.Protection);
+            if (quiet || protect.SelectedIndex < 0 || protect.SelectedIndex == was)
+                return;
+            var choice = TorrentWords.Order[protect.SelectedIndex];
+            var sent = choice switch
+            {
+                TorrentProtection.Device => Sent(Torrents.Protect(current, choice)),
+                TorrentProtection.Proxy => await TorrentDialog.Ask(ctx, XamlRoot, turningOn: false, start: TorrentProtection.Proxy),
+                _ => await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, "No protection")
+                    && Sent(Torrents.Protect(current, choice, acknowledged: true)),
+            };
+            if (!sent)
+                PutBack(protect, was);
+        };
+        Cards.Children.Add(CardFrame("Protect with", null, protect));
+
+        // The last check: where traffic left through and when, and how it went.
+        guardCard = CardFrame("Last check", null, null);
+        Cards.Children.Add(guardCard);
+        ShowGuard();
+        guardClock.Start();
+
+        // If a check fails: pause or stop at once, Warn only once confirmed.
+        var failed = new ComboBox
+        {
+            MinWidth = 200,
+            ItemsSource = TorrentWords.FailedChecks.Select(TorrentWords.Label).ToList(),
+            SelectedIndex = Array.IndexOf(TorrentWords.FailedChecks, view.OnFailure),
+        };
+        var failedTitle = Words.SettingTitle(K.VpnOnFailure);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(failed, failedTitle);
+        failed.SelectionChanged += async (_, _) =>
+        {
+            var current = ctx.Known.Settings?.Torrent ?? view;
+            var was = Array.IndexOf(TorrentWords.FailedChecks, current.OnFailure);
+            if (quiet || failed.SelectedIndex < 0 || failed.SelectedIndex == was)
+                return;
+            var check = TorrentWords.FailedChecks[failed.SelectedIndex];
+            if (check == FailedCheck.Warn
+                && !await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, "Warn only"))
+            {
+                PutBack(failed, was);
+                return;
+            }
+            if (Torrents.FailedCheckCommand(current, check) is { } command)
+                ctx.Send(command);
+        };
+        Cards.Children.Add(CardFrame(failedTitle, "Choosing Warn only asks you to confirm first, as No protection does.", failed));
+    }
+
+    /// <summary>A drop-down back on what is set, for a choice not made.</summary>
+    void PutBack(ComboBox box, int at)
+    {
+        quiet = true;
+        box.SelectedIndex = at;
+        quiet = false;
+    }
+
+#if ANISTREAM_TESTING
+    bool demoed;
+
+    /// <summary>
+    /// A torrent state to bring up on Sources for a screenshot, on the testing build:
+    /// <c>--show=torrent</c> (the turn-on dialog), <c>torrent-proxy</c> (it with a proxy typed),
+    /// <c>torrent-none</c> (confirming no protection), <c>torrents-on</c> (turned on through the
+    /// device's VPN, with the fixture's made-up exit) and <c>torrents-warn</c> (then confirming
+    /// Warn only).
+    /// </summary>
+    async void Demo()
+    {
+        if (demoed || pane.Name != "sources" || ctx.Options.Show is not { } show || !show.StartsWith("torrent", StringComparison.Ordinal))
+            return;
+        demoed = true;
+        await Task.Delay(800);
+        const string index = "https://torrents.example/rss?q={query}";
+        var draft = TorrentDraft.From(ctx.Known.Settings, turningOn: true) with { Index = index };
+        switch (show)
+        {
+            case "torrent":
+                await TorrentDialog.Ask(ctx, XamlRoot, turningOn: true, from: draft with { Index = "" });
+                break;
+            case "torrent-proxy":
+                await TorrentDialog.Ask(ctx, XamlRoot, turningOn: true,
+                    from: draft with { Protection = TorrentProtection.Proxy, Host = "proxy.example", Port = "1080", User = "kai" });
+                break;
+            case "torrent-none":
+                await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, "No protection");
+                break;
+            case "torrents-on":
+            case "torrents-warn":
+                foreach (var command in Torrents.Apply(draft with { Protection = TorrentProtection.Device }, ctx.Known.Settings, turningOn: true))
+                    ctx.Send(command);
+                if (show == "torrents-warn")
+                {
+                    await Task.Delay(2500);
+                    await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, "Warn only");
+                }
+                break;
+        }
+    }
+#endif
+
+    bool Sent(Command command)
+    {
+        ctx.Send(command);
+        return true;
+    }
+
+    /// <summary>
+    /// The Last check card as the guard last said: the line under it, a dot and its word, and
+    /// Try again after a failed check. Water for passed, vermilion for failed, haze otherwise.
+    /// </summary>
+    void ShowGuard()
+    {
+        if (guardCard is null)
+            return;
+        var guard = ctx.Known.Guard;
+        var ago = guard is { } g ? (long)(DateTimeOffset.UtcNow - g.At).TotalSeconds : (long?)null;
+        var (note, word, isFailed) = TorrentWords.Guard(guard?.View, ago);
+        guardCard.Description = note;
+        var verdict = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        var colour = isFailed ? Ui.Vermilion : guard?.View is GuardView.Protected ? Colours.Water : Colours.Haze;
+        verdict.Children.Add(Ui.Dot(colour));
+        verdict.Children.Add(new TextBlock { Text = word, VerticalAlignment = VerticalAlignment.Center });
+        if (isFailed)
+        {
+            var again = new Button { Content = "Try again", Margin = new Thickness(8, 0, 0, 0) };
+            again.Click += (_, _) => ctx.Send(new Command.CheckConnection());
+            verdict.Children.Add(again);
+        }
+        guardCard.Content = verdict;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(guardCard, $"Last check, {word}, {note}");
     }
 
     FrameworkElement Card(SettingRow row)
@@ -261,7 +468,7 @@ public sealed partial class SettingsPage : Page
                     if (quiet)
                         return;
                     if (row.Key == K.Torrents && toggle.IsOn)
-                        ConfirmTorrents(toggle, row);
+                        TurnOnTorrents(toggle);
                     else
                         ctx.Send(new Command.SetSetting(row.Key, new SettingValue.Bool(toggle.IsOn)));
                 };

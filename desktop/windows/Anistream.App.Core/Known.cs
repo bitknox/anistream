@@ -64,6 +64,9 @@ public sealed class Known
     /// <summary>A store's members and unused invites, for its owner.</summary>
     public Dictionary<string, (StoreMemberRow[] Members, StoreInviteRow[] Invites)> Members { get; } = [];
 
+    /// <summary>The search asked last, which a change of title language asks again.</summary>
+    ContentFor.Search? lastSearch;
+
     /// <summary>The calendar's broadcasts count their <c>AiringIn</c> from this Unix time.</summary>
     public long? CalendarAnchor { get; private set; }
 
@@ -72,6 +75,12 @@ public sealed class Known
 
     /// <summary>The engine has no network path: from <c>Connectivity</c>, fed by the window's network watch.</summary>
     public bool Offline { get; private set; }
+
+    /// <summary>
+    /// The torrent connection check's last verdict and when it came, or null while torrents are
+    /// off or before the first check.
+    /// </summary>
+    public (GuardView View, DateTimeOffset At)? Guard { get; private set; }
 
     /// <summary>What the update check last said, or null before it has said anything.</summary>
     public UpdateStatus? Update { get; private set; }
@@ -127,6 +136,8 @@ public sealed class Known
                     ? Lists.Keys.FirstOrDefault(k => Searches.Same(k, c.View)) ?? c.View
                     : c.View;
                 Lists[key] = c.ContentValue;
+                if (key is ContentFor.Search search)
+                    lastSearch = search;
                 if (c.ContentValue is ContentList.Entries list)
                 {
                     foreach (var entry in list.V1)
@@ -201,6 +212,9 @@ public sealed class Known
             case Event.Seeding s:
                 Seeding = s.V1;
                 break;
+            case Event.Vpn v:
+                Guard = v.V1 is { } view ? (view, DateTimeOffset.UtcNow) : null;
+                break;
             case Event.Connectivity c:
                 Offline = c.Offline;
                 break;
@@ -246,6 +260,35 @@ public sealed class Known
             Related = row.Related is { Length: > 0 } ? row.Related : page.Related,
             Recommended = row.Recommended is { Length: > 0 } ? row.Recommended : page.Recommended,
         };
+    }
+
+    /// <summary>
+    /// What to ask for again once every title is named another way (<c>TitlesChanged</c>): each
+    /// list that has been shown and the search asked last, so what is on screen names its titles
+    /// the new way. A title page asks for its own title again.
+    /// </summary>
+    public IEnumerable<Command> AskAgain()
+    {
+        foreach (var view in Lists.Keys)
+        {
+            switch (view)
+            {
+                case ContentFor.Continue:
+                    yield return new Command.LoadContinue();
+                    break;
+                case ContentFor.Seasonal:
+                    yield return new Command.LoadSeasonal();
+                    break;
+                case ContentFor.Calendar:
+                    yield return new Command.LoadCalendar();
+                    break;
+                case ContentFor.Library library:
+                    yield return new Command.LoadLibrary(library.V1);
+                    break;
+            }
+        }
+        if (lastSearch is { } search)
+            yield return new Command.Search(search.Query);
     }
 
     /// <summary>A setting's row as it stands.</summary>
