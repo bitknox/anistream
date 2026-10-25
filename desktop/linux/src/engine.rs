@@ -10,7 +10,7 @@ use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     engine::{Engine, EventStream},
     host::Host,
-    options::EngineOptions,
+    options::{AppClients, EngineOptions},
 };
 use anistream_model::playback::PlayerTheme;
 use anistream_net::HttpClient;
@@ -66,9 +66,24 @@ pub async fn start(paths: Paths, host: Arc<dyn Host>) -> Result<Started, String>
     let mut options = EngineOptions::new(paths, config.clone(), http, store, theme());
     options.saved = Some(config);
     options.hosted_player = true;
+    options.app_clients = app_clients();
     "Linux computer".clone_into(&mut options.device_label);
     let (engine, events) = Engine::start(options, host).await.map_err(|e| e.to_string())?;
     Ok(Started { engine, events, keep: None })
+}
+
+/// anistream's own tracker clients, the ones the Mac and the phones ship: AniList's implicit
+/// grant and MyAnimeList's PKCE redirect to `anistream://auth/<tracker>`, which the desktop file
+/// hands back to this app, and Simkl and Trakt sign in with a code typed on their site. None of
+/// them is a secret.
+pub fn app_clients() -> AppClients {
+    AppClients {
+        anilist: Some("54537".into()),
+        mal: Some("0ccc4725381aca9513f26d32107a94cd".into()),
+        simkl: Some("016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b".into()),
+        trakt: Some("p2yWSSGe7aVAlnHEMiQQh0RhiL6ivZfJNaubOJi4DZE".into()),
+        ..AppClients::default()
+    }
 }
 
 /// The directories under `root`, for a run that is not the user's own: a scene, or a test.

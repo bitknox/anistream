@@ -12,7 +12,7 @@ use crate::{
     jobs::JobId,
     notice::Notice,
     notifications::{NewEpisode, UpcomingNotices},
-    playback::{Ending, PlaybackId, SkipKind},
+    playback::{Ending, PlaybackId, SkipKind, TimeRange, TimelineMark},
     progress::{EpisodeProgress, TitleProgress},
     remote::FrontIntent,
     search::{BrowseRail, SearchFacets, SearchQuery},
@@ -260,6 +260,24 @@ pub enum Event {
     PlayerUi {
         playback: PlaybackId,
         ui: PlayerUi,
+    },
+    /// The openings and endings the timeline of `playback` marks, whole, replacing what was
+    /// said before: the times the skip button and auto-skip use, from the file's own chapters
+    /// when they name them and otherwise from community times. Said when the file starts and
+    /// again when they change, as when the file's chapters or its length arrive. Empty when
+    /// nothing is known, and the timeline marks nothing.
+    PlayerTimeline {
+        playback: PlaybackId,
+        marks: Vec<TimelineMark>,
+    },
+    /// What the player of `playback` has buffered ahead and behind, whole, replacing what was
+    /// said before, in seconds of the file: drawn on the timeline under the played part. At
+    /// most twice a second, only when it moved by a second or more, and never while paused.
+    /// Read from mpv's `demuxer-cache-state`, which a hosted player reports among its
+    /// properties.
+    PlayerBuffered {
+        playback: PlaybackId,
+        ranges: Vec<TimeRange>,
     },
     /// A tracker's sync state changed.
     Sync(Box<SyncState>),

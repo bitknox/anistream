@@ -24,7 +24,7 @@ use anistream_core::{
 };
 use anistream_model::playback::PlayerTheme;
 use anistream_playback::{
-    SkipKind,
+    SkipInterval, SkipKind,
     companion::{EpisodeInfo, Level, Media, Menus, NextUp, Status},
 };
 use async_trait::async_trait;
@@ -215,4 +215,10 @@ pub enum Overlay {
     Stall { seconds: u64 },
     /// The stall is over.
     StallCleared,
+    /// The openings and endings the seek bar marks, all of them: aniskip's, or the file's own
+    /// chapters once they outrank those. Empty when there are none, or no longer any.
+    Timeline(Vec<SkipInterval>),
+    /// What the player holds of the file, as `(start, end)` in seconds: the seek bar's
+    /// buffered stretches. Paced by the session, never while paused.
+    Buffered(Vec<(f64, f64)>),
 }

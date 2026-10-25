@@ -18,19 +18,23 @@ use anistream_engine::engine::Engine;
 use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
-    hosted::{MenuChoices, MenuEpisode, MenuSource, PlayerChoice, PlayerOp, PlayerUi},
+    hosted::{
+        MenuChoices, MenuEpisode, MenuSource, PlayerChoice, PlayerOp, PlayerUi, TrackKind,
+    },
     playback::{PlaybackId, SkipKind},
 };
 use anistream_mpv_host::{HostEvent, Player, PlayerOptions, PlayerState};
 use gtk::{gdk, gio, glib};
 
 use crate::{
+    mpris::{Action as MediaAction, Mpris, Track},
     video, widgets,
     window::{Ctx, Shell, Size},
     words,
 };
 
 mod timeline;
+mod tracks;
 
 use timeline::{Marked, Preview};
 
@@ -85,7 +89,38 @@ pub struct PlayerView {
     starting_note: RefCell<Option<String>>,
     /// Where the playback resumed, while "Resumed at" shows: it goes 6 s of playback later.
     resumed_from: Cell<Option<f64>>,
+    /// The last automatic skip, while Undo is offered for it, and its notice.
+    undo: Cell<Option<Undo>>,
+    undo_toast: RefCell<Option<adw::Toast>>,
+    /// The Subtitles and Audio menu's radio actions, set to the file's tracks as it opens.
+    subtitle_action: gio::SimpleAction,
+    audio_action: gio::SimpleAction,
+    /// The media controls on the session bus, once served.
+    mpris: RefCell<Option<Rc<Mpris>>>,
 }
+
+/// An automatic skip that can still be undone: where it started, when, and where it landed.
+#[derive(Clone, Copy)]
+struct Undo {
+    to: f64,
+    since: Instant,
+    landed: Option<f64>,
+}
+
+impl Undo {
+    /// Undo is offered for 6 s of playback after the skip, and at most 15 s while paused.
+    fn open(&self, position: Option<f64>) -> bool {
+        let played = match (self.landed, position) {
+            (Some(landed), Some(now)) => now - landed,
+            _ => 0.0,
+        };
+        played < UNDO_PLAYED && self.since.elapsed() < UNDO_MOST
+    }
+}
+
+/// How long Undo stays after an automatic skip, in seconds of playback, and at most.
+const UNDO_PLAYED: f64 = 6.0;
+const UNDO_MOST: Duration = Duration::from_secs(15);
 
 /// How long the starting screen says only "Starting episode 7".
 const STARTING_QUIET: Duration = Duration::from_secs(3);
@@ -130,6 +165,7 @@ struct Ui {
     resumed: gtk::Box,
     resumed_line: gtk::Label,
     episodes: gtk::MenuButton,
+    tracks: gtk::MenuButton,
     settings: gtk::MenuButton,
     menu_buttons: Vec<gtk::MenuButton>,
     /// The mini player's controls, over the video in place of the bars.
@@ -220,6 +256,19 @@ impl PlayerView {
             starting_tick: RefCell::default(),
             starting_note: RefCell::default(),
             resumed_from: Cell::new(None),
+            undo: Cell::new(None),
+            undo_toast: RefCell::default(),
+            subtitle_action: gio::SimpleAction::new_stateful(
+                "subtitle",
+                Some(glib::VariantTy::STRING),
+                &"off".to_variant(),
+            ),
+            audio_action: gio::SimpleAction::new_stateful(
+                "audio",
+                Some(glib::VariantTy::STRING),
+                &"off".to_variant(),
+            ),
+            mpris: RefCell::default(),
         });
         view.wire();
         glib::spawn_future_local({
@@ -232,6 +281,47 @@ impl PlayerView {
             }
         });
         view
+    }
+
+    /// Serve the media controls as `name` on the session bus: what they ask comes back here.
+    pub fn serve_media_controls(self: &Rc<Self>, name: &str) {
+        let view = Rc::downgrade(self);
+        let mpris = Mpris::serve(name, move |action| {
+            if let Some(view) = view.upgrade() {
+                view.media_control(action);
+            }
+        });
+        self.mpris.replace(Some(mpris));
+    }
+
+    /// What GNOME's media controls, the lock screen or a media key asked.
+    fn media_control(&self, action: MediaAction) {
+        let paused = self.state.borrow().paused;
+        match action {
+            MediaAction::Raise => self.ctx.window.present(),
+            MediaAction::PlayPause => self.send(PlayerCommand::TogglePause),
+            MediaAction::Play if paused => self.send(PlayerCommand::TogglePause),
+            MediaAction::Pause if !paused => self.send(PlayerCommand::TogglePause),
+            MediaAction::Play | MediaAction::Pause => {}
+            MediaAction::Stop => self.close(),
+            MediaAction::Next => self.send(PlayerCommand::Step(1)),
+            MediaAction::Previous => self.send(PlayerCommand::Step(-1)),
+            MediaAction::SeekBy(by) => self.send(PlayerCommand::Seek(by)),
+            MediaAction::SeekTo(to) => self.send(PlayerCommand::SeekTo(to)),
+            MediaAction::Volume(level) => {
+                let now = self
+                    .player
+                    .as_ref()
+                    .and_then(|p| p.mpv().get("volume"))
+                    .and_then(|v| v.as_f64())
+                    .unwrap_or(100.0);
+                self.send(PlayerCommand::Volume(level * 100.0 - now));
+            }
+        }
+    }
+
+    fn media(&self) -> Option<Rc<Mpris>> {
+        self.mpris.borrow().clone()
     }
 
     /// The window the player shows in, once it is built.
@@ -282,6 +372,10 @@ impl PlayerView {
             app.uninhibit(cookie);
         }
         self.clear_cards();
+        self.forget_undo();
+        if let Some(media) = self.media() {
+            media.stopped();
+        }
         self.ui.starting.set_visible(true);
         self.ui.starting.set_opacity(1.0);
     }
@@ -394,7 +488,15 @@ impl PlayerView {
                 title, episode, episode_title, banner_url, cover_url, ..
             } => {
                 self.ui.show.set_label(title);
-                self.ui.episode.set_label(&episode_line(episode, episode_title.as_deref()));
+                let line = episode_line(episode, episode_title.as_deref());
+                self.ui.episode.set_label(&line);
+                if let Some(media) = self.media() {
+                    media.track(Track {
+                        show: title.clone(),
+                        title: line,
+                        art: banner_url.clone().or_else(|| cover_url.clone()),
+                    });
+                }
                 self.tick_starting(episode);
                 self.resumed_done();
                 self.ui.starting.set_visible(true);
@@ -408,7 +510,11 @@ impl PlayerView {
             }
             PlayerUi::Episode { number, title, show, .. } => {
                 self.ui.show.set_label(show);
-                self.ui.episode.set_label(&episode_line(number, title.as_deref()));
+                let line = episode_line(number, title.as_deref());
+                self.ui.episode.set_label(&line);
+                if let Some(media) = self.media() {
+                    media.retitle(show, &line);
+                }
             }
             PlayerUi::Menus { episodes, sources, upscaling, night_mode, .. } => {
                 self.menus.replace(Some((
@@ -427,12 +533,7 @@ impl PlayerView {
                 self.ui.skip.set_visible(true);
             }
             PlayerUi::SkipCleared => self.ui.skip.set_visible(false),
-            PlayerUi::AutoSkipped { kind, .. } => {
-                self.ctx.toast(match kind {
-                    SkipKind::Opening => "Skipped the opening",
-                    SkipKind::Ending => "Skipped the ending",
-                });
-            }
+            PlayerUi::AutoSkipped { kind, undo_to } => self.auto_skipped(*kind, *undo_to),
             PlayerUi::UpNext { next, countdown, auto, .. } => {
                 self.ui.up_next_title.set_label(&next.label());
                 self.ui.up_next.set_visible(true);
@@ -507,6 +608,119 @@ impl PlayerView {
         self.countdown.replace(Some(source));
     }
 
+    /// "Skipped the opening" with Undo, for 6 s of playback: the button, U, or Ctrl+Z.
+    fn auto_skipped(&self, kind: SkipKind, undo_to: f64) {
+        self.forget_undo();
+        self.undo.set(Some(Undo { to: undo_to, since: Instant::now(), landed: None }));
+        let text = match kind {
+            SkipKind::Opening => "Skipped the opening",
+            SkipKind::Ending => "Skipped the ending",
+        };
+        let toast = self.ctx.toast_with(text, "Undo", "win.undo-skip");
+        toast.set_timeout(UNDO_PLAYED as u32);
+        let me = self.me.clone();
+        toast.connect_dismissed(move |toast| {
+            if let Some(view) = me.upgrade()
+                && view.undo_toast.borrow().as_ref() == Some(toast)
+            {
+                view.undo_toast.replace(None);
+            }
+        });
+        self.undo_toast.replace(Some(toast));
+    }
+
+    /// Back to where the last automatic skip started, while Undo is offered. True when it was.
+    fn undo_skip(&self) -> bool {
+        let position = self.state.borrow().position;
+        let Some(undo) = self.undo.get().filter(|u| u.open(position)) else {
+            self.forget_undo();
+            return false;
+        };
+        self.send(PlayerCommand::UndoSkip { to: undo.to });
+        self.forget_undo();
+        true
+    }
+
+    fn forget_undo(&self) {
+        self.undo.set(None);
+        if let Some(toast) = self.undo_toast.take() {
+            toast.dismiss();
+        }
+    }
+
+    /// The Subtitles and Audio menu, from the file's tracks as they are now.
+    fn fill_tracks(&self) {
+        let list = self.player.as_ref().and_then(|p| p.mpv().get("track-list"));
+        let tracks = list.as_ref().map(tracks::tracks).unwrap_or_default();
+        let playing = !tracks.is_empty() && !self.ui.starting.is_visible();
+        self.subtitle_action
+            .set_state(&tracks::chosen(&tracks, TrackKind::Subtitle).to_variant());
+        self.audio_action.set_state(&tracks::chosen(&tracks, TrackKind::Audio).to_variant());
+        self.ui.tracks.set_menu_model(Some(&tracks::menu(&tracks, playing)));
+    }
+
+    /// A track picked from the menu: the engine selects it and keeps it for the series.
+    fn choose_track(&self, kind: TrackKind, target: &str) {
+        let id = if target == "off" { None } else { target.parse().ok() };
+        if id.is_none() && (target != "off" || kind == TrackKind::Audio) {
+            return;
+        }
+        let action = match kind {
+            TrackKind::Subtitle => &self.subtitle_action,
+            TrackKind::Audio => &self.audio_action,
+        };
+        action.set_state(&target.to_variant());
+        self.send(PlayerCommand::ChooseTrack { kind, id });
+    }
+
+    /// Load a subtitle or audio track from a file, through the file chooser portal, and
+    /// select it. mpv's alone: the next episode does not carry it.
+    fn load_track(&self, kind: TrackKind) {
+        let title = match kind {
+            TrackKind::Subtitle => "Load Subtitle File",
+            TrackKind::Audio => "Load Audio File",
+        };
+        let dialog = gtk::FileDialog::builder()
+            .title(title)
+            .modal(true)
+            .filters(&tracks::filter(kind))
+            .build();
+        let me = self.me.clone();
+        dialog.open(Some(&self.ctx.window), gio::Cancellable::NONE, move |picked| {
+            let Some(view) = me.upgrade() else { return };
+            let file = match picked {
+                Ok(file) => file,
+                // Dismissed: nothing to say.
+                Err(e) if e.matches(gtk::DialogError::Dismissed) => return,
+                Err(e) => {
+                    tracing::warn!(error = %e, "the file chooser failed");
+                    view.ctx.toast("Couldn't open the file chooser");
+                    return;
+                }
+            };
+            let Some(path) = file.path() else {
+                view.ctx.toast("Couldn't read that file");
+                return;
+            };
+            let path = path.to_string_lossy().into_owned();
+            let added = view.player.as_ref().map(|player| {
+                player.mpv().command(&[tracks::add_command(kind), &path, "select"])
+            });
+            match added {
+                Some(Ok(())) => view.fill_tracks(),
+                Some(Err(e)) => {
+                    tracing::warn!(error = %e, "mpv did not load the track");
+                    view.ctx.toast(match kind {
+                        TrackKind::Subtitle => "Couldn't load that subtitle file",
+                        TrackKind::Audio => "Couldn't load that audio file",
+                    });
+                }
+                None => view.ctx.toast("The player could not start"),
+            }
+            view.wake();
+        });
+    }
+
     fn host_event(&self, event: HostEvent) {
         match event {
             HostEvent::Opened { fullscreen } => {
@@ -554,6 +768,9 @@ impl PlayerView {
     }
 
     fn show_state(&self, state: PlayerState) {
+        if let Some(media) = self.media() {
+            media.state(state.paused, state.position, state.duration);
+        }
         let ui = &self.ui;
         let (icon, tip) = if state.paused {
             ("media-playback-start-symbolic", "Play")
@@ -598,6 +815,13 @@ impl PlayerView {
             {
                 ui.timeline.set_fill_level(cached.min(duration));
             }
+        }
+        // Where an automatic skip landed, which Undo's 6 s of playback count from.
+        if let (Some(mut undo), Some(position)) = (self.undo.get(), state.position)
+            && undo.landed.is_none()
+        {
+            undo.landed = Some(position);
+            self.undo.set(Some(undo));
         }
         let paused_now = state.paused && !self.state.borrow().paused;
         self.state.replace(state);
@@ -870,6 +1094,30 @@ impl PlayerView {
         add("fullscreen", None, Box::new(|v, _| v.fullscreen(None)));
         add("mini", None, Box::new(|v, _| v.set_mini(v.mini.get().is_none())));
         add("skip", None, Box::new(|v, _| v.send(PlayerCommand::TakeSkip)));
+        add(
+            "undo-skip",
+            None,
+            Box::new(|v, _| {
+                v.undo_skip();
+            }),
+        );
+        add("load-subtitle", None, Box::new(|v, _| v.load_track(TrackKind::Subtitle)));
+        add("load-audio", None, Box::new(|v, _| v.load_track(TrackKind::Audio)));
+        for (action, kind) in [
+            (&self.subtitle_action, TrackKind::Subtitle),
+            (&self.audio_action, TrackKind::Audio),
+        ] {
+            let weak = Rc::downgrade(self);
+            action.connect_activate(move |_, arg| {
+                if let (Some(view), Some(target)) =
+                    (weak.upgrade(), arg.and_then(String::from_variant))
+                {
+                    view.choose_track(kind, &target);
+                    view.wake();
+                }
+            });
+            group.add_action(action);
+        }
         add("play-next", None, Box::new(|v, _| v.send(PlayerCommand::PlayNext)));
         add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));
         add("stall-switch", None, Box::new(|v, _| v.send(PlayerCommand::StallSwitch)));
@@ -927,6 +1175,27 @@ impl PlayerView {
             }),
         );
         ui.page.insert_action_group("player", Some(&group));
+        // The skip notice's Undo, which a toast over the whole window runs.
+        let undo = gio::SimpleAction::new("undo-skip", None);
+        undo.connect_activate({
+            let weak = Rc::downgrade(self);
+            move |_, _| {
+                if let Some(view) = weak.upgrade() {
+                    view.undo_skip();
+                    view.wake();
+                }
+            }
+        });
+        self.ctx.window.add_action(&undo);
+        // The track menu is read from the file each time it opens.
+        ui.tracks.set_create_popup_func({
+            let weak = Rc::downgrade(self);
+            move |_| {
+                if let Some(view) = weak.upgrade() {
+                    view.fill_tracks();
+                }
+            }
+        });
 
         // A drag on the timeline seeks.
         ui.timeline.connect_change_value({
@@ -1131,6 +1400,39 @@ impl PlayerView {
         self.chapters_due.set(true);
     }
 
+    /// For a shot: the Subtitles and Audio menu open, with `subtitle` added as a track.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_tracks(&self, subtitle: Option<&str>) {
+        if let (Some(player), Some(subtitle)) = (&self.player, subtitle) {
+            let _ =
+                player.mpv().command(&["sub-add", subtitle, "select", "Lantern Road", "eng"]);
+            return;
+        }
+        self.ui.tracks.popup();
+        self.wake();
+    }
+
+    /// For a shot: the notice an automatic skip of the opening shows, with its Undo.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_auto_skipped(&self) {
+        self.auto_skipped(SkipKind::Opening, 2.0);
+        self.wake();
+    }
+
+    /// For a shot: the Subtitles and Audio menu's popover, under its button, over the window.
+    pub fn shot_tracks_popover(&self) -> Option<(gtk::Widget, f32, f32)> {
+        let popover = self.ui.tracks.popover()?;
+        if !popover.is_visible() {
+            return None;
+        }
+        let window = &self.ctx.window;
+        let button = self.ui.tracks.compute_bounds(window)?;
+        let width = popover.width() as f32;
+        let x = (button.x() + button.width() / 2.0 - width / 2.0)
+            .clamp(0.0, (window.width() as f32 - width).max(0.0));
+        Some((popover.upcast(), x, button.y() + button.height()))
+    }
+
     /// For a shot: the seek preview's popover and where it is over the window.
     pub fn shot_popover(&self) -> Option<(gtk::Widget, f32, f32)> {
         self.preview.placed(&self.ctx.window)
@@ -1144,6 +1446,13 @@ impl PlayerView {
         let seconds = duration * fraction;
         self.preview.show(x, seconds, self.ui.marked.at(seconds));
         self.wake();
+    }
+
+    /// Close whichever of the player's menus is open.
+    pub fn close_menus(&self) {
+        for button in &self.ui.menu_buttons {
+            button.popdown();
+        }
     }
 
     fn rest_now(&self) {
@@ -1161,6 +1470,11 @@ impl PlayerView {
         // Arrows and S act without showing the controls; every other key shows them.
         let quiet =
             matches!(key, Key::Left | Key::Right | Key::Up | Key::Down | Key::s | Key::S);
+        let control = modifiers.contains(gdk::ModifierType::CONTROL_MASK);
+        if control && matches!(key, Key::z | Key::Z) && !shift {
+            // Edit's Undo, for the last automatic skip.
+            return self.undo_skip();
+        }
         if modifiers.intersects(gdk::ModifierType::CONTROL_MASK | gdk::ModifierType::ALT_MASK) {
             return false;
         }
@@ -1186,6 +1500,12 @@ impl PlayerView {
             Key::bracketright => self.send(PlayerCommand::Speed(0.25)),
             Key::BackSpace => self.send(PlayerCommand::SpeedTo(1.0)),
             Key::e | Key::E => self.ui.episodes.popup(),
+            Key::t | Key::T => self.ui.tracks.popup(),
+            Key::u | Key::U => {
+                if !self.undo_skip() {
+                    return false;
+                }
+            }
             Key::Return | Key::KP_Enter => {
                 if self.ui.skip.is_visible() {
                     self.send(PlayerCommand::TakeSkip);
@@ -1297,6 +1617,12 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         .valign(gtk::Align::Center)
         .build();
     episodes.add_css_class("flat");
+    let tracks = gtk::MenuButton::builder()
+        .icon_name("media-view-subtitles-symbolic")
+        .tooltip_text("Subtitles and Audio")
+        .valign(gtk::Align::Center)
+        .build();
+    tracks.add_css_class("flat");
     let full = icon_button("view-fullscreen-symbolic", "Fullscreen", "player.fullscreen");
     let mini_button =
         icon_button("anistream-mini-player-symbolic", "Mini Player", "player.mini");
@@ -1308,6 +1634,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     top.pack_end(&full);
     top.pack_end(&mini_button);
     top.pack_end(&episodes);
+    top.pack_end(&tracks);
 
     // The bottom bar.
     let play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
@@ -1533,8 +1860,13 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     page.set_extend_content_to_bottom_edge(true);
     page.set_focusable(true);
 
-    let menu_buttons =
-        vec![episodes.clone(), settings.clone(), speed_button.clone(), volume_button];
+    let menu_buttons = vec![
+        episodes.clone(),
+        tracks.clone(),
+        settings.clone(),
+        speed_button.clone(),
+        volume_button,
+    ];
     Ui {
         roomy: vec![back10.upcast(), forward10.upcast(), speed_button.upcast()],
         page,
@@ -1565,6 +1897,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         resumed,
         resumed_line,
         episodes,
+        tracks,
         settings,
         menu_buttons,
         mini,

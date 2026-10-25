@@ -140,6 +140,29 @@ pub struct Entry {
     /// [`EpisodeRow::delayed_from`]: crate::episodes::EpisodeRow::delayed_from
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub delayed_from: Option<i64>,
+    /// On a calendar row, whether [`Self::airing_in`] is the engine's estimate rather than a
+    /// time AniList's schedule gives: the row is drawn with "~" before its time
+    /// ([`crate::present::air_time`]). `false` everywhere else.
+    ///
+    /// AniList dates every broadcast it lists, so an estimate is a row the engine adds itself:
+    /// the next episode of a show still airing that AniList has stopped scheduling, a week on
+    /// from its last two broadcasts, which aired a week apart.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub airing_approximate: bool,
+    /// On a calendar row, which version of the episode its time is for, when a source times the
+    /// sub and the dub apart and they differ: the row is that one alone, and the other has a
+    /// row of its own. `None` for a row about the broadcast itself, which every row AniList's
+    /// schedule gives is. [`crate::present::calendar_mark`] words it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub airing_translation: Option<anistream_core::media::Translation>,
+    /// On a calendar row, whether this episode is out in the dub, as far as the engine already
+    /// knows: from how far the title's dub goes when its page asked ([`Event::TitleDub`]), which
+    /// is kept for the session. `false` when the dub stops short of it, and when nothing is
+    /// known, so the row marks nothing. No request is made for it.
+    ///
+    /// [`Event::TitleDub`]: crate::event::Event::TitleDub
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub airing_dubbed: bool,
 }
 
 /// Where a title is in its run, as AniList says.
@@ -495,6 +518,9 @@ impl Entry {
             status: None,
             synopsis_spans: Vec::new(),
             delayed_from: None,
+            airing_approximate: false,
+            airing_translation: None,
+            airing_dubbed: false,
         }
     }
 

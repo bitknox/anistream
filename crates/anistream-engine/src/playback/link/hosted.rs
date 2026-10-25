@@ -21,7 +21,7 @@ use anistream_model::{
         PlayerOp, PlayerReport, PlayerUi,
     },
     notice::NoticeKind,
-    playback::{NextEpisode, PlaybackId},
+    playback::{NextEpisode, PlaybackId, TimeRange, TimelineMark},
 };
 use anistream_playback::{
     companion::{Level, Menus},
@@ -299,6 +299,27 @@ impl PlayerLink for HostedLink {
     }
 
     async fn overlay(&self, overlay: Overlay) -> Result<(), LinkError> {
+        // Events of their own rather than `PlayerUi`'s: an app that does not draw them yet
+        // passes over them, where a new kind of `PlayerUi` would stop its build.
+        match overlay {
+            Overlay::Timeline(skips) => {
+                let marks = skips
+                    .iter()
+                    .map(|skip| TimelineMark {
+                        kind: offered(skip.kind),
+                        start: skip.start,
+                        end: skip.end,
+                    })
+                    .collect();
+                return self.say(|playback| Event::PlayerTimeline { playback, marks });
+            }
+            Overlay::Buffered(ranges) => {
+                let ranges =
+                    ranges.into_iter().map(|(start, end)| TimeRange { start, end }).collect();
+                return self.say(|playback| Event::PlayerBuffered { playback, ranges });
+            }
+            _ => {}
+        }
         match ui(overlay) {
             Some(ui) => self.say(|playback| Event::PlayerUi { playback, ui }),
             None => Ok(()),
@@ -376,6 +397,8 @@ fn ui(overlay: Overlay) -> Option<PlayerUi> {
         },
         Overlay::Stall { seconds } => PlayerUi::Stall { seconds },
         Overlay::StallCleared => PlayerUi::StallCleared,
+        // Said as events of their own, in `overlay`.
+        Overlay::Timeline(_) | Overlay::Buffered(_) => return None,
     })
 }
 
@@ -584,5 +607,38 @@ mod tests {
         assert!(link.seek(1.0, true).await.is_err(), "a closed player is told nothing");
         // A report crossing the closing is let go.
         players.report(playback, PlayerReport::FileLoaded);
+    }
+
+    #[tokio::test]
+    async fn the_seek_bar_hears_its_marks_and_what_the_player_holds_as_events_of_their_own() {
+        use anistream_model::playback::{SkipKind as Marked, TimeRange, TimelineMark};
+        use anistream_playback::{SkipInterval, SkipKind};
+        let players = HostedPlayers::new("scratch", Arc::default());
+        let (link, mut events) = players.open(&PlaybackRequest::default()).await.unwrap();
+        let (tx, mut said) = mpsc::unbounded_channel();
+        link.attach(&tx.into());
+        let Some(Event::PlayerOps { .. }) = said.recv().await else { panic!("the opening") };
+
+        let opening = SkipInterval { kind: SkipKind::Opening, start: 0.0, end: 89.5 };
+        link.overlay(Overlay::Timeline(vec![opening])).await.unwrap();
+        let Some(Event::PlayerTimeline { marks, .. }) = said.recv().await else {
+            panic!("marks")
+        };
+        assert_eq!(marks, [TimelineMark { kind: Marked::Opening, start: 0.0, end: 89.5 }]);
+        link.overlay(Overlay::Buffered(vec![(0.0, 210.0)])).await.unwrap();
+        let Some(Event::PlayerBuffered { ranges, .. }) = said.recv().await else {
+            panic!("held")
+        };
+        assert_eq!(ranges, [TimeRange { start: 0.0, end: 210.0 }]);
+
+        // And the player's report of what it holds reaches the session.
+        players.report(
+            PlaybackId::new(0),
+            PlayerReport::Property {
+                name: "demuxer-cache-state".into(),
+                json: r#"{"seekable-ranges":[{"start":0.0,"end":42.0}]}"#.into(),
+            },
+        );
+        assert_eq!(events.recv().await, Some(PlaybackEvent::Cached(vec![(0.0, 42.0)])));
     }
 }

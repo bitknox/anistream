@@ -102,7 +102,8 @@ pub(crate) fn status_hints_paged(
             hints.extend(key(Action::ShowEpisodes).map(|k| (k, Action::ShowEpisodes.hint())));
             return with_help(keymap, hints);
         }
-        // Enter plays a finished download; nothing on this screen is an "open". Space and `x`
+        // Enter plays a finished download and starts a waiting one now, ahead of the queue.
+        // Nothing on this screen is an "open". Space and `x`
         // pause and cancel the highlighted row — the play-next and remove keys while idle, the
         // player's pause and stop while something plays — so they are named by whichever table
         // the keys are read from now, and only where the row can take them.
@@ -122,9 +123,18 @@ pub(crate) fn status_hints_paged(
                     (Action::Open, "play"),
                 ],
                 Some(DownloadState::Failed) => vec![clear, (cancel, "cancel")],
-                Some(DownloadState::Paused) => {
-                    vec![clear, (cancel, "cancel"), (pause, "resume")]
-                }
+                Some(DownloadState::Paused) => vec![
+                    clear,
+                    (cancel, "cancel"),
+                    (pause, "resume"),
+                    (Action::Open, "start now"),
+                ],
+                Some(DownloadState::Queued) => vec![
+                    clear,
+                    (cancel, "cancel"),
+                    (pause, "pause"),
+                    (Action::Open, "start now"),
+                ],
                 Some(_) => vec![clear, (cancel, "cancel"), (pause, "pause")],
                 None => Vec::new(),
             }

@@ -34,6 +34,10 @@ pub enum PlaybackEvent {
     SubDelay(f64),
     /// Playback is held waiting for data, or has resumed.
     Buffering(bool),
+    /// The stretches of the file the player holds and can seek within without waiting, as
+    /// `(start, end)` in seconds of the file: mpv's `demuxer-cache-state`, its
+    /// `seekable-ranges`.
+    Cached(Vec<(f64, f64)>),
     /// Running total of frames the video output dropped.
     FrameDrops(u64),
     Seeking(bool),

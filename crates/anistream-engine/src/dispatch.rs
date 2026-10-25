@@ -27,7 +27,7 @@ use crate::{
         self, ahead,
         commands::{
             download_cancel, download_clear_completed, download_delete, download_episode,
-            download_many, download_pause,
+            download_many, download_pause, download_start_now,
         },
     },
     jobs::JobGuard,
@@ -154,9 +154,14 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| load_seasonal(lent, adult))
         }
         Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
-        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
+        // Each row marked with its dub where a title page found it: see `Entry::airing_dubbed`.
+        Command::LoadCalendar => {
+            let dubs = engine.dubs.clone();
+            spawn(job, services, tx, move |lent| load_calendar(lent, dubs))
+        }
         Command::LoadCalendarPast { anchor, page } => {
-            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
+            let dubs = engine.dubs.clone();
+            spawn(job, services, tx, move |lent| load_calendar_past(lent, dubs, anchor, page))
         }
         Command::Search { query } => search::submit(query, job, engine, services, tx),
         Command::SearchLive { query } => search::live(query, engine, services, tx),
@@ -179,7 +184,11 @@ pub(crate) fn dispatch(
         Command::RememberSearch(query) => recents::remember(query, services, tx),
         Command::ForgetRecentSearch(query) => recents::forget(query, services, tx),
         Command::ClearRecentSearches => recents::clear(services, tx),
-        Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
+        Command::LoadDetail(id) => {
+            // Another title's page: the episode names looked up for the one left stop.
+            engine.names.leave_for(id);
+            spawn(job, services, tx, move |lent| load_detail(lent, id))
+        }
         Command::LoadTitleLanguage => load_title_language(services, tx),
         Command::PlayTrailer { url, title } => {
             play_trailer(url, title, job, engine, services, tx)
@@ -193,8 +202,11 @@ pub(crate) fn dispatch(
         Command::LoadEpisodes(id) => {
             // A lookup of the title's dub waits for this.
             let table = engine.dubs.table(id);
+            // Named from another source where its own left titles and stills out: see
+            // `titles::names`.
+            let naming = engine.names.naming(id, engine.network.offline, &services.clock);
             spawn(job, services, tx, move |lent| async move {
-                list_episodes(lent, id).await;
+                list_episodes(lent, id, naming).await;
                 drop(table);
             })
         }
@@ -205,10 +217,12 @@ pub(crate) fn dispatch(
         // A title matched afresh may be another title on the source, so its dub is too.
         Command::ClearMatch { id } => {
             engine.dubs.forget(id);
+            engine.names.forget(id);
             spawn(job, services, tx, move |lent| clear_match(lent, id))
         }
         Command::FixMatch { id, provider_id, key } => {
             engine.dubs.forget(id);
+            engine.names.forget(id);
             spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
         }
         Command::ManualSearch { id, query } => {
@@ -216,23 +230,27 @@ pub(crate) fn dispatch(
         }
         Command::SetProviderPreference { id, provider } => {
             engine.dubs.forget(id);
+            engine.names.forget(id);
             set_provider_preference(id, provider, engine, services, tx)
         }
 
         // Playback.
         Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
         // Each refused where this build has no player to play in: see `playback::refuse`.
-        // A play wants the source's time: a dub lookup running stops for it.
+        // A play wants the source's time: a dub or episode names lookup running stops for it.
         Command::Play { id, episode, from_start } => {
             engine.dubs.stop();
+            engine.names.stop();
             play(id, episode, from_start, job, engine, services, tx)
         }
         Command::PlaySource { id, episode, provider_id, source_id } => {
             engine.dubs.stop();
+            engine.names.stop();
             play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
         Command::PlayParty { id, episode } => {
             engine.dubs.stop();
+            engine.names.stop();
             play_party(id, episode, job, engine, services, tx)
         }
         Command::PlayLocal { id, episode, title, path } => {
@@ -270,7 +288,7 @@ pub(crate) fn dispatch(
         Command::FinishSignIn { tracker, callback } => {
             finish_sign_in(tracker, callback, job, services, tx)
         }
-        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services),
+        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services, tx),
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }
@@ -295,6 +313,7 @@ pub(crate) fn dispatch(
         Command::DownloadMany { id, episodes } => {
             download_many(id, episodes, job, engine, services, tx)
         }
+        Command::DownloadStartNow { id } => download_start_now(id, services, tx),
         Command::DownloadPause { id } => download_pause(id, services, tx),
         Command::DownloadCancel { id } => download_cancel(id, services, tx),
         Command::DownloadDelete { id } => download_delete(id, services, tx),

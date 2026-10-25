@@ -539,7 +539,10 @@ impl App {
             | Event::PlaybackVolume(_) => {}
             // For a front end that hosts the player; the terminal's is mpv, which the engine
             // drives itself.
-            Event::PlayerOps { .. } | Event::PlayerUi { .. } => {}
+            Event::PlayerOps { .. }
+            | Event::PlayerUi { .. }
+            | Event::PlayerTimeline { .. }
+            | Event::PlayerBuffered { .. } => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
             //

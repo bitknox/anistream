@@ -246,6 +246,9 @@ pub struct VpnGuard {
     client: reqwest::Client,
     /// Where egress is looked up. Fixed by the config; a field so a test can stand in for it.
     endpoint: String,
+    /// The exit a fixture build answers with, in place of looking one up. Set, the guard makes
+    /// no request at all.
+    fixed: Option<Egress>,
 }
 
 impl std::fmt::Debug for VpnGuard {
@@ -293,7 +296,26 @@ impl VpnGuard {
             state: Arc::new(RwLock::new(GuardState::Unverified)),
             client,
             endpoint,
+            fixed: None,
         })
+    }
+
+    /// A guard for a fixture build: it judges `egress` by the config's rules as it would a
+    /// lookup's answer, and makes no request, so a screenshot never shows the real exit.
+    pub fn fixed(config: VpnConfig, egress: Egress) -> Result<Self, String> {
+        Ok(Self { fixed: Some(egress), ..Self::new(config)? })
+    }
+
+    /// The made-up exit a fixture build shows: a documentation address and an invented operator.
+    pub fn fixture_egress() -> Egress {
+        Egress {
+            ip: Some("192.0.2.7".into()),
+            asn: Some("AS64496".into()),
+            asn_org: Some("Tunnel Co. (fixture)".into()),
+            country: Some("Exampleland".into()),
+            mullvad_exit_ip: Some(true),
+            org: None,
+        }
     }
 
     pub fn config(&self) -> &VpnConfig {
@@ -349,6 +371,12 @@ impl VpnGuard {
         if self.config.mode == VpnMode::None {
             self.set(GuardState::Unprotected);
             return GuardState::Unprotected;
+        }
+
+        if let Some(egress) = &self.fixed {
+            let next = evaluate(&self.config, egress);
+            self.set(next.clone());
+            return next;
         }
 
         // Only an egress that was seen and is wrong is a leak. Everything else here is a check
@@ -743,6 +771,24 @@ mod tests {
         assert!(proxy.accept().is_err(), "the egress check went through the system proxy");
         assert!(status.success(), "the direct check did not pass");
         answering.join().unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_fixture_guard_answers_with_its_made_up_exit_and_makes_no_request() {
+        // The lookup's address is a listener that must never be asked.
+        let lookup = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        lookup.set_nonblocking(true).unwrap();
+        let config = VpnConfig { mode: VpnMode::External, ..Default::default() };
+        let mut guard = VpnGuard::fixed(config, VpnGuard::fixture_egress()).unwrap();
+        guard.endpoint = format!("http://{}/json", lookup.local_addr().unwrap());
+
+        let state = guard.verify().await;
+
+        assert!(state.is_protected(), "{state:?}");
+        let badge = state.badge();
+        assert!(badge.contains("fixture") && badge.contains("Exampleland"), "{badge}");
+        assert_eq!(guard.state(), state);
+        assert!(lookup.accept().is_err(), "the fixture guard looked its exit up");
     }
 
     #[test]

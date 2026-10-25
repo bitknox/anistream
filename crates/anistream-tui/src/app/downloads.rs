@@ -26,7 +26,8 @@ impl App {
         self.cursors.downloads.selected = self.cursors.downloads.selected.min(last);
     }
 
-    /// Enter on a download: played from disk once it has finished, or why it cannot be.
+    /// Enter on a download: played from disk once it has finished, started now, ahead of the
+    /// queue, while it waits, or why it cannot be.
     pub(super) fn open_download(&mut self) -> Option<Command> {
         let row = self.downloads.get(self.cursors.downloads.selected)?.clone();
         match (&row.path, row.state) {
@@ -44,6 +45,9 @@ impl App {
                 // The reason is on the row; surfacing it is more use than a dead keypress.
                 let reason = row.error.clone().unwrap_or_else(|| "no reason recorded".into());
                 self.push_toast(Notice::alert(reason));
+            }
+            (_, DownloadState::Queued | DownloadState::Paused) => {
+                return Some(Command::DownloadStartNow { id: row.id });
             }
             _ => self.push_toast(Notice::info("not finished yet")),
         }
@@ -115,6 +119,36 @@ mod tests {
         a.playing = Some(NowPlaying::default());
         assert_eq!(a.handle(Action::PlayPause, 5), Some(Command::DownloadPause { id: 8 }));
         assert_eq!(a.handle(Action::StopPlayback, 5), Some(Command::DownloadCancel { id: 8 }));
+    }
+
+    #[test]
+    fn enter_on_a_waiting_download_starts_it_now() {
+        let row = |id: i64, state: DownloadState| DownloadRow {
+            id,
+            anilist_id: AnilistId::new(1),
+            title: "Title 0".into(),
+            episode: id.to_string(),
+            state,
+            fraction: 0.0,
+            downloaded: 0,
+            total: 0,
+            error: None,
+            path: None,
+            ahead: false,
+        };
+        let mut a = app();
+        a.handle(Action::JumpSection(6), 5);
+        a.apply(Event::Downloads(vec![
+            row(1, DownloadState::Active),
+            row(2, DownloadState::Queued),
+            row(3, DownloadState::Paused),
+        ]));
+        a.nav.focus_stage();
+        assert_eq!(a.handle(Action::Open, 5), None, "already fetching");
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::Open, 5), Some(Command::DownloadStartNow { id: 2 }));
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::Open, 5), Some(Command::DownloadStartNow { id: 3 }));
     }
 
     #[test]

@@ -221,10 +221,34 @@ async fn start_queued(
     tx: &Outbox,
     running: &mut Vec<Running>,
 ) {
-    if running.len() >= CONCURRENCY {
-        return;
-    }
     let Ok(pending) = store.pending_downloads() else { return };
+    // A download asked to start now, with every place taken: the one that would have been last
+    // to start goes back to waiting, behind it, as "Start now" says.
+    if running.len() >= CONCURRENCY {
+        let paused: Vec<i64> = store
+            .downloads()
+            .map(|all| {
+                all.into_iter()
+                    .filter(|d| d.state == DownloadState::Paused)
+                    .map(|d| d.id)
+                    .collect()
+            })
+            .unwrap_or_default();
+        let ids: Vec<i64> = running.iter().map(|r| r.row_id).collect();
+        let Some(yielded) = to_yield(&pending, &ids, &paused) else { return };
+        let Some(at) = running.iter().position(|r| r.row_id == yielded) else { return };
+        let entry = running.remove(at);
+        // Its torrent leaves the session, its file stays: started again, it picks up from what
+        // is on disk, as after a restart, and cancelled while it waits it holds nothing open.
+        // Unless another episode still fetches from the same torrent. A paused one stays paused.
+        if !running.iter().any(|r| r.torrent_id == entry.torrent_id) {
+            let _ = session.forget(entry.torrent_id, false).await;
+        }
+        if !paused.contains(&yielded) {
+            let _ = store.set_download_state(yielded, DownloadState::Queued);
+        }
+        tracing::info!(row = yielded, "download waits again for one asked to start now");
+    }
 
     for row in pending {
         if running.len() >= CONCURRENCY {
@@ -267,6 +291,29 @@ async fn start_queued(
         }
         publish(store, tx);
     }
+}
+
+/// Which of the downloads `running` gives its place to a download asked to start now, when
+/// every place is taken: `None` when none need. `pending` is the queue in order, waiting and
+/// running, as [`Store::pending_downloads`] reads it; `paused` the downloads paused.
+///
+/// A paused one gives its place first, since it is fetching nothing. Otherwise the one latest
+/// in the queue, so long as the download asked to start now is ahead of it: one asked earlier
+/// keeps its place against one asked since only while it is ahead.
+fn to_yield(pending: &[Download], running: &[i64], paused: &[i64]) -> Option<i64> {
+    let order = |id: i64| pending.iter().position(|d| d.id == id);
+    let front = pending.iter().position(|d| {
+        d.state == DownloadState::Queued && d.front_at.is_some() && !running.contains(&d.id)
+    })?;
+    if let Some(&idle) = running.iter().find(|id| paused.contains(id)) {
+        return Some(idle);
+    }
+    running
+        .iter()
+        .filter_map(|&id| Some((order(id)?, id)))
+        .filter(|(at, _)| *at > front)
+        .max()
+        .map(|(_, id)| id)
 }
 
 /// Run the user's `downloads.on_complete` command, detached and best-effort.
@@ -691,5 +738,68 @@ mod tests {
         assert_eq!(stopped.toast().text, "queued 1 episode, then: why");
         let refused = RangeOutcome { failed: Some("why".into()), ..RangeOutcome::default() };
         assert_eq!(refused.toast().text, "nothing queued: why");
+    }
+
+    fn row(id: i64, state: DownloadState, front_at: Option<i64>) -> Download {
+        Download {
+            id,
+            anilist_id: AnilistId(900_101),
+            episode: id.to_string(),
+            title: "Invented Show".into(),
+            magnet: "magnet:?xt=urn:btih:0000".into(),
+            state,
+            path: None,
+            downloaded: 0,
+            total: 0,
+            error: None,
+            created_at: id,
+            updated_at: id,
+            ahead: false,
+            front_at,
+        }
+    }
+
+    #[test]
+    fn a_download_asked_to_start_now_takes_the_place_of_the_one_latest_in_the_queue() {
+        use DownloadState::{Active, Queued};
+        // As the store orders them: the one asked to start now first, then by when queued.
+        let pending = [
+            row(4, Queued, Some(50)),
+            row(1, Active, None),
+            row(2, Active, None),
+            row(3, Queued, None),
+        ];
+        assert_eq!(to_yield(&pending, &[1, 2], &[]), Some(2));
+        assert_eq!(to_yield(&pending, &[2, 1], &[]), Some(2), "whichever started first");
+    }
+
+    #[test]
+    fn a_paused_download_gives_its_place_before_one_fetching() {
+        use DownloadState::{Active, Queued};
+        let pending = [row(4, Queued, Some(50)), row(1, Active, None)];
+        assert_eq!(to_yield(&pending, &[1, 2], &[2]), Some(2));
+    }
+
+    #[test]
+    fn nothing_gives_way_unless_a_download_waiting_was_asked_to_start_now() {
+        use DownloadState::{Active, Queued};
+        let waiting = [row(1, Active, None), row(2, Active, None), row(3, Queued, None)];
+        assert_eq!(to_yield(&waiting, &[1, 2], &[]), None, "the queue in its own order");
+        let started = [row(1, Active, Some(50)), row(2, Active, None), row(3, Queued, None)];
+        assert_eq!(to_yield(&started, &[1, 2], &[]), None, "already running");
+    }
+
+    #[test]
+    fn one_asked_to_start_now_earlier_keeps_its_place_against_one_asked_since() {
+        use DownloadState::{Active, Queued};
+        // 5 was asked since 4 and is ahead of it; 4 is running and keeps its place, 1 gives way.
+        let pending =
+            [row(5, Queued, Some(60)), row(4, Active, Some(50)), row(1, Active, None)];
+        assert_eq!(to_yield(&pending, &[4, 1], &[]), Some(1));
+        // With both places taken by downloads asked to start now, the one asked first is now
+        // furthest back, so it gives way.
+        let both =
+            [row(6, Queued, Some(70)), row(5, Active, Some(60)), row(4, Active, Some(50))];
+        assert_eq!(to_yield(&both, &[5, 4], &[]), Some(4));
     }
 }

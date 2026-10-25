@@ -274,6 +274,8 @@ pub enum Event {
     SubDelay(f64),
     /// Whether playback is held waiting for data.
     Buffering(bool),
+    /// What the player holds of the file: see [`PlaybackEvent::Cached`].
+    Cached(Vec<(f64, f64)>),
     FrameDrops(u64),
     Seeking(bool),
     DisplayWidth(u32),
@@ -379,6 +381,10 @@ pub fn property_change(name: Option<&str>, value: Option<serde_json::Value>) -> 
         Some("sid") => value.as_ref().and_then(track_id).map(Event::Sid),
         Some("sub-delay") => value.and_then(|v| v.as_f64()).map(Event::SubDelay),
         Some("paused-for-cache") => value.and_then(|v| v.as_bool()).map(Event::Buffering),
+        // Null before a file is open, and a map after: only its seekable ranges are read.
+        Some("demuxer-cache-state") => {
+            value.as_ref().and_then(seekable_ranges).map(Event::Cached)
+        }
         Some("frame-drop-count") => value.and_then(|v| v.as_u64()).map(Event::FrameDrops),
         Some("seeking") => value.and_then(|v| v.as_bool()).map(Event::Seeking),
         Some("display-width") => value
@@ -392,6 +398,22 @@ pub fn property_change(name: Option<&str>, value: Option<serde_json::Value>) -> 
         _ => Some(Event::Ignored),
     }
     .unwrap_or(Event::Ignored)
+}
+
+/// `demuxer-cache-state`'s `seekable-ranges`, as `(start, end)` pairs in order of where they
+/// start: `None` when the value is not a cache state at all.
+fn seekable_ranges(state: &serde_json::Value) -> Option<Vec<(f64, f64)>> {
+    let listed = state.get("seekable-ranges")?.as_array()?;
+    let mut ranges: Vec<(f64, f64)> = listed
+        .iter()
+        .filter_map(|range| {
+            let start = range.get("start")?.as_f64()?;
+            let end = range.get("end")?.as_f64()?;
+            (end > start).then_some((start, end))
+        })
+        .collect();
+    ranges.sort_by(|a, b| a.0.total_cmp(&b.0));
+    Some(ranges)
 }
 
 /// mpv's events as the session reads them: [`PlaybackEvent`]s, narrowed to what the session acts
@@ -438,6 +460,7 @@ impl Reader {
             Event::Sid(id) => Some(PlaybackEvent::Sid(id)),
             Event::SubDelay(delay) => Some(PlaybackEvent::SubDelay(delay)),
             Event::Buffering(held) => Some(PlaybackEvent::Buffering(held)),
+            Event::Cached(ranges) => Some(PlaybackEvent::Cached(ranges)),
             Event::FrameDrops(count) => Some(PlaybackEvent::FrameDrops(count)),
             Event::Seeking(seeking) => Some(PlaybackEvent::Seeking(seeking)),
             Event::DisplayWidth(width) => {
@@ -926,6 +949,33 @@ mod tests {
         let stop = r#"{"event":"end-file","reason":"stop"}"#;
         assert_eq!(parse_line(stop), Some(Event::EndFile(EndReason::Stop)));
         assert!(!EndReason::Stop.is_complete());
+    }
+
+    #[test]
+    fn what_the_player_holds_is_read_from_its_cache_state() {
+        let state = serde_json::json!({
+            "cache-end": 210.0,
+            "seekable-ranges": [
+                { "start": 400.0, "end": 430.5 },
+                { "start": 0.0, "end": 210.0 },
+                { "start": 500.0, "end": 500.0 },
+            ],
+        });
+        assert_eq!(
+            property_change(Some("demuxer-cache-state"), Some(state)),
+            Event::Cached(vec![(0.0, 210.0), (400.0, 430.5)]),
+            "in order, and an empty stretch is none"
+        );
+        let opening = serde_json::json!({ "seekable-ranges": [] });
+        assert_eq!(
+            property_change(Some("demuxer-cache-state"), Some(opening)),
+            Event::Cached(Vec::new())
+        );
+        assert_eq!(property_change(Some("demuxer-cache-state"), None), Event::Ignored);
+        assert_eq!(
+            Reader::default().read(Event::Cached(vec![(0.0, 9.0)])),
+            Some(PlaybackEvent::Cached(vec![(0.0, 9.0)]))
+        );
     }
 
     #[test]

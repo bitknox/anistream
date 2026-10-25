@@ -12,6 +12,14 @@ pub struct DeviceCodePrompt {
     /// gets the brightest treatment the palette has rather than the dimmest.
     pub code: String,
     pub url: String,
+    /// When the code stops working, in Unix seconds: the countdown under it counts to this
+    /// ([`crate::present::device_code_expiry`]), and once it passes the app asks for a new code
+    /// by sending [`Command::Connect`] for the tracker again, which replaces this flow. `None`
+    /// when the service did not say.
+    ///
+    /// [`Command::Connect`]: crate::command::Command::Connect
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub expires_at: Option<i64>,
 }
 
 /// Sync state for one tracker, as the Accounts overlay and the status badge show it.
