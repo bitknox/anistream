@@ -27,6 +27,7 @@ use crate::{
         torrents,
     },
     prefs::CloseChoice,
+    updates::Step,
     widgets,
     window::{Ctx, Size},
 };
@@ -278,6 +279,16 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
             }
         }
     });
+    // The app's own update moves on between the engine's words: the row follows it.
+    ctx.updater.on_change({
+        let inner = Rc::downgrade(&inner);
+        move || {
+            let shown = inner.upgrade().and_then(|inner| inner.update.borrow().clone());
+            if let Some(shown) = shown {
+                shown();
+            }
+        }
+    });
     inner.show("general");
     inner.select_row("general");
 
@@ -381,7 +392,7 @@ impl Inner {
             "about" => {
                 about_pane(&page);
                 let group = adw::PreferencesGroup::builder().title("Updates").build();
-                group.add(&self.update_row());
+                self.update_rows(&group);
                 page.add(&group);
             }
             _ => {}
@@ -446,7 +457,7 @@ impl Inner {
                 if crate::updates::flatpak() {
                     group = adw::PreferencesGroup::builder().title(*title).build();
                 }
-                group.add(&self.update_row());
+                self.update_rows(&group);
                 any = true;
             }
             if name == "downloads" && *title == "Files" {
@@ -1099,9 +1110,11 @@ impl Inner {
         Some(group)
     }
 
-    /// The update check: where it stands, Check Now, and the release page while a newer version
-    /// is out. Under Flatpak, only what it found: Flatpak installs it.
-    fn update_row(self: &Rc<Self>) -> adw::ActionRow {
+    /// The update check and the app's own update: where they stand, a bar while the AppImage
+    /// downloads, and the step to take next, which is Check Now, Download Update, Cancel,
+    /// Restart to Update or Try Again, with the release page beside it while a version is out.
+    /// Under Flatpak, only what the check found: Flatpak installs it.
+    fn update_rows(self: &Rc<Self>, group: &adw::PreferencesGroup) {
         let flatpak = crate::updates::flatpak();
         let row = adw::ActionRow::builder()
             .title(format!("anistream {}", anistream_engine::updates::CURRENT))
@@ -1110,32 +1123,106 @@ impl Inner {
         spinner.set_size_request(16, 16);
         spinner.set_valign(gtk::Align::Center);
         row.add_suffix(&spinner);
+        group.add(&row);
+        // The bar and the buttons on a row of their own, so the line above keeps its width.
+        let steps = gtk::Box::new(gtk::Orientation::Vertical, 10);
+        steps.set_margin_top(10);
+        steps.set_margin_bottom(10);
+        steps.set_margin_start(12);
+        steps.set_margin_end(12);
+        let bar = gtk::ProgressBar::new();
+        bar.update_property(&[gtk::accessible::Property::Label("Update progress")]);
+        steps.append(&bar);
+        let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+        buttons.set_halign(gtk::Align::End);
         let view = gtk::Button::with_label("View Release");
-        view.set_valign(gtk::Align::Center);
-        view.add_css_class("suggested-action");
         view.set_action_name(Some("win.release-page"));
-        row.add_suffix(&view);
+        buttons.append(&view);
         let check = gtk::Button::with_label("Check Now");
-        check.set_valign(gtk::Align::Center);
         check.set_action_name(Some("win.check-updates"));
-        row.add_suffix(&check);
+        buttons.append(&check);
+        let next = gtk::Button::new();
+        buttons.append(&next);
+        steps.append(&buttons);
+        let actions = adw::PreferencesRow::builder()
+            .activatable(false)
+            .selectable(false)
+            .title("Update")
+            .child(&steps)
+            .build();
+        group.add(&actions);
         let shown: Rc<dyn Fn()> = Rc::new({
-            let (hub, row) = (Rc::downgrade(&self.ctx.hub), row.clone());
+            let (ctx, row) = (Rc::downgrade(&self.ctx), row.clone());
             move || {
-                let Some(hub) = hub.upgrade() else { return };
-                let known = hub.known.borrow();
+                let Some(ctx) = ctx.upgrade() else { return };
+                let known = ctx.hub.known.borrow();
                 let status = known.update.as_ref();
+                let progress = ctx.updater.progress();
+                let release = match status {
+                    Some(UpdateStatus::Available { release, .. }) => Some(release),
+                    _ => None,
+                };
+                let installs = release.is_some_and(|r| ctx.updater.installs(r));
                 let checking = matches!(status, Some(UpdateStatus::Checking));
-                row.set_subtitle(&crate::updates::words(status, known.offline, flatpak));
-                spinner.set_visible(checking);
-                view.set_visible(!flatpak && crate::updates::page(status).is_some());
-                check.set_visible(!flatpak);
+                row.set_subtitle(&crate::updates::line(
+                    status,
+                    &progress,
+                    known.offline,
+                    flatpak,
+                    installs,
+                ));
+                let idle = progress.step == Step::Idle;
+                spinner.set_visible(
+                    (checking && idle)
+                        || matches!(progress.step, Step::Verifying | Step::Installing),
+                );
+                bar.set_visible(matches!(progress.step, Step::Downloading { .. }));
+                bar.set_fraction(progress.fraction().unwrap_or(0.0));
+                // The one step to take next, accented when it moves the update on.
+                let step = match &progress.step {
+                    Step::Downloading { .. } | Step::Verifying => {
+                        Some(("Cancel", "win.update-cancel", false, true))
+                    }
+                    Step::Ready(_) => {
+                        Some(("Restart to Update", "win.update-install", true, true))
+                    }
+                    Step::Installing => {
+                        Some(("Restart to Update", "win.update-install", true, false))
+                    }
+                    Step::Failed(_) => Some(("Try Again", "win.update-download", false, true)),
+                    Step::Idle if installs => {
+                        Some(("Download Update", "win.update-download", true, true))
+                    }
+                    Step::Idle => None,
+                };
+                next.set_visible(step.is_some());
+                if let Some((label, action, accent, sensitive)) = step {
+                    next.set_label(label);
+                    next.set_action_name(Some(action));
+                    next.set_sensitive(sensitive);
+                    if accent {
+                        next.add_css_class("suggested-action");
+                    } else {
+                        next.remove_css_class("suggested-action");
+                    }
+                }
+                let page = !flatpak && crate::updates::page(status).is_some();
+                view.set_visible(page);
+                // Accented while it is the way to the new version.
+                if step.is_none() {
+                    view.add_css_class("suggested-action");
+                } else {
+                    view.remove_css_class("suggested-action");
+                }
+                check.set_visible(!flatpak && idle && !installs);
                 check.set_sensitive(!checking && !known.offline);
+                actions.set_visible(
+                    bar.is_visible() || next.is_visible() || page || check.is_visible(),
+                );
             }
         });
         shown();
         self.update.replace(Some(shown));
-        row
     }
 
     /// Accounts: the trackers, each signed in or not.

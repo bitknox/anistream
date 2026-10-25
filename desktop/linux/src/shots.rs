@@ -46,6 +46,7 @@ pub const ALL: [&str; 34] = [
     "torrents-none",
     "torrents-on",
     "settings-updates",
+    "update-ready",
     "about",
     "player",
     "player-marks",
@@ -259,7 +260,16 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "settings-updates" => {
             use anistream_model::updates::{Release, UpdateStatus};
             shell.settings_pane("integrations");
-            // As the daily check tells of a release: the toast once, and the row after.
+            // As the daily check tells of a release with an AppImage for each machine: a scene
+            // goes through the update's steps, fetching nothing.
+            let appimage = |arch: &str| anistream_model::updates::ReleaseAsset {
+                name: format!("anistream-2.1.0-linux-{arch}.AppImage"),
+                url: format!(
+                    "https://releases.example/v2.1.0/anistream-2.1.0-linux-{arch}.AppImage"
+                ),
+                sha256: "5e".repeat(32),
+                size: 118_400_000,
+            };
             shell.ctx.hub.take(vec![anistream_model::event::Event::Update(
                 UpdateStatus::Available {
                     release: Box::new(Release {
@@ -273,13 +283,19 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                         android_tv: None,
                         windows_x64: None,
                         windows_arm64: None,
-                        linux_x86_64: None,
-                        linux_aarch64: None,
+                        linux_x86_64: Some(appimage("x86_64")),
+                        linux_aarch64: Some(appimage("aarch64")),
                     }),
                     notify: true,
                 },
             )]);
             1.5
+        }
+        // The download rehearsed and checked: the row offers Restart to Update, and so does the
+        // notice.
+        "update-ready" => {
+            shell.settings_pane("integrations");
+            4.5
         }
         "accounts-kitsu" => {
             shell.settings_pane("accounts");
