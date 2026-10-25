@@ -415,7 +415,8 @@ fn seconds_left(expires_at: i64, now: i64) -> i64 {
 /// "Get a new code" does, which replaces this dialog.
 fn countdown(ctx: &Rc<Ctx>, tracker: &str, expires_at: i64) -> gtk::Label {
     let now = || glib::real_time() / 1_000_000;
-    let label = widgets::haze(&present::device_code_expiry(seconds_left(expires_at, now())), "caption");
+    let label =
+        widgets::haze(&present::device_code_expiry(seconds_left(expires_at, now())), "caption");
     label.add_css_class("numeric");
     label.set_halign(gtk::Align::Center);
     label.set_xalign(0.5);

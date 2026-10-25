@@ -402,12 +402,7 @@ impl Page {
         let cell = gtk::Box::new(gtk::Orientation::Vertical, 4);
         if broadcast.watched() {
             let line = widgets::haze(
-                &format!(
-                    "{} · Ep {} · {}",
-                    broadcast.clock(),
-                    broadcast.episode,
-                    entry.title
-                ),
+                &format!("{} · Ep {} · {}", broadcast.clock(), broadcast.episode, entry.title),
                 "caption",
             );
             line.set_wrap(false);

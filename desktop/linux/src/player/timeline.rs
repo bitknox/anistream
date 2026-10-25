@@ -148,7 +148,8 @@ impl Marked {
                         if end <= start {
                             continue;
                         }
-                        let from = x + w * ((start - adjustment.lower()) / length).clamp(0.0, 1.0);
+                        let from =
+                            x + w * ((start - adjustment.lower()) / length).clamp(0.0, 1.0);
                         let to = x + w * ((end - adjustment.lower()) / length).clamp(0.0, 1.0);
                         cr.rectangle(from, y, (to - from).max(1.0), h);
                         let _ = cr.fill();
