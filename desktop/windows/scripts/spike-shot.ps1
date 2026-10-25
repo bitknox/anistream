@@ -37,21 +37,6 @@ if (-not $Inner) {
   Remove-Item $done -ErrorAction SilentlyContinue
   $quoted = "'" + ($Arguments -replace "'", "''") + "'"
   $screenArg = if ($Screen) { ' -Screen' } else { '' }
-  if ($Taskbar -ge 0) {
-    [SpikeWin]::keybd_event(0x5B, 0, 0, [UIntPtr]::Zero)
-    [SpikeWin]::keybd_event(0x54, 0, 0, [UIntPtr]::Zero)
-    [SpikeWin]::keybd_event(0x54, 0, 2, [UIntPtr]::Zero)
-    [SpikeWin]::keybd_event(0x5B, 0, 2, [UIntPtr]::Zero)
-    Start-Sleep -Milliseconds 600
-    if ($Taskbar -gt 0) {
-      1..$Taskbar | ForEach-Object {
-        [SpikeWin]::keybd_event(0x27, 0, 0, [UIntPtr]::Zero)
-        [SpikeWin]::keybd_event(0x27, 0, 2, [UIntPtr]::Zero)
-        Start-Sleep -Milliseconds 400
-      }
-    }
-    Start-Sleep -Milliseconds 2000
-  }
   if ($Volume) { $screenArg += ' -Volume' }
   if ($Point) { $screenArg += " -Point '$Point'" }
   if ($Taskbar -ge 0) { $screenArg += " -Taskbar $Taskbar" }
@@ -105,6 +90,21 @@ foreach ($mark in ($marks | Sort-Object)) {
       Start-Sleep -Milliseconds 120
     }
     Start-Sleep -Milliseconds 2500
+  }
+  if ($Taskbar -ge 0) {
+    [SpikeWin]::keybd_event(0x5B, 0, 0, [UIntPtr]::Zero)
+    [SpikeWin]::keybd_event(0x54, 0, 0, [UIntPtr]::Zero)
+    [SpikeWin]::keybd_event(0x54, 0, 2, [UIntPtr]::Zero)
+    [SpikeWin]::keybd_event(0x5B, 0, 2, [UIntPtr]::Zero)
+    Start-Sleep -Milliseconds 600
+    if ($Taskbar -gt 0) {
+      1..$Taskbar | ForEach-Object {
+        [SpikeWin]::keybd_event(0x27, 0, 0, [UIntPtr]::Zero)
+        [SpikeWin]::keybd_event(0x27, 0, 2, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 400
+      }
+    }
+    Start-Sleep -Milliseconds 2000
   }
   if ($Volume) {
     # VK_VOLUME_UP then VK_VOLUME_DOWN: the level ends where it was, the overlay shows.
