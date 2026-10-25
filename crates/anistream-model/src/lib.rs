@@ -51,6 +51,7 @@ pub mod hosted;
 pub mod jobs;
 pub mod notice;
 pub mod notifications;
+pub mod party;
 pub mod playback;
 pub mod present;
 pub mod progress;

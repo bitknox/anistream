@@ -156,6 +156,7 @@ dependencies = [
  "anistream-meta",
  "anistream-model",
  "anistream-net",
+ "anistream-party",
  "anistream-playback",
  "anistream-player",
  "anistream-plugin",
@@ -194,6 +195,7 @@ dependencies = [
  "anistream-model",
  "anistream-mpv-host",
  "anistream-net",
+ "anistream-party",
  "anistream-providers",
  "anistream-remote",
  "anistream-store",
@@ -261,6 +263,20 @@ dependencies = [
  "webpki-root-certs",
  "wreq",
  "wreq-util",
+]
+
+[[package]]
+name = "anistream-party"
+version = "2.0.0"
+dependencies = [
+ "rustls",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "webpki-roots",
 ]
 
 [[package]]

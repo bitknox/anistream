@@ -359,25 +359,28 @@ pub enum PlayerUi {
     Mpv,
 }
 
-/// Watch parties via Syncplay.
+/// Watch parties, on a Syncplay server.
 ///
-/// A handoff, not a session: Syncplay owns the player it launches, so progress is not
-/// recorded while a party is on — a shared watch is not private history. Turn it on for
-/// the evening, off after. Syncplay's own config decides which player it drives.
+/// The engine speaks Syncplay itself and keeps its own player with the room. An app starts a
+/// party on purpose, from its form; these are the terminal's way in, and the defaults the form
+/// opens with. A party writes no private history but the episodes it finishes: the room pausing
+/// or jumping is never kept as where you left off.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SyncplayConfig {
-    /// Hand playback to Syncplay instead of a private mpv session.
+    /// Every play from the terminal joins the party set below, not only those `y` starts.
     pub enabled: bool,
-    /// `host:port` of the Syncplay server everyone in the room uses.
+    /// `host:port` of the server the terminal's parties use. Empty until chosen: there is no
+    /// default server, since a public one is run by people the viewer may not know.
     pub server: String,
-    /// The room to join. Required before a party can start — Syncplay's no-gui mode
-    /// refuses an empty room, so anistream asks for this up front rather than spawning
-    /// a process that immediately dies.
+    /// The room the terminal's parties join. A new one, named at random, when unset.
     pub room: Option<String>,
     /// The name shown to the room.
     pub name: String,
-    /// The Syncplay executable, a path or a name on `PATH`.
+    /// Servers used for a party before, the last first: what the form offers.
+    pub recent_servers: Vec<String>,
+    /// Reserved. Accepted so existing configs keep parsing, but has no effect since the engine
+    /// speaks Syncplay itself and no longer starts the Syncplay program.
     pub binary: String,
 }
 
@@ -385,11 +388,31 @@ impl Default for SyncplayConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            server: "syncplay.pl:8995".into(),
+            server: String::new(),
             room: None,
             name: "anistream".into(),
+            recent_servers: Vec::new(),
             binary: "syncplay".into(),
         }
+    }
+}
+
+impl SyncplayConfig {
+    /// How many servers [`SyncplayConfig::recent_servers`] keeps.
+    pub const RECENT: usize = 5;
+
+    /// The servers used before with `server` first, as the next party's form should offer them.
+    pub fn used(&self, server: &str) -> Vec<String> {
+        let server = server.trim();
+        let mut recent = vec![server.to_owned()];
+        recent.extend(
+            self.recent_servers
+                .iter()
+                .filter(|s| !s.trim().eq_ignore_ascii_case(server) && !s.trim().is_empty())
+                .cloned(),
+        );
+        recent.truncate(Self::RECENT);
+        recent
     }
 }
 

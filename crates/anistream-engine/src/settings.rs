@@ -167,6 +167,26 @@ pub fn remember(
     tx: impl FnOnce() -> Outbox,
 ) {
     use anistream_core::settings::SettingValue as V;
+    // A party joined puts its server first among the ones the form offers, and keeps it there
+    // across launches.
+    if let Event::PartyJoined(view) = event {
+        let syncplay = &mut engine.config.effective_mut().syncplay;
+        let recent = syncplay.used(&view.server);
+        if recent == syncplay.recent_servers {
+            return;
+        }
+        syncplay.recent_servers.clone_from(&recent);
+        let tx = tx();
+        write_setting(
+            &["syncplay"],
+            "recent_servers",
+            V::Strings(recent),
+            engine,
+            services,
+            &tx,
+        );
+        return;
+    }
     let playback = &mut engine.config.effective_mut().playback;
     let saved = match event {
         Event::PlaybackSpeed(speed) => {

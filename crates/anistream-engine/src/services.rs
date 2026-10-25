@@ -77,6 +77,9 @@ pub struct Services {
     /// The exit network the connection check answers with, in a fixture build or a test: the
     /// guard then makes no lookup. `None` for the app, which looks it up.
     pub fixture_exit: Option<anistream_providers::vpn::Egress>,
+    /// Where playbacks find the watch party, when there is one. Opened by the `party` feature's
+    /// party, and never without it.
+    pub party: crate::playback::seat::PartyHub,
 }
 
 impl Services {
@@ -125,6 +128,7 @@ impl Services {
             host,
             clock: Default::default(),
             fixture_exit: None,
+            party: Default::default(),
         })
     }
 }

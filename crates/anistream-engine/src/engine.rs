@@ -247,6 +247,7 @@ impl Engine {
                     host,
                     clock: parts.clock,
                     fixture_exit: parts.fixture_exit,
+                    party: Default::default(),
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
@@ -1671,21 +1672,22 @@ mod tests {
             "{seen:?}"
         );
 
-        // A release picked by hand the same, and a watch party for want of Syncplay: refused
-        // before anything is staged.
+        // A release picked by hand the same, and a watch party where this build has none:
+        // refused before anything is staged.
         let episode = || "1".to_owned();
-        for (play, refusal) in [
-            (
-                Command::PlaySource {
-                    id,
-                    episode: episode(),
-                    provider_id: "yamabiko".into(),
-                    source_id: "a".into(),
-                },
-                crate::playback::NO_PLAYER,
-            ),
-            (Command::PlayParty { id, episode: episode() }, crate::playback::NO_PARTY),
-        ] {
+        let mut plays = vec![(
+            Command::PlaySource {
+                id,
+                episode: episode(),
+                provider_id: "yamabiko".into(),
+                source_id: "a".into(),
+            },
+            crate::playback::NO_PLAYER,
+        )];
+        if cfg!(not(feature = "party")) {
+            plays.push((Command::play_party(id, episode()), crate::playback::NO_PARTY));
+        }
+        for (play, refusal) in plays {
             engine.send(play);
             let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
             assert!(
@@ -1697,6 +1699,175 @@ mod tests {
                 "{seen:?}"
             );
         }
+    }
+
+    /// [`until`], for an event anywhere in what comes, not only last in its batch: what a
+    /// party says comes in bursts.
+    #[cfg(feature = "party")]
+    async fn seen_until(events: &mut EventStream, done: impl Fn(&Event) -> bool) -> Vec<Event> {
+        let mut seen = Vec::new();
+        while !seen.iter().any(&done) {
+            match tokio::time::timeout(Duration::from_secs(2), events.next_events()).await {
+                Ok(batch) if !batch.is_empty() => seen.extend(batch),
+                _ => panic!("nothing more, having seen {seen:?}"),
+            }
+        }
+        seen
+    }
+
+    /// A party joined, steered and left through the engine, on a server of the test's own.
+    #[cfg(feature = "party")]
+    #[tokio::test]
+    async fn a_watch_party_is_joined_steered_and_left() {
+        use anistream_model::party::{PartyMessageKind, SUGGESTED_SERVER};
+        use anistream_party::fake::{FakeOptions, FakeServer};
+
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let server = FakeServer::start(FakeOptions::default()).await.unwrap();
+
+        // The form: the public server suggested, nothing used before, and a room to meet in.
+        engine.send(Command::LoadPartyForm);
+        let seen = seen_until(&mut events, |e| matches!(e, Event::PartyForm(_))).await;
+        let Some(Event::PartyForm(form)) =
+            seen.iter().find(|e| matches!(e, Event::PartyForm(_)))
+        else {
+            unreachable!()
+        };
+        assert_eq!(form.suggested_server, SUGGESTED_SERVER);
+        assert!(form.recent_servers.is_empty());
+        assert!(!form.room.is_empty());
+
+        // Joined: the room said, and its server kept first among the ones used.
+        let room = "amber-anchor";
+        let join = || Command::PartyJoin {
+            server: server.address(),
+            room: room.into(),
+            name: Some("Ada".into()),
+        };
+        engine.send(join());
+        let seen = seen_until(&mut events, |e| matches!(e, Event::PartyJoined(_))).await;
+        let Some(Event::PartyJoined(view)) =
+            seen.iter().find(|e| matches!(e, Event::PartyJoined(_)))
+        else {
+            unreachable!()
+        };
+        assert_eq!((view.room.as_str(), view.name.as_str()), (room, "Ada"));
+        assert_eq!(view.server, server.address());
+        // The room's members listed, before anyone else comes in, and the server saved.
+        let mut seen = seen;
+        while !(seen.iter().any(|e| matches!(e, Event::Settings(_)))
+            && seen.iter().any(|e| matches!(e, Event::PartyMembers(_))))
+        {
+            seen.extend(seen_until(&mut events, |_| true).await);
+        }
+        let saved = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+        assert!(saved.contains(&server.address()), "{saved}");
+        // The same room again is the party already going.
+        engine.send(join());
+
+        // Someone else comes in, and the members are said with them.
+        let mika = server.member(room, "Mika");
+        let seen = seen_until(&mut events, |e| {
+            matches!(e, Event::PartyMessage(m) if matches!(&m.kind, PartyMessageKind::Joined { name } if name == "Mika"))
+        })
+        .await;
+        assert!(!seen.iter().any(|e| matches!(e, Event::PartyJoined(_))), "{seen:?}");
+        let members = seen_until(
+            &mut events,
+            |e| matches!(e, Event::PartyMembers(members) if members.len() == 2),
+        )
+        .await;
+        let Some(Event::PartyMembers(members)) =
+            members.iter().rev().find(|e| matches!(e, Event::PartyMembers(m) if m.len() == 2))
+        else {
+            unreachable!()
+        };
+        assert!(members.iter().any(|m| m.name == "Ada" && m.you));
+
+        // Ready, as the room sees it.
+        engine.send(Command::PartyReady { ready: true });
+        let seen =
+            seen_until(&mut events, |e| matches!(e, Event::PartyState(view) if view.ready))
+                .await;
+        assert!(!seen.is_empty());
+        let ready =
+            || server.room(room).and_then(|r| r.members.into_iter().find(|m| m.name == "Ada"));
+        for _ in 0..50 {
+            if ready().is_some_and(|ada| ada.ready == Some(true)) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert_eq!(ready().and_then(|ada| ada.ready), Some(true));
+
+        // Another room: the first is left without a word, and the new one says itself.
+        engine.send(Command::PartyJoin {
+            server: server.address(),
+            room: "birch-bell".into(),
+            name: Some("Ada".into()),
+        });
+        let seen = seen_until(
+            &mut events,
+            |e| matches!(e, Event::PartyJoined(view) if view.room == "birch-bell"),
+        )
+        .await;
+        assert!(!seen.iter().any(|e| matches!(e, Event::PartyLeft { .. })), "{seen:?}");
+        for _ in 0..50 {
+            if ready().is_none() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert_eq!(ready(), None, "out of the first room");
+
+        // Left: said once, and a party command after it is told there is none.
+        drop(mika);
+        engine.send(Command::PartyLeave);
+        let seen = seen_until(&mut events, |e| matches!(e, Event::PartyLeft { .. })).await;
+        assert!(
+            seen.iter().any(|e| matches!(e, Event::PartyLeft { reason: None })),
+            "{seen:?}"
+        );
+        engine.send(Command::PartyReady { ready: false });
+        seen_until(&mut events, |e| matches!(e, Event::PartyLeft { reason: None })).await;
+
+        // A server written wrong is refused with how to write it.
+        engine.send(Command::PartyJoin {
+            server: "syncplay.example:port".into(),
+            room: room.into(),
+            name: None,
+        });
+        let seen = seen_until(&mut events, |e| matches!(e, Event::PartyLeft { .. })).await;
+        let Some(reason) = seen.iter().find_map(|e| match e {
+            Event::PartyLeft { reason } => reason.clone(),
+            _ => None,
+        }) else {
+            panic!("{seen:?}")
+        };
+        assert!(reason.contains("host and a port"), "{reason}");
+    }
+
+    /// A party asked of a play with no server chosen: refused, naming the public one and who
+    /// runs it, with nothing staged.
+    #[cfg(feature = "party")]
+    #[tokio::test]
+    async fn a_party_play_with_no_server_names_the_suggestion() {
+        use anistream_model::party::{SUGGESTED_SERVER, SUGGESTED_SERVER_RUN_BY};
+
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        engine.send(Command::play_party(anistream_core::ids::AnilistId::new(7), "1"));
+        let seen = seen_until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+        let reason = seen.iter().find_map(|e| match e {
+            Event::PartyLeft { reason } => reason.clone(),
+            _ => None,
+        });
+        let reason = reason.unwrap_or_else(|| panic!("{seen:?}"));
+        assert!(reason.contains(SUGGESTED_SERVER) && reason.contains(SUGGESTED_SERVER_RUN_BY));
+        assert!(!seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })), "{seen:?}");
     }
 
     #[tokio::test]

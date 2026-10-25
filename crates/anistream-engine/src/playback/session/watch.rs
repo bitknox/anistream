@@ -67,6 +67,9 @@ impl Run<'_> {
                     tracing::debug!(error = %e, "player would not take chapter markers");
                 }
             }
+            // Not in a party, which slows a player down a little to stay with the room: a
+            // speed the party set is not the viewer's to keep.
+            Action::RememberSpeed(_) if self.in_party => {}
             Action::RememberSpeed(speed) => {
                 let _ = tx.send(Event::PlaybackSpeed(speed));
             }
@@ -115,7 +118,13 @@ impl Run<'_> {
     }
 
     /// Write a history row, and queue tracker progress the first time the episode completes.
+    ///
+    /// In a party only the episode being watched is written: where the room pauses or jumps to
+    /// is the room's, and is never kept as where this viewer left it.
     async fn record(&self, watch: WatchEvent, completed: bool, committed: &mut bool) {
+        if self.in_party && !completed {
+            return;
+        }
         // Local first, always. The history row is written before anything is queued for a
         // tracker, so a failed push can never cost you the watch.
         let queue_now = completed && !*committed;

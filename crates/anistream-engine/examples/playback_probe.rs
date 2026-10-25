@@ -187,8 +187,7 @@ async fn main() {
             // out to a Discord socket would add a variable that has nothing to do with it.
             presence: Default::default(),
             // Syncplay off, same reasoning.
-            syncplay: Default::default(),
-            party: false,
+            party: Default::default(),
             up_next_countdown: 10,
             mpv_options: Vec::new(),
         };

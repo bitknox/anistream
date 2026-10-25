@@ -152,6 +152,7 @@ dependencies = [
  "anistream-meta",
  "anistream-model",
  "anistream-net",
+ "anistream-party",
  "anistream-playback",
  "anistream-plugin",
  "anistream-plugin-store",
@@ -219,6 +220,20 @@ dependencies = [
  "webpki-root-certs",
  "wreq",
  "wreq-util",
+]
+
+[[package]]
+name = "anistream-party"
+version = "2.0.0"
+dependencies = [
+ "rustls",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-rustls",
+ "tracing",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -4371,6 +4386,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",

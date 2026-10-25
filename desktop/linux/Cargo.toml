@@ -32,8 +32,9 @@ anistream-core = { path = "../../crates/anistream-core" }
 anistream-model = { path = "../../crates/anistream-model" }
 anistream-net = { path = "../../crates/anistream-net" }
 anistream-store = { path = "../../crates/anistream-store" }
-# Without the terminal's mpv child, as this app hosts its own player; with the Discord presence.
-anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence"] }
+# Without the terminal's mpv child, as this app hosts its own player; with the Discord presence
+# and watch parties.
+anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence", "party"] }
 anistream-mpv-host = { path = "../../crates/anistream-mpv-host", features = ["libmpv"] }
 
 anistream-testkit = { path = "../../crates/anistream-testkit", optional = true }
