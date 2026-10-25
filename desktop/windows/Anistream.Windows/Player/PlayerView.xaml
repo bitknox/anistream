@@ -136,7 +136,7 @@
         </Border>
 
         <!-- Bottom bar: play, back and forward 10 s, the timeline and the times, volume and settings. -->
-        <Grid x:Name="BottomBar" Grid.Row="2" Padding="12,0,12,12" ColumnSpacing="6" PointerEntered="OnBarEntered" PointerExited="OnBarExited">
+        <Grid x:Name="BottomBar" Grid.Row="2" Padding="12,0,12,12" ColumnSpacing="6" SizeChanged="OnBottomBarSized" PointerEntered="OnBarEntered" PointerExited="OnBarExited">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />

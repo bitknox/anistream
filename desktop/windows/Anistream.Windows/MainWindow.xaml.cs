@@ -122,7 +122,7 @@ public sealed partial class MainWindow : Window
 #endif
             if (e is not Event.PlayerOps ops)
                 return false;
-            Player.NoteLoad(ops.Ops);
+            Player.NoteLoad(ops.PlaybackValue, ops.Ops);
             player?.Apply(ops.PlaybackValue, ops.Ops);
             return true;
         };
