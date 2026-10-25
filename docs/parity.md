@@ -100,6 +100,10 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
     Syncplay Party" stub is gone, and nothing sends `.playParty`.
 13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
 
+On Mac, iPhone and iPad the seek line draws the engine's own opening and ending marks
+(`Event::PlayerTimeline`, the chapters standing in until it has said) and the buffered ranges it
+reads from mpv's `demuxer-cache-state` (`Event::PlayerBuffered`), in `PlayerParts.swift`.
+
 Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
 companion binds u. Windows and Linux bind neither, and Linux's skip toast has no Undo. No player
 binds T for the tracks the desktop brief gives it.
