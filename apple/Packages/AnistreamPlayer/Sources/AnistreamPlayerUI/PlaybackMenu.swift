@@ -73,9 +73,6 @@ public struct PlaybackMenu: View {
                         set: { _ in model.selectAudio(track.id) }
                     ))
                 }
-                #if os(macOS)
-                Button(TrackFiles.title(.audio)) { TrackFiles.load(.audio, into: model) }
-                #endif
             }
             Section("Subtitles") {
                 Toggle("Off", isOn: Binding(
@@ -88,10 +85,13 @@ public struct PlaybackMenu: View {
                         set: { _ in model.selectSubtitle(track.id) }
                     ))
                 }
-                #if os(macOS)
-                Button(TrackFiles.title(.sub)) { TrackFiles.load(.sub, into: model) }
-                #endif
             }
+            #if os(macOS)
+            // Last, apart from the picks the engine remembers: a file is this episode's alone.
+            Divider()
+            Button(TrackFiles.title(.sub)) { TrackFiles.load(.sub, into: model) }
+            Button(TrackFiles.title(.audio)) { TrackFiles.load(.audio, into: model) }
+            #endif
         }
         .disabled(!playing)
         Divider()
