@@ -483,7 +483,7 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
     val seen = (entry.progress?.done ?: 0u) >= broadcast.episode
     val seconds = broadcast.airs.epochSecond - now.epochSecond
     val out = seconds <= 0
-    // Dub or Sub goes with the episode it is about: "Episode 10 · Dub out 2 hours ago".
+    // Dub, the only mark, goes with the episode it is about: "Episode 10 · Dub out 2 hours ago".
     val episode = listOfNotNull("Episode ${broadcast.episode}", calendarMark(entry)).joinToString(" · ")
     val line = when {
         seen -> episode
