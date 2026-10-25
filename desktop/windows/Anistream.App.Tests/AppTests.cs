@@ -93,11 +93,11 @@ public class KnownTests
     [Fact]
     public void ClosingCountsWhatDownloadsAndWhatSeeds()
     {
-        static DownloadRow row(DownloadState state) => new(
+        static DownloadRow Row(DownloadState state) => new(
             Id: 1, AnilistId: 1, Title: "Atelier Hotaru", Episode: "1", State: state, Fraction: 0,
             Downloaded: 0, Total: 0);
         var known = new Known();
-        known.Take(new Event.Downloads([row(DownloadState.Active), row(DownloadState.Queued), row(DownloadState.Done), row(DownloadState.Paused)]));
+        known.Take(new Event.Downloads([Row(DownloadState.Active), Row(DownloadState.Queued), Row(DownloadState.Done), Row(DownloadState.Paused)]));
         Assert.Equal((2, 0), known.Running());
     }
 }
@@ -154,11 +154,11 @@ public class CalendarTests
             new Entry(Id: 3, Title: "Kiriha Station", AiringIn: 7200, AiringEpisode: 3, AiringTranslation: Translation.Sub),
         };
         var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
-        Func<uint, Broadcast> row = id => broadcasts.Single(b => b.Entry.Id == id);
-        Assert.Equal("Ep 10 · ~16:30", row(1).Line(Utc));
-        Assert.Equal("Dub", row(1).Mark);
-        Assert.Null(row(2).Mark);
-        Assert.Null(row(3).Mark);
+        Func<uint, Broadcast> broadcast = id => broadcasts.Single(b => b.Entry.Id == id);
+        Assert.Equal("Ep 10 · ~16:30", broadcast(1).Line(Utc));
+        Assert.Equal("Dub", broadcast(1).Mark);
+        Assert.Null(broadcast(2).Mark);
+        Assert.Null(broadcast(3).Mark);
     }
 }
 
@@ -213,7 +213,7 @@ public class SettingsCatalogTests
         Assert.Empty(SettingsCatalog.Needs(SettingKey.Presence));
     }
 
-    static SettingRow row(SettingKey key, string value, SettingChange? change = null) =>
+    static SettingRow Row(SettingKey key, string value, SettingChange? change = null) =>
         new(key, value, change ?? new SettingChange.Steps(true, true));
 
     [Fact]
@@ -221,13 +221,13 @@ public class SettingsCatalogTests
     {
         // A switch is a switch whatever words the row says, and a ladder is a menu even when one
         // of its values reads "off".
-        Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(row(SettingKey.AutoNext, "on")));
-        Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(row(SettingKey.Torrents, "off")));
-        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(row(SettingKey.UpNextCountdown, "off")));
-        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(row(SettingKey.Upscaling, "off")));
-        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(row(SettingKey.Quality, "1080p")));
-        Assert.Equal(SettingControl.Text, SettingsCatalog.ControlFor(row(SettingKey.DownloadDir, "D:/Anime", new SettingChange.Typed("D:/Anime"))));
-        Assert.Equal(SettingControl.ReadOnly, SettingsCatalog.ControlFor(row(SettingKey.VpnMode, "external", new SettingChange.Fixed())));
+        Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(Row(SettingKey.AutoNext, "on")));
+        Assert.Equal(SettingControl.Switch, SettingsCatalog.ControlFor(Row(SettingKey.Torrents, "off")));
+        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(Row(SettingKey.UpNextCountdown, "off")));
+        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(Row(SettingKey.Upscaling, "off")));
+        Assert.Equal(SettingControl.Choice, SettingsCatalog.ControlFor(Row(SettingKey.Quality, "1080p")));
+        Assert.Equal(SettingControl.Text, SettingsCatalog.ControlFor(Row(SettingKey.DownloadDir, "D:/Anime", new SettingChange.Typed("D:/Anime"))));
+        Assert.Equal(SettingControl.ReadOnly, SettingsCatalog.ControlFor(Row(SettingKey.VpnMode, "external", new SettingChange.Fixed())));
     }
 
     [Fact]
@@ -249,14 +249,14 @@ public class SettingsCatalogTests
     [Fact]
     public void ARowStandsOnTheOptionItsWordsSay()
     {
-        Assert.Equal(new SettingValue.Int(1080), SettingsCatalog.Current(row(SettingKey.Quality, "1080p"))?.Value);
-        Assert.Null(SettingsCatalog.Current(row(SettingKey.Quality, "1440p")));
+        Assert.Equal(new SettingValue.Int(1080), SettingsCatalog.Current(Row(SettingKey.Quality, "1080p"))?.Value);
+        Assert.Null(SettingsCatalog.Current(Row(SettingKey.Quality, "1440p")));
         // The session's choice is beside the saved one, and the row stands on the saved one.
-        Assert.Equal(new SettingValue.Str("sub"), SettingsCatalog.Current(row(SettingKey.Translation, "sub · dub this session"))?.Value);
-        Assert.True(SettingsCatalog.IsOn(row(SettingKey.Fullscreen, "on")));
-        Assert.False(SettingsCatalog.IsOn(row(SettingKey.Fullscreen, "off")));
-        Assert.False(SettingsCatalog.Editable(row(SettingKey.VpnMode, "external", new SettingChange.Fixed())));
-        Assert.Equal("D:/Anime", SettingsCatalog.TypedText(row(SettingKey.DownloadDir, "D:/Anime", new SettingChange.Typed("D:/Anime"))));
+        Assert.Equal(new SettingValue.Str("sub"), SettingsCatalog.Current(Row(SettingKey.Translation, "sub · dub this session"))?.Value);
+        Assert.True(SettingsCatalog.IsOn(Row(SettingKey.Fullscreen, "on")));
+        Assert.False(SettingsCatalog.IsOn(Row(SettingKey.Fullscreen, "off")));
+        Assert.False(SettingsCatalog.Editable(Row(SettingKey.VpnMode, "external", new SettingChange.Fixed())));
+        Assert.Equal("D:/Anime", SettingsCatalog.TypedText(Row(SettingKey.DownloadDir, "D:/Anime", new SettingChange.Typed("D:/Anime"))));
     }
 }
 
@@ -360,7 +360,7 @@ public class StoresTests
         var known = new Known();
         known.Take(new Event.SourcesChanged());
         Assert.True(known.Rebuilding);
-        known.Take(new Event.Providers([new Providerrow(Id: "torrent", Kind: "torrent", State: "ready", Usable: true, Name: "Torrents", Origin: new ProviderOrigin.BuiltIn())]));
+        known.Take(new Event.Providers([new ProviderRow(Id: "torrent", Kind: "torrent", State: "ready", Usable: true, Name: "Torrents", Origin: new ProviderOrigin.BuiltIn())]));
         Assert.False(known.Rebuilding);
         Assert.True(known.ProvidersLoaded);
         known.Take(new Event.Stores([Store("one")]));
@@ -374,7 +374,7 @@ public class StoresTests
 
 public class DownloadsTests
 {
-    static DownloadRow row(long id, uint title, DownloadState state, ulong downloaded, ulong total) =>
+    static DownloadRow Row(long id, uint title, DownloadState state, ulong downloaded, ulong total) =>
         new(Id: id, AnilistId: title, Title: $"Show {title}", Episode: id.ToString(), State: state,
             Fraction: total == 0 ? 0 : (double)downloaded / total, Downloaded: downloaded, Total: total);
 
@@ -384,8 +384,8 @@ public class DownloadsTests
         var queue = new DownloadQueue();
         var now = DateTimeOffset.UnixEpoch;
         queue.Apply([
-            row(1, 7, DownloadState.Done, 1000, 1000), row(2, 9, DownloadState.Queued, 0, 0),
-            row(3, 7, DownloadState.Active, 300, 1000), row(4, 9, DownloadState.Paused, 50, 100)], now);
+            Row(1, 7, DownloadState.Done, 1000, 1000), Row(2, 9, DownloadState.Queued, 0, 0),
+            Row(3, 7, DownloadState.Active, 300, 1000), Row(4, 9, DownloadState.Paused, 50, 100)], now);
         var groups = queue.Groups();
         Assert.Equal([7u, 9u], groups.Select(g => g.Id));
         Assert.Equal([1L, 3L], groups[0].Rows.Select(r => r.Id));
@@ -399,23 +399,23 @@ public class DownloadsTests
     {
         var queue = new DownloadQueue();
         var t = DateTimeOffset.UnixEpoch;
-        queue.Apply([row(1, 7, DownloadState.Active, 0, 10_000)], t);
+        queue.Apply([Row(1, 7, DownloadState.Active, 0, 10_000)], t);
         Assert.Null(queue.SecondsLeft(queue.Rows[0]));
-        queue.Apply([row(1, 7, DownloadState.Active, 1_000, 10_000)], t.AddSeconds(1));
+        queue.Apply([Row(1, 7, DownloadState.Active, 1_000, 10_000)], t.AddSeconds(1));
         Assert.Equal(1_000, queue.Rates[1], 3);
         Assert.Equal(9, queue.SecondsLeft(queue.Rows[0]));
-        queue.Apply([row(1, 7, DownloadState.Active, 3_000, 10_000)], t.AddSeconds(2));
+        queue.Apply([Row(1, 7, DownloadState.Active, 3_000, 10_000)], t.AddSeconds(2));
         Assert.Equal(1_500, queue.Rates[1], 3);
         // A paused download has no speed.
-        queue.Apply([row(1, 7, DownloadState.Paused, 3_000, 10_000)], t.AddSeconds(3));
+        queue.Apply([Row(1, 7, DownloadState.Paused, 3_000, 10_000)], t.AddSeconds(3));
         Assert.False(queue.Rates.ContainsKey(1));
     }
 
     [Fact]
     public void ASeedingFilesSizeIsWhatWentUpOverTheRatio()
     {
-        Assert.Equal(400UL, new Seedrow(Name: "x", UploadedBytes: 100, Ratio: 0.25, Goal: 1, LeftSecs: 60).Size());
-        Assert.Null(new Seedrow(Name: "x", UploadedBytes: 0, Ratio: 0, Goal: 1, LeftSecs: 60).Size());
+        Assert.Equal(400UL, new SeedRow(Name: "x", UploadedBytes: 100, Ratio: 0.25, Goal: 1, LeftSecs: 60).Size());
+        Assert.Null(new SeedRow(Name: "x", UploadedBytes: 0, Ratio: 0, Goal: 1, LeftSecs: 60).Size());
     }
 }
 
@@ -528,7 +528,7 @@ public class SceneTests
         using (var session = new EngineSession(engine, a => { lock (gate) a(); }))
         {
             session.Start();
-            async Task<SettingRow?> row(SettingKey key, Func<SettingRow, bool> until)
+            async Task<SettingRow?> Row(SettingKey key, Func<SettingRow, bool> until)
             {
                 var deadline = DateTime.UtcNow.AddSeconds(15);
                 SettingRow? row = null;
@@ -550,11 +550,11 @@ public class SceneTests
             ];
             foreach (var key in keys)
             {
-                Assert.NotNull(await row(key, _ => true));
+                Assert.NotNull(await Row(key, _ => true));
                 foreach (var option in SettingsCatalog.Options(key))
                 {
                     session.Send(new Command.SetSetting(key, option.Value));
-                    var row = await row(key, r => r.Value == option.Label);
+                    var row = await Row(key, r => r.Value == option.Label);
                     Assert.True(row?.Value == option.Label, $"{key} set to {option.Label}: the engine's row says \"{row?.Value}\"");
                     Assert.Equal(option, SettingsCatalog.Current(row));
                 }
@@ -744,14 +744,14 @@ public class NoticesTests
         Assert.EndsWith("-dub", notices[2].Tag);
     }
 
-    static DownloadRow row(long id, uint show, string episode, DownloadState state) =>
+    static DownloadRow Row(long id, uint show, string episode, DownloadState state) =>
         new(id, show, $"Show {show}", episode, state, state == DownloadState.Done ? 1 : 0.5, 0, 0);
 
     [Fact]
     public void AFinishedDownloadIsSaidOncePerShow()
     {
-        DownloadRow[] before = [row(1, 7, "3", DownloadState.Active), row(2, 8, "1", DownloadState.Active), row(3, 8, "2", DownloadState.Queued), row(4, 9, "1", DownloadState.Done)];
-        DownloadRow[] now = [row(1, 7, "3", DownloadState.Done), row(2, 8, "1", DownloadState.Done), row(3, 8, "2", DownloadState.Done), row(4, 9, "1", DownloadState.Done)];
+        DownloadRow[] before = [Row(1, 7, "3", DownloadState.Active), Row(2, 8, "1", DownloadState.Active), Row(3, 8, "2", DownloadState.Queued), Row(4, 9, "1", DownloadState.Done)];
+        DownloadRow[] now = [Row(1, 7, "3", DownloadState.Done), Row(2, 8, "1", DownloadState.Done), Row(3, 8, "2", DownloadState.Done), Row(4, 9, "1", DownloadState.Done)];
         var notices = Notices.Downloaded(before, now);
         Assert.Equal(["Episode 3 downloaded.", "2 episodes downloaded."], notices.Select(n => n.Body));
         Assert.Equal("1", notices[1].Play);
@@ -769,13 +769,13 @@ public class NoticesTests
 
 public class EpisodeDownloadTests
 {
-    static DownloadRow row(long id, uint show, string episode, DownloadState state, double fraction = 0.5, ulong total = 100) =>
+    static DownloadRow Row(long id, uint show, string episode, DownloadState state, double fraction = 0.5, ulong total = 100) =>
         new(id, show, $"Show {show}", episode, state, fraction, (ulong)(fraction * total), total);
 
     [Fact]
     public void AnEpisodeWithNoRowOffersADownload()
     {
-        var cell = EpisodeDownload.Of([row(1, 7, "3", DownloadState.Done)], 7, "4");
+        var cell = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Done)], 7, "4");
         Assert.Equal(EpisodeDownloadKind.None, cell.Kind);
         Assert.True(cell.Asks);
         Assert.Equal("Download episode 4", cell.Say);
@@ -784,21 +784,21 @@ public class EpisodeDownloadTests
     [Fact]
     public void ARunningDownloadSaysHowFar()
     {
-        var going = EpisodeDownload.Of([row(1, 7, "3", DownloadState.Active, 0.456)], 7, "3");
+        var going = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Active, 0.456)], 7, "3");
         Assert.Equal("Downloading · 45%", going.Say);
         Assert.False(going.Asks);
-        Assert.Equal(EpisodeDownloadKind.Queued, EpisodeDownload.Of([row(1, 7, "3", DownloadState.Active, 0, 0)], 7, "3").Kind);
-        Assert.Equal("Download paused at 50%", EpisodeDownload.Of([row(1, 7, "3", DownloadState.Paused)], 7, "3").Say);
+        Assert.Equal(EpisodeDownloadKind.Queued, EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Active, 0, 0)], 7, "3").Kind);
+        Assert.Equal("Download paused at 50%", EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Paused)], 7, "3").Say);
     }
 
     [Fact]
     public void AFinishedFileWinsOverAFailedRetry()
     {
-        DownloadRow[] rows = [row(1, 7, "3", DownloadState.Done, 1), row(2, 7, "3", DownloadState.Failed), row(3, 8, "3", DownloadState.Active)];
+        DownloadRow[] rows = [Row(1, 7, "3", DownloadState.Done, 1), Row(2, 7, "3", DownloadState.Failed), Row(3, 8, "3", DownloadState.Active)];
         Assert.Equal(EpisodeDownloadKind.Done, EpisodeDownload.Of(rows, 7, "3").Kind);
-        var failed = EpisodeDownload.Of([row(1, 7, "3", DownloadState.Failed), row(2, 7, "3", DownloadState.Queued)], 7, "3");
+        var failed = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed), Row(2, 7, "3", DownloadState.Queued)], 7, "3");
         Assert.Equal(EpisodeDownloadKind.Queued, failed.Kind);
-        Assert.True(EpisodeDownload.Of([row(1, 7, "3", DownloadState.Failed)], 7, "3").Asks);
+        Assert.True(EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed)], 7, "3").Asks);
     }
 }
 
@@ -1042,7 +1042,7 @@ public class StatsPanelTests
     }
 
     static PlayerStats Stats(bool waiting = false, params (string Label, string Value, bool Warn)[] rows) =>
-        new([.. rows.Select(r => new Detailrow(r.Label, r.Value, r.Warn))], [], waiting);
+        new([.. rows.Select(r => new DetailRow(r.Label, r.Value, r.Warn))], [], waiting);
 
     [Fact]
     public void ToggledItComesUpThenGoesAwayAndTellsThePlayerEachTime()
