@@ -134,7 +134,7 @@ class BoardShots {
         compose.runOnUiThread { it.apply(listOf(Event.Content(ContentFor.Calendar, ContentList.Failed(FAILURE)))) }
     }
 
-    /** The calendar with an estimated time ("~") and rows marked Dub and Sub beside their times. */
+    /** The calendar with an estimated time ("~") and rows marked Dub (sub rows plain) beside their times. */
     @Test
     @Config(qualifiers = PHONE)
     fun phone_calendar_marked() = shoot("phone-calendar-marked", WATCHING, start = Destination.Calendar) { store ->

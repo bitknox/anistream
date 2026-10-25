@@ -29,9 +29,9 @@ struct Broadcast: Identifiable, Equatable {
     }
 
     /// "Dub" on the episode line, when the engine marks the row as the dub's. Only dubs are
-    /// marked: a subbed episode is the usual case, so the engine's "Sub" says nothing here.
+    /// marked, and the engine marks nothing else.
     var mark: String? {
-        calendarMark(entry: entry).flatMap { $0 == "Dub" ? $0 : nil }
+        calendarMark(entry: entry)
     }
 
     /// The mark as the episode line ends with it: " · Dub", or nothing. The spaces don't break,
