@@ -78,6 +78,12 @@ struct ReducerTests {
         ])
         #expect(queue.newThisWeek.map(\.action) == ["Start E8 · Dub · out 19h ago"])
         #expect(queue.newThisWeek.map(\.buttonTitle) == ["Start Episode 8 · Dub"])
+        // iPhone and iPad say it in sentence case, the Mac in title case.
+        #expect(queue.inProgress.map { $0.buttonTitle(titleCase: false) } == [
+            "Resume episode 7 · 10:06", "Resume episode 2 · Dub · 13:30", "Start episode 4",
+        ])
+        #expect(queue.newThisWeek.map { $0.buttonTitle(titleCase: false) } == ["Start episode 8 · Dub"])
+        #expect(queue.inProgress.map { $0.buttonTitle(titleCase: true) } == queue.inProgress.map(\.buttonTitle))
         #expect(queue.all.map(\.mark) == [nil, "Dub", nil, "Dub"])
     }
 
@@ -90,6 +96,7 @@ struct ReducerTests {
         #expect(item.action.hasPrefix("Caught up · E9 "), "\(item.action)")
         #expect(!item.action.contains("Dub"))
         #expect(!item.buttonTitle.contains("Dub"))
+        #expect(item.buttonTitle(titleCase: false) == item.buttonTitle(titleCase: true))
     }
 
     @Test func anEpisodeOutMoreThanAWeekAgoIsNotNew() {

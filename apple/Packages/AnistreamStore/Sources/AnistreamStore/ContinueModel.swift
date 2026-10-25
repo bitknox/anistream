@@ -46,13 +46,24 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
         return "Start \(marked("E\(episode)"))"
     }
 
-    /// The same, as a Mac button says it, in title case: "Resume Episode 7 · 10:06", or for a dub
-    /// "Resume Episode 7 · Dub · 10:06". With nothing out to play it is no button but a line:
-    /// "Episode 9 airs Saturday 18:30".
+    /// The same, as a button says it: in title case on the Mac, "Resume Episode 7 · 10:06", and
+    /// in sentence case on iPhone and iPad, "Resume episode 7 · 10:06"; a dub marked after the
+    /// episode, "Resume Episode 7 · Dub · 10:06". With nothing out to play it is no button but a
+    /// line: "Episode 9 airs Saturday 18:30".
     public var buttonTitle: String {
-        if let resume { return "Resume \(marked("Episode \(episode)")) · \(resume.clock)" }
+        #if os(macOS)
+        buttonTitle(titleCase: true)
+        #else
+        buttonTitle(titleCase: false)
+        #endif
+    }
+
+    /// `buttonTitle` in title case, as the Mac's controls are, or in sentence case.
+    public func buttonTitle(titleCase: Bool) -> String {
         if !playable { return "Episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet") }
-        return "Start \(marked("Episode \(episode)"))"
+        let episode = marked((titleCase ? "Episode " : "episode ") + String(episode))
+        if let resume { return "Resume \(episode) · \(resume.clock)" }
+        return "Start \(episode)"
     }
 
     /// How far into the episode, for the row's meter, when it was left part-way.
