@@ -399,6 +399,11 @@ struct PlaybackPane: View {
             SettingsRow(title: SettingKey.fullscreen.title) { SettingSwitch(key: .fullscreen) }
             #endif
         }
+        #if os(iOS)
+        // The TVs paired to this iPad, beside the rest of how episodes play. The Mac keeps them
+        // in Integrations; the iPhone in its own page of the settings sheet.
+        TVsGroup()
+        #endif
     }
 }
 

@@ -164,9 +164,8 @@ since the engine has no command for it.
    advertises itself over mDNS when allowed. Play on TV arrives as the engine's `Command::Play`
    (docs/remote-protocol.md), not as a `FrontIntent`.
 
-On iPad the sender and the remote work, but the paired-TV list (`TVsGroup`) is in the Mac's
-Integrations pane only and the iPhone's settings sheet, so an iPad can forget only the connected
-TV, through the remote's "Pair again".
+The paired-TV list (`TVsGroup`) is in the Mac's Integrations pane, the iPad's Playback pane and
+the iPhone's settings sheet, so every Apple device can see and forget any TV it paired.
 
 ## Plugins and stores
 
