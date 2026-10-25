@@ -531,7 +531,7 @@ public final class AppStore {
         answers.deliver([event])
         if case .downloads(let rows) = event { continued.update(rows) }
         if wantsWeek, NotificationsModel.reschedules(after: event) { refreshNotices() }
-        if case .upcomingNotices(let week) = event { airingActivity.weekChanged(week, artwork: artwork) }
+        if case .upcomingNotices(let week) = event { airingActivity.weekChanged(week, titles: titles, artwork: artwork) }
         switch event {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)

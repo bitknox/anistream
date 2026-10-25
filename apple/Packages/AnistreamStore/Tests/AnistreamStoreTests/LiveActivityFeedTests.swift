@@ -90,6 +90,19 @@ struct PlaybackActivityFeedTests {
         #expect(next.episode == "8" && host.calls.count == 4)
     }
 
+    @Test func theTitleIsTheOneTheScreensShow() {
+        // The player's title is the engine's; the cache's is the form Settings › Title language
+        // picks, as every screen heads it.
+        titles.merge([entry(900_001, "Stardust Wayfarer")])
+        let feed = feed()
+        feed.show(playing(at: 10), titles: titles, artwork: nil)
+        guard case .start(let state, _) = host.calls.first else {
+            Issue.record("did not start: \(host.calls)")
+            return
+        }
+        #expect(state.title == "Stardust Wayfarer")
+    }
+
     @Test func aStartTheSystemRefusesIsTriedAgainAtTheNextChange() {
         let feed = feed()
         host.allows = false
@@ -189,6 +202,26 @@ struct AiringActivityFeedTests {
             return
         }
         #expect(second.titleID == 900_006 && second.episode == 9)
+    }
+
+    @Test func theTitleIsTheOneTheScreensShowAndFollowsAChange() {
+        let titles = TitleCache()
+        titles.merge([entry(900_002, "The Library Above the Clouds")])
+        let feed = feed()
+        feed.weekChanged(week([airing(in: 20 * 60)]), titles: titles, artwork: nil)
+        guard case .start(let state, _) = host.calls.first else {
+            Issue.record("did not start: \(host.calls)")
+            return
+        }
+        #expect(state.title == "The Library Above the Clouds")
+        // Settings › Title language changed: the activity says the title the new way.
+        titles.merge([entry(900_002, "Kumo no Ue no Toshokan")])
+        feed.weekChanged(week([airing(in: 20 * 60)]), titles: titles, artwork: nil)
+        guard case .update(let renamed, _) = host.calls.last else {
+            Issue.record("no update: \(host.calls)")
+            return
+        }
+        #expect(renamed.title == "Kumo no Ue no Toshokan" && renamed.since == state.since)
     }
 
     @Test func pickKeepsToTheHourAhead() {

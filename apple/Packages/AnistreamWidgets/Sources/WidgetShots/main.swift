@@ -321,7 +321,7 @@ enum Shots {
             try? FileManager.default.copyItem(at: files.art(airingPoster), to: files.liveDirectory.appending(path: airingPoster))
         }
         let playing = PlaybackActivityState(
-            titleID: 900001, title: "Hoshikuzu no Tabibito", episode: "7", coverFile: poster,
+            titleID: 900001, title: "Stardust Wayfarer", episode: "7", coverFile: poster,
             position: 600, duration: 1_440, at: moment)
         var pausedPlay = playing
         pausedPlay.paused = true
@@ -347,7 +347,7 @@ enum Shots {
         draw(playExpanded, "playback-island-expanded", width: 371, height: 160, radius: 44, background: .black)
 
         let airing = AiringActivityState(
-            titleID: 900002, title: "Kumo no Ue no Toshokan", episode: 6, airsAt: moment.addingTimeInterval(12 * 60 + 4),
+            titleID: 900002, title: "The Library Above the Clouds", episode: 6, airsAt: moment.addingTimeInterval(12 * 60 + 4),
             since: moment.addingTimeInterval(-20 * 60), coverFile: airingPoster)
         draw(AiringLockScreenView(state: airing, out: false), "airing", width: 358, height: nil, radius: 24, background: card)
         draw(AiringLockScreenView(state: airing, out: true), "airing-out", width: 358, height: nil, radius: 24, background: card)

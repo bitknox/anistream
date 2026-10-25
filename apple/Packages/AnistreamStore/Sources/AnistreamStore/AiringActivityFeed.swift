@@ -28,6 +28,7 @@ public final class AiringActivityFeed {
     private var shown: AiringActivityState?
     private var week: UpcomingNotices?
     private var artwork: (any WidgetArtSource)?
+    private var titles: TitleCache?
     /// The next look, at the next time something changes: an air time, or the end of "Out now".
     private var wake: Task<Void, Never>?
 
@@ -54,8 +55,9 @@ public final class AiringActivityFeed {
     public var wantsWeek: Bool { host?.isEnabled ?? false }
 
     /// The week the engine said.
-    func weekChanged(_ week: UpcomingNotices, artwork: (any WidgetArtSource)?) {
+    func weekChanged(_ week: UpcomingNotices, titles: TitleCache? = nil, artwork: (any WidgetArtSource)?) {
         self.week = week
+        self.titles = titles
         self.artwork = artwork
         look()
     }
@@ -80,7 +82,9 @@ public final class AiringActivityFeed {
         let at = now()
         var target = week.flatMap { Self.pick($0, now: at) }.map { row in
             AiringActivityState(
-                titleID: Int(row.id), title: row.title, episode: Int(row.episode),
+                // The title as the app's screens show it; the week's is in the same form, but
+                // may be older than a change to Settings › Title language.
+                titleID: Int(row.id), title: titles?[row.id]?.title ?? row.title, episode: Int(row.episode),
                 airsAt: Date(timeIntervalSince1970: TimeInterval(row.airsAt)), since: at)
         }
         // A week asked for after the air time no longer has the episode: the one up stays out

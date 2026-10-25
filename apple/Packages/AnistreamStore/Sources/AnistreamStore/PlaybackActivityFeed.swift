@@ -84,8 +84,10 @@ public final class PlaybackActivityFeed {
             host.update(state, staleAt: Self.staleAt(state))
             self.shown = state
         }
+        // The title as the app's screens show it, in the form Settings › Title language picks.
+        let title = titles[playing.id]?.title ?? playing.title
         let state = PlaybackActivityState(
-            titleID: Int(playing.id), title: playing.title, episode: playing.episode, coverFile: cover,
+            titleID: Int(playing.id), title: title, episode: playing.episode, coverFile: cover,
             position: playing.position, duration: playing.duration, at: now(), rate: playing.rate,
             paused: playing.paused)
         let staleAt = Self.staleAt(state)
