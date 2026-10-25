@@ -196,6 +196,10 @@ impl Answer {
             ios: file(format!("anistream-{version}-ios-unsigned.ipa")),
             android: file(format!("anistream-{version}-android-arm64.apk")),
             android_tv: file(format!("anistream-{version}-android-tv.apk")),
+            windows_x64: file(format!("anistream-{version}-windows-x64-setup.exe")),
+            windows_arm64: file(format!("anistream-{version}-windows-arm64-setup.exe")),
+            linux_x86_64: file(format!("anistream-{version}-linux-x86_64.AppImage")),
+            linux_aarch64: file(format!("anistream-{version}-linux-aarch64.AppImage")),
             version,
         })
     }
@@ -385,6 +389,10 @@ async fn ask(http: &HttpClient, api: &str, current: &str, now: i64) -> Result<An
         format!("anistream-{version}-ios-unsigned.ipa"),
         format!("anistream-{version}-android-arm64.apk"),
         format!("anistream-{version}-android-tv.apk"),
+        format!("anistream-{version}-windows-x64-setup.exe"),
+        format!("anistream-{version}-windows-arm64-setup.exe"),
+        format!("anistream-{version}-linux-x86_64.AppImage"),
+        format!("anistream-{version}-linux-aarch64.AppImage"),
     ] {
         let Some(url) = asset_named(&answer.latest, &format!("{name}.sha256"))
             .and_then(|sidecar| sidecar.get("browser_download_url")?.as_str())
@@ -662,10 +670,18 @@ mod tests {
         fn release(&self, tag: &str, prerelease: bool) {
             let version = tag.trim_start_matches('v');
             let mut assets = Vec::new();
-            for (i, suffix) in
-                ["macos.dmg", "ios-unsigned.ipa", "android-arm64.apk", "android-tv.apk"]
-                    .iter()
-                    .enumerate()
+            for (i, suffix) in [
+                "macos.dmg",
+                "ios-unsigned.ipa",
+                "android-arm64.apk",
+                "android-tv.apk",
+                "windows-x64-setup.exe",
+                "windows-arm64-setup.exe",
+                "linux-x86_64.AppImage",
+                "linux-aarch64.AppImage",
+            ]
+            .iter()
+            .enumerate()
             {
                 let name = format!("anistream-{version}-{suffix}");
                 let hex = format!("{i}").repeat(64);
@@ -795,6 +811,18 @@ mod tests {
         let tv = release.android_tv.expect("the TV's file");
         assert_eq!(tv.name, "anistream-2.0.3-android-tv.apk");
         assert_eq!((tv.sha256, tv.size), ("3".repeat(64), 1003));
+        let windows = release.windows_x64.expect("Windows' x64 installer");
+        assert_eq!(windows.name, "anistream-2.0.3-windows-x64-setup.exe");
+        assert_eq!((windows.sha256, windows.size), ("4".repeat(64), 1004));
+        let windows = release.windows_arm64.expect("Windows' Arm64 installer");
+        assert_eq!(windows.name, "anistream-2.0.3-windows-arm64-setup.exe");
+        assert_eq!((windows.sha256, windows.size), ("5".repeat(64), 1005));
+        let linux = release.linux_x86_64.expect("Linux's x86_64 AppImage");
+        assert_eq!(linux.name, "anistream-2.0.3-linux-x86_64.AppImage");
+        assert_eq!((linux.sha256, linux.size), ("6".repeat(64), 1006));
+        let linux = release.linux_aarch64.expect("Linux's aarch64 AppImage");
+        assert_eq!(linux.name, "anistream-2.0.3-linux-aarch64.AppImage");
+        assert_eq!((linux.sha256, linux.size), ("7".repeat(64), 1007));
     }
 
     #[tokio::test]

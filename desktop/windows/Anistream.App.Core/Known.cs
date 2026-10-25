@@ -67,6 +67,9 @@ public sealed class Known
     /// <summary>The engine has no network path: from <c>Connectivity</c>, fed by the window's network watch.</summary>
     public bool Offline { get; private set; }
 
+    /// <summary>What the update check last said, or null before it has said anything.</summary>
+    public UpdateStatus? Update { get; private set; }
+
     /// <summary>The AniList account, when signed in.</summary>
     public SyncState? Anilist => Sync.TryGetValue("anilist", out var s) && s.Connected ? s : null;
 
@@ -182,6 +185,11 @@ public sealed class Known
                 break;
             case Event.Connectivity c:
                 Offline = c.Offline;
+                break;
+            case Event.Update u:
+                // A check that found nothing new leaves a release found before on offer only
+                // while it is still the newest; the engine says UpToDate when it is not.
+                Update = u.V1;
                 break;
         }
     }
