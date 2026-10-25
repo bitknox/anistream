@@ -2,140 +2,23 @@
 //! metadata lines, seasons and times. Pure, so it is tested without a display.
 
 use anistream_model::{
-    catalog::{AiringStatus, Entry, ResumePoint, Season},
+    catalog::{Entry, Season},
+    present::Casing,
     wording,
 };
 
-/// At most this many rows: Continue is a shortlist, not a second library.
-pub const QUEUE_ROWS: usize = 5;
-/// What counts as this week.
-pub const WEEK: i64 = 7 * 86_400;
+/// Continue's queue and its rows, worded by the engine's present helpers so a dub is marked as
+/// every app marks it: "Resume E7 · Dub · 10:06".
+pub use anistream_model::present::{Queue, QueueItem};
 
-/// One row of the queue: a title and the episode it plays next.
-#[derive(Debug, Clone, PartialEq)]
-pub struct QueueItem {
-    pub entry: Entry,
-    /// The episode the row plays.
-    pub episode: u32,
-    /// Where that episode was left, when it was.
-    pub resume: Option<ResumePoint>,
-    /// How many seconds ago that episode aired, when it is the newest out and aired this week.
-    pub aired_ago: Option<i64>,
+/// The queue of `entries` less `hidden`, its buttons in GNOME's header capitalisation.
+pub fn queue(entries: &[Entry], hidden: &[u32]) -> Queue {
+    Queue::of(entries, hidden, Casing::Header)
 }
 
-impl QueueItem {
-    pub fn of(entry: &Entry) -> Self {
-        let episode = entry.progress.map_or(1, |p| p.next.max(1));
-        let aired_ago = match (entry.resume, entry.latest_aired()) {
-            (None, Some((aired, Some(ago)))) if aired == episode && ago < WEEK => Some(ago),
-            _ => None,
-        };
-        Self { entry: entry.clone(), episode, resume: entry.resume, aired_ago }
-    }
-
-    /// A new episode rather than one under way.
-    pub fn is_new(&self) -> bool {
-        self.aired_ago.is_some()
-    }
-
-    /// Whether the episode is out: one left part-way is, and otherwise the title's broadcasts
-    /// say. A title with no broadcasts known is out unless it has not started.
-    pub fn playable(&self) -> bool {
-        if self.resume.is_some() {
-            return true;
-        }
-        match self.entry.latest_aired() {
-            Some((latest, _)) => self.episode <= latest,
-            None => self.entry.status != Some(AiringStatus::NotYetReleased),
-        }
-    }
-
-    /// When the episode airs, when it is the next to: "in 2d 3h".
-    fn airs(&self) -> Option<String> {
-        let at = self.entry.next_airing_in?;
-        (self.entry.next_episode == Some(self.episode))
-            .then(|| format!("in {}", wording::countdown(at)))
-    }
-
-    /// What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago",
-    /// or with nothing out, "Caught up · E9 airs in 2d 3h".
-    pub fn action(&self) -> String {
-        if let Some(resume) = self.resume {
-            return format!("Resume E{} · {}", self.episode, resume.clock());
-        }
-        if !self.playable() {
-            return match self.airs() {
-                Some(airs) => format!("Caught up · E{} airs {airs}", self.episode),
-                None => format!("Caught up · E{} is not out yet", self.episode),
-            };
-        }
-        match self.aired_ago {
-            Some(ago) => format!("Start E{} · out {}", self.episode, wording::ago(ago)),
-            None => format!("Start E{}", self.episode),
-        }
-    }
-
-    /// The same as the preview's button says it, in header capitalisation: "Resume Episode 7 ·
-    /// 10:06". `None` with nothing out to play.
-    pub fn button(&self) -> Option<String> {
-        if let Some(resume) = self.resume {
-            return Some(format!("Resume Episode {} · {}", self.episode, resume.clock()));
-        }
-        self.playable().then(|| format!("Start Episode {}", self.episode))
-    }
-
-    /// With nothing out to play, the line in place of the button: "Episode 9 airs in 2d 3h".
-    pub fn waiting(&self) -> Option<String> {
-        if self.playable() {
-            return None;
-        }
-        Some(match self.airs() {
-            Some(airs) => format!("Episode {} airs {airs}", self.episode),
-            None => format!("Episode {} is not out yet", self.episode),
-        })
-    }
-
-    /// How far into the episode, for the meter, when it was left part-way.
-    pub fn fraction(&self) -> Option<f64> {
-        self.resume.and_then(|r| r.fraction)
-    }
-
-    /// "14 min left", when the runtime is known.
-    pub fn left(&self) -> Option<String> {
-        let resume = self.resume?;
-        let fraction = resume.fraction.filter(|f| *f > 0.0)?;
-        let left = resume.position / fraction - resume.position;
-        Some(format!("{} min left", ((left / 60.0).round() as i64).max(1)))
-    }
-}
-
-/// The queue as Continue groups it: titles under way, then new this week.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct Queue {
-    pub in_progress: Vec<QueueItem>,
-    pub new_this_week: Vec<QueueItem>,
-}
-
-impl Queue {
-    /// The queue of `entries`, newest watch first as the engine orders them, less `hidden`.
-    pub fn of(entries: &[Entry], hidden: &[u32]) -> Self {
-        let items: Vec<_> = entries
-            .iter()
-            .filter(|e| !hidden.contains(&e.id.get()))
-            .take(QUEUE_ROWS)
-            .map(QueueItem::of)
-            .collect();
-        let (new_this_week, in_progress) = items.into_iter().partition(QueueItem::is_new);
-        Self { in_progress, new_this_week }
-    }
-
-    pub fn all(&self) -> impl Iterator<Item = &QueueItem> {
-        self.in_progress.iter().chain(&self.new_this_week)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.in_progress.is_empty() && self.new_this_week.is_empty()
-    }
+/// The row for `entry`, its button in header capitalisation: "Resume Episode 7 · Dub · 10:06".
+pub fn queue_item(entry: &Entry) -> QueueItem {
+    QueueItem::of(entry, Casing::Header)
 }
 
 /// A season as it is said: "Fall 2026".
@@ -340,8 +223,11 @@ pub fn progress_caption(entry: &Entry) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_core::ids::AnilistId;
-    use anistream_model::{catalog::Aired, progress::TitleProgress};
+    use anistream_core::{ids::AnilistId, media::Translation};
+    use anistream_model::{
+        catalog::{Aired, ResumePoint},
+        progress::TitleProgress,
+    };
 
     #[test]
     fn time_left_is_said_in_words() {
@@ -365,47 +251,42 @@ mod tests {
     }
 
     #[test]
-    fn an_episode_left_part_way_resumes_with_its_minutes_left() {
+    fn a_dub_is_marked_on_the_row_and_its_button_and_a_sub_is_not() {
         let mut e = entry(1);
         e.progress = Some(TitleProgress { done: 6, next: 7 });
         e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
-        let item = QueueItem::of(&e);
-        assert_eq!(item.action(), "Resume E7 · 10:06");
-        assert_eq!(item.button().as_deref(), Some("Resume Episode 7 · 10:06"));
-        assert_eq!(item.left().as_deref(), Some("14 min left"));
-        assert!(!item.is_new());
+        e.watched_in = Some(Translation::Dub);
+        let item = queue_item(&e);
+        assert_eq!(item.action, "Resume E7 · Dub · 10:06");
+        assert_eq!(item.button.as_deref(), Some("Resume Episode 7 · Dub · 10:06"));
+        assert_eq!(item.left.as_deref(), Some("14 min left"));
+        for watched_in in [Some(Translation::Sub), None] {
+            e.watched_in = watched_in;
+            let item = queue_item(&e);
+            assert_eq!(item.action, "Resume E7 · 10:06");
+            assert_eq!(item.button.as_deref(), Some("Resume Episode 7 · 10:06"));
+        }
     }
 
     #[test]
-    fn a_new_episode_this_week_says_when_it_came_out() {
-        let mut e = entry(2);
-        e.progress = Some(TitleProgress { done: 7, next: 8 });
-        e.last_aired = Some(Aired { episode: 8, ago: 19 * 3600 });
-        let item = QueueItem::of(&e);
-        assert!(item.is_new());
-        assert_eq!(item.action(), "Start E8 · out 19h ago");
-        assert_eq!(item.button().as_deref(), Some("Start Episode 8"));
-    }
-
-    #[test]
-    fn a_caught_up_title_says_when_the_next_one_airs_and_offers_no_button() {
+    fn a_caught_up_dub_says_when_the_next_one_airs_unmarked() {
         let mut e = entry(3);
         e.progress = Some(TitleProgress { done: 9, next: 10 });
         e.last_aired = Some(Aired { episode: 9, ago: 6 * 86_400 });
         e.next_episode = Some(10);
         e.next_airing_in = Some(86_400 + 3 * 3600);
-        let item = QueueItem::of(&e);
-        assert!(!item.playable());
-        assert_eq!(item.action(), "Caught up · E10 airs in 1d 3h");
-        assert_eq!(item.button(), None);
-        assert_eq!(item.waiting().as_deref(), Some("Episode 10 airs in 1d 3h"));
+        e.watched_in = Some(Translation::Dub);
+        let item = queue_item(&e);
+        assert!(!item.playable);
+        assert_eq!(item.action, "Caught up · E10 airs in 1d 3h");
+        assert_eq!(item.button, None);
     }
 
     #[test]
     fn the_queue_keeps_five_rows_less_the_hidden_and_puts_new_ones_last() {
         let mut entries: Vec<_> = (1..=7).map(entry).collect();
         entries[0].last_aired = Some(Aired { episode: 1, ago: 3600 });
-        let queue = Queue::of(&entries, &[2]);
+        let queue = queue(&entries, &[2]);
         let ids: Vec<_> = queue.all().map(|i| i.entry.id.get()).collect();
         assert_eq!(ids, [3, 4, 5, 6, 1]);
         assert_eq!(queue.new_this_week.len(), 1);

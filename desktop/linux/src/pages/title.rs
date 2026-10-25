@@ -24,7 +24,7 @@ use crate::{
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
-    words::{self, QueueItem},
+    words,
 };
 
 /// How far a watched episode's still dims.
@@ -427,10 +427,10 @@ impl Page {
             text.append(&widgets::haze(line, "numeric"));
         }
 
-        let item = QueueItem::of(entry);
+        let item = words::queue_item(entry);
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         actions.set_margin_top(10);
-        match item.button() {
+        match item.button.clone() {
             Some(label) => {
                 let button = gtk::Button::with_label(&label);
                 button.add_css_class("pill");
@@ -443,7 +443,7 @@ impl Page {
                 actions.append(&button);
             }
             None => {
-                if let Some(waiting) = item.waiting() {
+                if let Some(waiting) = item.waiting.clone() {
                     actions.append(&widgets::haze(&waiting, ""));
                 }
             }
@@ -476,7 +476,7 @@ impl Page {
             !rows.is_empty() && !rows.iter().any(|r| r.metadata_only)
         };
         // A party plays the episode the primary action would.
-        if item.button().is_some() {
+        if item.button.is_some() {
             first.append(
                 Some("Watch Together…"),
                 Some(&format!("win.watch-together((uint32 {id}, '{}'))", item.episode)),
