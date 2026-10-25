@@ -254,6 +254,9 @@ impl Page {
         group.add_action(&by_id("pause", |page, id| {
             page.ctx.hub.send(Command::DownloadPause { id })
         }));
+        group.add_action(&by_id("start-now", |page, id| {
+            page.ctx.hub.send(Command::DownloadStartNow { id })
+        }));
         group.add_action(&by_id("remove", |page, id| {
             page.ctx.hub.send(Command::DownloadCancel { id })
         }));
@@ -582,6 +585,15 @@ fn episode_row(row: &DownloadRow, narrow: bool) -> adw::ActionRow {
             menu.append_item(&item(tip, action));
         } else {
             line.add_suffix(&button(icon, tip, action));
+        }
+    }
+    if row.state == DownloadState::Queued {
+        // Wide windows get it as a button beside Pause; narrow ones as the menu's first item.
+        if narrow {
+            menu.append_item(&item("Start Now", "downloads.start-now"));
+        } else {
+            let start = button("go-top-symbolic", "Start Now", "downloads.start-now");
+            line.add_suffix(&start);
         }
     }
     menu.append_item(&item("Remove from Downloads", "downloads.remove"));

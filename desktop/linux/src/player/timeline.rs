@@ -57,6 +57,22 @@ pub fn chapters(list: &Value) -> Vec<(String, f64)> {
         .unwrap_or_default()
 }
 
+/// The engine's openings and endings as segments.
+pub fn from_marks(marks: &[anistream_model::playback::TimelineMark]) -> Vec<Segment> {
+    use anistream_model::playback::SkipKind;
+    marks
+        .iter()
+        .map(|m| Segment {
+            kind: match m.kind {
+                SkipKind::Opening => Kind::Opening,
+                SkipKind::Ending => Kind::Ending,
+            },
+            start: m.start,
+            end: m.end,
+        })
+        .collect()
+}
+
 /// The openings and endings, each running to the next chapter or the end.
 pub fn segments(chapters: &[(String, f64)], duration: f64) -> Vec<Segment> {
     if duration <= 0.0 {
@@ -92,6 +108,8 @@ pub struct Marked {
     pub widget: gtk::Overlay,
     marks: gtk::DrawingArea,
     segments: Rc<RefCell<(Vec<Segment>, f64)>>,
+    /// What the engine says is buffered, in seconds of the file.
+    buffered: Rc<RefCell<Vec<(f64, f64)>>>,
 }
 
 impl Marked {
@@ -103,15 +121,16 @@ impl Marked {
         widget.set_hexpand(true);
         widget.set_child(Some(scale));
         widget.add_overlay(&marks);
+        let buffered: Rc<RefCell<Vec<(f64, f64)>>> = Rc::default();
         marks.set_draw_func({
             let segments = Rc::clone(&segments);
+            let buffered = Rc::clone(&buffered);
             let scale = scale.downgrade();
             move |area, cr, _, _| {
                 let Some(scale) = scale.upgrade() else { return };
                 let (segments, duration) = &*segments.borrow();
-                if segments.is_empty() || *duration <= 0.0 {
-                    return;
-                }
+                let adjustment = scale.adjustment();
+                let length = adjustment.upper() - adjustment.lower();
                 let Some(track) = trough(&scale, area) else { return };
                 let (x, y, w, h) = (
                     f64::from(track.x()),
@@ -119,6 +138,25 @@ impl Marked {
                     f64::from(track.width()),
                     f64::from(track.height()),
                 );
+                // Buffered stretches in silk at 45%, ahead of the played part only, which keeps
+                // its amber.
+                if length > 0.0 {
+                    let played = scale.value();
+                    cr.set_source_rgba(228.0 / 255.0, 224.0 / 255.0, 214.0 / 255.0, 0.45);
+                    for (start, end) in buffered.borrow().iter() {
+                        let (start, end) = (start.max(played), end.min(adjustment.upper()));
+                        if end <= start {
+                            continue;
+                        }
+                        let from = x + w * ((start - adjustment.lower()) / length).clamp(0.0, 1.0);
+                        let to = x + w * ((end - adjustment.lower()) / length).clamp(0.0, 1.0);
+                        cr.rectangle(from, y, (to - from).max(1.0), h);
+                        let _ = cr.fill();
+                    }
+                }
+                if segments.is_empty() || *duration <= 0.0 {
+                    return;
+                }
                 // Water, the brief's colour for what the app knows of an episode's shape.
                 cr.set_source_rgba(127.0 / 255.0, 199.0 / 255.0, 217.0 / 255.0, 0.7);
                 for segment in segments {
@@ -131,7 +169,22 @@ impl Marked {
                 }
             }
         });
-        Self { widget, marks, segments }
+        Self { widget, marks, segments, buffered }
+    }
+
+    /// The played part moved: the buffered ones start where it ends.
+    pub fn moved(&self) {
+        if !self.buffered.borrow().is_empty() {
+            self.marks.queue_draw();
+        }
+    }
+
+    /// Draw `ranges` as what the player holds, whole, replacing what was drawn.
+    pub fn set_buffered(&self, ranges: Vec<(f64, f64)>) {
+        if *self.buffered.borrow() != ranges {
+            self.buffered.replace(ranges);
+            self.marks.queue_draw();
+        }
     }
 
     /// Mark `segments` on a timeline `duration` long.
@@ -335,6 +388,23 @@ pub fn lift_subtitles(mpv: &Mpv, bar: i32, height: i32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_engines_marks_become_segments() {
+        use anistream_model::playback::{SkipKind, TimelineMark};
+        let marks = [
+            TimelineMark { kind: SkipKind::Opening, start: 5.0, end: 90.0 },
+            TimelineMark { kind: SkipKind::Ending, start: 1300.0, end: 1390.0 },
+        ];
+        assert_eq!(
+            from_marks(&marks),
+            [
+                Segment { kind: Kind::Opening, start: 5.0, end: 90.0 },
+                Segment { kind: Kind::Ending, start: 1300.0, end: 1390.0 },
+            ]
+        );
+        assert!(from_marks(&[]).is_empty());
+    }
 
     #[test]
     fn openings_and_endings_run_to_the_next_chapter() {

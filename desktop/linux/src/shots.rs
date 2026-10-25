@@ -283,7 +283,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                 tracker: "simkl".into(),
                 code: "7KQ2M4".into(),
                 url: "https://example.test/pin".into(),
-                expires_at: None,
+                expires_at: Some(glib::real_time() / 1_000_000 + 14 * 60 + 59),
             };
             crate::pages::accounts::device_code(&shell.ctx, Some(&prompt));
             1.5

@@ -9,11 +9,14 @@ use std::{cell::RefCell, rc::Rc};
 use adw::prelude::*;
 use anistream_model::{
     command::Command,
+    present,
     stores::Secret,
     sync::{DeviceCodePrompt, SyncState},
 };
 
-use crate::{hub::SignIn, window::Ctx, words};
+use gtk::glib;
+
+use crate::{hub::SignIn, widgets, window::Ctx, words};
 
 /// The trackers below AniList, in the order the other apps list them.
 const OTHERS: [&str; 4] = ["mal", "kitsu", "simkl", "trakt"];
@@ -387,6 +390,9 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     child.append(&code);
     child.append(&open);
     child.append(&waiting);
+    if let Some(expires_at) = prompt.expires_at {
+        child.append(&countdown(ctx, &prompt.tracker, expires_at));
+    }
     dialog.set_extra_child(Some(&child));
     dialog.add_response("close", "Close");
     dialog.set_close_response("close");
@@ -398,6 +404,38 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     dialog.set_focus(Some(&open));
     CODE.with_borrow_mut(|(open, _)| *open = Some(dialog.clone()));
     dialog
+}
+
+/// Seconds left of a code that stops working at `expires_at`, in Unix seconds, at `now`.
+fn seconds_left(expires_at: i64, now: i64) -> i64 {
+    (expires_at - now).max(0)
+}
+
+/// "Expires in 14:59" under the code, ticking each second. At nought it asks for a new code, as
+/// "Get a new code" does, which replaces this dialog.
+fn countdown(ctx: &Rc<Ctx>, tracker: &str, expires_at: i64) -> gtk::Label {
+    let now = || glib::real_time() / 1_000_000;
+    let label = widgets::haze(&present::device_code_expiry(seconds_left(expires_at, now())), "caption");
+    label.add_css_class("numeric");
+    label.set_halign(gtk::Align::Center);
+    label.set_xalign(0.5);
+    let (weak, ctx, tracker) = (label.downgrade(), Rc::downgrade(ctx), tracker.to_owned());
+    glib::timeout_add_seconds_local(1, move || {
+        // The dialog closing takes the label out of any window.
+        let Some(label) = weak.upgrade().filter(|l| l.root().is_some()) else {
+            return glib::ControlFlow::Break;
+        };
+        let left = seconds_left(expires_at, now());
+        label.set_label(&present::device_code_expiry(left));
+        if left > 0 {
+            return glib::ControlFlow::Continue;
+        }
+        if let Some(ctx) = ctx.upgrade() {
+            ctx.hub.send(Command::Connect { tracker: tracker.clone() });
+        }
+        glib::ControlFlow::Break
+    });
+    label
 }
 
 /// `simkl.com` from `https://simkl.com/pin`: where to go, as a person says it.
@@ -422,6 +460,15 @@ mod tests {
             offline: false,
             syncing: false,
         }
+    }
+
+    #[test]
+    fn a_code_counts_down_to_nought_and_no_further() {
+        assert_eq!(seconds_left(1_000, 100), 900);
+        assert_eq!(present::device_code_expiry(seconds_left(1_000, 100)), "Expires in 15:00");
+        assert_eq!(seconds_left(1_000, 1_000), 0);
+        assert_eq!(seconds_left(1_000, 1_500), 0);
+        assert_eq!(present::device_code_expiry(0), "Code expired");
     }
 
     #[test]
