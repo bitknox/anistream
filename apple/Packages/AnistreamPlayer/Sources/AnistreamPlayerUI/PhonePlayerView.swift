@@ -92,6 +92,7 @@ public struct PhonePlayerView: View {
                     .padding(.top, 72)
                     .frame(maxHeight: .infinity, alignment: .top)
                     .animation(.standard, value: model.alert)
+                stats(in: proxy.size)
                 if held {
                     Text("2×")
                         .font(.system(size: 15, weight: .semibold))
@@ -263,6 +264,13 @@ public struct PhonePlayerView: View {
                             MenuDivider()
                             PictureLists(model: model, metrics: metrics)
                         }
+                        MenuDivider()
+                        // The Mac's More menu is this sheet here: Stats for nerds goes up over
+                        // the picture, so the sheet goes down to show it.
+                        MenuRow(title: "Stats for nerds", checked: model.statsShown, metrics: metrics) {
+                            model.toggleStats()
+                            if model.statsShown { self.sheet = nil }
+                        }
                     case .episodes:
                         EpisodeList(model: model, metrics: metrics)
                     }
@@ -286,6 +294,32 @@ public struct PhonePlayerView: View {
         .presentationBackground(Palette.ground)
         .presentationDragIndicator(.visible)
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: Stats for nerds
+
+    /// Stats for nerds, which stays up while the controls hide. Over the picture at the top
+    /// trailing corner, under the top bar and clear of the bottom one, as on the Mac; on an
+    /// iPhone held sideways, too short for both, it takes the height the bars leave it while
+    /// they are up, and the full height once they hide. On an iPhone held upright, under the
+    /// picture at the full width less 16 pt each side.
+    private func stats(in size: CGSize) -> some View {
+        let upright = size.height > size.width && size.width < 600
+        let short = size.height < 500
+        let picture = BufferingLine.picture(in: size, aspect: model.videoAspect ?? 16 / 9)
+        let insets =
+            if upright {
+                EdgeInsets(top: picture.maxY + 16, leading: 16, bottom: 32, trailing: 16)
+            } else if short && !visible {
+                EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 56)
+            } else {
+                EdgeInsets(top: 72, leading: 0, bottom: 84, trailing: 56)
+            }
+        return StatsPanel(model: model, metrics: metrics, width: upright ? size.width - 32 : StatsPanel.width)
+            .padding(insets)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: upright ? .top : .topTrailing)
+            .animation(.standard, value: insets)
+            .animation(model.statsPanel != nil ? .fadeIn : .fadeOut, value: model.statsPanel != nil)
     }
 
     // MARK: Gestures

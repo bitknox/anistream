@@ -4,7 +4,11 @@
 import AnistreamKit
 import AnistreamPlayer
 import Foundation
+import SwiftUI
 import Testing
+#if os(macOS)
+import AppKit
+#endif
 
 @testable import AnistreamPlayerUI
 
@@ -125,4 +129,46 @@ struct StatsTests {
         #expect(StatsPanel.wrapping("42 s ahead · 61 MB") == "42\(keep)s ahead\(keep)· 61\(keep)MB")
         #expect(StatsPanel.wrapping("Software, 4 threads") == "Software, 4\(keep)threads")
     }
+
+    @Test func whileTheRowsAreUpTheBufferRowIsTheOnlyAmberMark() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        rig.model.bufferingSinceForTests(.now - .seconds(2))
+        #expect(rig.model.showsBufferingLine)
+        rig.model.toggleStats()
+        rig.model.apply(.playerStats(playback: 1, stats: playerStatsFixture(state: .buffering)))
+        #expect(!rig.model.showsBufferingLine)
+        rig.model.toggleStats()
+        #expect(rig.model.showsBufferingLine)
+    }
+
+    #if os(macOS)
+    /// How big a value lays out at `width`, as the panel sets it on the Mac.
+    private func size(_ text: some View, width: CGFloat = .infinity) -> CGSize {
+        NSHostingController(rootView: text.font(.system(size: 12)))
+            .sizeThatFits(in: CGSize(width: width, height: .infinity))
+    }
+
+    @Test func theUsualValuesKeepToOneLineAtThePanelsWidth() {
+        let label = size(Text("Dropped frames")).width
+        let column = StatsPanel.width - 28 - 14 - label
+        let line = size(Text("1")).height
+        for value in [
+            "1920 × 1080 · HEVC 10-bit · 23.976 fps", "Hardware (VideoToolbox)", "AAC stereo 48 kHz · Japanese",
+            "2560 × 1440 at 120 Hz", "ASS · English, 0.0 s delay",
+        ] {
+            let laid = size(StatsPanel.value(DetailRow(label: "Video", value: value, warn: false)), width: column)
+            #expect(laid.height <= line + 1, "\(value) wraps in \(column) pt")
+        }
+    }
+
+    @Test func aFigureTickingKeepsItsWidth() {
+        func width(_ value: String) -> CGFloat {
+            size(StatsPanel.value(DetailRow(label: "A/V sync", value: value, warn: false))).width
+        }
+        #expect(width("+0.111 s") == width("+0.888 s"))
+        #expect(width("1.1 MB/s") == width("8.0 MB/s"))
+        #expect(width("11 by the display") == width("90 by the display"))
+    }
+    #endif
 }

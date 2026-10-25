@@ -586,39 +586,6 @@ public struct MacPlayerView: View {
     }
 }
 
-/// A button over the video: its symbol or words on silk that lights at 10% under the pointer,
-/// and at the board's 16% pressed and while its menu is open, with the pointing hand. `lit`
-/// says the pointer is over it where its own hover cannot see, in the title bar strip.
-struct OverVideoButtonStyle: ButtonStyle {
-    var on = false
-    var lit = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        Lit(configuration: configuration, on: on, lit: lit)
-    }
-
-    private struct Lit: View {
-        let configuration: Configuration
-        let on: Bool
-        let lit: Bool
-        @State private var hovering = false
-        @Environment(\.isEnabled) private var enabled
-
-        var body: some View {
-            configuration.label
-                .background(Palette.silk.opacity(fill), in: .capsule)
-                .animation(.quick, value: hovering || lit)
-                .onHover { hovering = $0 }
-                .pointingHand(enabled)
-        }
-
-        private var fill: Double {
-            if configuration.isPressed || on { return 0.16 }
-            return (hovering || lit) && enabled ? 0.1 : 0
-        }
-    }
-}
-
 /// The volume as a 72 pt line, silk over silk at 22%; dragging steps it.
 struct VolumeLine: View {
     let model: PlayerModel

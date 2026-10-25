@@ -1077,6 +1077,12 @@ public final class PlayerModel {
         jobs.last { $0.activity == "starting ep \(episode)" }?.note
     }
 
+    /// The tests' buffering, since `since`.
+    func bufferingSinceForTests(_ since: ContinuousClock.Instant) {
+        bufferingSince = since
+        clock = .now
+    }
+
     #if FIXTURES
     /// The shots' buffering: as though mpv had waited on its cache for two seconds.
     func bufferForShot() {
@@ -1084,9 +1090,11 @@ public final class PlayerModel {
     }
     #endif
 
-    /// Buffering mid-episode long enough to show the amber line along the picture's top.
+    /// Buffering mid-episode long enough to show the amber line along the picture's top. Not
+    /// while stats for nerds shows a file's rows: its Buffer row says it, the one amber mark.
     public var showsBufferingLine: Bool {
-        PlayerTiming.showsBufferingLine(since: bufferingSince, at: clock, starting: starting != nil)
+        if statsPanel != nil, statsWaitingSince == nil { return false }
+        return PlayerTiming.showsBufferingLine(since: bufferingSince, at: clock, starting: starting != nil)
     }
 
     /// The skip button has been up long enough to dim.
