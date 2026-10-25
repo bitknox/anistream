@@ -23,6 +23,8 @@ or on Google Play, so each one needs a one-time step the first time you open it.
 | iPhone and iPad, iOS or iPadOS 26 or later | `anistream-<version>-ios-unsigned.ipa` | Add the source below in [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), then install anistream from it. They sign the app with your own Apple ID. |
 | Android 15 or later, 64-bit ARM | `anistream-<version>-android-arm64.apk` | Open the APK on the device and allow installs from your browser or file manager once. |
 | Android TV and Google TV, Android 11 or later, 32-bit or 64-bit ARM | `anistream-<version>-android-tv.apk` | Install it with a sideloading app or `adb install`. |
+| Windows 10 version 2004 or later, x64 or Arm64 | `anistream-<version>-windows-x64-setup.exe` or `anistream-<version>-windows-arm64-setup.exe` | The installer is not signed: in SmartScreen, choose **More info**, then **Run anyway**. |
+| Linux with glibc 2.41 or newer (Ubuntu 25.04 or later, including 26.04 LTS, Fedora 42 or later, Debian 13), x86-64 or ARM64 | `anistream-<version>-linux-x86_64.AppImage` or `anistream-<version>-linux-aarch64.AppImage` | `chmod +x`, then open it. Ubuntu 24.04 is not supported. |
 | Terminal app | See below | See below |
 
 The SideStore and AltStore source address, for **Sources** › **+**:
@@ -30,9 +32,6 @@ The SideStore and AltStore source address, for **Sources** › **+**:
 ```
 https://github.com/bitknox/anistream/releases/latest/download/sidestore.json
 ```
-
-The Windows app (WinUI 3, for Windows 10 version 2004 or later on x64 or Arm64) and the Linux app
-(GTK 4.16 and libadwaita 1.7 or newer) come with the next release.
 
 The terminal app comes as an installer or an archive for each system:
 

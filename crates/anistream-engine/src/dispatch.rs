@@ -10,9 +10,7 @@ use anistream_model::{command::Command, event::Event, notice::Notice, show::Show
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-use crate::playback::start::{
-    control_playback, control_player, play, play_local, play_party, play_source,
-};
+use crate::playback::start::{control_playback, control_player, play, play_local, play_source};
 use crate::{
     artwork,
     catalog::{
@@ -241,19 +239,45 @@ pub(crate) fn dispatch(
         Command::Play { id, episode, from_start } => {
             engine.dubs.stop();
             engine.names.stop();
+            #[cfg(feature = "party")]
+            crate::party::join_by_default(engine, services, tx);
             play(id, episode, from_start, job, engine, services, tx)
         }
         Command::PlaySource { id, episode, provider_id, source_id } => {
             engine.dubs.stop();
             engine.names.stop();
+            #[cfg(feature = "party")]
+            crate::party::join_by_default(engine, services, tx);
             play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
-        Command::PlayParty { id, episode } => {
+        // Watch parties, where this build has them: see `party`.
+        #[cfg(feature = "party")]
+        Command::PlayParty { id, episode, server, room, name } => {
             engine.dubs.stop();
             engine.names.stop();
-            play_party(id, episode, job, engine, services, tx)
+            crate::party::play(id, episode, (server, room, name), job, engine, services, tx)
+        }
+        #[cfg(feature = "party")]
+        Command::LoadPartyForm => crate::party::form(engine, tx),
+        #[cfg(feature = "party")]
+        Command::PartyJoin { server, room, name } => {
+            crate::party::join(&server, &room, name.as_deref(), engine, services, tx);
+        }
+        #[cfg(feature = "party")]
+        Command::PartyReady { ready } => crate::party::ready(ready, engine, tx),
+        #[cfg(feature = "party")]
+        Command::PartyLeave => crate::party::leave(engine, tx),
+        #[cfg(not(feature = "party"))]
+        Command::PlayParty { .. }
+        | Command::LoadPartyForm
+        | Command::PartyJoin { .. }
+        | Command::PartyReady { .. }
+        | Command::PartyLeave => {
+            let _ = tx.send(Event::Toast(Notice::alert(crate::playback::NO_PARTY)));
         }
         Command::PlayLocal { id, episode, title, path } => {
+            #[cfg(feature = "party")]
+            crate::party::join_by_default(engine, services, tx);
             play_local(id, episode, title, path, job, engine, services, tx)
         }
         Command::LoadSources { id, episode } => {

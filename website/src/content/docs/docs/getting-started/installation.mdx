@@ -102,7 +102,8 @@ With adb, from a computer on the same network:
    `adb pair <address>:<port>` with the address and code it shows, and then `adb connect`.
 
 The APK is signed with anistream's release key, so a newer one installs over the one before and
-keeps your data.
+keeps your data. After the first install the TV app updates itself from **Settings › About**, as
+[Updating](#updating) describes.
 
 To use **Play on TV** from the Mac, iPhone, iPad or Android app, pair the phone or Mac with the TV
 once. On the TV, go to **Settings › Remotes › Pair a phone** and scan the QR code with the phone, or
@@ -129,9 +130,15 @@ keeps them too.
 ### Linux
 
 `anistream-<version>-linux-x86_64.AppImage`, or `anistream-<version>-linux-aarch64.AppImage` on
-64-bit ARM. It carries GTK 4, libadwaita and the player, so there is nothing to install first. It
-needs glibc 2.41 or newer: Debian 13, Ubuntu 25.04, Fedora 42 and later. On an older system it
-says so and stops.
+64-bit ARM. It carries GTK 4, libadwaita 1.7 and the player, so there is nothing to install first.
+It needs glibc 2.41 or newer, which means one of these or later:
+
+- Ubuntu 25.04, including Ubuntu 26.04 LTS
+- Fedora 42
+- Debian 13
+
+Ubuntu 24.04 and other systems with an older glibc are not supported. There the AppImage says so
+and stops, and the terminal app is the way to run anistream.
 
 Make the file executable once, then open it:
 
@@ -207,8 +214,18 @@ anistream. anistream downloads the APK, checks it against the published SHA-256 
 installed app is signed with, and installs it over the version before. Android closes the app as
 the update goes in, and a notification says when it is done.
 
-The Android TV app does not check for updates yet. Install a newer APK over the old one, the same
-way as the first time.
+On Android TV, the TV says when an update is out. Go to **Settings › About**, choose **Update to**
+the new version, then **Update**. The first time, Android asks you to allow anistream to install
+apps, and the TV shows where that switch is. anistream downloads the APK, checks its size and
+SHA-256 and that it is signed with the same key, then hands it to Android's installer, which asks
+you to confirm.
+
+On Windows, **Check for updates** under **Settings › About** says whether a new release is out. Run
+the new installer over the one you have, and your library and settings stay.
+
+On Linux, **Settings** says when a new release is out, with **View Release**. AppImageUpdate,
+AppImageLauncher and Gear Lever update the AppImage in place, or download the new one and replace
+the old file.
 
 The terminal app updates itself:
 

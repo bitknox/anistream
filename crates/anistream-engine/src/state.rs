@@ -93,6 +93,9 @@ pub struct EngineState {
     /// Episode titles and stills another source gave a table without them, kept, and the
     /// lookup running: see [`crate::titles::names`].
     pub names: crate::titles::names::Names,
+    /// The watch party going, if one is: see [`crate::party`].
+    #[cfg(feature = "party")]
+    pub party: Option<crate::party::Running>,
 }
 
 impl EngineState {
@@ -126,6 +129,8 @@ impl EngineState {
             search: Default::default(),
             dubs: Default::default(),
             names: Default::default(),
+            #[cfg(feature = "party")]
+            party: None,
         }
     }
 

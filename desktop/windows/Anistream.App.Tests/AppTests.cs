@@ -816,3 +816,118 @@ public class LinkTests
         Assert.Null(Link.InCommandLine("\"C:\\anistream\\anistream.exe\""));
     }
 }
+
+public class UpdateTests
+{
+    static readonly byte[] Body = System.Text.Encoding.ASCII.GetBytes(string.Concat(Enumerable.Repeat("fixture installer ", 4000)));
+    static string Sha(byte[] bytes) => Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(bytes));
+
+    static ReleaseAsset Asset(string arch, ulong size, string? sha = null) => new(
+        Name: $"anistream-2.1.0-windows-{arch}-setup.exe",
+        Url: $"https://releases.example/anistream-2.1.0-windows-{arch}-setup.exe",
+        Sha256: sha ?? Sha(Body),
+        Size: size);
+
+    static Release Release(ReleaseAsset? x64, ReleaseAsset? arm64) => new(
+        Version: "2.1.0", PublishedAt: 0, PageUrl: "https://releases.example/v2.1.0", Notes: "",
+        Macos: null, Ios: null, Android: null, WindowsX64: x64, WindowsArm64: arm64, LinuxX8664: null, LinuxAarch64: null);
+
+    sealed class Serve(byte[] body, System.Net.HttpStatusCode code = System.Net.HttpStatusCode.OK) : HttpMessageHandler
+    {
+        public int Asked;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancel)
+        {
+            Asked++;
+            return Task.FromResult(new HttpResponseMessage(code) { Content = new ByteArrayContent(body) });
+        }
+    }
+
+    static string Dir() => Path.Combine(Path.GetTempPath(), "anistream-update-test-" + Guid.NewGuid().ToString("N"));
+
+    [Fact]
+    public void ThisMachinesInstallerIsArm64sOnArmAndX64sOtherwise()
+    {
+        var (x64, arm64) = (Asset("x64", 1), Asset("arm64", 2));
+        Assert.Equal(arm64, Updates.InstallerFor(Release(x64, arm64), System.Runtime.InteropServices.Architecture.Arm64));
+        Assert.Equal(x64, Updates.InstallerFor(Release(x64, null), System.Runtime.InteropServices.Architecture.Arm64));
+        Assert.Equal(x64, Updates.InstallerFor(Release(x64, arm64), System.Runtime.InteropServices.Architecture.X64));
+        Assert.Null(Updates.InstallerFor(Release(null, arm64), System.Runtime.InteropServices.Architecture.X64));
+    }
+
+    [Fact]
+    public async Task ADownloadIsReadyOnlyWhenItsSizeAndSha256Match()
+    {
+        HomeGuard.Check();
+        var dir = Dir();
+        try
+        {
+            var steps = new List<UpdateStep>();
+            var serve = new Serve(Body);
+            var asset = Asset("x64", (ulong)Body.Length);
+            var ready = await Updates.Fetch(new HttpClient(serve), asset, "2.1.0", dir, s => steps.Add(s.Step), default);
+            Assert.Equal(UpdateStep.Ready, ready.Step);
+            Assert.Equal(Path.Combine(dir, asset.Name), ready.Path);
+            Assert.Contains(UpdateStep.Verifying, steps);
+            // Already there and whole: kept, not fetched again.
+            Assert.Equal(UpdateStep.Ready, (await Updates.Fetch(new HttpClient(serve), asset, "2.1.0", dir, _ => { }, default)).Step);
+            Assert.Equal(1, serve.Asked);
+
+            var wrong = await Updates.Fetch(new HttpClient(new Serve(Body)), Asset("arm64", (ulong)Body.Length, sha: new string('0', 64)), "2.1.0", dir, _ => { }, default);
+            Assert.Equal(UpdateStep.Failed, wrong.Step);
+            Assert.Equal("The download doesn't match the release's SHA-256.", wrong.Reason);
+            Assert.False(File.Exists(Path.Combine(dir, Asset("arm64", 1).Name)), "a file that does not match is not kept");
+
+            var shorter = await Updates.Fetch(new HttpClient(new Serve(Body[..1000])), Asset("x64", (ulong)Body.Length) with { Name = "short.exe" }, "2.1.0", dir, _ => { }, default);
+            Assert.Equal(UpdateStep.Failed, shorter.Step);
+            Assert.StartsWith("The download is 1 KB, not the", shorter.Reason);
+
+            var refused = await Updates.Fetch(new HttpClient(new Serve([], System.Net.HttpStatusCode.NotFound)), Asset("x64", 5) with { Name = "gone.exe" }, "2.1.0", dir, _ => { }, default);
+            Assert.Equal("The download stopped: the server answered 404.", refused.Reason);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TheInstallerRunsSilentlyAndTheAppOpensAgainAfterIt()
+    {
+        var command = Updates.RelaunchCommand(@"C:\Temp\anistream-update\setup.exe", @"C:\Temp\anistream-update\install.log", @"C:\Apps\anistream\anistream.exe");
+        Assert.Equal(
+            "/d /c ping -n 3 127.0.0.1 >nul & start \"\" /wait \"C:\\Temp\\anistream-update\\setup.exe\" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- /CLOSEAPPLICATIONS " +
+            "/LOG=\"C:\\Temp\\anistream-update\\install.log\" & start \"\" \"C:\\Apps\\anistream\\anistream.exe\"",
+            command);
+        var again = Updates.RelaunchCommand("setup.exe", "install.log", "anistream.exe",
+            Updates.RelaunchArguments(["--scene=watching", "--show=update-install", "--update-from=http://127.0.0.1/setup.exe,ab,1,2.1.0", "anistream://store?url=https://store.example", "--size=1100x700", "a b"]));
+        Assert.EndsWith("& start \"\" \"anistream.exe\" --scene=watching --size=1100x700 \"a b\"", again);
+    }
+
+    [Fact]
+    public void VersionsCompareNumberByNumber()
+    {
+        Assert.True(Updates.Older("2.0.9", "2.0.10"));
+        Assert.False(Updates.Older("2.1.0", "2.1.0"));
+        Assert.False(Updates.Older("2.1.1", "2.1.0"));
+        Assert.True(Updates.Older("2.0", "2.0.1"));
+    }
+
+    [Fact]
+    public void TheLineSaysWhereTheCheckAndTheUpdateStand()
+    {
+        var available = new UpdateStatus.Available(Release(Asset("x64", 1), null), false);
+        Assert.Equal("Not checked yet", Updates.Line(null, UpdateState.Idle, false, false));
+        Assert.Equal("Checks once you're back online", Updates.Line(null, UpdateState.Idle, true, false));
+        Assert.Equal("Up to date", Updates.Line(new UpdateStatus.UpToDate(), UpdateState.Idle, false, false));
+        Assert.Equal("Couldn't check: GitHub could not be reached", Updates.Line(new UpdateStatus.Failed("gitHub could not be reached"), UpdateState.Idle, false, false));
+        Assert.Equal("Version 2.1.0 is out", Updates.Line(available, UpdateState.Idle, false, true));
+        Assert.Equal("Version 2.1.0 is out. Its page has the installer.", Updates.Line(available, UpdateState.Idle, false, false));
+        Assert.Equal("Downloading version 2.1.0 · 34 MB of 71 MB",
+            Updates.Line(available, new UpdateState(UpdateStep.Downloading, "2.1.0", 34_200_000, 71_400_000), false, true));
+        Assert.Equal("Version 2.1.0 is ready to install", Updates.Line(available, new UpdateState(UpdateStep.Ready, "2.1.0"), false, true));
+        Assert.Equal("The update to version 2.1.0 stopped. The download stopped: the connection was lost.",
+            Updates.Line(available, new UpdateState(UpdateStep.Failed, "2.1.0", Reason: "The download stopped: the connection was lost."), false, true));
+        Assert.Equal(0.5, new UpdateState(UpdateStep.Downloading, "2.1.0", 50, 100).Fraction);
+        Assert.Null(new UpdateState(UpdateStep.Failed, "2.1.0").Fraction);
+    }
+}

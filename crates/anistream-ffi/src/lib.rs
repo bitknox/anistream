@@ -30,6 +30,7 @@ mod bug_report;
 mod engine;
 mod host;
 mod log;
+mod party;
 #[cfg(feature = "mpv-host")]
 mod player;
 #[cfg(feature = "remote")]
@@ -47,6 +48,9 @@ pub use bug_report::bug_report_url;
 pub use engine::FfiEngine;
 pub use host::FfiHost;
 pub use log::{FfiLogLevel, log_line, start_log};
+#[cfg(all(feature = "party", feature = "testing"))]
+pub use party::FfiFakeParty;
+pub use party::{parse_party_invite, party_invite_link};
 #[cfg(feature = "mpv-host")]
 pub use player::{
     FfiPlayer, FfiPlayerEvent, FfiPlayerOptions, FfiPlayerSink, FfiPlayerState, FfiVideo,
@@ -343,6 +347,10 @@ mod tests {
             ios: None,
             android: Some(file("anistream-2.0.3-android-arm64.apk", 5_000_000_000)),
             android_tv: Some(file("anistream-2.0.3-android-tv.apk", 40_000_000)),
+            windows_x64: Some(file("anistream-2.0.3-windows-x64-setup.exe", 70_000_000)),
+            windows_arm64: Some(file("anistream-2.0.3-windows-arm64-setup.exe", 68_000_000)),
+            linux_x86_64: Some(file("anistream-2.0.3-linux-x86_64.AppImage", 90_000_000)),
+            linux_aarch64: None,
         };
         for status in [
             UpdateStatus::Checking,

@@ -35,6 +35,10 @@ rules=(
   # Light enough for a TV box: the protocol and its TLS, never the engine or an HTTP stack.
   "anistream-remote|$terminal"
   "anistream-remote|^(anistream-engine|anistream-net|wreq|reqwest|hyper) "
+  # The Syncplay client: the protocol and its TLS, for any front end's player. Never the
+  # engine, a player or an HTTP stack.
+  "anistream-party|$terminal"
+  "anistream-party|^(anistream-engine|anistream-player|anistream-net|wreq|reqwest|hyper) "
   "anistream-tui|^anistream-engine "
 )
 
@@ -104,5 +108,24 @@ for crate in anistream-engine anistream-ffi; do
   else
     echo "$crate for aarch64-apple-darwin with presence: clean, $(wc -l <<<"$tree" | tr -d ' ') packages"
   fi
+done
+# The desktop apps' engine: without the desktop feature, with watch parties, as the Mac, Windows
+# and Linux apps build it. Parties play in the app's own player and take none of the desktop.
+for crate in anistream-engine anistream-ffi; do
+  for target in aarch64-apple-darwin aarch64-apple-ios x86_64-pc-windows-msvc x86_64-unknown-linux-gnu; do
+    tree="$(cargo tree --quiet --color never -p "$crate" --no-default-features --features party \
+      -e normal --target "$target" --prefix none | sed 's/ (\*)$//' | sort -u)"
+    found="$(grep -E "$phone" <<<"$tree" || true)"
+    if [[ -n "$found" ]]; then
+      echo "$crate for $target, with party, must not depend on:" >&2
+      sed 's/^/  /' <<<"$found" >&2
+      status=1
+    elif ! grep -q '^anistream-party ' <<<"$tree"; then
+      echo "$crate with the party feature does not build the Syncplay client" >&2
+      status=1
+    else
+      echo "$crate for $target with party: clean, $(wc -l <<<"$tree" | tr -d ' ') packages"
+    fi
+  done
 done
 exit $status

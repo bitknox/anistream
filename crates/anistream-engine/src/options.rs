@@ -31,6 +31,10 @@ pub struct EngineOptions {
     /// rather than mpv's process: always so without the desktop feature, where there is no other
     /// player, and on the desktop only when the front end asks.
     pub hosted_player: bool,
+    /// Whether `syncplay.enabled` sends every play to the watch party the settings name: the
+    /// terminal's way in, on for it alone. An app starts parties when asked, with `PartyJoin`
+    /// or `PlayParty`, and the setting does nothing there. Off unless the front end turns it on.
+    pub every_play_a_party: bool,
     /// The sign-in clients a native app ships with, none for the terminal app, whose user
     /// registers their own in the config.
     pub app_clients: AppClients,
@@ -79,6 +83,7 @@ impl EngineOptions {
             store,
             player_theme,
             hosted_player: !cfg!(feature = "desktop"),
+            every_play_a_party: false,
             app_clients: AppClients::default(),
             device_label: anistream_model::stores::COMPUTER.to_owned(),
             sources: None,

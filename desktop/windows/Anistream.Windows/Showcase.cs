@@ -22,6 +22,32 @@ static class Showcase
         new Event.Seeding(Seeds),
     ];
 
+    /// <summary>
+    /// A newer release, as the engine's check names one, with both Windows installers; or, from
+    /// <c>--update-from=&lt;url&gt;,&lt;sha256&gt;,&lt;size&gt;,&lt;version&gt;</c>, one with that installer for both.
+    /// </summary>
+    public static Release Release(string? from = null)
+    {
+        if (from?.Split(',') is [var url, var sha, var bytes, var version])
+        {
+            var asset = new ReleaseAsset(Name: Path.GetFileName(new Uri(url).AbsolutePath), Url: url, Sha256: sha, Size: ulong.Parse(bytes, System.Globalization.CultureInfo.InvariantCulture));
+            return new Release(
+                Version: version, PublishedAt: 1_792_900_000, PageUrl: "https://releases.example/v" + version, Notes: "",
+                Macos: null, Ios: null, Android: null, WindowsX64: asset, WindowsArm64: asset, LinuxX8664: null, LinuxAarch64: null);
+        }
+        static ReleaseAsset File(string arch, ulong size) => new(
+            Name: $"anistream-2.1.0-windows-{arch}-setup.exe",
+            Url: $"https://releases.example/v2.1.0/anistream-2.1.0-windows-{arch}-setup.exe",
+            Sha256: string.Concat(Enumerable.Repeat("5e", 32)),
+            Size: size);
+        return new Release(
+            Version: "2.1.0", PublishedAt: 1_792_900_000, PageUrl: "https://releases.example/v2.1.0",
+            Notes: "Episodes open sooner after a pick, and the calendar marks the ones already watched.",
+            Macos: null, Ios: null, Android: null,
+            WindowsX64: File("x64", 71_400_000), WindowsArm64: File("arm64", 68_900_000),
+            LinuxX8664: null, LinuxAarch64: null);
+    }
+
     /// <summary>What a pasted invite leads to, in place of asking a store that does not exist.</summary>
     public static Event Preview(string link) => new Event.StorePreview(new InvitePreview.Store(new InvitedStore(
         Link: link, Name: "Hotaru Plugins", Url: "https://plugins.hotaru.example", Host: "plugins.hotaru.example",

@@ -154,7 +154,7 @@ titles row changes it. Searching still finds a title by any of its names.
 
 The update check downloads nothing; `anistream --update` does that when you run it.
 
-## Discord and Syncplay
+## Discord and watch parties
 
 ```toml
 [presence]
@@ -163,14 +163,19 @@ show_title = true      # or only that something is playing
 rich = false           # cover, progress bar and an AniList button; needs show_title
 
 [syncplay]
-server = "syncplay.pl:8995"
-room = "…"             # required before y can start a party
-name = "anistream"
+server = ""            # host:port of a Syncplay server; none is set until you pick one
+room = "…"             # the room y joins
+name = "anistream"     # the name the room sees
 ```
 
 Presence is off until you turn it on, since it publishes what you watch to a third party.
-`presence.client_id` names the Discord application it appears under. A watch party needs
-Syncplay installed; `syncplay.binary` points at it if it is not on your `PATH`.
+`presence.client_id` names the Discord application it appears under.
+
+anistream runs a watch party itself, over Syncplay's protocol, so any Syncplay server works and
+nothing else needs installing. There is no default server: the party form suggests
+`syncplay.pl:8995`, which the Syncplay project runs. `syncplay.recent_servers` keeps the last five
+servers you joined. A party play saves no position, and the episode is marked watched when it
+ends.
 
 ## Everything else
 

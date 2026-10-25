@@ -66,6 +66,8 @@ const SHOTS: Record<string, Spec> = {
 	'linux-continue': { from: 'linux-continue.png', widths: [1270] },
 	'linux-title': { from: 'linux-title.png', widths: [1270] },
 	'linux-calendar': { from: 'linux-calendar.png', widths: [1270] },
+	'windows-search': { from: 'windows-search.png', widths: [1030] },
+	'tv-search': { from: 'tv-search.png', widths: TV },
 };
 
 const dir = process.argv[2];

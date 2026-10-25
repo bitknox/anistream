@@ -67,10 +67,10 @@ impl Staging {
     /// nothing from then, unless the ending rolls on.
     ///
     /// - An ending, of any other playback, is one the screen has moved on from: one staged
-    ///   over, or a party's. It leaves Now Playing as it is, and no longer stands behind the
+    ///   over. It leaves Now Playing as it is, and no longer stands behind the
     ///   playback staged over it.
     /// - A window handed over is the same, and Now Playing goes when it is the one handed
-    ///   over: that is a watch party taking it, which is not staged.
+    ///   over with nothing staged to take it.
     /// - A playback that found nothing and left the window to the one it was staged over puts
     ///   that one back, or passes it on to whatever was staged over this one since.
     pub(crate) fn observe(&mut self, event: &Event, played: Option<&Played>) -> Option<Staged> {
@@ -263,7 +263,7 @@ mod tests {
 
     #[test]
     fn an_ending_short_of_the_end_starts_nothing() {
-        // Quitting partway, a stream that failed, a party or the browser taking it.
+        // Quitting partway, a stream that failed, or the browser taking it.
         let cache = with_table(1, &[]);
         for end in [Ending::Closed, Ending::Stopped, Ending::Failed, Ending::Elsewhere] {
             let event = Event::playback_ended(false, end.clone());
@@ -453,8 +453,8 @@ mod tests {
     }
 
     #[test]
-    fn a_window_handed_to_a_party_takes_the_screen_down() {
-        // A party is not staged: the playback on screen hands its window over to it.
+    fn a_window_handed_over_with_nothing_staged_takes_the_screen_down() {
+        // Nothing is staged over it: the playback on screen hands its window on all the same.
         let mut staging = Staging::default();
         staging.staged(staged(1, "4"));
         let left = Event::EpisodeLeft {

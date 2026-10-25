@@ -12,6 +12,7 @@ use crate::{
     jobs::JobId,
     notice::Notice,
     notifications::{NewEpisode, UpcomingNotices},
+    party::{PartyForm, PartyMember, PartyMessage, PartyView},
     playback::{Ending, PlaybackId, SkipKind, TimeRange, TimelineMark},
     progress::{EpisodeProgress, TitleProgress},
     remote::FrontIntent,
@@ -419,6 +420,34 @@ pub enum Event {
     /// field, a key, a volume step, or a pairing code to show or hide. Sent only on a TV that
     /// started its remote, and never by the engine itself, which has no screen to act on.
     Remote(FrontIntent),
+    /// What the form that starts a party opens with, for
+    /// [`Command::LoadPartyForm`](crate::command::Command::LoadPartyForm).
+    PartyForm(PartyForm),
+    /// In a party's room: the form becomes the party panel. Followed by
+    /// [`Event::PartyMembers`], and [`Event::PartyState`] as the party changes.
+    PartyJoined(PartyView),
+    /// The party as it stands, after any change: ready, the episode and its invite link, the
+    /// connection lost and made again, the round trip.
+    PartyState(PartyView),
+    /// Who is in the room, this device's member first.
+    PartyMembers(Vec<PartyMember>),
+    /// What the room said: someone joining, leaving, pausing, resuming or jumping, a
+    /// correction to stay with the room, everyone ready, or chat. Already shown on the player
+    /// as a notice; this is for a party panel.
+    PartyMessage(PartyMessage),
+    /// The party is over: left on purpose with `None`, or for the reason given, worded for the
+    /// user ("party.example:8999 refused the party: …"). What is playing goes on as a private
+    /// session.
+    PartyLeft {
+        reason: Option<String>,
+    },
+    /// The party's episode has no source here: this device is in the room without playing,
+    /// for the dialog that says "None of your sources has this episode" and offers Choose
+    /// source.
+    PartyNoSource {
+        id: AnilistId,
+        episode: String,
+    },
 }
 
 impl Event {
