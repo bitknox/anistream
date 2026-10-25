@@ -29,6 +29,19 @@ pub struct Release {
     /// The Android app, `anistream-<version>-android-arm64.apk`.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub android: Option<ReleaseAsset>,
+    /// The Windows app's per-user installer for x64, `anistream-<version>-windows-x64-setup.exe`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub windows_x64: Option<ReleaseAsset>,
+    /// The Windows app's per-user installer for Arm64,
+    /// `anistream-<version>-windows-arm64-setup.exe`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub windows_arm64: Option<ReleaseAsset>,
+    /// The Linux app for x86_64, `anistream-<version>-linux-x86_64.AppImage`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub linux_x86_64: Option<ReleaseAsset>,
+    /// The Linux app for aarch64, `anistream-<version>-linux-aarch64.AppImage`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub linux_aarch64: Option<ReleaseAsset>,
 }
 
 /// One file of a release, with what it has to match once downloaded.

@@ -342,6 +342,10 @@ mod tests {
             macos: Some(file("anistream-2.0.3-macos.dmg", 56_208_258)),
             ios: None,
             android: Some(file("anistream-2.0.3-android-arm64.apk", 5_000_000_000)),
+            windows_x64: Some(file("anistream-2.0.3-windows-x64-setup.exe", 70_000_000)),
+            windows_arm64: Some(file("anistream-2.0.3-windows-arm64-setup.exe", 68_000_000)),
+            linux_x86_64: Some(file("anistream-2.0.3-linux-x86_64.AppImage", 90_000_000)),
+            linux_aarch64: None,
         };
         for status in [
             UpdateStatus::Checking,

@@ -54,6 +54,10 @@ mod tests {
                 macos: None,
                 ios: None,
                 android: None,
+                windows_x64: None,
+                windows_arm64: None,
+                linux_x86_64: None,
+                linux_aarch64: None,
             }),
             notify: true,
         }
