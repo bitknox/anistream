@@ -418,6 +418,23 @@ impl Store {
         })
     }
 
+    /// The translation `anilist_id` was last watched in: the newest record of a play that says
+    /// which. `None` when no play here said, as for progress taken from a tracker's list.
+    pub fn last_translation(&self, anilist_id: AnilistId) -> Result<Option<Translation>> {
+        self.with_conn(|c| {
+            let text: Option<String> = c
+                .query_row(
+                    "SELECT translation FROM watch_event
+                      WHERE anilist_id = ?1 AND translation IS NOT NULL
+                      ORDER BY at DESC, id DESC LIMIT 1",
+                    [anilist_id.get()],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            Ok(text.and_then(|t| t.parse().ok()))
+        })
+    }
+
     /// Distinct completed episodes, however they are numbered.
     pub fn completed_episode_count(&self, anilist_id: AnilistId) -> Result<u32> {
         self.with_conn(|c| {
@@ -823,6 +840,25 @@ mod tests {
         let ev = &store.events_for(HOSHIKUZU, 1).unwrap()[0];
         assert_eq!(ev.provider_id.as_deref(), Some("torrent"));
         assert_eq!(ev.translation, Some(Translation::Dub));
+    }
+
+    #[test]
+    fn the_last_translation_is_the_newest_play_that_says_one() {
+        let store = Store::open_in_memory().unwrap();
+        assert_eq!(store.last_translation(HOSHIKUZU).unwrap(), None);
+        let played = |translation, at| WatchEvent {
+            translation,
+            at,
+            ..WatchEvent::new(HOSHIKUZU, "011", 700.0)
+        };
+        store.record_event(&played(Some(Translation::Sub), 1_000)).unwrap();
+        store.record_event(&played(Some(Translation::Dub), 2_000)).unwrap();
+        assert_eq!(store.last_translation(HOSHIKUZU).unwrap(), Some(Translation::Dub));
+        // A record that says nothing, as progress taken from a tracker, leaves it as it was.
+        store.record_event(&played(None, 3_000)).unwrap();
+        assert_eq!(store.last_translation(HOSHIKUZU).unwrap(), Some(Translation::Dub));
+        store.record_event(&played(Some(Translation::Sub), 4_000)).unwrap();
+        assert_eq!(store.last_translation(HOSHIKUZU).unwrap(), Some(Translation::Sub));
     }
 
     #[test]
