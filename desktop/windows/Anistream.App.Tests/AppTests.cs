@@ -1029,3 +1029,135 @@ public class PartyTests
             Assert.NotNull(Parties.ServerProblem(bad));
     }
 }
+
+public class StatsPanelTests
+{
+    sealed class Clock
+    {
+        public TimeSpan Now = TimeSpan.FromMinutes(5);
+        public void Pass(double seconds) => Now += TimeSpan.FromSeconds(seconds);
+    }
+
+    static PlayerStats Stats(bool waiting = false, params (string Label, string Value, bool Warn)[] rows) =>
+        new([.. rows.Select(r => new DetailRow(r.Label, r.Value, r.Warn))], [], waiting);
+
+    [Fact]
+    public void ToggledItComesUpThenGoesAwayAndTellsThePlayerEachTime()
+    {
+        // I, the close button and the Settings check all toggle; the key itself is a XAML
+        // accelerator, which these tests without WinUI can't press.
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        Assert.Equal(new PlayerCommand.Stats(true), panel.Toggle());
+        Assert.True(panel.Shown);
+        clock.Pass(0.7);
+        Assert.NotNull(panel.View());
+        Assert.Equal(new PlayerCommand.Stats(false), panel.Toggle());
+        Assert.False(panel.Shown);
+        Assert.Null(panel.View());
+        Assert.Equal(new PlayerCommand.Stats(true), panel.Toggle());
+        Assert.True(panel.Shown);
+    }
+
+    [Fact]
+    public void OpenedBeforeTheFileItShowsNothingThenDashesThenTheWaitingLine()
+    {
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        panel.Show(true);
+        Assert.Null(panel.View());
+        clock.Pass(0.7);
+        var dashes = panel.View();
+        Assert.NotNull(dashes);
+        Assert.NotEmpty(dashes.Rows);
+        Assert.All(dashes.Rows, row => Assert.False(row.Warn));
+        Assert.False(dashes.WaitingLine);
+        Assert.False(dashes.CanCopy);
+        clock.Pass(3.5);
+        Assert.True(panel.View()!.WaitingLine);
+    }
+
+    [Fact]
+    public void TheEnginesRowsReplaceTheDashesAndCopyStatsWakes()
+    {
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        panel.Show(true);
+        Assert.True(panel.Took(Stats(false, ("Video", "1280 × 720 · H.264 · 24 fps", false), ("Buffer", "0 s ahead, waiting", true))));
+        var view = panel.View()!;
+        Assert.Equal(["Video", "Buffer"], view.Rows.Select(r => r.Label));
+        Assert.True(view.Rows[1].Warn);
+        Assert.True(view.CanCopy);
+        Assert.False(view.WaitingLine);
+    }
+
+    [Fact]
+    public void ShutItSaysNothingAndPassesOverTheEngine()
+    {
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        Assert.False(panel.Took(Stats(false, ("Video", "720p", false))));
+        Assert.Null(panel.View());
+        Assert.False(panel.Copied());
+        panel.Show(true);
+        // The summary alone, with no rows, as the engine says it when the panel shuts.
+        Assert.False(panel.Took(Stats()));
+    }
+
+    [Fact]
+    public void CopiedStandsInForTheButtonForAMoment()
+    {
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        panel.Show(true);
+        panel.Took(Stats(false, ("Video", "720p", false)));
+        Assert.True(panel.Copied());
+        Assert.True(panel.View()!.Copied);
+        clock.Pass(1.6);
+        Assert.False(panel.View()!.Copied);
+    }
+
+    [Fact]
+    public void ANewPlaybackWaitsAgainAndTheMiniPlayerHidesIt()
+    {
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        panel.Show(true);
+        panel.Took(Stats(false, ("Video", "720p", false)));
+        panel.Mini = true;
+        Assert.Null(panel.View());
+        panel.Mini = false;
+        Assert.NotNull(panel.View());
+        panel.Restart();
+        Assert.Null(panel.View());
+        clock.Pass(1);
+        Assert.False(panel.View()!.CanCopy);
+        Assert.True(panel.Shown);
+    }
+
+    [Fact]
+    public void AStagedShotHoldsItsRows()
+    {
+        var clock = new Clock();
+        var panel = new StatsPanel(() => clock.Now);
+        panel.Stage(AnistreamFfiMethods.PlayerStatsFixture(StatsFixture.Buffering), null, copied: true);
+        Assert.False(panel.Took(Stats(false, ("Video", "720p", false))));
+        var view = panel.View()!;
+        Assert.Single(view.Rows, r => r.Warn);
+        Assert.Equal("Buffer", view.Rows.Single(r => r.Warn).Label);
+        clock.Pass(30);
+        Assert.True(panel.View()!.Copied);
+    }
+
+    [Fact]
+    public void CopyStatsNamesTheSystemAndTheModelNotTheMachine()
+    {
+        Assert.Equal("Windows 11 24H2 (build 26100.2894)", StatsAbouts.System(26100, 2894, "24H2"));
+        Assert.Equal("Windows 10 (build 19045)", StatsAbouts.System(19045, 0, null));
+        Assert.Equal("21HMCTO1WW (ThinkPad X1 Carbon Gen 11)", StatsAbouts.Device("21HMCTO1WW", "ThinkPad X1 Carbon Gen 11"));
+        Assert.Equal("Surface Laptop, 7th Edition", StatsAbouts.Device("Surface Laptop, 7th Edition", "124I:00036T:000M:0300000D:11B:01F"));
+        Assert.Equal("Surface Laptop, 7th Edition", StatsAbouts.Device("Surface Laptop, 7th Edition", "1.0"));
+        Assert.Equal("", StatsAbouts.Device("To be filled by O.E.M.", "System Version"));
+        Assert.Equal("Virtual Machine", StatsAbouts.Device(" Virtual Machine ", null));
+    }
+}

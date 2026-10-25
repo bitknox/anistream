@@ -149,6 +149,7 @@ public sealed partial class PlayerView : UserControl
         still.Reset();
         ShowControls();
         tick.Start();
+        ShowStats();
         Focus(FocusState.Programmatic);
         ShowingChanged?.Invoke(true);
     }
@@ -167,8 +168,11 @@ public sealed partial class PlayerView : UserControl
         still.Reset();
         click.Stop();
         Visibility = Visibility.Collapsed;
-        foreach (var layer in new UIElement[] { StillLayer, Starting, SkipSlot, UndoCard, UpNextCard, StallCard, AlertCard, Flash })
+        foreach (var layer in new UIElement[] { StillLayer, Starting, SkipSlot, UndoCard, UpNextCard, StallCard, AlertCard, Flash, StatsLayer })
             Motion.Set(layer, false);
+        // Kept up for the next playback, which waits for its own figures.
+        stats.Restart();
+        statsUp = false;
         startingShown = skipShown = stallShown = upNextShown = false;
         cornerCard = null;
         undo = null;
@@ -224,6 +228,12 @@ public sealed partial class PlayerView : UserControl
                 case Event.PlayerBuffered b:
                     buffered = b.Ranges ?? [];
                     DrawTimeline();
+                    break;
+                case Event.PlayerStats ps:
+                    TookStats(ps.Stats);
+                    break;
+                case Event.Clipboard clip:
+                    TookClipboard(clip.Text);
                     break;
                 case Event.PlaybackVolume v:
                     volume = v.V1;
@@ -617,6 +627,9 @@ public sealed partial class PlayerView : UserControl
     {
         StartingClock();
         CornerClock();
+        // The panel's timed states: the dashes, the waiting line, "Copied" going.
+        if (stats.Shown)
+            ShowStats();
         if (player is null)
             return;
         var swapchain = (nint)player.Swapchain();
@@ -1123,6 +1136,8 @@ public sealed partial class PlayerView : UserControl
         var night = new ToggleMenuFlyoutItem { Text = "Night mode", IsChecked = menus.NightMode };
         night.Click += (_, _) => Send(new PlayerCommand.NightMode(night.IsChecked));
         SettingsMenu.Items.Add(night);
+        SettingsMenu.Items.Add(new MenuFlyoutSeparator());
+        SettingsMenu.Items.Add(StatsItem());
     }
 
     // Keys: arrows and S act without showing the controls; every other key shows them.
@@ -1290,7 +1305,9 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline</c>.
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline|settings</c>, and
+    /// Stats for nerds as <c>stats</c>, <c>stats-waiting</c>, <c>stats-buffering</c>, <c>stats-hdr</c>,
+    /// <c>stats-copied</c> or <c>stats-mini</c>; a <c>.srt</c> beside the clip is loaded for those.
     /// </summary>
     async void Demo(string what)
     {
@@ -1377,6 +1394,53 @@ public sealed partial class PlayerView : UserControl
                 flash.Interval = TimeSpan.FromSeconds(600);
                 ShowFlash("12:04");
                 break;
+            case "settings":
+                // The player's Settings menu open, with Stats for nerds at its foot.
+                ShowControls();
+                SettingsMenu.ShowAt(SettingsButton);
+                break;
+            case "stats":
+            case "stats-waiting":
+            case "stats-buffering":
+            case "stats-hdr":
+            case "stats-copied":
+            case "stats-mini":
+                // The short clip is near its end from the start: no Up Next card over the shot.
+                HoldUpNext = true;
+                upNext = null;
+                ShowUpNext();
+                // Subtitles from a file beside the clip, so the shot shows the panel clear of them.
+                if (player is { } p && Path.ChangeExtension(ctx?.Options.Media ?? @"C:\setup\sdr-testsrc.mp4", ".srt") is { } srt
+                    && File.Exists(srt))
+                    await Task.Run(() => p.LoadTrack(TrackKind.Subtitle, srt));
+                // The live panel reads mpv itself; the others hold the engine's made-up states.
+                switch (what)
+                {
+                    case "stats-waiting":
+                        // Opened before the file has: over the starting screen, a while on.
+                        startingHeld = true;
+                        ShowStarting();
+                        StageStats(StatsFixture.Waiting, TimeSpan.FromSeconds(5), copied: false);
+                        break;
+                    case "stats-buffering":
+                        StageStats(StatsFixture.Buffering, null, copied: false);
+                        break;
+                    case "stats-hdr":
+                        StageStats(StatsFixture.Hdr, null, copied: false);
+                        break;
+                    case "stats-copied":
+                        StageStats(StatsFixture.Playing, null, copied: true);
+                        break;
+                    case "stats-mini":
+                        StageStats(null, null, copied: false);
+                        await Task.Delay(2500);
+                        ToggleMini();
+                        break;
+                    default:
+                        StageStats(null, null, copied: false);
+                        break;
+                }
+                break;
         }
     }
 #endif
@@ -1419,12 +1483,17 @@ public sealed partial class PlayerView : UserControl
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(MiniButton, on ? "Back to the window" : "Mini player");
         if (on)
             ClosePreview();
+        stats.Mini = on;
+        ShowStats();
     }
 
     // Previews on the timeline.
 
     internal void NoteLoad(PlayerOp[] ops)
     {
+        // A new file opening: Stats for nerds, if up, asks the engine's new player again.
+        if (ops.Any(op => op is PlayerOp.Open))
+            DispatcherQueue.TryEnqueue(StatsReopen);
         foreach (var op in ops)
         {
             if (op is PlayerOp.Load load)
