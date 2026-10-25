@@ -16,6 +16,17 @@ struct SettingsWordsTests {
         #expect(SettingKey.commitThreshold.title == "Counts as watched at")
     }
 
+    @Test func titleLanguageIsInGeneralNotPlayback() {
+        #expect(Navigator(route: LaunchRoute()).settingsPane == .general, "the first pane opens first")
+        var titles = LaunchRoute()
+        titles.pane = "titles"
+        #expect(Navigator(route: titles).settingsPane == .general)
+        #expect(PhoneSettingsPage.named("titles") == .general)
+        let index = SettingsResults.index
+        #expect(index.contains { $0.title == "Title language" && $0.pane == .general })
+        #expect(index.contains { $0.title == "Show adult titles" && $0.pane == .general })
+    }
+
     /// A settings view as an engine with or without a Discord presence sends it.
     private func settingsView(presence: Bool) -> SettingsView {
         SettingsView(

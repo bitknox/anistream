@@ -8,12 +8,13 @@ import SwiftUI
 
 /// Settings' panes. Integrations stays out of v1.
 public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case playback, downloads, notifications, sources, accounts, integrations, advanced
+    case general, playback, downloads, notifications, sources, accounts, integrations, advanced
 
     public var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .general: "General"
         case .playback: "Playback"
         case .downloads: "Downloads"
         case .notifications: "Notifications"
@@ -37,7 +38,7 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
 
 /// A page of the iPhone's Settings sheet.
 public enum PhoneSettingsPage: Hashable, Sendable {
-    case root, playback, downloads, notifications, sources, accounts, providers, stores, about, acknowledgements
+    case root, general, playback, downloads, notifications, sources, accounts, providers, stores, about, acknowledgements
     /// The TVs paired for Play on TV.
     case tvs
     case store(String)
@@ -48,6 +49,7 @@ public enum PhoneSettingsPage: Hashable, Sendable {
     /// The page a launch argument names: a Settings pane's name, or providers or stores.
     static func named(_ name: String) -> PhoneSettingsPage? {
         switch name {
+        case "general", "titles": .general
         case "playback": .playback
         case "downloads": .downloads
         case "notifications": .notifications
@@ -56,7 +58,6 @@ public enum PhoneSettingsPage: Hashable, Sendable {
         case "providers": .providers
         case "about": .about
         case "tvs": .tvs
-        case "titles": .playback
         case "stores", "pluginStores": .stores
         // The showcase's own, for screenshots.
         case "store": .store("hotaru")
@@ -94,6 +95,7 @@ struct SettingsScreen: View {
                 SettingsResults(query: navigator.settingsQuery)
             } else {
                 switch navigator.settingsPane {
+            case .general: GeneralPane()
             case .playback: PlaybackPane()
             case .downloads: DownloadsPane()
             case .notifications: NotificationsPane()
@@ -190,6 +192,7 @@ struct SettingsResults: View {
 
     /// Each row's name, and its pane.
     static let index: [(title: String, pane: SettingsPane)] = [
+        ("Title language", .general), ("Show adult titles", .general),
         ("Translation", .playback), ("Subtitles", .playback), ("Quality", .playback),
         ("Auto-play next", .playback), ("Up Next countdown", .playback),
         ("Skip opening automatically", .playback), ("Skip filler automatically", .playback),
@@ -283,7 +286,8 @@ struct SettingsTabs: View {
     }
 }
 
-/// The column beside a pane: what the pane is about, or for Playback the upscaling preview.
+/// The column beside a pane: what the pane is about, for General the titles as the language
+/// setting names them, and for Playback the upscaling preview.
 struct SettingsAside: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
@@ -292,8 +296,10 @@ struct SettingsAside: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             switch pane {
+            case .general:
+                TitleLanguagePreview()
             case .playback:
-                if navigator.playbackFocus == .titleLanguage { TitleLanguagePreview() } else { UpscalingPreview() }
+                UpscalingPreview()
             case .downloads:
                 StorageAside()
             case .notifications:
@@ -340,20 +346,29 @@ enum Device {
     }
 }
 
+// MARK: - General
+
+/// How titles read and which are listed: nothing here is about playing an episode.
+struct GeneralPane: View {
+    var body: some View {
+        SettingsGroup(title: "Titles") {
+            TitleLanguageRow()
+            SettingsRow(title: SettingKey.adultTitles.title, note: "Titles AniList marks adult, in Search and Seasonal.") {
+                SettingSwitch(key: .adultTitles)
+            }
+        }
+    }
+}
+
 // MARK: - Playback
 
 struct PlaybackPane: View {
     @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
     @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
 
     var body: some View {
         let overridden = store.settings.overriddenNote
         SettingsGroup(title: "Language") {
-            TitleLanguageRow()
-            SettingsRow(title: SettingKey.adultTitles.title, note: "Titles AniList marks adult, in Search and Seasonal.") {
-                SettingSwitch(key: .adultTitles)
-            }
             SettingsRow(title: SettingKey.translation.title, note: overridden(.translation)) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
             // Kept on this device: the style it follows is this device's.
@@ -388,10 +403,10 @@ struct PlaybackPane: View {
             }
         }
         SettingsGroup(title: "Picture and sound") {
-            SettingsRow(title: SettingKey.upscaling.title, selected: navigator.playbackFocus == .upscaling) {
+            // Selected: the column beside the pane is about it.
+            SettingsRow(title: SettingKey.upscaling.title, selected: true) {
                 SettingMenu(key: .upscaling)
             }
-            .onTapGesture { navigator.playbackFocus = .upscaling }
             SettingsRow(title: SettingKey.nightMode.title, note: "Evens out loud and quiet passages, so dialogue stays clear at low volume.") {
                 SettingSwitch(key: .nightMode)
             }

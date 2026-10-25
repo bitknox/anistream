@@ -1,4 +1,4 @@
-// Settings › Playback › Language's first row, Title language (MacSettingsTitles,
+// Settings › General › Titles' first row, Title language (MacSettingsTitles,
 // PhoneSettingsTitles): AniList's choice, English or Romaji, with what each does said under the
 // label and each choice's menu item showing a title the way it would read.
 
@@ -6,11 +6,6 @@ import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
 import SwiftUI
-
-/// Which row of the Playback pane the column beside it is about.
-public enum PlaybackFocus: Sendable {
-    case upscaling, titleLanguage
-}
 
 /// The three choices, as the settings file names them.
 enum TitleChoice: String, CaseIterable, Sendable {
@@ -142,15 +137,14 @@ private struct TitleChoiceItems: View {
 /// The Mac's and iPad's row: a popup and the line under the label.
 struct TitleLanguageRow: View {
     @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        let selected = navigator.playbackFocus == .titleLanguage
         let choice = store.titleChoice
         SettingsRow(
             title: SettingKey.titles.title,
             note: TitleLanguageWords.line(choice, signedIn: store.anilistSignedIn, viewer: store.accounts.viewerTitleLanguage),
-            selected: selected
+            // Selected: the column beside the pane is about it.
+            selected: true
         ) {
             Menu {
                 TitleChoiceItems()
@@ -164,12 +158,11 @@ struct TitleLanguageRow: View {
             .disabled(store.settings.row(.titles) == nil)
             .accessibilityLabel(SettingKey.titles.title)
         }
-        .onTapGesture { navigator.playbackFocus = .titleLanguage }
         .task { store.send(.loadTitleLanguage) }
     }
 }
 
-/// The column beside the pane while the row is selected: three covers with their titles as the
+/// The column beside the General pane: three covers with their titles as the
 /// current choice names them, and what the choice does. The covers are 88 points wide, narrower
 /// when the column is, so the three always fit.
 struct TitleLanguagePreview: View {
