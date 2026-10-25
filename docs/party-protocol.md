@@ -21,7 +21,7 @@ Syncplay's, which is GPL; this one is MIT like the rest of the project.
 | Messages | One JSON object per line, ended by `\r\n`, at most 256 KiB |
 | Port | 8999 when the server is written without one |
 | Server | None by default; the first party suggests the public one and says who runs it |
-| Room | Any name; the form suggests two random words, such as `amber-anchor` |
+| Room | New parties get a name nobody can guess, shared by invite link; a name typed in joins that room |
 | Sync | The server's room state, applied with Syncplay's thresholds and its acknowledgement counters |
 | Chat | Received and shown as notices on the player; nothing is sent |
 | History | A party play marks the episode watched at its end; no position is kept along the way |
@@ -218,14 +218,16 @@ remembered, and a party play never rolls on to the next episode by itself.
 
 | Command | What it does |
 |---|---|
-| `LoadPartyForm` | Answered with `PartyForm`: the servers used before, the suggestion and who runs it, a room name, the settings' name |
+| `LoadPartyForm` | Answered with `PartyForm`: the servers used before, the suggestion and who runs it, a new room nobody can guess, the settings' name |
 | `PartyJoin { server, room, name }` | Joins the room. What plays now, and every play after, plays with it. Joining another room leaves the one before; the same room again does nothing |
 | `PartyReady { ready }` | Says whether this member is ready |
 | `PartyLeave` | Leaves the room. What plays goes on, as a private play |
 | `PlayParty { id, episode, server, room, name }` | Joins, then plays the episode with the room. Each part left out comes from the party going, then the settings (`syncplay.server`, or the last server used; `syncplay.room`, or a new name; `syncplay.name`) |
 
-With `syncplay.enabled` on, a `Play`, `PlaySource` or `PlayLocal` with no party going joins the
-settings' party first, as `PlayParty` with nothing named would.
+On the terminal, with `syncplay.enabled` on, a `Play`, `PlaySource` or `PlayLocal` with no
+party going joins the settings' party first, as `PlayParty` with nothing named would. The
+terminal asks for that with `EngineOptions::every_play_a_party`; the apps leave it off and
+start parties only when asked, so the setting does nothing there.
 
 A party command with none going is answered with `PartyLeft { reason: None }`. Built without
 the `party` feature, every party command is answered with an alert that watch parties aren't
@@ -255,7 +257,7 @@ the terminal once handed a party to.
 A party is shared as a link that names the server, the room and the episode:
 
 ```
-anistream://party?server=syncplay.example%3A8999&room=amber-anchor&title=21&episode=3
+anistream://party?server=syncplay.example%3A8999&room=amber-anchor-k7m2xq9ad4tnwe3p&title=21&episode=3
 ```
 
 `title` is the AniList id. Values are percent-encoded per RFC 3986. Reading is lenient: the
@@ -274,9 +276,18 @@ public one, `syncplay.pl:8995`, saying it is run by the Syncplay project, so the
 whose server their room is on before joining. A play that asks for a party with no server
 chosen is refused with the same suggestion.
 
-Room names on a public server can be guessed. The form's suggestion is two random words from
-1,600 pairs, enough to avoid a stranger landing in a room by chance, not to keep one out who
-is looking. There is no room password.
+## Room names
+
+A server has no lock on a room: anyone who knows its name can join it. So a new party's room
+is named so that nobody can guess it: two words, for people to tell rooms apart by, then
+sixteen random letters and digits, eighty bits drawn fresh for each form, as
+`quiet-harbor-k7m2xq9ad4tnwe3p` (`room_name` in the model). The letters leave out `l`, `o`, `0`
+and `1`, which read as one another. The name travels in the invite link, so nobody has to read
+it out.
+
+The form's room can be replaced by a name typed by hand, which joins that room as it is: how
+someone joins a friend who started a party with Syncplay's own client, or a room with an easy
+name a group chose to be findable. There is no room password.
 
 ## FFI surface
 

@@ -81,7 +81,7 @@ pub enum Action {
     // Episodes
     /// Queue a typed range of episodes for download: `4`, `1-12`, `7-`.
     DownloadRange,
-    /// Play an episode in a Syncplay watch party instead of a private session.
+    /// Play an episode with the watch party set up in the settings, instead of a private session.
     PlayParty,
     ToggleWatched,
     MarkAllPrevious,
@@ -246,7 +246,7 @@ impl Action {
             Self::RaiseSource => "Move source up",
             Self::LowerSource => "Move source down",
             Self::DownloadRange => "Download a range of episodes",
-            Self::PlayParty => "Play in a Syncplay party",
+            Self::PlayParty => "Play in a watch party",
             Self::ToggleWatched => "Toggle watched",
             Self::MarkAllPrevious => "Mark all previous watched",
             Self::Filter => "Filter",

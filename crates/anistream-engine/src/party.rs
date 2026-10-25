@@ -63,7 +63,7 @@ pub fn form(engine: &EngineState, tx: &Outbox) {
         recent_servers: recent,
         suggested_server: SUGGESTED_SERVER.into(),
         suggested_run_by: SUGGESTED_SERVER_RUN_BY.into(),
-        room: room_name(rand::random()),
+        room: room_name(rand::random::<u128>()),
         name: syncplay.name.clone(),
     }));
 }
@@ -156,15 +156,22 @@ pub fn join_for_play(
     let room = room
         .or_else(|| current.filter(|_| same_server).map(|(_, room)| room))
         .or_else(|| named(syncplay.room.clone()))
-        .unwrap_or_else(|| room_name(rand::random()));
+        .unwrap_or_else(|| room_name(rand::random::<u128>()));
     join(&server, &room, name.as_deref(), engine, services, tx)
 }
 
 /// Join the party the settings name before a play nobody asked a party of, when they send
-/// every play to one (`syncplay.enabled`) and none is going. A play goes on alone when it
-/// can't be joined: the reason is said, and nothing else waits on it.
+/// every play to one (`syncplay.enabled`) and none is going. The terminal's way in alone
+/// ([`EngineOptions::every_play_a_party`]): the apps start parties when asked, and the setting
+/// does nothing there. A play goes on alone when it can't be joined: the reason is said, and
+/// nothing else waits on it.
+///
+/// [`EngineOptions::every_play_a_party`]: crate::options::EngineOptions::every_play_a_party
 pub fn join_by_default(engine: &mut EngineState, services: &Services, tx: &Outbox) {
-    if engine.config.effective().syncplay.enabled && going(engine).is_none() {
+    if services.every_play_a_party
+        && engine.config.effective().syncplay.enabled
+        && going(engine).is_none()
+    {
         join_for_play(None, None, None, engine, services, tx);
     }
 }

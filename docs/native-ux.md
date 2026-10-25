@@ -88,7 +88,7 @@ Bare-letter keys work only in the player window, and in lists only while no text
 | Settings | ⌘, | 9 |
 | Quit | ⌘Q | Q, Ctrl-C |
 
-Set Status, Rate, Episodes, Sources, Source for This Title, Fix Match, Download, Download Range, Watch Order, Recommendations, Play Trailer, Open on AniList, Play in Syncplay Party, Mark All Previous as Watched and Clear Finished Downloads are menu items without shortcuts.
+Set Status, Rate, Episodes, Sources, Source for This Title, Fix Match, Download, Download Range, Watch Order, Recommendations, Play Trailer, Open on AniList, Play in a Watch Party, Mark All Previous as Watched and Clear Finished Downloads are menu items without shortcuts.
 
 ### Player window
 

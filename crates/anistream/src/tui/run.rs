@@ -65,6 +65,9 @@ pub async fn run(
     let mut options =
         EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
     options.saved = Some(saved.clone());
+    // `syncplay.enabled` sends every play to the party: the terminal's way in, which the apps,
+    // starting parties when asked, do without.
+    options.every_play_a_party = true;
     let host = Arc::new(DesktopHost::new(&config, &paths));
     let (engine, mut from_engine) = Engine::start(options, host).await?;
 

@@ -20,7 +20,7 @@ anistream                                                                       
     Move up                     k / ↑    Recommendations                 b    Previous episode                N
     Move down                   j / ↓    Play the trailer                v    Skip opening                    S
     Move left                   h / ←    Open on AniList                 o    Slower                          [
-    Move right                  l / →    Play in a Syncplay party        y    Faster                          ]
+    Move right                  l / →    Play in a watch party           y    Faster                          ]
     Jump to top                     g  EPISODES                               Volume down                     9
     Jump to bottom                  G    Download a range of episodes    D    Volume up                       0
     Page up                    ctrl+u    Toggle watched                  u    Fullscreen                      F

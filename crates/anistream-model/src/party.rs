@@ -27,7 +27,8 @@ pub struct PartyForm {
     pub suggested_server: String,
     /// [`SUGGESTED_SERVER_RUN_BY`].
     pub suggested_run_by: String,
-    /// A new room's name: two words, picked at random.
+    /// A new room's name, which nobody can guess: see [`room_name`]. A party started with it is
+    /// found through its invite link; a name typed in its place joins that room instead.
     pub room: String,
     /// The name the room sees, from the settings.
     pub name: String,
@@ -261,14 +262,32 @@ const ROOM_SECOND: &[&str] = &[
     "tunnel", "valley", "willow", "zephyr",
 ];
 
-/// A room's name from `seed`: two words joined by a dash, as `quiet-harbor`. Sixteen hundred
-/// of them, so a room on a public server is easy to say aloud but not hard to guess: anyone
-/// who knows a room's name can join it.
-pub fn room_name(seed: u64) -> String {
-    let first = ROOM_FIRST[(seed % ROOM_FIRST.len() as u64) as usize];
+/// The letters a room's random part is written in: lower case, without the ones read as others
+/// (`l`, `o`, `0`, `1`). Thirty-two of them, five bits each.
+const ROOM_KEY_LETTERS: &[u8; 32] = b"abcdefghijkmnpqrstuvwxyz23456789";
+
+/// How many of [`ROOM_KEY_LETTERS`] a room's random part has: eighty bits, past guessing on a
+/// public server however many tries a stranger makes.
+pub const ROOM_KEY_LENGTH: usize = 16;
+
+/// A new room's name from `seed`, which the caller draws at random: two words for people to
+/// tell rooms apart by, then a random part nobody can guess, as `quiet-harbor-k7m2xq9ad4tnwe3p`.
+///
+/// Anyone who knows a room's name can join it, and a server keeps no other lock. So the name a
+/// party starts with is shared through its invite link rather than said aloud, and a room with a
+/// name typed by hand is one its people chose to be findable.
+pub fn room_name(seed: u128) -> String {
+    let words = seed as u64 & 0xffff;
+    let first = ROOM_FIRST[(words % ROOM_FIRST.len() as u64) as usize];
     let second =
-        ROOM_SECOND[((seed / ROOM_FIRST.len() as u64) % ROOM_SECOND.len() as u64) as usize];
-    format!("{first}-{second}")
+        ROOM_SECOND[((words / ROOM_FIRST.len() as u64) % ROOM_SECOND.len() as u64) as usize];
+    let mut key = seed >> 16;
+    let mut name = format!("{first}-{second}-");
+    for _ in 0..ROOM_KEY_LENGTH {
+        name.push(char::from(ROOM_KEY_LETTERS[(key & 31) as usize]));
+        key >>= 5;
+    }
+    name
 }
 
 #[cfg(test)]
@@ -331,11 +350,24 @@ mod tests {
     }
 
     #[test]
-    fn room_names_are_two_plain_words() {
-        assert_eq!(room_name(0), "amber-anchor");
-        let names: std::collections::BTreeSet<_> = (0..1600).map(room_name).collect();
-        assert_eq!(names.len(), 1600, "every seed below the count names a different room");
-        assert!(names.iter().all(|n| n.split('-').count() == 2 && n.is_ascii()));
+    fn a_new_room_is_two_words_and_a_part_nobody_can_guess() {
+        assert_eq!(room_name(0), "amber-anchor-aaaaaaaaaaaaaaaa");
+        // The words tell rooms apart: every one of the sixteen hundred pairs is reached.
+        let pairs: std::collections::BTreeSet<_> = (0..1600u128)
+            .map(|seed| room_name(seed).rsplit_once('-').unwrap().0.to_owned())
+            .collect();
+        assert_eq!(pairs.len(), 1600);
+        // The rest of the seed is the random part, each bit of it: rooms with the same words
+        // are told apart by it.
+        let keys: std::collections::BTreeSet<_> =
+            (16..96).map(|bit| room_name(1u128 << bit)).collect();
+        assert_eq!(keys.len(), 80, "every one of the eighty bits shows in the name");
+        let name = room_name(u128::MAX);
+        let parts: Vec<&str> = name.split('-').collect();
+        assert_eq!(parts.len(), 3, "{name}");
+        assert_eq!(parts[2].len(), ROOM_KEY_LENGTH);
+        assert!(parts[2].bytes().all(|b| ROOM_KEY_LETTERS.contains(&b)), "{name}");
+        assert!(!parts[2].contains(['l', 'o', '0', '1']), "{name}");
         assert_eq!(ROOM_FIRST.len(), 40);
         assert_eq!(ROOM_SECOND.len(), 40);
     }

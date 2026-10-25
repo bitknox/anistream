@@ -167,6 +167,7 @@ impl Engine {
             store,
             player_theme,
             hosted_player,
+            every_play_a_party,
             app_clients,
             device_label,
             sources: given,
@@ -232,6 +233,7 @@ impl Engine {
                     power,
                     hosted,
                     hosted_player,
+                    every_play_a_party,
                     paths,
                     http,
                     store,
@@ -261,7 +263,8 @@ impl Engine {
         // own sign-in clients, where signing in will read them (E6).
         // And what a store joined with an invite calls this device unless told otherwise.
         let stores = services.stores.labelled(&device_label);
-        let services = Services { hosted_player, app_clients, stores, ..services };
+        let services =
+            Services { hosted_player, every_play_a_party, app_clients, stores, ..services };
         let hosted = Arc::clone(&services.hosted);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
@@ -1737,7 +1740,17 @@ mod tests {
         };
         assert_eq!(form.suggested_server, SUGGESTED_SERVER);
         assert!(form.recent_servers.is_empty());
-        assert!(!form.room.is_empty());
+        let key = form.room.rsplit('-').next().unwrap_or_default();
+        assert_eq!(key.len(), anistream_model::party::ROOM_KEY_LENGTH, "{}", form.room);
+        // Each form a room of its own, past guessing.
+        let first = form.room.clone();
+        engine.send(Command::LoadPartyForm);
+        let seen = seen_until(&mut events, |e| matches!(e, Event::PartyForm(_))).await;
+        let again = seen.iter().find_map(|e| match e {
+            Event::PartyForm(form) => Some(form.room.clone()),
+            _ => None,
+        });
+        assert_ne!(again, Some(first));
 
         // Joined: the room said, and its server kept first among the ones used.
         let room = "amber-anchor";
@@ -1868,6 +1881,34 @@ mod tests {
         let reason = reason.unwrap_or_else(|| panic!("{seen:?}"));
         assert!(reason.contains(SUGGESTED_SERVER) && reason.contains(SUGGESTED_SERVER_RUN_BY));
         assert!(!seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })), "{seen:?}");
+    }
+
+    /// `syncplay.enabled` sends every play to the party on the terminal, which asks for that,
+    /// and does nothing in an app, which starts parties when asked.
+    #[cfg(feature = "party")]
+    #[tokio::test]
+    async fn every_play_joins_the_party_on_the_terminal_alone() {
+        use anistream_model::party::SUGGESTED_SERVER;
+
+        for terminal in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let host = Arc::new(QuietHost::in_dir(&dir.path().join("tokens")));
+            let (engine, mut events) = engine_with(dir.path(), host, |options| {
+                options.config.syncplay.enabled = true;
+                options.every_play_a_party = terminal;
+            })
+            .await;
+            events.launch().await;
+            engine.send(Command::play(anistream_core::ids::AnilistId::new(7), "1"));
+            let seen = seen_until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+            // No server is set, so the terminal's play is told to choose one; the app's plays
+            // with no word of a party.
+            let asked = seen.iter().any(|e| {
+                matches!(e, Event::PartyLeft { reason: Some(reason) } if reason.contains(SUGGESTED_SERVER))
+            });
+            assert_eq!(asked, terminal, "{seen:?}");
+            engine.shutdown().await;
+        }
     }
 
     #[tokio::test]

@@ -368,12 +368,14 @@ pub enum PlayerUi {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SyncplayConfig {
-    /// Every play from the terminal joins the party set below, not only those `y` starts.
+    /// Every play from the terminal joins the party set below, not only those `y` starts. The
+    /// apps start parties when asked, and this does nothing there.
     pub enabled: bool,
     /// `host:port` of the server the terminal's parties use. Empty until chosen: there is no
     /// default server, since a public one is run by people the viewer may not know.
     pub server: String,
-    /// The room the terminal's parties join. A new one, named at random, when unset.
+    /// The room the terminal's parties join. When unset, a new one with a name nobody can guess,
+    /// shared through its invite link.
     pub room: Option<String>,
     /// The name shown to the room.
     pub name: String,

@@ -159,9 +159,9 @@ impl App {
             S::KeepSeeding => "on keeps advertising you as a source — applies immediately",
             S::DownloadHook => "enter types a command — run after each finished download",
             // `y` is the ordinary way in; this toggle sends *every* play there.
-            S::Syncplay => "y plays one episode with the room set below — on sends every play",
+            S::Syncplay => "y plays one episode with the room set below; on sends every play",
             S::SyncplayServer => "enter types host:port; there is none until you pick one",
-            S::SyncplayRoom => "enter types the room everyone joins",
+            S::SyncplayRoom => "enter types a friend's room; empty starts one nobody can guess",
             S::UpdateCheck => "one cached request a day, checked at startup",
             // Enabling it without a client id is a no-op, and a toggle that appears to work
             // while doing nothing is worse than one that says why.
