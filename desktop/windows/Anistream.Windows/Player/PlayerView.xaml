@@ -156,9 +156,20 @@
           </Button>
           <TextBlock x:Name="Elapsed" Grid.Column="3" Text="0:00" VerticalAlignment="Center" Margin="6,0,4,0" Style="{StaticResource BodyTextBlockStyle}"
                      Typography.NumeralAlignment="Tabular" AutomationProperties.AccessibilityView="Raw" />
-          <Slider x:Name="Timeline" Grid.Column="4" VerticalAlignment="Center" Minimum="0" Maximum="1" StepFrequency="1"
-                  IsThumbToolTipEnabled="False" ValueChanged="OnTimelineChanged" AutomationProperties.Name="Timeline"
-                  PointerExited="OnTimelineExited" />
+          <!-- The seek bar over its own track: the whole length, what is buffered, and the opening
+               and ending marks, drawn under the slider, whose own track is clear. -->
+          <Grid Grid.Column="4" VerticalAlignment="Center">
+            <Canvas x:Name="TimelineUnder" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw" />
+            <Slider x:Name="Timeline" VerticalAlignment="Center" Minimum="0" Maximum="1" StepFrequency="1"
+                    IsThumbToolTipEnabled="False" ValueChanged="OnTimelineChanged" AutomationProperties.Name="Timeline"
+                    PointerExited="OnTimelineExited" SizeChanged="OnTimelineSized">
+              <Slider.Resources>
+                <SolidColorBrush x:Key="SliderTrackFill" Color="Transparent" />
+                <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="Transparent" />
+                <SolidColorBrush x:Key="SliderTrackFillPressed" Color="Transparent" />
+              </Slider.Resources>
+            </Slider>
+          </Grid>
           <TextBlock x:Name="Remaining" Grid.Column="5" Text="-0:00" VerticalAlignment="Center" Margin="4,0,6,0" Style="{StaticResource BodyTextBlockStyle}"
                      Typography.NumeralAlignment="Tabular" AutomationProperties.AccessibilityView="Raw" />
           <Button x:Name="VolumeButton" Grid.Column="6" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Volume" AutomationProperties.Name="Volume">
