@@ -895,12 +895,70 @@ public sealed partial class PlayerView : UserControl
         subs.Items.Add(off);
         foreach (var track in subtitles)
             subs.Items.Add(TrackItem(track, "subtitles"));
+        subs.Items.Add(new MenuFlyoutSeparator());
+        subs.Items.Add(LoadItem(TrackKind.Subtitle));
         TracksMenu.Items.Add(subs);
 
-        var sound = new MenuFlyoutSubItem { Text = "Audio", IsEnabled = audio.Length > 0 };
+        var sound = new MenuFlyoutSubItem { Text = "Audio" };
         foreach (var track in audio)
             sound.Items.Add(TrackItem(track, "audio"));
+        if (audio.Length > 0)
+            sound.Items.Add(new MenuFlyoutSeparator());
+        sound.Items.Add(LoadItem(TrackKind.Audio));
         TracksMenu.Items.Add(sound);
+    }
+
+    MenuFlyoutItem LoadItem(TrackKind kind)
+    {
+        var item = new MenuFlyoutItem { Text = kind == TrackKind.Subtitle ? "Load Subtitle File…" : "Load Audio File…" };
+        item.Click += (_, _) => LoadTrack(kind);
+        return item;
+    }
+
+    static readonly string[] SubtitleFiles = [".srt", ".ass", ".ssa", ".vtt", ".sub", ".sup"];
+    static readonly string[] AudioFiles = [".mka", ".m4a", ".aac", ".ac3", ".eac3", ".flac", ".mp3", ".ogg", ".opus", ".wav"];
+
+    /// <summary>
+    /// Load Subtitle File… or Load Audio File…: the system's file picker, then mpv adds the file
+    /// as a track and selects it. mpv's alone, so the next episode does not carry it. Cancelling
+    /// the picker says nothing.
+    /// </summary>
+    async void LoadTrack(TrackKind kind)
+    {
+        if (ctx is null || player is not { } p)
+            return;
+        var subtitle = kind == TrackKind.Subtitle;
+        string? path;
+        try
+        {
+            var picker = new Microsoft.Windows.Storage.Pickers.FileOpenPicker(ctx.Window.AppWindow.Id)
+            {
+                CommitButtonText = subtitle ? "Load Subtitles" : "Load Audio",
+                SuggestedStartLocation = Microsoft.Windows.Storage.Pickers.PickerLocationId.Downloads,
+            };
+            foreach (var extension in subtitle ? SubtitleFiles : AudioFiles)
+                picker.FileTypeFilter.Add(extension);
+            path = (await picker.PickSingleFileAsync())?.Path;
+        }
+        catch (Exception e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the file picker failed: {e.Message}");
+            Alert("Couldn't open the file picker");
+            return;
+        }
+        if (path is not { Length: > 0 })
+            return;
+        try
+        {
+            // mpv reads the file before it answers: off the UI thread.
+            await Task.Run(() => p.LoadTrack(kind, path));
+        }
+        catch (FfiException e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"mpv did not load the track: {e.Message}");
+            Alert(subtitle ? "Couldn't load that subtitle file" : "Couldn't load that audio file");
+        }
+        ShowControls();
     }
 
     RadioMenuFlyoutItem TrackItem(FfiTrack track, string group)

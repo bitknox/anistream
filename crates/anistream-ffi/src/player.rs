@@ -214,6 +214,19 @@ impl FfiPlayer {
         }
     }
 
+    /// A subtitle or audio track from a file the viewer picked, added and selected: mpv's alone,
+    /// so the next episode does not carry it. An error when mpv cannot load the file.
+    pub fn load_track(&self, kind: TrackKind, path: String) -> Result<(), FfiError> {
+        let player = self.player();
+        let player = player
+            .as_ref()
+            .ok_or_else(|| FfiError::Player { reason: "the player has stopped".into() })?;
+        player
+            .mpv()
+            .command(&[add_command(kind), &path, "select"])
+            .map_err(|e| FfiError::Player { reason: e.to_string() })
+    }
+
     /// The controls' state as it stands.
     pub fn state(&self) -> FfiPlayerState {
         self.player().as_ref().map(|p| p.state().into()).unwrap_or_default()
@@ -230,6 +243,14 @@ impl FfiPlayer {
 impl FfiPlayer {
     fn player(&self) -> MutexGuard<'_, Option<Player>> {
         self.player.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+}
+
+/// mpv's command that adds a track of `kind` from a file.
+fn add_command(kind: TrackKind) -> &'static str {
+    match kind {
+        TrackKind::Subtitle => "sub-add",
+        TrackKind::Audio => "audio-add",
     }
 }
 
@@ -270,5 +291,11 @@ mod tests {
         let null = host_options(options(FfiVideo::Null)).resolved();
         let vo = null.iter().rev().find(|(k, _)| k == "vo").map(|(_, v)| v.as_str());
         assert_eq!(vo, Some("null"));
+    }
+
+    #[test]
+    fn a_picked_file_is_added_as_a_subtitle_or_an_audio_track() {
+        assert_eq!(add_command(TrackKind::Subtitle), "sub-add");
+        assert_eq!(add_command(TrackKind::Audio), "audio-add");
     }
 }
