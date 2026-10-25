@@ -127,6 +127,8 @@ impl Ctx {
         // The words as the toast's own title, so a click on them dismisses it.
         let title = gtk::Label::new(Some(text));
         title.set_wrap(true);
+        // Asks for the width of the words on one line, and wraps only when the toast has less.
+        title.set_natural_wrap_mode(gtk::NaturalWrapMode::None);
         title.set_xalign(0.0);
         let click = gtk::GestureClick::new();
         click.connect_released({
