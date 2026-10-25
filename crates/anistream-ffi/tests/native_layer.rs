@@ -643,6 +643,9 @@ fn the_widgets_record_for_the_watching_scene() {
             (false, None)
         ]
     );
+    // The mark: the Steel Gardener is being watched dubbed, the others subbed.
+    let marks: Vec<_> = rows.iter().map(|row| row.mark.as_deref()).collect();
+    assert_eq!(marks, [None, Some("Dub"), None, None]);
     for row in rows {
         let cover = row.cover_url.as_deref().unwrap_or_default();
         assert!(cover.starts_with("http://127.0.0.1:"), "{}: {cover}", row.id);

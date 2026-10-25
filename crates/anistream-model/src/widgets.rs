@@ -104,6 +104,10 @@ pub struct WidgetContinue {
     /// The cover's colour, `#5d9be4`, for a plate drawn before the art arrives.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub cover_color: Option<String>,
+    /// The episode's mark, as Continue's rows carry it: "Dub" for a show watched dubbed, and
+    /// `None`, to mark nothing, for a sub or when it is not known.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub mark: Option<String>,
 }
 
 /// One broadcast.

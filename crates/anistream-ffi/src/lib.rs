@@ -476,6 +476,7 @@ mod tests {
                 next_airing_episode: None,
                 banner_url: Some("https://img.example/banner/900001.jpg".into()),
                 cover_color: Some("#e4a15d".into()),
+                mark: Some("Dub".into()),
             }],
             airing_today: vec![WidgetAiring {
                 id,

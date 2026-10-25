@@ -42,11 +42,24 @@ pub fn watched(store: &Store, id: AnilistId, upto: u32, at: i64) {
 /// One episode stopped `position_secs` in: an unfinished event, the resume point the Continue
 /// rail and the resume prompt offer.
 pub fn stopped_at(store: &Store, id: AnilistId, episode: &str, position_secs: f64, at: i64) {
+    stopped_in(store, id, episode, position_secs, Translation::Sub, at);
+}
+
+/// [`stopped_at`], played in `translation`: what the title's Continue row then marks, a dub
+/// being "Dub".
+pub fn stopped_in(
+    store: &Store,
+    id: AnilistId,
+    episode: &str,
+    position_secs: f64,
+    translation: Translation,
+    at: i64,
+) {
     let event = WatchEvent {
         duration_secs: Some(fixtures::runtime_secs(id)),
         watched_secs: position_secs,
         provider_id: Some(sources::PROVIDER_ID.to_owned()),
-        translation: Some(Translation::Sub),
+        translation: Some(translation),
         completed: false,
         at,
         ..WatchEvent::new(id, episode, position_secs)
