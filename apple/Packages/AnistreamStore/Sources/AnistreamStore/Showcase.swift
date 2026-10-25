@@ -17,9 +17,12 @@ import UIKit
 /// `update`, a newer release with its notice, and `pale`, 900001 renamed to a title long enough to
 /// wrap and given a near-white banner, which `all` leaves out; `offline`, the device without a
 /// network, what was loaded staying; `stranded`, offline with nothing loaded; and `failed`, the
-/// lists failed to load; and `messages`, a session's notices for Messages. `all` leaves these out too.
+/// lists failed to load; `messages`, a session's notices for Messages; `calendar`, the calendar's
+/// rows given estimated times and Sub and Dub marks; and `signin` and `expired`, Simkl's device
+/// code with most of its time left, or none. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, all
+    case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, calendar,
+         signin, expired, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -30,7 +33,8 @@ public enum Showcase: String, CaseIterable, Sendable {
 
     /// The events to apply, and which of the engine's own to set aside so they stay on screen.
     @MainActor func events(
-        settings: SettingsView?, entry: (AnilistId) -> Entry? = { _ in nil }
+        settings: SettingsView?, entry: (AnilistId) -> Entry? = { _ in nil }, calendar: [Entry] = [],
+        anchor: Int64? = nil, now: Date = .now
     ) -> (events: [Event], held: Set<String>) {
         var events: [Event] = []
         var held: Set<String> = []
@@ -81,6 +85,15 @@ public enum Showcase: String, CaseIterable, Sendable {
                 held.formUnion(["connectivity", "content"])
             case .messages:
                 events += Self.sessionNotices.map { .toast(Notice(kind: $0.kind, text: $0.text, hint: nil)) }
+            case .calendar:
+                let today = Self.later(calendar, anchor: anchor ?? Int64(now.timeIntervalSince1970), now: now)
+                events.append(.content(view: .calendar, content: .entries(Self.marked(calendar) + today)))
+                held.insert("content")
+            case .signin, .expired:
+                let left: Int64 = self == .signin ? 899 : -1
+                events.append(.deviceCode(DeviceCodePrompt(
+                    tracker: "simkl", code: "7KQ4-M2XD", url: "https://simkl.example/pin",
+                    expiresAt: Int64(now.timeIntervalSince1970) + left)))
             case .all:
                 break
             }
@@ -197,6 +210,43 @@ public enum Showcase: String, CaseIterable, Sendable {
         DownloadRow(id: id, anilistId: title, title: name, episode: episode, state: state,
                     fraction: total > 0 ? Double(done) / Double(total) : 0, downloaded: done, total: total,
                     error: error, path: path)
+    }
+
+    /// The calendar's rows with some times the engine's estimate, some episodes out in the dub,
+    /// and rows of the sub's and the dub's own times.
+    static func marked(_ rows: [Entry]) -> [Entry] {
+        rows.enumerated().map { index, row in
+            var row = row
+            switch index % 5 {
+            case 0: row.airingApproximate = true
+            case 1: row.airingDubbed = true
+            case 2: row.airingTranslation = .sub
+            case 3:
+                row.airingTranslation = .dub
+                row.airingApproximate = true
+            default: break
+            }
+            return row
+        }
+    }
+
+    /// Two more broadcasts today, at 16:30 and 21:00, so the iPhone's calendar, which opens on
+    /// today, has rows: one at an estimated time, one of the dub's own time.
+    static func later(_ rows: [Entry], anchor: Int64, now: Date) -> [Entry] {
+        let shown = Array(rows.filter { $0.airingIn != nil && $0.airingEpisode != nil }.prefix(2))
+        let times = [(16, 30), (21, 0)].map { hour, minute in
+            Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: now) ?? now
+        }
+        return shown.enumerated().map { index, row in
+            var row = row
+            row.airingIn = Int64(times[index].timeIntervalSince1970) - anchor
+            row.airingEpisode = (row.airingEpisode ?? 0) + 1
+            row.delayedFrom = nil
+            row.airingApproximate = index == 0
+            row.airingTranslation = index == 0 ? nil : .dub
+            row.airingDubbed = false
+            return row
+        }
     }
 
     /// The title `pale` restyles: the one the shots open most.
