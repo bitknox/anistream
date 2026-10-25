@@ -42,7 +42,7 @@ static class Showcase
             Size: size);
         return new Release(
             Version: "2.1.0", PublishedAt: 1_792_900_000, PageUrl: "https://releases.example/v2.1.0",
-            Notes: "Watch together\n\nA room for friends to watch an episode in step, from the player's menu.",
+            Notes: "Episodes open sooner after a pick, and the calendar marks the ones already watched.",
             Macos: null, Ios: null, Android: null,
             WindowsX64: File("x64", 71_400_000), WindowsArm64: File("arm64", 68_900_000),
             LinuxX8664: null, LinuxAarch64: null);

@@ -9,8 +9,8 @@ namespace Anistream.Windows.Pages;
 
 /// <summary>
 /// About's update block: where the check and the update stand in one line, a bar while it
-/// downloads, the release's notes, and the one step to take next: Check for updates, Cancel,
-/// Restart to update or Try again. Each part keeps its place as the steps change.
+/// downloads, and the one step to take next: Check for updates, Cancel, Restart to update or Try
+/// again; then, set apart, the release's notes. Each part keeps its place as the steps change.
 /// </summary>
 sealed class UpdatePanel : StackPanel
 {
@@ -19,6 +19,9 @@ sealed class UpdatePanel : StackPanel
     readonly TextBlock line = new() { TextWrapping = TextWrapping.Wrap, MaxWidth = 520, HorizontalAlignment = HorizontalAlignment.Left };
     readonly ProgressBar bar = new() { Width = 320, Minimum = 0, Maximum = 1, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 2, 0, 2) };
     readonly TextBlock notes = new() { TextWrapping = TextWrapping.Wrap, MaxWidth = 520, HorizontalAlignment = HorizontalAlignment.Left, MaxLines = 4, TextTrimming = TextTrimming.WordEllipsis };
+    readonly TextBlock notesTitle = new() { HorizontalAlignment = HorizontalAlignment.Left };
+    // The release's notes, under the buttons and apart from them, so the buttons stay with the line.
+    readonly StackPanel notesBlock = new() { Spacing = 4, Margin = new Thickness(0, 14, 0, 0) };
     readonly Button primary = new();
     readonly Button secondary = new();
     Action? onPrimary, onSecondary;
@@ -32,17 +35,20 @@ sealed class UpdatePanel : StackPanel
         line.Style = Ui.Res<Style>("HazeBodyStyle");
         notes.Style = Ui.Res<Style>("HazeBodyStyle");
         notes.Opacity = 0.8;
+        notesTitle.Style = Ui.Res<Style>("BodyStrongTextBlockStyle");
+        notesBlock.Children.Add(notesTitle);
+        notesBlock.Children.Add(notes);
         AutomationProperties.SetLiveSetting(line, AutomationLiveSetting.Polite);
         AutomationProperties.SetName(bar, "Update progress");
         primary.Click += (_, _) => onPrimary?.Invoke();
         secondary.Click += (_, _) => onSecondary?.Invoke();
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0) };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 2, 0, 0) };
         buttons.Children.Add(primary);
         buttons.Children.Add(secondary);
         Children.Add(line);
         Children.Add(bar);
-        Children.Add(notes);
         Children.Add(buttons);
+        Children.Add(notesBlock);
         Show();
         updater.Changed += Show;
         ctx.Batch += Heard;
@@ -80,7 +86,8 @@ sealed class UpdatePanel : StackPanel
         bar.Value = state.Fraction ?? 0;
 
         notes.Text = release?.Notes ?? "";
-        notes.Visibility = release is { Notes.Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
+        notesTitle.Text = release is null ? "" : $"In version {release.Version}";
+        notesBlock.Visibility = release is { Notes.Length: > 0 } ? Visibility.Visible : Visibility.Collapsed;
 
         switch (state.Step)
         {
