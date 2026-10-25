@@ -50,13 +50,13 @@ public sealed partial class MainWindow
         ShowParty(new PartyDialog.For.Invite(invite));
     }
 
-    async void ShowPartySource(uint id, string episode)
+    async void ShowPartySource(uint id, string episode, NoSourceWhy why, string reason)
     {
         if (CloseDialogs())
             await Task.Delay(250);
         try
         {
-            await new PartySourceDialog(ctx, Root.XamlRoot, id, episode).ShowAsync();
+            await new PartySourceDialog(ctx, Root.XamlRoot, id, episode, why, reason).ShowAsync();
         }
         catch (COMException)
         {
@@ -90,7 +90,7 @@ public sealed partial class MainWindow
                     inParty = false;
                     break;
                 case Event.PartyNoSource none:
-                    ShowPartySource(none.Id, none.Episode);
+                    ShowPartySource(none.Id, none.Episode, none.Why, none.Reason);
                     break;
             }
         }
@@ -159,14 +159,23 @@ public sealed partial class MainWindow
         await Task.Delay(1500);
         switch (state)
         {
-            case "party-choose":
-                // The list a source dialog shows, for an episode the sources do have.
-                ShowPartySource(900001, "7");
-                for (var i = 0; i < 50 && PartySourceDialog.Showing is null; i++)
+            case "party-nosource" or "party-choose":
+            {
+                // An episode the sources were asked for and didn't have, in the room.
+                fakeParty = ctx.Session.Engine.StartFakeParty();
+                ctx.Send(new Command.PartyJoin(fakeParty.Server(), FixtureRoom, "Ada"));
+                for (var i = 0; i < 50 && ctx.Known.Party is null; i++)
                     await Task.Delay(200);
-                await Task.Delay(800);
-                PartySourceDialog.Showing?.RehearseChoose();
+                ShowPartySource(900001, "7", NoSourceWhy.NotFound, "could not match this title: sample-source has no episode 7");
+                if (state == "party-choose")
+                {
+                    for (var i = 0; i < 50 && PartySourceDialog.Showing is null; i++)
+                        await Task.Delay(200);
+                    await Task.Delay(800);
+                    PartySourceDialog.Showing?.RehearseChoose();
+                }
                 return;
+            }
             case "party-form":
                 ShowParty(new PartyDialog.For.Episode(900001, "7"));
                 return;
@@ -180,7 +189,7 @@ public sealed partial class MainWindow
         }
         fakeParty = ctx.Session.Engine.StartFakeParty();
         var server = fakeParty.Server();
-        if (state is "party-invite" or "party-nosource" or "party-choose-failed")
+        if (state is "party-invite" or "party-nosource-unaired")
         {
             var (id, episode) = state == "party-invite" ? (900001u, "7") : (900002u, "6");
             OpenLink(AnistreamFfiMethods.PartyInviteLink(new PartyInvite(Server: server, Room: FixtureRoom, Id: id, Episode: episode)));
@@ -188,13 +197,6 @@ public sealed partial class MainWindow
             {
                 await Task.Delay(2500);
                 PartyDialog.Showing?.Rehearse(null, start: true);
-            }
-            if (state == "party-choose-failed")
-            {
-                for (var i = 0; i < 50 && PartySourceDialog.Showing is null; i++)
-                    await Task.Delay(200);
-                await Task.Delay(1200);
-                PartySourceDialog.Showing?.RehearseChoose();
             }
             return;
         }

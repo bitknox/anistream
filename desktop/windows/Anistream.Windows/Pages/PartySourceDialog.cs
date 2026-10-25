@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Anistream.App;
 using Anistream.Engine.Core;
 using Anistream.Engine.Model;
@@ -29,22 +30,43 @@ sealed class PartySourceDialog
     SourceCandidate[]? candidates;
     bool choosing, failed, openProviders;
 
-    public PartySourceDialog(Ctx ctx, XamlRoot root, uint id, string episode)
+    readonly NoSourceWhy why;
+    readonly string reason;
+
+    public PartySourceDialog(Ctx ctx, XamlRoot root, uint id, string episode, NoSourceWhy why, string reason)
     {
         this.ctx = ctx;
         this.id = id;
         this.episode = episode;
+        this.why = why;
+        this.reason = reason;
         dialog = new ContentDialog
         {
             XamlRoot = root,
-            Title = "None of your sources has this episode",
             Content = body,
-            PrimaryButtonText = "Choose source",
             SecondaryButtonText = "Leave party",
             CloseButtonText = "Not now",
-            DefaultButton = ContentDialogButton.Primary,
         };
-        dialog.PrimaryButtonStyle = Ui.Res<Style>("AccentButtonStyle");
+        // The actions that fit the answer: nothing to choose before the episode is out, the
+        // plugins to add when there are no sources, and the sources' list otherwise.
+        switch (why)
+        {
+            case NoSourceWhy.NotAired:
+                dialog.DefaultButton = ContentDialogButton.Close;
+                break;
+            case NoSourceWhy.NoSources:
+                dialog.PrimaryButtonText = "Open Providers";
+                openProviders = true;
+                break;
+            default:
+                dialog.PrimaryButtonText = "Choose source";
+                break;
+        }
+        if (why != NoSourceWhy.NotAired)
+        {
+            dialog.DefaultButton = ContentDialogButton.Primary;
+            dialog.PrimaryButtonStyle = Ui.Res<Style>("AccentButtonStyle");
+        }
         dialog.PrimaryButtonClick += OnPrimary;
         dialog.SecondaryButtonClick += (_, _) => ctx.Send(new Command.PartyLeave());
         list.SelectionChanged += (_, _) => dialog.IsPrimaryButtonEnabled = list.SelectedIndex >= 0;
@@ -80,8 +102,30 @@ sealed class PartySourceDialog
     {
         body.Children.Clear();
         var place = ctx.Known.Party is { } party ? $"You're in {party.Room} on {party.Server}, with nothing playing." : "You're in the room, with nothing playing.";
-        body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
-        body.Children.Add(Ui.Haze($"{What} plays with the room once you choose a source that has it."));
+        switch (why)
+        {
+            case NoSourceWhy.NotAired:
+                // The schedule's own words lead: "Episode 6 airs Tuesday at 13:05", or the
+                // episode not out yet with when the next one is.
+                var said = Words.Notice(Regex.Replace(reason, @" (\d{1,2}:\d{2})\b", " at $1"));
+                var parts = said.Split("; ", 2);
+                dialog.Title = parts[0];
+                body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Haze(parts.Length > 1
+                    ? $"{Words.Notice(parts[1])}. Your sources won't have episode {episode} before it's out."
+                    : $"Your sources won't have it before then. It plays with the room once one of them does."));
+                break;
+            case NoSourceWhy.NoSources:
+                dialog.Title = "You have no sources yet";
+                body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Haze($"Sources come from plugins, which Providers adds. {What} plays with the room once one of them has it."));
+                break;
+            default:
+                dialog.Title = "None of your sources has this episode";
+                body.Children.Add(Ui.Text(place, "BodyTextBlockStyle"));
+                body.Children.Add(Ui.Haze($"{Words.Notice(reason).TrimEnd('.')}. {What} plays with the room once you choose a source that has it."));
+                break;
+        }
     }
 
 #if ANISTREAM_TESTING

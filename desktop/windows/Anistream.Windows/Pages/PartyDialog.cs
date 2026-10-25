@@ -44,6 +44,12 @@ sealed class PartyDialog
     // Where the ring is while joining, the error mark once it failed: the line never moves.
     readonly FontIcon mark = new() { Glyph = "\uEA39", FontSize = 16, Opacity = 0 };
     readonly TextBlock status = Ui.Text("", "CaptionTextBlockStyle");
+    readonly TextBlock privacy = new()
+    {
+        Text = "The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources. anistream hosts no content.",
+        TextWrapping = TextWrapping.WrapWholeWords,
+    };
+    readonly Grid line = new() { ColumnSpacing = 8, VerticalAlignment = VerticalAlignment.Top, Opacity = 0 };
     bool joining, filled;
 
     /// <summary>The dialog that is up, for an invite opened while it is.</summary>
@@ -77,17 +83,25 @@ sealed class PartyDialog
             body.Children.Add(roomNote);
         }
         body.Children.Add(name);
-        body.Children.Add(Ui.Text("The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources. anistream hosts no content.", "HazeCaptionStyle"));
-        // One line for joining and for what went wrong, kept in place so nothing moves.
-        var line = new Grid { ColumnSpacing = 8, MinHeight = 20 };
+        // The privacy note and the joining or error line share one place: the line stands in
+        // for the note once Start is pressed, so the dialog keeps its height throughout and
+        // has no empty band waiting for an error.
+        var foot = new Grid();
+        privacy.Style = Ui.Res<Style>("HazeCaptionStyle");
+        Motion.QuickOpacity(privacy);
+        foot.Children.Add(privacy);
         line.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         line.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         line.Children.Add(ring);
         mark.Foreground = Ui.Res<Brush>("SystemFillColorCriticalBrush");
         line.Children.Add(mark);
         Grid.SetColumn(status, 1);
+        status.MaxLines = 3;
+        status.TextTrimming = TextTrimming.CharacterEllipsis;
         line.Children.Add(status);
-        body.Children.Add(line);
+        Motion.QuickOpacity(line);
+        foot.Children.Add(line);
+        body.Children.Add(foot);
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
 
         dialog = new ContentDialog
@@ -233,6 +247,11 @@ sealed class PartyDialog
         ring.IsActive = busy;
         ring.Opacity = busy ? 1 : 0;
         mark.Opacity = error ? 1 : 0;
+        var saying = text.Length > 0;
+        line.Opacity = saying ? 1 : 0;
+        privacy.Opacity = saying ? 0 : 1;
+        AutomationProperties.SetAccessibilityView(privacy, saying ? AccessibilityView.Raw : AccessibilityView.Content);
+        ToolTipService.SetToolTip(status, error ? text : null);
         status.Foreground = error ? Ui.Res<Brush>("SystemFillColorCriticalBrush") : Ui.Res<Brush>("TextFillColorSecondaryBrush");
     }
 
