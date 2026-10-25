@@ -60,7 +60,10 @@ struct PartyPanel: View {
         }
         .foregroundStyle(.silk)
         .padding(metrics.touch ? 20 : 16)
+        // A readable column on a phone held sideways and on iPad, where the sheet runs wide.
         .frame(width: metrics.touch ? nil : 300, alignment: .leading)
+        .frame(maxWidth: metrics.touch ? 520 : nil, alignment: .leading)
+        .frame(maxWidth: metrics.touch ? .infinity : nil)
     }
 
     private var small: CGFloat { metrics.touch ? 13 : 11 }

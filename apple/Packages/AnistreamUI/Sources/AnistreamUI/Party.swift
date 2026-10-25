@@ -60,8 +60,10 @@ public struct PartySheets: ViewModifier {
                     #if os(macOS)
                     MacPartySource(ask: ask)
                     #else
+                    // Full height, as the form is: at half, its button sits over Leave party
+                    // and the list below.
                     PhonePartySource(ask: ask)
-                        .presentationDetents([.medium, .large])
+                        .presentationDetents([.large])
                         .presentationBackground(Palette.ground)
                     #endif
                 }
@@ -518,9 +520,14 @@ struct MacPartySource: View {
 /// place if that failed; the line never moves.
 private struct PartySourceLine: View {
     let line: (text: String, busy: Bool, error: Bool)
+    #if os(macOS)
+    private let firstLine: CGFloat = 16
+    #else
+    @ScaledMetric(relativeTo: .body) private var firstLine: CGFloat = 20
+    #endif
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             ZStack {
                 ProgressView().controlSize(.small).opacity(line.busy ? 1 : 0)
                 Image(systemName: line.error ? "exclamationmark.triangle.fill" : "info.circle")
@@ -528,7 +535,8 @@ private struct PartySourceLine: View {
                     .opacity(line.busy ? 0 : 1)
                     .accessibilityHidden(true)
             }
-            .frame(width: 16)
+            // As tall as the first line, so the mark sits beside it however many lines follow.
+            .frame(width: 16, height: firstLine)
             Text(line.text)
                 .foregroundStyle(line.error ? .silk : .haze)
                 .fixedSize(horizontal: false, vertical: true)
@@ -697,6 +705,16 @@ struct PhonePartySource: View {
         let party = store.party
         NavigationStack {
             PhoneList {
+                // What happened, in full: a title bar would cut "None of your sources has this
+                // episode" short beside Not now.
+                Section {
+                    Text(state.title)
+                        .font(.ui(17, weight: .semibold))
+                        .foregroundStyle(.silk)
+                        .contentTransition(.opacity)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+                }
                 if party.choice == nil {
                     Section {
                         Text(PartyWords.place(party.party))
@@ -739,7 +757,7 @@ struct PhonePartySource: View {
                 }
                 .listRowBackground(Palette.raised)
             }
-            .navigationTitle(state.title)
+            .navigationTitle("Watch party")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Not now") { party.closeNoSource() }.tint(.silk) }
