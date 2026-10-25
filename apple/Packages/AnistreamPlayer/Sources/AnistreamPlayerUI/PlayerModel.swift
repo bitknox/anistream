@@ -1434,6 +1434,13 @@ public final class PlayerModel {
     public func askStillWatching() {
         stillWatching = true
     }
+
+    /// The picture goes round between `start` and `end` and never reaches the ending: Up Next
+    /// and the next episode stay away however long a test takes.
+    func loop(from start: Double, to end: Double) {
+        enqueue(.call(.set(property: "ab-loop-a", value: .double(start))))
+        enqueue(.call(.set(property: "ab-loop-b", value: .double(end))))
+    }
     #endif
 }
 

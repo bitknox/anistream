@@ -10,10 +10,11 @@ import Foundation
 public enum PlayerShot: String, CaseIterable, Sendable {
     /// The banner under "Starting episode 7" (T2, M4).
     case starting
-    /// Playing, with the controls up (MacPlayer, PhonePlayer).
+    /// Playing, with the controls up (MacPlayer, PhonePlayer), round and round Part A.
     case playing
     /// Playing, with the controls left to fade 2 s after the last input, as they do: for the
-    /// Mac's click test (apple/MacPlayerTests), which brings them back with the pointer.
+    /// Mac's click test (apple/MacPlayerTests), which brings them back with the pointer. Round
+    /// and round Part A, as `playing` is.
     case fading
     /// The opening's skip, with the controls hidden (PhonePlayerSkip).
     case skip
@@ -98,6 +99,7 @@ extension PlayerModel {
         case .playing:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
+            loopPartA()
             pinnedControls = true
         case .tracks, .speed, .picture, .episodes:
             seek(to: 31)
@@ -111,6 +113,7 @@ extension PlayerModel {
         case .fading:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
+            loopPartA()
         case .skip:
             seek(to: 7)
             there = await waited(10) { self.skip != nil && self.position >= 7.5 }
@@ -169,6 +172,13 @@ extension PlayerModel {
         guard pictureInPicturePhase == .active else { return false }
         togglePictureInPicture()
         return await waited(10) { self.pictureInPicturePhase == .inline && self.inMainWindow && self.hasPicture }
+    }
+
+    /// Round and round Part A (20–42 s), from 22 s to 40 s: the episode is a minute long, so a
+    /// click test that started at 31 s would otherwise meet Up Next at 42 s and the next episode
+    /// ten seconds later, and a click made while that one starts does nothing.
+    private func loopPartA() {
+        loop(from: 22, to: 40)
     }
 
     private func waited(_ seconds: Int, _ condition: @MainActor () -> Bool) async -> Bool {
