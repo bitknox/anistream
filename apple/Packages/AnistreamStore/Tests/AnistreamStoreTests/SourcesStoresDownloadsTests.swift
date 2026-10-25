@@ -276,6 +276,28 @@ struct AccountsTests {
         #expect(store.accounts.syncedAt["anilist"] == nil)
     }
 
+    @Test func aCodeThatRanOutStaysForItsSheetUntilSignedIn() {
+        let model = AccountsModel()
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let code = { (left: Int64) in
+            DeviceCodePrompt(tracker: "simkl", code: "7KQ4-M2XD", url: "https://simkl.example/pin",
+                             expiresAt: 1_800_000_000 + left)
+        }
+        model.deviceCode(code(600), at: now)
+        model.deviceCode(nil, at: now)
+        #expect(model.deviceCode == nil, "approved or refused in time, the code goes")
+        model.deviceCode(code(0), at: now)
+        model.deviceCode(nil, at: now)
+        #expect(model.deviceCode == code(0), "run out, it stays to say so")
+        #expect(AccountsModel.expired(code(0), at: now))
+        #expect(!AccountsModel.expired(code(600), at: now))
+        model.deviceCode(code(900), at: now)
+        #expect(model.deviceCode == code(900), "a new code replaces it")
+        model.deviceCode(code(0), at: now)
+        model.apply(state("simkl"))
+        #expect(model.deviceCode == nil, "signed in, nothing more to ask")
+    }
+
     @Test func aSignInIsUnderWayUntilItsJobEnds() {
         let store = AppStore()
         store.accounts.started("kitsu", job: 4)

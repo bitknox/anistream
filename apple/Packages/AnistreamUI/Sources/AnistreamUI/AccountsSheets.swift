@@ -66,78 +66,117 @@ struct KitsuSheet: View {
     }
 }
 
-/// A code to type on another device, for Simkl or Trakt: the code large, where to type it, and
-/// a way there. It stays until the engine says the sign-in ended.
+/// A code to type on another device, for Simkl or Trakt: the code large, how long it has left,
+/// where to type it, and a way there. It stays until the engine says the sign-in ended; a code
+/// that runs out stays to say so, with a way to a new one.
 struct DeviceCodeSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
     let prompt: DeviceCodePrompt
+    /// A new code was asked for and is on its way.
+    @State private var asked = false
 
     var body: some View {
-        let name = AccountsModel.name(prompt.tracker)
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Sign in to \(name)")
-                .font(.mac(15, weight: .semibold))
-                .foregroundStyle(.silk)
-            Text("Go to \(host) and enter this code. anistream signs in once you have.")
-                .font(.mac(13))
-                .foregroundStyle(.haze)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(prompt.code)
-                .font(.mac(34, weight: .semibold, design: .monospaced))
-                .kerning(4)
-                .foregroundStyle(.silk)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(.ground, in: .rect(cornerRadius: 10))
-                .accessibilityLabel("Code \(prompt.code.map(String.init).joined(separator: " "))")
-            // In a row where it fits, as on the Mac; on an iPhone the buttons go under the wait,
-            // so "Open auth.trakt.tv" is never cut short.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) {
-                    waiting(name)
-                    Spacer()
-                    buttons
-                }
-                VStack(alignment: .leading, spacing: 12) {
-                    waiting(name)
-                    HStack(spacing: 10) {
-                        Spacer()
-                        buttons
-                    }
-                }
-            }
+        // Each second, for the countdown: the code's state is read from the clock, not kept.
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            sheet(now: context.date)
         }
         .padding(24)
         .sheetWidth(420)
         .background(.raised)
     }
 
+    private func sheet(now: Date) -> some View {
+        let name = AccountsModel.name(prompt.tracker)
+        let expired = AccountsModel.expired(prompt, at: now)
+        return VStack(alignment: .leading, spacing: 16) {
+            Text("Sign in to \(name)")
+                .font(.mac(15, weight: .semibold))
+                .foregroundStyle(.silk)
+            Text(expired
+                 ? "This code has expired. Get a new one to sign in to \(name)."
+                 : "Go to \(host) and enter this code. anistream signs in once you have.")
+                .font(.mac(13))
+                .foregroundStyle(.haze)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 6) {
+                Text(prompt.code)
+                    .font(.mac(34, weight: .semibold, design: .monospaced))
+                    .kerning(4)
+                    .foregroundStyle(expired ? .haze : .silk)
+                    .textSelection(.enabled)
+                    .accessibilityLabel("Code \(prompt.code.map(String.init).joined(separator: " "))")
+                if let expiry = expiry(now: now) {
+                    Text(expiry)
+                        .font(.mac(12))
+                        .monospacedDigit()
+                        .foregroundStyle(.haze)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(.ground, in: .rect(cornerRadius: 10))
+            // In a row where it fits, as on the Mac; on an iPhone the buttons go under the wait,
+            // so "Open auth.trakt.tv" is never cut short.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    waiting(name, expired: expired)
+                    Spacer()
+                    buttons(expired: expired)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    waiting(name, expired: expired)
+                    HStack(spacing: 10) {
+                        Spacer()
+                        buttons(expired: expired)
+                    }
+                }
+            }
+        }
+    }
+
+    /// "Expires in 14:59", then "Code expired"; nothing when the tracker gave no lifetime.
+    private func expiry(now: Date) -> String? {
+        prompt.expiresAt.map { deviceCodeExpiry(secondsLeft: $0 - Int64(now.timeIntervalSince1970)) }
+    }
+
     private var host: String {
         URL(string: prompt.url)?.host ?? prompt.url
     }
 
-    private func waiting(_ name: String) -> some View {
-        HStack(spacing: 10) {
-            ProgressView().controlSize(.small)
-            Text("Waiting for \(name)")
-                .font(.mac(12))
-                .foregroundStyle(.haze)
+    @ViewBuilder private func waiting(_ name: String, expired: Bool) -> some View {
+        if !expired || asked {
+            HStack(spacing: 10) {
+                ProgressView().controlSize(.small)
+                Text(expired ? "Getting a new code" : "Waiting for \(name)")
+                    .font(.mac(12))
+                    .foregroundStyle(.haze)
+            }
         }
     }
 
-    @ViewBuilder private var buttons: some View {
+    @ViewBuilder private func buttons(expired: Bool) -> some View {
         Button("Close") { dismiss() }
             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
             .keyboardShortcut(.cancelAction)
-        Button("Open \(host)") {
-            if let url = URL(string: prompt.url) { openURL(url) }
+        if expired {
+            Button(cased(mac: "Get a New Code", touch: "Get a new code")) {
+                asked = true
+                store.connect(prompt.tracker)
+            }
+            .buttonStyle(PrimaryCapsuleStyle(height: 28))
+            .keyboardShortcut(.defaultAction)
+            .fixedSize()
+            .disabled(asked)
+        } else {
+            Button("Open \(host)") {
+                if let url = URL(string: prompt.url) { openURL(url) }
+            }
+            .buttonStyle(PrimaryCapsuleStyle(height: 28))
+            .keyboardShortcut(.defaultAction)
+            .fixedSize()
         }
-        .buttonStyle(PrimaryCapsuleStyle(height: 28))
-        .keyboardShortcut(.defaultAction)
-        .fixedSize()
     }
 }
 

@@ -129,7 +129,9 @@ The engine's `ShowSettingKey` also has Quality, DownloadQuality and KeepNext
 (`anistream-model/src/show.rs`); no app's show settings offers them yet.
 
 On Apple, Library, Sync now and conflict review are AniList's only; the other four trackers get a
-sign-in and sign-out row.
+sign-in and sign-out row. Simkl's and Trakt's device code counts down under the code ("Expires in
+14:59", `present::device_code_expiry`) and, once it has run out, the sheet stays with Get a New
+Code (`AccountsSheets.swift`).
 
 ## Downloads
 
