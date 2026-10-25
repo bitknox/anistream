@@ -103,7 +103,52 @@ fn trough(scale: &gtk::Scale, within: &impl IsA<gtk::Widget>) -> Option<gtk::gra
     None
 }
 
-/// The timeline with its segments drawn over the track.
+/// The seek line's colours: silk, amber and water, the palette's.
+const SILK: (f64, f64, f64) = (228.0 / 255.0, 224.0 / 255.0, 214.0 / 255.0);
+const AMBER: (f64, f64, f64) = (242.0 / 255.0, 166.0 / 255.0, 75.0 / 255.0);
+const WATER: (f64, f64, f64) = (127.0 / 255.0, 199.0 / 255.0, 217.0 / 255.0);
+/// The line's thickness at rest and under the pointer, and the knob's radius.
+const LINE: f64 = 4.0;
+const LINE_HOVER: f64 = 6.0;
+const KNOB: f64 = 6.0;
+
+/// One stretch of the line between marks' edges: from, to, and whether a mark covers it.
+pub fn pieces(segments: &[Segment], length: f64) -> Vec<(f64, f64, bool)> {
+    if length <= 0.0 {
+        return Vec::new();
+    }
+    let mut cuts: Vec<f64> = vec![0.0, length];
+    for segment in segments {
+        cuts.extend([segment.start.clamp(0.0, length), segment.end.clamp(0.0, length)]);
+    }
+    cuts.sort_by(f64::total_cmp);
+    cuts.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+    cuts.windows(2)
+        .map(|pair| {
+            let middle = (pair[0] + pair[1]) / 2.0;
+            let marked = segments.iter().any(|s| middle >= s.start && middle < s.end);
+            (pair[0], pair[1], marked)
+        })
+        .collect()
+}
+
+/// A rounded bar from `x` `w` wide, on the line's middle at `cy`, `t` thick.
+fn bar(cr: &gtk::cairo::Context, x: f64, cy: f64, w: f64, t: f64) {
+    let r = (t / 2.0).min(w / 2.0).max(0.0);
+    let (top, bottom) = (cy - t / 2.0, cy + t / 2.0);
+    cr.new_sub_path();
+    cr.arc(x + w - r, top + r, r, -std::f64::consts::FRAC_PI_2, 0.0);
+    cr.arc(x + w - r, bottom - r, r, 0.0, std::f64::consts::FRAC_PI_2);
+    cr.arc(x + r, bottom - r, r, std::f64::consts::FRAC_PI_2, std::f64::consts::PI);
+    cr.arc(x + r, top + r, r, std::f64::consts::PI, 3.0 * std::f64::consts::FRAC_PI_2);
+    cr.close_path();
+}
+
+/// The timeline, drawn whole over a scale that keeps the input and what a screen reader hears:
+/// silk at 22% split into stretches at each mark's edges with 2 px between them, what mpv holds
+/// ahead in silk at 45%, played time amber, and openings and endings in water on top of all of
+/// it, so a mark reads the same played or not. The line is 4 px, 6 px under the pointer, and the
+/// knob shows only while the pointer is on it, a drag runs or the keyboard has it.
 pub struct Marked {
     pub widget: gtk::Overlay,
     marks: gtk::DrawingArea,
@@ -122,62 +167,126 @@ impl Marked {
         widget.set_child(Some(scale));
         widget.add_overlay(&marks);
         let buffered: Rc<RefCell<Vec<(f64, f64)>>> = Rc::default();
+        let thickness = Rc::new(Cell::new(LINE));
+        let hovered = Rc::new(Cell::new(false));
         marks.set_draw_func({
             let segments = Rc::clone(&segments);
             let buffered = Rc::clone(&buffered);
+            let thickness = Rc::clone(&thickness);
+            let hovered = Rc::clone(&hovered);
             let scale = scale.downgrade();
             move |area, cr, _, _| {
                 let Some(scale) = scale.upgrade() else { return };
-                let (segments, duration) = &*segments.borrow();
+                let Some(track) = trough(&scale, area) else { return };
+                let (x, w) = (f64::from(track.x()), f64::from(track.width()));
+                let cy = f64::from(track.y()) + f64::from(track.height()) / 2.0;
+                let t = thickness.get();
                 let adjustment = scale.adjustment();
                 let length = adjustment.upper() - adjustment.lower();
-                let Some(track) = trough(&scale, area) else { return };
-                let (x, y, w, h) = (
-                    f64::from(track.x()),
-                    f64::from(track.y()),
-                    f64::from(track.width()),
-                    f64::from(track.height()),
-                );
-                // Buffered stretches in silk at 45%, ahead of the played part only, which keeps
-                // its amber.
-                if length > 0.0 {
-                    let played = scale.value();
-                    cr.set_source_rgba(228.0 / 255.0, 224.0 / 255.0, 214.0 / 255.0, 0.45);
-                    for (start, end) in buffered.borrow().iter() {
-                        let (start, end) = (start.max(played), end.min(adjustment.upper()));
-                        if end <= start {
-                            continue;
-                        }
-                        let from =
-                            x + w * ((start - adjustment.lower()) / length).clamp(0.0, 1.0);
-                        let to = x + w * ((end - adjustment.lower()) / length).clamp(0.0, 1.0);
-                        cr.rectangle(from, y, (to - from).max(1.0), h);
-                        let _ = cr.fill();
+                let played = scale.value() - adjustment.lower();
+                let at = |seconds: f64| x + w * (seconds / length.max(0.001)).clamp(0.0, 1.0);
+                let rgba = |(r, g, b): (f64, f64, f64), a: f64| cr.set_source_rgba(r, g, b, a);
+                let (segments, _) = &*segments.borrow();
+                let mut stretches = pieces(segments, length);
+                if stretches.is_empty() {
+                    stretches.push((0.0, 1.0, false));
+                }
+                let last = stretches.len() - 1;
+                for (index, (start, end, marked)) in stretches.iter().copied().enumerate() {
+                    // A pixel off each inner edge: 2 px between two stretches.
+                    let from = if length > 0.0 { at(start) } else { x };
+                    let to = if length > 0.0 { at(end) } else { x + w };
+                    let from = if index > 0 { from + 1.0 } else { from };
+                    let to = if index < last { to - 1.0 } else { to };
+                    if to - from < 0.5 {
+                        continue;
                     }
+                    let _ = cr.save();
+                    bar(cr, from, cy, to - from, t);
+                    cr.clip();
+                    rgba(SILK, 0.22);
+                    let _ = cr.paint();
+                    if length > 0.0 {
+                        rgba(SILK, 0.45);
+                        for (b_start, b_end) in buffered.borrow().iter() {
+                            let (b_from, b_to) = (
+                                at(*b_start - adjustment.lower()),
+                                at(*b_end - adjustment.lower()),
+                            );
+                            if b_to > b_from {
+                                cr.rectangle(b_from, cy - t, b_to - b_from, t * 2.0);
+                                let _ = cr.fill();
+                            }
+                        }
+                        let played_to = at(played);
+                        if played_to > from {
+                            rgba(AMBER, 1.0);
+                            cr.rectangle(from, cy - t, played_to - from, t * 2.0);
+                            let _ = cr.fill();
+                        }
+                    }
+                    if marked {
+                        rgba(WATER, 1.0);
+                        let _ = cr.paint();
+                    }
+                    let _ = cr.restore();
                 }
-                if segments.is_empty() || *duration <= 0.0 {
-                    return;
-                }
-                // Water, the brief's colour for what the app knows of an episode's shape.
-                cr.set_source_rgba(127.0 / 255.0, 199.0 / 255.0, 217.0 / 255.0, 0.7);
-                for segment in segments {
-                    let from = x + w * (segment.start / duration).clamp(0.0, 1.0);
-                    let to = x + w * (segment.end / duration).clamp(0.0, 1.0);
-                    // A pixel's gap at each end, so two segments in a row read as two.
-                    let (from, to) = (from + 1.0, (to - 1.0).max(from + 2.0));
-                    cr.rectangle(from, y, to - from, h);
+                let flags = scale.state_flags();
+                let knob = hovered.get()
+                    || flags.contains(gtk::StateFlags::ACTIVE)
+                    || flags.contains(gtk::StateFlags::FOCUS_VISIBLE);
+                if knob && length > 0.0 {
+                    rgba(SILK, 1.0);
+                    cr.arc(at(played), cy, KNOB, 0.0, std::f64::consts::TAU);
                     let _ = cr.fill();
                 }
             }
         });
+        // The line thickens under the pointer, with the quick spring, and the knob shows.
+        let hover = gtk::EventControllerMotion::new();
+        let grow = {
+            let (marks, thickness, hovered) =
+                (marks.clone(), Rc::clone(&thickness), Rc::clone(&hovered));
+            let running: Rc<RefCell<Option<adw::SpringAnimation>>> = Rc::default();
+            move |on: bool| {
+                hovered.set(on);
+                if let Some(old) = running.take() {
+                    old.pause();
+                }
+                let target = adw::CallbackAnimationTarget::new({
+                    let (marks, thickness) = (marks.clone(), Rc::clone(&thickness));
+                    move |value| {
+                        thickness.set(value);
+                        marks.queue_draw();
+                    }
+                });
+                let to = if on { LINE_HOVER } else { LINE };
+                let animation = crate::motion::quick(&marks, thickness.get(), to, target);
+                animation.play();
+                running.replace(Some(animation));
+            }
+        };
+        let grow = Rc::new(grow);
+        hover.connect_enter({
+            let grow = Rc::clone(&grow);
+            move |_, _, _| grow(true)
+        });
+        hover.connect_leave(move |_| grow(false));
+        scale.add_controller(hover);
+        scale.connect_value_changed({
+            let marks = marks.clone();
+            move |_| marks.queue_draw()
+        });
+        scale.connect_state_flags_changed({
+            let marks = marks.clone();
+            move |_, _| marks.queue_draw()
+        });
         Self { widget, marks, segments, buffered }
     }
 
-    /// The played part moved: the buffered ones start where it ends.
+    /// The played part moved: drawn again.
     pub fn moved(&self) {
-        if !self.buffered.borrow().is_empty() {
-            self.marks.queue_draw();
-        }
+        self.marks.queue_draw();
     }
 
     /// Draw `ranges` as what the player holds, whole, replacing what was drawn.
@@ -405,6 +514,25 @@ mod tests {
             ]
         );
         assert!(from_marks(&[]).is_empty());
+    }
+
+    #[test]
+    fn the_line_splits_at_each_marks_edges() {
+        let marks = [
+            Segment { kind: Kind::Opening, start: 90.0, end: 180.0 },
+            Segment { kind: Kind::Ending, start: 1300.0, end: 1420.0 },
+        ];
+        assert_eq!(
+            pieces(&marks, 1420.0),
+            [
+                (0.0, 90.0, false),
+                (90.0, 180.0, true),
+                (180.0, 1300.0, false),
+                (1300.0, 1420.0, true)
+            ]
+        );
+        assert_eq!(pieces(&[], 60.0), [(0.0, 60.0, false)]);
+        assert!(pieces(&marks, 0.0).is_empty());
     }
 
     #[test]

@@ -48,17 +48,38 @@ impl Broadcast {
         present::air_time(&time(self.airs), self.entry.airing_approximate)
     }
 
-    /// "Ep 10 · 16:30 · Dub", with "(was 23:00)" when it moved. "~16:30" for an estimate, and the
-    /// mark only when the engine knows a sub or dub.
+    /// "Dub" when the row is the dub's: a sub is the plain case and has no mark.
+    fn dub(&self) -> bool {
+        present::calendar_mark(&self.entry) == Some("Dub")
+    }
+
+    /// "Ep 10 · 16:30 · Dub": "~16:30" for an estimate, and the mark only on a dub. One line,
+    /// which never wraps; where the broadcast moved from is in [`Broadcast::moved`].
     fn line(&self) -> String {
         let mut line = format!("Ep {} · {}", self.episode, self.clock());
-        if let Some(mark) = present::calendar_mark(&self.entry) {
-            line.push_str(&format!(" · {mark}"));
-        }
-        if let Some(was) = self.was {
-            line.push_str(&format!(" (was {})", time(was)));
+        if self.dub() {
+            line.push_str(" · Dub");
         }
         line
+    }
+
+    /// "Moved from 23:00", when the schedule moved it.
+    fn moved(&self) -> Option<String> {
+        self.was.map(|was| format!("Moved from {}", time(was)))
+    }
+
+    /// The line as a screen reader says it: "Episode 10, about 16:30, dub, moved from 23:00".
+    fn spoken(&self) -> String {
+        let at = time(self.airs);
+        let mut said = vec![format!("Episode {}", self.episode)];
+        said.push(if self.entry.airing_approximate { format!("about {at}") } else { at });
+        if self.dub() {
+            said.push("dub".into());
+        }
+        if let Some(was) = self.was {
+            said.push(format!("moved from {}", time(was)));
+        }
+        said.join(", ")
     }
 }
 
@@ -401,10 +422,9 @@ impl Page {
         let entry = &broadcast.entry;
         let cell = gtk::Box::new(gtk::Orientation::Vertical, 4);
         if broadcast.watched() {
-            let line = widgets::haze(
-                &format!("{} · Ep {} · {}", broadcast.clock(), broadcast.episode, entry.title),
-                "caption",
-            );
+            // The same line as the others, in the same order, then the title.
+            let line =
+                widgets::haze(&format!("{} · {}", broadcast.line(), entry.title), "caption");
             line.set_wrap(false);
             line.set_ellipsize(gtk::pango::EllipsizeMode::End);
             cell.append(&line);
@@ -414,7 +434,7 @@ impl Page {
             title.set_lines(2);
             title.set_ellipsize(gtk::pango::EllipsizeMode::End);
             cell.append(&title);
-            cell.append(&episode_line(broadcast, now));
+            cell.append(&episode_line(broadcast, now, false));
         }
         opens(&cell, broadcast)
     }
@@ -430,22 +450,27 @@ impl Page {
         for day in days[at..].iter().chain(&days[..at]) {
             let on_day: Vec<&Broadcast> =
                 broadcasts.iter().filter(|b| same_day(&local(b.airs), day)).collect();
-            if on_day.is_empty() {
+            let is_today = today.as_ref().is_some_and(|t| same_day(t, day));
+            // Today always has its heading, so the agenda says where today is.
+            if on_day.is_empty() && !is_today {
                 continue;
             }
-            let is_today = today.as_ref().is_some_and(|t| same_day(t, day));
             let name = day_heading(day, month_first());
             let heading =
                 widgets::heading(&if is_today { format!("Today, {name}") } else { name });
-            let list = gtk::ListBox::new();
-            list.add_css_class("boxed-list");
-            list.set_selection_mode(gtk::SelectionMode::None);
-            for broadcast in on_day {
-                list.append(&self.agenda_row(broadcast, now, narrow));
-            }
             let section = gtk::Box::new(gtk::Orientation::Vertical, 8);
             section.append(&heading);
-            section.append(&list);
+            if on_day.is_empty() {
+                section.append(&widgets::haze("Nothing airs today", ""));
+            } else {
+                let list = gtk::ListBox::new();
+                list.add_css_class("boxed-list");
+                list.set_selection_mode(gtk::SelectionMode::None);
+                for broadcast in on_day {
+                    list.append(&self.agenda_row(broadcast, now, narrow));
+                }
+                section.append(&list);
+            }
             self.agenda.append(&section);
         }
     }
@@ -470,7 +495,7 @@ impl Page {
         title.set_wrap(false);
         title.set_ellipsize(gtk::pango::EllipsizeMode::End);
         text.append(&title);
-        text.append(&episode_line(broadcast, now));
+        text.append(&episode_line(broadcast, now, true));
         line.append(&text);
         if broadcast.watched() {
             line.add_css_class("dim-label");
@@ -479,6 +504,11 @@ impl Page {
             line.append(&done);
         }
         let row = gtk::ListBoxRow::builder().child(&line).activatable(true).build();
+        row.update_property(&[gtk::accessible::Property::Label(&format!(
+            "{}, {}",
+            entry.title,
+            broadcast.spoken()
+        ))]);
         row.set_action_name(Some("win.open-title"));
         row.set_action_target_value(Some(&entry.id.get().to_variant()));
         widgets::title_menu(&row, entry.id.get(), entry.list_status.is_none());
@@ -486,8 +516,10 @@ impl Page {
     }
 }
 
-/// The episode line, with the water dot before it when it is out and not watched.
-fn episode_line(broadcast: &Broadcast, now: i64) -> gtk::Box {
+/// The episode line, with the water dot before it when it is out and not watched: one line, cut
+/// short rather than wrapped. Where it moved from follows it on the agenda's wide rows, and is
+/// the tooltip in the week's narrow columns.
+fn episode_line(broadcast: &Broadcast, now: i64, roomy: bool) -> gtk::Box {
     let line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     if broadcast.is_new(now) {
         let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
@@ -496,8 +528,23 @@ fn episode_line(broadcast: &Broadcast, now: i64) -> gtk::Box {
         dot.set_tooltip_text(Some("Out, not watched"));
         line.append(&dot);
     }
-    let text = widgets::haze(&broadcast.line(), "caption");
+    let words = match (broadcast.was, roomy) {
+        (Some(was), true) => format!("{} · moved from {}", broadcast.line(), time(was)),
+        _ => broadcast.line(),
+    };
+    let text = widgets::haze(&words, "caption");
     text.add_css_class("numeric");
+    // One line either way. A row keeps its label wrapping, cut at one line, so the row is
+    // measured height for width with its art.
+    if roomy {
+        text.set_lines(1);
+    } else {
+        text.set_wrap(false);
+    }
+    text.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    if let Some(moved) = broadcast.moved().filter(|_| !roomy) {
+        text.set_tooltip_text(Some(&moved));
+    }
     line.append(&text);
     line
 }
@@ -512,11 +559,15 @@ fn opens(cell: &gtk::Box, broadcast: &Broadcast) -> gtk::Widget {
     button.add_css_class("broadcast");
     button.set_action_name(Some("win.open-title"));
     button.set_action_target_value(Some(&id.to_variant()));
-    button.set_tooltip_text(Some(&entry.title));
+    let tip = match broadcast.moved() {
+        Some(moved) => format!("{}\n{moved}", entry.title),
+        None => entry.title.clone(),
+    };
+    button.set_tooltip_text(Some(&tip));
     button.update_property(&[gtk::accessible::Property::Label(&format!(
         "{}, {}",
         entry.title,
-        broadcast.line()
+        broadcast.spoken()
     ))]);
     widgets::title_menu(&button, id, entry.list_status.is_none());
     button.upcast()
@@ -724,7 +775,10 @@ mod tests {
         };
         assert!(broadcast.line().starts_with("Ep 10 · "));
         broadcast.was = Some(at - 3600);
-        assert!(broadcast.line().contains("(was "));
+        assert!(!broadcast.line().contains("was"), "the line stays one short line");
+        assert!(broadcast.moved().is_some_and(|m| m.starts_with("Moved from ")));
+        assert!(broadcast.spoken().starts_with("Episode 10, "));
+        assert!(broadcast.spoken().contains(", moved from "));
         assert!(broadcast.is_new(at + 1));
         broadcast.entry.progress =
             Some(anistream_model::progress::TitleProgress { done: 10, next: 11 });
@@ -747,5 +801,10 @@ mod tests {
         broadcast.entry.airing_translation = Some(Translation::Dub);
         assert!(broadcast.line().starts_with("Ep 3 · ~"));
         assert!(broadcast.line().ends_with(" · Dub"));
+        assert!(!broadcast.spoken().contains('~'), "said as about, not tilde");
+        assert!(broadcast.spoken().contains(", about "));
+        // A sub is the plain case: no mark.
+        broadcast.entry.airing_translation = Some(Translation::Sub);
+        assert!(!broadcast.line().contains("Sub"));
     }
 }

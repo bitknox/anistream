@@ -56,6 +56,9 @@ pub struct Started {
     pub events: EventStream,
     /// A fixture scene's fake AniList, which answers on the engine's runtime.
     pub keep: Option<Box<dyn std::any::Any + Send>>,
+    /// Run when the engine says it rebuilt the sources: a fixture scene puts its own chain
+    /// back, since the rebuild goes by the config, which describes none of the scene's sources.
+    pub rebuilt: Option<Box<dyn Fn() + Send>>,
 }
 
 /// Start the engine on the user's own directories, the terminal app's, so both share a history,
@@ -69,7 +72,7 @@ pub async fn start(paths: Paths, host: Arc<dyn Host>) -> Result<Started, String>
     options.app_clients = app_clients();
     "Linux computer".clone_into(&mut options.device_label);
     let (engine, events) = Engine::start(options, host).await.map_err(|e| e.to_string())?;
-    Ok(Started { engine, events, keep: None })
+    Ok(Started { engine, events, keep: None, rebuilt: None })
 }
 
 /// anistream's own tracker clients, the ones the Mac and the phones ship: AniList's implicit

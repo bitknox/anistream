@@ -93,6 +93,9 @@ impl Ctx {
     /// One of the engine's notices: an alert stays 8 s, its hint is the button, and clicking
     /// it anywhere dismisses it.
     pub fn notice(&self, notice: &Notice) {
+        if setting_saved(notice) {
+            return;
+        }
         let button = notice.hint.as_ref().map(|hint| match hint {
             NoticeHint::StopPlayback => ("Stop", "win.stop-playback", None),
             NoticeHint::OpenStores => ("Open Stores", "win.go", Some("stores")),
@@ -808,6 +811,12 @@ fn sign_in_return(link: &str) -> Option<String> {
 }
 
 /// A notice as a sentence: the engine words its notices for the terminal, in lower case.
+/// The engine's word that a setting was written, "saved · quality": the row already shows the
+/// new value, so it goes unsaid. A refusal, "not saved: …", still shows.
+fn setting_saved(notice: &Notice) -> bool {
+    notice.kind == NoticeKind::Info && notice.text.starts_with("saved · ")
+}
+
 fn sentence(text: &str) -> String {
     crate::catalog::shown(text)
 }
@@ -901,10 +910,11 @@ fn dest_row(dest: Dest) -> gtk::ListBoxRow {
     row
 }
 
-/// The account at the sidebar's foot: "Mika", "AniList synced" with a water dot, which opens
+/// The account at the sidebar's foot: "Mika", "AniList · Synced" with a water dot, which opens
 /// Settings on the Accounts pane.
 fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
     let avatar = adw::Avatar::new(28, None, true);
+    avatar.add_css_class("neutral-avatar");
     let name = gtk::Label::new(Some("Not signed in"));
     name.set_xalign(0.0);
     name.set_ellipsize(gtk::pango::EllipsizeMode::End);
@@ -948,8 +958,11 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                             "{} waiting to sync",
                             anistream_model::wording::plural(waiting as usize, "change")
                         )
+                    } else if state.user.is_some() {
+                        // As the Accounts pane says it, the tracker beside a name of the user's.
+                        format!("{} · Synced", words::tracker_name(&state.tracker))
                     } else {
-                        format!("{} synced", words::tracker_name(&state.tracker))
+                        "Synced".into()
                     });
                     dot.set_visible(waiting == 0 && !state.needs_reauth && !known.syncing());
                 }
@@ -974,6 +987,14 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_setting_saved_goes_unsaid_and_one_not_saved_does_not() {
+        let notice = |kind, text: &str| Notice { kind, text: text.into(), hint: None };
+        assert!(setting_saved(&notice(NoticeKind::Info, "saved · upscaling")));
+        assert!(!setting_saved(&notice(NoticeKind::Alert, "not saved: the disk is full")));
+        assert!(!setting_saved(&notice(NoticeKind::Info, "not saved: the disk is full")));
+    }
 
     #[test]
     fn a_sign_in_return_names_its_tracker() {

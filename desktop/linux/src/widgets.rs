@@ -154,7 +154,7 @@ pub fn haze(text: &str, class: &str) -> gtk::Label {
     label
 }
 
-/// A heading over a section of a page: "New this week".
+/// A heading over a section of a page, in header capitals: "New This Week".
 pub fn heading(text: &str) -> gtk::Label {
     let label = gtk::Label::new(Some(text));
     label.add_css_class("title-4");
@@ -277,6 +277,26 @@ pub fn menu_item(label: &str, action: &str, target: &str) -> gio::MenuItem {
     let item = gio::MenuItem::new(Some(label), None);
     item.set_action_and_target_value(Some(action), Some(&target.to_variant()));
     item
+}
+
+/// Mark the items for `action` in `button`'s menu with `class`, once the menu is built: the
+/// Episodes and Sources lists check their pick in amber, and every other menu in silk.
+pub fn mark_items(button: &gtk::MenuButton, action: &str, class: &str) {
+    fn walk(widget: &gtk::Widget, action: &str, class: &str) {
+        if let Some(item) = widget.dynamic_cast_ref::<gtk::Actionable>()
+            && item.action_name().is_some_and(|name| name == action)
+        {
+            widget.add_css_class(class);
+        }
+        let mut child = widget.first_child();
+        while let Some(next) = child {
+            walk(&next, action, class);
+            child = next.next_sibling();
+        }
+    }
+    if let Some(popover) = button.popover() {
+        walk(popover.upcast_ref(), action, class);
+    }
 }
 
 /// A row's chevron: it opens a page.

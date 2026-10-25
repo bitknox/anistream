@@ -117,10 +117,19 @@ levelbar block.empty { background: var(--rule); }
 .player-bar button { min-width: 40px; min-height: 40px; }
 .player-bar label { color: var(--silk); }
 .player-starting { background: var(--ground); }
-.timeline trough { background: var(--rule); min-height: 4px; }
-.timeline highlight { background: var(--amber); }
-.timeline fill { background: alpha(var(--silk), 0.3); }
-.timeline mark indicator { color: var(--water); min-height: 6px; }
+/* The seek line is drawn whole over the scale (player/timeline.rs): the scale keeps the input
+   and the keyboard, and draws nothing of its own. */
+.timeline trough { background: none; min-height: 6px; outline: none; }
+.timeline highlight, .timeline fill { background: none; }
+.timeline slider, .timeline:focus-visible slider, .timeline:hover slider {
+  background: none; box-shadow: none; border-color: transparent; outline: none;
+}
+.player-bar .speed { min-width: 52px; font-weight: 600; }
+/* "Skipped opening · Undo": a small card, Undo in amber. */
+.corner-card.undo-card { padding: 4px 6px 4px 14px; border-radius: 999px; }
+.undo-button { color: var(--amber); font-weight: 600; padding: 4px 10px; min-height: 0; }
+/* The Sub and Dub switch at the top of the Subtitles and Audio menu. */
+.translation-switch button { padding: 4px 16px; }
 .seek-preview { padding: 4px; }
 .seek-preview label { color: var(--silk); }
 .mini-controls button { min-width: 44px; min-height: 44px; }
@@ -152,6 +161,10 @@ banner > revealer > widget { background: var(--raised); color: var(--haze); }
   text-shadow: 0 0 2px black, 0 0 2px black, 0 1px 3px black;
 }
 
+/* The player's Episodes and Sources lists check their pick in amber; every other menu in silk. */
+popover.menu modelbutton radio, popover.menu modelbutton check { color: var(--silk); }
+popover.menu modelbutton.amber-check radio:checked { color: var(--amber); }
+
 /* Amber stays on the one primary action, progress and switches that are on. A watched mark and a
    selected row take the neutral fill, as the brief's Linux selection says. */
 checkbutton check:checked, checkbutton check:indeterminate {
@@ -166,3 +179,11 @@ row:selected, row:selected:hover, row:selected:focus {
 row.expander image.expander-row-arrow,
 row.expander:checked image.expander-row-arrow { color: var(--haze); }
 
+
+/* Trackers' and accounts' avatars: an initial on a neutral circle, never a colour of its own. */
+.neutral-avatar > avatar {
+  background: var(--raised-selected);
+  color: var(--haze);
+}
+/* A device code: a flat raised plate inside its dialog, no shadow. */
+.code-plate { background: var(--raised); border-radius: 12px; padding: 6px 6px 6px 18px; }

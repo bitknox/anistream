@@ -73,7 +73,12 @@ pub enum Action {
     SeekTo(f64),
     /// Volume, 0 to 1.
     Volume(f64),
+    /// The playback speed, 1 for normal.
+    Rate(f64),
 }
+
+/// The slowest and fastest speeds the player's menu offers, which the controls may ask for.
+pub const RATES: (f64, f64) = (0.5, 2.0);
 
 /// The episode as the controls show it.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -96,6 +101,11 @@ pub struct Media {
     pub length: Option<f64>,
     /// 0 to 1.
     pub volume: f64,
+    /// The playback speed.
+    pub rate: f64,
+    /// Whether there is an episode after the one playing, and one before it.
+    pub has_next: bool,
+    pub has_previous: bool,
 }
 
 impl Media {
@@ -138,11 +148,15 @@ impl Media {
         let playing = self.track.is_some();
         Some(match name {
             "PlaybackStatus" => self.status().to_variant(),
-            "Rate" | "MinimumRate" | "MaximumRate" => 1.0f64.to_variant(),
+            "Rate" => self.rate.to_variant(),
+            "MinimumRate" => RATES.0.to_variant(),
+            "MaximumRate" => RATES.1.to_variant(),
             "Metadata" => self.metadata(),
             "Volume" => self.volume.to_variant(),
             "Position" => micros(self.position).to_variant(),
-            "CanGoNext" | "CanGoPrevious" | "CanPlay" | "CanPause" => playing.to_variant(),
+            "CanGoNext" => (playing && self.has_next).to_variant(),
+            "CanGoPrevious" => (playing && self.has_previous).to_variant(),
+            "CanPlay" | "CanPause" => playing.to_variant(),
             "CanSeek" => (playing && self.length.is_some()).to_variant(),
             "CanControl" => true.to_variant(),
             _ => return None,
@@ -161,6 +175,14 @@ const EVERYTHING: [&str; 7] = [
     "CanSeek",
 ];
 
+/// The desktop entry the controls take the app's name and icon from: the AppImage's own when
+/// this runs as one, as its AppRun writes it.
+fn desktop_entry() -> String {
+    let appimage =
+        std::env::var_os("APPIMAGE").is_some_and(|p| std::path::Path::new(&p).is_file());
+    if appimage { format!("{}-appimage", crate::APP_ID) } else { crate::APP_ID.to_owned() }
+}
+
 fn micros(seconds: f64) -> i64 {
     (seconds.max(0.0) * 1_000_000.0) as i64
 }
@@ -178,7 +200,7 @@ impl Mpris {
     pub fn serve(name: &str, act: impl Fn(Action) + 'static) -> Rc<Self> {
         let mpris = Rc::new(Self {
             connection: RefCell::default(),
-            media: RefCell::new(Media { volume: 1.0, ..Media::default() }),
+            media: RefCell::new(Media { volume: 1.0, rate: 1.0, ..Media::default() }),
             owner: Cell::new(None),
         });
         let act: Rc<dyn Fn(Action)> = Rc::new(act);
@@ -225,7 +247,7 @@ impl Mpris {
                 "CanQuit" | "HasTrackList" => false.to_variant(),
                 "CanRaise" => true.to_variant(),
                 "Identity" => "anistream".to_variant(),
-                "DesktopEntry" => crate::APP_ID.to_variant(),
+                "DesktopEntry" => desktop_entry().to_variant(),
                 _ => Vec::<String>::new().to_variant(),
             })
             .build()?;
@@ -272,8 +294,10 @@ impl Mpris {
                         set_act(Action::Volume(volume));
                         true
                     }
-                    // One rate: the player's speed is its own menu's.
-                    ("Rate", Some(_)) => true,
+                    ("Rate", Some(rate)) if rate > 0.0 => {
+                        set_act(Action::Rate(rate.clamp(RATES.0, RATES.1)));
+                        true
+                    }
                     _ => false,
                 }
             })
@@ -354,6 +378,32 @@ impl Mpris {
         }
     }
 
+    /// The speed mpv plays at.
+    pub fn rate(&self, rate: f64) {
+        {
+            let mut media = self.media.borrow_mut();
+            if (media.rate - rate).abs() < 0.001 {
+                return;
+            }
+            media.rate = rate;
+        }
+        self.changed(&["Rate"]);
+    }
+
+    /// Whether there is an episode after the one playing, and one before it, for the controls'
+    /// next and previous buttons.
+    pub fn neighbours(&self, next: bool, previous: bool) {
+        {
+            let mut media = self.media.borrow_mut();
+            if media.has_next == next && media.has_previous == previous {
+                return;
+            }
+            media.has_next = next;
+            media.has_previous = previous;
+        }
+        self.changed(&["CanGoNext", "CanGoPrevious"]);
+    }
+
     /// Nothing plays any more.
     pub fn stopped(&self) {
         let was = self.media.borrow_mut().track.take();
@@ -416,6 +466,9 @@ mod tests {
             position: 61.5,
             length: Some(1420.0),
             volume: 1.0,
+            rate: 1.0,
+            has_next: true,
+            has_previous: false,
         }
     }
 
@@ -443,6 +496,16 @@ mod tests {
         let paused = Media { paused: true, ..playing() };
         assert_eq!(paused.status(), "Paused");
         assert_eq!(playing().player_property("Position"), Some(61_500_000i64.to_variant()));
+    }
+
+    #[test]
+    fn next_and_previous_follow_the_episodes_and_the_rate_the_speed() {
+        let first = playing();
+        assert_eq!(first.player_property("CanGoNext"), Some(true.to_variant()));
+        assert_eq!(first.player_property("CanGoPrevious"), Some(false.to_variant()));
+        let fast = Media { rate: 1.5, ..playing() };
+        assert_eq!(fast.player_property("Rate"), Some(1.5f64.to_variant()));
+        assert_eq!(Media::default().player_property("CanGoNext"), Some(false.to_variant()));
     }
 
     #[test]

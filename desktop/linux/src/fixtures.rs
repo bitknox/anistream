@@ -83,7 +83,12 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     options.saved = Some(config);
     options.hosted_player = true;
     options.background = Background::none();
-    options.sources = Some(registry(&server.art_base(), scene.media.as_deref()));
+    let chain = registry(&server.art_base(), scene.media.as_deref());
+    // A setting that changes which sources exist rebuilds the chain from the config, and the
+    // scene's own source would be gone for every shot after it: it goes back in place.
+    let (kept, providers) = (chain.clone(), chain.all());
+    let rebuilt: Box<dyn Fn() + Send> = Box::new(move || kept.replace(providers.clone()));
+    options.sources = Some(chain);
     options.parts = Some(Parts {
         meta,
         sync,
@@ -93,7 +98,7 @@ pub async fn start(root: &Path, scene: &Scene, host: Arc<dyn Host>) -> Result<St
     });
     let (engine, events): (Engine, _) =
         Engine::start(options, host).await.map_err(|e| e.to_string())?;
-    Ok(Started { engine, events, keep: Some(Box::new(server)) })
+    Ok(Started { engine, events, keep: Some(Box::new(server)), rebuilt: Some(rebuilt) })
 }
 
 /// The fixture provider, its stills from the fake, every episode streaming `media` when given.

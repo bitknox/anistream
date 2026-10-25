@@ -56,8 +56,19 @@ pub const CHECK_NOTE: &str = "anistream checks where torrent traffic leaves from
                               check fails. Your VPN or proxy is what protects you.";
 pub const OFF_NOTE: &str =
     "Off by default. Turning this on asks how to protect your connection first.";
-pub const ON_NOTE: &str =
-    "Choosing Warn only asks you to confirm first, as No protection does.";
+/// What protects torrent traffic now, under the group's title while torrents are on.
+pub fn on_note(view: &ProtectionView) -> String {
+    match (view.protection, &view.proxy) {
+        (TorrentProtection::Proxy, Some(proxy)) => {
+            format!("Protected by a SOCKS5 proxy at {}:{}.", proxy.host, proxy.port)
+        }
+        (TorrentProtection::Proxy, None) => "Protected by a SOCKS5 proxy.".into(),
+        (TorrentProtection::Device, _) => "Protected by the VPN on this device.".into(),
+        (TorrentProtection::None, _) => {
+            "Not protected. Your address is visible to everyone in the torrent.".into()
+        }
+    }
+}
 
 /// The connection check's last word: the note under "Last Check", the word beside it, and
 /// whether it failed. `ago` is how long since it was said.
