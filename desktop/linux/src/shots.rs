@@ -78,6 +78,16 @@ pub const PARTY: [&str; 15] = [
     "party-title-menu",
 ];
 
+/// Stats for nerds' shots, apart from the rest so a run of every shot keeps to its time:
+/// `--shot stats` takes them.
+pub const STATS: [&str; 5] = [
+    "player-stats",
+    "player-stats-waiting",
+    "player-stats-buffering",
+    "player-stats-hdr",
+    "player-stats-copied",
+];
+
 /// Take `shots` into `dir`, each named `<prefix><shot>.png`, then quit.
 pub fn run(shell: Rc<Shell>, dir: PathBuf, prefix: String, shots: Vec<String>) {
     glib::spawn_future_local(async move {
@@ -379,6 +389,37 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             }
             9.5
         }
+        stats if stats.starts_with("player-stats") => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                use anistream_model::hosted::StatsFixture;
+                // The live panel reads mpv itself; the others hold the engine's made-up states.
+                let (at, fixture, waited, copied) = match stats {
+                    "player-stats-waiting" => {
+                        (0.3, Some(StatsFixture::Waiting), Some(5.0), false)
+                    }
+                    "player-stats-buffering" => {
+                        (2.0, Some(StatsFixture::Buffering), None, false)
+                    }
+                    "player-stats-hdr" => (2.0, Some(StatsFixture::Hdr), None, false),
+                    "player-stats-copied" => (2.0, Some(StatsFixture::Playing), None, true),
+                    _ => (2.0, None, None, false),
+                };
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_secs_f64(at), move || {
+                    player.shot_stats(fixture, waited, copied);
+                });
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_secs(4), move || {
+                    player.shot_tracks(Some("/out/media/lantern-road.srt"));
+                });
+                // The short clip is near its end from the start: no Up Next card over the shot.
+                shell.player.hold_up_next.set(true);
+            }
+            // Opened before the file has: taken while it is still starting.
+            if stats == "player-stats-waiting" { 1.0 } else { 9.5 }
+        }
         "player-undo" => {
             play(shell);
             #[cfg(feature = "fixtures")]
@@ -435,6 +476,12 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
             offline: false,
         }),
         "resumed" => shell.player.close(),
+        #[cfg(feature = "fixtures")]
+        stats if stats.starts_with("player-stats") => {
+            shell.player.shot_stats_away();
+            shell.player.hold_up_next.set(false);
+            shell.player.close();
+        }
         "show-settings" => {
             close_dialogs(&shell.ctx.window);
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
@@ -609,6 +656,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
             .filter(|s| !s.is_empty())
             .flat_map(|s| match s {
                 "party" => PARTY.iter().map(|p| (*p).to_owned()).collect(),
+                "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
                 one => vec![one.to_owned()],
             })
             .collect(),

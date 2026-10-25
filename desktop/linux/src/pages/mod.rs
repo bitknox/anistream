@@ -145,6 +145,7 @@ pub fn shortcuts(ctx: &Ctx) {
                 ("Faster or slower", "bracketright bracketleft"),
                 ("Normal speed", "BackSpace"),
                 ("Episodes", "e"),
+                ("Stats for nerds", "i"),
                 ("Answer the card in the corner", "Return"),
                 ("Close a card, the mini player, fullscreen, then the player", "Escape"),
             ],
