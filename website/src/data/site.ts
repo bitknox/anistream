@@ -32,17 +32,23 @@ export const TOOLKITS: [string, string][] = [
 	['The terminal', 'Ratatui, in Rust'],
 ];
 
+/** One file of an app in the release. */
+export interface AppFile {
+	/** The file's name with the version left out, as the release names it. */
+	name: string;
+	/** The end of the file's name, which finds it among the release's assets. */
+	suffix: string;
+	/** The processor it is for, where an app has a file for each. */
+	arch?: string;
+}
+
 export interface AppDownload {
 	/** The id the page's elements carry, and the docs heading's anchor. */
 	id: 'android' | 'android-tv' | 'mac' | 'ios' | 'windows' | 'linux';
 	platform: string;
 	/** What it runs on. */
 	needs: string;
-	/** The file's name with the version left out, as the release names it. Absent until a release
-	 * carries the app. */
-	file?: string;
-	/** The end of the file's name, which finds it among the release's assets. */
-	suffix?: string;
+	files: AppFile[];
 	/** The first install, in one line. */
 	first: string;
 	/** The installation guide's section for it. */
@@ -54,8 +60,7 @@ export const APP_DOWNLOADS: AppDownload[] = [
 		id: 'mac',
 		platform: 'Mac',
 		needs: 'macOS 26 or later, Apple silicon',
-		file: 'anistream-<version>-macos.dmg',
-		suffix: '-macos.dmg',
+		files: [{ name: 'anistream-<version>-macos.dmg', suffix: '-macos.dmg' }],
 		first: 'Allow it once in System Settings, under Privacy & Security.',
 		guide: `${INSTALL_GUIDE}#mac`,
 	},
@@ -63,8 +68,7 @@ export const APP_DOWNLOADS: AppDownload[] = [
 		id: 'ios',
 		platform: 'iPhone and iPad',
 		needs: 'iOS or iPadOS 26 or later',
-		file: 'anistream-<version>-ios-unsigned.ipa',
-		suffix: '-ios-unsigned.ipa',
+		files: [{ name: 'anistream-<version>-ios-unsigned.ipa', suffix: '-ios-unsigned.ipa' }],
 		first: 'Add anistream’s source to SideStore or AltStore and install it from there.',
 		guide: `${INSTALL_GUIDE}#iphone-and-ipad`,
 	},
@@ -72,8 +76,7 @@ export const APP_DOWNLOADS: AppDownload[] = [
 		id: 'android',
 		platform: 'Android',
 		needs: 'Android 15 or later, 64-bit ARM',
-		file: 'anistream-<version>-android-arm64.apk',
-		suffix: '-android-arm64.apk',
+		files: [{ name: 'anistream-<version>-android-arm64.apk', suffix: '-android-arm64.apk' }],
 		first: 'Allow installs from your browser or file manager once.',
 		guide: `${INSTALL_GUIDE}#android`,
 	},
@@ -81,23 +84,30 @@ export const APP_DOWNLOADS: AppDownload[] = [
 		id: 'android-tv',
 		platform: 'Android TV',
 		needs: 'Android TV 11 or later, ARM',
-		file: 'anistream-<version>-android-tv.apk',
-		suffix: '-android-tv.apk',
-		first: 'Install it with the Downloader app, or from a computer with adb.',
+		files: [{ name: 'anistream-<version>-android-tv.apk', suffix: '-android-tv.apk' }],
+		first: 'Install it with the Downloader app, or from a computer with adb. After that it updates itself.',
 		guide: `${INSTALL_GUIDE}#android-tv`,
 	},
 	{
 		id: 'windows',
 		platform: 'Windows',
 		needs: 'Windows 10 version 2004 or later, x64 or Arm64',
-		first: 'Coming with the next release.',
-		guide: `${INSTALL_GUIDE}#windows-and-linux`,
+		files: [
+			{ name: 'anistream-<version>-windows-x64-setup.exe', suffix: '-windows-x64-setup.exe', arch: 'x64' },
+			{ name: 'anistream-<version>-windows-arm64-setup.exe', suffix: '-windows-arm64-setup.exe', arch: 'Arm64' },
+		],
+		first: 'The installer is not signed, so choose More info, then Run anyway, when SmartScreen stops it.',
+		guide: `${INSTALL_GUIDE}#windows`,
 	},
 	{
 		id: 'linux',
 		platform: 'Linux',
-		needs: 'GTK 4.16 and libadwaita 1.7 or newer',
-		first: 'Coming with the next release.',
-		guide: `${INSTALL_GUIDE}#windows-and-linux`,
+		needs: 'Ubuntu 25.04, Fedora 42, Debian 13 or newer, x86-64 or ARM64',
+		files: [
+			{ name: 'anistream-<version>-linux-x86_64.AppImage', suffix: '-linux-x86_64.AppImage', arch: 'x86-64' },
+			{ name: 'anistream-<version>-linux-aarch64.AppImage', suffix: '-linux-aarch64.AppImage', arch: 'ARM64' },
+		],
+		first: 'Make the AppImage executable once, then open it.',
+		guide: `${INSTALL_GUIDE}#linux`,
 	},
 ];

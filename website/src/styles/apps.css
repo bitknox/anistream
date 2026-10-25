@@ -71,6 +71,11 @@
 	margin-top: 32px;
 }
 
+/* Pictures no wider than they were taken, as the Windows app's are. */
+.apps-shots-narrow {
+	max-width: 1030px;
+}
+
 .apps-pair {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -189,8 +194,20 @@
 	line-height: 22px;
 }
 
-.dl-btn {
+.dl-files {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+/* One button per file: a second processor's file stacks under the first. */
+.dl-btns {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 8px;
 	justify-self: end;
+	width: 100%;
 }
 
 .dl-size:empty {
@@ -221,11 +238,12 @@
 		grid-area: name;
 	}
 
-	.dl-btn {
+	.dl-btns {
 		grid-area: btn;
+		width: auto;
 	}
 
-	.dl-file {
+	.dl-files {
 		grid-area: file;
 	}
 

@@ -1,8 +1,9 @@
 # Platform parity
 
 What each front end does, read from its code on 2026-10-24. The features page on the website
-(`website/src/pages/features.astro`) shows 18 of these rows, and names the rows every app has in
-one line above its table; keep the two in step.
+(`website/src/pages/features.astro`) shows 16 of these rows, as they stand once the parity PRs
+(#163, #165, #168 to #173) are in, and names the rows every app has in one line above its table;
+keep the two in step.
 
 Where the code was read:
 
@@ -18,6 +19,7 @@ Marks:
 - **partial**: some of it, as the note says.
 - **dev**: the platform could do it and the app does not yet. The site says "In development".
 - **n/a**: the platform has no place for it. The site shows a dash.
+- **no**: not built, and nothing planned. The site says what the app does instead.
 
 Columns: Mac, iPhone, iPad, Android (phones, tablets and foldables, which have the same features),
 Android TV, Windows, Linux, Terminal.
@@ -70,7 +72,7 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 | Subtitle and audio tracks | yes | yes | yes | yes | yes | dev (8) | dev (9) | yes (10) |
 | Media keys and now playing | yes | yes | yes | yes | yes | dev (11) | dev (11) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
-| Watch parties (Syncplay) | dev (12) | dev (12) | dev (12) | n/a | n/a | dev (12) | dev (12) | yes |
+| Watch parties | dev (12) | dev (12) | dev (12) | n/a | n/a | dev (12) | dev (12) | yes |
 | Discord presence | yes | n/a | n/a | n/a | n/a | dev (13) | dev (13) | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
@@ -120,7 +122,7 @@ binds T for the tracks the desktop brief gives it.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | History with no account | yes | yes | yes | yes | yes | yes | yes | yes |
 | AniList | yes | yes | yes | yes | yes | yes | yes | yes |
-| MyAnimeList | yes | yes | yes | yes | dev (1) | yes | dev | yes |
+| MyAnimeList | yes | yes | yes | yes | no (1) | yes | dev | yes |
 | Kitsu | yes | yes | yes | yes | yes | yes | dev | yes |
 | Simkl, Trakt | yes | yes | yes | yes | yes | dev | dev | yes |
 | Mark episodes watched | yes | yes | yes | yes | yes | yes | yes | yes |
