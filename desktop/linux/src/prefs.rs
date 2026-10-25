@@ -83,6 +83,16 @@ impl Prefs {
         self.save();
     }
 
+    /// Whether first launch has been shown or passed over, so it never shows again.
+    pub fn welcomed(&self) -> bool {
+        self.keys.borrow().boolean("first-launch", "done").unwrap_or(false)
+    }
+
+    pub fn set_welcomed(&self) {
+        self.keys.borrow().set_boolean("first-launch", "done", true);
+        self.save();
+    }
+
     /// The searches made last, newest first.
     pub fn recent_searches(&self) -> Vec<String> {
         // One per line: a search is one line of the search entry.
@@ -134,7 +144,10 @@ mod tests {
         assert_eq!(prefs.close_choice(), CloseChoice::Ask);
         assert_eq!((prefs.width(), prefs.height()), (1280, 800));
         prefs.set_close_choice(CloseChoice::KeepGoing);
-        assert_eq!(Prefs::open(file).close_choice(), CloseChoice::KeepGoing);
+        assert_eq!(Prefs::open(file.clone()).close_choice(), CloseChoice::KeepGoing);
+        assert!(!prefs.welcomed());
+        prefs.set_welcomed();
+        assert!(Prefs::open(file).welcomed());
     }
 
     #[test]

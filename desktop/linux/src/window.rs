@@ -9,7 +9,12 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
-use anistream_model::{catalog::LibrarySegment, command::Command, event::Event};
+use anistream_model::{
+    catalog::{ContentFor, ContentList, LibrarySegment},
+    command::{Command, PlayerCommand},
+    event::Event,
+    notice::{Notice, NoticeHint, NoticeKind},
+};
 use gtk::{gio, glib};
 
 use anistream_mpv_host::PlayerOptions;
@@ -79,8 +84,55 @@ impl Ctx {
         self.navs.borrow().iter().find(|(d, _)| d.name() == name).map(|(_, n)| n.clone())
     }
 
+    /// A notice of the app's own: information, for 4 s or longer as its words run on.
     pub fn toast(&self, text: &str) {
-        self.toasts.add_toast(adw::Toast::new(text));
+        self.show_notice(text, false, None);
+    }
+
+    /// One of the engine's notices: an alert stays 8 s, its hint is the button, and clicking
+    /// it anywhere dismisses it.
+    pub fn notice(&self, notice: &Notice) {
+        let button = notice.hint.as_ref().map(|hint| match hint {
+            NoticeHint::StopPlayback => ("Stop", "win.stop-playback", None),
+            NoticeHint::OpenStores => ("Open Stores", "win.go", Some("stores")),
+            NoticeHint::KitsuCredentials => ("Sign In", "win.settings-pane", Some("accounts")),
+        });
+        self.show_notice(
+            &sentence(&notice.text),
+            matches!(notice.kind, NoticeKind::Alert),
+            button,
+        );
+    }
+
+    fn show_notice(&self, text: &str, alert: bool, button: Option<(&str, &str, Option<&str>)>) {
+        let toast = adw::Toast::new(text);
+        // The words as the toast's own title, so a click on them dismisses it.
+        let title = gtk::Label::new(Some(text));
+        title.set_wrap(true);
+        title.set_xalign(0.0);
+        let click = gtk::GestureClick::new();
+        click.connect_released({
+            let toast = toast.downgrade();
+            move |_, _, _, _| {
+                if let Some(toast) = toast.upgrade() {
+                    toast.dismiss();
+                }
+            }
+        });
+        title.add_controller(click);
+        toast.set_custom_title(Some(&title));
+        if let Some((label, action, target)) = button {
+            toast.set_button_label(Some(label));
+            toast.set_action_name(Some(action));
+            if let Some(target) = target {
+                toast.set_action_target_value(Some(&target.to_variant()));
+            }
+        }
+        if alert {
+            toast.set_priority(adw::ToastPriority::High);
+        }
+        toast.set_timeout(words::notice_seconds(text, alert || button.is_some()));
+        self.toasts.add_toast(toast);
     }
 }
 
@@ -98,6 +150,8 @@ pub struct Shell {
     /// The app kept running with its window closed, until the downloads end.
     held: RefCell<Option<gio::ApplicationHoldGuard>>,
     fixtures: bool,
+    /// Whether first launch was weighed, once, on Continue's first answer.
+    welcome_checked: Cell<bool>,
 }
 
 impl Shell {
@@ -188,11 +242,15 @@ impl Shell {
             closing: Cell::new(false),
             held: RefCell::default(),
             fixtures,
+            welcome_checked: Cell::new(false),
         });
         shell.player.attach(Rc::downgrade(&shell));
         shell.breakpoints();
         shell.actions(app);
         shell.listen();
+        if !fixtures {
+            shell.watch_network();
+        }
         shell.close_request();
         shell.go(Dest::Continue);
         shell
@@ -329,6 +387,53 @@ impl Shell {
             }),
         );
         add(
+            "play-from-start",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a) {
+                    s.ctx.hub.send(Command::Play { id, episode, from_start: true });
+                }
+            }),
+        );
+        add(
+            "download",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a) {
+                    s.ctx.hub.send(Command::DownloadEpisode { id, episode });
+                }
+            }),
+        );
+        add(
+            "mark-unwatched",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a) {
+                    s.ctx.hub.send(Command::SetWatched {
+                        id,
+                        episodes: vec![episode],
+                        watched: false,
+                    });
+                }
+            }),
+        );
+        add(
+            "open-anilist",
+            Some(glib::VariantTy::UINT32),
+            Box::new(move |s, a| {
+                if let Some(id) = id_of(a) {
+                    s.ctx.hub.send(Command::OpenExternal {
+                        url: format!("https://anilist.co/anime/{id}"),
+                    });
+                }
+            }),
+        );
+        add(
+            "stop-playback",
+            None,
+            Box::new(|s, _| s.ctx.hub.send(Command::Player(PlayerCommand::Stop))),
+        );
+        add(
             "mark-watched",
             Some(glib::VariantTy::new("(us)").expect("a type")),
             Box::new(move |s, a| {
@@ -456,7 +561,14 @@ impl Shell {
         self.ctx.hub.listen(move |event| {
             let Some(shell) = weak.upgrade() else { return };
             match event {
-                Event::Toast(notice) => shell.ctx.toast(&sentence(&notice.text)),
+                Event::Toast(notice) => shell.ctx.notice(notice),
+                Event::Connectivity { offline } => widgets::set_offline(*offline),
+                Event::Content { view: ContentFor::Continue, content }
+                    if !shell.welcome_checked.get()
+                        && !matches!(content, ContentList::Loading) =>
+                {
+                    shell.welcome();
+                }
                 Event::Authorize { url, .. } => shell.open_url(url),
                 Event::PlaybackEnded { rolling_on: false, .. } => {
                     shell.ctx.hub.send(Command::LoadContinue);
@@ -468,6 +580,54 @@ impl Shell {
             }
             shell.player.engine_event(event);
         });
+    }
+
+    /// First launch, over Continue, unless this install has been used: a source, a tracker
+    /// signed in or anything watched. Weighed once; shown at most once ever.
+    fn welcome(self: &Rc<Self>) {
+        self.welcome_checked.set(true);
+        // Scenes open it themselves, as the welcome shot does.
+        if self.fixtures {
+            return;
+        }
+        let prefs = &self.ctx.prefs;
+        if prefs.welcomed() {
+            return;
+        }
+        prefs.set_welcomed();
+        if !self.ctx.hub.known.borrow().used() {
+            pages::first_launch::open(&self.ctx);
+        }
+    }
+
+    /// Tell the engine where the network stands, now and as it changes: offline without a
+    /// route past the local network, and a metered connection as a constrained one.
+    fn watch_network(&self) {
+        let monitor = gio::NetworkMonitor::default();
+        let told: Rc<Cell<Option<(bool, bool)>>> = Rc::default();
+        let tell = {
+            let hub = Rc::downgrade(&self.ctx.hub);
+            move |monitor: &gio::NetworkMonitor| {
+                let Some(hub) = hub.upgrade() else { return };
+                let offline = !monitor.is_network_available()
+                    || monitor.connectivity() == gio::NetworkConnectivity::Local;
+                let constrained = monitor.is_network_metered();
+                if told.replace(Some((offline, constrained))) != Some((offline, constrained)) {
+                    hub.send(Command::NetworkPath { cellular: false, constrained, offline });
+                }
+            }
+        };
+        tell(&monitor);
+        let tell = Rc::new(tell);
+        monitor.connect_network_changed({
+            let tell = Rc::clone(&tell);
+            move |monitor, _| tell(monitor)
+        });
+        monitor.connect_connectivity_notify({
+            let tell = Rc::clone(&tell);
+            move |monitor| tell(monitor)
+        });
+        monitor.connect_network_metered_notify(move |monitor| tell(monitor));
     }
 
     /// What the engine asked of the desktop.
@@ -712,7 +872,9 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                     avatar.set_text(Some(&user));
                     name.set_label(&user);
                     let waiting = state.outbox;
-                    status.set_label(&if waiting > 0 {
+                    status.set_label(&if known.syncing() {
+                        "Syncing…".into()
+                    } else if waiting > 0 {
                         format!(
                             "{} waiting to sync",
                             anistream_model::wording::plural(waiting as usize, "change")
@@ -720,7 +882,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                     } else {
                         "AniList synced".into()
                     });
-                    dot.set_visible(waiting == 0 && !state.needs_reauth);
+                    dot.set_visible(waiting == 0 && !state.needs_reauth && !known.syncing());
                 }
                 None => {
                     avatar.set_text(None);
@@ -733,7 +895,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
     };
     show();
     ctx.hub.listen(move |event| {
-        if matches!(event, Event::Sync(_)) {
+        if matches!(event, Event::Sync(_) | Event::JobStarted { .. } | Event::JobDone(_)) {
             show();
         }
     });

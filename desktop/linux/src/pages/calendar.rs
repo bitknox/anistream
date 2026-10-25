@@ -13,11 +13,12 @@ use anistream_model::{
     command::Command,
     event::Event,
 };
-use gtk::glib;
+use gtk::{gio, glib};
 
 use crate::{
     fit::Fit,
-    nagare, widgets,
+    states::{self, Shape, States},
+    widgets,
     window::{Ctx, Size},
 };
 
@@ -73,11 +74,16 @@ struct Page {
     mine: Cell<bool>,
     title: adw::WindowTitle,
     this_week: gtk::Button,
-    body: gtk::Stack,
+    body: Rc<States>,
+    /// The week's columns or the agenda, whichever the width takes.
+    views: gtk::Stack,
     week_view: gtk::Box,
     agenda: gtk::Box,
     empty: adw::StatusPage,
     loaded: Cell<bool>,
+    /// Whether the week on screen came from an answer, so stepping weeks before one, or after
+    /// a failure, leaves the state alone.
+    answered: Cell<bool>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -127,23 +133,16 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&adw::Clamp::builder().maximum_size(760).child(&agenda).build())
         .build();
-    let loading = adw::Spinner::new();
-    loading.set_size_request(32, 32);
-    loading.set_halign(gtk::Align::Center);
-    loading.set_valign(gtk::Align::Center);
-    let empty =
-        nagare::status_page("Nothing Airing", "Nothing on your list airs this week.", None);
-    let body = gtk::Stack::new();
-    body.add_named(&loading, Some("loading"));
-    body.add_named(&scroll_week, Some("week"));
-    body.add_named(&scroll_agenda, Some("agenda"));
-    body.add_named(&empty, Some("empty"));
-    body.set_vexpand(true);
+    let empty = states::plain("Nothing Airing", "Nothing on your list airs this week.");
+    let views = gtk::Stack::new();
+    views.add_named(&scroll_week, Some("week"));
+    views.add_named(&scroll_agenda, Some("agenda"));
+    let body = States::new(&ctx.hub, &views, Shape::Week, &empty, "Couldn't Load the Calendar");
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 0);
     column.append(&toggles);
-    column.append(&body);
-    let navigation = widgets::page("Calendar", &header, &column);
+    column.append(&body.widget);
+    let navigation = widgets::content_page("Calendar", &header, &column);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -157,16 +156,26 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         title,
         this_week: this_week.clone(),
         body,
+        views,
         week_view,
         agenda,
         empty,
         loaded: Cell::new(false),
+        answered: Cell::new(false),
     });
 
     let weak = Rc::downgrade(&page);
     ctx.hub.listen(move |event| {
         if let Some(page) = weak.upgrade() {
             page.heard(event);
+        }
+    });
+    page.body.on_retry({
+        let weak = Rc::downgrade(&page);
+        move || {
+            if let Some(page) = weak.upgrade() {
+                page.load();
+            }
         }
     });
     let step = |delta: i32| {
@@ -206,7 +215,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             if let Some(page) = weak.upgrade()
                 && !page.loaded.replace(true)
             {
-                page.ctx.hub.send(Command::LoadCalendar);
+                page.load();
             }
         }
     });
@@ -216,6 +225,11 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 }
 
 impl Page {
+    fn load(&self) {
+        self.body.loading(Command::LoadCalendar.activity());
+        self.ctx.hub.send(Command::LoadCalendar);
+    }
+
     fn heard(&self, event: &Event) {
         match event {
             Event::CalendarWindow { anchor, pages, more_past } => {
@@ -224,14 +238,15 @@ impl Page {
                 self.more_past.set(*more_past);
             }
             Event::Content { view: ContentFor::Calendar, content } => match content {
-                ContentList::Loading => self.body.set_visible_child_name("loading"),
+                ContentList::Loading => self.body.loading(Command::LoadCalendar.activity()),
                 ContentList::Failed(why) => {
                     tracing::warn!(%why, "the calendar did not load");
-                    self.rows.borrow_mut().clear();
-                    self.show();
+                    self.answered.set(false);
+                    self.body.failed(why);
                 }
                 _ => {
                     *self.rows.borrow_mut() = content.entries().to_vec();
+                    self.answered.set(true);
                     self.show();
                     self.backfill();
                 }
@@ -301,11 +316,15 @@ impl Page {
 
     fn show(&self) {
         let days = week_days(self.week.get());
-        let (title, subtitle) = week_name(&days);
+        let (title, subtitle) = week_name(&days, month_first());
         self.title.set_title(&title);
         self.title.set_subtitle(&subtitle);
         self.this_week.set_visible(self.week.get() != 0);
-        if !self.loaded.get() || self.rows.borrow().is_empty() && self.anchor.get().is_none() {
+        self.body.agenda(self.ctx.size() != Size::Wide);
+        if !self.loaded.get()
+            || self.rows.borrow().is_empty() && self.anchor.get().is_none()
+            || !self.answered.get()
+        {
             return;
         }
         let start = days[0].to_unix();
@@ -321,16 +340,17 @@ impl Page {
             } else {
                 "Nothing airs this week."
             }));
-            self.body.set_visible_child_name("empty");
+            self.body.empty();
             return;
         }
         if self.ctx.size() == Size::Wide {
             self.show_week(&days, &broadcasts);
-            self.body.set_visible_child_name("week");
+            self.views.set_visible_child_name("week");
         } else {
             self.show_agenda(&days, &broadcasts);
-            self.body.set_visible_child_name("agenda");
+            self.views.set_visible_child_name("agenda");
         }
+        self.body.content();
     }
 
     fn show_week(&self, days: &[glib::DateTime], broadcasts: &[Broadcast]) {
@@ -347,7 +367,7 @@ impl Page {
             let heading = gtk::Box::new(gtk::Orientation::Vertical, 0);
             heading.add_css_class("calendar-heading");
             let name = gtk::Label::new(Some(
-                &day.format("%a").map(|s| s.to_uppercase()).unwrap_or_default(),
+                &day.format("%a").map(|s| s.to_string()).unwrap_or_default(),
             ));
             name.add_css_class("caption-heading");
             name.add_css_class("haze");
@@ -370,7 +390,6 @@ impl Page {
     fn cell(&self, broadcast: &Broadcast, now: i64) -> gtk::Widget {
         let entry = &broadcast.entry;
         let cell = gtk::Box::new(gtk::Orientation::Vertical, 4);
-        cell.add_css_class("broadcast");
         if broadcast.watched() {
             let line = widgets::haze(
                 &format!(
@@ -392,8 +411,7 @@ impl Page {
             cell.append(&title);
             cell.append(&episode_line(broadcast, now));
         }
-        opens(&cell, entry);
-        cell.upcast()
+        opens(&cell, broadcast)
     }
 
     fn show_agenda(&self, days: &[glib::DateTime], broadcasts: &[Broadcast]) {
@@ -411,12 +429,9 @@ impl Page {
                 continue;
             }
             let is_today = today.as_ref().is_some_and(|t| same_day(t, day));
-            let name = day.format("%A %-d %B").map(|s| s.to_string()).unwrap_or_default();
+            let name = day_heading(day, month_first());
             let heading =
                 widgets::heading(&if is_today { format!("Today, {name}") } else { name });
-            if is_today {
-                heading.add_css_class("today-heading");
-            }
             let list = gtk::ListBox::new();
             list.add_css_class("boxed-list");
             list.set_selection_mode(gtk::SelectionMode::None);
@@ -482,20 +497,24 @@ fn episode_line(broadcast: &Broadcast, now: i64) -> gtk::Box {
     line
 }
 
-/// Clicking a cell opens its title; right-click offers the title's menu.
-fn opens(cell: &gtk::Box, entry: &Entry) {
+/// A cell as a flat button that opens its title, read as the title and its episode line, with
+/// the title's menu on right-click and on the keyboard.
+fn opens(cell: &gtk::Box, broadcast: &Broadcast) -> gtk::Widget {
+    let entry = &broadcast.entry;
     let id = entry.id.get();
-    let click = gtk::GestureClick::new();
-    click.connect_released({
-        let cell = cell.clone();
-        move |_, _, _, _| {
-            let _ = cell.activate_action("win.open-title", Some(&id.to_variant()));
-        }
-    });
-    cell.add_controller(click);
-    cell.set_cursor_from_name(Some("pointer"));
-    cell.set_tooltip_text(Some(&entry.title));
-    widgets::title_menu(cell, id, entry.list_status.is_none());
+    let button = gtk::Button::builder().child(cell).build();
+    button.add_css_class("flat");
+    button.add_css_class("broadcast");
+    button.set_action_name(Some("win.open-title"));
+    button.set_action_target_value(Some(&id.to_variant()));
+    button.set_tooltip_text(Some(&entry.title));
+    button.update_property(&[gtk::accessible::Property::Label(&format!(
+        "{}, {}",
+        entry.title,
+        broadcast.line()
+    ))]);
+    widgets::title_menu(&button, id, entry.list_status.is_none());
+    button.upcast()
 }
 
 fn clear(container: &gtk::Box) {
@@ -513,9 +532,67 @@ fn local(unix: i64) -> glib::DateTime {
         .unwrap_or_else(|_| glib::DateTime::from_unix_utc(0).expect("the epoch"))
 }
 
-/// "16:30", on the 24-hour clock the boards use.
+/// "16:30", or "4:30 PM" where the clock is set to 12 hours.
 fn time(unix: i64) -> String {
-    local(unix).format("%H:%M").map(|s| s.to_string()).unwrap_or_default()
+    thread_local! {
+        static TWELVE: bool = twelve_hour();
+    }
+    let format = if TWELVE.with(|t| *t) { "%-l:%M %p" } else { "%H:%M" };
+    local(unix).format(format).map(|s| s.trim().to_string()).unwrap_or_default()
+}
+
+/// Whether times read on a 12-hour clock: GNOME's clock setting, through the settings portal
+/// (which a sandbox allows) or else straight from GSettings, otherwise the locale's own way of
+/// writing a time.
+fn twelve_hour() -> bool {
+    if let Some(format) = portal_clock_format() {
+        return format == "12h";
+    }
+    let sandboxed = std::path::Path::new("/.flatpak-info").exists();
+    if !sandboxed
+        && let Some(source) = gio::SettingsSchemaSource::default()
+        && source
+            .lookup("org.gnome.desktop.interface", true)
+            .is_some_and(|schema| schema.has_key("clock-format"))
+    {
+        return gio::Settings::new("org.gnome.desktop.interface").string("clock-format")
+            == "12h";
+    }
+    locale_twelve_hour()
+}
+
+/// GNOME's clock-format, "12h" or "24h", as the desktop's settings portal reads it out.
+fn portal_clock_format() -> Option<String> {
+    let bus = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE).ok()?;
+    let ask = |method: &str| {
+        bus.call_sync(
+            Some("org.freedesktop.portal.Desktop"),
+            "/org/freedesktop/portal/desktop",
+            "org.freedesktop.portal.Settings",
+            method,
+            Some(&("org.gnome.desktop.interface", "clock-format").to_variant()),
+            None,
+            gio::DBusCallFlags::NONE,
+            1000,
+            gio::Cancellable::NONE,
+        )
+        .ok()
+    };
+    // ReadOne answers (v); the older Read answers the value wrapped once more.
+    let answer = ask("ReadOne").or_else(|| ask("Read"))?;
+    let mut value = answer.try_child_value(0)?;
+    while let Some(inner) = value.as_variant() {
+        value = inner;
+    }
+    value.str().map(str::to_owned)
+}
+
+/// Whether the locale writes three in the afternoon without a 15.
+fn locale_twelve_hour() -> bool {
+    glib::DateTime::new(&glib::TimeZone::utc(), 2026, 1, 1, 15, 0, 0.0)
+        .ok()
+        .and_then(|t| t.format("%X").ok())
+        .is_some_and(|text| !text.contains("15"))
 }
 
 fn same_day(a: &glib::DateTime, b: &glib::DateTime) -> bool {
@@ -536,22 +613,51 @@ fn week_of(day: &glib::DateTime, offset: i32) -> Vec<glib::DateTime> {
     (0..7).map(|n| monday.add_days(n).expect("a day in range")).collect()
 }
 
-/// The week as the header's title says it, "19 to 25 October", and its year under it.
-fn week_name(days: &[glib::DateTime]) -> (String, String) {
+/// Whether the locale writes a date's month before its day: "10/19/26" or "2026-10-19", where
+/// another writes "19/10/26".
+fn month_first() -> bool {
+    thread_local! {
+        static MONTH_FIRST: bool = glib::DateTime::new(&glib::TimeZone::utc(), 2026, 11, 22, 12, 0, 0.0)
+            .ok()
+            .and_then(|t| t.format("%x").ok())
+            .is_some_and(|text| month_before_day(&text));
+    }
+    MONTH_FIRST.with(|m| *m)
+}
+
+/// Whether `text`, the locale's way of writing 22 November, puts the 11 before the 22.
+fn month_before_day(text: &str) -> bool {
+    match (text.find("11"), text.find("22")) {
+        (Some(month), Some(day)) => month < day,
+        _ => false,
+    }
+}
+
+/// A day over the agenda's section, in the locale's order: "Monday 19 October", or
+/// "Monday, October 19" where the month comes first.
+fn day_heading(day: &glib::DateTime, month_first: bool) -> String {
+    let format = if month_first { "%A, %B %-d" } else { "%A %-d %B" };
+    day.format(format).map(|s| s.to_string()).unwrap_or_default()
+}
+
+/// The week as the header's title says it, "19 to 25 October" (or "October 19 to 25" where the
+/// month comes first), and its year under it.
+fn week_name(days: &[glib::DateTime], month_first: bool) -> (String, String) {
     let (Some(first), Some(last)) = (days.first(), days.last()) else {
         return (String::new(), String::new());
     };
     let month = |d: &glib::DateTime| d.format("%B").map(|s| s.to_string()).unwrap_or_default();
-    let title = if first.month() == last.month() {
-        format!("{} to {} {}", first.day_of_month(), last.day_of_month(), month(last))
-    } else {
-        format!(
-            "{} {} to {} {}",
-            first.day_of_month(),
-            month(first),
-            last.day_of_month(),
-            month(last)
-        )
+    let date = |d: &glib::DateTime| {
+        if month_first {
+            format!("{} {}", month(d), d.day_of_month())
+        } else {
+            format!("{} {}", d.day_of_month(), month(d))
+        }
+    };
+    let title = match (first.month() == last.month(), month_first) {
+        (true, true) => format!("{} to {}", date(first), last.day_of_month()),
+        (true, false) => format!("{} to {}", first.day_of_month(), date(last)),
+        (false, _) => format!("{} to {}", date(first), date(last)),
     };
     let year = if first.year() == last.year() {
         last.year().to_string()
@@ -575,17 +681,31 @@ mod tests {
         let days = week_of(&day(2026, 10, 23), 0);
         assert_eq!(days[0].ymd(), (2026, 10, 19));
         assert_eq!(days[6].ymd(), (2026, 10, 25));
-        assert_eq!(week_name(&days), ("19 to 25 October".into(), "2026".into()));
+        assert_eq!(week_name(&days, false), ("19 to 25 October".into(), "2026".into()));
+        assert_eq!(week_name(&days, true).0, "October 19 to 25");
         // A Monday is its own week's first day.
         assert_eq!(week_of(&day(2026, 10, 19), 0)[0].ymd(), (2026, 10, 19));
         // Across months, and across years.
         let days = week_of(&day(2026, 10, 23), -4);
-        assert_eq!(week_name(&days).0, "21 to 27 September");
+        assert_eq!(week_name(&days, false).0, "21 to 27 September");
         let days = week_of(&day(2026, 12, 30), 0);
         assert_eq!(
-            week_name(&days),
+            week_name(&days, false),
             ("28 December to 3 January".into(), "2026 to 2027".into())
         );
+        assert_eq!(week_name(&days, true).0, "December 28 to January 3");
+    }
+
+    #[test]
+    fn a_day_heading_follows_the_locales_order() {
+        assert!(month_before_day("11/22/26"));
+        assert!(month_before_day("2026-11-22"));
+        assert!(!month_before_day("22/11/26"));
+        assert!(!month_before_day("22.11.2026"));
+        assert!(!month_before_day(""));
+        let monday = day(2026, 10, 19);
+        assert_eq!(day_heading(&monday, false), "Monday 19 October");
+        assert_eq!(day_heading(&monday, true), "Monday, October 19");
     }
 
     #[test]

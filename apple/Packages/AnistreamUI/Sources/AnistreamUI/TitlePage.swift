@@ -185,6 +185,7 @@ struct TitlePage: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            store.loadDub(id)
             // What the show sets for itself, its spoiler protection among it: from the database.
             store.loadShowSettings(id)
         }
@@ -631,11 +632,20 @@ struct EpisodeList: View {
                     .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
                     .accessibilityAddTraits(.isHeader)
+                // How far the dub goes, when the engine has said: faded in, where it moves nothing.
+                if let dub = store.titles.dubLines[entry.id] {
+                    Text(dub)
+                        .font(.mac(13))
+                        .foregroundStyle(.haze)
+                        .lineLimit(1)
+                        .transition(.opacity.animation(.fadeIn))
+                }
                 Spacer()
                 SegmentedCapsule(selection: $unwatchedOnly, options: [(false, "All"), (true, "Unwatched")])
             }
             .frame(height: 28)
             .padding(.bottom, 6)
+            .animation(.fadeIn, value: store.titles.dubLines[entry.id])
             let loaded = store.titles.episodes[entry.id] != nil
             // The placeholders and the rows in one place, one crossfading into the other (T8), and
             // another season's rows into this one's as one block: none slides or comes in alone.

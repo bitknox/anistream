@@ -45,6 +45,12 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,8 +60,12 @@ import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.CoroutineScope
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import tv.anistream.design.CoverPlate
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
 import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.model.Entry
@@ -112,10 +122,13 @@ fun BrowseRow(
     val spec = remember(keyline) { KeylineSpec(keyline) }
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.padding(start = Canvas.Keyline, end = Canvas.SafeX), verticalAlignment = Alignment.Bottom) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, maxLines = 1)
-            if (subtitle != null) {
-                Spacer(Modifier.width(12.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, maxLines = 1, modifier = Modifier.semantics { heading() })
+            // Faded in when it lands late, in the row's own line, so nothing moves.
+            AnimatedVisibility(subtitle != null, enter = fadeIn(Motion.fadeIn()), exit = ExitTransition.None) {
+                Row {
+                    Spacer(Modifier.width(12.dp))
+                    Text(subtitle.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1)
+                }
             }
         }
         Spacer(Modifier.height(Canvas.HeaderGap - Canvas.FocusRoom))
@@ -140,7 +153,9 @@ fun BrowseRow(
 
 /**
  * Art with the TV focus look: tv-material's Card, no glow, no shadow, the silk ring 3 dp outside
- * it and the scale on quick, which snaps while a key is held.
+ * it and the scale on quick, which snaps while a key is held. To TalkBack it is one element: its
+ * [label] (the title, its line and the progress in words), with the long press's [sheet] of
+ * actions as custom actions.
  */
 @Composable
 fun ArtCard(
@@ -148,16 +163,24 @@ fun ArtCard(
     width: Dp,
     height: Dp,
     modifier: Modifier = Modifier,
-    onLongClick: (() -> Unit)? = null,
+    sheet: (() -> ActionSheet)? = null,
+    label: String? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactions = remember { MutableInteractionSource() }
     val focused by interactions.collectIsFocusedAsState()
     val shape = RoundedCornerShape(8.dp)
+    val host = LocalActions.current
     Card(
         onClick = onClick,
-        onLongClick = onLongClick,
-        modifier = modifier.size(width, height).focusScale(focused, ArtFocus.scale(width)),
+        onLongClick = sheet?.let { open -> { host?.open(open()) } },
+        modifier = modifier
+            .size(width, height)
+            .focusScale(focused, ArtFocus.scale(width))
+            .semantics {
+                if (label != null) contentDescription = label
+                if (sheet != null && host != null) customActions = sheet().accessibilityActions(host)
+            },
         shape = CardDefaults.shape(shape),
         colors = CardDefaults.colors(containerColor = ObiSilk.Raised, focusedContainerColor = ObiSilk.Raised),
         scale = CardDefaults.scale(scale = 1f, focusedScale = 1f, pressedScale = 1f),
@@ -177,8 +200,9 @@ fun PosterCard(
     modifier: Modifier = Modifier,
     line: String? = null,
     progress: Float? = null,
-    onLongClick: (() -> Unit)? = null,
-) = PosterCard(entry.title, entry.coverUrl, entry.coverColor, onClick, modifier, line, progress, onLongClick)
+    sheet: (() -> ActionSheet)? = null,
+    dot: Color? = null,
+) = PosterCard(entry.title, entry.coverUrl, entry.coverColor, onClick, modifier, line, progress, sheet, dot)
 
 /** A poster of any title, by its cover. */
 @Composable
@@ -190,14 +214,15 @@ fun PosterCard(
     modifier: Modifier = Modifier,
     line: String? = null,
     progress: Float? = null,
-    onLongClick: (() -> Unit)? = null,
+    sheet: (() -> ActionSheet)? = null,
+    dot: Color? = null,
 ) {
     Column(Modifier.width(Canvas.PosterWidth)) {
-        ArtCard(onClick, Canvas.PosterWidth, Canvas.PosterHeight, modifier, onLongClick) {
+        ArtCard(onClick, Canvas.PosterWidth, Canvas.PosterHeight, modifier, sheet, cardLabel(title, line, progress)) {
             ArtImage(coverUrl, CoverPlate.parse(coverColor), POSTER_PIXELS, Modifier.fillMaxSize())
             if (progress != null) ProgressEdge(progress, Modifier.align(Alignment.BottomStart))
         }
-        CardText(title, line)
+        CardText(title, line, dot = dot)
     }
 }
 
@@ -216,10 +241,10 @@ fun WideCard(
     art: String? = entry.bannerUrl,
     spoiler: Boolean = false,
     title: String = entry.title,
-    onLongClick: (() -> Unit)? = null,
+    sheet: (() -> ActionSheet)? = null,
 ) {
     Column(Modifier.width(Canvas.CardWidth)) {
-        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, onLongClick) {
+        ArtCard(onClick, Canvas.CardWidth, Canvas.CardHeight, modifier, sheet, cardLabel(title, line, progress)) {
             if (art != null) {
                 ArtImage(art, CoverPlate.parse(entry.coverColor), pixels(Canvas.CardWidth), Modifier.fillMaxSize(), spoiler = spoiler)
             } else {
@@ -238,13 +263,33 @@ fun WideCard(
     }
 }
 
-/** The title under a card, two lines then an ellipsis, and its second line in haze. */
+/**
+ * What TalkBack says for a card: its title, its line and the progress in words, as one element.
+ */
+fun cardLabel(title: String, line: String?, progress: Float?): String = listOfNotNull(
+    title,
+    line,
+    progress?.let { "${(it.coerceIn(0f, 1f) * 100).roundToInt()} percent watched" },
+).joinToString(", ")
+
+/** The panel's actions for TalkBack's actions menu: each runs, or opens its next panel. */
+fun ActionSheet.accessibilityActions(host: ActionsHost): List<CustomAccessibilityAction> = actions.map { action ->
+    CustomAccessibilityAction(action.label) {
+        if (action.then != null) host.open(action.then) else action.run()
+        true
+    }
+}
+
+/**
+ * The title under a card, two lines then an ellipsis, and its second line in haze. The card says
+ * both to TalkBack, so they are not said twice.
+ */
 @Composable
 fun CardText(title: String, line: String?, dot: Color? = null, titleColor: Color = ObiSilk.Silk) {
     Spacer(Modifier.height(8.dp))
-    Text(title, style = TvTitle.card, color = titleColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    Text(title, style = TvTitle.card, color = titleColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clearAndSetSemantics {})
     if (line != null) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp).clearAndSetSemantics {}) {
             if (dot != null) {
                 Box(Modifier.size(6.dp).background(dot, CircleShape))
                 Spacer(Modifier.width(6.dp))

@@ -17,9 +17,9 @@ import UIKit
 /// `update`, a newer release with its notice, and `pale`, 900001 renamed to a title long enough to
 /// wrap and given a near-white banner, which `all` leaves out; `offline`, the device without a
 /// network, what was loaded staying; `stranded`, offline with nothing loaded; and `failed`, the
-/// lists failed to load. `all` leaves these out too.
+/// lists failed to load; and `messages`, a session's notices for Messages. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
-    case sources, stores, downloads, invite, update, pale, offline, stranded, failed, all
+    case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -79,12 +79,24 @@ public enum Showcase: String, CaseIterable, Sendable {
                     + LibraryModel.order.map { ContentFor.library($0) }
                 events += views.map { .content(view: $0, content: .failed(reason)) }
                 held.formUnion(["connectivity", "content"])
+            case .messages:
+                events += Self.sessionNotices.map { .toast(Notice(kind: $0.kind, text: $0.text, hint: nil)) }
             case .all:
                 break
             }
         }
         return (events, held)
     }
+
+    /// A session's notices, oldest first: a few passing ones, and two failures, one long.
+    static let sessionNotices: [(kind: NoticeKind, text: String)] = [
+        (.info, "added to Watching"),
+        (.alert, "could not reach the source list: the request to sources.example timed out after 30 s"),
+        (.info, "episode 7 downloaded"),
+        (.info, "synced with AniList"),
+        (.alert, "not saved: the database is locked"),
+        (.info, "back to automatic source selection"),
+    ]
 
     /// What the engine offers a store to call this device: its kind.
     @MainActor static var deviceKind: String {

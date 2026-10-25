@@ -44,7 +44,7 @@ impl Clock {
     }
 
     /// Move this clock, and every clone of it, `secs` further on.
-    #[cfg(feature = "testing")]
+    #[cfg(any(test, feature = "testing"))]
     pub fn advance(&self, secs: i64) {
         self.ahead.fetch_add(secs, Ordering::Relaxed);
     }

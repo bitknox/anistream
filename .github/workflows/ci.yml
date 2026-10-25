@@ -256,6 +256,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: tools/ci-toolchain.sh
+      # Formatting is checked first: it needs no build, so a stray space fails in seconds.
+      - name: Format
+        run: cargo fmt --all --check
       - uses: Swatinem/rust-cache@v2
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}

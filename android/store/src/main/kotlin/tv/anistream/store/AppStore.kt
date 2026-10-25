@@ -34,6 +34,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.SearchQuery
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
@@ -419,6 +420,17 @@ class AppStore(
     private val episodesAsked = mutableSetOf<AnilistId>()
 
     /**
+     * How far a title's dub goes, once a session per title. The engine answers in the background
+     * and the page shows the line when it lands, so nothing waits on it.
+     */
+    fun loadDub(id: AnilistId) {
+        if (!dubAsked.add(id)) return
+        send(Command.LoadDub(id))
+    }
+
+    private val dubAsked = mutableSetOf<AnilistId>()
+
+    /**
      * Sources are ready where none were: each title whose episodes are AniList's alone is asked for
      * them again, so its list takes its source's numbering.
      */
@@ -764,6 +776,9 @@ class AppStore(
     }
 
     fun apply(event: Event) {
+        // An alert is also the player's: one while an episode starts is why it could not, which
+        // its "Couldn't play episode 7" says. The notice below still says it too.
+        if (event is Event.Toast && event.v1.kind == NoticeKind.ALERT) onPlayback?.invoke(event)
         when (event) {
             is Event.JobStarted -> jobs.started(event.job, event.activity)
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
@@ -794,6 +809,7 @@ class AppStore(
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
             is Event.Episodes -> titles.episodes(event.id, event.rows)
+            is Event.TitleDub -> titles.dub(event.id, event.dub)
 
             is Event.Status -> notices.status(event.v1)
             is Event.Connectivity -> _offline.value = event.offline

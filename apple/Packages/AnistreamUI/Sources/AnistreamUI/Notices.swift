@@ -152,47 +152,123 @@ struct MessagesView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        #if os(macOS)
+        // One surface, as the Mac's other sheets are: its title, the notices, and Done, with no
+        // toolbar bands above and below and no list chrome between.
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Messages")
+                .font(.mac(15, weight: .semibold))
+                .foregroundStyle(.silk)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.horizontal, 24)
+                .padding(.top, 22)
+                .padding(.bottom, 10)
+            if store.notices.log.isEmpty {
+                empty
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(store.notices.log) { item in
+                            MessageRow(item: item)
+                                .padding(.vertical, 10)
+                                .overlay(alignment: .top) {
+                                    if item.id != store.notices.log.first?.id {
+                                        Rectangle().fill(.faintRule).frame(height: 1)
+                                    }
+                                }
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                }
+            }
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .buttonStyle(PrimaryCapsuleStyle(height: 28))
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 20)
+        }
+        .frame(width: 520, height: 440)
+        .background(.raised)
+        .closesOnEscape { dismiss() }
+        #else
         NavigationStack {
             Group {
                 if store.notices.log.isEmpty {
-                    Text("No messages yet")
-                        .font(.mac(13))
-                        .foregroundStyle(.haze)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    empty
                 } else {
-                    List(store.notices.log) { item in
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Circle()
-                                .fill(item.isAlert ? Palette.vermilion : .clear)
-                                .frame(width: 6, height: 6)
-                            Text(item.notice.text.firstCapitalized)
-                                .font(.mac(13))
-                                .foregroundStyle(.silk)
-                                .textSelection(.enabled)
-                            Spacer()
-                            if item.isAlert {
-                                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12)
-                            }
-                            Text(item.at, style: .time)
-                                .font(.mac(12))
-                                .foregroundStyle(.haze)
+                    PhoneList {
+                        ForEach(store.notices.log) { item in
+                            MessageRow(item: item)
+                                .listRowBackground(Palette.raised)
                         }
-                        .listRowBackground(Color.clear)
                     }
-                    .scrollContentBackground(.hidden)
                 }
             }
             .background(.ground)
             .navigationTitle("Messages")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
+                        .tint(.silk)
                         .keyboardShortcut(.defaultAction)
                 }
             }
         }
-        .frame(minWidth: 480, minHeight: 360)
-        .closesOnEscape { dismiss() }
+        #endif
+    }
+
+    private var empty: some View {
+        Text("No messages yet")
+            .font(Self.font(13))
+            .foregroundStyle(.haze)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The Mac's size, or the larger one a phone reads at.
+    static func font(_ mac: CGFloat) -> Font {
+        #if os(macOS)
+        .mac(mac)
+        #else
+        .ui(mac + 4)
+        #endif
+    }
+}
+
+/// One notice in Messages: a dot for a problem, the words, Report for a problem, and the time.
+private struct MessageRow: View {
+    let item: NoticeItem
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle()
+                .fill(item.isAlert ? Palette.vermilion : .clear)
+                .frame(width: 6, height: 6)
+                .accessibilityHidden(true)
+            Text(item.notice.text.firstCapitalized)
+                .font(MessagesView.font(13))
+                .foregroundStyle(.silk)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            if item.isAlert {
+                #if os(macOS)
+                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 24, fontSize: 12, raisedSurface: true)
+                #else
+                ReportButton(context: BugContext(kind: "message", message: item.notice.text), height: 28, fontSize: 15)
+                #endif
+            }
+            Text(item.at, style: .time)
+                .font(MessagesView.font(12))
+                .foregroundStyle(.haze)
+                .monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

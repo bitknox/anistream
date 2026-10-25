@@ -9,6 +9,7 @@ use anistream_core::settings::SettingValue;
 use anistream_model::{
     command::Command,
     event::Event,
+    jobs::JobId,
     settings::SettingKey,
     sources::{ProviderOrigin, ProviderRow, order_with_source_moved},
 };
@@ -17,6 +18,7 @@ use gtk::{gdk, gio, glib};
 use crate::{
     nagare,
     pages::plugin,
+    states::{Shape, States},
     widgets,
     window::{Ctx, Size},
 };
@@ -108,9 +110,12 @@ type OnId = Box<dyn Fn(&Rc<Page>, String)>;
 
 struct Page {
     ctx: Rc<Ctx>,
-    body: gtk::Stack,
+    body: Rc<States>,
     list: gtk::ListBox,
     shown: Cell<bool>,
+    /// Check Again, a spinner inside it while the check it started runs.
+    check: gtk::Button,
+    checking: Cell<Option<JobId>>,
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
@@ -142,17 +147,45 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         "Sources come from plugin stores. Join one with the invite link its owner sends you.",
         Some(&join),
     );
-    let body = gtk::Stack::new();
-    body.add_named(&widgets::column_page(&column, 720), Some("list"));
-    body.add_named(&empty, Some("empty"));
-    let navigation = widgets::page("Providers", &header, &body);
+    let rows = Shape::Rows { count: 3, width: 16, height: 16 };
+    let body = States::new(
+        &ctx.hub,
+        &widgets::column_page(&column, 720),
+        rows,
+        &empty,
+        "Couldn't Load Sources",
+    );
+    body.loading(Command::CheckProviders.activity());
+    let navigation = widgets::content_page("Providers", &header, &body.widget);
 
-    let page = Rc::new(Page { ctx: Rc::clone(ctx), body, list, shown: Cell::new(false) });
+    let page = Rc::new(Page {
+        ctx: Rc::clone(ctx),
+        body,
+        list,
+        shown: Cell::new(false),
+        check,
+        checking: Cell::new(None),
+    });
+    page.body.on_retry({
+        let weak = Rc::downgrade(&page);
+        move || {
+            if let Some(page) = weak.upgrade() {
+                page.check();
+            }
+        }
+    });
     page.actions(&navigation);
     let weak = Rc::downgrade(&page);
     ctx.hub.listen(move |event| {
-        if let Some(page) = weak.upgrade()
-            && page.shown.get()
+        let Some(page) = weak.upgrade() else { return };
+        if let Event::JobDone(job) = event
+            && page.checking.get() == Some(*job)
+        {
+            page.checking.set(None);
+            page.check.set_icon_name("view-refresh-symbolic");
+            page.check.set_sensitive(true);
+        }
+        if page.shown.get()
             && matches!(event, Event::Providers(_) | Event::Stores(_) | Event::Settings(_))
         {
             page.show();
@@ -173,7 +206,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         move |_| {
             if let Some(page) = weak.upgrade() {
                 page.shown.set(true);
-                page.ctx.hub.send(Command::CheckProviders);
+                page.check();
                 page.ctx.hub.send(Command::LoadStores);
                 page.show();
             }
@@ -204,14 +237,28 @@ impl Page {
         add("toggle", Box::new(|page, id| plugin::toggle(&page.ctx, &id)));
         add("remove", Box::new(|page, id| plugin::confirm_remove(&page.ctx, &id)));
         let check = gio::SimpleAction::new("check", None);
-        let hub = Rc::downgrade(&self.ctx.hub);
+        let weak = Rc::downgrade(self);
         check.connect_activate(move |_, _| {
-            if let Some(hub) = hub.upgrade() {
-                hub.send(Command::CheckProviders);
+            if let Some(page) = weak.upgrade() {
+                page.check();
             }
         });
         group.add_action(&check);
         navigation.insert_action_group("providers", Some(&group));
+    }
+
+    /// Check every source again, the button a spinner until the check is done.
+    fn check(&self) {
+        if self.checking.get().is_some() {
+            return;
+        }
+        let job = self.ctx.hub.send_job(Command::CheckProviders);
+        if job.is_some() {
+            let spinner = adw::Spinner::new();
+            self.check.set_child(Some(&spinner));
+            self.check.set_sensitive(false);
+        }
+        self.checking.set(job);
     }
 
     fn step(&self, id: &str, step: isize) {
@@ -242,11 +289,21 @@ impl Page {
     }
 
     fn show(self: &Rc<Self>) {
-        let rows = self.ctx.hub.known.borrow().ordered_providers();
+        let (rows, said) = {
+            let known = self.ctx.hub.known.borrow();
+            (known.ordered_providers(), known.providers_said)
+        };
+        if !said {
+            return;
+        }
         while let Some(child) = self.list.first_child() {
             self.list.remove(&child);
         }
-        self.body.set_visible_child_name(if rows.is_empty() { "empty" } else { "list" });
+        if rows.is_empty() {
+            self.body.empty();
+        } else {
+            self.body.content();
+        }
         for (at, row) in rows.iter().enumerate() {
             self.list.append(&self.row(row, at, rows.len()));
         }

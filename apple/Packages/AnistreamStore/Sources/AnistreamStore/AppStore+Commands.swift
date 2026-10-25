@@ -55,6 +55,12 @@ extension AppStore {
         send(.resetShowSettings(id: id))
     }
 
+    /// The source `id` keeps, as its sheet last said: `nil` for automatic. The sheet's own rather
+    /// than `providers.preference`, which follows whichever title's detail came last.
+    public func showSource(_ id: AnilistId) -> String? {
+        showSettings.sheets[id]?.source
+    }
+
     /// Whether `id`'s unwatched stills are blurred: as the show sets it, else as Settings does.
     public func spoilerProtection(for id: AnilistId) -> Bool {
         if let row = showSettings.row(.spoilerProtection, of: id) { return row.value == "on" }

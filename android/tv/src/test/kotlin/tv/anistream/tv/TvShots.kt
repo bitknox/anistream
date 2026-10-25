@@ -45,8 +45,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
+import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.NextEpisode
+import tv.anistream.engine.model.Notice
+import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
@@ -68,6 +71,7 @@ import tv.anistream.tv.remote.PairRequestDialog
 import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
+import tv.anistream.tv.ui.OFFLINE_LINE
 import tv.anistream.tv.ui.TV_ART_BUDGET
 import tv.anistream.tv.ui.TvArtDecoder
 import tv.anistream.tv.ui.TvTheme
@@ -229,8 +233,51 @@ class TvShots {
         assertTrue("the player is still up", model.isPresented)
     }
 
+    /** First launch's Welcome: Nagare, what anistream is, the legal line, Continue focused. */
+    @Test
+    fun first_launch() = shoot("tv-first-launch", firstLaunch = true, scene = "fresh") {
+        assertEquals("Continue", focusedText())
+    }
+
+    /** Continue offline: the quiet line under the hero, what was there kept. */
+    @Test
+    fun continue_offline() = shoot("tv-continue-offline", offline = true) {
+        assertTrue(compose.onAllNodesWithText(OFFLINE_LINE).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    /** Settings › Add a plugin store, from Settings: the QR code for a phone, and Type the link. */
+    @Test
+    fun join_store() = shoot("tv-join-store", start = Destination.Settings) {
+        compose.runOnUiThread { nav.openJoinStore() }
+        compose.mainClock.advanceTimeBy(3_000)
+        compose.waitForIdle()
+        assertEquals("Type the link", focusedText())
+    }
+
+    /** A playback that never played: why, as the engine said it, and another source focused. */
+    @Test
+    fun player_failed() {
+        AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
+        val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        val model = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { time }, hwdec = "no")
+        compose.runOnUiThread {
+            model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
+            model.apply(Event.Toast(Notice(NoticeKind.ALERT, "no playable stream: every release failed", null)))
+            model.apply(Event.PlaybackEnded(false, Ending.Failed, false))
+        }
+        compose.setContent {
+            TvTheme { TvRoot(store, model, TvNavigator(), play = { _, _ -> }) }
+        }
+        settle()
+        assertEquals("Choose another source", focusedText())
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-player-failed.png")
+    }
+
     /** The model's clock, held where a shot puts it. */
     private var time = 0L
+
+    /** The navigator of the root [shoot] drew. */
+    private var nav = TvNavigator()
 
     private fun playerShot(name: String?, then: (PlayerModel) -> Unit) {
         AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
@@ -290,20 +337,24 @@ class TvShots {
         start: Destination = Destination.Continue,
         title: AnilistId? = null,
         query: String? = null,
+        firstLaunch: Boolean = false,
+        offline: Boolean = false,
+        scene: String = WATCHING,
         then: (() -> Unit)? = null,
     ) {
-        val recorded = Scene.named(WATCHING)
+        val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
-        val events = recorded.events.filter(::replayed)
+        val events = recorded.events.filter(::replayed) + listOfNotNull(Event.Connectivity(true).takeIf { offline })
         store.apply(events)
         val player = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { 0L }, hwdec = "no")
-        val nav = TvNavigator(if (query != null) Destination.Search else start).apply {
+        nav = TvNavigator(if (query != null) Destination.Search else start).apply {
             query?.let { typeSearch(it) }
             title?.let(::openTitle)
         }
+        val nav = nav
         compose.setContent {
-            TvTheme { TvRoot(store, player, nav, play = { _, _ -> }) }
+            TvTheme { TvRoot(store, player, nav, play = { _, _ -> }, firstLaunch = firstLaunch) }
         }
         compose.waitForIdle()
         store.apply(events)

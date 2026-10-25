@@ -16,6 +16,8 @@ import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.MpvOption
 import tv.anistream.engine.model.NextEpisode
+import tv.anistream.engine.model.Notice
+import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.PlayerChoice
 import tv.anistream.engine.model.PlayerCommand
 import tv.anistream.engine.model.PlayerEnd
@@ -217,6 +219,50 @@ class ClosingTest {
         assertEquals(PlaybackFailure(900_001u, "7"), rig.model.failure)
         rig.model.viewerClosed()
         assertFalse(rig.model.isPresented)
+    }
+
+    @Test
+    fun aFailureSaysWhyAsTheEngineSaidIt() = runTest {
+        val rig = Rig(this)
+        staged(rig, "7")
+        rig.model.apply(Event.Toast(Notice(NoticeKind.INFO, "looking for sources", null)))
+        rig.model.apply(Event.Toast(Notice(NoticeKind.ALERT, "no sources configured: see the Providers screen", null)))
+        rig.model.apply(Event.PlaybackEnded(false, Ending.Failed, false))
+        assertEquals(PlaybackFailure(900_001u, "7", "No sources configured"), rig.model.failure)
+    }
+
+    @Test
+    fun aFailureOnScreenLetsTheClockRest() = runTest {
+        val rig = Rig(this)
+        staged(rig, "7")
+        rig.model.apply(Event.PlaybackEnded(false, Ending.Failed, false))
+        assertNotNull(rig.model.failure)
+        assertTrue(rig.model.isPresented)
+        val rested = rig.model.clock
+        advanceTimeBy(30_000)
+        assertEquals(rested, rig.model.clock)
+    }
+
+    @Test
+    fun anAlertBeforeTheEpisodeWasStagedIsNotItsReason() = runTest {
+        val rig = Rig(this)
+        staged(rig, "7")
+        rig.model.apply(Event.Toast(Notice(NoticeKind.ALERT, "could not match this title: none", null)))
+        staged(rig, "8")
+        rig.model.apply(Event.PlaybackEnded(false, Ending.Failed, false))
+        assertEquals(PlaybackFailure(900_001u, "8"), rig.model.failure)
+    }
+
+    @Test
+    fun aReasonIsTheAlertsFirstClauseWithNoAddress() {
+        assertEquals("No sources configured", PlaybackFailure.reason("no sources configured: see the Providers screen"))
+        assertEquals("No playable stream", PlaybackFailure.reason("no playable stream"))
+        assertEquals("Loading failed", PlaybackFailure.reason("mpv: loading failed"))
+        assertEquals(
+            "Could not open https://cdn.example",
+            PlaybackFailure.reason("could not open https://cdn.example/a/b.m3u8?token=secret: refused"),
+        )
+        assertEquals(null, PlaybackFailure.reason("  "))
     }
 
     @Test
@@ -786,6 +832,24 @@ class ViewerTest {
         rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
         advanceTimeBy(2_000)
         assertFalse(rig.model.showsBuffering)
+    }
+
+    @Test
+    fun anUntouchedPauseLetsTheClockRestAndAKeyMovesItOn() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.emit(MpvEvent.property("pause", MpvValue.Flag(true)))
+        rig.model.poke()
+        advanceTimeBy(3_300)
+        val rested = rig.model.clock
+        advanceTimeBy(60_000)
+        assertEquals("nothing on screen keeps time", rested, rig.model.clock)
+        assertTrue(rig.model.controlsVisible)
+        rig.model.poke()
+        assertTrue("a key moves it on", rig.model.clock > rested)
+        rig.emit(MpvEvent.property("pause", MpvValue.Flag(false)))
+        advanceTimeBy(1_000)
+        assertTrue("playing keeps time", rig.model.clock > rested + 60_000)
     }
 
     @Test

@@ -186,6 +186,8 @@ public sealed partial class TitlePage : Page, IPageKeys
         ctx.Send(new Command.LoadEpisodes(id));
         // The queue, for each row's download cell.
         ctx.Send(new Command.LoadDownloads());
+        ctx.Send(new Command.LoadDub(id));
+        DubLine.Opacity = 0;
         Show();
         ShowEpisodes();
         // The cover a grid sent flies in to this one; anything else crossfades.
@@ -216,6 +218,12 @@ public sealed partial class TitlePage : Page, IPageKeys
                 case Event.Progress p when p.Id == id:
                     Show();
                     ctx.Send(new Command.LoadEpisodes(id));
+                    break;
+                case Event.TitleDub td when td.Id == id:
+                    var line = AnistreamFfiMethods.DubLine(td.Dub);
+                    if (line is not null)
+                        DubLine.Text = line;
+                    DubLine.Opacity = line is null ? 0 : 1;
                     break;
                 case Event.Episodes ep when ep.Id == id:
                     ShowEpisodes();

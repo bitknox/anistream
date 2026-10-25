@@ -250,6 +250,7 @@ struct PhoneTitle: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            store.loadDub(id)
             // What the show sets for itself, its spoiler protection among it: from the database.
             store.loadShowSettings(id)
         }
@@ -303,6 +304,7 @@ struct PhoneEpisodes: View {
             if let fold {
                 WatchedFoldSection(
                     fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
+                    dub: store.titles.dubLines[entry.id],
                     toggle: { navigator.toggleWatched(entry.id) }
                 ) {
                     ForEach(rows.prefix(fold.count), id: \.number) {
@@ -310,6 +312,16 @@ struct PhoneEpisodes: View {
                     }
                 }
                 .bareRow(inset)
+            }
+            // With no watched run to fold, the line has a row of its own above the episodes.
+            if fold == nil, let dub = store.titles.dubLines[entry.id] {
+                Text(dub)
+                    .font(.ui(15))
+                    .foregroundStyle(.haze)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .padding(.leading, 34)
+                    .bareRow(inset)
+                    .transition(.opacity.animation(.fadeIn))
             }
             ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
                 PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)

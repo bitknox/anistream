@@ -78,11 +78,18 @@
           <TextBlock x:Name="Synopsis" Style="{StaticResource BodyTextBlockStyle}" TextWrapping="WrapWholeWords" MaxWidth="720" HorizontalAlignment="Left" />
 
           <StackPanel Spacing="4">
-            <!-- The season picker sits beside the heading, so its arriving moves nothing. -->
+            <!-- The season picker and the dub line sit beside the heading, so their arriving moves nothing. -->
             <StackPanel Orientation="Horizontal" Spacing="16" MinHeight="36">
               <TextBlock Text="Episodes" Style="{StaticResource SectionTitleStyle}" VerticalAlignment="Center" />
               <ComboBox x:Name="SeasonPicker" MinWidth="220" VerticalAlignment="Center" Visibility="Collapsed"
                         AutomationProperties.Name="Season" SelectionChanged="OnSeasonPicked" />
+              <!-- How far the dub goes. Faded in when the engine says. -->
+              <TextBlock x:Name="DubLine" Style="{StaticResource HazeCaptionStyle}" VerticalAlignment="Center"
+                         Margin="0,4,0,0" Opacity="0">
+                <TextBlock.OpacityTransition>
+                  <ScalarTransition Duration="0:0:0.2" />
+                </TextBlock.OpacityTransition>
+              </TextBlock>
             </StackPanel>
             <TextBlock x:Name="EpisodesNote" Style="{StaticResource HazeCaptionStyle}" Visibility="Collapsed" />
             <ListView x:Name="EpisodeList" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnEpisodeClick"

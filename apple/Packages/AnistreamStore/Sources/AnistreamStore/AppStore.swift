@@ -356,6 +356,13 @@ public final class AppStore {
         send(.loadEpisodes(id))
     }
 
+    /// How far a title's dub goes. The engine answers in the background and the page shows it
+    /// when it lands, so a page opening asks once and nothing waits on it.
+    public func loadDub(_ id: AnilistId) {
+        guard ask(.dub(id)) else { return }
+        send(.loadDub(id))
+    }
+
     /// Sources are ready where none were: each title whose episodes are AniList's alone is asked
     /// for them again, however lately it was, so its list takes its source's numbering.
     private func sourcesArrived() {
@@ -369,6 +376,7 @@ public final class AppStore {
     private enum TitleQuestion: Hashable {
         case detail(AnilistId)
         case episodes(AnilistId)
+        case dub(AnilistId)
     }
 
     /// Whether `question` may go out now: not asked within `askAgainAfter`. Noted as asked when it
@@ -544,6 +552,8 @@ public final class AppStore {
             titles.lastAired(rows)
         case .episodes(let id, let rows):
             titles.episodes(id: id, rows: rows)
+        case .titleDub(let id, let dub):
+            titles.dub(id: id, extent: dub)
 
         case .status(let text):
             notices.status(text)

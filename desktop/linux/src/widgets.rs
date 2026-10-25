@@ -1,7 +1,10 @@
 //! Pieces the screens share: covers and banners with their flat placeholders, labels in the
 //! app's type, and the poster grid.
 
-use std::rc::Rc;
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 use adw::prelude::*;
 use anistream_model::catalog::Entry;
@@ -9,10 +12,13 @@ use gtk::{gdk, gio, glib};
 
 use crate::{fit::Fit, hub::Hub, words};
 
-/// A colour as one pixel, stretched over a placeholder: the cover's own colour while its art
-/// is on the way, and the raised colour when the title has none.
+/// The raised colour, which placeholders stand on.
+const RAISED: [u8; 3] = [0x22, 0x26, 0x38];
+
+/// A colour as one pixel, stretched over a placeholder: the cover's own colour at half strength
+/// over raised while its art is on the way, and raised when the title has none.
 pub fn swatch(hex: Option<&str>) -> gdk::Texture {
-    let rgb = hex.and_then(parse_hex).unwrap_or([0x22, 0x26, 0x38]);
+    let rgb = hex.and_then(parse_hex).map_or(RAISED, half_over_raised);
     gdk::MemoryTexture::new(
         1,
         1,
@@ -21,6 +27,12 @@ pub fn swatch(hex: Option<&str>) -> gdk::Texture {
         3,
     )
     .upcast()
+}
+
+/// `rgb` at 50% over raised.
+fn half_over_raised(rgb: [u8; 3]) -> [u8; 3] {
+    let mix = |at: usize| ((u16::from(rgb[at]) + u16::from(RAISED[at])) / 2) as u8;
+    [mix(0), mix(1), mix(2)]
 }
 
 fn parse_hex(hex: &str) -> Option<[u8; 3]> {
@@ -32,23 +44,29 @@ fn parse_hex(hex: &str) -> Option<[u8; 3]> {
     Some([byte(0)?, byte(2)?, byte(4)?])
 }
 
-/// Art in a rounded box: `url`'s once it is here, over a placeholder in `color`.
+/// Art in a rounded box: `url`'s once it is here, fading in over a placeholder in `color`.
 pub fn art(
     hub: &Hub,
     url: Option<&str>,
     color: Option<&str>,
     class: &str,
 ) -> (gtk::Box, gtk::Picture) {
-    let picture = gtk::Picture::for_paintable(&swatch(color));
+    let plate = gtk::Picture::for_paintable(&swatch(color));
+    plate.set_content_fit(gtk::ContentFit::Fill);
+    plate.set_can_shrink(true);
+    plate.set_hexpand(true);
+    plate.set_vexpand(true);
+    let picture = gtk::Picture::new();
     picture.set_content_fit(gtk::ContentFit::Cover);
     picture.set_can_shrink(true);
-    picture.set_hexpand(true);
-    picture.set_vexpand(true);
     hub.art(&picture, url);
+    let layers = gtk::Overlay::new();
+    layers.set_child(Some(&plate));
+    layers.add_overlay(&picture);
     let frame = gtk::Box::new(gtk::Orientation::Vertical, 0);
     frame.set_overflow(gtk::Overflow::Hidden);
     frame.add_css_class(class);
-    frame.append(&picture);
+    frame.append(&layers);
     (frame, picture)
 }
 
@@ -81,6 +99,27 @@ pub fn banner(hub: &Hub, entry: &Entry, max_height: i32, class: &str) -> Fit {
     let url = entry.banner_url.as_deref().or(entry.cover_url.as_deref());
     let (frame, _) = art(hub, url, entry.cover_color.as_deref(), "banner");
     frame.add_css_class(class);
+    Fit::new(&frame, 16.0 / 9.0, max_height * 16 / 9, false, max_height)
+}
+
+/// A page's banner, flush to the edges, fading into the ground at its foot so a page's head
+/// can stand over its lower part. The fade is drawn with the art, under the same clip.
+pub fn faded_banner(hub: &Hub, entry: &Entry, max_height: i32) -> Fit {
+    let url = entry.banner_url.as_deref().or(entry.cover_url.as_deref());
+    let (frame, picture) = art(hub, url, entry.cover_color.as_deref(), "banner");
+    frame.add_css_class("flush");
+    if let Some(layers) = picture.parent().and_downcast::<gtk::Overlay>() {
+        let fade = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        fade.add_css_class("art-fade");
+        fade.set_can_target(false);
+        layers.add_overlay(&fade);
+        // The art and its plate stop short of the edge, so a fractional allocation can't
+        // show their last row as a seam below the fade.
+        picture.set_margin_bottom(2);
+        if let Some(plate) = layers.child() {
+            plate.set_margin_bottom(2);
+        }
+    }
     Fit::new(&frame, 16.0 / 9.0, max_height * 16 / 9, false, max_height)
 }
 
@@ -137,6 +176,49 @@ pub fn sidebar_button(split: &adw::OverlaySplitView) -> gtk::ToggleButton {
         .bidirectional()
         .build();
     button
+}
+
+thread_local! {
+    /// The offline banners on screen, and whether they show.
+    static BANNERS: RefCell<Vec<glib::WeakRef<adw::Banner>>> = RefCell::default();
+    static OFFLINE: Cell<bool> = const { Cell::new(false) };
+}
+
+/// The banner under a page's header bar that says the device is offline: shown on every page
+/// that has one while it is, and gone once the network is back.
+pub fn offline_banner() -> adw::Banner {
+    let banner = adw::Banner::new("Offline. Downloaded episodes still play.");
+    banner.add_css_class("offline");
+    banner.set_revealed(OFFLINE.get());
+    BANNERS.with_borrow_mut(|banners| {
+        banners.retain(|b| b.upgrade().is_some());
+        banners.push(banner.downgrade());
+    });
+    banner
+}
+
+/// Show or hide every offline banner.
+pub fn set_offline(offline: bool) {
+    OFFLINE.set(offline);
+    BANNERS.with_borrow_mut(|banners| {
+        banners.retain(|b| b.upgrade().is_some());
+        for banner in banners.iter().filter_map(glib::WeakRef::upgrade) {
+            banner.set_revealed(offline);
+        }
+    });
+}
+
+/// A destination's page: its header bar and the offline banner over `content`.
+pub fn content_page(
+    title: &str,
+    header: &adw::HeaderBar,
+    content: &impl IsA<gtk::Widget>,
+) -> adw::NavigationPage {
+    let view = adw::ToolbarView::new();
+    view.add_top_bar(header);
+    view.add_top_bar(&offline_banner());
+    view.set_content(Some(content));
+    adw::NavigationPage::builder().title(title).child(&view).build()
 }
 
 /// A page of a destination: its header bar over `content`.
@@ -222,6 +304,11 @@ pub struct PosterGrid {
 
 impl PosterGrid {
     pub fn new(hub: &Rc<Hub>) -> Self {
+        Self::with_caption(hub, words::cover_caption)
+    }
+
+    /// A grid whose caption line under each cover is `caption`'s: Library's says how far.
+    pub fn with_caption(hub: &Rc<Hub>, caption: fn(&Entry) -> String) -> Self {
         let store = gio::ListStore::new::<Item>();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_bind({
@@ -230,7 +317,7 @@ impl PosterGrid {
                 let Some(item) = item.downcast_ref::<gtk::ListItem>() else { return };
                 let Some(object) = item.item().and_downcast::<Item>() else { return };
                 let entry = object.borrow::<Entry>();
-                item.set_child(Some(&poster(&hub, &entry)));
+                item.set_child(Some(&poster(&hub, &entry, caption)));
             }
         });
         factory.connect_unbind(|_, item| {
@@ -254,6 +341,23 @@ impl PosterGrid {
                 }
             }
         });
+        // Focus sits on the grid's own cell, around the poster: the menu keys open the
+        // focused poster's menu from here.
+        let keys = gtk::ShortcutController::new();
+        keys.add_shortcut(gtk::Shortcut::new(
+            gtk::ShortcutTrigger::parse_string("<Shift>F10|Menu"),
+            Some(gtk::CallbackAction::new(|grid, _| {
+                let poster = grid.focus_child().and_then(|cell| cell.first_child());
+                match poster {
+                    Some(poster) => {
+                        let _ = poster.activate_action("context.popup", None);
+                        glib::Propagation::Stop
+                    }
+                    None => glib::Propagation::Proceed,
+                }
+            })),
+        ));
+        widget.add_controller(keys);
         Self { widget, store }
     }
 
@@ -263,7 +367,7 @@ impl PosterGrid {
     }
 }
 
-fn poster(hub: &Hub, entry: &Entry) -> gtk::Box {
+fn poster(hub: &Hub, entry: &Entry, caption: fn(&Entry) -> String) -> gtk::Box {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 6);
     column.set_size_request(120, -1);
     column.append(&cover_fill(hub, entry, 148));
@@ -273,7 +377,7 @@ fn poster(hub: &Hub, entry: &Entry) -> gtk::Box {
     title.set_tooltip_text(Some(&entry.title));
     title.set_valign(gtk::Align::Start);
     column.append(&title);
-    let caption = haze(&words::cover_caption(entry), "caption");
+    let caption = haze(&caption(entry), "caption");
     caption.set_wrap(false);
     caption.set_ellipsize(gtk::pango::EllipsizeMode::End);
     column.append(&caption);
@@ -287,7 +391,8 @@ pub fn title_menu(widget: &impl IsA<gtk::Widget>, id: u32, planning: bool) {
     if planning {
         menu.append(Some("Add to Planning"), Some(&format!("win.plan(uint32 {id})")));
     }
-    menu.append(Some("Open Title"), Some(&format!("win.open-title(uint32 {id})")));
+    menu.append(Some("Go to Title"), Some(&format!("win.open-title(uint32 {id})")));
+    menu.append(Some("Open on AniList"), Some(&format!("win.open-anilist(uint32 {id})")));
     context_menu(widget, &menu);
 }
 
@@ -331,6 +436,18 @@ pub fn context_menu(widget: &impl IsA<gtk::Widget>, menu: &gio::Menu) {
         })),
     ));
     widget.add_controller(keys);
+    // The same from outside, for a container whose focus sits around the widget: a grid's cell.
+    let popup = gio::SimpleAction::new("popup", None);
+    popup.connect_activate({
+        let popover = popover.clone();
+        move |_, _| {
+            popover.set_pointing_to(None);
+            popover.popup();
+        }
+    });
+    let group = gio::SimpleActionGroup::new();
+    group.add_action(&popup);
+    widget.insert_action_group("context", Some(&group));
     // The popover goes with its widget.
     widget.connect_destroy(move |_| popover.unparent());
 }
@@ -345,5 +462,11 @@ mod tests {
         assert_eq!(parse_hex("e4a15d"), Some([0xE4, 0xA1, 0x5D]));
         assert_eq!(parse_hex("#fff"), None);
         assert_eq!(parse_hex("#zzzzzz"), None);
+    }
+
+    #[test]
+    fn a_placeholder_is_its_cover_colour_at_half_over_raised() {
+        assert_eq!(half_over_raised([0xFF, 0xFF, 0xFF]), [0x90, 0x92, 0x9B]);
+        assert_eq!(half_over_raised(RAISED), RAISED);
     }
 }

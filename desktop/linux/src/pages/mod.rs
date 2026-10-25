@@ -3,6 +3,7 @@
 pub mod calendar;
 pub mod continue_page;
 pub mod downloads;
+pub mod first_launch;
 pub mod join;
 pub mod library;
 pub mod plugin;
@@ -110,6 +111,7 @@ pub fn shortcuts(ctx: &Ctx) {
                 ("Settings", "<Control>comma"),
                 ("Sync now", "<Control>r"),
                 ("Back", "<Alt>Left"),
+                ("Keyboard shortcuts", "<Control>question"),
                 ("Close the window", "<Control>w"),
                 ("Quit", "<Control>q"),
             ],
@@ -117,6 +119,7 @@ pub fn shortcuts(ctx: &Ctx) {
         (
             "Lists",
             &[
+                ("Play the selected title", "Return"),
                 ("Mark watched", "<Control><Shift>m"),
                 ("Hide from Continue", "Delete"),
                 ("Context menu", "<Shift>F10"),
@@ -127,13 +130,19 @@ pub fn shortcuts(ctx: &Ctx) {
             &[
                 ("Play or pause", "space"),
                 ("Back or forward 5 seconds", "Left Right"),
+                ("Back or forward 30 seconds", "<Shift>Left <Shift>Right"),
                 ("Back or forward 10 seconds", "j l"),
-                ("Volume", "Up Down"),
+                ("Volume up or down", "Up Down"),
                 ("Mute", "m"),
                 ("Fullscreen", "f"),
-                ("Skip the opening", "s"),
+                ("Mini player", "p"),
+                ("Skip the opening or ending", "s"),
                 ("Next or previous episode", "n <Shift>n"),
-                ("Close the player", "Escape"),
+                ("Faster or slower", "bracketright bracketleft"),
+                ("Normal speed", "BackSpace"),
+                ("Episodes", "e"),
+                ("Answer the card in the corner", "Return"),
+                ("Close a card, the mini player, fullscreen, then the player", "Escape"),
             ],
         ),
     ];

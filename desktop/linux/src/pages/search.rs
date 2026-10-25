@@ -17,7 +17,7 @@ use anistream_model::{
 };
 
 use crate::{
-    catalog, nagare,
+    catalog,
     widgets::{self, PosterGrid},
     window::Ctx,
 };
@@ -208,7 +208,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .child(&results)
         .build();
 
-    let empty = nagare::status_page("Nothing Found", "", None);
+    let empty = crate::states::plain("Nothing Found", "");
     let loading = adw::Spinner::new();
     loading.set_size_request(32, 32);
     loading.set_halign(gtk::Align::Center);
@@ -330,7 +330,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     });
     inner.capture_keys(true);
 
-    let page = widgets::page("Search", &header, &column);
+    let page = widgets::content_page("Search", &header, &column);
     SearchPage { page, inner }
 }
 

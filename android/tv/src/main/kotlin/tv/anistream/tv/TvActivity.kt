@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
+import android.text.format.DateFormat
 import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.FrontIntent
 import tv.anistream.engine.model.RemoteKey
+import tv.anistream.store.AirTime
 import tv.anistream.store.AppStore
 import tv.anistream.tv.home.parsePlayLink
 import tv.anistream.tv.shell.Destination
@@ -34,6 +36,7 @@ class TvActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         app.start(Flavour.launch(this, intent))
         val start = Flavour.start(intent)
         val nav = TvNavigator(start.destination).apply {
@@ -47,12 +50,10 @@ class TvActivity : ComponentActivity() {
                     player = app.player,
                     nav = nav,
                     play = { id, episode -> app.store.send(Command.Play(id, episode.toString())) },
-                    playFromStart = { id, episode ->
-                        app.player.playFromStart()
-                        app.store.send(Command.Play(id, episode.toString()))
-                    },
+                    playFromStart = { id, episode -> app.store.send(Command.Play(id, episode.toString(), fromStart = true)) },
                     remote = app.remote,
                     watchNext = app.watchNext,
+                    firstLaunch = start.firstLaunch,
                 )
             }
         }
@@ -142,6 +143,12 @@ class TvActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT < LOCAL_NETWORK_SDK) return
         if (checkSelfPermission(Manifest.permission.ACCESS_LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED) return
         requestPermissions(arrayOf(Manifest.permission.ACCESS_LOCAL_NETWORK), LOCAL_NETWORK_REQUEST)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The system's 12 or 24 hour clock, which can change while the app is away.
+        AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
     }
 
     override fun onStop() {

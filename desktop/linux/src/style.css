@@ -83,14 +83,13 @@ gridview.posters > child:hover { background: alpha(var(--silk), 0.05); }
 .broadcast { padding: 4px; border-radius: 8px; }
 .broadcast:hover { background: alpha(var(--silk), 0.05); }
 .banner.small { border-radius: 6px; }
-.today-heading { color: var(--water); }
 
 /* Downloads: the bar is water while it runs, haze while it waits. */
 progressbar.water progress { background: var(--water); }
 progressbar.waiting progress { background: var(--haze); }
 row progressbar.horizontal > trough { min-width: 60px; }
 row levelbar.horizontal trough { min-width: 60px; }
-row.failed .subtitle { color: var(--vermilion); }
+row.failed .subtitle { color: var(--haze); }
 levelbar block.filled { background: var(--water); }
 levelbar block.empty { background: var(--rule); }
 
@@ -101,7 +100,7 @@ levelbar block.empty { background: var(--rule); }
 .mark.haze { background: var(--haze); }
 .mark.ring { box-shadow: inset 0 0 0 1.5px var(--haze); }
 .standing { color: var(--silk); }
-.problem { color: var(--vermilion); }
+.problem { color: var(--silk); }
 .fingerprint { font-family: monospace; }
 
 .genre-tile { border-radius: 12px; padding: 18px; background: var(--raised); }
@@ -121,7 +120,7 @@ levelbar block.empty { background: var(--rule); }
 .timeline trough { background: var(--rule); min-height: 4px; }
 .timeline highlight { background: var(--amber); }
 .timeline fill { background: alpha(var(--silk), 0.3); }
-.timeline mark indicator { color: var(--haze); min-height: 6px; }
+.timeline mark indicator { color: var(--water); min-height: 6px; }
 .seek-preview { padding: 4px; }
 .seek-preview label { color: var(--silk); }
 .mini-controls button { min-width: 44px; min-height: 44px; }
@@ -129,8 +128,17 @@ levelbar block.empty { background: var(--rule); }
 .countdown trough { background: var(--rule); min-height: 3px; }
 .countdown progress { background: var(--amber); min-height: 3px; }
 
-/* The setup card. */
-.setup { padding: 12px; }
+/* Placeholders: static raised plates where content will land. */
+.plate { background: var(--raised); border-radius: 8px; }
+.plate.bar { border-radius: 4px; }
+
+/* Nagare on a full-screen empty, at the brief's size. */
+statuspage.nagare image.icon { -gtk-icon-size: 160px; }
+/* A screen that failed: vermilion on the glyph and nothing else. */
+statuspage.failed image.icon { color: var(--vermilion); -gtk-icon-size: 32px; }
+
+/* The offline banner is a state, not an alert: raised and haze. */
+banner > revealer > widget { background: var(--raised); color: var(--haze); }
 
 /* Settings' preview column: a raised card on the pane's end. */
 .settings-preview { background: var(--raised); border-radius: 12px; padding: 16px; }
@@ -157,3 +165,4 @@ row:selected, row:selected:hover, row:selected:focus {
 /* An open group's arrow is haze, not the accent. */
 row.expander image.expander-row-arrow,
 row.expander:checked image.expander-row-arrow { color: var(--haze); }
+

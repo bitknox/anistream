@@ -15,6 +15,7 @@ import android.provider.Settings as SystemSettings
 import android.util.Log
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -29,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import tv.anistream.tv.ui.noticeMillis
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
@@ -94,6 +96,10 @@ class TvRemoteHost(
 
     /** A line for the top right, such as "Mika's phone is paired", until it times out. */
     var notice by mutableStateOf<String?>(null)
+        private set
+
+    /** Counts the lines said, so the same words twice still show again. */
+    var notices by mutableIntStateOf(0)
         private set
 
     /** Whether a phone is typing into Search, for the line under the field. */
@@ -314,9 +320,10 @@ class TvRemoteHost(
     /** Show [line] in the top right for a few seconds. */
     fun say(line: String) {
         notice = line
+        notices += 1
         noticeJob?.cancel()
         noticeJob = scope.launch {
-            delay(NOTICE_MILLIS)
+            delay(noticeMillis(line))
             notice = null
         }
     }
@@ -359,7 +366,6 @@ class TvRemoteHost(
         const val BACKGROUND_MILLIS = 10 * 60_000L
         /** A little under the engine's five minutes, so the code on screen never runs out. */
         const val CODE_REFRESH_MILLIS = 290_000L
-        const val NOTICE_MILLIS = 4_000L
         private const val FINDABLE = "findable"
         /** Points of a phone's volume step per press of the TV's volume key over HDMI-CEC. */
         private const val CEC_STEP = 5.0

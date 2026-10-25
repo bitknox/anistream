@@ -19,8 +19,10 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 22] = [
+pub const ALL: [&str; 25] = [
     "home",
+    "welcome",
+    "offline",
     "calendar",
     "seasonal",
     "search",
@@ -41,6 +43,7 @@ pub const ALL: [&str; 22] = [
     "player",
     "player-marks",
     "mini",
+    "resumed",
     "close",
 ];
 
@@ -90,6 +93,30 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "home" => {
             shell.go(Dest::Continue);
             1.0
+        }
+        "welcome" => {
+            crate::pages::first_launch::open(&shell.ctx);
+            1.5
+        }
+        "offline" => {
+            shell.ctx.hub.send(Command::NetworkPath {
+                cellular: false,
+                constrained: false,
+                offline: true,
+            });
+            shell.go(Dest::Seasonal);
+            2.0
+        }
+        "resumed" => {
+            play(shell);
+            #[cfg(feature = "fixtures")]
+            {
+                let player = Rc::clone(&shell.player);
+                glib::timeout_add_local_once(Duration::from_secs(6), move || {
+                    player.shot_resumed(724.0);
+                });
+            }
+            7.5
         }
         "calendar" => {
             shell.go(Dest::Calendar);
@@ -222,7 +249,13 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         "title" => {
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
         }
-        "about" | "join" => close_dialogs(&shell.ctx.window),
+        "about" | "join" | "welcome" => close_dialogs(&shell.ctx.window),
+        "offline" => shell.ctx.hub.send(Command::NetworkPath {
+            cellular: false,
+            constrained: false,
+            offline: false,
+        }),
+        "resumed" => shell.player.close(),
         "show-settings" => {
             close_dialogs(&shell.ctx.window);
             let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);

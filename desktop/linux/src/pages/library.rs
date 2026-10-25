@@ -1,6 +1,6 @@
 //! Library: the tracker's five lists, each a poster grid with its count, picked with an inline
 //! view switcher under the header bar (a drop-down on narrow windows), the order in a header bar
-//! menu. Signed out, Nagare and one action, Connect AniList.
+//! menu. Signed out, Nagare and one action, Sign In to AniList.
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -14,8 +14,10 @@ use gtk::{gio, glib};
 
 use crate::{
     nagare,
+    states::{self, Shape, States},
     widgets::{self, PosterGrid},
     window::{Ctx, Size},
+    words,
 };
 
 /// How a list is ordered.
@@ -57,7 +59,7 @@ fn segment_title(segment: LibrarySegment) -> &'static str {
 
 struct Page {
     ctx: Rc<Ctx>,
-    lists: Vec<(LibrarySegment, PosterGrid, adw::ViewStackPage, gtk::Stack)>,
+    lists: Vec<(LibrarySegment, PosterGrid, adw::ViewStackPage, Rc<States>)>,
     entries: RefCell<HashMap<&'static str, Vec<Entry>>>,
     order: RefCell<Order>,
     body: gtk::Stack,
@@ -69,26 +71,35 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     views.set_vexpand(true);
     let mut lists = Vec::new();
     for segment in LibrarySegment::ALL {
-        let grid = PosterGrid::new(&ctx.hub);
+        let grid = PosterGrid::with_caption(&ctx.hub, words::progress_caption);
         let scroll = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never)
             .child(&grid.widget)
             .build();
-        let empty = nagare::status_page(
+        let empty = states::plain(
             &format!("Nothing in {}", segment_title(segment)),
-            "Titles you set to this status on your tracker show here.",
-            None,
+            "Titles you set to this status on AniList show here.",
         );
-        let loading = adw::Spinner::new();
-        loading.set_size_request(32, 32);
-        loading.set_halign(gtk::Align::Center);
-        loading.set_valign(gtk::Align::Center);
-        let stack = gtk::Stack::new();
-        stack.add_named(&loading, Some("loading"));
-        stack.add_named(&scroll, Some("grid"));
-        stack.add_named(&empty, Some("empty"));
-        let page = views.add_titled(&stack, Some(segment.label()), segment_title(segment));
-        lists.push((segment, grid, page, stack));
+        let list = States::new(
+            &ctx.hub,
+            &scroll,
+            Shape::Grid,
+            &empty,
+            &format!("Couldn't Load {}", segment_title(segment)),
+        );
+        list.on_retry({
+            let hub = Rc::downgrade(&ctx.hub);
+            let list = Rc::downgrade(&list);
+            move || {
+                if let (Some(hub), Some(list)) = (hub.upgrade(), list.upgrade()) {
+                    list.loading(Some("loading your lists".into()));
+                    hub.send(Command::LoadLibrary(segment));
+                }
+            }
+        });
+        let page =
+            views.add_titled(&list.widget, Some(segment.label()), segment_title(segment));
+        lists.push((segment, grid, page, list));
     }
 
     let switcher = adw::InlineViewSwitcher::new();
@@ -135,14 +146,14 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     lists_view.append(&bar);
     lists_view.append(&views);
 
-    let connect = gtk::Button::with_label("Connect AniList");
+    let connect = gtk::Button::with_label("Sign In to AniList");
     connect.add_css_class("pill");
     connect.add_css_class("suggested-action");
     connect.set_halign(gtk::Align::Center);
     connect.set_action_name(Some("win.connect"));
     connect.set_action_target_value(Some(&"anilist".to_variant()));
     let signed_out =
-        nagare::status_page("Library", "Your lists come from your tracker.", Some(&connect));
+        nagare::status_page("Library", "Your lists come from AniList.", Some(&connect));
 
     let body = gtk::Stack::new();
     body.add_named(&lists_view, Some("lists"));
@@ -162,7 +173,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_end(&order_button);
-    let navigation = widgets::page("Library", &header, &body);
+    let navigation = widgets::content_page("Library", &header, &body);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -211,11 +222,16 @@ impl Page {
     fn heard(&self, event: &Event) {
         match event {
             Event::Content { view: ContentFor::Library(segment), content } => match content {
-                ContentList::Loading => {}
+                ContentList::Loading => {
+                    if let Some(list) = self.list(*segment) {
+                        list.loading(Some("loading your lists".into()));
+                    }
+                }
                 ContentList::Failed(why) => {
                     tracing::warn!(%why, list = segment.label(), "a list did not load");
-                    self.entries.borrow_mut().insert(segment.label(), Vec::new());
-                    self.show(*segment);
+                    if let Some(list) = self.list(*segment) {
+                        list.failed(why);
+                    }
                 }
                 _ => {
                     self.entries
@@ -254,12 +270,19 @@ impl Page {
 
     fn load(&self) {
         for segment in LibrarySegment::ALL {
+            if let Some(list) = self.list(segment) {
+                list.loading(Some("loading your lists".into()));
+            }
             self.ctx.hub.send(Command::LoadLibrary(segment));
         }
     }
 
+    fn list(&self, segment: LibrarySegment) -> Option<&Rc<States>> {
+        self.lists.iter().find(|(s, ..)| *s == segment).map(|(.., list)| list)
+    }
+
     fn show(&self, segment: LibrarySegment) {
-        let Some((_, grid, page, stack)) = self.lists.iter().find(|(s, ..)| *s == segment)
+        let Some((_, grid, page, list)) = self.lists.iter().find(|(s, ..)| *s == segment)
         else {
             return;
         };
@@ -269,6 +292,10 @@ impl Page {
         self.order.borrow().sort(&mut entries);
         grid.set(&entries);
         page.set_title(Some(&format!("{} {}", segment_title(segment), entries.len())));
-        stack.set_visible_child_name(if entries.is_empty() { "empty" } else { "grid" });
+        if entries.is_empty() {
+            list.empty();
+        } else {
+            list.content();
+        }
     }
 }
