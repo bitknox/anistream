@@ -22,7 +22,7 @@ public sealed record Broadcast(Entry Entry, uint Episode, long Airs, long? Was)
         return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
     }
 
-    /// <summary>"Dub" or "Sub" for the row, beside its time, or null: the engine's <c>calendar_mark</c>.</summary>
+    /// <summary>"Dub" for a dub row, beside its time, else null (a sub row is not marked): the engine's <c>calendar_mark</c>.</summary>
     public string? Mark => Anistream.Engine.Ffi.AnistreamFfiMethods.CalendarMark(Entry);
 }
 

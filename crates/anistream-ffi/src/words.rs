@@ -89,8 +89,8 @@ pub fn episode_line(label: String, translation: Option<Translation>) -> String {
     present::episode_line(&label, translation)
 }
 
-/// A calendar row's Sub or Dub mark: "Dub" once the episode is out in the dub, "Sub" for a row
-/// of the sub's own time when the dub keeps one apart, and `None`, to mark nothing, otherwise.
+/// A calendar row's mark: "Dub" for the dub's own time or once the episode is out in the dub,
+/// and `None`, to mark nothing, otherwise. Never "Sub": only dubs are marked.
 #[uniffi::export]
 pub fn calendar_mark(entry: Entry) -> Option<String> {
     present::calendar_mark(&entry).map(str::to_owned)

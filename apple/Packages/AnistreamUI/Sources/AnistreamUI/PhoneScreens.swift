@@ -310,7 +310,7 @@ struct PhoneCard: View {
                     .padding(.top, 6)
                 HStack(spacing: 6) {
                     if !item.playable { Circle().fill(.water).frame(width: 6, height: 6) }
-                    Text(item.timeLeft.map { "E\(item.episode) · \($0)" } ?? item.action)
+                    Text(item.timeLeft.map { "\(item.marked("E\(item.episode)")) · \($0)" } ?? item.action)
                 }
                 .font(.ui(15))
                 .foregroundStyle(.haze)

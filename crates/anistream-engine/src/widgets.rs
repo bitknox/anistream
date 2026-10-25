@@ -180,6 +180,7 @@ impl Make {
             next_airing_episode: next.map(|next| next.episode),
             banner_url: media.banner_image.clone(),
             cover_color: media.cover_image.color.clone(),
+            mark: anistream_model::present::episode_mark(entry.watched_in).map(str::to_owned),
         }
     }
 

@@ -151,11 +151,14 @@ public class CalendarTests
         {
             new Entry(Id: 1, Title: "Atelier Hotaru", AiringIn: 4 * 3600 + 1800, AiringEpisode: 10, AiringApproximate: true, AiringTranslation: Translation.Dub),
             new Entry(Id: 2, Title: "Natsukaze Relay", AiringIn: 3600, AiringEpisode: 8),
+            new Entry(Id: 3, Title: "Kiriha Station", AiringIn: 7200, AiringEpisode: 3, AiringTranslation: Translation.Sub),
         };
         var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
-        Assert.Equal("Ep 10 · ~16:30", broadcasts[1].Line(Utc));
-        Assert.Equal("Dub", broadcasts[1].Mark);
-        Assert.Null(broadcasts[0].Mark);
+        Func<uint, Broadcast> broadcast = id => broadcasts.Single(b => b.Entry.Id == id);
+        Assert.Equal("Ep 10 · ~16:30", broadcast(1).Line(Utc));
+        Assert.Equal("Dub", broadcast(1).Mark);
+        Assert.Null(broadcast(2).Mark);
+        Assert.Null(broadcast(3).Mark);
     }
 }
 

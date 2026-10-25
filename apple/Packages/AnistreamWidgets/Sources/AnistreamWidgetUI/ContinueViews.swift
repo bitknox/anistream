@@ -113,7 +113,7 @@ public struct ContinueWidgetView: View {
             Label(next.map { "Caught up · E\($0.episode) \(format.day($0.airsAt, from: now))" } ?? "Caught up",
                   systemImage: "checkmark")
         case .shows(let items, _):
-            Label("E\(items[0].episode) · \(items[0].title)", systemImage: "play.fill")
+            Label("\(ContinuePresentation.episodeShort(items[0])) · \(items[0].title)", systemImage: "play.fill")
                 .widgetURL(WidgetLink.title(items[0].id).url)
         }
     }

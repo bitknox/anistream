@@ -809,8 +809,14 @@ fn stats_for_nerds_are_read_while_open_worded_by_the_engine_and_copied_without_a
     );
     app.property(playback, "current-tracks/video", json!({"codec": "h264"}));
     app.tick(playback, 0, 2);
+    // The engine says its summary after each figure it learns, so the first line may lack the
+    // codec the last property brings: wait for the line that has it.
     let summary = app.until("the summary", |event| match event {
-        Event::PlayerStats { stats, .. } if !stats.summary.is_empty() => Some(stats.clone()),
+        Event::PlayerStats { stats, .. }
+            if stats.summary.first().is_some_and(|line| line.contains("H.264")) =>
+        {
+            Some(stats.clone())
+        }
         _ => None,
     });
     assert!(summary.rows.is_empty(), "no rows with the panel shut");
@@ -1010,11 +1016,17 @@ fn a_binge_marks_every_episode_watched_on_a_table_loaded_before_another_titles()
 
     // Continue offers episode 4, which is out: the next to air is 6.
     app.engine.send(Command::LoadContinue);
+    // A list sent before the last change may still be on its way: wait for the row that has it.
     let row = app.until("Continue", |event| match event {
         Event::Content {
             view: anistream_model::catalog::ContentFor::Continue,
             content: anistream_model::catalog::ContentList::Entries(entries),
-        } => entries.iter().find(|entry| entry.id == AIRING).cloned(),
+        } => entries
+            .iter()
+            .find(|entry| {
+                entry.id == AIRING && entry.progress == Some(TitleProgress { done: 3, next: 4 })
+            })
+            .cloned(),
         _ => None,
     });
     assert_eq!(row.progress, Some(TitleProgress { done: 3, next: 4 }));
@@ -1061,11 +1073,17 @@ fn a_mark_out_of_order_or_undone_moves_the_count_with_the_rows() {
 
     // As the store has it: the count and Continue read from history agree.
     app.engine.send(Command::LoadContinue);
+    // A list sent before the last change may still be on its way: wait for the row that has it.
     let row = app.until("Continue", |event| match event {
         Event::Content {
             view: anistream_model::catalog::ContentFor::Continue,
             content: anistream_model::catalog::ContentList::Entries(entries),
-        } => entries.iter().find(|entry| entry.id == AIRING).cloned(),
+        } => entries
+            .iter()
+            .find(|entry| {
+                entry.id == AIRING && entry.progress == Some(TitleProgress { done: 1, next: 2 })
+            })
+            .cloned(),
         _ => None,
     });
     assert_eq!(row.progress, Some(TitleProgress { done: 1, next: 2 }));

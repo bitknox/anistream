@@ -441,7 +441,7 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     val onLift = remember(id) { { lifts.value() } }
     val onAbout = remember(id) { { aboutOpen = true } }
     val onScreenPage = base.longValue.toUInt()
-    Box(Modifier.fillMaxSize().shared(Shared.Page, id).background(MaterialTheme.colorScheme.surface)) {
+    Box(Modifier.fillMaxSize().shared(Shared.Page, id, ground = MaterialTheme.colorScheme.surface)) {
         for (season in composed) {
             key(season) {
                 val onScreen = season == onScreenPage
@@ -725,7 +725,8 @@ private fun SeasonPage(
         // Every item moves as one when another comes or goes, as the title's details arrive: the
         // synopsis, the facts and Related fade in above the episodes as they make room, and the
         // placeholders of a season that had not arrived crossfade with what replaces them (T8).
-        LazyColumn(state = list, modifier = modifier.background(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 24.dp)) {
+        // Its ground hides the season it fades in over.
+        LazyColumn(state = list, modifier = modifier.pageGround(MaterialTheme.colorScheme.surface), contentPadding = PaddingValues(bottom = 24.dp)) {
             item(key = "head", contentType = "head") {
                 if (crossfadeHead == null) {
                     TitleHead(entry, episodes, list, inset, shared)
@@ -1739,7 +1740,7 @@ private fun TabletTitle(
     // Back, the gesture or the key, closes the pane before it leaves the page.
     androidx.activity.compose.BackHandler(enabled = aboutOpen) { aboutOpen = false }
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
-        Row(Modifier.fillMaxSize().shared(Shared.Page, id).background(colors.surface)) {
+        Row(Modifier.fillMaxSize().shared(Shared.Page, id, ground = colors.surface)) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
             androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
                 state = grid,

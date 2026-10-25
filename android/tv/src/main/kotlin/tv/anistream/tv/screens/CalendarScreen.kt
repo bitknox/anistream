@@ -125,10 +125,10 @@ fun Airing.timeLine(): String {
     return if (was != null && was != time) "$time (was $was)" else time
 }
 
-/** "Dub" or "Sub" when the engine knows which version the time is for. */
+/** "Dub" when the engine marks the row as the dub's, else null: only dubs are marked. */
 fun Airing.mark(): String? = calendarMark(entry)
 
-/** The line under the title: "Episode 10", with Dub or Sub after it when the engine marks one: "Episode 10 · Dub". */
+/** The line under the title: "Episode 10", with Dub after it when the engine marks one: "Episode 10 · Dub". */
 fun Airing.episodeLine(): String = listOfNotNull("Episode $episode", mark()).joinToString(" · ")
 
 /** [timeLine] drawn: the time in the row's colour, "(was 23:00)" after it in [quiet]. */

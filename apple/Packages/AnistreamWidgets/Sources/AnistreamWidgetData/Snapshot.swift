@@ -115,12 +115,15 @@ public struct SnapshotContinue: Codable, Sendable, Equatable, Identifiable {
     public var nextAiring: Date?
     public var nextAiringEpisode: Int?
     public var art: Art
+    /// The episode's mark, the engine's word for it: "Dub" for a show watched dubbed, and nil
+    /// for a sub, which is left unmarked. Not in files from before it was written.
+    public var mark: String?
 
     public init(
         id: Int, title: String, episode: Int, watched: Int = 0, episodes: Int? = nil,
         fraction: Double? = nil, episodeTitle: String? = nil, resume: Bool? = nil,
         positionSecs: Int? = nil, durationSecs: Int? = nil, minutesLeft: Int? = nil,
-        nextAiring: Date? = nil, nextAiringEpisode: Int? = nil, art: Art = Art()
+        nextAiring: Date? = nil, nextAiringEpisode: Int? = nil, art: Art = Art(), mark: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -136,6 +139,7 @@ public struct SnapshotContinue: Codable, Sendable, Equatable, Identifiable {
         self.nextAiring = nextAiring
         self.nextAiringEpisode = nextAiringEpisode
         self.art = art
+        self.mark = mark
     }
 
     enum CodingKeys: String, CodingKey {
@@ -147,7 +151,7 @@ public struct SnapshotContinue: Codable, Sendable, Equatable, Identifiable {
         case minutesLeft = "minutes_left"
         case nextAiring = "next_airing"
         case nextAiringEpisode = "next_airing_episode"
-        case art
+        case art, mark
     }
 
     public init(from decoder: any Decoder) throws {
@@ -166,6 +170,7 @@ public struct SnapshotContinue: Codable, Sendable, Equatable, Identifiable {
         nextAiring = try c.decodeIfPresent(Date.self, forKey: .nextAiring)
         nextAiringEpisode = try c.decodeIfPresent(Int.self, forKey: .nextAiringEpisode)
         art = try c.decodeIfPresent(Art.self, forKey: .art) ?? Art()
+        mark = try c.decodeIfPresent(String.self, forKey: .mark)
     }
 
     /// Whether it plays from a place part-way through: the record says so from version 2, and a

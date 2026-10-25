@@ -334,13 +334,12 @@ pub fn air_time(time: &str, approximate: bool) -> String {
     if approximate { format!("~{time}") } else { time.to_owned() }
 }
 
-/// A calendar row's Sub or Dub mark: "Dub" for a row of the dub's own time, or of an episode
-/// out in the dub ([`Entry::airing_dubbed`]); "Sub" for a row of the sub's own time when the dub
-/// has one apart; nothing for a broadcast whose dub is not known to be out.
+/// A calendar row's mark: "Dub" for a row of the dub's own time, or of an episode out in the dub
+/// ([`Entry::airing_dubbed`]); nothing otherwise. Only dubs are marked, as on an episode line, so
+/// a row of the sub's own time has none and the dub's row beside it still tells apart.
 pub fn calendar_mark(entry: &Entry) -> Option<&'static str> {
     match entry.airing_translation {
         Some(Translation::Dub) => Some("Dub"),
-        Some(Translation::Sub) if !entry.airing_dubbed => Some("Sub"),
         _ if entry.airing_dubbed => Some("Dub"),
         _ => None,
     }
@@ -452,10 +451,10 @@ mod tests {
         assert_eq!(calendar_mark(&row), None, "nothing known, nothing marked");
         row.airing_dubbed = true;
         assert_eq!(calendar_mark(&row), Some("Dub"));
-        // A source that times the two apart: each row says which it is.
+        // A source that times the two apart: the dub's row says Dub, the sub's has no mark.
         row.airing_dubbed = false;
         row.airing_translation = Some(Translation::Sub);
-        assert_eq!(calendar_mark(&row), Some("Sub"));
+        assert_eq!(calendar_mark(&row), None, "only dubs are marked");
         row.airing_translation = Some(Translation::Dub);
         assert_eq!(calendar_mark(&row), Some("Dub"));
     }

@@ -7,6 +7,7 @@ use std::{path::Path, sync::Arc};
 
 use anistream_core::{
     config::NetworkConfig,
+    media::Translation,
     stream::{Stream, StreamKind},
 };
 use anistream_engine::{
@@ -19,7 +20,7 @@ use anistream_engine::{
 use anistream_meta::Meta;
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
-use anistream_store::{DownloadState, Store};
+use anistream_store::{DownloadState, Store, WatchEvent};
 use anistream_testkit::{
     FakeAniList,
     fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, ONA},
@@ -237,7 +238,17 @@ fn seed_history(store: &Store, now: i64) {
     seed::watched(store, AIRING_NO_MAL, 7, now - 3 * DAY);
     seed::watched(store, AIRING, 3, now - 2 * DAY);
     seed::watched(store, ONA, 1, now - DAY - HOUR);
-    seed::stopped_at(store, ONA, "2", 13.0 * 60.0 + 30.0, now - DAY);
+    // Switched to the dub after episode 1, so its Continue row is marked "Dub".
+    let dubbed = WatchEvent {
+        duration_secs: Some(fixtures::runtime_secs(ONA)),
+        watched_secs: 13.0 * 60.0 + 30.0,
+        provider_id: Some(sources::PROVIDER_ID.to_owned()),
+        translation: Some(Translation::Dub),
+        completed: false,
+        at: now - DAY,
+        ..WatchEvent::new(ONA, "2", 13.0 * 60.0 + 30.0)
+    };
+    store.record_event(&dubbed).expect("seeding a dubbed episode");
     seed::watched(store, FINISHED, 6, now - 2 * HOUR);
     seed::stopped_at(store, FINISHED, "7", 10.0 * 60.0 + 6.0, now - HOUR);
 }
@@ -255,5 +266,9 @@ mod tests {
         let ids: Vec<_> =
             store.continue_list(15).expect("the rail").iter().map(|p| p.anilist_id).collect();
         assert_eq!(ids, [FINISHED, ONA, AIRING, AIRING_NO_MAL], "seeded once, newest first");
+        let dubbed: Vec<_> =
+            ids.iter().map(|id| store.last_translation(*id).expect("a read")).collect();
+        let sub = Some(Translation::Sub);
+        assert_eq!(dubbed, [sub, Some(Translation::Dub), sub, sub], "one watched dubbed");
     }
 }
