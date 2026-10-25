@@ -73,48 +73,98 @@ enum Snapshot {
         try drawn(window, to: url)
     }
 
-    /// `image` of `window` with the sheet over it, and that sheet's own, where the window server
-    /// draws them: a sheet is a window of its own, which a capture of one window leaves out.
+    /// `image` of `window` with the sheet over it, that sheet's own, and the popovers riding on
+    /// it, where the window server draws them: each is a window of its own, which a capture of one
+    /// window leaves out. The picture grows to take in a popover that stands past the window's
+    /// edge. `drawn` takes each as AppKit draws it, rather than as the window server composites it.
     @MainActor
-    static func withSheets(_ image: CGImage, of window: NSWindow) -> CGImage? {
+    static func withSheets(_ image: CGImage, of window: NSWindow, drawn: Bool = false) -> CGImage? {
         var sheets: [NSWindow] = []
         var next = window.attachedSheet
         while let sheet = next {
             sheets.append(sheet)
             next = sheet.attachedSheet
         }
-        guard !sheets.isEmpty else { return image }
+        let popovers = (window.childWindows ?? []).filter { $0.isVisible && !$0.isSheet && !sheets.contains($0) }
+        guard !sheets.isEmpty || !popovers.isEmpty else { return image }
         let scale = window.backingScaleFactor
+        // The canvas, in screen points from the bottom left as Core Graphics draws: the window,
+        // and whatever of a popover stands past it.
+        let canvas = popovers.reduce(window.frame) { $0.union(drawn ? pane($1) : $1.frame) }
         guard let context = CGContext(
-            data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
-            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            data: nil, width: Int(canvas.width * scale), height: Int(canvas.height * scale), bitsPerComponent: 8,
+            bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ) else { return image }
-        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        func place(_ picture: CGImage, at frame: NSRect) {
+            context.draw(picture, in: CGRect(
+                x: (frame.minX - canvas.minX) * scale, y: (frame.minY - canvas.minY) * scale,
+                width: CGFloat(picture.width), height: CGFloat(picture.height)))
+        }
+        place(image, at: window.frame)
         for sheet in sheets {
-            guard let picture = composited(sheet) else { continue }
-            // Both in screen points, from the bottom left, as Core Graphics draws.
-            let x = (sheet.frame.minX - window.frame.minX) * scale
-            let y = (sheet.frame.minY - window.frame.minY) * scale
-            context.draw(picture, in: CGRect(x: x, y: y, width: CGFloat(picture.width), height: CGFloat(picture.height)))
+            if let picture = drawn ? cached(sheet) : composited(sheet) { place(picture, at: sheet.frame) }
+        }
+        for popover in popovers {
+            if !drawn {
+                if let picture = composited(popover) { place(picture, at: popover.frame) }
+                continue
+            }
+            // AppKit draws a popover's glass edge in no colour it has: its content, on the
+            // popover's dark ground, stands in for it.
+            guard let content = popover.contentView, let picture = cached(content) else { continue }
+            let frame = pane(popover)
+            context.saveGState()
+            context.addPath(CGPath(
+                roundedRect: CGRect(
+                    x: (frame.minX - canvas.minX) * scale, y: (frame.minY - canvas.minY) * scale,
+                    width: frame.width * scale, height: frame.height * scale),
+                cornerWidth: 14 * scale, cornerHeight: 14 * scale, transform: nil))
+            context.clip()
+            context.setFillColor(CGColor(srgbRed: 0.15, green: 0.15, blue: 0.17, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: context.width, height: context.height))
+            place(picture, at: frame)
+            context.restoreGState()
         }
         return context.makeImage()
     }
 
+    /// A popover's content, in screen points.
+    @MainActor
+    private static func pane(_ popover: NSWindow) -> NSRect {
+        guard let content = popover.contentView else { return popover.frame }
+        return popover.convertToScreen(content.convert(content.bounds, to: nil))
+    }
+
     /// Render `window`, its toolbar and sidebar with it, at its backing scale, to `url`, as
-    /// AppKit draws its views.
+    /// AppKit draws its views, with its sheets and popovers drawn the same way where they stand.
     @MainActor
     static func drawn(_ window: NSWindow, to url: URL) throws {
-        // The frame view holds the toolbar and the content beneath it.
-        guard let view = window.contentView?.superview ?? window.contentView else { throw Problem.noWindow }
-        view.layoutSubtreeIfNeeded()
-        view.displayIfNeeded()
-        let bounds = view.bounds
-        guard let bitmap = view.bitmapImageRepForCachingDisplay(in: bounds) else { throw Problem.noBitmap }
-        view.cacheDisplay(in: bounds, to: bitmap)
-        guard let png = bitmap.representation(using: .png, properties: [:]) else { throw Problem.noPNG }
+        guard let plain = cached(window) else { throw Problem.noBitmap }
+        let image = withSheets(plain, of: window, drawn: true) ?? plain
+        guard let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { throw Problem.noPNG }
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true
         )
         try png.write(to: url)
+    }
+
+    /// `window`'s views as AppKit draws them, at its backing scale: the frame view, which holds
+    /// the toolbar and the content beneath it.
+    @MainActor
+    static func cached(_ window: NSWindow) -> CGImage? {
+        guard let view = window.contentView?.superview ?? window.contentView else { return nil }
+        return cached(view)
+    }
+
+    /// `view` as AppKit draws it, at its window's backing scale.
+    @MainActor
+    static func cached(_ view: NSView) -> CGImage? {
+        view.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+        let bounds = view.bounds
+        guard let bitmap = view.bitmapImageRepForCachingDisplay(in: bounds) else { return nil }
+        view.cacheDisplay(in: bounds, to: bitmap)
+        return bitmap.cgImage
     }
 }

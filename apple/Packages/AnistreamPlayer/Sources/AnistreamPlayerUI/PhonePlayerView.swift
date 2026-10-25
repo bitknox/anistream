@@ -21,12 +21,15 @@ public struct PhonePlayerView: View {
     @State private var flash: SeekFlash?
     @State private var height: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppStore.self) private var store
     private let metrics = PlayerMetrics.phone
 
     /// The Mac's menus as sheets. The speed is in Picture and sound, since the bar has no room
     /// for a speed button of its own.
     enum Sheet: String, Identifiable {
         case tracks, episodes, picture
+        /// The watch party, from the people button while in one.
+        case party
         var id: String { rawValue }
 
         init(_ menu: PlayerMenu) {
@@ -136,6 +139,9 @@ public struct PhonePlayerView: View {
         .sheet(item: $sheet) { sheet in sheetContent(sheet) }
         .onChange(of: sheet) { _, open in model.hold("sheet", open != nil) }
         .onChange(of: model.menuRequests) { sheet = Sheet(model.requestedMenu) }
+        .onChange(of: store.party.panelRequests) { sheet = store.party.inParty ? .party : nil }
+        // The party is over: its sheet goes with it.
+        .onChange(of: store.party.inParty) { _, inParty in if !inParty, sheet == .party { sheet = nil } }
         .onChange(of: held) { _, on in speedHeld(on) }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
@@ -182,6 +188,12 @@ public struct PhonePlayerView: View {
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 0) {
+                headerButton(
+                    PartyButton.symbol(inParty: store.party.inParty), PartyButton.label(inParty: store.party.inParty)
+                ) {
+                    // The party while in one, the form that starts one otherwise.
+                    if store.party.inParty { sheet = .party } else { store.party.open(.playing) }
+                }
                 headerButton("captions.bubble", "Subtitles and audio") { sheet = .tracks }
                 headerButton("slider.horizontal.3", "Picture and sound") { sheet = .picture }
                 if model.pictureInPictureToggle != nil {
@@ -252,6 +264,19 @@ public struct PhonePlayerView: View {
 
     @ViewBuilder
     private func sheetContent(_ sheet: Sheet) -> some View {
+        if sheet == .party {
+            ScrollView { PartyPanel(metrics: metrics) }
+                .presentationDetents([.medium, .large])
+                .presentationBackground(Palette.ground)
+                .presentationDragIndicator(.visible)
+                .preferredColorScheme(.dark)
+        } else {
+            menuSheet(sheet)
+        }
+    }
+
+    @ViewBuilder
+    private func menuSheet(_ sheet: Sheet) -> some View {
         ScrollViewReader { list in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -273,6 +298,8 @@ public struct PhonePlayerView: View {
                         }
                     case .episodes:
                         EpisodeList(model: model, metrics: metrics)
+                    case .party:
+                        EmptyView()
                     }
                 }
                 .padding(.horizontal, 16)
@@ -285,7 +312,7 @@ public struct PhonePlayerView: View {
                     switch sheet {
                     case .tracks: TrackLists.selectedRow(model)
                     case .episodes: EpisodeList.selectedRow(model)
-                    case .picture: nil
+                    case .picture, .party: nil
                     }
                 if let row { list.scrollTo(row, anchor: .center) }
             }

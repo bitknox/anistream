@@ -577,28 +577,16 @@ enum AccountWords {
 
 // MARK: - Integrations
 
-/// Watching together, Discord and updates (MacSettingsIntegrations): the engine's integrations
-/// settings, which the Mac shares with the terminal app's config.
+/// TVs, Discord and updates (MacSettingsIntegrations): the engine's integrations settings, which
+/// the Mac shares with the terminal app's config. A watch party's server and room are chosen per
+/// party, in the form that starts it.
 struct IntegrationsPane: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
 
     var body: some View {
-        let syncplay = store.settings.isOn(.syncplay)
         let presence = store.settings.isOn(.presence)
         let titled = store.settings.isOn(.presenceTitle)
-        SettingsGroup(
-            title: "Watch together",
-            footnote: "Parties play through the Syncplay app. Progress is not recorded while a party is on."
-        ) {
-            SettingsRow(title: SettingKey.syncplay.title) { SettingSwitch(key: .syncplay) }
-            SettingsRow(title: SettingKey.syncplayServer.title) { TypedSettingField(key: .syncplayServer, prompt: "watch.example.net:8995") }
-                .disabled(!syncplay)
-                .opacity(syncplay ? 1 : 0.45)
-            SettingsRow(title: SettingKey.syncplayRoom.title) { TypedSettingField(key: .syncplayRoom, prompt: "tuesday-night") }
-                .disabled(!syncplay)
-                .opacity(syncplay ? 1 : 0.45)
-        }
         TVsGroup()
         // Only where the engine has a presence to show: a phone's has none.
         if store.settings.hasPresence {

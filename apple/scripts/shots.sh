@@ -4,12 +4,15 @@
 #   apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [shot…]
 #
 # A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default),
-# sourceless (watching with no source set up) or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
+# sourceless (watching with no source set up), fresh (a first launch) or playing (the player's
+# generated episode first on Continue), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words>,
 # genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
 # pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|show|about|filters|messages>,
 # tv=<paired|picker|code|remote|lost|empty|bar>, Play on TV with the Fixtures app's fake TVs (iPhone and iPad),
-# showcase=<sources|stores|downloads|invite|pale|messages|all>, the invented rows of `Showcase`
+# party=<form|joining|refused|invite|panel|ready|sync|chat|lost|left|nosource|choose|unaired|quit>, a
+# watch party on the testing engine's fake Syncplay server (PartyScene; the player's on the playing
+# scene: playing:party=panel), showcase=<sources|stores|downloads|invite|pale|messages|all>, the invented rows of `Showcase`
 # (pale: 900001's page with a long title on a near-white banner), and watched=<id>:<episodes>,
 # episodes marked watched as the shot starts (900006:8 is caught up), and
 # fold=open, the title page's watched episodes opened:
@@ -48,7 +51,7 @@ players=(player-starting player-playing player-skip player-up-next player-still-
   player-stats-buffering player-stats-hdr player-stats-paused player-stats-copied)
 
 usage() {
-  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
+  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh|playing>[:<section|key=value>]|player|player-<state>]…" >&2
   exit 2
 }
 
@@ -70,7 +73,7 @@ for shot in "${shots[@]}"; do
 done
 shots=("${expanded[@]}")
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | sourceless | fresh) ;; player-*) ;; *) usage ;; esac
+  case "${shot%%:*}" in watching | sourceless | fresh | playing) ;; player-*) ;; *) usage ;; esac
   if [[ "$shot" == player-* && ! " ${players[*]} " == *" $shot "* ]]; then usage; fi
 done
 
@@ -97,6 +100,7 @@ arguments() {
       notice=*) printf '%s\n' -AnistreamNotice "${screen#notice=}" ;;
       sheet=*) printf '%s\n' -AnistreamSheet "${screen#sheet=}" ;;
       tv=*) printf '%s\n' -AnistreamTV "${screen#tv=}" ;;
+      party=*) printf '%s\n' -AnistreamParty "${screen#party=}" ;;
       showcase=*) printf '%s\n' -AnistreamShowcase "${screen#showcase=}" ;;
       watched=*) printf '%s\n' -AnistreamWatched "${screen#watched=}" ;;
       fold=*) printf '%s\n' -AnistreamFold "${screen#fold=}" ;;
@@ -116,7 +120,7 @@ apple="$(cd "$(dirname "$0")/.." && pwd)"
 out="$apple/.shots"
 mkdir -p "$out"
 for shot in "${shots[@]}"; do
-  if [[ "$shot" == player-* ]]; then "$apple/scripts/player-media.sh" >/dev/null; break; fi
+  if [[ "$shot" == player-* || "$shot" == playing* ]]; then "$apple/scripts/player-media.sh" >/dev/null; break; fi
 done
 
 if [[ "$device" == mac ]]; then

@@ -61,7 +61,7 @@ struct AnistreamApp: App {
         RootView()
             // Handoff: what another device hands over opens here.
             .continuesHandoff()
-            .hostsPlayer(delegate.player, over: TVRemoteSheets(overPlayer: true))
+            .hostsPlayer(delegate.player, over: PlayerCoverSheets())
             .environment(\.playerUp, delegate.player.isPresented)
             .environment(delegate.store)
             .environment(delegate.navigator)
