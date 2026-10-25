@@ -479,9 +479,9 @@ impl App {
                 view.room, view.server
             ))),
             Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::alert(reason)),
-            Event::PartyNoSource { episode, .. } => self.push_toast(Notice::alert(format!(
-                "no source has episode {episode}; still in the party"
-            ))),
+            Event::PartyNoSource { reason, .. } => {
+                self.push_toast(Notice::alert(format!("{reason}; still in the party")))
+            }
             Event::PartyLeft { reason: None }
             | Event::PartyForm(_)
             | Event::PartyState(_)

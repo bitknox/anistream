@@ -991,8 +991,11 @@ fn copy(update: &Event) -> Event {
         Event::PartyMembers(members) => Event::PartyMembers(members.clone()),
         Event::PartyMessage(message) => Event::PartyMessage(message.clone()),
         Event::PartyLeft { reason } => Event::PartyLeft { reason: reason.clone() },
-        Event::PartyNoSource { id, episode } => {
-            Event::PartyNoSource { id: *id, episode: episode.clone() }
-        }
+        Event::PartyNoSource { id, episode, why, reason } => Event::PartyNoSource {
+            id: *id,
+            episode: episode.clone(),
+            why: *why,
+            reason: reason.clone(),
+        },
     }
 }

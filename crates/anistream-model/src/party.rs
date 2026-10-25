@@ -65,6 +65,19 @@ pub struct PartyView {
     pub latency_ms: Option<u32>,
 }
 
+/// Why the party's episode has no source here, for a dialog that offers what fits: nothing to
+/// choose before it airs, Providers when there are no sources, Choose source otherwise.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum NoSourceWhy {
+    /// The schedule says the episode has not aired yet.
+    NotAired,
+    /// No source is set up to ask.
+    NoSources,
+    /// The sources were asked, and none of them played it.
+    NotFound,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum PartyConnection {

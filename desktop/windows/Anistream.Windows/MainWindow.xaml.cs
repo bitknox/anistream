@@ -332,6 +332,8 @@ public sealed partial class MainWindow : Window
                 AskBeforeClosing();
             });
 #if ANISTREAM_TESTING
+        if (options.Show?.StartsWith("party-", StringComparison.Ordinal) == true)
+            RehearseParty(options.Show);
         // --show=devicecode: Trakt's sign-in code, for a screenshot.
         if (options.Show == "devicecode")
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
@@ -374,6 +376,7 @@ public sealed partial class MainWindow : Window
 
     void Heard(IReadOnlyList<Event> batch)
     {
+        PartyHeard(batch);
         foreach (var e in batch)
         {
             switch (e)
@@ -710,19 +713,34 @@ public sealed partial class MainWindow : Window
     {
         if (closing)
             return;
+        if (AskLeavingParty())
+        {
+            args.Cancel = true;
+            return;
+        }
+        if (HoldForDownloads())
+            args.Cancel = true;
+    }
+
+    /// <summary>
+    /// Whether running downloads keep the window from closing now: asked about, or carried on
+    /// hidden, as Settings › Downloads says.
+    /// </summary>
+    bool HoldForDownloads()
+    {
         var (downloading, seeding) = ctx.Known.Running();
         if (downloading + seeding == 0 || askedClose)
-            return;
+            return false;
         switch (WhenClosing)
         {
             case CloseChoice.Ask:
-                args.Cancel = true;
                 AskBeforeClosing();
-                break;
+                return true;
             case CloseChoice.KeepGoing:
-                args.Cancel = true;
                 KeepGoingHidden();
-                break;
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -906,6 +924,11 @@ public sealed partial class MainWindow : Window
     internal async void OpenLink(string text)
     {
         var link = Link.Parse(text);
+        if (link is Link.Party party)
+        {
+            OpenPartyInvite(party.Text);
+            return;
+        }
         if (link is Link.Invite invite)
         {
             if (welcoming is { } welcome)

@@ -12,7 +12,7 @@ use crate::{
     jobs::JobId,
     notice::Notice,
     notifications::{NewEpisode, UpcomingNotices},
-    party::{PartyForm, PartyMember, PartyMessage, PartyView},
+    party::{NoSourceWhy, PartyForm, PartyMember, PartyMessage, PartyView},
     playback::{Ending, PlaybackId, SkipKind, TimeRange, TimelineMark},
     progress::{EpisodeProgress, TitleProgress},
     remote::FrontIntent,
@@ -453,11 +453,13 @@ pub enum Event {
         reason: Option<String>,
     },
     /// The party's episode has no source here: this device is in the room without playing,
-    /// for the dialog that says "None of your sources has this episode" and offers Choose
-    /// source.
+    /// for the dialog that says why and offers what fits, Choose source among it. It carries
+    /// the lookup's own words, and no [`Event::Toast`] says them a second time.
     PartyNoSource {
         id: AnilistId,
         episode: String,
+        why: NoSourceWhy,
+        reason: String,
     },
 }
 

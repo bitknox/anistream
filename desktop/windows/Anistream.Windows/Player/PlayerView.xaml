@@ -93,6 +93,15 @@
             <TextBlock x:Name="EpisodeTitle" Style="{StaticResource HazeCaptionStyle}" Foreground="{ThemeResource TextFillColorPrimaryBrush}" Opacity="0.8" />
           </StackPanel>
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+            <!-- Watch together: the form that starts a party, or the party's panel once in one. -->
+            <Button x:Name="PartyButton" Style="{StaticResource PlayerButtonStyle}" Click="OnParty" ToolTipService.ToolTip="Watch together" AutomationProperties.Name="Watch together">
+              <Grid>
+                <FontIcon Glyph="&#xE716;" FontSize="16" />
+                <!-- In a party: a dot on the people, faded rather than added so nothing moves. -->
+                <Ellipse x:Name="PartyDot" Width="6" Height="6" Fill="{ThemeResource TextFillColorPrimaryBrush}"
+                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-3,-5,0" Opacity="0" />
+              </Grid>
+            </Button>
             <Button x:Name="TracksButton" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Subtitles and audio (T)" AutomationProperties.Name="Subtitles and audio">
               <FontIcon Glyph="&#xE7F0;" FontSize="16" />
               <Button.Flyout>
