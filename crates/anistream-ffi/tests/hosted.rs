@@ -1016,11 +1016,17 @@ fn a_binge_marks_every_episode_watched_on_a_table_loaded_before_another_titles()
 
     // Continue offers episode 4, which is out: the next to air is 6.
     app.engine.send(Command::LoadContinue);
+    // A list sent before the last change may still be on its way: wait for the row that has it.
     let row = app.until("Continue", |event| match event {
         Event::Content {
             view: anistream_model::catalog::ContentFor::Continue,
             content: anistream_model::catalog::ContentList::Entries(entries),
-        } => entries.iter().find(|entry| entry.id == AIRING).cloned(),
+        } => entries
+            .iter()
+            .find(|entry| {
+                entry.id == AIRING && entry.progress == Some(TitleProgress { done: 3, next: 4 })
+            })
+            .cloned(),
         _ => None,
     });
     assert_eq!(row.progress, Some(TitleProgress { done: 3, next: 4 }));
@@ -1067,11 +1073,17 @@ fn a_mark_out_of_order_or_undone_moves_the_count_with_the_rows() {
 
     // As the store has it: the count and Continue read from history agree.
     app.engine.send(Command::LoadContinue);
+    // A list sent before the last change may still be on its way: wait for the row that has it.
     let row = app.until("Continue", |event| match event {
         Event::Content {
             view: anistream_model::catalog::ContentFor::Continue,
             content: anistream_model::catalog::ContentList::Entries(entries),
-        } => entries.iter().find(|entry| entry.id == AIRING).cloned(),
+        } => entries
+            .iter()
+            .find(|entry| {
+                entry.id == AIRING && entry.progress == Some(TitleProgress { done: 1, next: 2 })
+            })
+            .cloned(),
         _ => None,
     });
     assert_eq!(row.progress, Some(TitleProgress { done: 1, next: 2 }));
