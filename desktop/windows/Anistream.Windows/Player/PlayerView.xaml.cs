@@ -148,6 +148,7 @@ public sealed partial class PlayerView : UserControl
         Visibility = Visibility.Visible;
         still.Reset();
         ShowControls();
+        LiftSubtitles(animated: false);
         tick.Start();
         ShowStats();
         Focus(FocusState.Programmatic);
@@ -182,6 +183,7 @@ public sealed partial class PlayerView : UserControl
         timelineMarks = [];
         buffered = [];
         DrawTimeline();
+        DropSubtitleLift();
         ShowingChanged?.Invoke(false);
     }
 
@@ -659,6 +661,7 @@ public sealed partial class PlayerView : UserControl
         var h = (uint)Math.Max(1, Math.Round(e.NewSize.Height * scale));
         player.CompositionSize(w, h);
         player.Display(w, h, scale, null);
+        LiftSubtitles(animated: false);
     }
 
     // Showing and hiding the controls.
@@ -672,6 +675,7 @@ public sealed partial class PlayerView : UserControl
         {
             chromeShown = true;
             Motion.Show(Chrome);
+            LiftSubtitles();
             ControlsChanged?.Invoke(true);
         }
         idle.Stop();
@@ -686,6 +690,7 @@ public sealed partial class PlayerView : UserControl
             return;
         chromeShown = false;
         Motion.Hide(Chrome);
+        LiftSubtitles();
         PreviewBox.Visibility = Visibility.Collapsed;
         ControlsChanged?.Invoke(false);
     }
@@ -1305,9 +1310,10 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline|settings</c>, and
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline|settings|subtitles</c>, and
     /// Stats for nerds as <c>stats</c>, <c>stats-waiting</c>, <c>stats-buffering</c>, <c>stats-hdr</c>,
-    /// <c>stats-copied</c> or <c>stats-mini</c>; a <c>.srt</c> beside the clip is loaded for those.
+    /// <c>stats-copied</c> or <c>stats-mini</c>; a <c>.srt</c> beside the clip is loaded for those and for
+    /// <c>subtitles</c>.
     /// </summary>
     async void Demo(string what)
     {
@@ -1405,6 +1411,7 @@ public sealed partial class PlayerView : UserControl
             case "stats-hdr":
             case "stats-copied":
             case "stats-mini":
+            case "subtitles":
                 // The short clip is near its end from the start: no Up Next card over the shot.
                 HoldUpNext = true;
                 upNext = null;
@@ -1435,6 +1442,9 @@ public sealed partial class PlayerView : UserControl
                         StageStats(null, null, copied: false);
                         await Task.Delay(2500);
                         ToggleMini();
+                        break;
+                    case "subtitles":
+                        ShowControls();
                         break;
                     default:
                         StageStats(null, null, copied: false);
@@ -1489,8 +1499,10 @@ public sealed partial class PlayerView : UserControl
 
     // Previews on the timeline.
 
-    internal void NoteLoad(PlayerOp[] ops)
+    internal void NoteLoad(ulong playback, PlayerOp[] ops)
     {
+        lock (loads)
+            this.playback = playback;
         // A new file opening: Stats for nerds, if up, asks the engine's new player again.
         if (ops.Any(op => op is PlayerOp.Open))
             DispatcherQueue.TryEnqueue(StatsReopen);

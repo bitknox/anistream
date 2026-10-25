@@ -1161,3 +1161,84 @@ public class StatsPanelTests
         Assert.Equal("Virtual Machine", StatsAbouts.Device(" Virtual Machine ", null));
     }
 }
+
+public class SubtitleLiftTests
+{
+    sealed class Clock
+    {
+        public TimeSpan Now = TimeSpan.FromMinutes(5);
+        public void Pass(double ms) => Now += TimeSpan.FromMilliseconds(ms);
+    }
+
+    [Fact]
+    public void TheyClearTheBarButNeverGoPastHalfWay()
+    {
+        Assert.Equal(87.5, SubtitleLift.Position(90, 720));
+        Assert.Equal(91.7, SubtitleLift.Position(90, 1080));
+        Assert.Equal(50, SubtitleLift.Position(300, 400));
+        Assert.Equal(SubtitleLift.Bottom, SubtitleLift.Position(0, 720));
+        Assert.Equal(SubtitleLift.Bottom, SubtitleLift.Position(90, 0));
+    }
+
+    [Fact]
+    public void TheyRiseWithTheFadeInAndSettleWithTheFadeOut()
+    {
+        var clock = new Clock();
+        var lift = new SubtitleLift(() => clock.Now);
+        Assert.Equal(SubtitleLift.Bottom, lift.Next());
+        Assert.Null(lift.Next());
+
+        lift.Head(88, TimeSpan.FromMilliseconds(200));
+        Assert.True(lift.Moving);
+        clock.Pass(100);
+        // Decelerating: most of the way up by half the time.
+        var halfUp = lift.Next();
+        Assert.NotNull(halfUp);
+        Assert.InRange(halfUp.Value, 88, 92);
+        clock.Pass(150);
+        Assert.False(lift.Moving);
+        Assert.Equal(88, lift.Next());
+        Assert.Null(lift.Next());
+
+        lift.Head(SubtitleLift.Bottom, TimeSpan.FromMilliseconds(300));
+        clock.Pass(150);
+        // Accelerating: still near the top by half the time.
+        var halfDown = lift.Next();
+        Assert.NotNull(halfDown);
+        Assert.InRange(halfDown.Value, 88, 91);
+        clock.Pass(200);
+        Assert.Equal(SubtitleLift.Bottom, lift.Next());
+    }
+
+    [Fact]
+    public void ABarComingBackMidwayTurnsThemFromWhereTheyAre()
+    {
+        var clock = new Clock();
+        var lift = new SubtitleLift(() => clock.Now);
+        lift.Head(88, TimeSpan.Zero);
+        Assert.Equal(88, lift.Next());
+        lift.Head(SubtitleLift.Bottom, TimeSpan.FromMilliseconds(300));
+        clock.Pass(200);
+        var turned = lift.At();
+        Assert.Equal(Math.Round(turned, 1), lift.Next());
+        lift.Head(88, TimeSpan.FromMilliseconds(200));
+        Assert.Equal(turned, lift.At(), 6);
+        clock.Pass(200);
+        Assert.Equal(88, lift.Next());
+    }
+
+    [Fact]
+    public void ANewPlaybackIsToldAgainAtOnce()
+    {
+        var clock = new Clock();
+        var lift = new SubtitleLift(() => clock.Now);
+        lift.Head(88, TimeSpan.Zero);
+        Assert.Equal(88, lift.Next());
+        lift.Forget();
+        // mpv keeps sub-pos from the last file: the bottom is said again though it is the default.
+        Assert.Equal(SubtitleLift.Bottom, lift.Next());
+        lift.Head(88, TimeSpan.Zero);
+        Assert.False(lift.Moving);
+        Assert.Equal(88, lift.Next());
+    }
+}

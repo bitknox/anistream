@@ -6,6 +6,8 @@
 //! Windows writes sentence case ("Resume episode 7 · 10:06"), GNOME header capitalisation
 //! ("Resume Episode 7 · 10:06"). Row lines are the same on both ("Resume E7 · 10:06").
 
+use anistream_core::media::Translation;
+
 use crate::{
     catalog::{AiringStatus, Entry, ResumePoint, Season},
     episodes::DubExtent,
@@ -54,10 +56,12 @@ pub struct QueueItem {
     /// Whether the episode is out to play.
     pub playable: bool,
     /// What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago",
-    /// or with nothing out, "Caught up · E9 airs in 2d 3h".
+    /// or with nothing out, "Caught up · E9 airs in 2d 3h". An episode watched dubbed is marked
+    /// after its number, as [`episode_line`] marks it: "Resume E7 · Dub · 10:06". A wait is
+    /// not, as its time is the broadcast's, not the dub's.
     pub action: String,
-    /// The preview's one amber action: "Resume episode 7 · 10:06", "Start episode 8". `None`
-    /// with nothing out to play.
+    /// The preview's one amber action: "Resume episode 7 · 10:06", "Start episode 8", marked as
+    /// `action` is: "Start episode 8 · Dub". `None` with nothing out to play.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub button: Option<String>,
     /// With nothing out to play, the line in place of the button: "Episode 9 airs in 2d 3h".
@@ -69,6 +73,11 @@ pub struct QueueItem {
     /// "14 min left", when the runtime is known.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub left: Option<String>,
+    /// "Dub" for a title watched dubbed ([`Entry::watched_in`]), for a front end that lays the
+    /// episode out itself; `None` for a sub or when it is not known. `action` and `button`
+    /// carry it already.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub mark: Option<String>,
 }
 
 impl QueueItem {
@@ -90,19 +99,22 @@ impl QueueItem {
             .next_airing_in
             .filter(|_| entry.next_episode == Some(episode))
             .map(|at| format!("in {}", wording::countdown(at)));
+        let mark = episode_mark(entry.watched_in);
+        // "E7", or "E7 · Dub": the episode as the row names one it plays.
+        let short = episode_line(&format!("E{episode}"), entry.watched_in);
         let action = match (resume, playable, &airs, aired_ago) {
-            (Some(r), _, _, _) => format!("Resume E{episode} · {}", r.clock()),
+            (Some(r), _, _, _) => format!("Resume {short} · {}", r.clock()),
             (None, false, Some(airs), _) => format!("Caught up · E{episode} airs {airs}"),
             (None, false, None, _) => format!("Caught up · E{episode} is not out yet"),
             (None, true, _, Some(ago)) => {
-                format!("Start E{episode} · out {}", wording::ago(ago))
+                format!("Start {short} · out {}", wording::ago(ago))
             }
-            (None, true, _, None) => format!("Start E{episode}"),
+            (None, true, _, None) => format!("Start {short}"),
         };
-        let word = casing.episode();
+        let long = episode_line(&format!("{} {episode}", casing.episode()), entry.watched_in);
         let button = match resume {
-            Some(r) => Some(format!("Resume {word} {episode} · {}", r.clock())),
-            None => playable.then(|| format!("Start {word} {episode}")),
+            Some(r) => Some(format!("Resume {long} · {}", r.clock())),
+            None => playable.then(|| format!("Start {long}")),
         };
         let waiting = (!playable).then(|| match &airs {
             Some(airs) => format!("Episode {episode} airs {airs}"),
@@ -125,6 +137,7 @@ impl QueueItem {
             waiting,
             fraction,
             left,
+            mark: mark.map(str::to_owned),
         }
     }
 }
@@ -295,6 +308,25 @@ pub fn dub_line(dub: Option<&DubExtent>) -> Option<String> {
     Some(if dub.complete { "Dubbed".into() } else { format!("Dub to episode {}", dub.through) })
 }
 
+/// The mark an episode line ends its episode with, for the translation it is watched or out
+/// in: "Dub" for a dub, and nothing for a sub or when it is not known, as a subbed episode is the
+/// usual case. Every episode line marks by this: the player's, Up Next's and Continue's rows.
+pub fn episode_mark(translation: Option<Translation>) -> Option<&'static str> {
+    match translation? {
+        Translation::Dub => Some("Dub"),
+        Translation::Sub => None,
+    }
+}
+
+/// `label`, an episode as a line names it ("Episode 10", "E10"), with its [`episode_mark`]
+/// after it: "Episode 10 · Dub" for a dub, "Episode 10" for a sub or when it is not known.
+pub fn episode_line(label: &str, translation: Option<Translation>) -> String {
+    match episode_mark(translation) {
+        Some(mark) => format!("{label} · {mark}"),
+        None => label.to_owned(),
+    }
+}
+
 /// A calendar row's time as its row shows it: `time` is the app's own clock text for the
 /// broadcast ("16:30", "4:30 PM"), with "~" before it when the time is an estimate
 /// ([`Entry::airing_approximate`]): "~16:30".
@@ -306,7 +338,6 @@ pub fn air_time(time: &str, approximate: bool) -> String {
 /// out in the dub ([`Entry::airing_dubbed`]); "Sub" for a row of the sub's own time when the dub
 /// has one apart; nothing for a broadcast whose dub is not known to be out.
 pub fn calendar_mark(entry: &Entry) -> Option<&'static str> {
-    use anistream_core::media::Translation;
     match entry.airing_translation {
         Some(Translation::Dub) => Some("Dub"),
         Some(Translation::Sub) if !entry.airing_dubbed => Some("Sub"),
@@ -417,7 +448,6 @@ mod tests {
 
     #[test]
     fn a_calendar_row_is_marked_dub_once_its_dub_is_out() {
-        use anistream_core::media::Translation;
         let mut row = entry(1);
         assert_eq!(calendar_mark(&row), None, "nothing known, nothing marked");
         row.airing_dubbed = true;
@@ -479,6 +509,58 @@ mod tests {
         assert_eq!(item.action, "Caught up · E10 airs in 1d 3h");
         assert_eq!(item.button, None);
         assert_eq!(item.waiting.as_deref(), Some("Episode 10 airs in 1d 3h"));
+    }
+
+    #[test]
+    fn only_a_dub_is_marked_on_an_episode_line() {
+        assert_eq!(episode_mark(Some(Translation::Dub)), Some("Dub"));
+        assert_eq!(episode_mark(Some(Translation::Sub)), None);
+        assert_eq!(episode_mark(None), None);
+        assert_eq!(episode_line("Episode 10", Some(Translation::Dub)), "Episode 10 · Dub");
+        assert_eq!(episode_line("Episode 10", Some(Translation::Sub)), "Episode 10");
+        assert_eq!(episode_line("E10", None), "E10");
+    }
+
+    #[test]
+    fn a_title_watched_dubbed_marks_its_continue_rows_and_a_sub_marks_nothing() {
+        let mut resumed = entry(1);
+        resumed.progress = Some(TitleProgress { done: 6, next: 7 });
+        resumed.resume = Some(ResumePoint { position: 606.0, fraction: None });
+        let mut new = entry(2);
+        new.progress = Some(TitleProgress { done: 7, next: 8 });
+        new.last_aired = Some(Aired { episode: 8, ago: 19 * 3600 });
+        let mut caught_up = entry(3);
+        caught_up.progress = Some(TitleProgress { done: 9, next: 10 });
+        caught_up.next_episode = Some(10);
+        caught_up.next_airing_in = Some(3600);
+        caught_up.last_aired = Some(Aired { episode: 9, ago: 6 * 86_400 });
+
+        for e in [&mut resumed, &mut new, &mut caught_up] {
+            e.watched_in = Some(Translation::Dub);
+        }
+        let item = QueueItem::of(&resumed, Casing::Sentence);
+        assert_eq!(item.action, "Resume E7 · Dub · 10:06");
+        assert_eq!(item.button.as_deref(), Some("Resume episode 7 · Dub · 10:06"));
+        assert_eq!(item.mark.as_deref(), Some("Dub"));
+        let item = QueueItem::of(&new, Casing::Header);
+        assert_eq!(item.action, "Start E8 · Dub · out 19h ago");
+        assert_eq!(item.button.as_deref(), Some("Start Episode 8 · Dub"));
+        // A wait is the broadcast's, which is not the dub's, so it is left unmarked.
+        let item = QueueItem::of(&caught_up, Casing::Sentence);
+        assert_eq!(item.action, "Caught up · E10 airs in 1h");
+        assert_eq!(item.waiting.as_deref(), Some("Episode 10 airs in 1h"));
+
+        for watched_in in [Some(Translation::Sub), None] {
+            resumed.watched_in = watched_in;
+            new.watched_in = watched_in;
+            let item = QueueItem::of(&resumed, Casing::Sentence);
+            assert_eq!(item.action, "Resume E7 · 10:06");
+            assert_eq!(item.button.as_deref(), Some("Resume episode 7 · 10:06"));
+            assert_eq!(item.mark, None);
+            let item = QueueItem::of(&new, Casing::Sentence);
+            assert_eq!(item.action, "Start E8 · out 19h ago");
+            assert_eq!(item.mark, None);
+        }
     }
 
     #[test]

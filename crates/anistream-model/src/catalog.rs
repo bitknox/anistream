@@ -163,6 +163,20 @@ pub struct Entry {
     /// [`Event::TitleDub`]: crate::event::Event::TitleDub
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub airing_dubbed: bool,
+    /// The translation the viewer watches the title in, as far as this device knows: the one
+    /// they last played it in, from the watch history, which is what they will most likely
+    /// play next; failing that, the one the title sets for itself, which a play of it would
+    /// use; otherwise `None`, as for a title only ever counted from a tracker's list. Settings'
+    /// own translation is not a fallback: it is not about this title, and a row marked from it
+    /// would claim a dub nobody chose for it.
+    ///
+    /// Kept whole, but only [`Translation::Dub`] is marked: a subbed episode is the usual case
+    /// and says nothing ([`crate::present::episode_mark`]). Continue's rows read it, through
+    /// [`crate::present::QueueItem`]. Filled wherever the engine reads the title's progress.
+    ///
+    /// [`Translation::Dub`]: anistream_core::media::Translation::Dub
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub watched_in: Option<anistream_core::media::Translation>,
 }
 
 /// Where a title is in its run, as AniList says.
@@ -521,6 +535,7 @@ impl Entry {
             airing_approximate: false,
             airing_translation: None,
             airing_dubbed: false,
+            watched_in: None,
         }
     }
 

@@ -187,12 +187,13 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                         if entry.resume.is_some() =>
                     {
                         let resume = entry.resume.expect("checked");
+                        let episode = continue_episode(entry, next);
                         Some((
                             match resume.fraction {
                                 Some(f) => {
-                                    format!("ep {next} · {}%", (f * 100.0).round() as u32)
+                                    format!("{episode} · {}%", (f * 100.0).round() as u32)
                                 }
-                                None => format!("ep {next} · {}", resume.clock()),
+                                None => format!("{episode} · {}", resume.clock()),
                             },
                             true,
                         ))
@@ -206,7 +207,7 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                             && entry.latest_aired().is_some_and(|(ep, _)| ep >= next) =>
                     {
                         let (aired, _) = entry.latest_aired().expect("checked");
-                        Some((format!("ep {aired} out"), true))
+                        Some((format!("{} out", continue_episode(entry, aired)), true))
                     }
                     // Caught up on an airing show: "out" would be old news, so the row
                     // carries the wait instead — which episode, and how long. Dim, not
@@ -526,15 +527,15 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
     if let Some(resume) = entry.resume
         && y < area.bottom()
     {
-        let next = entry.progress.map_or(1, |p| p.next);
+        let next = continue_episode(entry, entry.progress.map_or(1, |p| p.next));
         let label = match resume.fraction {
             Some(f) => format!(
-                "{} resume ep {next} at {} ({}%)",
+                "{} resume {next} at {} ({}%)",
                 glyph::OBI_THIN,
                 resume.clock(),
                 (f * 100.0).round() as u32
             ),
-            None => format!("{} resume ep {next} at {}", glyph::OBI_THIN, resume.clock()),
+            None => format!("{} resume {next} at {}", glyph::OBI_THIN, resume.clock()),
         };
         buf.set_string(
             area.left(),
@@ -746,6 +747,13 @@ fn calendar_episode(entry: &Entry) -> String {
         Some(mark) => format!("ep {episode} {}", mark.to_lowercase()),
         None => format!("ep {episode}"),
     }
+}
+
+/// An episode as a row names one to play: "ep 7", or "ep 7 · dub" for a title watched dubbed,
+/// as [`anistream_model::present::episode_line`] marks it, in the terminal's lower case.
+fn continue_episode(entry: &Entry, episode: u32) -> String {
+    anistream_model::present::episode_line(&format!("ep {episode}"), entry.watched_in)
+        .to_lowercase()
 }
 
 /// A calendar row's time column, `secs` from now, "~" before an estimate: "~in 6d 23h".
@@ -974,6 +982,35 @@ mod tests {
         assert!(utc.contains("FRIDAY · 23 OCT") && !utc.contains("THURSDAY"), "{utc}");
         assert!(west.contains("TODAY") && !west.contains("TOMORROW"), "{west}");
         assert!(west.contains("THURSDAY · 22 OCT") && !west.contains("FRIDAY"), "{west}");
+    }
+
+    #[test]
+    fn a_continue_row_marks_a_show_watched_dubbed_and_nothing_else() {
+        use anistream_core::media::Translation;
+        use anistream_model::catalog::ResumePoint;
+        let under_way = |id, title, next, watched_in| Entry {
+            progress: Some(TitleProgress { done: next - 1, next }),
+            resume: Some(ResumePoint { position: 600.0, fraction: Some(0.5) }),
+            watched_in,
+            ..entry(id, title)
+        };
+        let rows = vec![
+            under_way(1, "Paper Kite", 7, Some(Translation::Dub)),
+            under_way(2, "Lantern Road", 4, Some(Translation::Sub)),
+            under_way(3, "Glass Harbour", 9, None),
+        ];
+        let mut app = app_with(ContentList::Entries(rows));
+        let text = text_of(&render_to_buffer(&mut app, 70, 30));
+        assert!(text.contains("ep 7 · dub · 50%"), "{text}");
+        assert!(text.contains("ep 4 · 50%") && text.contains("ep 9 · 50%"), "{text}");
+        assert_eq!(
+            text.matches("dub").count(),
+            1,
+            "a sub, or nothing known, says nothing:\n{text}"
+        );
+        // The preview names the episode the same way.
+        let preview = text_of(&render_to_buffer(&mut app, 120, 34));
+        assert!(preview.contains("resume ep 7 · dub at 10:00 (50%)"), "{preview}");
     }
 
     #[test]
