@@ -55,6 +55,8 @@ import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
+import tv.anistream.engine.model.StatsFixture
+import tv.anistream.engine.ffi.playerStatsFixture
 import tv.anistream.player.MpvEvent
 import tv.anistream.player.MpvNative
 import tv.anistream.player.MpvValue
@@ -170,7 +172,6 @@ class TvShots {
     @Test
     fun player() = playerShot("tv-player") {}
 
-    /** The chrome gone again, the skip offer holding Center in the bottom right. */
     /** The seek bar with the engine's opening and ending marks and what is buffered ahead of the played part. */
     @Test
     fun player_buffered() = playerShot("tv-player-buffered") { model ->
@@ -180,6 +181,7 @@ class TvShots {
         }
     }
 
+    /** The chrome gone again, the skip offer holding Center in the bottom right. */
     @Test
     fun player_skip() = playerShot("tv-player-skip") { time = CHROME_HIDE + 1_000 }
 
@@ -219,10 +221,12 @@ class TvShots {
 
     /** The Info panel: the episode, then how it plays. */
     @Test
-    fun player_info() = playerShot("tv-player-info") {
+    fun player_info() = playerShot("tv-player-info") { model ->
         // The chrome is up with focus on Play: Right along the buttons to Info.
         repeat(6) { if (focusedText() != "Info") press(Key.DirectionRight) }
         assertEquals("Info", focusedText())
+        // The engine's summary, as it says it from the file playing, a stream here.
+        compose.runOnUiThread { model.apply(Event.PlayerStats(1u, playerStatsFixture(StatsFixture.PLAYING))) }
         press(Key.DirectionCenter)
     }
 

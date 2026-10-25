@@ -1,7 +1,7 @@
 // TVUpdate: the newer release, from Settings › About or its notice. The version, its size and
-// what changed; then one place below that says where the update stands, the same height in every
-// state so nothing moves: Update, the download's bar with Cancel, Android's installer, or why it
-// stopped with Try again. The first press with "Install unknown apps" off shows the one screen
+// what changed; then one place below that says where the update stands, its line, bar and buttons
+// each in the same place in every state so nothing moves: Update, the download's bar with Cancel,
+// Android's installer, or why it stopped with Try again. The first press with "Install unknown apps" off shows the one screen
 // that explains the switch and opens Android's page for it.
 
 package tv.anistream.tv.screens
@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -49,7 +50,7 @@ import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.LocalAppStore
-import tv.anistream.tv.ui.OfflineLine
+import tv.anistream.tv.ui.OFFLINE_LINE
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.isOffline
@@ -60,14 +61,27 @@ const val UNKNOWN_SOURCES_PATH = "Settings › Apps › Security & restrictions 
 
 /** What the update's place says, in words, for the state it is in. */
 object UpdateWords {
+    /** What changed, as the release's notes begin: their text without Markdown's marks or blank lines. */
+    fun notes(raw: String): String = raw.lineSequence()
+        .map { line ->
+            line.trim()
+                .replace(Regex("^#+\\s*"), "")
+                .replace(Regex("^[-*+]\\s+"), "· ")
+                .replace(Regex("\\*\\*|__|`"), "")
+                .replace(Regex("\\[([^\\]]*)]\\([^)]*\\)"), "$1")
+        }
+        .filter { it.isNotEmpty() }
+        .joinToString("\n")
+
     /** The line under the version: its size and what this TV runs now. */
     fun about(offer: UpdateOffer, installed: String?): String = listOfNotNull(
         offer.bytes.takeIf { it > 0 }?.let(Wording::bytes),
         installed?.let { "This TV has v${it.removePrefix("v")}" },
     ).joinToString(" · ")
 
-    /** "Downloading · 34 % · 16 MB of 48 MB". */
+    /** "Downloading · 34 % · 16 MB of 48 MB", or "Starting the download" before the first byte. */
     fun downloading(state: UpdateState.Downloading): String {
+        if (state.done == 0L) return "Starting the download"
         val fraction = state.fraction ?: return "Downloading · ${Wording.bytes(state.done)}"
         return "Downloading · ${(fraction * 100).toInt()} % · ${Wording.bytes(state.done)} of ${Wording.bytes(state.total)}"
     }
@@ -106,25 +120,25 @@ fun UpdateScreen(memory: FocusMemory, onDone: () -> Unit) {
             EnterFocus(memory, entry = "none")
             return@Column
         }
-        Text("Update to anistream ${offer.name}", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+        Text("Update to ${offer.name}", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
         Text(UpdateWords.about(offer, installed), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
-        // What changed, as the release's notes begin: four lines at most, so the place below
-        // always sits where it did.
+        // What changed, as the release's notes begin: four lines at most, at most 60 characters
+        // wide, so the place below always sits where it did.
         Text(
-            offer.notes.ifBlank { "This release's notes are on its page." },
+            UpdateWords.notes(offer.notes).ifBlank { "This release's notes are on its page." },
             style = MaterialTheme.typography.bodyLarge,
             color = ObiSilk.Silk,
             maxLines = 4,
             minLines = 4,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.widthIn(max = 720.dp),
+            modifier = Modifier.widthIn(max = 560.dp),
         )
         Spacer(Modifier.height(8.dp))
         Where(current, offline, memory, onDone)
     }
 }
 
-/** The place under the notes: the same height whatever it says, so focus and text never jump. */
+/** The place under the notes: its line, bar and buttons in the same places whatever it says, so focus and text never jump. */
 @Composable
 private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onDone: () -> Unit) {
     val store = LocalAppStore.current
@@ -133,17 +147,18 @@ private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onD
     val primary = remember { FocusRequester() }
     // A new state has a new first button: it takes focus, where the last one went away.
     LaunchedEffect(state::class) { primary.focusSoon() }
-    Column(Modifier.height(StateHeight).widthIn(max = 720.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val cancel = @Composable {
+        TonalButton(onClick = updates::cancel, modifier = Modifier.focusRequester(primary).remembered(memory, "update/cancel")) { ButtonLabel("Cancel") }
+    }
+    Column(Modifier.widthIn(max = 720.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         when (state) {
             is UpdateState.Available, is UpdateState.None, is UpdateState.Allowing -> {
-                StateLine(
-                    when {
-                        !installs -> "This build doesn't update itself. Install the release's TV app from its page."
-                        offline -> null
-                        else -> "Nothing installs until Android asks you to confirm."
-                    },
-                )
-                if (offline) OfflineLine()
+                when {
+                    !installs -> StateLine("This build doesn't update itself. Install the release's TV app from its page.")
+                    offline -> StateLine(OFFLINE_LINE, Mark.Offline)
+                    else -> StateLine("Nothing installs until Android asks you to confirm.")
+                }
+                Bar(null)
                 Buttons {
                     AmberButton(
                         onClick = updates::press,
@@ -156,34 +171,29 @@ private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onD
             }
             is UpdateState.Downloading -> {
                 StateLine(UpdateWords.downloading(state))
-                Bar(state.fraction)
-                Buttons {
-                    TonalButton(onClick = updates::cancel, modifier = Modifier.focusRequester(primary).remembered(memory, "update/cancel")) { ButtonLabel("Cancel") }
-                }
+                Bar(state.fraction ?: 0f)
+                Buttons { cancel() }
             }
             is UpdateState.Verifying -> {
                 StateLine("Checking the download")
                 Bar(1f)
-                Buttons {
-                    TonalButton(onClick = updates::cancel, modifier = Modifier.focusRequester(primary).remembered(memory, "update/cancel")) { ButtonLabel("Cancel") }
-                }
+                Buttons { cancel() }
             }
             is UpdateState.Installing -> {
                 StateLine("Android is asking to install the update. Confirm on its screen; your sign-ins, lists and settings stay.")
                 Bar(1f)
-                Buttons {
-                    TonalButton(onClick = updates::cancel, modifier = Modifier.focusRequester(primary).remembered(memory, "update/cancel")) { ButtonLabel("Cancel") }
-                }
+                Buttons { cancel() }
             }
             is UpdateState.Done -> {
-                StateLine("Installed. anistream opens on ${state.offer.name} next time.")
+                StateLine("Updated to ${state.offer.name}. It opens next time you start anistream.")
+                Bar(null)
                 Buttons {
                     TonalButton(onClick = onDone, modifier = Modifier.focusRequester(primary).remembered(memory, "update/done")) { ButtonLabel("Done") }
                 }
             }
             is UpdateState.Failed -> {
-                StateLine(state.failure.text)
-                if (offline) OfflineLine()
+                if (offline) StateLine(OFFLINE_LINE, Mark.Offline) else StateLine(state.failure.text, Mark.Error)
+                Bar(null)
                 Buttons {
                     AmberButton(
                         onClick = updates::press,
@@ -198,19 +208,25 @@ private fun Where(state: UpdateState, offline: Boolean, memory: FocusMemory, onD
     }
 }
 
-/** The tallest state: two lines, the bar and the buttons. */
-private val StateHeight = 220.dp
+/** What a state line leads with: nothing, the offline line's haze dot, or an error's vermilion one. */
+private enum class Mark { None, Offline, Error }
 
+/** The state's line, two lines high whatever it says. An error's words are silk, since they say what to do. */
 @Composable
-private fun StateLine(text: String?) {
-    Text(
-        text.orEmpty(),
-        style = MaterialTheme.typography.bodyLarge,
-        color = ObiSilk.Haze,
-        maxLines = 2,
-        minLines = 2,
-        overflow = TextOverflow.Ellipsis,
-    )
+private fun StateLine(text: String, mark: Mark = Mark.None) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (mark != Mark.None) {
+            Box(Modifier.padding(top = 9.dp).size(8.dp).background(if (mark == Mark.Error) ObiSilk.Vermilion else ObiSilk.Haze, CircleShape))
+        }
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (mark == Mark.Error) ObiSilk.Silk else ObiSilk.Haze,
+            maxLines = 2,
+            minLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable
@@ -218,7 +234,10 @@ private fun Buttons(content: @Composable () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) { content() }
 }
 
-/** How far the download is, in water on a rule-coloured track; full while it is checked. */
+/**
+ * How far the download is, in amber on a rule-coloured track; full while it is checked. With no
+ * [fraction] nothing is under way, and the bar's place stays empty, so the buttons never move.
+ */
 @Composable
 private fun Bar(fraction: Float?) {
     val shown = fraction ?: 0f
@@ -226,10 +245,15 @@ private fun Bar(fraction: Float?) {
         Modifier
             .width(480.dp)
             .height(6.dp)
-            .background(ObiSilk.Rule, CircleShape)
-            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(shown, 0f..1f) },
+            .then(
+                if (fraction == null) {
+                    Modifier
+                } else {
+                    Modifier.background(ObiSilk.Rule, CircleShape).semantics { progressBarRangeInfo = ProgressBarRangeInfo(shown, 0f..1f) }
+                },
+            ),
     ) {
-        Box(Modifier.fillMaxHeight().fillMaxWidth(shown).background(ObiSilk.Water, CircleShape))
+        if (fraction != null) Box(Modifier.fillMaxHeight().fillMaxWidth(shown).background(ObiSilk.Amber, CircleShape))
     }
 }
 
@@ -261,7 +285,7 @@ private fun AllowInstalls(state: UpdateState.Allowing, memory: FocusMemory, onOp
                 "Android asks this once. If its page doesn't open, the switch is under $UNKNOWN_SOURCES_PATH."
             },
             style = MaterialTheme.typography.bodyMedium,
-            color = ObiSilk.Haze,
+            color = ObiSilk.Silk,
             minLines = 2,
             maxLines = 2,
             modifier = Modifier.widthIn(max = 720.dp),
@@ -275,12 +299,12 @@ private fun AllowInstalls(state: UpdateState.Allowing, memory: FocusMemory, onOp
     LaunchedEffect(Unit) { open.focusSoon() }
 }
 
-/** One step: its number in an amber circle, then what to do. */
+/** One step: its number in haze, then what to do. The screen's one amber is its button. */
 @Composable
 private fun Step(number: Int, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Box(Modifier.width(32.dp).height(32.dp).background(ObiSilk.AmberContainer, CircleShape), contentAlignment = Alignment.Center) {
-            Text(number.toString(), style = MaterialTheme.typography.labelLarge, color = ObiSilk.OnAmberContainer)
+        Box(Modifier.width(32.dp).height(32.dp), contentAlignment = Alignment.Center) {
+            Text(number.toString(), style = MaterialTheme.typography.titleMedium, color = ObiSilk.Haze)
         }
         Text(text, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
     }

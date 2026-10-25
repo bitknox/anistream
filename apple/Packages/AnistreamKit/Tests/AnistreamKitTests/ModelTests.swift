@@ -112,4 +112,9 @@ struct WordingTests {
         #expect(Wording.plural(1, "episode") == "1 episode")
         #expect(Wording.plural(3, "episode") == "3 episodes")
     }
+
+    @Test func aTranslationReadsAsTheEpisodeLineEndsWithIt() {
+        #expect(Translation.sub.label == "Sub")
+        #expect(Translation.dub.label == "Dub")
+    }
 }

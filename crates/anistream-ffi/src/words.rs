@@ -6,10 +6,18 @@
 use anistream_model::{
     catalog::{Entry, ResumePoint, Season},
     episodes::DubExtent,
+    hosted::{PlayerStats, StatsFixture},
     present::{self, Casing, Queue, QueueItem, SeasonYear},
     settings::SettingKey,
     wording,
 };
+
+/// A made-up Stats for nerds in `state`, worded as the engine words a real one: what an app's
+/// previews, screenshots and tests show with no player behind them.
+#[uniffi::export]
+pub fn player_stats_fixture(state: StatsFixture) -> PlayerStats {
+    anistream_engine::playback::stats::fixture(state)
+}
 
 /// A wait in the largest unit that still reads at a glance: `6d 17h`, `2h 5m`, `now`.
 #[uniffi::export]
@@ -73,7 +81,8 @@ pub fn calendar_mark(entry: Entry) -> Option<String> {
 }
 
 /// The line under a sign-in's device code, from its `expires_at` less now in seconds:
-/// "Expires in 14:59", then "Code expired", when the app sends `Command::Connect` again.
+/// "Expires in 15 min", "Expires in 45 s" in the last minute, then "Code expired", when the app
+/// offers a new code (`Command::Connect` again for a sign-in).
 #[uniffi::export]
 pub fn device_code_expiry(seconds_left: i64) -> String {
     present::device_code_expiry(seconds_left)
@@ -231,5 +240,9 @@ mod tests {
             Some("Start episode 1")
         );
         assert_eq!(setting_category(SettingKey::AutoNext), "playback");
+        let waiting = player_stats_fixture(StatsFixture::Waiting);
+        assert!(waiting.waiting && waiting.rows.iter().all(|r| r.value == "–"));
+        let local = player_stats_fixture(StatsFixture::Local);
+        assert!(local.rows.iter().all(|r| r.label != "Network"));
     }
 }

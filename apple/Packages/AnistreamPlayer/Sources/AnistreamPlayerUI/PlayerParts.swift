@@ -322,8 +322,9 @@ struct FilledArt: View {
 
 // MARK: The seek line
 
-/// The playhead across the file: played time amber, openings and endings water, the rest silk at
-/// 22%. Dragging scrubs, with keyframe seeks as it moves and an exact one on release; the frame
+/// The playhead across the file: silk at 22%, what mpv holds ahead lighter, played time amber,
+/// and openings and endings in water on top of all of it, so a mark reads the same played or
+/// not. Dragging scrubs, with keyframe seeks as it moves and an exact one on release; the frame
 /// under the thumb shows above it with the time and the chapter. Moving the finger up slows the
 /// scrub to half speed past 48 pt and a quarter past 96 pt, as ⌥ does on the Mac, and crossing
 /// an opening or ending mark gives a selection tick.
@@ -347,7 +348,7 @@ struct SeekLine: View {
                     let width = duration > 0 ? usable * (segment.end - segment.start) / duration : 0
                     let played = min(1, max(0, (model.position - segment.start) / max(segment.end - segment.start, 0.001)))
                     Capsule()
-                        .fill(track(segment.kind))
+                        .fill(Palette.silk.opacity(0.22))
                         .overlay(alignment: .leading) {
                             // What mpv holds ahead, lighter than the track, under the played time.
                             ForEach(Array(held(in: segment).enumerated()), id: \.offset) { _, range in
@@ -361,6 +362,9 @@ struct SeekLine: View {
                             Rectangle()
                                 .fill(.amber)
                                 .frame(width: width * played)
+                        }
+                        .overlay {
+                            if segment.kind != .plain { Rectangle().fill(Palette.water) }
                         }
                         .clipShape(.capsule)
                         .frame(width: width, height: lineHeight)
@@ -460,13 +464,6 @@ struct SeekLine: View {
     private func held(in segment: SeekSegment) -> [(from: Double, length: Double)] {
         bufferedSpans(model.buffered, in: segment)
     }
-
-    private func track(_ kind: SeekSegment.Kind) -> Color {
-        switch kind {
-        case .plain: Palette.silk.opacity(0.22)
-        case .opening, .ending: Palette.water.opacity(0.72)
-        }
-    }
 }
 
 /// Above the scrubbing thumb: the pace when it is slowed, the frame there from the hidden mpv
@@ -559,28 +556,90 @@ extension View {
     }
 }
 
-/// A pill: Play Now in amber, the rest raised.
+/// A button over the video: its symbol or words on silk that lights at 10% under the pointer,
+/// and at the board's 16% pressed and while its menu is open, with the pointing hand. `lit`
+/// says the pointer is over it where its own hover cannot see, in the title bar strip.
+struct OverVideoButtonStyle: ButtonStyle {
+    var on = false
+    var lit = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        Lit(configuration: configuration, on: on, lit: lit)
+    }
+
+    private struct Lit: View {
+        let configuration: Configuration
+        let on: Bool
+        let lit: Bool
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            configuration.label
+                .background(Palette.silk.opacity(fill), in: .capsule)
+                .animation(.quick, value: hovering || lit)
+                #if os(macOS)
+                .onHover { hovering = $0 }
+                #else
+                .contentShape(.hoverEffect, .capsule)
+                .hoverEffect(.highlight)
+                #endif
+                .pointingHand(enabled)
+        }
+
+        private var fill: Double {
+            if configuration.isPressed || on { return 0.16 }
+            return (hovering || lit) && enabled ? 0.1 : 0
+        }
+    }
+}
+
+/// A pill: Play Now in amber, the rest raised. A raised or quiet one lights at 8% silk under the
+/// pointer, as the buttons over the video do; every one dims to 80% pressed.
 struct PillButtonStyle: ButtonStyle {
     enum Kind { case primary, secondary, quiet }
     let kind: Kind
     let metrics: PlayerMetrics
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: metrics.body, weight: kind == .primary ? .semibold : .regular))
-            .foregroundStyle(kind == .primary ? Palette.ground : kind == .quiet ? Palette.haze : Palette.silk)
-            .padding(.horizontal, metrics.touch ? (kind == .primary ? 18 : 16) : (kind == .primary ? 14 : 12))
-            .frame(height: metrics.button)
-            .background {
-                switch kind {
-                case .primary: Capsule().fill(.amber)
-                case .secondary: Capsule().fill(.raisedSelected)
-                case .quiet: Color.clear
+        Pill(configuration: configuration, kind: kind, metrics: metrics)
+    }
+
+    private struct Pill: View {
+        let configuration: Configuration
+        let kind: Kind
+        let metrics: PlayerMetrics
+        @State private var hovering = false
+        @Environment(\.isEnabled) private var enabled
+
+        var body: some View {
+            configuration.label
+                .font(.system(size: metrics.body, weight: kind == .primary ? .semibold : .regular))
+                .foregroundStyle(kind == .primary ? Palette.ground : kind == .quiet ? Palette.haze : Palette.silk)
+                .padding(.horizontal, metrics.touch ? (kind == .primary ? 18 : 16) : (kind == .primary ? 14 : 12))
+                .frame(height: metrics.button)
+                .background {
+                    switch kind {
+                    case .primary: Capsule().fill(.amber)
+                    case .secondary: Capsule().fill(.raisedSelected)
+                    case .quiet: Color.clear
+                    }
                 }
-            }
-            .opacity(configuration.isPressed ? 0.8 : 1)
-            .contentShape(.capsule)
-            .pointingHand()
+                .overlay {
+                    if kind != .primary {
+                        Capsule().fill(Palette.silk.opacity(hovering && enabled ? 0.08 : 0))
+                    }
+                }
+                .animation(.quick, value: hovering)
+                .opacity(configuration.isPressed ? 0.8 : 1)
+                .contentShape(.capsule)
+                #if os(macOS)
+                .onHover { hovering = $0 }
+                #else
+                .hoverEffect(.highlight)
+                #endif
+                .pointingHand(enabled)
+        }
     }
 }
 
@@ -604,7 +663,7 @@ struct UpNextCardView: View {
                             .font(.system(size: 11, weight: .medium))
                             .tracking(0.88)
                             .foregroundStyle(.haze)
-                        Text("Episode \(card.next.number)")
+                        Text("Episode \(card.next.number)" + (model.episode?.dubMark ?? ""))
                             .font(.system(size: metrics.body, weight: .semibold))
                         if let title = card.next.title {
                             Text(title)

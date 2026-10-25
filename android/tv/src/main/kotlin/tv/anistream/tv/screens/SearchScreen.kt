@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -37,13 +38,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -53,6 +57,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -197,15 +202,9 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
                 nav.typeSearch(it.text, it.selection.end)
             },
             focus = field,
+            typing = remote?.typing == true,
             modifier = Modifier.width(Canvas.SafeRight - Canvas.Keyline),
         )
-        if (remote?.typing == true) {
-            Row(Modifier.padding(top = 8.dp, start = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(TvIcons.Phone, contentDescription = null, tint = ObiSilk.Haze, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Typing from a phone", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
-            }
-        }
         Spacer(Modifier.height(24.dp))
         Row(Modifier.fillMaxSize()) {
             Column(Modifier.width(288.dp)) {
@@ -230,31 +229,44 @@ fun SearchScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) -> U
     EnterFocus(memory)
 }
 
-/** The field across the top: what is typed, or a quiet prompt. The system keyboard types here. */
+/**
+ * The field across the top: what is typed, or a quiet prompt. The system keyboard types here, and
+ * focus on it fills it silk, as on any row. "Typing from a phone" sits at its end, so the note
+ * coming and going moves nothing under it.
+ */
 @Composable
-private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, focus: FocusRequester, modifier: Modifier) {
+private fun QueryField(value: TextFieldValue, onText: (TextFieldValue) -> Unit, focus: FocusRequester, typing: Boolean, modifier: Modifier) {
     val text = value.text
+    var focused by remember { mutableStateOf(false) }
+    val ink = if (focused) ObiSilk.Ground else ObiSilk.Silk
+    val quiet = if (focused) ObiSilk.Ground else ObiSilk.Haze
     Box(
-        modifier.height(56.dp).background(ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
+        modifier.height(56.dp).background(if (focused) ObiSilk.Silk else ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(TvIcons.Search, contentDescription = null, tint = ObiSilk.Haze, modifier = Modifier.size(24.dp))
+            Icon(TvIcons.Search, contentDescription = null, tint = quiet, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(16.dp))
-            Box(contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 if (text.isEmpty()) {
-                    Text("Search titles", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+                    Text("Search titles", style = MaterialTheme.typography.bodyLarge, color = quiet)
                 }
                 BasicTextField(
                     value = value,
                     onValueChange = onText,
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = ObiSilk.Silk),
-                    cursorBrush = SolidColor(ObiSilk.Amber),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = ink),
+                    cursorBrush = SolidColor(if (focused) ObiSilk.Ground else ObiSilk.Amber),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { onText(value) }),
-                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus).onFocusChanged { focused = it.isFocused },
                 )
+            }
+            if (typing) {
+                Spacer(Modifier.width(16.dp))
+                Icon(TvIcons.Phone, contentDescription = null, tint = quiet, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Typing from a phone", style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1)
             }
         }
     }
@@ -362,12 +374,15 @@ private fun Results(
     val season = seasonal.ids.mapNotNull { entries[it] }
     val placeholders = placeholdersAfterWait(searching && results is ListState.Loading)
     val shown = if (searching) found else season
-    // One line over the posters, always there, so results arriving never move the chips.
-    val heading = when {
+    // One line over the posters, always there, so results arriving never move the chips. It
+    // changes with them: a new heading over the last search's posters would name the wrong ones.
+    val asked = when {
         !searching -> "This season"
         query.isBrowse() -> query.headline()
         else -> query.summary()
     }
+    var heading by remember { mutableStateOf(asked) }
+    if (!searching || results !is ListState.Loading) heading = asked
     val grid = rememberLazyGridState()
     // The next page, once focus nears the last row.
     LaunchedEffect(grid, searching) {
@@ -418,8 +433,20 @@ private fun Results(
                         )
                     }
                     // An answer with no titles in it, whichever way the engine says so.
+                    // A small empty: one line under the heading and the way out, no Nagare.
                     is ListState.Empty, is ListState.Loaded -> item(key = "empty", span = { GridItemSpan(maxLineSpan) }, contentType = "state") {
-                        StateBlock(query.nothingFound(), Modifier.padding(top = 48.dp), nagare = true)
+                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Text(query.nothingFound(), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
+                            if (query.hasFilters() || query.sort != null) {
+                                TonalButton(
+                                    onClick = {
+                                        memory.focus("chip/sort")
+                                        store.searchLive(SearchFilters.settle(store.search.status.value.query.copy(text = query.text).cleared().copy(sort = null)))
+                                    },
+                                    modifier = Modifier.remembered(memory, "result/clear"),
+                                ) { ButtonLabel("Clear filters") }
+                            }
+                        }
                     }
                     else -> if (placeholders) {
                         items(6, key = { "placeholder/$it" }, contentType = { "poster" }) {
@@ -462,11 +489,26 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
         val now = store.search.status.value.query.copy(text = query.text)
         store.searchLive(SearchFilters.settle(change(now)))
     }
-    // Wider than the column: the row scrolls as focus moves along it.
+    // Wider than the column: the row scrolls as focus moves along it, with room after the last
+    // chip so it is never cut through its label at the end.
     Row(
-        Modifier.padding(bottom = 4.dp).focusRestorer().horizontalScroll(rememberScrollState()),
+        Modifier.padding(bottom = 4.dp).focusRestorer().horizontalScroll(rememberScrollState()).padding(end = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Clear leads, where it is seen, once anything is set.
+        if (query.hasFilters() || query.sort != null) {
+            TvTab(
+                "Clear",
+                selected = false,
+                onSelect = {
+                    memory.focus("chip/sort")
+                    filter { it.cleared().copy(sort = null) }
+                },
+                settle = null,
+                chip = true,
+                modifier = Modifier.remembered(memory, "chip/clear"),
+            )
+        }
         val sort = query.sortInEffect()
         TvTab(
             "Sort: ${searchSortLabel(sort)}",
@@ -478,7 +520,9 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
             },
             settle = null,
             chip = true,
-            modifier = Modifier.remembered(memory, "chip/sort"),
+            // As wide as its longest label, so "Relevance" and "Popularity" trading places as the
+            // words come and go moves no chip after it.
+            modifier = Modifier.widthIn(min = sortChipWidth()).remembered(memory, "chip/sort"),
         )
         val genres = query.genres.size + query.genresExcluded.size
         TvTab(
@@ -516,7 +560,7 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
                     if (year != null) {
                         seasonSheet(year, chosen, filter)
                     } else {
-                        ActionSheet("Season of which year?", SearchFilters.years().map { each -> CardAction(each.toString(), then = seasonSheet(each.toUInt(), null, filter)) })
+                        ActionSheet("Year", SearchFilters.years().map { each -> CardAction(each.toString(), then = seasonSheet(each.toUInt(), null, filter)) })
                     },
                 )
             },
@@ -532,25 +576,24 @@ private fun FilterChips(store: AppStore, query: SearchQuery, status: tv.anistrea
             chip = true,
             modifier = Modifier.remembered(memory, "chip/format"),
         )
-        if (query.hasFilters() || query.sort != null) {
-            TvTab(
-                "Clear",
-                selected = false,
-                onSelect = {
-                    memory.focus("chip/sort")
-                    filter { it.cleared().copy(sort = null) }
-                },
-                settle = null,
-                chip = true,
-                modifier = Modifier.remembered(memory, "chip/clear"),
-            )
-        }
+    }
+}
+
+/** The Sort chip's width with its longest label: the label, the dot's slot and the padding. */
+@Composable
+private fun sortChipWidth(): Dp {
+    val measurer = rememberTextMeasurer()
+    val style = MaterialTheme.typography.labelLarge
+    val density = LocalDensity.current
+    return remember(measurer, style, density) {
+        val widest = (searchSorts(true) + searchSorts(false)).maxOf { measurer.measure("Sort: ${searchSortLabel(it)}", style, maxLines = 1).size.width }
+        with(density) { widest.toDp() } + 32.dp + 14.dp
     }
 }
 
 /** The four seasons of [year]. */
 private fun seasonSheet(year: UInt, chosen: Season?, filter: ((SearchQuery) -> SearchQuery) -> Unit): ActionSheet = ActionSheet(
-    "Season, $year",
+    "Season in $year",
     listOf(CardAction("Any season", selected = chosen == null) { filter { it.copy(season = null) } }) +
         SearchFilters.SEASONS.map { each -> CardAction(searchSeasonLabel(each), selected = each == chosen) { filter { it.inYear(year).copy(season = each) } } },
 )
@@ -577,15 +620,21 @@ private fun GenrePanel(store: AppStore, filter: ((SearchQuery) -> SearchQuery) -
         }
         item(key = "note") {
             Text(
-                "Center once to include, twice to leave out.",
+                "Press once to include, twice to leave out.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = ObiSilk.Haze,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
         if (names == null) {
+            // A quiet line, not a row, so focus has nothing row-shaped to skip.
             item(key = "waiting") {
-                TvListRow(if (offline) "Genres load once the TV is online" else "Loading genres", onClick = {}, enabled = false)
+                Text(
+                    if (offline) "Genres load once the TV is online" else "Loading genres",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ObiSilk.Haze,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
             }
         }
         items(names.orEmpty().size, key = { "genre/${names!![it]}" }) { index ->

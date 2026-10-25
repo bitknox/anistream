@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
+using Anistream.Windows.Pages;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -210,6 +211,12 @@ public sealed partial class PlayerView : UserControl
                 case Event.PlayerUi ui:
                     Heard(ui.Ui);
                     break;
+                case Event.PartyJoined or Event.PartyLeft:
+                    ShowPartyButton();
+                    break;
+                case Event.TitleDub td when td.Id == playingId:
+                    BuildTracks();
+                    break;
                 case Event.PlayerTimeline t:
                     timelineMarks = t.Marks ?? [];
                     DrawTimeline();
@@ -245,6 +252,11 @@ public sealed partial class PlayerView : UserControl
                 ClosePreview();
                 Motion.Set(StillLayer, false);
                 still.Answered();
+                // Whether the show has a dub decides whether Tracks offers Sub and Dub; asked once
+                // a session for a show whose page has not already asked.
+                playingId = s.Id;
+                if (ctx is { } c && !c.Known.Dubbed.ContainsKey(s.Id))
+                    c.Send(new Command.LoadDub(s.Id));
                 ShowTitle.Text = s.Title;
                 EpisodeTitle.Text = s.EpisodeTitle is { Length: > 0 } t ? $"Episode {s.EpisodeValue} · {t}" : $"Episode {s.EpisodeValue}";
                 StartingShow.Text = s.Title;
@@ -257,7 +269,7 @@ public sealed partial class PlayerView : UserControl
                 break;
             case PlayerUi.Episode ep:
                 ShowTitle.Text = ep.Show;
-                EpisodeTitle.Text = ep.Title is { Length: > 0 } title ? $"{ep.Label} · {title}" : ep.Label;
+                EpisodeTitle.Text = Lines.Episode(ep.Label, ep.Title, ep.Translation);
                 break;
             case PlayerUi.Menus m:
                 menus = m;
@@ -278,6 +290,8 @@ public sealed partial class PlayerView : UserControl
                 undo = new Undoable(auto.UndoTo, $"Skipped {Words.Sentence(auto.Kind.ToString()).ToLowerInvariant()}");
                 UndoLine.Text = undo.Line;
                 UpdateCorner();
+                break;
+            case PlayerUi.UpNext when HoldUpNext:
                 break;
             case PlayerUi.UpNext next:
                 UpNextTitle.Text = next.Next.Title is { Length: > 0 } nt ? $"Episode {next.Next.Number} · {nt}" : $"Episode {next.Next.Number}";
@@ -314,6 +328,15 @@ public sealed partial class PlayerView : UserControl
                 break;
         }
     }
+
+    /// <summary>
+    /// A screenshot run's: no Up next card, for a fixture clip short enough to be near its end
+    /// from the start.
+    /// </summary>
+    internal bool HoldUpNext { get; set; }
+
+    /// <summary>A line for the viewer over the video, where the window's toasts can't be seen.</summary>
+    internal void Say(string text) => Alert(text);
 
     async void Alert(string text)
     {
@@ -462,10 +485,11 @@ public sealed partial class PlayerView : UserControl
     }
 
     // The seek bar's track: silk at a quarter for the length, at under half for what is
-    // buffered, water for the opening and ending, and the slider's own amber over it for what
-    // has played (native-ux.md, the timeline).
+    // buffered, amber for what has played, and water on top for the opening and ending, so the
+    // marks still read once played past (native-ux.md, the timeline).
 
     TimelineMark[] timelineMarks = [];
+    uint playingId;
     TimeRange[] buffered = [];
 
     void OnTimelineSized(object sender, SizeChangedEventArgs e) => DrawTimeline();
@@ -499,12 +523,36 @@ public sealed partial class PlayerView : UserControl
             TimelineUnder.Children.Add(bar);
         }
         Bar(at.X, at.X + width, silk, 0.25);
+        playedBar = null;
         if (duration <= 0)
             return;
         foreach (var range in buffered)
             Bar(X(range.Start), X(range.End), silk, 0.45);
+        // What has played, from the track's start to the thumb, kept to move with the value.
+        playedBar = new Microsoft.UI.Xaml.Shapes.Rectangle
+        {
+            Height = height, Fill = (Brush)Application.Current.Resources["AmberBrush"],
+            RadiusX = height / 2, RadiusY = height / 2,
+        };
+        Canvas.SetLeft(playedBar, at.X);
+        Canvas.SetTop(playedBar, at.Y);
+        TimelineUnder.Children.Add(playedBar);
+        playedFrom = at.X;
+        playedTo = X;
+        ShowPlayed();
+        // The opening and ending go on top, so they read wherever the viewer is.
         foreach (var mark in timelineMarks)
             Bar(X(mark.Start), X(mark.End), water, 1);
+    }
+
+    Microsoft.UI.Xaml.Shapes.Rectangle? playedBar;
+    double playedFrom;
+    Func<double, double> playedTo = _ => 0;
+
+    void ShowPlayed()
+    {
+        if (playedBar is not null)
+            playedBar.Width = Math.Max(0, playedTo(Timeline.Value) - playedFrom);
     }
 
     static DependencyObject? Find(DependencyObject parent, string name)
@@ -690,6 +738,41 @@ public sealed partial class PlayerView : UserControl
     void OnBarExited(object sender, PointerRoutedEventArgs e) => overBar = false;
     void OnMenuOpened(object? sender, object e) => menuOpen = true;
 
+    // Watch together.
+
+    PartyPanel? partyPanel;
+
+    void OnParty(object sender, RoutedEventArgs e) => ShowParty();
+
+    /// <summary>The party's panel when in one; the form that starts one when not.</summary>
+    internal void ShowParty()
+    {
+        if (ctx is null)
+            return;
+        if (ctx.Known.Party is null)
+        {
+            ctx.Window.ShowParty(new PartyDialog.For.Playing());
+            return;
+        }
+        if (partyPanel is null)
+        {
+            partyPanel = new PartyPanel(ctx);
+            partyPanel.Flyout.Opened += OnMenuOpened;
+            partyPanel.Flyout.Closed += OnMenuClosed;
+        }
+        ShowControls();
+        partyPanel.Flyout.ShowAt(PartyButton);
+    }
+
+    void ShowPartyButton()
+    {
+        var inParty = ctx?.Known.Party is not null;
+        PartyDot.Opacity = inParty ? 1 : 0;
+        var name = inParty ? "Watch party" : "Watch together";
+        ToolTipService.SetToolTip(PartyButton, name);
+        AutomationProperties.SetName(PartyButton, name);
+    }
+
     void OnMenuClosed(object? sender, object e)
     {
         menuOpen = false;
@@ -836,6 +919,7 @@ public sealed partial class PlayerView : UserControl
 
     void OnTimelineChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
+        ShowPlayed();
         if (!fromPlayer && Math.Abs(e.NewValue - position) > 1)
             Send(new PlayerCommand.SeekTo(e.NewValue));
     }
@@ -868,15 +952,16 @@ public sealed partial class PlayerView : UserControl
     }
 
     /// <summary>
-    /// The Tracks menu: Subtitled or Dubbed, then the file's own subtitles (Off first) and audio,
-    /// each by its language and title. A pick goes to the engine, which applies it and keeps it
-    /// for the series.
+    /// The Tracks menu: Sub or Dub at the top when the show has both, then the file's own
+    /// subtitles (Off first) and audio, each by its language and title. A pick goes to the
+    /// engine, which applies it and keeps it for the series.
     /// </summary>
     void BuildTracks()
     {
         TracksMenu.Items.Clear();
-        if (menus is { } m)
-            foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Subtitled"), (Engine.Core.Translation.Dub, "Dubbed") })
+        // Both, when the source says the show has a dub, or the dub is what plays.
+        if (menus is { } m && (m.Translation == Engine.Core.Translation.Dub || ctx?.Known.Dubbed.GetValueOrDefault(playingId) == true))
+            foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Sub"), (Engine.Core.Translation.Dub, "Dub") })
             {
                 var item = new RadioMenuFlyoutItem { Text = label, GroupName = "translation", IsChecked = m.Translation == translation };
                 item.Click += (_, _) => Send(new PlayerCommand.Choose(new PlayerChoice.Translation(translation)));
@@ -1252,7 +1337,11 @@ public sealed partial class PlayerView : UserControl
                 startingFrom -= 21 * Stopwatch.Frequency;
                 break;
             case "tracks":
+            case "tracks-sub":
                 tracksHeld = true;
+                // The fixture's source has a dub of the show; tracks-sub answers as one without.
+                if (what == "tracks-sub" && ctx is { } known)
+                    known.Known.Dubbed[playingId] = false;
                 tracks =
                 [
                     new FfiTrack(TrackKind.Audio, 1, "jpn", null, true, false),
@@ -1272,11 +1361,12 @@ public sealed partial class PlayerView : UserControl
                     peer.Expand();
                 break;
             case "timeline":
-                // An opening, an ending and what is buffered, as fractions of the fixture clip.
+                // An opening, an ending and what is buffered, as fractions of the fixture clip, the
+                // opening early so the played fill runs under it.
                 var d = Math.Max(duration, 1);
                 timelineMarks =
                 [
-                    new TimelineMark(SkipKind.Opening, d * 0.45, d * 0.58),
+                    new TimelineMark(SkipKind.Opening, d * 0.03, d * 0.2),
                     new TimelineMark(SkipKind.Ending, d * 0.85, d * 0.97),
                 ];
                 buffered = [new TimeRange(0, d * 0.7)];

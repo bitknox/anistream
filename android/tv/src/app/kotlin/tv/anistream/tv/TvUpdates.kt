@@ -237,8 +237,7 @@ class TvUpdateReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> confirmation(intent)?.let(updater::confirm)
             PackageInstaller.STATUS_SUCCESS -> updates.installResult(InstallResult.Installed)
             PackageInstaller.STATUS_FAILURE_ABORTED -> updates.installResult(InstallResult.Cancelled)
-            PackageInstaller.STATUS_FAILURE_STORAGE ->
-                updates.installResult(InstallResult.Failed("there isn't enough free space"))
+            PackageInstaller.STATUS_FAILURE_STORAGE -> updates.installResult(InstallResult.NoSpace)
             else -> updates.installResult(InstallResult.Failed(message))
         }
     }

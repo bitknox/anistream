@@ -22,8 +22,9 @@
 # The player's states are shots too: player-starting, player-playing, player-skip, player-up-next,
 # player-still-watching, player-stall, player-buffering, player-scrubbing, player-tracks (the
 # Subtitles and audio menu open), player-speed, player-picture (Picture and sound), player-episodes
-# (with the playing episode's sources) and player-picture-in-picture play the Playing scene's
-# generated episode (apple/scripts/player-media.sh) to that state and shoot the player; "player" is
+# (with the playing episode's sources), player-picture-in-picture and Stats for nerds
+# (player-stats, -stats-hidden, -stats-waiting, -stats-stream, -stats-buffering, -stats-hdr,
+# -stats-paused, -stats-copied) play the Playing scene's generated episode (apple/scripts/player-media.sh) to that state and shoot the player; "player" is
 # all of them. ANISTREAM_POINTED=<row title> draws a menu's row as if the pointer were over it.
 #
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
@@ -43,7 +44,8 @@ shopt -s inherit_errexit 2>/dev/null || true
 
 players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall
   player-buffering player-scrubbing player-tracks player-speed player-picture player-episodes
-  player-picture-in-picture)
+  player-picture-in-picture player-stats player-stats-hidden player-stats-waiting player-stats-stream
+  player-stats-buffering player-stats-hdr player-stats-paused player-stats-copied)
 
 usage() {
   echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [--landscape] [<watching|sourceless|fresh>[:<section|key=value>]|player|player-<state>]…" >&2

@@ -203,21 +203,19 @@ public enum AiringPresentation {
         rows.first { $0.isUpcoming && $0.marked } ?? rows.first(where: \.isUpcoming)
     }
 
-    /// "E9", "E9 · Dub".
+    /// "E9", "E9 · Dub". Only dubs are marked: a subbed episode is the usual case.
     public static func episodeShort(_ item: SnapshotAiring) -> String {
-        "E\(item.episode)" + (item.translation.map { " · \(label($0))" } ?? "")
+        "E\(item.episode)" + dubMark(item)
     }
 
     /// "Episode 9", "Episode 9 · Dub".
     public static func episodeLong(_ item: SnapshotAiring) -> String {
-        "Episode \(item.episode)" + (item.translation.map { " · \(label($0))" } ?? "")
+        "Episode \(item.episode)" + dubMark(item)
     }
 
-    static func label(_ translation: SnapshotTranslation) -> String {
-        switch translation {
-        case .sub: "Sub"
-        case .dub: "Dub"
-        }
+    /// " · Dub" for a dub's broadcast, or nothing.
+    static func dubMark(_ item: SnapshotAiring) -> String {
+        item.translation == .dub ? " · Dub" : ""
     }
 
     /// What VoiceOver reads for a row.

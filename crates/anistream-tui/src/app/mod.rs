@@ -479,9 +479,9 @@ impl App {
                 view.room, view.server
             ))),
             Event::PartyLeft { reason: Some(reason) } => self.push_toast(Notice::alert(reason)),
-            Event::PartyNoSource { episode, .. } => self.push_toast(Notice::alert(format!(
-                "no source has episode {episode}; still in the party"
-            ))),
+            Event::PartyNoSource { reason, .. } => {
+                self.push_toast(Notice::alert(format!("{reason}; still in the party")))
+            }
             Event::PartyLeft { reason: None }
             | Event::PartyForm(_)
             | Event::PartyState(_)
@@ -558,7 +558,9 @@ impl App {
             Event::PlayerOps { .. }
             | Event::PlayerUi { .. }
             | Event::PlayerTimeline { .. }
-            | Event::PlayerBuffered { .. } => {}
+            | Event::PlayerBuffered { .. }
+            | Event::PlayerStats { .. }
+            | Event::Clipboard { .. } => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
             //

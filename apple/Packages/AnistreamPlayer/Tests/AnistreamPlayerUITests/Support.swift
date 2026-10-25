@@ -47,21 +47,22 @@ final class ScriptedMpv: PlayerBackend {
         state.withLock { $0.begun = true }
     }
 
-    func perform(_ call: MpvCall) async throws -> PlayerReport? {
-        let answer = state.withLock { state -> AnistreamPlayer.MpvValue? in
-            guard !state.ended else { return nil }
+    func perform(_ call: MpvCall) async throws -> [PlayerReport] {
+        let answers = state.withLock { state -> [(String, AnistreamPlayer.MpvValue)] in
+            guard !state.ended else { return [] }
             state.calls.append(call)
-            if case .restate(let property) = call { return state.answers[property] ?? .array([]) }
-            return nil
+            switch call {
+            case .restate(let property): return [(property, state.answers[property] ?? .array([]))]
+            // Only what it was told to answer, as mpv has no value for the rest.
+            case .sample(let properties): return properties.compactMap { p in state.answers[p].map { (p, $0) } }
+            default: return []
+            }
         }
         if state.withLock({ $0.ended }) { throw MpvError.terminated }
         if case .command(let words) = call, let name = words.first, state.withLock({ $0.refuses.contains(name) }) {
             throw MpvError.mpv(code: -13, call: words.joined(separator: " "))
         }
-        if case .restate(let property) = call, let answer {
-            return .property(name: property, json: answer.json)
-        }
-        return nil
+        return answers.map { .property(name: $0.0, json: $0.1.json) }
     }
 
     func display(_ display: DisplayInfo) async {
@@ -96,6 +97,8 @@ final class Rig {
     var made: [ScriptedMpv] = []
     var previews: [ScriptedMpv] = []
     var lowPower = false
+    /// What Copy stats put on the clipboard, which is never the system's in a test.
+    var copied: [String] = []
     private(set) var model: PlayerModel!
 
     init() {
@@ -111,7 +114,8 @@ final class Rig {
                 previews.append(mpv)
                 return mpv
             },
-            lowPower: { [unowned self] in lowPower })
+            lowPower: { [unowned self] in lowPower },
+            copy: { [unowned self] text in copied.append(text) })
     }
 
     var mpv: ScriptedMpv { made.last! }

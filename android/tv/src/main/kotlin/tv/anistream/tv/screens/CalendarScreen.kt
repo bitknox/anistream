@@ -46,6 +46,10 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.ClickableSurfaceDefaults
@@ -123,6 +127,20 @@ fun Airing.timeLine(): String {
 
 /** "Dub" or "Sub" when the engine knows which version the time is for. */
 fun Airing.mark(): String? = calendarMark(entry)
+
+/** The line under the title: "Episode 10", with Dub or Sub after it when the engine marks one: "Episode 10 · Dub". */
+fun Airing.episodeLine(): String = listOfNotNull("Episode $episode", mark()).joinToString(" · ")
+
+/** [timeLine] drawn: the time in the row's colour, "(was 23:00)" after it in [quiet]. */
+private fun Airing.timeText(quiet: Color): AnnotatedString {
+    val line = timeLine()
+    val was = line.indexOf(" (was ")
+    if (was < 0) return AnnotatedString(line)
+    return buildAnnotatedString {
+        append(line.substring(0, was))
+        withStyle(SpanStyle(color = quiet)) { append(line.substring(was)) }
+    }
+}
 
 /** "E7 of 24" for a show on a list, as text on its row. */
 private fun Airing.listProgress(): String? {
@@ -282,7 +300,7 @@ private fun AiringRow(
                 }
             }
             .semantics(mergeDescendants = true) {
-                contentDescription = listOfNotNull(airing.timeLine(), airing.mark(), airing.entry.title, "Episode ${airing.episode}", progress, state).joinToString(", ")
+                contentDescription = listOfNotNull(airing.timeLine(), airing.entry.title, airing.episodeLine(), progress, state).joinToString(", ")
                 if (host != null) customActions = sheet().accessibilityActions(host)
             },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
@@ -295,12 +313,10 @@ private fun AiringRow(
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
         Row(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.width(84.dp).clearAndSetSemantics {}) {
-                Text(airing.timeLine(), style = MaterialTheme.typography.labelLarge, maxLines = 2)
-                airing.mark()?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall, color = LocalContentColor.current.copy(alpha = 0.72f))
-                }
-            }
+            // Lines under the title are haze, or the row's own colour once focus turns it silk;
+            // never a faded colour, which falls under 4.5:1 on a past row.
+            val quiet = if (focused) LocalContentColor.current else ObiSilk.Haze
+            Text(airing.timeText(quiet), style = MaterialTheme.typography.labelLarge, maxLines = 2, modifier = Modifier.width(84.dp).clearAndSetSemantics {})
             ArtImage(
                 airing.entry.bannerUrl ?: airing.entry.coverUrl,
                 CoverPlate.parse(airing.entry.coverColor),
@@ -310,13 +326,13 @@ private fun AiringRow(
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f).clearAndSetSemantics {}) {
                 Text(airing.entry.title, style = TvTitle.list, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("Episode ${airing.episode}", style = MaterialTheme.typography.bodyMedium, color = LocalContentColor.current.copy(alpha = 0.72f))
+                Text(airing.episodeLine(), style = MaterialTheme.typography.bodyMedium, color = quiet)
             }
             if (progress != null) {
                 Text(
                     progress,
                     style = MaterialTheme.typography.labelMedium,
-                    color = LocalContentColor.current.copy(alpha = 0.72f),
+                    color = quiet,
                     modifier = Modifier.padding(end = 16.dp).clearAndSetSemantics {},
                 )
             }

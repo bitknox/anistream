@@ -78,6 +78,10 @@ pub enum PlayerOp {
     /// Report `chapter-list` again, as it stands now: the file has loaded, and whether it brought
     /// chapters of its own decides whether the engine marks some.
     RestateChapters,
+    /// Read these properties once, as they stand, for Stats for nerds: the host answers with a
+    /// `PlayerReport::Property` for each, in order, and skips one mpv can't read. Sent at most
+    /// once a second, and only while the panel is open.
+    Sample { properties: Vec<String> },
     /// Stop the file and keep the player, for the next one.
     Stop,
     /// The viewer stopped playback: close the player, and report how the file ended.
@@ -179,6 +183,71 @@ pub enum PlayerUi {
     Alert { text: String, kind: NoticeKind },
 }
 
+/// What Stats for nerds says of the playback, worded by the engine from mpv's figures, so every
+/// app shows the same lines. Said on `Event::PlayerStats`.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct PlayerStats {
+    /// The panel's rows, in order. Empty while the panel is closed. A row with nothing to say is
+    /// left out: no HDR row for an SDR picture, no Network row for a file on the device.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub rows: Vec<DetailRow>,
+    /// The short lines the TV's Info panel shows, from the same figures: the picture and its
+    /// decoding, the source, the dropped frames and the upscaling. Said whenever they change,
+    /// with the panel open or not.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub summary: Vec<String>,
+    /// Nothing is known of the stream yet, and every row's value is a dash: the app shows
+    /// "Waiting for the stream" under the title once this has lasted a while.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub waiting: bool,
+}
+
+/// One row of Stats for nerds: "Video", "1920 × 1080 · HEVC 10-bit · 23.976 fps".
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct DetailRow {
+    pub label: String,
+    pub value: String,
+    /// The one row a problem shows on now, in amber: dropped frames rising, the buffer running
+    /// low while playing, the sound drifting from the picture. At most one row at a time.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub warn: bool,
+}
+
+/// What a Copy stats report says of the app, beside the rows: no account, no address.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct StatsAbout {
+    /// The app's version, such as "2.4.0".
+    pub app_version: String,
+    /// The system and its version, such as "macOS 26.1".
+    pub system: String,
+    /// The device's model, such as "Mac15,3".
+    pub device: String,
+}
+
+/// A made-up Stats for nerds, for an app's previews and tests: the panel in each of its states
+/// with no player behind it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum StatsFixture {
+    /// Opened before the file has: every value a dash.
+    Waiting,
+    /// A stream playing well.
+    Playing,
+    /// A file on the device: no Network row.
+    Local,
+    /// An HDR picture, tone-mapped to SDR.
+    Hdr,
+    /// Paused.
+    Paused,
+    /// Held waiting for data: the buffer in amber.
+    Buffering,
+    /// Frames dropping now: the dropped frames in amber.
+    Dropping,
+}
+
 /// One row of the player's Episodes menu.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
@@ -244,7 +313,9 @@ pub enum PlayerReport {
     /// way `mpv_observe_property` with `MPV_FORMAT_NODE` gives it. The engine reads `time-pos`,
     /// `duration`, `pause`, `speed`, `volume`, `chapter-list`, `video-params`,
     /// `current-tracks/video`, `track-list`, `aid`, `sid`, `sub-delay`, `paused-for-cache`,
-    /// `demuxer-cache-state`, `frame-drop-count` and `seeking`.
+    /// `demuxer-cache-state`, `frame-drop-count`, `seeking` and `hwdec-current`. A
+    /// [`PlayerOp::Sample`] is answered the same way, one report for each property the player
+    /// could read.
     Property { name: String, json: String },
     /// The file ended: mpv's `end-file`, with its reason.
     Ended { reason: PlayerEnd },

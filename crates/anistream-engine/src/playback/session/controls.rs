@@ -188,6 +188,8 @@ pub(super) async fn apply_command(link: &dyn PlayerLink, command: PlayerCommand)
         | PlayerCommand::Episodes { .. }
         | PlayerCommand::Step(_)
         | PlayerCommand::Reload
+        | PlayerCommand::Stats(_)
+        | PlayerCommand::CopyStats { .. }
         | PlayerCommand::ChooseTrack { .. }
         | PlayerCommand::SubtitleDelay { .. } => {}
         // What a player's own interface reports, read by the loop as the companion's word.

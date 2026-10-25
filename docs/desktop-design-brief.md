@@ -589,6 +589,7 @@ controls; every other key shows them.
 | N, Shift+N | Next or previous episode |
 | E | Episodes |
 | T | Subtitles and audio |
+| I | Stats for nerds |
 | [ and ], Backspace | Slower, faster, normal speed |
 | P | Mini player |
 | Alt+Left | Close the player |

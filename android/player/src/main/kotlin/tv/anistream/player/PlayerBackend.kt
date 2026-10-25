@@ -18,8 +18,8 @@ interface PlayerBackend {
     /** Start mpv, decoding with [hwdec] and with [options] besides, observing what the engine reads. */
     suspend fun begin(hwdec: String, options: Map<String, String>)
 
-    /** One call; a `Restate` answers with the report it reads. */
-    suspend fun perform(call: MpvCall): PlayerReport?
+    /** One call; a `Restate` or a `Sample` answers with the reports it reads. */
+    suspend fun perform(call: MpvCall): List<PlayerReport>
 
     /**
      * Decode in software from now on, if mpv answers within [timeoutMs]: false when it does not,
@@ -55,7 +55,7 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
         mpv.start(MpvSetup.playerOptions(context, hwdec) + options.toList() + extra, reportedProperties, logLevel = "warn")
     }
 
-    override suspend fun perform(call: MpvCall): PlayerReport? {
+    override suspend fun perform(call: MpvCall): List<PlayerReport> {
         when (call) {
             is MpvCall.Load -> {
                 val arguments = mutableMapOf<String, MpvValue>("url" to MpvValue.Text(call.url), "flags" to MpvValue.Text("replace"))
@@ -74,9 +74,13 @@ class MpvBackend(private val context: Context, private val extra: List<Pair<Stri
             is MpvCall.Command -> mpv.command(*call.args.toTypedArray())
             is MpvCall.Seek -> mpv.command("seek", call.seconds.toString(), call.mode.mpv)
             is MpvCall.Shaders -> mpv.set("glsl-shaders", MpvValue.List(call.paths.map(MpvValue::Text)))
-            is MpvCall.Restate -> return PlayerReport.Property(call.property, mpv.get(call.property).json)
+            is MpvCall.Restate -> return listOf(PlayerReport.Property(call.property, mpv.get(call.property).json))
+            // A property mpv has no value for now is left out, and the engine leaves its row out.
+            is MpvCall.Sample -> return call.properties.mapNotNull { property ->
+                mpv.get(property).takeIf { it != MpvValue.None }?.let { PlayerReport.Property(property, it.json) }
+            }
         }
-        return null
+        return emptyList()
     }
 
     override suspend fun decodeInSoftware(timeoutMs: Long): Boolean = mpv.setWithin("hwdec", "no", timeoutMs)

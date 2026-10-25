@@ -145,6 +145,13 @@ public struct MacPlayerView: View {
             .padding(.top, 60)
             .frame(maxHeight: .infinity, alignment: .top)
             .animation(.standard, value: model.alert)
+        // Stats for nerds stays up while the controls hide, below where the top bar's capsule
+        // is, under the menus that hang from it.
+        StatsPanel(model: model, metrics: metrics)
+            .padding(.top, 60)
+            .padding(.trailing, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .animation(model.statsPanel != nil ? .fadeIn : .fadeOut, value: model.statsPanel != nil)
         // A panel is part of the chrome: it fades in and out as the controls do (T4).
         ZStack {
             if let panel {
@@ -172,6 +179,7 @@ public struct MacPlayerView: View {
         Button("Episodes…") { toggle(.episodes) }
         Button("Picture and Sound…") { toggle(.picture) }
             .disabled(model.menus == nil)
+        Toggle("Stats for Nerds", isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
         Divider()
         Button("Picture in Picture") { model.togglePictureInPicture() }
             .disabled(!model.pictureInPictureAvailable)
@@ -472,6 +480,7 @@ public struct MacPlayerView: View {
             case "n": model.step(shift ? -1 : 1)
             case "f" where !command: model.fullScreen.toggle()
             case "e": toggle(.episodes)
+            case "i" where !command: model.toggleStats()
             case "[" where command: back()
             case "]": model.setSpeed(min(4, model.speed * 1.1))
             case "[": model.setSpeed(max(0.25, model.speed / 1.1))
@@ -573,39 +582,6 @@ public struct MacPlayerView: View {
             for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
                 window.standardWindowButton(kind)?.animator().alphaValue = visible ? 1 : 0
             }
-        }
-    }
-}
-
-/// A button over the video: its symbol or words on silk that lights at 10% under the pointer,
-/// and at the board's 16% pressed and while its menu is open, with the pointing hand. `lit`
-/// says the pointer is over it where its own hover cannot see, in the title bar strip.
-struct OverVideoButtonStyle: ButtonStyle {
-    var on = false
-    var lit = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        Lit(configuration: configuration, on: on, lit: lit)
-    }
-
-    private struct Lit: View {
-        let configuration: Configuration
-        let on: Bool
-        let lit: Bool
-        @State private var hovering = false
-        @Environment(\.isEnabled) private var enabled
-
-        var body: some View {
-            configuration.label
-                .background(Palette.silk.opacity(fill), in: .capsule)
-                .animation(.quick, value: hovering || lit)
-                .onHover { hovering = $0 }
-                .pointingHand(enabled)
-        }
-
-        private var fill: Double {
-            if configuration.isPressed || on { return 0.16 }
-            return (hovering || lit) && enabled ? 0.1 : 0
         }
     }
 }

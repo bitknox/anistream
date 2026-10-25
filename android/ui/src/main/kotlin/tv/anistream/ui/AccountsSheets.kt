@@ -6,6 +6,7 @@ package tv.anistream.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,13 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -34,12 +37,13 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,8 +62,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.anistream.design.tabular
 import tv.anistream.engine.model.DeviceCodePrompt
-import tv.anistream.store.CodeCountdown
 import tv.anistream.store.AccountsModel
+import tv.anistream.store.CodeCountdown
 
 /**
  * A sheet as the brief has it: surfaceContainer, corners 28 on top, the drag handle in haze at 40 %,
@@ -213,11 +217,14 @@ internal fun KitsuSheet(onDismiss: () -> Unit) {
 
 /**
  * A code to type on another screen, for Simkl or Trakt: the code large, where to type it, and a
- * way there. It stays until the engine says the sign-in ended, or the viewer closes it.
+ * way there. It stays until the engine says the sign-in ended, or the viewer closes it. Once the
+ * code runs out it says "Code expired", and Get a new code takes the place of the way there.
  */
 @Composable
 internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
+    val store = LocalAppStore.current
     val uri = LocalUriHandler.current
+    var expired by remember(prompt.code) { mutableStateOf(false) }
     val name = AccountsModel.name(prompt.tracker)
     val host = runCatching { android.net.Uri.parse(prompt.url).host }.getOrNull() ?: prompt.url
     val colors = MaterialTheme.colorScheme
@@ -227,7 +234,7 @@ internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
         Text(
             prompt.code,
             style = TextStyle(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Medium, fontSize = 34.sp, lineHeight = 44.sp, letterSpacing = 4.sp),
-            color = colors.onSurface,
+            color = if (expired) colors.onSurfaceVariant else colors.onSurface,
             modifier = Modifier
                 .padding(top = 16.dp)
                 .fillMaxWidth()
@@ -236,39 +243,43 @@ internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
                 .semantics { contentDescription = "Code ${prompt.code.toList().joinToString(" ")}" },
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
-        SheetText("Waiting for $name", Modifier.padding(top = 12.dp))
-        CodeExpiry(prompt, Modifier.padding(top = 4.dp))
+        if (!expired) SheetText("Waiting for $name", Modifier.padding(top = 12.dp))
+        CodeExpiry(prompt, Modifier.padding(top = if (expired) 12.dp else 4.dp), onExpired = { expired = true })
         SheetButtons {
             QuietButton("Close", onClick = onDismiss)
-            Button(onClick = { runCatching { uri.openUri(prompt.url) } }) { Text("Open $host") }
+            if (expired) {
+                Button(onClick = { store.connect(prompt.tracker) }) { Text("Get a new code") }
+            } else {
+                Button(onClick = { runCatching { uri.openUri(prompt.url) } }) { Text("Open $host") }
+            }
         }
     }
 }
 
 /**
- * "Expires in 14:59" under a code, ticking each second. At nought the sign-in asks for a new code,
- * as the TV's "Get a new code" does, which replaces this one. Nothing when the service gave no time.
+ * How long the code has left under it, in the engine's words, then "Code expired" with an
+ * error's mark, when [onExpired] has the sheet offer Get a new code. Nothing asks for a new code
+ * by itself: a code changing while someone types it on another screen is worse than one that ran
+ * out. Nothing when the service gave no time.
  */
 @Composable
-internal fun CodeExpiry(prompt: DeviceCodePrompt, modifier: Modifier = Modifier) {
-    val store = LocalAppStore.current
+internal fun CodeExpiry(prompt: DeviceCodePrompt, modifier: Modifier = Modifier, onExpired: () -> Unit = {}) {
     val expiresAt = prompt.expiresAt ?: return
+    val expired by rememberUpdatedState(onExpired)
     var left by remember(prompt.code, expiresAt) { mutableStateOf(CodeCountdown.secondsLeft(expiresAt, System.currentTimeMillis())) }
     LaunchedEffect(prompt.code, expiresAt) {
-        var live = false
-        CodeCountdown.ticks(expiresAt).collect {
-            if (it > 0) live = true
-            left = it
-        }
-        // A code that was out when it arrived is not asked for again, which would only loop.
-        if (live) store.connect(prompt.tracker)
+        CodeCountdown.ticks(expiresAt).collect { left = it }
+        expired()
     }
-    Text(
-        CodeCountdown.line(left),
-        style = MaterialTheme.typography.bodyMedium.tabular(),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
-    )
+    val colors = MaterialTheme.colorScheme
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (left == 0L) Box(Modifier.size(8.dp).background(colors.error, CircleShape))
+        Text(
+            CodeCountdown.line(left),
+            style = MaterialTheme.typography.bodyMedium.tabular(),
+            color = if (left == 0L) colors.onSurface else colors.onSurfaceVariant,
+        )
+    }
 }
 
 /** What a library pull found different here and on AniList: each title, and which side to keep. */

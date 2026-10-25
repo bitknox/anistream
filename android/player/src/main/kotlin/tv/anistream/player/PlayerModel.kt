@@ -302,18 +302,12 @@ class PlayerModel(
     var aspect by mutableStateOf<Double?>(null)
         private set
 
-    /** The picture's height in lines and its pixel format, for the Info panel: 1080, "yuv420p10". */
-    var videoHeight by mutableStateOf<Int?>(null)
-        private set
-    var pixelFormat by mutableStateOf<String?>(null)
-        private set
-
-    /** The video track's codec as mpv names it ("hevc"), for the Info panel. */
-    var videoCodec by mutableStateOf<String?>(null)
-        private set
-
-    /** Frames mpv dropped in this file, for the Info panel. */
-    var droppedFrames by mutableStateOf(0L)
+    /**
+     * Stats for nerds' short lines as the engine last said them, for the TV's Info panel: "1080p ·
+     * HEVC 10-bit · hardware decoding", the source, the dropped frames and the upscaling. Empty
+     * until the engine knows the picture.
+     */
+    var statsSummary by mutableStateOf<List<String>>(emptyList())
         private set
 
     // The viewer
@@ -402,6 +396,9 @@ class PlayerModel(
                 }
             }
             is Event.Sources -> if (choosingSource) sourceChoices = event.candidates
+            // The summary the engine says as it changes; the live panel's rows are for later.
+            is Event.PlayerStats ->
+                if (accepts(event.playback) && event.playback >= (playback ?: event.playback)) statsSummary = event.stats.summary
             // The playback staged found nothing; the one before plays on.
             Event.PlaybackKept -> starting = null
             // The alerts that come while the player is up: the one before a failed ending says why.
@@ -594,7 +591,7 @@ class PlayerModel(
                 when (item) {
                     is Work.Call -> try {
                         val call = if (item.call is MpvCall.Load) ready(item.call) else item.call
-                        mpv.perform(call)?.let(::report)
+                        mpv.perform(call).forEach(::report)
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.w(TAG, "mpv refused ${item.call::class.simpleName}: $e")
@@ -761,10 +758,7 @@ class PlayerModel(
         bufferingSince = null
         hasPicture = false
         aspect = null
-        videoHeight = null
-        pixelFormat = null
-        videoCodec = null
-        droppedFrames = 0L
+        statsSummary = emptyList()
     }
 
     // mpv's events
@@ -856,11 +850,7 @@ class PlayerModel(
                 val w = value["dw"].double ?: value["w"].double
                 val h = value["dh"].double ?: value["h"].double
                 if (w != null && h != null && h > 0) aspect = w / h
-                videoHeight = value["h"].double?.toInt()
-                pixelFormat = value["hw-pixelformat"].string ?: value["pixelformat"].string
             }
-            "current-tracks/video" -> videoCodec = value["codec"].string
-            "frame-drop-count" -> droppedFrames = value.long ?: 0L
             "aid" -> audioTrack = value.long
             "sid" -> subtitleTrack = value.long
             "paused-for-cache" -> {
@@ -1435,6 +1425,7 @@ class PlayerModel(
             is PlayerOp.Shaders -> if (op.paths.isEmpty()) "shaders off" else "shaders: ${op.paths.joinToString { it.substringAfterLast('/') }}"
             is PlayerOp.AudioFilter -> if (op.add) "add an audio filter" else "remove an audio filter"
             PlayerOp.RestateChapters -> "restate the chapters"
+            is PlayerOp.Sample -> "read ${op.properties.size} properties for the stats"
             PlayerOp.Stop -> "stop"
             PlayerOp.Quit -> "quit"
             PlayerOp.Close -> "close"

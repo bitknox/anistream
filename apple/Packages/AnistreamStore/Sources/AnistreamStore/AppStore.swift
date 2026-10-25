@@ -649,7 +649,7 @@ public final class AppStore {
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
             widgetsChanged()
-        case .playerOps, .playerUi, .playbackKept, .sources, .playerTimeline, .playerBuffered:
+        case .playerOps, .playerUi, .playbackKept, .sources, .playerTimeline, .playerBuffered, .playerStats, .clipboard:
             onPlayback?(event)
 
         case .widgetSnapshot(let data):

@@ -33,6 +33,12 @@ public enum PlayerTiming {
     public static let startingOffers: Duration = .seconds(20)
     /// How long a player closed before its first frame waits for the playback's verdict.
     public static let verdictWait: Duration = .seconds(3)
+    /// Stats for nerds, opened before the file: nothing this long, then the rows with dashes,
+    /// and "Waiting for the stream" from `statsWaitingLine`.
+    public static let statsDashes: Duration = .milliseconds(600)
+    public static let statsWaitingLine: Duration = .seconds(4)
+    /// "Copied" stands in for Copy stats this long.
+    public static let statsCopied: Duration = .milliseconds(1500)
 
     /// Whether the buffering line shows: mpv has waited on its cache since `since` for
     /// `bufferingLineAfter` by `now`, and the starting screen, which has a line of its own, is
@@ -117,10 +123,17 @@ public struct EpisodeOnScreen: Equatable, Sendable {
     public var show: String
     public var translation: Translation
 
-    /// "Episode 7 · The Lantern Road", or the label alone.
+    /// "Episode 7 · Dub · The Lantern Road" for a dub, "Episode 7 · The Lantern Road" for a sub,
+    /// without the name when it has none. Only dubs are marked, wherever an episode is described.
     public var line: String {
-        guard let title, !title.isEmpty else { return label }
-        return "\(label) · \(title)"
+        let episode = label + dubMark
+        guard let title, !title.isEmpty else { return episode }
+        return "\(episode) · \(title)"
+    }
+
+    /// " · Dub" after the episode's number when it plays dubbed, or nothing.
+    public var dubMark: String {
+        translation == .dub ? " · \(translation.label)" : ""
     }
 }
 

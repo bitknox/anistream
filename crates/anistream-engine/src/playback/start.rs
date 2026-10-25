@@ -342,6 +342,7 @@ fn machine(opener: Arc<dyn PlayerOpener>, services: &Services) -> playback::Mach
         slot: services.slot.clone(),
         host: services.host.clone(),
         power: services.power.clone(),
+        offline: services.offline.clone(),
     }
 }
 
@@ -504,23 +505,38 @@ fn spawn_playback(
             // The episode being watched carries on, and the window with it: only the lookup
             // failed, and closing what was playing over it would punish the viewer for asking.
             Err(reason) if handoff.live() => {
+                // In a party the dialog says why, and a toast would say it twice.
+                // The kind comes as the lookup decided it.
                 if party {
-                    let _ = tx.send(Event::PartyNoSource { id, episode: episode.clone() });
+                    let _ = tx.send(Event::PartyNoSource {
+                        id,
+                        episode: episode.clone(),
+                        why: reason.why,
+                        reason: reason.text.clone(),
+                    });
+                } else {
+                    let _ = tx.send(Event::Toast(Notice::alert(reason.text.clone())));
                 }
-                let _ = tx.send(Event::Toast(Notice::alert(reason.clone())));
                 let _ = tx.send(Event::PlaybackKept);
-                handoff.keep(commands, reason).await;
+                handoff.keep(commands, reason.text).await;
                 return;
             }
             Err(reason) => {
                 // In the room all the same, with nothing playing: the party's dialog offers
                 // Choose source.
-                if party {
-                    let _ = tx.send(Event::PartyNoSource { id, episode: episode.clone() });
-                }
                 // The failure ladder's first rung: name the failure rather than showing an
-                // empty screen. Releasing the eyecatch is what the alert does for us.
-                let _ = tx.send(Event::Toast(Notice::alert(reason)));
+                // empty screen. Releasing the eyecatch is what the alert does for us. In a
+                // party the dialog names it instead, and the ending below releases it.
+                if party {
+                    let _ = tx.send(Event::PartyNoSource {
+                        id,
+                        episode: episode.clone(),
+                        why: reason.why,
+                        reason: reason.text,
+                    });
+                } else {
+                    let _ = tx.send(Event::Toast(Notice::alert(reason.text)));
+                }
                 // A window left open for this episode would wait for nothing.
                 slot.release();
                 let _ = tx.send(Event::playback_ended(

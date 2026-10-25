@@ -11,7 +11,7 @@ object CodeCountdown {
     /** Whole seconds left of a code that stops working at [expiresAt] (Unix seconds), never below nought. */
     fun secondsLeft(expiresAt: Long, nowMillis: Long): Long = maxOf(0L, expiresAt - nowMillis / 1000)
 
-    /** "Expires in 14:59", then "Code expired". */
+    /** "Expires in 15 min", "Expires in 45 s" in the last minute, then "Code expired". */
     fun line(secondsLeft: Long): String = deviceCodeExpiry(secondsLeft)
 
     /**

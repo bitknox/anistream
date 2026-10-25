@@ -13,8 +13,8 @@ public protocol PlayerBackend: AnyObject, Sendable {
     nonisolated func events() -> AsyncStream<MpvEvent>
     /// Start mpv drawing into `layer`, observing what the engine reads.
     func begin(on layer: MpvLayer) async throws
-    /// One call; a `restate` answers with the report it reads.
-    func perform(_ call: MpvCall) async throws -> PlayerReport?
+    /// One call; a `restate` or a `sample` answers with the reports it reads.
+    func perform(_ call: MpvCall) async throws -> [PlayerReport]
     /// The screen the surface is on.
     func display(_ display: DisplayInfo) async
     /// The surface changed size.
@@ -38,7 +38,7 @@ extension MpvClient: PlayerBackend {
         try observe(reportedProperties)
     }
 
-    public func perform(_ call: MpvCall) throws -> PlayerReport? {
+    public func perform(_ call: MpvCall) throws -> [PlayerReport] {
         switch call {
         case .load(let url, let options):
             try load(url, options: options)
@@ -53,9 +53,15 @@ extension MpvClient: PlayerBackend {
         case .shaders(let paths):
             try setShaders(paths)
         case .restate(let property):
-            return .property(name: property, json: try get(property).json)
+            return [.property(name: property, json: try get(property).json)]
+        case .sample(let properties):
+            // A property mpv has no value for now, such as the audio's with none playing, is
+            // left out, and the engine leaves its row out.
+            return properties.compactMap { property in
+                (try? get(property)).map { .property(name: property, json: $0.json) }
+            }
         }
-        return nil
+        return []
     }
 
     public func display(_ display: DisplayInfo) {

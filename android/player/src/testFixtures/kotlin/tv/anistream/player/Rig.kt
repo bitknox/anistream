@@ -39,12 +39,16 @@ class ScriptedMpv : PlayerBackend {
         begunWith = options
     }
 
-    override suspend fun perform(call: MpvCall): PlayerReport? {
-        if (ended) return null
+    override suspend fun perform(call: MpvCall): List<PlayerReport> {
+        if (ended) return emptyList()
         if (stuck) kotlinx.coroutines.awaitCancellation()
         calls += call
-        if (call is MpvCall.Restate) return PlayerReport.Property(call.property, (answers[call.property] ?: MpvValue.List(emptyList())).json)
-        return null
+        return when (call) {
+            is MpvCall.Restate -> listOf(PlayerReport.Property(call.property, (answers[call.property] ?: MpvValue.List(emptyList())).json))
+            // Only what it was told to answer, as mpv has no value for the rest.
+            is MpvCall.Sample -> call.properties.mapNotNull { p -> answers[p]?.let { PlayerReport.Property(p, it.json) } }
+            else -> emptyList()
+        }
     }
 
     /** Whether mpv was asked to decode in software, and answered. */

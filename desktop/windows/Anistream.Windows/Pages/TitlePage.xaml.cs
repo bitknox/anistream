@@ -261,6 +261,8 @@ public sealed partial class TitlePage : Page, IPageKeys
         foreach (var item in StatusMenu.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Tag is LibrarySegment s && s == entry.ListStatus;
         TrailerItem.IsEnabled = entry.TrailerUrl is not null;
+        // A party plays the episode the primary action would.
+        PartyItem.IsEnabled = action is { Playable: true };
 
         ShowSeasons(entry);
         ShowDetails(entry);
@@ -497,6 +499,12 @@ public sealed partial class TitlePage : Page, IPageKeys
     }
 
     void OnShowSettings(object sender, RoutedEventArgs e) => OpenShowSettings();
+
+    void OnWatchTogether(object sender, RoutedEventArgs e)
+    {
+        if (action is { Playable: true })
+            ctx.Window.ShowParty(new PartyDialog.For.Episode(id, action.Episode.ToString()));
+    }
 
     void OpenShowSettings()
     {

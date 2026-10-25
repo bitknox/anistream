@@ -106,6 +106,63 @@ struct FixturesPlaybackTests {
         await model.finished()
     }
 
+    /// Stats for nerds on a real mpv: the engine asks for the figures, mpv answers them, and the
+    /// rows read the file as it plays, a file on the device with no Network row.
+    @Test func statsForNerdsReadTheFileAsItPlays() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "anistream-player-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AppStore()
+        var copied: [String] = []
+        let model = PlayerModel(
+            send: { [weak store] command in store?.send(command) },
+            backend: {
+                var configuration = MpvConfiguration()
+                configuration.options["ao"] = "null"
+                return MpvClient(configuration: configuration)
+            },
+            copy: { copied.append($0) })
+        store.onPlayback = { [weak model] event in model?.apply(event) }
+        await store.start(
+            EngineLaunch(
+                engine: .fixtures(.playing(media: try Self.episode())), home: .override(root: root),
+                platform: .macOs, secrets: .host),
+            host: AppHost(secrets: MemorySecrets(), open: { _ in false }))
+        // Up before the file opens: the dashes first, then the file's rows.
+        store.send(.play(id: Self.finished, episode: "7"))
+        try await until("the player", timeout: .seconds(20)) { model.isPresented }
+        model.toggleStats()
+        try await until("the first frame", timeout: .seconds(20)) { model.hasPicture && model.starting == nil }
+        try await until("the rows", timeout: .seconds(10)) {
+            model.statsPanel?.rows.first { $0.label == "Video" }?.value.contains("×") == true
+        }
+        let rows = try #require(model.statsPanel?.rows)
+        let labels = rows.map(\.label)
+        // No Display row: a layer in no window is on no screen.
+        #expect(labels.starts(with: ["Video", "Decoding"]), "\(labels)")
+        #expect(!labels.contains("Display"), "\(labels)")
+        #expect(rows.allSatisfy { !$0.warn }, "a file on the device playing well: \(rows)")
+        #expect(!labels.contains("Network"), "a file on the device")
+        #expect(!labels.contains("HDR"), "an SDR picture")
+        #expect(rows.allSatisfy { !$0.value.isEmpty && $0.value != "–" }, "\(rows)")
+        #expect(model.statsWaitingSince == nil)
+
+        model.statsAbout = { StatsAbout(appVersion: "2.4.0", system: "macOS 26.1", device: "Mac15,3") }
+        model.copyStats()
+        try await until("the lines copied", timeout: .seconds(5)) { !copied.isEmpty }
+        let text = try #require(copied.first)
+        #expect(text.hasPrefix("Stats for nerds\nVideo: "), "\(text)")
+        #expect(text.hasSuffix("App: anistream 2.4.0\nSystem: macOS 26.1\nDevice: Mac15,3"), "\(text)")
+        #expect(!text.contains(try Self.episode()), "no path")
+
+        model.toggleStats()
+        #expect(model.statsPanel == nil)
+        model.viewerClosed()
+        try await until("the player closed", timeout: .seconds(10)) { !model.isPresented }
+        store.shutdown()
+        await model.finished()
+    }
+
     /// The `PlaybackEnded`s among `events`, in order.
     static func endings(_ events: [Event]) -> [(watched: Bool, ending: Ending, rollingOn: Bool)] {
         events.compactMap { event in

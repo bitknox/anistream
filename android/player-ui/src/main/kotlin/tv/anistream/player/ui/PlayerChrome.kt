@@ -358,7 +358,10 @@ private fun SeekTrack(state: SliderState, segments: List<SeekSegment>, buffered:
         val inner = 2.dp.toPx()
         val handle = fraction * size.width
         val playedEnd = handle - gap
-        if (playedEnd > 0) piece(0f, playedEnd, ObiSilk.Amber, outer, inner)
+        // The opening and ending show in water on the played part too, on top of the amber.
+        val marks = segments.filter { it.kind != SeekSegment.Kind.Plain }
+            .map { (it.start / duration).toFloat() * size.width to (it.end / duration).toFloat() * size.width }
+        if (playedEnd > 0) piece(0f, playedEnd, ObiSilk.Amber, outer, inner, marks, ObiSilk.Water)
         var at = handle + gap
         if (at >= size.width) return@Canvas
         // After the handle: the plain stretches and the marked ones, each its own piece.
@@ -382,8 +385,16 @@ private fun SeekTrack(state: SliderState, segments: List<SeekSegment>, buffered:
     }
 }
 
-/** One stretch of the track, its corners [left] and [right] round. */
-private fun DrawScope.piece(start: Float, end: Float, color: Color, left: Float, right: Float, held: List<Pair<Float, Float>> = emptyList()) {
+/** One stretch of the track, its corners [left] and [right] round, with the [held] parts of it in [heldColor]. */
+private fun DrawScope.piece(
+    start: Float,
+    end: Float,
+    color: Color,
+    left: Float,
+    right: Float,
+    held: List<Pair<Float, Float>> = emptyList(),
+    heldColor: Color = ObiSilk.Silk.copy(alpha = 0.3f),
+) {
     val path = Path().apply {
         addRoundRect(
             RoundRect(
@@ -397,7 +408,7 @@ private fun DrawScope.piece(start: Float, end: Float, color: Color, left: Float,
     if (held.isNotEmpty()) {
         clipPath(path) {
             for ((from, to) in held) {
-                if (to > start && from < end) drawRect(ObiSilk.Silk.copy(alpha = 0.3f), Offset(maxOf(from, start), 0f), Size(minOf(to, end) - maxOf(from, start), size.height))
+                if (to > start && from < end) drawRect(heldColor, Offset(maxOf(from, start), 0f), Size(minOf(to, end) - maxOf(from, start), size.height))
             }
         }
     }

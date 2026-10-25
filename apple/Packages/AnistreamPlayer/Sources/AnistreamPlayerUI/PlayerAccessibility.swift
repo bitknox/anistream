@@ -29,8 +29,9 @@ struct PlayerAccessibility: ViewModifier {
             .accessibilityAction(.escape) { model.viewerClosed() }
             .onChange(of: model.upNextShown) { _, shown in
                 guard shown, let card = model.upNext else { return }
-                announce(card.next.title.map { "Up next: episode \(card.next.number), \($0)" }
-                    ?? "Up next: episode \(card.next.number)")
+                let episode = "Up next: episode \(card.next.number)"
+                    + (model.episode?.translation == .dub ? ", dub" : "")
+                announce(card.next.title.map { "\(episode), \($0)" } ?? episode)
             }
             .onChange(of: model.countdown?.seconds) { _, seconds in
                 if seconds == 8 { announce("Plays in 8 seconds") }

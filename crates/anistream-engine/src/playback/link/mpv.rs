@@ -104,7 +104,7 @@ impl PlayerLink for MpvSession {
             Overlay::Stall { seconds } => companion::stall(seconds),
             Overlay::StallCleared => companion::stall_clear(),
             // The companion's seek bar reads mpv itself, chapters and cache alike.
-            Overlay::Timeline(_) | Overlay::Buffered(_) => return Ok(()),
+            Overlay::Timeline(_) | Overlay::Buffered(_) | Overlay::Stats(_) => return Ok(()),
         };
         Ok(self.send(command).await?)
     }

@@ -294,6 +294,7 @@ pub(crate) fn dispatch(
         }
         Command::NetworkPath { cellular, constrained, offline } => {
             let network = crate::phases::Network { cellular, constrained, offline };
+            services.offline.store(offline, std::sync::atomic::Ordering::Relaxed);
             crate::phases::network_path(network, engine, tx);
             ahead::top_up(engine, services, tx);
         }

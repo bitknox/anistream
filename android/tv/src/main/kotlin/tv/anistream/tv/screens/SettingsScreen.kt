@@ -53,6 +53,7 @@ import tv.anistream.store.standing
 import tv.anistream.engine.ffi.FfiPairedPhone
 import tv.anistream.engine.model.SettingChange
 import tv.anistream.engine.model.SettingKey
+import tv.anistream.engine.model.SettingRow
 import tv.anistream.engine.model.SettingsView
 import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AccountsModel
@@ -74,6 +75,7 @@ import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.CardAction
 import tv.anistream.tv.ui.LocalActions
 import tv.anistream.tv.ui.focusSoon
+import tv.anistream.tv.ui.languageName
 import tv.anistream.tv.ui.EnterFocus
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.LocalAppStore
@@ -86,6 +88,7 @@ import tv.anistream.tv.ui.remembered
 
 /** The sections, top to bottom. */
 enum class SettingsSection(val label: String) {
+    General("General"),
     Playback("Playback"),
     Sources("Sources"),
     PluginStores("Plugin stores"),
@@ -119,7 +122,7 @@ private val Trackers = listOf(
 )
 
 @Composable
-fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection = SettingsSection.Playback) {
+fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection = SettingsSection.General) {
     val store = LocalAppStore.current
     var section by rememberSaveable { mutableStateOf(start) }
     val view by store.settings.view.collectAsStateWithLifecycle()
@@ -133,11 +136,13 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
     Row(Modifier.fillMaxSize().padding(start = Canvas.Keyline, top = Canvas.SafeY, end = Canvas.SafeX)) {
         Column(Modifier.width(256.dp).fillMaxHeight().focusRestorer(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Settings", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp).semantics { heading() })
+            // Eight sections at 48 each end inside the safe area, under the heading.
             SettingsSection.entries.forEach { each ->
                 TvListRow(
                     each.label,
                     onClick = {},
                     selected = each == section,
+                    height = 48.dp,
                     modifier = Modifier
                         .onFocusChanged { if (it.isFocused) section = each }
                         .firstFocus(memory, "section/${each.name}", each == start),
@@ -159,6 +164,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 when (section) {
+                    SettingsSection.General -> general(store, view, memory, first)
                     SettingsSection.Playback -> playback(store, view, memory, first)
                     SettingsSection.Sources -> sources(memory, first)
                     SettingsSection.PluginStores -> pluginStores(nav, memory, first)
@@ -173,40 +179,68 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
     EnterFocus(memory)
 }
 
-private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
+/** General: how titles are named, which is about every screen rather than playback. */
+private fun LazyListScope.general(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     item(key = "titles", contentType = "setting") { TitleLanguageRow(store, view, memory, first) }
+}
+
+private fun LazyListScope.playback(store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     PlaybackRows.forEachIndexed { index, (key, label) ->
         item(key = key.name, contentType = "setting") {
             val actions = LocalActions.current
             val row = store.settings.row(key, view)
             val switch = SettingsCatalog.isSwitch(key)
             val overridden = store.settings.overridden(key, view)
-            val options = SettingsCatalog.options(key)
+            val options = settingChoices(key, row)
             TvListRow(
                 label,
                 onClick = {
                     // A row with choices opens its radio panel; the choice applies at once.
                     if (!switch && options.isNotEmpty() && actions != null) {
-                        val current = SettingsCatalog.current(row)
-                        actions.open(ActionSheet(label, options.map { option ->
-                            CardAction(option.label, selected = option == current) { store.setSetting(key, option.value) }
+                        actions.open(ActionSheet(label, options.map { (value, words, selected) ->
+                            CardAction(words, selected = selected) { store.setSetting(key, value) }
                         }))
                     } else {
                         change(store, key, row?.change, switch, view)
                     }
                 },
                 supporting = overridden,
-                value = if (switch) null else row?.let { SettingsCatalog.current(it)?.label ?: it.value },
+                value = if (switch) null else row?.let { settingWords(key, SettingsCatalog.current(it)?.label ?: it.value) },
                 switch = if (switch) store.settings.isOn(key, view) else null,
                 enabled = SettingsCatalog.editable(row),
-                modifier = Modifier.remembered(memory, "row/${key.name}"),
+                modifier = (if (index == 0) first else Modifier).remembered(memory, "row/${key.name}"),
             )
         }
     }
 }
 
+/** The subtitle languages a panel offers, the phone's: the ones people pick most, then any other the file names. */
+private val SubtitleLanguages = listOf("en", "ja", "es", "pt", "fr", "de", "it", "ru", "ar", "id", "ko", "zh")
+
+/** A setting's radio panel: each value, its words, and whether the row stands on it. */
+private fun settingChoices(key: SettingKey, row: SettingRow?): List<Triple<SettingValue, String, Boolean>> {
+    if (key == SettingKey.SUBTITLES) {
+        val code = SettingsCatalog.typedText(row) ?: row?.value ?: ""
+        return (SubtitleLanguages + listOf(code).filter { it.isNotEmpty() && it !in SubtitleLanguages })
+            .map { Triple(SettingValue.Str(it), languageName(it), it == code) }
+    }
+    val current = SettingsCatalog.current(row)
+    return SettingsCatalog.options(key).map { Triple(it.value, settingWords(key, it.label), it == current) }
+}
+
 /**
- * Title language, Playback's first row as on the phone: AniList's choice, English or Romaji, in a
+ * A value as a row says it, in the phone's words: "Subtitled" or "Dubbed" for sub or dub, a
+ * language by its name, anything else in sentence case: "Off", "1080p".
+ */
+internal fun settingWords(key: SettingKey, value: String): String = when {
+    key == SettingKey.TRANSLATION && value.substringBefore(" · ") == "sub" -> "Subtitled"
+    key == SettingKey.TRANSLATION && value.substringBefore(" · ") == "dub" -> "Dubbed"
+    key == SettingKey.SUBTITLES -> languageName(value)
+    else -> value.replaceFirstChar { it.titlecase(java.util.Locale.UK) }
+}
+
+/**
+ * Title language, General's row, worded as the phone's: AniList's choice, English or Romaji, in a
  * radio panel, with a line under the label saying what the choice does now.
  */
 @Composable
@@ -555,8 +589,8 @@ private fun LazyListScope.about(nav: TvNavigator, memory: FocusMemory, first: Mo
 
 /**
  * About's update rows, where this build updates itself or a release is staged: the newer release,
- * which opens the update's page, or Check for updates with what the last check said; then the
- * daily check's switch. Whether there were any, so the first focus goes to the first of them.
+ * which opens the update's page, or Check now with what the last check said, in the phone's
+ * words; then the daily check's switch. Whether there were any, so the first focus goes to the first of them.
  */
 @Composable
 private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): Boolean {
@@ -568,7 +602,7 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
     if (offer == null && !store.updates.updatesItself) return false
     if (offer != null) {
         TvListRow(
-            "Update to anistream ${offer.name}",
+            "Update to ${offer.name}",
             onClick = nav::openUpdate,
             supporting = updateLine(state),
             icon = TvIcons.Update,
@@ -576,15 +610,14 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
         )
     } else {
         TvListRow(
-            "Check for updates",
+            "Check now",
             onClick = { if (check != UpdateCheck.Checking) store.checkForUpdates() },
-            value = when (val now = check) {
+            supporting = when (val now = check) {
                 UpdateCheck.Unknown, UpdateCheck.Found -> null
                 UpdateCheck.Checking -> "Checking"
-                UpdateCheck.UpToDate -> "Up to date"
-                is UpdateCheck.Failed -> "Couldn't check"
+                UpdateCheck.UpToDate -> "anistream is up to date"
+                is UpdateCheck.Failed -> "Not checked. ${plainReason(now.reason)}"
             },
-            supporting = (check as? UpdateCheck.Failed)?.let { plainReason(it.reason) },
             modifier = first.remembered(memory, "about/check"),
         )
     }
@@ -601,16 +634,16 @@ private fun UpdateRows(nav: TvNavigator, memory: FocusMemory, first: Modifier): 
     return true
 }
 
-/** The update row's line: "Available · 48 MB", "Downloading 34 %", or why it stopped. */
+/** The update row's line, as the phone's: "Available · 48 MB", "Downloading 34 %", "Installing", or why it stopped. */
 fun updateLine(state: UpdateState): String = when (state) {
     UpdateState.None -> ""
     is UpdateState.Available -> listOfNotNull("Available", state.offer.bytes.takeIf { it > 0 }?.let(Wording::bytes)).joinToString(" · ")
     is UpdateState.Allowing -> "Waiting for Android to allow installs"
     is UpdateState.Downloading -> state.fraction?.let { "Downloading ${(it * 100).toInt()} %" } ?: "Downloading"
     is UpdateState.Verifying -> "Checking the download"
-    is UpdateState.Installing -> "Waiting for you to confirm"
-    is UpdateState.Done -> "Installed"
-    is UpdateState.Failed -> "Couldn't update"
+    is UpdateState.Installing -> "Installing"
+    is UpdateState.Done -> "Updated to ${state.offer.name}"
+    is UpdateState.Failed -> state.failure.text
 }
 
 /** What anistream is under, and what it uses, as the phone's About lists them. */

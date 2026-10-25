@@ -133,7 +133,7 @@ sealed class DeviceCodeDialog
         ShowExpiry();
     }
 
-    /// <summary>"Expires in 14:59" under the code, each second, then Code expired and Get a new code.</summary>
+    /// <summary>"Expires in 15 min" under the code, by the second in the last minute, then Code expired and Get a new code.</summary>
     void ShowExpiry()
     {
         if (prompt.ExpiresAt is not { } at)

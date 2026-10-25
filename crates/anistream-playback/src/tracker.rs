@@ -289,6 +289,7 @@ impl PlaybackTracker {
             | PlaybackEvent::FrameDrops(_)
             | PlaybackEvent::Seeking(_)
             | PlaybackEvent::Display { .. }
+            | PlaybackEvent::Sampled { .. }
             | PlaybackEvent::HookDisabled(_)
             | PlaybackEvent::Replaced => {}
 

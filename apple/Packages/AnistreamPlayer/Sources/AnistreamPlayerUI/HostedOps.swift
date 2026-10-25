@@ -18,6 +18,8 @@ public enum MpvCall: Sendable, Equatable {
     case shaders([String])
     /// Read a property and report it as it stands: `chapter-list` for `RestateChapters`.
     case restate(property: String)
+    /// Read each property and report the ones mpv has, for stats for nerds.
+    case sample(properties: [String])
 }
 
 /// What the host does for one of the engine's ops.
@@ -62,6 +64,8 @@ public enum HostedStep: Sendable, Equatable {
             self = .call(.command(["af", add ? "add" : "remove", filter]))
         case .restateChapters:
             self = .call(.restate(property: "chapter-list"))
+        case .sample(let properties):
+            self = .call(.sample(properties: properties))
         case .stop:
             self = .call(.command(["stop"]))
         case .quit:
@@ -89,7 +93,7 @@ extension AnistreamPlayer.MpvValue {
 public let reportedProperties = [
     "time-pos", "duration", "pause", "speed", "volume", "chapter-list", "video-params",
     "current-tracks/video", "track-list", "aid", "sid", "sub-delay", "paused-for-cache",
-    "frame-drop-count", "seeking", "demuxer-cache-state",
+    "frame-drop-count", "seeking", "demuxer-cache-state", "hwdec-current",
 ]
 
 extension PlayerReport {

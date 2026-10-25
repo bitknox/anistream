@@ -18,6 +18,12 @@ public sealed class Known
     /// <summary>A title's episodes, by AniList id.</summary>
     public Dictionary<uint, EpisodeRow[]> Episodes { get; } = [];
 
+    /// <summary>
+    /// Whether a title has a dub, by AniList id, once the engine has said. A title its source
+    /// could not say for counts as without one.
+    /// </summary>
+    public Dictionary<uint, bool> Dubbed { get; } = [];
+
     public SettingsView? Settings { get; private set; }
 
     /// <summary>What the search filters choose from, once the engine has said.</summary>
@@ -69,6 +75,15 @@ public sealed class Known
 
     /// <summary>What the update check last said, or null before it has said anything.</summary>
     public UpdateStatus? Update { get; private set; }
+
+    /// <summary>The watch party this device is in, or null when it is in none.</summary>
+    public PartyView? Party { get; private set; }
+
+    /// <summary>The party's members, this device's first, once the room has listed them.</summary>
+    public PartyMember[]? PartyMembers { get; private set; }
+
+    /// <summary>What the form that starts a party opens with, once the engine has said.</summary>
+    public PartyForm? PartyForm { get; set; }
 
     /// <summary>The AniList account, when signed in.</summary>
     public SyncState? Anilist => Sync.TryGetValue("anilist", out var s) && s.Connected ? s : null;
@@ -125,6 +140,9 @@ public sealed class Known
                 break;
             case Event.Episodes ep:
                 Episodes[ep.Id] = ep.Rows;
+                break;
+            case Event.TitleDub td:
+                Dubbed[td.Id] = td.Dub is not null;
                 break;
             case Event.Progress p:
                 if (Entries.TryGetValue(p.Id, out var known))
@@ -185,6 +203,25 @@ public sealed class Known
                 break;
             case Event.Connectivity c:
                 Offline = c.Offline;
+                break;
+            case Event.PartyForm f:
+                PartyForm = f.V1;
+                break;
+            case Event.PartyJoined j:
+                // A room joined afresh lists its members afresh.
+                if (Party is null || Party.Server != j.V1.Server || Party.Room != j.V1.Room)
+                    PartyMembers = null;
+                Party = j.V1;
+                break;
+            case Event.PartyState p:
+                Party = p.V1;
+                break;
+            case Event.PartyMembers m:
+                PartyMembers = m.V1;
+                break;
+            case Event.PartyLeft:
+                Party = null;
+                PartyMembers = null;
                 break;
             case Event.Update u:
                 // A check that found nothing new leaves a release found before on offer only

@@ -50,6 +50,7 @@ extension PhoneSettingsPage {
     var view: some View {
         switch self {
         case .root: PhoneSettingsRoot()
+        case .general: PhoneGeneralPage()
         case .playback: PhonePlaybackPage()
         case .downloads: PhoneDownloadsPage()
         case .notifications: PhoneNotificationsPage()
@@ -212,6 +213,7 @@ struct PhoneSettingsRoot: View {
                 .listRowBackground(Palette.raised)
             }
             Section {
+                link(.general, "General", "gearshape", value: store.titleChoice.label)
                 link(.playback, "Playback", "play.rectangle", value: playbackValue)
                 link(.downloads, "Downloads", "arrow.down.to.line", value: Wording.bytes(store.downloads.bytesOnDisk))
                 link(.notifications, "Notifications", "bell", value: store.settings.isOn(.episodeNotifications) ? "On" : "Off")
@@ -277,6 +279,24 @@ struct Avatar: View {
     }
 }
 
+// MARK: - General
+
+/// How titles read and which are listed.
+struct PhoneGeneralPage: View {
+    var body: some View {
+        PhoneList {
+            Section {
+                PhoneTitleLanguageRow()
+                PhoneSettingSwitch(key: .adultTitles, note: "Titles AniList marks adult, in Search and Seasonal")
+            } header: {
+                PhoneSectionHeader("Titles")
+            }
+        }
+        .navigationTitle("General")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 // MARK: - Playback
 
 struct PhonePlaybackPage: View {
@@ -287,8 +307,6 @@ struct PhonePlaybackPage: View {
         let overridden = store.settings.overriddenNote
         PhoneList {
             Section {
-                PhoneTitleLanguageRow()
-                PhoneSettingSwitch(key: .adultTitles, note: "Titles AniList marks adult, in Search and Seasonal")
                 PhoneSettingPicker(key: .translation, note: overridden(.translation))
                 PhoneSubtitlesPicker()
                 // Kept on this device: the style it follows is this device's.

@@ -31,7 +31,9 @@ class MpvValueTest {
     @Test
     fun mpvsEventsBecomeTheEnginesReports() {
         assertEquals(PlayerReport.Property("time-pos", "12.5"), reportOf(MpvEvent(MpvNative.Event.PROPERTY_CHANGE, "time-pos", "12.5")))
-        assertNull(reportOf(MpvEvent(MpvNative.Event.PROPERTY_CHANGE, "hwdec-current", "\"no\"")))
+        assertNull(reportOf(MpvEvent(MpvNative.Event.PROPERTY_CHANGE, "estimated-vf-fps", "23.9")))
+        // The decoding that runs, which Stats for nerds says, rather than the one asked for.
+        assertEquals(PlayerReport.Property("hwdec-current", "\"no\""), reportOf(MpvEvent(MpvNative.Event.PROPERTY_CHANGE, "hwdec-current", "\"no\"")))
         assertEquals(PlayerReport.FileLoaded, reportOf(MpvEvent.of(MpvNative.Event.FILE_LOADED)))
         assertEquals(PlayerReport.Ended(PlayerEnd.ERROR), reportOf(MpvEvent(MpvNative.Event.END_FILE, null, """{"reason":"error","error":"loading failed"}""")))
         assertNull(reportOf(MpvEvent.of(MpvNative.Event.SEEK)))

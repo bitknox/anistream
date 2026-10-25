@@ -62,6 +62,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
@@ -93,6 +94,7 @@ import tv.anistream.player.Track
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
 import tv.anistream.tv.ui.LocalReducedMotion
+import tv.anistream.tv.ui.PANEL_END
 import tv.anistream.tv.ui.enterFade
 import tv.anistream.tv.ui.exitFade
 import tv.anistream.tv.ui.focusSoon
@@ -528,8 +530,8 @@ private fun Chrome(
                 Text("Ends at ${AirTime.clock(now.plusSeconds(left))}", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
             }
         }
-        // Bottom: the times over the seek bar at y 437, the buttons at y 465.
-        Column(Modifier.fillMaxWidth().padding(start = 48.dp, end = 48.dp).offset(y = 437.dp - 26.dp)) {
+        // Bottom: the times over the seek bar, then the buttons, which end on the safe area's edge.
+        Column(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(start = 48.dp, end = 48.dp, bottom = 27.dp)) {
             Row(Modifier.fillMaxWidth()) {
                 Text(clockTime(headAt ?: position), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
                 Spacer(Modifier.weight(1f))
@@ -558,7 +560,8 @@ private fun Chrome(
 }
 
 /**
- * The seek bar, 6 high: amber played on the rule colour, the opening and ending in silk at 40 %.
+ * The seek bar, 6 high: amber played on the rule colour, what is buffered ahead in silk at 20 %, and
+ * the opening and ending in water on top of both, so they show behind the playhead too.
  * Focused, it shows a head that Left and Right move without seeking, and Center jumps to.
  */
 @Composable
@@ -587,22 +590,7 @@ private fun SeekBar(
             val top = (size.height - bar) / 2
             val radius = CornerRadius(bar / 2)
             drawRoundRect(ObiSilk.Rule, Offset(0f, top), Size(size.width, bar), radius)
-            if (duration > 0) {
-                // Buffered stretches ahead of the played part, under the marks.
-                val playedAt = (position / duration).toFloat().coerceIn(0f, 1f) * size.width
-                buffered.forEach { range ->
-                    val start = maxOf(playedAt, (range.start / duration).toFloat().coerceIn(0f, 1f) * size.width)
-                    val end = (range.end / duration).toFloat().coerceIn(0f, 1f) * size.width
-                    if (end > start) drawRect(ObiSilk.Silk.copy(alpha = 0.2f), Offset(start, top), Size(end - start, bar))
-                }
-                segments.filter { it.kind != SeekSegment.Kind.Plain }.forEach { segment ->
-                    val start = (segment.start / duration).toFloat() * size.width
-                    val end = (segment.end / duration).toFloat() * size.width
-                    drawRect(ObiSilk.Silk.copy(alpha = 0.4f), Offset(start, top), Size(end - start, bar))
-                }
-                val played = (position / duration).toFloat().coerceIn(0f, 1f) * size.width
-                drawRoundRect(ObiSilk.Amber, Offset(0f, top), Size(played, bar), radius)
-            }
+            if (duration > 0) drawTimeline(position, duration, segments, buffered, top, bar)
         }
         if (duration > 0 && (focused || headAt != null)) {
             val at = ((headAt ?: position) / duration).toFloat().coerceIn(0f, 1f)
@@ -623,6 +611,26 @@ private fun SeekBar(
     }
 }
 
+/**
+ * A timeline's fill, over its rule-coloured track [bar] high from [top]: what is buffered ahead in
+ * silk at 20 %, the played part in amber, and the opening and ending in water on top of both.
+ */
+private fun DrawScope.drawTimeline(position: Double, duration: Double, segments: List<SeekSegment>, buffered: List<TimeRange>, top: Float, bar: Float) {
+    fun x(seconds: Double) = (seconds / duration).toFloat().coerceIn(0f, 1f) * size.width
+    val played = x(position)
+    buffered.forEach { range ->
+        val start = maxOf(played, x(range.start))
+        val end = x(range.end)
+        if (end > start) drawRect(ObiSilk.Silk.copy(alpha = 0.2f), Offset(start, top), Size(end - start, bar))
+    }
+    drawRoundRect(ObiSilk.Amber, Offset(0f, top), Size(played, bar), CornerRadius(bar / 2))
+    segments.filter { it.kind != SeekSegment.Kind.Plain }.forEach { segment ->
+        val start = x(segment.start)
+        val end = x(segment.end)
+        if (end > start) drawRect(ObiSilk.Water, Offset(start, top), Size(end - start, bar))
+    }
+}
+
 /** The running count beside a slim timeline at the bottom, while the chrome is hidden. */
 @Composable
 private fun SeekCount(model: PlayerModel, label: String) {
@@ -631,8 +639,9 @@ private fun SeekCount(model: PlayerModel, label: String) {
         Column(Modifier.align(Alignment.BottomStart).padding(start = 48.dp, end = 48.dp, bottom = 40.dp).fillMaxWidth()) {
             Text(label, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Silk)
             Spacer(Modifier.height(8.dp))
-            Box(Modifier.fillMaxWidth().height(4.dp).background(ObiSilk.Rule, CircleShape)) {
-                Box(Modifier.fillMaxWidth((model.position / duration).toFloat().coerceIn(0f, 1f)).height(4.dp).background(ObiSilk.Amber, CircleShape))
+            Canvas(Modifier.fillMaxWidth().height(4.dp)) {
+                drawRoundRect(ObiSilk.Rule, Offset.Zero, size, CornerRadius(size.height / 2))
+                if (duration > 0) drawTimeline(model.position, duration, model.segments, model.buffered, 0f, size.height)
             }
         }
     }
@@ -661,7 +670,7 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
             .width(400.dp)
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
-            .padding(horizontal = 16.dp, vertical = 27.dp),
+            .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
     ) {
         val title = when (panel) {
             PlayerPanel.Episodes -> "Episodes"
@@ -669,7 +678,7 @@ private fun Panel(model: PlayerModel, panel: PlayerPanel, onDone: () -> Unit, mo
             PlayerPanel.Sources -> "Source"
             PlayerPanel.Info -> "Info"
         }
-        Text(title, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
+        Text(title, style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
         LazyColumn(Modifier.focusRequester(list).focusGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             when (panel) {
                 PlayerPanel.Episodes -> items(model.menus?.episodes.orEmpty(), key = { it.number }) { episode ->
@@ -867,42 +876,15 @@ private fun InfoPanel(model: PlayerModel, modifier: Modifier) {
         row?.description?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 8, overflow = TextOverflow.Ellipsis)
         }
-        Text("Playback details", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
-        playbackDetails(model).forEach { line ->
+        Text("Stats for nerds", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(top = 12.dp))
+        // The engine's lines, the same every app shows; until it knows the picture, says so.
+        if (model.statsSummary.isEmpty()) {
+            Text("Waiting for the stream", style = MaterialTheme.typography.labelMedium, color = ObiSilk.Haze)
+        }
+        model.statsSummary.forEach { line ->
             Text(line, style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
         }
     }
-}
-
-/**
- * The Info panel's playback lines: "1080p · HEVC 10-bit · hardware decoding", the source, the
- * dropped frames, and the upscaling.
- */
-fun playbackDetails(model: PlayerModel): List<String> = buildList {
-    val picture = listOfNotNull(
-        model.videoHeight?.let { "${it}p" },
-        // A frame mpv's own filters made carries no codec of its own: "wrapped_avframe" names none.
-        model.videoCodec?.takeIf { it.lowercase() != "wrapped_avframe" }?.let { codec ->
-            val name = codecName(codec)
-            if (model.pixelFormat?.contains("10") == true) "$name 10-bit" else name
-        },
-        if (model.decoding.trim() == "no") "software decoding" else "hardware decoding",
-    )
-    add(picture.joinToString(" · "))
-    model.menus?.sources?.firstOrNull { it.current }?.let { add(it.label) }
-    add("Dropped frames: ${model.droppedFrames}")
-    val upscaling = model.menus?.upscaling
-    val chosen = upscaling?.options?.firstOrNull { it.id == upscaling.current }?.label
-    add("Upscaling: ${chosen?.lowercase() ?: "off on this TV"}")
-}
-
-/** mpv's codec names as people read them. */
-fun codecName(codec: String): String = when (codec.lowercase()) {
-    "hevc", "h265" -> "HEVC"
-    "h264", "avc" -> "H.264"
-    "av1" -> "AV1"
-    "vp9" -> "VP9"
-    else -> codec.uppercase()
 }
 
 /**

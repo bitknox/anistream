@@ -8,11 +8,11 @@ use crate::{
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
-    hosted::{PlayerOp, PlayerUi},
+    hosted::{PlayerOp, PlayerStats, PlayerUi},
     jobs::JobId,
     notice::Notice,
     notifications::{NewEpisode, UpcomingNotices},
-    party::{PartyForm, PartyMember, PartyMessage, PartyView},
+    party::{NoSourceWhy, PartyForm, PartyMember, PartyMessage, PartyView},
     playback::{Ending, PlaybackId, SkipKind, TimeRange, TimelineMark},
     progress::{EpisodeProgress, TitleProgress},
     remote::FrontIntent,
@@ -280,6 +280,17 @@ pub enum Event {
         playback: PlaybackId,
         ranges: Vec<TimeRange>,
     },
+    /// Stats for nerds for the player of `playback`: the panel's rows once a second while it is
+    /// open, and the TV's summary lines whenever they change. An event of its own rather than a
+    /// `PlayerUi`, so an app that does not show it yet passes over it.
+    PlayerStats {
+        playback: PlaybackId,
+        stats: PlayerStats,
+    },
+    /// Text the front end puts on the clipboard: what Copy stats copies. The app says "Copied".
+    Clipboard {
+        text: String,
+    },
     /// A tracker's sync state changed.
     Sync(Box<SyncState>),
     /// An episode's progress was queued for sync. Bumps the badge without waiting for a drain.
@@ -442,11 +453,13 @@ pub enum Event {
         reason: Option<String>,
     },
     /// The party's episode has no source here: this device is in the room without playing,
-    /// for the dialog that says "None of your sources has this episode" and offers Choose
-    /// source.
+    /// for the dialog that says why and offers what fits, Choose source among it. It carries
+    /// the lookup's own words, and no [`Event::Toast`] says them a second time.
     PartyNoSource {
         id: AnilistId,
         episode: String,
+        why: NoSourceWhy,
+        reason: String,
     },
 }
 

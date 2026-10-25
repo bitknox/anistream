@@ -794,6 +794,96 @@ fn full_screen_is_the_hosts_window_and_never_an_mpv_property() {
 }
 
 #[test]
+fn stats_for_nerds_are_read_while_open_worded_by_the_engine_and_copied_without_an_address() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    // The TV's summary is said with the panel shut, from what the player observes anyway, with
+    // the decoding that runs rather than the one asked for.
+    app.report(playback, PlayerReport::FileLoaded);
+    app.property(playback, "hwdec-current", json!("no"));
+    app.property(
+        playback,
+        "video-params",
+        json!({"w": 1280, "h": 720, "dw": 1280, "dh": 720, "pixelformat": "yuv420p"}),
+    );
+    app.property(playback, "current-tracks/video", json!({"codec": "h264"}));
+    app.tick(playback, 0, 2);
+    let summary = app.until("the summary", |event| match event {
+        Event::PlayerStats { stats, .. } if !stats.summary.is_empty() => Some(stats.clone()),
+        _ => None,
+    });
+    assert!(summary.rows.is_empty(), "no rows with the panel shut");
+    assert_eq!(summary.summary[0], "720p · H.264 · software decoding");
+    assert!(!app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Sample { .. })));
+
+    // Open: the player is asked for its figures, and the rows follow from its answers.
+    app.aim(playback, PlayerCommand::Stats(true));
+    let (_, sample) =
+        app.op("the figures asked for", |op| matches!(op, PlayerOp::Sample { .. }));
+    let PlayerOp::Sample { properties } = sample else { unreachable!() };
+    assert!(properties.iter().any(|p| p == "cache-speed"), "{properties:?}");
+    app.property(playback, "container-fps", json!(23.976));
+    app.property(playback, "avsync", json!(0.25));
+    app.property(playback, "demuxer-cache-duration", json!(30.0));
+    let rows = app.until("the rows", |event| match event {
+        Event::PlayerStats { stats, .. }
+            if stats.rows.iter().any(|r| r.label == "A/V sync") =>
+        {
+            Some(stats.rows.clone())
+        }
+        _ => None,
+    });
+    let row = |label: &str| rows.iter().find(|r| r.label == label).cloned();
+    assert_eq!(row("Video").unwrap().value, "1280 × 720 · H.264 · 23.976 fps");
+    assert_eq!(row("Decoding").unwrap().value, "Software");
+    assert_eq!(row("HDR"), None, "an SDR picture");
+    let sync = row("A/V sync").unwrap();
+    assert!(sync.warn && sync.value == "+0.250 s", "{sync:?}");
+    // Asked again a second on, and not before.
+    let asked = Instant::now();
+    app.op("the figures asked for again", |op| matches!(op, PlayerOp::Sample { .. }));
+    assert!(asked.elapsed() > Duration::from_millis(400), "{:?}", asked.elapsed());
+
+    app.aim(
+        playback,
+        PlayerCommand::CopyStats {
+            about: anistream_model::hosted::StatsAbout {
+                app_version: "2.4.0".into(),
+                system: "macOS 26.1".into(),
+                device: "Mac15,3".into(),
+            },
+        },
+    );
+    let text = app.until("the copy", |event| match event {
+        Event::Clipboard { text } => Some(text.clone()),
+        _ => None,
+    });
+    assert!(text.starts_with("Stats for nerds\nVideo: 1280 × 720"), "{text}");
+    assert!(
+        text.ends_with("App: anistream 2.4.0\nSystem: macOS 26.1\nDevice: Mac15,3"),
+        "{text}"
+    );
+    assert!(!text.contains("://") && !text.contains("127.0.0.1"), "no address: {text}");
+
+    // Shut: nothing more is asked of the player.
+    app.aim(playback, PlayerCommand::Stats(false));
+    app.until("the panel shut", |event| {
+        matches!(event, Event::PlayerStats { stats, .. } if stats.rows.is_empty()).then_some(())
+    });
+    let before = app.ops.len();
+    app.settle();
+    app.settle();
+    assert!(
+        !app.ops[before..].iter().any(|(_, op)| matches!(op, PlayerOp::Sample { .. })),
+        "{:?}",
+        &app.ops[before..]
+    );
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
 fn a_reload_opens_the_same_file_again_where_it_plays() {
     // What follows a loopback server bound again after the background.
     let mut app = App::fixtures("[playback]\nauto_next = false\n");

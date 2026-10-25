@@ -544,7 +544,7 @@ struct PhoneBroadcastRow: View {
                         }
                         Text((broadcast.watched ? "Episode \(broadcast.episode)" : broadcast.line(now: now)
                             .replacingOccurrences(of: "Ep ", with: "Episode "))
-                            + (broadcast.mark.map { " · \($0)" } ?? ""))
+                            + broadcast.markSuffix)
                     }
                     .font(.ui(15))
                     .foregroundStyle(.haze)

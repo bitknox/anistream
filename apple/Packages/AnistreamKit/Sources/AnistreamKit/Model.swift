@@ -159,6 +159,16 @@ public enum Wording {
     }
 }
 
+extension Translation {
+    /// "Sub" or "Dub", as the episode line ends with it: "Episode 10 · Dub".
+    public var label: String {
+        switch self {
+        case .sub: "Sub"
+        case .dub: "Dub"
+        }
+    }
+}
+
 extension LibrarySegment {
     /// The list's name in lower case: "watching". `LibrarySegment::label`.
     public var label: String {
