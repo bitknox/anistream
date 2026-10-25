@@ -174,6 +174,9 @@ public sealed partial class PlayerView : UserControl
         upNext = null;
         thumbnails = null;
         thumbs = null;
+        timelineMarks = [];
+        buffered = [];
+        DrawTimeline();
         ShowingChanged?.Invoke(false);
     }
 
@@ -206,6 +209,14 @@ public sealed partial class PlayerView : UserControl
             {
                 case Event.PlayerUi ui:
                     Heard(ui.Ui);
+                    break;
+                case Event.PlayerTimeline t:
+                    timelineMarks = t.Marks ?? [];
+                    DrawTimeline();
+                    break;
+                case Event.PlayerBuffered b:
+                    buffered = b.Ranges ?? [];
+                    DrawTimeline();
                     break;
                 case Event.PlaybackVolume v:
                     volume = v.V1;
@@ -450,6 +461,65 @@ public sealed partial class PlayerView : UserControl
         UpdateCorner();
     }
 
+    // The seek bar's track: silk at a quarter for the length, at under half for what is
+    // buffered, water for the opening and ending, and the slider's own amber over it for what
+    // has played (native-ux.md, the timeline).
+
+    TimelineMark[] timelineMarks = [];
+    TimeRange[] buffered = [];
+
+    void OnTimelineSized(object sender, SizeChangedEventArgs e) => DrawTimeline();
+
+    void DrawTimeline()
+    {
+        TimelineUnder.Children.Clear();
+        if (Find(Timeline, "HorizontalTrackRect") is not FrameworkElement track || track.ActualWidth <= 0)
+            return;
+        var thumb = Find(Timeline, "HorizontalThumb") as FrameworkElement;
+        var at = track.TransformToVisual(TimelineUnder).TransformPoint(default);
+        var width = track.ActualWidth;
+        var height = Math.Max(2, track.ActualHeight);
+        // The slider's value runs between the thumb's centre at either end.
+        var half = (thumb?.ActualWidth ?? 0) / 2;
+        var usable = Math.Max(1, width - 2 * half);
+        double X(double seconds) => at.X + half + Math.Clamp(duration > 0 ? seconds / duration : 0, 0, 1) * usable;
+        var silk = (Brush)Application.Current.Resources["SilkBrush"];
+        var water = (Brush)Application.Current.Resources["WaterBrush"];
+        void Bar(double from, double to, Brush brush, double opacity)
+        {
+            if (to - from < 1)
+                return;
+            var bar = new Microsoft.UI.Xaml.Shapes.Rectangle
+            {
+                Width = to - from, Height = height, Fill = brush, Opacity = opacity,
+                RadiusX = height / 2, RadiusY = height / 2,
+            };
+            Canvas.SetLeft(bar, from);
+            Canvas.SetTop(bar, at.Y);
+            TimelineUnder.Children.Add(bar);
+        }
+        Bar(at.X, at.X + width, silk, 0.25);
+        if (duration <= 0)
+            return;
+        foreach (var range in buffered)
+            Bar(X(range.Start), X(range.End), silk, 0.45);
+        foreach (var mark in timelineMarks)
+            Bar(X(mark.Start), X(mark.End), water, 1);
+    }
+
+    static DependencyObject? Find(DependencyObject parent, string name)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is FrameworkElement { Name: var n } && n == name)
+                return child;
+            if (Find(child, name) is { } found)
+                return found;
+        }
+        return null;
+    }
+
     void ShowState(FfiPlayerState state)
     {
         if (state.HasPicture && startingShown && !startingHeld)
@@ -472,8 +542,11 @@ public sealed partial class PlayerView : UserControl
             idle.Start();
         if (state.Position is { } p)
             position = p;
-        if (state.Duration is { } d && d > 0)
+        if (state.Duration is { } d && d > 0 && d != duration)
+        {
             duration = d;
+            DrawTimeline();
+        }
         Elapsed.Text = AnistreamFfiMethods.PlayClock(position);
         Remaining.Text = "-" + AnistreamFfiMethods.PlayClock(Math.Max(0, duration - position));
         var status = $"{(paused ? "Paused" : "Playing")}, {Elapsed.Text} of {AnistreamFfiMethods.PlayClock(duration)}";
@@ -822,12 +895,70 @@ public sealed partial class PlayerView : UserControl
         subs.Items.Add(off);
         foreach (var track in subtitles)
             subs.Items.Add(TrackItem(track, "subtitles"));
+        subs.Items.Add(new MenuFlyoutSeparator());
+        subs.Items.Add(LoadItem(TrackKind.Subtitle));
         TracksMenu.Items.Add(subs);
 
-        var sound = new MenuFlyoutSubItem { Text = "Audio", IsEnabled = audio.Length > 0 };
+        var sound = new MenuFlyoutSubItem { Text = "Audio" };
         foreach (var track in audio)
             sound.Items.Add(TrackItem(track, "audio"));
+        if (audio.Length > 0)
+            sound.Items.Add(new MenuFlyoutSeparator());
+        sound.Items.Add(LoadItem(TrackKind.Audio));
         TracksMenu.Items.Add(sound);
+    }
+
+    MenuFlyoutItem LoadItem(TrackKind kind)
+    {
+        var item = new MenuFlyoutItem { Text = kind == TrackKind.Subtitle ? "Load Subtitle File…" : "Load Audio File…" };
+        item.Click += (_, _) => LoadTrack(kind);
+        return item;
+    }
+
+    static readonly string[] SubtitleFiles = [".srt", ".ass", ".ssa", ".vtt", ".sub", ".sup"];
+    static readonly string[] AudioFiles = [".mka", ".m4a", ".aac", ".ac3", ".eac3", ".flac", ".mp3", ".ogg", ".opus", ".wav"];
+
+    /// <summary>
+    /// Load Subtitle File… or Load Audio File…: the system's file picker, then mpv adds the file
+    /// as a track and selects it. mpv's alone, so the next episode does not carry it. Cancelling
+    /// the picker says nothing.
+    /// </summary>
+    async void LoadTrack(TrackKind kind)
+    {
+        if (ctx is null || player is not { } p)
+            return;
+        var subtitle = kind == TrackKind.Subtitle;
+        string? path;
+        try
+        {
+            var picker = new Microsoft.Windows.Storage.Pickers.FileOpenPicker(ctx.Window.AppWindow.Id)
+            {
+                CommitButtonText = subtitle ? "Load Subtitles" : "Load Audio",
+                SuggestedStartLocation = Microsoft.Windows.Storage.Pickers.PickerLocationId.Downloads,
+            };
+            foreach (var extension in subtitle ? SubtitleFiles : AudioFiles)
+                picker.FileTypeFilter.Add(extension);
+            path = (await picker.PickSingleFileAsync())?.Path;
+        }
+        catch (Exception e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the file picker failed: {e.Message}");
+            Alert("Couldn't open the file picker");
+            return;
+        }
+        if (path is not { Length: > 0 })
+            return;
+        try
+        {
+            // mpv reads the file before it answers: off the UI thread.
+            await Task.Run(() => p.LoadTrack(kind, path));
+        }
+        catch (FfiException e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"mpv did not load the track: {e.Message}");
+            Alert(subtitle ? "Couldn't load that subtitle file" : "Couldn't load that audio file");
+        }
+        ShowControls();
     }
 
     RadioMenuFlyoutItem TrackItem(FfiTrack track, string group)
@@ -1074,7 +1205,7 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks</c>.
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline</c>.
     /// </summary>
     async void Demo(string what)
     {
@@ -1139,6 +1270,18 @@ public sealed partial class PlayerView : UserControl
                     && FrameworkElementAutomationPeer.CreatePeerForElement(sub)?.GetPattern(PatternInterface.ExpandCollapse)
                         is Microsoft.UI.Xaml.Automation.Provider.IExpandCollapseProvider peer)
                     peer.Expand();
+                break;
+            case "timeline":
+                // An opening, an ending and what is buffered, as fractions of the fixture clip.
+                var d = Math.Max(duration, 1);
+                timelineMarks =
+                [
+                    new TimelineMark(SkipKind.Opening, d * 0.45, d * 0.58),
+                    new TimelineMark(SkipKind.Ending, d * 0.85, d * 0.97),
+                ];
+                buffered = [new TimeRange(0, d * 0.7)];
+                DrawTimeline();
+                ShowControls();
                 break;
             case "flash":
                 flash.Interval = TimeSpan.FromSeconds(600);

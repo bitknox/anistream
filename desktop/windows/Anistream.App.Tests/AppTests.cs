@@ -130,6 +130,22 @@ public class CalendarTests
         Assert.True(broadcasts[0].IsNew(anchor));
         Assert.Empty(Calendar.Broadcasts(rows, anchor, new Known(), mine: true));
     }
+
+    [Fact]
+    public void AnEstimatedTimeHasATildeAndADubRowSaysSo()
+    {
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+        var anchor = new DateTimeOffset(2026, 10, 20, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+        var rows = new[]
+        {
+            new Entry(Id: 1, Title: "Atelier Hotaru", AiringIn: 4 * 3600 + 1800, AiringEpisode: 10, AiringApproximate: true, AiringTranslation: Translation.Dub),
+            new Entry(Id: 2, Title: "Natsukaze Relay", AiringIn: 3600, AiringEpisode: 8),
+        };
+        var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
+        Assert.Equal("Ep 10 · ~16:30", broadcasts[1].Line(Utc));
+        Assert.Equal("Dub", broadcasts[1].Mark);
+        Assert.Null(broadcasts[0].Mark);
+    }
 }
 
 public class SharedWordsTests
