@@ -299,10 +299,10 @@ public struct PhonePlayerView: View {
     // MARK: Stats for nerds
 
     /// Stats for nerds, which stays up while the controls hide. Over the picture at the top
-    /// trailing corner, under the top bar and clear of the bottom one, as on the Mac; on an
-    /// iPhone held sideways, too short for both, it takes the height the bars leave it while
-    /// they are up, and the full height once they hide. On an iPhone held upright, under the
-    /// picture at the full width less 16 pt each side.
+    /// trailing corner, under the top bar, as on the Mac. An iPhone held sideways is too short
+    /// for that: the panel is compact there and ends above the subtitles, which sit higher
+    /// while the controls are up; its rows scroll when that leaves them too little room. On an
+    /// upright window too narrow for it, under the picture at the full width less 16 pt.
     private func stats(in size: CGSize) -> some View {
         let upright = size.height > size.width && size.width < 600
         let short = size.height < 500
@@ -310,16 +310,19 @@ public struct PhonePlayerView: View {
         let insets =
             if upright {
                 EdgeInsets(top: picture.maxY + 16, leading: 16, bottom: 32, trailing: 16)
-            } else if short && !visible {
-                EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 56)
+            } else if short {
+                // The subtitles' two lines from 18 pt above the bottom, lifted with the controls.
+                EdgeInsets(top: visible ? 72 : 16, leading: 0, bottom: 90 + (visible ? metrics.subtitleLift : 0), trailing: 56)
             } else {
                 EdgeInsets(top: 72, leading: 0, bottom: 84, trailing: 56)
             }
-        return StatsPanel(model: model, metrics: metrics, width: upright ? size.width - 32 : StatsPanel.width)
-            .padding(insets)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: upright ? .top : .topTrailing)
-            .animation(.standard, value: insets)
-            .animation(model.statsPanel != nil ? .fadeIn : .fadeOut, value: model.statsPanel != nil)
+        return StatsPanel(
+            model: model, metrics: metrics, width: upright ? size.width - 32 : StatsPanel.width, compact: short && !upright
+        )
+        .padding(insets)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: upright ? .top : .topTrailing)
+        .animation(.standard, value: insets)
+        .animation(model.statsPanel != nil ? .fadeIn : .fadeOut, value: model.statsPanel != nil)
     }
 
     // MARK: Gestures

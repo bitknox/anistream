@@ -25,6 +25,9 @@ struct StatsPanel: View {
     let model: PlayerModel
     let metrics: PlayerMetrics
     var width: CGFloat = StatsPanel.width
+    /// On a phone held sideways, too short for the panel as the Mac has it: Copy stats moves up
+    /// beside the close button, and the rows sit closer, so the panel ends above the subtitles.
+    var compact = false
 
     /// Wide enough that the usual values ("1920 × 1080 · HEVC 10-bit · 23.976 fps") keep to one
     /// line; an unusual one wraps under its value column.
@@ -37,6 +40,7 @@ struct StatsPanel: View {
                     Text("Stats for nerds")
                         .font(.system(size: metrics.body, weight: .semibold))
                         .frame(maxWidth: .infinity, alignment: .leading)
+                    if compact { copyButton(waiting: model.statsWaitingSince != nil) }
                     Button { model.showStats(false) } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: metrics.touch ? 13 : 10, weight: .semibold))
@@ -56,17 +60,19 @@ struct StatsPanel: View {
                     rows(panel.rows)
                     MenuScroll { rows(panel.rows) }
                 }
-                .padding(.top, 10)
-                copyButton(waiting: model.statsWaitingSince != nil)
-                    .padding(.top, 10)
+                .padding(.top, compact ? 6 : 10)
+                if !compact {
+                    copyButton(waiting: model.statsWaitingSince != nil)
+                        .padding(.top, 10)
+                }
             }
-            .font(.system(size: metrics.touch ? 13 : 12))
+            .font(.system(size: metrics.touch && !compact ? 13 : 12))
             .foregroundStyle(.silk)
             .padding(.horizontal, 14)
             .padding(.top, 10)
             .padding(.bottom, 12)
             .frame(width: width, alignment: .leading)
-            // The player's menus' surface, near opaque so a bright frame never shows through.
+            // The player's menus' slate, opaque, so no frame ever shows through.
             .background(.statsFill, in: .rect(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
             .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
@@ -79,7 +85,7 @@ struct StatsPanel: View {
     /// Label and value, the labels' column as wide as its longest label and the values taking
     /// the rest, where a long one wraps under itself.
     private func rows(_ rows: [DetailRow]) -> some View {
-        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 14, verticalSpacing: metrics.touch ? 4 : 5) {
+        Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 14, verticalSpacing: compact ? 3 : metrics.touch ? 4 : 5) {
             ForEach(rows, id: \.label) { row in
                 GridRow {
                     Text(row.label)
@@ -137,11 +143,12 @@ struct StatsPanel: View {
     }
 }
 
-/// Stats for nerds' ground: the slate of the player's menus at 92%, where their 72% let a
-/// bright frame through behind the dim labels; solid Raised under Reduce Transparency.
+/// Stats for nerds' ground: the slate of the player's menus as it lands on the ground, opaque,
+/// where their 72% let a bright frame through behind the dim labels; Raised under Reduce
+/// Transparency.
 struct StatsFill: ShapeStyle {
     func resolve(in environment: EnvironmentValues) -> Color {
-        environment.accessibilityReduceTransparency ? Palette.raised : Color(rgb: 0x282D44, opacity: 0.92)
+        environment.accessibilityReduceTransparency ? Palette.raised : Color(rgb: 0x272B42)
     }
 }
 
