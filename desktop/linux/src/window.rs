@@ -138,13 +138,31 @@ impl Ctx {
             }
         });
         title.add_controller(click);
-        toast.set_custom_title(Some(&title));
-        if let Some((label, action, target)) = button {
-            toast.set_button_label(Some(label));
-            toast.set_action_name(Some(action));
-            if let Some(target) = target {
-                toast.set_action_target_value(Some(&target.to_variant()));
+        match button {
+            // The button beside the words in the title, not the toast's own: that one gives up its
+            // width first and is cut short on a narrow window, where these words wrap instead.
+            Some((label, action, target)) => {
+                title.set_hexpand(true);
+                let button = gtk::Button::with_label(label);
+                button.set_valign(gtk::Align::Center);
+                button.set_action_name(Some(action));
+                if let Some(target) = target {
+                    button.set_action_target_value(Some(&target.to_variant()));
+                }
+                button.connect_clicked({
+                    let toast = toast.downgrade();
+                    move |_| {
+                        if let Some(toast) = toast.upgrade() {
+                            toast.dismiss();
+                        }
+                    }
+                });
+                let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+                line.append(&title);
+                line.append(&button);
+                toast.set_custom_title(Some(&line));
             }
+            None => toast.set_custom_title(Some(&title)),
         }
         if alert {
             toast.set_priority(adw::ToastPriority::High);
