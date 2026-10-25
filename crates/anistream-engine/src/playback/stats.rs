@@ -867,10 +867,7 @@ mod tests {
         assert_eq!(value(&stats_of(&f), "Subtitles").unwrap(), "Off");
         f.mpv.insert("current-tracks/sub".into(), json!({"codec": "subrip", "title": "Signs"}));
         f.mpv.insert("sub-delay".into(), json!(-0.25));
-        assert_eq!(
-            value(&stats_of(&f), "Subtitles").unwrap(),
-            "SRT · Signs, -0.25 s delay"
-        );
+        assert_eq!(value(&stats_of(&f), "Subtitles").unwrap(), "SRT · Signs, -0.25 s delay");
     }
 
     #[test]
