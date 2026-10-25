@@ -1,6 +1,6 @@
 ## Apps
 
-anistream for Android phones and TVs, the Mac, iPhone and iPad, on the same engine as the terminal app. Like
+anistream for Android phones and TVs, the Mac, iPhone, iPad, Windows and Linux, on the same engine as the terminal app. Like
 it, the apps host no content. Plugins and sources are yours to add, and what you point them at is
 your own decision, at your own risk.
 
@@ -54,6 +54,28 @@ anistream's source to either, and they offer each new release:
 use two of your Apple ID's App IDs, one for the app and one for its widgets, and an App Group the
 two share. With a free Apple ID that signature lasts 7 days: AltStore or SideStore has to refresh
 the app within that time, or it will not open until they do. Your data stays either way.
+
+### Windows
+
+`anistream-@VERSION@-windows-x64-setup.exe`, or `anistream-@VERSION@-windows-arm64-setup.exe` for
+Windows on Arm, for Windows 10 version 2004 or later.
+
+Run the installer. It installs for your account only, with no administrator prompt, adds anistream
+to the Start menu and to Settings › Apps, where you can uninstall it, and lets the app open
+anistream:// links. The installer is not code-signed, so SmartScreen stops it the first time:
+choose More info, then Run anyway. A new release installs over the one before and keeps your
+library and settings.
+
+### Linux
+
+`anistream-@VERSION@-linux-x86_64.AppImage`, or `anistream-@VERSION@-linux-aarch64.AppImage` on
+64-bit ARM, for systems with glibc 2.41 or newer: Debian 13, Ubuntu 25.04, Fedora 42 and later. It
+carries GTK 4, libadwaita and the player.
+
+Make it executable with `chmod +x anistream-@VERSION@-linux-x86_64.AppImage` and open it. The first
+run registers it for anistream:// links. AppImageUpdate, AppImageLauncher and Gear Lever can update
+it in place from the release's `.zsync` file. Without FUSE, run it with
+`--appimage-extract-and-run`.
 
 ### Checking a download
 

@@ -53,6 +53,9 @@ sealed class Ctx
 
     public void OpenTitle(uint id) => Window.OpenTitle(id);
 
+    /// <summary>One of the window's own pages, by its tag: "downloads".</summary>
+    public void Go(string tag) => Window.Go(tag);
+
     /// <summary>Plays an episode from where it was left, or from its start with <paramref name="fromStart"/>.</summary>
     public void Play(uint id, string episode, bool fromStart = false) => Send(new Command.Play(id, episode, fromStart));
 

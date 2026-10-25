@@ -520,7 +520,7 @@ struct PhoneBroadcastRow: View {
             navigator.openTitle(broadcast.entry.id)
         } label: {
             HStack(spacing: 14) {
-                Text(CalendarWords.time(broadcast.airs))
+                Text(broadcast.clock)
                     .font(.ui(15))
                     .monospacedDigit()
                     .foregroundStyle(.haze)
@@ -542,8 +542,9 @@ struct PhoneBroadcastRow: View {
                         if broadcast.isNew(now: now) {
                             Circle().fill(.water).frame(width: 6, height: 6)
                         }
-                        Text(broadcast.watched ? "Episode \(broadcast.episode)" : broadcast.line(now: now)
+                        Text((broadcast.watched ? "Episode \(broadcast.episode)" : broadcast.line(now: now)
                             .replacingOccurrences(of: "Ep ", with: "Episode "))
+                            + (broadcast.mark.map { " · \($0)" } ?? ""))
                     }
                     .font(.ui(15))
                     .foregroundStyle(.haze)

@@ -312,6 +312,36 @@ public func seekSegments(chapters: [Chapter], duration: Double?) -> [SeekSegment
     return segments
 }
 
+/// The seek line's stretches from the engine's marks, everything between them plain.
+public func seekSegments(marks: [TimelineMark], duration: Double?) -> [SeekSegment] {
+    guard let duration, duration > 0 else { return [] }
+    var segments: [SeekSegment] = []
+    var at = 0.0
+    for mark in marks.sorted(by: { $0.start < $1.start }) {
+        let start = max(mark.start, at)
+        let end = min(mark.end, duration)
+        guard end > start else { continue }
+        if start > at { segments.append(SeekSegment(kind: .plain, start: at, end: start)) }
+        segments.append(SeekSegment(kind: mark.kind == .opening ? .opening : .ending, start: start, end: end))
+        at = end
+    }
+    if at < duration { segments.append(SeekSegment(kind: .plain, start: at, end: duration)) }
+    return segments
+}
+
+/// The parts of `ranges` inside `segment`, each as fractions of the segment: where it starts and
+/// how much of it it covers.
+public func bufferedSpans(_ ranges: [TimeRange], in segment: SeekSegment) -> [(from: Double, length: Double)] {
+    let span = segment.end - segment.start
+    guard span > 0 else { return [] }
+    return ranges.compactMap { range in
+        let start = max(range.start, segment.start)
+        let end = min(range.end, segment.end)
+        guard end > start else { return nil }
+        return ((start - segment.start) / span, (end - start) / span)
+    }
+}
+
 /// The controls' state and the picture's height, which the subtitles' lift follows.
 struct SubtitleLift: Equatable {
     var visible: Bool

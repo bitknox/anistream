@@ -21,6 +21,7 @@
 //   tv        a Play on TV scene, on the two fake TVs: paired, picker, code or remote (TvScene)
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
+//   code      a tracker whose device-code sheet opens, with a made-up code that expires in 15 minutes
 
 package tv.anistream.app
 
@@ -39,6 +40,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import tv.anistream.engine.model.DeviceCodePrompt
+import tv.anistream.engine.model.Event
 import tv.anistream.store.EngineEpisodeCheck
 import tv.anistream.store.covers
 import tv.anistream.store.AppStore
@@ -199,6 +202,10 @@ internal object Flavour {
             // Asked again after the marks, which the engine takes in order.
             store.loadContinue(force = true)
             for ((id, _) in marks) store.loadDetail(id)
+        }
+        intent.getStringExtra("code")?.let { tracker ->
+            val expiresAt = System.currentTimeMillis() / 1000 + 899
+            store.apply(Event.DeviceCode(DeviceCodePrompt(tracker, "4F2K9QX1", "https://activate.example/pin", expiresAt)))
         }
         for (later in listOf("sheet", "player")) {
             intent.getStringExtra(later)?.let { Log.w(AnistreamApp.TAG, "$later=$it is not in this build yet") }

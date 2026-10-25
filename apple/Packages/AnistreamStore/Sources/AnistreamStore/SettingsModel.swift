@@ -121,6 +121,8 @@ public final class AccountsModel {
     }
 
     func apply(_ state: SyncState, at now: Date = .now) {
+        // Signed in: a code kept for the sheet has nothing more to ask.
+        if state.connected, deviceCode?.tracker == state.tracker { deviceCode = nil }
         if let index = trackers.firstIndex(where: { $0.tracker == state.tracker }) {
             trackers[index] = state
         } else {
@@ -155,8 +157,21 @@ public final class AccountsModel {
         conflicts = rows
     }
 
-    func deviceCode(_ prompt: DeviceCodePrompt?) {
+    /// The engine's code, or its end. A code that ran out stays, so its sheet can say so and
+    /// offer a new one; one approved, refused or closed goes.
+    func deviceCode(_ prompt: DeviceCodePrompt?, at now: Date = .now) {
+        if prompt == nil, let shown = deviceCode, Self.expired(shown, at: now),
+           tracker(shown.tracker)?.connected != true {
+            return
+        }
         deviceCode = prompt
+    }
+
+    /// Whether `prompt`'s code has stopped working by `now`, a second early for the engine's
+    /// poll to have given up.
+    public nonisolated static func expired(_ prompt: DeviceCodePrompt, at now: Date = .now) -> Bool {
+        guard let expiresAt = prompt.expiresAt else { return false }
+        return Int64(now.timeIntervalSince1970) >= expiresAt - 1
     }
 
     func authorize(_ request: SignInRequest) {

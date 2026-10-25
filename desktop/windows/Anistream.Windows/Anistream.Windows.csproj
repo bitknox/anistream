@@ -20,6 +20,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Program.cs is the entry point: one copy runs, and a second launch hands over its link. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
   <PropertyGroup>
     <DefineConstants Condition="'$(EngineFlavour)' == 'testing'">$(DefineConstants);ANISTREAM_TESTING</DefineConstants>
@@ -36,5 +38,7 @@
   <ItemGroup>
     <!-- Show titles: Zen Kaku Gothic New Bold, under the OFL (assets/mpv/licenses). -->
     <Content Include="../../../assets/mpv/fonts/ZenKakuGothicNew-Bold.ttf" Link="Assets/Fonts/ZenKakuGothicNew-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The notifications' icon: Windows shows a PNG there, not an .ico. -->
+    <Content Include="../../../assets/icon/anistream.iconset/icon_128x128@2x.png" Link="Assets/anistream-256.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

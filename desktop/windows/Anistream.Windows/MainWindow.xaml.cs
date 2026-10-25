@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
 using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
@@ -12,6 +14,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.Graphics;
@@ -48,6 +51,7 @@ public sealed partial class MainWindow : Window
     readonly Ctx ctx;
     readonly NetworkWatch network;
     readonly Taskbar? taskbar;
+    readonly MediaControls? media;
     Tray? tray;
     bool selecting, played, closing, askedClose, firstRun;
 
@@ -68,7 +72,9 @@ public sealed partial class MainWindow : Window
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "anistream.ico"));
         SystemBackdrop = new TintedMica();
 
-        var host = new AppHost(ui, options.Fixture) { Notified = (title, body) => ShowToast(InfoBarSeverity.Informational, $"{title}: {body}") };
+        // The engine's own notices (the launch digest): in the window while it is in front,
+        // else as a Windows notification.
+        var host = new AppHost(ui, options.Fixture) { Notified = (title, body) => Notified(title, body) };
         (var engine, dirs) = StartEngine(host);
         Size();
         session = new EngineSession(engine, act => ui.TryEnqueue(() => act()));
@@ -79,6 +85,7 @@ public sealed partial class MainWindow : Window
         {
             art.Take(batch);
             Player.Heard(batch);
+            media?.Heard(batch);
             Heard(batch);
             ctx.Heard(batch);
         };
@@ -112,6 +119,9 @@ public sealed partial class MainWindow : Window
         // online or offline state (Event.Connectivity) the pages show.
         network = new NetworkWatch(c => ctx.Send(c), ui, options.Offline);
         taskbar = Taskbar.For(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        // The media overlay, the media keys and the thumbnail's buttons, while an episode plays.
+        media = MediaControls.Start(WinRT.Interop.WindowNative.GetWindowHandle(this), taskbar, art, ui, c => ctx.Send(new Command.Player(c)));
+        StartNotifications(art);
         Keys();
 #if ANISTREAM_TESTING
         if (options.Showcase)
@@ -234,13 +244,31 @@ public sealed partial class MainWindow : Window
     /// <summary>The player's events, from mpv's threads to the UI's.</summary>
     sealed class Sink(MainWindow window) : FfiPlayerSink
     {
-        public void Event(FfiPlayerEvent e) => window.ui.TryEnqueue(() => window.Player.Heard(e));
+        public void Event(FfiPlayerEvent e) => window.ui.TryEnqueue(() =>
+        {
+            window.Player.Heard(e);
+            window.media?.Heard(e);
+        });
     }
 
     // The first page, and what the command line asks for once the engine has a list to show.
 
     void FirstPage()
     {
+        // Later launches, and anistream:// links clicked while the app runs, come here; the one
+        // this launch came with opens once the welcome, if it shows, is up to take it.
+        Program.Listen(link => ui.TryEnqueue(() =>
+        {
+            Forward();
+            if (link is not null)
+                OpenLink(link);
+        }));
+        if (options.Opens is { } opens)
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(900);
+                OpenLink(opens);
+            });
         var page = options.Page ?? "continue";
         if (options.Query is not null)
             ShowSearch(options.Query);
@@ -260,6 +288,16 @@ public sealed partial class MainWindow : Window
                 await Task.Delay(2500);
                 AskBeforeClosing();
             });
+#if ANISTREAM_TESTING
+        // --show=devicecode: Trakt's sign-in code, for a screenshot.
+        if (options.Show == "devicecode")
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(1500);
+                Pages.DeviceCodeDialog.Heard(Root.XamlRoot, new DeviceCodePrompt("trakt", "7F3K9QX2", "https://tracker.example/activate",
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 15 * 60 - 1));
+            });
+#endif
         if (options.Shortcuts)
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
             {
@@ -281,10 +319,11 @@ public sealed partial class MainWindow : Window
                 {
                     // Not kept: it shows again next time, which is harmless.
                 }
-                var welcome = new WelcomeDialog(ctx, Root.XamlRoot);
+                var welcome = welcoming = new WelcomeDialog(ctx, Root.XamlRoot);
                 if (options.Welcome && options.Show is { } step)
                     welcome.Step(step);
                 await welcome.ShowAsync();
+                welcoming = null;
                 if (welcome.Invite is { } invite)
                     ShowJoinStore(invite);
             });
@@ -302,8 +341,18 @@ public sealed partial class MainWindow : Window
                 case Event.Toast t:
                     ShowToast(t.V1);
                     break;
-                case Event.Downloads:
+                case Event.DeviceCode code:
+                    Pages.DeviceCodeDialog.Heard(Root.XamlRoot, code.V1);
+                    break;
+                case Event.Downloads d:
                     taskbar?.Downloads(ctx.Known.Downloads);
+                    foreach (var notice in Notices.Downloaded(downloadsSeen, d.V1))
+                        toasts?.Post(notice);
+                    downloadsSeen = d.V1;
+                    break;
+                case Event.NewEpisodes n:
+                    foreach (var notice in Notices.Aired(n.V1))
+                        toasts?.Post(notice);
                     break;
                 case Event.Content { View: ContentFor.Continue, ContentValue: ContentList.Entries } when options.Play && !played:
                     played = true;
@@ -449,7 +498,21 @@ public sealed partial class MainWindow : Window
     /// <summary>The join-store dialog, with an invite already pasted when one is given.</summary>
     internal async void ShowJoinStore(string? pasted = null)
     {
-        await new JoinStoreDialog(ctx, Root.XamlRoot, pasted).ShowAsync(options.Show == "preview");
+        var dialog = joining = new JoinStoreDialog(ctx, Root.XamlRoot, pasted);
+        try
+        {
+            await dialog.ShowAsync(options.Show == "preview");
+        }
+        catch (COMException)
+        {
+            // Another dialog came up first: the link waits for the viewer to open it again.
+            return;
+        }
+        finally
+        {
+            if (joining == dialog)
+                joining = null;
+        }
         if (ctx.Known.Joined is { } store)
         {
             ctx.Known.Joined = null;
@@ -699,6 +762,170 @@ public sealed partial class MainWindow : Window
         keepGoing.Start();
     }
 
+    // Windows notifications: new episodes from the engine's check, finished downloads, and the
+    // engine's own notices while the window is not in front.
+
+    Toasts? toasts;
+    DownloadRow[]? downloadsSeen;
+    DispatcherQueueTimer? newEpisodes;
+    bool inFront = true;
+
+    /// <summary>How often the open app asks the engine what aired; the engine asks AniList at most every five minutes.</summary>
+    static readonly TimeSpan CheckEvery = TimeSpan.FromMinutes(15);
+
+    void StartNotifications(Art art)
+    {
+        Activated += (_, e) => inFront = e.WindowActivationState != WindowActivationState.Deactivated;
+        var asked = options.Show == "toast";
+        if (options.Fixture && !asked)
+            return;
+        toasts = Toasts.Start(Path.Combine(dirs.Cache, "notification-art"), art, (action, show, episode) => ui.TryEnqueue(() => FromNotification(action, show, episode)));
+#if ANISTREAM_TESTING
+        if (asked)
+        {
+            ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
+            {
+                await Task.Delay(2500);
+                var banner = ctx.Known.Entry(900001)?.BannerUrl ?? ctx.Known.Entry(900001)?.CoverUrl;
+                foreach (var notice in Notices.Aired([new NewEpisode(900001, ctx.Known.Entry(900001)?.Title ?? "Stardust Wayfarer", 8, 0, NextForYou: 7, BannerUrl: banner)]))
+                    toasts?.Post(notice);
+            });
+            return;
+        }
+#endif
+        if (options.Fixture)
+            return;
+        // Soon after launch, then while the app runs, window or notification area.
+        newEpisodes = ui.CreateTimer();
+        newEpisodes.Interval = TimeSpan.FromSeconds(20);
+        newEpisodes.Tick += (_, _) =>
+        {
+            newEpisodes.Interval = CheckEvery;
+            ctx.Send(new Command.CheckNewEpisodes());
+        };
+        newEpisodes.Start();
+    }
+
+    /// <summary>A notification clicked: the window to the front, then the episode playing or the show open.</summary>
+    void FromNotification(string action, uint show, string? episode)
+    {
+        if (!AppWindow.IsVisible)
+            ShowAgain();
+        else
+            Activate();
+        if (show == 0)
+            return;
+        if (action == "play" && episode is not null)
+            ctx.Play(show, episode);
+        else
+            OpenTitle(show);
+    }
+
+    void Notified(string title, string body)
+    {
+        if ((inFront && AppWindow.IsVisible) || toasts is null)
+            ShowToast(InfoBarSeverity.Informational, $"{title}: {body}");
+        else
+            toasts.Post(new SystemNotice($"engine-{title}", title, body, 0, null, null));
+    }
+
+    // anistream:// links, as the Mac opens them (Link).
+
+    JoinStoreDialog? joining;
+    WelcomeDialog? welcoming;
+
+    /// <summary>
+    /// The window to the front for another launch: back from the notification area, or up from
+    /// the taskbar, and given the foreground the launch handed over.
+    /// </summary>
+    void Forward()
+    {
+        if (!AppWindow.IsVisible)
+        {
+            ShowAgain();
+            return;
+        }
+        if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } overlapped)
+            overlapped.Restore();
+        Activate();
+        SetForegroundWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+    }
+
+    /// <summary>
+    /// A link the app was opened with. An invite fills in the welcome or the join dialog when one
+    /// is up, and opens the join dialog otherwise, over any other dialog; the widgets' links go
+    /// where the Mac takes them; any other link says it can't be opened.
+    /// </summary>
+    internal async void OpenLink(string text)
+    {
+        var link = Link.Parse(text);
+        if (link is Link.Invite invite)
+        {
+            if (welcoming is { } welcome)
+                welcome.Fill(invite.Https);
+            else if (joining is { } join)
+                join.Fill(invite.Https);
+            else
+            {
+                if (Player.Showing)
+                    Player.Close();
+                if (CloseDialogs())
+                    await Task.Delay(250);
+                ShowJoinStore(invite.Https);
+            }
+            return;
+        }
+        switch (link)
+        {
+            case Link.Title title:
+                OpenTitle(title.Id);
+                break;
+            case Link.Play play:
+                OpenTitle(play.Id);
+                ctx.Play(play.Id, play.Episode.ToString(CultureInfo.InvariantCulture));
+                break;
+            case Link.Calendar:
+                Go("calendar");
+                break;
+            case Link.Accounts:
+                if (Player.Showing)
+                    Player.Close();
+                ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo());
+                break;
+            case Link.Download download:
+                // A finished download plays, from its title's page; otherwise Downloads, where it is.
+                if (ctx.Known.Downloads.FirstOrDefault(r => r.Id == download.Id && r.State == DownloadState.Done) is { Path: { } path } row)
+                {
+                    OpenTitle(row.AnilistId);
+                    ctx.Send(new Command.PlayLocal(row.AnilistId, row.Episode, row.Title, path));
+                }
+                else
+                    Go("downloads");
+                break;
+            default:
+                AnistreamFfiMethods.LogLine(FfiLogLevel.Info, "windows", "a link this app does not open");
+                ShowToast(InfoBarSeverity.Warning, "anistream can't open that link");
+                break;
+        }
+    }
+
+    /// <summary>Closes the dialog that is up, if one is: whether one was.</summary>
+    bool CloseDialogs()
+    {
+        var closed = false;
+        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(Root.XamlRoot))
+            if (popup.Child is ContentDialog dialog)
+            {
+                dialog.Hide();
+                closed = true;
+            }
+        return closed;
+    }
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetForegroundWindow(nint hwnd);
+
     /// <summary>The window back from the notification area; the icon goes with the window's return.</summary>
     void ShowAgain()
     {
@@ -758,6 +985,8 @@ public sealed partial class MainWindow : Window
     {
         closing = true;
         keepGoing?.Stop();
+        newEpisodes?.Stop();
+        toasts?.Stop();
         tray?.Dispose();
         network.Dispose();
         taskbar?.Clear();

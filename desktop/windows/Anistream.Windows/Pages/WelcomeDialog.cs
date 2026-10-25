@@ -41,6 +41,13 @@ sealed class WelcomeDialog
     /// <summary>Opens on a later page, for a screenshot: anilist or sources.</summary>
     public void Step(string name) => Show(name switch { "anilist" => 1, "sources" => 2, _ => 0 });
 
+    /// <summary>An invite link opened while this is up: on to the sources page, filled in.</summary>
+    public void Fill(string link)
+    {
+        invite.Text = link;
+        Show(2);
+    }
+
     void Show(int to)
     {
         page = to;

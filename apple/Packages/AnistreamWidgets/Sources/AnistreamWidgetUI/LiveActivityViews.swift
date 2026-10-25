@@ -103,17 +103,18 @@ struct DownloadsButton: View {
     }
 }
 
-/// Download progress: water on a faint track, 4 points.
+/// Download progress: water on a faint track, 4 points. Playback's is amber, as the player's.
 struct WaterBar: View {
     let fraction: Double
     let track: Color
+    var fill: Color = Palette.water
 
     var body: some View {
         Capsule()
             .fill(track)
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
-                    Capsule().fill(Palette.water).frame(width: proxy.size.width * min(max(fraction, 0), 1))
+                    Capsule().fill(fill).frame(width: proxy.size.width * min(max(fraction, 0), 1))
                 }
             }
             .frame(height: 4)

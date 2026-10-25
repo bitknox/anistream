@@ -130,6 +130,22 @@ public class CalendarTests
         Assert.True(broadcasts[0].IsNew(anchor));
         Assert.Empty(Calendar.Broadcasts(rows, anchor, new Known(), mine: true));
     }
+
+    [Fact]
+    public void AnEstimatedTimeHasATildeAndADubRowSaysSo()
+    {
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+        var anchor = new DateTimeOffset(2026, 10, 20, 12, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds();
+        var rows = new[]
+        {
+            new Entry(Id: 1, Title: "Atelier Hotaru", AiringIn: 4 * 3600 + 1800, AiringEpisode: 10, AiringApproximate: true, AiringTranslation: Translation.Dub),
+            new Entry(Id: 2, Title: "Natsukaze Relay", AiringIn: 3600, AiringEpisode: 8),
+        };
+        var broadcasts = Calendar.Broadcasts(rows, anchor, new Known(), mine: false);
+        Assert.Equal("Ep 10 · ~16:30", broadcasts[1].Line(Utc));
+        Assert.Equal("Dub", broadcasts[1].Mark);
+        Assert.Null(broadcasts[0].Mark);
+    }
 }
 
 public class SharedWordsTests
@@ -151,6 +167,15 @@ public class SharedWordsTests
 
 public class SettingsCatalogTests
 {
+    [Fact]
+    public void RichPresenceWaitsOnPresenceAndTheTitle()
+    {
+        Assert.True(SettingsCatalog.IsSwitch(SettingKey.PresenceRich));
+        Assert.Equal([SettingKey.Presence, SettingKey.PresenceTitle], SettingsCatalog.Needs(SettingKey.PresenceRich));
+        Assert.Equal([SettingKey.Syncplay], SettingsCatalog.Needs(SettingKey.SyncplayRoom));
+        Assert.Empty(SettingsCatalog.Needs(SettingKey.Presence));
+    }
+
     static SettingRow Row(SettingKey key, string value, SettingChange? change = null) =>
         new(key, value, change ?? new SettingChange.Steps(true, true));
 
@@ -507,6 +532,30 @@ public class SceneTests
         DeleteRoot(root);
     }
 
+    /// <summary>The app's own Simkl and Trakt clients turn those trackers on, so Accounts can sign in to them.</summary>
+    [Fact(Timeout = 60_000)]
+    public async Task TheAppsClientsTurnOnSimklAndTrakt()
+    {
+        HomeGuard.Check();
+        var root = AppDirs.NewScratchRoot("cs-trackers");
+        var gate = new object();
+        var engine = FfiEngine.StartScene(AppDirs.Under(root), new QuietHost(), new FfiScene.Fresh(), EngineSession.AppStart());
+        using (var session = new EngineSession(engine, a => { lock (gate) a(); }))
+        {
+            session.Start();
+            string[] trackers = [];
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (!(trackers.Contains("simkl") && trackers.Contains("trakt")) && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(100, TestContext.Current.CancellationToken);
+                lock (gate) trackers = [.. session.Known.Sync.Keys];
+            }
+            Assert.Contains("simkl", trackers);
+            Assert.Contains("trakt", trackers);
+        }
+        DeleteRoot(root);
+    }
+
     static void DeleteRoot(string root)
     {
         var deadline = DateTime.UtcNow.AddSeconds(10);
@@ -526,5 +575,244 @@ public class SceneTests
                 Thread.Sleep(200);
             }
         }
+    }
+}
+
+public class ShowSettingsTests
+{
+    [Fact]
+    public void EveryRowTheEngineHasOffersWhatItsSettingTakes()
+    {
+        foreach (var key in Enum.GetValues<ShowSettingKey>())
+            Assert.NotEmpty(ShowSettingsCatalog.Choices(key));
+        Assert.Equal(["Japanese", "English"], ShowSettingsCatalog.Choices(ShowSettingKey.Translation).Select(c => c.Label));
+        Assert.Equal(["480p", "720p", "1080p", "2160p"], ShowSettingsCatalog.Choices(ShowSettingKey.Quality).Select(c => c.Label));
+        Assert.Equal(["Standard", "Higher"], ShowSettingsCatalog.Choices(ShowSettingKey.DownloadQuality).Select(c => c.Label));
+        Assert.Equal("Off", ShowSettingsCatalog.Choices(ShowSettingKey.KeepNext)[0].Label);
+    }
+
+    [Fact]
+    public void AShowsOwnValueStandsOnItsChoice()
+    {
+        Assert.Equal(-1, ShowSettingsCatalog.IndexOf(ShowSettingKey.Quality, null));
+        Assert.Equal(2, ShowSettingsCatalog.IndexOf(ShowSettingKey.Quality, new SettingValue.Int(1080)));
+        Assert.Equal(1, ShowSettingsCatalog.IndexOf(ShowSettingKey.SkipFiller, new SettingValue.Bool(false)));
+        Assert.Equal(1, ShowSettingsCatalog.IndexOf(ShowSettingKey.Translation, new SettingValue.Str("dub")));
+        Assert.Equal(-1, ShowSettingsCatalog.IndexOf(ShowSettingKey.Quality, new SettingValue.Int(360)));
+    }
+
+    [Fact]
+    public void ARowSaysItsValueInTheSheetsWords()
+    {
+        Assert.Equal("English", ShowSettingsCatalog.Shown(ShowSettingKey.Translation, "dub"));
+        Assert.Equal("On", ShowSettingsCatalog.Shown(ShowSettingKey.SkipOpening, "on"));
+        Assert.Equal("720p", ShowSettingsCatalog.Shown(ShowSettingKey.Quality, "720p"));
+        Assert.Equal("Standard", ShowSettingsCatalog.Shown(ShowSettingKey.DownloadQuality, "standard"));
+        Assert.Equal(SettingKey.KeepNextEpisodes, ShowSettingsCatalog.Setting(ShowSettingKey.KeepNext));
+    }
+}
+
+public class SearchTests
+{
+    [Fact]
+    public void AFilterWithNothingTypedBrowses()
+    {
+        var filters = SearchFilters.None with { Genres = ["Drama"], Formats = [MediaFormat.Movie], Year = 2019 };
+        var query = Searches.With("", filters);
+        Assert.Equal("", query.Text);
+        Assert.Equal(["Drama"], query.Genres);
+        Assert.Equal([MediaFormat.Movie], query.Formats);
+        Assert.Equal(new Bounds(2019, 2019), query.Years);
+        Assert.True(filters.Narrows);
+        Assert.False(SearchFilters.None.Narrows);
+        Assert.True((SearchFilters.None with { Sort = SearchSort.Score }) is { Narrows: false, IsEmpty: false });
+    }
+
+    [Fact]
+    public void AQueryIsTheSameQueryWhateverArraysCarryIt()
+    {
+        var filters = SearchFilters.None with { Genres = ["Drama", "Mystery"] };
+        var a = Searches.With("lamp", filters);
+        var b = Searches.With("lamp", filters with { Genres = ["Drama", "Mystery"] });
+        Assert.NotEqual(a, b);
+        Assert.True(Searches.Same(a, b));
+        Assert.False(Searches.Same(a, Searches.With("lamp", SearchFilters.None)));
+        Assert.True(Searches.Same(Searches.Text("x"), new SearchQuery(Text: "x", Years: new Bounds(), Episodes: new Bounds(), Minutes: new Bounds())));
+
+        var known = new Known();
+        known.Take(new Event.Content(new ContentFor.Search(a), new ContentList.Empty()));
+        Assert.IsType<ContentList.Empty>(known.List(new ContentFor.Search(b)));
+        known.Take(new Event.Content(new ContentFor.Search(b), new ContentList.Failed("down")));
+        Assert.Single(known.Lists);
+        Assert.IsType<ContentList.Failed>(known.List(new ContentFor.Search(a)));
+    }
+
+    [Fact]
+    public void GenresKeepTheListsOrderAndADropDownSaysWhatItHas()
+    {
+        var order = Searches.Genres;
+        var filters = SearchFilters.None.Toggle("Mystery", order).Toggle("Action", order);
+        Assert.Equal(["Action", "Mystery"], filters.Genres);
+        Assert.Equal(["Mystery"], filters.Toggle("Action", order).Genres);
+        Assert.Equal([MediaFormat.Tv, MediaFormat.Movie], SearchFilters.None.Toggle(MediaFormat.Movie).Toggle(MediaFormat.Tv).Formats);
+        Assert.Equal("Genre", SearchFilters.Say("Genre", []));
+        Assert.Equal("Action, Mystery", SearchFilters.Say("Genre", ["Action", "Mystery"]));
+        Assert.Equal("Action +2", SearchFilters.Say("Genre", ["Action", "Drama", "Mystery"]));
+        Assert.Equal(2027u, Searches.Years(2026)[0]);
+        Assert.Equal(1970u, Searches.Years(2026)[^1]);
+    }
+}
+
+public class TitleSeasonsTests
+{
+    static LinkedTitle Linked(uint id, Season? season, ushort? year) => new(Id: id, Title: $"Lantern Road {id}", Season: season, Year: year);
+
+    [Fact]
+    public void ThePickerNamesEachSeasonInWatchOrderWithThisOnePicked()
+    {
+        var detail = new TitleDetail(Seasons: [Linked(910001, Season.Spring, 2021), Linked(910002, null, 2022), Linked(910003, null, null)]);
+        var entry = new Entry(Id: 910002, Title: "Lantern Road", Detail: detail,
+            Related: [new RelatedTitle(910001, "Lantern Road", "prequel", "TV"), new RelatedTitle(910006, "Lantern Road: the film", "side_story", "MOVIE")]);
+        var seasons = TitleSeasons.Of(entry);
+        Assert.Equal(["Season 1 · Spring 2021", "Season 2 · 2022", "Season 3"], seasons.Select(s => s.Label));
+        Assert.Equal([false, true, false], seasons.Select(s => s.IsThis));
+        Assert.Equal([910006u], TitleSeasons.Related(entry).Select(r => r.Id));
+    }
+
+    [Fact]
+    public void OneSeasonOrAWalkUnderWayIsNoPicker()
+    {
+        Assert.Empty(TitleSeasons.Of(new Entry(Id: 1, Title: "A")));
+        Assert.Empty(TitleSeasons.Of(new Entry(Id: 1, Title: "A", Detail: new TitleDetail(Seasons: [Linked(1, null, 2020)]))));
+    }
+}
+
+public class NoticesTests
+{
+    [Fact]
+    public void AnEpisodeOutSaysWhereTheViewerIs()
+    {
+        var said = new[]
+        {
+            new NewEpisode(900002, "Lantern Road", 9, 0, CoverUrl: "cover", BannerUrl: "banner"),
+            new NewEpisode(900003, "Hotaru Atelier", 10, 0, NextForYou: 8),
+            new NewEpisode(900004, "Kiriya Pass", 4, 0, Translation: Translation.Dub),
+            new NewEpisode(900002, "Lantern Road", 9, 0),
+        };
+        var notices = Notices.Aired(said);
+        Assert.Equal(3, notices.Length);
+        Assert.Equal(new SystemNotice("aired-900002-9", "Lantern Road", "Episode 9 is out.", 900002, "9", "banner"), notices[0]);
+        Assert.Equal(("Episode 10 is out. Next for you: episode 8.", "8"), (notices[1].Body, notices[1].Play));
+        Assert.Equal("Episode 4 is out, dubbed.", notices[2].Body);
+        Assert.EndsWith("-dub", notices[2].Tag);
+    }
+
+    static DownloadRow Row(long id, uint show, string episode, DownloadState state) =>
+        new(id, show, $"Show {show}", episode, state, state == DownloadState.Done ? 1 : 0.5, 0, 0);
+
+    [Fact]
+    public void AFinishedDownloadIsSaidOncePerShow()
+    {
+        DownloadRow[] before = [Row(1, 7, "3", DownloadState.Active), Row(2, 8, "1", DownloadState.Active), Row(3, 8, "2", DownloadState.Queued), Row(4, 9, "1", DownloadState.Done)];
+        DownloadRow[] now = [Row(1, 7, "3", DownloadState.Done), Row(2, 8, "1", DownloadState.Done), Row(3, 8, "2", DownloadState.Done), Row(4, 9, "1", DownloadState.Done)];
+        var notices = Notices.Downloaded(before, now);
+        Assert.Equal(["Episode 3 downloaded.", "2 episodes downloaded."], notices.Select(n => n.Body));
+        Assert.Equal("1", notices[1].Play);
+        Assert.Empty(Notices.Downloaded(null, now));
+        Assert.Empty(Notices.Downloaded(now, now));
+    }
+
+    [Fact]
+    public void AButtonsArgumentsSayWhatToDo()
+    {
+        Assert.Equal(("play", 900002u, "9"), Notices.Read(new Dictionary<string, string> { ["action"] = "play", ["show"] = "900002", ["episode"] = "9" }));
+        Assert.Null(Notices.Read(new Dictionary<string, string> { ["action"] = "open" }));
+    }
+}
+
+public class EpisodeDownloadTests
+{
+    static DownloadRow Row(long id, uint show, string episode, DownloadState state, double fraction = 0.5, ulong total = 100) =>
+        new(id, show, $"Show {show}", episode, state, fraction, (ulong)(fraction * total), total);
+
+    [Fact]
+    public void AnEpisodeWithNoRowOffersADownload()
+    {
+        var cell = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Done)], 7, "4");
+        Assert.Equal(EpisodeDownloadKind.None, cell.Kind);
+        Assert.True(cell.Asks);
+        Assert.Equal("Download episode 4", cell.Say);
+    }
+
+    [Fact]
+    public void ARunningDownloadSaysHowFar()
+    {
+        var going = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Active, 0.456)], 7, "3");
+        Assert.Equal("Downloading · 45%", going.Say);
+        Assert.False(going.Asks);
+        Assert.Equal(EpisodeDownloadKind.Queued, EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Active, 0, 0)], 7, "3").Kind);
+        Assert.Equal("Download paused at 50%", EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Paused)], 7, "3").Say);
+    }
+
+    [Fact]
+    public void AFinishedFileWinsOverAFailedRetry()
+    {
+        DownloadRow[] rows = [Row(1, 7, "3", DownloadState.Done, 1), Row(2, 7, "3", DownloadState.Failed), Row(3, 8, "3", DownloadState.Active)];
+        Assert.Equal(EpisodeDownloadKind.Done, EpisodeDownload.Of(rows, 7, "3").Kind);
+        var failed = EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed), Row(2, 7, "3", DownloadState.Queued)], 7, "3");
+        Assert.Equal(EpisodeDownloadKind.Queued, failed.Kind);
+        Assert.True(EpisodeDownload.Of([Row(1, 7, "3", DownloadState.Failed)], 7, "3").Asks);
+    }
+}
+
+public class LinkTests
+{
+    const string Https = "https://plugins.example/join/abc#key";
+
+    [Fact]
+    public void AnInviteIsReadFromTheStoresAddressOrTheAppsOwn()
+    {
+        Assert.Equal(new Link.Invite(Https), Link.Parse(Https));
+        Assert.Equal(new Link.Invite(Https), Link.Parse("anistream://plugins.example/join/abc#key"));
+        Assert.Equal(new Link.Invite(Https), Link.Parse("anistream://join?link=" + Uri.EscapeDataString(Https)));
+        Assert.Equal(new Link.Invite(Https), Link.Parse($" \"{Https}\"\n"));
+        Assert.Null(Link.Parse("anistream://auth/anilist#token=x"));
+        Assert.Null(Link.Parse("https://plugins.example/about"));
+        Assert.Null(Link.Parse("anistream://join?link=" + Uri.EscapeDataString("http://plugins.example/join/abc#key")));
+    }
+
+    [Fact]
+    public void AStoresOpenLinkIsReadWholeWithItsMark()
+    {
+        const string open = "https://plugins.example/join/abc?open#key";
+        Assert.Equal(new Link.Invite(open), Link.Parse("anistream://plugins.example/join/abc?open#key"));
+        Assert.Equal(new Link.Invite(open), Link.Parse("anistream://join?link=" + Uri.EscapeDataString(open)));
+    }
+
+    [Fact]
+    public void TheWidgetsDestinationsAreReadAsTheMacReadsThem()
+    {
+        Assert.Equal(new Link.Title(900001), Link.Parse("anistream://title/900001"));
+        Assert.Equal(new Link.Play(900001, 7), Link.Parse("anistream://play/900001/7"));
+        Assert.Equal(new Link.Calendar(), Link.Parse("anistream://calendar"));
+        Assert.Equal(new Link.Accounts(), Link.Parse("ANISTREAM://settings/accounts"));
+        Assert.Equal(new Link.Download(42), Link.Parse("anistream://download/42"));
+        Assert.Null(Link.Parse("anistream://download/x"));
+        Assert.Null(Link.Parse("anistream://title/0"));
+        Assert.Null(Link.Parse("anistream://play/900001"));
+        Assert.Null(Link.Parse("anistream://settings/playback"));
+        Assert.Null(Link.Parse("anistream://"));
+        Assert.Null(Link.Parse("--scene=watching"));
+    }
+
+    [Fact]
+    public void ALaunchCarriesItsLinkAsAnArgumentOrInItsCommandLine()
+    {
+        Assert.Equal("anistream://calendar", Link.InArguments(["--scene=watching", "anistream://calendar"]));
+        Assert.Null(Link.InArguments(["--scene=watching"]));
+        Assert.Equal("anistream://plugins.example/join/abc#key",
+            Link.InCommandLine("\"C:\\Program Files\\anistream\\anistream.exe\" \"anistream://plugins.example/join/abc#key\""));
+        Assert.Equal("anistream://calendar", Link.InCommandLine("anistream.exe anistream://calendar --x"));
+        Assert.Null(Link.InCommandLine("\"C:\\anistream\\anistream.exe\""));
     }
 }

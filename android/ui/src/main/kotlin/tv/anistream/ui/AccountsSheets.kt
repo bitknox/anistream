@@ -56,7 +56,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import tv.anistream.design.tabular
 import tv.anistream.engine.model.DeviceCodePrompt
+import tv.anistream.store.CodeCountdown
 import tv.anistream.store.AccountsModel
 
 /**
@@ -235,11 +237,38 @@ internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
         SheetText("Waiting for $name", Modifier.padding(top = 12.dp))
+        CodeExpiry(prompt, Modifier.padding(top = 4.dp))
         SheetButtons {
             QuietButton("Close", onClick = onDismiss)
             Button(onClick = { runCatching { uri.openUri(prompt.url) } }) { Text("Open $host") }
         }
     }
+}
+
+/**
+ * "Expires in 14:59" under a code, ticking each second. At nought the sign-in asks for a new code,
+ * as the TV's "Get a new code" does, which replaces this one. Nothing when the service gave no time.
+ */
+@Composable
+internal fun CodeExpiry(prompt: DeviceCodePrompt, modifier: Modifier = Modifier) {
+    val store = LocalAppStore.current
+    val expiresAt = prompt.expiresAt ?: return
+    var left by remember(prompt.code, expiresAt) { mutableStateOf(CodeCountdown.secondsLeft(expiresAt, System.currentTimeMillis())) }
+    LaunchedEffect(prompt.code, expiresAt) {
+        var live = false
+        CodeCountdown.ticks(expiresAt).collect {
+            if (it > 0) live = true
+            left = it
+        }
+        // A code that was out when it arrived is not asked for again, which would only loop.
+        if (live) store.connect(prompt.tracker)
+    }
+    Text(
+        CodeCountdown.line(left),
+        style = MaterialTheme.typography.bodyMedium.tabular(),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 /** What a library pull found different here and on AniList: each title, and which side to keep. */

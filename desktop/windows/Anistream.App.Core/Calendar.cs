@@ -11,12 +11,19 @@ public sealed record Broadcast(Entry Entry, uint Episode, long Airs, long? Was)
     /// <summary>Aired and not watched: the water dot.</summary>
     public bool IsNew(long now) => Airs <= now && !Watched;
 
-    /// <summary>"Ep 10 · 16:30", with "(was 23:00)" when the schedule moved it.</summary>
-    public string Line(TimeZoneInfo zone)
+    /// <summary>
+    /// "Ep 10 · 16:30", "~16:30" when the time is an estimate, with "(was 23:00)" when the
+    /// schedule moved it. The engine's <c>air_time</c>.
+    /// </summary>
+    public string Line(TimeZoneInfo zone, CultureInfo? culture = null)
     {
-        var line = $"Ep {Episode} · {Calendar.Time(Airs, zone)}";
-        return Was is { } was ? $"{line} (was {Calendar.Time(was, zone)})" : line;
+        var time = Anistream.Engine.Ffi.AnistreamFfiMethods.AirTime(Calendar.Time(Airs, zone, culture), Entry.AiringApproximate);
+        var line = $"Ep {Episode} · {time}";
+        return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
     }
+
+    /// <summary>"Dub" or "Sub" for the row, beside its time, or null: the engine's <c>calendar_mark</c>.</summary>
+    public string? Mark => Anistream.Engine.Ffi.AnistreamFfiMethods.CalendarMark(Entry);
 }
 
 /// <summary>The calendar's week: Monday first, in the viewer's time zone.</summary>

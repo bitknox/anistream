@@ -70,13 +70,15 @@ extension ContinueItem {
 
 extension Broadcast {
     /// The broadcast in words: "Episode 8, out 1 day 2 hours ago", "Episode 9 at 21:30, in 1
-    /// hour 30 minutes", "Episode 7, watched".
+    /// hour 30 minutes", "Episode 9, Dub at about 21:30, in 2 days", "Episode 7, watched".
     func spoken(now: Date) -> String {
-        if watched { return "Episode \(episode), watched" }
+        let episode = "Episode \(episode)" + (mark.map { ", \($0)" } ?? "")
+        if watched { return "\(episode), watched" }
         let seconds = Int64(airs.timeIntervalSince(now))
-        if seconds <= 0 { return "Episode \(episode), out " + Spoken.words(Wording.ago(-seconds)) }
+        if seconds <= 0 { return "\(episode), out " + Spoken.words(Wording.ago(-seconds)) }
         let delay = delayedFrom.map { ", delayed from \(CalendarWords.time($0))" } ?? ""
-        return "Episode \(episode) at \(CalendarWords.time(airs))\(delay), in " + Spoken.words(Wording.countdown(seconds))
+        let at = entry.airingApproximate ? "at about" : "at"
+        return "\(episode) \(at) \(CalendarWords.time(airs))\(delay), in " + Spoken.words(Wording.countdown(seconds))
     }
 }
 

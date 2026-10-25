@@ -18,6 +18,8 @@ final class ScriptedMpv: PlayerBackend {
         var displays: [DisplayInfo] = []
         var continuation: AsyncStream<MpvEvent>.Continuation?
         var answers: [String: AnistreamPlayer.MpvValue] = [:]
+        /// Commands mpv says no to, by name: `sub-add` for a file it can't read.
+        var refuses: Set<String> = []
     }
 
     let state = Mutex(State())
@@ -53,6 +55,9 @@ final class ScriptedMpv: PlayerBackend {
             return nil
         }
         if state.withLock({ $0.ended }) { throw MpvError.terminated }
+        if case .command(let words) = call, let name = words.first, state.withLock({ $0.refuses.contains(name) }) {
+            throw MpvError.mpv(code: -13, call: words.joined(separator: " "))
+        }
         if case .restate(let property) = call, let answer {
             return .property(name: property, json: answer.json)
         }

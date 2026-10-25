@@ -12,6 +12,7 @@ use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, LibrarySegment},
     command::Command,
     event::Event,
+    present,
 };
 use gtk::{gio, glib};
 
@@ -42,9 +43,18 @@ impl Broadcast {
         self.airs <= now && !self.watched()
     }
 
-    /// "Ep 10 · 16:30", with "(was 23:00)" when it moved.
+    /// The air time, with "~" before an estimate: "~16:30".
+    fn clock(&self) -> String {
+        present::air_time(&time(self.airs), self.entry.airing_approximate)
+    }
+
+    /// "Ep 10 · 16:30 · Dub", with "(was 23:00)" when it moved. "~16:30" for an estimate, and the
+    /// mark only when the engine knows a sub or dub.
     fn line(&self) -> String {
-        let mut line = format!("Ep {} · {}", self.episode, time(self.airs));
+        let mut line = format!("Ep {} · {}", self.episode, self.clock());
+        if let Some(mark) = present::calendar_mark(&self.entry) {
+            line.push_str(&format!(" · {mark}"));
+        }
         if let Some(was) = self.was {
             line.push_str(&format!(" (was {})", time(was)));
         }
@@ -392,12 +402,7 @@ impl Page {
         let cell = gtk::Box::new(gtk::Orientation::Vertical, 4);
         if broadcast.watched() {
             let line = widgets::haze(
-                &format!(
-                    "{} · Ep {} · {}",
-                    time(broadcast.airs),
-                    broadcast.episode,
-                    entry.title
-                ),
+                &format!("{} · Ep {} · {}", broadcast.clock(), broadcast.episode, entry.title),
                 "caption",
             );
             line.set_wrap(false);
@@ -724,5 +729,23 @@ mod tests {
         broadcast.entry.progress =
             Some(anistream_model::progress::TitleProgress { done: 10, next: 11 });
         assert!(!broadcast.is_new(at + 1));
+    }
+
+    #[test]
+    fn an_estimate_reads_with_a_tilde_and_a_dub_is_marked() {
+        use anistream_core::media::Translation;
+        let at = day(2026, 10, 23).add_hours(4).expect("16:00").to_unix();
+        let mut broadcast = Broadcast {
+            entry: Entry::new(anistream_core::ids::AnilistId::new(1), "A"),
+            episode: 3,
+            airs: at,
+            was: None,
+        };
+        assert!(!broadcast.line().contains('~'));
+        assert!(!broadcast.line().ends_with("Dub") && !broadcast.line().ends_with("Sub"));
+        broadcast.entry.airing_approximate = true;
+        broadcast.entry.airing_translation = Some(Translation::Dub);
+        assert!(broadcast.line().starts_with("Ep 3 · ~"));
+        assert!(broadcast.line().ends_with(" · Dub"));
     }
 }

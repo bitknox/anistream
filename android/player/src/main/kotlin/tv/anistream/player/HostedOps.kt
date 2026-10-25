@@ -93,7 +93,7 @@ fun mpvValue(value: EngineValue): MpvValue = when (value) {
 val reportedProperties = listOf(
     "time-pos", "duration", "pause", "speed", "volume", "chapter-list", "video-params",
     "current-tracks/video", "track-list", "aid", "sid", "sub-delay", "paused-for-cache",
-    "frame-drop-count", "seeking",
+    "demuxer-cache-state", "frame-drop-count", "seeking",
 )
 
 /** The report for one of mpv's events, when the engine reads it: a property, a file loaded or ended. */

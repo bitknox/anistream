@@ -225,6 +225,12 @@ extension AppStore {
         send(.downloadPause(id: id))
     }
 
+    /// Start a queued download ahead of the rest. With every slot busy, the one that started
+    /// last waits again behind it, keeping what it fetched.
+    public func startDownloadNow(_ id: Int64) {
+        send(.downloadStartNow(id: id))
+    }
+
     /// Take a download off the queue, keeping a finished file.
     public func cancelDownload(_ id: Int64) {
         send(.downloadCancel(id: id))

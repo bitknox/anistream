@@ -46,6 +46,8 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Ending
+import tv.anistream.engine.model.ContentFor
+import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.Notice
@@ -169,6 +171,15 @@ class TvShots {
     fun player() = playerShot("tv-player") {}
 
     /** The chrome gone again, the skip offer holding Center in the bottom right. */
+    /** The seek bar with the engine's opening and ending marks and what is buffered ahead of the played part. */
+    @Test
+    fun player_buffered() = playerShot("tv-player-buffered") { model ->
+        compose.runOnUiThread {
+            model.apply(Event.PlayerTimeline(1u, listOf(tv.anistream.engine.model.TimelineMark(SkipKind.OPENING, 130.0, 220.0), tv.anistream.engine.model.TimelineMark(SkipKind.ENDING, 1291.0, 1381.0))))
+            model.apply(Event.PlayerBuffered(1u, listOf(tv.anistream.engine.model.TimeRange(0.0, 480.0), tv.anistream.engine.model.TimeRange(700.0, 760.0))))
+        }
+    }
+
     @Test
     fun player_skip() = playerShot("tv-player-skip") { time = CHROME_HIDE + 1_000 }
 

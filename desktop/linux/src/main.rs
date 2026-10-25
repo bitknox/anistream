@@ -91,6 +91,11 @@ fn args() -> Args {
 }
 
 fn main() -> glib::ExitCode {
+    // Answered before GTK starts, so a package can check what it built without a display.
+    if std::env::args().nth(1).as_deref() == Some("--version") {
+        println!("anistream {}", anistream_engine::updates::CURRENT);
+        return glib::ExitCode::SUCCESS;
+    }
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

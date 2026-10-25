@@ -59,6 +59,9 @@ struct FixturesPlaybackTests {
         #expect(model.chapters.map(\.title) == ["Prologue", "Opening", "Part A", "Ending", "Preview"])
         #expect(model.segments.map(\.kind) == [.plain, .opening, .plain, .ending, .plain])
         #expect(model.audioTracks.count == 2 && model.subtitleTracks.count == 2)
+        // The engine's own marks, which skipping goes by, take over from the chapters.
+        try await until("the engine's marks", timeout: .seconds(10)) { model.timelines[first] != nil }
+        #expect(model.segments.map(\.kind) == [.plain, .opening, .plain, .ending, .plain])
 
         // Scrubbing: the hidden mpv opens the stream and shows the frame under the finger.
         model.scrub(to: 9, pace: 0.5)
@@ -155,6 +158,9 @@ struct FixturesPlaybackTests {
         #expect(model.duration.map { abs($0 - 60) < 1 } == true)
         model.poke()
         #expect(model.controlsVisible)
+        // mpv's cache of the stream, reported to the engine and said back for the seek line.
+        try await until("the buffered ranges", timeout: .seconds(10)) { !model.buffered.isEmpty }
+        #expect(model.buffered.allSatisfy { $0.end > $0.start })
         // Hovering the seek line: the hidden mpv reads the mended stream, from the engine's
         // thumbnails address through the mender, and shows a frame.
         model.hover(at: 9)

@@ -349,6 +349,15 @@ struct SeekLine: View {
                     Capsule()
                         .fill(track(segment.kind))
                         .overlay(alignment: .leading) {
+                            // What mpv holds ahead, lighter than the track, under the played time.
+                            ForEach(Array(held(in: segment).enumerated()), id: \.offset) { _, range in
+                                Rectangle()
+                                    .fill(Palette.silk.opacity(0.24))
+                                    .frame(width: width * range.length)
+                                    .offset(x: width * range.from)
+                            }
+                        }
+                        .overlay(alignment: .leading) {
                             Rectangle()
                                 .fill(.amber)
                                 .frame(width: width * played)
@@ -445,6 +454,11 @@ struct SeekLine: View {
         let marked = model.segments
         guard marked.isEmpty else { return marked }
         return duration > 0 ? [SeekSegment(kind: .plain, start: 0, end: duration)] : []
+    }
+
+    /// The buffered stretches inside `segment`, as fractions of it: where each starts, and how much.
+    private func held(in segment: SeekSegment) -> [(from: Double, length: Double)] {
+        bufferedSpans(model.buffered, in: segment)
     }
 
     private func track(_ kind: SeekSegment.Kind) -> Color {
@@ -1053,8 +1067,18 @@ struct TrackLists: View {
                 model.selectAudio(track.id)
             }
         }
-        MenuDivider()
+        // Said of the picks above, which the engine keeps; a file loaded below is this
+        // episode's alone.
         MenuNote(text: "Remembered for this show")
+        #if os(macOS)
+        MenuDivider()
+        MenuRow(title: TrackFiles.title(.sub), checked: false, metrics: metrics) {
+            TrackFiles.load(.sub, into: model)
+        }
+        MenuRow(title: TrackFiles.title(.audio), checked: false, metrics: metrics) {
+            TrackFiles.load(.audio, into: model)
+        }
+        #endif
     }
 
     /// The Subtitles row for a track, or for Off.

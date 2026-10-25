@@ -100,7 +100,7 @@ final class AppNotifications: NSObject {
     func cameForward() {
         Task {
             await store.notifications.refreshPermission()
-            if store.notifications.schedules { store.refreshNotices() }
+            if store.wantsWeek { store.refreshNotices() }
         }
         lookAtWidgets()
     }

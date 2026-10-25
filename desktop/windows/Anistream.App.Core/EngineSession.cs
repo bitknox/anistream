@@ -41,7 +41,21 @@ public sealed class EngineSession : IDisposable
         FfiEngine.Start(AppDirs.User(), host, new FfiBackground(), start);
 
     /// <summary>What the app tells the engine about itself: its palette and that it is Windows.</summary>
-    public static FfiStart AppStart() => new(Theme: Palette.PlayerTheme, Platform: FfiPlatform.Windows);
+    /// <summary>
+    /// How the app starts the engine: its palette, its platform, and the Simkl and Trakt clients
+    /// the apps ship with, which turn on those trackers' device sign-in. These ids are public, as
+    /// every app's are. AniList and MyAnimeList stay on the loopback sign-in, which needs no
+    /// <c>anistream://</c> scheme registered.
+    /// </summary>
+    public static FfiStart AppStart() => new(
+        Theme: Palette.PlayerTheme,
+        Platform: FfiPlatform.Windows,
+        SimklClientId: SimklClient,
+        TraktClientId: TraktClient);
+
+    /// <summary>The Simkl and Trakt clients registered for the apps, as the Apple apps ship them.</summary>
+    public const string SimklClient = "016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b";
+    public const string TraktClient = "p2yWSSGe7aVAlnHEMiQQh0RhiL6ivZfJNaubOJi4DZE";
 
     public void Start()
     {

@@ -89,7 +89,7 @@ extension AnistreamPlayer.MpvValue {
 public let reportedProperties = [
     "time-pos", "duration", "pause", "speed", "volume", "chapter-list", "video-params",
     "current-tracks/video", "track-list", "aid", "sid", "sub-delay", "paused-for-cache",
-    "frame-drop-count", "seeking",
+    "frame-drop-count", "seeking", "demuxer-cache-state",
 ]
 
 extension PlayerReport {

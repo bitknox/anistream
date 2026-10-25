@@ -36,6 +36,12 @@ public sealed partial class PlayerView : UserControl
     double position, duration, volume = 100;
     Coming? upNext;
     PlayerUi.Menus? menus;
+    /// <summary>The file's audio and subtitle tracks, as mpv last listed them.</summary>
+    FfiTrack[] tracks = [];
+    string tracksSeen = "";
+#if ANISTREAM_TESTING
+    bool tracksHeld;
+#endif
     readonly StillWatching still = new();
     bool pictureSeen, pointerHidden, mini, miniTipShown;
     SeekPreview? preview;
@@ -168,6 +174,9 @@ public sealed partial class PlayerView : UserControl
         upNext = null;
         thumbnails = null;
         thumbs = null;
+        timelineMarks = [];
+        buffered = [];
+        DrawTimeline();
         ShowingChanged?.Invoke(false);
     }
 
@@ -200,6 +209,14 @@ public sealed partial class PlayerView : UserControl
             {
                 case Event.PlayerUi ui:
                     Heard(ui.Ui);
+                    break;
+                case Event.PlayerTimeline t:
+                    timelineMarks = t.Marks ?? [];
+                    DrawTimeline();
+                    break;
+                case Event.PlayerBuffered b:
+                    buffered = b.Ranges ?? [];
+                    DrawTimeline();
                     break;
                 case Event.PlaybackVolume v:
                     volume = v.V1;
@@ -444,6 +461,65 @@ public sealed partial class PlayerView : UserControl
         UpdateCorner();
     }
 
+    // The seek bar's track: silk at a quarter for the length, at under half for what is
+    // buffered, water for the opening and ending, and the slider's own amber over it for what
+    // has played (native-ux.md, the timeline).
+
+    TimelineMark[] timelineMarks = [];
+    TimeRange[] buffered = [];
+
+    void OnTimelineSized(object sender, SizeChangedEventArgs e) => DrawTimeline();
+
+    void DrawTimeline()
+    {
+        TimelineUnder.Children.Clear();
+        if (Find(Timeline, "HorizontalTrackRect") is not FrameworkElement track || track.ActualWidth <= 0)
+            return;
+        var thumb = Find(Timeline, "HorizontalThumb") as FrameworkElement;
+        var at = track.TransformToVisual(TimelineUnder).TransformPoint(default);
+        var width = track.ActualWidth;
+        var height = Math.Max(2, track.ActualHeight);
+        // The slider's value runs between the thumb's centre at either end.
+        var half = (thumb?.ActualWidth ?? 0) / 2;
+        var usable = Math.Max(1, width - 2 * half);
+        double X(double seconds) => at.X + half + Math.Clamp(duration > 0 ? seconds / duration : 0, 0, 1) * usable;
+        var silk = (Brush)Application.Current.Resources["SilkBrush"];
+        var water = (Brush)Application.Current.Resources["WaterBrush"];
+        void Bar(double from, double to, Brush brush, double opacity)
+        {
+            if (to - from < 1)
+                return;
+            var bar = new Microsoft.UI.Xaml.Shapes.Rectangle
+            {
+                Width = to - from, Height = height, Fill = brush, Opacity = opacity,
+                RadiusX = height / 2, RadiusY = height / 2,
+            };
+            Canvas.SetLeft(bar, from);
+            Canvas.SetTop(bar, at.Y);
+            TimelineUnder.Children.Add(bar);
+        }
+        Bar(at.X, at.X + width, silk, 0.25);
+        if (duration <= 0)
+            return;
+        foreach (var range in buffered)
+            Bar(X(range.Start), X(range.End), silk, 0.45);
+        foreach (var mark in timelineMarks)
+            Bar(X(mark.Start), X(mark.End), water, 1);
+    }
+
+    static DependencyObject? Find(DependencyObject parent, string name)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is FrameworkElement { Name: var n } && n == name)
+                return child;
+            if (Find(child, name) is { } found)
+                return found;
+        }
+        return null;
+    }
+
     void ShowState(FfiPlayerState state)
     {
         if (state.HasPicture && startingShown && !startingHeld)
@@ -466,8 +542,11 @@ public sealed partial class PlayerView : UserControl
             idle.Start();
         if (state.Position is { } p)
             position = p;
-        if (state.Duration is { } d && d > 0)
+        if (state.Duration is { } d && d > 0 && d != duration)
+        {
             duration = d;
+            DrawTimeline();
+        }
         Elapsed.Text = AnistreamFfiMethods.PlayClock(position);
         Remaining.Text = "-" + AnistreamFfiMethods.PlayClock(Math.Max(0, duration - position));
         var status = $"{(paused ? "Paused" : "Playing")}, {Elapsed.Text} of {AnistreamFfiMethods.PlayClock(duration)}";
@@ -476,6 +555,7 @@ public sealed partial class PlayerView : UserControl
             timelineStatus = status;
             AutomationProperties.SetItemStatus(Timeline, status);
         }
+        ShowTracks(state.Tracks);
         ShowUpNext();
         fromPlayer = true;
         Timeline.Maximum = Math.Max(1, duration);
@@ -772,6 +852,135 @@ public sealed partial class PlayerView : UserControl
         }
     }
 
+    /// <summary>mpv listed the file's tracks again: rebuild the menu when what it offers changed.</summary>
+    void ShowTracks(FfiTrack[] now)
+    {
+#if ANISTREAM_TESTING
+        if (tracksHeld)
+            return;
+#endif
+        var seen = string.Join(";", now.Select(t => $"{t.Kind}{t.Id}{(t.Selected ? "*" : "")}{t.Language}{t.Title}"));
+        if (seen == tracksSeen)
+            return;
+        tracksSeen = seen;
+        tracks = now;
+        BuildTracks();
+    }
+
+    /// <summary>
+    /// The Tracks menu: Subtitled or Dubbed, then the file's own subtitles (Off first) and audio,
+    /// each by its language and title. A pick goes to the engine, which applies it and keeps it
+    /// for the series.
+    /// </summary>
+    void BuildTracks()
+    {
+        TracksMenu.Items.Clear();
+        if (menus is { } m)
+            foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Subtitled"), (Engine.Core.Translation.Dub, "Dubbed") })
+            {
+                var item = new RadioMenuFlyoutItem { Text = label, GroupName = "translation", IsChecked = m.Translation == translation };
+                item.Click += (_, _) => Send(new PlayerCommand.Choose(new PlayerChoice.Translation(translation)));
+                TracksMenu.Items.Add(item);
+            }
+        var subtitles = tracks.Where(t => t.Kind == TrackKind.Subtitle).ToArray();
+        var audio = tracks.Where(t => t.Kind == TrackKind.Audio).ToArray();
+        if (subtitles.Length == 0 && audio.Length == 0)
+            return;
+        if (TracksMenu.Items.Count > 0)
+            TracksMenu.Items.Add(new MenuFlyoutSeparator());
+
+        var subs = new MenuFlyoutSubItem { Text = "Subtitles" };
+        var off = new RadioMenuFlyoutItem { Text = "Off", GroupName = "subtitles", IsChecked = !subtitles.Any(t => t.Selected) };
+        off.Click += (_, _) => Send(new PlayerCommand.ChooseTrack(TrackKind.Subtitle, null));
+        subs.Items.Add(off);
+        foreach (var track in subtitles)
+            subs.Items.Add(TrackItem(track, "subtitles"));
+        subs.Items.Add(new MenuFlyoutSeparator());
+        subs.Items.Add(LoadItem(TrackKind.Subtitle));
+        TracksMenu.Items.Add(subs);
+
+        var sound = new MenuFlyoutSubItem { Text = "Audio" };
+        foreach (var track in audio)
+            sound.Items.Add(TrackItem(track, "audio"));
+        if (audio.Length > 0)
+            sound.Items.Add(new MenuFlyoutSeparator());
+        sound.Items.Add(LoadItem(TrackKind.Audio));
+        TracksMenu.Items.Add(sound);
+    }
+
+    MenuFlyoutItem LoadItem(TrackKind kind)
+    {
+        var item = new MenuFlyoutItem { Text = kind == TrackKind.Subtitle ? "Load Subtitle File…" : "Load Audio File…" };
+        item.Click += (_, _) => LoadTrack(kind);
+        return item;
+    }
+
+    static readonly string[] SubtitleFiles = [".srt", ".ass", ".ssa", ".vtt", ".sub", ".sup"];
+    static readonly string[] AudioFiles = [".mka", ".m4a", ".aac", ".ac3", ".eac3", ".flac", ".mp3", ".ogg", ".opus", ".wav"];
+
+    /// <summary>
+    /// Load Subtitle File… or Load Audio File…: the system's file picker, then mpv adds the file
+    /// as a track and selects it. mpv's alone, so the next episode does not carry it. Cancelling
+    /// the picker says nothing.
+    /// </summary>
+    async void LoadTrack(TrackKind kind)
+    {
+        if (ctx is null || player is not { } p)
+            return;
+        var subtitle = kind == TrackKind.Subtitle;
+        string? path;
+        try
+        {
+            var picker = new Microsoft.Windows.Storage.Pickers.FileOpenPicker(ctx.Window.AppWindow.Id)
+            {
+                CommitButtonText = subtitle ? "Load Subtitles" : "Load Audio",
+                SuggestedStartLocation = Microsoft.Windows.Storage.Pickers.PickerLocationId.Downloads,
+            };
+            foreach (var extension in subtitle ? SubtitleFiles : AudioFiles)
+                picker.FileTypeFilter.Add(extension);
+            path = (await picker.PickSingleFileAsync())?.Path;
+        }
+        catch (Exception e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"the file picker failed: {e.Message}");
+            Alert("Couldn't open the file picker");
+            return;
+        }
+        if (path is not { Length: > 0 })
+            return;
+        try
+        {
+            // mpv reads the file before it answers: off the UI thread.
+            await Task.Run(() => p.LoadTrack(kind, path));
+        }
+        catch (FfiException e)
+        {
+            AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "windows", $"mpv did not load the track: {e.Message}");
+            Alert(subtitle ? "Couldn't load that subtitle file" : "Couldn't load that audio file");
+        }
+        ShowControls();
+    }
+
+    RadioMenuFlyoutItem TrackItem(FfiTrack track, string group)
+    {
+        var item = new RadioMenuFlyoutItem
+        {
+            Text = TrackLabel(track),
+            GroupName = group,
+            IsChecked = track.Selected,
+        };
+        var (kind, id) = (track.Kind, track.Id);
+        item.Click += (_, _) => Send(new PlayerCommand.ChooseTrack(kind, id));
+        return item;
+    }
+
+    /// <summary>"English · Signs &amp; Songs": the language, then the track's own words when it has any.</summary>
+    static string TrackLabel(FfiTrack track)
+    {
+        var name = AnistreamFfiMethods.TrackName(track.Language, track.Title ?? "");
+        return track.External ? $"{name} · Added" : name;
+    }
+
     void BuildMenus()
     {
         if (menus is null)
@@ -790,13 +999,7 @@ public sealed partial class PlayerView : UserControl
         }
         EpisodesButton.IsEnabled = menus.Episodes.Length > 0;
 
-        TracksMenu.Items.Clear();
-        foreach (var (translation, label) in new[] { (Engine.Core.Translation.Sub, "Subtitled"), (Engine.Core.Translation.Dub, "Dubbed") })
-        {
-            var item = new RadioMenuFlyoutItem { Text = label, GroupName = "translation", IsChecked = menus.Translation == translation };
-            item.Click += (_, _) => Send(new PlayerCommand.Choose(new PlayerChoice.Translation(translation)));
-            TracksMenu.Items.Add(item);
-        }
+        BuildTracks();
 
         SettingsMenu.Items.Clear();
         if (menus.Sources.Length > 0)
@@ -1002,7 +1205,7 @@ public sealed partial class PlayerView : UserControl
 #if ANISTREAM_TESTING
     /// <summary>
     /// A state to bring up for a screenshot, on the testing build:
-    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash</c>.
+    /// <c>--show=still|mini|preview|undo|stall|upnext|skip|starting|flash|tracks|timeline</c>.
     /// </summary>
     async void Demo(string what)
     {
@@ -1047,6 +1250,38 @@ public sealed partial class PlayerView : UserControl
                 startingHeld = true;
                 ShowStarting();
                 startingFrom -= 21 * Stopwatch.Frequency;
+                break;
+            case "tracks":
+                tracksHeld = true;
+                tracks =
+                [
+                    new FfiTrack(TrackKind.Audio, 1, "jpn", null, true, false),
+                    new FfiTrack(TrackKind.Audio, 2, "eng", null, false, false),
+                    new FfiTrack(TrackKind.Subtitle, 1, "eng", "Signs & Songs", false, false),
+                    new FfiTrack(TrackKind.Subtitle, 2, "eng", "Full", true, false),
+                    new FfiTrack(TrackKind.Subtitle, 3, "spa", null, false, false),
+                ];
+                BuildTracks();
+                ShowControls();
+                TracksMenu.ShowAt(TracksButton);
+                await Task.Delay(400);
+                // Open Subtitles, as a viewer's arrow key would.
+                if (TracksMenu.Items.OfType<MenuFlyoutSubItem>().FirstOrDefault() is { } sub
+                    && FrameworkElementAutomationPeer.CreatePeerForElement(sub)?.GetPattern(PatternInterface.ExpandCollapse)
+                        is Microsoft.UI.Xaml.Automation.Provider.IExpandCollapseProvider peer)
+                    peer.Expand();
+                break;
+            case "timeline":
+                // An opening, an ending and what is buffered, as fractions of the fixture clip.
+                var d = Math.Max(duration, 1);
+                timelineMarks =
+                [
+                    new TimelineMark(SkipKind.Opening, d * 0.45, d * 0.58),
+                    new TimelineMark(SkipKind.Ending, d * 0.85, d * 0.97),
+                ];
+                buffered = [new TimeRange(0, d * 0.7)];
+                DrawTimeline();
+                ShowControls();
                 break;
             case "flash":
                 flash.Interval = TimeSpan.FromSeconds(600);

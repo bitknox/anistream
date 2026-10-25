@@ -62,6 +62,8 @@ import java.time.format.TextStyle
 import tv.anistream.design.CoverPlate
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.ffi.airTime
+import tv.anistream.engine.ffi.calendarMark
 import tv.anistream.engine.model.Entry
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
@@ -110,14 +112,17 @@ fun dayLabel(day: LocalDate, today: LocalDate): String =
     if (day == today) "Today" else "${day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale)} ${day.dayOfMonth}"
 
 /**
- * When it airs on the TV's clock: "16:30", or "16:30 (was 23:00)" when AniList moved it, as the
- * phone writes it.
+ * When it airs on the TV's clock: "16:30", "~16:30" for an estimate, or "16:30 (was 23:00)" when
+ * AniList moved it, as the phone writes it.
  */
 fun Airing.timeLine(): String {
-    val time = AirTime.clock(at)
+    val time = airTime(AirTime.clock(at), entry.airingApproximate)
     val was = entry.delayedFrom?.let { AirTime.clock(Instant.ofEpochSecond(it)) }
     return if (was != null && was != time) "$time (was $was)" else time
 }
+
+/** "Dub" or "Sub" when the engine knows which version the time is for. */
+fun Airing.mark(): String? = calendarMark(entry)
 
 /** "E7 of 24" for a show on a list, as text on its row. */
 private fun Airing.listProgress(): String? {
@@ -277,7 +282,7 @@ private fun AiringRow(
                 }
             }
             .semantics(mergeDescendants = true) {
-                contentDescription = listOfNotNull(airing.timeLine(), airing.entry.title, "Episode ${airing.episode}", progress, state).joinToString(", ")
+                contentDescription = listOfNotNull(airing.timeLine(), airing.mark(), airing.entry.title, "Episode ${airing.episode}", progress, state).joinToString(", ")
                 if (host != null) customActions = sheet().accessibilityActions(host)
             },
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
@@ -290,12 +295,12 @@ private fun AiringRow(
         scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
         Row(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                airing.timeLine(),
-                style = MaterialTheme.typography.labelLarge,
-                maxLines = 2,
-                modifier = Modifier.width(84.dp).clearAndSetSemantics {},
-            )
+            Column(Modifier.width(84.dp).clearAndSetSemantics {}) {
+                Text(airing.timeLine(), style = MaterialTheme.typography.labelLarge, maxLines = 2)
+                airing.mark()?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall, color = LocalContentColor.current.copy(alpha = 0.72f))
+                }
+            }
             ArtImage(
                 airing.entry.bannerUrl ?: airing.entry.coverUrl,
                 CoverPlate.parse(airing.entry.coverColor),

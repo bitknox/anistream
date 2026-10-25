@@ -79,6 +79,9 @@ pub struct PlayerView {
     menus: RefCell<Option<Menus>>,
     /// The chapters changed or a file loaded: read them again once the file has a duration.
     chapters_due: Cell<bool>,
+    /// The openings and endings the engine marked, once it has said; until then the file's
+    /// chapters stand in.
+    engine_marks: RefCell<Option<Vec<timeline::Segment>>>,
     preview: Rc<Preview>,
     /// The window as it was, while the mini player stands in for it.
     mini: Cell<Option<Restore>>,
@@ -250,6 +253,7 @@ impl PlayerView {
             countdown: RefCell::default(),
             menus: RefCell::default(),
             chapters_due: Cell::new(false),
+            engine_marks: RefCell::new(None),
             preview,
             mini: Cell::new(None),
             starting_since: Cell::new(None),
@@ -361,6 +365,8 @@ impl PlayerView {
         self.set_mini(false);
         self.preview.forget();
         self.ui.marked.set(Vec::new(), 0.0);
+        self.ui.marked.set_buffered(Vec::new());
+        self.engine_marks.replace(None);
         if let Some(shell) = self.shell() {
             shell.show_player(false);
         }
@@ -408,6 +414,8 @@ impl PlayerView {
                                 .collect();
                             self.preview.stream(url, options);
                             self.ui.marked.set(Vec::new(), 0.0);
+                            self.ui.marked.set_buffered(Vec::new());
+                            self.engine_marks.replace(None);
                             self.chapters_due.set(true);
                         }
                         PlayerOp::Set { property, .. } if property == "chapter-list" => {
@@ -423,6 +431,16 @@ impl PlayerView {
                 }
             }
             Event::PlayerUi { ui, .. } => self.player_ui(ui),
+            Event::PlayerTimeline { marks, .. } => {
+                // The engine's marks are the ones skipping uses; they replace the chapters'.
+                self.engine_marks.replace(Some(timeline::from_marks(marks)));
+                self.chapters_due.set(false);
+                let duration = self.state.borrow().duration.unwrap_or(0.0);
+                self.show_marks(duration);
+            }
+            Event::PlayerBuffered { ranges, .. } => {
+                self.ui.marked.set_buffered(ranges.iter().map(|r| (r.start, r.end)).collect());
+            }
             Event::JobNote { job, note, .. } => {
                 let starting = self
                     .ctx
@@ -791,6 +809,7 @@ impl PlayerView {
             }
             if Instant::now() >= self.held_until.get() {
                 ui.timeline.set_value(position);
+                ui.marked.moved();
             }
         }
         if state.has_picture && ui.starting.is_visible() {
@@ -804,16 +823,12 @@ impl PlayerView {
             self.resumed_done();
         }
         if let (Some(player), Some(duration)) = (&self.player, state.duration) {
-            if state.has_picture && self.chapters_due.replace(false) {
+            if self.engine_marks.borrow().is_some() {
+                self.show_marks(duration);
+            } else if state.has_picture && self.chapters_due.replace(false) {
                 let chapters = player.mpv().get("chapter-list").map(|v| timeline::chapters(&v));
                 ui.marked
                     .set(timeline::segments(&chapters.unwrap_or_default(), duration), duration);
-            }
-            // The buffered part of the track: as far as the cache reaches.
-            if let Some(cached) =
-                player.mpv().get("demuxer-cache-time").and_then(|v| v.as_f64())
-            {
-                ui.timeline.set_fill_level(cached.min(duration));
             }
         }
         // Where an automatic skip landed, which Undo's 6 s of playback count from.
@@ -832,6 +847,13 @@ impl PlayerView {
     }
 
     /// The display the window is on, for the engine's upscaling.
+    /// Draw the engine's marks on a timeline `duration` long.
+    fn show_marks(&self, duration: f64) {
+        if let Some(marks) = self.engine_marks.borrow().as_ref() {
+            self.ui.marked.set(marks.clone(), duration);
+        }
+    }
+
     fn report_display(&self) {
         let Some(player) = &self.player else { return };
         let window = &self.ctx.window;
@@ -1654,7 +1676,6 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     timeline.set_draw_value(false);
     timeline.add_css_class("timeline");
     timeline.update_property(&[gtk::accessible::Property::Label("Timeline")]);
-    timeline.set_show_fill_level(true);
     timeline.set_restrict_to_fill_level(false);
     let marked = Marked::new(&timeline);
 

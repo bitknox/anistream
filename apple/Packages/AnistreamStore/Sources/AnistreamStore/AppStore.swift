@@ -55,6 +55,10 @@ public final class AppStore {
     @ObservationIgnored public let widgets: WidgetFeed
     /// The downloads' Live Activity on iPhone.
     @ObservationIgnored public let downloadsActivity: DownloadsActivityFeed
+    /// The playback's Live Activity on iPhone.
+    @ObservationIgnored public let playbackActivity: PlaybackActivityFeed
+    /// The Live Activity for an episode of a show followed that airs within the hour, on iPhone.
+    @ObservationIgnored public let airingActivity: AiringActivityFeed
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
@@ -87,12 +91,16 @@ public final class AppStore {
     public init(
         jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed(),
         downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed(),
+        playbackActivity: PlaybackActivityFeed = PlaybackActivityFeed(),
+        airingActivity: AiringActivityFeed = AiringActivityFeed(),
         artworkCostLimit: Int = ArtworkStore.costLimit
     ) {
         self.jobs = jobs
         self.notices = notices
         self.widgets = widgets
         self.downloadsActivity = downloadsActivity
+        self.playbackActivity = playbackActivity
+        self.airingActivity = airingActivity
         artwork = ArtworkStore(costLimit: artworkCostLimit) { [weak self] url in
             guard let client = self?.client else { return false }
             client.send(.fetchArtwork(url: url))
@@ -483,7 +491,9 @@ public final class AppStore {
     public func applyShowcase(arguments: [String] = ProcessInfo.processInfo.arguments) {
         #if FIXTURES
         guard testing, let showcase = Showcase.from(arguments: arguments) else { return }
-        let (events, held) = showcase.events(settings: settings.view) { [titles] in titles[$0] }
+        let (events, held) = showcase.events(
+            settings: settings.view, entry: { [titles] in titles[$0] }, calendar: calendar.rows,
+            anchor: calendar.anchor)
         self.held = []
         for event in events { apply(event) }
         self.held = held
@@ -522,7 +532,8 @@ public final class AppStore {
         notifications.observe(event)
         answers.deliver([event])
         if case .downloads(let rows) = event { continued.update(rows) }
-        if notifications.schedules, NotificationsModel.reschedules(after: event) { refreshNotices() }
+        if wantsWeek, NotificationsModel.reschedules(after: event) { refreshNotices() }
+        if case .upcomingNotices(let week) = event { airingActivity.weekChanged(week, titles: titles, artwork: artwork) }
         switch event {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)
@@ -638,7 +649,7 @@ public final class AppStore {
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
             widgetsChanged()
-        case .playerOps, .playerUi, .playbackKept, .sources:
+        case .playerOps, .playerUi, .playbackKept, .sources, .playerTimeline, .playerBuffered:
             onPlayback?(event)
 
         case .widgetSnapshot(let data):

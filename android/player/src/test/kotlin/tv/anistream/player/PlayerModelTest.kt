@@ -25,6 +25,8 @@ import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerReport
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
+import tv.anistream.engine.model.TimeRange
+import tv.anistream.engine.model.TimelineMark
 import tv.anistream.engine.model.TrackKind
 import tv.anistream.engine.model.MpvValue as EngineValue
 
@@ -931,6 +933,52 @@ class ViewerTest {
         assertEquals("12:04", PlayerClock.label(724.0))
         assertEquals("−2:29", PlayerClock.remaining(149.0))
         assertEquals("1:02:09", PlayerClock.label(3729.0))
+    }
+}
+
+class TimelineTest {
+    @Test
+    fun theEnginesMarksBecomeTheSeekLinesStretches() {
+        val marks = listOf(TimelineMark(SkipKind.OPENING, 5.0, 20.0), TimelineMark(SkipKind.ENDING, 42.0, 56.0))
+        assertEquals(
+            listOf(
+                SeekSegment(SeekSegment.Kind.Plain, 0.0, 5.0), SeekSegment(SeekSegment.Kind.Opening, 5.0, 20.0),
+                SeekSegment(SeekSegment.Kind.Plain, 20.0, 42.0), SeekSegment(SeekSegment.Kind.Ending, 42.0, 56.0),
+                SeekSegment(SeekSegment.Kind.Plain, 56.0, 60.0),
+            ),
+            markedSegments(marks, 60.0),
+        )
+        assertEquals(listOf(SeekSegment(SeekSegment.Kind.Plain, 0.0, 60.0)), markedSegments(emptyList(), 60.0))
+        assertTrue(markedSegments(marks, null).isEmpty())
+    }
+
+    @Test
+    fun theMarksReplaceTheChaptersAndTheBufferedRangesComeWhole() = runTest {
+        val rig = Rig(this)
+        rig.ops(1u, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/7.mkv", emptyList()))
+        rig.emit(MpvEvent.property("duration", MpvValue.Real(60.0)))
+        rig.emit(MpvEvent.property("chapter-list", MpvValue.parse("""[{"title":"Opening","time":2.0},{"title":"Part A","time":10.0}]""")!!))
+        assertEquals(SeekSegment.Kind.Opening, rig.model.segments.single { it.kind != SeekSegment.Kind.Plain }.kind)
+        assertEquals(2.0, rig.model.segments.single { it.kind != SeekSegment.Kind.Plain }.start, 0.0)
+
+        rig.model.apply(Event.PlayerTimeline(1u, listOf(TimelineMark(SkipKind.OPENING, 8.0, 30.0))))
+        assertEquals(8.0, rig.model.segments.single { it.kind != SeekSegment.Kind.Plain }.start, 0.0)
+
+        rig.model.apply(Event.PlayerBuffered(1u, listOf(TimeRange(0.0, 12.0), TimeRange(30.0, 45.0))))
+        assertEquals(listOf(TimeRange(0.0, 12.0), TimeRange(30.0, 45.0)), rig.model.buffered)
+        rig.model.apply(Event.PlayerBuffered(1u, emptyList()))
+        assertTrue(rig.model.buffered.isEmpty())
+    }
+
+    @Test
+    fun theCacheStateGoesToTheEngineLikeTheOtherObservedProperties() = runTest {
+        assertTrue("demuxer-cache-state" in reportedProperties)
+        val rig = Rig(this)
+        rig.ops(1u, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/7.mkv", emptyList()))
+        rig.emit(MpvEvent.property("demuxer-cache-state", MpvValue.parse("""{"seekable-ranges":[{"start":0.0,"end":42.0}]}""")!!))
+        val sent = rig.reports.map { it.second }.filterIsInstance<PlayerReport.Property>().filter { it.name == "demuxer-cache-state" }
+        assertEquals(1, sent.size)
+        assertTrue(sent.single().json.contains("seekable-ranges"))
     }
 }
 

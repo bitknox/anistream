@@ -41,7 +41,7 @@ public sealed partial class SettingsPage : Page
         new("integrations", "Integrations", "",
         [
             ("Watch together", [K.Syncplay, K.SyncplayServer, K.SyncplayRoom]),
-            ("Discord", [K.Presence, K.PresenceTitle]),
+            ("Discord", [K.Presence, K.PresenceTitle, K.PresenceRich]),
             ("Updates", [K.UpdateCheck]),
         ]),
         new("advanced", "Advanced", "", [("mpv", [K.MpvOptions])]),
@@ -161,6 +161,9 @@ public sealed partial class SettingsPage : Page
                 }
                 foreach (var (heading, keys) in pane.Groups)
                 {
+                    // Only where the engine was built with a presence to publish.
+                    if (keys.Contains(K.Presence) && ctx.Known.Settings is { PresenceAvailable: false })
+                        continue;
                     var rows = keys.Select(k => ctx.Known.Setting(k)).OfType<SettingRow>().ToList();
                     if (rows.Count == 0)
                         continue;
@@ -243,6 +246,8 @@ public sealed partial class SettingsPage : Page
         var title = Words.SettingTitle(row.Key);
         var overridden = ctx.Known.Settings?.Overridden?.FirstOrDefault(o => o.Key == row.Key);
         string? description = overridden is { Shows: > 0 } o ? $"Overridden for {AnistreamFfiMethods.Plural(o.Shows, "show")}" : null;
+        if (row.Key == K.PresenceRich)
+            description = "The cover, a progress bar and a link to the show on AniList. Needs the title shown.";
         FrameworkElement control;
         switch (SettingsCatalog.ControlFor(row))
         {
@@ -303,7 +308,10 @@ public sealed partial class SettingsPage : Page
                 control = new TextBlock { Text = Shown(row.Value), Style = Res<Style>("HazeBodyStyle") };
                 break;
         }
-        return CardFrame(title, description, control);
+        var card = CardFrame(title, description, control);
+        // A row whose switch is off waits, greyed, as Windows Settings shows a dependent row.
+        card.IsEnabled = SettingsCatalog.Needs(row.Key).All(k => SettingsCatalog.IsOn(ctx.Known.Setting(k)));
+        return card;
     }
 
     /// <summary>A value as a row shows it, in sentence case.</summary>
@@ -312,7 +320,7 @@ public sealed partial class SettingsPage : Page
     void ShowAccounts()
     {
         Cards.Children.Add(Heading("Trackers"));
-        foreach (var tracker in new[] { "anilist", "mal", "kitsu" })
+        foreach (var tracker in new[] { "anilist", "mal", "kitsu", "simkl", "trakt" })
         {
             var name = AnistreamFfiMethods.TrackerName(tracker);
             var state = ctx.Known.Sync.GetValueOrDefault(tracker);
@@ -328,7 +336,7 @@ public sealed partial class SettingsPage : Page
             }
             else
             {
-                description = "Not signed in";
+                description = tracker is "simkl" or "trakt" ? "Not signed in · You enter a code on its site" : "Not signed in";
                 action = new Button { Content = "Sign in" };
                 action.Click += (_, _) => ctx.Send(new Command.Connect(tracker));
             }

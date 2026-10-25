@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The apps' third-party notices, as a release carries them, and its notes for the apps:
 #
-#   packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <rust> <out>
+#   packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <rust> \
+#     <windows records> <linux records> <out>
 #
 #   <version>         as packaging/apps/version.sh says it, which names the files
 #   <ref>             the tag, or the commit a dry run built, which the notices link to
@@ -10,6 +11,10 @@
 #   <apple record>    what the Apple build kept of apple/.mpv/current: stamp and contents
 #   <rust>            the engine's Rust crates and their licences, from
 #                     packaging/rust-licences/generate.sh apps
+#   <windows records> a folder of desktop/windows/scripts/package.sh's records, windows-<arch>/,
+#                     one for each installer
+#   <linux records>   a folder of desktop/linux/scripts/appimage.sh's records, linux-<arch>/, one
+#                     for each AppImage
 #
 # It writes, into <out>:
 #
@@ -24,13 +29,24 @@
 # Run from the repository's root, which the scripts, patches and notices are copied from.
 set -euo pipefail
 
-[[ $# -eq 6 ]] || {
-  echo "usage: packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <rust> <out>" >&2
+[[ $# -eq 8 ]] || {
+  echo "usage: packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <rust> <windows records> <linux records> <out>" >&2
   exit 2
 }
-version="$1" ref="$2" android="$3" apple="$4" rust="$5" out="$6"
+version="$1" ref="$2" android="$3" apple="$4" rust="$5" windows="$6" linux="$7" out="$8"
 for file in "$android/stamp" "$android/features" "$android/licenses" "$android/fonts" "$apple/stamp" "$rust"; do
   [[ -e "$file" ]] || { echo "third-party.sh: no $file" >&2; exit 1; }
+done
+windows_archs=(x64 arm64) linux_archs=(x86_64 aarch64)
+for arch in "${windows_archs[@]}"; do
+  for file in stamp third-party/README.txt third-party/libmpv/LICENSE.LGPL third-party/THIRD-PARTY-rust.txt; do
+    [[ -e "$windows/windows-$arch/$file" ]] || { echo "third-party.sh: no $windows/windows-$arch/$file" >&2; exit 1; }
+  done
+done
+for arch in "${linux_archs[@]}"; do
+  for file in stamp features packages third-party/README.txt third-party/THIRD-PARTY-rust.txt; do
+    [[ -e "$linux/linux-$arch/$file" ]] || { echo "third-party.sh: no $linux/linux-$arch/$file" >&2; exit 1; }
+  done
 done
 
 name="anistream-$version-apps-third-party"
@@ -58,6 +74,23 @@ read -r _ apple_mpv _ apple_libass _ mpvkit <<<"$(sed -n 's/^mpv /mpv /p' "$appl
 [[ -n "${mpvkit:-}" ]] || { echo "third-party.sh: $apple/stamp names no MPVKit release" >&2; exit 1; }
 apple_ffmpeg="${mpvkit#*-}"
 
+# The Windows installers' libmpv: mpv's own LGPL build, the same for both, named in each stamp as
+# "libmpv <build>".
+windows_mpv="$(sed -n 's/^libmpv //p' "$windows"/windows-*/stamp | sort -u)"
+[[ -n "$windows_mpv" && "$windows_mpv" != *$'\n'* ]] ||
+  { echo "third-party.sh: the Windows records name no single libmpv build" >&2; exit 1; }
+windows_sdk="$(sed -n 's/^windowsappsdk //p' "$windows"/windows-*/stamp | sort -u | head -1)"
+
+# The AppImages' libmpv: desktop/linux/scripts/libmpv.sh's stamp, "ffmpeg <version> <url> <sha>"
+# and "mpv <version> <url> <sha>", the same pins for both, and FFmpeg's licence line.
+linux_ffmpeg="$(awk '$1 == "ffmpeg" { print $2 }' "$linux"/linux-*/stamp | sort -u)"
+linux_mpv="$(awk '$1 == "mpv" { print $2 }' "$linux"/linux-*/stamp | sort -u)"
+linux_licence="$(sed -n 's/^ffmpeg [^ ]* License: //p' "$linux"/linux-*/features | sort -u)"
+for value in "$linux_ffmpeg" "$linux_mpv" "$linux_licence"; do
+  [[ -n "$value" && "$value" != *$'\n'* ]] ||
+    { echo "third-party.sh: the Linux records do not agree on FFmpeg, mpv and FFmpeg's licence" >&2; exit 1; }
+done
+
 repo="https://github.com/bitknox/anistream/tree/$ref"
 
 # --- The notices -----------------------------------------------------------------------------------
@@ -78,6 +111,25 @@ cp "$apple/stamp" "$stage/apple/build/"
 [[ -f "$apple/contents" ]] && cp "$apple/contents" "$stage/apple/build/"
 cp apple/scripts/mpv.sh "$stage/apple/build/"
 cp -R apple/patches "$stage/apple/build/patches"
+
+for arch in "${windows_archs[@]}"; do
+  mkdir -p "$stage/windows/$arch/build"
+  cp -R "$windows/windows-$arch/third-party/." "$stage/windows/$arch/"
+  cp "$windows/windows-$arch/stamp" "$stage/windows/$arch/build/"
+done
+mkdir -p "$stage/windows/build"
+cp desktop/windows/scripts/libmpv.ps1 desktop/windows/scripts/package.sh packaging/windows/anistream-app.iss \
+  "$stage/windows/build/"
+
+for arch in "${linux_archs[@]}"; do
+  mkdir -p "$stage/linux/$arch/build"
+  cp -R "$linux/linux-$arch/third-party/." "$stage/linux/$arch/"
+  cp "$linux/linux-$arch/stamp" "$linux/linux-$arch/features" "$linux/linux-$arch/packages" \
+    "$stage/linux/$arch/build/"
+done
+mkdir -p "$stage/linux/build"
+cp desktop/linux/scripts/libmpv.sh desktop/linux/scripts/appimage.sh desktop/linux/appimage/AppRun \
+  "$stage/linux/build/"
 
 # The engine in every app: its Rust crates, and the upscaling shaders it carries, as the terminal
 # binary does.
@@ -122,6 +174,28 @@ apple/     anistream-$version-macos.dmg, anistream-$version-ios-unsigned.ipa
   font the iPhone and iPad app carries (SIL OFL 1.1). NOTICES-sparkle.txt is the licence of
   Sparkle, which the Mac app updates itself with (MIT).
 
+windows/   anistream-$version-windows-x64-setup.exe, anistream-$version-windows-arm64-setup.exe
+
+  libmpv-2.dll is mpv's own LGPL build for Windows, $windows_mpv, from mpv's development
+  builds, made by mpv-winbuild-cmake with FFmpeg and the libraries beneath it linked into the
+  one DLL, which the app loads as a library of its own. anistream keeps the build, unmodified, on
+  its deps-libmpv release, and build/libmpv.ps1 fetches it by its SHA-256. Each architecture's
+  folder is the notices its installer puts in the app's third-party folder: libmpv's licence,
+  the Windows App SDK's${windows_sdk:+ ($windows_sdk)}, whose runtime the app carries, the Rust crates in the engine,
+  the fonts' and the shaders'.
+
+linux/     anistream-$version-linux-x86_64.AppImage, anistream-$version-linux-aarch64.AppImage
+
+  libmpv.so.2 and FFmpeg's libraries, mpv $linux_mpv and FFmpeg $linux_ffmpeg, built from source
+  by build/libmpv.sh from the same archives as Android's, in Debian 13. FFmpeg's configure says:
+  License: $linux_licence
+  GTK 4, libadwaita and the libraries beneath them are Debian 13's, each a shared library of its
+  own. Each architecture's folder is the notices the AppImage carries in
+  usr/share/doc/third-party: debian/ has each Debian package's copyright file, and
+  debian/PACKAGES.txt names every package with its version and its Debian source package,
+  whose source Debian keeps at https://snapshot.debian.org and https://sources.debian.org.
+  libmpv/ has mpv's and FFmpeg's licences, THIRD-PARTY-rust.txt the Rust crates in the app.
+
 engine/    every app
 
   THIRD-PARTY-rust.txt: every Rust crate compiled into the engine, under the licence it is used
@@ -164,6 +238,9 @@ parts, and ships as dynamic libraries of their own:
 - **Mac, iPhone and iPad**: mpv $apple_mpv and libass $apple_libass, built from source with
   anistream's patches, over MPVKit $mpvkit's LGPL builds of FFmpeg $apple_ffmpeg and the
   libraries beneath it.
+- **Windows**: mpv's own LGPL build of libmpv, $windows_mpv.
+- **Linux**: mpv $linux_mpv and FFmpeg $linux_ffmpeg ($linux_licence), built from source, with
+  Debian 13's GTK 4, libadwaita and the libraries beneath them, whose sources are Debian's.
 
 \`anistream-$version-apps-sources.tar\` is the source they were built from, every archive by its
 SHA-256, with the scripts that built them and anistream's patches. \`$zip\` has every licence
