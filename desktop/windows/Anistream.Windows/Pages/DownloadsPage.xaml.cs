@@ -162,6 +162,8 @@ public sealed partial class DownloadsPage : Page
                 actions.Children.Add(Ui.Icon("", "Remove from queue", (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
                 break;
             case DownloadState.Queued:
+                // To the front of the queue, at once: the last one running waits behind it.
+                actions.Children.Add(Ui.Label("Start now", (_, _) => ctx.Send(new Command.DownloadStartNow(row.Id))));
                 actions.Children.Add(Ui.Icon("", "Remove from queue", (_, _) => ctx.Send(new Command.DownloadCancel(row.Id))));
                 break;
             case DownloadState.Failed:
