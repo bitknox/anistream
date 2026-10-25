@@ -123,6 +123,10 @@ class TvShots {
         assertTrue("the hero's play button takes the first focus", focusedText().startsWith("Resume") || focusedText().startsWith("Play"))
     }
 
+    /** Continue with a dub on its rows: "Resume episode 7 · Dub". */
+    @Test
+    fun continue_dub() = shoot("tv-continue-dub", dub = true)
+
     @Test
     fun rail_opens_on_left() = shoot("tv-rail") {
         press(Key.DirectionLeft)
@@ -354,13 +358,16 @@ class TvShots {
         query: String? = null,
         firstLaunch: Boolean = false,
         offline: Boolean = false,
+        /** Whether every show on Continue was last watched dubbed. */
+        dub: Boolean = false,
         scene: String = WATCHING,
         then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
-        val events = recorded.events.filter(::replayed) + listOfNotNull(Event.Connectivity(true).takeIf { offline })
+        val events = recorded.events.filter(::replayed).map { if (dub) dubbed(it) else it } +
+            listOfNotNull(Event.Connectivity(true).takeIf { offline })
         store.apply(events)
         val player = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { 0L }, hwdec = "no")
         nav = TvNavigator(if (query != null) Destination.Search else start).apply {
@@ -445,4 +452,15 @@ class TvShots {
             else -> true
         }
     }
+}
+
+/** [event], when it is a list of titles, with every one last watched dubbed, as the engine would send them. */
+private fun dubbed(event: Event): Event = when (event) {
+    is Event.Detail -> Event.Detail(event.v1.copy(watchedIn = Translation.DUB))
+    is Event.Browse -> Event.Browse(event.v1.map { rail -> rail.copy(entries = rail.entries.map { it.copy(watchedIn = Translation.DUB) }) })
+    is Event.CalendarBackfill -> event.copy(entries = event.entries.map { it.copy(watchedIn = Translation.DUB) })
+    is Event.Content -> (event.content as? ContentList.Entries)
+        ?.let { event.copy(content = it.copy(v1 = it.v1.map { entry -> entry.copy(watchedIn = Translation.DUB) })) }
+        ?: event
+    else -> event
 }

@@ -12,6 +12,8 @@ import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
 import tv.anistream.store.clock
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.core.Translation
+import tv.anistream.engine.ffi.episodeLine
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.LinkedTitle
@@ -66,15 +68,15 @@ val Entry.metadataLine: String
     }
 
 /** The episode a title's action plays, and how it says so. */
-data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null) {
+data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null, val translation: Translation? = null) {
     /** Whether there is an episode to play: never one still to air, which nothing could find. */
     val playable: Boolean get() = airing.hasAired
 
-    /** "Resume E7 · 10:06", "Start E8": what the amber action says. */
+    /** "Resume E7 · 10:06", "Start E8", and for a dub "Start E8 · Dub": what the amber action says. */
     val label: String
         get() = when {
-            resume != null -> "Resume E$episode · ${resume.clock()}"
-            else -> "Start E$episode"
+            resume != null -> "Resume ${episodeLine("E$episode", translation)} · ${resume.clock()}"
+            else -> "Start ${episodeLine("E$episode", translation)}"
         }
 
     /**
@@ -90,17 +92,18 @@ data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: 
         fun of(entry: Entry, now: Long = AppClock.now().epochSecond): TitleAction {
             val episode = entry.progress?.next ?: 1u
             val resume = entry.resume
-            if (resume != null) return TitleAction(episode, resume, EpisodeAiring.Aired)
+            val dub = entry.watchedIn
+            if (resume != null) return TitleAction(episode, resume, EpisodeAiring.Aired, translation = dub)
             // The schedule says when the very episode airs, where AniList has one.
             val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
             if (scheduled != null) {
                 return if (scheduled.airsAt > now) {
-                    TitleAction(episode, null, EpisodeAiring.Upcoming(scheduled.airsAt - now), scheduled.airsAt)
+                    TitleAction(episode, null, EpisodeAiring.Upcoming(scheduled.airsAt - now), scheduled.airsAt, dub)
                 } else {
-                    TitleAction(episode, null, EpisodeAiring.Aired)
+                    TitleAction(episode, null, EpisodeAiring.Aired, translation = dub)
                 }
             }
-            return TitleAction(episode, null, entry.airing(episode))
+            return TitleAction(episode, null, entry.airing(episode), translation = dub)
         }
     }
 }
