@@ -369,6 +369,7 @@ private fun NewRow(item: ContinueItem, actions: AppActions) {
         Modifier
             .fillMaxWidth()
             .heightIn(min = 72.dp)
+            .shared(Shared.Page, item.id, "new")
             .background(colors.surface)
             .openOrMenu(menuActions) { menu = true }
             .padding(start = 16.dp, end = 24.dp),

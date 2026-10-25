@@ -202,9 +202,19 @@ Forward:
 - Drawn order, back to front: Continue, the page's ground container, the banner art, the page's
   content. The page's 80 × 120 poster overlaps the banner by 44 dp, so it draws above the flying
   art for the whole transition: give the poster a higher `zIndexInOverlay` than the art.
+- This order holds for the whole flight, forward, back and through a predictive back. One
+  `sharedBounds` draws everything it holds at one depth in the overlay, so the page flies as two:
+  the ground (`sharedBounds` key `ground-$id`, `zIndexInOverlay` -2, the only layer that paints the
+  page's colour) and, nested in it on the same element, the content (key `page-$id`, at the default
+  0). The art flies at -1 and the poster at 1. What the page grows out of keeps its content at -3,
+  under the ground, which covers it as the page fades in. Every source carries both keys, which
+  `shared(Page)` adds. Nothing in the page's content paints the ground while it flies: the season
+  list's own ground (`pageGround`, for a season fading in over another) stands down for the flight.
 - Other sources: an In progress card grows the same way from its banner (x 16, y 538, 208 × 117,
   corners 16). A poster in a grid flies into the page's cover (`sharedElement` key `cover-$id`, to
-  80 × 120 at x 16, y 152, corners 8) while the page's bounds grow from the grid cell.
+  80 × 120 at x 16, y 152, corners 8) while the page's bounds grow from the grid cell. A calendar
+  row or a New this week row does the same: its cover flies into the page's, and the page grows
+  from the row, and shrinks back into it on the way back.
 - On the title page the banner scrolls at 0.5× (parallax). Overscroll is the platform's stretch;
   there is no banner stretch of our own.
 

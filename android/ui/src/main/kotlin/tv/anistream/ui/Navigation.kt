@@ -8,6 +8,7 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
@@ -17,6 +18,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.layout.ContentScale
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -120,7 +124,10 @@ val LocalPageAnimation = compositionLocalOf<AnimatedVisibilityScope?> { null }
 
 /** The three things that fly into a title page, by the keys motion-android.md gives them. */
 enum class Shared(internal val prefix: String) {
-    /** The page's bounds, growing out of the element tapped. */
+    /**
+     * The page's bounds, growing out of the element tapped. They fly as two layers, the page's
+     * ground and its content, so that a banner flying with them draws between the two.
+     */
     Page("page"),
 
     /** The banner art. */
@@ -140,20 +147,35 @@ enum class Shared(internal val prefix: String) {
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Modifier.shared(shared: Shared, id: AnilistId, from: String? = null): Modifier {
-    val layout = LocalSharedTransitions.current ?: return this
-    val page = LocalPageAnimation.current ?: return this
+fun Modifier.shared(shared: Shared, id: AnilistId, from: String? = null, ground: Color = Color.Unspecified): Modifier {
+    val layout = LocalSharedTransitions.current
+    val page = LocalPageAnimation.current
+    if (layout == null || page == null) return if (ground.isSpecified) background(ground) else this
     if (from != null && LocalNavigator.current.source != "$from:$id") return this
     return with(layout) {
         val state = rememberSharedContentState("${shared.prefix}-$id")
         when (shared) {
+            // One sharedBounds draws all it holds at one depth in the overlay, so the page flies
+            // as two: its ground ([ground], painted on the title page) and, nested in it, its
+            // content. The art then draws between them, under the title and the scrim. What the
+            // page grows out of draws under the ground, which covers it as the page fades in.
             Shared.Page -> sharedBounds(
-                state,
+                rememberSharedContentState("ground-$id"),
                 page,
                 enter = fadeIn(Motion.fadeIn()),
                 exit = fadeOut(Motion.fadeOut()),
                 resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.TopCenter),
+                zIndexInOverlay = GROUND_Z,
             )
+                .then(if (ground.isSpecified) Modifier.background(ground) else Modifier)
+                .sharedBounds(
+                    state,
+                    page,
+                    enter = fadeIn(Motion.fadeIn()),
+                    exit = fadeOut(Motion.fadeOut()),
+                    resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.TopCenter),
+                    zIndexInOverlay = if (from != null) SOURCE_Z else 0f,
+                )
             Shared.Player -> sharedBounds(
                 state,
                 page,
@@ -161,9 +183,28 @@ fun Modifier.shared(shared: Shared, id: AnilistId, from: String? = null): Modifi
                 exit = fadeOut(Motion.fadeOut()),
                 resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.Center),
             )
-            Shared.Art -> sharedElement(state, page)
+            Shared.Art -> sharedElement(state, page, zIndexInOverlay = ART_Z)
             // The poster overlaps the banner, so it draws above the flying art.
-            Shared.Cover -> sharedElement(state, page, zIndexInOverlay = 1f)
+            Shared.Cover -> sharedElement(state, page, zIndexInOverlay = COVER_Z)
         }
     }
 }
+
+/**
+ * The page's own [ground] behind what this holds, except while the page flies: then the flight's
+ * ground layer paints it, under the art, and this one would hide the art.
+ */
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+fun Modifier.pageGround(ground: Color): Modifier {
+    val layout = LocalSharedTransitions.current
+    // Read as the layer draws, so the flight starting and ending redraws without recomposing.
+    return drawBehind { if (layout?.isTransitionActive != true) drawRect(ground) }
+}
+
+// Depths in the overlay, back to front: the source the page grows out of, the ground, the art,
+// the page's content, the poster.
+private const val SOURCE_Z = -3f
+private const val GROUND_Z = -2f
+private const val ART_Z = -1f
+private const val COVER_Z = 1f
