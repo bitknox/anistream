@@ -11,8 +11,9 @@ class CodeCountdownTest {
     @Test
     fun aCodeCountsDownToNoughtAndNoFurther() {
         assertEquals(900L, CodeCountdown.secondsLeft(1_000, 100_000))
-        assertEquals("Expires in 15:00", CodeCountdown.line(900))
-        assertEquals("Expires in 14:59", CodeCountdown.line(CodeCountdown.secondsLeft(1_000, 101_000)))
+        assertEquals("Expires in 15 min", CodeCountdown.line(900))
+        assertEquals("Expires in 15 min", CodeCountdown.line(CodeCountdown.secondsLeft(1_000, 101_000)))
+        assertEquals("Expires in 45 s", CodeCountdown.line(45))
         assertEquals(0L, CodeCountdown.secondsLeft(1_000, 1_000_000))
         assertEquals(0L, CodeCountdown.secondsLeft(1_000, 1_500_000))
         assertEquals("Code expired", CodeCountdown.line(0))

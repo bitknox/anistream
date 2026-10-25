@@ -411,7 +411,7 @@ fn seconds_left(expires_at: i64, now: i64) -> i64 {
     (expires_at - now).max(0)
 }
 
-/// "Expires in 14:59" under the code, ticking each second. At nought it asks for a new code, as
+/// "Expires in 15 min" under the code, by the second in its last minute. At nought it asks for a new code, as
 /// "Get a new code" does, which replaces this dialog.
 fn countdown(ctx: &Rc<Ctx>, tracker: &str, expires_at: i64) -> gtk::Label {
     let now = || glib::real_time() / 1_000_000;
@@ -466,7 +466,7 @@ mod tests {
     #[test]
     fn a_code_counts_down_to_nought_and_no_further() {
         assert_eq!(seconds_left(1_000, 100), 900);
-        assert_eq!(present::device_code_expiry(seconds_left(1_000, 100)), "Expires in 15:00");
+        assert_eq!(present::device_code_expiry(seconds_left(1_000, 100)), "Expires in 15 min");
         assert_eq!(seconds_left(1_000, 1_000), 0);
         assert_eq!(seconds_left(1_000, 1_500), 0);
         assert_eq!(present::device_code_expiry(0), "Code expired");

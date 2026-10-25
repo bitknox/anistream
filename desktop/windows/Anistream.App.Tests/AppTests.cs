@@ -173,6 +173,9 @@ public class SharedWordsTests
         Assert.Equal("Resume E7 · 10:06", queue.InProgress[0].Action);
         Assert.Equal("4:05", AnistreamFfiMethods.PlayClock(245.4));
         Assert.Equal("auto-play next", AnistreamFfiMethods.SettingLabel(SettingKey.AutoNext));
+        Assert.Equal("Expires in 15 min", AnistreamFfiMethods.DeviceCodeExpiry(899));
+        Assert.Equal("Expires in 45 s", AnistreamFfiMethods.DeviceCodeExpiry(45));
+        Assert.Equal("Code expired", AnistreamFfiMethods.DeviceCodeExpiry(0));
     }
 }
 
@@ -185,19 +188,6 @@ public class LinesTests
         Assert.Equal("Episode 10 · Dub · The Return", Lines.Episode("Episode 10", "The Return", Translation.Dub));
         Assert.Equal("Episode 10 · The Return", Lines.Episode("Episode 10", "The Return", Translation.Sub));
         Assert.Equal("Episode 10", Lines.Episode("Episode 10", "", Translation.Sub));
-    }
-
-    [Fact]
-    public void ACodeCountsInMinutesThenSecondsInItsLastMinute()
-    {
-        Assert.Equal("Expires in 15 min", Lines.Expiry(900));
-        Assert.Equal("Expires in 15 min", Lines.Expiry(899));
-        Assert.Equal("Expires in 9 min", Lines.Expiry(540));
-        Assert.Equal("Expires in 1 min", Lines.Expiry(60));
-        Assert.Equal("Expires in 59 sec", Lines.Expiry(59));
-        Assert.Equal("Expires in 1 sec", Lines.Expiry(1));
-        Assert.Equal("Code expired", Lines.Expiry(0));
-        Assert.Equal("Code expired", Lines.Expiry(-4));
     }
 
     [Fact]

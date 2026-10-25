@@ -246,7 +246,7 @@ internal fun DeviceCodeSheet(prompt: DeviceCodePrompt, onDismiss: () -> Unit) {
 }
 
 /**
- * "Expires in 14:59" under a code, ticking each second. At nought the sign-in asks for a new code,
+ * "Expires in 15 min" under a code, by the second in its last minute. At nought the sign-in asks for a new code,
  * as the TV's "Get a new code" does, which replaces this one. Nothing when the service gave no time.
  */
 @Composable

@@ -231,7 +231,7 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
 }
 
 /**
- * "Expires in 14:59" under the code, ticking each second. At nought the screen asks for a new
+ * "Expires in 15 min" under the code, by the second in its last minute. At nought the screen asks for a new
  * code, as "Get a new code" does, which replaces this one. Nothing when the service gave no time.
  */
 @Composable

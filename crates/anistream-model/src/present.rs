@@ -315,16 +315,18 @@ pub fn calendar_mark(entry: &Entry) -> Option<&'static str> {
     }
 }
 
-/// How long a sign-in's device code has left, for the line under it, from
-/// [`DeviceCodePrompt::expires_at`] less now: "Expires in 14:59", then "Code expired" at
-/// nought, when the app asks for a new one.
+/// How long a code has left, for the line under it, from [`DeviceCodePrompt::expires_at`] less
+/// now: "Expires in 15 min", whole minutes counted up so the last reads "1 min", then "Expires in
+/// 45 s" in the last minute, and "Code expired" at nought, when the app offers a new one. Every
+/// app's countdown reads this, for a sign-in's device code or any other code that runs out.
 ///
 /// [`DeviceCodePrompt::expires_at`]: crate::sync::DeviceCodePrompt::expires_at
 pub fn device_code_expiry(seconds_left: i64) -> String {
-    if seconds_left <= 0 {
-        return "Code expired".into();
+    match seconds_left {
+        ..=0 => "Code expired".into(),
+        1..60 => format!("Expires in {seconds_left} s"),
+        _ => format!("Expires in {} min", (seconds_left + 59) / 60),
     }
-    format!("Expires in {}", clock(seconds_left as f64))
 }
 
 /// A tracker's name as the apps show it: "AniList" for `anilist`.
@@ -429,9 +431,13 @@ mod tests {
     }
 
     #[test]
-    fn a_device_code_counts_down_to_expired() {
-        assert_eq!(device_code_expiry(899), "Expires in 14:59");
-        assert_eq!(device_code_expiry(5), "Expires in 0:05");
+    fn a_code_counts_minutes_then_seconds_down_to_expired() {
+        assert_eq!(device_code_expiry(900), "Expires in 15 min");
+        assert_eq!(device_code_expiry(899), "Expires in 15 min");
+        assert_eq!(device_code_expiry(540), "Expires in 9 min");
+        assert_eq!(device_code_expiry(60), "Expires in 1 min");
+        assert_eq!(device_code_expiry(59), "Expires in 59 s");
+        assert_eq!(device_code_expiry(5), "Expires in 5 s");
         assert_eq!(device_code_expiry(0), "Code expired");
         assert_eq!(device_code_expiry(-30), "Code expired");
     }

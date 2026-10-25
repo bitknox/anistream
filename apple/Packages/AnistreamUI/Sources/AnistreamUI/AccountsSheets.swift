@@ -136,7 +136,8 @@ struct DeviceCodeSheet: View {
         }
     }
 
-    /// "Expires in 14:59", then "Code expired"; nothing when the tracker gave no lifetime.
+    /// "Expires in 15 min", "Expires in 45 s" in the last minute, then "Code expired"; nothing
+    /// when the tracker gave no lifetime.
     private func expiry(now: Date) -> String? {
         prompt.expiresAt.map { deviceCodeExpiry(secondsLeft: $0 - Int64(now.timeIntervalSince1970)) }
     }

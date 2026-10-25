@@ -73,7 +73,8 @@ pub fn calendar_mark(entry: Entry) -> Option<String> {
 }
 
 /// The line under a sign-in's device code, from its `expires_at` less now in seconds:
-/// "Expires in 14:59", then "Code expired", when the app sends `Command::Connect` again.
+/// "Expires in 15 min", "Expires in 45 s" in the last minute, then "Code expired", when the app
+/// offers a new code (`Command::Connect` again for a sign-in).
 #[uniffi::export]
 pub fn device_code_expiry(seconds_left: i64) -> String {
     present::device_code_expiry(seconds_left)
