@@ -42,6 +42,11 @@ Phase 2 added:
   Below that, Upscaling opens a page of its own with the frame and the modes. A title's More
   menu opens its Show Settings dialog: audio, the subtitles remembered, skips, spoilers,
   new-episode notifications, the source it keeps and Reset to Defaults.
+- Engine details: calendar rows show an estimated time as "~16:30" and a "Sub" or "Dub" mark;
+  the timeline draws the engine's opening and ending marks, with the file's chapters standing in
+  until it has said, and the buffered ranges it reports, ahead of the played part; the device
+  code dialog counts down ("Expires in 14:59") and asks for a new code at nought; a queued
+  download has a Start Now action.
 - Recent searches kept between launches, the tracker's name on the account row when it gives
   no user name, and the app icon at every hicolor size from `assets/icon`.
 
@@ -69,6 +74,4 @@ the sizes (`wide medium narrow`) and `SHOTS` the wide run's shots.
   and `anistream://join` links.
 - The torrent switch stays off: its confirmation dialog with the connection check is still to
   come.
-- The calendar's times are the tracker's, not approximate, and sub and dub are not separate
-  entries, since the model has neither.
 - Night mode and the subtitle style have no picture of their own yet.
