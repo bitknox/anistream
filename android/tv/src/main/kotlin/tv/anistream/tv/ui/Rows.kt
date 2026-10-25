@@ -48,7 +48,9 @@ import tv.anistream.design.ObiSilk
 
 /**
  * A list row, [height] high: the label in silk, a supporting line in haze, the current value in
- * haze on the right, or a switch. Focused, all of it turns ground on silk.
+ * haze on the right, or a switch. Focused, all of it turns ground on silk. Selected, it sits in the
+ * amber container with its lines in the container's own colour, and its amber dot's place kept,
+ * so focus arriving shows the dot without moving the value.
  */
 @Composable
 fun TvListRow(
@@ -92,23 +94,46 @@ fun TvListRow(
             Column(Modifier.weight(1f)) {
                 Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (supporting != null) {
-                    val quiet = if (focused) LocalContentColor.current else ObiSilk.Haze
+                    val quiet = if (focused || selected) LocalContentColor.current else ObiSilk.Haze
                     Text(supporting, style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (value != null) {
                 Spacer(Modifier.width(16.dp))
-                val quiet = if (focused) LocalContentColor.current else ObiSilk.Haze
+                val quiet = if (focused || selected) LocalContentColor.current else ObiSilk.Haze
                 Text(value, style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1)
             }
             if (switch != null) {
                 Spacer(Modifier.width(16.dp))
                 SwitchMark(switch, focused)
             }
-            if (selected && focused) {
+            if (selected) {
                 Spacer(Modifier.width(12.dp))
-                Box(Modifier.size(6.dp).background(ObiSilk.Amber, CircleShape))
+                Box(Modifier.size(6.dp).background(if (focused) ObiSilk.Amber else Color.Transparent, CircleShape))
             }
+        }
+    }
+}
+
+/**
+ * A row's words with nothing to do on Center: laid out as [TvListRow], silk headline and haze
+ * supporting text and value, but focus passes it by.
+ */
+@Composable
+fun TvInfoRow(headline: String, modifier: Modifier = Modifier, supporting: String? = null, value: String? = null) {
+    Row(
+        modifier.fillMaxWidth().heightIn(min = if (supporting != null) 72.dp else 56.dp).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(headline, style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (supporting != null) {
+                Text(supporting, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        if (value != null) {
+            Spacer(Modifier.width(16.dp))
+            Text(value, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 1)
         }
     }
 }
@@ -142,7 +167,8 @@ private fun SwitchMark(on: Boolean, focused: Boolean) {
 }
 
 /**
- * A pill tab or chip: [selected] in the amber container, focused silk. Tabs select on focus once
+ * A pill tab or chip: [selected] in the amber container, focused silk, with an amber dot whose
+ * place a selected one always keeps, so focus arriving never widens it. Tabs select on focus once
  * focus rests on them [settle] ms, so passing through does not load each.
  */
 @Composable
@@ -188,9 +214,9 @@ fun TvTab(
                 Spacer(Modifier.width(8.dp))
                 Text(count, style = MaterialTheme.typography.labelMedium, maxLines = 1, color = LocalContentColor.current.copy(alpha = 0.72f))
             }
-            if (selected && focused) {
+            if (selected) {
                 Spacer(Modifier.width(8.dp))
-                Box(Modifier.size(6.dp).background(ObiSilk.Amber, CircleShape))
+                Box(Modifier.size(6.dp).background(if (focused) ObiSilk.Amber else Color.Transparent, CircleShape))
             }
         }
     }

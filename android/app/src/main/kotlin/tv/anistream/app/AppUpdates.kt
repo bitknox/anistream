@@ -285,6 +285,10 @@ class UpdateReceiver : BroadcastReceiver() {
                         app.appUpdates?.unmark()
                         updates.installResult(InstallResult.Cancelled)
                     }
+                    PackageInstaller.STATUS_FAILURE_STORAGE -> {
+                        app.appUpdates?.unmark()
+                        updates.installResult(InstallResult.NoSpace)
+                    }
                     else -> {
                         app.appUpdates?.unmark()
                         updates.installResult(InstallResult.Failed(message))

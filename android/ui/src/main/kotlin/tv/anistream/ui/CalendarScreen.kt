@@ -483,10 +483,12 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
     val seen = (entry.progress?.done ?: 0u) >= broadcast.episode
     val seconds = broadcast.airs.epochSecond - now.epochSecond
     val out = seconds <= 0
+    // Dub or Sub goes with the episode it is about: "Episode 10 · Dub out 2 hours ago".
+    val episode = listOfNotNull("Episode ${broadcast.episode}", calendarMark(entry)).joinToString(" · ")
     val line = when {
-        seen -> "Episode ${broadcast.episode}"
-        out -> "Episode ${broadcast.episode} out ${Wording.ago(-seconds)}"
-        else -> "Episode ${broadcast.episode} in ${Wording.countdown(seconds)}"
+        seen -> episode
+        out -> "$episode out ${Wording.ago(-seconds)}"
+        else -> "$episode in ${Wording.countdown(seconds)}"
     }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClickLabel = "Open title", onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
@@ -510,15 +512,10 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
                 Text(line, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                airTime(AirTime.clock(broadcast.airs), entry.airingApproximate),
-                style = MaterialTheme.typography.bodyMedium.tabular(),
-                color = colors.onSurfaceVariant,
-            )
-            calendarMark(entry)?.let {
-                Text(it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-            }
-        }
+        Text(
+            airTime(AirTime.clock(broadcast.airs), entry.airingApproximate),
+            style = MaterialTheme.typography.bodyMedium.tabular(),
+            color = colors.onSurfaceVariant,
+        )
     }
 }

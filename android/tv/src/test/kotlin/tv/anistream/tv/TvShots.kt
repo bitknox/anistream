@@ -170,7 +170,6 @@ class TvShots {
     @Test
     fun player() = playerShot("tv-player") {}
 
-    /** The chrome gone again, the skip offer holding Center in the bottom right. */
     /** The seek bar with the engine's opening and ending marks and what is buffered ahead of the played part. */
     @Test
     fun player_buffered() = playerShot("tv-player-buffered") { model ->
@@ -180,6 +179,7 @@ class TvShots {
         }
     }
 
+    /** The chrome gone again, the skip offer holding Center in the bottom right. */
     @Test
     fun player_skip() = playerShot("tv-player-skip") { time = CHROME_HIDE + 1_000 }
 

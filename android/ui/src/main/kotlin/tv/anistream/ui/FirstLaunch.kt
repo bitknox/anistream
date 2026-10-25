@@ -161,7 +161,7 @@ private fun WelcomePage(next: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(top = 24.dp).semantics { heading() },
         )
         PageLine("Keep track of anime and play it from sources you choose.", Modifier.padding(top = 8.dp), center = true)
-        PageLine("$LEGAL_LINE Every source is run by someone else.", Modifier.padding(top = 16.dp), center = true)
+        PageLine(LEGAL_LINE, Modifier.padding(top = 16.dp), center = true)
     }
 }
 

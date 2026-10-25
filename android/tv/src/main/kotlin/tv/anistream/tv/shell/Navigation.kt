@@ -36,7 +36,9 @@ sealed interface Page {
     val key: String
     val memory: FocusMemory
 
-    data class Title(val id: AnilistId, override val key: String) : Page {
+    /** A title's page. Its [id] changes in place when another season is picked. */
+    class Title(id: AnilistId, override val key: String) : Page {
+        var id by mutableStateOf(id)
         override val memory: FocusMemory = FocusMemory()
     }
 
@@ -190,10 +192,9 @@ class TvNavigator(start: Destination = Destination.Continue) {
             return
         }
         if (top.id == id) return
-        opened += 1
-        // Focus comes in on the season picked, where it was, rather than on the page's first.
-        pages[pages.lastIndex] = Page.Title(id, "title/$id/$opened").also { it.memory.focused("season/$id") }
-        forget(top.key)
+        // The same page, its state and focus, showing the other season: no new screen to fade to.
+        top.id = id
+        top.memory.focused("season/$id")
     }
 
     /** The update's page, once: a second press returns to the one open. */

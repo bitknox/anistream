@@ -80,9 +80,9 @@ fun ReleasesPanel(choices: List<SourceCandidate>?, onPick: (SourceCandidate) -> 
             .width(400.dp)
             .fillMaxHeight()
             .background(ObiSilk.RaisedHigh)
-            .padding(horizontal = 16.dp, vertical = 27.dp),
+            .padding(start = 16.dp, end = PANEL_END, top = 27.dp, bottom = 27.dp),
     ) {
-        Text("Choose a source", style = MaterialTheme.typography.titleMedium, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
+        Text("Choose a source", style = MaterialTheme.typography.headlineSmall, color = ObiSilk.Silk, modifier = Modifier.padding(start = 16.dp, bottom = 12.dp).semantics { heading() })
         ReleaseList(choices, onPick)
     }
 }

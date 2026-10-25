@@ -246,7 +246,7 @@ class UpdateModelTest {
         job(model, host, fetch)
         advanceUntilIdle()
         assertEquals(UpdateState.Failed(offer, UpdateFailure.Download("the server answered 503")), model.state.value)
-        assertEquals("The update did not download. Check the connection and try again.", notices.current.value!!.notice.text)
+        assertEquals("Couldn't download the update. Check the connection and try again.", notices.current.value!!.notice.text)
         assertTrue(left.isEmpty())
         fetch.fails = null
         model.press()
@@ -256,7 +256,7 @@ class UpdateModelTest {
     }
 
     @Test
-    fun the_installer_failing_says_its_message_and_deletes_the_file() = runTest {
+    fun the_installer_failing_says_so_in_our_words_and_deletes_the_file() = runTest {
         val host = FakeHost()
         val model = model(host)
         model.press()
@@ -265,7 +265,7 @@ class UpdateModelTest {
         assertTrue(left.isNotEmpty())
         model.installResult(InstallResult.Failed("INSTALL_FAILED_INSUFFICIENT_STORAGE"))
         assertEquals(UpdateState.Failed(offer, UpdateFailure.Install("INSTALL_FAILED_INSUFFICIENT_STORAGE")), model.state.value)
-        assertEquals("Android did not install the update: INSTALL_FAILED_INSUFFICIENT_STORAGE.", notices.current.value!!.notice.text)
+        assertEquals("Couldn't install the update. Try again.", notices.current.value!!.notice.text)
         assertTrue(left.isEmpty())
         // A session that could not even be written is the same failure.
         val writing = FakeHost().apply { installFails = IOException("no space") }

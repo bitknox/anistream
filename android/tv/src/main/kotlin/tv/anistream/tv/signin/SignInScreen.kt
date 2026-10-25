@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -102,7 +103,7 @@ fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Can
             Text("Sign in to $name", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
             when (signInWay(tracker)) {
                 SignInWay.Page -> PageWay(store, tracker, name)
-                SignInWay.DeviceCode -> DeviceCodeWay(store, tracker, cancel)
+                SignInWay.DeviceCode -> DeviceCodeWay(store, tracker, cancel, onCancel = onDone, cancelLabel = cancelLabel)
                 SignInWay.PhoneOnly -> Text(
                     "$name signs in from a paired anistream phone, with the account the phone uses.",
                     style = MaterialTheme.typography.bodyLarge,
@@ -110,8 +111,8 @@ fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Can
                     modifier = Modifier.widthIn(max = 640.dp),
                 )
             }
-            TonalButton(onClick = onDone, modifier = if (signInWay(tracker) == SignInWay.DeviceCode) Modifier else Modifier.focusRequester(cancel)) {
-                ButtonLabel(cancelLabel)
+            if (signInWay(tracker) != SignInWay.DeviceCode) {
+                TonalButton(onClick = onDone, modifier = Modifier.focusRequester(cancel)) { ButtonLabel(cancelLabel) }
             }
         }
     }
@@ -174,7 +175,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
     } else {
         "Scan with your phone, then enter your Kitsu user name and password on the page."
     }
-    Text(steps, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze, modifier = Modifier.widthIn(max = 640.dp))
+    Text(steps, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
         val shown = link
         if (shown != null) {
@@ -198,16 +199,23 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
     }
 }
 
-/** Simkl and Trakt: the service's code and its address, while the engine polls. */
+/**
+ * Simkl and Trakt: the service's code and its address, while the engine polls, with Get a new code
+ * and Cancel side by side under it. A code that runs out stays on screen, dimmed, under "Code
+ * expired", and focus moves to Get a new code: nothing swaps the code by itself while someone
+ * may be typing it.
+ */
 @Composable
-private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequester) {
+private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequester, onCancel: () -> Unit, cancelLabel: String) {
     val prompt by store.accounts.deviceCode.collectAsStateWithLifecycle()
     LaunchedEffect(tracker) { store.connect(tracker) }
     val shown = prompt?.takeIf { it.tracker == tracker }
+    var expired by remember(shown?.code) { mutableStateOf(false) }
+    LaunchedEffect(expired) { if (expired) runCatching { again.requestFocus() } }
     Text(
-        "On your phone, open the address below or scan the code, then enter this code.",
+        "On your phone, scan the QR code or go to the address, then type this code.",
         style = MaterialTheme.typography.bodyLarge,
-        color = ObiSilk.Haze,
+        color = ObiSilk.Silk,
         modifier = Modifier.widthIn(max = 640.dp),
     )
     Row(horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -217,39 +225,47 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
             Box(Modifier.size(180.dp).background(ObiSilk.Raised, RoundedCornerShape(12.dp)))
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                shown?.code?.let(::spaced) ?: "Asking for a code",
-                style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Monospace, letterSpacing = 4.sp),
-                color = ObiSilk.Silk,
-            )
+            val code = shown?.code
+            if (code != null) {
+                Text(
+                    spaced(code),
+                    style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Monospace, letterSpacing = 4.sp),
+                    color = if (expired) ObiSilk.Haze else ObiSilk.Silk,
+                )
+            } else {
+                Text("Asking for a code", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            }
             shown?.let { Text(it.url, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze) }
-            shown?.let { CodeExpiry(store, it) }
+            shown?.let { CodeExpiry(it, onExpired = { expired = true }) }
         }
     }
     // The code waits, so focus rests on asking for a fresh one.
-    TonalButton(onClick = { store.connect(tracker) }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        TonalButton(onClick = { store.connect(tracker) }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
+        TonalButton(onClick = onCancel) { ButtonLabel(cancelLabel) }
+    }
 }
 
 /**
- * "Expires in 14:59" under the code, ticking each second. At nought the screen asks for a new
- * code, as "Get a new code" does, which replaces this one. Nothing when the service gave no time.
+ * How long the code has left under it, in the engine's words, ticking each second, then "Code
+ * expired" in silk beside an error's dot, when [onExpired] tells the screen. Nothing when the
+ * service gave no time.
  */
 @Composable
-private fun CodeExpiry(store: AppStore, prompt: DeviceCodePrompt) {
+private fun CodeExpiry(prompt: DeviceCodePrompt, onExpired: () -> Unit) {
     val expiresAt = prompt.expiresAt ?: return
+    val expired by rememberUpdatedState(onExpired)
     var left by remember(prompt.code, expiresAt) { mutableLongStateOf(CodeCountdown.secondsLeft(expiresAt, System.currentTimeMillis())) }
     LaunchedEffect(prompt.code, expiresAt) {
-        var live = false
-        CodeCountdown.ticks(expiresAt).collect {
-            if (it > 0) live = true
-            left = it
-        }
-        // A code that was out when it arrived is not asked for again, which would only loop.
-        if (live) store.connect(prompt.tracker)
+        CodeCountdown.ticks(expiresAt).collect { left = it }
+        expired()
     }
-    Text(
-        CodeCountdown.line(left),
-        style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
-        color = if (left == 0L) ObiSilk.Vermilion else ObiSilk.Haze,
-    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (left == 0L) Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
+        Text(
+            CodeCountdown.line(left),
+            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
+            color = if (left == 0L) ObiSilk.Silk else ObiSilk.Haze,
+        )
+    }
 }

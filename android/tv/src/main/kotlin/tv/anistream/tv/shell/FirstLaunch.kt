@@ -38,6 +38,7 @@ import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
 import tv.anistream.store.AppStore
 import tv.anistream.store.DevicePreferences
+import tv.anistream.tv.signin.JOIN_LEGAL_LINE
 import tv.anistream.tv.signin.JoinStoreScreen
 import tv.anistream.tv.signin.SignInScreen
 import tv.anistream.tv.ui.AmberButton
@@ -136,7 +137,7 @@ private fun Welcome(onNext: () -> Unit) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.widthIn(max = 560.dp)) {
             Text("anistream", style = MaterialTheme.typography.displaySmall, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
             Text("Keep track of anime and play it from sources you choose.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-            Text("anistream hosts no content. Every source is run by someone else.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            Text(JOIN_LEGAL_LINE, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
             AmberButton(onClick = onNext, icon = null, modifier = Modifier.padding(top = 8.dp).focusRequester(next)) { ButtonLabel("Continue") }
         }
     }

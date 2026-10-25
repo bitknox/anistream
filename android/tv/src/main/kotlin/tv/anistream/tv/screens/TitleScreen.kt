@@ -32,8 +32,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -128,15 +131,20 @@ fun TitleScreen(
     val tables by store.titles.episodes.collectAsStateWithLifecycle()
     val dubs by store.titles.dubLines.collectAsStateWithLifecycle()
     val settings by store.settings.view.collectAsStateWithLifecycle()
-    val entry = entries[id]
-    val rows = tables[id]
+    val failed by store.titles.failed.collectAsStateWithLifecycle()
+    // Another season comes in place: the one showing stays until the new one's detail arrives,
+    // so the page never blanks, the list keeps its place and focus stays on the chip pressed.
+    var shownId by remember { mutableStateOf(id) }
+    if (shownId != id && (entries[id]?.detail != null || id in failed)) shownId = id
+    val switching = shownId != id
+    val entry = entries[shownId]
+    val rows = tables[shownId]
     val spoilers = settings?.let { store.settings.isOn(SettingKey.SPOILER_PROTECTION, it) } ?: true
 
     val list = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val rowTop = with(LocalDensity.current) { 48.dp.roundToPx() }
 
-    val failed by store.titles.failed.collectAsStateWithLifecycle()
     val providersLoaded by store.providers.loaded.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
     // No source can play anything: the amber action leads to a plugin store instead.
@@ -174,12 +182,16 @@ fun TitleScreen(
             val seasons = entry.detail?.seasons.orEmpty()
             if (seasons.size > 1) {
                 item(key = "seasons", contentType = "seasons") {
-                    Seasons(entry.id, seasons, memory, onSeason, swapFade().settlesAt(list, scope, "seasons", rowTop))
+                    // The chip pressed shows chosen at once, before its season arrives.
+                    Seasons(id, seasons, memory, onSeason, swapFade().settlesAt(list, scope, "seasons", rowTop))
                 }
             }
             if (rows == null || rows.isNotEmpty()) {
                 item(key = "episodes", contentType = "row") {
-                    Episodes(entry, rows, dubs[id], action, spoilers, memory, onPlay, onPlayFromStart, swapFade().settlesAt(list, scope, "episodes", rowTop))
+                    // Each season's row starts at its own next episode.
+                    key(shownId) {
+                        Episodes(entry, rows, if (switching) "Loading" else dubs[shownId], action, spoilers, memory, onPlay, onPlayFromStart, swapFade().settlesAt(list, scope, "episodes", rowTop))
+                    }
                 }
             }
             val related = entry.detail?.relations.orEmpty()
@@ -204,7 +216,8 @@ fun TitleScreen(
             }
         }
     }
-    EnterFocus(memory, entry = id)
+    // Once per page: a season coming in place keeps the focus it has.
+    EnterFocus(memory)
 }
 
 
@@ -275,7 +288,7 @@ private fun Seasons(
         "Seasons",
         modifier = modifier,
         state = state,
-        subtitle = if (at >= 0) "${at + 1} of ${seasons.size}" else "${seasons.size}",
+        subtitle = if (at >= 0) "${at + 1} of ${seasons.size}" else "${seasons.size} seasons",
         fallback = if (at >= 0) selected else FocusRequester.Default,
     ) {
         items(seasons.size, key = { seasons[it].id.toLong() }, contentType = { "season" }) { index ->
