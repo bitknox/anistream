@@ -84,6 +84,24 @@ struct ContinueStateTests {
         #expect(ContinuePresentation.accessibilityLabel(item) == "Hoshikuzu no Tabibito, episode 7, 14 minutes left")
     }
 
+    @Test("A show watched dubbed is marked, read so, and a sub is not")
+    func dub() {
+        var dubbed = item
+        dubbed.mark = "Dub"
+        dubbed.episodeTitle = "The Lantern Road"
+        #expect(ContinuePresentation.line(dubbed) == "E7 · Dub · 14 min left")
+        #expect(ContinuePresentation.action(dubbed) == "Resume E7 · Dub")
+        #expect(ContinuePresentation.episodeShort(dubbed) == "E7 · Dub")
+        #expect(ContinuePresentation.episodeLine(dubbed) == "Episode 7 · Dub · The Lantern Road")
+        #expect(ContinuePresentation.timeLeft(dubbed) == "14 min left")
+        #expect(ContinuePresentation.accessibilityLabel(dubbed) == "Hoshikuzu no Tabibito, episode 7, Dub, 14 minutes left")
+        let start = SnapshotContinue(id: 900002, title: "Kumo no Ue no Toshokan", episode: 4, resume: false, mark: "Dub")
+        #expect(ContinuePresentation.line(start) == "Start E4 · Dub")
+        #expect(ContinuePresentation.accessibilityLabel(start) == "Kumo no Ue no Toshokan, start episode 4, Dub")
+        #expect(ContinuePresentation.episodeShort(item) == "E7")
+        #expect(ContinuePresentation.episodeLine(item) == "Episode 7")
+    }
+
     @Test("Caught up's day and time")
     func airs() {
         let next = SnapshotNextAiring(id: 900001, title: "Hoshikuzu no Tabibito", episode: 10, airsAt: at(day: 22, 16, 30))

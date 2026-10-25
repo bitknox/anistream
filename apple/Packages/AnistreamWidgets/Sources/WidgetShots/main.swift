@@ -69,7 +69,7 @@ enum Shots {
             SnapshotContinue(
                 id: 900005, title: "Hagane no Niwashi", episode: 2, watched: 1, episodes: 10,
                 fraction: 0.75, resume: true, positionSecs: 1_080, durationSecs: 1_440, minutesLeft: 6,
-                art: art(900005, in: files)),
+                art: art(900005, in: files), mark: "Dub"),
             SnapshotContinue(
                 id: 900002, title: "Kumo no Ue no Toshokan", episode: 4, watched: 3, episodes: 24,
                 resume: false, durationSecs: 1_440, minutesLeft: 24, art: art(900002, in: files)),

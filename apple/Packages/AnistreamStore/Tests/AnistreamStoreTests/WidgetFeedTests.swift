@@ -46,7 +46,7 @@ struct WidgetFeedTests {
                 coverColor: "#e4a15d"),
             WidgetContinue(
                 id: 900_005, title: "Hagane no Niwashi", episode: 2, coverUrl: "https://img.example/cover/900005.jpg",
-                nextAiring: 1_792_679_400, nextAiringEpisode: 3),
+                nextAiring: 1_792_679_400, nextAiringEpisode: 3, mark: "Dub"),
         ],
         airingToday: [
             WidgetAiring(id: 900_003, title: "Tsukiakari no Teishajo", episode: 2, airsAt: 1_792_528_200,
@@ -75,6 +75,8 @@ struct WidgetFeedTests {
         #expect(first.art == Art(wide: "wide-a.jpg", poster: nil, color: "#e4a15d"))
         #expect(snapshot.continueWatching[1].nextAiring == Date(timeIntervalSince1970: 1_792_679_400))
         #expect(snapshot.continueWatching[1].nextAiringEpisode == 3)
+        // The engine's mark carried as it is: the dub marked, the sub not.
+        #expect(snapshot.continueWatching.map(\.mark) == [nil, "Dub"])
         #expect(snapshot.airingToday[1].translation == .dub)
         #expect(snapshot.airingToday[1].watched)
         #expect(snapshot.nextDays.count == 2)

@@ -31,22 +31,37 @@ public enum ContinuePresentation {
         return .caughtUp(next, art: art)
     }
 
-    /// What plays, as Continue says it: "E7 · 14 min left", "Resume E7" or "Start E4".
+    /// The episode as a row names it, "E7", with the mark the engine gave it: "E7 · Dub". Only
+    /// dubs are marked, as in the app.
+    public static func episodeShort(_ item: SnapshotContinue) -> String {
+        marked("E\(item.episode)", item)
+    }
+
+    /// What plays, as Continue says it: "E7 · 14 min left", "Resume E7" or "Start E4", and for a
+    /// dub "E7 · Dub · 14 min left".
     public static func line(_ item: SnapshotContinue) -> String {
-        guard item.resumes else { return "Start E\(item.episode)" }
-        if let minutes = item.minutesLeft { return "E\(item.episode) · \(minutes) min left" }
-        return "Resume E\(item.episode)"
+        let episode = episodeShort(item)
+        guard item.resumes else { return "Start \(episode)" }
+        if let minutes = item.minutesLeft { return "\(episode) · \(minutes) min left" }
+        return "Resume \(episode)"
     }
 
-    /// The large widget's one action: "Resume E7" or "Start E4".
+    /// The large widget's one action: "Resume E7" or "Start E4", "Resume E7 · Dub" for a dub.
     public static func action(_ item: SnapshotContinue) -> String {
-        item.resumes ? "Resume E\(item.episode)" : "Start E\(item.episode)"
+        (item.resumes ? "Resume " : "Start ") + episodeShort(item)
     }
 
-    /// The large widget's episode line: "Episode 7 · The Lantern Road".
+    /// The large widget's episode line: "Episode 7 · The Lantern Road", or for a dub
+    /// "Episode 7 · Dub · The Lantern Road".
     public static func episodeLine(_ item: SnapshotContinue) -> String {
-        if let name = item.episodeTitle, !name.isEmpty { return "Episode \(item.episode) · \(name)" }
-        return "Episode \(item.episode)"
+        let episode = marked("Episode \(item.episode)", item)
+        if let name = item.episodeTitle, !name.isEmpty { return "\(episode) · \(name)" }
+        return episode
+    }
+
+    /// `label` with the row's mark after it, when it has one.
+    static func marked(_ label: String, _ item: SnapshotContinue) -> String {
+        item.mark.map { "\(label) · \($0)" } ?? label
     }
 
     /// "14 min left" under the large widget's progress.
@@ -57,11 +72,13 @@ public enum ContinuePresentation {
 
     /// What VoiceOver reads for a show.
     public static func accessibilityLabel(_ item: SnapshotContinue) -> String {
+        // The mark read as the row shows it: "episode 7, Dub, 14 minutes left".
+        let episode = "episode \(item.episode)" + (item.mark.map { ", \($0)" } ?? "")
         let what: String
         if item.resumes {
-            what = item.minutesLeft.map { "episode \(item.episode), \($0) minutes left" } ?? "episode \(item.episode)"
+            what = item.minutesLeft.map { "\(episode), \($0) minutes left" } ?? episode
         } else {
-            what = "start episode \(item.episode)"
+            what = "start \(episode)"
         }
         return "\(item.title), \(what)"
     }

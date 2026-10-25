@@ -165,7 +165,8 @@ public final class WidgetFeed {
                     minutesLeft: item.minutesLeft.map(Int.init),
                     nextAiring: item.nextAiring.map { Date(timeIntervalSince1970: TimeInterval($0)) },
                     nextAiringEpisode: item.nextAiringEpisode.map(Int.init),
-                    art: art(banner: item.bannerUrl, cover: item.coverUrl, color: item.coverColor))
+                    art: art(banner: item.bannerUrl, cover: item.coverUrl, color: item.coverColor),
+                    mark: item.mark)
             },
             airingToday: data.airingToday.map(airing),
             nextDays: data.nextDays.map(airing),

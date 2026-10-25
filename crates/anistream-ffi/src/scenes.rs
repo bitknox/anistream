@@ -4,6 +4,7 @@
 
 use std::sync::Arc;
 
+use anistream_core::media::Translation;
 use anistream_core::stream::{Stream, StreamKind};
 use anistream_engine::clock::Clock;
 use anistream_providers::ProviderRegistry;
@@ -250,7 +251,8 @@ fn seed_scene(store: &Store, scene: &FfiScene, now: i64) {
             seed::watched(store, AIRING_NO_MAL, 7, now - 3 * DAY);
             seed::watched(store, AIRING, 3, now - 2 * DAY);
             seed::watched(store, ONA, 1, now - DAY - HOUR);
-            seed::stopped_at(store, ONA, "2", 13.0 * 60.0 + 30.0, now - DAY);
+            // Switched to the dub after episode 1, so its row is marked "Dub".
+            seed::stopped_in(store, ONA, "2", 13.0 * 60.0 + 30.0, Translation::Dub, now - DAY);
             seed::watched(store, FINISHED, 6, now - 2 * HOUR);
             seed::stopped_at(store, FINISHED, "7", 10.0 * 60.0 + 6.0, now - HOUR);
         }
@@ -272,6 +274,11 @@ mod tests {
         assert_eq!(ids, [FINISHED, ONA, AIRING, AIRING_NO_MAL]);
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), Some(606.0));
         assert_eq!(store.resume_position(ONA, "2").expect("a read"), Some(810.0));
+        // One watched dubbed, the rest subbed.
+        let dubbed =
+            continuing.iter().map(|p| store.last_translation(p.anilist_id).expect("a read"));
+        let sub = Some(Translation::Sub);
+        assert_eq!(dubbed.collect::<Vec<_>>(), [sub, Some(Translation::Dub), sub, sub]);
     }
 
     #[test]
