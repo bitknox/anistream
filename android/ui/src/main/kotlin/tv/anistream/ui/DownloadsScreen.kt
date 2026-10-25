@@ -260,6 +260,7 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
     val haptics = androidx.compose.ui.platform.LocalHapticFeedback.current
     // The menu's items, for TalkBack too.
     val talkback = listOfNotNull(
+        if (row.state == DownloadState.QUEUED) androidx.compose.ui.semantics.CustomAccessibilityAction("Start now") { store.startDownloadNow(row.id); true } else null,
         if (hasFile) androidx.compose.ui.semantics.CustomAccessibilityAction("Delete download") { deleting = true; true } else null,
         if (row.state != DownloadState.DONE) androidx.compose.ui.semantics.CustomAccessibilityAction("Remove from the list") { remove(); true } else null,
     )
@@ -309,8 +310,11 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
                     DownloadState.DONE -> IconButton(onClick = { store.playDownload(row) }) { Icon(Icons.PlayRow, contentDescription = "Play episode ${row.episode}") }
                     DownloadState.ACTIVE -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Pause, contentDescription = "Pause download") }
                     DownloadState.PAUSED -> IconButton(onClick = { store.toggleDownload(row.id) }) { Icon(Icons.Resume, contentDescription = "Resume download") }
-                    DownloadState.QUEUED -> IconButton(onClick = { store.cancelDownload(row.id) }) {
-                        Icon(Icons.Clear, contentDescription = "Remove from queue", tint = colors.onSurfaceVariant)
+                    DownloadState.QUEUED -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        QuietButton("Start now") { store.startDownloadNow(row.id) }
+                        IconButton(onClick = { store.cancelDownload(row.id) }) {
+                            Icon(Icons.Clear, contentDescription = "Remove from queue", tint = colors.onSurfaceVariant)
+                        }
                     }
                     DownloadState.FAILED -> QuietButton("Retry") { store.downloadEpisode(row.anilistId, row.episode) }
                 }
@@ -322,6 +326,12 @@ private fun DownloadItem(row: DownloadRow, episode: EpisodeRow?) {
             shape = MaterialTheme.shapes.extraSmall,
             containerColor = colors.surfaceContainerHigh,
         ) {
+            if (row.state == DownloadState.QUEUED) {
+                DropdownMenuItem(text = { Text("Start now") }, onClick = {
+                    menu = false
+                    store.startDownloadNow(row.id)
+                })
+            }
             if (hasFile) {
                 DropdownMenuItem(text = { Text("Delete download") }, onClick = {
                     menu = false
@@ -400,7 +410,7 @@ private fun StateLine(row: DownloadRow, secondsLeft: Long?, rate: Double?) {
             overflow = TextOverflow.Ellipsis,
         )
         DownloadState.PAUSED -> Text("Paused at $sizes", style = style, color = colors.onSurfaceVariant)
-        DownloadState.QUEUED -> Text("Queued · starts when a download slot is free", style = style, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        DownloadState.QUEUED -> Text("Queued · waiting for a slot", style = style, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         // The dot is the error's; the words are haze, the first clause in plain words. The whole
         // error goes to the bug report from the notice the engine posted.
         DownloadState.FAILED -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -33,4 +33,7 @@ internal object Flavour {
 
     /** The release's TV APK is what this flavour updates from. */
     const val UPDATES = true
+
+    /** Nothing to set up for the app. */
+    fun started(store: tv.anistream.store.AppStore, intent: Intent) = Unit
 }

@@ -87,6 +87,7 @@ import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerChoice
 import tv.anistream.player.Device
 import tv.anistream.player.PlayerModel
+import tv.anistream.engine.model.TimeRange
 import tv.anistream.player.SeekSegment
 import tv.anistream.player.Track
 import tv.anistream.store.AirTime
@@ -535,7 +536,7 @@ private fun Chrome(
                 if (duration > 0) Text(remainingTime(headAt ?: position, duration), style = MaterialTheme.typography.labelMedium, color = ObiSilk.Silk)
             }
             Spacer(Modifier.height(6.dp))
-            SeekBar(position, duration, headAt, model.segments, Modifier.focusRequester(barFocus), onBarKey)
+            SeekBar(position, duration, headAt, model.segments, model.buffered, Modifier.focusRequester(barFocus), onBarKey)
             Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TonalButton(
@@ -566,6 +567,7 @@ private fun SeekBar(
     duration: Double,
     headAt: Double?,
     segments: List<SeekSegment>,
+    buffered: List<TimeRange>,
     modifier: Modifier,
     onKey: (KeyEvent) -> Boolean,
 ) {
@@ -586,6 +588,13 @@ private fun SeekBar(
             val radius = CornerRadius(bar / 2)
             drawRoundRect(ObiSilk.Rule, Offset(0f, top), Size(size.width, bar), radius)
             if (duration > 0) {
+                // Buffered stretches ahead of the played part, under the marks.
+                val playedAt = (position / duration).toFloat().coerceIn(0f, 1f) * size.width
+                buffered.forEach { range ->
+                    val start = maxOf(playedAt, (range.start / duration).toFloat().coerceIn(0f, 1f) * size.width)
+                    val end = (range.end / duration).toFloat().coerceIn(0f, 1f) * size.width
+                    if (end > start) drawRect(ObiSilk.Silk.copy(alpha = 0.2f), Offset(start, top), Size(end - start, bar))
+                }
                 segments.filter { it.kind != SeekSegment.Kind.Plain }.forEach { segment ->
                     val start = (segment.start / duration).toFloat() * size.width
                     val end = (segment.end / duration).toFloat() * size.width

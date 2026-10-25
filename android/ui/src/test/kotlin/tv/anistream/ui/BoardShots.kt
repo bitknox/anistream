@@ -134,6 +134,22 @@ class BoardShots {
         compose.runOnUiThread { it.apply(listOf(Event.Content(ContentFor.Calendar, ContentList.Failed(FAILURE)))) }
     }
 
+    /** The calendar with an estimated time ("~") and rows marked Dub and Sub beside their times. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_calendar_marked() = shoot("phone-calendar-marked", WATCHING, start = Destination.Calendar) { store ->
+        compose.runOnUiThread {
+            val rows = store.calendar.window.value.rows.mapIndexed { index, row ->
+                when (index % 3) {
+                    0 -> row.copy(airingApproximate = true)
+                    1 -> row.copy(airingDubbed = true, airingTranslation = tv.anistream.engine.core.Translation.DUB)
+                    else -> row.copy(airingTranslation = tv.anistream.engine.core.Translation.SUB)
+                }
+            }
+            store.apply(listOf(Event.Content(ContentFor.Calendar, ContentList.Entries(rows))))
+        }
+    }
+
     @Test
     @Config(qualifiers = PHONE)
     fun phone_seasonal_failed() = shoot("phone-seasonal-failed", WATCHING, start = Destination.Seasonal, exclude = ::seasonalList) {

@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.Constraints
 import kotlin.math.roundToInt
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -86,6 +88,7 @@ import tv.anistream.design.tabular
 import tv.anistream.player.PlayerClock
 import tv.anistream.player.PlayerModel
 import tv.anistream.player.SeekPreview
+import tv.anistream.engine.model.TimeRange
 import tv.anistream.player.SeekSegment
 
 /** The 1 dp shadow the board puts under the controls' text and icons, for a bright frame. */
@@ -313,7 +316,7 @@ private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modi
         thumb = {
             Box(Modifier.size(handleWidth, 44.dp).background(ObiSilk.Amber, RoundedCornerShape(2.dp)))
         },
-        track = { SeekTrack(it, segments, duration, trackHeight) },
+        track = { SeekTrack(it, segments, model.buffered, duration, trackHeight) },
     )
     }
 }
@@ -346,7 +349,7 @@ private fun PreviewPair(frame: android.graphics.Bitmap?, label: String, modifier
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SeekTrack(state: SliderState, segments: List<SeekSegment>, duration: Double, height: Dp) {
+private fun SeekTrack(state: SliderState, segments: List<SeekSegment>, buffered: List<TimeRange>, duration: Double, height: Dp) {
     Canvas(Modifier.fillMaxWidth().height(height)) {
         val fraction = state.coercedValueAsFraction
         val gap = 6.dp.toPx() + 2.dp.toPx()
@@ -371,14 +374,16 @@ private fun SeekTrack(state: SliderState, segments: List<SeekSegment>, duration:
             val right = if (last) size.width else end - seam / 2
             if (right - left < 1f) return@forEachIndexed
             val color = if (kind == SeekSegment.Kind.Plain) ObiSilk.Rule else ObiSilk.Water
-            piece(left, right, color, inner, if (last) outer else inner)
+            // What is buffered shows in silk on the plain stretches ahead of the handle.
+            val held = if (kind == SeekSegment.Kind.Plain) buffered.map { (it.start / duration).toFloat() * size.width to (it.end / duration).toFloat() * size.width } else emptyList()
+            piece(left, right, color, inner, if (last) outer else inner, held)
             at = end
         }
     }
 }
 
 /** One stretch of the track, its corners [left] and [right] round. */
-private fun DrawScope.piece(start: Float, end: Float, color: Color, left: Float, right: Float) {
+private fun DrawScope.piece(start: Float, end: Float, color: Color, left: Float, right: Float, held: List<Pair<Float, Float>> = emptyList()) {
     val path = Path().apply {
         addRoundRect(
             RoundRect(
@@ -389,4 +394,11 @@ private fun DrawScope.piece(start: Float, end: Float, color: Color, left: Float,
         )
     }
     drawPath(path, color)
+    if (held.isNotEmpty()) {
+        clipPath(path) {
+            for ((from, to) in held) {
+                if (to > start && from < end) drawRect(ObiSilk.Silk.copy(alpha = 0.3f), Offset(maxOf(from, start), 0f), Size(minOf(to, end) - maxOf(from, start), size.height))
+            }
+        }
+    }
 }

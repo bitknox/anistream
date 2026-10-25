@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -42,7 +43,9 @@ import kotlinx.coroutines.withContext
 import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
 import tv.anistream.store.AccountsModel
+import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.store.AppStore
+import tv.anistream.store.CodeCountdown
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import tv.anistream.tv.ui.LocalNotices
@@ -220,8 +223,33 @@ private fun DeviceCodeWay(store: AppStore, tracker: String, again: FocusRequeste
                 color = ObiSilk.Silk,
             )
             shown?.let { Text(it.url, style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze) }
+            shown?.let { CodeExpiry(store, it) }
         }
     }
     // The code waits, so focus rests on asking for a fresh one.
     TonalButton(onClick = { store.connect(tracker) }, modifier = Modifier.focusRequester(again)) { ButtonLabel("Get a new code") }
+}
+
+/**
+ * "Expires in 14:59" under the code, ticking each second. At nought the screen asks for a new
+ * code, as "Get a new code" does, which replaces this one. Nothing when the service gave no time.
+ */
+@Composable
+private fun CodeExpiry(store: AppStore, prompt: DeviceCodePrompt) {
+    val expiresAt = prompt.expiresAt ?: return
+    var left by remember(prompt.code, expiresAt) { mutableLongStateOf(CodeCountdown.secondsLeft(expiresAt, System.currentTimeMillis())) }
+    LaunchedEffect(prompt.code, expiresAt) {
+        var live = false
+        CodeCountdown.ticks(expiresAt).collect {
+            if (it > 0) live = true
+            left = it
+        }
+        // A code that was out when it arrived is not asked for again, which would only loop.
+        if (live) store.connect(prompt.tracker)
+    }
+    Text(
+        CodeCountdown.line(left),
+        style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
+        color = if (left == 0L) ObiSilk.Vermilion else ObiSilk.Haze,
+    )
 }

@@ -489,6 +489,11 @@ class AppStore(
         send(Command.DownloadPause(id))
     }
 
+    /** Start a queued download now, ahead of the slot limit. */
+    fun startDownloadNow(id: Long) {
+        send(Command.DownloadStartNow(id))
+    }
+
     /** Take a download off the queue, keeping a finished file. */
     fun cancelDownload(id: Long) {
         send(Command.DownloadCancel(id))
@@ -864,8 +869,8 @@ class AppStore(
                 onPlayback?.invoke(event)
             }
 
-            is Event.PlayerOps, is Event.PlayerUi, is Event.PlaybackStaged, is Event.PlaybackEnded,
-            Event.PlaybackKept -> onPlayback?.invoke(event)
+            is Event.PlayerOps, is Event.PlayerUi, is Event.PlayerTimeline, is Event.PlayerBuffered,
+            is Event.PlaybackStaged, is Event.PlaybackEnded, Event.PlaybackKept -> onPlayback?.invoke(event)
 
             // Everything else is said in the events above, or has no screen yet.
             else -> {}
