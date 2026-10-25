@@ -116,7 +116,9 @@ impl Shown<'_> {
             Stand::SignedOut => "Not signed in".into(),
             Stand::SignedIn => {
                 let state = self.state.expect("signed in has a state");
-                format!("{name} · {}", sync_words(state, self.syncing, self.offline))
+                let words = sync_words(state, self.syncing, self.offline);
+                // The tracker's name once: beside the user's, or as the row's own title.
+                if state.user.is_some() { format!("{name} · {words}") } else { words }
             }
         }
     }
@@ -175,10 +177,10 @@ fn row(ctx: &Rc<Ctx>, shown: &Shown, rebuild: &Rc<dyn Fn()>) -> adw::ActionRow {
             row.add_prefix(&spinner);
         }
         (_, Some(user)) => {
-            row.add_prefix(&adw::Avatar::new(32, Some(user), true));
+            row.add_prefix(&avatar(user));
             row.set_title(user);
         }
-        _ => row.add_prefix(&adw::Avatar::new(32, Some(name), false)),
+        _ => row.add_prefix(&avatar(name)),
     }
     let button = |label: &str, class: Option<&str>| {
         let button = gtk::Button::with_label(label);
@@ -242,6 +244,14 @@ fn row(ctx: &Rc<Ctx>, shown: &Shown, rebuild: &Rc<dyn Fn()>) -> adw::ActionRow {
     row
 }
 
+/// A tracker's or a user's initial on a neutral circle: no colour of its own, so the pane keeps
+/// its one accent.
+pub fn avatar(text: &str) -> adw::Avatar {
+    let avatar = adw::Avatar::new(32, Some(text), true);
+    avatar.add_css_class("neutral-avatar");
+    avatar
+}
+
 /// What Sign In does for `tracker`: Kitsu asks for its password here; the rest start in the
 /// engine, which opens the browser or shows a code.
 fn sign_in_action(
@@ -268,7 +278,7 @@ pub fn kitsu(ctx: &Rc<Ctx>, rebuild: Rc<dyn Fn()>) -> adw::AlertDialog {
         Some("Sign In to Kitsu"),
         Some("Your password goes to Kitsu once, for a token kept on this computer."),
     );
-    let user = adw::EntryRow::builder().title("Email or User Name").build();
+    let user = adw::EntryRow::builder().title("Email or user name").build();
     let password = adw::PasswordEntryRow::builder().title("Password").build();
     let list = gtk::ListBox::new();
     list.add_css_class("boxed-list");
@@ -356,14 +366,38 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     )));
     attrs.insert(gtk::pango::AttrInt::new_letter_spacing(4 * gtk::pango::SCALE));
     code.set_attributes(Some(&attrs));
-    code.add_css_class("card");
     code.set_selectable(true);
-    code.set_margin_bottom(6);
-    code.set_height_request(64);
+    code.set_hexpand(true);
     code.update_property(&[gtk::accessible::Property::Label(&format!(
         "Code {}",
         prompt.code.chars().map(String::from).collect::<Vec<_>>().join(" ")
     ))]);
+    // The code on a flat raised plate, no shadow inside the dialog, with Copy beside it.
+    let copy = gtk::Button::from_icon_name("edit-copy-symbolic");
+    copy.set_tooltip_text(Some("Copy Code"));
+    copy.add_css_class("flat");
+    copy.set_valign(gtk::Align::Center);
+    copy.connect_clicked({
+        let text = prompt.code.clone();
+        move |button| {
+            button.clipboard().set_text(&text);
+            button.set_icon_name("object-select-symbolic");
+            button.set_tooltip_text(Some("Copied"));
+            let button = button.downgrade();
+            glib::timeout_add_seconds_local_once(2, move || {
+                if let Some(button) = button.upgrade() {
+                    button.set_icon_name("edit-copy-symbolic");
+                    button.set_tooltip_text(Some("Copy Code"));
+                }
+            });
+        }
+    });
+    let plate = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    plate.add_css_class("code-plate");
+    plate.set_margin_bottom(6);
+    plate.set_height_request(64);
+    plate.append(&code);
+    plate.append(&copy);
     let open = gtk::Button::with_label(&format!("Open {host}"));
     open.add_css_class("pill");
     open.add_css_class("suggested-action");
@@ -371,7 +405,13 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     let url = prompt.url.clone();
     let window = ctx.window.clone();
     let failed = Rc::downgrade(ctx);
+    // Once the code has run out this button asks for a new one instead.
+    let ran_out = Rc::new(std::cell::Cell::new(false));
+    let gone = Rc::clone(&ran_out);
     open.connect_clicked(move |_| {
+        if gone.get() {
+            return;
+        }
         let failed = failed.clone();
         crate::portal::open_uri(&window, &url, move || {
             if let Some(ctx) = failed.upgrade() {
@@ -387,11 +427,18 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     waiting.append(&spinner);
     waiting.append(&crate::widgets::haze(&format!("Waiting for {name}"), "caption"));
     let child = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    child.append(&code);
+    child.append(&plate);
     child.append(&open);
     child.append(&waiting);
     if let Some(expires_at) = prompt.expires_at {
-        child.append(&countdown(ctx, &prompt.tracker, expires_at));
+        let parts = Expiring {
+            code: plate.clone().upcast(),
+            open: open.clone(),
+            waiting: waiting.clone(),
+            tracker: prompt.tracker.clone(),
+            ran_out,
+        };
+        child.append(&countdown(ctx, parts, expires_at));
     }
     dialog.set_extra_child(Some(&child));
     dialog.add_response("close", "Close");
@@ -411,29 +458,62 @@ fn seconds_left(expires_at: i64, now: i64) -> i64 {
     (expires_at - now).max(0)
 }
 
-/// "Expires in 15 min" under the code, by the second in its last minute. At nought it asks for a new code, as
-/// "Get a new code" does, which replaces this dialog.
-fn countdown(ctx: &Rc<Ctx>, tracker: &str, expires_at: i64) -> gtk::Label {
+/// The parts of the code dialog that change when the code runs out.
+struct Expiring {
+    code: gtk::Widget,
+    open: gtk::Button,
+    waiting: gtk::Box,
+    tracker: String,
+    ran_out: Rc<std::cell::Cell<bool>>,
+}
+
+/// The line under the code, ticking each second, in the engine's words. At nought the code dims,
+/// the wait stops, and Get a New Code takes the place of the way to the site: nothing is asked
+/// for until the viewer asks, so the code never changes under them.
+fn countdown(ctx: &Rc<Ctx>, parts: Expiring, expires_at: i64) -> gtk::Label {
     let now = || glib::real_time() / 1_000_000;
     let label =
         widgets::haze(&present::device_code_expiry(seconds_left(expires_at, now())), "caption");
     label.add_css_class("numeric");
     label.set_halign(gtk::Align::Center);
     label.set_xalign(0.5);
-    let (weak, ctx, tracker) = (label.downgrade(), Rc::downgrade(ctx), tracker.to_owned());
+    let weak = label.downgrade();
+    let ctx = Rc::downgrade(ctx);
+    let expired = move |label: &gtk::Label| {
+        label.set_label(&present::device_code_expiry(0));
+        parts.ran_out.set(true);
+        parts.code.add_css_class("dim-label");
+        parts.waiting.set_visible(false);
+        let open = &parts.open;
+        open.set_label("Get a New Code");
+        let (ctx, tracker, waiting) =
+            (ctx.clone(), parts.tracker.clone(), parts.waiting.clone());
+        let label = label.downgrade();
+        // Asks once, then waits for the engine's new code, which replaces this dialog.
+        open.connect_clicked(move |button| {
+            let Some(ctx) = ctx.upgrade() else { return };
+            button.set_sensitive(false);
+            if let Some(line) = waiting.last_child().and_downcast::<gtk::Label>() {
+                line.set_label("Getting a new code");
+            }
+            waiting.set_visible(true);
+            if let Some(label) = label.upgrade() {
+                label.set_visible(false);
+            }
+            ctx.hub.send(Command::Connect { tracker: tracker.clone() });
+        });
+    };
     glib::timeout_add_seconds_local(1, move || {
         // The dialog closing takes the label out of any window.
         let Some(label) = weak.upgrade().filter(|l| l.root().is_some()) else {
             return glib::ControlFlow::Break;
         };
         let left = seconds_left(expires_at, now());
-        label.set_label(&present::device_code_expiry(left));
         if left > 0 {
+            label.set_label(&present::device_code_expiry(left));
             return glib::ControlFlow::Continue;
         }
-        if let Some(ctx) = ctx.upgrade() {
-            ctx.hub.send(Command::Connect { tracker: tracker.clone() });
-        }
+        expired(&label);
         glib::ControlFlow::Break
     });
     label
@@ -485,7 +565,9 @@ mod tests {
             Stand::Checking,
             "nothing said yet is checking, not signed out"
         );
-        assert_eq!(shown(Some(&connected), None).subtitle(), "MyAnimeList · Synced");
+        assert_eq!(shown(Some(&connected), None).subtitle(), "Synced");
+        let named = SyncState { user: Some("Mika".into()), ..connected.clone() };
+        assert_eq!(shown(Some(&named), None).subtitle(), "MyAnimeList · Synced");
     }
 
     #[test]
