@@ -40,11 +40,12 @@
     <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="OnKeyUndo" />
     <KeyboardAccelerator Key="E" Invoked="OnKeyEpisodes" />
     <KeyboardAccelerator Key="T" Invoked="OnKeyTracks" />
+    <KeyboardAccelerator Key="I" Invoked="OnKeyStats" />
     <KeyboardAccelerator Key="Back" Invoked="OnKeySpeedNormal" />
     <!-- ] and [ have no VirtualKey names: they are added in code. -->
   </UserControl.KeyboardAccelerators>
   <Grid x:Name="Root" Background="Black" PointerMoved="OnPointerMoved" Tapped="OnVideoTapped"
-        DoubleTapped="OnVideoDoubleTapped" PointerWheelChanged="OnWheel">
+        DoubleTapped="OnVideoDoubleTapped" PointerWheelChanged="OnWheel" SizeChanged="OnStatsSized">
     <!-- The video is the bottom layer; the bars are XAML inside the SwapChainPanel, which
          composition draws under with no airspace. -->
     <SwapChainPanel x:Name="VideoPanel" SizeChanged="OnPanelSizeChanged">
@@ -200,6 +201,54 @@
               <MenuFlyout x:Name="SettingsMenu" Placement="TopEdgeAlignedRight" Opened="OnMenuOpened" Closed="OnMenuClosed" />
             </Button.Flyout>
           </Button>
+        </Grid>
+      </Grid>
+
+      <!-- Stats for nerds (I, or Settings): the engine's rows, top trailing on the raised surface
+           the corner cards use, solid so no frame shows through. It stays up while the controls
+           hide and ends above the subtitles' band, where its rows scroll first. Over the dim, so
+           the controls coming and going never shade it; under the corner cards. -->
+      <Grid x:Name="StatsLayer" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Top" Width="400"
+            Margin="0,64,16,0" Padding="16,6,6,14" Background="{ThemeResource RaisedBrush}" CornerRadius="8"
+            AutomationProperties.Name="Stats for nerds">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid ColumnSpacing="8">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="Stats for nerds" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center"
+                     AutomationProperties.HeadingLevel="Level2" />
+          <Button x:Name="StatsClose" Grid.Column="1" Style="{StaticResource PlayerButtonStyle}" Width="32" Height="32"
+                  Click="OnStatsClose" ToolTipService.ToolTip="Close (I)" AutomationProperties.Name="Close stats for nerds">
+            <FontIcon Glyph="&#xE711;" FontSize="12" />
+          </Button>
+        </Grid>
+        <TextBlock x:Name="StatsWaiting" Grid.Row="1" Text="Waiting for the stream" Style="{StaticResource HazeBodyStyle}"
+                   FontSize="13" LineHeight="20" Margin="0,0,10,0" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite" />
+        <!-- Label and value: the labels' column as wide as its longest label, each value on one
+             line in tabular figures, so a second's new figures change in place without moving. -->
+        <ScrollViewer x:Name="StatsScroll" Grid.Row="2" Margin="0,8,0,0" Padding="0,0,10,0"
+                      HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollMode="Auto" VerticalScrollBarVisibility="Auto">
+          <Grid x:Name="StatsRows" ColumnSpacing="14" RowSpacing="4" AutomationProperties.Name="Stats">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+          </Grid>
+        </ScrollViewer>
+        <!-- Copy stats, a button, and "Copied" in its place for a moment after: one cell as tall
+             as the button, so nothing moves, with the word where the button's was. -->
+        <Grid Grid.Row="3" Margin="0,12,0,0" MinHeight="32" HorizontalAlignment="Left">
+          <Button x:Name="StatsCopy" Content="Copy stats" Click="OnCopyStats" />
+          <TextBlock x:Name="StatsCopied" Text="Copied" Style="{StaticResource HazeBodyStyle}" VerticalAlignment="Center"
+                     Margin="12,0,0,0" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite" />
         </Grid>
       </Grid>
 

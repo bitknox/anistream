@@ -1165,6 +1165,7 @@ public sealed partial class MainWindow : Window
         Line("Next or previous episode", "N, Shift+N");
         Line("Episodes", "E");
         Line("Subtitles and audio", "T");
+        Line("Stats for nerds", "I");
         Line("Slower, faster, normal speed", "[, ], Backspace");
         Line("Mini player", "P");
         Line("Take the corner card's action", "Enter");
