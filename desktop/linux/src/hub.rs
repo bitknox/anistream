@@ -19,6 +19,7 @@ use anistream_model::{
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     event::Event,
+    party::{PartyForm, PartyMember, PartyView},
     settings::{SettingKey, SettingRow, SettingsView},
     sources::{GuardView, ProviderOrigin, ProviderRow},
     stores::{StorePluginRow, StorePluginStatus, StoreRow},
@@ -63,6 +64,12 @@ pub struct Known {
     pub guard: Option<(GuardView, std::time::Instant)>,
     /// The update check's last word.
     pub update: Option<anistream_model::updates::UpdateStatus>,
+    /// The watch party this device is in, while it is in one.
+    pub party: Option<PartyView>,
+    /// The party's members, this device's first, once the room has listed them.
+    pub party_members: Option<Vec<PartyMember>>,
+    /// What the form that starts a party opens with, once the engine has said.
+    pub party_form: Option<PartyForm>,
 }
 
 impl Known {
@@ -197,6 +204,24 @@ impl Known {
             }
             Event::JobStarted { job, activity } => {
                 self.jobs.insert(*job, activity.clone());
+            }
+            Event::PartyForm(form) => self.party_form = Some(form.clone()),
+            Event::PartyJoined(view) => {
+                // A room joined afresh lists its members afresh.
+                let same = self
+                    .party
+                    .as_ref()
+                    .is_some_and(|p| p.server == view.server && p.room == view.room);
+                if !same {
+                    self.party_members = None;
+                }
+                self.party = Some(view.clone());
+            }
+            Event::PartyState(view) => self.party = Some(view.clone()),
+            Event::PartyMembers(members) => self.party_members = Some(members.clone()),
+            Event::PartyLeft { .. } => {
+                self.party = None;
+                self.party_members = None;
             }
             Event::JobDone(job) => {
                 self.jobs.remove(job);

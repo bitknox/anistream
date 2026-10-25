@@ -133,6 +133,10 @@ levelbar block.empty { background: var(--rule); }
 .seek-preview { padding: 4px; }
 .seek-preview label { color: var(--silk); }
 .mini-controls button { min-width: 44px; min-height: 44px; }
+/* The party form's Use It, sized to the hint line it sits on. */
+.hint-button { padding: 2px 10px; min-height: 0; }
+/* In a watch party: a water dot on the people button's corner. */
+.party-dot { background: var(--water); border-radius: 999px; min-width: 6px; min-height: 6px; margin: -1px -3px 0 0; }
 .corner-card { background: var(--popover-bg-color); border-radius: 12px; padding: 12px; margin: 24px; }
 .countdown trough { background: var(--rule); min-height: 3px; }
 .countdown progress { background: var(--amber); min-height: 3px; }

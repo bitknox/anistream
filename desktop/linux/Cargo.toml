@@ -24,6 +24,7 @@ fixtures = [
   "dep:anistream-meta",
   "dep:anistream-providers",
   "dep:anistream-track",
+  "dep:anistream-party",
   "anistream-engine/testing",
 ]
 
@@ -41,6 +42,8 @@ anistream-testkit = { path = "../../crates/anistream-testkit", optional = true }
 anistream-meta = { path = "../../crates/anistream-meta", optional = true }
 anistream-providers = { path = "../../crates/anistream-providers", optional = true }
 anistream-track = { path = "../../crates/anistream-track", default-features = false, optional = true }
+# A Syncplay server on loopback with members it plays, for the watch party's scenes.
+anistream-party = { path = "../../crates/anistream-party", features = ["testing"], optional = true }
 
 # GraphicsOffload is GTK 4.14's; 4.16 gave it a black background for direct scanout.
 gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }

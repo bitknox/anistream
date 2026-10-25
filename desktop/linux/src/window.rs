@@ -92,6 +92,11 @@ impl Ctx {
         self.show_notice(text, false, None);
     }
 
+    /// A notice of the app's own that something went wrong: it stays 8 s.
+    pub fn alert(&self, text: &str) {
+        self.show_notice(text, true, None);
+    }
+
     /// One of the engine's notices: an alert stays 8 s, its hint is the button, and clicking
     /// it anywhere dismisses it.
     pub fn notice(&self, notice: &Notice) {
@@ -194,6 +199,10 @@ pub struct Shell {
     fixtures: bool,
     /// Whether first launch was weighed, once, on Continue's first answer.
     welcome_checked: Cell<bool>,
+    /// In a watch party, as the window last heard: what it says as one starts and ends.
+    pub in_party: Cell<bool>,
+    /// The viewer chose to leave the party to close, so the close goes on without asking again.
+    party_asked: Cell<bool>,
 }
 
 impl Shell {
@@ -287,6 +296,8 @@ impl Shell {
             held: RefCell::default(),
             fixtures,
             welcome_checked: Cell::new(false),
+            in_party: Cell::new(false),
+            party_asked: Cell::new(false),
         });
         shell.player.attach(Rc::downgrade(&shell));
         shell.breakpoints();
@@ -437,6 +448,18 @@ impl Shell {
             Box::new(move |s, a| {
                 if let Some((id, episode)) = play_of(a) {
                     s.ctx.hub.send(Command::Play { id, episode, from_start: true });
+                }
+            }),
+        );
+        add(
+            "watch-together",
+            Some(glib::VariantTy::new("(us)").expect("a type")),
+            Box::new(move |s, a| {
+                if let Some((id, episode)) = play_of(a) {
+                    crate::party::form::open(
+                        &s.ctx,
+                        crate::party::form::For::Episode(id, episode),
+                    );
                 }
             }),
         );
@@ -693,6 +716,10 @@ impl Shell {
             if matches!(event, Event::Downloads(_) | Event::Seeding(_)) {
                 shell.release_when_done();
             }
+            if matches!(event, Event::PartyJoined(_)) {
+                shell.party_asked.set(false);
+            }
+            crate::party::heard(&shell, event);
             shell.player.engine_event(event);
         });
     }
@@ -773,9 +800,14 @@ impl Shell {
         });
     }
 
-    /// An `anistream://` link handed to the app: a tracker's sign-in coming back from the
-    /// browser, `anistream://auth/<tracker>` with the token or code it carries.
-    pub fn open_link(&self, link: &str) {
+    /// An `anistream://` link handed to the app: a watch party's invite, or a tracker's sign-in
+    /// coming back from the browser, `anistream://auth/<tracker>` with the token or code it
+    /// carries.
+    pub fn open_link(self: &Rc<Self>, link: &str) {
+        if is_party_link(link) {
+            crate::party::open_invite(self, link);
+            return;
+        }
         match sign_in_return(link) {
             Some(tracker) => {
                 let hub = &self.ctx.hub;
@@ -799,6 +831,13 @@ impl Shell {
         self.ctx.window.connect_close_request(move |window| {
             let Some(shell) = weak.upgrade() else { return glib::Propagation::Proceed };
             shell.ctx.prefs.remember_window(window);
+            // Closing leaves the party: asked first, unless quitting or already answered.
+            if !shell.closing.get()
+                && !shell.party_asked.get()
+                && crate::party::ask_before_closing(&shell)
+            {
+                return glib::Propagation::Stop;
+            }
             let (downloading, seeding) = shell.ctx.hub.known.borrow().running();
             let running = downloading + seeding > 0;
             if shell.closing.get() || !running {
@@ -820,6 +859,13 @@ impl Shell {
                 }
             }
         });
+    }
+
+    /// The viewer left the party to close the window: the close goes on, asking of downloads
+    /// as any close does.
+    pub fn left_party_to_close(&self) {
+        self.party_asked.set(true);
+        self.ctx.window.close();
     }
 
     /// The viewer chose to stop everything and close.
@@ -872,6 +918,12 @@ impl Shell {
     pub fn is_player(&self) -> bool {
         self.top.visible_child_name().as_deref() == Some("player")
     }
+}
+
+/// Whether `link` is a watch party's invite, `anistream://party?…`, in any case.
+fn is_party_link(link: &str) -> bool {
+    link.get(..18).is_some_and(|start| start.eq_ignore_ascii_case("anistream://party?"))
+        || link.get(..19).is_some_and(|start| start.eq_ignore_ascii_case("anistream://party/?"))
 }
 
 /// The tracker an `anistream://auth/<tracker>` sign-in return is for.
@@ -1069,6 +1121,15 @@ mod tests {
     }
 
     #[test]
+    fn a_party_invite_is_told_from_other_links() {
+        assert!(is_party_link("anistream://party?server=a&room=b&title=1&episode=2"));
+        assert!(is_party_link("ANISTREAM://Party?server=a"));
+        assert!(is_party_link("anistream://party/?server=a"));
+        assert!(!is_party_link("anistream://auth/anilist#x"));
+        assert!(!is_party_link("anistream://partyroom"));
+    }
+
+    #[test]
     fn a_sign_in_return_names_its_tracker() {
         assert_eq!(
             sign_in_return("anistream://auth/anilist#access_token=x&state=y").as_deref(),
@@ -1079,6 +1140,7 @@ mod tests {
             Some("mal")
         );
         assert_eq!(sign_in_return("anistream://join/abc"), None);
+        assert_eq!(sign_in_return("anistream://party?server=a&room=b&title=1&episode=2"), None);
         assert_eq!(sign_in_return("anistream://auth/"), None);
     }
 }

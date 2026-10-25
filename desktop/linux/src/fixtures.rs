@@ -32,6 +32,99 @@ use anistream_track::{
 
 use crate::engine::{Started, open, paths_under, theme};
 
+/// The engine's runtime, for the scene's party server to run on.
+static RUNTIME: std::sync::OnceLock<tokio::runtime::Handle> = std::sync::OnceLock::new();
+
+/// Keep `handle`, the engine's runtime, for [`FakeParty::start`].
+pub fn keep_runtime(handle: tokio::runtime::Handle) {
+    let _ = RUNTIME.set(handle);
+}
+
+/// A Syncplay server on loopback with members the scene plays, so a party can be joined,
+/// steered and left with nothing on the network.
+pub struct FakeParty {
+    server: anistream_party::fake::FakeServer,
+    members: std::cell::RefCell<
+        std::collections::HashMap<String, anistream_party::fake::FakeMember>,
+    >,
+}
+
+impl FakeParty {
+    /// A server that takes every member, or refuses each with `refuse`.
+    pub fn start(refuse: Option<&str>) -> Option<Self> {
+        use anistream_party::fake::{FakeOptions, FakeServer};
+        let handle = RUNTIME.get()?;
+        let options =
+            FakeOptions { refuse: refuse.map(str::to_owned), ..FakeOptions::default() };
+        let server = handle
+            .block_on(handle.spawn(FakeServer::start(options)))
+            .ok()?
+            .inspect_err(
+                |e| tracing::warn!(error = %e, "the scene's party server did not start"),
+            )
+            .ok()?;
+        Some(Self { server, members: Default::default() })
+    }
+
+    /// Where to join it, as `host:port`.
+    pub fn server(&self) -> String {
+        self.server.address()
+    }
+
+    fn with(&self, act: impl FnOnce(&anistream_party::fake::FakeServer)) {
+        let Some(handle) = RUNTIME.get() else { return };
+        let _entered = handle.enter();
+        act(&self.server);
+    }
+
+    fn member(&self, name: &str, act: impl FnOnce(&anistream_party::fake::FakeMember)) {
+        let Some(handle) = RUNTIME.get() else { return };
+        let _entered = handle.enter();
+        if let Some(member) = self.members.borrow().get(name) {
+            act(member);
+        }
+    }
+
+    /// `name` comes into `room`.
+    pub fn add(&self, room: &str, name: &str) {
+        let mut member = None;
+        self.with(|server| member = Some(server.member(room, name)));
+        if let Some(member) = member {
+            self.members.borrow_mut().insert(name.to_owned(), member);
+        }
+    }
+
+    /// The member opens `file`, `duration` seconds long.
+    pub fn opens(&self, name: &str, file: &str, duration: f64) {
+        self.member(name, |m| m.open(file, duration));
+    }
+
+    pub fn ready(&self, name: &str, ready: bool) {
+        self.member(name, |m| m.ready(ready));
+    }
+
+    pub fn says(&self, name: &str, message: &str) {
+        self.member(name, |m| m.chat(message));
+    }
+
+    /// The server goes away, as one lost does: every connection dropped and none taken.
+    pub fn go_down(&self, down: bool) {
+        self.with(|server| {
+            server.set_down(down);
+            if down {
+                server.drop_connections();
+            }
+        });
+    }
+}
+
+/// An address that takes a connection and never answers, for the form waiting on a room.
+pub fn silent_server() -> Option<(std::net::TcpListener, String)> {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").ok()?;
+    let address = listener.local_addr().ok()?.to_string();
+    Some((listener, address))
+}
+
 /// What the scene starts with beyond its history.
 #[derive(Debug, Clone, Default)]
 pub struct Scene {

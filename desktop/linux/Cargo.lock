@@ -113,6 +113,7 @@ dependencies = [
  "anistream-model",
  "anistream-mpv-host",
  "anistream-net",
+ "anistream-party",
  "anistream-providers",
  "anistream-store",
  "anistream-testkit",

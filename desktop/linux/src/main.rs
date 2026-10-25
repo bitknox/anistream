@@ -16,6 +16,7 @@ mod motion;
 mod mpris;
 mod nagare;
 mod pages;
+mod party;
 mod player;
 mod portal;
 mod prefs;
@@ -249,6 +250,7 @@ fn start_fixtures(
     let paths = engine::paths_under(&root);
     let prefs = paths.config_file.with_file_name("desktop.ini");
     let cache = paths.cache_dir.clone();
+    fixtures::keep_runtime(runtime.handle().clone());
     let started = runtime.block_on(fixtures::start(&root, &scene, host))?;
     tracing::info!(root = %root.display(), "the fixture scene");
     Ok((started, prefs, cache))
