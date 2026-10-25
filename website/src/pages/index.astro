@@ -53,7 +53,7 @@ const terminalRows: [string, string][] = [
 const bandItems = [
 	'Browse, watch, track, sync, extend',
 	'Native on Mac, iPhone, iPad, Android, Android TV, Windows and Linux',
-	'One Rust engine under every app',
+	'Eight clients over one Rust engine',
 	'The terminal on macOS, Linux and Windows',
 	'Local history in SQLite',
 	'Sandboxed WebAssembly plugins',
@@ -75,8 +75,8 @@ const appFiles: Record<string, [string, string]> = {
 	ios: ['.ipa', 'Install it with AltStore or SideStore'],
 	android: ['.apk', 'Allow installs from your browser once'],
 	'android-tv': ['.apk', 'Install it with Downloader or adb'],
-	windows: ['', 'Coming with the next release'],
-	linux: ['', 'Coming with the next release'],
+	windows: ['setup.exe', 'Choose Run anyway when SmartScreen asks'],
+	linux: ['AppImage', 'Make it executable, then open it'],
 };
 
 const releaseFiles = [
@@ -131,8 +131,8 @@ const installHtml = [
 					<h1>Browse, watch, track and sync anime <span class="hero-claim">in one client.</span></h1>
 					<div class="hero-side">
 						<p class="hero-sub">
-							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for
-							your terminal. Sources come from plugins you add.
+							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, each in its
+							platform’s own toolkit, and one for your terminal. Sources come from plugins you add.
 						</p>
 						<div class="actions">
 							<a class="btn btn-primary" href={APPS}>Get the apps</a>
@@ -350,8 +350,8 @@ const installHtml = [
 				<p class="lede">
 					Every release has the apps and the terminal app, each file with a .sha256 beside it. The
 					apps are not in the App Store or on Google Play, so the first install takes a step the
-					installation guide walks through. The Windows and Linux apps come with the next release.
-					The terminal app needs mpv and ffmpeg installed separately.
+					installation guide walks through. The terminal app needs mpv and ffmpeg installed
+					separately.
 				</p>
 				<table class="release-files">
 					<caption class="sr-only">Release files</caption>

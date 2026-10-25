@@ -11,7 +11,8 @@ import { APP_DOWNLOADS, FEATURES, INSTALL_APPS, LATEST, LEGAL, PRIVACY, TOOLKITS
 
 const across: [string, string][] = [
 	['Widgets', 'Continue watching and Airing today on the home screen, on Mac, iPhone, iPad and Android.'],
-	['New-episode notifications', 'An alert when a new episode of a show you watch comes out, on Mac, iPhone, iPad, Android and Linux. They stay off until you turn them on, and each show has its own switch.'],
+	['New-episode notifications', 'An alert when a new episode of a show you watch comes out, on Mac, iPhone, iPad, Android, Windows and Linux. They stay off until you turn them on, and each show has its own switch.'],
+	['Live Activities', 'On iPhone, the episode playing, a show you follow in the hour before its episode airs, and your downloads, on the Lock Screen and in the Dynamic Island.'],
 	['Picture in Picture', 'The episode keeps playing in a small window while you browse or use another app, on Mac, iPhone, iPad and Android. On Windows and Linux the player shrinks to a mini player.'],
 	['Downloads', 'Episodes download to the device and play offline, with the same history and resume as a stream. Every app but the TV app can keep the next episodes of the shows you watch downloaded.'],
 	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app, as in the terminal app. The features page lists which trackers each app signs in to.'],
@@ -52,7 +53,8 @@ const across: [string, string][] = [
 				<div class="apps-text">
 					<h2 id="native-h">Native apps over one engine</h2>
 					<p>
-						There is no web view and no shared interface layer. The engine, written in Rust, does the
+						anistream has eight clients: Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the
+						terminal. There is no web view and no shared interface layer. The engine, written in Rust, does the
 						searching, the playback, the history and the sync, and each app draws it in its own
 						toolkit. A feature built into the engine reaches every app, and each app can still look
 						and behave like the rest of its platform.
@@ -165,14 +167,16 @@ const across: [string, string][] = [
 						A separate app for the TV, made for the remote’s arrow keys: a rail for search, Continue,
 						the calendar, seasonal charts and your library, and large buttons that show where the
 						focus is. Episodes play in the same built-in mpv, with the skip button and Up Next, and
-						the show you are watching appears in the TV’s own Watch Next row. To sign in to a
-						tracker, scan a code with your phone or enter one on the tracker’s site, with no typing
-						on the TV.
+						the show you are watching appears in the TV’s own Watch Next row. Search browses by
+						genre, year and season before you type, and a title page steps between a show’s seasons.
+						To sign in to a tracker, scan a code with your phone or enter one on the tracker’s site,
+						with no typing on the TV. New releases install from Settings › About.
 					</p>
 					<p class="apps-needs">Android TV 11 or later, on ARM</p>
 				</div>
-				<div class="apps-shots">
-					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Android TV app on Continue: the show in progress with a large button to resume episode 7, and a row of other shows below" />
+				<div class="ratio-row apps-row">
+					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt="The Android TV app on Continue: the show in progress with a large button to resume episode 7, and a row of other shows below" />
+					<Shot name="tv-search" frame="screen" sizes="(min-width: 1200px) 588px, 48vw" alt="The Android TV app’s search with nothing typed: the on-screen keyboard, filter chips with Adventure picked, and two matching titles" />
 				</div>
 			</section>
 
@@ -197,14 +201,19 @@ const across: [string, string][] = [
 					<h2 id="windows-h">Windows</h2>
 					<p>
 						A WinUI 3 app with a navigation pane for Continue, the calendar, seasonal charts, your
-						library and downloads, and search in the title bar. Episodes play in mpv inside the
-						window, and the mini player keeps one on top of your other windows.
+						library and downloads, and search in the title bar that browses with filters before you
+						type. Episodes play in mpv inside the window, with the media keys and the taskbar’s
+						buttons, and the mini player keeps one on top of your other windows. New episodes and
+						finished downloads arrive as Windows notifications.
 					</p>
-					<p class="apps-needs">Windows 10 version 2004 or later, on x64 or Arm64. Coming with the next release.</p>
+					<p class="apps-needs">Windows 10 version 2004 or later, on x64 or Arm64</p>
 				</div>
-				<div class="ratio-row apps-row">
-					<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 588px, 48vw" alt="The Windows app on a title page: the poster, a button to resume episode 7 and the episode list" />
-					<Shot name="windows-stores" frame="window" sizes="(min-width: 1200px) 588px, 48vw" alt="The Windows app’s plugin stores: the stores you joined, and one store’s plugins with Install and Update buttons" />
+				<div class="apps-shots apps-shots-narrow">
+					<Shot name="windows-title" frame="window" sizes="(min-width: 1200px) 1030px, calc(100vw - 32px)" alt="The Windows app on a title page: the poster, a button to resume episode 7 and the episode list" />
+					<div class="apps-pair">
+						<Shot name="windows-search" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Windows app’s Browse page: Adventure picked from the genre filter, sorted by popularity, and two matching titles" />
+						<Shot name="windows-stores" frame="window" sizes="(min-width: 1200px) 507px, (min-width: 900px) 48vw, calc(100vw - 32px)" alt="The Windows app’s plugin stores: the stores you joined, and one store’s plugins with Install and Update buttons" />
+					</div>
 				</div>
 			</section>
 
@@ -214,9 +223,13 @@ const across: [string, string][] = [
 					<p>
 						A GTK 4 and libadwaita app that fits in on a GNOME desktop: a sidebar that folds away in a
 						narrow window, the calendar laid out by week, and libmpv drawing into the window. New
-						episodes arrive as desktop notifications.
+						episodes arrive as desktop notifications, and the player answers the media keys and the
+						desktop’s media controls.
 					</p>
-					<p class="apps-needs">GTK 4.16 and libadwaita 1.7 or newer. Coming with the next release.</p>
+					<p class="apps-needs">
+						An AppImage for x86-64 or ARM64. It needs glibc 2.41 or newer: Ubuntu 25.04 or later,
+						including 26.04 LTS, Fedora 42 or later, or Debian 13. Ubuntu 24.04 is too old for it.
+					</p>
 				</div>
 				<div class="apps-shots">
 					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 1200px, calc(100vw - 32px)" alt="The Linux app on Continue: the shows in progress, and the one picked with a button to resume its episode" />
@@ -276,10 +289,10 @@ const across: [string, string][] = [
 					Every release on GitHub has the apps beside the terminal app, each file with a .sha256 to
 					check it against. They are not in the App Store or on Google Play, so the first install
 					takes one extra step, which the installation guide walks through. After that the apps say
-					when a new release is out: the Mac and Android apps update themselves, and iPhone and iPad
-					update from anistream’s source in SideStore or AltStore. A newer TV app installs over the
-					one before, the same way as the first. The Windows and Linux apps come with the next
-					release.
+					when a new release is out: the Mac, Android and Android TV apps update themselves, and
+					iPhone and iPad update from anistream’s source in SideStore or AltStore. On Windows a newer
+					installer goes over the one before, and on Linux AppImageUpdate or Gear Lever updates the
+					AppImage in place.
 				</p>
 				<ul class="downloads">
 					{
@@ -289,15 +302,19 @@ const across: [string, string][] = [
 									<span class="dl-platform">{a.platform}</span>
 									<span class="dl-needs">{a.needs}</span>
 								</div>
-								{a.file ? <code class="dl-file">{a.file}</code> : <span class="dl-file" />}
+								<span class="dl-files">
+									{a.files.map((f) => <code class="dl-file">{f.name}</code>)}
+								</span>
 								<p class="dl-first">
-									{a.first} {a.file && <a href={a.guide}>How&nbsp;to&nbsp;install</a>}
+									{a.first} <a href={a.guide}>How&nbsp;to&nbsp;install</a>
 								</p>
-								{a.file && (
-									<a class="btn dl-btn" href={LATEST} data-asset={a.suffix}>
-										Download <span class="dl-size" data-asset-size></span>
-									</a>
-								)}
+								<span class="dl-btns">
+									{a.files.map((f) => (
+										<a class="btn dl-btn" href={LATEST} data-asset={f.suffix}>
+											Download{f.arch && ` ${f.arch}`} <span class="dl-size" data-asset-size></span>
+										</a>
+									))}
+								</span>
 							</li>
 						))
 					}

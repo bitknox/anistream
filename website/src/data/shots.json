@@ -217,5 +217,36 @@
 		"widths": [
 			1270
 		]
+	},
+	"windows-search": {
+		"w": 1030,
+		"h": 781,
+		"widths": [
+			1030
+		]
+	},
+	"tv-search": {
+		"w": 1920,
+		"h": 1080,
+		"widths": [
+			1280,
+			1920
+		]
+	},
+	"iphone-live-playback": {
+		"w": 1074,
+		"h": 297,
+		"widths": [
+			540,
+			1074
+		]
+	},
+	"iphone-live-airing": {
+		"w": 1074,
+		"h": 255,
+		"widths": [
+			540,
+			1074
+		]
 	}
 }

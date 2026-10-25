@@ -9,7 +9,7 @@
  * the names in SHOTS below. The iPad's are landscape with the sidebar open, as the Pad boards draw
  * them, and each player plays the clip, given to the Playing scene as its media. The Windows app's
  * come from its fixtures build, the Linux app's from desktop/linux/scripts/shots.sh and the TV
- * app's from its fixtures flavour. Each becomes WebP at the widths the pages ask for, in
+ * app's from its fixtures flavour. The iPhone's Live Activities come from apple's WidgetShots. Each becomes WebP at the widths the pages ask for, in
  * public/apps, and src/data/shots.json records each one's size and widths for the Shot component.
  *
  * A directory can hold only some of the shots: those it has are made again, and the rest stay as
@@ -27,6 +27,8 @@ interface Spec {
 	top?: number;
 	/** Rows to keep, from the top, where the bottom of the window is not the app's. */
 	height?: number;
+	/** The colour around a Live Activity, trimmed away down to the activity itself. */
+	trim?: string;
 }
 
 const MAC = [1280, 2560];
@@ -66,6 +68,11 @@ const SHOTS: Record<string, Spec> = {
 	'linux-continue': { from: 'linux-continue.png', widths: [1270] },
 	'linux-title': { from: 'linux-title.png', widths: [1270] },
 	'linux-calendar': { from: 'linux-calendar.png', widths: [1270] },
+	'windows-search': { from: 'windows-search.png', widths: [1030] },
+	'tv-search': { from: 'tv-search.png', widths: TV },
+	// From apple's `swift run WidgetShots`, on the Lock Screen's dark ground.
+	'iphone-live-playback': { from: 'iphone-live-playback.png', widths: [540, 1080], trim: '#0d1020' },
+	'iphone-live-airing': { from: 'iphone-live-airing.png', widths: [540, 1080], trim: '#0d1020' },
 };
 
 const dir = process.argv[2];
@@ -92,7 +99,8 @@ for (const [name, spec] of Object.entries(SHOTS)) {
 	for (const file of readdirSync(out)) {
 		if (file.startsWith(`${name}-`) && /^\d+\.webp$/.test(file.slice(name.length + 1))) rmSync(join(out, file));
 	}
-	const meta = await sharp(source).metadata();
+	const input = spec.trim ? await sharp(source).trim({ background: spec.trim, threshold: 8 }).png().toBuffer() : source;
+	const meta = await sharp(input).metadata();
 	if (!meta.width || !meta.height) throw new Error(`app-shots: cannot read ${source}`);
 	// The Simulator's landscape shots are portrait pixels with an orientation tag.
 	const turned = (meta.orientation ?? 1) >= 5;
@@ -101,7 +109,7 @@ for (const [name, spec] of Object.entries(SHOTS)) {
 	const h = Math.min(spec.height ?? Infinity, (turned ? meta.width : meta.height) - top);
 	const widths = spec.widths.map((x) => Math.min(x, w)).filter((x, i, all) => all.indexOf(x) === i);
 	for (const width of widths) {
-		await sharp(source)
+		await sharp(input)
 			.rotate()
 			.extract({ left: 0, top, width: w, height: h })
 			.resize({ width, kernel: 'lanczos3' })
