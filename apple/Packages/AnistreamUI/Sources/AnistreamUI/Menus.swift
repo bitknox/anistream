@@ -62,6 +62,12 @@ struct TitleMoreItems: View {
         Button(cased(mac: "Hide from Continue", touch: "Hide from Continue")) { store.hideFromContinue(entry.id) }
             .disabled(entry.progress == nil)
         Divider()
+        let action = TitleAction(entry)
+        // The episode Play would play, with a party: the form asks for the server and room.
+        Button(cased(mac: "Watch Together…", touch: "Watch together…")) {
+            store.party.open(.episode(id: entry.id, episode: String(action.episode)))
+        }
+        .disabled(!action.playable || store.titles.unlisted(entry.id))
         Button(cased(mac: "Play Trailer", touch: "Play trailer")) {
             if let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
         }
