@@ -27,6 +27,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     Entry {
         secondary: media.title.secondary().map(str::to_owned),
         resume,
+        watched_in: store.and_then(|s| watched_in(s, media.id)),
         format: media.format.and_then(format_label),
         episodes: media.episodes,
         year: media.season_year,
@@ -391,6 +392,30 @@ pub fn standing(
     // the one a part-watched title is sitting in the middle of.
     let resume = resume_point(store, id, &progress.map_or(1, |p| p.next).to_string());
     (progress, resume)
+}
+
+/// The translation the viewer watches `id` in, as [`Entry::watched_in`] has it: the one they
+/// last played it in, else the one the show sets for itself, else `None`.
+///
+/// The history comes first because it is what happened: a show set to the dub and then played
+/// subbed, because the dub stopped short, is being watched subbed. Settings' own translation is
+/// left out, as it says nothing about this show.
+pub fn watched_in(
+    store: &Store,
+    id: anistream_core::ids::AnilistId,
+) -> Option<anistream_core::media::Translation> {
+    use anistream_core::settings::SettingValue;
+    use anistream_model::show::ShowSettingKey;
+    let played = store.last_translation(id).unwrap_or_else(|error| {
+        tracing::warn!(%id, %error, "could not read the translation a show was last played in");
+        None
+    });
+    played.or_else(|| {
+        crate::show_settings::own(store, id).into_iter().find_map(|(key, value)| match value {
+            SettingValue::Str(text) if key == ShowSettingKey::Translation => text.parse().ok(),
+            _ => None,
+        })
+    })
 }
 
 /// Where `episode` of `id` was left, and how far through it that is when its length is known.
@@ -1143,6 +1168,41 @@ mod tests {
         // With no store, nothing is known of the library.
         let bare = entry_with_detail(&media, None, None).detail.unwrap();
         assert_eq!(bare.relations[0].list_status, None);
+    }
+
+    #[test]
+    fn a_continue_row_is_marked_dub_for_a_show_watched_dubbed_and_not_for_a_sub() {
+        use anistream_core::media::Translation;
+        use anistream_model::present::{Casing, QueueItem};
+        let row = |store: &Store| {
+            let entry = entry_from(&media(), Some(store));
+            (entry.watched_in, QueueItem::of(&entry, Casing::Sentence).action)
+        };
+        let played = |store: &Store, translation, at| {
+            store
+                .record_event(&anistream_store::WatchEvent {
+                    translation,
+                    duration_secs: Some(1440.0),
+                    at,
+                    ..anistream_store::WatchEvent::new(media().id, "3", 606.0)
+                })
+                .unwrap();
+        };
+
+        // Nothing played and nothing set: nothing known, nothing marked.
+        let store = Store::open_in_memory().unwrap();
+        played(&store, None, 1);
+        assert_eq!(row(&store), (None, "Resume E3 · 10:06".into()));
+        // The show's own setting stands in while no play has said.
+        store.set_show_setting(media().id, "translation", Some("dub"), 2).unwrap();
+        assert_eq!(row(&store), (Some(Translation::Dub), "Resume E3 · Dub · 10:06".into()));
+        // A play says what happened, over the setting: played subbed, it is marked nothing.
+        played(&store, Some(Translation::Sub), 3);
+        assert_eq!(row(&store), (Some(Translation::Sub), "Resume E3 · 10:06".into()));
+        played(&store, Some(Translation::Dub), 4);
+        assert_eq!(row(&store), (Some(Translation::Dub), "Resume E3 · Dub · 10:06".into()));
+        // Without the history, as for a list read with no store, nothing is known.
+        assert_eq!(entry_from(&media(), None).watched_in, None);
     }
 
     #[test]

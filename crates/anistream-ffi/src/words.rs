@@ -3,6 +3,7 @@
 //! the model itself: the same rules the terminal and the Rust front ends read, so every app says
 //! a wait, a size or a queue row the same way rather than each writing its own and drifting.
 
+use anistream_core::media::Translation;
 use anistream_model::{
     catalog::{Entry, ResumePoint, Season},
     episodes::DubExtent,
@@ -71,6 +72,21 @@ pub fn dub_line(dub: Option<DubExtent>) -> Option<String> {
 #[uniffi::export]
 pub fn air_time(time: String, approximate: bool) -> String {
     present::air_time(&time, approximate)
+}
+
+/// The mark an episode line ends its episode with: "Dub" for an episode watched or out in the
+/// dub, and `None`, to mark nothing, for a sub or when it is not known. For a Continue row it is
+/// the entry's `watched_in`; `continue_queue` marks its rows with it already.
+#[uniffi::export]
+pub fn episode_mark(translation: Option<Translation>) -> Option<String> {
+    present::episode_mark(translation).map(str::to_owned)
+}
+
+/// `label`, an episode as a line names it ("Episode 10", "E10"), with its `episode_mark` after
+/// it: "Episode 10 · Dub" for a dub, `label` alone for a sub or when it is not known.
+#[uniffi::export]
+pub fn episode_line(label: String, translation: Option<Translation>) -> String {
+    present::episode_line(&label, translation)
 }
 
 /// A calendar row's Sub or Dub mark: "Dub" once the episode is out in the dub, "Sub" for a row
