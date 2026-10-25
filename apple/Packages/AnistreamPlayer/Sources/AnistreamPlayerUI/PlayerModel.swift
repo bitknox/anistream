@@ -9,6 +9,11 @@ import Foundation
 import Observation
 import QuartzCore
 import os
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 /// The app's one player, on the main actor.
 ///
@@ -64,9 +69,11 @@ public final class PlayerModel {
         send: @escaping Send,
         backend: (@MainActor () -> any PlayerBackend)? = nil,
         preview: @escaping @MainActor () -> any PlayerBackend = { SeekPreview.mpv() },
-        lowPower: @escaping @MainActor () -> Bool = { ProcessInfo.processInfo.isLowPowerModeEnabled }
+        lowPower: @escaping @MainActor () -> Bool = { ProcessInfo.processInfo.isLowPowerModeEnabled },
+        copy: @escaping @MainActor (String) -> Void = { PlayerModel.pasteboard($0) }
     ) {
         self.send = send
+        self.copy = copy
         self.makeBackend = backend
         self.preview = SeekPreview(make: preview)
         self.lowPower = lowPower
@@ -151,6 +158,23 @@ public final class PlayerModel {
     public private(set) var stillWatchingAfter = PlayerTiming.stillWatchingAfter
     /// Keep waiting was answered: no stall card until this stall ends.
     @ObservationIgnored private var stallWaived = false
+
+    // MARK: Stats for nerds
+
+    /// Stats for nerds is up: remembered while the app runs, so every playback after opens with
+    /// it, and never across launches.
+    public private(set) var statsShown = false
+    /// The panel's stats as the engine last said them while it was up.
+    public private(set) var stats: PlayerStats?
+    /// Since when the panel has had no file's figures, while it has none: it was opened, or a
+    /// file started, before the file opened.
+    public private(set) var statsWaitingSince: ContinuousClock.Instant?
+    /// When Copy stats last put the lines on the clipboard, for "Copied".
+    public private(set) var statsCopiedAt: ContinuousClock.Instant?
+    /// Puts Copy stats' lines on the clipboard: the pasteboard, or the tests' own.
+    @ObservationIgnored private let copy: @MainActor (String) -> Void
+    /// The app, the system and the device, for Copy stats.
+    @ObservationIgnored public var statsAbout: @MainActor () -> StatsAbout = { .here }
 
     // MARK: What mpv says
 
@@ -295,6 +319,11 @@ public final class PlayerModel {
         case .playbackKept:
             // The playback staged found nothing; the one before plays on.
             starting = nil
+        case .playerStats(let playback, let stats):
+            took(stats, for: playback)
+        case .clipboard(let text):
+            copy(text)
+            statsCopiedAt = .now
         default:
             break
         }
@@ -429,6 +458,12 @@ public final class PlayerModel {
         stallWaived = false
         resume = nil
         alert = nil
+        // The engine's player starts shut for a playback of its own: open it again, waiting.
+        if statsShown {
+            stats = nil
+            statsWaitingSince = .now
+            control(.stats(true))
+        }
         if rollPending {
             rollPending = false
             rolledOn += 1
@@ -481,7 +516,8 @@ public final class PlayerModel {
                     do {
                         switch item {
                         case .call(let call):
-                            if let report = try await backend.perform(call) { self?.report(report) }
+                            let quiet = if case .sample = call { true } else { false }
+                            for report in try await backend.perform(call) { self?.report(report, quiet: quiet) }
                         case .display(let display):
                             await backend.display(display)
                         case .resized:
@@ -654,6 +690,10 @@ public final class PlayerModel {
         resume = nil
         alert = nil
         stillWatching = false
+        // The panel's figures go with the player; whether it is up stays for the next one.
+        stats = nil
+        statsWaitingSince = nil
+        statsCopiedAt = nil
         resetFile()
         ticker?.cancel()
         ticker = nil
@@ -837,13 +877,14 @@ public final class PlayerModel {
     // MARK: Reports
 
     /// Tell the engine, for the playback whose file mpv has.
-    private func report(_ report: PlayerReport) {
+    /// A `quiet` one, stats for nerds' figures each second, is not logged.
+    private func report(_ report: PlayerReport, quiet: Bool = false) {
         guard let target = current ?? opened else {
             Self.note(.debug, "no playback to report \(report) for")
             return
         }
         if report == .closed { closedSaid.insert(target) }
-        Self.logReport(report, for: target)
+        if !quiet { Self.logReport(report, for: target) }
         send(.playerReport(playback: target, report: report))
     }
 
@@ -972,6 +1013,7 @@ public final class PlayerModel {
         case .shaders(let paths): paths.isEmpty ? "shaders off" : "shaders: \(paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))"
         case .audioFilter(let add, _): add ? "add an audio filter" : "remove an audio filter"
         case .restateChapters: "restate the chapters"
+        case .sample(let properties): "read \(properties.count) properties for the stats"
         case .stop: "stop"
         case .quit: "quit"
         case .close: "close"
@@ -1007,6 +1049,7 @@ public final class PlayerModel {
         clock = now
         if let note = undo, now - note.since >= PlayerTiming.undoPaused { undo = nil }
         if let alert, now - alert.since >= PlayerTiming.alertStays { self.alert = nil }
+        if let copied = statsCopiedAt, now - copied >= PlayerTiming.statsCopied { statsCopiedAt = nil }
     }
 
     // MARK: What the screens read
@@ -1143,6 +1186,82 @@ public final class PlayerModel {
     public func poke() {
         lastInput = .now
         clock = lastInput
+    }
+
+    // MARK: Stats for nerds
+
+    /// I, or the menus' Stats for nerds: the panel up or away.
+    public func toggleStats() {
+        showStats(!statsShown)
+    }
+
+    public func showStats(_ shown: Bool) {
+        guard shown != statsShown else { return }
+        statsShown = shown
+        stats = nil
+        statsCopiedAt = nil
+        statsWaitingSince = shown ? .now : nil
+        Self.note(.info, "stats for nerds \(shown ? "up" : "away")")
+        guard isPresented else { return }
+        control(.stats(shown))
+    }
+
+    /// Copy stats: the engine words the lines, and they come back as `Clipboard`.
+    public func copyStats() {
+        guard statsShown, isPresented else { return }
+        control(.copyStats(about: statsAbout()))
+    }
+
+    /// What the panel shows now, as its states have it (player-stats.md, States): nothing for
+    /// a moment before the file opens, then the rows with dashes, then the waiting line too.
+    public var statsPanel: StatsPanelState? {
+        guard statsShown, isPresented else { return nil }
+        let rows = stats?.rows ?? []
+        guard let since = statsWaitingSince else {
+            return rows.isEmpty ? nil : StatsPanelState(rows: rows, waitingLine: false)
+        }
+        let waited = clock - since
+        guard waited >= PlayerTiming.statsDashes else { return nil }
+        // The engine's dashes when it has said them, which know a file on the device has no
+        // Network row; the fixture's before it has.
+        let dashes = rows.isEmpty ? playerStatsFixture(state: .waiting).rows : rows
+        return StatsPanelState(rows: dashes, waitingLine: waited >= PlayerTiming.statsWaitingLine)
+    }
+
+    /// The engine's stats for `playback`: the rows while the panel is up, or the summary alone
+    /// as it shuts, which the Mac does not show.
+    private func took(_ stats: PlayerStats, for playback: PlaybackId) {
+        guard accepts(playback), playback >= (self.playback ?? playback) else { return }
+        guard statsShown, !stats.rows.isEmpty else { return }
+        self.stats = stats
+        if !stats.waiting {
+            statsWaitingSince = nil
+        } else if statsWaitingSince == nil {
+            // A new file, before it opens: the dashes again, after a moment.
+            statsWaitingSince = .now
+        }
+    }
+
+    #if FIXTURES
+    /// Stats for nerds as a screenshot shows them: the fixture's rows, held, with the engine
+    /// never asked; `waited` before the file opened puts up the dashes and the waiting line.
+    func stageStats(_ stats: PlayerStats, waited: Duration? = nil, copied: Bool = false) {
+        statsShown = true
+        self.stats = stats
+        statsWaitingSince = waited.map { .now - $0 }
+        statsCopiedAt = copied ? .now + .seconds(60) : nil
+        clock = .now
+    }
+    #endif
+
+    /// The system's clipboard.
+    public static func pasteboard(_ text: String) {
+        #if os(macOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #else
+        UIPasteboard.general.string = text
+        #endif
     }
 
     /// Something the viewer did: no longer nobody there.

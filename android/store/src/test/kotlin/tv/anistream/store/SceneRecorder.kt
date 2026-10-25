@@ -128,7 +128,8 @@ class SceneRecorder {
          */
         private fun kept(event: Event): Boolean = when (event) {
             is Event.ArtworkReady, is Event.ImageFailed -> false
-            is Event.PlayerOps, is Event.PlayerUi, is Event.PlaybackStaged, is Event.PlaybackEnded, Event.PlaybackKept -> false
+            is Event.PlayerOps, is Event.PlayerUi, is Event.PlaybackStaged, is Event.PlaybackEnded, Event.PlaybackKept,
+            is Event.PlayerStats, is Event.Clipboard -> false
             else -> true
         }
     }

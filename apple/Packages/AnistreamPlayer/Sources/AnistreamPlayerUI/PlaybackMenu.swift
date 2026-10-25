@@ -102,6 +102,9 @@ public struct PlaybackMenu: View {
         Button(model.fullScreen ? "Exit Full Screen" : "Enter Full Screen") { model.fullScreen.toggle() }
             .keyboardShortcut("f", modifiers: [.command, .control])
             .disabled(!playing)
+        Toggle("Stats for Nerds", isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
+            .keyboardShortcut("i", modifiers: [])
+            .disabled(!keys)
         // Picture in Picture is the Window menu's, PictureInPictureMenuItem below.
     }
 

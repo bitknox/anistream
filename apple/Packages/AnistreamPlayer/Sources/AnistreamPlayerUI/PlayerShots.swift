@@ -43,6 +43,23 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     case picture
     /// Playing, paused, with the Episodes menu open, the playing episode's sources under it.
     case episodes
+    /// Stats for nerds over the episode playing, with the controls up: the engine's rows for
+    /// the generated file, which is on the device, so no Network row.
+    case stats
+    /// The same with the controls gone: the panel stays.
+    case statsHidden = "stats-hidden"
+    /// Opened before the file: the dashes, and "Waiting for the stream".
+    case statsWaiting = "stats-waiting"
+    /// A stream playing well, from the fixture: the Network and Display rows.
+    case statsStream = "stats-stream"
+    /// A stream held waiting for data: the buffer in amber, with the buffering line.
+    case statsBuffering = "stats-buffering"
+    /// An HDR picture tone-mapped for an SDR display, from the fixture.
+    case statsHdr = "stats-hdr"
+    /// Paused, from the fixture: nothing in amber.
+    case statsPaused = "stats-paused"
+    /// Just after Copy stats: "Copied" in its place.
+    case statsCopied = "stats-copied"
 
     /// The launch argument that names one: `-AnistreamPlayerShot up-next`.
     public static let argument = "-AnistreamPlayerShot"
@@ -85,7 +102,7 @@ extension PlayerModel {
             try? await Task.sleep(for: .seconds(1.5))
             return failure != nil
         }
-        holdsCurtain = shot == .starting
+        holdsCurtain = shot == .starting || shot == .statsWaiting
         store.send(.play(id: item.id, episode: String(item.episode)))
         guard await waited(30, { self.isPresented && self.hasPicture && self.duration != nil }) else { return false }
         var there = true
@@ -146,6 +163,33 @@ extension PlayerModel {
             // The finger held over the line, slowed to half speed: never let go.
             scrub(to: 9, pace: 0.5)
             there = await waited(10) { self.preview.ready } && there
+        case .stats, .statsHidden:
+            seek(to: 31)
+            there = await waited(10) { self.position >= 31.5 }
+            showStats(true)
+            there = await waited(10) { self.statsWaitingSince == nil && self.statsPanel != nil } && there
+            if shot == .stats { pinnedControls = true } else { hideControls() }
+        case .statsWaiting:
+            stageStats(playerStatsFixture(state: .waiting), waited: .seconds(5))
+        case .statsStream, .statsBuffering, .statsHdr, .statsPaused, .statsCopied:
+            seek(to: 31)
+            there = await waited(10) { self.position >= 31.5 }
+            let fixture: StatsFixture = switch shot {
+            case .statsBuffering: .buffering
+            case .statsHdr: .hdr
+            case .statsPaused: .paused
+            default: .playing
+            }
+            if shot == .statsPaused {
+                togglePause()
+                pinnedControls = true
+            } else if shot == .statsBuffering {
+                bufferForShot()
+                hideControls()
+            } else {
+                hideControls()
+            }
+            stageStats(playerStatsFixture(state: fixture), copied: shot == .statsCopied)
         case .pictureInPicture:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }

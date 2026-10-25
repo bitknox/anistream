@@ -145,6 +145,13 @@ public struct MacPlayerView: View {
             .padding(.top, 60)
             .frame(maxHeight: .infinity, alignment: .top)
             .animation(.standard, value: model.alert)
+        // Stats for nerds stays up while the controls hide, below where the top bar's capsule
+        // is, under the menus that hang from it.
+        StatsPanel(model: model, metrics: metrics)
+            .padding(.top, 60)
+            .padding(.trailing, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .animation(model.statsPanel != nil ? .fadeIn : .fadeOut, value: model.statsPanel != nil)
         // A panel is part of the chrome: it fades in and out as the controls do (T4).
         ZStack {
             if let panel {
@@ -172,6 +179,7 @@ public struct MacPlayerView: View {
         Button("Episodes…") { toggle(.episodes) }
         Button("Picture and Sound…") { toggle(.picture) }
             .disabled(model.menus == nil)
+        Toggle("Stats for Nerds", isOn: Binding(get: { model.statsShown }, set: { model.showStats($0) }))
         Divider()
         Button("Picture in Picture") { model.togglePictureInPicture() }
             .disabled(!model.pictureInPictureAvailable)
@@ -472,6 +480,7 @@ public struct MacPlayerView: View {
             case "n": model.step(shift ? -1 : 1)
             case "f" where !command: model.fullScreen.toggle()
             case "e": toggle(.episodes)
+            case "i" where !command: model.toggleStats()
             case "[" where command: back()
             case "]": model.setSpeed(min(4, model.speed * 1.1))
             case "[": model.setSpeed(max(0.25, model.speed / 1.1))

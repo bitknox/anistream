@@ -4,6 +4,7 @@
 package tv.anistream.player
 
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -23,6 +24,7 @@ import tv.anistream.engine.model.PlayerCommand
 import tv.anistream.engine.model.PlayerEnd
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerReport
+import tv.anistream.engine.model.PlayerStats
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
 import tv.anistream.engine.model.TrackKind
@@ -96,6 +98,33 @@ class OpsTest {
         rig.mpv.answers["chapter-list"] = MpvValue.List(listOf(MpvValue.Map(mapOf("title" to MpvValue.Text("Opening"), "time" to MpvValue.Int64(5)))))
         rig.ops(1u, PlayerOp.RestateChapters)
         assertEquals(1uL to PlayerReport.Property("chapter-list", """[{"title":"Opening","time":5}]"""), rig.reports.last())
+    }
+
+    @Test
+    fun aSampleReportsWhatMpvHasAndLeavesOutTheRest() = runTest {
+        assertTrue("hwdec-current" in reportedProperties)
+        val rig = Rig(this)
+        rig.opened()
+        rig.mpv.answers["avsync"] = MpvValue.Real(0.004)
+        rig.mpv.answers["hwdec-current"] = MpvValue.Text("mediacodec")
+        rig.ops(1u, PlayerOp.Sample(listOf("avsync", "audio-params", "hwdec-current")))
+        advanceUntilIdle()
+        val sampled = rig.reports.map { it.second }.filterIsInstance<PlayerReport.Property>().map { it.name }
+        assertTrue("avsync" in sampled && "hwdec-current" in sampled)
+        assertFalse("audio-params" in sampled)
+    }
+
+    @Test
+    fun theEnginesSummaryIsTheInfoPanelsUntilTheNextFile() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        assertEquals(emptyList<String>(), rig.model.statsSummary)
+        val summary = listOf("1080p · HEVC 10-bit · hardware decoding", "Dropped frames: 0")
+        rig.model.apply(Event.PlayerStats(1u, PlayerStats(emptyList(), summary, false)))
+        assertEquals(summary, rig.model.statsSummary)
+        // A playback that is over says nothing to the panel.
+        rig.model.apply(Event.PlayerStats(0u, PlayerStats(emptyList(), listOf("720p"), false)))
+        assertEquals(summary, rig.model.statsSummary)
     }
 }
 
