@@ -34,6 +34,7 @@ use crate::{
     words,
 };
 
+mod stats;
 mod timeline;
 mod tracks;
 
@@ -78,6 +79,9 @@ pub struct PlayerView {
     held_until: Cell<Instant>,
     state: RefCell<PlayerState>,
     over_bar: Cell<bool>,
+    /// A screenshot run's: no Up next card, for a fixture clip short enough to be near its
+    /// end from the start.
+    pub hold_up_next: Cell<bool>,
     inhibit: Cell<Option<u32>>,
     countdown: RefCell<Option<glib::SourceId>>,
     menus: RefCell<Option<Menus>>,
@@ -106,6 +110,8 @@ pub struct PlayerView {
     source_action: gio::SimpleAction,
     upscaling_action: gio::SimpleAction,
     night_action: gio::SimpleAction,
+    /// Stats for nerds, up or away: the More menu's check, I and the panel's close button.
+    stats_action: gio::SimpleAction,
     speed_action: gio::SimpleAction,
     /// Sub or Dub, at the top of the Subtitles and Audio menu when the title has a dub.
     translation_action: gio::SimpleAction,
@@ -121,6 +127,7 @@ pub struct PlayerView {
     stall_tick: RefCell<Option<glib::SourceId>>,
     /// The media controls on the session bus, once served.
     mpris: RefCell<Option<Rc<Mpris>>>,
+    stats: Rc<stats::Stats>,
 }
 
 /// An automatic skip that can still be undone: where it started, when, and where it landed.
@@ -250,12 +257,17 @@ impl PlayerView {
 
         let ui = build_ui(&video_widget);
         let preview = Preview::new(&ui.timeline, false);
+        let stats = stats::Stats::new();
+        ui.stage.add_overlay(&stats.widget);
+        stats.set_narrow(ctx.size() == Size::Narrow);
         ctx.on_size({
             let roomy = ui.roomy.clone();
+            let stats = Rc::clone(&stats);
             move |size| {
                 for widget in &roomy {
                     widget.set_visible(size != Size::Narrow);
                 }
+                stats.set_narrow(size == Size::Narrow);
             }
         });
         let view = Rc::new_cyclic(|me| Self {
@@ -274,6 +286,7 @@ impl PlayerView {
             held_until: Cell::new(Instant::now()),
             state: RefCell::default(),
             over_bar: Cell::new(false),
+            hold_up_next: Cell::new(false),
             inhibit: Cell::new(None),
             countdown: RefCell::default(),
             menus: RefCell::default(),
@@ -292,6 +305,7 @@ impl PlayerView {
             source_action: radio("source", ""),
             upscaling_action: radio("upscaling", ""),
             night_action: gio::SimpleAction::new_stateful("night", None, &false.to_variant()),
+            stats_action: gio::SimpleAction::new_stateful("stats", None, &false.to_variant()),
             speed_action: gio::SimpleAction::new_stateful(
                 "speed",
                 Some(glib::VariantTy::DOUBLE),
@@ -305,6 +319,7 @@ impl PlayerView {
             stall_since: Cell::new(None),
             stall_tick: RefCell::default(),
             mpris: RefCell::default(),
+            stats,
         });
         view.wire();
         glib::spawn_future_local({
@@ -434,6 +449,12 @@ impl PlayerView {
             Event::PlayerOps { playback, ops } => {
                 if ops.iter().any(|op| matches!(op, PlayerOp::Open { .. })) {
                     self.open();
+                    // The engine's player starts with its stats off: asked again, and the
+                    // panel waits for the new file's figures.
+                    if self.stats.shown() {
+                        self.stats.restart();
+                        self.send(PlayerCommand::Stats(true));
+                    }
                 }
                 let Some(player) = &self.player else {
                     self.ctx.toast("The player could not start");
@@ -477,6 +498,11 @@ impl PlayerView {
                 if had != Some(dub.is_some()) && self.ui.tracks.is_active() {
                     self.fill_tracks();
                 }
+            }
+            Event::PlayerStats { stats, .. } => self.stats.took(stats),
+            Event::Clipboard { text } => {
+                self.ctx.window.clipboard().set_text(text);
+                self.stats.copied();
             }
             Event::PlayerBuffered { ranges, .. } => {
                 self.ui.marked.set_buffered(ranges.iter().map(|r| (r.start, r.end)).collect());
@@ -622,6 +648,7 @@ impl PlayerView {
             }
             PlayerUi::SkipCleared => self.ui.skip.set(false),
             PlayerUi::AutoSkipped { kind, undo_to } => self.auto_skipped(*kind, *undo_to),
+            PlayerUi::UpNext { .. } if self.hold_up_next.get() => {}
             PlayerUi::UpNext { next, countdown, auto, .. } => {
                 let translation = self.episode_line.borrow().2;
                 self.ui.up_next_title.set_label(&episode_line(
@@ -1094,6 +1121,43 @@ impl PlayerView {
         timeline::lift_subtitles(player.mpv(), bar, self.ui.stage.height());
     }
 
+    /// Stats for nerds up or away, for the rest of this window's playbacks.
+    fn toggle_stats(&self) {
+        let shown = !self.stats.shown();
+        self.stats.set_shown(shown);
+        self.stats_action.set_state(&shown.to_variant());
+        self.send(PlayerCommand::Stats(shown));
+    }
+
+    /// For a shot: Stats for nerds up with the engine's `fixture` held in place of its figures,
+    /// `waited` before the file opened, and "Copied" up when `copied`.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_stats(
+        &self,
+        fixture: Option<anistream_model::hosted::StatsFixture>,
+        waited: Option<f64>,
+        copied: bool,
+    ) {
+        if !self.stats.shown() {
+            self.toggle_stats();
+        }
+        if let Some(fixture) = fixture {
+            self.stats.stage(
+                anistream_engine::playback::stats::fixture(fixture),
+                waited.map(Duration::from_secs_f64),
+                copied,
+            );
+        }
+    }
+
+    /// For a shot: Stats for nerds away again.
+    #[cfg(feature = "fixtures")]
+    pub fn shot_stats_away(&self) {
+        if self.stats.shown() {
+            self.toggle_stats();
+        }
+    }
+
     /// The mini player: the window itself, small, undecorated and with three controls, or back
     /// to what it was.
     pub fn set_mini(&self, on: bool) {
@@ -1115,6 +1179,7 @@ impl PlayerView {
                 self.ui.bottom.set_visible(false);
                 // The corner cards would cover the small picture: Up Next still plays on.
                 self.ui.cards.set_visible(false);
+                self.stats.set_mini(true);
                 window.unfullscreen();
                 window.unmaximize();
                 window.set_decorated(false);
@@ -1129,6 +1194,7 @@ impl PlayerView {
                 self.mini.set(None);
                 self.ui.mini.set_visible(false);
                 self.ui.cards.set_visible(true);
+                self.stats.set_mini(false);
                 window.set_decorated(true);
                 window.set_size_request(360, 360);
                 window.set_default_size(restore.width, restore.height);
@@ -1254,6 +1320,9 @@ impl PlayerView {
         night_menu.append(Some("Night Mode"), Some("player.night"));
         self.night_action.set_state(&night.to_variant());
         menu.append_section(None, &night_menu);
+        let stats_menu = gio::Menu::new();
+        stats_menu.append(Some("Stats for Nerds"), Some("player.stats"));
+        menu.append_section(None, &stats_menu);
         self.ui.settings.set_menu_model(Some(&menu));
         widgets::mark_items(&self.ui.settings, "player.source", "amber-check");
     }
@@ -1314,6 +1383,11 @@ impl PlayerView {
             });
             group.add_action(action);
         }
+        add(
+            "copy-stats",
+            None,
+            Box::new(|v, _| v.send(PlayerCommand::CopyStats { about: stats::about() })),
+        );
         add("play-next", None, Box::new(|v, _| v.send(PlayerCommand::PlayNext)));
         add("cancel-next", None, Box::new(|v, _| v.send(PlayerCommand::CancelNext)));
         add("stall-switch", None, Box::new(|v, _| v.send(PlayerCommand::StallSwitch)));
@@ -1338,6 +1412,7 @@ impl PlayerView {
             });
             group.add_action(action);
         };
+        stateful(&self.stats_action, Box::new(|v, _| v.toggle_stats()));
         stateful(
             &self.night_action,
             Box::new(|v, _| {
@@ -1720,6 +1795,7 @@ impl PlayerView {
             Key::BackSpace => self.send(PlayerCommand::SpeedTo(1.0)),
             Key::e | Key::E => self.ui.episodes.popup(),
             Key::t | Key::T => self.ui.tracks.popup(),
+            Key::i | Key::I => self.toggle_stats(),
             Key::u | Key::U => {
                 if !self.undo_skip() {
                     return false;
