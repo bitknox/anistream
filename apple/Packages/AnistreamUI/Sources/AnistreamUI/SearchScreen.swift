@@ -377,28 +377,39 @@ struct SearchFilterRow: View {
 
     var body: some View {
         let query = store.search.query
-        HStack(spacing: 8) {
+        if compact {
+            // On a phone the row scrolls, to the screen's edge, the sort first.
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    if compact { sort(query) }
-                    genres(query)
-                    year(query)
-                    season(query)
-                    formats(query)
-                    statuses(query)
-                    filters(query)
+                    sort(query)
+                    capsules(query)
                 }
                 .padding(.vertical, 1)
             }
             .scrollIndicators(.never)
-            // On a phone the row runs to the screen's edge. On the Mac it stops short of the sort,
-            // or a narrow window draws capsules over it.
-            .scrollClipDisabled(compact)
-            if !compact {
-                Spacer(minLength: 0)
+            .scrollClipDisabled()
+        } else {
+            // On the Mac and a wide iPad the capsules go onto a second line where they do not
+            // fit beside the sort, as in a narrow window or with the filters open: none is cut
+            // or hidden under it.
+            HStack(alignment: .top, spacing: 8) {
+                FlowLayout(spacing: 8, lineSpacing: 8) {
+                    capsules(query)
+                }
                 sort(query)
             }
+            .padding(.vertical, 1)
         }
+    }
+
+    @ViewBuilder
+    private func capsules(_ query: SearchQuery) -> some View {
+        genres(query)
+        year(query)
+        season(query)
+        formats(query)
+        statuses(query)
+        filters(query)
     }
 
     private func words(_ mac: String, _ phone: String) -> String {
