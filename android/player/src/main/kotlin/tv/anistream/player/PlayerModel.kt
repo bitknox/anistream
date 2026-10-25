@@ -32,6 +32,8 @@ import tv.anistream.engine.model.PlayerEnd
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerReport
 import tv.anistream.engine.model.PlayerUi
+import tv.anistream.engine.model.TimeRange
+import tv.anistream.engine.model.TimelineMark
 import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.model.TrackKind
 
@@ -270,6 +272,17 @@ class PlayerModel(
         private set
     var chapters by mutableStateOf<List<Chapter>>(emptyList())
         private set
+
+    /**
+     * The openings and endings the engine marked, once it has said; until then the file's
+     * chapters stand in. They are the times skipping uses.
+     */
+    var timeline by mutableStateOf<List<TimelineMark>?>(null)
+        private set
+
+    /** What the player holds of the file, in seconds of it, as the engine last said. */
+    var buffered by mutableStateOf<List<TimeRange>>(emptyList())
+        private set
     var tracks by mutableStateOf<List<Track>>(emptyList())
         private set
     var audioTrack by mutableStateOf<Long?>(null)
@@ -356,6 +369,8 @@ class PlayerModel(
         when (event) {
             is Event.PlayerOps -> for (op in event.ops) apply(op, event.playback)
             is Event.PlayerUi -> apply(event.ui, event.playback)
+            is Event.PlayerTimeline -> if (accepts(event.playback)) timeline = event.marks
+            is Event.PlayerBuffered -> if (accepts(event.playback)) buffered = event.ranges
             is Event.PlaybackStaged -> {
                 closedByViewer = false
                 stagedAhead = true
@@ -416,6 +431,8 @@ class PlayerModel(
                     loads.addLast(playback)
                     sources[playback] = call
                     hasPicture = false
+                    timeline = null
+                    buffered = emptyList()
                 }
                 if (call is MpvCall.Set) settings[call.property] = call
                 if (call is MpvCall.Shaders) settings["glsl-shaders"] = call
@@ -720,6 +737,7 @@ class PlayerModel(
         stillWatching = false
         coverUrl = null
         bannerUrl = null
+        timeline = null
         resetFile()
         ticker?.cancel()
         ticker = null
@@ -736,6 +754,7 @@ class PlayerModel(
         passedDuration = false
         paused = false
         chapters = emptyList()
+        buffered = emptyList()
         tracks = emptyList()
         audioTrack = null
         subtitleTrack = null
@@ -1102,8 +1121,9 @@ class PlayerModel(
             else -> null
         }
 
-    /** The seek line's stretches, from the file's chapters. */
-    val segments: List<SeekSegment> get() = seekSegments(chapters, duration)
+    /** The seek line's stretches: the engine's marks once it has said, else the file's chapters. */
+    val segments: List<SeekSegment>
+        get() = timeline?.let { markedSegments(it, duration) } ?: seekSegments(chapters, duration)
 
     /** What the seek preview opens: the `Thumbnails` address, or the stream playing, with the options that reach it. */
     val previewSource: MpvCall.Load?

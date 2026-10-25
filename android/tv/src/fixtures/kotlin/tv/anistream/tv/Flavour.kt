@@ -7,6 +7,7 @@
 //   section   the destination to open on: search, continue, calendar, seasonal, library or settings
 //   title     a title page to open, by id
 //   query     a search to type, on Search
+//   signin    a tracker whose device-code sign-in opens, with a made-up code that expires in 15 minutes
 //   firstLaunch  true to show first launch's pages, which fixtures leave out otherwise
 
 package tv.anistream.tv
@@ -15,6 +16,12 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import java.io.File
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import tv.anistream.engine.model.DeviceCodePrompt
+import tv.anistream.engine.model.Event
+import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.FixtureScene
 import tv.anistream.store.enginePlatform
@@ -61,6 +68,24 @@ internal object Flavour {
             title = intent.getStringExtra("title")?.toUIntOrNull(),
             query = query,
             firstLaunch = intent.getBooleanExtra("firstLaunch", false),
+            signIn = intent.getStringExtra("signin"),
         )
+    }
+
+    /**
+     * The device-code prompt a `signin` extra asks for, kept up for the screen: the testing engine
+     * has no tracker to answer with one.
+     */
+    fun started(store: AppStore, intent: Intent) {
+        val tracker = intent.getStringExtra("signin") ?: return
+        val expiresAt = System.currentTimeMillis() / 1000 + 899
+        MainScope().launch {
+            while (true) {
+                if (store.accounts.deviceCode.value == null) {
+                    store.apply(Event.DeviceCode(DeviceCodePrompt(tracker, "4F2K9QX1", "https://activate.example/pin", expiresAt)))
+                }
+                delay(500)
+            }
+        }
     }
 }

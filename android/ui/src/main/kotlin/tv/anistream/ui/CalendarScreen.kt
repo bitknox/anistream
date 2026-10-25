@@ -84,6 +84,8 @@ import tv.anistream.store.CalendarModel
 import tv.anistream.store.ListState
 import tv.anistream.store.Wording
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.ffi.airTime
+import tv.anistream.engine.ffi.calendarMark
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.LibrarySegment
@@ -508,10 +510,15 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
                 Text(line, style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Text(
-            AirTime.clock(broadcast.airs),
-            style = MaterialTheme.typography.bodyMedium.tabular(),
-            color = colors.onSurfaceVariant,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                airTime(AirTime.clock(broadcast.airs), entry.airingApproximate),
+                style = MaterialTheme.typography.bodyMedium.tabular(),
+                color = colors.onSurfaceVariant,
+            )
+            calendarMark(entry)?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+            }
+        }
     }
 }

@@ -17,4 +17,7 @@ internal object Flavour {
     fun prepare(context: Context) = Unit
 
     fun start(intent: Intent): Start = Start()
+
+    /** Nothing to set up for the app. */
+    fun started(store: tv.anistream.store.AppStore, intent: Intent) = Unit
 }

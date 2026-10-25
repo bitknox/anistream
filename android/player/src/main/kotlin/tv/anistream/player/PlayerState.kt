@@ -12,6 +12,7 @@ import tv.anistream.engine.model.MenuSource
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.SkipKind
+import tv.anistream.engine.model.TimelineMark
 
 /** The rules the player's cards keep time by. Times are milliseconds unless they say seconds. */
 object PlayerTiming {
@@ -256,6 +257,24 @@ data class Track(
 /** A stretch of the seek line: openings and endings are drawn in haze. */
 data class SeekSegment(val kind: Kind, val start: Double, val end: Double) {
     enum class Kind { Plain, Opening, Ending }
+}
+
+/** The seek line's stretches from the engine's marks: openings and endings, everything else plain. */
+fun markedSegments(marks: List<TimelineMark>, duration: Double?): List<SeekSegment> {
+    if (duration == null || duration <= 0) return emptyList()
+    val segments = mutableListOf<SeekSegment>()
+    var at = 0.0
+    for (mark in marks.sortedBy { it.start }) {
+        val start = maxOf(mark.start, at)
+        val end = minOf(mark.end, duration)
+        if (end <= start) continue
+        if (start > at) segments += SeekSegment(SeekSegment.Kind.Plain, at, start)
+        val kind = if (mark.kind == SkipKind.OPENING) SeekSegment.Kind.Opening else SeekSegment.Kind.Ending
+        segments += SeekSegment(kind, start, end)
+        at = end
+    }
+    if (at < duration) segments += SeekSegment(SeekSegment.Kind.Plain, at, duration)
+    return segments
 }
 
 /** The seek line's stretches: openings and endings from the chapters, everything else plain. */

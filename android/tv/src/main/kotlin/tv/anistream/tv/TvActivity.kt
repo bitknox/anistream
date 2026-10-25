@@ -39,9 +39,11 @@ class TvActivity : ComponentActivity() {
         AirTime.twentyFourHour = DateFormat.is24HourFormat(this)
         app.start(Flavour.launch(this, intent))
         val start = Flavour.start(intent)
+        Flavour.started(app.store, intent)
         val nav = TvNavigator(start.destination).apply {
             start.query?.let { typeSearch(it) }
             start.title?.let(::openTitle)
+            start.signIn?.let(::openSignIn)
         }
         setContent {
             TvTheme {

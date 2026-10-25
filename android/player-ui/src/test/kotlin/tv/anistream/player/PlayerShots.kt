@@ -28,6 +28,8 @@ import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
+import tv.anistream.engine.model.TimeRange
+import tv.anistream.engine.model.TimelineMark
 import tv.anistream.player.ui.PlayerScreen
 import tv.anistream.store.AppStore
 import tv.anistream.testkit.FixtureArt
@@ -84,6 +86,14 @@ class PlayerShots {
         time = 1_500
         model.hideControls()
         check(model.showsBuffering) { "the shot is of a buffering player" }
+    }
+
+    /** The seek line with the engine's opening and ending marks and what is buffered ahead of the played part. */
+    @Test
+    fun phone_player_buffered() = shoot("phone-player-buffered") { model, mpv ->
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(151.0)))
+        model.apply(Event.PlayerTimeline(1u, listOf(TimelineMark(SkipKind.OPENING, 130.0, 220.0), TimelineMark(SkipKind.ENDING, 1291.0, 1381.0))))
+        model.apply(Event.PlayerBuffered(1u, listOf(TimeRange(0.0, 480.0), TimeRange(700.0, 760.0))))
     }
 
     /** The starting screen (T2): the banner art under the dim, the indicator and its line, before the first frame. */
