@@ -7,6 +7,12 @@
 #   packaging/rust-licences/generate.sh apps <out>                  the apps' engine: anistream-ffi
 #                                                                    without the desktop feature,
 #                                                                    for Android, the Mac and iOS
+#   packaging/rust-licences/generate.sh windows <out>               the Windows app's engine:
+#                                                                    anistream-ffi with the hosted
+#                                                                    player, for x64 and Arm64
+#   packaging/rust-licences/generate.sh linux <out>                 the Linux app, its own
+#                                                                    workspace, for x86_64 and
+#                                                                    aarch64
 #
 # Each crate is listed under the licence it is used under, with that licence's text as the crate
 # ships it. about.toml beside this says which licences are accepted and fills in what some crates'
@@ -22,7 +28,7 @@ version=0.9.2
 here="$(cd "$(dirname "$0")" && pwd)"
 
 usage() {
-  echo "usage: packaging/rust-licences/generate.sh terminal <out> <target>... | apps <out>" >&2
+  echo "usage: packaging/rust-licences/generate.sh terminal <out> <target>... | apps|windows|linux <out>" >&2
   exit 2
 }
 [[ $# -ge 2 ]] || usage
@@ -39,6 +45,18 @@ case "$product" in
     set -- aarch64-linux-android aarch64-apple-darwin aarch64-apple-ios
     args=(-m crates/anistream-ffi/Cargo.toml --no-default-features)
     what="the engine inside the Android, Mac, iPhone and iPad apps"
+    ;;
+  windows)
+    (( $# == 0 )) || usage
+    set -- x86_64-pc-windows-msvc aarch64-pc-windows-msvc
+    args=(-m crates/anistream-ffi/Cargo.toml --no-default-features --features mpv-host)
+    what="the engine inside the Windows app"
+    ;;
+  linux)
+    (( $# == 0 )) || usage
+    set -- x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu
+    args=(-m desktop/linux/Cargo.toml)
+    what="the Linux app"
     ;;
   *) usage ;;
 esac

@@ -102,7 +102,9 @@ packaging/linux/glibc-floor.sh target/x86_64-unknown-linux-gnu/release/anistream
 ## The apps
 
 A release carries the apps beside the terminal binaries: `anistream-<version>-android-arm64.apk`,
-`anistream-<version>-android-tv.apk`, `anistream-<version>-macos.dmg` and `anistream-<version>-ios-unsigned.ipa`, with
+`anistream-<version>-android-tv.apk`, `anistream-<version>-macos.dmg`, `anistream-<version>-ios-unsigned.ipa`,
+`anistream-<version>-windows-{x64,arm64}-setup.exe` and
+`anistream-<version>-linux-{x86_64,aarch64}.AppImage` (each AppImage with its `.zsync`), with
 `anistream-<version>-apps-third-party.zip` and `anistream-<version>-apps-sources.tar`, each with a
 `.sha256`. `.github/workflows/apps-release.yml` builds them, and `release.yml` calls it for every
 release and publishes what it built with the terminal builds. A pull request that
@@ -124,6 +126,15 @@ and so does a dispatch of apps-release.yml. CI's own jobs build the apps for eve
   pinned in the script, for the MPVKit release `apple/scripts/mpv.sh` takes, with MPVKit's own
   build scripts and patches. None of it goes into the repository.
 - `apps/release-notes.md`: those notes' install steps, for every version.
+- `windows/anistream-app.iss`: the Windows app's Inno Setup installer, per user, with the Start
+  menu entry, the uninstaller and `anistream://`. `desktop/windows/scripts/package.sh` publishes
+  the app self-contained and makes it; `windows/check-installer.ps1` installs it silently, starts
+  the app and uninstalls it again. Run that from the desktop session: over SSH, WinUI has no
+  desktop to open a window on.
+- `desktop/linux/scripts/appimage.sh` (beside the app): the AppImage, built in Debian 13 with
+  libmpv from `desktop/linux/scripts/libmpv.sh` (LGPL, from Android's pins) and Debian's GTK and
+  libadwaita, held to glibc 2.41 by `linux/glibc-floor.sh`. `appimage-check.sh` beside it runs
+  an AppImage in a fresh container of another distribution.
 - `apps/mac-update.sh`: `appcast.xml`, the feed Sparkle in the Mac app updates from, offering the
   release's `.dmg` with its EdDSA signature, and signed itself. Both signatures are checked
   against `SUPublicEDKey` in the app's Info.plist before the release goes on.

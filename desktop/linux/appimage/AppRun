@@ -1,0 +1,80 @@
+#!/bin/sh
+# The AppImage's entry point (desktop/linux/scripts/appimage.sh puts it at the AppDir's root).
+#
+# It points GTK at what the AppImage carries, registers anistream:// links with the desktop the
+# first time a copy runs from a new place, and starts the app with its arguments. Everything else
+# GTK does as it would outside the AppImage: it uses xdg-desktop-portal for the file chooser,
+# opening links and the desktop's settings whenever the portal is running.
+
+appdir="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+
+# The glibc the AppImage was built against, which it needs, said plainly on an older system
+# rather than as the loader's version errors.
+floor=@FLOOR@
+have="$(getconf GNU_LIBC_VERSION 2>/dev/null | cut -d' ' -f2)"
+if [ -n "$have" ] && [ "$(printf '%s\n%s\n' "$floor" "$have" | sort -V | head -n 1)" != "$floor" ]; then
+  echo "anistream needs glibc $floor or newer, as in Debian 13, Ubuntu 25.04 or Fedora 42, and this system has glibc $have." >&2
+  exit 1
+fi
+
+# GTK's settings schemas, the SVG loader its icons need, Adwaita's icons, the dconf backend and
+# the show titles' typeface. The system's own data directories stay on the path after the
+# AppImage's, for the desktop's mime types, sounds and the rest.
+export GSETTINGS_SCHEMA_DIR="$appdir/usr/share/glib-2.0/schemas"
+# gdk-pixbuf's cache of its loaders names each by its absolute path, which is this mount's.
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/anistream/appimage"
+if mkdir -p "$cache" 2>/dev/null &&
+  sed "s|%APPDIR%|$appdir|g" "$appdir/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache.in" >"$cache/loaders.cache.$$" &&
+  mv -f "$cache/loaders.cache.$$" "$cache/loaders.cache"; then
+  export GDK_PIXBUF_MODULE_FILE="$cache/loaders.cache"
+fi
+export GIO_EXTRA_MODULES="$appdir/usr/lib/gio/modules"
+export XDG_DATA_DIRS="$appdir/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export ANISTREAM_FONTS="$appdir/usr/share/anistream/fonts"
+
+# The carried libva looks for the system's drivers where Debian keeps them. Other distributions
+# keep them elsewhere, so every place that exists is named, unless the user named one.
+if [ -z "$LIBVA_DRIVERS_PATH" ]; then
+  drivers=""
+  for dir in /usr/lib/x86_64-linux-gnu/dri /usr/lib/aarch64-linux-gnu/dri /usr/lib64/dri \
+    /usr/lib/dri /usr/lib64/va/drivers /usr/lib/va/drivers; do
+    if [ -d "$dir" ]; then drivers="${drivers:+$drivers:}$dir"; fi
+  done
+  if [ -n "$drivers" ]; then export LIBVA_DRIVERS_PATH="$drivers"; fi
+fi
+
+# anistream:// links, which sign-ins come back by and invites arrive as, open this copy. A
+# desktop entry that is not shown in the menus names the AppImage's own path and the scheme, and
+# is written again when the AppImage has moved. A menu entry is the AppImage manager's to make,
+# if there is one.
+if [ -n "$APPIMAGE" ] && [ -f "$APPIMAGE" ]; then
+  data="${XDG_DATA_HOME:-$HOME/.local/share}"
+  entry="$data/applications/tv.anistream.desktop-appimage.desktop"
+  exec_line="Exec=\"$APPIMAGE\" %u"
+  if ! grep -qxF "$exec_line" "$entry" 2>/dev/null; then
+    mkdir -p "$data/applications" "$data/icons/hicolor/256x256/apps"
+    cp "$appdir/usr/share/icons/hicolor/256x256/apps/tv.anistream.desktop.png" \
+      "$data/icons/hicolor/256x256/apps/tv.anistream.desktop.png" 2>/dev/null
+    cat >"$entry" <<EOF
+[Desktop Entry]
+Type=Application
+Name=anistream
+Comment=Opens anistream:// links in the anistream AppImage
+$exec_line
+Icon=tv.anistream.desktop
+NoDisplay=true
+StartupWMClass=tv.anistream.desktop
+MimeType=x-scheme-handler/anistream;
+EOF
+    if command -v update-desktop-database >/dev/null 2>&1; then
+      update-desktop-database -q "$data/applications" 2>/dev/null
+    fi
+    if command -v xdg-mime >/dev/null 2>&1; then
+      xdg-mime default tv.anistream.desktop-appimage.desktop x-scheme-handler/anistream 2>/dev/null
+    elif command -v gio >/dev/null 2>&1; then
+      gio mime x-scheme-handler/anistream tv.anistream.desktop-appimage.desktop >/dev/null 2>&1
+    fi
+  fi
+fi
+
+exec "$appdir/usr/bin/anistream-desktop" "$@"
