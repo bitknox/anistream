@@ -55,6 +55,7 @@ pub struct States {
     hub: Rc<Hub>,
     activity: gtk::Label,
     failed: adw::StatusPage,
+    offline: adw::StatusPage,
     phase: Cell<Phase>,
     since: Cell<Option<Instant>>,
     timers: RefCell<Vec<glib::SourceId>>,
@@ -103,7 +104,15 @@ impl States {
             }
             Shape::Week => held.set_margin_top(8),
         }
-        widget.add_named(&held, Some("placeholders"));
+        // Clipped to the space the screen has: the placeholders never ask for more height than
+        // the window, however many rows a narrow one wraps them into.
+        let clip = gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .vscrollbar_policy(gtk::PolicyType::External)
+            .child(&held)
+            .build();
+        clip.set_can_target(false);
+        widget.add_named(&clip, Some("placeholders"));
         widget.add_named(content, Some("content"));
         widget.add_named(empty, Some("empty"));
 
@@ -137,6 +146,7 @@ impl States {
             hub: Rc::clone(hub),
             activity,
             failed,
+            offline,
             phase: Cell::new(Phase::Silent),
             since: Cell::new(None),
             timers: RefCell::default(),
@@ -172,6 +182,12 @@ impl States {
             }
         });
         states
+    }
+
+    /// What the offline state says on this screen, when it is not the usual words.
+    pub fn offline_words(&self, title: &str, line: &str) {
+        self.offline.set_title(title);
+        self.offline.set_description(Some(line));
     }
 
     /// What Try Again does: ask for the screen again.

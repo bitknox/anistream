@@ -10,7 +10,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_model::{
-    catalog::{AiringStatus, ContentFor, ContentList, Season},
+    catalog::{AiringStatus, ContentFor, ContentList, Entry, Season},
     command::Command,
     event::Event,
     search::{MediaFormat, SearchQuery, SearchSort},
@@ -18,6 +18,7 @@ use anistream_model::{
 
 use crate::{
     catalog,
+    states::{Shape, States},
     widgets::{self, PosterGrid},
     window::Ctx,
 };
@@ -92,7 +93,16 @@ struct Inner {
     bar: gtk::SearchBar,
     entry: gtk::SearchEntry,
     body: gtk::Stack,
+    /// The results' loading, failed and offline states, under the filters.
+    states: Rc<States>,
     grid: PosterGrid,
+    /// The results on screen, every page so far.
+    entries: RefCell<Vec<Entry>>,
+    /// The page to ask for as the end comes near, while there is one, and whether it is asked.
+    next_page: Cell<Option<u32>>,
+    asking_more: Cell<bool>,
+    /// Whether searching as you type waits for Return, to stay within AniList's limits.
+    paused: Cell<bool>,
     season: PosterGrid,
     settings: gtk::ListBox,
     settings_group: gtk::Box,
@@ -194,6 +204,9 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     // Results.
     let grid = PosterGrid::new(&ctx.hub);
     grid.widget.set_vexpand(false);
+    // At the margins This Season's covers have, so a cover is one width in both.
+    grid.widget.set_margin_start(18);
+    grid.widget.set_margin_end(18);
     let settings = gtk::ListBox::new();
     settings.add_css_class("boxed-list");
     settings.set_selection_mode(gtk::SelectionMode::None);
@@ -209,16 +222,12 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .build();
 
     let empty = crate::states::plain("Nothing Found", "");
-    let loading = adw::Spinner::new();
-    loading.set_size_request(32, 32);
-    loading.set_halign(gtk::Align::Center);
-    loading.set_valign(gtk::Align::Center);
+    let states = States::new(&ctx.hub, &results, Shape::Grid, &empty, "Couldn't Search");
+    states.offline_words("Search Needs a Connection", "Downloaded episodes still play.");
     let body = gtk::Stack::new();
     body.set_vexpand(true);
     body.add_named(&before, Some("before"));
-    body.add_named(&loading, Some("loading"));
-    body.add_named(&results, Some("results"));
-    body.add_named(&empty, Some("empty"));
+    body.add_named(&states.widget, Some("results"));
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 6);
     column.append(&bar);
@@ -237,7 +246,12 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         bar: bar.clone(),
         entry: entry.clone(),
         body,
+        states,
         grid,
+        entries: RefCell::default(),
+        next_page: Cell::new(None),
+        asking_more: Cell::new(false),
+        paused: Cell::new(false),
         season,
         settings,
         settings_group,
@@ -264,7 +278,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         let inner = Rc::downgrade(&inner);
         move |_| {
             if let Some(inner) = inner.upgrade() {
-                inner.search();
+                inner.search(true);
             }
         }
     });
@@ -273,7 +287,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         move |entry| {
             if let Some(inner) = inner.upgrade() {
                 inner.remember(entry.text().trim());
-                inner.search();
+                inner.search(false);
             }
         }
     });
@@ -282,11 +296,32 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
             let inner = Rc::downgrade(&inner);
             move |_| {
                 if let Some(inner) = inner.upgrade() {
-                    inner.search();
+                    inner.search(true);
                 }
             }
         });
     }
+    inner.states.on_retry({
+        let inner = Rc::downgrade(&inner);
+        move || {
+            if let Some(inner) = inner.upgrade() {
+                inner.asked.replace(None);
+                inner.search(false);
+            }
+        }
+    });
+    // The next page as the end comes within a screen.
+    results.vadjustment().connect_value_changed({
+        let inner = Rc::downgrade(&inner);
+        move |adjustment| {
+            if let Some(inner) = inner.upgrade()
+                && adjustment.upper() - adjustment.value() - adjustment.page_size()
+                    < adjustment.page_size()
+            {
+                inner.more();
+            }
+        }
+    });
     let mut tile = genres.first_child();
     while let Some(child) = tile {
         if let Some(button) = child.first_child().and_downcast::<gtk::Button>() {
@@ -295,7 +330,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
                 move |button| {
                     if let Some(inner) = inner.upgrade() {
                         inner.genre.replace(Some(button.widget_name().to_string()));
-                        inner.search();
+                        inner.search(true);
                     }
                 }
             });
@@ -351,7 +386,7 @@ impl SearchPage {
     pub fn search_for(&self, query: &str) {
         self.focus();
         self.inner.entry.set_text(query);
-        self.inner.search();
+        self.inner.search(false);
     }
 }
 
@@ -384,7 +419,9 @@ impl Inner {
         }
     }
 
-    fn search(&self) {
+    /// Search for what is typed and chosen: `live` as it changes, which the engine waits on
+    /// until the changes stop, or at once on Return.
+    fn search(&self, live: bool) {
         let query = self.query();
         if query.is_blank() {
             self.asked.replace(None);
@@ -392,12 +429,34 @@ impl Inner {
             return;
         }
         self.match_settings(&query.text);
-        if self.asked.borrow().as_ref() == Some(&query) {
+        if live && query.waits_for_words() {
+            return;
+        }
+        if self.asked.borrow().as_ref() == Some(&query) && (live || !self.paused.get()) {
             return;
         }
         self.asked.replace(Some(query.clone()));
-        self.body.set_visible_child_name("loading");
-        self.ctx.hub.send(Command::Search { query });
+        self.next_page.set(None);
+        self.asking_more.set(false);
+        self.body.set_visible_child_name("results");
+        // The results on screen stay for 600 ms, then placeholders stand in their place.
+        self.states.loading(Command::Search { query: query.clone() }.activity());
+        self.ctx.hub.send(if live && !self.paused.get() {
+            Command::SearchLive { query }
+        } else {
+            Command::Search { query }
+        });
+    }
+
+    /// The next page of the results, when there is one and it is not already asked for.
+    fn more(&self) {
+        let Some(page) = self.next_page.get() else { return };
+        let Some(query) = self.asked.borrow().clone() else { return };
+        if self.asking_more.get() || !self.states.has_answer() {
+            return;
+        }
+        self.asking_more.set(true);
+        self.ctx.hub.send(Command::SearchMore { query, page });
     }
 
     fn heard(&self, event: &Event) {
@@ -406,33 +465,73 @@ impl Inner {
                 let entries = content.entries();
                 self.season.set(&entries[..entries.len().min(12)]);
             }
+            Event::LiveSearch { paused } => {
+                self.paused.set(*paused);
+                // A change of text that was not searched: Return searches it.
+                if *paused && !self.states.has_answer() && self.asked.borrow().is_some() {
+                    self.asked.replace(None);
+                    self.empty.set_title("Press Enter to Search");
+                    self.empty.set_description(Some(
+                        "Searching as you type is paused for a moment, to stay within \
+                         AniList's limits.",
+                    ));
+                    self.states.empty();
+                }
+            }
+            Event::SearchPaging { query, has_next } => {
+                if self.asked.borrow().as_ref() == Some(query) {
+                    self.next_page.set(has_next.then_some(2));
+                }
+            }
+            Event::SearchMore { query, page, entries, has_next } => {
+                if self.asked.borrow().as_ref() != Some(query) {
+                    return;
+                }
+                self.asking_more.set(false);
+                if entries.is_empty() {
+                    // That page failed: asked for again on the next scroll.
+                    return;
+                }
+                let mut all = self.entries.borrow_mut();
+                let new: Vec<Entry> = entries
+                    .iter()
+                    .filter(|e| !all.iter().any(|a| a.id == e.id))
+                    .cloned()
+                    .collect();
+                all.extend(new);
+                self.grid.set(&all);
+                self.next_page.set(has_next.then_some(page + 1));
+            }
             Event::Content { view: ContentFor::Search { query }, content } => {
                 if self.asked.borrow().as_ref() != Some(query) {
                     return;
                 }
                 match content {
-                    ContentList::Loading => self.body.set_visible_child_name("loading"),
+                    ContentList::Loading => {
+                        self.states
+                            .loading(Command::Search { query: query.clone() }.activity());
+                    }
                     ContentList::Entries(entries) => {
+                        self.entries.replace(entries.clone());
                         self.grid.set(entries);
                         self.grid.widget.set_visible(true);
-                        self.body.set_visible_child_name("results");
+                        self.states.content();
                     }
                     ContentList::Empty | ContentList::Failed(_) => {
+                        self.entries.borrow_mut().clear();
                         self.grid.set(&[]);
                         self.grid.widget.set_visible(false);
+                        self.next_page.set(None);
                         if self.settings_group.is_visible() {
-                            self.body.set_visible_child_name("results");
+                            self.states.content();
+                        } else if let ContentList::Failed(why) = content {
+                            self.states.failed(why);
                         } else {
-                            let line = if query.is_browse() {
-                                "Nothing found with these filters".to_owned()
-                            } else {
-                                format!("Nothing found for \u{201c}{}\u{201d}", query.text)
-                            };
-                            self.empty.set_title(&line);
+                            self.empty.set_title(&query.nothing_found());
                             self.empty.set_description(Some(
                                 "Try another spelling, or fewer filters.",
                             ));
-                            self.body.set_visible_child_name("empty");
+                            self.states.empty();
                         }
                     }
                 }

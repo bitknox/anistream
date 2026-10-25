@@ -68,6 +68,10 @@ struct Page {
     dubbed_to: RefCell<Option<String>>,
     listening: RefCell<Option<u64>>,
     sized: RefCell<Size>,
+    /// The page's own heading, and the header bar that shows the title once it scrolls away.
+    heading: RefCell<Option<gtk::Label>>,
+    header: adw::HeaderBar,
+    content: gtk::Box,
 }
 
 pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
@@ -151,6 +155,8 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
 
     let header = adw::HeaderBar::new();
     header.add_css_class("flat");
+    // The heading says the title; the header bar says it only once the heading has gone.
+    header.set_show_title(false);
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
     view.add_top_bar(&widgets::offline_banner());
@@ -182,6 +188,17 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
             &String::new().to_variant(),
         ),
         dubbed_to: RefCell::default(),
+        heading: RefCell::default(),
+        header,
+        content: content.clone(),
+    });
+    scroll.vadjustment().connect_value_changed({
+        let weak = Rc::downgrade(&page);
+        move |adjustment| {
+            if let Some(page) = weak.upgrade() {
+                page.title_shown(adjustment.value());
+            }
+        }
     });
 
     let weak = Rc::downgrade(&page);
@@ -216,6 +233,19 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
 }
 
 impl Page {
+    /// The header bar's title, shown once the page's heading has scrolled under it.
+    fn title_shown(&self, scrolled: f64) {
+        let gone = self.heading.borrow().as_ref().and_then(|heading| {
+            let bottom = gtk::graphene::Point::new(0.0, heading.height() as f32);
+            heading.compute_point(&self.content, &bottom)
+        });
+        // The header bar stands over the banner: about 47 pixels.
+        let shown = gone.is_some_and(|point| scrolled > f64::from(point.y()) - 47.0);
+        if self.header.shows_title() != shown {
+            self.header.set_show_title(shown);
+        }
+    }
+
     fn heard(&self, event: &Event) {
         match event {
             Event::Detail(entry) if entry.id == self.id => {
@@ -386,6 +416,7 @@ impl Page {
         text.set_hexpand(true);
         let title = widgets::show_title(&entry.title, "page");
         text.append(&title);
+        self.heading.replace(Some(title.clone()));
         if let Some(other) = entry.secondary.as_deref().or(entry.title_native.as_deref())
             && other != entry.title
         {

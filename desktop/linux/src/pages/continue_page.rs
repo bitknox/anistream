@@ -1,4 +1,4 @@
-//! Continue: the queue down the start edge, grouped In progress and New this week, and beside it
+//! Continue: the queue down the start edge, grouped In Progress and New This Week, and beside it
 //! the selected row's preview with its one amber action. Below the wide size the inner split
 //! collapses: the queue fills the content and a row opens its title page. With nothing watched
 //! yet, Nagare and Browse Seasonal across the whole page.
@@ -51,7 +51,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         let group = row.widget_name();
         let changed = before.is_none_or(|b| b.widget_name() != group);
         if changed {
-            let text = if group == "new" { "New this week" } else { "In progress" };
+            let text = if group == "new" { "New This Week" } else { "In Progress" };
             let label = widgets::heading(text);
             label.add_css_class("queue-heading");
             row.set_header(Some(&label));
@@ -59,13 +59,16 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
             row.set_header(gtk::Widget::NONE);
         }
     });
-    let scroll = gtk::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk::PolicyType::Never)
-        .child(&list)
-        .build();
     list.set_margin_start(8);
     list.set_margin_end(8);
     list.set_margin_bottom(12);
+    // Across a medium window, the queue keeps to a readable width.
+    let clamp =
+        adw::Clamp::builder().maximum_size(720).tightening_threshold(720).child(&list).build();
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .child(&clamp)
+        .build();
 
     let browse = gtk::Button::with_label("Browse Seasonal");
     browse.add_css_class("pill");
