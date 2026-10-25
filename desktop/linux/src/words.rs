@@ -217,17 +217,12 @@ pub fn meta_line(entry: &Entry) -> String {
     parts.join(" · ")
 }
 
-/// The line under a cover in a grid: "Atelier Hotaru · 12 episodes", or the format and year
-/// when the studio is not known.
+/// The line under a cover in a grid, the same two parts on every cover: "TV · 12 episodes", the
+/// year when the count is not known. The studio is on the title page.
 pub fn cover_caption(entry: &Entry) -> String {
     let mut parts = Vec::new();
-    match &entry.studio {
-        Some(studio) => parts.push(studio.clone()),
-        None => {
-            if let Some(f) = &entry.format {
-                parts.push(format(f));
-            }
-        }
+    if let Some(f) = &entry.format {
+        parts.push(format(f));
     }
     if let Some(n) = entry.episodes.filter(|n| *n > 0) {
         parts.push(wording::plural(n as usize, "episode"));
@@ -300,6 +295,22 @@ pub fn clock(seconds: f64) -> String {
     }
 }
 
+/// A stretch of time as a screen reader says it: "53 seconds", "4 minutes 5 seconds",
+/// "1 hour 2 minutes".
+pub fn spoken_duration(seconds: f64) -> String {
+    let s = seconds.max(0.0) as u64;
+    let unit =
+        |n: u64, one: &str| if n == 1 { format!("1 {one}") } else { format!("{n} {one}s") };
+    let (h, m, sec) = (s / 3600, s / 60 % 60, s % 60);
+    match (h, m) {
+        (0, 0) => unit(sec, "second"),
+        (0, _) if sec == 0 => unit(m, "minute"),
+        (0, _) => format!("{} {}", unit(m, "minute"), unit(sec, "second")),
+        (_, 0) => unit(h, "hour"),
+        _ => format!("{} {}", unit(h, "hour"), unit(m, "minute")),
+    }
+}
+
 /// An episode's runtime in whole minutes: "24 min".
 pub fn minutes(seconds: u64) -> String {
     format!("{} min", (seconds + 30) / 60)
@@ -331,6 +342,14 @@ mod tests {
     use super::*;
     use anistream_core::ids::AnilistId;
     use anistream_model::{catalog::Aired, progress::TitleProgress};
+
+    #[test]
+    fn time_left_is_said_in_words() {
+        assert_eq!(spoken_duration(53.4), "53 seconds");
+        assert_eq!(spoken_duration(245.0), "4 minutes 5 seconds");
+        assert_eq!(spoken_duration(60.0), "1 minute");
+        assert_eq!(spoken_duration(3725.0), "1 hour 2 minutes");
+    }
 
     fn entry(id: u32) -> Entry {
         Entry::new(AnilistId::new(id), format!("Title {id}"))
@@ -414,7 +433,9 @@ mod tests {
         assert_eq!(meta_line(&e), "TV · Summer 2026 · 24 episodes · 79%");
         e.studio = Some("Atelier Hotaru".into());
         e.episodes = Some(12);
-        assert_eq!(cover_caption(&e), "Atelier Hotaru · 12 episodes");
+        assert_eq!(cover_caption(&e), "TV · 12 episodes");
+        e.episodes = None;
+        assert_eq!(cover_caption(&e), "TV · 2026");
     }
 
     #[test]

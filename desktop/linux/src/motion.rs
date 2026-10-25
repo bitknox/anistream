@@ -74,3 +74,62 @@ pub fn crossfade_in(widget: &impl IsA<gtk::Widget>) -> adw::SpringAnimation {
     animation.play();
     animation
 }
+
+/// One widget shown and hidden with the fade tokens: in over 200 ms ease-out, out over 300 ms
+/// ease-in and then hidden. A change of mind takes over from wherever the last fade had got to,
+/// so a card asked back while it fades out never blinks.
+#[derive(Default)]
+pub struct Fader {
+    running: std::cell::RefCell<Option<adw::TimedAnimation>>,
+    shown: std::cell::Cell<bool>,
+}
+
+impl Fader {
+    /// Whether `widget` is shown or on its way in.
+    pub fn shown(&self) -> bool {
+        self.shown.get()
+    }
+
+    /// Fade `widget` in or out, unless it is already showing or going that way.
+    pub fn set(&self, widget: &impl IsA<gtk::Widget>, show: bool) {
+        let widget = widget.as_ref();
+        if self.shown.get() == show
+            && (show == widget.is_visible() || self.running.borrow().is_some())
+        {
+            return;
+        }
+        self.shown.set(show);
+        if let Some(old) = self.running.take() {
+            old.pause();
+        }
+        let from = if widget.is_visible() { widget.opacity() } else { 0.0 };
+        widget.set_opacity(from);
+        widget.set_visible(true);
+        let (to, ms, easing) = if show {
+            (1.0, 200, adw::Easing::EaseOutCubic)
+        } else {
+            (0.0, 300, adw::Easing::EaseInCubic)
+        };
+        let animation = adw::TimedAnimation::new(widget, from, to, ms, opacity(widget));
+        animation.set_easing(easing);
+        let done = widget.clone();
+        animation.connect_done(move |_| {
+            if !show {
+                done.set_visible(false);
+                done.set_opacity(1.0);
+            }
+        });
+        animation.play();
+        self.running.replace(Some(animation));
+    }
+
+    /// Hide `widget` at once, with nothing left running.
+    pub fn hide_now(&self, widget: &impl IsA<gtk::Widget>) {
+        if let Some(old) = self.running.take() {
+            old.pause();
+        }
+        self.shown.set(false);
+        widget.as_ref().set_visible(false);
+        widget.as_ref().set_opacity(1.0);
+    }
+}
