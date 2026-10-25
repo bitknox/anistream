@@ -43,7 +43,7 @@ shows what is bound, overrides included.
 | `u` | Toggle watched |
 | `M` | Mark all previous watched |
 | `D` | Download a range |
-| `y` | Play in a Syncplay party |
+| `y` | Play in a watch party |
 | `r` / `R` | Refresh · resync |
 
 ### Global

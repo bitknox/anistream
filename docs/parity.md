@@ -19,6 +19,7 @@ Marks:
 - **partial**: some of it, as the note says.
 - **dev**: the platform could do it and the app does not yet. The site says "In development".
 - **n/a**: the platform has no place for it. The site shows a dash.
+- **no**: not built, and nothing planned. The site says what the app does instead.
 
 Columns: Mac, iPhone, iPad, Android (phones, tablets and foldables, which have the same features),
 Android TV, Windows, Linux, Terminal.
@@ -71,7 +72,7 @@ a row, are on no platform: the engine's calendar `Entry` (`anistream-model/src/c
 | Subtitle and audio tracks | yes | yes | yes | yes | yes | dev (8) | dev (9) | yes (10) |
 | Media keys and now playing | yes | yes | yes | yes | yes | dev (11) | dev (11) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
-| Syncplay watch parties | dev (12) | n/a | n/a | n/a | n/a | dev (12) | dev (12) | yes |
+| Watch parties | dev (12) | dev (12) | dev (12) | n/a | n/a | dev (12) | dev (12) | yes |
 | Discord presence | yes | n/a | n/a | n/a | n/a | dev (13) | dev (13) | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
@@ -96,8 +97,10 @@ a row, are on no platform: the engine's calendar `Entry` (`anistream-model/src/c
 11. Apple has `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` (`PlayerSystem.swift`);
     Android and TV a media3 `MediaSession` (`player/PlayerService.kt`). Windows has no
     SystemMediaTransportControls or taskbar thumbnail buttons; Linux has no MPRIS.
-12. Settings rows only (on, server, room), with no way to start a party. Apple's "Play in
-    Syncplay Party" stub is gone, and nothing sends `.playParty`.
+12. Settings rows only (on, server, room) on Mac, Windows and Linux, and none on iPhone and iPad,
+    with no way to start a party. Apple's "Play in Syncplay Party" stub is gone, and nothing sends
+    `.playParty`. The engine holds parties itself on Syncplay's protocol (#174); the apps' screens
+    are in development.
 13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
 
 Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
@@ -110,7 +113,7 @@ binds T for the tracks the desktop brief gives it.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | History with no account | yes | yes | yes | yes | yes | yes | yes | yes |
 | AniList | yes | yes | yes | yes | yes | yes | yes | yes |
-| MyAnimeList | yes | yes | yes | yes | dev (1) | yes | dev | yes |
+| MyAnimeList | yes | yes | yes | yes | no (1) | yes | dev | yes |
 | Kitsu | yes | yes | yes | yes | yes | yes | dev | yes |
 | Simkl, Trakt | yes | yes | yes | yes | yes | dev | dev | yes |
 | Mark episodes watched | yes | yes | yes | yes | yes | yes | yes | yes |

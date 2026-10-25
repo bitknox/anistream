@@ -38,7 +38,7 @@ const also: [string, [string, string][]][] = [
 			['Sub or dub per show', 'Each show can keep its own choice.'],
 			['Subtitle and audio tracks', 'Every app switches the file’s tracks. Mac, Windows and Linux also load a subtitle or audio file.'],
 			['Picture in Picture', 'Keep watching while you browse, or in a mini player on Windows and Linux.'],
-			['Watch parties', 'Everyone’s player in step over Syncplay, in the terminal app. On Mac, Windows and Linux they are in development.'],
+			['Watch parties', 'Everyone’s player in step, in the terminal app. On Mac, iPhone, iPad, Windows and Linux they are in development.'],
 		],
 	],
 	[
@@ -55,6 +55,7 @@ const also: [string, [string, string][]][] = [
 			['New-episode alerts', 'Off until you turn them on, per show.'],
 			['Widgets', 'Continue and Airing today on your home screen.'],
 			['Handoff, Spotlight, Shortcuts', 'Pick up a show on another Apple device.'],
+			['Live Activities', 'On iPhone, the episode playing, a show you follow in the hour before it airs, and your downloads, on the Lock Screen.'],
 		],
 	],
 	[
@@ -82,7 +83,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 			['Opening and ending marks', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'mpv’s']],
 			['Load a subtitle file', ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', 'mpv’s']],
 			['Picture in Picture', ['Y', 'Y', 'Y', 'Y', 'N', 'Mini player', 'Mini player', 'N']],
-			['Watch parties', ['D', 'N', 'N', 'N', 'N', 'D', 'D', 'Y']],
+			['Watch parties', ['D', 'D', 'D', 'N', 'N', 'D', 'D', 'Y']],
 		],
 	],
 	[
@@ -102,7 +103,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
 			['Live Activities', ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N']],
 			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
-			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Checks only', 'Checks only', 'Y']],
+			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Checks for new versions', 'Checks for new versions', 'Y']],
 		],
 	],
 ];
@@ -118,7 +119,7 @@ const MARK: Record<string, [string, string]> = {
 	<head>
 		<SiteHead
 			title="anistream features"
-			description="What anistream does: eight native clients over one engine, browsing with no account, mpv with upscaling, Play on TV, Live Activities, history synced to your trackers, and plugins from private stores. Then which app does what."
+			description="What anistream does: eight native clients over one engine, browsing with no account, mpv with upscaling, Play on TV, history synced to your trackers, and plugins from private stores. Then which app does what."
 		/>
 	</head>
 	<body class="landing apps-page features-page">
@@ -241,35 +242,7 @@ const MARK: Record<string, [string, string]> = {
 				</div>
 			</section>
 
-			<section class="wrap hl hl-flip" aria-labelledby="live-h">
-				<div class="hl-text">
-					<h2 id="live-h">On the iPhone’s Lock Screen</h2>
-					<p>The episode playing, with its pause button, a show you follow in the hour before its episode airs, and your downloads, on the Lock Screen and in the Dynamic Island.</p>
-				</div>
-				<div class="hl-media live-stage">
-					{
-						(['iphone-live-playback', 'iphone-live-airing'] as const).map((name, i) => (
-							<img
-								class="live-card"
-								src={`/apps/${name}-${shots[name].widths[0]}.webp`}
-								srcset={shots[name].widths.map((w) => `/apps/${name}-${w}.webp ${w}w`).join(', ')}
-								sizes="(min-width: 1200px) 560px, calc(100vw - 32px)"
-								width={shots[name].w}
-								height={shots[name].h}
-								loading="lazy"
-								decoding="async"
-								alt={
-									i === 0
-										? 'A Live Activity for the episode playing: the cover, the show, episode 7, 14:00 left, a pause button and an amber progress bar'
-										: 'A Live Activity for an episode about to air: the cover, the show, episode 6, the air time and a countdown'
-								}
-							/>
-						))
-					}
-				</div>
-			</section>
-
-			<section class="wrap hl" aria-labelledby="sync-h">
+			<section class="wrap hl hl-flip" aria-labelledby="sync-h">
 				<div class="hl-text">
 					<h2 id="sync-h">Your history, synced everywhere</h2>
 					<p>History lives on your device and needs no account. An outbox sends changes to your trackers in order, even after a week offline.</p>
@@ -279,7 +252,7 @@ const MARK: Record<string, [string, string]> = {
 				</div>
 			</section>
 
-			<section class="wrap hl hl-flip" aria-labelledby="plugins-h">
+			<section class="wrap hl" aria-labelledby="plugins-h">
 				<div class="hl-text">
 					<h2 id="plugins-h">Plugins and private stores</h2>
 					<p>Sources are sandboxed plugins. A friend can run a small store and invite you, and its plugin list arrives signed.</p>
@@ -369,7 +342,7 @@ const MARK: Record<string, [string, string]> = {
 						}
 					</table>
 				</div>
-				<p class="caption matrix-note">Watch parties on the Mac, Windows and Linux apps are in development, and so is Play on TV from Windows, Linux and the terminal.</p>
+				<p class="caption matrix-note">Watch parties on the Mac, iPhone, iPad, Windows and Linux apps are in development, and so is Play on TV from Windows, Linux and the terminal.</p>
 				<div class="actions sect-actions">
 					<a class="btn btn-primary" href={APPS}>Get the apps</a>
 					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>

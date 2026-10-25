@@ -1,5 +1,5 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   The features page: seven highlights, each a heading and a sentence beside a picture, then the
+   The features page: six highlights, each a heading and a sentence beside a picture, then the
    rest as short labels, then a table of which app does what. From 1100 px a highlight's text
    stands beside its picture, on alternating sides; below that the picture follows the text.
    ─────────────────────────────────────────────────────────────────────────── */
@@ -250,30 +250,6 @@
 /* The videos' credit, under the last highlight. */
 .feat-credit {
 	margin-top: 40px;
-}
-
-/* Live Activities: the two cards as the Lock Screen stacks them, each with its own corners. */
-.live-stage {
-	display: flex;
-	flex-direction: column;
-	gap: 14px;
-	max-width: 560px;
-	container-type: inline-size;
-}
-
-.live-card {
-	display: block;
-	width: 100%;
-	height: auto;
-	border-radius: 6.8cqi;
-	box-shadow: 0 0 0 1px var(--ani-rule-faint);
-}
-
-@media (min-width: 1100px) {
-	.hl-flip .live-stage {
-		justify-self: end;
-		width: 100%;
-	}
 }
 
 /* ── Also in anistream: by task, labels in four columns under a faint rule ─ */

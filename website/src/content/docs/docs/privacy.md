@@ -187,9 +187,9 @@ anyone who looks at your profile can follow the button to the show's AniList pag
 names the show, so it goes out only while the title is shown: with the title off you get only
 "Watching anime".
 
-Watch parties hand playback to Syncplay, a separate program, which connects to the server you set.
-The server and the people in the room see the name you join with and what is playing, as Syncplay
-shares it. Progress isn't recorded during a party.
+A watch party connects anistream to the Syncplay server you set. The server and the people in the
+room see the name you join with and what is playing. A party doesn't save your position in the
+episode.
 
 The Mac app's Integrations settings set these for the terminal app too, which shares its config.
 
