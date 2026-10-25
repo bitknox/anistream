@@ -809,8 +809,14 @@ fn stats_for_nerds_are_read_while_open_worded_by_the_engine_and_copied_without_a
     );
     app.property(playback, "current-tracks/video", json!({"codec": "h264"}));
     app.tick(playback, 0, 2);
+    // The engine says its summary after each figure it learns, so the first line may lack the
+    // codec the last property brings: wait for the line that has it.
     let summary = app.until("the summary", |event| match event {
-        Event::PlayerStats { stats, .. } if !stats.summary.is_empty() => Some(stats.clone()),
+        Event::PlayerStats { stats, .. }
+            if stats.summary.first().is_some_and(|line| line.contains("H.264")) =>
+        {
+            Some(stats.clone())
+        }
         _ => None,
     });
     assert!(summary.rows.is_empty(), "no rows with the panel shut");
