@@ -12,10 +12,9 @@ Linux.
 
 ## The apps
 
-The apps for Mac, iPhone, iPad, Android and Android TV are not in the App Store or on Google Play.
-Download them from the [latest release](https://github.com/bitknox/anistream/releases/latest) and
-allow them once, as below. The Windows and Linux apps come with the next release. The
-[apps page](/apps/) shows what each one looks like.
+The apps are not in the App Store, on Google Play or in the Microsoft Store. Download them from the
+[latest release](https://github.com/bitknox/anistream/releases/latest) and allow them once, as
+below. The [apps page](/apps/) shows what each one looks like.
 
 ### Mac
 
@@ -110,12 +109,41 @@ once. On the TV, go to **Settings › Remotes › Pair a phone** and scan the QR
 choose the TV in the phone's **Play on TV** list and enter the code the TV shows. Both need to be
 on the same network.
 
-### Windows and Linux
+### Windows
 
-The Windows app is written with WinUI 3 and runs on Windows 10 version 2004 or later, on x64 or
-Arm64. The Linux app is written with GTK 4 and libadwaita and needs GTK 4.16 and libadwaita 1.7 or
-newer, as in Debian 13. Both come with the next release, and this section will have their steps.
-Until then, the terminal app runs on both.
+`anistream-<version>-windows-x64-setup.exe` for most PCs, or
+`anistream-<version>-windows-arm64-setup.exe` for Windows on Arm. Both need Windows 10 version 2004
+or later.
+
+Run the installer. It installs for your account only, so it asks for no administrator password.
+It adds anistream to the Start menu and to **Settings › Apps**, where you can uninstall it, and it
+lets the app open `anistream://` links. The installer is not code-signed, so SmartScreen stops it
+the first time:
+
+1. When Windows says “Windows protected your PC”, choose **More info**.
+2. Choose **Run anyway**.
+
+A new release installs over the one before and keeps your library and settings. Uninstalling
+keeps them too.
+
+### Linux
+
+`anistream-<version>-linux-x86_64.AppImage`, or `anistream-<version>-linux-aarch64.AppImage` on
+64-bit ARM. It carries GTK 4, libadwaita and the player, so there is nothing to install first. It
+needs glibc 2.41 or newer: Debian 13, Ubuntu 25.04, Fedora 42 and later. On an older system it
+says so and stops.
+
+Make the file executable once, then open it:
+
+```sh
+chmod +x anistream-<version>-linux-x86_64.AppImage
+./anistream-<version>-linux-x86_64.AppImage
+```
+
+The first time it runs, it registers itself for `anistream://` links. If you move the file, the
+next run registers the new place. AppImageUpdate, AppImageLauncher and Gear Lever can update it in
+place from the newest release. An AppImage needs FUSE, which most desktops have. Without it, run
+the file with `--appimage-extract-and-run`.
 
 ## The terminal app
 

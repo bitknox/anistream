@@ -910,6 +910,10 @@ jobs:
           x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-msvc
       - name: The apps'
         run: packaging/rust-licences/generate.sh apps "$RUNNER_TEMP/apps.txt"
+      - name: The Windows app's
+        run: packaging/rust-licences/generate.sh windows "$RUNNER_TEMP/windows.txt"
+      - name: The Linux app's
+        run: packaging/rust-licences/generate.sh linux "$RUNNER_TEMP/linux.txt"
 
   # The one check main requires, so GitHub's auto-merge can merge a pull request once it is
   # green. It waits for every other check on the pull request's head commit, whichever workflow
