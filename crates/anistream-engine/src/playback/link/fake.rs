@@ -59,6 +59,7 @@ pub(crate) enum Call {
         filter: String,
     },
     RestateChapters,
+    Sample(Vec<String>),
     Overlay(Overlay),
     Stop,
     Quit,
@@ -146,6 +147,10 @@ impl PlayerLink for RecordingLink {
 
     async fn restate_chapters(&self) -> Result<(), LinkError> {
         self.note(Call::RestateChapters)
+    }
+
+    async fn sample(&self, properties: Vec<String>) -> Result<(), LinkError> {
+        self.note(Call::Sample(properties))
     }
 
     async fn overlay(&self, overlay: Overlay) -> Result<(), LinkError> {

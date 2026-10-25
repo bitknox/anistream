@@ -5,7 +5,7 @@ use anistream_core::ids::AnilistId;
 use crate::{
     catalog::LibrarySegment,
     episodes::EpisodeRow,
-    hosted::{PlayerChoice, PlayerReport},
+    hosted::{PlayerChoice, PlayerReport, StatsAbout},
     playback::{PlaybackId, Successor},
     protection::{FailedCheck, TorrentProtection, TorrentProxy},
     search::SearchQuery,
@@ -703,6 +703,15 @@ pub enum PlayerCommand {
     /// Open the file again where it plays now: the loopback server it is read from was bound
     /// again, after the system took it while the app was in the background.
     Reload,
+    /// Show (`true`) or hide the Stats for nerds panel. While it shows, the engine reads the
+    /// player's figures once a second and says them as `Event::PlayerStats`. The window keeps it
+    /// from one episode to the next; a new window starts with it hidden.
+    Stats(bool),
+    /// Copy stats: the engine answers with `Event::Clipboard`, the panel's rows as plain lines,
+    /// with the app's version, the system and the device from `about`.
+    CopyStats {
+        about: StatsAbout,
+    },
 }
 
 /// Where the app is, as the system has it.

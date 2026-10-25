@@ -57,7 +57,13 @@ fn opening(chapters: &[(&str, f64)]) -> Vec<PlaybackEvent> {
             { "type": "sub", "id": 1, "lang": "eng", "title": "Full" },
         ])),
         PlaybackEvent::Chapters(chapters.iter().map(|(t, s)| ((*t).to_owned(), *s)).collect()),
-        PlaybackEvent::Display { width: 1920, height: 1080, compute: true },
+        PlaybackEvent::Display {
+            width: 1920,
+            height: 1080,
+            compute: true,
+            refresh_hz: None,
+            edr_headroom: None,
+        },
     ]
 }
 
@@ -196,6 +202,7 @@ impl Rig {
             slot: self.slot.clone(),
             host: self.links.clone(),
             power: self.power.clone(),
+            offline: Default::default(),
         };
         let (tx, mut rx) = mpsc::unbounded_channel();
         let (_controls, commands) = mpsc::unbounded_channel::<PlayerCommand>();
@@ -481,7 +488,13 @@ fn chosen(
 
 /// A 1080p display, its renderer with compute shaders or without.
 fn display(compute: bool) -> PlaybackEvent {
-    PlaybackEvent::Display { width: 1920, height: 1080, compute }
+    PlaybackEvent::Display {
+        width: 1920,
+        height: 1080,
+        compute,
+        refresh_hz: None,
+        edr_headroom: None,
+    }
 }
 
 #[tokio::test]

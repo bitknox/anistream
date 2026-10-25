@@ -60,6 +60,7 @@ mod presence;
 #[cfg(test)]
 mod scripted;
 mod skips;
+mod stats;
 mod subtitles;
 mod timeline;
 mod upscaling;
@@ -152,6 +153,9 @@ pub struct Machine {
     pub slot: PlayerSlot,
     pub host: Arc<dyn Host>,
     pub power: Arc<dyn PowerSource>,
+    /// Whether the device has no network path, as its front end last said: Stats for nerds'
+    /// Network row.
+    pub offline: Arc<std::sync::atomic::AtomicBool>,
 }
 
 #[cfg(feature = "desktop")]
@@ -160,7 +164,13 @@ impl Machine {
     /// process, with `slot` for its window, links opened by `host`, and the system's word on
     /// the battery.
     pub fn desktop(mpv: anistream_player::Mpv, slot: PlayerSlot, host: Arc<dyn Host>) -> Self {
-        Self { opener: Arc::new(mpv), slot, host, power: Arc::new(super::power::SystemPower) }
+        Self {
+            opener: Arc::new(mpv),
+            slot,
+            host,
+            power: Arc::new(super::power::SystemPower),
+            offline: Arc::default(),
+        }
     }
 }
 
@@ -213,7 +223,7 @@ pub async fn play(
     tx: Outbox,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
-    let Machine { opener, slot, host, power } = machine;
+    let Machine { opener, slot, host, power, offline } = machine;
     let Some(first) = streams.first() else {
         slot.release();
         let _ = tx.send(Event::playback_ended(false, Ending::Failed));
@@ -277,6 +287,7 @@ pub async fn play(
         http: http.clone(),
         scratch: opener.scratch_dir().to_path_buf(),
         power,
+        offline,
         still: None,
         // Fetched alongside everything else rather than before it: the card is minutes away
         // and the episode should not wait on a picture.
@@ -689,6 +700,8 @@ struct Run<'a> {
     scratch: std::path::PathBuf,
     /// What says whether the machine is on battery, which the upscaling chain goes by.
     power: Arc<dyn PowerSource>,
+    /// Whether the device has no network path, for Stats for nerds.
+    offline: Arc<std::sync::atomic::AtomicBool>,
     /// How the servers of the streams tried have fared, and the attempt under way.
     servers: Servers,
 }

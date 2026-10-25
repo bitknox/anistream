@@ -240,6 +240,7 @@ impl Engine {
                     sync: parts.sync,
                     stores: parts.stores,
                     slot: Default::default(),
+                    offline: Default::default(),
                     prefetch: Default::default(),
                     artwork: Default::default(),
                     player_theme,

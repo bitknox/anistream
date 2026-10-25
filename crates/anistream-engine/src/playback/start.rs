@@ -373,6 +373,7 @@ fn machine(opener: Arc<dyn PlayerOpener>, services: &Services) -> playback::Mach
         slot: services.slot.clone(),
         host: services.host.clone(),
         power: services.power.clone(),
+        offline: services.offline.clone(),
     }
 }
 

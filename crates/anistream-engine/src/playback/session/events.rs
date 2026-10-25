@@ -24,6 +24,7 @@ use super::{
     controls::apply_command,
     presence::{Playhead, Rpc},
     skips::{offered, skip_target},
+    stats::{Playing, StatsWatch, sampled},
     subtitles::LateSubtitles,
     upscaling::read_source,
 };
@@ -123,6 +124,22 @@ impl Run<'_> {
         // Whether the file has loaded, which a track has to wait for before it can be added.
         let mut loaded = false;
         let mut waiting: Vec<anistream_core::stream::Subtitle> = Vec::new();
+        // Stats for nerds, open as the window left it.
+        let mut stats = StatsWatch::new(player.stats);
+        // What the stats are made from beside the player's figures, as it stands now.
+        macro_rules! playing {
+            () => {
+                Playing {
+                    picture: &player.picture,
+                    source: source.as_ref(),
+                    stream,
+                    streams,
+                    index,
+                    paused: tracker.is_paused(),
+                    buffering,
+                }
+            };
+        }
 
         let outcome = loop {
             // Controls and events are interleaved rather than polled in turn: a keystroke must
@@ -196,6 +213,26 @@ impl Run<'_> {
                     }
                     if changed {
                         self.apply_picture(&mut player.picture, link, source.as_ref(), streams, index, true).await;
+                    }
+                    // The TV's summary, said as it changes; the open panel says it with its rows.
+                    if !stats.is_open() {
+                        let said = self.stats(&stats, &playing!(), false);
+                        if stats.summary_changed(&said) {
+                            let _ = link.overlay(Overlay::Stats(said)).await;
+                        }
+                    }
+                    continue;
+                }
+                // The open panel: the player asked for its figures, then the rows said.
+                _ = tokio::time::sleep_until(stats.due().unwrap_or_else(tokio::time::Instant::now)),
+                    if stats.is_open() =>
+                {
+                    if stats.turn() {
+                        let _ = link.sample(sampled()).await;
+                    } else {
+                        let said = self.stats(&stats, &playing!(), true);
+                        stats.summary_changed(&said);
+                        let _ = link.overlay(Overlay::Stats(said)).await;
                     }
                     continue;
                 }
@@ -279,6 +316,22 @@ impl Run<'_> {
                             }
                             continue;
                         }
+                        Some(PlayerCommand::Stats(open)) => {
+                            player.stats = open;
+                            stats.open(open);
+                            if !open {
+                                let said = self.stats(&stats, &playing!(), false);
+                                let _ = link.overlay(Overlay::Stats(said)).await;
+                            }
+                            continue;
+                        }
+                        // Read as the panel stands, so the copy is what the viewer sees.
+                        Some(PlayerCommand::CopyStats { about }) => {
+                            let said = self.stats(&stats, &playing!(), true);
+                            let text = crate::playback::stats::copy_text(&said.rows, &about);
+                            let _ = tx.send(Event::Clipboard { text });
+                            continue;
+                        }
                         // The server this is read from was bound again: the same stream, opened
                         // again where it plays, as a switch in place would.
                         Some(PlayerCommand::Reload) => {
@@ -302,6 +355,13 @@ impl Run<'_> {
                     }
                 }
             };
+
+            // The stats take their figures from what the player says; what is read for them
+            // alone goes no further.
+            stats.observe(&event);
+            if matches!(event, PlaybackEvent::Sampled { .. }) {
+                continue;
+            }
 
             // Tracks first, and for every event: the policy reads the clock off each one.
             let track_input = match &event {
@@ -349,7 +409,7 @@ impl Run<'_> {
                     }
                     continue;
                 }
-                PlaybackEvent::Display { width, height, compute } => {
+                PlaybackEvent::Display { width, height, compute, .. } => {
                     player.picture.display = Some(shaders::Display {
                         width: *width,
                         height: *height,

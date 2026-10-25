@@ -90,7 +90,7 @@ mod tests {
         event::Event,
         hosted::{
             MenuChoice, MenuChoices, MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp,
-            PlayerReport, PlayerUi, TrackKind,
+            PlayerReport, PlayerUi, StatsAbout, StatsFixture, TrackKind,
         },
         jobs::JobId,
         notice::NoticeKind,
@@ -608,6 +608,15 @@ mod tests {
         let delay = Command::Player(PlayerCommand::SubtitleDelay { seconds: -0.4 });
         assert_eq!(crossed(delay.clone()), delay);
         crosses_intact(Event::PlayerOps { playback, ops: vec![PlayerOp::ToggleFullscreen] });
+        crosses_intact(Event::PlayerOps {
+            playback,
+            ops: vec![PlayerOp::Sample { properties: vec!["avsync".into()] }],
+        });
+        crosses_intact(Event::PlayerStats {
+            playback,
+            stats: anistream_engine::playback::stats::fixture(StatsFixture::Buffering),
+        });
+        crosses_intact(Event::Clipboard { text: "Stats for nerds".into() });
         crosses_intact(Event::PlayerUi {
             playback,
             ui: PlayerUi::Menus {
@@ -669,6 +678,14 @@ mod tests {
             PlayerCommand::Choose(PlayerChoice::Translation(Translation::Dub)),
             PlayerCommand::NightMode(true),
             PlayerCommand::Upscaling("sharp".into()),
+            PlayerCommand::Stats(true),
+            PlayerCommand::CopyStats {
+                about: StatsAbout {
+                    app_version: "2.4.0".into(),
+                    system: "macOS 26.1".into(),
+                    device: "Mac15,3".into(),
+                },
+            },
         ] {
             let command = Command::Player(command);
             assert_eq!(crossed(command.clone()), command);

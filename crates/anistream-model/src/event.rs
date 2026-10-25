@@ -8,7 +8,7 @@ use crate::{
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
     downloads::{DownloadRow, SeedRow},
     episodes::{DubExtent, EpisodeRow},
-    hosted::{PlayerOp, PlayerUi},
+    hosted::{PlayerOp, PlayerStats, PlayerUi},
     jobs::JobId,
     notice::Notice,
     notifications::{NewEpisode, UpcomingNotices},
@@ -278,6 +278,17 @@ pub enum Event {
     PlayerBuffered {
         playback: PlaybackId,
         ranges: Vec<TimeRange>,
+    },
+    /// Stats for nerds for the player of `playback`: the panel's rows once a second while it is
+    /// open, and the TV's summary lines whenever they change. An event of its own rather than a
+    /// `PlayerUi`, so an app that does not show it yet passes over it.
+    PlayerStats {
+        playback: PlaybackId,
+        stats: PlayerStats,
+    },
+    /// Text the front end puts on the clipboard: what Copy stats copies. The app says "Copied".
+    Clipboard {
+        text: String,
     },
     /// A tracker's sync state changed.
     Sync(Box<SyncState>),

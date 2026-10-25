@@ -47,6 +47,15 @@ pub enum PlaybackEvent {
         width: u32,
         height: u32,
         compute: bool,
+        /// Its refresh rate and the EDR headroom an HDR picture has above SDR white, when the
+        /// player says: for Stats for nerds.
+        refresh_hz: Option<f64>,
+        edr_headroom: Option<f64>,
+    },
+    /// A property Stats for nerds reads, raw, as the player reported or was asked for it.
+    Sampled {
+        name: String,
+        value: serde_json::Value,
     },
     /// The renderer disabled a shader hook it could not compile or run, as it names it.
     HookDisabled(String),

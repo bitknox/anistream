@@ -54,6 +54,9 @@ pub enum MpvCall {
     Shaders(Vec<String>),
     /// Read a property and report it as it stands: `chapter-list` for `RestateChapters`.
     Restate(String),
+    /// Read each property and report it as it stands, in order, skipping one mpv can't read:
+    /// Stats for nerds' figures.
+    Sample(Vec<String>),
 }
 
 impl MpvCall {
@@ -86,7 +89,11 @@ impl MpvCall {
             Self::Seek { seconds, mode } => {
                 Some(json!({"name": "seek", "target": seconds, "flags": mode.flags()}))
             }
-            Self::Command(_) | Self::Set { .. } | Self::Shaders(_) | Self::Restate(_) => None,
+            Self::Command(_)
+            | Self::Set { .. }
+            | Self::Shaders(_)
+            | Self::Restate(_)
+            | Self::Sample(_) => None,
         }
     }
 }
@@ -160,6 +167,7 @@ impl Step {
                 filter.clone(),
             ])),
             PlayerOp::RestateChapters => Self::Call(MpvCall::Restate("chapter-list".into())),
+            PlayerOp::Sample { properties } => Self::Call(MpvCall::Sample(properties.clone())),
             PlayerOp::Stop => Self::Call(MpvCall::Command(vec!["stop".into()])),
             PlayerOp::Quit => Self::Quit,
             PlayerOp::Close => Self::Close,
@@ -181,7 +189,9 @@ pub fn json_of(value: &MpvValue) -> Value {
     }
 }
 
-/// The properties the engine reads, which the player observes from the start.
+/// The properties the engine reads, which the player observes from the start. Stats for nerds
+/// reads more, which the engine asks for with `PlayerOp::Sample` while its panel is open; of
+/// those, only `hwdec-current` is observed, since the TV's summary says it with the panel shut.
 pub const REPORTED_PROPERTIES: &[&str] = &[
     "time-pos",
     "duration",
@@ -199,6 +209,7 @@ pub const REPORTED_PROPERTIES: &[&str] = &[
     "demuxer-cache-state",
     "frame-drop-count",
     "seeking",
+    "hwdec-current",
 ];
 
 /// mpv's `end-file` reason, by its number in `mpv_end_file_reason`.
@@ -282,6 +293,10 @@ mod tests {
                 MpvCall::Command(vec!["af".into(), "add".into(), "@night:dynaudnorm".into()]),
             ),
             (PlayerOp::RestateChapters, MpvCall::Restate("chapter-list".into())),
+            (
+                PlayerOp::Sample { properties: vec!["avsync".into(), "cache-speed".into()] },
+                MpvCall::Sample(vec!["avsync".into(), "cache-speed".into()]),
+            ),
             (PlayerOp::Stop, MpvCall::Command(vec!["stop".into()])),
             (
                 PlayerOp::Shaders { paths: vec!["/s/a b.glsl".into(), "/s/c.glsl".into()] },
