@@ -13,6 +13,7 @@ use anistream_core::settings::SettingValue;
 use anistream_model::{
     command::Command,
     event::Event,
+    protection::ProtectionView,
     settings::{SettingChange, SettingKey, SettingRow},
     updates::UpdateStatus,
 };
@@ -40,16 +41,19 @@ struct Pane {
     groups: &'static [(&'static str, &'static [SettingKey])],
 }
 
-const PANES: [Pane; 8] = [
+const PANES: [Pane; 9] = [
+    Pane {
+        name: "general",
+        title: "General",
+        icon: "preferences-system-symbolic",
+        groups: &[("Titles", &[K::Titles])],
+    },
     Pane {
         name: "playback",
         title: "Playback",
         icon: "media-playback-start-symbolic",
         groups: &[
-            (
-                "Watching",
-                &[K::Translation, K::Quality, K::Subtitles, K::Titles, K::CommitThreshold],
-            ),
+            ("Watching", &[K::Translation, K::Quality, K::Subtitles, K::CommitThreshold]),
             (
                 "Player",
                 &[
@@ -121,6 +125,38 @@ pub fn pane_of(key: SettingKey) -> Option<&'static str> {
     PANES.iter().find(|p| p.groups.iter().any(|(_, keys)| keys.contains(&key))).map(|p| p.name)
 }
 
+/// The rows that only mean something while `switch` is on.
+fn follows(switch: SettingKey) -> Option<&'static [SettingKey]> {
+    match switch {
+        K::Syncplay => Some(&[K::SyncplayServer, K::SyncplayRoom]),
+        K::Presence => Some(&[K::PresenceTitle]),
+        _ => None,
+    }
+}
+
+/// The subtitle languages listed by name, as the Mac lists them.
+const SUBTITLE_LANGUAGES: [&str; 12] =
+    ["en", "ja", "es", "pt", "fr", "de", "it", "ru", "ar", "id", "ko", "zh"];
+
+/// The codes the subtitle row offers: the common ones, and `current` after them when it names
+/// none of them ("eng" is English, "pol" another).
+fn subtitle_codes(current: &str) -> Vec<String> {
+    let mut codes: Vec<String> = SUBTITLE_LANGUAGES.iter().map(|c| (*c).to_owned()).collect();
+    let name = crate::words::language(current);
+    if !current.trim().is_empty()
+        && !SUBTITLE_LANGUAGES.iter().any(|c| crate::words::language(c) == name)
+    {
+        codes.push(current.trim().to_owned());
+    }
+    codes
+}
+
+/// Where `current` stands among `codes`, by the language they name.
+fn subtitle_at(codes: &[String], current: &str) -> u32 {
+    let name = crate::words::language(current.trim());
+    codes.iter().position(|c| crate::words::language(c) == name).unwrap_or(0) as u32
+}
+
 pub fn pane_title(name: &str) -> &'static str {
     PANES.iter().find(|p| p.name == name).map_or("Settings", |p| p.title)
 }
@@ -180,7 +216,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
         .build();
     let sidebar = widgets::page("Settings", &header, &scroll);
 
-    let content = adw::NavigationPage::builder().title("Playback").tag("pane").build();
+    let content = adw::NavigationPage::builder().title("General").tag("pane").build();
     let split = adw::NavigationSplitView::builder()
         .sidebar(&sidebar)
         .content(&content)
@@ -196,10 +232,10 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
         content,
         rows: RefCell::default(),
         quiet: Cell::new(false),
-        pane: RefCell::new("playback"),
+        pane: RefCell::new("general"),
         built: RefCell::default(),
         aside: RefCell::default(),
-        topic: Cell::new(Topic::Pane("playback")),
+        topic: Cell::new(Topic::Pane("general")),
         openers: RefCell::default(),
         guard: RefCell::default(),
         update: RefCell::default(),
@@ -242,8 +278,8 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
             }
         }
     });
-    inner.show("playback");
-    inner.select_row("playback");
+    inner.show("general");
+    inner.select_row("general");
 
     let page = adw::NavigationPage::builder().title("Settings").child(&split).build();
     SettingsPage { page, inner }
@@ -371,10 +407,32 @@ impl Inner {
                 });
             }
             let mut any = false;
+            let mut added = Vec::new();
             for key in *keys {
                 let Some(row) = known.setting(*key) else { continue };
-                group.add(&self.row(&row));
+                let widget = self.row(&row);
+                group.add(&widget);
+                added.push((*key, widget));
                 any = true;
+            }
+            // A row that only means something while its switch is on follows that switch.
+            if let Some((parent, _)) = added.first()
+                && let Some(children) = follows(*parent)
+            {
+                let children: Vec<gtk::Widget> = added
+                    .iter()
+                    .filter(|(key, _)| children.contains(key))
+                    .map(|(_, widget)| widget.clone())
+                    .collect();
+                let on = known.setting(*parent).is_some_and(|r| catalog::is_on(&r));
+                for child in &children {
+                    child.set_sensitive(on);
+                }
+                self.keep(*parent, move |row| {
+                    for child in &children {
+                        child.set_sensitive(catalog::is_on(row));
+                    }
+                });
             }
             if *title == "Discord"
                 && known.settings.as_ref().is_some_and(|v| !v.presence_available)
@@ -466,7 +524,12 @@ impl Inner {
     /// The row for one setting, by the kind of value it takes.
     fn row_for(self: &Rc<Self>, row: &SettingRow) -> gtk::Widget {
         let key = row.key;
-        let title = catalog::shown(key.label());
+        // In General, under Titles, the row says which language.
+        let title = if key == K::Titles {
+            "Title language".to_owned()
+        } else {
+            catalog::shown(key.label())
+        };
         let overridden = self
             .ctx
             .hub
@@ -558,6 +621,9 @@ impl Inner {
             if key == K::DownloadDir {
                 return self.folder_row(&title, text);
             }
+            if key == K::Subtitles {
+                return self.subtitles_row(&title, text);
+            }
             let line = adw::EntryRow::builder()
                 .title(&title)
                 .text(text)
@@ -610,6 +676,45 @@ impl Inner {
                 move |row| value.set_label(&catalog::shown(&row.value))
             });
         }
+        line.upcast()
+    }
+
+    /// The subtitle language: the common ones by name, and one typed in the file beside them.
+    fn subtitles_row(self: &Rc<Self>, title: &str, code: &str) -> gtk::Widget {
+        let codes = Rc::new(RefCell::new(subtitle_codes(code)));
+        let names = gtk::StringList::new(&[]);
+        for code in codes.borrow().iter() {
+            names.append(&crate::words::language(code));
+        }
+        let line = adw::ComboRow::builder().title(title).model(&names).build();
+        line.set_selected(subtitle_at(&codes.borrow(), code));
+        line.connect_selected_notify({
+            let (inner, codes) = (Rc::downgrade(self), Rc::clone(&codes));
+            move |line| {
+                let Some(inner) = inner.upgrade() else { return };
+                if let Some(code) = codes.borrow().get(line.selected() as usize) {
+                    inner.set(K::Subtitles, SettingValue::Str(code.clone()));
+                }
+            }
+        });
+        self.keep(K::Subtitles, {
+            let line = line.clone();
+            move |row| {
+                let Some(code) = catalog::typed(row) else { return };
+                let wanted = subtitle_codes(code);
+                if *codes.borrow() != wanted {
+                    let shown: Vec<String> =
+                        wanted.iter().map(|c| crate::words::language(c)).collect();
+                    let shown: Vec<&str> = shown.iter().map(String::as_str).collect();
+                    names.splice(0, names.n_items(), &shown);
+                    codes.replace(wanted);
+                }
+                let at = subtitle_at(&codes.borrow(), code);
+                if line.selected() != at {
+                    line.set_selected(at);
+                }
+            }
+        });
         line.upcast()
     }
 
@@ -809,13 +914,16 @@ impl Inner {
     fn torrents_group(self: &Rc<Self>, known: &Known) -> Option<adw::PreferencesGroup> {
         let row = known.setting(K::Torrents)?;
         let on = catalog::is_on(&row);
-        let group = adw::PreferencesGroup::builder()
-            .title("Torrents")
-            .description(if on { torrents::ON_NOTE } else { torrents::OFF_NOTE })
-            .build();
-        group.add(&self.row(&row));
         let protection =
             known.settings.as_ref().map(|v| (*v.torrent).clone()).unwrap_or_default();
+        let note = |on: bool, view: &ProtectionView| {
+            if on { torrents::on_note(view) } else { torrents::OFF_NOTE.to_owned() }
+        };
+        let group = adw::PreferencesGroup::builder()
+            .title("Torrents")
+            .description(note(on, &protection))
+            .build();
+        group.add(&self.row(&row));
         let index = known.settings.as_ref().and_then(|v| v.sources.index.clone());
         let mut while_on: Vec<gtk::Widget> = Vec::new();
 
@@ -879,10 +987,27 @@ impl Inner {
         while_on.push(protect.clone().upcast());
 
         // The last check: where traffic left through and when, and how it went.
+        // A failed one: the glyph in vermilion, the word in haze, and Try Again.
         let check = adw::ActionRow::builder().title("Last check").build();
-        let verdict = gtk::Label::new(None);
+        let glyph = gtk::Label::new(Some("\u{25CF}"));
+        glyph.add_css_class("error");
+        glyph.set_valign(gtk::Align::Center);
+        glyph.set_accessible_role(gtk::AccessibleRole::Presentation);
+        check.add_suffix(&glyph);
+        let verdict = widgets::haze("", "");
         verdict.set_valign(gtk::Align::Center);
         check.add_suffix(&verdict);
+        let again = gtk::Button::with_label("Try Again");
+        again.set_valign(gtk::Align::Center);
+        again.connect_clicked({
+            let hub = Rc::downgrade(&self.ctx.hub);
+            move |_| {
+                if let Some(hub) = hub.upgrade() {
+                    hub.send(Command::CheckConnection);
+                }
+            }
+        });
+        check.add_suffix(&again);
         let shown: Rc<dyn Fn()> = Rc::new({
             let (hub, check, verdict) =
                 (Rc::downgrade(&self.ctx.hub), check.clone(), verdict.clone());
@@ -894,11 +1019,8 @@ impl Inner {
                 let (note, word, failed) = torrents::guard_words(guard.map(|(g, _)| g), ago);
                 check.set_subtitle(&note);
                 verdict.set_label(word);
-                if failed {
-                    verdict.add_css_class("error")
-                } else {
-                    verdict.remove_css_class("error")
-                }
+                glyph.set_visible(failed);
+                again.set_visible(failed);
             }
         });
         shown();
@@ -960,17 +1082,13 @@ impl Inner {
             let (group, inner) = (group.clone(), Rc::downgrade(self));
             move |row| {
                 let on = catalog::is_on(row);
-                group.set_description(Some(if on {
-                    torrents::ON_NOTE
-                } else {
-                    torrents::OFF_NOTE
-                }));
                 for widget in &while_on {
                     widget.set_visible(on);
                 }
                 let Some(inner) = inner.upgrade() else { return };
                 let known = inner.ctx.hub.known.borrow();
                 let Some(view) = known.settings.as_ref() else { return };
+                group.set_description(Some(&note(on, &view.torrent)));
                 protect.set_selected(at(view.torrent.protection));
                 failed.set_selected(at_check(view.torrent.on_failure));
                 if !entry.has_focus() {
@@ -1074,4 +1192,31 @@ pub fn about(ctx: &Ctx) {
     );
     dialog.add_legal_section("libmpv", None, gtk::License::Lgpl21, None);
     dialog.present(Some(&ctx.window));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_subtitle_row_names_a_language_by_either_code_and_keeps_an_uncommon_one() {
+        let codes = subtitle_codes("eng");
+        assert_eq!(codes.len(), SUBTITLE_LANGUAGES.len());
+        assert_eq!(subtitle_at(&codes, "eng"), 0);
+        assert_eq!(subtitle_at(&codes, "spa"), 2);
+        let codes = subtitle_codes("pol");
+        assert_eq!(codes.last().map(String::as_str), Some("pol"));
+        assert_eq!(subtitle_at(&codes, "pol") as usize, codes.len() - 1);
+    }
+
+    #[test]
+    fn title_language_sits_in_general_and_the_rows_that_follow_a_switch_share_its_pane() {
+        assert_eq!(pane_of(K::Titles), Some("general"));
+        assert_eq!(PANES[0].name, "general");
+        for switch in [K::Syncplay, K::Presence] {
+            for child in follows(switch).unwrap_or_default() {
+                assert_eq!(pane_of(*child), pane_of(switch));
+            }
+        }
+    }
 }

@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 33] = [
+pub const ALL: [&str; 34] = [
     "home",
     "welcome",
     "offline",
@@ -37,6 +37,7 @@ pub const ALL: [&str; 33] = [
     "store",
     "join",
     "settings",
+    "settings-general",
     "settings-upscaling",
     "settings-accounts",
     "accounts-kitsu",
@@ -192,6 +193,10 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         }
         "settings" => {
             shell.settings_pane("playback");
+            1.5
+        }
+        "settings-general" => {
+            shell.settings_pane("general");
             1.5
         }
         "settings-upscaling" => {
