@@ -19,7 +19,7 @@ const TITLE: u32 = 900_001;
 const PLAYING: (u32, &str) = (900_002, "4");
 
 /// Every shot by name, in the order a run takes them.
-pub const ALL: [&str; 56] = [
+pub const ALL: [&str; 60] = [
     "home",
     "welcome",
     "offline",
@@ -65,6 +65,10 @@ pub const ALL: [&str; 56] = [
     "torrents-setup",
     "torrents-none",
     "torrents-on",
+    "torrents-edit-proxy",
+    "torrents-checking",
+    "torrents-check-failed",
+    "torrents-saved",
     "settings-updates",
     "update-ready",
     "update-saved",
@@ -392,30 +396,44 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             1.5
         }
         "torrents-on" => {
-            use anistream_core::settings::SettingValue;
-            use anistream_model::protection::{FailedCheck, TorrentProtection};
-            shell.ctx.hub.send(Command::SetSetting {
-                key: anistream_model::settings::SettingKey::TorrentIndex,
-                value: SettingValue::Str("https://index.example.test/rss?q={query}".into()),
-            });
-            // A proxy nothing listens on: the check fails on this machine, and never looks up
-            // where the run's own traffic leaves from.
-            shell.ctx.hub.send(Command::SetTorrentProtection {
-                mode: TorrentProtection::Proxy,
-                proxy: Some(anistream_model::protection::TorrentProxy {
-                    host: "127.0.0.1".into(),
-                    port: 9,
-                    user: None,
-                    password: None,
-                }),
-                on_failure: FailedCheck::Pause,
-                acknowledged: false,
-            });
-            shell.ctx.hub.send(Command::SetSetting {
-                key: anistream_model::settings::SettingKey::Torrents,
-                value: SettingValue::Bool(true),
-            });
+            by_proxy(shell);
             shell.settings_pane("sources");
+            3.0
+        }
+        #[cfg(feature = "fixtures")]
+        "torrents-edit-proxy" => {
+            by_proxy(shell);
+            shell.settings_pane("sources");
+            once_proxy_saved(shell, |ctx| {
+                crate::pages::torrents::edit_proxy(ctx);
+            });
+            3.0
+        }
+        #[cfg(feature = "fixtures")]
+        "torrents-checking" | "torrents-check-failed" | "torrents-saved" => {
+            use anistream_model::sources::GuardView;
+            by_proxy(shell);
+            shell.settings_pane("sources");
+            // Answered here, never through the proxy typed in.
+            shell.ctx.hub.check_answer.replace(Some(match shot {
+                "torrents-checking" => None,
+                "torrents-check-failed" => Some(GuardView::Leaking),
+                _ => Some(GuardView::Protected { exit: "proxy.example".into() }),
+            }));
+            once_proxy_saved(shell, |ctx| {
+                let dialog = crate::pages::torrents::edit_proxy(ctx);
+                let child = dialog.upcast_ref::<gtk::Widget>();
+                for (title, text) in
+                    [("Host", "proxy.example"), ("Port", "1080"), ("User name", "viewer")]
+                {
+                    if let Some(row) = entry_titled(child, title) {
+                        row.set_text(text);
+                    }
+                }
+                if let Some(send) = default_button(&dialog) {
+                    send.emit_clicked();
+                }
+            });
             3.0
         }
         "settings-updates" => {
@@ -579,10 +597,22 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
             close_dialogs(&shell.ctx.window);
             close_dialogs(&shell.ctx.window);
         }
-        "torrents-on" => shell.ctx.hub.send(Command::SetSetting {
-            key: anistream_model::settings::SettingKey::Torrents,
-            value: anistream_core::settings::SettingValue::Bool(false),
-        }),
+        "torrents-on"
+        | "torrents-edit-proxy"
+        | "torrents-checking"
+        | "torrents-check-failed"
+        | "torrents-saved" => {
+            close_dialogs(&shell.ctx.window);
+            #[cfg(feature = "fixtures")]
+            {
+                shell.ctx.hub.check_answer.replace(None);
+                crate::pages::torrents::forget_checks();
+            }
+            shell.ctx.hub.send(Command::SetSetting {
+                key: anistream_model::settings::SettingKey::Torrents,
+                value: anistream_core::settings::SettingValue::Bool(false),
+            });
+        }
         "accounts-code" => {
             crate::pages::accounts::device_code(&shell.ctx, None);
             shell.ctx.hub.known.borrow_mut().signing.remove("simkl");
@@ -814,6 +844,71 @@ fn button_labelled(widget: &gtk::Widget, label: &str) -> Option<gtk::Button> {
         child = next.next_sibling();
     }
     None
+}
+
+/// The first entry row under `widget` titled `title`, depth first.
+#[cfg(feature = "fixtures")]
+fn entry_titled(widget: &gtk::Widget, title: &str) -> Option<adw::EntryRow> {
+    if let Some(row) = widget.downcast_ref::<adw::EntryRow>()
+        && row.title() == title
+    {
+        return Some(row.clone());
+    }
+    let mut child = widget.first_child();
+    while let Some(next) = child {
+        if let Some(found) = entry_titled(&next, title) {
+            return Some(found);
+        }
+        child = next.next_sibling();
+    }
+    None
+}
+
+/// Run `then` once the proxy `by_proxy` sets has reached the app, so a form opens filled in.
+#[cfg(feature = "fixtures")]
+fn once_proxy_saved(shell: &Rc<Shell>, then: impl FnOnce(&Rc<crate::window::Ctx>) + 'static) {
+    let ctx = Rc::clone(&shell.ctx);
+    let mut then = Some(then);
+    let mut tries = 0;
+    glib::timeout_add_local(Duration::from_millis(100), move || {
+        tries += 1;
+        let saved = crate::pages::torrents::current(&ctx)
+            .proxy
+            .is_some_and(|proxy| proxy.host == "127.0.0.1");
+        if !saved && tries < 40 {
+            return glib::ControlFlow::Continue;
+        }
+        if let Some(then) = then.take() {
+            then(&ctx);
+        }
+        glib::ControlFlow::Break
+    });
+}
+
+/// Torrents on through a proxy nothing listens on: its check fails on this machine, and never
+/// looks up where the run's own traffic leaves from.
+fn by_proxy(shell: &Rc<Shell>) {
+    use anistream_core::settings::SettingValue;
+    use anistream_model::protection::{FailedCheck, TorrentProtection, TorrentProxy};
+    shell.ctx.hub.send(Command::SetSetting {
+        key: anistream_model::settings::SettingKey::TorrentIndex,
+        value: SettingValue::Str("https://index.example.test/rss?q={query}".into()),
+    });
+    shell.ctx.hub.send(Command::SetTorrentProtection {
+        mode: TorrentProtection::Proxy,
+        proxy: Some(TorrentProxy {
+            host: "127.0.0.1".into(),
+            port: 9,
+            user: None,
+            password: None,
+        }),
+        on_failure: FailedCheck::Pause,
+        acknowledged: false,
+    });
+    shell.ctx.hub.send(Command::SetSetting {
+        key: anistream_model::settings::SettingKey::Torrents,
+        value: SettingValue::Bool(true),
+    });
 }
 
 /// The first widget of type `T` under `widget`, depth first.
