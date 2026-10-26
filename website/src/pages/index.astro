@@ -1,6 +1,7 @@
 ---
 import '../styles/theme.css';
 import '../styles/landing.css';
+import DownloadSuggest from '../components/DownloadSuggest.astro';
 import FeatureVideo from '../components/FeatureVideo.astro';
 import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
@@ -8,97 +9,26 @@ import SiteHead from '../components/site/SiteHead.astro';
 import SiteNav from '../components/site/SiteNav.astro';
 import TerminalDemo from '../components/TerminalDemo.astro';
 import UpscaleCompare from '../components/UpscaleCompare.astro';
-import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST, LEGAL, TOOLKITS } from '../data/site';
-
-const features: [string, [string, string][]][] = [
-	[
-		'Browse',
-		[
-			['Browse without an account', 'Search, seasonal charts and an airing calendar laid out by day, from AniList’s public API, with no account and no config.'],
-			['Titles the way you read them', 'Each title is named the way your AniList account names it, or in English or romaji if you pick one, in every app.'],
-		],
-	],
-	[
-		'Watch',
-		[
-			['mpv does the playing', 'The apps build mpv into their own player, and the terminal app runs it with anistream’s controls inside. Both have a skip button, Up Next and resume to the second.'],
-			['Upscaling built in', 'ArtCNN for a natural look or Anime4K for a sharp one, chosen per file for the source, the display and the battery.'],
-			['Ranked source picks', 'Automatic selection is ranked and gives its reason in one line. You can list every candidate, and the release you choose plays with no failover behind it.'],
-			['Downloads with history and resume', 'Download an episode to watch later, with the same history and resume as a stream.'],
-			['Play on TV', 'Send an episode from your phone or Mac to the Android TV app, and use the phone as its remote.'],
-		],
-	],
-	[
-		'Track',
-		[
-			['History stays on your device', 'Watch history is a SQLite database on your device and works with no account. Trackers receive a copy of it, and a pull from one only moves your progress forward.'],
-			['Sync that works offline', 'AniList, MyAnimeList, Kitsu, Simkl and Trakt through a durable outbox. Watch offline for a week and it pushes in order when you return.'],
-		],
-	],
-	[
-		'Extend',
-		[
-			['Sources as plugins', 'Sandboxed WebAssembly components in Rust, JavaScript or any language that builds for WASI 0.2. The host lends fetch, and only to the hosts a plugin declares.'],
-			['Plugin stores by invite', 'Run a small private plugin store and invite the people you choose. Each device gets its own token, and every plugin list is signed with the store’s key.'],
-		],
-	],
-];
+import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST, LEGAL } from '../data/site';
 
 const terminalRows: [string, string][] = [
-	['Real images in the terminal', 'Covers render over the Kitty, Sixel and iTerm2 protocols and are decoded off the event loop, so scrolling does not wait on them. Elsewhere they fall back to halfblocks.'],
-	['Vim keys you can rebind', 'hjkl everywhere, with the arrow keys working too. The help overlay is built from your resolved keymap, so it matches what you set.'],
-	['Watch parties', 'Press y and the episode plays in a party room instead, with everyone’s player in step. A party leaves your saved position alone.'],
-	['A command line for scripts', '--search, --stats and --random take --json for scripts and jq, and --continue resumes the episode you left half watched.'],
-];
-
-const bandItems = [
-	'Browse, watch, track, sync, extend',
-	'Native on Mac, iPhone, iPad, Android, Android TV, Windows and Linux',
-	'Eight clients over one Rust engine',
-	'The terminal on macOS, Linux and Windows',
-	'Local history in SQLite',
-	'Sandboxed WebAssembly plugins',
-	'Plugin stores by invite',
-	'ArtCNN and Anime4K upscaling',
-	'AniList, MyAnimeList, Kitsu, Simkl and Trakt',
-	'No hosted content',
-	'Open source under the MIT licence',
+	['Vim keys', 'hjkl or the arrow keys, and you can rebind them.'],
+	['Watch parties', 'Press y to watch an episode with friends. Everyone’s player stays in sync.'],
+	['Command line', '--search, --stats and --random print JSON with --json, and --continue resumes the episode you left half watched.'],
 ];
 
 const sources: [string, string][] = [
 	['AniList', 'Public data for browsing, search, the calendar and title pages, with a pointer to where each title is licensed.'],
-	['Plugins', 'For APIs you have the right to use, self-hosted servers and your own media. anistream never circumvents DRM, so a licensed stream opens in its own service.'],
+	['Plugins', 'For APIs you have the right to use, servers you host and media you own. anistream never circumvents DRM, so a licensed stream opens in the service that carries it.'],
 	['Plugin stores', 'Run by someone you know, for the people they invite. anistream lists none of them.'],
 ];
 
-const appFiles: Record<string, [string, string]> = {
-	mac: ['.dmg', 'Allow it once under Privacy & Security'],
-	ios: ['.ipa', 'Install it with AltStore or SideStore'],
-	android: ['.apk', 'Allow installs from your browser once'],
-	'android-tv': ['.apk', 'Install it with Downloader or adb'],
-	windows: ['setup.exe', 'Choose Run anyway when SmartScreen asks'],
-	linux: ['AppImage', 'Make it executable, then open it'],
-};
-
-const releaseFiles = [
-	...APP_DOWNLOADS.map((a) => ({
-		platform: a.platform,
-		note: a.needs,
-		files: appFiles[a.id][0],
-		first: appFiles[a.id][1],
-		firstIsCode: false,
-	})),
-	{ platform: 'Terminal, macOS', note: 'Apple silicon and Intel', files: '.pkg, .tar.gz', first: 'brew install mpv ffmpeg', firstIsCode: true },
-	{ platform: 'Terminal, Linux', note: 'x86-64, glibc 2.28 or newer', files: '.deb, AppImage, .tar.gz', first: 'mpv and ffmpeg from your distro', firstIsCode: false },
-	{ platform: 'Terminal, Windows', note: 'x86-64', files: 'setup.exe, .zip', first: 'mpv and ffmpeg with winget', firstIsCode: false },
-];
-
 const installHtml = [
-	'<span class="c-d"># mpv plays, ffmpeg muxes subtitles</span>',
+	'<span class="c-d"># needs mpv and ffmpeg</span>',
 	'<span class="c-d">$</span> brew install mpv ffmpeg',
-	'<span class="c-d"># browse with no account, no config</span>',
+	'<span class="c-d"># start browsing</span>',
 	'<span class="c-d">$</span> anistream',
-	'<span class="c-d"># checked against its SHA-256</span>',
+	'<span class="c-d"># update</span>',
 	'<span class="c-d">$</span> anistream <span class="c-n">--update</span>',
 ].join('\n');
 ---
@@ -107,7 +37,7 @@ const installHtml = [
 	<head>
 		<SiteHead
 			title="anistream · an open-source anime client"
-			description="anistream is an open-source anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and a terminal app, for browsing, watching, tracking and syncing, with sources as plugins you add. It hosts no content."
+			description="An open-source anime client for Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the terminal. It hosts no content."
 		/>
 	</head>
 	<body class="landing">
@@ -132,8 +62,8 @@ const installHtml = [
 					<h1>Browse, watch, track and sync anime <span class="hero-claim">in one client.</span></h1>
 					<div class="hero-side">
 						<p class="hero-sub">
-							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, each in its
-							platform’s own toolkit, and one for your terminal. Sources come from plugins you add.
+							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the
+							terminal. You add sources as plugins.
 						</p>
 						<div class="actions">
 							<a class="btn btn-primary" href={APPS}>Get the apps</a>
@@ -175,74 +105,58 @@ const installHtml = [
 					</p>
 				</div>
 			</div>
-			<div class="band" role="note" aria-label={bandItems.join(', ')}>
-				<div class="band-track" aria-hidden="true">
-					{
-						[0, 1].map(() => (
-							<span class="band-run">
-								{bandItems.map((item) => (
-									<>
-										<span>{item}</span>
-										<span class="band-dot">·</span>
-									</>
-								))}
-							</span>
-						))
-					}
-				</div>
-			</div>
 		</header>
 
 
 		<main>
-			<section class="wrap sect" aria-labelledby="features-h">
-				<h2 id="features-h">What anistream does</h2>
-				<p class="lede">
-					anistream covers finding a show, playing it, keeping your lists in step and adding
-					sources, on the same engine in every app. Each part that depends on an outside service
-					sits behind an interface, so a source can change or disappear without changes to the rest
-					of the client.
-				</p>
-				<div class="feat-list">
-					<span class="spine" aria-hidden="true">アニストリーム</span>
-					{
-						features.map(([group, rows]) => (
-							<div class="feat-group" role="group" aria-label={group}>
-								<p class="caps feat-label feat-label-above">{group}</p>
-								{rows.map(([title, body], i) => (
-									<div class="feat-row">
-										{i === 0 ? <p class="caps feat-label feat-label-beside">{group}</p> : <span />}
-										<h3>{title}</h3>
-										<p>{body}</p>
-									</div>
-								))}
-							</div>
-						))
-					}
+			<section class="wrap sect" aria-label="Continue, the calendar and Play on TV">
+				<div class="glance">
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="android-title" frame="phone" alt="The Android app opening a show from Continue, switching to Season 2 and back, scrolling its episodes, then swiping back to Continue">
+								<Shot name="android-continue" frame="phone" sizes="240px" alt="The Android app on Continue" />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>Continue watching</h3>
+							<p>The shows you’re partway through, with the next episode ready to play.</p>
+						</figcaption>
+					</figure>
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="iphone-calendar" frame="phone" alt="The iPhone app’s calendar: the days of the week, then every show airing">
+								<Shot name="iphone-title" frame="phone" sizes="240px" alt="The iPhone app on a title page" />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>Calendar and sync</h3>
+							<p>See what airs each day. Your progress syncs to AniList, MyAnimeList, Kitsu, Simkl and Trakt.</p>
+						</figcaption>
+					</figure>
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="iphone-tv-remote" frame="phone" alt="The iPhone app sending an episode to a TV, then pausing it as the remote">
+								<Shot name="iphone-tv-remote" frame="phone" sizes="240px" alt="The iPhone app as the TV’s remote" />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>Play on TV</h3>
+							<p>Send an episode to the Android TV app, then use your phone or computer as the remote.</p>
+						</figcaption>
+					</figure>
 				</div>
 				<div class="actions sect-actions">
-					<a class="btn" href={FEATURES}>Every feature, by app</a>
+					<a class="btn" href={FEATURES}>See all features</a>
 				</div>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="apps-h">
-				<h2 id="apps-h">Native on every platform</h2>
+				<h2 id="apps-h">Apps</h2>
 				<p class="lede">
-					Each app is written in its platform’s own toolkit, with that platform’s navigation and
-					controls. None of them is a web view or a shared cross-platform interface. Under all of
-					them runs one engine, written in Rust, so search, playback, history and sync work the same
-					in each, and mpv is built into every app.
+					Each app is built with its platform’s toolkit: SwiftUI on Apple, Jetpack Compose on
+					Android, WinUI 3 on Windows, GTK 4 on Linux and Ratatui in the terminal. They share one
+					engine, written in Rust.
 				</p>
-				<dl class="rows toolkits">
-					{
-						TOOLKITS.map(([platform, toolkit]) => (
-							<div class="row">
-								<dt>{platform}</dt>
-								<dd>{toolkit}</dd>
-							</div>
-						))
-					}
-				</dl>
 				<div class="ratio-row app-strip">
 					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 490px, (min-width: 900px) 42vw, 490px" alt="The Linux app on Continue, with the shows in progress beside the one picked and a button to resume its episode" />
 					<Shot name="tv-continue" frame="screen" sizes="(min-width: 1200px) 540px, (min-width: 900px) 46vw, 540px" alt="The Android TV app on Continue, with a large button to resume episode 7 and a row of shows in progress" />
@@ -254,11 +168,10 @@ const installHtml = [
 			</section>
 
 			<section class="wrap sect" aria-labelledby="player-h">
-				<h2 id="player-h">Inside the player</h2>
+				<h2 id="player-h">The player</h2>
 				<p class="lede">
-					Every episode plays in mpv, in the apps and in the terminal, with a skip button while the
-					opening runs and the next episode at the ending. Drag the line to compare a 480p stream
-					shown at 1080p as it is, upscaled, or against the 1080p original it was made from.
+					Episodes play in mpv, with a skip button for the opening and Up Next at the end. Drag the
+					line to compare a 480p stream, upscaled and not, with the 1080p original.
 				</p>
 				<div class="player-block">
 					<UpscaleCompare
@@ -272,28 +185,27 @@ const installHtml = [
 						width={720}
 						height={480}
 					>
-						Natural keeps the line work as it was drawn, and comes closest to the original. Sharp
-						draws the lines crisper and bolder than they were. The network is chosen per file, for
-						the source, the display and the battery.
+						Natural keeps the line work as it was drawn and comes closest to the original. Sharp
+						draws the lines crisper and bolder than they were.
 					</UpscaleCompare>
 					<div class="player-shots">
 						<figure>
 							<a href="/player/player-skip.webp">
 								<img src="/player/player-skip.webp" alt="The show's logo during its opening, with a Skip opening button in the corner" width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>The opening, taken from the file's chapters, with a button to skip it.</figcaption>
+							<figcaption>A button to skip the opening.</figcaption>
 						</figure>
 						<figure>
 							<a href="/player/player-menu.webp">
 								<img src="/player/player-menu.webp" alt="The anistream menu inside the player: episodes, sources, sub or dub, upscaling, night mode, subtitles, audio" width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>Episodes, sources, sub or dub, upscaling and tracks, in one menu.</figcaption>
+							<figcaption>The player menu: episodes, sources, sub or dub, upscaling and tracks.</figcaption>
 						</figure>
 						<figure>
 							<a href="/player/player-up-next.webp">
 								<img src="/player/player-up-next.webp" alt="An Up Next card over the ending credits, naming episode 3.2 with a still from its preview" width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>Up Next at the ending, and the next episode in the same window.</figcaption>
+							<figcaption>Up Next over the ending credits.</figcaption>
 						</figure>
 					</div>
 					<p class="player-credit">
@@ -308,15 +220,15 @@ const installHtml = [
 			<section class="wrap sect" aria-labelledby="terminal-h">
 				<h2 id="terminal-h">The terminal app</h2>
 				<p class="lede">
-					The same client in your terminal, prebuilt for macOS, Linux and Windows. On a Mac it shares
-					its history and its config with the Mac app.
+					anistream also runs in a terminal on macOS, Linux and Windows. On a Mac it shares its
+					history and config with the Mac app.
 				</p>
 				<div class="term-block">
 					<div class="term-demo">
 						<TerminalDemo />
 						<p class="caption">
-							From the home screen to search, the episode list and playback. Covers render as real
-							images over the Kitty, Sixel and iTerm2 protocols, and as halfblocks elsewhere.
+							The home screen, search, an episode list and playback. Covers show as images in Ghostty,
+							Kitty, iTerm2, WezTerm and other terminals with image support.
 						</p>
 					</div>
 					<dl class="term-rows">
@@ -331,11 +243,10 @@ const installHtml = [
 					</dl>
 				</div>
 				<pre class="code-block" tabindex="0" set:html={installHtml} />
-				<p class="caption">Best in a terminal with a graphics protocol: Ghostty, Kitty, iTerm2 or WezTerm.</p>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="sources-h">
-				<h2 id="sources-h">Where episodes come from</h2>
+				<h2 id="sources-h">Sources</h2>
 				<p class="legal-lead">{LEGAL}</p>
 				<dl class="rows sources">
 					{
@@ -348,57 +259,37 @@ const installHtml = [
 					}
 				</dl>
 				<p class="lede">
-					Torrent support exists too, off by default and unreachable until you set up the VPN guard.
-					What you point any source at is your decision, at your own risk, under the laws that apply to
-					you, and every source is a config edit away from being removed.
+					Torrents are off by default and stay unreachable until you set up the VPN guard. What you
+					point any source at is your decision and your risk, under the laws that apply to you.
+					Removing a source takes one config edit.
 				</p>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="install-h">
 				<h2 id="install-h">Installation</h2>
-				<p class="lede">
-					Every release has the apps and the terminal app, each file with a .sha256 beside it. The
-					apps are not in the App Store or on Google Play, so the first install takes a step the
-					installation guide walks through. The terminal app needs mpv and ffmpeg installed
-					separately.
-				</p>
-				<table class="release-files">
-					<caption class="sr-only">Release files</caption>
-					<thead>
-						<tr>
-							<th scope="col">Platform</th>
-							<th scope="col">Runs on</th>
-							<th scope="col">Files</th>
-							<th scope="col">Before the first start</th>
-						</tr>
-					</thead>
-					<tbody>
-						{
-							releaseFiles.map((f) => (
-								<tr>
-									<th scope="row">
-										{f.platform}
-										<span class="rf-note-inline">{f.note}</span>
-									</th>
-									<td class="rf-note">{f.note}</td>
-									<td class="rf-file">{f.files}</td>
-									<td class={f.firstIsCode ? 'rf-deps rf-code' : 'rf-deps'}>{f.first}</td>
-								</tr>
-							))
-						}
-					</tbody>
-				</table>
-				<div class="actions">
-					<a class="btn btn-primary" href={LATEST}>Download a release</a>
-					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>
+				<p class="lede">Every release has the apps and the terminal app.</p>
+				<DownloadSuggest />
+				<p class="dl-others">Other platforms</p>
+				<div class="actions get-apps">
+					{
+						APP_DOWNLOADS.map((a) => (
+							<a class="btn" href={LATEST} data-asset={a.files[0].suffix} data-dl-app={a.id}>
+								{a.platform}
+							</a>
+						))
+					}
 				</div>
+				<p class="get-more">
+					Windows and Linux get the x64 builds here. <a href={LATEST}>All downloads</a> has the Arm
+					builds and the terminal app, and the <a href={INSTALL_GUIDE}>installation guide</a> has
+					the first start on each.
+				</p>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="next-h">
-				<h2 id="next-h">Building in the open</h2>
+				<h2 id="next-h">Open source</h2>
 				<p class="lede">
-					anistream is under active development, in the open on GitHub. New sources arrive as
-					plugins, and plugin stores share them with the people you choose.
+					anistream is developed on GitHub. Anyone can write a plugin or run a store.
 				</p>
 				<div class="actions sect-actions">
 					<a class="btn" href={GITHUB}>Follow on GitHub</a>
@@ -412,6 +303,7 @@ const installHtml = [
 
 		<script>
 			import '../scripts/landing-motion.ts';
+			import '../scripts/latest-release.ts';
 		</script>
 	</body>
 </html>

@@ -1,6 +1,6 @@
 ---
-// How history syncs: it is written on the device, changes queue in an outbox, the outbox sends
-// them to your trackers in order, and a pull from a tracker comes back to the device. A wide
+// How history syncs: it is written on the device, changes wait in a queue, which sends them to
+// your trackers in order, and a tracker's progress comes back to the device. A wide
 // drawing where the figure is 720 or wider, a tall one below that.
 import { arrow, box, node, svg, text } from './draw';
 
@@ -17,12 +17,12 @@ const wide = svg(
 		node(0, 46, 176, 72, 'Watch history', 'On your device'),
 		arrow([[177, 82], [261, 82]]),
 		text(219, 72, 'note', 'each change', 'middle'),
-		node(262, 46, 176, 72, 'Outbox', 'Waits while offline'),
+		node(262, 46, 176, 72, 'Queue', 'Waits while offline'),
 		arrow([[439, 82], [523, 82]]),
 		text(481, 72, 'note', 'in order', 'middle'),
 		trackers(524, 0, 196),
 		arrow([[622, 165], [622, 206], [88, 206], [88, 119]]),
-		text(355, 228, 'note', 'A pull only moves your progress forward', 'middle'),
+		text(355, 228, 'note', 'A tracker can move your progress forward, never back', 'middle'),
 	].join(''),
 );
 
@@ -34,15 +34,14 @@ const narrow = svg(
 		node(0, 0, 236, 64, 'Watch history', 'On your device'),
 		arrow([[118, 65], [118, 111]]),
 		text(130, 93, 'note', 'each change'),
-		node(0, 112, 236, 64, 'Outbox', 'Waits while offline'),
+		node(0, 112, 236, 64, 'Queue', 'Waits while offline'),
 		arrow([[118, 177], [118, 223]]),
 		text(130, 205, 'note', 'in order'),
 		trackers(0, 224, 236),
 		arrow([[237, 306], [282, 306], [282, 32], [237, 32]]),
-		text(292, 150, 'note', 'A pull'),
-		text(292, 166, 'note', 'only moves'),
-		text(292, 182, 'note', 'progress'),
-		text(292, 198, 'note', 'forward'),
+		text(292, 150, 'note', 'Forward,'),
+		text(292, 166, 'note', 'never'),
+		text(292, 182, 'note', 'back'),
 	].join(''),
 );
 ---
@@ -50,7 +49,7 @@ const narrow = svg(
 <div
 	class="fdiag"
 	role="img"
-	aria-label="Watch history on your device sends each change to an outbox, which waits while you are offline and sends the changes in order to AniList, MyAnimeList, Kitsu, Simkl and Trakt. A pull from a tracker comes back to your history and only moves your progress forward."
+	aria-label="Watch history on your device sends each change to a queue, which waits while you are offline and sends the changes in order to AniList, MyAnimeList, Kitsu, Simkl and Trakt. A tracker can move your progress forward, never back."
 >
 	<Fragment set:html={wide} />
 	<Fragment set:html={narrow} />

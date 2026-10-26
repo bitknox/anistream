@@ -3,8 +3,8 @@ title: Running a store
 description: Deploy a plugin store, claim it, and look after it.
 ---
 
-A store is one small program, and it is the same program wherever it runs. Pick a home for it by
-what you already have: an account on a hosting platform, a server, or a computer that stays on.
+A store is one small program, and it is the same program wherever it runs. Run it on what you
+already have: an account on a hosting platform, a server, or a computer that stays on.
 
 ## Pick a host
 
@@ -56,7 +56,7 @@ for a machine with a domain, and with Tailscale Funnel for one without.
 The server also comes as a small program of its own, `anistream-store`, in the container image
 `ghcr.io/bitknox/anistream-store`. It takes the same commands as `anistream store`.
 
-## Looking after it
+## Managing a store
 
 The store's page in anistream has what an owner needs day to day: **invite someone**,
 **members**, where you can remove someone's access, and **publish a plugin** from your plugin
@@ -108,7 +108,7 @@ environment:
 The full list is in the
 [protocol document](https://github.com/bitknox/anistream/blob/main/docs/plugin-stores.md#settings).
 
-## Keeping it safe
+## Backups and keys
 
 Everything a store has is in one place: its directory, its volume or its database. That includes
 the key that signs its plugin list, so keep backups as private as the store itself. Someone with

@@ -33,37 +33,39 @@ const also: [string, [string, string][]][] = [
 	[
 		'Watching',
 		[
-			['Skip and Up Next', 'Skip the opening, then straight to the next episode.'],
-			['Resume', 'Back where you stopped, to the second.'],
-			['Sub or dub per show', 'Each show can keep its own choice.'],
+			['Skip and Up Next', 'Skip the opening, and start the next episode from the credits.'],
+			['Resume', 'Picks up where you stopped.'],
+			['Pick a source', 'The automatic pick says why in one line, and you can choose another release.'],
+			['Sub or dub per show', 'Set it once and each show remembers.'],
 			['Subtitle and audio tracks', 'Every app switches the file’s tracks. Mac, Windows and Linux also load a subtitle or audio file.'],
 			['Picture in Picture', 'Keep watching while you browse, or in a mini player on Windows and Linux.'],
-			['Watch parties', 'Everyone’s player in step, in the terminal app. On Mac, iPhone, iPad, Windows and Linux they are in development.'],
+			['Watch parties', 'Watch with friends in sync, on Mac, iPhone, iPad, Windows, Linux and in the terminal.'],
 		],
 	],
 	[
 		'Downloads',
 		[
-			['Downloads ahead', 'The next episodes of the shows you watch, ready offline.'],
+			['Next episodes', 'The next episodes of your shows download ahead of time.'],
 			['Start now', 'Move a queued download to the front.'],
 			['Same history offline', 'A downloaded episode resumes and syncs like a stream.'],
 		],
 	],
 	[
-		'Keeping up',
+		'Alerts and widgets',
 		[
 			['New-episode alerts', 'Off until you turn them on, per show.'],
 			['Widgets', 'Continue and Airing today on your home screen.'],
 			['Handoff, Spotlight, Shortcuts', 'Pick up a show on another Apple device.'],
-			['Live Activities', 'On iPhone, the episode playing, a show you follow in the hour before it airs, and your downloads, on the Lock Screen.'],
+			['Live Activities', 'On iPhone, the Lock Screen shows what’s playing, your downloads and a show about to air.'],
 		],
 	],
 	[
-		'Around the apps',
+		'Other',
 		[
-			['Self-updates', 'The Mac, Android, Android TV and terminal apps update themselves.'],
-			['English or romaji', 'Titles named the way you read them, in every app.'],
-			['A CLI with JSON', '--json output for your scripts.'],
+			['Updates', 'The Mac, Android, Android TV, Windows, Linux and terminal apps update themselves.'],
+			['Torrents on the TV', 'Scan the TV’s code, then type the index and proxy on your phone.'],
+			['English or romaji', 'Pick how show titles are written.'],
+			['Command line', '--json output for your scripts.'],
 		],
 	],
 ];
@@ -83,7 +85,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 			['Opening and ending marks', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'mpv’s']],
 			['Load a subtitle file', ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', 'mpv’s']],
 			['Picture in Picture', ['Y', 'Y', 'Y', 'Y', 'N', 'Mini player', 'Mini player', 'N']],
-			['Watch parties', ['D', 'D', 'D', 'N', 'N', 'D', 'D', 'Y']],
+			['Watch parties', ['Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y']],
 		],
 	],
 	[
@@ -96,14 +98,14 @@ const matrix: [string, [string, Cell[]][]][] = [
 		],
 	],
 	[
-		'Around the apps',
+		'Devices',
 		[
-			['Play on TV and remote', ['Y', 'Y', 'Y', 'Y', 'Receives', 'D', 'D', 'D']],
+			['Play on TV and remote', ['Y', 'Y', 'Y', 'Y', 'Receives', 'Y', 'Y', 'D']],
 			['New-episode alerts', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
 			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
 			['Live Activities', ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N']],
 			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
-			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Checks for new versions', 'Checks for new versions', 'Y']],
+			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Y', 'Y', 'Y']],
 		],
 	],
 ];
@@ -119,7 +121,7 @@ const MARK: Record<string, [string, string]> = {
 	<head>
 		<SiteHead
 			title="anistream features"
-			description="What anistream does: eight native clients over one engine, browsing with no account, mpv with upscaling, Play on TV, history synced to your trackers, and plugins from private stores. Then which app does what."
+			description="anistream’s features, and which app has each one."
 		/>
 	</head>
 	<body class="landing apps-page features-page">
@@ -128,16 +130,14 @@ const MARK: Record<string, [string, string]> = {
 		<main>
 			<header class="wrap apps-head feat-head">
 				<h1>Features</h1>
-				<p class="lede">What anistream does, and which app does it.</p>
 			</header>
 
 			<section class="wrap hl hl-wide" aria-labelledby="native-h">
 				<div class="hl-text">
-					<h2 id="native-h">Native on every platform, one engine</h2>
+					<h2 id="native-h">Apps</h2>
 					<p>
-						Eight clients: Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the terminal.
-						Each is written in its platform’s own toolkit, with its own navigation and controls, over
-						one Rust engine that does the searching, the playback, the history and the sync.
+						Apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the
+						terminal.
 					</p>
 				</div>
 				<div class="hl-media devices">
@@ -155,7 +155,7 @@ const MARK: Record<string, [string, string]> = {
 							<figcaption>iPhone</figcaption>
 						</figure>
 						<figure class="dev" style={`--ratio: ${ratio('android-continue')}`}>
-							<FeatureVideo name="android-title" frame="phone" alt="The Android app on Continue, then a show’s page and its episodes">
+							<FeatureVideo name="android-title" frame="phone" alt="The Android app opening a show from Continue, switching to Season 2 and back, scrolling its episodes, then swiping back to Continue">
 								<Shot name="android-continue" frame="phone" sizes="(min-width: 1200px) 208px, 18vw" alt="The Android app on Continue" />
 							</FeatureVideo>
 							<figcaption>Android</figcaption>
@@ -188,9 +188,9 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl" aria-labelledby="find-h">
 				<div class="hl-text">
-					<h2 id="find-h">Find something to watch</h2>
-					<p>Browse by genre, year and season, or follow the seasonal charts and the week’s calendar, with no account.</p>
-					<p>The calendar marks an estimated air time with a ~ and an episode already out in the dub. A title page says how far the dub goes, as in “Dub to episode 6”.</p>
+					<h2 id="find-h">Search and the calendar</h2>
+					<p>Browse by genre, year and season without an account, or follow the seasonal charts and the week’s calendar.</p>
+					<p>A ~ marks an estimated air time, and a Dub tag marks an episode already dubbed. Title pages say how far the dub goes, such as “Dub to episode 6”.</p>
 				</div>
 				<div class="hl-media find-stage">
 					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt="The Mac app’s search: Trending now opened in full, the filters panel sliding in, Fantasy taking half the titles away, then a show’s page and its first season">
@@ -204,7 +204,7 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl hl-flip" aria-labelledby="player-h">
 				<div class="hl-text">
-					<h2 id="player-h">The mpv player, upscaled</h2>
+					<h2 id="player-h">The player</h2>
 					<p>Episodes play in mpv, upscaled by ArtCNN or Anime4K, with the opening and ending marked on the seek bar. Drag the line to compare a 480p stream.</p>
 				</div>
 				<div class="hl-media">
@@ -227,8 +227,8 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl" aria-labelledby="tv-h">
 				<div class="hl-text">
-					<h2 id="tv-h">Play on TV, phone as the remote</h2>
-					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone.</p>
+					<h2 id="tv-h">Play on TV</h2>
+					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone. The Mac, Windows and Linux apps do the same.</p>
 				</div>
 				<div class="hl-media tv-stage">
 					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt="The iPhone app sending an episode to a TV, then pausing it from the remote">
@@ -238,7 +238,7 @@ const MARK: Record<string, [string, string]> = {
 						<circle cx="236" cy="235" r="4" class="tv-link-end"></circle>
 						<path d="M248 235 H306 M298 228 L306 235 L298 242" class="tv-link-line"></path>
 					</svg>
-					<FeatureVideo name="tv-resume" frame="screen" class="tv-screen" alt="The Android TV app resuming episode 7 from its title page">
+					<FeatureVideo name="tv-resume" frame="screen" class="tv-screen" alt="The Android TV app moving with the remote into a show’s page, switching seasons, then resuming episode 7">
 						<Shot name="tv-title" frame="screen" class="tv-screen" sizes="(min-width: 1200px) 520px, 68vw" alt="The Android TV app on a title page, with a button to resume episode 7 and the episode list" />
 					</FeatureVideo>
 				</div>
@@ -246,8 +246,8 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl hl-flip" aria-labelledby="sync-h">
 				<div class="hl-text">
-					<h2 id="sync-h">Your history, synced everywhere</h2>
-					<p>History lives on your device and needs no account. An outbox sends changes to your trackers in order, even after a week offline.</p>
+					<h2 id="sync-h">History and sync</h2>
+					<p>History stays on your device and needs no account. Changes reach your trackers in order, even after a week offline.</p>
 				</div>
 				<div class="hl-media">
 					<SyncDiagram />
@@ -256,8 +256,8 @@ const MARK: Record<string, [string, string]> = {
 
 			<section class="wrap hl" aria-labelledby="plugins-h">
 				<div class="hl-text">
-					<h2 id="plugins-h">Plugins and private stores</h2>
-					<p>Sources are sandboxed plugins. A friend can run a small store and invite you, and its plugin list arrives signed.</p>
+					<h2 id="plugins-h">Plugins and stores</h2>
+					<p>Sources are plugins, and each one can reach only the sites it lists. A friend can run a store and invite you.</p>
 					<p class="legal-lead">{LEGAL}</p>
 				</div>
 				<div class="hl-media">
@@ -278,7 +278,7 @@ const MARK: Record<string, [string, string]> = {
 			}
 
 			<section class="wrap feat-sect" aria-labelledby="also-h">
-				<h2 id="also-h">Also in anistream</h2>
+				<h2 id="also-h">More features</h2>
 				{
 					also.map(([group, items]) => (
 						<div class="also-group">
@@ -297,12 +297,11 @@ const MARK: Record<string, [string, string]> = {
 			</section>
 
 			<section class="wrap feat-sect" id="platforms" aria-labelledby="platforms-h">
-				<h2 id="platforms-h">Compare the apps</h2>
+				<h2 id="platforms-h">By app</h2>
 				<p class="lede">
-					Every app searches and browses with filters, follows the seasonal charts and the calendar
-					with its Sub and Dub marks, shows a show’s seasons and how far its dub goes, switches
-					subtitle and audio tracks, syncs with AniList, Simkl and Trakt, joins plugin stores, and
-					skips, resumes and plays the next episode.
+					All eight apps have search with filters, the calendar, seasonal charts, subtitle and audio
+					tracks, skip, resume and Up Next. They all sync with AniList, Simkl and Trakt, join plugin
+					stores and run torrents behind the VPN guard. The table shows where they differ.
 				</p>
 				<ul class="matrix-key" aria-label="Key">
 					<li><span class="mk mk-yes" aria-hidden="true"></span>Available</li>
@@ -344,7 +343,7 @@ const MARK: Record<string, [string, string]> = {
 						}
 					</table>
 				</div>
-				<p class="caption matrix-note">Watch parties on the Mac, iPhone, iPad, Windows and Linux apps are in development, and so is Play on TV from Windows, Linux and the terminal.</p>
+				<p class="caption matrix-note">Play on TV from the terminal app is in development, and so are home screen widgets on Windows.</p>
 				<div class="actions sect-actions">
 					<a class="btn btn-primary" href={APPS}>Get the apps</a>
 					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>

@@ -1,19 +1,21 @@
 # Platform parity
 
 What each front end does, read from its code on 2026-10-24. The features page on the website
-(`website/src/pages/features.astro`) shows 16 of these rows, as they stand once the parity PRs
-(#163, #165, #168 to #173) are in, and names the rows every app has in one line above its table;
-keep the two in step.
+(`website/src/pages/features.astro`) shows 16 of these rows and names the rows every app has in
+one line above its table; keep the two in step.
 
 Where the code was read:
 
 - Mac, iPhone, iPad, Android, Windows, Linux and Terminal: `train/2026-10-24-7` at `e835caa9`
   (PR #147), which is main at `767ef78a` (the Apple, Android and Windows audits and Search polish,
   PRs #136 to #142) plus the Mac fixes, the engine's dub extent and the Linux audit.
-- Android TV: `fix/android-tv-audit` at `9b761d52` (PR #148), which adds joining plugin stores
-  with a QR code and the TV's show settings. Marks that come only from that branch say so.
+- Android TV: `fix/android-tv-audit` at `9b761d52` (PR #148, since merged), which adds joining
+  plugin stores with a QR code and the TV's show settings.
 - Windows, read again on 2026-10-25: main at `c79ee13f` (train #207) with
   `fix/windows-parity-leftovers`, which adds the torrent dialog and live title language.
+- Every app, read again on 2026-10-26: main at `5454bd52` (train #224), for the dub line, watch
+  parties, Play on TV from Windows and Linux (#211, #214), torrents on the TV (#216) and the
+  proxy check before saving (#212, #216, #220 to #222).
 
 Marks:
 
@@ -36,7 +38,7 @@ Android TV, Windows, Linux, Terminal.
 | Airing calendar | yes | yes | yes | yes | yes | yes | yes | yes |
 | Seasons on the title page | yes | yes | yes | yes | yes | yes | yes | yes (3) |
 | English or romaji titles | yes | yes | yes | yes | yes (4) | yes | yes | yes |
-| How far the dub goes | dev (5) | dev (5) | dev (5) | dev (5) | dev (5) | yes | yes | yes |
+| How far the dub goes | yes (5) | yes (5) | yes (5) | yes (5) | yes (5) | yes (5) | yes (5) | yes (5) |
 | Continue | yes | yes | yes | yes | yes | yes | yes | yes |
 | Library by status | yes | yes | yes | yes | yes | yes | yes | yes |
 
@@ -48,15 +50,19 @@ Android TV, Windows, Linux, Terminal.
 3. The franchise is a watch-order list (`Action::WatchOrder`).
 4. Settings > Playback > Title language.
 5. The engine answers `Command::LoadDub` with `Event::TitleDub`, and `present::dub_line` (also
-   `words::dub_line` over FFI) words it as "Dub to episode 6" or "Dubbed". Only Windows
-   (`Pages/TitlePage.xaml.cs`), Linux (`pages/title.rs`, under the meta line) and the terminal
-   (the Episodes header, `screens/episodes.rs`) send it and draw it.
+   `words::dub_line` over FFI) words it as "Dub to episode 6" or "Dubbed". Every app sends it
+   and draws it on the title page: Apple in `TitlePage.swift` and `PhoneTitle.swift`, Android in
+   `ui/TitleScreen.kt`, the TV in `tv/screens/TitleScreen.kt`, Windows in
+   `Pages/TitlePage.xaml.cs`, Linux in `pages/title.rs` (under the meta line) and the terminal in
+   the Episodes header (`screens/episodes.rs`).
 
 The calendar marks the native UX spec describes, "~" for an estimated air time and Sub or Dub on
 a row, come from the engine's calendar `Entry` (`airing_approximate`, `airing_translation`,
-`airing_dubbed`), worded by `present::air_time` and `present::calendar_mark`. Mac, iPhone and iPad
-show them (`CalendarScreen.swift`, `PhoneScreens.swift`), and so does Windows, with Dub after the
-episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are marked.
+`airing_dubbed`), worded by `present::air_time` and `present::calendar_mark`. Every app shows
+them: Mac, iPhone and iPad (`CalendarScreen.swift`, `PhoneScreens.swift`), Android and the TV
+(`ui/CalendarScreen.kt`, `tv/screens/CalendarScreen.kt`), Windows, with Dub after the episode,
+"Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`), Linux (`pages/calendar.rs`) and the
+terminal (`screens/lists.rs`). Only dubs are marked.
 
 ## Watching
 
@@ -73,7 +79,7 @@ episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are m
 | Subtitle and audio tracks | yes | yes | yes | yes | yes | yes | yes (7) | yes (8) |
 | Media keys and now playing | yes | yes | yes | yes | yes | yes | yes (9) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
-| Watch parties | dev (10) | dev (10) | dev (10) | n/a | n/a | yes | yes | yes |
+| Watch parties | yes (10) | yes (10) | yes (10) | n/a | n/a | yes (10) | yes (10) | yes |
 | Discord presence | yes | n/a | n/a | n/a | n/a | yes | yes | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
@@ -86,8 +92,7 @@ episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are m
 4. mpv's own chapter marks, from the engine's `chapter-list`.
 5. Next episode and auto-next; the countdown card is the apps' own.
 6. The default Translation setting and the show settings' Audio row, with a Dub tag on releases;
-   no switch during playback (Android phones have none either, only the tag). The TV's Audio row
-   is on `fix/android-tv-audit`.
+   no switch during playback (Android phones have none either, only the tag).
 7. A Tracks menu (T) with the file's subtitle and audio tracks (`desktop/linux/src/player/mod.rs`).
 8. Through anistream's menu inside mpv; the TUI has no track action of its own.
 9. Apple has `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` (`PlayerSystem.swift`);
@@ -95,14 +100,18 @@ episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are m
    SystemMediaTransportControls and taskbar thumbnail buttons (`Player/MediaControls.cs`). Linux
    has MPRIS (`mpris.rs`).
 10. The engine holds the party and drives the app's own player (`party` feature, on in these
-    apps' builds, every Apple slice included), and the commands and events are in the bindings;
-    only Linux has the screens to start and join one so far (`desktop/linux/src/party/`). The settings rows (on, server, room) are the terminal's: in an
-    app the on switch does nothing, as apps start parties when asked. See
+    apps' builds, every Apple slice included). Each app has its own screens to start one, join
+    from an invite link and pick a source for the party's episode, and a party panel in the
+    player: Apple in `AnistreamUI/Party.swift` and `AnistreamPlayerUI/PartyPanel.swift` (Watch
+    Together… in the Mac player), Windows in `Pages/PartyDialog.cs` and `Player/PartyPanel.cs`,
+    Linux in `desktop/linux/src/party/`. The settings rows (on, server, room) are the terminal's:
+    in an app the on switch does nothing, as apps start parties when asked. See
     `docs/party-protocol.md`.
 
 The Mac's Subtitles and Audio menus, in the player and in the menu bar, also load a subtitle or
-audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's do: mpv's
-alone, not remembered for the show. iPhone and iPad have no such items.
+audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's and
+Windows' do (`Player/PlayerView.xaml.cs`): mpv's alone, not remembered for the show. iPhone, iPad,
+Android and the TV have no such items.
 
 On Mac, iPhone and iPad the seek line draws the engine's own opening and ending marks
 (`Event::PlayerTimeline`, the chapters standing in until it has said) and the buffered ranges it
@@ -124,8 +133,8 @@ Undo on its skip card. T opens the Tracks menu on Windows and Linux.
 | Mark episodes watched | yes | yes | yes | yes | yes | yes | yes | yes |
 | Per-show settings | yes | yes | yes | yes | yes (2) | yes | yes | partial (3) |
 
-1. The TV says MyAnimeList "signs in from a paired anistream phone", but no phone sends it, and
-   the remote protocol keeps sign-ins off the wire (`docs/remote-protocol.md`). AniList and Kitsu
+1. The TV's Accounts leaves MyAnimeList out: its redirect must be the one address it has
+   registered, which a TV cannot finish (`signin/SignInScreen.kt`). AniList and Kitsu
    sign in on a page the TV serves on the network, opened from a QR code; Simkl and Trakt show a
    device code with "Get a new code" and no countdown. `android/tv/.../signin/SignInScreen.kt`.
 2. More > Show settings (`ui/ShowSettings.kt`) has Audio, Subtitles (shown, chosen in the player),
@@ -187,17 +196,25 @@ in Settings > Integrations, finds TVs with Windows' own DNS-SD (a device watcher
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Add and order sources | yes | yes | yes | yes | partial (1) | yes | yes | yes |
 | Join plugin stores | yes | yes | yes | yes | yes (2) | yes | yes | yes |
-| Torrents with the VPN guard | yes | yes | yes | yes | dev | yes | yes (3) | yes (4) |
+| Torrents with the VPN guard | yes (3) | yes (3) | yes (3) | yes (3) | yes (5) | yes (3) | yes (3) | yes (4) |
 
 1. Settings > Sources lists them read-only; sources arrive only by joining a store.
-2. On `fix/android-tv-audit`: `signin/JoinStoreScreen.kt` takes the invite through a QR code to
+2. `signin/JoinStoreScreen.kt` takes the invite through a QR code to
    a page the TV serves, or typed on the TV, previews the store and joins; Settings > Plugin
    stores lists them with Leave. A phone cannot send a store link to a paired TV: the remote
    protocol keeps stores off the wire, and its `text` command always lands in Search.
-3. Turning Torrents on opens the setup dialog with "Protect with" and the connection check
-   (`pages/torrents.rs`). A new or edited proxy is checked first and saved only once it passes;
-   Edit Proxy sits beside "Protect with".
+3. Settings > Sources: turning Torrents on asks what protects them ("Protect with") and runs
+   the connection check. A new or changed proxy goes through `Command::CheckTorrentProtection`
+   first and is saved only once it passes; a failed check saves nothing and says why. Once a
+   proxy is set, Edit proxy sits beside "Protect with" and opens its form filled in, where an
+   empty password keeps the saved one. Apple in `TorrentProtection.swift` and `TorrentSheet.swift`,
+   Android in `ui/TorrentSheet.kt`, Windows in `Pages/TorrentDialog.cs` and
+   `App.Core/Torrents.cs`, Linux in `pages/torrents.rs`.
 4. VPN mode is set in config.toml, not in the TUI.
+5. Settings > Sources has the phone's Torrents group (`tv/screens/SettingsScreen.kt`). The index
+   and a proxy's details come from a page the TV serves, opened on a phone from a QR code, or are
+   typed on the TV (`signin/TorrentScreen.kt`); the proxy is checked before it is saved, as in
+   note 3. Downloads stay off on the TV.
 
 ## On the device
 
@@ -230,7 +247,5 @@ in Settings > Integrations, finds TVs with Windows' own DNS-SD (a device watcher
   wired in, though a comment in `pages/settings.rs` says the secret store. There is no Flatpak
   manifest or AppStream metainfo yet, only `.desktop` files, one of them named
   `tv.anistream.desktop.desktop`. Linux has no subtitle sync.
-- On TV, the reason an episode could not play is on screen only with `fix/android-tv-audit`,
-  which carries its own copy of that change and will overlap with #147 when it merges.
 - The terminal's Settings screen leaves out several shared rows (Up Next countdown, episode
   notifications, mpv options, VPN on failure, keep next); they work from config.toml.
