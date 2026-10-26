@@ -52,6 +52,48 @@ struct ProvidersTests {
         #expect(store.providers.note == nil)
     }
 
+    @Test func aProtectionIsCheckedWithNothingSavedAndOnlyTheSheetWaitingHearsTheVerdict() {
+        let store = AppStore()
+        let proxy = TorrentProxy(host: "proxy.example", port: 1080, user: "mika", password: nil)
+        store.checkTorrentProtection(.proxy, proxy: proxy)
+        #expect(store.providers.trial == .checking)
+        #expect(store.sentLog == ["checkTorrentProtection"], "checked, not set")
+
+        store.apply(.protectionChecked(.leaking))
+        #expect(store.providers.trial == .said(.leaking))
+        #expect(store.providers.trial?.failed == .leaking)
+        #expect(store.providers.trial?.passed == false)
+        #expect(store.providers.guardView == nil, "the guard's own verdict is untouched")
+
+        // A verdict for a sheet that closed is dropped.
+        store.providers.clearTrial()
+        store.apply(.protectionChecked(.protected(exit: "Lantern Networks")))
+        #expect(store.providers.trial == nil)
+
+        store.checkTorrentProtection(.proxy, proxy: proxy)
+        store.apply(.protectionChecked(.protected(exit: "Lantern Networks")))
+        #expect(store.providers.trial?.passed == true)
+        #expect(store.providers.trial?.failed == nil)
+    }
+
+    @Test func theEnginesCheckThroughAProxyAnswersAndWritesNothing() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AppStore()
+        await store.start(
+            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .macOs, secrets: .host),
+            host: quietHost())
+        defer { store.shutdown() }
+        try await waitFor({ store.settings.torrent != nil })
+        let before = store.settings.torrent
+
+        store.checkTorrentProtection(.proxy, proxy: TorrentProxy(host: "proxy.example", port: 1080, user: nil, password: nil))
+        // The engine checks on its own thread, which a busy machine can hold a while.
+        try await waitFor({ store.providers.trial != .checking }, within: .seconds(30))
+        #expect(store.providers.trial?.passed == true, "the testing engine's exit passes: \(String(describing: store.providers.trial))")
+        #expect(store.settings.torrent == before, "a check saves nothing")
+    }
+
     @Test func aRebuildLastsUntilTheRebuiltList() {
         let store = AppStore()
         store.apply(.sourcesChanged)

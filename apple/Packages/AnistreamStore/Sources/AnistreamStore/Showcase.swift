@@ -19,10 +19,12 @@ import UIKit
 /// network, what was loaded staying; `stranded`, offline with nothing loaded; and `failed`, the
 /// lists failed to load; `messages`, a session's notices for Messages; `calendar`, the calendar's
 /// rows given estimated times and Sub and Dub marks; and `signin` and `expired`, Simkl's device
-/// code with most of its time left, or none. `all` leaves these out too.
+/// code with most of its time left, or none; `proxy`, Sources with torrents through a saved
+/// proxy, and `checking` and `unsaved`, the same with a check through an edited proxy under way,
+/// or failed with nothing saved. `all` leaves these out too.
 public enum Showcase: String, CaseIterable, Sendable {
     case sources, stores, downloads, invite, update, pale, offline, stranded, failed, messages, calendar,
-         signin, expired, all
+         signin, expired, proxy, checking, unsaved, all
 
     /// The one the launch arguments name.
     public static func from(arguments: [String]) -> Showcase? {
@@ -94,6 +96,13 @@ public enum Showcase: String, CaseIterable, Sendable {
                 events.append(.deviceCode(DeviceCodePrompt(
                     tracker: "simkl", code: "7KQ4-M2XD", url: "https://simkl.example/pin",
                     expiresAt: Int64(now.timeIntervalSince1970) + left)))
+            case .proxy, .checking, .unsaved:
+                events += [.providers(Self.providerRows), .vpn(.protected(exit: "Lantern Networks"))]
+                held.formUnion(["providers", "vpn"])
+                if let settings {
+                    events.append(.settings(Self.throughProxy(Self.torrentsOn(settings))))
+                    held.insert("settings")
+                }
             case .all:
                 break
             }
@@ -294,6 +303,15 @@ public enum Showcase: String, CaseIterable, Sendable {
         CGImageDestinationAddImage(png, image, nil)
         return CGImageDestinationFinalize(png) ? data as Data : nil
     }()
+
+    /// The settings with torrents through a saved proxy.
+    static func throughProxy(_ view: SettingsView) -> SettingsView {
+        var view = view
+        view.torrent = ProtectionView(
+            protection: .proxy, proxy: ProxyView(host: "proxy.example", port: 1080, user: "mika"),
+            onFailure: view.torrent.onFailure)
+        return view
+    }
 
     /// The settings with torrents on, behind a VPN on this device, as Sources shows them so.
     static func torrentsOn(_ view: SettingsView) -> SettingsView {

@@ -483,21 +483,30 @@ struct PhoneJoinStoreSheet: View {
 }
 
 /// Turning torrents on, on iPhone: as the Mac's sheet, in a list. And the same, asking for a
-/// proxy once torrents are on.
+/// proxy once torrents are on, or editing the saved one. A proxy is saved only once the
+/// connection check through it passes.
 struct PhoneTorrentSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    var turningOn = true
+    var mode: TorrentSheetMode = .turnOn
     var start: TorrentProtection?
     @State private var draft: TorrentDraft?
+    /// What the check under way is for, saved once it passes.
+    @State private var checking: TorrentDraft?
     @State private var confirmingNone = false
+
+    private var turningOn: Bool { mode == .turnOn }
+    private var editing: Bool { mode == .editProxy }
 
     var body: some View {
         let draft = Binding(get: { self.draft ?? TorrentDraft(store) }, set: { self.draft = $0 })
+        let trial = store.providers.trial
         NavigationStack {
             PhoneList {
                 Section {
-                    Text("Other people can see your IP address while you download and share a torrent.")
+                    Text(editing
+                         ? ProtectionWords.editNote
+                         : "Other people can see your IP address while you download and share a torrent.")
                         .font(.ui(17))
                         .foregroundStyle(.silk)
                         .listRowBackground(Color.clear)
@@ -516,20 +525,22 @@ struct PhoneTorrentSheet: View {
                         Text("The RSS search address anistream asks for torrents. anistream hosts no content.")
                     }
                 }
-                Section {
-                    ForEach(ProtectionWords.order, id: \.self) { choice in
-                        Button { draft.wrappedValue.protection = choice } label: {
-                            self.choice(ProtectionWords.label(choice), on: draft.wrappedValue.protection == choice)
+                if !editing {
+                    Section {
+                        ForEach(ProtectionWords.order, id: \.self) { choice in
+                            Button { draft.wrappedValue.protection = choice } label: {
+                                self.choice(ProtectionWords.label(choice), on: draft.wrappedValue.protection == choice)
+                            }
+                            .listRowBackground(Palette.raised)
                         }
-                        .listRowBackground(Palette.raised)
+                    } header: {
+                        PhoneSectionHeader("Protect with")
+                    } footer: {
+                        // With none, nothing checks the connection, so the check's note would mislead.
+                        Text(draft.wrappedValue.protection == TorrentProtection.none
+                             ? "With no protection, anistream does not check the connection."
+                             : ProtectionWords.checkNote)
                     }
-                } header: {
-                    PhoneSectionHeader("Protect with")
-                } footer: {
-                    // With none, nothing checks the connection, so the check's note would mislead.
-                    Text(draft.wrappedValue.protection == TorrentProtection.none
-                         ? "With no protection, anistream does not check the connection."
-                         : ProtectionWords.checkNote)
                 }
                 if draft.wrappedValue.protection == .proxy {
                     Section {
@@ -543,28 +554,37 @@ struct PhoneTorrentSheet: View {
                         SecureField("Password", text: draft.password, prompt: Text("Password"))
                     } header: {
                         PhoneSectionHeader("Proxy")
+                    } footer: {
+                        if editing { Text(ProtectionWords.passwordKept) }
                     }
                     .listRowBackground(Palette.raised)
                 }
             }
-            .navigationTitle(turningOn ? "Turn on torrents" : "Protect torrents")
+            // Held still while the check through the proxy runs.
+            .disabled(trial == .checking)
+            .navigationTitle(editing ? "Edit proxy" : turningOn ? "Turn on torrents" : "Protect torrents")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
-                Button {
-                    if draft.wrappedValue.protection == TorrentProtection.none {
-                        confirmingNone = true
-                    } else {
-                        send(draft.wrappedValue)
+                VStack(alignment: .leading, spacing: 12) {
+                    if ProxyCheckLine.shows(trial) {
+                        ProxyCheckLine(trial: trial, mode: mode, phone: true).padding(.horizontal, 20)
                     }
-                } label: {
-                    Text(turningOn ? "Turn on" : "Save").frame(maxWidth: .infinity)
+                    Button {
+                        if draft.wrappedValue.protection == TorrentProtection.none {
+                            confirmingNone = true
+                        } else {
+                            send(draft.wrappedValue)
+                        }
+                    } label: {
+                        Text(turningOn ? "Turn on" : "Save").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
+                    .disabled(!draft.wrappedValue.complete || trial == .checking)
+                    .padding(.horizontal, 16)
                 }
-                .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
-                .disabled(!draft.wrappedValue.complete)
-                .padding(.horizontal, 16)
                 .padding(.bottom, 8)
             }
         }
@@ -574,6 +594,7 @@ struct PhoneTorrentSheet: View {
             if let start { first.protection = start }
             self.draft = first
         }
+        .modifier(TorrentSaving(checking: checking, draft: self.draft, mode: mode) { dismiss() })
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
             Button("No protection", role: .destructive) {
                 send(draft.wrappedValue)
@@ -585,8 +606,11 @@ struct PhoneTorrentSheet: View {
     }
 
     private func send(_ draft: TorrentDraft) {
-        store.apply(draft, turningOn: turningOn)
-        dismiss()
+        if store.save(draft, mode) {
+            dismiss()
+        } else {
+            checking = draft
+        }
     }
 
     private func choice(_ title: String, on: Bool) -> some View {

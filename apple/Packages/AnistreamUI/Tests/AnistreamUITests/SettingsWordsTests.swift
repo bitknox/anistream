@@ -120,6 +120,41 @@ struct SettingsWordsTests {
         #expect(draft.complete && draft.proxy == nil)
     }
 
+    @Test func aProxyIsCheckedBeforeItIsSavedAndAnythingElseIsSavedAtOnce() {
+        let store = AppStore()
+        var draft = TorrentDraft(store)
+        draft.protection = .proxy
+        draft.host = "proxy.example"
+        draft.port = "1080"
+        #expect(!store.save(draft, .turnOn), "a proxy waits for its check")
+        #expect(store.sentLog == ["checkTorrentProtection"], "nothing set, torrents not turned on")
+        #expect(store.providers.trial == .checking)
+
+        draft.protection = .device
+        #expect(store.save(draft, .change))
+        #expect(store.sentLog.last == "setTorrentProtection")
+    }
+
+    @Test func aProxyNotSavedSaysWhyAndWhatStays() {
+        #expect(ProtectionWords.notSaved(.leaking, .editProxy)
+                == "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays.")
+        #expect(ProtectionWords.notSaved(.unreachable, .editProxy)
+                == "Not saved. The check could not be made through this proxy, so the saved proxy stays.")
+        #expect(ProtectionWords.notSaved(.unreachable, .turnOn)
+                == "Not turned on. The check could not be made through this proxy.")
+        #expect(ProtectionWords.notSaved(.leaking, .change)
+                == "Not saved. Torrent traffic left outside this proxy, so torrents keep the protection they have.")
+    }
+
+    @Test func theSavedProxyIsNamedByWhereItIsAndWhoItLetsIn() {
+        let proxy = ProxyView(host: "proxy.example", port: 1080, user: "mika")
+        #expect(ProtectionWords.proxyLine(proxy) == "proxy.example:1080 · as mika")
+        #expect(ProtectionWords.proxyLine(ProxyView(host: "proxy.example", port: 1080, user: nil)) == "proxy.example:1080")
+        #expect(ProtectionView(protection: .proxy, proxy: proxy, onFailure: .pause).proxyLine == "proxy.example:1080 · as mika")
+        #expect(ProtectionView(protection: .device, proxy: proxy, onFailure: .pause).proxyLine == nil,
+                "no Edit proxy once torrents go another way")
+    }
+
     @Test func theGuardSaysWhereTrafficLeftAndHowLongAgo() {
         let at = Date(timeIntervalSince1970: 1_000)
         let (note, status, _) = GuardWords.words(.protected(exit: "Lantern Networks"), at: at, now: at.addingTimeInterval(120))

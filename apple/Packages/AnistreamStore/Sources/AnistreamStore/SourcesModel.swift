@@ -21,6 +21,8 @@ public final class ProvidersModel {
     public private(set) var guardView: GuardView?
     /// When the guard last said it.
     public private(set) var guardAt: Date?
+    /// A protection checked before it is saved, `nil` until a sheet asks and once it is done.
+    public private(set) var trial: ProtectionTrial?
     /// The source pinned for the title on screen, `nil` for automatic.
     public private(set) var preference: String?
     /// The metadata ladder's rungs.
@@ -48,6 +50,21 @@ public final class ProvidersModel {
         guardAt = view == nil ? nil : date
     }
 
+    func trialStarted() {
+        trial = .checking
+    }
+
+    func trialSaid(_ view: GuardView) {
+        // A verdict no sheet waits for any more is not kept.
+        guard trial == .checking else { return }
+        trial = .said(view)
+    }
+
+    /// Done with the check: its sheet closed, or what it checked changed.
+    public func clearTrial() {
+        trial = nil
+    }
+
     func preference(_ provider: String?) {
         preference = provider
     }
@@ -69,6 +86,22 @@ extension ProviderRow {
         if !usable || state == "down" { return .failing }
         if state == "degraded" { return .slow }
         return .working
+    }
+}
+
+/// A protection checked before anything is saved: under way, then the check's verdict on it.
+public enum ProtectionTrial: Equatable, Sendable {
+    case checking
+    case said(GuardView)
+
+    /// The check passed: what was checked may be saved.
+    public var passed: Bool {
+        if case .said(.protected) = self { true } else { false }
+    }
+
+    /// The check failed, and nothing was saved.
+    public var failed: GuardView? {
+        if case .said(let view) = self, !passed { view } else { nil }
     }
 }
 

@@ -354,6 +354,7 @@ Torrents are off by default and live in Settings > Sources as “Torrent source�
 - “anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.”
 - No protection keeps Turn on disabled until a checkbox is ticked: “I understand other people can see my IP address.”
 - Once a SOCKS5 proxy is set, “Edit proxy…” sits beside the “Protect with” choice. It opens the same proxy form, filled in, and the new settings apply only after the connection check passes. The engine's `CheckTorrentProtection` runs that check against the form's settings and writes nothing, so a failed check leaves the saved proxy and its password as they were.
+- Every new or changed proxy goes through that check before it is saved: turning torrents on with a proxy, switching “Protect with” to one, and Edit proxy. The sheet says “Checking the proxy” while it runs. Only a passed check saves the settings and turns torrents on. A failed one saves nothing and says why, and the sheet stays open.
 - The seeding settings (seed after watching, seed for at most, upload limit) appear only once the source is on.
 
 On iPhone and iPad, torrents run while the app is open:

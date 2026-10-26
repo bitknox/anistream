@@ -1,6 +1,7 @@
 // What protects torrent traffic, and what a failed check does: the words for each choice, the
 // turn-on sheet's draft, and the rows that change them once torrents are on. No protection and
-// Warn only each ask the viewer to confirm first, and go to the engine acknowledged.
+// Warn only each ask the viewer to confirm first, and go to the engine acknowledged. A proxy,
+// new or changed, is saved only once the connection check through it passes.
 
 import AnistreamDesign
 import AnistreamKit
@@ -48,6 +49,46 @@ enum ProtectionWords {
     /// What confirming Warn only says.
     static let warnTitle = "Keep torrents running if a check fails?"
     static let warnMessage = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
+
+    /// Edit proxy's line over its form.
+    static let editNote = "Torrents keep using the saved proxy until the new one passes the connection check."
+    /// Under the proxy's fields, on Edit proxy.
+    static let passwordKept = "Leave the password empty to keep the saved one."
+    /// While the check through a proxy runs.
+    static let checkingProxy = "Checking the proxy"
+
+    /// Why a proxy was not saved, from the check's `view` of it, as the sheet open says it.
+    static func notSaved(_ view: GuardView, _ mode: TorrentSheetMode) -> String {
+        let why = view == .leaking
+            ? "Torrent traffic left outside this proxy"
+            : "The check could not be made through this proxy"
+        switch mode {
+        case .turnOn: return "Not turned on. \(why)."
+        case .change: return "Not saved. \(why), so torrents keep the protection they have."
+        case .editProxy: return "Not saved. \(why), so the saved proxy stays."
+        }
+    }
+
+    /// "proxy.example:1080 · as mika": where the saved proxy is, and who it lets in.
+    static func proxyLine(_ proxy: ProxyView) -> String {
+        let place = "\(proxy.host):\(proxy.port)"
+        guard let user = proxy.user, !user.isEmpty else { return place }
+        return "\(place) · as \(user)"
+    }
+}
+
+extension ProtectionView {
+    /// Where the saved proxy is, as Protect with says it, while torrents go through one.
+    var proxyLine: String? {
+        guard protection == .proxy, let proxy else { return nil }
+        return ProtectionWords.proxyLine(proxy)
+    }
+}
+
+/// Why a torrent sheet is open: torrents turning on, their protection changing, or the saved
+/// proxy's details.
+enum TorrentSheetMode: Equatable {
+    case turnOn, change, editProxy
 }
 
 /// The turn-on sheet's choices before they are sent: the index, the protection, and the proxy's
@@ -86,6 +127,17 @@ struct TorrentDraft: Equatable {
 }
 
 extension AppStore {
+    /// Save the sheet's choices: through a proxy, only once the check through it passes, which
+    /// `TorrentSaving` waits for; anything else at once. Whether it saved now.
+    func save(_ draft: TorrentDraft, _ mode: TorrentSheetMode) -> Bool {
+        if draft.protection == .proxy, let proxy = draft.proxy {
+            checkTorrentProtection(.proxy, proxy: proxy)
+            return false
+        }
+        apply(draft, turningOn: mode == .turnOn)
+        return true
+    }
+
     /// Send the sheet's choices: the index when one is typed, the protection, and torrents on when
     /// they are turned on here. No protection goes acknowledged, the viewer having confirmed it.
     func apply(_ draft: TorrentDraft, turningOn: Bool) {
@@ -104,6 +156,86 @@ extension AppStore {
             setTorrentProtection(torrent.protection, onFailure: .warn, acknowledged: true)
         } else {
             setSetting(.vpnOnFailure, to: .str(check == .stop ? "stop" : "pause"))
+        }
+    }
+}
+
+/// A torrent sheet saving a proxy: once the check through `checking` passes, it is saved and the
+/// sheet goes; a failed one saved nothing, and the sheet stays to say why. Changing the form
+/// after a failed check clears what it said.
+struct TorrentSaving: ViewModifier {
+    @Environment(AppStore.self) private var store
+    let checking: TorrentDraft?
+    let draft: TorrentDraft?
+    let mode: TorrentSheetMode
+    let saved: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: store.providers.trial) { _, trial in
+                guard trial?.passed == true, let checking else { return }
+                store.providers.clearTrial()
+                store.apply(checking, turningOn: mode == .turnOn)
+                saved()
+            }
+            .onChange(of: draft) { before, _ in
+                // Not the form's first filling in, as the sheet opens.
+                if before != nil, store.providers.trial?.failed != nil { store.providers.clearTrial() }
+            }
+            .onDisappear { store.providers.clearTrial() }
+    }
+}
+
+/// Where a torrent sheet's check stands: under way, or why nothing was saved. Nothing before a
+/// check, or once one passed.
+struct ProxyCheckLine: View {
+    let trial: ProtectionTrial?
+    let mode: TorrentSheetMode
+    var phone = false
+
+    /// Whether there is anything to say.
+    static func shows(_ trial: ProtectionTrial?) -> Bool {
+        trial == .checking || trial?.failed != nil
+    }
+
+    var body: some View {
+        switch trial {
+        case .checking?:
+            HStack(spacing: 8) {
+                Working(true)
+                Text(ProtectionWords.checkingProxy).foregroundStyle(.haze)
+            }
+            .font(phone ? .ui(15) : .mac(12))
+            .accessibilityElement(children: .combine)
+        case .said(let view)? where trial?.failed != nil:
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(.vermilion)
+                    .frame(width: phone ? 8 : 6, height: phone ? 8 : 6)
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + (phone ? 5 : 4) }
+                Text(ProtectionWords.notSaved(view, mode))
+                    .foregroundStyle(.silk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .font(phone ? .ui(15) : .mac(12))
+            .accessibilityElement(children: .combine)
+        default:
+            EmptyView()
+        }
+    }
+}
+
+/// Edit proxy, beside Protect with once a proxy is set: opens the proxy's form, filled in.
+struct EditProxyButton: View {
+    @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+    @State private var editing = false
+
+    var body: some View {
+        if store.settings.torrent?.protection == .proxy {
+            Button(cased(mac: "Edit Proxy…", touch: "Edit proxy…")) { editing = true }
+                .sheet(isPresented: $editing) { TorrentSheet(mode: .editProxy) }
+                .onLaunchSheet("proxy", navigator) { editing = true }
         }
     }
 }
@@ -181,9 +313,9 @@ struct ProtectionMenu: View {
 
     @ViewBuilder private var protectionSheet: some View {
         #if os(iOS)
-        PhoneTorrentSheet(turningOn: false, start: .proxy)
+        PhoneTorrentSheet(mode: .change, start: .proxy)
         #else
-        TorrentSheet(turningOn: false, start: .proxy)
+        TorrentSheet(mode: .change, start: .proxy)
         #endif
     }
 }

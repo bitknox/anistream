@@ -38,6 +38,14 @@ extension AppStore {
             acknowledged: acknowledged))
     }
 
+    /// Check `mode`, through `proxy` when it is one, before anything is saved: the verdict comes
+    /// to `providers.trial`, and nothing is written, the saved proxy and its password included.
+    /// A proxy with no password is checked with the one kept.
+    public func checkTorrentProtection(_ mode: TorrentProtection, proxy: TorrentProxy?) {
+        providers.trialStarted()
+        send(.checkTorrentProtection(mode: mode, proxy: mode == .proxy ? proxy : nil))
+    }
+
     // MARK: A show's own settings
 
     /// Ask for `id`'s settings sheet: what it sets for itself, and what it remembers.
