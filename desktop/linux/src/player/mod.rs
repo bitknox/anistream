@@ -36,7 +36,7 @@ use crate::{
 
 mod stats;
 mod timeline;
-mod tracks;
+pub(crate) mod tracks;
 
 use timeline::{Marked, Preview};
 
@@ -206,6 +206,8 @@ struct Ui {
     /// dot on the people while in one.
     people: gtk::Button,
     people_dot: gtk::Box,
+    /// Play on TV: hands what plays over to a TV.
+    tv: gtk::Button,
     settings: gtk::MenuButton,
     speed: gtk::MenuButton,
     menu_buttons: Vec<gtk::MenuButton>,
@@ -352,10 +354,86 @@ impl PlayerView {
             }
         });
         self.mpris.replace(Some(mpris));
+        // A TV driven from here is what the media controls show and press while nothing
+        // plays on this computer.
+        let view = Rc::downgrade(self);
+        self.ctx.tv.listen(move || {
+            if let Some(view) = view.upgrade() {
+                view.tv_media();
+            }
+        });
+    }
+
+    /// The TV is what plays: driven from here, playing something, and nothing open in the
+    /// player on this computer.
+    fn tv_drives(&self) -> bool {
+        let tv = &self.ctx.tv;
+        tv.live() && tv.now().is_some() && !self.shell().is_some_and(|s| s.is_player())
+    }
+
+    /// Show the TV's episode to the media controls, or nothing once the TV has stopped.
+    fn tv_media(&self) {
+        let Some(media) = self.media() else { return };
+        if self.shell().is_some_and(|s| s.is_player()) {
+            return;
+        }
+        let tv = &self.ctx.tv;
+        let Some(now) = tv.now().filter(|_| tv.connected().is_some()) else {
+            media.stopped();
+            return;
+        };
+        let entry = self.ctx.hub.entry(now.id);
+        let show = match &entry {
+            _ if !now.title.is_empty() => now.title.clone(),
+            Some(entry) => entry.title.clone(),
+            None => String::new(),
+        };
+        media.track(Track {
+            show,
+            title: now.episode_line.clone(),
+            art: entry.and_then(|e| e.banner_url.or(e.cover_url)),
+        });
+        media.state(now.paused, tv.playhead().or(Some(now.position)), now.duration);
+        media.neighbours(true, false);
+    }
+
+    /// What the media controls asked, sent to the TV.
+    fn tv_media_control(&self, action: MediaAction) {
+        use anistream_engine::remote::protocol::command::RemoteCommand;
+        let tv = &self.ctx.tv;
+        let paused = tv.now().is_some_and(|n| n.paused);
+        let command = match action {
+            MediaAction::Raise => {
+                self.ctx.window.present();
+                tv.open_remote();
+                return;
+            }
+            MediaAction::PlayPause => RemoteCommand::TogglePause,
+            MediaAction::Play if paused => RemoteCommand::TogglePause,
+            MediaAction::Pause if !paused => RemoteCommand::TogglePause,
+            MediaAction::Next => RemoteCommand::Next,
+            MediaAction::SeekBy(by) => RemoteCommand::Seek { by },
+            MediaAction::SeekTo(position) => RemoteCommand::SeekTo { position },
+            MediaAction::Volume(level) => {
+                let now = tv.now().and_then(|n| n.volume).unwrap_or(100.0);
+                RemoteCommand::Volume { step: level * 100.0 - now }
+            }
+            // The TV has no episode before, nor speeds, and Stop leaves it playing.
+            MediaAction::Play
+            | MediaAction::Pause
+            | MediaAction::Previous
+            | MediaAction::Stop
+            | MediaAction::Rate(_) => return,
+        };
+        tv.send(command);
     }
 
     /// What GNOME's media controls, the lock screen or a media key asked.
     fn media_control(&self, action: MediaAction) {
+        if self.tv_drives() {
+            self.tv_media_control(action);
+            return;
+        }
         let paused = self.state.borrow().paused;
         match action {
             MediaAction::Raise => self.ctx.window.present(),
@@ -440,6 +518,7 @@ impl PlayerView {
         if let Some(media) = self.media() {
             media.stopped();
         }
+        self.tv_media();
         self.ui.starting.set_visible(true);
         self.ui.starting.set_opacity(1.0);
     }
@@ -1331,6 +1410,11 @@ impl PlayerView {
         night_menu.append(Some("Night Mode"), Some("player.night"));
         self.night_action.set_state(&night.to_variant());
         menu.append_section(None, &night_menu);
+        if self.ctx.tv.available() {
+            let tv_menu = gio::Menu::new();
+            tv_menu.append(Some("Play on TV…"), Some("player.tv"));
+            menu.append_section(None, &tv_menu);
+        }
         let stats_menu = gio::Menu::new();
         stats_menu.append(Some("Stats for Nerds"), Some("player.stats"));
         menu.append_section(None, &stats_menu);
@@ -1395,6 +1479,19 @@ impl PlayerView {
             group.add_action(action);
         }
         add("party", None, Box::new(|v, _| v.show_party()));
+        add("tv", None, Box::new(|v, _| v.play_on_tv()));
+        self.ui.tv.set_visible(self.ctx.tv.available());
+        // Once the TV has it, the player here closes.
+        self.ctx.tv.on_handed_off({
+            let weak = Rc::downgrade(self);
+            move || {
+                if let Some(view) = weak.upgrade()
+                    && view.shell().is_some_and(|shell| shell.is_player())
+                {
+                    view.close();
+                }
+            }
+        });
         self.party.popover.connect_closed({
             let weak = Rc::downgrade(self);
             move |_| {
@@ -1756,6 +1853,30 @@ impl PlayerView {
         self.party.popover.popdown();
     }
 
+    /// Play on TV from the player: paused here, and carried on from here on the TV once it has
+    /// started the episode.
+    fn play_on_tv(&self) {
+        let Some(id) = self.title_id.get() else { return };
+        let episode = self.episode_line.borrow().0.clone();
+        if episode.is_empty() {
+            return;
+        }
+        let state = self.state.borrow().clone();
+        if !state.paused {
+            self.send(PlayerCommand::TogglePause);
+        }
+        if self.mini.get().is_some() {
+            self.set_mini(false);
+        }
+        self.ctx.tv.offer(crate::tv::Request {
+            id,
+            title: self.ui.show.label().to_string(),
+            episode,
+            from: state.position.filter(|p| *p > 5.0),
+            from_player: true,
+        });
+    }
+
     /// The party's panel when in one; the form that starts one when not.
     pub fn show_party(&self) {
         if self.ctx.hub.known.borrow().party.is_none() {
@@ -2032,6 +2153,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         .build();
     people.add_css_class("flat");
     people.add_css_class("image-button");
+    let tv = icon_button("video-display-symbolic", "Play on TV", "player.tv");
     let full = icon_button("view-fullscreen-symbolic", "Fullscreen", "player.fullscreen");
     let mini_button =
         icon_button("anistream-mini-player-symbolic", "Mini Player", "player.mini");
@@ -2045,6 +2167,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     top.pack_end(&episodes);
     top.pack_end(&tracks);
     top.pack_end(&people);
+    top.pack_end(&tv);
 
     // The bottom bar.
     let play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
@@ -2305,6 +2428,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
             forward10.upcast(),
             speed_button.clone().upcast(),
             mini_button.clone().upcast(),
+            tv.clone().upcast(),
         ],
         page,
         top,
@@ -2339,6 +2463,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
         tracks,
         people,
         people_dot,
+        tv,
         settings,
         speed: speed_button,
         menu_buttons,

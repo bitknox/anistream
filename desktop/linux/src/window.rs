@@ -55,6 +55,8 @@ pub struct Ctx {
     pub prefs: Rc<Prefs>,
     /// The app updating itself from its AppImage.
     pub updater: Rc<crate::updater::Updater>,
+    /// Play on TV and the TV's remote.
+    pub tv: Rc<crate::tv::Tv>,
     size: Cell<Size>,
     sized: RefCell<Vec<OnSize>>,
     /// Pushes a page on the destination on screen.
@@ -212,6 +214,7 @@ impl Shell {
         prefs: Rc<Prefs>,
         player: &PlayerOptions,
         updater: Rc<crate::updater::Updater>,
+        tv: Rc<crate::tv::Tv>,
         fixtures: bool,
     ) -> Rc<Self> {
         let window = adw::ApplicationWindow::builder()
@@ -240,6 +243,7 @@ impl Shell {
             toasts: toasts.clone(),
             prefs,
             updater,
+            tv,
             size: Cell::new(Size::Wide),
             sized: RefCell::default(),
             navs: RefCell::default(),
@@ -300,6 +304,7 @@ impl Shell {
             party_asked: Cell::new(false),
         });
         shell.player.attach(Rc::downgrade(&shell));
+        crate::tv::sheet::attach(&shell.ctx);
         shell.breakpoints();
         shell.actions(app);
         shell.listen();
@@ -463,6 +468,28 @@ impl Shell {
                 }
             }),
         );
+        // Play on TV: the title, the episode, and where this computer was in it (0 for its
+        // start).
+        add(
+            "play-on-tv",
+            Some(glib::VariantTy::new("(usd)").expect("a type")),
+            Box::new(move |s, a| {
+                let Some((id, episode, from)) = a.and_then(<(u32, String, f64)>::from_variant)
+                else {
+                    return;
+                };
+                let id = AnilistId::new(id);
+                let title = s.ctx.hub.entry(id).map(|e| e.title).unwrap_or_default();
+                s.ctx.tv.offer(crate::tv::Request {
+                    id,
+                    title,
+                    episode,
+                    from: (from > 0.0).then_some(from),
+                    from_player: false,
+                });
+            }),
+        );
+        add("tv-remote", None, Box::new(|s, _| s.ctx.tv.open_remote()));
         add(
             "download",
             Some(glib::VariantTy::new("(us)").expect("a type")),
@@ -998,6 +1025,7 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
         .child(&list)
         .build();
     column.append(&scroll);
+    column.append(&playing_on(ctx));
     column.append(&foot);
 
     let menu = gio::Menu::new();
@@ -1021,6 +1049,84 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
     header.pack_end(&primary);
     let page = widgets::page("anistream", &header, &column);
     (page, list, foot)
+}
+
+/// The way back to the remote while a TV is driven, over the sidebar's foot: "Playing on Living
+/// room", or the TV's name while it plays nothing. While the link is down it says so in the same
+/// place, with the app's dots: "Reconnecting to Living room", "Living room not found", "Pair
+/// Living room again". A screen reader hears the link go.
+fn playing_on(ctx: &Rc<Ctx>) -> gtk::ListBox {
+    let list = gtk::ListBox::new();
+    list.add_css_class("navigation-sidebar");
+    list.set_selection_mode(gtk::SelectionMode::None);
+    let line = gtk::Box::new(gtk::Orientation::Horizontal, 12);
+    line.append(&gtk::Image::from_icon_name("video-display-symbolic"));
+    let label = gtk::Label::new(None);
+    label.set_xalign(0.0);
+    label.set_hexpand(true);
+    // "Reconnecting to Living room" is wider than the sidebar: a second line, not cut short.
+    label.set_wrap(true);
+    label.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+    label.set_lines(2);
+    label.set_ellipsize(gtk::pango::EllipsizeMode::End);
+    label.set_width_chars(1);
+    line.append(&label);
+    let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    dot.add_css_class("mark");
+    dot.set_valign(gtk::Align::Center);
+    line.append(&dot);
+    let row = gtk::ListBoxRow::builder().child(&line).build();
+    row.set_action_name(Some("win.tv-remote"));
+    list.append(&row);
+    list.set_visible(false);
+    let said: Rc<RefCell<String>> = Rc::default();
+    let show = {
+        let tv = Rc::downgrade(&ctx.tv);
+        let list = list.downgrade();
+        move || {
+            let (Some(tv), Some(list)) = (tv.upgrade(), list.upgrade()) else { return };
+            let card = tv.card().filter(|_| tv.connected().is_some());
+            list.set_visible(card.is_some());
+            let Some(card) = card else {
+                said.replace(String::new());
+                return;
+            };
+            let (text, mark, down) = link_standing(&card, tv.now().is_some(), tv.ended());
+            label.set_label(&text);
+            row.set_tooltip_text(Some(&format!("Show the remote for {}", card.tv_name)));
+            for each in ["water", "haze", "vermilion"] {
+                dot.remove_css_class(each);
+            }
+            dot.add_css_class(mark);
+            if down && *said.borrow() != text {
+                list.announce(&text, gtk::AccessibleAnnouncementPriority::Medium);
+            }
+            said.replace(if down { text } else { String::new() });
+        }
+    };
+    show();
+    ctx.tv.listen(show);
+    list
+}
+
+/// What the sidebar says of the TV driven, its dot, and whether the link is down.
+fn link_standing(
+    card: &anistream_engine::remote::sender::RemoteCard,
+    playing: bool,
+    ended: bool,
+) -> (String, &'static str, bool) {
+    use anistream_engine::remote::sender::LinkPhase;
+    let name = &card.tv_name;
+    match card.phase {
+        LinkPhase::Connected if playing => (format!("Playing on {name}"), "water", false),
+        LinkPhase::Connected => (name.clone(), "water", false),
+        LinkPhase::Connecting => (format!("Connecting to {name}"), "haze", false),
+        LinkPhase::Retrying if ended => (format!("{name} not found"), "vermilion", true),
+        LinkPhase::Retrying => (format!("Reconnecting to {name}"), "haze", true),
+        LinkPhase::Unpaired | LinkPhase::KeyChanged => {
+            (format!("Pair {name} again"), "vermilion", true)
+        }
+    }
 }
 
 fn dest_row(dest: Dest) -> gtk::ListBoxRow {
@@ -1111,6 +1217,40 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_sidebar_says_what_became_of_the_tv() {
+        use anistream_engine::remote::{
+            protocol::state::Screen,
+            sender::{LinkPhase, RemoteCard},
+        };
+        let card = |phase| RemoteCard {
+            tv_name: "Living room".into(),
+            phase,
+            phase_line: None,
+            screen: Screen::Home,
+            now: None,
+            rev: 0,
+            over: false,
+        };
+        let said = |phase, playing, ended| link_standing(&card(phase), playing, ended);
+        assert_eq!(
+            said(LinkPhase::Connected, true, false),
+            ("Playing on Living room".into(), "water", false)
+        );
+        assert_eq!(
+            said(LinkPhase::Retrying, true, false),
+            ("Reconnecting to Living room".into(), "haze", true)
+        );
+        assert_eq!(
+            said(LinkPhase::Retrying, true, true),
+            ("Living room not found".into(), "vermilion", true)
+        );
+        assert_eq!(
+            said(LinkPhase::Unpaired, false, true),
+            ("Pair Living room again".into(), "vermilion", true)
+        );
+    }
 
     #[test]
     fn a_setting_saved_goes_unsaid_and_one_not_saved_does_not() {

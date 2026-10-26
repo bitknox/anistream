@@ -71,6 +71,8 @@ struct Page {
     /// The page's own heading, and the header bar that shows the title once it scrolls away.
     heading: RefCell<Option<gtk::Label>>,
     header: adw::HeaderBar,
+    /// Play on TV, at the header's end: the episode the primary action plays.
+    tv_button: gtk::Button,
     content: gtk::Box,
 }
 
@@ -157,6 +159,14 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
     header.add_css_class("flat");
     // The heading says the title; the header bar says it only once the heading has gone.
     header.set_show_title(false);
+    let tv_button = gtk::Button::from_icon_name("video-display-symbolic");
+    tv_button.set_tooltip_text(Some("Play on TV"));
+    tv_button.update_property(&[gtk::accessible::Property::Description(
+        "Play this episode on a TV with anistream",
+    )]);
+    tv_button.set_action_name(Some("win.play-on-tv"));
+    tv_button.set_visible(false);
+    header.pack_end(&tv_button);
     let view = adw::ToolbarView::new();
     view.add_top_bar(&header);
     view.add_top_bar(&widgets::offline_banner());
@@ -190,6 +200,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         dubbed_to: RefCell::default(),
         heading: RefCell::default(),
         header,
+        tv_button,
         content: content.clone(),
     });
     scroll.vadjustment().connect_value_changed({
@@ -475,6 +486,14 @@ impl Page {
             let rows = self.rows.borrow();
             !rows.is_empty() && !rows.iter().any(|r| r.metadata_only)
         };
+        let on_tv = playable && item.button.is_some() && self.ctx.tv.available();
+        self.tv_button.set_visible(on_tv);
+        if on_tv {
+            let from = item.resume.as_ref().map_or(0.0, |r| r.position);
+            self.tv_button.set_action_target_value(Some(
+                &(id, item.episode.to_string(), from).to_variant(),
+            ));
+        }
         // A party plays the episode the primary action would.
         if item.button.is_some() {
             first.append(
@@ -856,6 +875,17 @@ impl Page {
                 first.append(
                     Some("Play from the Beginning"),
                     Some(&format!("win.play-from-start({target})")),
+                );
+            }
+            if self.ctx.tv.available() {
+                // Resumed on the TV where it was left here.
+                let from = match (part_way, row.duration_secs) {
+                    (true, Some(d)) => d as f64 * row.watched,
+                    _ => 0.0,
+                };
+                first.append(
+                    Some("Play on TV"),
+                    Some(&format!("win.play-on-tv((uint32 {id}, '{n}', {from:.1}))")),
                 );
             }
         }

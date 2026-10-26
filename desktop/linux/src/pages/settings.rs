@@ -395,6 +395,12 @@ impl Inner {
                 self.update_rows(&group);
                 page.add(&group);
             }
+            // The TVs paired for Play on TV lead Integrations, as on the Mac.
+            "integrations" => {
+                if let Some(group) = crate::tv::paired::group(&self.ctx) {
+                    page.add(&group);
+                }
+            }
             _ => {}
         }
         let known = self.ctx.hub.known.borrow();

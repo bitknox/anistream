@@ -78,6 +78,28 @@ pub const PARTY: [&str; 15] = [
     "party-title-menu",
 ];
 
+/// Play on TV's shots, on the scene's two TVs on loopback: `--shot tv` takes them, in this
+/// order, as the last ones switch the TVs off.
+pub const TV: [&str; 17] = [
+    "tv-empty",
+    "tv-address",
+    "tv-unreachable",
+    "tv-slow",
+    "tv-picker",
+    "tv-code",
+    "tv-wrong",
+    "tv-expired",
+    "tv-remote",
+    "tv-bar",
+    "tv-settings",
+    "tv-player",
+    "tv-unpaired",
+    "tv-bar-unpaired",
+    "tv-lost",
+    "tv-bar-lost",
+    "tv-connecting",
+];
+
 /// Stats for nerds' shots, apart from the rest so a run of every shot keeps to its time:
 /// `--shot stats` takes them.
 pub const STATS: [&str; 5] = [
@@ -442,6 +464,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             1.5
         }
         party if party.starts_with("party-") => party_stage(shell, party),
+        tv if tv.starts_with("tv-") => tv_stage(shell, tv),
         other => {
             tracing::warn!(shot = other, "no such shot");
             0.0
@@ -503,6 +526,7 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         }
         "player" | "player-marks" | "player-undo" | "mini" => shell.player.close(),
         party if party.starts_with("party-") => party_unstage(shell, party),
+        tv if tv.starts_with("tv-") => tv_unstage(shell, tv),
         _ => {}
     }
 }
@@ -657,6 +681,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
             .flat_map(|s| match s {
                 "party" => PARTY.iter().map(|p| (*p).to_owned()).collect(),
                 "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
+                "tv" => TV.iter().map(|p| (*p).to_owned()).collect(),
                 one => vec![one.to_owned()],
             })
             .collect(),
@@ -692,6 +717,9 @@ const ROOM: &str = "quiet-harbor-k7m2xq9ad4tnwe3p";
 thread_local! {
     /// The party shot's server, kept until the shot is taken.
     static PARTY_SERVER: std::cell::RefCell<Option<crate::fixtures::FakeParty>> =
+        const { std::cell::RefCell::new(None) };
+    /// The TV the slow pairing shot waits on, on this computer, which never answers.
+    static SILENT_TV: std::cell::RefCell<Option<std::net::TcpListener>> =
         const { std::cell::RefCell::new(None) };
     /// The address the joining shot waits on, which never answers.
     static SILENT: std::cell::RefCell<Option<std::net::TcpListener>> =
@@ -983,6 +1011,243 @@ fn party_stage(_: &Rc<Shell>, _: &str) -> f64 {
 
 #[cfg(not(feature = "fixtures"))]
 fn party_unstage(_: &Rc<Shell>, _: &str) {}
+
+/// Play on TV's scenes. Each starts from the window as it is between shots: no sheet up and no
+/// TV driven.
+#[cfg(feature = "fixtures")]
+fn tv_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use crate::tv::{
+        fixture::{self, BEDROOM, LIVING_ROOM},
+        sheet,
+    };
+    let Some(scene) = fixture::scene() else { return 0.0 };
+    let tv = Rc::clone(&shell.ctx.tv);
+    let later = |ms: u64, f: Box<dyn FnOnce()>| {
+        glib::timeout_add_local_once(Duration::from_millis(ms), f);
+    };
+    // A paired TV, then Play on TV for episode 3 from 5:12, chosen in the picker: the remote.
+    let drive = |name: &'static str| {
+        if let Some(link) = scene.pair_link(name) {
+            tv.pair_quietly(&link);
+        }
+        let window = shell.ctx.window.clone();
+        later(
+            1500,
+            Box::new(move || {
+                let _ = WidgetExt::activate_action(
+                    &window,
+                    "win.play-on-tv",
+                    Some(&(TITLE, "3".to_owned(), 312.0).to_variant()),
+                );
+            }),
+        );
+        let tv = Rc::clone(&tv);
+        later(
+            2500,
+            Box::new(move || {
+                if let Some(row) = tv.rows().into_iter().find(|r| r.name == name) {
+                    tv.choose(&row);
+                }
+            }),
+        );
+    };
+    shell.go(Dest::Continue);
+    match shot {
+        "tv-empty" => {
+            scene.silence(true);
+            tv.open_picker();
+            11.5
+        }
+        "tv-address" => {
+            scene.silence(true);
+            tv.open_picker();
+            later(800, Box::new(|| sheet::shot_address("192.168.1.20:47811")));
+            2.0
+        }
+        "tv-unreachable" => {
+            scene.silence(true);
+            tv.open_picker();
+            // Nothing listens on port 1 of this computer: refused at once.
+            let tv = Rc::clone(&tv);
+            later(500, Box::new(move || tv.begin("127.0.0.1:1")));
+            3.0
+        }
+        "tv-slow" => {
+            // A TV on this computer that takes the connection and never answers, as one on a
+            // slow network: nothing leaves the machine.
+            scene.silence(true);
+            tv.open_picker();
+            if let Some((listener, address)) = crate::fixtures::silent_server() {
+                SILENT_TV.with(|s| s.replace(Some(listener)));
+                let tv = Rc::clone(&tv);
+                later(500, Box::new(move || tv.begin(&address)));
+            }
+            3.0
+        }
+        "tv-picker" => {
+            if let Some(link) = scene.pair_link(BEDROOM) {
+                tv.pair_quietly(&link);
+            }
+            let _ = WidgetExt::activate_action(
+                &shell.ctx.window,
+                "win.open-title",
+                Some(&TITLE.to_variant()),
+            );
+            let window = shell.ctx.window.clone();
+            later(
+                1500,
+                Box::new(move || {
+                    let _ = WidgetExt::activate_action(
+                        &window,
+                        "win.play-on-tv",
+                        Some(&(TITLE, "7".to_owned(), 0.0).to_variant()),
+                    );
+                }),
+            );
+            4.0
+        }
+        "tv-code" | "tv-wrong" | "tv-expired" => {
+            tv.open_picker();
+            // Chosen once the browse lists it, as a click on its row would.
+            let begin = Rc::clone(&tv);
+            later(
+                1000,
+                Box::new(move || {
+                    if let Some(row) = begin.rows().into_iter().find(|r| r.name == LIVING_ROOM)
+                    {
+                        begin.choose(&row);
+                    }
+                }),
+            );
+            let tries = match shot {
+                "tv-code" => {
+                    later(2000, Box::new(|| sheet::shot_code("482")));
+                    return 3.0;
+                }
+                "tv-wrong" => 1,
+                _ => 4,
+            };
+            for n in 0..tries {
+                later(2000 + n * 1500, Box::new(|| sheet::shot_code("000000")));
+            }
+            2.5 + tries as f64 * 1.5
+        }
+        "tv-remote" => {
+            drive(LIVING_ROOM);
+            8.0
+        }
+        "tv-bar" => {
+            drive(LIVING_ROOM);
+            let window = shell.ctx.window.clone();
+            later(7000, Box::new(move || close_dialogs(&window)));
+            8.5
+        }
+        "tv-settings" => {
+            drive(LIVING_ROOM);
+            let window = shell.ctx.window.clone();
+            let settings = Rc::clone(shell);
+            later(
+                6000,
+                Box::new(move || {
+                    close_dialogs(&window);
+                    settings.settings_pane("integrations");
+                }),
+            );
+            8.0
+        }
+        "tv-player" => {
+            play(shell);
+            9.0
+        }
+        "tv-unpaired" => {
+            drive(LIVING_ROOM);
+            later(6000, Box::new(move || scene.revoke_all(LIVING_ROOM)));
+            9.0
+        }
+        "tv-bar-unpaired" | "tv-bar-lost" => {
+            // Driven, the sheet closed, then the TV forgets this computer or goes away: the
+            // sidebar says so.
+            let lost = shot == "tv-bar-lost";
+            let name = if lost { BEDROOM } else { LIVING_ROOM };
+            drive(name);
+            let window = shell.ctx.window.clone();
+            later(6000, Box::new(move || close_dialogs(&window)));
+            later(
+                6500,
+                Box::new(move || {
+                    if lost {
+                        scene.switch_off(name);
+                    } else {
+                        scene.revoke_all(name);
+                    }
+                }),
+            );
+            9.5
+        }
+        "tv-lost" => {
+            drive(LIVING_ROOM);
+            later(6000, Box::new(move || scene.switch_off(LIVING_ROOM)));
+            9.0
+        }
+        "tv-connecting" => {
+            // Paired before, and away now: the remote waits on it, holding what was asked.
+            if let Some(link) = scene.pair_link(BEDROOM) {
+                tv.pair_quietly(&link);
+            }
+            later(1000, Box::new(move || scene.switch_off(BEDROOM)));
+            let window = shell.ctx.window.clone();
+            later(
+                1800,
+                Box::new(move || {
+                    let _ = WidgetExt::activate_action(
+                        &window,
+                        "win.play-on-tv",
+                        Some(&(TITLE, "3".to_owned(), 312.0).to_variant()),
+                    );
+                }),
+            );
+            let tv = Rc::clone(&tv);
+            later(
+                2600,
+                Box::new(move || {
+                    if let Some(row) = tv.rows().into_iter().find(|r| r.name == BEDROOM) {
+                        tv.choose(&row);
+                    }
+                }),
+            );
+            5.0
+        }
+        _ => 0.0,
+    }
+}
+
+#[cfg(feature = "fixtures")]
+fn tv_unstage(shell: &Rc<Shell>, shot: &str) {
+    SILENT_TV.with(|s| s.replace(None));
+    // As Done would: the model lets the sheet go, then anything else up closes.
+    shell.ctx.tv.sheet_closed();
+    close_dialogs(&shell.ctx.window);
+    shell.ctx.tv.cancel_pairing();
+    shell.ctx.tv.disconnect();
+    if let Some(scene) = crate::tv::fixture::scene() {
+        scene.silence(false);
+    }
+    match shot {
+        "tv-picker" => {
+            let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+        }
+        "tv-player" => shell.player.close(),
+        _ => {}
+    }
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn tv_stage(_: &Rc<Shell>, _: &str) -> f64 {
+    0.0
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn tv_unstage(_: &Rc<Shell>, _: &str) {}
 
 /// The title page's More button, on the page on screen.
 fn more_button(window: &adw::ApplicationWindow) -> Option<gtk::MenuButton> {

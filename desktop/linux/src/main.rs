@@ -25,6 +25,7 @@ mod shots;
 mod showcase;
 mod states;
 mod style;
+mod tv;
 mod updater;
 mod updates;
 mod video;
@@ -132,7 +133,7 @@ fn main() -> glib::ExitCode {
     // What the engine asks of the desktop, for the main loop.
     let (host_tx, host_rx) = async_channel::unbounded::<HostRequest>();
     let host = Arc::new(engine::DesktopHost::new(host_tx));
-    let (started, prefs_file, cache_dir) = match start(&runtime, &args, host) {
+    let (started, prefs_file, cache_dir, data_dir) = match start(&runtime, &args, host) {
         Ok(started) => started,
         Err(e) => {
             tracing::error!(error = %e, "the engine did not start");
@@ -165,7 +166,12 @@ fn main() -> glib::ExitCode {
         audio_output: args.audio_output.clone(),
         ..PlayerOptions::default()
     };
-    let files = Files { prefs: prefs_file, cache: cache_dir };
+    let files = Files {
+        prefs: prefs_file,
+        cache: cache_dir,
+        data: data_dir,
+        runtime: runtime.handle().clone(),
+    };
     let pending = Rc::new(RefCell::new(Some((events_rx, host_rx))));
     let shell_slot: Rc<RefCell<Option<Rc<Shell>>>> = Rc::default();
     let args = Rc::new(args);
@@ -212,14 +218,18 @@ fn main() -> glib::ExitCode {
     code
 }
 
-/// Where the window keeps its own preferences, and the cache directory.
+/// Where the window keeps its own preferences, the cache and data directories, and the engine's
+/// runtime, which Play on TV's sender runs on.
 struct Files {
     prefs: PathBuf,
     cache: PathBuf,
+    data: PathBuf,
+    runtime: tokio::runtime::Handle,
 }
 
-/// The engine started, where the window keeps its own preferences, and the cache directory.
-type Start = (engine::Started, PathBuf, PathBuf);
+/// The engine started, where the window keeps its own preferences, and the cache and data
+/// directories.
+type Start = (engine::Started, PathBuf, PathBuf, PathBuf);
 
 /// The engine on the user's own directories, or on the fixture scene under `--data`.
 fn start(
@@ -233,8 +243,9 @@ fn start(
     let paths = Paths::resolve().map_err(|e| format!("{e:?}"))?;
     let prefs = paths.config_file.with_file_name("desktop.ini");
     let cache = paths.cache_dir.clone();
+    let data = paths.data_dir.clone();
     let started = runtime.block_on(engine::start(paths, host))?;
-    Ok((started, prefs, cache))
+    Ok((started, prefs, cache, data))
 }
 
 #[cfg(feature = "fixtures")]
@@ -250,10 +261,11 @@ fn start_fixtures(
     let paths = engine::paths_under(&root);
     let prefs = paths.config_file.with_file_name("desktop.ini");
     let cache = paths.cache_dir.clone();
+    let data = paths.data_dir.clone();
     fixtures::keep_runtime(runtime.handle().clone());
     let started = runtime.block_on(fixtures::start(&root, &scene, host))?;
     tracing::info!(root = %root.display(), "the fixture scene");
-    Ok((started, prefs, cache))
+    Ok((started, prefs, cache, data))
 }
 
 #[cfg(not(feature = "fixtures"))]
@@ -263,6 +275,16 @@ fn start_fixtures(
     _: Arc<engine::DesktopHost>,
 ) -> Result<Start, String> {
     Err("this build has no fixture scene: build it with --features fixtures".into())
+}
+
+/// Play on TV's sender: on the scene's TVs on loopback for a fixture run, never a real one.
+fn play_on_tv(args: &Args, files: &Files) -> Rc<tv::Tv> {
+    #[cfg(feature = "fixtures")]
+    if args.fixtures {
+        return tv::fixture::tv(files.runtime.clone(), &files.data);
+    }
+    let _ = args;
+    tv::Tv::new(files.runtime.clone(), &files.data)
 }
 
 fn build(
@@ -282,7 +304,8 @@ fn build(
     let hub = Hub::new(engine);
     let prefs = Rc::new(Prefs::open(files.prefs.clone()));
     let updater = updater::Updater::new(&files.cache, args.fixtures);
-    let shell = Shell::build(app, Rc::clone(&hub), prefs, player, updater, args.fixtures);
+    let tv = play_on_tv(args, files);
+    let shell = Shell::build(app, Rc::clone(&hub), prefs, player, updater, tv, args.fixtures);
     // A scene's media controls sit beside the user's own copy's, as MPRIS has instances do.
     let media_name = if args.fixtures {
         format!("{}.instance{}", mpris::NAME, std::process::id())
