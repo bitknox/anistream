@@ -1,6 +1,7 @@
 ---
 import '../styles/theme.css';
 import '../styles/landing.css';
+import FeatureVideo from '../components/FeatureVideo.astro';
 import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
@@ -143,14 +144,22 @@ const installHtml = [
 				</div>
 				<div class="hero-apps">
 					<div class="hero-devices">
-						<Shot
+						<FeatureVideo
 							name="mac-continue"
 							frame="window"
 							class="hero-mac"
-							sizes="(min-width: 1200px) 584px, (min-width: 900px) 700px, calc(100vw - 32px)"
-							loading="eager"
-							alt="The Mac app’s Continue screen, with a banner for the show in progress and a button to resume its episode"
-						/>
+							eager
+							alt="The Mac app on Continue: another show picked from the queue, its banner growing into the title page, then its second season"
+						>
+							<Shot
+								name="mac-continue"
+								frame="window"
+								class="hero-mac"
+								sizes="(min-width: 1200px) 584px, (min-width: 900px) 700px, calc(100vw - 32px)"
+								loading="eager"
+								alt="The Mac app’s Continue screen, with a banner for the show in progress and a button to resume its episode"
+							/>
+						</FeatureVideo>
 						<Shot
 							name="iphone-title"
 							frame="phone"
@@ -161,8 +170,8 @@ const installHtml = [
 						/>
 					</div>
 					<p class="caption">
-						The Mac app on Continue, with the iPhone app on a title page in front. Every title and
-						picture in these screenshots is made up.
+						The Mac app going from Continue to a title page, with the iPhone app on a title page in
+						front. Every title and picture here is made up.
 					</p>
 				</div>
 			</div>

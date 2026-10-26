@@ -22,6 +22,7 @@ import Foundation
 ///     -AnistreamDay 2               the calendar opened on the day this many days after today,
 ///                                   for a day with broadcasts: the fixtures' own day can have none
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
+///     -AnistreamCatalogue           Search's browse with the test kit's eight more titles beside the six
 public struct LaunchRoute: Equatable, Sendable {
     public var section: AppSection = .continue
     public var selected: AnilistId?

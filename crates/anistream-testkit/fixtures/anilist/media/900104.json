@@ -1,0 +1,86 @@
+{
+  "id": 900104,
+  "idMal": 800104,
+  "title": {
+    "romaji": "Yamakage Kisha",
+    "english": "The Mountain Shadow Express",
+    "native": "山影汽車"
+  },
+  "format": "TV",
+  "status": "RELEASING",
+  "description": "A night train climbs a mountain line that is not on any timetable, and its passengers each board with a question the conductor already knows.",
+  "episodes": 24,
+  "duration": 24,
+  "seasonYear": 2026,
+  "season": "SPRING",
+  "startDate": {
+    "year": 2026,
+    "month": 4,
+    "day": 5
+  },
+  "endDate": {
+    "year": null,
+    "month": null,
+    "day": null
+  },
+  "source": "LIGHT_NOVEL",
+  "isAdult": false,
+  "averageScore": 81,
+  "genres": [
+    "Adventure",
+    "Mystery"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900104-xl.jpg",
+    "large": "https://img.example/cover/900104.jpg",
+    "color": "#6f8fa8"
+  },
+  "bannerImage": "https://img.example/banner/900104.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Tetsukage"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [
+    {
+      "name": "Trains",
+      "rank": 88,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Setting-Scene"
+    }
+  ],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of The Mountain Shadow Express"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -4,10 +4,12 @@
 //! moon, a tower library above the clouds, a station platform under a full moon, a steel
 //! gardener's flower, a running track at summer's end. These are those drawings rendered to PNG,
 //! a 460 × 690 poster and a 1600 × 900 wide one each, and the second season's drawn in another
-//! tone. [`FakeAniList::serve_art`](crate::FakeAniList::serve_art) serves them at the paths the
+//! tone. The opt-in catalogue's eight titles ([`crate::fixtures::catalogue`]) are drawn the same
+//! way, a lighthouse, a koi pond, paper lanterns and so on. The SVG each PNG was rendered from is
+//! under `fixtures/art/src/`. [`FakeAniList::serve_art`](crate::FakeAniList::serve_art) serves them at the paths the
 //! fixtures' own image URLs name.
 
-use crate::fixtures::{AIRING, AIRING_NO_MAL, FINISHED, MOVIE, ONA, SEQUEL};
+use crate::fixtures::{AIRING, AIRING_NO_MAL, CATALOGUE, FINISHED, MOVIE, ONA, SEQUEL};
 
 /// One title's drawing, as a poster and wide.
 struct Art {
@@ -31,6 +33,18 @@ const PLATFORM: Art = art!("platform");
 const GARDENER: Art = art!("gardener");
 const RELAY: Art = art!("relay");
 
+/// The catalogue's drawings, in [`CATALOGUE`]'s order.
+const CATALOGUE_ART: [Art; 8] = [
+    art!("lighthouse"),
+    art!("koi"),
+    art!("lanterns"),
+    art!("train"),
+    art!("fox"),
+    art!("radio"),
+    art!("greenhouse"),
+    art!("rowing"),
+];
+
 fn of(id: u32) -> Option<&'static Art> {
     let id = anistream_core::ids::AnilistId::new(id);
     Some(match id {
@@ -40,7 +54,7 @@ fn of(id: u32) -> Option<&'static Art> {
         MOVIE => &PLATFORM,
         ONA => &GARDENER,
         AIRING_NO_MAL => &RELAY,
-        _ => return None,
+        _ => return CATALOGUE.iter().position(|c| *c == id).map(|n| &CATALOGUE_ART[n]),
     })
 }
 
@@ -72,6 +86,12 @@ mod tests {
             ["cover/900001-xl.jpg", "cover/900006.jpg", "banner/900004.jpg", "ep/900001/7.jpg"]
         {
             assert!(png(path).is_some_and(|bytes| bytes.starts_with(PNG)), "{path}");
+        }
+        for id in CATALOGUE {
+            for kind in ["cover", "banner"] {
+                let path = format!("{kind}/{id}.jpg");
+                assert!(png(&path).is_some_and(|bytes| bytes.starts_with(PNG)), "{path}");
+            }
         }
         assert_ne!(png("cover/900001.jpg"), png("cover/900004.jpg"), "the sequel is its own");
         assert_ne!(

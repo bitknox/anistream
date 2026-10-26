@@ -180,6 +180,8 @@ struct State {
     viewer_language: Option<String>,
     /// Titles beside the fixtures, by id, which a test made up: see [`FakeAniList::add_titles`].
     extra: HashMap<u64, Value>,
+    /// Titles that are also in the search and browse pool: see [`FakeAniList::add_catalogue`].
+    catalogue: Vec<AnilistId>,
     /// How long each operation's answers are held back: see [`FakeAniList::answer_slowly`].
     slow: HashMap<Operation, std::time::Duration>,
     /// Where image URLs point once the fake serves art: its own `/art/`.
@@ -215,6 +217,7 @@ impl FakeAniList {
             titles: HashMap::new(),
             viewer_language: None,
             extra: HashMap::new(),
+            catalogue: Vec::new(),
             slow: HashMap::new(),
             art: None,
             art_trouble: ArtTrouble::default(),
@@ -374,6 +377,28 @@ impl FakeAniList {
         for title in titles {
             let id = title["id"].as_u64().expect("a title has an id");
             state.extra.insert(id, title);
+        }
+    }
+
+    /// [`Self::add_titles`], and the titles join the pool a search or a browse filters and
+    /// sorts, beside the fixtures, so that a Search with no term finds them too. For a grid with
+    /// more than the six titles in it, such as [`fixtures::catalogue_titles`].
+    ///
+    /// In a browse the new titles are mixed in with the fixtures, one after each, not put at the
+    /// end, so a sort that ties (the fixtures carry no popularity) shows both kinds together. A
+    /// season asked with no term still answers with [`fixtures::SEASONAL`] alone.
+    pub fn add_catalogue(&self, titles: impl IntoIterator<Item = Value>) {
+        let titles: Vec<Value> = titles.into_iter().collect();
+        let ids: Vec<AnilistId> = titles
+            .iter()
+            .map(|t| AnilistId::new(t["id"].as_u64().expect("a title has an id") as u32))
+            .collect();
+        self.add_titles(titles);
+        let mut state = lock(&self.state);
+        for id in ids {
+            if !state.catalogue.contains(&id) {
+                state.catalogue.push(id);
+            }
         }
     }
 }
@@ -559,7 +584,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, (now, ahead), titles, viewer_language, extra) = {
+    let (failure, (now, ahead), titles, viewer_language, extra, pool) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -571,13 +596,14 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         let failure = state.next.pop_front().or_else(|| state.always.clone());
         let clock = (state.now, state.ahead);
         let extra = state.extra.clone();
-        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra)
+        let pool = state.catalogue.clone();
+        (failure, clock, state.titles.clone(), state.viewer_language.clone(), extra, pool)
     };
     match failure {
         Some(failure) => fail(failure),
         None => {
             let clock = Clock { shift: now - FIXTURE_NOW, now: now + ahead };
-            let catalogue = Catalogue { extra: &extra };
+            let catalogue = Catalogue { extra: &extra, added: &pool };
             let mut reply =
                 respond(operation, &variables, head.authorization.is_some(), clock, catalogue);
             if let Reply::Answer { body, .. } = &mut reply {
@@ -652,9 +678,32 @@ fn tenrai(path: &str) -> Reply {
 #[derive(Clone, Copy)]
 struct Catalogue<'a> {
     extra: &'a HashMap<u64, Value>,
+    /// The added titles that a search and a browse also find: see
+    /// [`FakeAniList::add_catalogue`].
+    added: &'a [AnilistId],
 }
 
-impl Catalogue<'_> {
+impl<'a> Catalogue<'a> {
+    /// `id` as the fake holds it, from the added titles or the fixtures, without copying it.
+    fn wire(self, id: AnilistId) -> Option<&'a Value> {
+        self.extra.get(&u64::from(id.get())).or_else(|| fixtures::wire(id))
+    }
+
+    /// `id` as a list query answers it: the detail-only fields left out.
+    fn listed(self, id: AnilistId) -> Option<Value> {
+        self.wire(id).map(fixtures::listed_form)
+    }
+
+    /// Every title a browse draws from: the fixtures with the added titles mixed in, one after
+    /// each, and any left over at the end.
+    fn pool(self) -> Vec<AnilistId> {
+        let mut pool = Vec::with_capacity(fixtures::ALL.len() + self.added.len());
+        for n in 0..fixtures::ALL.len().max(self.added.len()) {
+            pool.extend(fixtures::ALL.get(n).into_iter().chain(self.added.get(n)));
+        }
+        pool
+    }
+
     /// `id` as the single-title query answers it.
     fn get(self, id: u64) -> Option<Value> {
         let fixture = || fixtures::wire(AnilistId::new(id as u32)).cloned();
@@ -722,7 +771,11 @@ fn respond(
         Operation::Search | Operation::Seasonal | Operation::Browse => {
             let mut data = serde_json::Map::new();
             for (alias, page) in pages(vars) {
-                data.insert(alias, media_page(search(&page), &page, clock)["Page"].take());
+                data.insert(
+                    alias,
+                    media_page(search(&page, catalogue), &page, clock, catalogue)["Page"]
+                        .take(),
+                );
             }
             Reply::ok(Value::Object(data))
         }
@@ -849,17 +902,17 @@ fn pages(vars: &Value) -> Vec<(String, Value)> {
 /// with no term is answered with [`fixtures::SEASONAL`] when it is the one the real clock is in,
 /// as the app asks for that one and a test should not break when the season turns. Any other
 /// season, and every other filter, is applied to the fixtures as AniList would apply it.
-fn search(vars: &Value) -> Vec<AnilistId> {
+fn search(vars: &Value, catalogue: Catalogue<'_>) -> Vec<AnilistId> {
     let term = vars["search"].as_str().unwrap_or_default().trim().to_lowercase();
     let this_season = term.is_empty()
         && vars["season"].as_str() == Some(real_season().0)
         && vars["seasonYear"].as_u64() == Some(real_season().1);
-    let pool: &[AnilistId] = if this_season { &fixtures::SEASONAL } else { &fixtures::ALL };
+    let pool: Vec<AnilistId> =
+        if this_season { fixtures::SEASONAL.to_vec() } else { catalogue.pool() };
     let mut found: Vec<AnilistId> = pool
-        .iter()
-        .copied()
+        .into_iter()
         .filter(|id| {
-            let media = fixtures::wire(*id).expect("ALL lists fixture titles");
+            let media = catalogue.wire(*id).expect("the pool lists titles the fake has");
             let names = ["romaji", "english", "native"]
                 .iter()
                 .filter_map(|form| media["title"][form].as_str())
@@ -872,9 +925,9 @@ fn search(vars: &Value) -> Vec<AnilistId> {
                 );
             term.is_empty() || names.map(str::to_lowercase).any(|name| name.contains(&term))
         })
-        .filter(|id| filtered(*id, vars, !this_season))
+        .filter(|id| filtered(*id, vars, !this_season, catalogue))
         .collect();
-    sort(&mut found, vars);
+    sort(&mut found, vars, catalogue);
     found
 }
 
@@ -906,8 +959,8 @@ fn real_season() -> (&'static str, u64) {
 /// except genres and tags, which are every one of; `_not_in` is none of; `_greater` and
 /// `_lesser` are exclusive. A field the fixture leaves out reads as AniList's most common
 /// answer for it (made in Japan, licensed), or as nothing (no score, no popularity).
-fn filtered(id: AnilistId, vars: &Value, with_season: bool) -> bool {
-    let Some(media) = fixtures::wire(id) else { return false };
+fn filtered(id: AnilistId, vars: &Value, with_season: bool, catalogue: Catalogue<'_>) -> bool {
+    let Some(media) = catalogue.wire(id) else { return false };
     let list = |name: &str| vars[name].as_array().cloned().unwrap_or_default();
     let number = |name: &str| vars[name].as_i64();
     let genres = media["genres"].as_array().cloned().unwrap_or_default();
@@ -980,7 +1033,7 @@ fn filtered(id: AnilistId, vars: &Value, with_season: bool) -> bool {
 
 /// The page's sort, first name deciding, as AniList orders: relevance and `ID` keep the
 /// catalogue's order, and a title with nothing to sort by goes last.
-fn sort(found: &mut [AnilistId], vars: &Value) {
+fn sort(found: &mut [AnilistId], vars: &Value, catalogue: Catalogue<'_>) {
     let first = match &vars["sort"] {
         Value::Array(sorts) => {
             sorts.first().and_then(Value::as_str).unwrap_or_default().to_owned()
@@ -988,10 +1041,10 @@ fn sort(found: &mut [AnilistId], vars: &Value) {
         sort => sort.as_str().unwrap_or_default().to_owned(),
     };
     let field = |id: &AnilistId, name: &str| {
-        fixtures::wire(*id).and_then(|m| m[name].as_i64()).unwrap_or(i64::MIN)
+        catalogue.wire(*id).and_then(|m| m[name].as_i64()).unwrap_or(i64::MIN)
     };
     let started = |id: &AnilistId| {
-        fixtures::wire(*id).map_or(0, |m| {
+        catalogue.wire(*id).map_or(0, |m| {
             let d = &m["startDate"];
             d["year"].as_i64().unwrap_or(0) * 10_000
                 + d["month"].as_i64().unwrap_or(0) * 100
@@ -1006,7 +1059,8 @@ fn sort(found: &mut [AnilistId], vars: &Value) {
         "START_DATE_DESC" => found.sort_by_key(|id| std::cmp::Reverse(started(id))),
         "START_DATE" => found.sort_by_key(started),
         "TITLE_ROMAJI" => found.sort_by_key(|id| {
-            fixtures::wire(*id)
+            catalogue
+                .wire(*id)
                 .and_then(|m| m["title"]["romaji"].as_str().map(str::to_lowercase))
                 .unwrap_or_default()
         }),
@@ -1056,10 +1110,18 @@ fn paged<T>(items: Vec<T>, vars: &Value) -> (Vec<T>, bool) {
     (items.into_iter().skip((page - 1) * per_page).take(per_page).collect(), more)
 }
 
-fn media_page(found: Vec<AnilistId>, vars: &Value, clock: Clock) -> Value {
+fn media_page(
+    found: Vec<AnilistId>,
+    vars: &Value,
+    clock: Clock,
+    catalogue: Catalogue<'_>,
+) -> Value {
     let (found, more) = paged(found, vars);
-    let media: Vec<Value> =
-        found.into_iter().filter_map(fixtures::listed_wire).map(|m| clock.media(m)).collect();
+    let media: Vec<Value> = found
+        .into_iter()
+        .filter_map(|id| catalogue.listed(id))
+        .map(|m| clock.media(m))
+        .collect();
     json!({ "Page": { "pageInfo": { "hasNextPage": more }, "media": media } })
 }
 

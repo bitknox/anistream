@@ -1,0 +1,78 @@
+{
+  "id": 900101,
+  "idMal": 800101,
+  "title": {
+    "romaji": "Shiranami no Tomoshibi",
+    "english": "The Lighthouse Keeper's Lamp",
+    "native": "白波の灯火"
+  },
+  "format": "TV",
+  "status": "FINISHED",
+  "description": "A lighthouse keeper's apprentice learns that the lamp answers to more than ships, and that what it calls home each night is not always the sea.",
+  "episodes": 13,
+  "duration": 24,
+  "seasonYear": 2024,
+  "season": "SPRING",
+  "startDate": {
+    "year": 2024,
+    "month": 4,
+    "day": 6
+  },
+  "endDate": {
+    "year": 2024,
+    "month": 6,
+    "day": 29
+  },
+  "source": "ORIGINAL",
+  "isAdult": false,
+  "averageScore": 78,
+  "genres": [
+    "Fantasy",
+    "Drama"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900101-xl.jpg",
+    "large": "https://img.example/cover/900101.jpg",
+    "color": "#e9b872"
+  },
+  "bannerImage": "https://img.example/banner/900101.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Namiori"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of The Lighthouse Keeper's Lamp"
+          }
+        }
+      }
+    ]
+  }
+}

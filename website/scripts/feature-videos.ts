@@ -24,6 +24,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
+import { type CursorEvent, drawCursor, firstMove } from './videos/cursor';
 
 interface Spec {
 	/** The width to encode at; the height follows the recording. */
@@ -36,25 +37,30 @@ interface Spec {
 	poster?: number;
 	/** How much a still screen shrinks: 3 keeps one frame in three, 1 keeps them all. */
 	squeeze?: number;
+	/** Frames a second, 30 unless the recording has more to give: the Mac's window is filmed at 60. */
+	fps?: number;
 }
 
 const PHONE = 540;
 
 // The site's name for each clip: the platform, then the task.
 const CLIPS: Record<string, Spec> = {
-	'iphone-search': { width: PHONE },
+	'iphone-title': { width: PHONE },
 	'iphone-calendar': { width: PHONE },
 	'iphone-player': { width: 1280, episode: true, turn: 'left', squeeze: 1 },
 	'iphone-tv-remote': { width: PHONE },
 	'android-title': { width: PHONE },
 	'tv-resume': { width: 960, episode: true },
-	'mac-search': { width: 1280 },
+	'mac-search': { width: 1280, fps: 60 },
+	'mac-continue': { width: 1280, fps: 60 },
 };
 
 /** Seconds of the settled screen before the flow's start mark, before the squeeze. */
 const LEAD = 1.2;
 /** The task done, held before the fade. */
 const HOLD = 0.8;
+/** Seconds the drawn pointer rests at the clip's start before its first move. */
+const REST = 0.3;
 /** The fade from the last frames into the first. */
 const FADE = 0.4;
 const FPS = 30;
@@ -70,6 +76,8 @@ interface Record_ {
 	plays?: number;
 	end: number;
 	crop?: { x: number; y: number; w: number; h: number; screenW: number; screenH: number };
+	/** The Mac's pointer: where the flow rested, clicked and typed, in the window's points. */
+	cursor?: { kind: CursorEvent['kind']; x: number; y: number; t: number }[];
 }
 
 interface Video {
@@ -99,11 +107,15 @@ const readManifest = (): Record<string, Video> => (existsSync(manifestPath) ? JS
 const encoded: Record<string, Video> = {};
 
 function run(command: string[]): string {
+	return spawn(command).stdout;
+}
+
+function spawn(command: string[]): { stdout: string; stderr: string } {
 	const result = Bun.spawnSync(command, { stdout: 'pipe', stderr: 'pipe' });
 	if (result.exitCode !== 0) {
 		throw new Error(`${command[0]} failed: ${result.stderr.toString().trim().split('\n').slice(-5).join('\n')}`);
 	}
-	return result.stdout.toString();
+	return { stdout: result.stdout.toString(), stderr: result.stderr.toString() };
 }
 
 function probe(file: string): { w: number; h: number } {
@@ -134,13 +146,16 @@ for (const [clip, spec] of Object.entries(CLIPS)) {
 	}
 	const record: Record_ = JSON.parse(readFileSync(recordPath, 'utf8'));
 	const start = Math.max(0, record.start - LEAD);
+	const fps = spec.fps ?? FPS;
 	const squeeze = spec.squeeze ?? 3;
 
 	// The recorders write a frame only when the screen changes: the last one is held to the end,
 	// then the whole set to a steady rate before the cut and the squeeze. From the flow's "plays"
 	// mark on, an episode plays, and nothing is squeezed.
 	const plays = record.plays !== undefined && squeeze > 1 ? record.plays : undefined;
-	const squeezed = squeeze > 1 ? `,mpdecimate=max=${squeeze - 1},setpts=N/${FPS}/TB` : '';
+	// With a pointer to draw, showinfo says which moments the squeeze kept, for its clicks' times.
+	const pointer = record.cursor?.length && record.crop && plays === undefined ? record.cursor : undefined;
+	const squeezed = squeeze > 1 ? `,mpdecimate=max=${squeeze - 1}${pointer ? ',showinfo' : ''},setpts=N/${fps}/TB` : '';
 	const look: string[] = [];
 	if (spec.turn) look.push(spec.turn === 'left' ? 'transpose=2' : 'transpose=1');
 	if (record.crop) {
@@ -150,7 +165,7 @@ for (const [clip, spec] of Object.entries(CLIPS)) {
 		look.push(`crop=${even(record.crop.w)}:${even(record.crop.h)}:${even(record.crop.x)}:${even(record.crop.y)}`);
 	}
 	look.push(`scale=${spec.width}:-2:flags=lanczos`, 'format=yuv420p');
-	const steady = `[0:v]tpad=stop_mode=clone:stop_duration=15,fps=${FPS}`;
+	const steady = `[0:v]tpad=stop_mode=clone:stop_duration=15,fps=${fps}`;
 	const cutting =
 		plays === undefined
 			? `${steady},trim=start=${start}:end=${record.end},setpts=PTS-STARTPTS${squeezed},${look.join(',')}[v]`
@@ -159,22 +174,68 @@ for (const [clip, spec] of Object.entries(CLIPS)) {
 				`[b]trim=start=${plays}:end=${record.end},setpts=PTS-STARTPTS[moving];` +
 				`[still][moving]concat=n=2:v=1,${look.join(',')}[v]`;
 	const cut = join(dir, `${clip}.cut.mkv`);
-	run(['ffmpeg', '-v', 'error', '-y', '-i', source, '-filter_complex', cutting, '-map', '[v]', '-an', '-c:v', 'ffv1', cut]);
+	const cutRun = spawn(['ffmpeg', '-v', pointer ? 'info' : 'error', '-y', '-i', source, '-filter_complex', cutting, '-map', '[v]', '-an', '-c:v', 'ffv1', cut]);
+	/** Each frame of the cut's moment in the recording, from its start. */
+	const kept = [...cutRun.stderr.matchAll(/Parsed_showinfo.*? pts_time:([0-9.]+)/g)].map((m) => Number(m[1]));
 	const frames = Number(
 		run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0', cut]).trim(),
 	);
-	const seconds = Math.round((frames / FPS + HOLD) * 1000) / 1000;
+	// A frame that repeats the one before while the frames on both sides move is one the app or
+	// the window server was late with, as the first frame of a new view can be: at 60 frames a
+	// second it reads as a stutter. It goes, as the squeeze takes still frames out.
+	const motion = spawn([
+		'ffmpeg', '-v', 'error', '-i', cut, '-vf',
+		'tblend=all_mode=difference,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-', '-f', 'null', '-',
+	]).stdout;
+	const change = [...motion.matchAll(/YAVG=([0-9.]+)/g)].map((m) => Number(m[1]));
+	/** The late frames, by their index in the cut: change[i] is from frame i to frame i + 1. */
+	const late = change.flatMap((d, i) => (i > 0 && d < 0.05 && change[i - 1] > 0.4 && change[i + 1] > 0.4 ? [i + 1] : []));
+	const after = (index: number) => index - late.filter((j) => j < index).length;
+	if (late.length) console.log(`feature-videos: ${clip} drops ${late.length} late frame${late.length > 1 ? 's' : ''} at ${late.join(', ')}`);
+
+	// The pointer's track at the clicks' moments in the cut. The settled screen before its first
+	// move is cut to a moment of rest: still frames there are squeezed, the pointer's drift is not.
+	let events: CursorEvent[] | undefined;
+	let skip = 0;
+	const scale = record.crop ? spec.width / record.crop.w : 1;
+	if (pointer) {
+		const when = (t: number) => {
+			const at = t - start;
+			if (!kept.length) return Math.max(0, at);
+			const index = kept.findIndex((pts) => pts >= at - 0.001);
+			return after(index < 0 ? kept.length : index) / fps;
+		};
+		const track: CursorEvent[] = pointer.map((e) => ({ kind: e.kind, x: e.x * scale, y: e.y * scale, t: when(e.t) }));
+		skip = Math.max(0, Math.floor((firstMove(track, scale) - REST) * fps));
+		events = track.map((e) => ({ ...e, t: e.t - skip / fps }));
+	}
+	const seconds = Math.round(((frames - late.length - skip) / fps + HOLD) * 1000) / 1000;
 	if (seconds < 4 || seconds > 8.5) console.warn(`feature-videos: ${clip} runs ${seconds.toFixed(1)} s; the page wants 4 to 8`);
 
+	// The pointer, drawn for the clip with its hold.
+	const inputs = ['-i', cut];
+	const prune = late.length ? `select='not(${late.map((j) => `eq(n,${j})`).join('+')})',setpts=N/${fps}/TB,` : '';
+	let padded = `[0:v]${prune}${skip ? `trim=start_frame=${skip},setpts=PTS-STARTPTS,` : ''}tpad=stop_mode=clone:stop_duration=${HOLD}`;
+	let frames_: string | undefined;
+	if (events) {
+		const { w: cutW, h: cutH } = probe(cut);
+		frames_ = join(dir, `${clip}.cursor`);
+		rmSync(frames_, { recursive: true, force: true });
+		await drawCursor(frames_, events, seconds, fps, cutW, cutH, scale);
+		inputs.push('-framerate', String(fps), '-i', join(frames_, '%05d.png'));
+		padded += `[held];[held][1:v]overlay=0:0:format=auto:shortest=0:eof_action=repeat,format=yuv420p`;
+	}
+
 	// The task done held, then faded into the first frame.
-	const fade = Math.round(FADE * FPS);
+	const fade = Math.round(FADE * fps);
 	const graph =
-		`[0:v]tpad=stop_mode=clone:stop_duration=${HOLD},split[clip][head];` +
-		`[head]trim=end_frame=1,loop=loop=${fade - 1}:size=1,setpts=N/${FPS}/TB[still];` +
+		`${padded},split[clip][head];` +
+		`[head]trim=end_frame=1,loop=loop=${fade - 1}:size=1,setpts=N/${fps}/TB[still];` +
 		`[clip][still]xfade=transition=fade:duration=${FADE}:offset=${(seconds - FADE).toFixed(3)},format=yuv420p[v]`;
 	const master = join(dir, `${clip}.master.mkv`);
-	run(['ffmpeg', '-v', 'error', '-y', '-i', cut, '-filter_complex', graph, '-map', '[v]', '-an', '-c:v', 'ffv1', master]);
+	run(['ffmpeg', '-v', 'error', '-y', ...inputs, '-filter_complex', graph, '-map', '[v]', '-an', '-c:v', 'ffv1', master]);
 	rmSync(cut);
+	if (frames_) rmSync(frames_, { recursive: true, force: true });
 	const { w, h } = probe(master);
 
 	const webm = join(out, `${clip}.webm`);

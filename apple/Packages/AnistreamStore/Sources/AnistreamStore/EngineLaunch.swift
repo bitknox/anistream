@@ -119,6 +119,11 @@ public struct EngineLaunch: Sendable {
             return try FfiEngine.start(dirs: home.dirs, host: host, background: background, start: record)
         #if FIXTURES
         case .fixtures(let scene):
+            // `-AnistreamCatalogue` puts the test kit's eight more titles in Search's browse
+            // beside the six, for a grid that reads as full (the features page's videos).
+            if ProcessInfo.processInfo.arguments.contains("-AnistreamCatalogue") {
+                setenv("ANISTREAM_FIXTURES_CATALOGUE", "1", 1)
+            }
             // The testing engine keeps tokens in files under the data directory, whatever
             // `secrets` says.
             return try FfiEngine.startScene(dirs: home.dirs, host: host, scene: scene, start: record)
