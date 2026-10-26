@@ -53,7 +53,7 @@ struct PhoneContinue: View {
             }
         }
         .bareList()
-        .navigationSubtitle(store.syncSubtitle(nothingWatched: store.continuing.list.state == .empty))
+        .screenSubtitle(store.syncSubtitle(nothingWatched: store.continuing.list.state == .empty))
         .toolbar { AccountButton() }
         .pullToRefresh(store, .continueWatching)
         .task { store.loadContinue() }
@@ -640,7 +640,7 @@ struct PhoneLibrary: View {
             }
         }
         .pullToRefresh(store, .library(navigator.librarySegment))
-        .navigationSubtitle(sizeClass == .compact ? store.syncSubtitle() : "")
+        .screenSubtitle(sizeClass == .compact ? store.syncSubtitle() : "")
         .toolbar { if sizeClass == .compact { AccountButton() } }
         .task {
             for segment in LibraryModel.order where store.library.segment(segment).state == .idle {
