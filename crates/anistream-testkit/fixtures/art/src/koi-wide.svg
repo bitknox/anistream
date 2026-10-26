@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<rect width="1600" height="900" fill="#1f4a4f"/>
+<ellipse cx="800" cy="468" rx="486" ry="324" fill="#2c6a6a"/>
+<ellipse cx="800" cy="468" rx="372.6" ry="234" fill="#347a78"/>
+<circle cx="764" cy="468" r="72" fill="none" stroke="#8fc7bd" stroke-width="6.3" opacity="0.6"/>
+<circle cx="764" cy="468" r="117" fill="none" stroke="#8fc7bd" stroke-width="4.5" opacity="0.35"/>
+<g transform="translate(719 432) rotate(-20)"><polygon points="-54.7,0 -92.2,-25.9 -92.2,25.9" fill="#e8825f"/><ellipse cx="0" cy="0" rx="57.6" ry="28.8" fill="#e8825f"/><ellipse cx="5.8" cy="-5.8" rx="23" ry="13" fill="#f4ead8" opacity="0.8"/></g><g transform="translate(890 522) rotate(160)"><polygon points="-44.5,0 -74.9,-21.1 -74.9,21.1" fill="#f1d7a4"/><ellipse cx="0" cy="0" rx="46.8" ry="23.4" fill="#f1d7a4"/><ellipse cx="4.7" cy="-4.7" rx="18.7" ry="10.5" fill="#f4ead8" opacity="0.8"/></g>
+<circle cx="584" cy="540" r="45" fill="#5b9b6a"/><circle cx="998" cy="396" r="36" fill="#4a8a5a"/>
+<circle cx="647" cy="360" r="27" fill="#5b9b6a"/>
+<circle cx="584" cy="531" r="10.8" fill="#f4b6c0"/>
+</svg>

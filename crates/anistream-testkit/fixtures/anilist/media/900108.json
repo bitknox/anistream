@@ -1,0 +1,78 @@
+{
+  "id": 900108,
+  "idMal": 800108,
+  "title": {
+    "romaji": "Asagiri no Bouto",
+    "english": "Morning Mist Rowing Club",
+    "native": "朝霧の漕艇部"
+  },
+  "format": "TV",
+  "status": "FINISHED",
+  "description": "A rowing club with one boat and no coach spends a season on a misty lake, learning to move as one before the regional race.",
+  "episodes": 13,
+  "duration": 24,
+  "seasonYear": 2023,
+  "season": "WINTER",
+  "startDate": {
+    "year": 2023,
+    "month": 1,
+    "day": 12
+  },
+  "endDate": {
+    "year": 2023,
+    "month": 4,
+    "day": 6
+  },
+  "source": "MANGA",
+  "isAdult": false,
+  "averageScore": 76,
+  "genres": [
+    "Sports",
+    "Drama"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900108-xl.jpg",
+    "large": "https://img.example/cover/900108.jpg",
+    "color": "#a9c4c8"
+  },
+  "bannerImage": "https://img.example/banner/900108.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Akarimura"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Morning Mist Rowing Club"
+          }
+        }
+      }
+    ]
+  }
+}

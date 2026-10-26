@@ -1,0 +1,78 @@
+{
+  "id": 900102,
+  "idMal": 800102,
+  "title": {
+    "romaji": "Koi no Ike no Yoru",
+    "english": "Night at the Koi Pond",
+    "native": "鯉の池の夜"
+  },
+  "format": "ONA",
+  "status": "FINISHED",
+  "description": "Every night the koi in a temple pond take the shape of the people who once fed them, and one lonely caretaker learns their names.",
+  "episodes": 8,
+  "duration": 20,
+  "seasonYear": 2022,
+  "season": "FALL",
+  "startDate": {
+    "year": 2022,
+    "month": 10,
+    "day": 7
+  },
+  "endDate": {
+    "year": 2022,
+    "month": 11,
+    "day": 25
+  },
+  "source": "WEB_NOVEL",
+  "isAdult": false,
+  "averageScore": 74,
+  "genres": [
+    "Fantasy",
+    "Romance"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900102-xl.jpg",
+    "large": "https://img.example/cover/900102.jpg",
+    "color": "#e8825f"
+  },
+  "bannerImage": "https://img.example/banner/900102.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Mizukagami"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Night at the Koi Pond"
+          }
+        }
+      }
+    ]
+  }
+}

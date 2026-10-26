@@ -7,15 +7,16 @@
 #           bar at 9:41. `xcrun simctl io recordVideo` films it headless: nothing on the Mac's
 #           screen moves, so it can run at any time.
 #
-#   mac     The Fixtures app itself, driven by XCUITest, filmed with `screencapture -v` and cut to
-#           the app's window. The flows move the pointer and click, and the recording sees the
-#           whole screen, so run it only when the Mac is free for a few minutes:
+#   mac     The Fixtures app itself, driven by XCUITest, filmed by mac-capture.swift: its window
+#           alone, through ScreenCaptureKit, without the pointer and without anything else on
+#           the screen. The flows still move the real pointer and click, so run it only when the
+#           Mac is free for a few minutes:
 #             - the screen awake and unlocked, nothing else needing the pointer, notifications
-#               silenced (Focus), in the dark appearance;
+#               silenced (Focus), in the dark appearance, no Simulator booted;
 #             - Screen Recording allowed for the terminal (System Settings, Privacy & Security);
 #             - Automation Mode on, once: `sudo automationmodetool enable-automationmode-without-authentication`.
-#           The flow prints the window's frame and the screen's size, and the encode crops the
-#           recording to the window.
+#           The flow prints its clicks in the window's points, and the encode draws a pointer of
+#           its own moving between them.
 set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
@@ -30,15 +31,16 @@ derived="${ANISTREAM_DERIVED_DATA:-$apple/.derived}"
 
 # Each clip and the flow that records it (apple/VideoFlows/FeatureVideoFlows.swift). The player's
 # clip is recorded only when named: the page's player slot holds the drag comparison for now.
-iphone_clips=(iphone-search iphone-calendar iphone-tv-remote)
-mac_clips=(mac-search)
+iphone_clips=(iphone-title iphone-calendar iphone-tv-remote)
+mac_clips=(mac-search mac-continue)
 flow() {
   case "$1" in
-    iphone-search) echo testSearch ;;
+    iphone-title) echo testTitle ;;
     iphone-calendar) echo testCalendar ;;
     iphone-player) echo testPlayer ;;
     iphone-tv-remote) echo testPlayOnTV ;;
     mac-search) echo testSearchOnMac ;;
+    mac-continue) echo testContinueOnMac ;;
     *) return 1 ;;
   esac
 }
@@ -73,14 +75,27 @@ run_flow() {
 }
 
 # The marks a flow printed, as the clip's record: when each falls in the recording that began at
-# <began>, and on the Mac the window's frame and the screen's size, in points.
+# <began>, and on the Mac the window's frame and the screen's size, in points, and the pointer's
+# track: where it rested, clicked and typed, in the window's points, and when.
 marks() {
-  local log="$1" began="$2" clip="$3"
-  /usr/bin/python3 -I - "$log" "$began" "$clip" "$platform" <<'PY'
+  local log="$1" began="$2" clip="$3" capture="${4:-}"
+  /usr/bin/python3 -I - "$log" "$began" "$clip" "$platform" "$capture" <<'PY'
 import json, re, sys
-log, began, clip, platform = sys.argv[1], float(sys.argv[2]), sys.argv[3], sys.argv[4]
-marks, crop = {}, None
+log, began, clip, platform, capture = sys.argv[1], float(sys.argv[2]), sys.argv[3], sys.argv[4], sys.argv[5]
+marks, crop, cursor = {}, None, []
+# The Mac's recording is the window alone: its frame as the recorder found it, in the screen's
+# points, which the flow's window may differ from by a point.
+filmed = None
+if capture:
+    for line in open(capture, errors="replace"):
+        f = re.search(r"ANISTREAM_CAPTURE window ([0-9.-]+) ([0-9.-]+) ([0-9.]+) ([0-9.]+)", line)
+        if f:
+            filmed = [float(v) for v in f.groups()]
 for line in open(log, errors="replace"):
+    c = re.search(r"ANISTREAM_VIDEO (click|rest|type) ([0-9.-]+) ([0-9.-]+) ([0-9.]+)", line)
+    if c:
+        cursor.append({"kind": c.group(1), "x": float(c.group(2)), "y": float(c.group(3)),
+                       "t": round(float(c.group(4)) - began, 3)})
     m = re.search(r"ANISTREAM_VIDEO (start|plays|end) ([0-9.]+)", line)
     if m:
         marks[m.group(1)] = round(float(m.group(2)) - began, 3)
@@ -88,11 +103,21 @@ for line in open(log, errors="replace"):
     if w:
         x, y, width, height, sw, sh = (float(v) for v in w.groups())
         crop = {"x": x, "y": y, "w": width, "h": height, "screenW": sw, "screenH": sh}
+        if filmed:
+            fx, fy, fw, fh = filmed
+            shift = (x - fx, y - fy)
+            crop = {"x": 0, "y": 0, "w": fw, "h": fh, "screenW": fw, "screenH": fh}
 if "start" not in marks or "end" not in marks:
     sys.exit(f"apple.sh: the {clip} flow printed no start and end")
 record = {"clip": clip, "platform": platform, **marks}
 if crop:
     record["crop"] = crop
+if cursor:
+    if filmed and crop:
+        for c in cursor:
+            if c["kind"] != "type":
+                c["x"], c["y"] = round(c["x"] + shift[0], 1), round(c["y"] + shift[1], 1)
+    record["cursor"] = cursor
 print(json.dumps(record, indent="\t"))
 PY
 }
@@ -100,29 +125,35 @@ PY
 (cd "$apple" && xcodegen generate --quiet)
 
 if [[ "$platform" == mac ]]; then
-  # The window must be in front and the screen awake for the whole run.
-  xcodebuild -project "$apple/Anistream.xcodeproj" -scheme "Anistream Video" -destination platform=macOS \
-    -derivedDataPath "$derived" build-for-testing -quiet
+  # The window must be in front and the screen awake for the whole run. ANISTREAM_VIDEO_BUILT=1
+  # reuses the last build, as on the iPhone.
+  if [[ "${ANISTREAM_VIDEO_BUILT:-0}" != 1 ]]; then
+    xcodebuild -project "$apple/Anistream.xcodeproj" -scheme "Anistream Video" -destination platform=macOS \
+      -derivedDataPath "$derived" build-for-testing -quiet
+  fi
+  capture="$raw/mac-capture"
+  # Its deprecation warnings kept out of the way, its errors not.
+  swiftc -O -swift-version 5 "$here/mac-capture.swift" -o "$capture" 2>"$raw/mac-capture.build.log" \
+    || { cat "$raw/mac-capture.build.log" >&2; exit 1; }
   for clip in "${clips[@]}"; do
     log="$raw/$clip.log"
     rm -f "$raw/$clip.mov"
     caffeinate -u -t 120 &
     awake=$!
-    screencapture -v -C "$raw/$clip.mov" &
+    # The window alone, from its first frame: the recorder waits for it to open.
+    "$capture" tv.anistream.fixtures "$raw/$clip.mov" >"$raw/$clip.capture.log" 2>&1 &
     recorder=$!
-    sleep 1
-    began="$(now)"
-    run_flow "$clip" platform=macOS "$log" || {
-      kill -INT "$recorder" 2>/dev/null || true
-      wait "$recorder" 2>/dev/null || true
-      kill "$awake" 2>/dev/null || true
-      echo "apple.sh: the $clip flow failed; see $log" >&2
-      exit 1
-    }
-    kill -INT "$recorder"
+    status=0
+    run_flow "$clip" platform=macOS "$log" || status=1
+    kill -INT "$recorder" 2>/dev/null || true
     wait "$recorder" || true
     kill "$awake" 2>/dev/null || true
-    marks "$log" "$began" "$clip" >"$raw/$clip.json"
+    began="$(sed -n 's/^ANISTREAM_CAPTURE began //p' "$raw/$clip.capture.log")"
+    if (( status )) || [[ -z "$began" ]]; then
+      echo "apple.sh: the $clip flow failed; see $log and $raw/$clip.capture.log" >&2
+      exit 1
+    fi
+    marks "$log" "$began" "$clip" "$raw/$clip.capture.log" >"$raw/$clip.json"
     echo "$clip" >>"$recorded"
     echo "apple.sh: recorded $clip"
   done
@@ -210,7 +241,12 @@ for clip in "${clips[@]}"; do
     failed=1
     continue
   fi
+  # The recorder writes a frame only when the screen changes, and its first frame is the
+  # recording's 0 however long after the start it comes: on a still screen, as after a boot,
+  # the marks would land seconds late. The status bar's clock moved and put back draws one now.
   began="$(now)"
+  xcrun simctl status_bar "$udid" override --time 9:42
+  xcrun simctl status_bar "$udid" override --time 9:41
   status=0
   run_flow "$clip" "id=$udid" "$log" || status=1
   kill -INT "$recorder" 2>/dev/null || true

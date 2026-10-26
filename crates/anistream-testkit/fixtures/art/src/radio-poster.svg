@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="690" viewBox="0 0 460 690">
+<rect width="460" height="690" fill="#17213a"/>
+<circle cx="230" cy="151.8" r="55.2" fill="none" stroke="#5f86c0" stroke-width="4.1" opacity="0.55"/><circle cx="230" cy="151.8" r="96.6" fill="none" stroke="#5f86c0" stroke-width="4.1" opacity="0.4"/><circle cx="230" cy="151.8" r="138" fill="none" stroke="#5f86c0" stroke-width="4.1" opacity="0.25000000000000006"/>
+<polygon points="230,151.8 161,593.4 299,593.4" fill="none" stroke="#d9d2bd" stroke-width="5.5" stroke-linejoin="round"/>
+<line x1="230" y1="82.8" x2="230" y2="165.6" stroke="#d9d2bd" stroke-width="5.5"/>
+<line x1="207.9" y1="276" x2="252.1" y2="276" stroke="#d9d2bd" stroke-width="5.5"/><line x1="207.9" y1="276" x2="254.3" y2="358.8" stroke="#d9d2bd" stroke-width="3.5" opacity="0.7"/><line x1="195.5" y1="358.8" x2="264.5" y2="358.8" stroke="#d9d2bd" stroke-width="5.5"/><line x1="195.5" y1="358.8" x2="261.7" y2="441.6" stroke="#d9d2bd" stroke-width="3.5" opacity="0.7"/><line x1="181.7" y1="441.6" x2="278.3" y2="441.6" stroke="#d9d2bd" stroke-width="5.5"/><line x1="181.7" y1="441.6" x2="270" y2="524.4" stroke="#d9d2bd" stroke-width="3.5" opacity="0.7"/><line x1="167.9" y1="524.4" x2="292.1" y2="524.4" stroke="#d9d2bd" stroke-width="5.5"/><line x1="167.9" y1="524.4" x2="283.8" y2="607.2" stroke="#d9d2bd" stroke-width="3.5" opacity="0.7"/>
+<circle cx="230" cy="75.9" r="11" fill="#e8665a"/><circle cx="230" cy="75.9" r="23.5" fill="#e8665a" opacity="0.25"/>
+<path d="M0 607.2 Q 23 552 230 607.2 T 460 593.4 V 690 H0Z" fill="#0d1428"/>
+<rect x="202.4" y="579.6" width="55.2" height="34.5" fill="#0a0f20"/><rect x="220.3" y="590.6" width="19.3" height="13.8" fill="#f1c36a"/>
+</svg>

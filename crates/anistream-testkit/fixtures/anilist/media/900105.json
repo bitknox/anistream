@@ -1,0 +1,78 @@
+{
+  "id": 900105,
+  "idMal": 800105,
+  "title": {
+    "romaji": "Kitsune no Omote",
+    "english": "The Fox Mask",
+    "native": "狐の面"
+  },
+  "format": "MOVIE",
+  "status": "FINISHED",
+  "description": "A courier who wears a borrowed fox mask to deliver one last parcel finds the whole town turns to watch whoever is behind it.",
+  "episodes": 1,
+  "duration": 96,
+  "seasonYear": 2024,
+  "season": "WINTER",
+  "startDate": {
+    "year": 2024,
+    "month": 2,
+    "day": 23
+  },
+  "endDate": {
+    "year": 2024,
+    "month": 2,
+    "day": 23
+  },
+  "source": "ORIGINAL",
+  "isAdult": false,
+  "averageScore": 83,
+  "genres": [
+    "Fantasy",
+    "Action"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900105-xl.jpg",
+    "large": "https://img.example/cover/900105.jpg",
+    "color": "#d9604f"
+  },
+  "bannerImage": "https://img.example/banner/900105.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Kujaku Animation Works"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of The Fox Mask"
+          }
+        }
+      }
+    ]
+  }
+}

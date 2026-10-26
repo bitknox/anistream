@@ -1,0 +1,78 @@
+{
+  "id": 900103,
+  "idMal": 800103,
+  "title": {
+    "romaji": "Chochin Matsuri",
+    "english": "The Paper Lantern Festival",
+    "native": "提灯祭り"
+  },
+  "format": "OVA",
+  "status": "FINISHED",
+  "description": "A village festival committee of four tries to light a thousand paper lanterns before sunset, and keeps finding new ways to lose count.",
+  "episodes": 2,
+  "duration": 30,
+  "seasonYear": 2021,
+  "season": "SUMMER",
+  "startDate": {
+    "year": 2021,
+    "month": 8,
+    "day": 20
+  },
+  "endDate": {
+    "year": 2021,
+    "month": 9,
+    "day": 24
+  },
+  "source": "MANGA",
+  "isAdult": false,
+  "averageScore": 69,
+  "genres": [
+    "Comedy",
+    "Romance"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900103-xl.jpg",
+    "large": "https://img.example/cover/900103.jpg",
+    "color": "#e29a4a"
+  },
+  "bannerImage": null,
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Akarimura"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of The Paper Lantern Festival"
+          }
+        }
+      }
+    ]
+  }
+}

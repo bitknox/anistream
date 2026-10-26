@@ -143,11 +143,13 @@ const MARK: Record<string, [string, string]> = {
 				<div class="hl-media devices">
 					<div class="ratio-row dev-row">
 						<figure class="dev dev-flat" style={`--ratio: ${ratio('mac-continue')}`}>
-							<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 734px, 60vw" alt="The Mac app on Continue, with a button to resume the show in progress" />
+							<FeatureVideo name="mac-continue" frame="window" alt="The Mac app on Continue: another show picked from the queue, its banner growing into the title page, then its second season">
+								<Shot name="mac-continue" frame="window" sizes="(min-width: 1200px) 734px, 60vw" alt="The Mac app on Continue, with a button to resume the show in progress" />
+							</FeatureVideo>
 							<figcaption>Mac</figcaption>
 						</figure>
 						<figure class="dev" style={`--ratio: ${ratio('iphone-title')}`}>
-							<FeatureVideo name="iphone-calendar" frame="phone" alt="The iPhone app’s calendar: the days of the week, then every show airing">
+							<FeatureVideo name="iphone-title" frame="phone" alt="The iPhone app on Continue: the show’s banner zooms into its title page, on to its second season, then back home">
 								<Shot name="iphone-title" frame="phone" sizes="(min-width: 1200px) 212px, 18vw" alt="The iPhone app on a title page, with a button to resume episode 7" />
 							</FeatureVideo>
 							<figcaption>iPhone</figcaption>
@@ -191,11 +193,11 @@ const MARK: Record<string, [string, string]> = {
 					<p>A ~ marks an estimated air time, and a Dub tag marks an episode already dubbed. Title pages say how far the dub goes, such as “Dub to episode 6”.</p>
 				</div>
 				<div class="hl-media find-stage">
-					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt="The Mac app’s search: a query, then a genre from the filters panel">
+					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt="The Mac app’s search: Trending now opened in full, the filters panel sliding in, Fantasy taking half the titles away, then a show’s page and its first season">
 						<Shot name="mac-search" frame="window" class="find-mac" sizes="(min-width: 1200px) 757px, calc(100vw - 32px)" alt="The Mac app’s search, with a query, its two results and the filters panel open: genres, tags, years and length" />
 					</FeatureVideo>
-					<FeatureVideo name="iphone-search" frame="phone" class="find-phone" alt="The iPhone app’s search: a query, its results, then a genre from the filters">
-						<Shot name="iphone-search" frame="phone" class="find-phone" sizes="(min-width: 1200px) 182px, 24vw" alt="The iPhone app’s search with no query: sort and filter buttons, then Trending now and Popular this season" />
+					<FeatureVideo name="iphone-calendar" frame="phone" class="find-phone" alt="The iPhone app’s calendar: a day picked in the week, a show’s cover zooming into its title page and back, then today again">
+						<Shot name="iphone-calendar" frame="phone" class="find-phone" sizes="(min-width: 1200px) 182px, 24vw" alt="The iPhone app’s calendar: the week’s days, then each day’s episodes with their times" />
 					</FeatureVideo>
 				</div>
 			</section>
@@ -229,7 +231,7 @@ const MARK: Record<string, [string, string]> = {
 					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone. The Mac, Windows and Linux apps do the same.</p>
 				</div>
 				<div class="hl-media tv-stage">
-					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt="The iPhone app sending an episode to a TV, then pausing it as the remote">
+					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt="The iPhone app sending an episode to a TV, then pausing it from the remote">
 						<Shot name="iphone-tv-remote" frame="phone" class="tv-phone" sizes="(min-width: 1200px) 160px, 21vw" alt="The iPhone app as the TV’s remote: the episode playing, play and seek buttons, subtitles, audio and the TV’s volume" />
 					</FeatureVideo>
 					<svg class="tv-link" viewBox="0 0 1000 470" aria-hidden="true" focusable="false">

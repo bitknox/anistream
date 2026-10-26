@@ -1,0 +1,86 @@
+{
+  "id": 900107,
+  "idMal": 800107,
+  "title": {
+    "romaji": "Onshitsu no Yonin",
+    "english": "Four Seasons in the Greenhouse",
+    "native": "温室の四人"
+  },
+  "format": "TV",
+  "status": "FINISHED",
+  "description": "Four students share a glass greenhouse that grows whatever season they argue about, and a tomato that refuses to ripen on anyone's schedule.",
+  "episodes": 12,
+  "duration": 24,
+  "seasonYear": 2020,
+  "season": "SUMMER",
+  "startDate": {
+    "year": 2020,
+    "month": 7,
+    "day": 8
+  },
+  "endDate": {
+    "year": 2020,
+    "month": 9,
+    "day": 23
+  },
+  "source": "MANGA",
+  "isAdult": false,
+  "averageScore": 70,
+  "genres": [
+    "Fantasy",
+    "Slice of Life"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900107-xl.jpg",
+    "large": "https://img.example/cover/900107.jpg",
+    "color": "#7fb88a"
+  },
+  "bannerImage": null,
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Mokusei"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [
+    {
+      "name": "Gardening",
+      "rank": 84,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Slice of Life"
+    }
+  ],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Four Seasons in the Greenhouse"
+          }
+        }
+      }
+    ]
+  }
+}

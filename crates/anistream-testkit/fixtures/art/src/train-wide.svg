@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<rect width="1600" height="900" fill="#7f9db3"/>
+<circle cx="1070" cy="144" r="54" fill="#f3e6c8"/>
+<polygon points="-160,702 483.2,270 1059.2,702" fill="#59758f"/>
+<polygon points="684.8,702 1145.6,198 1760,702" fill="#46627c"/>
+<polygon points="1145.6,198 1088,261 1145.6,243 1188.8,270" fill="#eef1f2"/>
+<polygon points="483.2,270 440,324 483.2,306 526.4,333" fill="#eef1f2"/>
+<rect y="684" width="1600" height="216" fill="#2f4458"/>
+<rect y="738" width="1600" height="10.8" fill="#8fa6b8"/>
+<rect x="647" y="630" width="306" height="99" rx="18" fill="#1f2c3d"/>
+<polygon points="953,729 953,648 998,729" fill="#1f2c3d"/>
+<rect x="666.8" y="657" width="32.4" height="30.6" fill="#f1a94e"/><rect x="729.8" y="657" width="32.4" height="30.6" fill="#f1a94e"/><rect x="792.8" y="657" width="32.4" height="30.6" fill="#f1a94e"/><rect x="855.8" y="657" width="32.4" height="30.6" fill="#f1a94e"/><rect x="900.8" y="657" width="32.4" height="30.6" fill="#f1a94e"/>
+<circle cx="692" cy="736.2" r="12.6" fill="#0f1824"/><circle cx="890" cy="736.2" r="12.6" fill="#0f1824"/>
+</svg>
