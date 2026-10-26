@@ -661,3 +661,27 @@ async fn a_pin_survives_a_restart_and_the_source_options_count_episodes() {
     let pin = h.store().provider_preference(FINISHED).unwrap();
     assert_eq!(pin.as_deref(), Some("alt"));
 }
+
+#[tokio::test]
+async fn a_pin_on_a_source_that_is_gone_is_said_once_and_listed_as_gone() {
+    let mut h = harness(with_alt()).await;
+    h.store().set_provider_preference(FINISHED, "ghost", 1).unwrap();
+    h.send(Command::LoadEpisodes(FINISHED));
+    let updates = h.settle().await;
+    let said = updates.iter().filter(|u| matches!(u, Event::PinUnavailable { .. })).count();
+    assert_eq!(said, 1, "{:?}", names(&updates));
+    assert!(updates.iter().any(|u| matches!(u, Event::Episodes { .. })), "the order serves it");
+
+    h.send(Command::LoadSourceOptions(FINISHED));
+    let updates = h.settle().await;
+    let options = updates
+        .iter()
+        .find_map(|u| match u {
+            Event::SourceOptions { options, .. } => Some(options.clone()),
+            _ => None,
+        })
+        .expect("source options");
+    let ghost = options.iter().find(|o| o.provider_id == "ghost").expect("the pin is listed");
+    assert!(ghost.pinned);
+    assert_eq!(ghost.note, Some(anistream_model::sources::SourceNote::Gone));
+}

@@ -136,8 +136,14 @@ async fn load_listed(
     };
 
     let built = build(&media, store, registry, id, &answers, now);
-    let unnamed =
-        names::Unnamed::of(&media, &built.episodes, built.numbering, &built.main, now);
+    let unnamed = names::Unnamed::of(
+        &media,
+        &built.episodes,
+        built.numbering,
+        &built.main,
+        built.marks,
+        now,
+    );
     Ok((EpisodeLoad::Rows(built.rows), unnamed))
 }
 
@@ -147,6 +153,7 @@ struct Built {
     episodes: Vec<anistream_core::media::Episode>,
     numbering: data::Numbering,
     main: String,
+    marks: coverage::Marks,
 }
 
 /// The table for title `id` from `answers`, in rank order: merged across the sources, named
@@ -166,19 +173,23 @@ fn build(
     let merged = coverage::merge(media, answers, now);
     let mut episodes = merged.episodes.clone();
     let numbering = data::enrich_episodes(&mut episodes, media, now);
-    let mut rows = data::episode_rows(&episodes, store, id);
-    for row in &mut rows {
-        if let Some(provider) = merged.filled.get(row.number.trim()) {
-            row.source = Some(
-                registry
+    let marks = coverage::Marks {
+        filled: merged
+            .filled
+            .iter()
+            .map(|(number, provider)| {
+                let name = registry
                     .get(provider)
-                    .map_or_else(|| provider.clone(), |p| p.manifest().display_name.clone()),
-            );
-        }
-        row.unsourced = merged.missing.contains(row.number.trim());
-    }
+                    .map_or_else(|| provider.clone(), |p| p.manifest().display_name.clone());
+                (number.clone(), name)
+            })
+            .collect(),
+        missing: merged.missing.clone(),
+    };
+    let mut rows = data::episode_rows(&episodes, store, id);
+    marks.apply(&mut rows);
     let rows = dated(rows, media, numbering, store, id, now);
-    Built { rows, episodes, numbering, main: merged.main }
+    Built { rows, episodes, numbering, main: merged.main, marks }
 }
 
 /// `rows`, dated by when each aired or airs, so an episode not out yet can be told from one
@@ -306,31 +317,43 @@ pub(crate) async fn dub_answer(
 /// A title's episodes, from the source playback would use, or the candidates to choose
 /// between when the ladder could not choose. A table that left episodes without a title or a
 /// still is named by `naming`, from what another source said of them: see [`names`].
-pub(crate) async fn list_episodes(lent: Lent, id: AnilistId, naming: names::Naming) {
+///
+/// Only the newest listing of a title speaks: `ticket` is checked before anything is sent, so a
+/// slow earlier load cannot land over a newer table. `announce` is whether a pin on a source
+/// that is not available is said (a load the viewer asked for, or a pin just set), not on every
+/// quiet relist.
+pub(crate) async fn list_episodes(
+    lent: Lent,
+    id: AnilistId,
+    naming: names::Naming,
+    ticket: super::refresh::Ticket,
+    announce: bool,
+) {
     let Lent { meta, store, registry, tx, .. } = lent;
-    // Said first, and only the once: the title goes by the order meanwhile.
-    if let Pin::Unavailable(provider) = pin_of(&store, &registry, id) {
+    // A source still compiling is not an unavailable one: wait for those on their way.
+    crate::sources::arrived(&registry, || ()).await;
+    if announce && let Pin::Unavailable(provider) = pin_of(&store, &registry, id) {
         let name = registry
             .get(&provider)
             .map_or_else(|| provider.clone(), |p| p.manifest().display_name.clone());
-        let _ = tx.send(Event::PinUnavailable { id, provider_id: provider, name });
+        ticket.send(&tx, Event::PinUnavailable { id, provider_id: provider, name });
     }
     // A table that is short of the season is shown as it comes, and the sources still being
     // asked fill in the rest.
     let mut early = |rows| {
         for event in said(id, Ok(EpisodeLoad::Rows(rows))) {
-            let _ = tx.send(event);
+            ticket.send(&tx, event);
         }
     };
     let load = match load_listed(&meta, &store, &registry, id, &mut early).await {
         Ok((EpisodeLoad::Rows(_), Some(unnamed))) => {
-            naming.say(id, unnamed, &store, &registry, &tx);
+            naming.say(id, unnamed, &store, &registry, &tx, &ticket);
             return;
         }
         load => load.map(|(load, _)| load),
     };
     for event in said(id, load) {
-        let _ = tx.send(event);
+        ticket.send(&tx, event);
     }
 }
 

@@ -92,6 +92,8 @@ pub enum SourceNote {
     Off,
     /// Resting after failures; changing the sources tries it again.
     Resting,
+    /// Pinned for the title and no longer installed. The pin is kept for when it is back.
+    Gone,
     /// It could not tell which title this is.
     Ambiguous,
     /// It was asked and failed. The reason is the source's own, not translated.

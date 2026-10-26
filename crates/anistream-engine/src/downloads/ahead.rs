@@ -100,6 +100,9 @@ struct Inner {
     /// source here could list them: no source is asked to keep them until one does. Only for
     /// as long as the engine runs, so a show is asked about again on the next launch.
     unlisted: Mutex<HashSet<AnilistId>>,
+    /// The episodes of each show that AniList says are out and no source lists: nothing is
+    /// there to download until one does.
+    unsourced: Mutex<std::collections::HashMap<AnilistId, HashSet<String>>>,
 }
 
 /// The top-ups asked for: the latest, waiting for the one under way.
@@ -144,12 +147,25 @@ impl Ahead {
     pub fn observe(&self, event: &Event) {
         let Event::Episodes { id, rows } = event else { return };
         let Some(first) = rows.first() else { return };
+        self.0.unsourced.lock().unwrap_or_else(|e| e.into_inner()).insert(
+            *id,
+            rows.iter()
+                .filter(|row| row.unsourced)
+                .map(|row| row.number.trim().to_owned())
+                .collect(),
+        );
         let mut unlisted = self.0.unlisted.lock().unwrap_or_else(|e| e.into_inner());
         if first.metadata_only {
             unlisted.insert(*id);
         } else {
             unlisted.remove(id);
         }
+    }
+
+    /// Whether episode `episode` of show `id` is one its table last said no source lists.
+    pub fn unsourced(&self, id: AnilistId, episode: &str) -> bool {
+        let map = self.0.unsourced.lock().unwrap_or_else(|e| e.into_inner());
+        map.get(&id).is_some_and(|set| set.contains(episode.trim()))
     }
 
     /// Whether show `id`'s table was last listed from AniList's data alone: see
@@ -458,6 +474,10 @@ pub(crate) trait Work {
     fn unlisted(&self, _id: AnilistId) -> bool {
         false
     }
+    /// Whether episode `episode` of show `id` is out and no source lists it.
+    fn unsourced(&self, _id: AnilistId, _episode: &str) -> bool {
+        false
+    }
 }
 
 /// A top-up's work, as the engine does it.
@@ -507,6 +527,10 @@ impl Work for Live {
 
     fn unlisted(&self, id: AnilistId) -> bool {
         self.ahead.unlisted(id)
+    }
+
+    fn unsourced(&self, id: AnilistId, episode: &str) -> bool {
+        self.ahead.unsourced(id, episode)
     }
 }
 
@@ -561,6 +585,10 @@ pub(crate) async fn run(
             }
             said_full.store(false, Ordering::Relaxed);
             let episode = episode.to_string();
+            // Out, and nothing lists it yet: the next top-up asks again.
+            if work.unsourced(show.id, &episode) {
+                continue;
+            }
             match work.enqueue(show.id, &episode, wanted).await {
                 Ok(Queued::New) => downloads::publish_now(store, tx),
                 Ok(Queued::Existing) => {}
@@ -723,6 +751,10 @@ mod tests {
 
         fn unlisted(&self, id: AnilistId) -> bool {
             self.ahead.unlisted(id)
+        }
+
+        fn unsourced(&self, id: AnilistId, episode: &str) -> bool {
+            self.ahead.unsourced(id, episode)
         }
     }
 
@@ -897,6 +929,24 @@ mod tests {
             unsourced: false,
         };
         Event::Episodes { id, rows: (1..=12).map(row).collect() }
+    }
+
+    #[tokio::test]
+    async fn an_episode_no_source_lists_is_not_kept() {
+        let store = listed(&[(FINISHED, "CURRENT")]);
+        watched(&store, FINISHED, 4, NOW - DAY);
+        let work = Fake::on(&store);
+        // The table lists 1 to 12, and says 6 and 7 are out with nobody to download them from.
+        let Event::Episodes { id, mut rows } = table(FINISHED, false) else { unreachable!() };
+        rows[5].unsourced = true;
+        rows[6].unsourced = true;
+        work.ahead.observe(&Event::Episodes { id, rows });
+        top_up_with(&keeping(3), &work, &AtomicBool::new(false)).await;
+        assert_eq!(
+            work.asked(),
+            [(FINISHED, "5".into())],
+            "6 and 7 wait for a source; the count is not made up with later ones"
+        );
     }
 
     #[tokio::test]

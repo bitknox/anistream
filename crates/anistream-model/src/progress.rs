@@ -209,7 +209,8 @@ pub fn after_filler(rows: &[EpisodeRow], mut next: String, skip_filler: bool) ->
 /// The episode that follows `episode` in a title's episode table, honouring the filler
 /// setting, when the table can vouch that it exists.
 ///
-/// `None` when the table has no such row: the player then shows no Up Next card and closes at
+/// `None` when the table has no such row, or the row is one no source lists (`unsourced`), which
+/// a play could not start: the player then shows no Up Next card and closes at
 /// the end, which is right for a finale and harmless otherwise.
 pub fn next_up<'a>(
     rows: &'a [EpisodeRow],
@@ -218,7 +219,7 @@ pub fn next_up<'a>(
 ) -> Option<&'a EpisodeRow> {
     let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
     let next = after_filler(rows, next, skip_filler);
-    rows.iter().find(|r| r.number == next)
+    rows.iter().find(|r| r.number == next && !r.unsourced)
 }
 
 #[cfg(test)]
@@ -254,5 +255,13 @@ mod tests {
         assert!(next_up(&rows, "OVA", false).is_none());
         assert_eq!(next_up(&rows, "11", false).map(|r| r.number.as_str()), Some("12"));
         assert!(next_up(&rows, "12", false).is_none(), "the table ends at 12");
+    }
+
+    #[test]
+    fn no_next_episode_is_offered_that_no_source_lists() {
+        let mut table = rows(3);
+        table[2].unsourced = true;
+        assert_eq!(next_up(&table, "1", false).map(|r| r.number.as_str()), Some("2"));
+        assert!(next_up(&table, "2", false).is_none(), "3 is out and nobody lists it");
     }
 }

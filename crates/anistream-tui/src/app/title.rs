@@ -504,6 +504,7 @@ fn source_note(note: &anistream_model::sources::SourceNote) -> String {
     use anistream_model::sources::SourceNote;
     match note {
         SourceNote::Off => "switched off".into(),
+        SourceNote::Gone => "not installed".into(),
         SourceNote::Resting => "resting after failures".into(),
         SourceNote::Ambiguous => "could not tell which title this is".into(),
         SourceNote::Failed { reason } => reason.clone(),

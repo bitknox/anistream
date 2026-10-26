@@ -27,6 +27,28 @@ pub struct Merged {
     pub missing: BTreeSet<String>,
 }
 
+/// What marks a table's rows after they are made from its episodes: the source a gap was filled
+/// from (by name) and the episodes no source lists. Carried with the table, so every path that
+/// remakes its rows (the naming pass too) marks them the same.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Marks {
+    /// Canonical episode number to the name of the source that supplies it.
+    pub filled: BTreeMap<String, String>,
+    pub missing: BTreeSet<String>,
+}
+
+impl Marks {
+    pub fn apply(&self, rows: &mut [anistream_model::episodes::EpisodeRow]) {
+        for row in rows {
+            let number = key(&row.number);
+            if let Some(name) = self.filled.get(&number) {
+                row.source = Some(name.clone());
+            }
+            row.unsourced = self.missing.contains(&number);
+        }
+    }
+}
+
 /// `answers`, in rank order, as one table for `media`.
 ///
 /// Sources number their episodes their own way, and an episode taken from a source that counts
@@ -76,13 +98,30 @@ pub fn merge(media: &Media, answers: &[Contribution<Vec<Episode>>], now: i64) ->
     Merged { episodes, main: first.provider_id.clone(), filled, missing }
 }
 
-/// Whether `answers` leave nothing AniList says is out unlisted.
+/// Whether `answers` leave nothing AniList says is out unlisted. When there is no way to say
+/// (the numbering cannot be lined up with AniList's, or AniList gives no count for a show still
+/// airing), nothing is known to be whole, so the sources below are still asked.
 pub fn is_whole(media: &Media, answers: &[Contribution<Vec<Episode>>], now: i64) -> bool {
-    !answers.is_empty() && merge(media, answers, now).missing.is_empty()
+    if answers.is_empty() || Numbering::of(&answers[0].value, media, now) == Numbering::Unknown
+    {
+        return false;
+    }
+    data::metadata_episodes(media, now).next().is_some()
+        && merge(media, answers, now).missing.is_empty()
+}
+
+/// The canonical form of an episode number: a number when it parses ("01", "1" and "1.0" are
+/// all "1"; "7.5" stays "7.5"), else the trimmed text ("OVA"). Every table here is keyed by it.
+pub fn key(number: &str) -> String {
+    let number = number.trim();
+    match number.parse::<f64>() {
+        Ok(n) if n.is_finite() => n.to_string(),
+        _ => number.to_owned(),
+    }
 }
 
 fn label(episode: &Episode) -> String {
-    episode.number.as_str().trim().to_owned()
+    key(episode.number.as_str())
 }
 
 #[cfg(test)]
@@ -120,6 +159,47 @@ mod tests {
         assert!(merged.filled.values().all(|p| p == "shelf"));
         assert!(merged.missing.is_empty());
         assert_eq!(numbers(&merged)[9], "10", "in episode order, not text order");
+    }
+
+    #[test]
+    fn numbers_are_compared_by_value_not_by_spelling() {
+        assert_eq!(key("01"), "1");
+        assert_eq!(key(" 7.0 "), "7");
+        assert_eq!(key("7.5"), "7.5");
+        assert_eq!(key("OVA"), "OVA");
+        let zeros = Contribution {
+            provider_id: "batch".into(),
+            key: ProviderKey::new("k"),
+            value: ["01", "02", "03"].into_iter().map(Episode::new).collect(),
+        };
+        let merged = merge(&media(), &[zeros, answer("shelf", 1..=13)], 0);
+        assert_eq!(merged.episodes.len(), 13, "01 and 1 are the one episode");
+        assert!(merged.filled.get("2").is_none());
+        assert_eq!(merged.filled.get("4").map(String::as_str), Some("shelf"));
+    }
+
+    #[test]
+    fn nothing_is_whole_when_the_season_cannot_be_counted() {
+        // Airing with no count and nothing aired yet: there is no total to hold a source to.
+        let unknown: Media = serde_json::from_value(serde_json::json!({
+            "id": 1, "status": "RELEASING", "duration": 24,
+        }))
+        .unwrap();
+        assert!(!is_whole(&unknown, &[answer("batch", 1..=6)], 0));
+    }
+
+    #[test]
+    fn marks_survive_a_table_made_again() {
+        let merged = merge(&media(), &[answer("batch", 1..=6)], 0);
+        let marks = Marks { filled: BTreeMap::new(), missing: merged.missing.clone() };
+        let episodes: Vec<Episode> =
+            (1..=13).map(|n| Episode::new(format!("{n:02}").as_str())).collect();
+        let store = anistream_store::Store::open_in_memory().unwrap();
+        let mut rows =
+            data::episode_rows(&episodes, &store, anistream_core::ids::AnilistId::new(1));
+        marks.apply(&mut rows);
+        assert!(!rows[0].unsourced);
+        assert!(rows[12].unsourced, "13 is found under 13, however it is spelled");
     }
 
     #[test]

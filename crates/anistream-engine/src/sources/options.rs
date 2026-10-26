@@ -34,10 +34,11 @@ use crate::{
 pub fn load_source_options(
     id: AnilistId,
     job: Option<JobGuard>,
-    _engine: &EngineState,
+    engine: &EngineState,
     services: &Services,
     tx: &Outbox,
 ) {
+    let ticket = engine.listed.options_ticket(id);
     let (meta, store, registry, tx) =
         (services.meta.clone(), services.store.clone(), services.registry.clone(), tx.clone());
     tokio::spawn(async move {
@@ -46,7 +47,7 @@ pub fn load_source_options(
         let media = match meta.media(id).await {
             Ok(media) => media,
             Err(e) => {
-                let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+                ticket.send(&tx, Event::Toast(Notice::alert(e.to_string())));
                 return;
             }
         };
@@ -134,7 +135,20 @@ pub fn load_source_options(
             }
             options.push(option);
         }
-        let _ = tx.send(Event::SourceOptions { id, options });
+        // A pin on a source that is gone from the registry is still the title's pin: say so.
+        if let Some(gone) = pinned.filter(|p| !options.iter().any(|o| &o.provider_id == p)) {
+            options.push(SourceOption {
+                name: gone.clone(),
+                provider_id: gone,
+                covered: 0,
+                of: out.len() as u32,
+                pinned: true,
+                note: Some(SourceNote::Gone),
+                releases: Vec::new(),
+                pinned_release: None,
+            });
+        }
+        ticket.send(&tx, Event::SourceOptions { id, options });
     });
 }
 
@@ -155,5 +169,5 @@ pub fn pin_release(
     };
     let _ = tx.send(Event::Toast(toast));
     crate::show_settings::load_show_settings(id, engine, services, tx);
-    crate::titles::refresh::relist(id, engine, services, tx);
+    crate::titles::refresh::relist(id, true, engine, services, tx);
 }

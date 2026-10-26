@@ -367,6 +367,10 @@ impl<T> Gathered<T> {
 /// rest would be a search for nothing, on a torrent source one behind a tunnel.
 const HEDGE: std::time::Duration = std::time::Duration::from_millis(400);
 
+/// How long [`gather`] keeps waiting on better-ranked sources once one has answered. A source
+/// that hangs must not hold back a table another already has; the next load asks it again.
+const GRACE: std::time::Duration = std::time::Duration::from_millis(3 * 400);
+
 /// Ask the usable sources about a title together and keep every answer, for a listing that one
 /// source may have only part of.
 ///
@@ -438,7 +442,25 @@ where
     }
 
     let mut outcomes: Vec<Option<Outcome<T>>> = usable.iter().map(|_| None).collect();
-    while let Some((rank, outcome)) = running.next().await {
+    // Set when the first answer arrives: nothing waits longer than this after that.
+    let mut deadline: Option<tokio::time::Instant> = None;
+    loop {
+        let next = match deadline {
+            Some(at) => match tokio::time::timeout_at(at, running.next()).await {
+                Ok(next) => next,
+                Err(_) => {
+                    tracing::info!(
+                        "sources still outstanding after the grace period, not waited for"
+                    );
+                    break;
+                }
+            },
+            None => running.next().await,
+        };
+        let Some((rank, outcome)) = next else { break };
+        if deadline.is_none() && matches!(outcome, Outcome::Answered(_)) {
+            deadline = Some(tokio::time::Instant::now() + GRACE);
+        }
         outcomes[rank] = Some(outcome);
         let answered: Vec<Contribution<T>> = outcomes
             .iter()
@@ -1009,6 +1031,29 @@ mod tests {
         };
         assert_eq!(answers.len(), 2);
         assert!(began.elapsed() < HEDGE, "waited out the hedge: {:?}", began.elapsed());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_source_that_hangs_does_not_hold_back_a_table_another_has() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha")
+                .with_latency(std::time::Duration::from_secs(3_600))
+                .with_hits(vec![wanderer_hit("alpha-1")])
+                .with_episodes(numbered(1..=12))
+                .arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_episodes(numbered(1..=12))
+                .arc(),
+        ]);
+        let began = tokio::time::Instant::now();
+        let Gathered::Answered(answers) = gathered(&store, &registry, 12).await else {
+            panic!("beta answers")
+        };
+        let who: Vec<_> = answers.iter().map(|a| a.provider_id.as_str()).collect();
+        assert_eq!(who, ["beta"]);
+        assert!(began.elapsed() < std::time::Duration::from_secs(5), "{:?}", began.elapsed());
     }
 
     #[tokio::test(start_paused = true)]

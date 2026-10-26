@@ -83,14 +83,16 @@ pub(crate) fn lend(services: &Services, tx: &Outbox) -> Lent {
 /// something the viewer asked a title for.
 pub(crate) fn list_episodes_again(
     id: anistream_core::ids::AnilistId,
+    announce: bool,
     engine: &mut EngineState,
     services: &Services,
     tx: &Outbox,
 ) {
+    let ticket = engine.listed.ticket(id);
     let table = engine.dubs.table(id);
     let naming = engine.names.naming(id, engine.network.offline, &services.clock);
     spawn(None, services, tx, move |lent| async move {
-        list_episodes(lent, id, naming).await;
+        list_episodes(lent, id, naming, ticket, announce).await;
         drop(table);
     });
 }
@@ -220,8 +222,9 @@ pub(crate) fn dispatch(
             // Named from another source where its own left titles and stills out: see
             // `titles::names`.
             let naming = engine.names.naming(id, engine.network.offline, &services.clock);
+            let ticket = engine.listed.ticket(id);
             spawn(job, services, tx, move |lent| async move {
-                list_episodes(lent, id, naming).await;
+                list_episodes(lent, id, naming, ticket, true).await;
                 drop(table);
             })
         }
@@ -248,7 +251,7 @@ pub(crate) fn dispatch(
             engine.names.forget(id);
             set_provider_preference(id, provider, engine, services, tx);
             // The pin applies to what is on screen now, not the next time it opens.
-            crate::titles::refresh::relist(id, engine, services, tx);
+            crate::titles::refresh::relist(id, true, engine, services, tx);
         }
 
         // Playback.
