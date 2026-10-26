@@ -113,8 +113,6 @@ sealed class TorrentDialog
         port.Text = draft.Port;
         user.Text = draft.User;
         port.InputScope = new InputScope { Names = { new(InputScopeNameValue.Number) } };
-        if (!editing && ctx.Known.Settings?.Torrent.Proxy is not null)
-            ToolTipService.SetToolTip(password, TorrentWords.PasswordKept);
         host.TextChanged += (_, _) => Changed(draft with { Host = host.Text });
         port.TextChanged += (_, _) => Changed(draft with { Port = port.Text });
         user.TextChanged += (_, _) => Changed(draft with { User = user.Text });
@@ -127,9 +125,22 @@ sealed class TorrentDialog
         Grid.SetRow(password, 1);
         Grid.SetColumn(password, 1);
         password.Width = 180;
-        if (editing)
-            AutomationProperties.SetHelpText(password, TorrentWords.PasswordKept);
         proxy.Children.Add(password);
+        // An empty password keeps the saved one: said under the fields wherever one is saved. On
+        // Edit proxy it is the note under the form instead.
+        if (ctx.Known.Settings?.Torrent.Proxy is not null)
+        {
+            AutomationProperties.SetHelpText(password, TorrentWords.PasswordKept);
+            if (!editing)
+            {
+                proxy.RowDefinitions.Add(new RowDefinition());
+                var kept = Ui.Text(TorrentWords.PasswordKept, "HazeCaptionStyle");
+                kept.Margin = new Thickness(0, -4, 0, 0);
+                Grid.SetRow(kept, 2);
+                Grid.SetColumnSpan(kept, 2);
+                proxy.Children.Add(kept);
+            }
+        }
 
         // Under the form: what the check does, or on Edit proxy that an empty password keeps the
         // saved one, with the checking or failed line in its place once Save is pressed. Two
@@ -218,8 +229,13 @@ sealed class TorrentDialog
             return;
         }
         Lock(false);
-        var replacing = purpose != Purpose.TurnOn && ctx.Known.Settings?.Torrent is { Protection: TorrentProtection.Proxy, Proxy: not null };
-        Say(TorrentWords.NotSaved(view, replacing), error: true);
+        var kept = purpose switch
+        {
+            Purpose.TurnOn => TorrentWords.Kept.TurningOn,
+            Purpose.Protect => TorrentWords.Kept.Protection,
+            _ => TorrentWords.Kept.EditedProxy,
+        };
+        Say(TorrentWords.NotSaved(view, kept), error: true);
         host.Focus(FocusState.Programmatic);
     }
 

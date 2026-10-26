@@ -328,11 +328,11 @@ public class TorrentsTests
     public void AFailedCheckSaysNothingWasSavedAndWhatStays()
     {
         Assert.Equal("Not saved. Torrent traffic left outside this proxy, so the saved proxy stays.",
-            TorrentWords.NotSaved(new GuardView.Leaking(), editing: true));
-        Assert.Equal("Not saved. The check could not be made through this proxy, so the saved proxy stays.",
-            TorrentWords.NotSaved(new GuardView.Unreachable(), editing: true));
-        Assert.EndsWith("so nothing changed.", TorrentWords.NotSaved(new GuardView.Leaking(), editing: false));
-        Assert.EndsWith("so nothing changed.", TorrentWords.NotSaved(new GuardView.Unprotected(), editing: false));
+            TorrentWords.NotSaved(new GuardView.Leaking(), TorrentWords.Kept.EditedProxy));
+        Assert.Equal("Not saved. The check could not be made through this proxy, so the saved protection stays.",
+            TorrentWords.NotSaved(new GuardView.Unreachable(), TorrentWords.Kept.Protection));
+        Assert.Equal("Torrents are still off. Torrent traffic left outside this proxy.",
+            TorrentWords.NotSaved(new GuardView.Leaking(), TorrentWords.Kept.TurningOn));
 
         // Edit proxy opens on the saved proxy with the password empty, which keeps the saved one.
         var settings = Settings(new ProtectionView(TorrentProtection.Proxy, FailedCheck.Pause, new ProxyView("proxy.example", 1080, "kai")));

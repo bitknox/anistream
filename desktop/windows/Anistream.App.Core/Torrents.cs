@@ -59,19 +59,24 @@ public static class TorrentWords
     /// <summary>While a proxy is checked before it is saved.</summary>
     public const string CheckingProxy = "Checking the proxy";
     /// <summary>Beside Protect with once a proxy passed its check and was saved.</summary>
-    public const string ProxySaved = "Saved. The connection check passed through this proxy.";
+    public const string ProxySaved = "Proxy saved";
 
-    /// <summary>
-    /// Why a proxy was not saved, from the check's <paramref name="view"/> of it: the saved one
-    /// stays when there is one (<paramref name="editing"/>), and nothing changes when there is not.
-    /// </summary>
-    public static string NotSaved(GuardView view, bool editing) => (view, editing) switch
+    /// <summary>What a form was doing with the proxy it checked: what stays when the check fails.</summary>
+    public enum Kept { EditedProxy, Protection, TurningOn }
+
+    /// <summary>Why a proxy was not saved, from the check's <paramref name="view"/> of it, and what stays: Android's words.</summary>
+    public static string NotSaved(GuardView view, Kept kept)
     {
-        (GuardView.Leaking, true) => "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays.",
-        (_, true) => "Not saved. The check could not be made through this proxy, so the saved proxy stays.",
-        (GuardView.Leaking, false) => "Not saved. Torrent traffic left outside this proxy, so nothing changed.",
-        _ => "Not saved. The check could not be made through this proxy, so nothing changed.",
-    };
+        var why = view is GuardView.Leaking
+            ? "Torrent traffic left outside this proxy"
+            : "The check could not be made through this proxy";
+        return kept switch
+        {
+            Kept.EditedProxy => $"Not saved. {why}, so the saved proxy stays.",
+            Kept.Protection => $"Not saved. {why}, so the saved protection stays.",
+            _ => $"Torrents are still off. {why}.",
+        };
+    }
 
     /// <summary>What protects torrent traffic now, under the switch while torrents are on.</summary>
     public static string OnNote(ProtectionView view) => (view.Protection, view.Proxy) switch

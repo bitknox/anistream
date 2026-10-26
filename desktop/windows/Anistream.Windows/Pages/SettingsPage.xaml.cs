@@ -61,6 +61,7 @@ public sealed partial class SettingsPage : Page
     SettingsCard? guardCard;
     /// <summary>Protect with while it shows, and until when it says a proxy was saved.</summary>
     SettingsCard? protectCard;
+    StackPanel? savedMark;
     DateTimeOffset? savedUntil;
     readonly Microsoft.UI.Dispatching.DispatcherQueueTimer savedClock;
     readonly Microsoft.UI.Dispatching.DispatcherQueueTimer guardClock;
@@ -347,8 +348,16 @@ public sealed partial class SettingsPage : Page
         // Edit proxy… beside the choice once a proxy is saved: its form, filled in but for the
         // password, saved only once the new details pass the check.
         var protectRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        savedMark = null;
         if (view is { Protection: TorrentProtection.Proxy, Proxy: not null })
         {
+            // Proxy saved, in the row and faded in place: its room is kept, so nothing moves.
+            savedMark = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0), Opacity = 0 };
+            savedMark.Children.Add(Ui.Dot(Colours.Water));
+            savedMark.Children.Add(new TextBlock { Text = TorrentWords.ProxySaved, VerticalAlignment = VerticalAlignment.Center });
+            Motion.QuickOpacity(savedMark);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAccessibilityView(savedMark, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
+            protectRow.Children.Add(savedMark);
             var edit = new Button { Content = "Edit proxy…", VerticalAlignment = VerticalAlignment.Center };
             edit.Click += async (_, _) =>
             {
@@ -398,7 +407,7 @@ public sealed partial class SettingsPage : Page
     }
 
     /// <summary>
-    /// A proxy saved once its check passed: said under Protect with for a few seconds, and kept
+    /// A proxy saved once its check passed: said beside Protect with for a few seconds, and kept
     /// through the redraw the saved settings bring.
     /// </summary>
     bool ProxySaved()
@@ -420,23 +429,17 @@ public sealed partial class SettingsPage : Page
                 ?.RaiseAutomationEvent(Microsoft.UI.Xaml.Automation.Peers.AutomationEvents.LiveRegionChanged);
     }
 
-    /// <summary>Protect with's line: Saved while it stands, nothing otherwise.</summary>
+    /// <summary>Protect with's Proxy saved: shown while it stands, faded out otherwise, in the same place.</summary>
     void ShowSaved()
     {
         if (protectCard is null)
             return;
-        if (savedUntil is not { } until || DateTimeOffset.UtcNow >= until)
-        {
+        var showing = savedUntil is { } until && DateTimeOffset.UtcNow < until;
+        if (!showing)
             savedUntil = null;
-            protectCard.ClearValue(SettingsCard.DescriptionProperty);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protectCard, "Protect with");
-            return;
-        }
-        var said = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        said.Children.Add(Ui.Dot(Colours.Water));
-        said.Children.Add(new TextBlock { Text = TorrentWords.ProxySaved, TextWrapping = TextWrapping.Wrap });
-        protectCard.Description = said;
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protectCard, $"Protect with, {TorrentWords.ProxySaved}");
+        if (savedMark is not null)
+            savedMark.Opacity = showing ? 1 : 0;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protectCard, showing ? $"Protect with, {TorrentWords.ProxySaved}" : "Protect with");
     }
 
     /// <summary>A drop-down back on what is set, for a choice not made.</summary>
@@ -459,7 +462,8 @@ public sealed partial class SettingsPage : Page
     /// and failed with Try again), <c>torrent-protect</c> (the proxy dialog once torrents are on),
     /// and on a saved proxy <c>torrent-edit</c> (Edit proxy filled in), <c>torrent-edit-checking</c>
     /// and <c>torrent-edit-failed</c> (a new proxy's check under way, and failed with nothing
-    /// saved) and <c>torrent-edit-saved</c> (passed, and Saved beside Protect with).
+    /// saved), <c>torrent-edit-saved</c> (passed, and Proxy saved beside Protect with) and
+    /// <c>torrent-edit-protect</c> (the proxy dialog with a proxy saved).
     /// </summary>
     async void Demo()
     {
@@ -482,7 +486,7 @@ public sealed partial class SettingsPage : Page
                 await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, TorrentWords.NoneAction(turningOn: true));
                 break;
             case "torrents-on" or "torrents-warn" or "torrents-checking" or "torrents-failed" or "torrent-protect"
-                or "torrent-edit" or "torrent-edit-checking" or "torrent-edit-failed" or "torrent-edit-saved":
+                or "torrent-edit" or "torrent-edit-checking" or "torrent-edit-failed" or "torrent-edit-saved" or "torrent-edit-protect":
             {
                 // On a saved proxy for Edit proxy, the device's VPN otherwise.
                 var on = show.StartsWith("torrent-edit", StringComparison.Ordinal)
@@ -501,6 +505,9 @@ public sealed partial class SettingsPage : Page
                         break;
                     case "torrent-edit":
                         await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.EditProxy);
+                        break;
+                    case "torrent-edit-protect":
+                        await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.Protect, start: TorrentProtection.Proxy);
                         break;
                     case "torrent-edit-checking" or "torrent-edit-failed" or "torrent-edit-saved":
                     {
