@@ -74,6 +74,11 @@ android {
         unitTests.isIncludeAndroidResources = true
     }
     buildTypes {
+        debug {
+            // en-XA (accented, longer) and ar-XB (right to left) in the language list, to look at
+            // layouts with: Settings > System > Languages, or `adb shell cmd locale set-app-locales`.
+            isPseudoLocalesEnabled = true
+        }
         release {
             // R8 shrinks and optimizes the app around the engine's bindings, which it keeps whole
             // (proguard-rules.pro): Compose and the rest start much faster optimized.

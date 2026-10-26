@@ -1,0 +1,454 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "action-cancel" : {
+      "comment" : "Button that closes a dialog without doing what it offered.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "action-not-now" : {
+      "comment" : "Button that puts a question off until later.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        }
+      }
+    },
+    "action-try-again" : {
+      "comment" : "Button that runs a failed action again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
+          }
+        }
+      }
+    },
+    "audio-dubbed" : {
+      "comment" : "Value of the audio setting: translated audio.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dubbed"
+          }
+        }
+      }
+    },
+    "audio-subbed" : {
+      "comment" : "Value of the audio setting: the original audio with subtitles.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subbed"
+          }
+        }
+      }
+    },
+    "duration-days-hours" : {
+      "comment" : "A span of time to the next episode, in days and hours. The unit letters belong to the language. Argument 1: days (Int). Argument 2: hours (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldd %2$lldh"
+          }
+        }
+      }
+    },
+    "episodes-count" : {
+      "comment" : "A number of episodes, alone: a badge or a count under a title. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episode"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episodes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "group-in-progress" : {
+      "comment" : "Group header on the library and continue screens.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In progress"
+          }
+        }
+      }
+    },
+    "group-new-this-week" : {
+      "comment" : "Group header for what aired in the last few days.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New this week"
+          }
+        }
+      }
+    },
+    "language-draft-label" : {
+      "comment" : "Label beside a language whose text a person has not reviewed yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draft translation"
+          }
+        }
+      }
+    },
+    "language-draft-note" : {
+      "comment" : "Note under the language row and in the language list, for a draft language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This translation has not been reviewed yet. Some text may be wrong."
+          }
+        }
+      }
+    },
+    "language-follow-system" : {
+      "comment" : "First choice in the language list: use the device's language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow system language"
+          }
+        }
+      }
+    },
+    "language-restart-note" : {
+      "comment" : "Shown after changing the language on Windows, Linux and in the terminal, which read it at start.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restart anistream to use the new language."
+          }
+        }
+      }
+    },
+    "legal-hosts-no-content" : {
+      "comment" : "The legal line. It exists once, so no translation can paraphrase it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "anistream hosts no content."
+          }
+        }
+      }
+    },
+    "menu-show-library" : {
+      "comment" : "Mac menu bar item. Title Case, as Apple's guidelines ask for the menu bar only.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show Library"
+          }
+        }
+      }
+    },
+    "notice-episodes-queued" : {
+      "comment" : "Toast after episodes are added to the download queue. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued one episode."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Queued %1$lld episodes."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice-not-saved" : {
+      "comment" : "Toast when a setting could not be stored. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that setting. %1$@"
+          }
+        }
+      }
+    },
+    "notice-playback-failed" : {
+      "comment" : "Toast when playback stops with an error.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback failed. Try another source."
+          }
+        }
+      }
+    },
+    "notice-saved" : {
+      "comment" : "Toast after a setting is stored. The label is the setting's name. Argument 1: label (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved %1$@."
+          }
+        }
+      }
+    },
+    "notice-title-load-failed" : {
+      "comment" : "Toast when a title's details did not load.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load this title. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "player-up-next" : {
+      "comment" : "Label on the card for the episode that plays after this one.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Up next"
+          }
+        }
+      }
+    },
+    "plugin-risk-warning" : {
+      "comment" : "Warning at install and in onboarding, in the same words in both.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plugins are written by other people and run on your device. Install only from people you trust."
+          }
+        }
+      }
+    },
+    "progress-episodes" : {
+      "comment" : "How far through a show a person is. The plural follows the total. Argument 1: watched (Int). Argument 2: total (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@total@"
+          },
+          "substitutions" : {
+            "total" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld of %2$lld episode"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld of %2$lld episodes"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "queue-episodes-left" : {
+      "comment" : "Continue row subtitle. The show's title is cut first when the row is short. Argument 1: count (Int). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One episode left in %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episodes left in %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "settings-audio" : {
+      "comment" : "Settings row for which audio plays.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio"
+          }
+        }
+      }
+    },
+    "settings-language" : {
+      "comment" : "Settings group and row title for choosing a language.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        }
+      }
+    },
+    "settings-language-app" : {
+      "comment" : "Settings row for the language of the app's own text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App language"
+          }
+        }
+      }
+    },
+    "sources-empty" : {
+      "comment" : "Shown on the sources screen when none is installed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No sources yet. Join a plugin store to add some."
+          }
+        }
+      }
+    },
+    "sources-title" : {
+      "comment" : "Title of the screen or section that lists sources.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sources"
+          }
+        }
+      }
+    },
+    "title-based-on" : {
+      "comment" : "Label before the name of the work a show is based on.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Based on"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -23,6 +23,7 @@ anistream-providers.workspace = true
 anistream-store.workspace = true
 anistream-track = { workspace = true, features = ["keychain"] }
 anistream-tui.workspace = true
+anistream-i18n.workspace = true
 open.workspace = true
 anyhow.workspace = true
 # Encodes an invite link for the terminal's clipboard (OSC 52). Already in the tree.

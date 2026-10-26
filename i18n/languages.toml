@@ -1,0 +1,12 @@
+# Which languages exist and how far along each is. English is the source: every other language is
+# a translation of it. See docs/translations.md.
+#
+#   name    the language's name in itself, as the language picker shows it
+#   stage   draft | beta | released. Anything but released is labelled "Draft translation" in the app.
+#   drafts  hold | ship. `ship` puts machine drafts into release builds, labelled (Johan's decision
+#           of 2026-10-26); `hold` keeps them out until reviewed. Reviewed strings always ship.
+source = "en"
+
+[language.en]
+name = "English"
+stage = "released"

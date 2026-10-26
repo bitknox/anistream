@@ -46,6 +46,13 @@ android {
         }
         named("fixtures") { applicationId = "tv.anistream.tv.fixtures" }
     }
+    buildTypes {
+        debug {
+            // en-XA (accented, longer) and ar-XB (right to left) in the system's language list,
+            // to look at rows that must not wrap.
+            isPseudoLocalesEnabled = true
+        }
+    }
     packaging {
         // The engine's library is loaded straight out of the APK, page-aligned and uncompressed.
         jniLibs.useLegacyPackaging = false
@@ -69,6 +76,7 @@ dependencies {
     implementation(project(":player"))
     implementation(project(":store"))
     implementation(project(":design"))
+    implementation(project(":i18n"))
     implementation(libs.tv.material)
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.runtime.compose)

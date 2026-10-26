@@ -12,6 +12,8 @@ doctest = false
 
 [dependencies]
 anistream-core.workspace = true
+# The words the screens show, by catalogue key (i18n/).
+anistream-i18n.workspace = true
 # The values the work hands the interface and takes back from it.
 anistream-model.workspace = true
 crossterm.workspace = true

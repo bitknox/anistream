@@ -4,6 +4,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// Settings' panes. Integrations stays out of v1.
@@ -367,7 +368,7 @@ struct PlaybackPane: View {
 
     var body: some View {
         let overridden = store.settings.overriddenNote
-        SettingsGroup(title: "Language") {
+        SettingsGroup(title: L.settingsLanguage) {
             SettingsRow(title: SettingKey.translation.title, note: overridden(.translation)) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
             // Kept on this device: the style it follows is this device's.

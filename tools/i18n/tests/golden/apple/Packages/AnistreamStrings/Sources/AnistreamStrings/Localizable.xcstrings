@@ -1,0 +1,158 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "at-home" : {
+      "comment" : "A handle at the start of a string.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@home is anistream"
+          }
+        }
+      }
+    },
+    "braces" : {
+      "comment" : "Literal braces.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use {name} here"
+          }
+        }
+      }
+    },
+    "match-remembered" : {
+      "comment" : "The reasons a match was made. Argument 1: percent (Percent).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remembered (%1$@) at 100%%"
+          }
+        }
+      }
+    },
+    "queue-left" : {
+      "comment" : "Row subtitle on the continue shelf. Argument 1: count (Int). Argument 2: title (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Et afsnit tilbage i %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld afsnit tilbage i %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One episode left in %2$@"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld episodes left in %2$@"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "quote" : {
+      "comment" : "Quote and apostrophe handling. Argument 1: name (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't find \"%1$@\" in <Sources> & more."
+          }
+        }
+      }
+    },
+    "settings-language" : {
+      "comment" : "Settings row.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprog"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Język"
+          }
+        }
+      }
+    },
+    "two-args" : {
+      "comment" : "Order changes per language. Argument 1: who (Text). Argument 2: what (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ watched %2$@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ obejrzał %1$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

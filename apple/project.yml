@@ -140,6 +140,12 @@ targetTemplates:
         # The check reads the script and the patches, which no input file list names.
         ENABLE_USER_SCRIPT_SANDBOXING: false
 
+  # The generated strings (tools/i18n): the String Catalog and L.swift. Resources in the framework,
+  # so L finds its bundle with Bundle(for:); the Swift package finds it with Bundle.module.
+  Strings:
+    templates: [Framework]
+    sources: [Packages/AnistreamStrings/Sources/AnistreamStrings]
+
   # The player the apps host for the engine, and its screens, over the player, the store and the
   # design system.
   PlayerUI:
@@ -234,6 +240,9 @@ targets:
     templates: [Framework]
     templateAttributes: { module: AnistreamWidgetData }
     sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
+  AnistreamStrings:
+    templates: [Strings]
+    templateAttributes: { module: AnistreamStrings }
   AnistreamStore:
     templates: [Framework]
     templateAttributes: { module: AnistreamStore }
@@ -265,6 +274,8 @@ targets:
         embed: false
       - target: AnistreamDesign
         embed: false
+      - target: AnistreamStrings
+        embed: false
       - target: AnistreamWidgetData
         embed: false
 
@@ -279,6 +290,9 @@ targets:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamWidgetData }
     sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
+  AnistreamStringsFixtures:
+    templates: [Strings, Fixtures]
+    templateAttributes: { module: AnistreamStrings }
   AnistreamStoreFixtures:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamStore }
@@ -310,6 +324,8 @@ targets:
         embed: false
       - target: AnistreamDesignFixtures
         embed: false
+      - target: AnistreamStringsFixtures
+        embed: false
       - target: AnistreamWidgetDataFixtures
         embed: false
 
@@ -329,6 +345,7 @@ targets:
     dependencies:
       - target: AnistreamKit
       - target: AnistreamDesign
+      - target: AnistreamStrings
       - target: AnistreamStore
       - target: AnistreamPlayer
       - target: AnistreamPlayerUI
@@ -351,6 +368,7 @@ targets:
     dependencies:
       - target: AnistreamKitFixtures
       - target: AnistreamDesignFixtures
+      - target: AnistreamStringsFixtures
       - target: AnistreamStoreFixtures
       - target: AnistreamPlayerFixtures
       - target: AnistreamPlayerUIFixtures

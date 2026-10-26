@@ -5,6 +5,7 @@
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 extension PhoneSettingsPage: Identifiable {
@@ -319,7 +320,7 @@ struct PhonePlaybackPage: View {
                 .listRowBackground(Palette.raised)
                 PhoneSettingPicker(key: .quality, note: overridden(.quality))
             } header: {
-                PhoneSectionHeader("Language")
+                PhoneSectionHeader(L.settingsLanguage)
             } footer: {
                 Text("Each show remembers its own audio and subtitles.")
             }

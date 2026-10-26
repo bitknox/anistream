@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,7 @@ import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
 import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
+import tv.anistream.i18n.R as I18nR
 import tv.anistream.store.AppStore
 import tv.anistream.store.DevicePreferences
 import tv.anistream.tv.signin.JOIN_LEGAL_LINE
@@ -115,7 +117,7 @@ private fun Pages(start: FirstLaunchPage, finish: () -> Unit) {
             FirstLaunchPage.Sources -> JoinStoreScreen(
                 onDone = { finish() },
                 cancelLabel = "Skip for now",
-                title = "Sources",
+                title = stringResource(I18nR.string.sources_title),
                 line = "Sources are plugins, shared through plugin stores by invite.",
             )
         }

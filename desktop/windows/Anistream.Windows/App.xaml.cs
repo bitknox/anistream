@@ -21,6 +21,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        StringResources.Install();
         window = new MainWindow(Options.Parse(Environment.GetCommandLineArgs().Skip(1)));
         window.Activate();
     }

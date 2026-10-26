@@ -37,6 +37,7 @@ anistream-net = { path = "../../crates/anistream-net" }
 anistream-store = { path = "../../crates/anistream-store" }
 # Without the terminal's mpv child, as this app hosts its own player; with the Discord presence,
 # watch parties and the remote's sender side, for Play on TV.
+anistream-i18n = { path = "../../crates/anistream-i18n" }
 anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence", "party", "remote"] }
 anistream-mpv-host = { path = "../../crates/anistream-mpv-host", features = ["libmpv"] }
 
