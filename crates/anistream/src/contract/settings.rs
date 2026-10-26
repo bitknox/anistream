@@ -16,9 +16,11 @@ use anistream_core::{
 use anistream_model::{
     command::Command,
     event::Event,
-    protection::{FailedCheck, TorrentProtection},
+    protection::{FailedCheck, PROXY_SECRET, TorrentProtection, TorrentProxy},
     settings::{SettingKey, SettingOverride, SettingsView},
     show::{RememberedSubtitles, RememberedTrack, ShowSettingKey, ShowSettingsView},
+    sources::GuardView,
+    stores::Secret,
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
@@ -315,6 +317,72 @@ async fn a_protection_is_written_as_one_change_and_read_back_as_the_terminal_rea
          on_leak = \"stop\"\ni_understand_a_failed_check_keeps_torrents_running = false\n"
     );
     assert_eq!(on_disk(&h).providers.torrent.vpn.on_leak, LeakAction::Stop);
+}
+
+/// A proxy for the check below, with `password` given or left to the one kept.
+fn proxy(host: &str, password: Option<&str>) -> TorrentProxy {
+    TorrentProxy {
+        host: host.into(),
+        port: 1080,
+        user: Some("mika".into()),
+        password: password.map(|password| Secret(password.into())),
+    }
+}
+
+#[tokio::test]
+async fn a_proxy_is_checked_before_it_is_saved_and_nothing_is_written() {
+    let mut h = Harness::new().await;
+    let mode = TorrentProtection::Proxy;
+    h.send(Command::CheckTorrentProtection {
+        mode,
+        proxy: Some(proxy("10.64.0.1", Some("lantern"))),
+    });
+    let updates = h.settle_until(|e| matches!(e, Event::ProtectionChecked(_))).await;
+
+    let exit = anistream_providers::vpn::VpnGuard::fixture_egress().describe();
+    assert!(
+        matches!(&updates[..], [Event::ProtectionChecked(GuardView::Protected { exit: seen })] if *seen == exit),
+        "the verdict alone: {updates:?}"
+    );
+    assert!(!h.paths().config_file.exists(), "nothing was written");
+    assert_eq!(h.secrets().get(PROXY_SECRET).unwrap(), None, "nor the password kept");
+}
+
+#[tokio::test]
+async fn a_failed_check_leaves_the_file_and_the_kept_password_as_they_were() {
+    // A rule the fixture's exit does not meet.
+    let file = "[providers.torrent.vpn]\nrequire_asn_org = [\"Other Co\"]\n";
+    let mut h =
+        Harness::with(Options { config: Some(file.into()), ..Options::default() }).await;
+    h.secrets().set(PROXY_SECRET, "before").unwrap();
+    let mode = TorrentProtection::Proxy;
+    h.send(Command::CheckTorrentProtection {
+        mode,
+        proxy: Some(proxy("10.64.0.2", Some("after"))),
+    });
+    let updates = h.settle_until(|e| matches!(e, Event::ProtectionChecked(_))).await;
+
+    assert!(
+        matches!(&updates[..], [Event::ProtectionChecked(GuardView::Leaking)]),
+        "{updates:?}"
+    );
+    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), file);
+    assert_eq!(h.secrets().get(PROXY_SECRET).unwrap().as_deref(), Some("before"));
+
+    // A proxy with no address is not checked at all, and the notice says why.
+    let empty = TorrentProxy { host: String::new(), port: 0, user: None, password: None };
+    h.send(Command::CheckTorrentProtection { mode, proxy: Some(empty) });
+    let updates = h.settle_until(|e| matches!(e, Event::Toast(_))).await;
+    assert!(
+        matches!(
+            &updates[..],
+            [Event::ProtectionChecked(GuardView::Unreachable), Event::Toast(_)]
+        ),
+        "{updates:?}"
+    );
+    assert_eq!(toasts(&updates), ["alert: not checked: a proxy needs its address and port"]);
+    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), file);
+    assert_eq!(h.secrets().get(PROXY_SECRET).unwrap().as_deref(), Some("before"));
 }
 
 #[tokio::test]

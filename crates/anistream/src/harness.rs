@@ -146,6 +146,7 @@ pub struct Harness {
     app: App,
     server: FakeAniList,
     tokens: TokenStore,
+    secrets: Arc<dyn SecretStore>,
     size: (u16, u16),
     // The engine and what it says, held as the event loop holds them.
     engine: Engine,
@@ -216,6 +217,7 @@ impl Harness {
         // temporary directory.
         let host = Arc::new(TestHost::in_dir(&root.path().join("tokens")));
         let tokens = TokenStore::over(host.secrets.clone());
+        let secrets = host.secrets.clone();
         for tracker in &options.signed_in {
             tokens.set(tracker, &format!("harness-{tracker}-token")).expect("a token file");
         }
@@ -284,6 +286,7 @@ impl Harness {
             app,
             server,
             tokens,
+            secrets,
             size: options.size,
             engine,
             events,
@@ -560,6 +563,11 @@ impl Harness {
         &self.tokens
     }
 
+    /// The host's secret store the tokens are kept in, which keeps the proxy's password too.
+    pub fn secrets(&self) -> &dyn SecretStore {
+        self.secrets.as_ref()
+    }
+
     /// The frame as text: one line per row, trailing spaces trimmed, as `--preview` prints it.
     /// Drawn as the loop draws one, so what it reports goes back to the app.
     pub fn screen(&mut self) -> String {
@@ -787,6 +795,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::TitleDub { .. } => "TitleDub",
         Event::Progress { .. } => "Progress",
         Event::Vpn(_) => "Vpn",
+        Event::ProtectionChecked(_) => "ProtectionChecked",
         Event::ArtworkReady { .. } => "ArtworkReady",
         Event::ImageFailed { .. } => "ImageFailed",
         Event::Downloads(_) => "Downloads",
@@ -955,6 +964,7 @@ fn copy(update: &Event) -> Event {
             episodes: episodes.clone(),
         },
         Event::Vpn(guard) => Event::Vpn(guard.clone()),
+        Event::ProtectionChecked(verdict) => Event::ProtectionChecked(verdict.clone()),
         Event::ArtworkReady { url, bytes } => {
             Event::ArtworkReady { url: url.clone(), bytes: bytes.clone() }
         }

@@ -269,6 +269,16 @@ mod tests {
                 on_failure: FailedCheck::Warn,
                 acknowledged: true,
             },
+            Command::CheckTorrentProtection {
+                mode: TorrentProtection::Proxy,
+                proxy: Some(TorrentProxy {
+                    host: "10.64.0.2".into(),
+                    port: 1080,
+                    user: None,
+                    password: None,
+                }),
+            },
+            Command::CheckTorrentProtection { mode: TorrentProtection::Device, proxy: None },
             Command::LoadShowSettings { id },
             Command::SetShowSetting {
                 id,
@@ -319,6 +329,11 @@ mod tests {
         let sheet = anistream_model::show::view(id, &config, &own, remembered, None);
         assert_eq!(crossed(sheet.clone()), sheet);
         crosses_intact(Event::ShowSettings(sheet));
+        let exit = "192.0.2.7 · Tunnel Co.".to_owned();
+        crosses_intact(Event::ProtectionChecked(
+            anistream_model::sources::GuardView::Protected { exit },
+        ));
+        crosses_intact(Event::ProtectionChecked(anistream_model::sources::GuardView::Leaking));
         let view = SettingsView::default();
         assert_eq!(crossed(view.clone()), view);
         // With the shows that switch new-episode notifications on for themselves counted.
