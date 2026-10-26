@@ -8,9 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.model.GuardView
 import tv.anistream.engine.model.ProviderRow
+import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.engine.model.TorrentProxy
 
 /** The providers, as the engine last said them. */
-class ProvidersModel(private val clock: () -> Long = { System.currentTimeMillis() }) {
+class ProvidersModel(private val clock: () -> Long = { AppClock.now().toEpochMilli() }) {
     private val _rows = MutableStateFlow<List<ProviderRow>>(emptyList())
 
     /** Each provider, in the order the engine lists them. */
@@ -38,6 +40,62 @@ class ProvidersModel(private val clock: () -> Long = { System.currentTimeMillis(
 
     /** The connection check's last verdict; `null` while torrents are off or before it said. */
     val check: StateFlow<Check?> = _check.asStateFlow()
+
+    /**
+     * A protection checked before it is saved: under way, then the check's verdict on it. Each
+     * carries the [mode] and [proxy] it checked, the proxy's password as given, so a form saves
+     * exactly what passed and sets aside a verdict on details it no longer holds.
+     */
+    sealed interface Trial {
+        val mode: TorrentProtection
+        val proxy: TorrentProxy?
+
+        /** Whether this trial checked [mode] through [proxy]. */
+        fun isFor(mode: TorrentProtection, proxy: TorrentProxy?): Boolean = this.mode == mode && this.proxy == proxy
+
+        class Checking internal constructor(override val mode: TorrentProtection, override val proxy: TorrentProxy?) : Trial
+
+        class Said internal constructor(override val mode: TorrentProtection, override val proxy: TorrentProxy?, val view: GuardView) : Trial
+    }
+
+    private val _trial = MutableStateFlow<Trial?>(null)
+
+    /** The check a form asked for; `null` until it asks, and once it is done with it. */
+    val trial: StateFlow<Trial?> = _trial.asStateFlow()
+
+    // The engine runs each check on its own and its verdict names none of them, so checks go one
+    // at a time: the verdict that comes is the one sent's. One asked for meanwhile waits, and a
+    // newer ask takes its place.
+    private var sent: Trial.Checking? = null
+    private var waiting: Trial.Checking? = null
+
+    /** A check of [mode] through [proxy] is asked for: the one to send now, or null while another runs. */
+    internal fun trialAsked(mode: TorrentProtection, proxy: TorrentProxy?): Trial.Checking? = synchronized(this) {
+        val asked = Trial.Checking(mode, proxy)
+        _trial.value = asked
+        if (sent == null) {
+            sent = asked
+            asked
+        } else {
+            waiting = asked
+            null
+        }
+    }
+
+    /** The verdict on the check sent; the one waiting, to send next. */
+    internal fun trialSaid(view: GuardView): Trial.Checking? = synchronized(this) {
+        val said = sent ?: return null
+        // A verdict no form is waiting for any more is not kept.
+        if (_trial.value === said) _trial.value = Trial.Said(said.mode, said.proxy, view)
+        sent = waiting
+        waiting = null
+        sent
+    }
+
+    /** Done with the check: its form closed, or its details changed. */
+    fun clearTrial() {
+        _trial.value = null
+    }
 
     private val _preference = MutableStateFlow<String?>(null)
 

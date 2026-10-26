@@ -693,6 +693,18 @@ class AppStore(
         send(Command.SetTorrentProtection(mode, proxy, onFailure, acknowledged))
     }
 
+    /**
+     * Check [mode], through [proxy] when it is one, before anything is saved: the verdict comes to
+     * [ProvidersModel.trial], and nothing is written, the saved proxy and its password included.
+     * A [proxy] with no password is checked with the one kept.
+     */
+    fun checkTorrentProtection(
+        mode: tv.anistream.engine.model.TorrentProtection,
+        proxy: tv.anistream.engine.model.TorrentProxy?,
+    ) {
+        providers.trialAsked(mode, proxy)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
+    }
+
     /** Check every provider again. */
     fun checkProviders() {
         send(Command.CheckProviders)
@@ -847,6 +859,7 @@ class AppStore(
             is Event.ProviderNote -> providers.note(event.v1)
             Event.SourcesChanged -> providers.sourcesChanged()
             is Event.Vpn -> providers.guardSaid(event.v1)
+            is Event.ProtectionChecked -> providers.trialSaid(event.v1)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
             is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.StorePreview -> stores.previewed(event.v1)

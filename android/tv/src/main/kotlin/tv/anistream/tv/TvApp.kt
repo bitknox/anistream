@@ -14,6 +14,8 @@ import android.net.NetworkCapabilities
 import android.util.Log
 import android.view.Display
 import androidx.core.net.toUri
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -26,6 +28,7 @@ import tv.anistream.player.PlayerConnection
 import tv.anistream.player.PlayerHost
 import tv.anistream.player.PlayerModel
 import tv.anistream.store.AppHost
+import tv.anistream.store.AppPhases
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
@@ -107,7 +110,21 @@ class TvApp : Application(), PlayerHost {
         store.start(launch, host(), prepare)
         watchNetwork()
         ProcessLifecycleOwner.get().lifecycle.addObserver(remote)
+        ProcessLifecycleOwner.get().lifecycle.addObserver(phases())
         watchNext.start()
+    }
+
+    /**
+     * The app's place, told to the engine as the phone tells it: the foreground, or the
+     * background, where torrents wait. Leaving the app pauses the episode (TvActivity.onStop),
+     * so nothing plays there.
+     */
+    private fun phases() = object : DefaultLifecycleObserver {
+        private val phases = AppPhases(store::send)
+
+        override fun onStart(owner: LifecycleOwner) = phases.foreground()
+
+        override fun onStop(owner: LifecycleOwner) = phases.background(playing = false)
     }
 
     /**

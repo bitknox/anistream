@@ -1,0 +1,8 @@
+{
+  "name": "anistream-tv-page-crypto",
+  "private": true,
+  "description": "What the TV's QR pages seal their forms with: @noble/ciphers' AES-GCM, bundled into one script the TV serves inline.",
+  "dependencies": {
+    "@noble/ciphers": "1.3.0"
+  }
+}

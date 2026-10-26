@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.grid.LazyGridItemScope
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,6 +66,10 @@ fun TvListRow(
     icon: ImageVector? = null,
     enabled: Boolean = true,
     height: Dp = if (supporting != null) 72.dp else 56.dp,
+    /** A state's dot before the supporting line: vermilion for a problem, water for a pass. */
+    dot: Color? = null,
+    /** Lines the supporting text may wrap to. */
+    supportingLines: Int = 1,
 ) {
     var focused by remember { mutableStateOf(false) }
     Surface(
@@ -95,7 +101,16 @@ fun TvListRow(
                 Text(headline, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (supporting != null) {
                     val quiet = if (focused || selected) LocalContentColor.current else ObiSilk.Haze
-                    Text(supporting, style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (dot != null) {
+                            // Level with the first line, however many the words wrap to.
+                            val line = with(LocalDensity.current) { MaterialTheme.typography.bodyMedium.lineHeight.toDp() }
+                            Box(Modifier.height(line), contentAlignment = Alignment.Center) {
+                                Box(Modifier.size(8.dp).background(dot, CircleShape))
+                            }
+                        }
+                        Text(supporting, style = MaterialTheme.typography.bodyMedium, color = quiet, maxLines = supportingLines, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
             if (value != null) {

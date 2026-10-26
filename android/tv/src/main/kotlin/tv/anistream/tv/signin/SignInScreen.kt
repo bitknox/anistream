@@ -52,7 +52,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.remote.QrCode
-import tv.anistream.tv.remote.localAddress
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.LocalAppStore
@@ -123,6 +122,7 @@ fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Can
 @Composable
 private fun PageWay(store: AppStore, tracker: String, name: String) {
     val context = LocalContext.current
+    val pageHost = LocalPageHost.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val request by store.accounts.signIn.collectAsStateWithLifecycle()
     val anilist = tracker == "anilist"
@@ -155,14 +155,14 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
                         store.finishSignIn(request, anilistCallback(answer.text, request.callbackScheme, state))
                     }
                     is PageAnswer.Password -> store.connectKitsu(answer.username, answer.password)
-                    is PageAnswer.Link -> Unit
+                    is PageAnswer.Link, is PageAnswer.Torrent -> Unit
                 }
             }
         }
         val job = scope.launch {
             val port = withContext(Dispatchers.IO) { page.start() }
-            val address = localAddress(context)
-            link = if (port != null && address != null) "http://$address:$port/${page.path}" else null
+            val address = pageHost(context)
+            link = if (port != null && address != null) page.address(address, port) else null
         }
         onDispose {
             job.cancel()
