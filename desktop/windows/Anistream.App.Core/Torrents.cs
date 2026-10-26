@@ -52,6 +52,32 @@ public static class TorrentWords
     public const string WarnTitle = "Keep torrents running if a check fails?";
     public const string WarnMessage = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.";
 
+    /// <summary>Edit proxy's line over its form.</summary>
+    public const string EditNote = "Torrents keep using the saved proxy until the new one passes the connection check.";
+    /// <summary>Under the password, wherever a saved proxy's details are open again.</summary>
+    public const string PasswordKept = "Leave the password empty to keep the saved one.";
+    /// <summary>While a proxy is checked before it is saved.</summary>
+    public const string CheckingProxy = "Checking the proxy";
+    /// <summary>Beside Protect with once a proxy passed its check and was saved.</summary>
+    public const string ProxySaved = "Proxy saved";
+
+    /// <summary>What a form was doing with the proxy it checked: what stays when the check fails.</summary>
+    public enum Kept { EditedProxy, Protection, TurningOn }
+
+    /// <summary>Why a proxy was not saved, from the check's <paramref name="view"/> of it, and what stays: Android's words.</summary>
+    public static string NotSaved(GuardView view, Kept kept)
+    {
+        var why = view is GuardView.Leaking
+            ? "Torrent traffic left outside this proxy"
+            : "The check could not be made through this proxy";
+        return kept switch
+        {
+            Kept.EditedProxy => $"Not saved. {why}, so the saved proxy stays.",
+            Kept.Protection => $"Not saved. {why}, so the saved protection stays.",
+            _ => $"Torrents are still off. {why}.",
+        };
+    }
+
     /// <summary>What protects torrent traffic now, under the switch while torrents are on.</summary>
     public static string OnNote(ProtectionView view) => (view.Protection, view.Proxy) switch
     {
@@ -152,5 +178,68 @@ public static class Torrents
         return check == FailedCheck.Warn
             ? Protect(current, current.Protection, onFailure: FailedCheck.Warn, acknowledged: true)
             : new Command.SetSetting(SettingKey.VpnOnFailure, new SettingValue.Str(check == FailedCheck.Stop ? "stop" : "pause"));
+    }
+}
+
+/// <summary>A protection to check before it is saved: the choice, and the proxy when it is one.</summary>
+public sealed record TrialAsk(TorrentProtection Mode, TorrentProxy? Proxy);
+
+/// <summary>
+/// Checks before anything is saved, one at a time. The engine answers each
+/// <see cref="Command.CheckTorrentProtection"/> with an unnumbered
+/// <see cref="Event.ProtectionChecked"/>, each from its own task, so two in flight could answer
+/// in either order: a check is only sent once the one before it has answered, and an answer
+/// goes to the ask that was sent, never to one made since. Asking again replaces what waits;
+/// <see cref="Drop"/> forgets the ask, its answer then going nowhere.
+/// </summary>
+public sealed class ProtectionTrials(Action<Command> send)
+{
+    int outstanding;
+    TrialAsk? queued, sent;
+    Action<TrialAsk, GuardView>? answer;
+
+    /// <summary>Whether an ask waits for its verdict.</summary>
+    public bool Checking => queued is not null || sent is not null;
+
+    /// <summary>Checks <paramref name="ask"/>, and calls <paramref name="answered"/> with it and its verdict.</summary>
+    public void Ask(TrialAsk ask, Action<TrialAsk, GuardView> answered)
+    {
+        answer = answered;
+        sent = null;
+        queued = ask;
+        Pump();
+    }
+
+    /// <summary>Done waiting: the form closed. A verdict still to come is dropped.</summary>
+    public void Drop()
+    {
+        queued = null;
+        sent = null;
+        answer = null;
+    }
+
+    /// <summary>The engine's verdict on the check it was sent last.</summary>
+    public void Heard(GuardView view)
+    {
+        if (outstanding > 0)
+            outstanding--;
+        if (sent is { } mine && outstanding == 0)
+        {
+            var answered = answer;
+            sent = null;
+            answer = null;
+            answered?.Invoke(mine, view);
+        }
+        Pump();
+    }
+
+    void Pump()
+    {
+        if (queued is not { } next || outstanding > 0)
+            return;
+        queued = null;
+        sent = next;
+        outstanding++;
+        send(new Command.CheckTorrentProtection(next.Mode, next.Proxy));
     }
 }
