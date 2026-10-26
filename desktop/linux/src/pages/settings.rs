@@ -211,6 +211,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
     }
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
+    header.pack_start(&crate::window::tv_session_button(ctx));
     let scroll = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&list)

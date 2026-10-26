@@ -96,6 +96,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
+    header.pack_start(&crate::window::tv_session_button(ctx));
     let sidebar_page = widgets::content_page("Continue", &header, &body.widget);
 
     let preview = gtk::Stack::new();

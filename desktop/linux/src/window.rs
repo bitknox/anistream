@@ -1026,6 +1026,7 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
         .build();
     column.append(&scroll);
     column.append(&playing_on(ctx));
+    announce_link(ctx);
     column.append(&foot);
 
     let menu = gio::Menu::new();
@@ -1054,7 +1055,7 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
 /// The way back to the remote while a TV is driven, over the sidebar's foot: "Playing on Living
 /// room", or the TV's name while it plays nothing. While the link is down it says so in the same
 /// place, with the app's dots: "Reconnecting to Living room", "Living room not found", "Pair
-/// Living room again". A screen reader hears the link go.
+/// Living room again". One line, cut short with the whole of it in the tooltip.
 fn playing_on(ctx: &Rc<Ctx>) -> gtk::ListBox {
     let list = gtk::ListBox::new();
     list.add_css_class("navigation-sidebar");
@@ -1064,49 +1065,119 @@ fn playing_on(ctx: &Rc<Ctx>) -> gtk::ListBox {
     let label = gtk::Label::new(None);
     label.set_xalign(0.0);
     label.set_hexpand(true);
-    // "Reconnecting to Living room" is wider than the sidebar: a second line, not cut short.
-    label.set_wrap(true);
-    label.set_wrap_mode(gtk::pango::WrapMode::WordChar);
-    label.set_lines(2);
     label.set_ellipsize(gtk::pango::EllipsizeMode::End);
     label.set_width_chars(1);
     line.append(&label);
-    let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    dot.add_css_class("mark");
+    let dot = session_dot();
     dot.set_valign(gtk::Align::Center);
     line.append(&dot);
     let row = gtk::ListBoxRow::builder().child(&line).build();
     row.set_action_name(Some("win.tv-remote"));
     list.append(&row);
     list.set_visible(false);
-    let said: Rc<RefCell<String>> = Rc::default();
     let show = {
-        let tv = Rc::downgrade(&ctx.tv);
         let list = list.downgrade();
-        move || {
-            let (Some(tv), Some(list)) = (tv.upgrade(), list.upgrade()) else { return };
-            let card = tv.card().filter(|_| tv.connected().is_some());
-            list.set_visible(card.is_some());
-            let Some(card) = card else {
-                said.replace(String::new());
-                return;
-            };
-            let (text, mark, down) = link_standing(&card, tv.now().is_some(), tv.ended());
-            label.set_label(&text);
-            row.set_tooltip_text(Some(&format!("Show the remote for {}", card.tv_name)));
-            for each in ["water", "haze", "vermilion"] {
-                dot.remove_css_class(each);
-            }
-            dot.add_css_class(mark);
-            if down && *said.borrow() != text {
-                list.announce(&text, gtk::AccessibleAnnouncementPriority::Medium);
-            }
-            said.replace(if down { text } else { String::new() });
+        move |standing: Option<&(String, &'static str, bool)>| {
+            let Some(list) = list.upgrade() else { return };
+            list.set_visible(standing.is_some());
+            let Some((text, mark, _)) = standing else { return };
+            label.set_label(text);
+            row.set_tooltip_text(Some(text));
+            row.update_property(&[gtk::accessible::Property::Label(text)]);
+            mark_dot(&dot, mark);
         }
     };
-    show();
-    ctx.tv.listen(show);
+    follow_session(ctx, show);
     list
+}
+
+/// The same, as a header button while the sidebar is folded away: the TV's icon with the dot,
+/// the words in its tooltip. Every destination's header has one beside the sidebar button.
+pub fn tv_session_button(ctx: &Rc<Ctx>) -> gtk::Button {
+    let icon = gtk::Overlay::new();
+    icon.set_child(Some(&gtk::Image::from_icon_name("video-display-symbolic")));
+    let dot = session_dot();
+    dot.set_halign(gtk::Align::End);
+    dot.set_valign(gtk::Align::Start);
+    icon.add_overlay(&dot);
+    let button = gtk::Button::builder().child(&icon).action_name("win.tv-remote").build();
+    button.add_css_class("flat");
+    let session = Rc::new(Cell::new(false));
+    let collapsed = ctx.split.is_collapsed();
+    button.set_visible(false);
+    let place = {
+        let button = button.downgrade();
+        let session = Rc::clone(&session);
+        move |collapsed: bool| {
+            if let Some(button) = button.upgrade() {
+                button.set_visible(collapsed && session.get());
+            }
+        }
+    };
+    ctx.split.connect_collapsed_notify({
+        let place = place.clone();
+        move |split| place(split.is_collapsed())
+    });
+    let split = ctx.split.downgrade();
+    let weak = button.downgrade();
+    follow_session(ctx, move |standing| {
+        session.set(standing.is_some());
+        place(split.upgrade().map_or(collapsed, |s| s.is_collapsed()));
+        if let (Some((text, mark, _)), Some(button)) = (standing, weak.upgrade()) {
+            mark_dot(&dot, mark);
+            button.set_tooltip_text(Some(text));
+            button.update_property(&[gtk::accessible::Property::Label(text)]);
+        }
+    });
+    button
+}
+
+fn session_dot() -> gtk::Box {
+    let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    dot.add_css_class("mark");
+    dot
+}
+
+fn mark_dot(dot: &gtk::Box, mark: &str) {
+    for each in ["water", "haze", "vermilion"] {
+        dot.remove_css_class(each);
+    }
+    dot.add_css_class(mark);
+}
+
+/// Run `show` with what to say of the TV driven, now and as it changes, or `None` with none.
+fn follow_session(
+    ctx: &Rc<Ctx>,
+    show: impl Fn(Option<&(String, &'static str, bool)>) + 'static,
+) {
+    let tv = Rc::downgrade(&ctx.tv);
+    let run = move || {
+        let Some(tv) = tv.upgrade() else { return };
+        let card = tv.card().filter(|_| tv.connected().is_some());
+        let standing = card.map(|card| link_standing(&card, tv.now().is_some(), tv.ended()));
+        show(standing.as_ref());
+    };
+    run();
+    ctx.tv.listen(run);
+}
+
+/// Say the link going down to a screen reader, once each time, from the window, which is
+/// there at every width and with the sheet up or not.
+fn announce_link(ctx: &Rc<Ctx>) {
+    let said: RefCell<String> = RefCell::default();
+    let window = ctx.window.downgrade();
+    follow_session(ctx, move |standing| {
+        let down = standing.filter(|s| s.2).map(|s| s.0.clone()).unwrap_or_default();
+        if !down.is_empty()
+            && *said.borrow() != down
+            && let Some(window) = window.upgrade()
+        {
+            window
+                .upcast_ref::<gtk::Widget>()
+                .announce(&down, gtk::AccessibleAnnouncementPriority::Medium);
+        }
+        said.replace(down);
+    });
 }
 
 /// What the sidebar says of the TV driven, its dot, and whether the link is down.

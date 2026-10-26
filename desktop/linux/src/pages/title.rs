@@ -884,7 +884,7 @@ impl Page {
                     _ => 0.0,
                 };
                 first.append(
-                    Some("Play on TV"),
+                    Some("Play on TV…"),
                     Some(&format!("win.play-on-tv((uint32 {id}, '{n}', {from:.1}))")),
                 );
             }

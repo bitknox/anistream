@@ -73,7 +73,7 @@ pub fn group(ctx: &Rc<Ctx>) -> Option<adw::PreferencesGroup> {
             let another = adw::ActionRow::builder()
                 .title(if paired.is_empty() { "No TVs paired yet" } else { "Another TV" })
                 .subtitle(
-                    "Open anistream on the TV, on the same Wi-Fi, then pair with it here.",
+                    "Open anistream on the TV, on the same Wi‑Fi, then pair with it here.",
                 )
                 .build();
             let pair = gtk::Button::with_label("Pair a TV…");

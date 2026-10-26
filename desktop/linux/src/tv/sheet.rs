@@ -142,9 +142,16 @@ impl Dialog {
             .follows_content_size(true)
             .child(&stack)
             .build();
-        if ctx.size() != Size::Narrow {
-            stack.set_size_request(440, -1);
-        }
+        // 440 wide in a window with room, and the window's own width as a bottom sheet: kept
+        // as the window is resized with the sheet up.
+        ctx.on_size({
+            let stack = stack.downgrade();
+            move |size| {
+                if let Some(stack) = stack.upgrade() {
+                    stack.set_size_request(if size == Size::Narrow { -1 } else { 440 }, -1);
+                }
+            }
+        });
         let me = Rc::new(Self {
             tv: Rc::clone(&ctx.tv),
             ctx: Rc::clone(ctx),
@@ -255,8 +262,10 @@ impl Dialog {
                 Face::Picker => {
                     self.picker.done.grab_focus();
                 }
+                // The remote itself, not a control, so Space and the arrows reach the TV
+                // at once; Tab goes on to the controls.
                 Face::Remote => {
-                    self.remote.done.grab_focus();
+                    self.remote.view.grab_focus();
                 }
             }
         }
@@ -567,7 +576,7 @@ impl Picker {
         self.title.set_title(if request.is_some() { "Play on TV" } else { "Pair a TV" });
         self.line.set_label(&match &request {
             None => {
-                "Open anistream on the TV. It needs to be on the same Wi-Fi as this computer."
+                "Open anistream on the TV. It needs to be on the same Wi‑Fi as this computer."
                     .to_owned()
             }
             Some(r) if r.title.is_empty() => format!("Episode {}", r.episode),
@@ -576,7 +585,7 @@ impl Picker {
         self.none_line.set_label(if request.is_none() {
             "Check that anistream is open on the TV."
         } else {
-            "Check that anistream is open on the TV, on the same Wi-Fi as this computer."
+            "Check that anistream is open on the TV, on the same Wi‑Fi as this computer."
         });
         if came {
             self.address.set_text("");
@@ -684,6 +693,8 @@ impl Pairing {
         header.pack_end(&pair);
         let spinner = adw::Spinner::new();
         spinner.set_size_request(16, 16);
+        // Clear of the sheet's edge, where Pair's own padding would be.
+        spinner.set_margin_end(10);
         header.pack_end(&spinner);
         let line = line();
         body.append(&line);
@@ -746,8 +757,6 @@ impl Pairing {
         } else {
             self.show_new.remove_css_class("suggested-action");
         }
-        self.pair.set_visible(typing);
-        self.pair.set_sensitive(self.code.six().is_some() && !step.working && !expired);
         self.spinner.set_visible(step.working);
         // A try that failed: the code goes, ready for the next, or for a new code.
         if step.problem.is_some() && *self.shown_problem.borrow() != step.problem {
@@ -758,6 +767,9 @@ impl Pairing {
                 self.code.focus();
             }
         }
+        // After the clear, which says nothing: Pair lights only over six digits.
+        self.pair.set_visible(typing);
+        self.pair.set_sensitive(self.code.six().is_some() && !step.working && !expired);
         self.shown_problem.replace(step.problem.clone());
         self.problem.show(expired.then_some("Code Expired"), step.problem.as_deref());
         if typing && !step.working && !expired && came {
@@ -1186,10 +1198,12 @@ impl Remote {
             }
         });
 
-        // Space plays and pauses, and Left and Right step 10 seconds, as a remote's keys do.
-        // Typing in the search, or a menu open, keeps its keys; Enter still presses a button.
+        // Space plays and pauses, and Left and Right step 10 seconds, as a remote's keys do,
+        // while nothing interactive has focus, or the seek line has. A focused button, menu
+        // or field keeps its keys, as the player's controls do.
         let keys = gtk::EventControllerKey::new();
         keys.set_propagation_phase(gtk::PropagationPhase::Capture);
+        self.view.set_focusable(true);
         keys.connect_key_pressed({
             let tv = Rc::downgrade(tv);
             let view = self.view.downgrade();
@@ -1205,7 +1219,13 @@ impl Remote {
                 }
                 let focus = view.upgrade().and_then(|v| v.root()).and_then(|r| r.focus());
                 let keeps_keys = focus.is_some_and(|f| {
-                    f.is::<gtk::Text>() || f.ancestor(gtk::Popover::static_type()).is_some()
+                    !f.is::<gtk::Scale>()
+                        && (f.is::<gtk::Button>()
+                            || f.is::<gtk::MenuButton>()
+                            || f.is::<gtk::ListBoxRow>()
+                            || f.is::<gtk::Text>()
+                            || f.is::<gtk::Switch>()
+                            || f.ancestor(gtk::Popover::static_type()).is_some())
                 });
                 match tv.upgrade() {
                     Some(tv) if !keeps_keys && tv.live() && tv.now().is_some() => {
@@ -1320,8 +1340,16 @@ impl Remote {
         let chosen_audio =
             now.audio.iter().find(|t| t.selected).map(|t| t.id.to_string()).unwrap_or_default();
         self.audio_action.set_state(&chosen_audio.to_variant());
-        self.subtitles.set_label(&chosen(&now.subtitles, now.subtitles_off, Track::Subtitle));
-        self.audio.set_label(&chosen(&now.audio, false, Track::Audio));
+        let subtitle = chosen(&now.subtitles, now.subtitles_off, Track::Subtitle);
+        let audio = chosen(&now.audio, false, Track::Audio);
+        self.subtitles.set_label(&subtitle);
+        self.audio.set_label(&audio);
+        // A screen reader hears the choice with the row's name: "Subtitles, English · Full".
+        self.subtitles.update_property(&[gtk::accessible::Property::Label(&format!(
+            "Subtitles, {subtitle}"
+        ))]);
+        self.audio
+            .update_property(&[gtk::accessible::Property::Label(&format!("Audio, {audio}"))]);
         self.subtitles.set_sensitive(live && !now.subtitles.is_empty());
         self.audio.set_sensitive(live && !now.audio.is_empty());
         self.volume.set_subtitle(

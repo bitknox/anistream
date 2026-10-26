@@ -124,6 +124,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     check.set_action_name(Some("providers.check"));
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
+    header.pack_start(&crate::window::tv_session_button(ctx));
     header.pack_end(&check);
 
     let list = widgets::boxed_list();

@@ -121,6 +121,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let title = adw::WindowTitle::new("Calendar", "");
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
+    header.pack_start(&crate::window::tv_session_button(ctx));
     header.set_title_widget(Some(&title));
     let previous = gtk::Button::from_icon_name("go-previous-symbolic");
     previous.set_tooltip_text(Some("Previous Week"));
