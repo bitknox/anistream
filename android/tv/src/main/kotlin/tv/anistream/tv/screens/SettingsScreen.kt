@@ -45,6 +45,12 @@ import kotlinx.coroutines.launch
 import tv.anistream.design.Nagare
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.model.ProviderOrigin
+import tv.anistream.engine.model.FailedCheck
+import tv.anistream.engine.model.GuardView
+import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.engine.model.TorrentProxy
+import tv.anistream.store.TorrentWords
+import tv.anistream.tv.signin.TorrentMode
 import tv.anistream.engine.model.ProviderRow
 import tv.anistream.engine.model.StoreRow
 import tv.anistream.engine.model.StoreState
@@ -57,6 +63,7 @@ import tv.anistream.engine.model.SettingRow
 import tv.anistream.engine.model.SettingsView
 import tv.anistream.engine.model.SyncState
 import tv.anistream.store.AccountsModel
+import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.store.UpdateCheck
@@ -166,7 +173,7 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
                 when (section) {
                     SettingsSection.General -> general(store, view, memory, first)
                     SettingsSection.Playback -> playback(store, view, memory, first)
-                    SettingsSection.Sources -> sources(memory, first)
+                    SettingsSection.Sources -> sources(nav, store, view, memory, first)
                     SettingsSection.PluginStores -> pluginStores(nav, memory, first)
                     SettingsSection.Accounts -> accounts(nav, memory, first)
                     SettingsSection.Remotes -> remotes(memory, first)
@@ -316,9 +323,10 @@ private fun change(store: AppStore, key: SettingKey, change: SettingChange?, swi
     }
 }
 
-private fun LazyListScope.sources(memory: FocusMemory, first: Modifier) {
+private fun LazyListScope.sources(nav: TvNavigator, store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     item(key = "sources", contentType = "list") {
-        val store = LocalAppStore.current
+        // What the providers answer and where torrent traffic leaves from, as the phone's pane asks on opening.
+        LaunchedEffect(Unit) { store.checkProviders() }
         val rows by store.providers.rows.collectAsStateWithLifecycle()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rows.isEmpty()) {
@@ -337,6 +345,7 @@ private fun LazyListScope.sources(memory: FocusMemory, first: Modifier) {
             }
         }
     }
+    torrents(nav, store, view, memory)
 }
 
 private fun LazyListScope.pluginStores(nav: TvNavigator, memory: FocusMemory, first: Modifier) {
@@ -360,6 +369,183 @@ private fun LazyListScope.pluginStores(nav: TvNavigator, memory: FocusMemory, fi
             )
         }
     }
+}
+
+/**
+ * Torrents, the phone's group under its sources: the switch, which asks for protection before it
+ * turns on, then while on the index, Protect with, the last check and what a failed one does,
+ * and Seeding.
+ */
+private fun LazyListScope.torrents(nav: TvNavigator, store: AppStore, view: SettingsView?, memory: FocusMemory) {
+    val on = store.settings.isOn(SettingKey.TORRENTS, view)
+    item(key = "torrents", contentType = "list") {
+        val actions = LocalActions.current
+        val torrent = view?.torrent
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            GroupLabel("Torrents")
+            TvListRow(
+                "Torrent source",
+                onClick = { if (on) store.setSwitch(SettingKey.TORRENTS, false) else nav.openTorrents(TorrentMode.TurnOn) },
+                switch = on,
+                modifier = Modifier.remembered(memory, "torrent/source"),
+            )
+            if (on) {
+                TvListRow(
+                    "Torrent index",
+                    onClick = { nav.openTorrents(TorrentMode.Change) },
+                    supporting = view?.sources?.index ?: "None set",
+                    modifier = Modifier.remembered(memory, "torrent/index"),
+                )
+                TvListRow(
+                    "Protect with",
+                    onClick = {
+                        actions?.open(
+                            ActionSheet(
+                                "Protect with",
+                                TorrentProtections.map { each ->
+                                    CardAction(TorrentWords.protection(each), selected = each == torrent?.protection) {
+                                        // Another protection asks for what it needs before it applies.
+                                        if (each != torrent?.protection) nav.openTorrents(TorrentMode.Change, each)
+                                    }
+                                },
+                            ),
+                        )
+                    },
+                    value = TorrentWords.protection(torrent?.protection),
+                    modifier = Modifier.remembered(memory, "torrent/protect"),
+                )
+                LastCheckRow(store, view, memory)
+                FailedCheckRow(store, view, memory)
+            }
+            Quiet(if (on) TorrentWords.checkNote(torrent?.onFailure, torrent?.protection) else TorrentWords.OFF_NOTE)
+        }
+    }
+    if (on) {
+        item(key = "seeding", contentType = "list") {
+            val actions = LocalActions.current
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                GroupLabel("Seeding")
+                SeedingRows.forEach { (key, label) ->
+                    val row = store.settings.row(key, view)
+                    val options = settingChoices(key, row)
+                    TvListRow(
+                        label,
+                        onClick = {
+                            actions?.open(ActionSheet(label, options.map { (value, words, selected) ->
+                                CardAction(words, selected = selected) { store.setSetting(key, value) }
+                            }))
+                        },
+                        value = row?.let { settingWords(key, SettingsCatalog.current(it)?.label ?: it.value) },
+                        enabled = SettingsCatalog.editable(row) && options.isNotEmpty(),
+                        modifier = Modifier.remembered(memory, "row/${key.name}"),
+                    )
+                }
+                Quiet("Best effort on this TV: seeding runs only while anistream is open.")
+            }
+        }
+    }
+}
+
+/** The protections, in the phone's order. */
+private val TorrentProtections = listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE)
+
+/** Seeding's rows, the phone's. */
+private val SeedingRows = listOf(
+    SettingKey.SEED_RATIO to "Seed after watching",
+    SettingKey.SEED_HOURS to "Seed for at most",
+    SettingKey.UPLOAD_LIMIT to "Upload limit",
+)
+
+/**
+ * The connection check's last word: its dot, vermilion for a failed check and water for a passed
+ * one, where traffic leaves from, and Center to check now.
+ */
+@Composable
+private fun LastCheckRow(store: AppStore, view: SettingsView?, memory: FocusMemory) {
+    val check by store.providers.check.collectAsStateWithLifecycle()
+    val words = TorrentWords.check(check, now = AppClock.now().toEpochMilli(), onFailure = view?.torrent?.onFailure)
+    val checking = check?.view == GuardView.Checking
+    TvListRow(
+        "Last check",
+        onClick = { if (!checking) store.checkProviders() },
+        supporting = listOfNotNull(words.status, words.note).joinToString(" · "),
+        supportingLines = 2,
+        height = 88.dp,
+        dot = when {
+            words.problem -> ObiSilk.Vermilion
+            words.passed -> ObiSilk.Water
+            else -> null
+        },
+        value = if (checking) null else "Check now",
+        modifier = Modifier.remembered(memory, "torrent/check"),
+    )
+}
+
+/**
+ * If a check fails: pause or stop as a setting, or warn only, which keeps torrents running on
+ * what may be the TV's own address, so it is confirmed first.
+ */
+@Composable
+private fun FailedCheckRow(store: AppStore, view: SettingsView?, memory: FocusMemory) {
+    val actions = LocalActions.current
+    val torrent = view?.torrent
+    val current = torrent?.onFailure ?: FailedCheck.PAUSE
+    var warning by remember { mutableStateOf(false) }
+    TvListRow(
+        "If a check fails",
+        onClick = {
+            actions?.open(
+                ActionSheet(
+                    "If a check fails",
+                    FailedCheck.entries.map { each ->
+                        CardAction(TorrentWords.failed(each), selected = each == current) {
+                            when (each) {
+                                current -> {}
+                                FailedCheck.WARN -> warning = true
+                                FailedCheck.PAUSE -> store.setSetting(SettingKey.VPN_ON_FAILURE, SettingValue.Str("pause"))
+                                FailedCheck.STOP -> store.setSetting(SettingKey.VPN_ON_FAILURE, SettingValue.Str("stop"))
+                            }
+                        }
+                    },
+                ),
+            )
+        },
+        value = TorrentWords.failed(current),
+        enabled = torrent != null,
+        modifier = Modifier.remembered(memory, "torrent/failed"),
+    )
+    if (warning && torrent != null) {
+        ConfirmDialog(
+            title = TorrentWords.WARN_TITLE,
+            body = TorrentWords.WARN_BODY,
+            action = "Warn only",
+            onConfirm = {
+                warning = false
+                store.setTorrentProtection(
+                    torrent.protection,
+                    proxy = torrent.proxy?.let { TorrentProxy(host = it.host, port = it.port, user = it.user, password = null) },
+                    onFailure = FailedCheck.WARN,
+                    acknowledged = true,
+                )
+                memory.focus("torrent/failed")
+            },
+            onCancel = {
+                warning = false
+                memory.focus("torrent/failed")
+            },
+        )
+    }
+}
+
+/** A group's name over its rows, the phone's settings groups. */
+@Composable
+private fun GroupLabel(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        color = ObiSilk.Haze,
+        modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 4.dp).semantics { heading() },
+    )
 }
 
 /** Where a source came from: its store, by hand, or built in. */

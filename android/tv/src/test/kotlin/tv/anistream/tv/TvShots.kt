@@ -11,10 +11,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.isFocused
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.pressKey
@@ -49,6 +59,11 @@ import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.FailedCheck
+import tv.anistream.engine.model.GuardView
+import tv.anistream.engine.model.ProtectionView
+import tv.anistream.engine.model.SettingKey
+import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
@@ -273,6 +288,132 @@ class TvShots {
         assertEquals("Type the link", focusedText())
     }
 
+    /** Settings › Sources, torrents off: the switch, and that turning on asks for protection first. */
+    @Test
+    fun torrents_off() = shoot("tv-torrents-off", section = "Sources") {
+        press(Key.DirectionRight)
+        downTo("Torrent source")
+    }
+
+    /**
+     * Turning torrents on: Protect with on the left, VPN on this device focused, and the page for
+     * the details, here on a TV no phone can reach, as the JVM has no network.
+     */
+    @Test
+    fun torrents_turn_on() = shoot(null, section = "Sources") {
+        press(Key.DirectionRight)
+        downTo("Torrent source")
+        press(Key.DirectionCenter)
+        settle()
+        assertTrue(focusedText().startsWith("VPN on this device"))
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-turn-on.png")
+    }
+
+    /** No protection, asked for: confirmed first, Cancel focused. */
+    @Test
+    fun torrents_no_protection() = shoot(null, section = "Sources") {
+        press(Key.DirectionRight)
+        downTo("Torrent source")
+        press(Key.DirectionCenter)
+        settle()
+        downTo("No protection")
+        press(Key.DirectionCenter)
+        settle()
+        // The dialog's window has its own focus, over the screen's.
+        assertTrue(focusedTexts().contains("Cancel"))
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-no-protection.png")
+    }
+
+    /** Type it, for a proxy: the index and the proxy's fields as pills, the password as dots. */
+    @Test
+    fun torrents_type_it() = shoot(null, section = "Sources") {
+        press(Key.DirectionRight)
+        downTo("Torrent source")
+        press(Key.DirectionCenter)
+        settle()
+        press(Key.DirectionUp)
+        assertTrue(focusedText().startsWith("SOCKS5 proxy"))
+        press(Key.DirectionCenter)
+        compose.onNodeWithText("Type it").performSemanticsAction(SemanticsActions.OnClick)
+        settle()
+        // The index, the proxy's host and port, its user name, its password.
+        val fields = compose.onAllNodes(hasSetTextAction())
+        fields[0].performTextInput("https://index.example/rss?q=")
+        fields[1].performTextInput("proxy.example")
+        fields[2].performTextInput("1080")
+        fields[4].performTextInput("not-shown")
+        // Focus back on the index, its note under it.
+        fields[0].requestFocus()
+        settle()
+        // Drawn as dots, and marked a password, so TalkBack does not read it out.
+        fields[4].assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Password))
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-type-it.png")
+        // Done: the details, whole, as rows, and Turn on.
+        compose.onNodeWithText("Done").performSemanticsAction(SemanticsActions.OnClick)
+        settle()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-ready.png")
+    }
+
+    /** Torrents on, the check passed 12 s ago: its water dot, where traffic leaves from, Check now. */
+    @Test
+    fun torrents_on() = shoot("tv-torrents-on", section = "Sources", torrents = GuardView.Protected("203.0.113.24")) {
+        press(Key.DirectionRight)
+        downTo("Last check")
+    }
+
+    /** The check under way. */
+    @Test
+    fun torrents_checking() = shoot("tv-torrents-checking", section = "Sources", torrents = GuardView.Checking) {
+        press(Key.DirectionRight)
+        downTo("Last check")
+    }
+
+    /** A failed check: its vermilion dot, and that torrents are paused, with focus on what that does. */
+    @Test
+    fun torrents_check_failed() = shoot("tv-torrents-check-failed", section = "Sources", torrents = GuardView.Leaking) {
+        press(Key.DirectionRight)
+        downTo("If a check fails")
+    }
+
+    /** Warn only, asked for: confirmed first, Cancel focused. */
+    @Test
+    fun torrents_warn_only() = shoot(null, section = "Sources", torrents = GuardView.Unreachable) {
+        press(Key.DirectionRight)
+        downTo("If a check fails")
+        press(Key.DirectionCenter)
+        downTo("Warn only")
+        press(Key.DirectionCenter)
+        settle()
+        // The dialog's window has its own focus, over the screen's.
+        assertTrue(focusedTexts().contains("Cancel"))
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-warn-only.png")
+    }
+
+    /** Seeding, under Torrents while they are on, with its best-effort line. */
+    @Test
+    fun torrents_seeding() = shoot("tv-torrents-seeding", section = "Sources", torrents = GuardView.Protected("203.0.113.24")) {
+        press(Key.DirectionRight)
+        downTo("Upload limit")
+    }
+
+    /** A torrent starting: 23 s in, what the wait is on, and another source offered. */
+    @Test
+    fun player_torrent_starting() = startingShot("tv-player-torrent-starting", waited = 23_000)
+
+    /** The first seconds of a start, before the wait says what it is on. */
+    @Test
+    fun player_starting() = startingShot("tv-player-starting", waited = 1_000)
+
+    /** A torrent that stalled mid-episode: the stall card, Switch source focused. */
+    @Test
+    fun player_torrent_stalled() = playerShot("tv-player-torrent-stalled") { model ->
+        time = CHROME_HIDE + 1_000
+        compose.runOnUiThread { model.apply(Event.PlayerUi(1u, PlayerUi.Stall(12uL))) }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        assertEquals("Switch source", focusedText())
+    }
+
     /** A playback that never played: why, as the engine said it, and another source focused. */
     @Test
     fun player_failed() {
@@ -290,6 +431,45 @@ class TvShots {
         settle()
         assertEquals("Choose another source", focusedText())
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-player-failed.png")
+    }
+
+    /** The starting screen [waited] ms after the engine said it is starting, before any frame. */
+    private fun startingShot(name: String, waited: Long) {
+        AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
+        val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        val model = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { time }, hwdec = "no")
+        compose.runOnUiThread {
+            model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
+            model.apply(
+                Event.PlayerUi(
+                    1u,
+                    PlayerUi.Starting(900_001u, TITLE, "7", EPISODE, "${FixtureArt.HOST}cover/900001-xl.jpg", "${FixtureArt.HOST}banner/900001.jpg"),
+                ),
+            )
+        }
+        compose.setContent {
+            TvTheme {
+                CompositionLocalProvider(LocalInspectionMode provides true) {
+                    TvRoot(store, model, TvNavigator(), play = { _, _ -> })
+                }
+            }
+        }
+        compose.waitForIdle()
+        time = waited
+        compose.runOnUiThread { model.poke() }
+        settle()
+        awaitArt(store)
+        settle()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
+    }
+
+    /** Down through the rows until the one starting with [label] has focus. */
+    private fun downTo(label: String) {
+        repeat(40) {
+            if (focusedTexts().any { it.startsWith(label) }) return
+            press(Key.DirectionDown)
+        }
+        assertTrue("focus reached $label, at ${focusedTexts()}", focusedTexts().any { it.startsWith(label) })
     }
 
     /** The model's clock, held where a shot puts it. */
@@ -361,18 +541,29 @@ class TvShots {
         /** Whether every show on Continue was last watched dubbed. */
         dub: Boolean = false,
         scene: String = WATCHING,
+        /** The Settings section to open at, by its name. */
+        section: String? = null,
+        /** Torrents on, behind the VPN on this device, with this the check's last word, 12 s ago. */
+        torrents: GuardView? = null,
         then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
-        val events = recorded.events.filter(::replayed).map { if (dub) dubbed(it) else it } +
+        val events = recorded.events.filter(::replayed).map { if (dub) dubbed(it) else it }.map { if (torrents != null) torrentsOn(it) else it } +
             listOfNotNull(Event.Connectivity(true).takeIf { offline })
+        // The check's last word, said 12 s before the scene's now, once.
+        torrents?.let {
+            AppClock.clock = Clock.fixed(recorded.recordedAt.minusSeconds(12), ZONE)
+            store.apply(listOf(Event.Vpn(it)))
+            AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
+        }
         store.apply(events)
         val player = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { 0L }, hwdec = "no")
         nav = TvNavigator(if (query != null) Destination.Search else start).apply {
             query?.let { typeSearch(it) }
             title?.let(::openTitle)
+            section?.let(::goSettings)
         }
         val nav = nav
         compose.setContent {
@@ -398,9 +589,15 @@ class TvShots {
     }
 
     private fun press(key: Key) {
-        compose.onRoot().performKeyInput { pressKey(key) }
+        // To the newest window: a panel or a dialog over the screen, when one is up.
+        compose.onAllNodes(isRoot()).onLast().performKeyInput { pressKey(key) }
         compose.mainClock.advanceTimeBy(600)
         compose.waitForIdle()
+    }
+
+    /** The focused controls' texts, one a window: the screen's, and a dialog's over it. */
+    private fun focusedTexts(): List<String> = compose.onAllNodes(isFocused()).fetchSemanticsNodes().map { node ->
+        node.config.getOrNull(SemanticsProperties.Text).orEmpty().joinToString(" ") { it.text }
     }
 
     /** The focused control's text, its descendants' merged. */
@@ -452,6 +649,18 @@ class TvShots {
             else -> true
         }
     }
+}
+
+/** [event], when it is the settings, with torrents on from an index, behind the VPN on this device. */
+private fun torrentsOn(event: Event): Event = when (event) {
+    is Event.Settings -> Event.Settings(
+        event.v1.copy(
+            rows = event.v1.rows.map { if (it.key == SettingKey.TORRENTS) it.copy(value = "on") else it },
+            sources = event.v1.sources.copy(torrent = true, index = "https://index.example/rss?q="),
+            torrent = ProtectionView(TorrentProtection.DEVICE, null, FailedCheck.PAUSE),
+        ),
+    )
+    else -> event
 }
 
 /** [event], when it is a list of titles, with every one last watched dubbed, as the engine would send them. */

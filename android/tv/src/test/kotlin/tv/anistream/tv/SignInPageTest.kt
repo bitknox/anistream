@@ -6,6 +6,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import tv.anistream.tv.signin.PageAnswer
@@ -80,6 +81,46 @@ class SignInPageTest {
         )
         val pasted = "https://anistream.example/auth/anilist#access_token=a.b.c&state=s1"
         assertEquals(pasted, anilistCallback(pasted, "anistream", "s1"))
+    }
+
+    @Test
+    fun torrents_page_takes_one_answer_and_closes() {
+        val url = start(PageForm.TorrentProxy)
+        val reply = post(url, "index=https%3A%2F%2Findex.example%2Frss&host=proxy.example&port=1080&user=mika&password=p%26ss")
+        assertTrue(reply.contains("Sent to the TV"))
+        assertEquals(
+            PageAnswer.Torrent("https://index.example/rss", "proxy.example", "1080", "mika", "p&ss"),
+            answers.poll(5, TimeUnit.SECONDS),
+        )
+        // No one else on the network reaches it once it has its answer: it stops after the reply
+        // is written, so wait for that rather than race it.
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+        var gone = false
+        while (!gone && System.nanoTime() < deadline) {
+            gone = runCatching { get(url) }.isFailure
+            if (!gone) Thread.sleep(20)
+        }
+        assertTrue(gone)
+    }
+
+    @Test
+    fun torrents_page_says_what_is_missing_and_keeps_all_but_the_password() {
+        val url = start(PageForm.TorrentProxy)
+        val reply = post(url, "index=ftp%3A%2F%2Findex.example&host=proxy.example&port=1080&password=secret")
+        assertTrue(reply.contains("Use an http or https address."))
+        assertTrue(reply.contains("value=\"proxy.example\""))
+        assertFalse(reply.contains("secret"))
+        assertTrue(answers.isEmpty())
+        // A proxy without its port is not whole either.
+        assertTrue(post(url, "index=https%3A%2F%2Findex.example&host=proxy.example&port=").contains("port"))
+        assertTrue(answers.isEmpty())
+    }
+
+    @Test
+    fun torrents_answer_never_says_its_password() {
+        val said = PageAnswer.Torrent("https://index.example/rss", "proxy.example", "1080", "mika", "p&ss").toString()
+        assertFalse(said.contains("p&ss"))
+        assertFalse(said.contains("mika"))
     }
 
     @Test

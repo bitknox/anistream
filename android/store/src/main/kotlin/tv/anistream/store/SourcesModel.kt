@@ -10,7 +10,7 @@ import tv.anistream.engine.model.GuardView
 import tv.anistream.engine.model.ProviderRow
 
 /** The providers, as the engine last said them. */
-class ProvidersModel(private val clock: () -> Long = { System.currentTimeMillis() }) {
+class ProvidersModel(private val clock: () -> Long = { AppClock.now().toEpochMilli() }) {
     private val _rows = MutableStateFlow<List<ProviderRow>>(emptyList())
 
     /** Each provider, in the order the engine lists them. */

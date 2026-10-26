@@ -154,7 +154,7 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
                         store.finishSignIn(request, anilistCallback(answer.text, request.callbackScheme, state))
                     }
                     is PageAnswer.Password -> store.connectKitsu(answer.username, answer.password)
-                    is PageAnswer.Link -> Unit
+                    is PageAnswer.Link, is PageAnswer.Torrent -> Unit
                 }
             }
         }

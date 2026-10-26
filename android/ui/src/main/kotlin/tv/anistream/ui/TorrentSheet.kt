@@ -40,6 +40,7 @@ import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
+import tv.anistream.store.TorrentWords
 
 /** Why the torrent sheet is open: torrents turning on, or their protection changing. */
 internal enum class TorrentSheetMode { TurnOn, Change }
@@ -70,18 +71,14 @@ internal fun TorrentSheet(mode: TorrentSheetMode, start: TorrentProtection? = nu
     var asking by remember { mutableStateOf(start == TorrentProtection.NONE && !acknowledged) }
 
     val trimmed = index.trim()
-    val indexOk = Regex("^https?://\\S+$").matches(trimmed)
-    val proxyOk = host.isNotBlank() && port.trim().toIntOrNull()?.let { it in 1..65535 } == true
+    val indexOk = TorrentWords.indexOk(trimmed)
+    val proxyOk = TorrentWords.proxyOk(host, port)
     val ready = indexOk && (protection != TorrentProtection.PROXY || proxyOk)
-    val indexNote = when {
-        trimmed.isEmpty() -> "Torrents need an index address."
-        !indexOk -> "Use an http or https address."
-        else -> "The RSS search address anistream asks for torrents. anistream ships none."
-    }
+    val indexNote = TorrentWords.indexNote(trimmed)
 
     SettingsSheet(onDismiss, tall = true) {
         SheetTitle(if (mode == TorrentSheetMode.TurnOn) "Turn on torrents" else "Protect torrent traffic")
-        SheetText("Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.")
+        SheetText(TorrentWords.WHY)
         Text(
             "Protect with",
             style = MaterialTheme.typography.titleMedium,
@@ -89,7 +86,7 @@ internal fun TorrentSheet(mode: TorrentSheetMode, start: TorrentProtection? = nu
             modifier = Modifier.padding(top = 16.dp, bottom = 4.dp),
         )
         Column(Modifier.selectableGroup()) {
-            ProtectionChoice("SOCKS5 proxy", "Torrent traffic goes through a proxy you run or rent.", protection == TorrentProtection.PROXY) {
+            ProtectionChoice(TorrentWords.protection(TorrentProtection.PROXY), TorrentWords.protectionNote(TorrentProtection.PROXY, deviceWord()), protection == TorrentProtection.PROXY) {
                 protection = TorrentProtection.PROXY
             }
             if (protection == TorrentProtection.PROXY) {
@@ -105,10 +102,10 @@ internal fun TorrentSheet(mode: TorrentSheetMode, start: TorrentProtection? = nu
                     SheetText("User name and password only if the proxy asks for them.")
                 }
             }
-            ProtectionChoice("VPN on this device", "Uses the VPN already running on this ${deviceWord()}.", protection == TorrentProtection.DEVICE) {
+            ProtectionChoice(TorrentWords.protection(TorrentProtection.DEVICE), TorrentWords.protectionNote(TorrentProtection.DEVICE, deviceWord()), protection == TorrentProtection.DEVICE) {
                 protection = TorrentProtection.DEVICE
             }
-            ProtectionChoice("No protection", "Your address is visible to everyone in the torrent.", protection == TorrentProtection.NONE) {
+            ProtectionChoice(TorrentWords.protection(TorrentProtection.NONE), TorrentWords.protectionNote(TorrentProtection.NONE, deviceWord()), protection == TorrentProtection.NONE) {
                 if (protection != TorrentProtection.NONE) {
                     if (acknowledged) protection = TorrentProtection.NONE else asking = true
                 }
@@ -159,8 +156,8 @@ internal fun TorrentSheet(mode: TorrentSheetMode, start: TorrentProtection? = nu
     if (asking) {
         AlertDialog(
             onDismissRequest = { asking = false },
-            title = { Text("Use torrents without protection?") },
-            text = { Text("Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.") },
+            title = { Text(TorrentWords.NONE_TITLE) },
+            text = { Text(TorrentWords.NONE_BODY) },
             confirmButton = {
                 TextButton(onClick = {
                     asking = false
@@ -205,8 +202,8 @@ private fun ProtectionChoice(title: String, note: String, selected: Boolean, onC
 internal fun WarnOnlyDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Keep torrents running if a check fails?") },
-        text = { Text("anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.") },
+        title = { Text(TorrentWords.WARN_TITLE) },
+        text = { Text(TorrentWords.WARN_BODY) },
         confirmButton = { TextButton(onClick = onConfirm) { Text("Warn only") } },
         dismissButton = { QuietButton("Cancel", onClick = onDismiss) },
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

@@ -456,6 +456,13 @@ rows on the right (x 412 to 912). Moving through sections shows their rows; Righ
 - Sources: source order (Center on a source picks it up, Up and Down move it, Center drops it,
   Back puts it back where it was), each provider with one quiet line (its store) and a word only
   for a problem, an update or off. A provider's page holds its version, hosts and response time.
+  Then the phone's Torrents group: "Torrent source" (a switch; turning it on opens TVTorrents
+  first), and while on "Torrent index", "Protect with" (a radio panel; another choice opens
+  TVTorrents on it), "Last check" (its status with a vermilion dot for a failed check or a water
+  dot for a pass, where traffic leaves from, Center checks now) and "If a check fails" (Warn only
+  is confirmed first). Under it the check's note, or "Off by default. Turning this on asks how to
+  protect your connection first." While on, a Seeding group: seed after watching, seed for at
+  most, upload limit, and "Best effort on this TV: seeding runs only while anistream is open."
 - Plugin stores: one row per store, "Add a plugin store", and each store's page (plugins, Update
   with the amber, "This update also contacts …").
 - Accounts: AniList, MyAnimeList, Kitsu, Simkl, Trakt, each with its state ("Signed in as Mika",
@@ -466,8 +473,8 @@ rows on the right (x 412 to 912). Moving through sections shows their rows; Righ
 - This TV: "Show anistream on the home screen" (Watch Next, on), "Clear the image cache (84 MB)".
 - About: version, check for updates (the update installs with the system's own confirmation),
   the legal line, licences, Nagare (cell 4).
-- Rows that only exist elsewhere (download folder, discord presence, syncplay, torrents) are left
-  out, not greyed.
+- Rows that only exist elsewhere (downloads, download folder, discord presence, syncplay, torrents
+  on cellular) are left out, not greyed.
 - First focus: Playback. Loading: the section list is local and shows at once.
 
 ## Signing in and adding plugins without a browser
@@ -513,6 +520,22 @@ Adding a plugin store (TVJoinStore):
   with the system keyboard as the last resort.
 - The legal line sits under every Join: "anistream ships no sources of its own and hosts no
   content. Every source is external."
+
+Turning torrents on (TVTorrents), from Settings › Sources:
+
+- The phone's turn-on sheet as a screen: "Turn on torrents" (or "Protect torrent traffic" when
+  changing), the line on why, then "Protect with" as D-pad radio rows on the left (SOCKS5 proxy,
+  VPN on this device, No protection, each with its note; the choice in the amber container, VPN on
+  this device first). No protection is confirmed in a dialog before it is chosen.
+- On the right, while the details are not whole, the sign-in page's QR: the page takes the torrent
+  index, and for a proxy its host, port, user name and password. It takes one answer and closes,
+  or closes after 10 minutes, and is reachable only on the local network while it is open. Once
+  the details are whole they show as rows, with "Change" for a new page.
+- Then the check's note, the amber "Turn on" (or "Save"), "Type it" (the same fields on the system
+  keyboard, as pills) and "Cancel". Back leaves the screen and changes nothing.
+- The password never shows: not on the TV, not in the page's address, not in the logs.
+- Downloads stay off on the TV; torrents stream only. Seeding is best effort, while anistream is
+  open: the engine is told when the app goes to the background.
 
 ## The player (TVPlayer, TVPlayerSeek, TVPlayerEpisodes, TVPlayerSources, TVPlayerTracks, TVPlayerUpNext, TVPlayerInfo)
 
@@ -768,7 +791,7 @@ TVWelcome, TVRailExpanded, TVSearch, TVSearchPhone, TVSeasonal, TVCalendar, TVLi
 TVLibraryEmpty, TVTitle, TVTitleActions (long press panel), TVShowSettings, TVPlayer, TVPlayerSeek,
 TVPlayerEpisodes, TVPlayerTracks, TVPlayerSources, TVPlayerInfo, TVPlayerSkip, TVPlayerUpNext,
 TVPlayerStarting, TVPair, TVPairRequest, TVRemoteActive, TVSettings, TVSettingsAccounts, TVSignIn,
-TVSignInCode, TVJoinStore, TVHomeRow. All 960 × 540.
+TVSignInCode, TVJoinStore, TVTorrents, TVHomeRow. All 960 × 540.
 
 Shared data is the main brief's: now is Tuesday 20 October 2026, 19:30; Mika on AniList; Hoshikuzu
 no Tabibito with episode 7 in progress (14 min left of 24); the four stores and Hotaru Open
@@ -788,6 +811,6 @@ Johan took the recommendation on all twelve open questions.
 7. Home screen integration is Watch Next, behind its setting; no Engage SDK.
 8. Seek preview frames are off on 32-bit boxes or under 3 GB.
 9. Upscaling is hidden on every TV.
-10. No downloads and no torrents on TV.
+10. Torrents run on the TV; downloads stay off. (Changed 2026-10-25: Johan chose TV torrents.)
 11. Back in the player closes it, after any panel, scrub or Up Next.
 12. The phone is not a D-pad; it sends commands and search text.

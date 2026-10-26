@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.tv.signin.TorrentMode
 import tv.anistream.tv.ui.FocusMemory
 import tv.anistream.tv.ui.TvIcons
 
@@ -54,6 +56,11 @@ sealed interface Page {
 
     /** TVJoinStore: add a plugin store from this TV, with or without a paired phone. */
     data class JoinStore(override val key: String) : Page {
+        override val memory: FocusMemory = FocusMemory()
+    }
+
+    /** TVTorrents: torrents turning on, or their protection changing, over Settings › Sources. */
+    data class Torrents(val mode: TorrentMode, val start: TorrentProtection?, override val key: String) : Page {
         override val memory: FocusMemory = FocusMemory()
     }
 }
@@ -174,6 +181,11 @@ class TvNavigator(start: Destination = Destination.Continue) {
     fun openJoinStore() {
         opened += 1
         pages += Page.JoinStore("join-store/$opened")
+    }
+
+    fun openTorrents(mode: TorrentMode, start: TorrentProtection? = null) {
+        opened += 1
+        pages += Page.Torrents(mode, start, "torrents/$opened")
     }
 
     fun openTitle(id: AnilistId) {
