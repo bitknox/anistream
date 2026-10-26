@@ -174,7 +174,7 @@ mod tests {
         };
         let merged = merge(&media(), &[zeros, answer("shelf", 1..=13)], 0);
         assert_eq!(merged.episodes.len(), 13, "01 and 1 are the one episode");
-        assert!(merged.filled.get("2").is_none());
+        assert!(!merged.filled.contains_key("2"));
         assert_eq!(merged.filled.get("4").map(String::as_str), Some("shelf"));
     }
 
