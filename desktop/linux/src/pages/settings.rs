@@ -13,7 +13,7 @@ use anistream_core::settings::SettingValue;
 use anistream_model::{
     command::Command,
     event::Event,
-    protection::ProtectionView,
+    protection::{ProtectionView, TorrentProtection},
     settings::{SettingChange, SettingKey, SettingRow},
     updates::UpdateStatus,
 };
@@ -1001,6 +1001,22 @@ impl Inner {
                 torrents::choose_protection(&inner.ctx, *choice, Rc::clone(&put_back));
             }
         });
+        // Edit Proxy: the proxy set, checked again before it is saved.
+        let edit = gtk::Button::with_label("Edit Proxy\u{2026}");
+        edit.set_valign(gtk::Align::Center);
+        edit.connect_clicked({
+            let inner = Rc::downgrade(self);
+            move |_| {
+                if let Some(inner) = inner.upgrade() {
+                    torrents::edit_proxy(&inner.ctx);
+                }
+            }
+        });
+        let by_proxy = |view: &ProtectionView| {
+            view.protection == TorrentProtection::Proxy && view.proxy.is_some()
+        };
+        edit.set_visible(by_proxy(&protection));
+        protect.add_suffix(&edit);
         group.add(&protect);
         while_on.push(protect.clone().upcast());
 
@@ -1108,6 +1124,7 @@ impl Inner {
                 let Some(view) = known.settings.as_ref() else { return };
                 group.set_description(Some(&note(on, &view.torrent)));
                 protect.set_selected(at(view.torrent.protection));
+                edit.set_visible(by_proxy(&view.torrent));
                 failed.set_selected(at_check(view.torrent.on_failure));
                 if !entry.has_focus() {
                     entry.set_text(view.sources.index.as_deref().unwrap_or_default());

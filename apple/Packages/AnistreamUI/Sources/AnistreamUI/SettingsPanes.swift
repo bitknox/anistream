@@ -318,7 +318,13 @@ struct SourcesPane: View {
                 if cellular {
                     SettingsRow(title: SettingKey.torrentsOnCellular.title) { SettingSwitch(key: .torrentsOnCellular) }
                 }
-                SettingsRow(title: "Protect with") { ProtectionMenu() }
+                // Beside the choice, once a proxy is set: where it is, and its form to edit.
+                SettingsRow(title: "Protect with", note: store.settings.torrent?.proxyLine) {
+                    HStack(spacing: 10) {
+                        EditProxyButton()
+                        ProtectionMenu()
+                    }
+                }
                 GuardRow()
                 SettingsRow(title: SettingKey.vpnOnFailure.title) { FailedCheckMenu() }
             }

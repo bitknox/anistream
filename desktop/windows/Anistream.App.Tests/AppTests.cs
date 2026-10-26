@@ -285,6 +285,65 @@ public class TorrentsTests
     }
 
     [Fact]
+    public void AProxyIsCheckedOneAtATimeAndAVerdictGoesOnlyToWhatItChecked()
+    {
+        var sent = new List<Command.CheckTorrentProtection>();
+        var trials = new ProtectionTrials(c => sent.Add(Assert.IsType<Command.CheckTorrentProtection>(c)));
+        var first = new TrialAsk(TorrentProtection.Proxy, new TorrentProxy("proxy.example", 1080, "kai", null));
+        var second = new TrialAsk(TorrentProtection.Proxy, new TorrentProxy("relay.example", 1081, "kai", null));
+        var said = new List<(TrialAsk, GuardView)>();
+
+        trials.Ask(first, (ask, view) => said.Add((ask, view)));
+        Assert.True(trials.Checking);
+        Assert.Equal("proxy.example", Assert.Single(sent).Proxy!.Host);
+
+        // Asked again before the first answered: the second waits, and the first's answer is
+        // nobody's, since it was not made on what is asked now.
+        trials.Ask(second, (ask, view) => said.Add((ask, view)));
+        Assert.Single(sent);
+        trials.Heard(new GuardView.Protected("a test network"));
+        Assert.Empty(said);
+        Assert.Equal("relay.example", sent[^1].Proxy!.Host);
+        trials.Heard(new GuardView.Leaking());
+        var (asked, verdict) = Assert.Single(said);
+        Assert.Equal(second, asked);
+        Assert.IsType<GuardView.Leaking>(verdict);
+        Assert.False(trials.Checking);
+
+        // A dialog closed while its check runs hears nothing of it, and the next check waits for it.
+        trials.Ask(first, (ask, view) => said.Add((ask, view)));
+        trials.Drop();
+        Assert.False(trials.Checking);
+        trials.Ask(second, (ask, view) => said.Add((ask, view)));
+        Assert.Equal(3, sent.Count);
+        trials.Heard(new GuardView.Protected("a test network"));
+        Assert.Single(said);
+        Assert.Equal(4, sent.Count);
+        trials.Heard(new GuardView.Protected("a test network"));
+        Assert.Equal(2, said.Count);
+        Assert.Equal(second, said[1].Item1);
+    }
+
+    [Fact]
+    public void AFailedCheckSaysNothingWasSavedAndWhatStays()
+    {
+        Assert.Equal("Not saved. Torrent traffic left outside this proxy, so the saved proxy stays.",
+            TorrentWords.NotSaved(new GuardView.Leaking(), TorrentWords.Kept.EditedProxy));
+        Assert.Equal("Not saved. The check could not be made through this proxy, so the saved protection stays.",
+            TorrentWords.NotSaved(new GuardView.Unreachable(), TorrentWords.Kept.Protection));
+        Assert.Equal("Torrents are still off. Torrent traffic left outside this proxy.",
+            TorrentWords.NotSaved(new GuardView.Leaking(), TorrentWords.Kept.TurningOn));
+
+        // Edit proxy opens on the saved proxy with the password empty, which keeps the saved one.
+        var settings = Settings(new ProtectionView(TorrentProtection.Proxy, FailedCheck.Pause, new ProxyView("proxy.example", 1080, "kai")));
+        var draft = TorrentDraft.From(settings, turningOn: false, TorrentProtection.Proxy);
+        Assert.Equal(("proxy.example", "1080", "kai", ""), (draft.Host, draft.Port, draft.User, draft.Password));
+        Assert.Null(draft.Proxy!.Password);
+        var save = Assert.IsType<Command.SetTorrentProtection>(Assert.Single(Torrents.Apply(draft with { Host = "relay.example" }, settings, turningOn: false)));
+        Assert.Equal(("relay.example", (string?)null, false), (save.Proxy!.Host, save.Proxy.Password, save.Acknowledged));
+    }
+
+    [Fact]
     public void TheCheckSaysWhereTrafficLeftAndWhen()
     {
         Assert.Equal(("Leaving through a test network · just now", "Passed", false),
@@ -584,6 +643,52 @@ public class PlayerRulesTests
 
 public class SceneTests
 {
+    /// <summary>
+    /// A proxy checked before it is saved: the engine answers on ProtectionChecked, through the
+    /// trials the dialog asks with, and nothing is saved. The fixture engine's exit is made up,
+    /// so the check sends nothing anywhere.
+    /// </summary>
+    [Fact(Timeout = 60_000)]
+    public async Task AProxyCheckedFirstAnswersAndSavesNothing()
+    {
+        HomeGuard.Check();
+        var root = AppDirs.NewScratchRoot("cs-trial");
+        var gate = new object();
+        var engine = FfiEngine.StartScene(AppDirs.Under(root), new QuietHost(), new FfiScene.Fresh(), EngineSession.AppStart());
+        using (var session = new EngineSession(engine, a => { lock (gate) a(); }))
+        {
+            var trials = new ProtectionTrials(c => session.Send(c));
+            session.Batch += batch =>
+            {
+                foreach (var e in batch)
+                    if (e is Event.ProtectionChecked checkedNow)
+                        trials.Heard(checkedNow.V1);
+            };
+            session.Start();
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            SettingsView? before = null;
+            while (before is null && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(50, TestContext.Current.CancellationToken);
+                lock (gate) before = session.Known.Settings;
+            }
+            Assert.NotNull(before);
+
+            GuardView? said = null;
+            var ask = new TrialAsk(TorrentProtection.Proxy, new TorrentProxy("proxy.example", 1080, null, null));
+            lock (gate) trials.Ask(ask, (_, view) => said = view);
+            while (said is null && DateTime.UtcNow < deadline)
+                await Task.Delay(50, TestContext.Current.CancellationToken);
+            Assert.IsType<GuardView.Protected>(said);
+            lock (gate)
+            {
+                Assert.False(trials.Checking);
+                Assert.Equal(before.Torrent, session.Known.Settings!.Torrent);
+            }
+        }
+        DeleteRoot(root);
+    }
+
     [Fact(Timeout = 90_000)]
     public async Task TheWatchingSceneFillsContinue()
     {

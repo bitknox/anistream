@@ -302,6 +302,12 @@ jobs:
     if: needs.changes.outputs.desktop-linux == 'true'
     name: Linux app
     runs-on: ubuntu-26.04
+    env:
+      IMAGE: ubuntu-26.04
+      PACKAGES: >-
+        build-essential pkg-config cmake clang libclang-dev nasm perl
+        libgtk-4-dev libadwaita-1-dev libmpv-dev libegl-dev
+        xvfb xauth libgl1-mesa-dri libegl-mesa0 dbus-x11 adwaita-icon-theme
     defaults:
       run:
         working-directory: desktop/linux
@@ -309,13 +315,39 @@ jobs:
       - uses: actions/checkout@v7
       - run: ../../tools/ci-toolchain.sh
         working-directory: desktop/linux
-      - name: GTK, libadwaita and libmpv
+      # The packages cached by exactly what apt would fetch, saved from main, as the mpv job does
+      # (see "mpv's packages" below): the mirror once took most of an hour for these.
+      - name: GTK, libadwaita and libmpv packages
+        id: debs
         run: |
+          # Azure's mirror took up to 50 min on 2026-10-26: use Ubuntu's own archive.
+          shopt -s nullglob
+          for f in /etc/apt/sources.list.d/*.sources /etc/apt/sources.list; do
+            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' "$f"
+          done
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential pkg-config cmake clang libclang-dev nasm perl \
-            libgtk-4-dev libadwaita-1-dev libmpv-dev libegl-dev \
-            xvfb xauth libgl1-mesa-dri libegl-mesa0 dbus-x11 adwaita-icon-theme
+          list="$(sudo apt-get install -qq --no-install-recommends --print-uris $PACKAGES | awk '{print $2, $3, $4}')"
+          echo "$list"
+          echo "key=linux-app-debs-$IMAGE-$(sha256sum <<<"$list" | cut -c1-16)" >> "$GITHUB_OUTPUT"
+      - name: Restore the packages
+        id: debs-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/apt-archives/*.deb
+          key: ${{ steps.debs.outputs.key }}
+      - name: Download the packages
+        timeout-minutes: 30
+        run: |
+          mkdir -p ~/apt-archives/partial
+          sudo apt-get install -y --no-install-recommends --download-only -o Dir::Cache::archives="$HOME/apt-archives" $PACKAGES
+      - name: Install the packages
+        run: sudo apt-get install -y --no-install-recommends -o Dir::Cache::archives="$HOME/apt-archives" $PACKAGES
+      - name: Keep the packages
+        if: github.ref == 'refs/heads/main' && steps.debs-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ~/apt-archives/*.deb
+          key: ${{ steps.debs-cache.outputs.cache-primary-key }}
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: desktop/linux
