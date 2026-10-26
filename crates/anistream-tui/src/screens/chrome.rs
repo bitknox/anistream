@@ -604,6 +604,7 @@ mod tests {
                     Overlay::CommandPalette,
                     Overlay::Sources,
                     Overlay::SourceProvider,
+                    Overlay::SourceRelease,
                     Overlay::Disambiguate,
                     Overlay::WatchOrder,
                     Overlay::Logs,

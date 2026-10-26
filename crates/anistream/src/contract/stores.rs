@@ -261,7 +261,7 @@ async fn removing_a_plugin_sends_the_chain_and_the_rows_before_saying_so() {
     let updates = h.settle().await;
 
     assert!(job.is_none(), "removing has no activity row");
-    assert_eq!(names(&updates), ["Providers", "Stores", "Toast"]);
+    assert_eq!(names(&updates), ["Providers", "Providers", "Stores", "Toast"]);
 }
 
 #[tokio::test]

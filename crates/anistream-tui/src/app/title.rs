@@ -164,13 +164,29 @@ impl App {
             .position(|(id, _)| id.as_deref() == self.provider_preference.as_deref())
             .unwrap_or(0);
         self.nav.open_overlay(Overlay::SourceProvider);
-        None
+        // What each source has of the title, for the counts beside them; the overlay is usable
+        // before they arrive.
+        self.source_options.clear();
+        self.title_on_screen().map(Command::LoadSourceOptions)
     }
 
     /// The source picked, pinned for the title on screen.
     pub(super) fn confirm_source_provider(&mut self) -> Option<Command> {
         let (provider, _) = self.provider_choices().get(self.cursors.overlay.selected)?.clone();
         let id = self.title_on_screen()?;
+        // A source that offers several releases asks which one, before pinning.
+        let offers = provider.as_ref().is_some_and(|provider| {
+            self.source_options
+                .iter()
+                .any(|option| &option.provider_id == provider && !option.releases.is_empty())
+        });
+        if offers {
+            self.release_of = provider;
+            self.cursors.overlay.selected = 0;
+            self.nav.close_overlay();
+            self.nav.open_overlay(Overlay::SourceRelease);
+            return None;
+        }
         self.nav.close_overlay();
         self.cursors.overlay.selected = 0;
         // Reflected immediately rather than waiting for the write to come back: the
@@ -178,6 +194,51 @@ impl App {
         // as the keystroke having missed.
         self.provider_preference = provider.clone();
         Some(Command::SetProviderPreference { id, provider })
+    }
+
+    /// The release picked, pinned for the title on screen: the source it belongs to, with that
+    /// release played for every episode it holds.
+    pub(super) fn confirm_source_release(&mut self) -> Option<Command> {
+        let (release, label) =
+            self.release_choices().get(self.cursors.overlay.selected)?.clone();
+        let id = self.title_on_screen()?;
+        let provider_id = self.release_of.take()?;
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        self.provider_preference = Some(provider_id.clone());
+        Some(match release {
+            None => Command::SetProviderPreference { id, provider: Some(provider_id) },
+            Some(release_id) => {
+                Command::PinRelease { id, provider_id, release_id, title: label }
+            }
+        })
+    }
+
+    /// What the release picker offers: the source's own pick first, then each release it lists
+    /// for the title's first episode.
+    pub fn release_choices(&self) -> Vec<(Option<String>, String)> {
+        let Some(option) = self
+            .source_options
+            .iter()
+            .find(|option| Some(&option.provider_id) == self.release_of.as_ref())
+        else {
+            return Vec::new();
+        };
+        let mut choices = vec![(None, "Whichever release the source ranks first".to_string())];
+        choices.extend(option.releases.iter().map(|release| {
+            let mut label = release.title.clone();
+            if let Some(quality) = release.quality {
+                label.push_str(&format!("  ·  {quality}p"));
+            }
+            if let Some(size) = &release.size {
+                label.push_str(&format!("  ·  {size}"));
+            }
+            if let Some(seeders) = release.seeders {
+                label.push_str(&format!("  ·  {seeders} seeders"));
+            }
+            (Some(release.id.clone()), label)
+        }));
+        choices
     }
 
     /// The title's trailer, when its record has one.
@@ -421,10 +482,31 @@ impl App {
                 label.push_str("  ·  held back");
             } else if !row.usable {
                 label.push_str("  ·  failing");
+            } else if let Some(option) =
+                self.source_options.iter().find(|option| option.provider_id == row.id)
+            {
+                // What it has of this title, so the choice is an informed one.
+                match &option.note {
+                    Some(note) => label.push_str(&format!("  ·  {}", source_note(note))),
+                    None => {
+                        label.push_str(&format!("  ·  {} of {}", option.covered, option.of))
+                    }
+                }
             }
             (Some(row.id.clone()), label)
         }));
         choices
+    }
+}
+
+/// How the terminal words why a source has no episode count.
+fn source_note(note: &anistream_model::sources::SourceNote) -> String {
+    use anistream_model::sources::SourceNote;
+    match note {
+        SourceNote::Off => "switched off".into(),
+        SourceNote::Resting => "resting after failures".into(),
+        SourceNote::Ambiguous => "could not tell which title this is".into(),
+        SourceNote::Failed { reason } => reason.clone(),
     }
 }
 
@@ -714,6 +796,94 @@ mod tests {
         a.handle(Action::Back, 5);
         assert_eq!(a.handle(Action::PlayNext, 5), Some(Command::play(row, first())));
         assert_eq!(a.playing.as_ref().map(|p| p.title.as_str()), Some("Title 2"));
+    }
+
+    #[test]
+    fn the_source_picker_counts_episodes_and_asks_for_the_release_of_a_source_with_several() {
+        use anistream_core::traits::SourceCandidate;
+        use anistream_model::sources::{ProviderRow, SourceOption};
+
+        let mut a = home_list(5);
+        a.handle(Action::Open, 5);
+        a.apply(Event::Providers(vec![
+            ProviderRow { id: "torrent".into(), usable: true, ..Default::default() },
+            ProviderRow { id: "shelf".into(), usable: true, ..Default::default() },
+        ]));
+        let id = AnilistId::new(1);
+        // Opening the picker asks what each source has of the title.
+        assert_eq!(a.handle(Action::PickProvider, 5), Some(Command::LoadSourceOptions(id)));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::SourceProvider));
+        let release = SourceCandidate {
+            id: "r1".into(),
+            provider_id: "torrent".into(),
+            title: "Batch".into(),
+            quality: Some(1080),
+            seeders: Some(9),
+            size: None,
+            dual_audio: false,
+            dubbed: false,
+            auto_pick: false,
+        };
+        let option = |provider: &str, covered, releases| SourceOption {
+            provider_id: provider.into(),
+            name: provider.into(),
+            covered,
+            of: 13,
+            pinned: false,
+            note: None,
+            releases,
+            pinned_release: None,
+        };
+        a.apply(Event::SourceOptions {
+            id,
+            options: vec![option("torrent", 6, vec![release]), option("shelf", 13, Vec::new())],
+        });
+        let labels: Vec<_> = a.provider_choices().into_iter().map(|(_, l)| l).collect();
+        assert!(
+            labels[1].ends_with("6 of 13") && labels[2].ends_with("13 of 13"),
+            "{labels:?}"
+        );
+
+        // A source without releases is pinned at once.
+        a.cursors.overlay.selected = 2;
+        assert_eq!(
+            a.handle(Action::Open, 5),
+            Some(Command::SetProviderPreference { id, provider: Some("shelf".into()) })
+        );
+
+        // One with releases asks which, and a release pins that release.
+        a.handle(Action::PickProvider, 5);
+        a.apply(Event::SourceOptions {
+            id,
+            options: vec![option(
+                "torrent",
+                6,
+                vec![SourceCandidate {
+                    id: "r1".into(),
+                    provider_id: "torrent".into(),
+                    title: "Batch".into(),
+                    quality: None,
+                    seeders: None,
+                    size: None,
+                    dual_audio: false,
+                    dubbed: false,
+                    auto_pick: false,
+                }],
+            )],
+        });
+        a.cursors.overlay.selected = 1;
+        assert_eq!(a.handle(Action::Open, 5), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::SourceRelease));
+        a.cursors.overlay.selected = 1;
+        assert_eq!(
+            a.handle(Action::Open, 5),
+            Some(Command::PinRelease {
+                id,
+                provider_id: "torrent".into(),
+                release_id: "r1".into(),
+                title: "Batch".into(),
+            })
+        );
     }
 
     #[test]

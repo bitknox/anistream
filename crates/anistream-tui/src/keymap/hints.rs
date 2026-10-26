@@ -219,6 +219,7 @@ fn overlay_hints(
                 O::Rate => "rate",
                 O::Sources => "play",
                 O::SourceProvider => "pin",
+                O::SourceRelease => "pin",
                 O::Disambiguate => "use",
                 O::WatchOrder | O::Recommendations => "open",
                 O::Accounts => "choose",

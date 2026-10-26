@@ -28,6 +28,10 @@ impl Listed {
         }
     }
 
+    pub fn has(&self, id: AnilistId) -> bool {
+        self.0.contains(&id)
+    }
+
     pub fn ids(&self) -> Vec<AnilistId> {
         self.0.clone()
     }
@@ -44,11 +48,16 @@ pub fn sources_changed(engine: &mut EngineState, services: &Services, tx: &Outbo
     }
 }
 
-/// Title `id` is listed again, with its dub and episode names asked afresh.
+/// Title `id` is listed again, with its dub and episode names asked afresh, when the viewer
+/// has been looking at it. One never opened has nothing on screen to bring up to date, and
+/// asks for itself when it is.
 pub fn relist(id: AnilistId, engine: &mut EngineState, services: &Services, tx: &Outbox) {
     services.prefetch.clear();
     engine.dubs.forget(id);
     engine.names.forget(id);
+    if !engine.listed.has(id) {
+        return;
+    }
     dispatch::list_episodes_again(id, engine, services, tx);
     engine.dubs.ask(id, engine.network.offline, services, tx);
 }

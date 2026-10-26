@@ -66,7 +66,11 @@ pub fn pin_of(store: &Store, registry: &ProviderRegistry, id: AnilistId) -> Pin 
 /// The chain for title `id`: the user's order, with the source pinned for the title first. A
 /// pin ranks a source; it does not drop the rest, since a source with part of a season is no
 /// reason to leave the remainder unplayable.
-pub fn chain_for(store: &Store, registry: &ProviderRegistry, id: AnilistId) -> ProviderRegistry {
+pub fn chain_for(
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+) -> ProviderRegistry {
     match pin_of(store, registry, id) {
         Pin::Held(provider) => registry.preferring(&provider),
         _ => registry.clone(),
@@ -306,9 +310,10 @@ pub(crate) async fn list_episodes(lent: Lent, id: AnilistId, naming: names::Nami
     let Lent { meta, store, registry, tx, .. } = lent;
     // Said first, and only the once: the title goes by the order meanwhile.
     if let Pin::Unavailable(provider) = pin_of(&store, &registry, id) {
-        let _ = tx.send(Event::Toast(Notice::info(format!(
-            "{provider} is pinned for this title and is not available, so the other sources are used"
-        ))));
+        let name = registry
+            .get(&provider)
+            .map_or_else(|| provider.clone(), |p| p.manifest().display_name.clone());
+        let _ = tx.send(Event::PinUnavailable { id, provider_id: provider, name });
     }
     // A table that is short of the season is shown as it comes, and the sources still being
     // asked fill in the rest.
@@ -471,10 +476,7 @@ mod tests {
 
     /// A title the cache holds, over offline metadata: a finished season of thirteen.
     mod coverage {
-        use anistream_core::{
-            ids::ProviderKey,
-            media::SearchHit,
-        };
+        use anistream_core::{ids::ProviderKey, media::SearchHit};
         use anistream_providers::MockProvider;
 
         use super::*;

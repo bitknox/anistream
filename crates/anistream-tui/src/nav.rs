@@ -148,6 +148,8 @@ pub enum Overlay {
     Help,
     Sources,
     SourceProvider,
+    /// Which release of the pinned source to use, for a source that offers several.
+    SourceRelease,
     Disambiguate,
     ManualQuery,
     WatchOrder,
@@ -188,6 +190,7 @@ impl Overlay {
             Self::Help => "KEYS",
             Self::Sources => "SOURCES",
             Self::SourceProvider => "SOURCE FOR THIS TITLE",
+            Self::SourceRelease => "RELEASE FOR THIS TITLE",
             Self::Disambiguate => "WHICH ONE",
             Self::ManualQuery => "FIND MANUALLY",
             Self::WatchOrder => "WATCH ORDER",

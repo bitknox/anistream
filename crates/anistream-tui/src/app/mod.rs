@@ -151,6 +151,11 @@ pub struct App {
     pub meta_status: Vec<MetaSourceRow>,
     /// The source pinned for the title on screen. `None` means automatic.
     pub provider_preference: Option<String>,
+    /// What each source has of the title on screen, for the source picker's counts: the answer
+    /// to the last `LoadSourceOptions`.
+    pub source_options: Vec<anistream_model::sources::SourceOption>,
+    /// The source whose releases the release picker lists.
+    pub release_of: Option<String>,
     /// Why there are no sources, when there are none.
     ///
     /// "You have not configured anything" and "your VPN guard failed" need different
@@ -377,6 +382,8 @@ impl App {
             providers: Vec::new(),
             meta_status: Vec::new(),
             provider_preference: None,
+            source_options: Vec::new(),
+            release_of: None,
             provider_note: None,
             episodes: Vec::new(),
             episodes_all: Vec::new(),
@@ -516,6 +523,14 @@ impl App {
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
+            Event::SourceOptions { id, options } => {
+                if self.title_on_screen() == Some(id) {
+                    self.source_options = options;
+                }
+            }
+            Event::PinUnavailable { name, .. } => self.push_toast(Notice::info(format!(
+                "{name} is pinned for this title and is not available, so the other sources are used"
+            ))),
             Event::Sources { id, episode, candidates } => {
                 self.apply_sources(id, episode, candidates)
             }

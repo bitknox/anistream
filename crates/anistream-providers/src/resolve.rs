@@ -194,14 +194,21 @@ impl<T> Answer<T> {
 /// What one source made of a title: see [`match_and_ask`].
 enum Outcome<T> {
     Answered(Contribution<T>),
-    Ambiguous { provider_id: String, candidates: Vec<Candidate> },
+    Ambiguous {
+        provider_id: String,
+        candidates: Vec<Candidate>,
+    },
     /// No match or no answer, with why. `matched` is whether the title was found at all.
-    Failed { reason: String, matched: bool },
+    Failed {
+        reason: String,
+        matched: bool,
+    },
     /// Not asked: switched off between the walk starting and this source's turn.
     Skipped,
 }
 
 /// Match a title on one source, under that source's own key, and ask it.
+#[allow(clippy::too_many_arguments)]
 async fn match_and_ask<T, F, Fut>(
     store: &Store,
     registry: &ProviderRegistry,
@@ -291,8 +298,17 @@ where
         tracing::info!(?skipped, "sources resting after failures, not asked");
     }
     for provider_id in usable {
-        match match_and_ask(store, registry, &provider_id, anilist_id, target, translation, now, &ask)
-            .await
+        match match_and_ask(
+            store,
+            registry,
+            &provider_id,
+            anilist_id,
+            target,
+            translation,
+            now,
+            &ask,
+        )
+        .await
         {
             Outcome::Answered(Contribution { provider_id, key, value }) => {
                 return Answer::Answered { provider_id, key, value };
@@ -367,6 +383,7 @@ const HEDGE: std::time::Duration = std::time::Duration::from_millis(400);
 /// The user's order decides which source wins an episode, and decides what is asked: a source
 /// first in the order that finds candidates and cannot choose is a question, as in
 /// [`first_answer`], whatever the sources below it said.
+#[allow(clippy::too_many_arguments)]
 pub async fn gather<T, F, Fut>(
     store: &Store,
     registry: &ProviderRegistry,
@@ -406,7 +423,14 @@ where
                 }
             }
             let outcome = match_and_ask(
-                store, registry, provider_id, anilist_id, target, translation, now, ask,
+                store,
+                registry,
+                provider_id,
+                anilist_id,
+                target,
+                translation,
+                now,
+                ask,
             )
             .await;
             (rank, outcome)
@@ -427,9 +451,7 @@ where
         // above it are all settled and it is a question, it is the answer already.
         let settled_question = outcomes
             .iter()
-            .take_while(|o| {
-                matches!(o, Some(Outcome::Failed { .. } | Outcome::Skipped))
-            })
+            .take_while(|o| matches!(o, Some(Outcome::Failed { .. } | Outcome::Skipped)))
             .count();
         if matches!(outcomes.get(settled_question), Some(Some(Outcome::Ambiguous { .. }))) {
             break;
@@ -444,10 +466,8 @@ where
         }
         // Complete: only a source that outranks one that answered could still change who
         // serves an episode.
-        let last = outcomes
-            .iter()
-            .rposition(|o| matches!(o, Some(Outcome::Answered(_))))
-            .unwrap_or(0);
+        let last =
+            outcomes.iter().rposition(|o| matches!(o, Some(Outcome::Answered(_)))).unwrap_or(0);
         if outcomes[..last].iter().all(Option::is_some) {
             break;
         }
@@ -496,6 +516,7 @@ pub enum Surveyed<T> {
 /// Ask the sources `ids` about a title together, each under its own key, and say what each one
 /// answered, in the order given. For a picker that shows every source side by side; asking is
 /// the same as for [`gather`], with no early stop.
+#[allow(clippy::too_many_arguments)]
 pub async fn survey<T, F, Fut>(
     store: &Store,
     registry: &ProviderRegistry,
@@ -512,9 +533,17 @@ where
 {
     let ask = &ask;
     let asked = ids.iter().map(|provider_id| async move {
-        let outcome =
-            match_and_ask(store, registry, provider_id, anilist_id, target, translation, now, ask)
-                .await;
+        let outcome = match_and_ask(
+            store,
+            registry,
+            provider_id,
+            anilist_id,
+            target,
+            translation,
+            now,
+            ask,
+        )
+        .await;
         let said = match outcome {
             Outcome::Answered(contribution) => Surveyed::Answered(contribution),
             Outcome::Ambiguous { .. } => Surveyed::Ambiguous,
@@ -999,7 +1028,9 @@ mod tests {
                 .arc(),
         ]);
         let got = gathered(&store, &registry, 12).await;
-        assert!(matches!(&got, Gathered::Ambiguous { provider_id, .. } if provider_id == "alpha"));
+        assert!(
+            matches!(&got, Gathered::Ambiguous { provider_id, .. } if provider_id == "alpha")
+        );
     }
 
     #[tokio::test(start_paused = true)]
@@ -1007,9 +1038,10 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let registry = ProviderRegistry::new(vec![
             MockProvider::new("alpha").with_hits(vec![]).arc(),
-            MockProvider::new("beta").with_hits(vec![wanderer_hit("beta-1")]).failing(
-                ProviderError::NotFound,
-            ).arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .failing(ProviderError::NotFound)
+                .arc(),
         ]);
         let Gathered::Unanswered { reasons, .. } = gathered(&store, &registry, 12).await else {
             panic!("no answer")

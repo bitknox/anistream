@@ -24,7 +24,8 @@ use super::{
         plugin_action_rows, publish_rows, store_confirm_heading, store_confirm_rows,
     },
     title::{
-        rate_rows, recommendation_rows, source_provider_rows, status_rows, watch_order_rows,
+        rate_rows, recommendation_rows, source_provider_rows, source_release_rows, status_rows,
+        watch_order_rows,
     },
 };
 
@@ -137,6 +138,7 @@ pub(super) fn render_overlay(
         Overlay::Disambiguate => candidate_rows(app),
         Overlay::Sources => source_rows(app),
         Overlay::SourceProvider => source_provider_rows(app),
+        Overlay::SourceRelease => source_release_rows(app),
         Overlay::WatchOrder => watch_order_rows(app),
         Overlay::Recommendations => recommendation_rows(app),
         Overlay::ManualQuery => vec![(
@@ -197,6 +199,7 @@ pub(super) fn render_overlay(
                 | Overlay::Disambiguate
                 | Overlay::Sources
                 | Overlay::SourceProvider
+                | Overlay::SourceRelease
                 | Overlay::WatchOrder
                 | Overlay::Recommendations
                 | Overlay::PublishPick
@@ -387,6 +390,11 @@ pub(super) fn render_overlay(
                 Some(detail) => format!("if you liked {} — enter opens", detail.title),
                 None => "enter opens".into(),
             }
+        ),
+        Overlay::SourceRelease => format!(
+            "{}   {}",
+            glyph::eyebrow(overlay.title()),
+            "enter pins it; the other sources fill what it lacks"
         ),
         // Name the title, since the choice is remembered against it rather than globally.
         Overlay::SourceProvider => format!(

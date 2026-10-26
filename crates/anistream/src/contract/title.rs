@@ -359,18 +359,25 @@ async fn an_unsure_match_is_asked_about_and_the_answer_sticks_until_cleared() {
 #[tokio::test]
 async fn a_pinned_source_lists_its_own_episodes() {
     let mut h = harness(with_alt()).await;
-    h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Settings", "Toast", "ShowSettings", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[3]), ["1", "2", "3"], "alt's numbering, which Enter plays");
+    assert_eq!(names(&updates), ["Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[0]).len(), 12);
     ends(&updates, job);
 
-    h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
-    h.send(Command::LoadEpisodes(FINISHED));
+    // Pinning an open title refreshes it with no reload: alt's rows lead, the rest are filled.
+    h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Settings", "Toast", "ShowSettings", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[3]).len(), 12, "the first source in the chain again");
+    let table =
+        updates.iter().find(|u| names(std::slice::from_ref(u)) == ["Episodes"]).unwrap();
+    assert_eq!(&numbers(table)[..3], ["1", "2", "3"], "alt's numbering, which Enter plays");
+
+    // Unpinned: back to the first source in the chain, again without a reload.
+    h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
+    let updates = h.settle().await;
+    let table =
+        updates.iter().find(|u| names(std::slice::from_ref(u)) == ["Episodes"]).unwrap();
+    assert_eq!(numbers(table).len(), 12, "the first source in the chain again");
 }
 
 #[tokio::test]
@@ -599,4 +606,58 @@ async fn related_cards_say_where_each_title_is_on_the_library_and_carry_its_colo
             (anistream_testkit::fixtures::MOVIE, Some(LibrarySegment::Planning)),
         ]
     );
+}
+
+#[tokio::test]
+async fn a_pinned_source_serves_its_episodes_and_the_others_fill_the_rest() {
+    let mut h = harness(with_alt()).await;
+    h.send(Command::LoadEpisodes(FINISHED));
+    h.settle().await;
+
+    h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
+    let updates = h.settle().await;
+    // The first table is what alt alone lists; the last has the gaps filled.
+    let Some(Event::Episodes { rows, .. }) =
+        updates.iter().rev().find(|u| matches!(u, Event::Episodes { .. }))
+    else {
+        panic!("no table after pinning")
+    };
+    assert_eq!(rows.len(), 12, "alt's three, then the rest from the fixture source");
+    assert!(rows[..3].iter().all(|r| r.source.is_none()), "the pinned source's own rows");
+    assert!(rows[3..].iter().all(|r| r.source.is_some()));
+
+    // Unpinned: automatic again, and every row comes from the first source.
+    h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
+    let updates = h.settle().await;
+    let Some(Event::Episodes { rows, .. }) =
+        updates.iter().find(|u| matches!(u, Event::Episodes { .. }))
+    else {
+        panic!("no table after unpinning")
+    };
+    assert!(rows.iter().all(|r| r.source.is_none()));
+}
+
+#[tokio::test]
+async fn a_pin_survives_a_restart_and_the_source_options_count_episodes() {
+    let mut h = harness(with_alt()).await;
+    h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
+    h.settle().await;
+    h.send(Command::LoadSourceOptions(FINISHED));
+    let updates = h.settle().await;
+    let options = updates
+        .iter()
+        .find_map(|u| match u {
+            Event::SourceOptions { options, .. } => Some(options.clone()),
+            _ => None,
+        })
+        .expect("source options");
+    let alt = options.iter().find(|o| o.provider_id == "alt").unwrap();
+    assert!(alt.pinned);
+    assert_eq!(alt.covered, 3);
+    let main = options.iter().find(|o| o.provider_id == sources::PROVIDER_ID).unwrap();
+    assert!(!main.pinned);
+    assert_eq!(main.covered, 12);
+
+    let pin = h.store().provider_preference(FINISHED).unwrap();
+    assert_eq!(pin.as_deref(), Some("alt"));
 }

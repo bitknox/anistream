@@ -12,7 +12,7 @@ use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_model::{
     event::Event,
     notice::Notice,
-    sources::SourceOption,
+    sources::{SourceNote, SourceOption},
 };
 use anistream_providers::Surveyed;
 use anistream_store::ReleasePin;
@@ -88,9 +88,9 @@ pub fn load_source_options(
                     .map(|pin| pin.release_id.clone()),
             };
             if registry.is_disabled(&provider_id) {
-                option.note = Some("switched off".into());
+                option.note = Some(SourceNote::Off);
             } else if !usable.contains(&provider_id) {
-                option.note = Some("resting after failures; changing the sources tries it again".into());
+                option.note = Some(SourceNote::Resting);
             } else {
                 match said.remove(&provider_id) {
                     Some(Surveyed::Answered(answer)) => {
@@ -124,9 +124,11 @@ pub fn load_source_options(
                         }
                     }
                     Some(Surveyed::Ambiguous) => {
-                        option.note = Some("could not tell which title it is".into());
+                        option.note = Some(SourceNote::Ambiguous);
                     }
-                    Some(Surveyed::Failed(reason)) => option.note = Some(reason),
+                    Some(Surveyed::Failed(reason)) => {
+                        option.note = Some(SourceNote::Failed { reason })
+                    }
                     None => {}
                 }
             }

@@ -190,6 +190,22 @@ pub(super) fn source_provider_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The release picker's rows, with the one pinned marked.
+pub(super) fn source_release_rows(app: &App) -> Vec<(String, String)> {
+    let pinned = app
+        .source_options
+        .iter()
+        .find(|option| Some(&option.provider_id) == app.release_of.as_ref())
+        .and_then(|option| option.pinned_release.clone());
+    app.release_choices()
+        .into_iter()
+        .map(|(id, label)| {
+            let marker = if id == pinned { "in use" } else { "" };
+            (marker.to_string(), label)
+        })
+        .collect()
+}
+
 pub(super) fn watch_order_rows(app: &App) -> Vec<(String, String)> {
     let Some(detail) = app.target() else {
         return Vec::new();

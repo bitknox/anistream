@@ -73,7 +73,7 @@ pub struct SourceOption {
     /// could not tell which title it is, or what it said when asked. `None` for a source that
     /// listed episodes.
     #[cfg_attr(feature = "ffi", uniffi(default))]
-    pub note: Option<String>,
+    pub note: Option<SourceNote>,
     /// The releases it offers for the title's first episode, for a source that offers several (a
     /// torrent source: a batch, and single releases). Empty for a source with one stream per
     /// episode. A release is pinned with `Command::PinRelease`.
@@ -82,6 +82,20 @@ pub struct SourceOption {
     /// The id of the release pinned within this source, when one is.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub pinned_release: Option<String>,
+}
+
+/// Why a source has no episode count in the source picker. The front end words it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum SourceNote {
+    /// Switched off.
+    Off,
+    /// Resting after failures; changing the sources tries it again.
+    Resting,
+    /// It could not tell which title this is.
+    Ambiguous,
+    /// It was asked and failed. The reason is the source's own, not translated.
+    Failed { reason: String },
 }
 
 /// A newer version of a plugin, offered by the store it came from.
