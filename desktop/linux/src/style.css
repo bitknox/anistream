@@ -206,3 +206,13 @@ row.expander:checked image.expander-row-arrow { color: var(--haze); }
 .code-plate { background: var(--raised); border-radius: 12px; padding: 6px 6px 6px 18px; }
 /* An invite link to copy, on a plate inside a dialog. */
 .link-plate { background: var(--raised); border-radius: 8px; padding: 12px; }
+
+
+/* Play on TV: the six digits a TV shows, each in its box on the ground, the box to type next in
+   silk; the remote's play button a size up. */
+.code-box {
+  background: var(--ground); border-radius: 8px; box-shadow: inset 0 0 0 1px var(--rule);
+  font-size: 22px; font-weight: 600;
+}
+.code-box.current { box-shadow: inset 0 0 0 1px var(--silk); }
+.tv-play { min-width: 48px; min-height: 48px; -gtk-icon-size: 24px; }

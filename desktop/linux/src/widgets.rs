@@ -246,6 +246,10 @@ pub fn standing(text: &str, mark: &str) -> gtk::Box {
     if !text.is_empty() {
         let label = gtk::Label::new(Some(text));
         label.add_css_class(if matches!(mark, "haze" | "ring") { "haze" } else { "standing" });
+        // A long standing, as a TV's "pair again", wraps rather than widening its row.
+        label.set_xalign(0.0);
+        label.set_wrap(true);
+        label.set_natural_wrap_mode(gtk::NaturalWrapMode::Word);
         line.append(&label);
     }
     line

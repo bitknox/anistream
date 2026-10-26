@@ -25,6 +25,8 @@ fixtures = [
   "dep:anistream-providers",
   "dep:anistream-track",
   "dep:anistream-party",
+  "dep:anistream-remote",
+  "anistream-remote/testing",
   "anistream-engine/testing",
 ]
 
@@ -33,9 +35,9 @@ anistream-core = { path = "../../crates/anistream-core" }
 anistream-model = { path = "../../crates/anistream-model" }
 anistream-net = { path = "../../crates/anistream-net" }
 anistream-store = { path = "../../crates/anistream-store" }
-# Without the terminal's mpv child, as this app hosts its own player; with the Discord presence
-# and watch parties.
-anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence", "party"] }
+# Without the terminal's mpv child, as this app hosts its own player; with the Discord presence,
+# watch parties and the remote's sender side, for Play on TV.
+anistream-engine = { path = "../../crates/anistream-engine", default-features = false, features = ["presence", "party", "remote"] }
 anistream-mpv-host = { path = "../../crates/anistream-mpv-host", features = ["libmpv"] }
 
 anistream-testkit = { path = "../../crates/anistream-testkit", optional = true }
@@ -44,6 +46,8 @@ anistream-providers = { path = "../../crates/anistream-providers", optional = tr
 anistream-track = { path = "../../crates/anistream-track", default-features = false, optional = true }
 # A Syncplay server on loopback with members it plays, for the watch party's scenes.
 anistream-party = { path = "../../crates/anistream-party", features = ["testing"], optional = true }
+# TVs on loopback with a scripted player, for Play on TV's scenes.
+anistream-remote = { path = "../../crates/anistream-remote", optional = true }
 
 # GraphicsOffload is GTK 4.14's; 4.16 gave it a black background for direct scanout.
 gtk = { package = "gtk4", version = "0.11", features = ["v4_16"] }

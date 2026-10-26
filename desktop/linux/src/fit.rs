@@ -51,7 +51,9 @@ mod imp {
                 gtk::Orientation::Horizontal if self.fixed.get() => (width, width, -1, -1),
                 gtk::Orientation::Horizontal => (0, width, -1, -1),
                 _ => {
-                    let across = if for_size >= 0 { for_size } else { width };
+                    // A fixed width is the width it gets, whatever a box offers it.
+                    let across =
+                        if for_size >= 0 && !self.fixed.get() { for_size } else { width };
                     let height = self.height_for(across);
                     (height, height, -1, -1)
                 }

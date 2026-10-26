@@ -194,6 +194,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .build();
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
+    header.pack_start(&crate::window::tv_session_button(ctx));
     header.pack_end(&menu);
     header.pack_end(&open_folder);
     header.pack_end(&pause_all);
