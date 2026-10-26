@@ -29,6 +29,11 @@ use crate::{
 /// ([`fixtures::LONG_FRANCHISE_SEASONS`], twelve seasons of Cloudcutter Airship) and the short one
 /// ([`fixtures::FRANCHISE_SEASONS`], five seasons of Lantern Wood), in no list, search or
 /// schedule: their pages open by id.
+///
+/// With the environment variable `ANISTREAM_FIXTURES_CATALOGUE` set to `1` when a scene starts,
+/// eight more invented titles ([`fixtures::catalogue_titles`], ids 900101 to 900108) join the
+/// six in Search and browse, for a grid of fourteen: no scene's own data changes, and with the
+/// variable unset or anything else the six-title world is exactly as it was.
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
 pub enum FfiScene {
     /// Nothing: a first launch, as [`FfiEngine::start_testing`] starts.
@@ -130,6 +135,10 @@ impl FfiEngine {
             // And the short one, five seasons with a film, an OVA and a web series beside them,
             // for a season row that fits across the page with Related beside it.
             server.add_titles(fixtures::franchise());
+            // Eight more titles in the browse, for a grid of fourteen, only when asked for.
+            if std::env::var("ANISTREAM_FIXTURES_CATALOGUE").is_ok_and(|v| v == "1") {
+                server.add_catalogue(fixtures::catalogue_titles());
+            }
             let sources = Some(scene_sources(&scene, &server.art_base()));
             let testing = testing::Testing { server, clock };
             let options = testing::options(opened, &testing, start, sources)?;

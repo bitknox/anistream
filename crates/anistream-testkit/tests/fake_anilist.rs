@@ -62,6 +62,28 @@ async fn a_browse_lists_everything_in_pages_and_honours_its_filters() {
 }
 
 #[tokio::test]
+async fn the_catalogue_fills_a_browse_and_the_fantasy_filter_halves_it() {
+    let kit = MetaKit::start().await;
+    kit.server.add_catalogue(fixtures::catalogue_titles());
+    let all = kit.meta.search("", &BrowseFilter::default(), 1, 50).await.unwrap();
+    assert_eq!(all.items.len(), 14);
+    assert!(!all.has_next);
+    // Mixed, not the new ones after the six.
+    let first_six = &ids(&all.items)[..6];
+    assert!(first_six.iter().any(|id| *id < 900_100), "{first_six:?}");
+    assert!(first_six.iter().any(|id| *id > 900_100), "{first_six:?}");
+
+    let fantasy = BrowseFilter { genres: vec!["Fantasy".into()], ..Default::default() };
+    let found = kit.meta.search("", &fantasy, 1, 50).await.unwrap();
+    assert_eq!(found.items.len(), 7);
+
+    // The new titles are found by name and open by id, and the seasonal browse is as it was.
+    let found = kit.meta.search("fox mask", &BrowseFilter::default(), 1, 20).await.unwrap();
+    assert_eq!(ids(&found.items), [900_105]);
+    assert!(kit.meta.media(fixtures::CATALOGUE[0]).await.is_ok());
+}
+
+#[tokio::test]
 async fn every_filter_is_applied_as_anilist_applies_it() {
     let kit = MetaKit::start().await;
     let find = async |filter: BrowseFilter| {

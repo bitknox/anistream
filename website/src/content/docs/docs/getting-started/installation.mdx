@@ -105,10 +105,16 @@ The APK is signed with anistream's release key, so a newer one installs over the
 keeps your data. After the first install the TV app updates itself from **Settings › About**, as
 [Updating](#updating) describes.
 
-To use **Play on TV** from the Mac, iPhone, iPad or Android app, pair the phone or Mac with the TV
-once. On the TV, go to **Settings › Remotes › Pair a phone** and scan the QR code with the phone, or
-choose the TV in the phone's **Play on TV** list and enter the code the TV shows. Both need to be
-on the same network.
+To use **Play on TV** from the Mac, iPhone, iPad, Android, Windows or Linux app, pair it with the
+TV once. On the TV, go to **Settings › Remotes › Pair a phone** and scan the QR code with a phone,
+or choose the TV in the app's **Play on TV** list and enter the code the TV shows. Both need to be
+on the same network. On Windows and Linux, paired TVs are listed under
+**Settings › Integrations**.
+
+Torrents on the TV are off until you turn them on under **Settings › Sources**. The TV shows a QR
+code that opens a page on your phone, where you type the torrent index and, if you use one, the
+proxy; you can also type them with the TV's keyboard. The proxy is checked before it is saved, as
+in [Torrents and the VPN guard](/docs/guides/torrents-vpn/#in-the-apps).
 
 ### Windows
 
@@ -148,8 +154,8 @@ chmod +x anistream-<version>-linux-x86_64.AppImage
 ```
 
 The first time it runs, it registers itself for `anistream://` links. If you move the file, the
-next run registers the new place. AppImageUpdate, AppImageLauncher and Gear Lever can update it in
-place from the newest release. An AppImage needs FUSE, which most desktops have. Without it, run
+next run registers the new place. After that it updates itself, as [Updating](#updating)
+describes. An AppImage needs FUSE, which most desktops have. Without it, run
 the file with `--appimage-extract-and-run`.
 
 ## The terminal app
@@ -195,8 +201,9 @@ prerequisites and then build.
 ## Updating
 
 The apps check GitHub for a new release once a day and say when one is out. Settings shows it too,
-with **Check Now**. Nothing is downloaded until you choose to update, and an update keeps your
-history and settings. Turn the daily check off with **Check for updates** in Settings.
+with **Check Now**. Except on Windows, nothing is downloaded until you choose to update, and an
+update keeps your history and settings. Turn the daily check off with **Check for updates** in
+Settings.
 
 On the Mac, choose **Update** in the notice, or **Update to** the new version under
 **Settings › Integrations › Updates**. anistream downloads the new release, checks its signature,
@@ -220,12 +227,15 @@ apps, and the TV shows where that switch is. anistream downloads the APK, checks
 SHA-256 and that it is signed with the same key, then hands it to Android's installer, which asks
 you to confirm.
 
-On Windows, **Check for updates** under **Settings › About** says whether a new release is out. Run
-the new installer over the one you have, and your library and settings stay.
+On Windows, the app downloads a new release once it finds one and checks it against the
+published size and SHA-256. Then it says the version is ready to install. Choose
+**Restart to update**, in the notice or under **Settings › About**, and the installer runs without
+asking anything, then opens the new version. Your library and settings stay.
 
-On Linux, **Settings** says when a new release is out, with **View Release**. AppImageUpdate,
-AppImageLauncher and Gear Lever update the AppImage in place, or download the new one and replace
-the old file.
+On Linux, **Settings › Integrations › Updates** says when a new release is out. Choose
+**Download Update**, and the app checks the new AppImage against the published size and SHA-256.
+**Restart to Update** then puts it in place of the one you run and opens it. If the AppImage's
+folder cannot be written to, the new version is saved to Downloads instead, and the app says so.
 
 The terminal app updates itself:
 

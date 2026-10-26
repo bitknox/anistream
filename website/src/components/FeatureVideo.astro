@@ -24,9 +24,11 @@ interface Props {
 	alt: string;
 	frame: 'window' | 'phone' | 'tablet' | 'screen';
 	class?: string;
+	/** Above the fold: the poster loads at once, ahead of other images, as the still it replaces did. */
+	eager?: boolean;
 }
 
-const { name, alt, frame, class: className } = Astro.props;
+const { name, alt, frame, class: className, eager = false } = Astro.props;
 const video = (videos as Record<string, Video>)[name];
 const base = `/features/${name}`;
 ---
@@ -42,7 +44,15 @@ const base = `/features/${name}`;
 				<span class="fv-box" style={`aspect-ratio: ${video.w} / ${video.h}`}>
 					<picture>
 						<source type="image/avif" srcset={`${base}-poster.avif`} />
-						<img src={`${base}-poster.webp`} width={video.w} height={video.h} alt={alt} loading="lazy" decoding="async" />
+						<img
+							src={`${base}-poster.webp`}
+							width={video.w}
+							height={video.h}
+							alt={alt}
+							loading={eager ? 'eager' : 'lazy'}
+							fetchpriority={eager ? 'high' : 'auto'}
+							decoding="async"
+						/>
 					</picture>
 					<video muted playsinline loop preload="none" disablepictureinpicture disableremoteplayback aria-hidden="true" tabindex="-1">
 						<source src={`${base}.webm`} type='video/webm; codecs="av01.0.05M.08"' />
@@ -109,6 +119,12 @@ const base = `/features/${name}`;
 	const seen = new Set<Element>();
 	const play = (clip: Element) => {
 		if (still.matches) return;
+		// Not before the page has loaded: a clip above the fold waits for the page's own pictures
+		// and fonts.
+		if (document.readyState !== 'complete') {
+			window.addEventListener('load', () => seen.has(clip) && play(clip), { once: true });
+			return;
+		}
 		const video = videoOf(clip);
 		if (video.preload !== 'auto') video.preload = 'auto';
 		video.play().catch(() => {});

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<rect width="1600" height="900" fill="#cfe3cf"/>
+<circle cx="1160" cy="144" r="54" fill="#f4eac4"/>
+<rect y="720" width="1600" height="180" fill="#a9c9a4"/>
+<polygon points="566,720 566,468 800,306 1034,468 1034,720" fill="#eef6ee"/>
+<polygon points="566,468 800,306 1034,468 1034,522 800,360 566,522" fill="#dcebdc"/>
+<g stroke="#3e6b4f" stroke-width="6.3" fill="none" stroke-linejoin="round"><polygon points="566,720 566,468 800,306 1034,468 1034,720"/><line x1="800" y1="306" x2="800" y2="720"/><line x1="683" y1="387" x2="683" y2="720"/><line x1="917" y1="387" x2="917" y2="720"/><line x1="566" y1="558" x2="1034" y2="558"/></g>
+<rect x="566" y="702" width="468" height="18" fill="#3e6b4f"/>
+<circle cx="674" cy="648" r="45" fill="#6fae7a"/><circle cx="764" cy="630" r="58.5" fill="#58a068"/><circle cx="890" cy="648" r="45" fill="#6fae7a"/><circle cx="935" cy="612" r="14.4" fill="#e0654f"/><circle cx="746" cy="603" r="14.4" fill="#e0654f"/>
+</svg>

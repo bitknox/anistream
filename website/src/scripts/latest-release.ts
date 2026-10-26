@@ -5,39 +5,7 @@
  * at that file, and a `data-release-tag` element shows the release's tag in its own words, where
  * `{tag}` stands for it.
  */
-import { LATEST_API } from '../data/site';
-
-interface Release {
-	tag_name: string;
-	html_url: string;
-	assets: { name: string; browser_download_url: string; size: number }[];
-}
-
-const KEY = 'anistream-latest-release';
-
-async function latest(): Promise<Release | null> {
-	try {
-		const kept = sessionStorage.getItem(KEY);
-		if (kept) return JSON.parse(kept) as Release;
-	} catch {
-		// No storage in this window; ask GitHub.
-	}
-	try {
-		const response = await fetch(LATEST_API, { headers: { Accept: 'application/vnd.github+json' } });
-		if (!response.ok) return null;
-		const release = (await response.json()) as Release;
-		try {
-			sessionStorage.setItem(KEY, JSON.stringify(release));
-		} catch {
-			// Kept for this page only.
-		}
-		return release;
-	} catch {
-		return null;
-	}
-}
-
-const megabytes = (bytes: number) => `${Math.round(bytes / 1_000_000)} MB`;
+import { latest, megabytes } from './release';
 
 async function fill() {
 	const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[data-asset]'));

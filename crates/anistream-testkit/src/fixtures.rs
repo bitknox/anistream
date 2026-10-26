@@ -117,13 +117,18 @@ pub(crate) fn wire(id: AnilistId) -> Option<&'static Value> {
 
 /// One title as a list query answers it: the detail-only fields left out.
 pub(crate) fn listed_wire(id: AnilistId) -> Option<Value> {
-    let mut media = wire(id)?.clone();
+    Some(listed_form(wire(id)?))
+}
+
+/// `media` as a list query answers it: the detail-only fields left out.
+pub(crate) fn listed_form(media: &Value) -> Value {
+    let mut media = media.clone();
     if let Some(fields) = media.as_object_mut() {
         for key in DETAIL_ONLY {
             fields.remove(key);
         }
     }
-    Some(media)
+    media
 }
 
 /// Every broadcast row: `mediaId`, `episode`, `airingAt`, oldest first.
@@ -135,6 +140,50 @@ pub(crate) fn schedule_wire() -> &'static [Value] {
 /// `updatedAt`.
 pub(crate) fn library_wire() -> &'static Value {
     &LIBRARY
+}
+
+/// The opt-in catalogue's ids, in the order [`catalogue_titles`] lists them: see there.
+pub const CATALOGUE: [AnilistId; 8] = [
+    AnilistId::new(900_101),
+    AnilistId::new(900_102),
+    AnilistId::new(900_103),
+    AnilistId::new(900_104),
+    AnilistId::new(900_105),
+    AnilistId::new(900_106),
+    AnilistId::new(900_107),
+    AnilistId::new(900_108),
+];
+
+/// Eight more invented titles for a full browse grid, in no list or search until
+/// [`crate::FakeAniList::add_catalogue`] is told to add them: the six alone make one row on a
+/// wide window. Each has a poster and a wide drawing (see [`crate::art`]) and no episodes,
+/// broadcasts or library entries. Four are Fantasy, so with the three Fantasy fixtures the filter
+/// finds seven of fourteen.
+///
+/// | id | title (romaji / english) | shape |
+/// |---|---|---|
+/// | 900101 | Shiranami no Tomoshibi / The Lighthouse Keeper's Lamp | TV 2024, finished; Fantasy, Drama |
+/// | 900102 | Koi no Ike no Yoru / Night at the Koi Pond | ONA 2022, finished; Fantasy, Romance |
+/// | 900103 | Chochin Matsuri / The Paper Lantern Festival | OVA 2021, finished; Comedy, Romance |
+/// | 900104 | Yamakage Kisha / The Mountain Shadow Express | TV 2026, releasing; Adventure, Mystery |
+/// | 900105 | Kitsune no Omote / The Fox Mask | movie 2024; Fantasy, Action |
+/// | 900106 | Denpatou no Yoru / Radio Tower Nights | ONA 2025, releasing; Sci-Fi, Mystery |
+/// | 900107 | Onshitsu no Yonin / Four Seasons in the Greenhouse | TV 2020, finished; Fantasy, Slice of Life |
+/// | 900108 | Asagiri no Bouto / Morning Mist Rowing Club | TV 2023, finished; Sports, Drama |
+pub fn catalogue_titles() -> Vec<Value> {
+    [
+        include_str!("../fixtures/anilist/media/900101.json"),
+        include_str!("../fixtures/anilist/media/900102.json"),
+        include_str!("../fixtures/anilist/media/900103.json"),
+        include_str!("../fixtures/anilist/media/900104.json"),
+        include_str!("../fixtures/anilist/media/900105.json"),
+        include_str!("../fixtures/anilist/media/900106.json"),
+        include_str!("../fixtures/anilist/media/900107.json"),
+        include_str!("../fixtures/anilist/media/900108.json"),
+    ]
+    .iter()
+    .map(|raw| serde_json::from_str(raw).expect("a catalogue fixture is valid JSON"))
+    .collect()
 }
 
 /// A made-up franchise beside the six, for the season picker, in no list, search or schedule:

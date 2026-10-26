@@ -5,7 +5,7 @@ description: anistream’s controls, skip button, Up Next, menus and upscaling i
 
 anistream plays everything in mpv and gives it the app's look: its own controls, seekbar
 thumbnails, a skip button, an Up Next card and menus, in the same colours and font as the
-terminal. One mpv window carries a whole binge. The next episode loads into the window the last
+terminal. The next episode loads into the window the last
 one played in, so fullscreen and window position stay put.
 
 The controls appear when you move the mouse, pause or seek, and leave about a second after the
@@ -137,8 +137,8 @@ playback, and parts not downloaded yet show no thumbnail.
 
 ## Night mode
 
-Night mode evens out quiet dialogue and loud music, so a low volume stays usable without the
-opening arriving at full blast. Turn it on in the menu or with `night_mode = true`.
+Night mode evens out quiet dialogue and loud music, so a low volume stays usable and the
+opening isn’t suddenly loud. Turn it on in the menu or with `night_mode = true`.
 
 ## Trying it without a source
 

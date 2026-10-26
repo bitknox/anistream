@@ -1,0 +1,78 @@
+{
+  "id": 900106,
+  "idMal": 800106,
+  "title": {
+    "romaji": "Denpatou no Yoru",
+    "english": "Radio Tower Nights",
+    "native": "電波塔の夜"
+  },
+  "format": "ONA",
+  "status": "RELEASING",
+  "description": "A night-shift operator at a forgotten radio tower starts answering a signal from a station that stopped broadcasting years ago.",
+  "episodes": 12,
+  "duration": 22,
+  "seasonYear": 2025,
+  "season": "FALL",
+  "startDate": {
+    "year": 2025,
+    "month": 10,
+    "day": 3
+  },
+  "endDate": {
+    "year": null,
+    "month": null,
+    "day": null
+  },
+  "source": "ORIGINAL",
+  "isAdult": false,
+  "averageScore": 72,
+  "genres": [
+    "Sci-Fi",
+    "Mystery"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900106-xl.jpg",
+    "large": "https://img.example/cover/900106.jpg",
+    "color": "#4b6ea8"
+  },
+  "bannerImage": "https://img.example/banner/900106.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Mokusei"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Radio Tower Nights"
+          }
+        }
+      }
+    ]
+  }
+}

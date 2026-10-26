@@ -3,6 +3,19 @@
 # emulator of its own, run headless and filmed with `adb shell screenrecord`, so nothing on the
 # Mac's screen moves. Run it through record.sh, which names the episode and where the recordings go.
 #
+# The clips must play without a stutter, and an emulator drops frames easily, so:
+#
+#   - the app is the Fixtures flavour's video build (build-logic's anistream.android.application):
+#     the debug build not debuggable, compiled ahead of time on install, as a person's build runs;
+#   - the emulator draws with the Mac's GPU (-gpu host);
+#   - each flow runs once unfilmed first, then again for the recording;
+#   - nothing heavy may run on the Mac meanwhile: it waits for a quiet moment, and films a take
+#     again when the Mac got busy during it.
+#
+# `adb shell screenrecord` writes a frame each time the screen changes, on the display's own
+# vsync, which keeps the frames evenly spaced. The emulator console's recorder (`adb emu
+# screenrecord`) was tried and samples the screen unevenly, 16 to 20 ms apart.
+#
 #   android  "anistream-video-phone" on port 5570: Android 15 with 16 KB pages, a medium phone
 #   tv       "anistream-video-tv" on port 5572: Android TV 14 at 1080p
 #
@@ -63,7 +76,8 @@ shell() { adb shell "$@"; }
 # The APKs: the Fixtures app and its flows. ANISTREAM_VIDEO_BUILT=1 reuses the last build.
 apks="$android/$module/build/outputs/apk"
 if [[ "${ANISTREAM_VIDEO_BUILT:-0}" != 1 ]]; then
-  (cd "$android" && ./gradlew --quiet ":$module:assembleFixturesDebug" ":$module:assembleFixturesDebugAndroidTest")
+  (cd "$android" && ./gradlew --quiet -Panistream.testBuildType=video \
+    ":$module:assembleFixturesVideo" ":$module:assembleFixturesVideoAndroidTest")
 fi
 
 # The emulator: the one on this port, or this platform's own AVD, made if it is missing.
@@ -76,7 +90,7 @@ if [[ "$(adb get-state 2>/dev/null || true)" != device ]]; then
   fi
   echo "android.sh: starting $avd on port $port"
   nohup "$sdk/emulator/emulator" -avd "$avd" -port "$port" -no-window -no-audio -no-boot-anim \
-    -no-snapshot >"$raw/emulator-$platform.log" 2>&1 &
+    -no-snapshot -gpu host -memory 4096 -cores 4 >"$raw/emulator-$platform.log" 2>&1 &
   started=1
 fi
 stop() {
@@ -116,33 +130,89 @@ dress() {
   demo notifications -e visible false
 }
 
-adb install -r "$apks/fixtures/debug/$module-fixtures-debug.apk" >/dev/null
-adb install -r "$apks/androidTest/fixtures/debug/$module-fixtures-debug-androidTest.apk" >/dev/null
+adb install -r "$apks/fixtures/video/$module-fixtures-video.apk" >/dev/null
+adb install -r "$apks/androidTest/fixtures/video/$module-fixtures-video-androidTest.apk" >/dev/null
+# All of it compiled now, rather than by the JIT while the flow runs.
+shell cmd package compile -m speed -f "$package" >/dev/null
 # The episode, where the app can read it, sent again only when it changed.
 episode=/data/local/tmp/kosys-episode.mp4
 if [[ "$(shell stat -c %s "$episode" 2>/dev/null | tr -d '\r')" != "$(stat -f %z "$media")" ]]; then
   adb push "$media" "$episode" >/dev/null
 fi
 
+# The flow for a clip, as a first launch: no setup card hidden, no permission asked.
+fresh() {
+  shell am force-stop "$package"
+  shell pm clear "$package" >/dev/null
+}
+instrument() {
+  adb shell am instrument -w -e class "$flows#$(flow "$1")" -e media "$episode" \
+    "$package.test/androidx.test.runner.AndroidJUnitRunner"
+}
+# CPU in use on the Mac outside the emulators, in percent of one core: a build, a Simulator
+# booting, anything that takes the cores the emulator draws with.
+cores="$(sysctl -n hw.ncpu)"
+others() { ps -Ao pcpu=,ucomm= | awk '$2 !~ /^(qemu-system|emulator)/ { s += $1 } END { print int(s) }'; }
+# Waits, up to 30 minutes, for the Mac to be quiet: under a quarter of its cores in use outside
+# the emulators and the load under half of them, three checks in a row 5 s apart. An emulator
+# filmed while Xcode, cargo, Gradle or a Simulator runs drops frames.
+quiet() {
+  local busy load calm=0
+  for i in $(seq 0 359); do
+    busy="$(others)"
+    load="$(sysctl -n vm.loadavg | awk '{ print int($2) }')"
+    if (( busy < cores * 25 && load * 2 < cores )); then
+      (( ++calm >= 3 )) && return 0
+    else
+      (( i % 12 )) || echo "android.sh: waiting for the Mac to be quiet (${busy}% CPU in use, load $load)"
+      calm=0
+    fi
+    sleep 5
+  done
+  echo "android.sh: the Mac stayed busy; recording anyway" >&2
+}
+# The most CPU in use outside the emulators while a take runs, checked every second into $1.
+watch() {
+  local peak=0 now
+  echo 0 >"$1"
+  while :; do
+    now="$(others)"
+    if (( now > peak )); then peak=$now; echo "$peak" >"$1"; fi
+    sleep 1
+  done
+}
+
 failed=0
 for clip in "${clips[@]}"; do
   log="$raw/$clip.log"
   dress
-  shell am force-stop "$package"
-  # Every clip from a first launch: no setup card hidden, no permission asked.
-  shell pm clear "$package" >/dev/null
-  adb logcat -c
-  # The recording, and the device's time as it begins.
-  shell rm -f /sdcard/feature-video.mp4
-  adb shell 'date +%s.%N; exec screenrecord --bit-rate 16000000 /sdcard/feature-video.mp4' >"$raw/$clip.recorder.log" 2>&1 &
-  recorder=$!
-  for _ in $(seq 1 50); do [[ -s "$raw/$clip.recorder.log" ]] && break; sleep 0.1; done
-  status=0
-  adb shell am instrument -w -e class "$flows#$(flow "$clip")" -e media "$episode" \
-    "$package.test/androidx.test.runner.AndroidJUnitRunner" >"$log" 2>&1 || status=1
-  grep -q "^OK (1 test)" "$log" || status=1
-  shell pkill -INT screenrecord || true
-  wait "$recorder" 2>/dev/null || true
+  # Once unfilmed, so the app's caches, the emulator's shaders and the episode's file are warm.
+  fresh
+  instrument "$clip" >"$log" 2>&1 || true
+  # Filmed again, up to three times, when the Mac got busy during the take: a burst that starts
+  # after quiet() let it begin, as a Simulator booting, drops the emulator's frames.
+  for attempt in 1 2 3; do
+    fresh
+    quiet
+    adb logcat -c
+    watch "$raw/$clip.busy" &
+    watcher=$!
+    # The recording, and the device's time as it begins.
+    shell rm -f /sdcard/feature-video.mp4
+    adb shell 'date +%s.%N; exec screenrecord --bit-rate 16000000 /sdcard/feature-video.mp4' >"$raw/$clip.recorder.log" 2>&1 &
+    recorder=$!
+    for _ in $(seq 1 50); do [[ -s "$raw/$clip.recorder.log" ]] && break; sleep 0.1; done
+    status=0
+    instrument "$clip" >"$log" 2>&1 || status=1
+    grep -q "^OK (1 test)" "$log" || status=1
+    shell pkill -INT screenrecord || true
+    wait "$recorder" 2>/dev/null || true
+    kill "$watcher" 2>/dev/null || true
+    wait "$watcher" 2>/dev/null || true
+    peak="$(cat "$raw/$clip.busy")"
+    if (( peak < cores * 40 || attempt == 3 )); then break; fi
+    echo "android.sh: the Mac got busy during the $clip take (${peak}% CPU); filming it again"
+  done
   sleep 1
   adb logcat -d -s anistream-video:I >>"$log"
   if (( status )); then

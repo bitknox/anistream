@@ -135,13 +135,13 @@ async fn a_mark_on_the_table_moves_the_row_the_title_and_continue() {
     assert_eq!(meter(&h, "4"), 1.0, "a marked episode reads as finished");
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None), "Continue moves past it");
 
-    // Marked again, it is not watched after all: Continue goes back to it, with nothing to
-    // resume, since the store forgot where it was left too.
+    // Marked again, it is not watched after all: it is as it was before the mark, and Continue
+    // goes back to it, resuming where it was left.
     h.press(Action::ToggleWatched);
     assert_eq!(names(&h.settle().await), ["Progress"]);
     assert_eq!(finished(&h), ["1", "2", "3"]);
-    assert_eq!(meter(&h, "4"), 0.0);
-    assert_eq!(standing(&h, FINISHED), (Some((3, 4)), None));
+    assert_eq!(meter(&h, "4"), 300.0 / runtime_secs(FINISHED));
+    assert_eq!(standing(&h, FINISHED), (Some((3, 4)), Some(300.0)));
 
     // Caught up to episode 7: everything before it marked, in one go.
     for _ in 0..3 {

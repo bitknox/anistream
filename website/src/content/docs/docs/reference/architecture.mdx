@@ -43,10 +43,11 @@ provider named, sidecar subtitles and the HLS mender below, and both are source-
 - `anistream-tui` is the terminal front end: the screens, the keymap and the theme, on ratatui.
 - `anistream` is the binary. It holds the command line, self-update, and the terminal's event
   loop, which hands the front end's commands to the engine and its events back.
-- `anistream-ffi` is the engine for native front ends: SwiftUI on macOS and iOS, Jetpack Compose
-  on Android, both in development. It hands them the model's own commands and events through
-  UniFFI, and takes links, notifications and the OS's secret store from the app. The Swift package
-  that wraps it is in `apple/`.
+- `anistream-ffi` is the engine for the native apps: SwiftUI on macOS and iOS, Jetpack Compose
+  on Android and Android TV, and WinUI 3 on Windows. It hands them the model's own commands and
+  events through UniFFI, and takes links, notifications and the OS's secret store from the app.
+  The Swift package that wraps it is in `apple/`. The Linux app, written in Rust, links the engine
+  itself.
 - `anistream-testkit` is used only by tests: a fake AniList, fixture titles and golden files.
 
 The engine and the model use no terminal library, not even through a dependency, so a front end

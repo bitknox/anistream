@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+<rect width="1600" height="900" fill="#cfdede"/>
+<circle cx="962" cy="378" r="90" fill="#f2e4c4"/>
+<polygon points="0,540 530,414 656,504 836,396 1016,522 1600,432 1600,558 0,558" fill="#8aa9ad" opacity="0.7"/>
+<rect y="468" width="1600" height="126" fill="#e3ecec" opacity="0.75"/>
+<rect y="558" width="1600" height="342" fill="#8fb0b6"/>
+<rect y="684" width="1600" height="216" fill="#7aa0a8"/>
+<path d="M602 630 Q 800 670.5 998 630 Q 800 649.8 602 630Z" fill="#26394a"/>
+<line x1="746" y1="640.8" x2="674" y2="693" stroke="#26394a" stroke-width="5.4"/><line x1="836" y1="640.8" x2="764" y2="693" stroke="#26394a" stroke-width="5.4"/>
+<ellipse cx="800" cy="711" rx="144" ry="9" fill="#cfe0e0" opacity="0.5"/>
+</svg>

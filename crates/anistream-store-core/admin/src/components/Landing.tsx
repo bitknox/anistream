@@ -93,7 +93,7 @@ export function Landing({ store }: { store?: StoreInfo }) {
 				<p className="lede">
 					While you are here: Nagare runs along the rooftops. Jump the chimneys, the lanterns, the
 					sleeping cats and the gaps between roofs with Space, the up arrow or a tap, and hold for a
-					higher jump.
+					higher jump. Slide under the crows, kites and signs with the down arrow or a swipe down.
 				</p>
 				<RunGame />
 			</section>
