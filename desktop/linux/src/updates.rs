@@ -121,7 +121,7 @@ pub fn line(
         Step::Downloading { .. } => format!("Downloading version {version}"),
         Step::Verifying => format!("Checking the download of version {version}…"),
         Step::Ready(_) => format!("Version {version} is ready to install"),
-        Step::Saved(_) => saved_words(version),
+        Step::Saved(_) => saved_words(version, appimage().as_deref()),
         Step::Installing => format!("Installing version {version}…"),
         Step::Failed(reason) => format!("The update to version {version} stopped. {reason}"),
         Step::Idle => match status {
@@ -133,9 +133,34 @@ pub fn line(
     }
 }
 
-/// What is said of a new version saved to Downloads, in the notice and the Updates row.
-pub fn saved_words(version: &str) -> String {
-    format!("Version {version} saved to Downloads. Replace the old file with it to update.")
+/// What the Updates row says of a new version saved to Downloads: what to do with it, and where
+/// the file it replaces is, when this copy runs from one.
+pub fn saved_words(version: &str, old: Option<&Path>) -> String {
+    match old {
+        Some(old) => format!(
+            "Version {version} saved to Downloads. Replace the old file, {}, with it to update.",
+            home_short(old)
+        ),
+        None => {
+            format!(
+                "Version {version} saved to Downloads. Replace the old file with it to update."
+            )
+        }
+    }
+}
+
+/// The notice for a new version saved to Downloads: short, the steps are in the Updates row.
+pub fn saved_notice(version: &str) -> String {
+    format!("Version {version} saved to Downloads")
+}
+
+/// A path with the home folder as `~`, as a file manager's path bar reads it.
+fn home_short(path: &Path) -> String {
+    let home = gtk::glib::home_dir();
+    match path.strip_prefix(&home) {
+        Ok(rest) if !home.as_os_str().is_empty() => format!("~/{}", rest.display()),
+        _ => path.display().to_string(),
+    }
 }
 
 /// Whether the app can write in `dir`: what replacing the AppImage there needs. Tried with a
@@ -446,6 +471,12 @@ mod tests {
             line(Step::Saved("/x".into())),
             "Version 1.4.0 saved to Downloads. Replace the old file with it to update."
         );
+        assert_eq!(
+            saved_words("1.4.0", Some(&gtk::glib::home_dir().join("Apps/anistream.AppImage"))),
+            "Version 1.4.0 saved to Downloads. Replace the old file, ~/Apps/anistream.AppImage, \
+             with it to update."
+        );
+        assert_eq!(saved_notice("1.4.0"), "Version 1.4.0 saved to Downloads");
         assert_eq!(
             line(Step::Failed("The download stopped: the connection was lost.".into())),
             "The update to version 1.4.0 stopped. The download stopped: the connection was lost."

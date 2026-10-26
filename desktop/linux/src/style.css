@@ -107,6 +107,9 @@ levelbar block.empty { background: var(--rule); }
 .genre-tile:hover { background: var(--raised-selected); }
 
 /* Search's filters: what is set, each a chip that takes it off. */
+.edge-fade.start { background: linear-gradient(to right, var(--ground) 40%, alpha(var(--ground), 0)); }
+.edge-fade.end { background: linear-gradient(to left, var(--ground) 40%, alpha(var(--ground), 0)); }
+.edge-arrow { min-width: 26px; min-height: 26px; padding: 0; box-shadow: 0 0 0 6px var(--ground); }
 .filter-chip { padding: 2px 6px 2px 12px; min-height: 28px; }
 .filter-chip image { -gtk-icon-size: 12px; opacity: 0.7; }
 

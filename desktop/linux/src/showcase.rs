@@ -14,6 +14,32 @@ use anistream_model::{
     },
 };
 
+/// How the showcase's stores answer, for a shot of each state an owner's dialog has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mood {
+    #[default]
+    Usual,
+    /// Nothing comes back: a store still thinking, and a next page of search on its way.
+    Silent,
+    /// Every question fails, as with the store's computer off.
+    Failing,
+    /// Only publishing fails.
+    PublishFails,
+    /// No invites waiting, and no plugins on this computer.
+    Bare,
+    /// Only people invited can join.
+    Closed,
+}
+
+thread_local! {
+    static MOOD: std::cell::Cell<Mood> = const { std::cell::Cell::new(Mood::Usual) };
+}
+
+/// Answer as `mood` until set again.
+pub fn set_mood(mood: Mood) {
+    MOOD.with(|m| m.set(mood));
+}
+
 /// The link the join shot pastes.
 pub const INVITE: &str = "https://plugins.hotaru.example/join/fixture#key";
 
@@ -95,6 +121,47 @@ pub fn answer(command: &Command) -> Option<Vec<Event>> {
             ],
         },
     };
+    let mood = MOOD.with(std::cell::Cell::get);
+    let owners = matches!(
+        command,
+        Command::CreateInvite { .. }
+            | Command::LoadMembers { .. }
+            | Command::LoadLocalPlugins { .. }
+            | Command::PublishPlugin { .. }
+    );
+    let failed =
+        |why: &str| vec![Event::Toast(anistream_model::notice::Notice::alert(why.to_owned()))];
+    match (mood, command) {
+        (Mood::Silent, Command::SearchMore { .. }) => return Some(Vec::new()),
+        (Mood::Silent, _) if owners => return Some(Vec::new()),
+        (Mood::Failing, _) if owners => {
+            return Some(failed(
+                "couldn't reach plugins.mika.example: the connection timed out",
+            ));
+        }
+        (Mood::PublishFails, Command::PublishPlugin { plugin, .. }) => {
+            return Some(failed(&format!(
+                "{plugin} not published: the store refused a plugin it can't verify"
+            )));
+        }
+        (Mood::Bare, Command::LoadMembers { store }) => {
+            let Event::StoreMembers { members, .. } = members(store) else { return None };
+            return Some(vec![
+                Event::StoreMembers { store: store.clone(), members, invites: Vec::new() },
+                open_join(store, false),
+            ]);
+        }
+        (Mood::Bare, Command::LoadLocalPlugins { store }) => {
+            return Some(vec![Event::LocalPlugins {
+                store: store.clone(),
+                plugins: Vec::new(),
+            }]);
+        }
+        (Mood::Closed, Command::LoadMembers { store }) => {
+            return Some(vec![members(store), open_join(store, false)]);
+        }
+        _ => {}
+    }
     Some(match command {
         Command::CreateInvite { store, name } if ours(store) => {
             vec![Event::InviteLink(InviteLinkView {

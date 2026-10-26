@@ -21,9 +21,12 @@ use gtk::glib;
 
 use crate::{widgets, window::Ctx};
 
-/// How long Who Can Join waits for the store before taking it for a server too old to offer
-/// open joining.
+/// How long Who Can Join waits, once the store has listed its members, before taking it for a
+/// server too old to offer open joining.
 const OLDER_SERVER: Duration = Duration::from_secs(4);
+
+/// How long a dialog waits on the store before saying it did not answer.
+const NO_ANSWER: Duration = Duration::from_secs(20);
 
 /// A dialog's frame: the header with its buttons, and a column to fill.
 struct Frame {
@@ -32,7 +35,8 @@ struct Frame {
     body: gtk::Box,
 }
 
-fn frame(ctx: &Ctx, name: &str, title: &str) -> Frame {
+/// `title` short, over the store's name, so a narrow window's sheet shows both whole.
+fn frame(ctx: &Ctx, name: &str, title: &str, store: &str) -> Frame {
     if let Some(dialog) = ctx.window.visible_dialog()
         && dialog.widget_name() == name
     {
@@ -41,6 +45,7 @@ fn frame(ctx: &Ctx, name: &str, title: &str) -> Frame {
     let header = adw::HeaderBar::new();
     header.set_show_end_title_buttons(false);
     header.set_show_start_title_buttons(false);
+    header.set_title_widget(Some(&adw::WindowTitle::new(title, store)));
     let body = gtk::Box::new(gtk::Orientation::Vertical, 12);
     body.set_margin_top(12);
     body.set_margin_bottom(24);
@@ -60,7 +65,7 @@ fn frame(ctx: &Ctx, name: &str, title: &str) -> Frame {
     view.set_content(Some(&scroll));
     let dialog = adw::Dialog::builder()
         .name(name)
-        .title(title)
+        .title(format!("{title}, {store}"))
         .follows_content_size(true)
         .child(&view)
         .build();
@@ -92,6 +97,123 @@ fn listen(ctx: &Ctx, dialog: &adw::Dialog, heard: impl Fn(&Event) + 'static) {
     });
 }
 
+/// The engine's alerts, said in the dialog while `claim` takes them, until it closes.
+fn claim(ctx: &Rc<Ctx>, dialog: &adw::Dialog, claim: impl Fn(&str) -> bool + 'static) {
+    let id = ctx.claim_alerts(claim);
+    let ctx = Rc::downgrade(ctx);
+    dialog.connect_closed(move |_| {
+        if let Some(ctx) = ctx.upgrade() {
+            ctx.release_alerts(id);
+        }
+    });
+}
+
+/// A dialog's question to the store: a spinner while it is out, and when it goes unanswered,
+/// why, with Try Again. Offline, it is not sent at all.
+struct Asking {
+    ctx: Rc<Ctx>,
+    body: gtk::Box,
+    send: Box<dyn Fn(&Ctx)>,
+    waiting: Cell<bool>,
+    turn: Cell<u64>,
+}
+
+impl Asking {
+    fn new(
+        ctx: &Rc<Ctx>,
+        dialog: &adw::Dialog,
+        body: &gtk::Box,
+        send: impl Fn(&Ctx) + 'static,
+    ) -> Rc<Self> {
+        let asking = Rc::new(Self {
+            ctx: Rc::clone(ctx),
+            body: body.clone(),
+            send: Box::new(send),
+            waiting: Cell::new(false),
+            turn: Cell::new(0),
+        });
+        claim(ctx, dialog, {
+            let asking = Rc::downgrade(&asking);
+            move |why| {
+                let Some(asking) = asking.upgrade() else { return false };
+                if !asking.waiting.get() {
+                    return false;
+                }
+                asking.failed("Couldn't Reach the Store", why);
+                true
+            }
+        });
+        listen(ctx, dialog, {
+            let asking = Rc::downgrade(&asking);
+            move |event| {
+                if let (Some(asking), Event::Connectivity { offline: true }) =
+                    (asking.upgrade(), event)
+                    && asking.waiting.get()
+                {
+                    asking.offline();
+                }
+            }
+        });
+        widgets::keep(dialog, Rc::clone(&asking));
+        asking
+    }
+
+    fn ask(self: &Rc<Self>) {
+        empty(&self.body);
+        if self.ctx.hub.known.borrow().offline {
+            self.offline();
+            return;
+        }
+        self.body.append(&waiting());
+        self.waiting.set(true);
+        let turn = self.turn.get() + 1;
+        self.turn.set(turn);
+        (self.send)(&self.ctx);
+        let asking = Rc::downgrade(self);
+        glib::timeout_add_local_once(NO_ANSWER, move || {
+            if let Some(asking) = asking.upgrade()
+                && asking.waiting.get()
+                && asking.turn.get() == turn
+            {
+                asking.failed(
+                    "The Store Didn't Answer",
+                    "It may be busy, or its computer may be off.",
+                );
+            }
+        });
+    }
+
+    /// The store answered: what it said replaces the spinner.
+    fn answered(&self) {
+        self.waiting.set(false);
+    }
+
+    fn offline(self: &Rc<Self>) {
+        self.failed(
+            "The Store Needs a Connection",
+            "Try again once this computer is back online.",
+        );
+    }
+
+    fn failed(self: &Rc<Self>, title: &str, why: &str) {
+        self.waiting.set(false);
+        self.turn.set(self.turn.get() + 1);
+        empty(&self.body);
+        let again = gtk::Button::with_label("Try Again");
+        again.add_css_class("pill");
+        again.set_halign(gtk::Align::Center);
+        let asking = Rc::downgrade(self);
+        again.connect_clicked(move |_| {
+            if let Some(asking) = asking.upgrade() {
+                asking.ask();
+            }
+        });
+        let page = crate::states::plain(title, why);
+        page.set_child(Some(&again));
+        self.body.append(&page);
+    }
+}
+
 fn empty(column: &gtk::Box) {
     while let Some(child) = column.first_child() {
         column.remove(&child);
@@ -106,6 +228,15 @@ fn waiting() -> gtk::Widget {
     spinner.set_margin_top(18);
     spinner.set_margin_bottom(18);
     spinner.upcast()
+}
+
+/// The engine's words for what went wrong, in the error colour.
+fn problem_line(text: &str) -> gtk::Label {
+    let label = gtk::Label::new(Some(text));
+    label.add_css_class("error");
+    label.set_xalign(0.0);
+    label.set_wrap(true);
+    label
 }
 
 /// A text button on a row's end.
@@ -183,12 +314,8 @@ fn store_name(ctx: &Ctx, store: &str) -> String {
 /// An invite link to make: for someone new, by name, or for another device of yours.
 pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
     let name = store_name(ctx, store);
-    let title = if device {
-        "Link Another Device".to_owned()
-    } else {
-        format!("Invite Someone to {name}")
-    };
-    let frame = frame(ctx, "store-invite", &title);
+    let title = if device { "Link Another Device" } else { "Invite Someone" };
+    let frame = frame(ctx, "store-invite", title, &name);
     let cancel = gtk::Button::with_label("Cancel");
     frame.header.pack_start(&cancel);
     let make = gtk::Button::with_label("Make Link");
@@ -199,6 +326,10 @@ pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
     frame.header.pack_end(&spinner);
 
     let field = adw::EntryRow::builder().title("Their name").build();
+    // Read when Make Link is pressed, so kept with the dialog even where it is not shown.
+    widgets::keep(&frame.dialog, field.clone());
+    let problem = problem_line("");
+    problem.set_visible(false);
     if device {
         frame.body.append(&widgets::haze("Make a link to open on your other device.", ""));
     } else {
@@ -215,6 +346,7 @@ pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
             }
         });
     }
+    frame.body.append(&problem);
     frame.dialog.set_default_widget(Some(&make));
     field.connect_entry_activated({
         let make = make.downgrade();
@@ -237,15 +369,26 @@ pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
     let asked = Rc::new(Cell::new(false));
     make.connect_clicked({
         let ctx = Rc::downgrade(ctx);
-        let (store, field, spinner, asked) =
-            (store.to_owned(), field.downgrade(), spinner.downgrade(), Rc::clone(&asked));
+        let (store, field, spinner, asked, problem) = (
+            store.to_owned(),
+            field.downgrade(),
+            spinner.downgrade(),
+            Rc::clone(&asked),
+            problem.downgrade(),
+        );
         move |make| {
-            let (Some(ctx), Some(field), Some(spinner)) =
-                (ctx.upgrade(), field.upgrade(), spinner.upgrade())
+            let (Some(ctx), Some(field), Some(spinner), Some(problem)) =
+                (ctx.upgrade(), field.upgrade(), spinner.upgrade(), problem.upgrade())
             else {
                 return;
             };
             let name = (!device).then(|| field.text().trim().to_owned());
+            if ctx.hub.known.borrow().offline {
+                problem.set_label("Making a link needs a connection to the store.");
+                problem.set_visible(true);
+                return;
+            }
+            problem.set_visible(false);
             asked.set(true);
             make.set_visible(false);
             spinner.set_visible(true);
@@ -256,17 +399,21 @@ pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
     listen(ctx, &frame.dialog, {
         let (store, body, header) =
             (store.to_owned(), frame.body.downgrade(), frame.header.downgrade());
-        let (make, cancel, spinner, field) =
-            (make.downgrade(), cancel.downgrade(), spinner.downgrade(), field.downgrade());
+        let (make, cancel, spinner) =
+            (make.downgrade(), cancel.downgrade(), spinner.downgrade());
         let dialog = frame.dialog.downgrade();
+        let asked = Rc::clone(&asked);
         move |event| {
+            let Event::InviteLink(link) = event else { return };
+            if link.store != store || !asked.get() {
+                return;
+            }
             let (
                 Some(body),
                 Some(header),
                 Some(make),
                 Some(cancel),
                 Some(spinner),
-                Some(field),
                 Some(dialog),
             ) = (
                 body.upgrade(),
@@ -274,31 +421,40 @@ pub fn invite(ctx: &Rc<Ctx>, store: &str, device: bool) {
                 make.upgrade(),
                 cancel.upgrade(),
                 spinner.upgrade(),
-                field.upgrade(),
                 dialog.upgrade(),
             )
             else {
                 return;
             };
-            match event {
-                Event::InviteLink(link) if link.store == store && asked.get() => {
-                    asked.set(false);
-                    header.remove(&make);
-                    header.remove(&cancel);
-                    header.remove(&spinner);
-                    let frame = Frame { dialog, header, body: body.clone() };
-                    done(&frame);
-                    show_link(&body, link, device);
-                }
-                // The engine said why it could not, in a toast: the dialog is as it was.
-                Event::Toast(_) if asked.get() => {
-                    asked.set(false);
-                    spinner.set_visible(false);
-                    make.set_visible(true);
-                    field.set_sensitive(true);
-                }
-                _ => {}
+            asked.set(false);
+            header.remove(&make);
+            header.remove(&cancel);
+            header.remove(&spinner);
+            let frame = Frame { dialog, header, body: body.clone() };
+            done(&frame);
+            show_link(&body, link, device);
+        }
+    });
+    // Why the engine could not, said here and not in a toast under the dialog: the dialog is
+    // as it was, the name kept, to try again.
+    claim(ctx, &frame.dialog, {
+        let (make, spinner, field, problem) =
+            (make.downgrade(), spinner.downgrade(), field.downgrade(), problem.downgrade());
+        move |why| {
+            if !asked.get() {
+                return false;
             }
+            asked.set(false);
+            if let (Some(make), Some(spinner), Some(field), Some(problem)) =
+                (make.upgrade(), spinner.upgrade(), field.upgrade(), problem.upgrade())
+            {
+                spinner.set_visible(false);
+                make.set_visible(true);
+                field.set_sensitive(true);
+                problem.set_label(why);
+                problem.set_visible(true);
+            }
+            true
         }
     });
     frame.dialog.present(Some(&ctx.window));
@@ -327,22 +483,29 @@ fn show_link(body: &gtk::Box, link: &InviteLinkView, device: bool) {
 /// A store's members and the invites not used yet.
 pub fn members(ctx: &Rc<Ctx>, store: &str) {
     let name = store_name(ctx, store);
-    let frame = frame(ctx, "store-members", &format!("Members of {name}"));
+    let frame = frame(ctx, "store-members", "Members", &name);
     done(&frame);
-    frame.body.append(&waiting());
+    let asking = Asking::new(ctx, &frame.dialog, &frame.body, {
+        let store = store.to_owned();
+        move |ctx| ctx.hub.send(Command::LoadMembers { store: store.clone() })
+    });
     listen(ctx, &frame.dialog, {
         let ctx = Rc::downgrade(ctx);
         let (store, body) = (store.to_owned(), frame.body.downgrade());
+        let asking = Rc::downgrade(&asking);
         move |event| {
             let (Some(ctx), Some(body)) = (ctx.upgrade(), body.upgrade()) else { return };
             if let Event::StoreMembers { store: of, members, invites } = event
                 && *of == store
             {
+                if let Some(asking) = asking.upgrade() {
+                    asking.answered();
+                }
                 show_members(&ctx, &body, &store, members, invites);
             }
         }
     });
-    ctx.hub.send(Command::LoadMembers { store: store.to_owned() });
+    asking.ask();
     frame.dialog.present(Some(&ctx.window));
 }
 
@@ -381,6 +544,10 @@ fn show_members(
     }
     body.append(&list);
     if invites.is_empty() {
+        body.append(&widgets::haze(
+            "No invites waiting. An invite link shows here until it is used.",
+            "caption",
+        ));
         return;
     }
     let heading = widgets::heading("Invites Not Used Yet");
@@ -443,54 +610,80 @@ struct Joining {
     showing: Cell<bool>,
     /// Whether the store has answered, so the older server's words never replace an answer.
     answered: Cell<bool>,
+    asking: RefCell<Option<Rc<Asking>>>,
 }
 
 /// Who can join a store: only people invited, or anyone with the store's link, and the devices
 /// that joined with it.
 pub fn joining(ctx: &Rc<Ctx>, store: &str) {
     let name = store_name(ctx, store);
-    let frame = frame(ctx, "store-joining", &format!("Who Can Join {name}"));
+    let frame = frame(ctx, "store-joining", "Who Can Join", &name);
     done(&frame);
-    frame.body.append(&waiting());
     let state = Rc::new(Joining {
         ctx: Rc::clone(ctx),
         store: store.to_owned(),
         body: frame.body.clone(),
         showing: Cell::new(false),
         answered: Cell::new(false),
+        asking: RefCell::default(),
     });
+    // The store lists its members first, then says who can join: a store that answers the
+    // first and stays silent on the second runs a server from before open joining.
+    let asking = Asking::new(ctx, &frame.dialog, &frame.body, {
+        let state = Rc::downgrade(&state);
+        move |ctx| {
+            if let Some(state) = state.upgrade() {
+                state.answered.set(false);
+                ctx.hub.send(Command::LoadMembers { store: state.store.clone() });
+            }
+        }
+    });
+    state.asking.replace(Some(Rc::clone(&asking)));
     listen(ctx, &frame.dialog, {
         let state = Rc::downgrade(&state);
         move |event| {
             let Some(state) = state.upgrade() else { return };
             match event {
-                Event::OpenJoin { store, view } if *store == state.store => state.show(view),
+                Event::OpenJoin { store, view } if *store == state.store => {
+                    if let Some(asking) = state.asking.borrow().as_ref() {
+                        asking.answered();
+                    }
+                    state.show(view);
+                }
+                Event::StoreMembers { store, .. } if *store == state.store => {
+                    state.wait_for_open_join();
+                }
                 _ => {}
             }
         }
     });
-    // No answer in time: a server from before open joining, which says nothing of it.
-    glib::timeout_add_local_once(OLDER_SERVER, {
-        let state = Rc::downgrade(&state);
-        move || {
-            if let Some(state) = state.upgrade()
-                && !state.answered.get()
-            {
-                empty(&state.body);
-                state.body.append(&widgets::haze(
-                    "This store's server is older, and lets in only people you invite. \
-                     Updating it adds the choice.",
-                    "",
-                ));
-            }
-        }
-    });
     widgets::keep(&frame.dialog, Rc::clone(&state));
-    ctx.hub.send(Command::LoadMembers { store: store.to_owned() });
+    asking.ask();
     frame.dialog.present(Some(&ctx.window));
 }
 
 impl Joining {
+    /// The members came; who can join follows at once from a server that knows open joining.
+    fn wait_for_open_join(self: &Rc<Self>) {
+        let state = Rc::downgrade(self);
+        glib::timeout_add_local_once(OLDER_SERVER, move || {
+            let Some(state) = state.upgrade() else { return };
+            let waiting = state.asking.borrow().as_ref().is_some_and(|a| a.waiting.get());
+            if state.answered.get() || !waiting {
+                return;
+            }
+            if let Some(asking) = state.asking.borrow().as_ref() {
+                asking.answered();
+            }
+            empty(&state.body);
+            state.body.append(&widgets::haze(
+                "This store's server is older, and lets in only people you invite. Updating it \
+                 adds the choice.",
+                "",
+            ));
+        });
+    }
+
     fn show(self: &Rc<Self>, view: &OpenJoinView) {
         self.answered.set(true);
         empty(&self.body);
@@ -613,35 +806,66 @@ impl Joining {
 /// The plugins on this computer, to publish to the store or bring up to date there.
 pub fn publish(ctx: &Rc<Ctx>, store: &str) {
     let name = store_name(ctx, store);
-    let frame = frame(ctx, "store-publish", &format!("Publish a Plugin to {name}"));
+    let frame = frame(ctx, "store-publish", "Publish a Plugin", &name);
     done(&frame);
-    frame.body.append(&waiting());
-    let publishing: Rc<RefCell<Option<String>>> = Rc::default();
+    let publishing = Rc::new(Publishing::default());
+    let asking = Asking::new(ctx, &frame.dialog, &frame.body, {
+        let store = store.to_owned();
+        move |ctx| ctx.hub.send(Command::LoadLocalPlugins { store: store.clone() })
+    });
     listen(ctx, &frame.dialog, {
         let ctx = Rc::downgrade(ctx);
         let (store, body) = (store.to_owned(), frame.body.downgrade());
         let publishing = Rc::clone(&publishing);
+        let asking = Rc::downgrade(&asking);
         move |event| {
             let (Some(ctx), Some(body)) = (ctx.upgrade(), body.upgrade()) else { return };
             match event {
                 Event::LocalPlugins { store: of, plugins } if *of == store => {
-                    publishing.replace(None);
+                    if let Some(asking) = asking.upgrade() {
+                        asking.answered();
+                    }
+                    publishing.plugin.replace(None);
                     show_local(&ctx, &body, &store, plugins, &publishing);
                 }
                 // Published: the store's list changed, so what it offers is asked again.
-                Event::Stores(_) if publishing.borrow().is_some() => {
-                    ctx.hub.send(Command::LoadLocalPlugins { store: store.clone() });
-                }
-                // Not published: the engine said why in a toast, and the list is asked again.
-                Event::Toast(_) if publishing.borrow().is_some() => {
+                Event::Stores(_) if publishing.plugin.borrow().is_some() => {
                     ctx.hub.send(Command::LoadLocalPlugins { store: store.clone() });
                 }
                 _ => {}
             }
         }
     });
-    ctx.hub.send(Command::LoadLocalPlugins { store: store.to_owned() });
+    // Not published: why shows over the list, and the list is asked again.
+    claim(ctx, &frame.dialog, {
+        let ctx = Rc::downgrade(ctx);
+        let store = store.to_owned();
+        let publishing = Rc::clone(&publishing);
+        move |why| {
+            let Some(ctx) = ctx.upgrade() else { return false };
+            if publishing.plugin.borrow().is_none() {
+                return false;
+            }
+            // The engine names the plugin by its id: here it goes by the name its row shows.
+            let id = publishing.plugin.borrow().clone().unwrap_or_default();
+            let named = why
+                .strip_prefix(&crate::catalog::shown(&id))
+                .map(|rest| format!("{}{rest}", publishing.name.borrow()));
+            publishing.problem.replace(Some(named.unwrap_or_else(|| why.to_owned())));
+            ctx.hub.send(Command::LoadLocalPlugins { store: store.clone() });
+            true
+        }
+    });
+    asking.ask();
     frame.dialog.present(Some(&ctx.window));
+}
+
+/// The plugin being published, by id and name, and why the last one was not.
+#[derive(Default)]
+struct Publishing {
+    plugin: RefCell<Option<String>>,
+    name: RefCell<String>,
+    problem: RefCell<Option<String>>,
 }
 
 fn show_local(
@@ -649,11 +873,17 @@ fn show_local(
     body: &gtk::Box,
     store: &str,
     plugins: &[LocalPluginRow],
-    publishing: &Rc<RefCell<Option<String>>>,
+    publishing: &Rc<Publishing>,
 ) {
     empty(body);
+    if let Some(why) = publishing.problem.take() {
+        body.append(&problem_line(&why));
+    }
     if plugins.is_empty() {
-        body.append(&widgets::haze("No plugins on this computer to publish.", ""));
+        body.append(&widgets::haze(
+            "No plugins on this computer to publish. A plugin you build or install shows here.",
+            "",
+        ));
         return;
     }
     let list = widgets::boxed_list();
@@ -665,18 +895,25 @@ fn show_local(
                 |v| format!("The store offers {v}"),
             ))
             .build();
+        // This version already in the store: nothing to do, and said so.
+        if plugin.published.as_deref() == Some(plugin.version.as_str()) {
+            row.set_subtitle("Up to date in the store");
+            row.add_suffix(&widgets::haze("Published", ""));
+            list.append(&row);
+            continue;
+        }
         let button = row_button("Publish");
         button.set_tooltip_text(Some(&format!("Publish {} {}", plugin.name, plugin.version)));
-        button.set_sensitive(plugin.published.as_deref() != Some(plugin.version.as_str()));
         let ctx = Rc::downgrade(ctx);
-        let (store, id, publishing) =
-            (store.to_owned(), plugin.id.clone(), Rc::clone(publishing));
+        let (store, id, name, publishing) =
+            (store.to_owned(), plugin.id.clone(), plugin.name.clone(), Rc::clone(publishing));
         button.connect_clicked(move |button| {
             let Some(ctx) = ctx.upgrade() else { return };
             button.set_sensitive(false);
             let spinner = adw::Spinner::new();
             button.set_child(Some(&spinner));
-            publishing.replace(Some(id.clone()));
+            publishing.plugin.replace(Some(id.clone()));
+            publishing.name.replace(name.clone());
             ctx.hub.send(Command::PublishPlugin { store: store.clone(), plugin: id.clone() });
         });
         row.add_suffix(&button);

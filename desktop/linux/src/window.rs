@@ -60,7 +60,13 @@ pub struct Ctx {
     /// Pushes a page on the destination on screen.
     navs: RefCell<Vec<(Dest, adw::NavigationView)>>,
     stack: gtk::Stack,
+    /// Dialogs waiting on the engine, which say its alerts themselves, newest last.
+    claims: RefCell<Vec<(u64, Claim)>>,
+    next_claim: Cell<u64>,
 }
+
+/// A dialog's hold on the engine's alerts: given the words, it says whether it showed them.
+type Claim = Rc<dyn Fn(&str) -> bool>;
 
 impl Ctx {
     pub fn size(&self) -> Size {
@@ -103,6 +109,15 @@ impl Ctx {
         if setting_saved(notice) {
             return;
         }
+        // An alert a dialog is waiting on shows in that dialog, not as a toast under it.
+        if notice.kind == NoticeKind::Alert {
+            let text = sentence(&notice.text);
+            let claims: Vec<Claim> =
+                self.claims.borrow().iter().rev().map(|(_, c)| Rc::clone(c)).collect();
+            if claims.iter().any(|claim| claim(&text)) {
+                return;
+            }
+        }
         let button = notice.hint.as_ref().map(|hint| match hint {
             NoticeHint::StopPlayback => ("Stop", "win.stop-playback", None),
             NoticeHint::OpenStores => ("Open Stores", "win.go", Some("stores")),
@@ -113,6 +128,19 @@ impl Ctx {
             matches!(notice.kind, NoticeKind::Alert),
             button,
         );
+    }
+
+    /// Have the engine's alerts go to `claim` first, until [`Ctx::release_alerts`]: for a dialog
+    /// that waits on the engine, which says only by an alert why it could not.
+    pub fn claim_alerts(&self, claim: impl Fn(&str) -> bool + 'static) -> u64 {
+        let id = self.next_claim.get();
+        self.next_claim.set(id + 1);
+        self.claims.borrow_mut().push((id, Rc::new(claim)));
+        id
+    }
+
+    pub fn release_alerts(&self, id: u64) {
+        self.claims.borrow_mut().retain(|(at, _)| *at != id);
     }
 
     /// A notice of the app's own with a button: `label`, running the window's `action`.
@@ -244,6 +272,8 @@ impl Shell {
             sized: RefCell::default(),
             navs: RefCell::default(),
             stack: stack.clone(),
+            claims: RefCell::default(),
+            next_claim: Cell::new(0),
         });
 
         // The destinations, each a navigation view of its own.
@@ -682,7 +712,7 @@ impl Shell {
             move |version, saved| {
                 let Some(ctx) = ctx.upgrade() else { return };
                 if saved {
-                    let text = crate::updates::saved_words(version);
+                    let text = crate::updates::saved_notice(version);
                     ctx.toast_with(&text, "Show in Files", "win.update-show");
                 } else {
                     let text = format!("Version {version} is ready to install");

@@ -47,7 +47,7 @@ pub struct Filters {
     /// The menu buttons, in a row that scrolls sideways when the window is narrow.
     pub row: gtk::Box,
     /// What is set, as chips.
-    pub chips: gtk::FlowBox,
+    pub chips: adw::WrapBox,
     genres: gtk::MenuButton,
     year: gtk::MenuButton,
     season: gtk::MenuButton,
@@ -91,25 +91,15 @@ impl Filters {
         for button in [&genres, &year, &season, &format, &status] {
             capsules.append(button);
         }
-        let scroll = gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(gtk::PolicyType::External)
-            .vscrollbar_policy(gtk::PolicyType::Never)
-            .propagate_natural_height(true)
-            .hexpand(true)
-            .child(&capsules)
-            .build();
         let row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         row.set_margin_start(12);
         row.set_margin_end(12);
-        row.append(&scroll);
+        row.append(&faded_scroll(&capsules));
         row.append(&sort);
 
-        let chips = gtk::FlowBox::builder()
-            .selection_mode(gtk::SelectionMode::None)
-            .max_children_per_line(12)
-            .column_spacing(6)
-            .row_spacing(6)
-            .homogeneous(false)
+        let chips = adw::WrapBox::builder()
+            .child_spacing(6)
+            .line_spacing(6)
             .halign(gtk::Align::Start)
             .build();
         chips.set_margin_start(18);
@@ -144,6 +134,11 @@ impl Filters {
     /// Run `f` whenever the viewer changes a filter or the sort.
     pub fn on_change(&self, f: impl Fn() + 'static) {
         self.changed.replace(Some(Box::new(f)));
+    }
+
+    /// Every filter off, as Clear All does.
+    pub fn clear(&self) {
+        self.actions.activate_action("clear", None);
     }
 
     /// The query with `text`, and every filter and the sort as chosen.
@@ -252,7 +247,13 @@ impl Filters {
             };
             let key = filters.query.borrow().active().get(at as usize).map(|f| f.key.clone());
             if let Some(key) = key {
+                // A chip removed from the keyboard hands focus on: to the chip that takes its
+                // place, else the one before, else the filter row.
+                let had_focus = filters.chips.focus_child().is_some();
                 filters.edit(|q| q.without(&key));
+                if had_focus {
+                    filters.focus_chip(at as usize);
+                }
             }
         });
         self.actions.add_action(&remove);
@@ -461,6 +462,24 @@ impl Filters {
         }
     }
 
+    fn focus_chip(&self, at: usize) {
+        let mut chips = Vec::new();
+        let mut child = self.chips.first_child();
+        while let Some(c) = child {
+            child = c.next_sibling();
+            chips.push(c);
+        }
+        let target = chips.get(at).or_else(|| at.checked_sub(1).and_then(|i| chips.get(i)));
+        match target {
+            Some(chip) => {
+                chip.grab_focus();
+            }
+            None => {
+                self.genres.grab_focus();
+            }
+        }
+    }
+
     fn show_chips(&self, active: &[ActiveFilter]) {
         while let Some(child) = self.chips.first_child() {
             self.chips.remove(&child);
@@ -527,6 +546,64 @@ fn this_year() -> u32 {
         .ok()
         .and_then(|y| u32::try_from(y).ok())
         .unwrap_or(2026)
+}
+
+/// The menu buttons in a row that scrolls sideways, as the Mac draws it: the edge faded where
+/// more of it goes on, with an arrow there that scrolls to it, so a narrow window shows there is
+/// more to reach.
+fn faded_scroll(capsules: &gtk::Box) -> gtk::Overlay {
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::External)
+        .vscrollbar_policy(gtk::PolicyType::Never)
+        .propagate_natural_height(true)
+        .propagate_natural_width(true)
+        .min_content_width(120)
+        .hexpand(true)
+        .child(capsules)
+        .build();
+    let adjustment = scroll.hadjustment();
+    let edge = |side: &str, align: gtk::Align, icon: &str, tip: &str, by: f64| {
+        let fade =
+            gtk::Box::builder().halign(align).width_request(48).can_target(false).build();
+        fade.add_css_class("edge-fade");
+        fade.add_css_class(side);
+        let arrow = gtk::Button::from_icon_name(icon);
+        arrow.add_css_class("circular");
+        arrow.add_css_class("edge-arrow");
+        arrow.set_halign(align);
+        arrow.set_valign(gtk::Align::Center);
+        arrow.set_tooltip_text(Some(tip));
+        // The row's buttons take the keyboard on their own: the arrow is for the pointer.
+        arrow.set_focusable(false);
+        let adjustment = adjustment.clone();
+        arrow.connect_clicked(move |_| {
+            let to = adjustment.value() + by * adjustment.page_size() * 0.7;
+            adjustment.set_value(to.clamp(0.0, adjustment.upper() - adjustment.page_size()));
+        });
+        (fade, arrow)
+    };
+    let (start_fade, start_arrow) =
+        edge("start", gtk::Align::Start, "go-previous-symbolic", "Earlier Filters", -1.0);
+    let (end_fade, end_arrow) =
+        edge("end", gtk::Align::End, "go-next-symbolic", "More Filters", 1.0);
+    let overlay = gtk::Overlay::builder().child(&scroll).hexpand(true).build();
+    for widget in [&start_fade, &end_fade] {
+        overlay.add_overlay(widget);
+    }
+    overlay.add_overlay(&start_arrow);
+    overlay.add_overlay(&end_arrow);
+    let follow = move |a: &gtk::Adjustment| {
+        let (value, room) = (a.value(), a.upper() - a.page_size());
+        let (before, after) = (value > 1.0, room - value > 1.0);
+        start_fade.set_visible(before);
+        start_arrow.set_visible(before);
+        end_fade.set_visible(after);
+        end_arrow.set_visible(after);
+    };
+    follow(&adjustment);
+    adjustment.connect_value_changed(follow.clone());
+    adjustment.connect_changed(follow);
+    overlay
 }
 
 #[cfg(test)]
