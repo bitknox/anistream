@@ -120,6 +120,16 @@ extension AppStore {
     }
 }
 
+/// The week, as weeks from this one, of the day `days` after today.
+func weekOffset(ofDaysAhead days: Int, now: Date = .now) -> Int {
+    let thisWeek = weekDays(offset: 0, now: now)
+    var calendar = Calendar(identifier: .iso8601)
+    calendar.timeZone = .current
+    let day = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: now))!
+    let since = calendar.dateComponents([.day], from: thisWeek[0], to: day).day ?? 0
+    return Int((Double(since) / 7).rounded(.down))
+}
+
 /// The days of the week `offset` weeks from this one, Monday first.
 func weekDays(offset: Int, now: Date = .now) -> [Date] {
     var calendar = Calendar(identifier: .iso8601)

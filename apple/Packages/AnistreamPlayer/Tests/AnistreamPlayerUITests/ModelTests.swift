@@ -119,6 +119,16 @@ struct ReportTests {
         #expect(rig.model.bufferingSince != nil)
     }
 
+    @Test func aHookLibplaceboDisabledIsReported() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        let before = rig.reports.count
+        rig.mpv.emit(.log(MpvLogLine(prefix: "vo/gpu-next/libplacebo", level: "warn", text: "Opening a stream")))
+        rig.mpv.emit(.log(MpvLogLine(prefix: "vo/gpu-next/libplacebo", level: "error", text: "Failed executing hook, disabling\n")))
+        try await until("the hook report") { rig.reports.count == before + 1 }
+        #expect(rig.reports.last! == (1, .hookDisabled(hook: "Failed executing hook, disabling")))
+    }
+
     @Test func theDisplayIsToldToMpvAndReported() async throws {
         let rig = Rig()
         try await rig.opened()

@@ -43,6 +43,17 @@ public struct TVPairingStep: Equatable, Sendable {
     public var working: Bool
     /// The engine's words for the last try that failed.
     public var problem: String?
+    /// The code on the TV ran out, or took too many wrong tries: nothing more can be typed
+    /// until a new one is asked for.
+    public var expired = false
+
+    public init(tvName: String, needsCode: Bool, working: Bool, problem: String? = nil, expired: Bool = false) {
+        self.tvName = tvName
+        self.needsCode = needsCode
+        self.working = working
+        self.problem = problem
+        self.expired = expired
+    }
 }
 
 @Observable @MainActor
@@ -224,7 +235,7 @@ public final class TVRemoteModel {
 
     /// The six digits typed.
     public func submit(code: String) {
-        guard let steps, pairing?.working == false else { return }
+        guard let steps, pairing?.working == false, pairing?.expired == false else { return }
         pairing?.working = true
         pairing?.problem = nil
         Task {
@@ -241,6 +252,7 @@ public final class TVRemoteModel {
         guard let steps else { return }
         pairing?.working = true
         pairing?.problem = nil
+        pairing?.expired = false
         Task {
             do {
                 try await steps.requestCode()
@@ -268,6 +280,7 @@ public final class TVRemoteModel {
         guard pairing != nil else { return }
         pairing?.working = false
         pairing?.problem = Self.words(error)
+        if case .Failed(.noCode, _) = error as? FfiTvError { pairing?.expired = true }
     }
 
     /// The engine's words for a failure, or the system's.

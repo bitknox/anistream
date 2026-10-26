@@ -230,6 +230,10 @@ pub struct FfiRemoteCard {
     /// background (a notification, a Live Activity) lets the link go.
     #[uniffi(default)]
     pub over: bool,
+    /// The link has reached the TV this session: while it is down, it was lost rather than
+    /// never there.
+    #[uniffi(default)]
+    pub reached: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, uniffi::Record)]
@@ -326,6 +330,7 @@ impl From<&RemoteCard> for FfiRemoteCard {
             now: card.now.as_ref().map(FfiNowCard::from),
             rev: card.rev,
             over: card.over,
+            reached: card.reached,
         }
     }
 }

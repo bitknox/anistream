@@ -45,6 +45,8 @@ public final class Navigator {
     public var librarySegment: LibrarySegment = .watching
     /// The calendar's week, as weeks from this one.
     public var calendarWeek = 0
+    /// The day the calendar opens on, as days after today, until it has: the launch route's.
+    public var calendarOpensOn = 0
     /// Whether the calendar shows only the titles on your lists.
     public var calendarMine = true
     /// The Settings pane on screen, on the Mac and iPad.
@@ -86,6 +88,10 @@ public final class Navigator {
         if route.sheet == "about" { moreAbout = route.title }
         if route.sheet == "messages" { messagesShown = true }
         if route.fold == "open", let title = route.title { watchedOpen.insert(title) }
+        if let day = route.day {
+            calendarOpensOn = day
+            calendarWeek = weekOffset(ofDaysAhead: day)
+        }
         #if os(iOS)
         if UIDevice.current.userInterfaceIdiom == .phone, route.section == .settings {
             phoneSettings = route.pane.flatMap(PhoneSettingsPage.named) ?? .root

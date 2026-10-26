@@ -300,7 +300,7 @@ private fun TvPairing(tv: TvRemoteModel, step: TvPairingStep) {
         step.problem?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.error, modifier = Modifier.padding(top = 8.dp)) }
         SheetButtons {
             QuietButton("Back", onClick = tv::cancelPairing)
-            QuietButton("Show a new code", enabled = !step.working) {
+            QuietButton("Get a new code", enabled = !step.working) {
                 code = ""
                 tv.requestCodeAgain()
             }

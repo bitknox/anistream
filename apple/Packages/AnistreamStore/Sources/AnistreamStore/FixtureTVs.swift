@@ -33,13 +33,16 @@ final class FixtureTVBrowser: FfiTvBrowser {
 ///     paired   one TV paired already (Bedroom) and one not (Living room), nothing open
 ///     picker   the same, with the picker open
 ///     code     the picker pairing with Living room, its code to type
+///     expired  the code scene after too many wrong codes, the code used up
 ///     remote   Living room paired and playing an episode, its card open
 ///     lost     the remote scene, then Living room gone from the network mid-episode
+///     refused  the lost scene, then a press on the card that could not reach the TV
 ///     empty    the picker on a network where no TV answers, past its 10 s wait
+///     bar      the remote scene with its card closed: the now-playing bar over the tab bar,
+///              and on the Mac the toolbar's Playing on button
+///     away     the bar scene, then Living room gone from the network
 public enum TVScene: String, Sendable {
-    case paired, picker, code, remote, lost, empty
-    /// The remote scene with its card closed: the now-playing bar over the tab bar.
-    case bar
+    case paired, picker, code, expired, remote, lost, refused, empty, bar, away
 
     public static let argument = "-AnistreamTV"
 
@@ -72,10 +75,13 @@ extension TVRemoteModel {
             case .paired: !paired.isEmpty
             case .picker: sheet == .picker && rows.count == 2
             case .code: pairing?.needsCode == true && pairing?.working == false && !(pairing?.tvName.isEmpty ?? true)
+            case .expired: pairing?.expired == true && pairing?.working == false
             case .remote: card?.now.map { !$0.loading && !$0.subtitles.isEmpty } ?? false
             case .lost: card?.phase == .retrying && card?.now != nil
+            case .refused: card?.phase == .retrying && card?.now != nil && problem != nil
             case .empty: sheet == .picker && rows.isEmpty
             case .bar: sheet == nil && card?.now.map { !$0.loading } ?? false
+            case .away: sheet == nil && card?.phase == .retrying && card?.now != nil
             }
             if there {
                 // The sheet's own animation in, and for the empty picker its wait.
@@ -106,20 +112,33 @@ extension TVRemoteModel {
                 break
             case .picker:
                 openPicker()
-            case .code:
+            case .code, .expired:
                 openPicker()
                 begin(rows.first { $0.name == "Living room" }?.key ?? living.pairLink(code: nil))
-            case .remote, .bar, .lost:
+                guard scene == .expired else { break }
+                // Wrong codes until the TV has none: it takes three.
+                for _ in 0..<4 {
+                    while self.pairing?.working != false { try await Task.sleep(for: .milliseconds(50)) }
+                    if self.pairing?.expired == true { break }
+                    let wrong = living.shownCode() == "000000" ? "111111" : "000000"
+                    submit(code: wrong)
+                    try await Task.sleep(for: .milliseconds(50))
+                }
+            case .remote, .bar, .lost, .refused, .away:
                 let pairing = try await sender.pair(target: living.pairLink(code: living.openCode()))
                 let tv = try await pairing.pair(code: nil)
                 refresh()
                 offer(play)
                 use(tv.fingerprint)
-                if scene == .bar || scene == .lost {
+                if scene != .remote {
                     while card?.now.map({ !$0.loading }) != true { try await Task.sleep(for: .milliseconds(50)) }
                 }
-                if scene == .bar { sheetClosed() }
-                if scene == .lost { living.stop() }
+                if scene == .bar || scene == .away { sheetClosed() }
+                if scene == .lost || scene == .refused || scene == .away { living.stop() }
+                if scene == .refused {
+                    while card?.phase != .retrying { try await Task.sleep(for: .milliseconds(50)) }
+                    send(.togglePause)
+                }
             }
         } catch {
             AppLog.error("tv", "the TV scene did not set up: \(error)")
