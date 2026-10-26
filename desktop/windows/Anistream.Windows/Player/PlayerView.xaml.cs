@@ -63,7 +63,7 @@ public sealed partial class PlayerView : UserControl
     bool startingHeld;
     ulong stallBase;
     Undoable? undo;
-    string startingEpisode = "";
+    string startingEpisode = "", playingEpisode = "";
     double speed = 1, mutedFrom, wheelSeek;
     bool volumeFlash;
     string timelineStatus = "";
@@ -272,7 +272,8 @@ public sealed partial class PlayerView : UserControl
                 ShowTitle.Text = s.Title;
                 EpisodeTitle.Text = s.EpisodeTitle is { Length: > 0 } t ? $"Episode {s.EpisodeValue} · {t}" : $"Episode {s.EpisodeValue}";
                 StartingShow.Text = s.Title;
-                startingEpisode = s.EpisodeValue;
+                startingEpisode = playingEpisode = s.EpisodeValue;
+                ShowTvButton();
                 StartingArt.Source = null;
                 ctx?.Art.Bind(s.BannerUrl ?? s.CoverUrl, image => StartingArt.Source = image);
                 ShowStarting();
@@ -280,6 +281,7 @@ public sealed partial class PlayerView : UserControl
                 UpdateCorner();
                 break;
             case PlayerUi.Episode ep:
+                playingEpisode = ep.Number;
                 ShowTitle.Text = ep.Show;
                 EpisodeTitle.Text = Lines.Episode(ep.Label, ep.Title, ep.Translation);
                 break;
@@ -780,6 +782,23 @@ public sealed partial class PlayerView : UserControl
         }
         ShowControls();
         partyPanel.Flyout.ShowAt(PartyButton);
+    }
+
+    /// <summary>Play on TV, in the big player only, once the engine gives a sender.</summary>
+    void ShowTvButton() =>
+        TvButton.Visibility = ctx?.Tv.Available == true && !mini ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>
+    /// Play on TV from here: paused here, then the TV to choose, or straight to the one driven
+    /// already. Once the TV plays it the window closes the player.
+    /// </summary>
+    void OnPlayOnTv(object sender, RoutedEventArgs e)
+    {
+        if (ctx is not { } c || playingId == 0 || playingEpisode.Length == 0)
+            return;
+        if (!paused)
+            Send(new PlayerCommand.TogglePause());
+        c.Tv.Offer(new TvPlay(playingId, ShowTitle.Text, playingEpisode, position > 5 ? position : null, FromPlayer: true));
     }
 
     void ShowPartyButton()
@@ -1482,6 +1501,7 @@ public sealed partial class PlayerView : UserControl
         mini = on;
         var big = on ? Visibility.Collapsed : Visibility.Visible;
         BackButton.Visibility = TracksButton.Visibility = EpisodesButton.Visibility = FullscreenButton.Visibility = big;
+        ShowTvButton();
         Elapsed.Visibility = Remaining.Visibility = VolumeButton.Visibility = SettingsButton.Visibility = big;
         Corner.Visibility = big;
         ShowTitle.FontSize = on ? 14 : 18;

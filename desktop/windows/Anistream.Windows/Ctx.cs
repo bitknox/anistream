@@ -16,6 +16,8 @@ sealed class Ctx
     public required MainWindow Window { get; init; }
     public required Options Options { get; init; }
     public required Updater Updater { get; init; }
+    /// <summary>Play on TV: the TVs, pairing, and the card of the one driven.</summary>
+    public required TvRemote Tv { get; init; }
 
     public Known Known => Session.Known;
 
