@@ -74,7 +74,14 @@ async fn main() {
     let scratch = tempfile::tempdir().expect("scratch directory");
     let dir = scratch.path().join("torrents");
 
-    let session = match TorrentSession::start(guard.clone(), dir.clone(), "halt".into()).await {
+    let session = match TorrentSession::start(
+        guard.clone(),
+        dir.clone(),
+        scratch.path().join("dht.json"),
+        "halt".into(),
+    )
+    .await
+    {
         Ok(s) => s,
         Err(e) => {
             println!("  ✕ session: {e}");

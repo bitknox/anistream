@@ -482,6 +482,7 @@ async fn start_torrent_session(
         anistream_providers::torrent::TorrentSession::start(
             guard.clone(),
             paths.cache_dir.join("torrents"),
+            paths.cache_dir.join("dht.json"),
             random_token(),
         )
         .await

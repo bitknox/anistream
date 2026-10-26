@@ -76,7 +76,13 @@ async fn main() {
     // A scratch directory removed when the probe ends: what it fetches is not the real cache's.
     let scratch = tempfile::tempdir().expect("scratch directory");
     let dir = scratch.path().join("torrents");
-    let session = match TorrentSession::start(guard.clone(), dir.clone(), "probe".into()).await
+    let session = match TorrentSession::start(
+        guard.clone(),
+        dir.clone(),
+        scratch.path().join("dht.json"),
+        "probe".into(),
+    )
+    .await
     {
         Ok(s) => {
             println!("  started, downloading into {}", dir.display());
