@@ -305,8 +305,9 @@ fn every_xml_output_parses_strictly_and_a_resw_is_a_resw() {
             assert_eq!(root.tag_name().name(), "root", "{path}");
             for name in ["resmimetype", "version", "reader", "writer"] {
                 assert!(
-                    root.children().any(|n| n.has_tag_name("resheader")
-                        && n.attribute("name") == Some(name)),
+                    root.children()
+                        .any(|n| n.has_tag_name("resheader")
+                            && n.attribute("name") == Some(name)),
                     "{path} lacks the {name} resheader"
                 );
             }
