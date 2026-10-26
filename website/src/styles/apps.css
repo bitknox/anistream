@@ -157,8 +157,8 @@ a.dl-guide:hover,
 
 .downloads li {
 	display: grid;
-	/* A set width for the button, so the columns line up whether a row has a size, or no button. */
-	grid-template-columns: minmax(0, 1fr) 176px;
+	/* The buttons take what they need, at least 176px, so every row's right edge lines up. */
+	grid-template-columns: minmax(0, 1fr) auto;
 	column-gap: 24px;
 	align-items: center;
 	min-height: 72px;
@@ -192,12 +192,11 @@ a.dl-guide:hover,
 
 /* One button per file: a second processor's file stacks under the first. */
 .dl-btns {
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
+	display: grid;
+	justify-items: stretch;
 	gap: 8px;
 	justify-self: end;
-	width: 100%;
+	min-width: 176px;
 }
 
 .dl-size:empty {
@@ -220,7 +219,7 @@ a.dl-guide:hover,
 	}
 
 	.dl-btns {
-		width: auto;
+		min-width: 0;
 	}
 }
 
