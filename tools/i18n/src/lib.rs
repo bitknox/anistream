@@ -51,7 +51,7 @@ pub fn owned_on_disk(root: &Path) -> Vec<String> {
         let mut out = Vec::new();
         walk(&root.join(dir), keep, &mut out);
         found.extend(out.into_iter().filter_map(|p| {
-            p.strip_prefix(root).ok().map(|r| r.to_string_lossy().into_owned())
+            p.strip_prefix(root).ok().map(|r| r.to_string_lossy().replace('\\', "/"))
         }));
     };
     visit("android/i18n/src/main/res", &|p| {
@@ -70,7 +70,9 @@ pub fn stale(root: &Path, expected: &Files) -> Vec<String> {
     for (path, want) in expected {
         match fs::read_to_string(root.join(path)) {
             Err(_) => out.push(format!("{path}: missing")),
-            Ok(have) if &have != want => {
+            // A Windows editor may save CRLF; that is not a stale file.
+            Ok(have) if have.replace("\r\n", "\n") != *want => {
+                let have = have.replace("\r\n", "\n");
                 let line =
                     have.lines().zip(want.lines()).position(|(a, b)| a != b).map_or_else(
                         || have.lines().count().min(want.lines().count()) + 1,
