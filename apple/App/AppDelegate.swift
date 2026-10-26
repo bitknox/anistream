@@ -258,6 +258,26 @@ final class AppDelegate: NSObject {
 
 #if os(macOS)
 extension AppDelegate: NSApplicationDelegate {
+    /// The main window on screen once the app has launched, as a Mac app opens with its window:
+    /// never the menu bar alone.
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        DispatchQueue.main.async { [weak self] in self?.showMainWindowIfNone() }
+    }
+
+    /// The Dock icon clicked, or the app opened again from the Finder, with no window up: the
+    /// main window again.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if !hasVisibleWindows { MainWindow.open?() }
+        return true
+    }
+
+    private func showMainWindowIfNone() {
+        // A launch hidden stays hidden; showing the app shows its window.
+        guard !NSApp.isHidden else { return }
+        guard !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) else { return }
+        MainWindow.open?()
+    }
+
     /// Quitting in a watch party leaves it: asked first, with Stay the default.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         store.party.asksBeforeQuitting() ? .terminateCancel : .terminateNow

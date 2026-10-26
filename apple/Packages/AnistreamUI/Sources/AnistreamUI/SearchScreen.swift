@@ -245,7 +245,7 @@ struct SearchScreen: View {
         }
         .scrollIndicators(.never)
         #if os(iOS)
-        .navigationSubtitle(store.search.searchingLine ?? "")
+        .screenSubtitle(store.search.searchingLine ?? "")
         // The ground inside the inspector: it hosts the screen in a column of its own, which
         // draws the system's black over the ground TabStack puts behind it.
         .background(Palette.ground)

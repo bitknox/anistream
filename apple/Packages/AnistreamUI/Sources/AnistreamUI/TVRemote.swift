@@ -58,7 +58,6 @@ public struct TVRemoteSheets: ViewModifier {
                     MacTVSheet()
                     #else
                     PhoneTVSheet()
-                        .presentationDetents(tv.sheet == .remote ? [.large] : [.medium, .large])
                         .presentationBackground(Palette.ground)
                     #endif
                 }
@@ -275,6 +274,26 @@ struct TVProblemLine: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// What the TV sheet shows. Closing the sheet clears the model's sheet and pairing at once,
+/// while the sheet is still going down: it keeps showing what it last showed, at the height it
+/// had, rather than the picker that nothing up would make of it.
+struct TVSheetShown: Equatable {
+    var sheet: TVRemoteModel.Sheet?
+    var pairing: TVPairingStep?
+
+    init() {}
+
+    @MainActor init(_ tv: TVRemoteModel) {
+        sheet = tv.sheet
+        pairing = tv.pairing
+    }
+
+    /// The model's, while a sheet is up; what was last shown, while it goes.
+    @MainActor init(_ tv: TVRemoteModel, last: TVSheetShown) {
+        self = tv.sheet == nil ? last : TVSheetShown(tv)
     }
 }
 
@@ -581,13 +600,15 @@ struct TVSearchingRow: View {
 /// foot, as the app's other sheets.
 struct MacTVSheet: View {
     @Environment(AppStore.self) private var store
+    @State private var last = TVSheetShown()
 
     var body: some View {
         let tv = store.tv
+        let shown = TVSheetShown(tv, last: last)
         VStack(alignment: .leading, spacing: 0) {
-            if let pairing = tv.pairing {
+            if let pairing = shown.pairing {
                 MacTVPairing(step: pairing)
-            } else if tv.sheet == .remote {
+            } else if shown.sheet == .remote {
                 MacTVRemote()
             } else {
                 MacTVPicker()
@@ -596,6 +617,7 @@ struct MacTVSheet: View {
         .padding(24)
         .sheetWidth(440)
         .background(.raised)
+        .onChange(of: TVSheetShown(tv), initial: true) { _, now in if now.sheet != nil { last = now } }
     }
 }
 
@@ -875,14 +897,17 @@ struct MacTVRemote: View {
 struct PhoneTVSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @State private var last = TVSheetShown()
 
     var body: some View {
         let tv = store.tv
+        let shown = TVSheetShown(tv, last: last)
+        let remote = shown.sheet == .remote
         NavigationStack {
             Group {
-                if let pairing = tv.pairing {
+                if let pairing = shown.pairing {
                     PhoneTVPairing(step: pairing)
-                } else if tv.sheet == .remote {
+                } else if remote {
                     PhoneTVRemote()
                 } else {
                     PhoneTVPicker()
@@ -896,6 +921,8 @@ struct PhoneTVSheet: View {
             }
         }
         .tint(.silk)
+        .presentationDetents(remote ? [.large] : [.medium, .large])
+        .onChange(of: TVSheetShown(tv), initial: true) { _, now in if now.sheet != nil { last = now } }
     }
 }
 

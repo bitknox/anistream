@@ -157,11 +157,20 @@ public struct DimmedPlayback: View {
 }
 
 #if os(macOS)
+/// The app's one main window, opened or brought forward, for the app's delegate. SwiftUI hands its
+/// way to open a window only to scenes and views; Window › Main Window is built with the menu
+/// bar at launch, so it is there with or without a window, and hands it on.
+@MainActor
+public enum MainWindow {
+    public internal(set) static var open: (() -> Void)?
+}
+
 /// Window › Main Window: the app's one main window, brought back or to the front.
 struct MainWindowButton: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
+        let _ = MainWindow.open = { [openWindow] in openWindow(id: "main") }
         Button("Main Window") { openWindow(id: "main") }
             .keyboardShortcut("0", modifiers: .command)
     }
