@@ -17,5 +17,7 @@ pub use health::{HealthTracker, ProviderHealth};
 pub use mock::MockProvider;
 pub use registry::{Attempt, ProviderRegistry};
 pub use remote::RemoteHttpProvider;
-pub use resolve::{Answer, Candidate, Resolution, confirm, first_answer, resolve};
+pub use resolve::{
+    Answer, Candidate, Contribution, Gathered, Resolution, confirm, first_answer, gather, resolve,
+};
 pub use vpn::{GuardState, KernelEnforcement, VpnGuard};

@@ -191,6 +191,72 @@ impl<T> Answer<T> {
     }
 }
 
+/// What one source made of a title: see [`match_and_ask`].
+enum Outcome<T> {
+    Answered(Contribution<T>),
+    Ambiguous { provider_id: String, candidates: Vec<Candidate> },
+    /// No match or no answer, with why. `matched` is whether the title was found at all.
+    Failed { reason: String, matched: bool },
+    /// Not asked: switched off between the walk starting and this source's turn.
+    Skipped,
+}
+
+/// Match a title on one source, under that source's own key, and ask it.
+async fn match_and_ask<T, F, Fut>(
+    store: &Store,
+    registry: &ProviderRegistry,
+    provider_id: &str,
+    anilist_id: AnilistId,
+    target: &MatchTarget,
+    translation: Translation,
+    now: i64,
+    ask: &F,
+) -> Outcome<T>
+where
+    F: Fn(ProviderRegistry, ProviderKey) -> Fut,
+    Fut: std::future::Future<Output = Attempt<T>>,
+{
+    let Some(source) = registry.pinned(provider_id) else { return Outcome::Skipped };
+    let began = std::time::Instant::now();
+    let ms = |began: std::time::Instant| began.elapsed().as_millis() as u64;
+    match resolve(store, &source, anilist_id, target, translation, now).await {
+        Resolution::Resolved { key, confidence, rung, .. } => {
+            tracing::info!(provider = %provider_id, ?rung, confidence, elapsed_ms = ms(began), "title matched");
+            let asked = std::time::Instant::now();
+            let attempt = ask(source, key.clone()).await;
+            let summary = attempt.summary();
+            match attempt.value {
+                Some(value) => {
+                    tracing::info!(provider = %provider_id, elapsed_ms = ms(asked), "source answered");
+                    Outcome::Answered(Contribution {
+                        provider_id: provider_id.to_owned(),
+                        key,
+                        value,
+                    })
+                }
+                None => {
+                    tracing::info!(provider = %provider_id, reason = %summary, elapsed_ms = ms(asked), "source had no answer");
+                    Outcome::Failed { reason: summary, matched: true }
+                }
+            }
+        }
+        Resolution::Ambiguous { provider_id, candidates } => {
+            tracing::info!(provider = %provider_id, candidates = candidates.len(), elapsed_ms = ms(began), "title ambiguous; asking");
+            Outcome::Ambiguous { provider_id, candidates }
+        }
+        // Named once: a reason that already names its source keeps its own wording.
+        Resolution::NotFound { reason } => {
+            tracing::info!(provider = %provider_id, %reason, elapsed_ms = ms(began), "no match");
+            let reason = if reason.starts_with(provider_id) {
+                reason
+            } else {
+                format!("{provider_id}: {reason}")
+            };
+            Outcome::Failed { reason, matched: false }
+        }
+    }
+}
+
 /// Ask each usable source in turn about a title, each under its own key, until one answers.
 ///
 /// A key is only meaningful to the source that issued it, so every source is matched on its own
@@ -200,6 +266,9 @@ impl<T> Answer<T> {
 /// that finds candidates but cannot choose stops it instead: the user is asked, the answer is
 /// remembered as an override, and the order stays the user's rather than skipping ahead to
 /// whichever source happened to be sure.
+///
+/// For something asked of one episode at a time, such as its streams. For a whole listing, which
+/// one source may have only part of, use [`gather`].
 pub async fn first_answer<T, F, Fut>(
     store: &Store,
     registry: &ProviderRegistry,
@@ -222,43 +291,194 @@ where
         tracing::info!(?skipped, "sources resting after failures, not asked");
     }
     for provider_id in usable {
-        let Some(source) = registry.pinned(&provider_id) else { continue };
-        let began = std::time::Instant::now();
-        let ms = |began: std::time::Instant| began.elapsed().as_millis() as u64;
-        match resolve(store, &source, anilist_id, target, translation, now).await {
-            Resolution::Resolved { key, confidence, rung, .. } => {
-                matched = true;
-                tracing::info!(provider = %provider_id, ?rung, confidence, elapsed_ms = ms(began), "title matched");
-                let asked = std::time::Instant::now();
-                let attempt = ask(source, key.clone()).await;
-                let summary = attempt.summary();
-                match attempt.value {
-                    Some(value) => {
-                        tracing::info!(provider = %provider_id, elapsed_ms = ms(asked), "source answered");
-                        return Answer::Answered { provider_id, key, value };
-                    }
-                    None => {
-                        tracing::info!(provider = %provider_id, reason = %summary, elapsed_ms = ms(asked), "source had no answer");
-                        reasons.push(summary)
-                    }
-                }
+        match match_and_ask(store, registry, &provider_id, anilist_id, target, translation, now, &ask)
+            .await
+        {
+            Outcome::Answered(Contribution { provider_id, key, value }) => {
+                return Answer::Answered { provider_id, key, value };
             }
-            Resolution::Ambiguous { provider_id, candidates } => {
-                tracing::info!(provider = %provider_id, candidates = candidates.len(), elapsed_ms = ms(began), "title ambiguous; asking");
+            Outcome::Ambiguous { provider_id, candidates } => {
                 return Answer::Ambiguous { provider_id, candidates };
             }
-            // Named once: a reason that already names its source keeps its own wording.
-            Resolution::NotFound { reason } if reason.starts_with(&provider_id) => {
-                tracing::info!(provider = %provider_id, %reason, elapsed_ms = ms(began), "no match");
+            Outcome::Failed { reason, matched: found } => {
+                matched |= found;
                 reasons.push(reason);
             }
-            Resolution::NotFound { reason } => {
-                tracing::info!(provider = %provider_id, %reason, elapsed_ms = ms(began), "no match");
-                reasons.push(format!("{provider_id}: {reason}"))
-            }
+            Outcome::Skipped => {}
         }
     }
     Answer::Unanswered { reasons, matched }
+}
+
+/// What one source contributed to a [`gather`]: its answer, and the key it was matched under.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Contribution<T> {
+    pub provider_id: String,
+    pub key: ProviderKey,
+    pub value: T,
+}
+
+/// What [`gather`] came to.
+#[derive(Debug)]
+pub enum Gathered<T> {
+    /// Every source that answered, highest ranked first. Never empty.
+    Answered(Vec<Contribution<T>>),
+    /// The source first in the order that matched anything found candidates and could not
+    /// choose: a question for the user. See [`Answer::Ambiguous`].
+    Ambiguous { provider_id: String, candidates: Vec<Candidate> },
+    /// No source answered. See [`Answer::Unanswered`].
+    Unanswered { reasons: Vec<String>, matched: bool },
+}
+
+impl<T> Gathered<T> {
+    /// Why nothing came back, for a toast. Empty for an answer.
+    pub fn explain(&self) -> String {
+        match self {
+            Self::Answered(_) => String::new(),
+            Self::Ambiguous { provider_id, candidates } => {
+                format!("{} possible matches on {provider_id}", candidates.len())
+            }
+            Self::Unanswered { reasons, .. } if reasons.is_empty() => {
+                "no providers available".into()
+            }
+            Self::Unanswered { reasons, .. } => reasons.join(", "),
+        }
+    }
+}
+
+/// How long a source ranked below the first waits to be asked, when the sources above it have
+/// not yet shown they fall short. Most titles are whole on the first source, and asking the
+/// rest would be a search for nothing, on a torrent source one behind a tunnel.
+const HEDGE: std::time::Duration = std::time::Duration::from_millis(400);
+
+/// Ask the usable sources about a title together and keep every answer, for a listing that one
+/// source may have only part of.
+///
+/// Each source is matched and asked under its own key, as in [`first_answer`]. The first source
+/// is asked at once. The others start after [`HEDGE`], or as soon as an answer comes back that
+/// `complete` says does not cover everything, so a slow source costs the wait for the slowest
+/// one that was needed and not the sum of them. Sources that cannot outrank anything already
+/// found are not waited for once `complete` is satisfied, and are dropped.
+///
+/// `progress` sees the answers in rank order each time one more arrives, so a page can show the
+/// first table without waiting for the rest.
+///
+/// The user's order decides which source wins an episode, and decides what is asked: a source
+/// first in the order that finds candidates and cannot choose is a question, as in
+/// [`first_answer`], whatever the sources below it said.
+pub async fn gather<T, F, Fut>(
+    store: &Store,
+    registry: &ProviderRegistry,
+    anilist_id: AnilistId,
+    target: &MatchTarget,
+    translation: Translation,
+    now: i64,
+    ask: F,
+    complete: impl Fn(&[Contribution<T>]) -> bool,
+    mut progress: impl FnMut(&[Contribution<T>]),
+) -> Gathered<T>
+where
+    T: Clone,
+    F: Fn(ProviderRegistry, ProviderKey) -> Fut,
+    Fut: std::future::Future<Output = Attempt<T>>,
+{
+    use futures::StreamExt;
+
+    let usable = registry.usable_ids();
+    let skipped: Vec<_> =
+        registry.ids().into_iter().filter(|id| !usable.contains(id)).collect();
+    if !skipped.is_empty() {
+        tracing::info!(?skipped, "sources resting after failures, not asked");
+    }
+    let (nudge, _) = tokio::sync::watch::channel(());
+    let mut running = futures::stream::FuturesUnordered::new();
+    for (rank, provider_id) in usable.iter().enumerate() {
+        let ask = &ask;
+        // Subscribed now rather than when first polled, so a nudge sent before this source
+        // has been polled at all is not missed.
+        let mut hurried = nudge.subscribe();
+        running.push(async move {
+            if rank > 0 {
+                tokio::select! {
+                    () = tokio::time::sleep(HEDGE) => {}
+                    _ = hurried.changed() => {}
+                }
+            }
+            let outcome = match_and_ask(
+                store, registry, provider_id, anilist_id, target, translation, now, ask,
+            )
+            .await;
+            (rank, outcome)
+        });
+    }
+
+    let mut outcomes: Vec<Option<Outcome<T>>> = usable.iter().map(|_| None).collect();
+    while let Some((rank, outcome)) = running.next().await {
+        outcomes[rank] = Some(outcome);
+        let answered: Vec<Contribution<T>> = outcomes
+            .iter()
+            .filter_map(|o| match o {
+                Some(Outcome::Answered(c)) => Some(c.clone()),
+                _ => None,
+            })
+            .collect();
+        if matches!(outcomes[rank], Some(Outcome::Answered(_))) {
+            progress(&answered);
+        }
+        // The first source in the order that settled with anything but "no": if the sources
+        // above it are all settled and it is a question, it is the answer already.
+        let settled_question = outcomes
+            .iter()
+            .take_while(|o| {
+                matches!(o, Some(Outcome::Failed { .. } | Outcome::Skipped))
+            })
+            .count();
+        if matches!(outcomes.get(settled_question), Some(Some(Outcome::Ambiguous { .. }))) {
+            break;
+        }
+        if !complete(&answered) {
+            let _ = nudge.send(());
+            continue;
+        }
+        // Complete: only a source that outranks one that answered could still change who
+        // serves an episode.
+        let last = outcomes
+            .iter()
+            .rposition(|o| matches!(o, Some(Outcome::Answered(_))))
+            .unwrap_or(0);
+        if outcomes[..last].iter().all(Option::is_some) {
+            break;
+        }
+    }
+    drop(running);
+
+    let mut reasons = Vec::new();
+    let mut matched = false;
+    let mut answered = Vec::new();
+    let mut question = None;
+    for outcome in outcomes.into_iter().flatten() {
+        match outcome {
+            Outcome::Answered(contribution) => answered.push(contribution),
+            Outcome::Ambiguous { provider_id, candidates } => {
+                // Only the first of the order that is not a plain "no" asks.
+                if answered.is_empty() && question.is_none() {
+                    question = Some((provider_id, candidates));
+                }
+            }
+            Outcome::Failed { reason, matched: found } => {
+                matched |= found;
+                reasons.push(reason);
+            }
+            Outcome::Skipped => {}
+        }
+    }
+    if let Some((provider_id, candidates)) = question {
+        return Gathered::Ambiguous { provider_id, candidates };
+    }
+    if answered.is_empty() {
+        return Gathered::Unanswered { reasons, matched };
+    }
+    Gathered::Answered(answered)
 }
 
 /// Record a user's choice from the disambiguation overlay.
@@ -618,6 +838,138 @@ mod tests {
         ]);
         let answer = ask_for_streams(&store, &registry).await;
         assert!(matches!(answer, Answer::Unanswered { matched: true, .. }));
+    }
+
+    /// The episode numbers of each answer, in rank order, joined by the source.
+    async fn gathered(
+        store: &Store,
+        registry: &ProviderRegistry,
+        wanted: u32,
+    ) -> Gathered<Vec<anistream_core::media::Episode>> {
+        gather(
+            store,
+            registry,
+            WANDERER,
+            &wanderer(),
+            Translation::Sub,
+            0,
+            |source, key| async move { source.episodes(&key, Translation::Sub, 0).await },
+            |answers| {
+                let have: std::collections::BTreeSet<_> = answers
+                    .iter()
+                    .flat_map(|a| a.value.iter().map(|e| e.number.to_string()))
+                    .collect();
+                have.len() as u32 >= wanted
+            },
+            |_| {},
+        )
+        .await
+    }
+
+    fn numbered(numbers: std::ops::RangeInclusive<u32>) -> Vec<anistream_core::media::Episode> {
+        numbers.map(anistream_core::media::Episode::new).collect()
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn every_source_that_answers_is_kept_and_asked_together() {
+        let store = Store::open_in_memory().unwrap();
+        let slow = std::time::Duration::from_secs(2);
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha")
+                .with_latency(slow)
+                .with_hits(vec![wanderer_hit("alpha-1")])
+                .with_episodes(numbered(1..=6))
+                .arc(),
+            MockProvider::new("beta")
+                .with_latency(slow)
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_episodes(numbered(1..=12))
+                .arc(),
+        ]);
+        let began = tokio::time::Instant::now();
+        let Gathered::Answered(answers) = gathered(&store, &registry, 12).await else {
+            panic!("both answer")
+        };
+        let who: Vec<_> = answers.iter().map(|a| a.provider_id.as_str()).collect();
+        assert_eq!(who, ["alpha", "beta"], "in rank order");
+        // Each takes two calls of two seconds, in turn within a source. Asked together, the
+        // pair costs about one source, plus the short wait before the second starts.
+        assert!(began.elapsed() < std::time::Duration::from_secs(5), "{:?}", began.elapsed());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_source_that_has_it_all_leaves_the_rest_unasked() {
+        let store = Store::open_in_memory().unwrap();
+        let beta = MockProvider::new("beta").with_hits(vec![wanderer_hit("beta-1")]);
+        let beta_calls = beta.call_count();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha")
+                .with_hits(vec![wanderer_hit("alpha-1")])
+                .with_episodes(numbered(1..=12))
+                .arc(),
+            beta.arc(),
+        ]);
+        let Gathered::Answered(answers) = gathered(&store, &registry, 12).await else {
+            panic!("alpha answers")
+        };
+        assert_eq!(answers.len(), 1);
+        assert_eq!(beta_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_source_that_falls_short_starts_the_next_at_once() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha")
+                .with_hits(vec![wanderer_hit("alpha-1")])
+                .with_episodes(numbered(1..=6))
+                .arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_episodes(numbered(1..=12))
+                .arc(),
+        ]);
+        let began = tokio::time::Instant::now();
+        let Gathered::Answered(answers) = gathered(&store, &registry, 12).await else {
+            panic!("both answer")
+        };
+        assert_eq!(answers.len(), 2);
+        assert!(began.elapsed() < HEDGE, "waited out the hedge: {:?}", began.elapsed());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_source_that_cannot_choose_is_the_question_even_if_a_later_one_answers() {
+        let store = Store::open_in_memory().unwrap();
+        let unsure = SearchHit {
+            episode_count: None,
+            year: None,
+            format: None,
+            ..SearchHit::new(ProviderKey::new("alpha-x"), "Tabibito")
+        };
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![unsure]).arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_episodes(numbered(1..=12))
+                .arc(),
+        ]);
+        let got = gathered(&store, &registry, 12).await;
+        assert!(matches!(&got, Gathered::Ambiguous { provider_id, .. } if provider_id == "alpha"));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn nothing_answering_says_why_for_each_source() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![]).arc(),
+            MockProvider::new("beta").with_hits(vec![wanderer_hit("beta-1")]).failing(
+                ProviderError::NotFound,
+            ).arc(),
+        ]);
+        let Gathered::Unanswered { reasons, .. } = gathered(&store, &registry, 12).await else {
+            panic!("no answer")
+        };
+        assert_eq!(reasons.len(), 2);
     }
 
     #[tokio::test]
