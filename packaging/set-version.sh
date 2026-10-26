@@ -44,9 +44,12 @@ if [[ "$old" == "$new" ]]; then
   exit 0
 fi
 
-# The workspace's crates, crates/* in Cargo.toml, each of which takes the workspace's version.
+# The workspace's crates, crates/* and the tools in Cargo.toml's members, each of which takes
+# the workspace's version. A member left out here keeps the old version in Cargo.lock, and the
+# release's --locked build then refuses the lock file.
 names=()
-for crate in "$root"/crates/*/Cargo.toml; do
+shopt -s nullglob
+for crate in "$root"/crates/*/Cargo.toml "$root"/tools/*/Cargo.toml; do
   name="$(awk -v BINMODE=3 '
     { sub(/\r$/, "") }
     /^\[/ { section = $0 }
