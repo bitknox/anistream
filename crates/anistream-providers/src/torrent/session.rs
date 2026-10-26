@@ -414,6 +414,7 @@ impl TorrentSession {
     pub async fn start(
         guard: VpnGuard,
         download_dir: PathBuf,
+        dht_state: PathBuf,
         token: String,
     ) -> Result<Self, ProviderError> {
         guard.permit()?;
@@ -422,6 +423,12 @@ impl TorrentSession {
             // No window in which peers could be found off-proxy.
             disable_dht: guard.must_disable_dht(),
             disable_dht_persistence: guard.must_disable_dht(),
+            // Without this librqbit writes its routing table to the user's own cache folder,
+            // outside anistream's, so the state is kept beside the rest of our cache.
+            dht_config: Some(librqbit::dht::PersistentDhtConfig {
+                config_filename: Some(dht_state),
+                ..Default::default()
+            }),
             // Port forwarding would advertise a routable address, defeating the proxy.
             enable_upnp_port_forwarding: false,
             // No inbound listener. librqbit binds `0.0.0.0` when this is `Some`, and an
@@ -1237,8 +1244,11 @@ mod tests {
         })
         .unwrap();
         // Never verified, so failing.
-        let dir = std::env::temp_dir().join("anistream-session-test");
-        let result = TorrentSession::start(guard, dir, "tok".into()).await;
+        let scratch = tempfile::tempdir().unwrap();
+        let dir = scratch.path().to_path_buf();
+        let result =
+            TorrentSession::start(guard, dir.join("dl"), dir.join("dht.json"), "tok".into())
+                .await;
 
         assert!(matches!(result, Err(ProviderError::Unavailable(_))));
     }
@@ -1256,9 +1266,14 @@ mod tests {
         .unwrap();
         guard.verify().await;
 
-        let dir = std::env::temp_dir().join("anistream-session-test-ok");
-        match TorrentSession::start(guard, dir, "tok".into()).await {
+        let scratch = tempfile::tempdir().unwrap();
+        let dir = scratch.path().to_path_buf();
+        match TorrentSession::start(guard, dir.join("dl"), dir.join("dht.json"), "tok".into())
+            .await
+        {
             Ok(session) => {
+                // The DHT's state is kept under the given directory, not in the user's cache.
+                assert!(dir.join("dht.json").parent().unwrap().is_dir());
                 // DHT stays enabled here: without a proxy there is nothing to leak past.
                 assert!(!session.guard().must_disable_dht());
             }
@@ -1296,8 +1311,14 @@ mod tests {
         })
         .unwrap();
         guard.verify().await;
-        let session =
-            TorrentSession::start(guard, root.to_path_buf(), "tok".into()).await.unwrap();
+        let session = TorrentSession::start(
+            guard,
+            root.to_path_buf(),
+            root.join("dht.json"),
+            "tok".into(),
+        )
+        .await
+        .unwrap();
         let handle = session
             .session
             .add_torrent(

@@ -81,7 +81,14 @@ async fn main() {
     println!("── torrent ────────────────────────────────────────────");
     println!("  Big Buck Bunny © Blender Foundation, CC-BY 3.0");
     let dir = scratch.path().join("torrents");
-    let session = match TorrentSession::start(guard, dir, "probe".into()).await {
+    let session = match TorrentSession::start(
+        guard,
+        dir,
+        scratch.path().join("dht.json"),
+        "probe".into(),
+    )
+    .await
+    {
         Ok(s) => s,
         Err(e) => return println!("  ✕ session: {e}"),
     };
