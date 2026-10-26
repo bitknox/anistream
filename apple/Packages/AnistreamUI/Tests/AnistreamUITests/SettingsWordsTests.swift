@@ -141,9 +141,15 @@ struct SettingsWordsTests {
         #expect(ProtectionWords.notSaved(.unreachable, .editProxy)
                 == "Not saved. The check could not be made through this proxy, so the saved proxy stays.")
         #expect(ProtectionWords.notSaved(.unreachable, .turnOn)
-                == "Not turned on. The check could not be made through this proxy.")
+                == "Torrents are still off. The check could not be made through this proxy.")
         #expect(ProtectionWords.notSaved(.leaking, .change)
-                == "Not saved. Torrent traffic left outside this proxy, so torrents keep the protection they have.")
+                == "Not saved. Torrent traffic left outside this proxy, so the saved protection stays.")
+    }
+
+    @Test func aSavedSheetSaysWhatItSaved() {
+        #expect(ProtectionWords.saved(.editProxy) == "Proxy saved")
+        #expect(ProtectionWords.saved(.turnOn) == "Torrents are on")
+        #expect(ProtectionWords.saved(.change) == "Torrent protection saved")
     }
 
     @Test func theSavedProxyIsNamedByWhereItIsAndWhoItLetsIn() {

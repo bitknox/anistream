@@ -42,8 +42,19 @@ extension AppStore {
     /// to `providers.trial`, and nothing is written, the saved proxy and its password included.
     /// A proxy with no password is checked with the one kept.
     public func checkTorrentProtection(_ mode: TorrentProtection, proxy: TorrentProxy?) {
-        providers.trialStarted()
-        send(.checkTorrentProtection(mode: mode, proxy: mode == .proxy ? proxy : nil))
+        if let check = providers.trialStarted(ProtectionCheck(mode: mode, proxy: mode == .proxy ? proxy : nil)) {
+            send(check)
+        }
+    }
+
+    func send(_ check: ProtectionCheck) {
+        send(.checkTorrentProtection(mode: check.mode, proxy: check.proxy))
+    }
+
+    /// Say `text` in the notice capsule, as the engine's notices are said: what a sheet that
+    /// closed did.
+    public func say(_ text: String) {
+        notices.post(Notice(kind: .info, text: text, hint: nil))
     }
 
     // MARK: A show's own settings

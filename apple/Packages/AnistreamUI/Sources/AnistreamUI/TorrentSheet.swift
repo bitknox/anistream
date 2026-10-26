@@ -50,8 +50,16 @@ struct TorrentSheet: View {
                 choices(draft).disabled(trial == .checking)
             }
 
-            if ProxyCheckLine.shows(trial) {
-                ProxyCheckLine(trial: trial, mode: mode).padding(.top, 18)
+            if draft.wrappedValue.protection == .proxy {
+                // As tall as the most the line can say, from the start, so the sheet and its
+                // buttons hold still while the check runs and when it fails.
+                ZStack(alignment: .topLeading) {
+                    ProxyCheckLine(trial: .said(.unreachable), mode: mode)
+                        .hidden()
+                        .accessibilityHidden(true)
+                    ProxyCheckLine(trial: trial, mode: mode)
+                }
+                .padding(.top, 18)
             }
 
             HStack(spacing: 10) {

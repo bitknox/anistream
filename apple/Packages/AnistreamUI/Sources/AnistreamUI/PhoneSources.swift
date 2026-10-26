@@ -509,8 +509,10 @@ struct PhoneTorrentSheet: View {
                          : "Other people can see your IP address while you download and share a torrent.")
                         .font(.ui(17))
                         .foregroundStyle(.silk)
+                        .fixedSize(horizontal: false, vertical: true)
                         .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
+                        // In line with the section headers and the rows' words below.
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 }
                 if turningOn {
                     Section {
@@ -543,15 +545,29 @@ struct PhoneTorrentSheet: View {
                     }
                 }
                 if draft.wrappedValue.protection == .proxy {
+                    // Each field named beside it, so a filled-in one still says what it is.
                     Section {
-                        TextField("Host", text: draft.host, prompt: Text("Host"))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        TextField("Port", text: draft.port, prompt: Text("Port")).keyboardType(.numberPad)
-                        TextField("User name", text: draft.user, prompt: Text("User name"))
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        SecureField("Password", text: draft.password, prompt: Text("Password"))
+                        LabeledContent("Host") {
+                            TextField("Host", text: draft.host, prompt: Text("proxy.example"))
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("Port") {
+                            TextField("Port", text: draft.port, prompt: Text("1080"))
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("User name") {
+                            TextField("User name", text: draft.user, prompt: Text("Optional"))
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("Password") {
+                            SecureField("Password", text: draft.password, prompt: Text("Optional"))
+                                .multilineTextAlignment(.trailing)
+                        }
                     } header: {
                         PhoneSectionHeader("Proxy")
                     } footer: {

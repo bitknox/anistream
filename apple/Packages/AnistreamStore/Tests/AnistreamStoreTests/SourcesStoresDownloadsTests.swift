@@ -76,6 +76,44 @@ struct ProvidersTests {
         #expect(store.providers.trial?.failed == nil)
     }
 
+    @Test func aVerdictOnACancelledCheckNeverSavesTheNextOne() {
+        let store = AppStore()
+        let proxy = TorrentProxy(host: "proxy.example", port: 1080, user: "mika", password: nil)
+        // Save, then Cancel while the check runs.
+        store.checkTorrentProtection(.proxy, proxy: proxy)
+        store.providers.clearTrial()
+        // Open the sheet again and Save: the new check waits for the old one's verdict.
+        store.checkTorrentProtection(.proxy, proxy: proxy)
+        #expect(store.sentLog == ["checkTorrentProtection"], "one check out at a time")
+        #expect(store.providers.trial == .checking)
+
+        // The old check passes. That says nothing of the new one, which goes now.
+        store.apply(.protectionChecked(.protected(exit: "Lantern Networks")))
+        #expect(store.providers.trial == .checking, "the old verdict is not the new check's")
+        #expect(store.sentLog == ["checkTorrentProtection", "checkTorrentProtection"])
+
+        store.apply(.protectionChecked(.leaking))
+        #expect(store.providers.trial == .said(.leaking), "only the new check's verdict counts")
+    }
+
+    @Test func aCheckWaitingItsTurnIsDroppedWithItsSheet() {
+        let store = AppStore()
+        let proxy = TorrentProxy(host: "proxy.example", port: 1080, user: nil, password: nil)
+        store.checkTorrentProtection(.proxy, proxy: proxy)
+        store.providers.clearTrial()
+        store.checkTorrentProtection(.proxy, proxy: proxy)
+        store.providers.clearTrial()
+        store.checkTorrentProtection(.device, proxy: nil)
+
+        // Only the newest of the waiting checks goes once the first answers.
+        store.apply(.protectionChecked(.unreachable))
+        #expect(store.sentLog == ["checkTorrentProtection", "checkTorrentProtection"])
+        store.providers.clearTrial()
+        store.apply(.protectionChecked(.protected(exit: "Lantern Networks")))
+        #expect(store.providers.trial == nil, "nobody waits for it")
+        #expect(store.sentLog.count == 2, "nothing more to send")
+    }
+
     @Test func theEnginesCheckThroughAProxyAnswersAndWritesNothing() async throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }

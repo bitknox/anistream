@@ -23,6 +23,10 @@ public final class ProvidersModel {
     public private(set) var guardAt: Date?
     /// A protection checked before it is saved, `nil` until a sheet asks and once it is done.
     public private(set) var trial: ProtectionTrial?
+    /// Whether a check went to the engine and its verdict is still to come.
+    @ObservationIgnored private var checkSent = false
+    /// The check asked for while another was out, sent once that one's verdict is in.
+    @ObservationIgnored private var waiting: ProtectionCheck?
     /// The source pinned for the title on screen, `nil` for automatic.
     public private(set) var preference: String?
     /// The metadata ladder's rungs.
@@ -50,19 +54,38 @@ public final class ProvidersModel {
         guardAt = view == nil ? nil : date
     }
 
-    func trialStarted() {
+    /// A check asked for: the check to send now, or `nil` while an earlier one's verdict is still
+    /// to come. The engine checks off its loop, so verdicts can come back in any order: one check
+    /// at a time is the only way to know which check a verdict answers. The newest waits for its
+    /// turn, and one it replaces is never sent.
+    func trialStarted(_ check: ProtectionCheck) -> ProtectionCheck? {
         trial = .checking
+        guard !checkSent else {
+            waiting = check
+            return nil
+        }
+        checkSent = true
+        return check
     }
 
-    func trialSaid(_ view: GuardView) {
-        // A verdict no sheet waits for any more is not kept.
-        guard trial == .checking else { return }
-        trial = .said(view)
+    /// The verdict on the check sent: the check waiting to go next, if any. A verdict is kept
+    /// only when it answers the check a sheet still waits for, never an earlier one.
+    func trialSaid(_ view: GuardView) -> ProtectionCheck? {
+        checkSent = false
+        if let next = waiting {
+            waiting = nil
+            checkSent = true
+            return next
+        }
+        if trial == .checking { trial = .said(view) }
+        return nil
     }
 
-    /// Done with the check: its sheet closed, or what it checked changed.
+    /// Done with the check: its sheet closed, or what it checked changed. A check still waiting
+    /// to be sent is dropped.
     public func clearTrial() {
         trial = nil
+        waiting = nil
     }
 
     func preference(_ provider: String?) {
@@ -87,6 +110,12 @@ extension ProviderRow {
         if state == "degraded" { return .slow }
         return .working
     }
+}
+
+/// What a check is asked about: a protection, through a proxy when it is one.
+struct ProtectionCheck {
+    let mode: TorrentProtection
+    let proxy: TorrentProxy?
 }
 
 /// A protection checked before anything is saved: under way, then the check's verdict on it.

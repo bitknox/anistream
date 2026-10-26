@@ -63,9 +63,18 @@ enum ProtectionWords {
             ? "Torrent traffic left outside this proxy"
             : "The check could not be made through this proxy"
         switch mode {
-        case .turnOn: return "Not turned on. \(why)."
-        case .change: return "Not saved. \(why), so torrents keep the protection they have."
+        case .turnOn: return "Torrents are still off. \(why)."
+        case .change: return "Not saved. \(why), so the saved protection stays."
         case .editProxy: return "Not saved. \(why), so the saved proxy stays."
+        }
+    }
+
+    /// What a sheet says once it saved and closed.
+    static func saved(_ mode: TorrentSheetMode) -> String {
+        switch mode {
+        case .turnOn: "Torrents are on"
+        case .change: "Torrent protection saved"
+        case .editProxy: "Proxy saved"
         }
     }
 
@@ -134,8 +143,14 @@ extension AppStore {
             checkTorrentProtection(.proxy, proxy: proxy)
             return false
         }
-        apply(draft, turningOn: mode == .turnOn)
+        saved(draft, mode)
         return true
+    }
+
+    /// Send the sheet's choices, and say so: the sheet closes as they go.
+    func saved(_ draft: TorrentDraft, _ mode: TorrentSheetMode) {
+        apply(draft, turningOn: mode == .turnOn)
+        say(ProtectionWords.saved(mode))
     }
 
     /// Send the sheet's choices: the index when one is typed, the protection, and torrents on when
@@ -162,7 +177,8 @@ extension AppStore {
 
 /// A torrent sheet saving a proxy: once the check through `checking` passes, it is saved and the
 /// sheet goes; a failed one saved nothing, and the sheet stays to say why. Changing the form
-/// after a failed check clears what it said.
+/// after a failed check clears what it said. VoiceOver hears the check start and fail, as the
+/// line under the form shows it.
 struct TorrentSaving: ViewModifier {
     @Environment(AppStore.self) private var store
     let checking: TorrentDraft?
@@ -173,9 +189,14 @@ struct TorrentSaving: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onChange(of: store.providers.trial) { _, trial in
+                if trial == .checking {
+                    Self.announce(ProtectionWords.checkingProxy, urgent: false)
+                } else if let view = trial?.failed {
+                    Self.announce(ProtectionWords.notSaved(view, mode), urgent: true)
+                }
                 guard trial?.passed == true, let checking else { return }
                 store.providers.clearTrial()
-                store.apply(checking, turningOn: mode == .turnOn)
+                store.saved(checking, mode)
                 saved()
             }
             .onChange(of: draft) { before, _ in
@@ -183,6 +204,12 @@ struct TorrentSaving: ViewModifier {
                 if before != nil, store.providers.trial?.failed != nil { store.providers.clearTrial() }
             }
             .onDisappear { store.providers.clearTrial() }
+    }
+
+    private static func announce(_ text: String, urgent: Bool) {
+        var words = AttributedString(text)
+        words.accessibilitySpeechAnnouncementPriority = urgent ? .high : .default
+        AccessibilityNotification.Announcement(words).post()
     }
 }
 
