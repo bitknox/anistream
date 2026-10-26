@@ -99,6 +99,7 @@ fn main() -> glib::ExitCode {
         println!("anistream {}", anistream_engine::updates::CURRENT);
         return glib::ExitCode::SUCCESS;
     }
+    anistream_i18n::init(None);
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()

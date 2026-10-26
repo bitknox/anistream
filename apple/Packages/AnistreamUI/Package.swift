@@ -13,6 +13,7 @@ let package = Package(
     dependencies: [
         .package(path: "../AnistreamStore"),
         .package(path: "../AnistreamDesign"),
+        .package(path: "../AnistreamStrings"),
         .package(path: "../AnistreamWidgets"),
     ],
     targets: [
@@ -21,6 +22,7 @@ let package = Package(
             dependencies: [
                 .product(name: "AnistreamStore", package: "AnistreamStore"),
                 .product(name: "AnistreamDesign", package: "AnistreamDesign"),
+                .product(name: "AnistreamStrings", package: "AnistreamStrings"),
                 .product(name: "AnistreamWidgetData", package: "AnistreamWidgets"),
             ]
         ),

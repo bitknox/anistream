@@ -25,6 +25,8 @@ Folder guides: `crates/CLAUDE.md`, `apple/CLAUDE.md`, `android/CLAUDE.md`. Any a
   with the real HOME, not inside the HOME guard (it hides `~/.gitconfig`). Messages end with
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; PR bodies end with
   `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+- Strings people read come from `i18n/` (Fluent). Never edit generated strings; change the
+  catalogue and run `cargo run -p i18n-tool -- generate`. See `docs/translations.md`.
 - Don't push to main or create tags. PRs go against main only.
 
 ## How changes ship

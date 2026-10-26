@@ -616,7 +616,7 @@ public sealed partial class SettingsPage : Page
         verdict.Children.Add(new TextBlock { Text = word, VerticalAlignment = VerticalAlignment.Center });
         if (isFailed)
         {
-            var again = new Button { Content = "Try again", Margin = new Thickness(8, 0, 0, 0) };
+            var again = new Button { Content = T.ActionTryAgain, Margin = new Thickness(8, 0, 0, 0) };
             again.Click += (_, _) => ctx.Send(new Command.CheckConnection());
             verdict.Children.Add(again);
         }

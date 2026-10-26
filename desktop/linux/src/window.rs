@@ -1049,7 +1049,7 @@ fn sidebar(ctx: &Rc<Ctx>) -> (adw::NavigationPage, gtk::ListBox, gtk::ListBox) {
             continue;
         }
         if dest == Dest::Providers {
-            let header = gtk::Label::new(Some("Sources"));
+            let header = gtk::Label::new(Some(&anistream_i18n::t::sources_title()));
             header.add_css_class("heading");
             header.add_css_class("haze");
             header.set_xalign(0.0);

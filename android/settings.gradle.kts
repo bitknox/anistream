@@ -22,6 +22,8 @@ rootProject.name = "anistream"
 // holds the engine and its state, the design system, the screens, the player and its screens, and
 // the app.
 include(":engine", ":store", ":design", ":ui", ":player", ":player-ui", ":app")
+// Every string, generated from the catalogue in ../i18n; the phone and the TV both read it.
+include(":i18n")
 // The home-screen widgets, Glance's, drawn from the record the background check keeps.
 include(":widgets")
 // The TV app, a separate APK on Android 11 and up.

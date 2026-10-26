@@ -1,0 +1,23 @@
+[package]
+name = "anistream-i18n"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The strings the terminal and Linux apps show, loaded at runtime from the shared Fluent catalogue"
+publish = false
+
+[lib]
+doctest = false
+
+[features]
+# The accented, padded English that tools/i18n pseudo writes, for looking at layouts. Always on in
+# a debug build; a release build has it only when asked.
+pseudo = []
+
+[dependencies]
+fluent-bundle.workspace = true
+unic-langid.workspace = true
+
+[lints]
+workspace = true

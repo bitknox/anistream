@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["crates/*", "tools/i18n"]
 # Plugins are separate builds, not workspace members: they target `wasm32-wasip2` and must not
 # inherit the workspace's dependency versions or lints — a plugin is meant to be buildable by
 # someone who has only the WIT file.
@@ -41,11 +41,24 @@ anistream-store = { path = "crates/anistream-store" }
 anistream-track = { path = "crates/anistream-track", default-features = false }
 anistream-testkit = { path = "crates/anistream-testkit" }
 anistream-tui = { path = "crates/anistream-tui" }
+anistream-i18n = { path = "crates/anistream-i18n" }
 
 # --- async ---
 tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "process", "net", "io-util", "signal"] }
 async-trait = "0.1"
 futures = "0.3"
+
+# --- translations ---
+# Fluent is the master format for every string (i18n/README via docs/translations.md). The runtime
+# crate loads the generated files; the generator parses the masters and asks CLDR which plural
+# categories a language has.
+fluent-bundle = "0.16"
+fluent-syntax = "0.12"
+unic-langid = "0.9"
+icu_plurals = "2"
+icu_locale_core = "2"
+regex = "1"
+roxmltree = "0.20"
 
 # --- errors / logging ---
 thiserror = "2"

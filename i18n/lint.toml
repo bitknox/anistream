@@ -1,0 +1,19 @@
+# What `i18n lint` holds the catalogue to, beyond the structure the loader checks. The rules are
+# the glossary's (~/anistream-notes/specs/glossary.md), so a change here is a glossary decision.
+
+[all]
+# Real show, site and group names never appear in a string. (None are listed: the catalogue has
+# none, and listing them here would put them in the repository.) Add the pattern of a leak here
+# when one is found.
+names = []
+# Upper-case words that are not shouting.
+acronyms = ["MIT", "TV", "VPN", "URL", "HLS", "RSS", "SSL", "DNS", "API", "OK", "IP", "HTTP", "HTTPS", "AniList"]
+
+[language.en]
+words = ["provider", "providers", "pirate", "oops", "simply", "easily", "effortless", "seamless"]
+phrases = ["watch together", "mark as seen", "mark as watched", "sub or dub", "dual audio"]
+
+[code]
+# Platforms whose hardcoded-string scan fails the build. A platform is added in the last commit
+# of its migration, when its baseline in i18n/baselines/ is empty.
+enforce = []

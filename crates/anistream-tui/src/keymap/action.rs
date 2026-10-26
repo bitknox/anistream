@@ -191,7 +191,7 @@ impl Action {
     ];
 
     /// Label shown in the help overlay and the command palette.
-    pub const fn label(self) -> &'static str {
+    pub fn label(self) -> &'static str {
         match self {
             Self::Help => "Show keys",
             Self::CommandPalette => "Run a command",
@@ -233,7 +233,7 @@ impl Action {
             Self::ToggleSynopsis => "Expand synopsis",
             Self::HideFromContinue => "Remove from continue watching",
             Self::ShowEpisodes => "Episodes",
-            Self::ShowSources => "Sources",
+            Self::ShowSources => sources_label(),
             Self::PickProvider => "Source for this title",
             Self::FixMapping => "Fix this match",
             Self::Download => "Download",
@@ -274,7 +274,7 @@ impl Action {
     /// The status line is not documentation — it has room for three hints, and a hint that gets
     /// dropped for being too long is worse than a curt one. "Leave player running" explains
     /// itself in the help overlay; here it is `detach`.
-    pub const fn hint(self) -> &'static str {
+    pub fn hint(self) -> &'static str {
         match self {
             Self::PlayPause => "pause",
             Self::SkipOpening => "skip",
@@ -464,6 +464,13 @@ impl Scope {
             Self::Playback => "NOW PLAYING",
         }
     }
+}
+
+/// "Sources" in the language in use. The terminal app picks its language once at start-up, so the
+/// answer is kept for the life of the process, which is what a `&'static str` label needs.
+fn sources_label() -> &'static str {
+    static LABEL: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    LABEL.get_or_init(anistream_i18n::t::sources_title)
 }
 
 #[cfg(test)]

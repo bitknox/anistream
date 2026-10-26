@@ -17,6 +17,7 @@ generates for `crates/anistream-ffi`.
 | `Packages/AnistreamKit` | The bindings over the engine's XCFramework, and ports of the model's helpers |
 | `Packages/AnistreamDesign` | The Obi & Silk tokens, motion, the show-title face, Nagare, the cover plate |
 | `Packages/AnistreamStore` | The app's state over the engine: the client, the store and its feature models |
+| `Packages/AnistreamStrings` | The generated string catalogue and `L`, the typed keys (`tools/i18n`) |
 | `Packages/AnistreamUI` | The screens: the Mac's split view and menu bar, the tabs on iPad and iPhone |
 | `Packages/AnistreamPlayer` | libmpv in the app's own view, and the player the app hosts for the engine |
 | `Packages/AnistreamDev` | The Mac dev harness, `swift run AnistreamDev` |

@@ -24,6 +24,7 @@ deploy
 docs
 packaging
 tools
+!tools/i18n
 /README.md
 /app.json
 /fly.toml

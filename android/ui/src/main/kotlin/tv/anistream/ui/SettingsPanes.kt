@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +53,7 @@ import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
+import tv.anistream.i18n.R as I18nR
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.AirTime
 import tv.anistream.store.ComingModel
@@ -268,7 +270,7 @@ internal fun PlaybackPane() {
     val autoNext = store.settings.isOn(SettingKey.AUTO_NEXT, view)
     Pane {
         SettingsGroup(
-            title = "Language",
+            title = stringResource(I18nR.string.settings_language),
             footer = "Each show remembers its own audio and subtitles.",
             rows = listOf(
                 { place -> SettingMenu(place, SettingKey.TRANSLATION, "Translation", label = ::translationWords) },
