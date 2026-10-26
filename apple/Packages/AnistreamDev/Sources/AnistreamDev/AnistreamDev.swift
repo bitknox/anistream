@@ -116,6 +116,15 @@ final class Delegate: NSObject, NSApplicationDelegate {
         _ = player
         let settled = await store.settle()
         store.applyShowcase()
+        // A launch sheet whose button the showcase puts up (sheet=proxy) opens only once it is
+        // there: wait for the sheet to be taken, and for it to slide in.
+        if navigator.launchSheet != nil {
+            let deadline = ContinuousClock.now + .seconds(3)
+            while navigator.launchSheet != nil, ContinuousClock.now < deadline {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            try? await Task.sleep(for: .milliseconds(600))
+        }
         // `-AnistreamUpdating YES`: Update pressed on the showcase's release, for a shot of the
         // download under way.
         if ProcessInfo.processInfo.arguments.contains("-AnistreamUpdating") {

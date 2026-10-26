@@ -1,69 +1,66 @@
 // Turning torrents on: what it exposes, the index torrents are searched on, and what protects
-// the connection, said before anything starts. The same sheet asks for a proxy later.
+// the connection, said before anything starts. The same sheet asks for a proxy later, and edits
+// the saved one. A proxy is saved only once the connection check through it passes.
 
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
 import SwiftUI
 
-/// The turn-on sheet, and the same sheet asking for a proxy once torrents are on: the index,
-/// what protects the connection, and the proxy's address. No protection asks to be confirmed.
+/// The turn-on sheet, and the same sheet asking for a proxy once torrents are on, or editing the
+/// saved one: the index, what protects the connection, and the proxy's address. No protection
+/// asks to be confirmed.
 struct TorrentSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
-    /// Whether this turns torrents on, or only changes their protection.
-    var turningOn = true
+    /// Whether this turns torrents on, changes their protection, or edits the saved proxy.
+    var mode: TorrentSheetMode = .turnOn
     /// The choice to start on, in place of the file's.
     var start: TorrentProtection?
     @State private var draft: TorrentDraft?
+    /// What the check under way is for, saved once it passes.
+    @State private var checking: TorrentDraft?
     @State private var confirmingNone = false
+
+    private var turningOn: Bool { mode == .turnOn }
+    private var editing: Bool { mode == .editProxy }
 
     var body: some View {
         let draft = Binding(get: { self.draft ?? TorrentDraft(store) }, set: { self.draft = $0 })
+        let trial = store.providers.trial
         VStack(alignment: .leading, spacing: 0) {
-            Text(turningOn ? "Turn on torrents" : "Protect torrents")
+            Text(editing ? "Edit proxy" : turningOn ? "Turn on torrents" : "Protect torrents")
                 .font(.mac(15, weight: .semibold))
                 .macLineHeight(20)
                 .foregroundStyle(.silk)
-            Text("Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.")
+            Text(editing
+                 ? ProtectionWords.editNote
+                 : "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.")
                 .font(.mac(13))
                 .macLineHeight(18)
                 .foregroundStyle(.silk)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
 
-            if turningOn {
-                label("Torrent index").padding(.top, 18)
-                field("https://…/?q={query}", text: draft.index).padding(.top, 6)
-                note("The RSS search address anistream asks for torrents. anistream hosts no content.").padding(.top, 6)
+            if editing {
+                proxyFields(draft).padding(.top, 18)
+                note(ProtectionWords.passwordKept).padding(.top, 8)
+            } else {
+                // Held still while the check through the proxy runs.
+                choices(draft).disabled(trial == .checking)
             }
 
-            label("Protect with").padding(.top, 18)
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(ProtectionWords.order, id: \.self) { choice in
-                    Button { draft.wrappedValue.protection = choice } label: {
-                        self.choice(ProtectionWords.label(choice), ProtectionWords.detail(choice),
-                                    on: draft.wrappedValue.protection == choice)
-                    }
-                    .buttonStyle(.plain)
-                    if choice == .proxy, draft.wrappedValue.protection == .proxy {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 12) {
-                                labelled("Host") { field("proxy.example", text: draft.host) }
-                                labelled("Port") { field("1080", text: draft.port) }.frame(width: 88)
-                            }
-                            HStack(spacing: 12) {
-                                labelled("User name") { field("", text: draft.user) }
-                                labelled("Password") { field("", text: draft.password, secure: true) }
-                            }
-                        }
-                        .padding(.leading, 26)
-                    }
+            if draft.wrappedValue.protection == .proxy {
+                // As tall as the most the line can say, from the start, so the sheet and its
+                // buttons hold still while the check runs and when it fails.
+                ZStack(alignment: .topLeading) {
+                    ProxyCheckLine(trial: .said(.unreachable), mode: mode)
+                        .hidden()
+                        .accessibilityHidden(true)
+                    ProxyCheckLine(trial: trial, mode: mode)
                 }
+                .padding(.top, 18)
             }
-            .padding(.top, 8)
-
-            note(ProtectionWords.checkNote).padding(.top, 18)
 
             HStack(spacing: 10) {
                 Spacer()
@@ -79,7 +76,7 @@ struct TorrentSheet: View {
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 28))
                 .keyboardShortcut(.defaultAction)
-                .disabled(!draft.wrappedValue.complete)
+                .disabled(!draft.wrappedValue.complete || trial == .checking)
             }
             .padding(.top, 20)
         }
@@ -91,6 +88,7 @@ struct TorrentSheet: View {
             if let start { first.protection = start }
             self.draft = first
         }
+        .modifier(TorrentSaving(checking: checking, draft: self.draft, mode: mode) { dismiss() })
         .confirmationDialog(ProtectionWords.noneTitle, isPresented: $confirmingNone, titleVisibility: .visible) {
             Button("No Protection", role: .destructive) {
                 send(draft.wrappedValue)
@@ -101,9 +99,54 @@ struct TorrentSheet: View {
         }
     }
 
+    /// The index when turning on, then what protects the connection, the proxy's fields under
+    /// its choice, and what the check does.
+    @ViewBuilder private func choices(_ draft: Binding<TorrentDraft>) -> some View {
+        if turningOn {
+            label("Torrent index").padding(.top, 18)
+            field("https://…/?q={query}", text: draft.index).padding(.top, 6)
+            note("The RSS search address anistream asks for torrents. anistream hosts no content.").padding(.top, 6)
+        }
+
+        label("Protect with").padding(.top, 18)
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(ProtectionWords.order, id: \.self) { choice in
+                Button { draft.wrappedValue.protection = choice } label: {
+                    self.choice(ProtectionWords.label(choice), ProtectionWords.detail(choice),
+                                on: draft.wrappedValue.protection == choice)
+                }
+                .buttonStyle(.plain)
+                if choice == .proxy, draft.wrappedValue.protection == .proxy {
+                    proxyFields(draft).padding(.leading, 26)
+                }
+            }
+        }
+        .padding(.top, 8)
+
+        note(ProtectionWords.checkNote).padding(.top, 18)
+    }
+
+    /// The proxy's address and sign-in, held still while the check through them runs.
+    private func proxyFields(_ draft: Binding<TorrentDraft>) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                labelled("Host") { field("proxy.example", text: draft.host) }
+                labelled("Port") { field("1080", text: draft.port) }.frame(width: 88)
+            }
+            HStack(spacing: 12) {
+                labelled("User name") { field("", text: draft.user) }
+                labelled("Password") { field("", text: draft.password, secure: true) }
+            }
+        }
+        .disabled(store.providers.trial == .checking)
+    }
+
     private func send(_ draft: TorrentDraft) {
-        store.apply(draft, turningOn: turningOn)
-        dismiss()
+        if store.save(draft, mode) {
+            dismiss()
+        } else {
+            checking = draft
+        }
     }
 
     private func label(_ text: String) -> some View {

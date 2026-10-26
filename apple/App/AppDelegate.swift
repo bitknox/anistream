@@ -172,6 +172,17 @@ final class AppDelegate: NSObject {
         // the Simulator writes the app's output to a file, which would hold it back.
         var ready = await store.settle()
         store.applyShowcase()
+        #if FIXTURES
+        // A launch sheet whose row the showcase puts up (sheet=proxy) opens only once it is
+        // there: wait for the sheet to be taken, and for it to slide in.
+        if navigator.launchSheet != nil {
+            let deadline = ContinuousClock.now + .seconds(3)
+            while navigator.launchSheet != nil, ContinuousClock.now < deadline {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            try? await Task.sleep(for: .milliseconds(600))
+        }
+        #endif
         // The week's notifications, scheduled, when there are any to schedule.
         await store.notifications.refreshPermission()
         if store.wantsWeek { store.refreshNotices() }

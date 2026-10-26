@@ -520,6 +520,7 @@ struct PhoneSourcesPage: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @State private var turningOn = false
+    @State private var editingProxy = false
 
     var body: some View {
         let on = store.settings.isOn(.torrents)
@@ -551,6 +552,18 @@ struct PhoneSourcesPage: View {
                     .listRowBackground(Palette.raised)
                     PhoneSettingSwitch(key: .torrentsOnCellular)
                     menuRow("Protect with") { ProtectionMenu(phone: true) }
+                    if let line = store.settings.torrent?.proxyLine {
+                        Button { editingProxy = true } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Edit proxy…").font(.ui(17)).foregroundStyle(.silk)
+                                Text(line).font(.ui(13)).foregroundStyle(.haze)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(.rect)
+                        }
+                        .listRowBackground(Palette.raised)
+                        .onLaunchSheet("proxy", navigator) { editingProxy = true }
+                    }
                     menuRow(SettingKey.vpnOnFailure.title) { FailedCheckMenu(phone: true) }
                     PhoneGuardRow()
                 }
@@ -574,6 +587,7 @@ struct PhoneSourcesPage: View {
         .navigationTitle("Sources")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $turningOn) { PhoneTorrentSheet() }
+        .sheet(isPresented: $editingProxy) { PhoneTorrentSheet(mode: .editProxy) }
         .onLaunchSheet("torrent", navigator) { turningOn = true }
         .task {
             store.checkProviders()

@@ -521,6 +521,11 @@ public final class AppStore {
         self.held = []
         for event in events { apply(event) }
         self.held = held
+        // An edited proxy's check, which no sheet asked for: under way, or failed.
+        if showcase == .checking || showcase == .unsaved {
+            _ = providers.trialStarted(ProtectionCheck(mode: .proxy, proxy: nil))
+        }
+        if showcase == .unsaved { _ = providers.trialSaid(.unreachable) }
         #endif
     }
 
@@ -638,6 +643,8 @@ public final class AppStore {
             providers.preference(provider)
         case .vpn(let view):
             providers.guardSaid(view)
+        case .protectionChecked(let view):
+            if let next = providers.trialSaid(view) { send(next) }
 
         case .stores(let rows):
             stores.apply(rows)

@@ -8,14 +8,15 @@
 # generated episode first on Continue), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words>,
 # genre=<name> (Search browsing a genre) or palette=<words>, with more joined by +: pane=<Settings
-# pane>, notice=alert (a failure toast), sheet=<torrent|join|kitsu|update|show|about|filters|messages>,
+# pane>, notice=alert (a failure toast), sheet=<torrent|proxy|join|kitsu|update|show|about|filters|messages>,
 # tv=<paired|picker|code|expired|remote|lost|refused|empty|bar|away>, Play on TV with the Fixtures app's
 # fake TVs (FixtureTVs.swift says what each shows), day=<days after today>, the calendar opened on
 # that day, for one with broadcasts,
 # party=<form|joining|refused|invite|panel|ready|sync|chat|lost|left|nosource|choose|unaired|quit>, a
 # watch party on the testing engine's fake Syncplay server (PartyScene; the player's on the playing
-# scene: playing:party=panel), showcase=<sources|stores|downloads|invite|pale|messages|all>, the invented rows of `Showcase`
-# (pale: 900001's page with a long title on a near-white banner), and watched=<id>:<episodes>,
+# scene: playing:party=panel), showcase=<sources|stores|downloads|invite|pale|messages|proxy|checking|unsaved|all>, the invented rows of `Showcase`
+# (pale: 900001's page with a long title on a near-white banner; proxy: torrents through a saved proxy,
+# which sheet=proxy edits, and checking or unsaved its check under way or failed), and watched=<id>:<episodes>,
 # episodes marked watched as the shot starts (900006:8 is caught up), and
 # fold=open, the title page's watched episodes opened:
 #
