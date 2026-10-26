@@ -49,12 +49,13 @@ guide says how.
 
 ### Updates
 
-The apps check GitHub for a new release once a day and say when one is out. Nothing is downloaded
-until you choose to update, and an update keeps your history and settings. On the Mac, the app
-downloads the release, checks its signature and replaces itself. On Android, it downloads the APK,
-checks it and installs it over the old one. On iPhone and iPad, the notice opens SideStore or
-AltStore with anistream's source. On Android TV, install the newer APK over the old one the same
-way. The terminal app updates with `anistream --update`.
+The apps check GitHub for a new release once a day and say when one is out, and an update keeps
+your history and settings. On the Mac, the app downloads the release, checks its signature and
+replaces itself. On Android and Android TV, it downloads the APK, checks it and installs it over
+the old one. On Windows, it downloads and checks the new installer, then runs it when you choose
+Restart to update. On Linux, the AppImage downloads and checks the new version and puts it in
+place of the old one. On iPhone and iPad, the notice opens SideStore or AltStore with anistream's
+source. The terminal app updates with `anistream --update`.
 
 ## Sources and plugin stores
 

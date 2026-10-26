@@ -38,7 +38,7 @@ const also: [string, [string, string][]][] = [
 			['Sub or dub per show', 'Each show can keep its own choice.'],
 			['Subtitle and audio tracks', 'Every app switches the file’s tracks. Mac, Windows and Linux also load a subtitle or audio file.'],
 			['Picture in Picture', 'Keep watching while you browse, or in a mini player on Windows and Linux.'],
-			['Watch parties', 'Everyone’s player in step, in the terminal app. On Mac, iPhone, iPad, Windows and Linux they are in development.'],
+			['Watch parties', 'Everyone’s player in step, on Mac, iPhone, iPad, Windows, Linux and in the terminal.'],
 		],
 	],
 	[
@@ -61,7 +61,10 @@ const also: [string, [string, string][]][] = [
 	[
 		'Around the apps',
 		[
-			['Self-updates', 'The Mac, Android, Android TV and terminal apps update themselves.'],
+			['Self-updates', 'The Mac, Android, Android TV, Windows, Linux and terminal apps update themselves.'],
+			['Play on TV from a computer', 'Windows and Linux send an episode to the TV and act as its remote, as the Mac does.'],
+			['Torrents on the TV', 'Scan the TV’s code, then type the index and proxy on your phone.'],
+			['A proxy checked first', 'A torrent proxy is saved only once the check through it passes. Edit proxy changes the saved one.'],
 			['English or romaji', 'Titles named the way you read them, in every app.'],
 			['A CLI with JSON', '--json output for your scripts.'],
 		],
@@ -83,7 +86,7 @@ const matrix: [string, [string, Cell[]][]][] = [
 			['Opening and ending marks', ['Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'mpv’s']],
 			['Load a subtitle file', ['Y', 'N', 'N', 'N', 'N', 'Y', 'Y', 'mpv’s']],
 			['Picture in Picture', ['Y', 'Y', 'Y', 'Y', 'N', 'Mini player', 'Mini player', 'N']],
-			['Watch parties', ['D', 'D', 'D', 'N', 'N', 'D', 'D', 'Y']],
+			['Watch parties', ['Y', 'Y', 'Y', 'N', 'N', 'Y', 'Y', 'Y']],
 		],
 	],
 	[
@@ -98,12 +101,12 @@ const matrix: [string, [string, Cell[]][]][] = [
 	[
 		'Around the apps',
 		[
-			['Play on TV and remote', ['Y', 'Y', 'Y', 'Y', 'Receives', 'D', 'D', 'D']],
+			['Play on TV and remote', ['Y', 'Y', 'Y', 'Y', 'Receives', 'Y', 'Y', 'D']],
 			['New-episode alerts', ['Y', 'Y', 'Y', 'Y', 'N', 'Y', 'Y', 'In config']],
 			['Home screen widgets', ['Y', 'Y', 'Y', 'Y', 'N', 'D', 'N', 'N']],
 			['Live Activities', ['N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N']],
 			['Handoff, Spotlight, Shortcuts', ['Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N']],
-			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Checks for new versions', 'Checks for new versions', 'Y']],
+			['Updates from the app', ['Y', 'Via SideStore', 'Via SideStore', 'Y', 'Y', 'Y', 'Y', 'Y']],
 		],
 	],
 ];
@@ -226,7 +229,7 @@ const MARK: Record<string, [string, string]> = {
 			<section class="wrap hl" aria-labelledby="tv-h">
 				<div class="hl-text">
 					<h2 id="tv-h">Play on TV, phone as the remote</h2>
-					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone.</p>
+					<p>Send an episode to the Android TV app, then pause, seek and switch subtitles from your phone. The Mac, Windows and Linux apps do the same.</p>
 				</div>
 				<div class="hl-media tv-stage">
 					<FeatureVideo name="iphone-tv-remote" frame="phone" class="tv-phone" alt="The iPhone app sending an episode to a TV, then pausing it as the remote">
@@ -299,8 +302,8 @@ const MARK: Record<string, [string, string]> = {
 				<p class="lede">
 					Every app searches and browses with filters, follows the seasonal charts and the calendar
 					with its Sub and Dub marks, shows a show’s seasons and how far its dub goes, switches
-					subtitle and audio tracks, syncs with AniList, Simkl and Trakt, joins plugin stores, and
-					skips, resumes and plays the next episode.
+					subtitle and audio tracks, syncs with AniList, Simkl and Trakt, joins plugin stores, keeps
+					torrents behind the VPN guard, and skips, resumes and plays the next episode.
 				</p>
 				<ul class="matrix-key" aria-label="Key">
 					<li><span class="mk mk-yes" aria-hidden="true"></span>Available</li>
@@ -342,7 +345,7 @@ const MARK: Record<string, [string, string]> = {
 						}
 					</table>
 				</div>
-				<p class="caption matrix-note">Watch parties on the Mac, iPhone, iPad, Windows and Linux apps are in development, and so is Play on TV from Windows, Linux and the terminal.</p>
+				<p class="caption matrix-note">Play on TV from the terminal app is in development, and so are home screen widgets on Windows.</p>
 				<div class="actions sect-actions">
 					<a class="btn btn-primary" href={APPS}>Get the apps</a>
 					<a class="btn" href={INSTALL_GUIDE}>Installation guide</a>
