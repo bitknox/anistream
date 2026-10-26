@@ -1,10 +1,12 @@
 /**
- * The run's pixel art: Nagare's run cycle, jump and stumble, drawn from the website's sprite in
- * its palette, and what stands on the rooftops. Every map is a list of rows, one character a
- * pixel, `.` clear. Nagare's frames are drawn facing left, as the sprite is, and turned to face
- * the way she runs when they are read.
+ * The run's pixel art: Nagare's run cycle, jump, slide and stumble, drawn from the site's sprite in
+ * its palette, what stands on the rooftops and what flies over them. Every map is a list of rows,
+ * one character a pixel, `.` clear. Nagare's frames are drawn facing left, as the sprite is, and
+ * turned to face the way she runs when they are read. Everything else is drawn facing her.
+ *
+ * Shared by the website's hero and the store's admin page.
  */
-import { SPRITE, SPRITE_COLORS, SPRITE_H, SPRITE_W } from '../scene/nagare';
+import { SPRITE, SPRITE_COLORS, SPRITE_W } from '../data/nagare';
 
 export type RGB = [number, number, number];
 
@@ -30,6 +32,13 @@ const ROOF_COLORS: Record<string, RGB> = {
 	G: [214, 208, 196],
 	g: [168, 160, 150],
 	p: [214, 150, 140],
+	// The crow: darker than the roofs, its back and wings lit by the moon, its beak grey.
+	k: [14, 14, 26],
+	Q: [168, 176, 214],
+	q: [104, 110, 140],
+	// The kite's spars and the sign's bar, and the sign's wave.
+	e: [138, 104, 68],
+	u: [127, 199, 217],
 };
 
 const COLORS: Record<string, RGB> = { ...SPRITE_COLORS, ...ROOF_COLORS };
@@ -37,21 +46,34 @@ const COLORS: Record<string, RGB> = { ...SPRITE_COLORS, ...ROOF_COLORS };
 /** Pixels that never collide: the staff and its charm, and the cat's z, are forgiven. */
 const LOOSE = new Set(['S', 'W', 'w']);
 
-function read(rows: string[], mirror = false, loose = LOOSE): Art {
+const hash = (n: number) => (((Math.sin(n) * 43758.5453) % 1) + 1) % 1;
+
+/**
+ * Reads a map. `shade` gives each pixel the scene's slight per-pixel shading, by its place in the
+ * map as drawn, so Nagare standing here is the hero's Nagare pixel for pixel.
+ */
+function read(rows: string[], mirror = false, loose = LOOSE, shade = false): Art {
 	const w = Math.max(...rows.map((r) => r.length));
 	const h = rows.length;
 	const px: (RGB | null)[] = [];
 	const solid: boolean[] = [];
 	for (let y = 0; y < h; y++) {
 		for (let x = 0; x < w; x++) {
-			const ch = rows[y][mirror ? w - 1 - x : x] ?? '.';
-			const c = COLORS[ch] ?? null;
+			const sx = mirror ? w - 1 - x : x;
+			const ch = rows[y][sx] ?? '.';
+			let c = COLORS[ch] ?? null;
+			if (c && shade) {
+				const k = 1 - 0.04 * hash(sx * 7.3 + y * 3.1);
+				c = [Math.round(c[0] * k), Math.round(c[1] * k), Math.round(c[2] * k)];
+			}
 			px.push(c);
 			solid.push(c !== null && !loose.has(ch));
 		}
 	}
 	return { w, h, px, solid };
 }
+
+const nagare = (rows: string[]) => read(rows, true, LOOSE, true);
 
 // ── Nagare ──────────────────────────────────────────────────────────────────
 
@@ -117,6 +139,31 @@ const JUMP = (() => {
 })();
 
 /**
+ * Sliding under something: feet first along the roof, leaning back, the ahoge and the scarf blown
+ * back and the staff held low behind her. Seventeen rows, so anything 19 or more above her feet
+ * passes over.
+ */
+const SLIDE = [
+	'.............hHHHHh.hH....',
+	'............hHHHHHHhH.....',
+	'...........hHHHHHHHHh.....',
+	'...........HHHHHHHHHHh....',
+	'..........hHFFFFhHHHHh....',
+	'..........HFFFFFFhHHHh....',
+	'..........HFEFFFFhHHHh....',
+	'..........hFFFFFfhHHh.....',
+	'...........fFFFfhHHh.aAAa.',
+	'..........aAAAAAAHHhaAAAAa',
+	'.........RCaAAAAaCcc......',
+	'........RCCCCCCCCCCCc.....',
+	'.......RCCCCCCCCCCCCCcSSWw',
+	'.....CCCCCCCCCCCCCCCCcc...',
+	'..CCCCCCCCCCCCCCCCCCCCCc..',
+	'BBCCCCCCcccc.cCCCCCCCCCcc.',
+	'BB.......cBB.ccccccccccccc',
+];
+
+/**
  * Stumbled: sat down hard with her legs out in front, eyes shut, the ahoge flat, the staff
  * dropped behind her and two stars over her head.
  */
@@ -156,12 +203,11 @@ const STUMBLE = [
 ];
 
 export const NAGARE = {
-	w: SPRITE_W,
-	h: SPRITE_H,
-	stand: read(SPRITE, true),
-	run: RUN.map((r) => read(r, true)),
-	jump: read(JUMP, true),
-	stumble: read(STUMBLE, true),
+	stand: nagare(SPRITE),
+	run: RUN.map(nagare),
+	jump: nagare(JUMP),
+	slide: nagare(SLIDE),
+	stumble: nagare(STUMBLE),
 };
 
 // ── What stands on the rooftops ─────────────────────────────────────────────
@@ -213,4 +259,65 @@ export const CAT = read([
 /** The sleeping cat's z, which rises and fades. Never solid. */
 export const ZED = read(['wwww', '..w.', '.w..', 'wwww'], false, new Set(['w']));
 
-export const ARTS = { chimney: CHIMNEY, lantern: LANTERN, cat: CAT };
+// ── What flies over them ────────────────────────────────────────────────────
+
+/**
+ * A crow flying low against the wind, beak first: wings up, then down. Darker than any roof, with
+ * the moon on its back and wings, so it reads against the towers it flies past.
+ */
+export const CROW = [
+	read([
+		'.....QQ.....',
+		'....QkkQ....',
+		'..QQkkQ.....',
+		'.QkkkkkQQQ..',
+		'qkLkkkkkkkQQ',
+		'..kkkkkkkk..',
+		'............',
+		'............',
+	]),
+	read([
+		'............',
+		'............',
+		'..QQ........',
+		'.QkkQQQQQQ..',
+		'qkLkkkkkkkQQ',
+		'..kkkkkkkk..',
+		'...kkQk.....',
+		'....QQ......',
+	]),
+];
+
+/** A paper kite on its string, its spars crossed. The tail is drawn apart, loose. */
+export const KITE = read([
+	'....l....',
+	'...lLl...',
+	'..lLeLl..',
+	'.lLLeLLl.',
+	'leeeeeeel',
+	'.lLLeLLl.',
+	'..lLeLl..',
+	'...lLl...',
+	'....l....',
+]);
+
+/** A cloth sign with a wave on it, hung from a bar on two lines from above. */
+export const SIGN = read([
+	'eeeeeeeeeeeee',
+	'.GGGGGGGGGGG.',
+	'.GGGGGGGGGGG.',
+	'.GuuGGGuuGGG.',
+	'.uGGuGuGGuGG.',
+	'.GGGGGGGGGGG.',
+	'.gGGGGGGGGGg.',
+	'.ggggggggggg.',
+]);
+
+export const ARTS = {
+	chimney: CHIMNEY,
+	lantern: LANTERN,
+	cat: CAT,
+	crow: CROW[0],
+	kite: KITE,
+	sign: SIGN,
+};

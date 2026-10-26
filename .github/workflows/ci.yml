@@ -49,6 +49,7 @@ jobs:
       android: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.android == 'true' }}
       windows: ${{ steps.filter.outputs.windows == 'true' || steps.diff.outputs.engine == 'true' }}
       desktop-linux: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.desktop-linux == 'true' }}
+      admin: ${{ steps.filter.outputs.admin == 'true' }}
     steps:
       # Two commits: on a pull request the merge, whose first parent is the base, and on a push
       # main's new head, beside which the previous head is fetched below.
@@ -82,6 +83,10 @@ jobs:
             desktop-linux:
               - 'desktop/linux/**'
               - '.github/workflows/ci.yml'
+            # The runner game the admin page shares with the website's hero.
+            admin:
+              - 'website/src/game/**'
+              - 'website/src/data/nagare.ts'
 
       # The files this change touches, and from them the three things the macOS and Windows jobs
       # are decided by:
@@ -845,10 +850,11 @@ jobs:
           if-no-files-found: ignore
 
   # The plugin store's admin page is committed as built output, so building the server never
-  # needs bun. This rebuilds it from source and fails if the two have drifted apart.
+  # needs bun. This rebuilds it from source and fails if the two have drifted apart. Its runner
+  # game lives in the website, so changes there count too.
   admin-page:
     needs: changes
-    if: github.event_name == 'pull_request' && needs.changes.outputs.rust == 'true'
+    if: github.event_name == 'pull_request' && (needs.changes.outputs.rust == 'true' || needs.changes.outputs.admin == 'true')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -861,6 +867,9 @@ jobs:
       - run: bun run build
       - name: The committed build matches its source
         run: git diff --exit-code -- ../assets/admin
+      - name: The runner game's tests
+        run: bun test src/game
+        working-directory: website
 
   # The serverless deploy templates carry the store as committed WebAssembly, so deploying one
   # from its button never needs Rust. The package cannot be compared byte for byte with a build

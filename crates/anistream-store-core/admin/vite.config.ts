@@ -27,6 +27,8 @@ export default defineConfig({
 		},
 	},
 	server: {
+		// The run's code is shared with the website and lives there.
+		fs: { allow: ['.', '../../../website/src'] },
 		proxy: {
 			'/v1': { target: store, headers: { origin: store } },
 		},
