@@ -1049,15 +1049,6 @@ html:not(.js) .scene {
 	}
 }
 
-/* The toolkits, in one line under the lede */
-.toolkit-line {
-	max-width: 792px;
-	margin-top: 12px;
-	font-size: 15px;
-	line-height: 24px;
-	color: var(--ani-dim);
-}
-
 /* Each app and its toolkit, above the pictures, on /apps */
 .rows.toolkits {
 	max-width: 792px;
@@ -1214,10 +1205,6 @@ html:not(.js) .scene {
 
 [data-theme='light'] .code-block .c-n {
 	color: #7a4309;
-}
-
-.code-block + .caption {
-	margin-top: 12px;
 }
 
 @media (max-width: 899px) {

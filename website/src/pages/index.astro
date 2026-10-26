@@ -12,22 +12,22 @@ import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST, LEGAL } f
 
 const terminalRows: [string, string][] = [
 	['Vim keys', 'hjkl or the arrow keys, and you can rebind them.'],
-	['Watch parties', 'Press y and the episode plays in a party room instead, with everyone’s player in step. A party leaves your saved position alone.'],
+	['Watch parties', 'Press y to watch an episode with friends. Everyone’s player stays in sync.'],
 	['Command line', '--search, --stats and --random print JSON with --json, and --continue resumes the episode you left half watched.'],
 ];
 
 const sources: [string, string][] = [
 	['AniList', 'Public data for browsing, search, the calendar and title pages, with a pointer to where each title is licensed.'],
-	['Plugins', 'For APIs you have the right to use, self-hosted servers and your own media. anistream never circumvents DRM, so a licensed stream opens in its own service.'],
+	['Plugins', 'For APIs you have the right to use, servers you host and media you own. anistream never circumvents DRM, so a licensed stream opens in the service that carries it.'],
 	['Plugin stores', 'Run by someone you know, for the people they invite. anistream lists none of them.'],
 ];
 
 const installHtml = [
-	'<span class="c-d"># mpv plays, ffmpeg muxes subtitles</span>',
+	'<span class="c-d"># needs mpv and ffmpeg</span>',
 	'<span class="c-d">$</span> brew install mpv ffmpeg',
-	'<span class="c-d"># browse with no account, no config</span>',
+	'<span class="c-d"># start browsing</span>',
 	'<span class="c-d">$</span> anistream',
-	'<span class="c-d"># checked against its SHA-256</span>',
+	'<span class="c-d"># update</span>',
 	'<span class="c-d">$</span> anistream <span class="c-n">--update</span>',
 ].join('\n');
 ---
@@ -36,7 +36,7 @@ const installHtml = [
 	<head>
 		<SiteHead
 			title="anistream · an open-source anime client"
-			description="anistream is an open-source anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and a terminal app, for browsing, watching, tracking and syncing, with sources as plugins you add. It hosts no content."
+			description="An open-source anime client for Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the terminal. It hosts no content."
 		/>
 	</head>
 	<body class="landing">
@@ -61,8 +61,8 @@ const installHtml = [
 					<h1>Browse, watch, track and sync anime <span class="hero-claim">in one client.</span></h1>
 					<div class="hero-side">
 						<p class="hero-sub">
-							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, each in its
-							platform’s own toolkit, and one for your terminal. Sources come from plugins you add.
+							Native apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the
+							terminal. You add sources as plugins.
 						</p>
 						<div class="actions">
 							<a class="btn btn-primary" href={APPS}>Get the apps</a>
@@ -110,7 +110,7 @@ const installHtml = [
 						</div>
 						<figcaption>
 							<h3>Continue watching</h3>
-							<p>Continue keeps the shows you’re partway through, one tap from the next episode.</p>
+							<p>The shows you’re partway through, with the next episode ready to play.</p>
 						</figcaption>
 					</figure>
 					<figure>
@@ -120,8 +120,8 @@ const installHtml = [
 							</FeatureVideo>
 						</div>
 						<figcaption>
-							<h3>Keep up with the season</h3>
-							<p>The calendar shows what airs each day, and your progress syncs to AniList, MyAnimeList, Kitsu, Simkl and Trakt.</p>
+							<h3>Calendar and sync</h3>
+							<p>See what airs each day. Your progress syncs to AniList, MyAnimeList, Kitsu, Simkl and Trakt.</p>
 						</figcaption>
 					</figure>
 					<figure>
@@ -144,12 +144,9 @@ const installHtml = [
 			<section class="wrap sect" aria-labelledby="apps-h">
 				<h2 id="apps-h">Apps</h2>
 				<p class="lede">
-					Every app is built with its platform’s own toolkit and controls. They share one engine,
-					written in Rust.
-				</p>
-				<p class="toolkit-line">
-					SwiftUI on Apple, Jetpack Compose on Android, WinUI 3 on Windows, GTK 4 on Linux and
-					Ratatui in the terminal.
+					Each app is built with its platform’s toolkit: SwiftUI on Apple, Jetpack Compose on
+					Android, WinUI 3 on Windows, GTK 4 on Linux and Ratatui in the terminal. They share one
+					engine, written in Rust.
 				</p>
 				<div class="ratio-row app-strip">
 					<Shot name="linux-continue" frame="window" sizes="(min-width: 1200px) 490px, (min-width: 900px) 42vw, 490px" alt="The Linux app on Continue, with the shows in progress beside the one picked and a button to resume its episode" />
@@ -164,8 +161,8 @@ const installHtml = [
 			<section class="wrap sect" aria-labelledby="player-h">
 				<h2 id="player-h">The player</h2>
 				<p class="lede">
-					Episodes play in mpv, with a button to skip the opening and the next episode ready at the
-					end. Drag the line to compare a 480p stream as it is, upscaled, and the 1080p original.
+					Episodes play in mpv, with a skip button for the opening and Up Next at the end. Drag the
+					line to compare a 480p stream, upscaled and not, with the 1080p original.
 				</p>
 				<div class="player-block">
 					<UpscaleCompare
@@ -187,19 +184,19 @@ const installHtml = [
 							<a href="/player/player-skip.webp">
 								<img src="/player/player-skip.webp" alt="The show's logo during its opening, with a Skip opening button in the corner" width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>The opening, taken from the file's chapters, with a button to skip it.</figcaption>
+							<figcaption>A button to skip the opening.</figcaption>
 						</figure>
 						<figure>
 							<a href="/player/player-menu.webp">
 								<img src="/player/player-menu.webp" alt="The anistream menu inside the player: episodes, sources, sub or dub, upscaling, night mode, subtitles, audio" width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>Episodes, sources, sub or dub, upscaling and tracks, in one menu.</figcaption>
+							<figcaption>The player menu: episodes, sources, sub or dub, upscaling and tracks.</figcaption>
 						</figure>
 						<figure>
 							<a href="/player/player-up-next.webp">
 								<img src="/player/player-up-next.webp" alt="An Up Next card over the ending credits, naming episode 3.2 with a still from its preview" width="1920" height="1080" loading="lazy" decoding="async" />
 							</a>
-							<figcaption>Up Next at the ending, and the next episode in the same window.</figcaption>
+							<figcaption>Up Next over the ending credits.</figcaption>
 						</figure>
 					</div>
 					<p class="player-credit">
@@ -221,8 +218,8 @@ const installHtml = [
 					<div class="term-demo">
 						<TerminalDemo />
 						<p class="caption">
-							The home screen, search, an episode list and playback. Covers show as real images in
-							terminals with Kitty, Sixel or iTerm2 graphics.
+							The home screen, search, an episode list and playback. Covers show as images in Ghostty,
+							Kitty, iTerm2, WezTerm and other terminals with image support.
 						</p>
 					</div>
 					<dl class="term-rows">
@@ -237,7 +234,6 @@ const installHtml = [
 					</dl>
 				</div>
 				<pre class="code-block" tabindex="0" set:html={installHtml} />
-				<p class="caption">Best in a terminal with a graphics protocol: Ghostty, Kitty, iTerm2 or WezTerm.</p>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="sources-h">
@@ -254,15 +250,15 @@ const installHtml = [
 					}
 				</dl>
 				<p class="lede">
-					Torrent support exists too, off by default and unreachable until you set up the VPN guard.
-					What you point any source at is your decision, at your own risk, under the laws that apply to
-					you, and every source is a config edit away from being removed.
+					Torrents are off by default and stay unreachable until you set up the VPN guard. What you
+					point any source at is your decision and your risk, under the laws that apply to you.
+					Removing a source takes one config edit.
 				</p>
 			</section>
 
 			<section class="wrap sect" aria-labelledby="install-h">
 				<h2 id="install-h">Installation</h2>
-				<p class="lede">Every release has the apps and the terminal app, each file with a .sha256 beside it.</p>
+				<p class="lede">Every release has the apps and the terminal app.</p>
 				<div class="actions get-apps">
 					{
 						APP_DOWNLOADS.map((a) => (
@@ -282,8 +278,7 @@ const installHtml = [
 			<section class="wrap sect" aria-labelledby="next-h">
 				<h2 id="next-h">Open source</h2>
 				<p class="lede">
-					anistream is MIT licensed and developed on GitHub. New sources come as plugins, and a
-					plugin store shares them with the people you invite.
+					anistream is developed on GitHub. Anyone can write a plugin or run a store.
 				</p>
 				<div class="actions sect-actions">
 					<a class="btn" href={GITHUB}>Follow on GitHub</a>

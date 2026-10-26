@@ -12,10 +12,10 @@ import { APP_DOWNLOADS, FEATURES, INSTALL_APPS, LATEST, LEGAL, PRIVACY, TOOLKITS
 const across: [string, string][] = [
 	['Widgets', 'Continue watching and Airing today on the home screen, on Mac, iPhone, iPad and Android.'],
 	['New-episode notifications', 'An alert when a new episode of a show you watch comes out, on Mac, iPhone, iPad, Android, Windows and Linux. They stay off until you turn them on, and each show has its own switch.'],
-	['Live Activities', 'On iPhone, the episode playing, a show you follow in the hour before its episode airs, and your downloads, on the Lock Screen and in the Dynamic Island.'],
+	['Live Activities', 'On iPhone, the Lock Screen and the Dynamic Island show what’s playing, your downloads and a show about to air.'],
 	['Picture in Picture', 'The episode keeps playing in a small window while you browse or use another app, on Mac, iPhone, iPad and Android. On Windows and Linux the player shrinks to a mini player.'],
 	['Downloads', 'Episodes download to the device and play offline, with the same history and resume as a stream. Every app but the TV app can keep the next episodes of the shows you watch downloaded.'],
-	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app, as in the terminal app. The features page lists which trackers each app signs in to.'],
+	['Trackers and plugin stores', 'Sign in to your trackers and join plugin stores in the app.'],
 	['Handoff, Spotlight and Shortcuts', 'On Apple devices, pick up a title on another of your devices, find your shows in Spotlight, and ask Siri to continue watching.'],
 ];
 ---
@@ -24,7 +24,7 @@ const across: [string, string][] = [
 	<head>
 		<SiteHead
 			title="anistream apps · Mac, iPhone, iPad, Android, Android TV, Windows and Linux"
-			description="The anistream apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux: each written in its platform’s own toolkit, over the same Rust engine as the terminal app. Sources are plugins you add, and the apps host no content."
+			description="The anistream apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux. You add sources as plugins, and the apps host no content."
 		/>
 	</head>
 	<body class="landing apps-page">
@@ -35,26 +35,24 @@ const across: [string, string][] = [
 				<img class="apps-icon" src={iconUrl} width="96" height="96" alt="The anistream app icon: Nagare, the mascot, on the dusk ground" />
 				<h1>anistream for Mac, iPhone, iPad, Android, Android TV, Windows and Linux</h1>
 				<p class="lede">
-					Each app is built with its platform’s own toolkit, on the same engine as the terminal app.
-					Browsing needs no account, episodes play in mpv inside the app, and your history syncs to
-					your trackers. Sources come from plugins you add.
+					Browsing needs no account, and episodes play inside the app. Your history syncs to your
+					trackers. You add sources as plugins.
 				</p>
 				<div class="actions">
 					<a class="btn btn-primary" href={LATEST}>Download</a>
 					<a class="btn" href={INSTALL_APPS}>Installation steps</a>
 				</div>
 				<p class="hero-note">
-					From GitHub, not the App Store or Google Play<span data-release-tag=" · Latest release {tag}" hidden></span>
+					Downloads from GitHub<span data-release-tag=" · Latest release {tag}" hidden></span>
 				</p>
 			</header>
 
 			<section class="wrap apps-sect" aria-labelledby="native-h">
 				<div class="apps-text">
-					<h2 id="native-h">One engine</h2>
+					<h2 id="native-h">Toolkits</h2>
 					<p>
-						anistream has eight clients: Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the
-						terminal. A Rust engine does the searching, playback, history and sync for all of them, and
-						each app draws its own interface.
+						Each app is built with its platform’s toolkit, and all of them share one engine, written
+						in Rust.
 					</p>
 				</div>
 				<dl class="rows toolkits">
@@ -109,8 +107,8 @@ const across: [string, string][] = [
 				<div class="apps-text">
 					<h2 id="ipad-h">iPad</h2>
 					<p>
-						The same app with a sidebar for its sections, and room beside it: a title page shows
-						the episode list next to the show’s details, and the calendar lays out the whole week.
+						The iPhone app with a sidebar. Title pages put the episode list next to the show’s
+						details, and the calendar shows the whole week.
 					</p>
 					<p class="apps-needs">iPadOS 26 or later</p>
 				</div>
@@ -161,14 +159,10 @@ const across: [string, string][] = [
 				<div class="apps-text">
 					<h2 id="tv-h">Android TV</h2>
 					<p>
-						A separate app for the TV, made for the remote’s arrow keys: a rail for search, Continue,
-						the calendar, seasonal charts and your library, and large buttons that show where the
-						focus is. Episodes play in the same built-in mpv, with the skip button and Up Next, and
-						the show you are watching appears in the TV’s own Watch Next row. Search browses by
-						genre, year and season before you type, and a title page steps between a show’s seasons.
-						To sign in to a tracker, scan a code with your phone or enter one on the tracker’s site,
-						with no typing on the TV. Torrents are set up the same way, with the index and proxy typed
-						on your phone. New releases install from Settings › About.
+						A separate app made for the remote, with large buttons and a rail for search, Continue,
+						the calendar, seasonal charts and your library. The show you’re watching appears in the
+						TV’s Watch Next row. You sign in to trackers and set up torrents from your phone, with no
+						typing on the TV.
 					</p>
 					<p class="apps-needs">Android TV 11 or later, on ARM</p>
 				</div>
@@ -184,9 +178,8 @@ const across: [string, string][] = [
 					<p>
 						The Mac, iPhone, iPad, Android, Windows and Linux apps send an episode to the TV app on the
 						same network, once you have paired them with the code or the QR code the TV shows. The TV
-						fetches and plays the stream itself, and the phone or computer becomes its remote: pause,
-						seek, the next episode, subtitles and audio, and the TV’s volume. A phone can also type a
-						search on the TV.
+						plays the episode, and your phone or computer works as the remote, with pause, seek, next
+						episode, subtitles, audio and volume. A phone can also type a search on the TV.
 					</p>
 				</div>
 				<div class="ratio-row apps-row">
@@ -199,11 +192,10 @@ const across: [string, string][] = [
 				<div class="apps-text">
 					<h2 id="windows-h">Windows</h2>
 					<p>
-						A WinUI 3 app with a navigation pane for Continue, the calendar, seasonal charts, your
-						library and downloads, and search in the title bar that browses with filters before you
-						type. Episodes play in mpv inside the window, with the media keys and the taskbar’s
-						buttons, and the mini player keeps one on top of your other windows. New episodes and
-						finished downloads arrive as Windows notifications.
+						A navigation pane for Continue, the calendar, seasonal charts, your library and
+						downloads, and search with filters in the title bar. Episodes play in the window, with
+						the media keys and taskbar buttons, and the mini player stays on top. New episodes and
+						finished downloads show as Windows notifications.
 					</p>
 					<p class="apps-needs">Windows 10 version 2004 or later, on x64 or Arm64</p>
 				</div>
@@ -220,10 +212,9 @@ const across: [string, string][] = [
 				<div class="apps-text">
 					<h2 id="linux-h">Linux</h2>
 					<p>
-						A GTK 4 and libadwaita app that fits in on a GNOME desktop: a sidebar that folds away in a
-						narrow window, the calendar laid out by week, and libmpv drawing into the window. New
-						episodes arrive as desktop notifications, and the player answers the media keys and the
-						desktop’s media controls.
+						An app that fits in on a GNOME desktop, with a sidebar that folds away in a narrow window
+						and a week view for the calendar. New episodes show as desktop notifications, and the
+						media keys work.
 					</p>
 					<p class="apps-needs">
 						An AppImage for x86-64 or ARM64. It needs glibc 2.41 or newer: Ubuntu 25.04 or later,
@@ -243,10 +234,9 @@ const across: [string, string][] = [
 				<div class="apps-text">
 					<h2 id="player-h">The player</h2>
 					<p>
-						mpv is built into each app and draws into the app’s own view, with controls that fade
-						away while you watch. It plays MKV files with their styled subtitles, offers to skip
-						the opening, brings up the next episode at the ending, and upscales with ArtCNN or
-						Anime4K as the terminal app does.
+						Every app has mpv built in, and its controls fade while you watch. It plays MKV files
+						with their styled subtitles and upscales with ArtCNN or Anime4K, as the terminal app
+						does. A button skips the opening, and Up Next comes up at the ending.
 					</p>
 				</div>
 				<div class="apps-shots">
@@ -278,18 +268,16 @@ const across: [string, string][] = [
 					}
 				</dl>
 				<div class="actions apps-compare">
-					<a class="btn" href={`${FEATURES}#platforms`}>What each app does</a>
+					<a class="btn" href={`${FEATURES}#platforms`}>Compare the apps</a>
 				</div>
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="get-h">
 				<h2 id="get-h">Download</h2>
 				<p class="lede">
-					Every release on GitHub has the apps and the terminal app, each file with a .sha256 beside
-					it. The apps are not in the App Store or on Google Play, so the first install takes one
-					extra step, which the installation guide walks through. After that, the Mac, Android,
-					Android TV, Windows and Linux apps update themselves, and iPhone and iPad update through
-					SideStore or AltStore.
+					The apps aren’t in the App Store or on Google Play, so the first install takes one extra
+					step, covered in the installation guide. After that they update themselves, iPhone and
+					iPad through SideStore or AltStore.
 				</p>
 				<ul class="downloads">
 					{
@@ -318,8 +306,8 @@ const across: [string, string][] = [
 				</ul>
 				<p class="legal-lead apps-legal">{LEGAL}</p>
 				<p class="lede">
-					Plugins and sources are yours to add, and what you point them at is your decision, at your
-					own risk, under the laws that apply to you.
+					Plugins and sources are yours to add, and what you point them at is your decision and your
+					risk, under the laws that apply to you.
 				</p>
 				<p class="lede apps-privacy">
 					What the apps send, and what they keep on your device, is on the <a href={PRIVACY}>privacy page</a>.

@@ -33,19 +33,19 @@ const also: [string, [string, string][]][] = [
 	[
 		'Watching',
 		[
-			['Skip and Up Next', 'Skip the opening, then straight to the next episode.'],
-			['Resume', 'Back where you stopped, to the second.'],
+			['Skip and Up Next', 'Skip the opening, and start the next episode from the credits.'],
+			['Resume', 'Picks up where you stopped.'],
 			['Pick a source', 'The automatic pick says why in one line, and you can choose another release.'],
-			['Sub or dub per show', 'Each show can keep its own choice.'],
+			['Sub or dub per show', 'Set it once and each show remembers.'],
 			['Subtitle and audio tracks', 'Every app switches the file’s tracks. Mac, Windows and Linux also load a subtitle or audio file.'],
 			['Picture in Picture', 'Keep watching while you browse, or in a mini player on Windows and Linux.'],
-			['Watch parties', 'Everyone’s player in step, on Mac, iPhone, iPad, Windows, Linux and in the terminal.'],
+			['Watch parties', 'Watch with friends in sync, on Mac, iPhone, iPad, Windows, Linux and in the terminal.'],
 		],
 	],
 	[
 		'Downloads',
 		[
-			['Next episodes', 'The next episodes of the shows you watch download ahead, ready offline.'],
+			['Next episodes', 'The next episodes of your shows download ahead of time.'],
 			['Start now', 'Move a queued download to the front.'],
 			['Same history offline', 'A downloaded episode resumes and syncs like a stream.'],
 		],
@@ -56,17 +56,15 @@ const also: [string, [string, string][]][] = [
 			['New-episode alerts', 'Off until you turn them on, per show.'],
 			['Widgets', 'Continue and Airing today on your home screen.'],
 			['Handoff, Spotlight, Shortcuts', 'Pick up a show on another Apple device.'],
-			['Live Activities', 'On iPhone, the episode playing, a show you follow in the hour before it airs, and your downloads, on the Lock Screen.'],
+			['Live Activities', 'On iPhone, the Lock Screen shows what’s playing, your downloads and a show about to air.'],
 		],
 	],
 	[
 		'Other',
 		[
 			['Updates', 'The Mac, Android, Android TV, Windows, Linux and terminal apps update themselves.'],
-			['Play on TV from a computer', 'Windows and Linux send an episode to the TV and act as its remote, as the Mac does.'],
 			['Torrents on the TV', 'Scan the TV’s code, then type the index and proxy on your phone.'],
-			['Proxy check', 'A torrent proxy is saved only once the check through it passes. Edit proxy changes the saved one.'],
-			['English or romaji', 'Show titles in English or romaji.'],
+			['English or romaji', 'Pick how show titles are written.'],
 			['Command line', '--json output for your scripts.'],
 		],
 	],
@@ -123,7 +121,7 @@ const MARK: Record<string, [string, string]> = {
 	<head>
 		<SiteHead
 			title="anistream features"
-			description="anistream’s features in its eight apps: browsing with no account, mpv with upscaling, Play on TV, sync with your trackers and plugins from private stores, with a table of which app has each."
+			description="anistream’s features, and which app has each one."
 		/>
 	</head>
 	<body class="landing apps-page features-page">
@@ -138,8 +136,8 @@ const MARK: Record<string, [string, string]> = {
 				<div class="hl-text">
 					<h2 id="native-h">Apps</h2>
 					<p>
-						Eight clients: Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the terminal.
-						Each uses its platform’s own toolkit, and all of them share one Rust engine.
+						Apps for Mac, iPhone, iPad, Android, Android TV, Windows and Linux, and one for the
+						terminal.
 					</p>
 				</div>
 				<div class="hl-media devices">
@@ -190,7 +188,7 @@ const MARK: Record<string, [string, string]> = {
 				<div class="hl-text">
 					<h2 id="find-h">Search and the calendar</h2>
 					<p>Browse by genre, year and season without an account, or follow the seasonal charts and the week’s calendar.</p>
-					<p>The calendar marks an estimated air time with a ~ and an episode already out in the dub. A title page says how far the dub goes, as in “Dub to episode 6”.</p>
+					<p>A ~ marks an estimated air time, and a Dub tag marks an episode already dubbed. Title pages say how far the dub goes, such as “Dub to episode 6”.</p>
 				</div>
 				<div class="hl-media find-stage">
 					<FeatureVideo name="mac-search" frame="window" class="find-mac" alt="The Mac app’s search: a query, then a genre from the filters panel">
@@ -257,7 +255,7 @@ const MARK: Record<string, [string, string]> = {
 			<section class="wrap hl" aria-labelledby="plugins-h">
 				<div class="hl-text">
 					<h2 id="plugins-h">Plugins and stores</h2>
-					<p>Sources are sandboxed plugins. A friend can run a small store and invite you, and its plugin list arrives signed.</p>
+					<p>Sources are plugins, and each one can reach only the sites it lists. A friend can run a store and invite you.</p>
 					<p class="legal-lead">{LEGAL}</p>
 				</div>
 				<div class="hl-media">
@@ -299,10 +297,9 @@ const MARK: Record<string, [string, string]> = {
 			<section class="wrap feat-sect" id="platforms" aria-labelledby="platforms-h">
 				<h2 id="platforms-h">By app</h2>
 				<p class="lede">
-					Every app has search with filters, the seasonal charts, the calendar with its Sub and Dub
-					marks, seasons and the dub line on title pages, subtitle and audio tracks, skip, resume and
-					Up Next. Every app also syncs with AniList, Simkl and Trakt, joins plugin stores and runs
-					torrents behind the VPN guard.
+					All eight apps have search with filters, the calendar, seasonal charts, subtitle and audio
+					tracks, skip, resume and Up Next. They all sync with AniList, Simkl and Trakt, join plugin
+					stores and run torrents behind the VPN guard. The table shows where they differ.
 				</p>
 				<ul class="matrix-key" aria-label="Key">
 					<li><span class="mk mk-yes" aria-hidden="true"></span>Available</li>
