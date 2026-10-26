@@ -73,7 +73,10 @@ struct CouldNotPlayTests {
         try await rig.opened()
         rig.ops(1, [.close])
         #expect(rig.model.isPresented)
-        try await until("down", timeout: PlayerTiming.verdictWait + .seconds(2)) { !rig.model.isPresented }
+        try await afterTurns("the wait") { rig.time.sleeping(PlayerTiming.verdictWait) }
+        rig.step(PlayerTiming.verdictWait)
+        // The wait's own task takes the screen down, on its next turn on the main actor.
+        try await afterTurns("down") { !rig.model.isPresented }
         #expect(rig.model.failure == nil)
     }
 }

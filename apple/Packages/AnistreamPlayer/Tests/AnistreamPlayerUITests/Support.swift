@@ -90,9 +90,78 @@ final class ScriptedMpv: PlayerBackend {
     }
 }
 
-/// A model on a scripted mpv, and what it sends the engine.
+/// A clock that stands still until a test moves it. The model's ticker and its waits sleep on
+/// it, and wake only as `advance` passes their deadlines, so a slow or stalled machine changes
+/// nothing a test sees.
+final class SteppedClock: Sendable {
+    private struct Sleeper {
+        let id: Int
+        let length: Duration
+        let due: ContinuousClock.Instant
+        let wake: CheckedContinuation<Void, any Error>
+    }
+
+    private struct State {
+        var now = ContinuousClock.now
+        var sleepers: [Sleeper] = []
+        var next = 0
+    }
+
+    private let state = Mutex(State())
+
+    var now: ContinuousClock.Instant { state.withLock { $0.now } }
+
+    var keeper: Timekeeper {
+        Timekeeper(now: { [self] in now }, sleep: { [self] in try await sleep($0) })
+    }
+
+    /// Whether something sleeps for `length`: a wait the model started, in a task of its own,
+    /// which moving the clock on before it sleeps would miss.
+    func sleeping(_ length: Duration) -> Bool {
+        state.withLock { $0.sleepers.contains { $0.length == length } }
+    }
+
+    /// Move on by `duration`, waking every sleep it ends.
+    func advance(by duration: Duration) {
+        let due = state.withLock { state -> [Sleeper] in
+            state.now += duration
+            let now = state.now
+            let due = state.sleepers.filter { $0.due <= now }
+            state.sleepers.removeAll { $0.due <= now }
+            return due
+        }
+        for sleeper in due { sleeper.wake.resume() }
+    }
+
+    private func sleep(_ duration: Duration) async throws {
+        let id = state.withLock { state -> Int in
+            state.next += 1
+            return state.next
+        }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (wake: CheckedContinuation<Void, any Error>) in
+                let cancelled = state.withLock { state -> Bool in
+                    // Cancelled before it slept: the handler below found nothing to wake.
+                    guard !Task.isCancelled else { return true }
+                    state.sleepers.append(Sleeper(id: id, length: duration, due: state.now + duration, wake: wake))
+                    return false
+                }
+                if cancelled { wake.resume(throwing: CancellationError()) }
+            }
+        } onCancel: {
+            let sleeper = state.withLock { state -> Sleeper? in
+                guard let index = state.sleepers.firstIndex(where: { $0.id == id }) else { return nil }
+                return state.sleepers.remove(at: index)
+            }
+            sleeper?.wake.resume(throwing: CancellationError())
+        }
+    }
+}
+
+/// A model on a scripted mpv and a stepped clock, and what it sends the engine.
 @MainActor
 final class Rig {
+    let time = SteppedClock()
     var sent: [Command] = []
     var made: [ScriptedMpv] = []
     var previews: [ScriptedMpv] = []
@@ -115,7 +184,14 @@ final class Rig {
                 return mpv
             },
             lowPower: { [unowned self] in lowPower },
-            copy: { [unowned self] text in copied.append(text) })
+            copy: { [unowned self] text in copied.append(text) },
+            time: time.keeper)
+    }
+
+    /// Let `duration` pass, and have the model look at its clock as its ticker would.
+    func step(_ duration: Duration) {
+        time.advance(by: duration)
+        model.tick()
     }
 
     var mpv: ScriptedMpv { made.last! }
@@ -183,6 +259,22 @@ final class Rig {
         let before = reports.filter { $0.1 == report }.count
         mpv.emit(.property(name: "time-pos", value: .double(seconds)))
         try await until("time-pos \(seconds) reported") { self.reports.filter { $0.1 == report }.count > before }
+    }
+}
+
+/// Give way on the main actor until `condition` holds, for work already queued there, such as a
+/// sleep the stepped clock ended: turns, not a timeout, so a stalled machine cannot run it out.
+@MainActor
+func afterTurns(
+    _ what: String, turns: Int = 100, _ condition: @MainActor () -> Bool,
+    sourceLocation: SourceLocation = #_sourceLocation
+) async throws {
+    for _ in 0..<turns where !condition() {
+        await Task.yield()
+    }
+    guard condition() else {
+        Issue.record("\(what) never came", sourceLocation: sourceLocation)
+        throw CancellationError()
     }
 }
 
