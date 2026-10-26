@@ -59,4 +59,15 @@
     <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
   </Style>
 
+  <!-- The skip glyphs: Segoe Fluent's open circle arrow, mirrored for back, with the seconds
+       inside it. Fluent has a back-10 glyph but its forward twin says 30. The player's bar and
+       the TV's remote both draw them. -->
+  <Style x:Key="SkipDigitsStyle" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="8" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,1,0,0" />
+  </Style>
+
 </ResourceDictionary>

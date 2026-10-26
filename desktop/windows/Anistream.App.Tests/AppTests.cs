@@ -691,7 +691,7 @@ public class SceneTests
         DeleteRoot(root);
     }
 
-    static void DeleteRoot(string root)
+    internal static void DeleteRoot(string root)
     {
         var deadline = DateTime.UtcNow.AddSeconds(10);
         while (true)
