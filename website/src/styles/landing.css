@@ -1164,6 +1164,113 @@ html:not(.js) .scene {
 	margin-top: 28px;
 }
 
+/* The suggested download, from download-suggest.ts. Its room is kept while the script decides
+   (data-pending), and it fades in once filled. Empty, it takes no room at all. */
+.dl-sg {
+	margin-top: 28px;
+	opacity: 0;
+	transition: opacity var(--ani-standard) ease-out;
+}
+
+.dl-sg:not([data-pending]):empty {
+	display: none;
+}
+
+.dl-sg[data-pending] {
+	min-height: 76px;
+}
+
+.dl-sg.is-ready {
+	opacity: 1;
+}
+
+.dl-sg-note {
+	margin-bottom: 16px;
+	font-size: 16px;
+	line-height: 24px;
+}
+
+.dl-sg-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
+}
+
+.dl-sg-meta,
+.dl-sg-first {
+	font-size: 15px;
+	line-height: 24px;
+	color: var(--ani-dim);
+}
+
+.dl-sg-first {
+	margin-top: 12px;
+}
+
+.dl-sg-step {
+	display: block;
+	color: var(--ani-text);
+}
+
+.dl-sg-step code {
+	font-family: var(--ani-font-mono);
+	font-size: 14px;
+}
+
+.dl-sg-meta a,
+.dl-sg-first a {
+	color: var(--ani-text);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 3px;
+}
+
+.dl-sg-first.is-next .dl-sg-guide {
+	display: inline-block;
+	margin-top: 4px;
+}
+
+/* The suggested app leaves the list below it. */
+[data-dl-app][hidden] {
+	display: none;
+}
+
+/* Over the full list once there is a suggestion; never shown without one. */
+.dl-others {
+	display: none;
+	margin-top: 36px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 24px;
+}
+
+.dl-sg[data-pending] ~ .dl-others,
+.dl-sg.is-ready ~ .dl-others {
+	display: block;
+}
+
+.dl-sg[data-pending]:not(.is-ready) ~ .dl-others {
+	visibility: hidden;
+}
+
+.dl-others + .get-apps {
+	margin-top: 12px;
+}
+
+@media (max-width: 899px) {
+	.dl-sg[data-pending] {
+		min-height: 160px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dl-sg {
+		transition: none;
+	}
+}
+
 .get-more {
 	max-width: 792px;
 	margin-top: 16px;

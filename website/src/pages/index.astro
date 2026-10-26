@@ -1,6 +1,7 @@
 ---
 import '../styles/theme.css';
 import '../styles/landing.css';
+import DownloadSuggest from '../components/DownloadSuggest.astro';
 import FeatureVideo from '../components/FeatureVideo.astro';
 import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
@@ -259,10 +260,12 @@ const installHtml = [
 			<section class="wrap sect" aria-labelledby="install-h">
 				<h2 id="install-h">Installation</h2>
 				<p class="lede">Every release has the apps and the terminal app.</p>
+				<DownloadSuggest />
+				<p class="dl-others">Other platforms</p>
 				<div class="actions get-apps">
 					{
 						APP_DOWNLOADS.map((a) => (
-							<a class="btn" href={LATEST} data-asset={a.files[0].suffix}>
+							<a class="btn" href={LATEST} data-asset={a.files[0].suffix} data-dl-app={a.id}>
 								{a.platform}
 							</a>
 						))

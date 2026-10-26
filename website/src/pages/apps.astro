@@ -3,6 +3,7 @@ import '../styles/theme.css';
 import '../styles/landing.css';
 import '../styles/apps.css';
 import iconUrl from '../assets/icon-32.svg?url';
+import DownloadSuggest from '../components/DownloadSuggest.astro';
 import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
@@ -39,7 +40,7 @@ const across: [string, string][] = [
 					trackers. You add sources as plugins.
 				</p>
 				<div class="actions">
-					<a class="btn btn-primary" href={LATEST}>Download</a>
+					<a class="btn btn-primary" href="#download">Download</a>
 					<a class="btn" href={INSTALL_APPS}>Installation steps</a>
 				</div>
 				<p class="hero-note">
@@ -272,27 +273,24 @@ const across: [string, string][] = [
 				</div>
 			</section>
 
-			<section class="wrap apps-sect" aria-labelledby="get-h">
+			<section class="wrap apps-sect" id="download" aria-labelledby="get-h">
 				<h2 id="get-h">Download</h2>
 				<p class="lede">
 					The apps aren’t in the App Store or on Google Play, so the first install takes one extra
 					step, covered in the installation guide. After that they update themselves, iPhone and
 					iPad through SideStore or AltStore.
 				</p>
+				<DownloadSuggest />
+				<h3 class="dl-others">Other platforms</h3>
 				<ul class="downloads">
 					{
 						APP_DOWNLOADS.map((a) => (
-							<li>
+							<li data-dl-app={a.id}>
 								<div class="dl-name">
 									<span class="dl-platform">{a.platform}</span>
 									<span class="dl-needs">{a.needs}</span>
+									<a class="dl-guide" href={a.guide}>How to install</a>
 								</div>
-								<span class="dl-files">
-									{a.files.map((f) => <code class="dl-file">{f.name}</code>)}
-								</span>
-								<p class="dl-first">
-									{a.first} <a href={a.guide}>How&nbsp;to&nbsp;install</a>
-								</p>
 								<span class="dl-btns">
 									{a.files.map((f) => (
 										<a class="btn dl-btn" href={LATEST} data-asset={f.suffix}>
