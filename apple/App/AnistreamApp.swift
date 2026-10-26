@@ -29,6 +29,8 @@ struct AnistreamApp: App {
         }
         .defaultSize(width: 1280, height: 800)
         .windowResizability(.contentMinSize)
+        // Up at every launch, whatever the launch restored or however it came about.
+        .defaultLaunchBehavior(.presented)
         .commands {
             AnistreamCommands(
                 store: delegate.store, navigator: delegate.navigator,
