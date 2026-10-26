@@ -1,0 +1,19 @@
+---
+/**
+ * The download that fits the visitor's device, filled in by download-suggest.ts above the page's
+ * full list. Empty without scripts. The inline check keeps the slot's room on a device that will
+ * likely get a suggestion, so the list below does not move when it fades in.
+ */
+---
+
+<div class="dl-sg" data-dl-suggest></div>
+<script is:inline>
+	(function () {
+		var slot = document.currentScript.previousElementSibling;
+		var ua = navigator.userAgent;
+		if (!/CrOS/.test(ua) && /Macintosh|Windows|Linux|Android|iPhone|iPad/.test(ua)) slot.setAttribute('data-pending', '');
+	})();
+</script>
+<script>
+	import '../scripts/download-suggest.ts';
+</script>

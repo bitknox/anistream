@@ -53,15 +53,6 @@ body.landing {
 	white-space: nowrap;
 }
 
-.caps {
-	font-size: 11px;
-	font-weight: 500;
-	line-height: 14px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--ani-dim);
-}
-
 .caption {
 	font-size: 14px;
 	line-height: 20px;
@@ -773,51 +764,6 @@ html:not(.js) .scene {
 	pointer-events: none;
 }
 
-/* ── The band: a marquee on the ground, between faint rules ─────────────── */
-/* The band is the hero's last strip, on the rooftop's ground. */
-.band {
-	display: flex;
-	align-items: center;
-	height: 48px;
-	overflow: hidden;
-	border-top: 1px solid var(--ani-rule-faint);
-	border-bottom: 1px solid var(--ani-rule-faint);
-	font-size: 15px;
-	font-weight: 500;
-}
-
-.band-track {
-	display: flex;
-	width: max-content;
-	white-space: nowrap;
-	will-change: transform;
-}
-
-.band-run {
-	display: flex;
-	padding-left: 14px;
-}
-
-.band-dot {
-	padding: 0 14px;
-	color: var(--ani-dim);
-}
-
-@media (max-width: 899px) {
-	.band {
-		height: 44px;
-		font-size: 14px;
-	}
-
-	.band-run {
-		padding-left: 12px;
-	}
-
-	.band-dot {
-		padding: 0 12px;
-	}
-}
-
 /* ── Sections ───────────────────────────────────────────────────────────── */
 .sect {
 	padding-top: 120px;
@@ -859,93 +805,79 @@ html:not(.js) .scene {
 	}
 }
 
-/* What is in the app: one dense list, grouped */
-.feat-list {
-	position: relative;
-	margin-top: 40px;
-	border-bottom: 1px solid var(--ani-rule-faint);
-}
-
-.feat-row {
+/* What anistream does: three tasks, each a clip over one plain sentence. */
+.glance {
 	display: grid;
-	grid-template-columns: minmax(0, 200fr) minmax(0, 344fr) minmax(0, 608fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	column-gap: 24px;
-	padding: 16px 0;
-	border-top: 1px solid var(--ani-rule-faint);
+	margin-top: 40px;
 }
 
-.feat-label-above {
-	display: none;
+.glance figure {
+	display: grid;
+	grid-row: span 2;
+	grid-template-rows: subgrid;
+	row-gap: 20px;
 }
 
-.feat-label-beside {
-	padding-top: 5px;
+.glance-media {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
 }
 
-.feat-row h3 {
+.glance-media .shot {
+	width: min(232px, 64%);
+}
+
+/* Android's screen is a little taller than the iPhone's: narrower, so the three stand level. */
+.glance-media .shot-android {
+	width: min(227px, 62.6%);
+}
+
+.glance h3 {
 	font-size: 17px;
 	font-weight: 600;
 	line-height: 24px;
 }
 
-.feat-row p:last-child {
+.glance figcaption p {
+	margin-top: 4px;
 	font-size: 15px;
 	line-height: 24px;
+	color: var(--ani-dim);
 }
 
-/* The katakana spine, faint, in the right margin beside the list */
-.spine {
-	position: absolute;
-	top: 0;
-	right: calc((100% - 100vw) / 2 + 10px);
-	writing-mode: vertical-rl;
-	font-family: var(--ani-font-display);
-	font-size: 104px;
-	font-weight: 700;
-	line-height: 1;
-	letter-spacing: 0.06em;
-	white-space: nowrap;
-	color: var(--ani-text);
-	opacity: 0.05;
-	/* Vertical text spills past its line box; clipping it keeps the page from scrolling sideways. */
-	overflow: hidden;
-	pointer-events: none;
-	user-select: none;
-}
-
-@media (max-width: 1279px) {
-	.spine {
-		display: none;
-	}
-}
-
+/* On a phone each task is a row: the clip small on the left, its sentence beside it. */
 @media (max-width: 899px) {
-	.feat-list {
-		margin-top: 12px;
+	.glance {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 24px;
+		margin-top: 24px;
 	}
 
-	.feat-label-above {
-		display: block;
-		padding: 20px 0 8px;
+	.glance figure {
+		grid-row: auto;
+		grid-template-rows: none;
+		grid-template-columns: 132px minmax(0, 1fr);
+		align-items: center;
+		column-gap: 16px;
 	}
 
-	.feat-row {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 14px 0;
+	.glance-media {
+		flex: 0 0 132px;
 	}
 
-	.feat-row > :first-child {
-		display: none;
+	.glance-media .shot {
+		width: 132px;
 	}
 
-	.feat-row h3 {
+	.glance h3 {
 		font-size: 16px;
 		line-height: 22px;
 	}
 
-	.feat-row p:last-child {
+	.glance figcaption p {
 		line-height: 22px;
 	}
 }
@@ -1117,7 +1049,7 @@ html:not(.js) .scene {
 	}
 }
 
-/* Each app and its toolkit, above the pictures */
+/* Each app and its toolkit, above the pictures, on /apps */
 .rows.toolkits {
 	max-width: 792px;
 }
@@ -1227,76 +1159,132 @@ html:not(.js) .scene {
 	}
 }
 
-/* Installation */
-.release-files {
-	width: 100%;
-	margin-top: 32px;
-	border-collapse: collapse;
-	table-layout: fixed;
-	border-bottom: 1px solid var(--ani-rule-faint);
-	text-align: left;
+/* Installation: a button for each app, then where the rest is */
+.get-apps {
+	margin-top: 28px;
 }
 
-.release-files thead th {
-	height: 32px;
-	padding-right: 24px;
-	font-size: 11px;
-	font-weight: 500;
-	line-height: 14px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--ani-dim);
-	vertical-align: middle;
+/* The suggested download, from download-suggest.ts. Its room is kept while the script decides
+   (data-pending), and it fades in once filled. Empty, it takes no room at all. */
+.dl-sg {
+	margin-top: 28px;
+	opacity: 0;
+	transition: opacity var(--ani-standard) ease-out;
 }
 
-.release-files thead th:nth-child(1) {
-	width: 20%;
+.dl-sg:not([data-pending]):empty {
+	display: none;
 }
 
-.release-files thead th:nth-child(2) {
-	width: 28%;
+.dl-sg[data-pending] {
+	min-height: 76px;
 }
 
-.release-files thead th:nth-child(3) {
-	width: 22%;
+.dl-sg.is-ready {
+	opacity: 1;
 }
 
-.release-files tbody tr {
-	height: 56px;
-	border-top: 1px solid var(--ani-rule-faint);
+.dl-sg-note {
+	margin-bottom: 16px;
+	font-size: 16px;
+	line-height: 24px;
 }
 
-.release-files tbody :is(th, td) {
-	padding-right: 24px;
-	vertical-align: middle;
+.dl-sg-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 16px;
 }
 
-.release-files tbody th {
-	font-size: 17px;
-	font-weight: 600;
-}
-
-.rf-note {
+.dl-sg-meta,
+.dl-sg-first {
 	font-size: 15px;
+	line-height: 24px;
 	color: var(--ani-dim);
 }
 
-.rf-file,
-.rf-code {
+.dl-sg-first {
+	margin-top: 12px;
+}
+
+.dl-sg-step {
+	display: block;
+	color: var(--ani-text);
+}
+
+.dl-sg-step code {
 	font-family: var(--ani-font-mono);
 	font-size: 14px;
 }
 
-.rf-deps {
-	font-size: 15px;
+.dl-sg-meta a,
+.dl-sg-first a {
+	color: var(--ani-text);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 3px;
 }
 
-.rf-note-inline {
+.dl-sg-first.is-next .dl-sg-guide {
+	display: inline-block;
+	margin-top: 4px;
+}
+
+/* The suggested app leaves the list below it. */
+[data-dl-app][hidden] {
 	display: none;
 }
 
-.sect .release-files + .actions {
-	margin-top: 28px;
+/* Over the full list once there is a suggestion; never shown without one. */
+.dl-others {
+	display: none;
+	margin-top: 36px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 24px;
+}
+
+.dl-sg[data-pending] ~ .dl-others,
+.dl-sg.is-ready ~ .dl-others {
+	display: block;
+}
+
+.dl-sg[data-pending]:not(.is-ready) ~ .dl-others {
+	visibility: hidden;
+}
+
+.dl-others + .get-apps {
+	margin-top: 12px;
+}
+
+@media (max-width: 899px) {
+	.dl-sg[data-pending] {
+		min-height: 160px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.dl-sg {
+		transition: none;
+	}
+}
+
+.get-more {
+	max-width: 792px;
+	margin-top: 16px;
+	font-size: 15px;
+	line-height: 24px;
+	color: var(--ani-dim);
+}
+
+.get-more a {
+	color: var(--ani-text);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 3px;
 }
 
 .code-block {
@@ -1326,78 +1314,7 @@ html:not(.js) .scene {
 	color: #7a4309;
 }
 
-.code-block + .caption {
-	margin-top: 12px;
-}
-
 @media (max-width: 899px) {
-	.release-files {
-		display: block;
-		margin-top: 20px;
-	}
-
-	.release-files thead {
-		display: none;
-	}
-
-	.release-files tbody {
-		display: block;
-	}
-
-	.release-files tbody tr {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		height: auto;
-		padding: 14px 0;
-		row-gap: 4px;
-	}
-
-	.release-files tbody :is(th, td) {
-		padding: 0;
-	}
-
-	.release-files tbody th {
-		flex-basis: 100%;
-		font-size: 16px;
-		line-height: 22px;
-	}
-
-	.rf-note-inline {
-		display: inline;
-		margin-left: 10px;
-		font-size: 14px;
-		font-weight: 400;
-		line-height: 20px;
-		color: var(--ani-dim);
-	}
-
-	.rf-note {
-		display: none;
-	}
-
-	.rf-file {
-		line-height: 22px;
-	}
-
-	.rf-deps,
-	.rf-code {
-		flex-basis: 100%;
-		font-family: var(--ani-font-ui);
-		font-size: 14px;
-		line-height: 20px;
-		color: var(--ani-dim);
-	}
-
-	.sect .release-files + .actions {
-		flex-direction: column;
-		margin-top: 20px;
-	}
-
-	.sect .release-files + .actions .btn {
-		width: 100%;
-	}
-
 	.code-block {
 		margin-top: 20px;
 		padding: 14px 16px;

@@ -3,8 +3,7 @@
 anistream is an anime client with native apps for Mac, iPhone, iPad, Android, Android TV, Windows
 and Linux, and a terminal app for macOS, Linux and Windows. It browses AniList with no account,
 plays episodes in mpv, keeps your history on your device and syncs it to AniList, MyAnimeList,
-Kitsu, Simkl and Trakt. Each app is written in its platform's own toolkit, and all of them run the
-same Rust engine.
+Kitsu, Simkl and Trakt.
 
 ![A title page in the Mac app, with a Resume button, the seasons and the episode list](website/public/apps/mac-title-1280.webp)
 
@@ -49,12 +48,13 @@ guide says how.
 
 ### Updates
 
-The apps check GitHub for a new release once a day and say when one is out. Nothing is downloaded
-until you choose to update, and an update keeps your history and settings. On the Mac, the app
-downloads the release, checks its signature and replaces itself. On Android, it downloads the APK,
-checks it and installs it over the old one. On iPhone and iPad, the notice opens SideStore or
-AltStore with anistream's source. On Android TV, install the newer APK over the old one the same
-way. The terminal app updates with `anistream --update`.
+The apps check GitHub for a new release once a day and say when one is out, and an update keeps
+your history and settings. On the Mac, the app downloads the release, checks its signature and
+replaces itself. On Android and Android TV, it downloads the APK, checks it and installs it over
+the old one. On Windows, it downloads and checks the new installer, then runs it when you choose
+Restart to update. On Linux, the AppImage downloads and checks the new version and puts it in
+place of the old one. On iPhone and iPad, the notice opens SideStore or AltStore with anistream's
+source. The terminal app updates with `anistream --update`.
 
 ## Sources and plugin stores
 
@@ -66,7 +66,7 @@ licensed stream opens in its own service.
 A plugin store is a small server that one person runs for the people they invite. Everyone who
 joins can install the store's plugins from inside anistream and hears about new versions. Each
 device gets its own token, and every plugin list is signed with the store's key. anistream ships
-no store and lists none, so every store you see is one someone sent you. See
+no store and lists none. You join one through an invite link. See
 [plugin stores](https://anistream.tv/docs/plugins/stores/),
 [running a store](https://anistream.tv/docs/plugins/running-a-store/) and
 [writing a plugin](https://anistream.tv/docs/plugins/authoring/).

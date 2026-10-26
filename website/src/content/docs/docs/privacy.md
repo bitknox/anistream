@@ -38,10 +38,11 @@ plays it in mpv when yt-dlp is installed.
 ## Background checks
 
 Once a day, each app asks GitHub's API at `api.github.com` whether a newer release exists. The answer
-is kept for 24 hours, and the request carries nothing about you. An update is only downloaded when
-you ask for one, and it comes from GitHub releases. Every app has a switch for the check:
-**Check for updates** in Settings, under Integrations on a Mac, under Advanced on an iPad, and under
-About on an iPhone or Android. In the terminal app it is on the Settings screen, which writes
+is kept for 24 hours, and the request carries nothing about you. An update comes from GitHub
+releases, and it is only downloaded when you ask for one, except on Windows, which downloads it
+once it is found and installs it only when you choose **Restart to update**. Every app has a
+switch for the check: **Check for updates** in Settings, under Integrations on a Mac, Windows or
+Linux, under Advanced on an iPad, and under About on an iPhone or Android. In the terminal app it is on the Settings screen, which writes
 `check = false` under `[updates]`.
 
 To match a title across the trackers, the engine keeps two public lists of title ids current. They

@@ -43,6 +43,24 @@ on_leak = "pause"                          # "pause" | "stop" | "warn"
 
 Streams play while they download, and you can seek in them.
 
+## In the apps
+
+The apps keep the same settings under **Settings › Sources**. Turning **Torrents** on asks for the
+torrent index and what protects the traffic, under **Protect with**: the device's VPN, a SOCKS5
+proxy, or no protection, which you confirm first.
+
+A proxy is checked before it is saved. Turning torrents on with a proxy, switching **Protect with**
+to one, or editing it sends the guard's check through that proxy first, and the app says it is
+checking. Only a passing check saves the proxy. A failed check saves nothing, says why, and keeps
+the protection you had.
+
+Once a proxy is set, **Edit proxy…** sits beside **Protect with**. It opens the proxy's form filled
+in with the saved host, port and user name. Leave the password empty to keep the saved one, or type
+a new one to replace it.
+
+On Android TV, the index and the proxy come from a page the TV opens on your phone through a QR
+code, or you type them with the TV's keyboard. The TV does not download episodes.
+
 ## What the feed has to look like
 
 Any RSS feed whose `<item>`s carry a title, a link and an info hash works. Tag names are matched
@@ -55,7 +73,7 @@ Curation, if configured, is expected to answer in a PocketBase-shaped collection
 pointing anywhere other than your indexer's host are ignored, since a link that needs a different
 account cannot be played.
 
-## What the guard does
+## The VPN guard
 
 Your VPN or proxy is what protects you. The guard checks where torrent traffic leaves from and
 pauses torrents when that check fails.
@@ -74,7 +92,7 @@ The header badge says what the last check found: `vpn ●` with the exit network
 `vpn ✕ unreachable` when the proxy or the lookup could not be reached (nothing leaves through
 a proxy that is down), and `vpn ✕ LEAK` when traffic was seen leaving through the wrong network.
 
-## Its limits
+## Limits
 
 This is application-level containment, not kernel-enforced: librqbit has no bind-to-interface
 option, so the guard stops anistream leaking and nothing else on your machine. Turn on your VPN’s
@@ -92,7 +110,7 @@ unreachable instead of quietly leaking.
 
 Playing while downloading means an episode can *count* before its file is complete.
 [Watched versus resumable](/docs/guides/configuration/#watched-versus-resumable) keeps those ideas
-apart: `commit_threshold` decides when it is watched, and resume state is its own thing.
+apart: `commit_threshold` decides when it is watched, and resume is tracked separately.
 
 Seeding after an episode is watched, and after a download finishes, is off by default, which is a
 privacy choice. An episode still uploads to its swarm while it plays, as [Seeding](#seeding)

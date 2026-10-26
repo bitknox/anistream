@@ -309,7 +309,7 @@ const CRATES_DESC =
 	'anistream-model, the commands, events, rows and wording a front end shares with the engine, depends on the core only. ' +
 	'anistream-engine depends on the model and the lower crates; its desktop feature holds mpv, watch parties, the browser sign-in and notifications. ' +
 	'anistream-tui, the terminal front end, depends on the model and the core and never on the engine. The anistream binary connects the terminal front end to the engine. ' +
-	'anistream-ffi carries the engine to native front ends through UniFFI, for SwiftUI and Compose apps, which are in development. ' +
+	'anistream-ffi carries the engine to the native apps through UniFFI: SwiftUI on Apple, Compose on Android and WinUI 3 on Windows. The Linux app, in Rust, links the engine itself. ' +
 	'tools/check-boundaries.sh checks in CI that the engine, the model, anistream-ffi and every crate under them reach no terminal library, that anistream-tui never depends on anistream-engine, ' +
 	'and that the engine and anistream-ffi built for iOS or Android without the desktop feature reach no anistream-player, open or keyring.';
 
@@ -371,8 +371,8 @@ function cratesWide(paint: Paint, id: string) {
 	]);
 	s.node(520, t1, 200, h1, [
 		{ role: 'label', text: 'Native apps' },
-		{ role: 'sub', text: 'SwiftUI and Compose', gap: 2 },
-		{ role: 'sub', text: 'In development', dot: true },
+		{ role: 'sub', text: 'SwiftUI, Compose', gap: 2 },
+		{ role: 'sub', text: 'and WinUI 3' },
 	], true);
 	s.arrow([[518, t1 + h1 / 2], [482, t1 + h1 / 2]]);
 
@@ -440,7 +440,7 @@ function cratesNarrow(paint: Paint, id: string) {
 	// Native apps, then the front ends
 	s.node(0, 0, W, 64, [
 		{ role: 'label', text: 'Native apps' },
-		{ role: 'sub', text: 'SwiftUI and Compose · in development', gap: 2 },
+		{ role: 'sub', text: 'SwiftUI, Compose and WinUI 3', gap: 2 },
 	], true);
 	const t1 = 64 + 36;
 	const h1 = 108;

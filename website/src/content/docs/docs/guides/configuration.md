@@ -177,6 +177,14 @@ nothing else needs installing. There is no default server: the party form sugges
 servers you joined. A party play saves no position, and the episode is marked watched when it
 ends.
 
+## A torrent proxy in the apps
+
+In the apps, torrent protection is set under **Settings › Sources**. A proxy is
+checked before it is saved: the guard's check runs through it first, and a failed check saves
+nothing and says why. To change the saved proxy, choose **Edit proxy…** beside **Protect with**.
+Its form opens filled in; leave the password empty to keep the saved one.
+[In the apps](/docs/guides/torrents-vpn/#in-the-apps) has the rest.
+
 ## Everything else
 
 `[providers.torrent]` and `[providers.torrent.vpn]` are covered in

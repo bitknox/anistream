@@ -2,10 +2,10 @@
 	"android-title": {
 		"w": 540,
 		"h": 1200,
-		"seconds": 8.4,
+		"seconds": 6.367,
 		"episode": false,
-		"webm": 211134,
-		"mp4": 343741
+		"webm": 346744,
+		"mp4": 652920
 	},
 	"iphone-calendar": {
 		"w": 540,
@@ -34,9 +34,9 @@
 	"tv-resume": {
 		"w": 960,
 		"h": 540,
-		"seconds": 7.7,
+		"seconds": 7.083,
 		"episode": true,
-		"webm": 360064,
-		"mp4": 341075
+		"webm": 139960,
+		"mp4": 234008
 	}
 }
