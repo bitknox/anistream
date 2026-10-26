@@ -191,7 +191,8 @@ the iPhone's settings sheet, so every Apple device can see and forget any TV it 
    stores lists them with Leave. A phone cannot send a store link to a paired TV: the remote
    protocol keeps stores off the wire, and its `text` command always lands in Search.
 3. Turning Torrents on opens the setup dialog with "Protect with" and the connection check
-   (`pages/torrents.rs`).
+   (`pages/torrents.rs`). A new or edited proxy is checked first and saved only once it passes;
+   Edit Proxy sits beside "Protect with".
 4. VPN mode is set in config.toml, not in the TUI.
 
 ## On the device

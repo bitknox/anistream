@@ -264,6 +264,10 @@ pub struct Hub {
     /// The hub itself, for a showcase's answers, which arrive a moment after they are asked.
     #[cfg(feature = "fixtures")]
     me: std::rc::Weak<Hub>,
+    /// For a shot: what a protection check answers in place of the engine, `Some(None)` for
+    /// never, so the form's checking and failed states hold still.
+    #[cfg(feature = "fixtures")]
+    pub check_answer: RefCell<Option<Option<GuardView>>>,
 }
 
 impl Hub {
@@ -278,6 +282,8 @@ impl Hub {
             held: RefCell::default(),
             #[cfg(feature = "fixtures")]
             me: _me.clone(),
+            #[cfg(feature = "fixtures")]
+            check_answer: RefCell::default(),
         })
     }
 
@@ -305,6 +311,23 @@ impl Hub {
                     hub.take(events);
                 }
             });
+            return None;
+        }
+        #[cfg(feature = "fixtures")]
+        if matches!(command, Command::CheckTorrentProtection { .. })
+            && let Some(answer) = self.check_answer.borrow().clone()
+        {
+            if let Some(view) = answer {
+                let me = self.me.clone();
+                glib::timeout_add_local_once(
+                    std::time::Duration::from_millis(300),
+                    move || {
+                        if let Some(hub) = me.upgrade() {
+                            hub.take(vec![Event::ProtectionChecked(view)]);
+                        }
+                    },
+                );
+            }
             return None;
         }
         self.engine.upgrade().and_then(|engine| engine.send(command))

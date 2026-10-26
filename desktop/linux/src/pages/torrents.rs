@@ -9,11 +9,14 @@ use adw::prelude::*;
 use anistream_core::settings::SettingValue;
 use anistream_model::{
     command::Command,
+    event::Event,
     protection::{FailedCheck, ProtectionView, TorrentProtection, TorrentProxy},
     settings::SettingKey,
     sources::GuardView,
     stores::Secret,
 };
+
+use gtk::glib;
 
 use crate::window::Ctx;
 
@@ -254,6 +257,37 @@ fn confirm(
     dialog
 }
 
+/// What the protection form is for: turning torrents on, choosing what protects them, or
+/// editing the proxy already set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Purpose {
+    TurnOn,
+    Protect,
+    EditProxy,
+}
+
+/// Edit Proxy's line over its form.
+pub const EDIT_NOTE: &str =
+    "Torrents keep using the saved proxy until the new one passes the connection check.";
+/// Under the password, while a proxy's password is kept.
+pub const PASSWORD_KEPT: &str = "Leave the password empty to keep the saved one.";
+/// While a proxy is checked before it is saved.
+pub const CHECKING_PROXY: &str = "Checking the proxy";
+
+/// Once the check passes and the proxy is saved, before the form closes.
+pub const SAVED: &str = "Proxy saved";
+
+/// Why a proxy was not saved, from the check's `view` of it, and what stays.
+pub fn not_saved(view: &GuardView, editing: bool) -> String {
+    let stays = if editing { ", so the saved proxy stays" } else { "" };
+    match view {
+        GuardView::Leaking => {
+            format!("Not saved. Torrent traffic left outside this proxy{stays}.")
+        }
+        _ => format!("Not saved. The check could not be made through this proxy{stays}."),
+    }
+}
+
 /// The dialog that turns torrents on, or with `turning_on` false changes their protection: the
 /// index, what protects the connection with a proxy's address, and the check's note. `start`
 /// is the choice it opens on in place of the one set. `cancelled` runs when it closes unsent.
@@ -263,6 +297,74 @@ pub fn setup(
     start: Option<TorrentProtection>,
     cancelled: Rc<dyn Fn()>,
 ) -> adw::Dialog {
+    let purpose = if turning_on { Purpose::TurnOn } else { Purpose::Protect };
+    form(ctx, purpose, start, cancelled)
+}
+
+/// Edit Proxy: the proxy set, filled in but for its password, which left empty stays as it
+/// is. Saved only once the check passes on it.
+pub fn edit_proxy(ctx: &Rc<Ctx>) -> adw::Dialog {
+    form(ctx, Purpose::EditProxy, Some(TorrentProtection::Proxy), Rc::new(|| {}))
+}
+
+thread_local! {
+    /// Protection checks asked of the engine and not yet answered. Its verdicts carry no
+    /// number, so a form lets the verdicts on checks asked before its own go by.
+    static ASKED: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+    static COUNTING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// For a shot: forget checks held unanswered, so the next form waits on its own.
+#[cfg(feature = "fixtures")]
+pub fn forget_checks() {
+    ASKED.set(0);
+}
+
+/// Ask the engine to check `mode` and `proxy` without saving them, and say how many verdicts on
+/// earlier checks are still to come before this one's.
+fn ask_check(ctx: &Ctx, mode: TorrentProtection, proxy: Option<TorrentProxy>) -> u32 {
+    if !COUNTING.get() {
+        COUNTING.set(true);
+        ctx.hub.listen(|event| {
+            if matches!(event, Event::ProtectionChecked(_)) {
+                ASKED.set(ASKED.get().saturating_sub(1));
+            }
+        });
+    }
+    let before = ASKED.get();
+    ASKED.set(before + 1);
+    ctx.hub.send(Command::CheckTorrentProtection { mode, proxy });
+    before
+}
+
+/// A form's place in line for the verdicts: those on checks asked before its own go by.
+struct Turn(std::cell::Cell<u32>);
+
+impl Turn {
+    /// Whether the verdict just heard is on this form's own check.
+    fn mine(&self) -> bool {
+        let ahead = self.0.get();
+        self.0.set(ahead.saturating_sub(1));
+        ahead == 0
+    }
+}
+
+/// Where a form's check stands, in the line under its fields.
+enum Standing {
+    Idle,
+    Checking,
+    Failed(String),
+    Saved,
+}
+
+fn form(
+    ctx: &Rc<Ctx>,
+    purpose: Purpose,
+    start: Option<TorrentProtection>,
+    cancelled: Rc<dyn Fn()>,
+) -> adw::Dialog {
+    let turning_on = purpose == Purpose::TurnOn;
+    let editing = purpose == Purpose::EditProxy;
     let known = current(ctx);
     let index = ctx
         .hub
@@ -282,7 +384,11 @@ pub fn setup(
         needs_index: turning_on,
     }));
 
-    let title = if turning_on { "Turn On Torrents" } else { "Protect Torrents" };
+    let title = match purpose {
+        Purpose::TurnOn => "Turn On Torrents",
+        Purpose::Protect => "Protect Torrents",
+        Purpose::EditProxy => "Edit Proxy",
+    };
     let dialog = adw::Dialog::builder().title(title).content_width(480).build();
     let header = adw::HeaderBar::builder().show_end_title_buttons(false).build();
     let cancel = gtk::Button::with_label("Cancel");
@@ -292,8 +398,10 @@ pub fn setup(
     header.pack_end(&send);
 
     let page = adw::PreferencesPage::new();
-    page.set_description(EXPOSED);
+    page.set_description(if editing { EDIT_NOTE } else { EXPOSED });
     let mut index_entry = None;
+    // What the viewer can change, locked while a check runs.
+    let mut fields: Vec<adw::PreferencesGroup> = Vec::new();
     if turning_on {
         let group = adw::PreferencesGroup::builder().description(INDEX_NOTE).build();
         let entry = adw::EntryRow::builder().title("Torrent index").text(&index).build();
@@ -301,6 +409,7 @@ pub fn setup(
         group.add(&entry);
         index_entry = Some(entry);
         page.add(&group);
+        fields.push(group);
     }
 
     let choices = adw::PreferencesGroup::builder().title("Protect With").build();
@@ -331,38 +440,114 @@ pub fn setup(
     let user = field("User name", &draft.borrow().user);
     let password = adw::PasswordEntryRow::builder().title("Password").build();
     if known.proxy.is_some() {
-        password.set_tooltip_text(Some("Left empty, the password kept stays"));
+        proxy.set_description(Some(PASSWORD_KEPT));
     }
     proxy.add(&password);
+
+    // The check on a proxy before it is saved: under the fields, in the one place, so nothing
+    // above it moves as it comes and goes.
+    let status = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    let spinner = adw::Spinner::new();
+    spinner.set_size_request(16, 16);
+    let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    dot.add_css_class("mark");
+    dot.set_valign(gtk::Align::Start);
+    dot.set_margin_top(7);
+    let words = gtk::Label::new(None);
+    words.set_xalign(0.0);
+    words.set_wrap(true);
+    words.set_hexpand(true);
+    status.append(&spinner);
+    status.append(&dot);
+    status.append(&words);
     let note = adw::PreferencesGroup::builder().description(CHECK_NOTE).build();
-    page.add(&choices);
+    if !editing {
+        page.add(&choices);
+    }
     page.add(&proxy);
+    let status_group = adw::PreferencesGroup::new();
+    status_group.add(&status);
+    status_group.set_visible(false);
+    page.add(&status_group);
     page.add(&note);
+    fields.extend([choices.clone(), proxy.clone()]);
+
+    let busy = Rc::new(std::cell::Cell::new(false));
+    let show: Rc<dyn Fn(Standing)> = Rc::new({
+        let (status, spinner, dot, words, fields, send, busy, draft) = (
+            status_group.clone(),
+            spinner.clone(),
+            dot.clone(),
+            words.clone(),
+            fields,
+            send.clone(),
+            Rc::clone(&busy),
+            Rc::clone(&draft),
+        );
+        move |standing: Standing| {
+            let checking = matches!(standing, Standing::Checking | Standing::Saved);
+            busy.set(checking);
+            // Locked while the check runs, so the verdict is on what the fields show.
+            for group in &fields {
+                group.set_sensitive(!checking);
+            }
+            send.set_sensitive(!checking && draft.borrow().complete());
+            spinner.set_visible(matches!(standing, Standing::Checking));
+            dot.set_visible(matches!(standing, Standing::Failed(_) | Standing::Saved));
+            for each in ["water", "vermilion"] {
+                dot.remove_css_class(each);
+            }
+            let said = match standing {
+                Standing::Idle => {
+                    status.set_visible(false);
+                    return;
+                }
+                Standing::Checking => CHECKING_PROXY.to_owned(),
+                Standing::Failed(why) => {
+                    dot.add_css_class("vermilion");
+                    why
+                }
+                Standing::Saved => {
+                    dot.add_css_class("water");
+                    SAVED.to_owned()
+                }
+            };
+            words.set_label(&said);
+            status.set_visible(true);
+            status
+                .upcast_ref::<gtk::Widget>()
+                .announce(&said, gtk::AccessibleAnnouncementPriority::High);
+        }
+    });
 
     // The proxy's fields only while it is the choice; Turn On only once the choices are whole.
     let refresh = {
-        let (draft, proxy, send) = (Rc::clone(&draft), proxy.clone(), send.clone());
+        let (draft, proxy, send, busy) =
+            (Rc::clone(&draft), proxy.clone(), send.clone(), Rc::clone(&busy));
         move || {
             let draft = draft.borrow();
             proxy.set_visible(draft.protection == Some(TorrentProtection::Proxy));
-            send.set_sensitive(draft.complete());
+            send.set_sensitive(!busy.get() && draft.complete());
         }
     };
     let refresh: Rc<dyn Fn()> = Rc::new(refresh);
     refresh();
     for (choice, check) in checks {
-        let (draft, refresh) = (Rc::clone(&draft), Rc::clone(&refresh));
+        let (draft, refresh, show) = (Rc::clone(&draft), Rc::clone(&refresh), Rc::clone(&show));
         check.connect_toggled(move |check| {
             if check.is_active() {
                 draft.borrow_mut().protection = Some(choice);
+                show(Standing::Idle);
                 refresh();
             }
         });
     }
     let typed = |row: &adw::EntryRow, set: fn(&mut Draft, String)| {
-        let (draft, refresh) = (Rc::clone(&draft), Rc::clone(&refresh));
+        let (draft, refresh, show) = (Rc::clone(&draft), Rc::clone(&refresh), Rc::clone(&show));
         row.connect_changed(move |row| {
             set(&mut draft.borrow_mut(), row.text().into());
+            // A failure was on what the fields said before.
+            show(Standing::Idle);
             refresh();
         });
     };
@@ -381,9 +566,38 @@ pub fn setup(
     dialog.set_default_widget(Some(&send));
 
     let sent = Rc::new(std::cell::Cell::new(false));
+    // The verdict this form waits on, let go once it comes or the form closes.
+    let waiting: Rc<std::cell::Cell<Option<u64>>> = Rc::default();
+    let stop_waiting: Rc<dyn Fn()> = Rc::new({
+        let (waiting, ctx) = (Rc::clone(&waiting), Rc::downgrade(ctx));
+        move || {
+            if let (Some(listener), Some(ctx)) = (waiting.take(), ctx.upgrade()) {
+                ctx.hub.forget(listener);
+            }
+        }
+    });
+    // Why a check could not be made comes just after its verdict, and shows here under the
+    // failure, not as a toast, for as long as the form is open.
+    let claim = ctx.claim_alerts({
+        let (words, status) = (words.clone(), status_group.clone());
+        move |text| {
+            if !text.starts_with("Not checked") || !status.is_visible() {
+                return false;
+            }
+            let said = format!("{} {text}.", words.label());
+            words.set_label(&said);
+            true
+        }
+    });
     dialog.connect_closed({
-        let (sent, cancelled) = (Rc::clone(&sent), Rc::clone(&cancelled));
+        let (sent, cancelled, stop_waiting) =
+            (Rc::clone(&sent), Rc::clone(&cancelled), Rc::clone(&stop_waiting));
+        let ctx = Rc::downgrade(ctx);
         move |_| {
+            stop_waiting();
+            if let Some(ctx) = ctx.upgrade() {
+                ctx.release_alerts(claim);
+            }
             if !sent.get() {
                 cancelled();
             }
@@ -402,23 +616,74 @@ pub fn setup(
             let Some(ctx) = ctx_weak.upgrade() else { return };
             let draft = draft.borrow().clone();
             let unprotected = draft.protection == Some(TorrentProtection::None);
-            if !draft.complete() {
+            if !draft.complete() || busy.get() {
                 return;
             }
-            let apply = {
+            // Saved, and closed after `linger`, so a saved proxy is seen to be.
+            let save: Rc<dyn Fn(u64)> = Rc::new({
                 let (ctx, dialog, sent, index) =
                     (Rc::clone(&ctx), dialog.clone(), Rc::clone(&sent), index.clone());
-                move || {
+                let draft = draft.clone();
+                move |linger| {
+                    if sent.replace(true) {
+                        return;
+                    }
                     apply(&ctx, &draft, &index, turning_on);
-                    sent.set(true);
-                    dialog.close();
+                    let dialog = dialog.clone();
+                    glib::timeout_add_local_once(
+                        std::time::Duration::from_millis(linger),
+                        move || {
+                            dialog.close();
+                        },
+                    );
                 }
-            };
-            if unprotected {
+            });
+            match draft.protection {
+                Some(TorrentProtection::Proxy) => {
+                    // Checked first: only a pass saves, and a failure saves nothing.
+                    let proxy = draft.proxy();
+                    show(Standing::Checking);
+                    let turn = Turn(std::cell::Cell::new(ask_check(
+                        &ctx,
+                        TorrentProtection::Proxy,
+                        proxy,
+                    )));
+                    let listener = ctx.hub.listen({
+                        let (show, stop_waiting) = (Rc::clone(&show), Rc::clone(&stop_waiting));
+                        let save = Rc::clone(&save);
+                        #[cfg(feature = "fixtures")]
+                        let ctx = Rc::downgrade(&ctx);
+                        move |event| {
+                            let Event::ProtectionChecked(view) = event else { return };
+                            if !turn.mine() {
+                                return;
+                            }
+                            stop_waiting();
+                            if matches!(view, GuardView::Protected { .. }) {
+                                show(Standing::Saved);
+                                // A shot's answer holds the saved form still to be seen.
+                                #[cfg(feature = "fixtures")]
+                                let linger = if ctx
+                                    .upgrade()
+                                    .is_some_and(|ctx| ctx.hub.check_answer.borrow().is_some())
+                                {
+                                    60_000
+                                } else {
+                                    900
+                                };
+                                #[cfg(not(feature = "fixtures"))]
+                                let linger = 900;
+                                save(linger);
+                            } else {
+                                show(Standing::Failed(not_saved(view, editing)));
+                            }
+                        }
+                    });
+                    waiting.set(Some(listener));
+                }
                 // Confirmed over this dialog, which stays open if the viewer steps back.
-                confirm_none(&ctx, apply, || {});
-            } else {
-                apply();
+                _ if unprotected => confirm_none(&ctx, move || save(0), || {}),
+                _ => save(0),
             }
         }
     });
@@ -483,6 +748,31 @@ mod tests {
         let device = Draft { protection: Some(TorrentProtection::Device), ..Draft::default() };
         assert!(device.complete());
         assert!(device.proxy().is_none());
+    }
+
+    #[test]
+    fn a_form_waits_out_the_verdicts_on_checks_asked_before_its_own() {
+        let turn = Turn(std::cell::Cell::new(2));
+        assert!(!turn.mine());
+        assert!(!turn.mine());
+        assert!(turn.mine());
+        assert!(Turn(std::cell::Cell::new(0)).mine());
+    }
+
+    #[test]
+    fn a_failed_check_says_nothing_was_saved_and_why() {
+        assert_eq!(
+            not_saved(&GuardView::Leaking, true),
+            "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays."
+        );
+        assert_eq!(
+            not_saved(&GuardView::Unreachable, true),
+            "Not saved. The check could not be made through this proxy, so the saved proxy stays."
+        );
+        assert_eq!(
+            not_saved(&GuardView::Unreachable, false),
+            "Not saved. The check could not be made through this proxy."
+        );
     }
 
     #[test]
