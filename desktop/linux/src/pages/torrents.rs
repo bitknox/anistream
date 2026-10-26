@@ -315,46 +315,106 @@ pub fn edit_proxy(ctx: &Rc<Ctx>) -> adw::Dialog {
     form(ctx, Purpose::EditProxy, Some(TorrentProtection::Proxy), Rc::new(|| {}))
 }
 
-thread_local! {
-    /// Protection checks asked of the engine and not yet answered. Its verdicts carry no
-    /// number, so a form lets the verdicts on checks asked before its own go by.
-    static ASKED: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
-    static COUNTING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+/// Protection checks, one at a time. The engine runs each off its loop and its verdicts carry
+/// no number, so two in flight could answer in either order. Only one is asked at once; the
+/// others wait their turn, and a waiting check whose form has closed is dropped.
+struct Checks<T> {
+    /// The form whose check the engine is running.
+    asked: Option<u64>,
+    waiting: std::collections::VecDeque<(u64, T)>,
 }
 
-/// For a shot: forget checks held unanswered, so the next form waits on its own.
+impl<T> Default for Checks<T> {
+    fn default() -> Self {
+        Self { asked: None, waiting: std::collections::VecDeque::new() }
+    }
+}
+
+impl<T> Checks<T> {
+    /// `form` wants `check` made: given back when it can be asked now, kept for later if not.
+    fn ask(&mut self, form: u64, check: T) -> Option<T> {
+        if self.asked.is_some() {
+            self.waiting.push_back((form, check));
+            return None;
+        }
+        self.asked = Some(form);
+        Some(check)
+    }
+
+    /// `form` has closed: its waiting check is not asked. One already asked runs out, and its
+    /// verdict reaches no one.
+    fn drop_form(&mut self, form: u64) {
+        self.waiting.retain(|(at, _)| *at != form);
+    }
+
+    /// A verdict came: whose check it was on, and the next check to ask, now asked.
+    fn answered(&mut self) -> (Option<u64>, Option<T>) {
+        let owner = self.asked.take();
+        let next = self.waiting.pop_front().map(|(form, check)| {
+            self.asked = Some(form);
+            check
+        });
+        (owner, next)
+    }
+}
+
+type Check = (TorrentProtection, Option<TorrentProxy>);
+type Verdict = Rc<dyn Fn(&GuardView)>;
+
+thread_local! {
+    static CHECKS: std::cell::RefCell<Checks<Check>> = std::cell::RefCell::default();
+    /// The open forms waiting on a verdict, by number.
+    static WAITING: std::cell::RefCell<Vec<(u64, Verdict)>> = const { std::cell::RefCell::new(Vec::new()) };
+    static NEXT_FORM: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+    static LISTENING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// For a shot: forget checks held unanswered, so the next form's is asked at once.
 #[cfg(feature = "fixtures")]
 pub fn forget_checks() {
-    ASKED.set(0);
+    CHECKS.with_borrow_mut(|checks| *checks = Checks::default());
 }
 
-/// Ask the engine to check `mode` and `proxy` without saving them, and say how many verdicts on
-/// earlier checks are still to come before this one's.
-fn ask_check(ctx: &Ctx, mode: TorrentProtection, proxy: Option<TorrentProxy>) -> u32 {
-    if !COUNTING.get() {
-        COUNTING.set(true);
-        ctx.hub.listen(|event| {
-            if matches!(event, Event::ProtectionChecked(_)) {
-                ASKED.set(ASKED.get().saturating_sub(1));
+/// Ask the engine to check `mode` and `proxy` for `form` without saving them, once the checks
+/// before it have answered. `verdict` hears its answer, unless the form closes first.
+fn ask_check(
+    ctx: &Rc<Ctx>,
+    form: u64,
+    mode: TorrentProtection,
+    proxy: Option<TorrentProxy>,
+    verdict: Verdict,
+) {
+    if !LISTENING.replace(true) {
+        let hub = Rc::downgrade(&ctx.hub);
+        ctx.hub.listen(move |event| {
+            let Event::ProtectionChecked(view) = event else { return };
+            let (owner, next) = CHECKS.with_borrow_mut(Checks::answered);
+            let heard = owner.and_then(|owner| {
+                WAITING.with_borrow_mut(|waiting| {
+                    let at = waiting.iter().position(|(form, _)| *form == owner)?;
+                    Some(waiting.remove(at).1)
+                })
+            });
+            if let (Some((mode, proxy)), Some(hub)) = (next, hub.upgrade()) {
+                hub.send(Command::CheckTorrentProtection { mode, proxy });
+            }
+            if let Some(heard) = heard {
+                heard(view);
             }
         });
     }
-    let before = ASKED.get();
-    ASKED.set(before + 1);
-    ctx.hub.send(Command::CheckTorrentProtection { mode, proxy });
-    before
+    WAITING.with_borrow_mut(|waiting| waiting.push((form, verdict)));
+    if let Some((mode, proxy)) =
+        CHECKS.with_borrow_mut(|checks| checks.ask(form, (mode, proxy)))
+    {
+        ctx.hub.send(Command::CheckTorrentProtection { mode, proxy });
+    }
 }
 
-/// A form's place in line for the verdicts: those on checks asked before its own go by.
-struct Turn(std::cell::Cell<u32>);
-
-impl Turn {
-    /// Whether the verdict just heard is on this form's own check.
-    fn mine(&self) -> bool {
-        let ahead = self.0.get();
-        self.0.set(ahead.saturating_sub(1));
-        ahead == 0
-    }
+/// `form` has closed: it hears no verdict, and its waiting check is not asked.
+fn forget_form(form: u64) {
+    WAITING.with_borrow_mut(|waiting| waiting.retain(|(at, _)| *at != form));
+    CHECKS.with_borrow_mut(|checks| checks.drop_form(form));
 }
 
 /// Where a form's check stands, in the line under its fields.
@@ -465,6 +525,9 @@ fn form(
     words.set_xalign(0.0);
     words.set_wrap(true);
     words.set_hexpand(true);
+    words.set_valign(gtk::Align::Start);
+    spinner.set_valign(gtk::Align::Start);
+    spinner.set_margin_top(2);
     spinner.set_visible(false);
     dot.set_visible(false);
     status.append(&spinner);
@@ -584,16 +647,9 @@ fn form(
     dialog.set_default_widget(Some(&send));
 
     let sent = Rc::new(std::cell::Cell::new(false));
-    // The verdict this form waits on, let go once it comes or the form closes.
-    let waiting: Rc<std::cell::Cell<Option<u64>>> = Rc::default();
-    let stop_waiting: Rc<dyn Fn()> = Rc::new({
-        let (waiting, ctx) = (Rc::clone(&waiting), Rc::downgrade(ctx));
-        move || {
-            if let (Some(listener), Some(ctx)) = (waiting.take(), ctx.upgrade()) {
-                ctx.hub.forget(listener);
-            }
-        }
-    });
+    // This form's number in the line of checks, let go as it closes.
+    let number = NEXT_FORM.get();
+    NEXT_FORM.set(number + 1);
     // Why a check could not be made comes just after its verdict, and shows here under the
     // failure, not as a toast, for as long as the form is open.
     let claim = ctx.claim_alerts({
@@ -611,11 +667,10 @@ fn form(
         }
     });
     dialog.connect_closed({
-        let (sent, cancelled, stop_waiting) =
-            (Rc::clone(&sent), Rc::clone(&cancelled), Rc::clone(&stop_waiting));
+        let (sent, cancelled) = (Rc::clone(&sent), Rc::clone(&cancelled));
         let ctx = Rc::downgrade(ctx);
         move |_| {
-            stop_waiting();
+            forget_form(number);
             if let Some(ctx) = ctx.upgrade() {
                 ctx.release_alerts(claim);
             }
@@ -664,22 +719,12 @@ fn form(
                     // Checked first: only a pass saves, and a failure saves nothing.
                     let proxy = draft.proxy();
                     show(Standing::Checking);
-                    let turn = Turn(std::cell::Cell::new(ask_check(
-                        &ctx,
-                        TorrentProtection::Proxy,
-                        proxy,
-                    )));
-                    let listener = ctx.hub.listen({
-                        let (show, stop_waiting) = (Rc::clone(&show), Rc::clone(&stop_waiting));
+                    let verdict: Verdict = Rc::new({
+                        let show = Rc::clone(&show);
                         let save = Rc::clone(&save);
                         #[cfg(feature = "fixtures")]
                         let ctx = Rc::downgrade(&ctx);
-                        move |event| {
-                            let Event::ProtectionChecked(view) = event else { return };
-                            if !turn.mine() {
-                                return;
-                            }
-                            stop_waiting();
+                        move |view: &GuardView| {
                             if matches!(view, GuardView::Protected { .. }) {
                                 show(Standing::Saved);
                                 // A shot's answer holds the saved form still to be seen.
@@ -700,7 +745,7 @@ fn form(
                             }
                         }
                     });
-                    waiting.set(Some(listener));
+                    ask_check(&ctx, number, TorrentProtection::Proxy, proxy, verdict);
                 }
                 // Confirmed over this dialog, which stays open if the viewer steps back.
                 _ if unprotected => confirm_none(&ctx, move || save(0), || {}),
@@ -772,12 +817,36 @@ mod tests {
     }
 
     #[test]
-    fn a_form_waits_out_the_verdicts_on_checks_asked_before_its_own() {
-        let turn = Turn(std::cell::Cell::new(2));
-        assert!(!turn.mine());
-        assert!(!turn.mine());
-        assert!(turn.mine());
-        assert!(Turn(std::cell::Cell::new(0)).mine());
+    fn one_check_runs_at_a_time_and_the_next_waits_its_turn() {
+        let mut checks = Checks::default();
+        assert_eq!(checks.ask(1, "a"), Some("a"));
+        assert_eq!(checks.ask(2, "b"), None, "waits for a's verdict");
+        assert_eq!(checks.answered(), (Some(1), Some("b")));
+        assert_eq!(checks.answered(), (Some(2), None));
+        assert_eq!(checks.ask(3, "c"), Some("c"), "nothing in flight, asked at once");
+    }
+
+    #[test]
+    fn a_check_cancelled_then_saved_again_hears_only_its_own_verdict() {
+        let mut checks = Checks::default();
+        // Form 1 asks, and closes before the engine answers; form 2 asks the same settings.
+        assert_eq!(checks.ask(1, "a"), Some("a"));
+        checks.drop_form(1);
+        assert_eq!(checks.ask(2, "b"), None, "b waits, so a's verdict cannot answer it");
+        // a's verdict reaches its closed form, then b is asked.
+        assert_eq!(checks.answered(), (Some(1), Some("b")));
+        assert_eq!(checks.answered(), (Some(2), None));
+    }
+
+    #[test]
+    fn a_waiting_check_is_dropped_when_its_form_closes() {
+        let mut checks = Checks::default();
+        assert_eq!(checks.ask(1, "a"), Some("a"));
+        assert_eq!(checks.ask(2, "b"), None);
+        assert_eq!(checks.ask(3, "c"), None);
+        checks.drop_form(2);
+        assert_eq!(checks.answered(), (Some(1), Some("c")), "b is never asked");
+        assert_eq!(checks.answered(), (Some(3), None));
     }
 
     #[test]
