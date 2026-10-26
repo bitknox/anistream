@@ -15,6 +15,10 @@ namespace Anistream.Windows.Player;
 /// <c>NowPlaying</c> with the remote commands, done the Windows way. Previous and Next step an
 /// episode, as there. Both are cleared when the player closes. The timeline is written on play,
 /// pause, seek and episode changes, not on every tick: Windows runs the clock between.
+///
+/// While a TV plays (Play on TV) and the player is closed, the same controls show what the TV
+/// plays and drive it: play or pause, the next episode and the timeline. The TV has no previous
+/// episode, so Previous is off then. The player opening takes them back.
 /// </summary>
 sealed partial class MediaControls
 {
@@ -34,6 +38,9 @@ sealed partial class MediaControls
     readonly nint[] icons = new nint[4];
 
     bool open, paused, buttonsAdded;
+    FfiNowCard? tvNow;
+    Action<FfiTvCommand>? toTv;
+    bool OnTv => !open && tvNow is not null;
     string show = "", episode = "", artUrl = "";
     double position, duration, writtenAt = double.NaN;
     bool writtenPaused;
@@ -54,7 +61,13 @@ sealed partial class MediaControls
             smtc.IsNextEnabled = smtc.IsPreviousEnabled = true;
             smtc.IsStopEnabled = false;
             smtc.ButtonPressed += (_, e) => ui.TryEnqueue(() => Pressed(e.Button));
-            smtc.PlaybackPositionChangeRequested += (_, e) => ui.TryEnqueue(() => send(new PlayerCommand.SeekTo(e.RequestedPlaybackPosition.TotalSeconds)));
+            smtc.PlaybackPositionChangeRequested += (_, e) => ui.TryEnqueue(() =>
+            {
+                if (OnTv)
+                    toTv?.Invoke(new FfiTvCommand.SeekTo(e.RequestedPlaybackPosition.TotalSeconds));
+                else
+                    send(new PlayerCommand.SeekTo(e.RequestedPlaybackPosition.TotalSeconds));
+            });
         }
         catch (Exception e)
         {
@@ -75,6 +88,20 @@ sealed partial class MediaControls
 
     void Pressed(SystemMediaTransportControlsButton button)
     {
+        if (OnTv)
+        {
+            switch (button)
+            {
+                case SystemMediaTransportControlsButton.Play when paused:
+                case SystemMediaTransportControlsButton.Pause when !paused:
+                    toTv?.Invoke(new FfiTvCommand.TogglePause());
+                    break;
+                case SystemMediaTransportControlsButton.Next:
+                    toTv?.Invoke(new FfiTvCommand.Next());
+                    break;
+            }
+            return;
+        }
         switch (button)
         {
             case SystemMediaTransportControlsButton.Play when paused:
@@ -129,21 +156,74 @@ sealed partial class MediaControls
     {
         if (open == on)
             return;
+        var wasOnTv = OnTv;
         open = on;
-        if (!on)
-        {
-            show = episode = artUrl = "";
-            position = duration = 0;
-            writtenAt = double.NaN;
-        }
+        if (!on || wasOnTv)
+            Clear();
         if (smtc is not null)
         {
+            smtc.IsPreviousEnabled = true;
             smtc.IsEnabled = on;
             smtc.PlaybackStatus = on ? MediaPlaybackStatus.Changing : MediaPlaybackStatus.Closed;
             if (!on)
                 smtc.DisplayUpdater.ClearAll();
         }
         Buttons();
+        // The player closed while a TV plays: the controls go back to the TV.
+        if (!on && tvNow is not null)
+            ShowTv(tvNow, position, live: true, null, wasOnTv: false);
+    }
+
+    void Clear()
+    {
+        show = episode = artUrl = "";
+        position = duration = 0;
+        writtenAt = double.NaN;
+    }
+
+    /// <summary>
+    /// What a TV plays, from Play on TV's card, or null once none does: shown and driven through
+    /// the same controls while the player is closed. <paramref name="playhead"/> is the card's
+    /// position run on to now.
+    /// </summary>
+    public void Tv(FfiNowCard? now, double playhead, bool live, string? picture, Action<FfiTvCommand> drive)
+    {
+        var wasOnTv = OnTv;
+        tvNow = now;
+        toTv = drive;
+        if (open)
+            return;
+        if (now is null)
+        {
+            if (!wasOnTv)
+                return;
+            Clear();
+            paused = false;
+            if (smtc is not null)
+            {
+                smtc.IsPreviousEnabled = true;
+                smtc.IsEnabled = false;
+                smtc.PlaybackStatus = MediaPlaybackStatus.Closed;
+                smtc.DisplayUpdater.ClearAll();
+            }
+            Buttons();
+            return;
+        }
+        ShowTv(now, playhead, live, picture, wasOnTv);
+    }
+
+    void ShowTv(FfiNowCard now, double playhead, bool live, string? picture, bool wasOnTv)
+    {
+        if (smtc is not null && !wasOnTv)
+        {
+            smtc.IsEnabled = true;
+            smtc.IsPreviousEnabled = false;
+        }
+        Now(now.Title, now.EpisodeLine, picture);
+        var wasPaused = paused;
+        Timeline(now.Paused || !live || now.Loading, playhead, now.Duration);
+        if (!wasOnTv || wasPaused != paused)
+            Buttons();
     }
 
     /// <summary>The episode and show, as the overlay names them, and the show's banner as its picture.</summary>
@@ -164,7 +244,7 @@ sealed partial class MediaControls
         artUrl = url;
         art.Bytes(url, bytes => ui.TryEnqueue(async () =>
         {
-            if (artUrl != url || !open)
+            if (artUrl != url || (!open && tvNow is null))
                 return;
             try
             {
@@ -188,15 +268,23 @@ sealed partial class MediaControls
 
     void State(FfiPlayerState state)
     {
+        if (!open)
+            return;
         var wasPaused = paused;
-        paused = state.Paused;
-        if (state.Position is { } p)
-            position = p;
-        if (state.Duration is { } d && d > 0)
-            duration = d;
+        Timeline(state.Paused, state.Position, state.Duration);
         if (wasPaused != paused)
             Buttons();
-        if (smtc is null || !open)
+    }
+
+    /// <summary>Playing or paused, and the timeline when it moved other than as the clock runs.</summary>
+    void Timeline(bool isPaused, double? at, double? length)
+    {
+        paused = isPaused;
+        if (at is { } p)
+            position = p;
+        if (length is { } d && d > 0)
+            duration = d;
+        if (smtc is null)
             return;
         smtc.PlaybackStatus = paused ? MediaPlaybackStatus.Paused : MediaPlaybackStatus.Playing;
         // Written again on pause or play, on a jump the clock would not have made, and now and then.
@@ -246,7 +334,7 @@ sealed partial class MediaControls
     void Buttons()
     {
         if (taskbar is not null && buttonsAdded)
-            taskbar.ThumbButtons(Buttons(hidden: !open), first: false);
+            taskbar.ThumbButtons(Buttons(hidden: !open && !OnTv), first: false);
     }
 
     Taskbar.ThumbButton[] Buttons(bool hidden)
@@ -259,9 +347,12 @@ sealed partial class MediaControls
             Tip = tip,
             State = hidden ? Taskbar.ThumbButton.Hidden : Taskbar.ThumbButton.Enabled,
         };
+        var previous = Button(PreviousId, Glyph.Previous, "Previous episode");
+        if (OnTv)
+            previous.State = Taskbar.ThumbButton.Hidden;
         return
         [
-            Button(PreviousId, Glyph.Previous, "Previous episode"),
+            previous,
             paused ? Button(PlayPauseId, Glyph.Play, "Play") : Button(PlayPauseId, Glyph.Pause, "Pause"),
             Button(NextId, Glyph.Next, "Next episode"),
         ];
@@ -280,7 +371,16 @@ sealed partial class MediaControls
             }
             else if (message == WM_COMMAND && ((wparam >> 16) & 0xFFFF) == THBN_CLICKED)
             {
-                switch ((uint)(wparam & 0xFFFF))
+                var button = (uint)(wparam & 0xFFFF);
+                if (controls.OnTv)
+                {
+                    if (button == PlayPauseId)
+                        controls.toTv?.Invoke(new FfiTvCommand.TogglePause());
+                    else if (button == NextId)
+                        controls.toTv?.Invoke(new FfiTvCommand.Next());
+                    return 0;
+                }
+                switch (button)
                 {
                     case PreviousId:
                         controls.send(new PlayerCommand.Step(-1));
