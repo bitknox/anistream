@@ -1,6 +1,7 @@
 // TVSignIn: signing in to a tracker without a browser. AniList and Kitsu through the TV's own
 // sign-in page, opened on a phone from a QR code; Simkl and Trakt with the service's device code.
-// MyAnimeList only signs in from a paired phone.
+// MyAnimeList has no way in on a TV: its redirect must be the one address it has registered, so
+// Accounts leaves it out.
 
 package tv.anistream.tv.signin
 
@@ -58,13 +59,13 @@ import tv.anistream.tv.ui.LocalAppStore
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.entryFocus
 
-/** How [tracker] signs in on a TV. */
-enum class SignInWay { Page, DeviceCode, PhoneOnly }
+/** How [tracker] signs in on a TV, or that it does not ([None]). */
+enum class SignInWay { Page, DeviceCode, None }
 
 fun signInWay(tracker: String): SignInWay = when (tracker) {
     "anilist", "kitsu" -> SignInWay.Page
     "simkl", "trakt" -> SignInWay.DeviceCode
-    else -> SignInWay.PhoneOnly
+    else -> SignInWay.None
 }
 
 /** A device code read in groups of four, as the brief shows it: "8F3K 2QPL". */
@@ -104,8 +105,8 @@ fun SignInScreen(tracker: String, onDone: () -> Unit, cancelLabel: String = "Can
             when (signInWay(tracker)) {
                 SignInWay.Page -> PageWay(store, tracker, name)
                 SignInWay.DeviceCode -> DeviceCodeWay(store, tracker, cancel, onCancel = onDone, cancelLabel = cancelLabel)
-                SignInWay.PhoneOnly -> Text(
-                    "$name signs in from a paired anistream phone, with the account the phone uses.",
+                SignInWay.None -> Text(
+                    "$name doesn't sign in on a TV.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = ObiSilk.Haze,
                     modifier = Modifier.widthIn(max = 640.dp),
@@ -186,15 +187,19 @@ private fun PageWay(store: AppStore, tracker: String, name: String) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.widthIn(max = 520.dp)) {
             Text("Or open this address", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze)
             Text(shown ?: "Starting", style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Silk)
-            Text(
-                when {
-                    !sent -> "The page closes with this screen, or in 10 minutes."
-                    failed -> "$name did not sign in. Check the details and send them again from the page."
-                    else -> "Signing in"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (failed) ObiSilk.Vermilion else ObiSilk.Haze,
-            )
+            // A failure leads with the error's dot, its words in silk: vermilion is never text.
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (failed) Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
+                Text(
+                    when {
+                        !sent -> "The page closes with this screen, or in 10 minutes."
+                        failed -> "$name did not sign in. Check the details and send them again from the page."
+                        else -> "Signing in"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (failed) ObiSilk.Silk else ObiSilk.Haze,
+                )
+            }
         }
     }
 }

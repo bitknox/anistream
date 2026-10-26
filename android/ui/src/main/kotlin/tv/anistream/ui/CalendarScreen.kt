@@ -202,7 +202,7 @@ fun CalendarScreen() {
     // top, so the page never draws another day first and then jumps. It is kept with the
     // destination, so a later visit comes back where the last one left it.
     val list = rememberSaveable(answered, saver = LazyListState.Saver) {
-        LazyListState(if (answered) page.headings[page.today] ?: 0 else 0)
+        LazyListState(if (answered) page.headings[page.today.plusDays(store.calendar.opensOn.toLong())] ?: 0 else 0)
     }
     val scope = rememberCoroutineScope()
     // The strip follows the page: the day at its top is selected. Read by the strip alone, so a

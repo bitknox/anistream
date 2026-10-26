@@ -12,7 +12,7 @@ import tv.anistream.testkit.FixtureArt
 
 /**
  * The canvas's fixtures, as the widget boards draw them: Tuesday 20 October 2026 at 19:30, Mika's
- * Continue, and MacCalendar's day with two shows from outside the list, Kanade Ropeway and
+ * Continue, Hagane no Niwashi watched dubbed, and MacCalendar's day with two shows from outside the list, Kanade Ropeway and
  * Tsurara Tantei, for Airing today to leave unmarked.
  */
 object Fixtures {
@@ -39,7 +39,7 @@ object Fixtures {
         WidgetContinue(
             id = HAGANE, title = "Hagane no Niwashi", episode = 2u, watched = 1u, episodes = 10u, fraction = 0.75,
             coverUrl = poster(HAGANE), resume = true, positionSecs = 1080u, durationSecs = 1440u, minutesLeft = 6u,
-            bannerUrl = banner(HAGANE), coverColor = "#243b2c",
+            bannerUrl = banner(HAGANE), coverColor = "#243b2c", mark = "Dub",
         ),
         WidgetContinue(
             id = KUMO, title = "Kumo no Ue no Toshokan", episode = 4u, watched = 3u, episodes = 24u,

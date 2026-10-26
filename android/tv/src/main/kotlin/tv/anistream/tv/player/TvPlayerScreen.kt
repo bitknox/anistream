@@ -41,8 +41,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -71,6 +72,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -82,32 +84,33 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerChoice
+import tv.anistream.engine.model.TimeRange
 import tv.anistream.player.Device
 import tv.anistream.player.PlayerModel
-import tv.anistream.engine.model.TimeRange
 import tv.anistream.player.SeekSegment
 import tv.anistream.player.Track
 import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
-import tv.anistream.tv.ui.LocalReducedMotion
-import tv.anistream.tv.ui.PANEL_END
-import tv.anistream.tv.ui.enterFade
-import tv.anistream.tv.ui.exitFade
-import tv.anistream.tv.ui.focusSoon
+import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ArtImage
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.LocalAppStore
+import tv.anistream.tv.ui.LocalReducedMotion
+import tv.anistream.tv.ui.PANEL_END
 import tv.anistream.tv.ui.ReleasesPanel
-import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvIcons
 import tv.anistream.tv.ui.TvListRow
 import tv.anistream.tv.ui.TvTitle
+import tv.anistream.tv.ui.enterFade
 import tv.anistream.tv.ui.entryFocus
+import tv.anistream.tv.ui.exitFade
+import tv.anistream.tv.ui.focusSoon
 import tv.anistream.tv.ui.tryFocus
 
 /** The player's panels, each the 400-wide column on the right. */
@@ -127,6 +130,13 @@ private const val PREVIOUS_WITHIN = 3.0
 
 /** The chrome's dim over the video: the ground at 35 %. */
 private const val DIM = 0.35f
+
+/**
+ * Where the subtitles sit, in dp above the screen's foot: their own place, and while the chrome
+ * is up, clear of its times, seek bar and buttons, which reach 125 up from the foot.
+ */
+private const val SUBTITLES_DOWN = 32f
+private const val SUBTITLES_UP = 160f
 
 @Composable
 fun TvPlayerScreen(
@@ -276,9 +286,28 @@ fun TvPlayerScreen(
         }
     }
 
+    // The subtitles rise above the controls while they are up and fall back with them, as on the
+    // phone: sub-pos, a share of the screen's height, which the controls never cover.
+    var height by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val lift by animateFloatAsState(
+        if (chrome) SUBTITLES_UP else SUBTITLES_DOWN,
+        if (LocalReducedMotion.current) snap() else Motion.standard(),
+        label = "subtitles",
+    )
+    LaunchedEffect(height) {
+        if (height == 0) return@LaunchedEffect
+        val tall = with(density) { height.toDp().value }
+        snapshotFlow { lift }.collectLatest { above ->
+            model.liftSubtitles(100.0 - (above - SUBTITLES_DOWN) / tall * 100.0)
+            delay(40)
+        }
+    }
+
     Box(
         modifier
             .fillMaxSize()
+            .onSizeChanged { height = it.height }
             .background(Color.Black)
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown && event.nativeKeyEvent.repeatCount == 0) heldSince = model.clock
