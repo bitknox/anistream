@@ -5,5 +5,19 @@
 # `enable_upnp_port_forwarding: false` and no inbound listener — so the vulnerable XML
 # parser has no input path in this binary. librqbit 8.x pins quick-xml ^0.37; drop these
 # ignores the moment a stable librqbit release moves past it (9.0 is at rc as of Jul 2026).
+#
+# The three zstd advisories below remain only through wasmtime's compilation cache
+# (wasmtime-internal-cache, still on zstd 0.13 in wasmtime 49 and 50); everything else
+# is on zstd 0.14.3 / zstd-safe 8.2 / zstd-sys 2.1.2. The cache calls only the one-shot
+# `zstd::encode_all` / `zstd::decode_all`, so no context is reused (0391) and nothing
+# uses `Seekable` (0398). What it decodes (0403) is its own files in our cache directory,
+# and whoever can write those can already replace the compiled plugin code wasmtime loads
+# from them. Drop these ignores once a wasmtime release moves its cache to zstd 0.14.
 [advisories]
-ignore = ["RUSTSEC-2026-0194", "RUSTSEC-2026-0195"]
+ignore = [
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+    "RUSTSEC-2026-0391",
+    "RUSTSEC-2026-0398",
+    "RUSTSEC-2026-0403",
+]
