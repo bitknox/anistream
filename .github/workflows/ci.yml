@@ -320,11 +320,7 @@ jobs:
       - name: GTK, libadwaita and libmpv packages
         id: debs
         run: |
-          # Azure's mirror took up to 50 min on 2026-10-26: use Ubuntu's own archive.
-          shopt -s nullglob
-          for f in /etc/apt/sources.list.d/*.sources /etc/apt/sources.list; do
-            sudo sed -i 's|http://azure.archive.ubuntu.com/ubuntu|http://archive.ubuntu.com/ubuntu|g' "$f"
-          done
+          ../../tools/ci-apt-mirror.sh
           sudo apt-get update
           list="$(sudo apt-get install -qq --no-install-recommends --print-uris $PACKAGES | awk '{print $2, $3, $4}')"
           echo "$list"
@@ -399,6 +395,7 @@ jobs:
         env:
           IMAGE: ${{ matrix.os }}
         run: |
+          tools/ci-apt-mirror.sh
           sudo apt-get update
           list="$(sudo apt-get install -qq --no-install-recommends --print-uris mpv | awk '{print $2, $3, $4}')"
           echo "$list"
