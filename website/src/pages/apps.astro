@@ -35,10 +35,9 @@ const across: [string, string][] = [
 				<img class="apps-icon" src={iconUrl} width="96" height="96" alt="The anistream app icon: Nagare, the mascot, on the dusk ground" />
 				<h1>anistream for Mac, iPhone, iPad, Android, Android TV, Windows and Linux</h1>
 				<p class="lede">
-					Each app is native to its platform, written in that platform’s own toolkit with its own
-					navigation and controls. Under every one runs the same engine as the terminal app. They
-					browse AniList with no account, play in a built-in mpv, keep your history on the device
-					and sync it to your trackers. Sources come from plugins you add.
+					Each app is built with its platform’s own toolkit, on the same engine as the terminal app.
+					Browsing needs no account, episodes play in mpv inside the app, and your history syncs to
+					your trackers. Sources come from plugins you add.
 				</p>
 				<div class="actions">
 					<a class="btn btn-primary" href={LATEST}>Download</a>
@@ -51,13 +50,11 @@ const across: [string, string][] = [
 
 			<section class="wrap apps-sect" aria-labelledby="native-h">
 				<div class="apps-text">
-					<h2 id="native-h">Native apps over one engine</h2>
+					<h2 id="native-h">One engine</h2>
 					<p>
 						anistream has eight clients: Mac, iPhone, iPad, Android, Android TV, Windows, Linux and the
-						terminal. There is no web view and no shared interface layer. The engine, written in Rust, does the
-						searching, the playback, the history and the sync, and each app draws it in its own
-						toolkit. A feature built into the engine reaches every app, and each app can still look
-						and behave like the rest of its platform.
+						terminal. A Rust engine does the searching, playback, history and sync for all of them, and
+						each app draws its own interface.
 					</p>
 				</div>
 				<dl class="rows toolkits">
@@ -269,7 +266,7 @@ const across: [string, string][] = [
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="across-h">
-				<h2 id="across-h">Across the apps</h2>
+				<h2 id="across-h">Other features</h2>
 				<dl class="rows apps-rows">
 					{
 						across.map(([name, text]) => (
@@ -286,13 +283,13 @@ const across: [string, string][] = [
 			</section>
 
 			<section class="wrap apps-sect" aria-labelledby="get-h">
-				<h2 id="get-h">Getting the apps</h2>
+				<h2 id="get-h">Download</h2>
 				<p class="lede">
-					Every release on GitHub has the apps beside the terminal app, each file with a .sha256 to
-					check it against. They are not in the App Store or on Google Play, so the first install
-					takes one extra step, which the installation guide walks through. After that the apps say
-					when a new release is out. The Mac, Android, Android TV, Windows and Linux apps update
-					themselves, and iPhone and iPad update from anistream’s source in SideStore or AltStore.
+					Every release on GitHub has the apps and the terminal app, each file with a .sha256 beside
+					it. The apps are not in the App Store or on Google Play, so the first install takes one
+					extra step, which the installation guide walks through. After that, the Mac, Android,
+					Android TV, Windows and Linux apps update themselves, and iPhone and iPad update through
+					SideStore or AltStore.
 				</p>
 				<ul class="downloads">
 					{
