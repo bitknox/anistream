@@ -26,6 +26,17 @@ public sealed record Broadcast(Entry Entry, uint Episode, long Airs, long? Was)
     }
 
     /// <summary>
+    /// The line as Narrator reads it: "about 16:30" for an estimate, which the shown line marks
+    /// with a tilde that would be read out as one.
+    /// </summary>
+    public string Spoken(TimeZoneInfo zone, CultureInfo? culture = null)
+    {
+        var shown = Calendar.Time(Airs, zone, culture);
+        var line = $"{EpisodeText} · {(Entry.AiringApproximate ? $"about {shown}" : shown)}";
+        return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
+    }
+
+    /// <summary>
     /// The episode with the row's mark after it, as every episode line ends its episode: "Ep 10 ·
     /// Dub" for a dub row, "Ep 10" for a sub row, which is not marked.
     /// </summary>

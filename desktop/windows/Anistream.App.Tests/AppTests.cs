@@ -175,6 +175,7 @@ public class CalendarTests
         Func<uint, Broadcast> broadcast = id => broadcasts.Single(b => b.Entry.Id == id);
         // The dub's mark is in the line after its episode; a sub row, or one not known, has none.
         Assert.Equal("Ep 10 · Dub · ~16:30", broadcast(1).Line(Utc));
+        Assert.Equal("Ep 10 · Dub · about 16:30", broadcast(1).Spoken(Utc));
         Assert.Equal("Ep 10 · Dub", broadcast(1).EpisodeText);
         Assert.Equal("Dub", broadcast(1).Mark);
         Assert.Null(broadcast(2).Mark);

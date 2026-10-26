@@ -129,7 +129,7 @@ sealed class TorrentDialog
             // One dialog at a time: the confirmation takes this one's place, and Cancel there
             // brings it back with what was chosen.
             if (shown.draft.Protection == TorrentProtection.None
-                && !await Ui.Confirm(root, TorrentWords.NoneTitle, TorrentWords.NoneMessage, "No protection"))
+                && !await Ui.Confirm(root, TorrentWords.NoneTitle, TorrentWords.NoneMessage, TorrentWords.NoneAction(shown.turningOn)))
                 continue;
             foreach (var command in Torrents.Apply(shown.draft, ctx.Known.Settings, shown.turningOn))
                 ctx.Send(command);

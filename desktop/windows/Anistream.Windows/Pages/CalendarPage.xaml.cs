@@ -291,8 +291,8 @@ public sealed partial class CalendarPage : Page
         return button;
     }
 
-    /// <summary>What Narrator reads for a broadcast: its title and the line as it shows, the dub's mark in it.</summary>
-    string Spoken(Broadcast b) => $"{b.Entry.Title}, {b.Line(zone)}";
+    /// <summary>What Narrator reads for a broadcast: its title and its line, the dub's mark in it and an estimate said as one.</summary>
+    string Spoken(Broadcast b) => $"{b.Entry.Title}, {b.Spoken(zone)}";
 
     FrameworkElement EpisodeLine(Broadcast b)
     {

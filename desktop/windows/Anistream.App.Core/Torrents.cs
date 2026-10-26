@@ -45,6 +45,10 @@ public static class TorrentWords
 
     public const string NoneTitle = "Use torrents without protection?";
     public const string NoneMessage = "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.";
+    /// <summary>The confirmation's button: what pressing it does, turning torrents on or changing what protects them.</summary>
+    public static string NoneAction(bool turningOn) => turningOn ? "Turn on without protection" : "Use without protection";
+
+    public const string FailedNote = "What happens to torrents when the check finds traffic leaving outside your VPN or proxy.";
     public const string WarnTitle = "Keep torrents running if a check fails?";
     public const string WarnMessage = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address.";
 

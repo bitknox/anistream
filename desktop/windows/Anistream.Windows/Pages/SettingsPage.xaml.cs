@@ -308,7 +308,7 @@ public sealed partial class SettingsPage : Page
         var protect = new ComboBox
         {
             MinWidth = 200,
-            ItemsSource = TorrentWords.Order.Select(p => TorrentWords.Label(p) + (p == TorrentProtection.Proxy ? "…" : "")).ToList(),
+            ItemsSource = TorrentWords.Order.Select(TorrentWords.Label).ToList(),
             SelectedIndex = Array.IndexOf(TorrentWords.Order, view.Protection),
         };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protect, "Protect with");
@@ -323,7 +323,7 @@ public sealed partial class SettingsPage : Page
             {
                 TorrentProtection.Device => Sent(Torrents.Protect(current, choice)),
                 TorrentProtection.Proxy => await TorrentDialog.Ask(ctx, XamlRoot, turningOn: false, start: TorrentProtection.Proxy),
-                _ => await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, "No protection")
+                _ => await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, TorrentWords.NoneAction(turningOn: false))
                     && Sent(Torrents.Protect(current, choice, acknowledged: true)),
             };
             if (!sent)
@@ -362,7 +362,7 @@ public sealed partial class SettingsPage : Page
             if (Torrents.FailedCheckCommand(current, check) is { } command)
                 ctx.Send(command);
         };
-        Cards.Children.Add(CardFrame(failedTitle, "Choosing Warn only asks you to confirm first, as No protection does.", failed));
+        Cards.Children.Add(CardFrame(failedTitle, TorrentWords.FailedNote, failed));
     }
 
     /// <summary>A drop-down back on what is set, for a choice not made.</summary>
@@ -380,8 +380,9 @@ public sealed partial class SettingsPage : Page
     /// A torrent state to bring up on Sources for a screenshot, on the testing build:
     /// <c>--show=torrent</c> (the turn-on dialog), <c>torrent-proxy</c> (it with a proxy typed),
     /// <c>torrent-none</c> (confirming no protection), <c>torrents-on</c> (turned on through the
-    /// device's VPN, with the fixture's made-up exit) and <c>torrents-warn</c> (then confirming
-    /// Warn only).
+    /// device's VPN, with the fixture's made-up exit), <c>torrents-warn</c> (then confirming
+    /// Warn only), <c>torrents-checking</c> and <c>torrents-failed</c> (Last check while it checks,
+    /// and failed with Try again) and <c>torrent-protect</c> (the proxy dialog once torrents are on).
     /// </summary>
     async void Demo()
     {
@@ -401,16 +402,29 @@ public sealed partial class SettingsPage : Page
                     from: draft with { Protection = TorrentProtection.Proxy, Host = "proxy.example", Port = "1080", User = "kai" });
                 break;
             case "torrent-none":
-                await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, "No protection");
+                await Ui.Confirm(XamlRoot, TorrentWords.NoneTitle, TorrentWords.NoneMessage, TorrentWords.NoneAction(turningOn: true));
                 break;
-            case "torrents-on":
-            case "torrents-warn":
+            case "torrents-on" or "torrents-warn" or "torrents-checking" or "torrents-failed" or "torrent-protect":
                 foreach (var command in Torrents.Apply(draft with { Protection = TorrentProtection.Device }, ctx.Known.Settings, turningOn: true))
                     ctx.Send(command);
-                if (show == "torrents-warn")
+                await Task.Delay(2500);
+                switch (show)
                 {
-                    await Task.Delay(2500);
-                    await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, "Warn only");
+                    case "torrents-warn":
+                        await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, "Warn only");
+                        break;
+                    case "torrent-protect":
+                        await TorrentDialog.Ask(ctx, XamlRoot, turningOn: false, start: TorrentProtection.Proxy);
+                        break;
+                    case "torrents-checking" or "torrents-failed":
+                    {
+                        // The check's word as the engine would say it, after the fixture's own pass.
+                        await Task.Delay(1500);
+                        Event said = new Event.Vpn(show == "torrents-checking" ? new GuardView.Checking() : new GuardView.Unreachable());
+                        ctx.Known.Take(said);
+                        ctx.Heard([said]);
+                        break;
+                    }
                 }
                 break;
         }
