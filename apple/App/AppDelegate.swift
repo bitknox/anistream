@@ -29,6 +29,10 @@ final class AppDelegate: NSObject {
     private var temporary: URL?
     /// The episode playing, handed off to your other devices; it pauses here when one takes it.
     private let playing: PlayingActivity
+    #if os(macOS)
+    /// Now Playing and the media keys for a TV this Mac drives, while its own player is down.
+    private let tvNowPlaying: TVNowPlaying
+    #endif
 
     override init() {
         let store = AppStore()
@@ -40,6 +44,9 @@ final class AppDelegate: NSObject {
             playing: { [weak player] in player.map { $0.isPresented && !$0.paused } ?? false },
             downloading: { [weak store] in store?.continued.stage == .running })
         playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
+        #if os(macOS)
+        tvNowPlaying = TVNowPlaying(tv: store.tv, player: player)
+        #endif
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
         // Play on TV from the player: the TV picker over it, and the player closed once the TV

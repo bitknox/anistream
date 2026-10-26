@@ -19,6 +19,8 @@ import Foundation
 ///                                   filters (Search's filters), typing (the search field focused),
 ///                                   welcome (first launch), messages
 ///     -AnistreamFold open           the title page's watched episodes, opened
+///     -AnistreamDay 2               the calendar opened on the day this many days after today,
+///                                   for a day with broadcasts: the fixtures' own day can have none
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
 public struct LaunchRoute: Equatable, Sendable {
     public var section: AppSection = .continue
@@ -31,6 +33,8 @@ public struct LaunchRoute: Equatable, Sendable {
     public var pane: String?
     public var sheet: String?
     public var fold: String?
+    /// Days after today the calendar opens on.
+    public var day: Int?
 
     public init() {}
 
@@ -49,6 +53,7 @@ public struct LaunchRoute: Equatable, Sendable {
         pane = value("-AnistreamPane")
         sheet = value("-AnistreamSheet")
         fold = value("-AnistreamFold")
+        day = value("-AnistreamDay").flatMap { Int($0) }
         library = value("-AnistreamLibrary").flatMap { name in
             LibraryModelOrder.segments.first { "\($0)" == name }
         }

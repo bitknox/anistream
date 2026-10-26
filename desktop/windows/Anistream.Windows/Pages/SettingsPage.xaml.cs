@@ -3,6 +3,7 @@ using Anistream.Engine.Core;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -86,9 +87,11 @@ public sealed partial class SettingsPage : Page
         guardClock.Tick += (_, _) => ShowGuard();
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
+        ctx.Tv.Changed += TvChanged;
         Unloaded += (_, _) =>
         {
             ctx.Batch -= Heard;
+            ctx.Tv.Changed -= TvChanged;
             guardClock.Stop();
         };
     }
@@ -180,8 +183,17 @@ public sealed partial class SettingsPage : Page
                     State.Wait();
                     break;
                 }
+                tvGroup = null;
                 foreach (var (heading, keys) in pane.Groups)
                 {
+                    // Play on TV's paired TVs, between Discord and Updates.
+                    if (pane.Name == "integrations" && heading == "Updates" && ctx.Tv.Available)
+                    {
+                        Cards.Children.Add(Heading("Play on TV"));
+                        tvGroup = new StackPanel { Spacing = 4 };
+                        ShowTvs(tvGroup);
+                        Cards.Children.Add(tvGroup);
+                    }
                     // Only where the engine was built with a presence to publish.
                     if (keys.Contains(K.Presence) && ctx.Known.Settings is { PresenceAvailable: false })
                         continue;
@@ -211,6 +223,52 @@ public sealed partial class SettingsPage : Page
                 break;
         }
         quiet = false;
+    }
+
+    StackPanel? tvGroup;
+    string? tvsDrawn;
+
+    void TvChanged()
+    {
+        if (tvGroup is { } group)
+            ShowTvs(group);
+    }
+
+    /// <summary>
+    /// The TVs this PC is paired with, each with what is known of it and Forget, then the way to
+    /// pair another, and the code a TV lists this PC with.
+    /// </summary>
+    void ShowTvs(StackPanel group)
+    {
+        var tv = ctx.Tv;
+        var now = DateTimeOffset.UtcNow;
+        var notes = tv.Paired.Select(p => (p, Note: TvWords.Note(p, tv.Connected == p.Fingerprint, now))).ToList();
+        // Drawn again only when what it says changed, so a click in it is not lost.
+        var key = string.Join("|", notes.Select(n => $"{n.p.Fingerprint},{n.p.Name},{n.Note}")) + tv.ShortFingerprint;
+        if (key == tvsDrawn && group.Children.Count > 0)
+            return;
+        tvsDrawn = key;
+        group.Children.Clear();
+        foreach (var (paired, note) in notes)
+        {
+            var forget = new Button { Content = "Forget" };
+            AutomationProperties.SetName(forget, $"Forget {paired.Name}");
+            forget.Click += async (_, _) =>
+            {
+                if (XamlRoot is { } root && await Ui.Confirm(root, $"Forget {paired.Name}?", "To play on it again, pair with it again.", "Forget"))
+                    await tv.Forget(paired.Fingerprint);
+            };
+            group.Children.Add(CardFrame(paired.Name, note, forget, "\uE7F4"));
+        }
+        var pair = new Button { Content = "Pair a TV…" };
+        pair.Click += (_, _) => tv.OpenPicker();
+        group.Children.Add(CardFrame(tv.Paired.Length == 0 ? "No TVs paired yet" : "Another TV", TvWords.PairNote, pair, tv.Paired.Length == 0 ? "\uE7F4" : "\uE710"));
+        if (tv.ShortFingerprint.Length > 0)
+        {
+            var foot = Ui.Text(TvWords.Footnote(tv.ShortFingerprint), "HazeCaptionStyle");
+            foot.Margin = new Thickness(2, 4, 0, 0);
+            group.Children.Add(foot);
+        }
     }
 
     static TextBlock Heading(string text) => new()

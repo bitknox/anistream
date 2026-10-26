@@ -108,6 +108,10 @@ extension PlayerReport {
             self = .fileLoaded
         case .endFile(let end):
             self = .ended(reason: PlayerEnd(mpv: end.reason))
+        case .log(let line):
+            // A shader hook libplacebo gave up on: the engine steps the upscaling down from it.
+            guard let hook = disabledHook(line.text) else { return nil }
+            self = .hookDisabled(hook: hook)
         default:
             return nil
         }
@@ -121,6 +125,12 @@ extension PlayerReport {
             scale: display.scale, refreshHz: display.refreshRate > 0 ? display.refreshRate : nil,
             edrHeadroom: display.edrPotential > 1 ? display.edrHeadroom : nil, compute: true)
     }
+}
+
+/// What libplacebo says when it gives up on a shader hook, as the engine's `HookDisabled` takes
+/// it: the line, trimmed, when it is one.
+func disabledHook(_ text: String) -> String? {
+    text.contains("hook") && text.contains("disabling") ? text.trimmingCharacters(in: .whitespacesAndNewlines) : nil
 }
 
 extension PlayerEnd {

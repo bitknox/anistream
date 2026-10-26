@@ -60,7 +60,6 @@ import tv.anistream.store.InviteLinks
 import tv.anistream.store.StoresModel
 import tv.anistream.store.runByLine
 import tv.anistream.tv.remote.QrCode
-import tv.anistream.tv.remote.localAddress
 import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
@@ -155,6 +154,7 @@ fun JoinStoreScreen(onDone: (joined: Boolean) -> Unit, cancelLabel: String = "Ca
 @Composable
 private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () -> Unit, cancelLabel: String) {
     val context = LocalContext.current
+    val pageHost = LocalPageHost.current
     val scope = rememberCoroutineScope()
     val answer by rememberUpdatedState(onAnswer)
     var address by remember { mutableStateOf<String?>(null) }
@@ -169,8 +169,8 @@ private fun Ways(onAnswer: (String) -> Unit, onType: () -> Unit, onCancel: () ->
         }
         val job = scope.launch {
             val port = withContext(Dispatchers.IO) { page.start() }
-            val local = localAddress(context)
-            address = if (port != null && local != null) "http://$local:$port/${page.path}" else null
+            val local = pageHost(context)
+            address = if (port != null && local != null) page.address(local, port) else null
             started = true
             if (port != null) {
                 delay(SignInPage.LIFETIME_NANOS / 1_000_000)

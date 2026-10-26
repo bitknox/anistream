@@ -30,6 +30,8 @@ public sealed partial class EpisodeItem : INotifyPropertyChanged
     public double Watched => Row.Watched;
     public bool Completed => Row.Completed;
     public double Dim => Row.Completed ? 0.6 : 1;
+    /// <summary>Play on TV in the episode's menu, once the engine gives a sender.</summary>
+    public Visibility OnTv => Ctx.Current.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
     public Visibility PartWay => Row.Watched is > 0 and < 1 && !Row.Completed ? Visibility.Visible : Visibility.Collapsed;
     public bool Playable => !Row.MetadataOnly;
     public string WatchedAction => Row.Completed ? "Mark as unwatched" : "Mark as watched";
@@ -267,6 +269,7 @@ public sealed partial class TitlePage : Page, IPageKeys
         TrailerItem.IsEnabled = entry.TrailerUrl is not null;
         // A party plays the episode the primary action would.
         PartyItem.IsEnabled = action is { Playable: true };
+        TvAction.Visibility = action is { Playable: true } && ctx.Tv.Available ? Visibility.Visible : Visibility.Collapsed;
 
         ShowSeasons(entry);
         ShowDetails(entry);
@@ -475,6 +478,21 @@ public sealed partial class TitlePage : Page, IPageKeys
     {
         if (ItemOf(sender) is { Playable: true } item)
             ctx.Play(id, item.Row.Number, fromStart: true);
+    }
+
+    /// <summary>An episode on the TV: from where it was left when it is the one being resumed.</summary>
+    void OnEpisodeOnTv(object sender, RoutedEventArgs e)
+    {
+        if (ItemOf(sender) is not { Playable: true } item || ctx.Known.Entry(id) is not { } entry)
+            return;
+        var from = action is { } a && a.Episode.ToString() == item.Row.Number ? a.Resume?.Position : null;
+        ctx.Tv.Offer(new TvPlay(id, entry.Title, item.Row.Number, from));
+    }
+
+    void OnPlayOnTv(object sender, RoutedEventArgs e)
+    {
+        if (action is { Playable: true } a && ctx.Known.Entry(id) is { } entry)
+            ctx.Tv.Offer(new TvPlay(id, entry.Title, a.Episode.ToString(), a.Resume?.Position));
     }
 
     void OnEpisodeWatched(object sender, RoutedEventArgs e)

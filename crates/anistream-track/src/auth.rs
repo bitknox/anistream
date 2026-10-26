@@ -154,56 +154,70 @@ pub fn redirect_uri(port: u16) -> String {
     format!("http://127.0.0.1:{port}/callback")
 }
 
-/// Wait for the browser to arrive at the callback, and return the authorization code.
+/// A bound loopback listener, waiting for the browser to come back.
 ///
-/// One request, read straight off the request line: the code is a query parameter, so unlike a
-/// fragment it reaches the server directly.
-pub async fn wait_for_code(port: u16) -> Result<String, AuthError> {
-    wait_for_code_from(port, "your tracker").await
+/// Binding is its own step so a caller can have the socket open *before* sending the user to the
+/// browser. Spawning a task that binds does not give that guarantee: the task may not have run by
+/// the time the browser opens, and a fast redirect (an already-authorised user is approved at once)
+/// would find the port closed.
+#[derive(Debug)]
+pub struct Loopback {
+    listener: tokio::net::TcpListener,
 }
 
-/// Wait for the callback, naming the service on the page it serves.
-///
-/// The service name is worth threading through: with more than one tracker configured, a page that
-/// says only "Signed in" leaves you wondering which one, and the browser tab is the last thing you
-/// see before closing it.
-pub async fn wait_for_code_from(port: u16, service: &str) -> Result<String, AuthError> {
+/// Bind the callback port on 127.0.0.1. Await this before opening the browser.
+pub async fn listen(port: u16) -> Result<Loopback, AuthError> {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
         .await
         .map_err(|source| AuthError::Listen { port, source })?;
+    Ok(Loopback { listener })
+}
 
-    let deadline = tokio::time::Instant::now() + CALLBACK_TIMEOUT;
-    loop {
-        let Ok(accepted) = tokio::time::timeout_at(deadline, listener.accept()).await else {
-            return Err(AuthError::TimedOut(CALLBACK_TIMEOUT));
-        };
-        let (mut socket, _) = accepted?;
+impl Loopback {
+    /// Wait for the browser to arrive at the callback, and return the authorization code.
+    ///
+    /// One request, read straight off the request line: the code is a query parameter, so unlike a
+    /// fragment it reaches the server directly.
+    ///
+    /// The service name is worth threading through: with more than one tracker configured, a page
+    /// that says only "Signed in" leaves you wondering which one, and the browser tab is the last
+    /// thing you see before closing it.
+    pub async fn wait_for_code(self, service: &str) -> Result<String, AuthError> {
+        let listener = self.listener;
+        let deadline = tokio::time::Instant::now() + CALLBACK_TIMEOUT;
+        loop {
+            let Ok(accepted) = tokio::time::timeout_at(deadline, listener.accept()).await
+            else {
+                return Err(AuthError::TimedOut(CALLBACK_TIMEOUT));
+            };
+            let (mut socket, _) = accepted?;
 
-        let mut reader = BufReader::new(&mut socket);
-        let mut request_line = String::new();
-        reader.read_line(&mut request_line).await?;
+            let mut reader = BufReader::new(&mut socket);
+            let mut request_line = String::new();
+            reader.read_line(&mut request_line).await?;
 
-        // A browser also asks for /favicon.ico; answering that as if it were the callback would
-        // end the flow with nothing.
-        let query = request_line
-            .split_whitespace()
-            .nth(1)
-            .and_then(|target| target.split_once('?').map(|(_, q)| q.to_owned()));
+            // A browser also asks for /favicon.ico; answering that as if it were the callback would
+            // end the flow with nothing.
+            let query = request_line
+                .split_whitespace()
+                .nth(1)
+                .and_then(|target| target.split_once('?').map(|(_, q)| q.to_owned()));
 
-        let Some(query) = query else {
+            let Some(query) = query else {
+                respond(&mut socket, WAITING_PAGE).await?;
+                continue;
+            };
+
+            if let Some(code) = extract_field(&query, "code") {
+                respond(&mut socket, &done_page(service)).await?;
+                return Ok(code);
+            }
+            if let Some(error) = extract_field(&query, "error") {
+                respond(&mut socket, DENIED_PAGE).await?;
+                return Err(AuthError::Denied(error));
+            }
             respond(&mut socket, WAITING_PAGE).await?;
-            continue;
-        };
-
-        if let Some(code) = extract_field(&query, "code") {
-            respond(&mut socket, &done_page(service)).await?;
-            return Ok(code);
         }
-        if let Some(error) = extract_field(&query, "error") {
-            respond(&mut socket, DENIED_PAGE).await?;
-            return Err(AuthError::Denied(error));
-        }
-        respond(&mut socket, WAITING_PAGE).await?;
     }
 }
 
@@ -402,7 +416,7 @@ fn urldecode(input: &str) -> String {
 
 /// The page shown once a code has been captured.
 ///
-/// Built rather than a constant so it can name the service — see `wait_for_code_from`.
+/// Built rather than a constant so it can name the service — see `Loopback::wait_for_code`.
 fn done_page(service: &str) -> String {
     format!(
         concat!(
@@ -597,29 +611,15 @@ mod tests {
         }
     }
 
-    /// Connect to the flow's listener once it is bound: the task that binds it may not have run
-    /// yet on a busy machine, and a fixed wait for it is a guess.
-    async fn connect(port: u16) -> tokio::net::TcpStream {
-        let until = std::time::Instant::now() + Duration::from_secs(5);
-        loop {
-            match tokio::net::TcpStream::connect(("127.0.0.1", port)).await {
-                Ok(socket) => return socket,
-                Err(_) if std::time::Instant::now() < until => {
-                    tokio::time::sleep(Duration::from_millis(20)).await;
-                }
-                Err(error) => panic!("the listener on {port} never came up: {error}"),
-            }
-        }
-    }
-
     #[tokio::test]
     async fn the_loopback_flow_captures_a_code_from_the_query_string() {
         // Drives the real listener over a real socket. Unlike a fragment, the code reaches the
         // server directly — which is why no in-browser relay is needed.
         let port = 45_941;
-        let waiting = tokio::spawn(wait_for_code(port));
+        let loopback = listen(port).await.unwrap();
+        let waiting = tokio::spawn(loopback.wait_for_code("your tracker"));
 
-        let mut socket = connect(port).await;
+        let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
         socket
             .write_all(b"GET /callback?code=live-code-abc HTTP/1.1\r\nhost: 127.0.0.1\r\n\r\n")
             .await
@@ -641,13 +641,14 @@ mod tests {
         // Browsers ask for /favicon.ico unprompted. Treating that as the callback would end
         // sign-in with nothing and look like a timeout.
         let port = 45_942;
-        let waiting = tokio::spawn(wait_for_code(port));
+        let loopback = listen(port).await.unwrap();
+        let waiting = tokio::spawn(loopback.wait_for_code("your tracker"));
 
-        let mut noise = connect(port).await;
+        let mut noise = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
         noise.write_all(b"GET /favicon.ico HTTP/1.1\r\nhost: 127.0.0.1\r\n\r\n").await.unwrap();
         drop(noise);
 
-        let mut socket = connect(port).await;
+        let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
         socket
             .write_all(b"GET /callback?code=after-noise HTTP/1.1\r\nhost: 127.0.0.1\r\n\r\n")
             .await
@@ -665,9 +666,10 @@ mod tests {
     async fn a_declined_authorisation_is_reported_as_a_decision() {
         // Pressing "Deny" must read as a choice, not as a broken flow.
         let port = 45_943;
-        let waiting = tokio::spawn(wait_for_code(port));
+        let loopback = listen(port).await.unwrap();
+        let waiting = tokio::spawn(loopback.wait_for_code("your tracker"));
 
-        let mut socket = connect(port).await;
+        let mut socket = tokio::net::TcpStream::connect(("127.0.0.1", port)).await.unwrap();
         socket
             .write_all(b"GET /callback?error=access_denied HTTP/1.1\r\nhost: 127.0.0.1\r\n\r\n")
             .await
@@ -686,6 +688,6 @@ mod tests {
         // collision with another program a real possibility worth naming.
         let port = 45_944;
         let _held = tokio::net::TcpListener::bind(("127.0.0.1", port)).await.unwrap();
-        assert!(matches!(wait_for_code(port).await, Err(AuthError::Listen { .. })));
+        assert!(matches!(listen(port).await, Err(AuthError::Listen { .. })));
     }
 }

@@ -803,10 +803,19 @@ async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
         }
     };
 
-    // Start listening *before* opening the browser, or a fast redirect could arrive before the
-    // socket exists.
-    let listening = matches!(flow, auth::Flow::Loopback)
-        .then(|| tokio::spawn(auth::wait_for_code_from(port, "AniList")));
+    // Bind *before* opening the browser, or a fast redirect could arrive before the socket
+    // exists. Only the wait is spawned: a spawned bind may not have run by the time the browser opens.
+    let listening = if matches!(flow, auth::Flow::Loopback) {
+        match auth::listen(port).await {
+            Ok(loopback) => Some(tokio::spawn(loopback.wait_for_code("AniList"))),
+            Err(e) => {
+                let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in failed: {e}"))));
+                return;
+            }
+        }
+    } else {
+        None
+    };
 
     if let Err(e) = host.open_url(&url) {
         let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
@@ -939,8 +948,16 @@ async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let redirect = auth::redirect_uri(auth.redirect_port);
     let url = mal::authorize_url(&client_id, &pkce, &redirect);
 
-    // Listening starts before the browser opens, or a fast redirect arrives before the socket does.
-    let waiting = tokio::spawn(auth::wait_for_code_from(auth.redirect_port, "MyAnimeList"));
+    // Bind before the browser opens, or a fast redirect arrives before the socket does. Only the
+    // wait is spawned: a spawned bind may not have run by then.
+    let loopback = match auth::listen(auth.redirect_port).await {
+        Ok(loopback) => loopback,
+        Err(e) => {
+            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+            return;
+        }
+    };
+    let waiting = tokio::spawn(loopback.wait_for_code("MyAnimeList"));
     if let Err(e) = host.open_url(&url) {
         let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");

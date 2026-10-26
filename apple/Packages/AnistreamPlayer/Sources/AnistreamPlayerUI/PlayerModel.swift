@@ -52,6 +52,8 @@ public final class PlayerModel {
     @ObservationIgnored let nowPlaying = NowPlaying()
     @ObservationIgnored private let awake = KeepAwake()
     @ObservationIgnored private let lowPower: @MainActor () -> Bool
+    /// What the model reads as now, and waits on.
+    @ObservationIgnored private let time: Timekeeper
     /// The frame under the scrubbing finger.
     public let preview: SeekPreview
 
@@ -66,20 +68,25 @@ public final class PlayerModel {
     }
 
     /// `send` hands the engine a command; `backend` makes the mpv for each player opened, and
-    /// `preview` the hidden one for seek previews, which are off while `lowPower` says so.
+    /// `preview` the hidden one for seek previews, which are off while `lowPower` says so. `time`
+    /// is the wall clock but in tests, which move their own.
     public init(
         send: @escaping Send,
         backend: (@MainActor () -> any PlayerBackend)? = nil,
         preview: @escaping @MainActor () -> any PlayerBackend = { SeekPreview.mpv() },
         lowPower: @escaping @MainActor () -> Bool = { ProcessInfo.processInfo.isLowPowerModeEnabled },
-        copy: @escaping @MainActor (String) -> Void = { PlayerModel.pasteboard($0) }
+        copy: @escaping @MainActor (String) -> Void = { PlayerModel.pasteboard($0) },
+        time: Timekeeper = .wall
     ) {
         self.send = send
+        self.time = time
         self.copy = copy
         self.makeBackend = backend
         self.preview = SeekPreview(make: preview)
         self.lowPower = lowPower
         nowPlaying.model = self
+        clock = time.now()
+        lastInput = clock
     }
 
     /// The app's mpv: audio and video as the platform plays them, keeping the shaders libplacebo
@@ -301,7 +308,7 @@ public final class PlayerModel {
         case .playerUi(let playback, let ui):
             apply(ui, for: playback)
         case .playbackStaged(let id, let title, let episode, let episodeTitle, _):
-            since = .now
+            since = time.now()
             closedByViewer = false
             stagedAhead = true
             failure = nil
@@ -347,7 +354,7 @@ public final class PlayerModel {
             took(stats, for: playback)
         case .clipboard(let text):
             copy(text)
-            statsCopiedAt = .now
+            statsCopiedAt = time.now()
         default:
             break
         }
@@ -395,7 +402,7 @@ public final class PlayerModel {
             return
         }
         enter(playback)
-        let now = ContinuousClock.now
+        let now = time.now()
         switch ui {
         case .starting(let id, let title, let episode, let episodeTitle, let coverUrl, let bannerUrl):
             if since == nil || self.playback.map({ playback > $0 }) == true { since = now }
@@ -485,7 +492,7 @@ public final class PlayerModel {
         // The engine's player starts shut for a playback of its own: open it again, waiting.
         if statsShown {
             stats = nil
-            statsWaitingSince = .now
+            statsWaitingSince = time.now()
             control(.stats(true))
         }
         if rollPending {
@@ -499,8 +506,8 @@ public final class PlayerModel {
     private func present() {
         guard !isPresented else { return }
         isPresented = true
-        clock = .now
-        lastInput = .now
+        clock = time.now()
+        lastInput = time.now()
         startTicker()
     }
 
@@ -689,8 +696,8 @@ public final class PlayerModel {
         // mpv is gone; the screen waits a moment for how the playback ended.
         layer = nil
         verdictPending = true
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: PlayerTiming.verdictWait)
+        Task { @MainActor [weak self, time] in
+            try? await time.sleep(PlayerTiming.verdictWait)
             guard let self, self.verdictPending else { return }
             self.verdictPending = false
             self.dismiss()
@@ -842,7 +849,7 @@ public final class PlayerModel {
             let waiting = value.bool ?? false
             if waiting, bufferingSince == nil { Self.note(.info, "buffering at \(Int(playhead)) s") }
             if !waiting, let since = bufferingSince { Self.note(.info, "buffered after \(AppLog.ms(since: since)) ms") }
-            bufferingSince = waiting ? (bufferingSince ?? .now) : nil
+            bufferingSince = waiting ? (bufferingSince ?? time.now()) : nil
         case "seeking":
             if value.bool == false {
                 position = playhead
@@ -1070,16 +1077,17 @@ public final class PlayerModel {
 
     private func startTicker() {
         ticker?.cancel()
-        ticker = Task { @MainActor [weak self] in
+        ticker = Task { @MainActor [weak self, time] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(250))
+                try? await time.sleep(.milliseconds(250))
                 self?.tick()
             }
         }
     }
 
-    private func tick() {
-        let now = ContinuousClock.now
+    /// The ticker's look at the clock, which a test that moves its clock takes at once.
+    func tick() {
+        let now = time.now()
         clock = now
         if let note = undo, now - note.since >= PlayerTiming.undoPaused { undo = nil }
         if let alert, now - alert.since >= PlayerTiming.alertStays { self.alert = nil }
@@ -1111,16 +1119,16 @@ public final class PlayerModel {
         jobs.last { $0.activity == "starting ep \(episode)" }?.note
     }
 
-    /// The tests' buffering, since `since`.
-    func bufferingSinceForTests(_ since: ContinuousClock.Instant) {
-        bufferingSince = since
-        clock = .now
+    /// The tests' buffering, as though mpv had waited on its cache this long.
+    func bufferingForTests(_ waited: Duration) {
+        bufferingSince = time.now() - waited
+        clock = time.now()
     }
 
     #if FIXTURES
     /// The shots' buffering: as though mpv had waited on its cache for two seconds.
     func bufferForShot() {
-        bufferingSince = .now - .seconds(2)
+        bufferingSince = time.now() - .seconds(2)
     }
     #endif
 
@@ -1232,7 +1240,7 @@ public final class PlayerModel {
 
     /// A tap, pointer movement or key: the controls come up.
     public func poke() {
-        lastInput = .now
+        lastInput = time.now()
         clock = lastInput
     }
 
@@ -1248,7 +1256,7 @@ public final class PlayerModel {
         statsShown = shown
         stats = nil
         statsCopiedAt = nil
-        statsWaitingSince = shown ? .now : nil
+        statsWaitingSince = shown ? time.now() : nil
         Self.note(.info, "stats for nerds \(shown ? "up" : "away")")
         guard isPresented else { return }
         control(.stats(shown))
@@ -1286,7 +1294,7 @@ public final class PlayerModel {
             statsWaitingSince = nil
         } else if statsWaitingSince == nil {
             // A new file, before it opens: the dashes again, after a moment.
-            statsWaitingSince = .now
+            statsWaitingSince = time.now()
         }
     }
 
@@ -1296,9 +1304,9 @@ public final class PlayerModel {
     func stageStats(_ stats: PlayerStats, waited: Duration? = nil, copied: Bool = false) {
         statsShown = true
         self.stats = stats
-        statsWaitingSince = waited.map { .now - $0 }
-        statsCopiedAt = copied ? .now + .seconds(60) : nil
-        clock = .now
+        statsWaitingSince = waited.map { time.now() - $0 }
+        statsCopiedAt = copied ? time.now() + .seconds(60) : nil
+        clock = time.now()
     }
     #endif
 
@@ -1320,8 +1328,8 @@ public final class PlayerModel {
 
     /// A tap on the video while the controls are up: they go now.
     public func hideControls() {
-        lastInput = .now - .seconds(60)
-        clock = .now
+        lastInput = time.now() - .seconds(60)
+        clock = time.now()
     }
 
     public func hold(_ reason: String, _ on: Bool) {
@@ -1436,12 +1444,12 @@ public final class PlayerModel {
     /// Say `text` over the video, as the engine's notices are: what the app says there of a
     /// watch party.
     public func say(_ text: String, kind: NoticeKind = .info) {
-        alert = PlayerAlert(text: text, kind: kind, since: ContinuousClock.now)
+        alert = PlayerAlert(text: text, kind: kind, since: time.now())
     }
 
     private func trackFileFailed(_ kind: Track.Kind) {
         let text = kind == .audio ? "Couldn't load that audio file" : "Couldn't load that subtitle file"
-        alert = PlayerAlert(text: text, kind: .alert, since: ContinuousClock.now)
+        alert = PlayerAlert(text: text, kind: .alert, since: time.now())
     }
 
     public func takeSkip() {

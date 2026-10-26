@@ -84,7 +84,22 @@ class FocusMemory {
     }
 
     internal fun focused(key: String) {
-        last = key
+        if (!held) last = key
+    }
+
+    // While the screen comes back from a page over it: on the way, focus can fall to a list's
+    // first row (Settings' rows restore to it), which would otherwise be remembered in place of
+    // the row the page was opened from.
+    private var held = false
+
+    /** Keep [last] as it is until the screen puts focus back. */
+    internal fun hold() {
+        held = true
+    }
+
+    /** Remember where focus goes again. */
+    internal fun release() {
+        held = false
     }
 
     /** Forget where focus was, so the screen starts at its first focus. */
@@ -183,8 +198,17 @@ fun EnterFocus(memory: FocusMemory, entry: Any = Unit) {
         // A frame, so the items have attached their requesters; a few more while lists lay out.
         repeat(FOCUS_ATTEMPTS) {
             androidx.compose.runtime.withFrameNanos { }
-            if (memory.enter()) return@LaunchedEffect
+            if (memory.enter()) {
+                // A list that restores focus itself (Settings' rows) sends focus coming into it to
+                // its own first row once its saved row is gone with the screen. Focus is inside it
+                // now, so the remembered row is a move within it, which the list lets be.
+                androidx.compose.runtime.withFrameNanos { }
+                memory.restore()
+                memory.release()
+                return@LaunchedEffect
+            }
         }
+        memory.release()
     }
 }
 

@@ -102,6 +102,43 @@ static class Motion
         board.Begin();
     }
 
+    /// <summary>
+    /// An element's height eased from one value to another on the standard token, then left to its
+    /// content again: a dialog moving to a taller or shorter step. With animation effects off it
+    /// simply takes the new height.
+    /// </summary>
+    public static void Height(FrameworkElement element, double from, double to)
+    {
+        if (running.Remove(element, out var was))
+            was.Stop();
+        element.Height = double.NaN;
+        if (!Enabled || Math.Abs(from - to) < 1)
+            return;
+        var animation = new DoubleAnimation
+        {
+            From = from,
+            To = to,
+            Duration = Standard,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            EnableDependentAnimation = true,
+        };
+        Storyboard.SetTarget(animation, element);
+        Storyboard.SetTargetProperty(animation, "Height");
+        var board = new Storyboard();
+        board.Children.Add(animation);
+        board.Completed += (_, _) =>
+        {
+            if (running.TryGetValue(element, out var current) && current == board)
+            {
+                running.Remove(element);
+                board.Stop();
+                element.Height = double.NaN;
+            }
+        };
+        running[element] = board;
+        board.Begin();
+    }
+
     /// <summary>An opacity that eases to each new value on the quick token: the row dim after marking watched.</summary>
     public static void QuickOpacity(UIElement element) =>
         element.OpacityTransition = new ScalarTransition { Duration = Quick };

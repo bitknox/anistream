@@ -211,6 +211,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SettingsPage {
     }
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
+    header.pack_start(&crate::window::tv_session_button(ctx));
     let scroll = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&list)
@@ -394,6 +395,12 @@ impl Inner {
                 let group = adw::PreferencesGroup::builder().title("Updates").build();
                 self.update_rows(&group);
                 page.add(&group);
+            }
+            // The TVs paired for Play on TV lead Integrations, as on the Mac.
+            "integrations" => {
+                if let Some(group) = crate::tv::paired::group(&self.ctx) {
+                    page.add(&group);
+                }
             }
             _ => {}
         }

@@ -606,7 +606,8 @@ mpv, in mpv's own vocabulary:
   sends `PlayerCommand.playNext`.
 - `Command.playerReport(playback:report:)` is what the player says: `.fileLoaded`, each observed
   property by name with its value as JSON, `.ended(reason:)`, `.closed`, the display and the
-  power it runs on. A report is taken in at once, not queued behind other commands.
+  power it runs on, and `.hookDisabled(hook:)` for a shader hook libplacebo gave up on, which
+  steps the upscaling down. A report is taken in at once, not queued behind other commands.
 - What the viewer does in the player goes back as `Command.player(_:)`: `.takeSkip`,
   `.undoSkip(to:)`, `.playNext`, `.cancelNext`, `.choose(_:)`, `.stallSwitch`, `.stallWait`,
   `.nightMode(_:)`, `.upscaling(_:)`, and the transport controls the terminal's keys send.
@@ -636,11 +637,13 @@ playback. What the Simulator cannot show, and a device has to:
 
 ## Not yet
 
-- The player: Sync subtitles, and telling the engine of a shader hook
-  libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's
-  Picture and sound sheet also holds Speed, for want of a speed button on its board.
+- The player: Sync subtitles. The iPhone's Picture and sound sheet also holds Speed, for want of
+  a speed button on its board.
+- Play on TV's controls outside the app on iPhone and iPad. The Mac gives the TV it drives Now
+  Playing and the media keys (`TVNowPlaying`); iOS lists only an app that plays audio itself in
+  Now Playing, so there it would take a Live Activity of the TV's own.
 - Settings' "Show titles in Spotlight" switch, which waits for the design: Settings has no
   Privacy pane. The indexer already honours `anistream.showInSpotlight` in the app's defaults,
   on unless set off. The Library's lists are indexed as they are shown, not asked for at launch.
 - Settings, Providers, Plugin Stores and Downloads: what the engine cannot set yet (E8's settings,
-  E9's fields, `DisablePlugin`) is drawn as the boards have it and disabled.
+  E9's fields, `DisablePlugin`) is left out until it can, rather than drawn and disabled.

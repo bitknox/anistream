@@ -145,12 +145,10 @@ pub async fn login(
         let url = anistream_track::auth::authorize_url(client_id, flow, auth.redirect_port)?;
         match flow {
             anistream_track::auth::Flow::Loopback => {
-                // Listen before opening the browser: a fast redirect could otherwise arrive
-                // before the socket exists.
-                let waiting = tokio::spawn(anistream_track::auth::wait_for_code_from(
-                    auth.redirect_port,
-                    "AniList",
-                ));
+                // Bind before opening the browser: a fast redirect could otherwise arrive
+                // before the socket exists. Only the wait is spawned.
+                let loopback = anistream_track::auth::listen(auth.redirect_port).await?;
+                let waiting = tokio::spawn(loopback.wait_for_code("AniList"));
                 println!("Opening your browser to authorise anistream…");
                 println!("  {url}");
                 if let Err(e) = open::that_detached(&url) {
@@ -320,11 +318,10 @@ async fn login_mal(config: &Config, paths: &Paths, http: &HttpClient) -> Result<
     let redirect = anistream_track::auth::redirect_uri(auth.redirect_port);
     let url = mal::authorize_url(client_id, &pkce, &redirect);
 
-    // Listen before opening the browser, or a fast redirect arrives before the socket exists.
-    let waiting = tokio::spawn(anistream_track::auth::wait_for_code_from(
-        auth.redirect_port,
-        "MyAnimeList",
-    ));
+    // Bind before opening the browser, or a fast redirect arrives before the socket exists.
+    // Only the wait is spawned.
+    let loopback = anistream_track::auth::listen(auth.redirect_port).await?;
+    let waiting = tokio::spawn(loopback.wait_for_code("MyAnimeList"));
     println!("Opening your browser to authorise anistream on MyAnimeList…");
     println!("  {url}");
     if let Err(e) = open::that_detached(&url) {

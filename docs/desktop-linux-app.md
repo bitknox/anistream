@@ -65,6 +65,23 @@ Later added:
 - An AppImage in a folder the app cannot write to saves its update to Downloads and says so,
   with Show in Files.
 
+Play on TV added:
+
+- Play on TV from a title's header, an episode's menu and the player's top bar: a sheet that
+  finds TVs with Avahi (or takes a typed address), pairs with the six digits the TV shows, and
+  turns into the remote once the TV plays. A code that ran out locks the boxes and offers Get
+  a New Code. The engine's sender owns the protocol; `src/tv/` only draws it.
+- The remote: the episode, the playhead, Back and Forward 10 Seconds, Next Episode, Skip,
+  subtitle and audio tracks, TV Volume and search on the TV. Space plays and pauses, Left and
+  Right step 10 seconds.
+- The sidebar's foot says which TV is driven ("Playing on Living room"), and while the link is
+  down what became of it: Reconnecting, not found, or pair again. Media keys and GNOME's media
+  controls drive the TV while nothing plays on this computer.
+- Settings, Integrations: the paired TVs with Forget, and Pair a TV.
+- Problems show as a dot beside plain text, and a screen reader hears a wrong or expired code,
+  a lost TV and no TVs found. The shots run against fake TVs on loopback
+  (`anistream-remote`'s `fake`); nothing leaves the machine.
+
 The engine runs in-process on a tokio runtime of its own. The window only queues commands, and
 the engine's events reach GTK's main loop over a channel, where `hub.rs` hands them out.
 

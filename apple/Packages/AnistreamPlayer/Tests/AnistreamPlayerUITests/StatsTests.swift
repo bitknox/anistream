@@ -49,12 +49,17 @@ struct StatsTests {
         rig.model.toggleStats()
         // Nothing for a moment.
         #expect(rig.model.statsPanel == nil)
-        try await until("the dashes", timeout: .seconds(3)) { rig.model.statsPanel != nil }
+        rig.step(PlayerTiming.statsDashes - .milliseconds(50))
+        #expect(rig.model.statsPanel == nil)
+        rig.step(.milliseconds(50))
         let dashes = try #require(rig.model.statsPanel)
         #expect(!dashes.waitingLine)
         #expect(dashes.rows.allSatisfy { $0.value == "–" && !$0.warn })
         #expect(dashes.rows.first?.label == "Video")
-        try await until("the waiting line", timeout: .seconds(6)) { rig.model.statsPanel?.waitingLine == true }
+        rig.step(PlayerTiming.statsWaitingLine - PlayerTiming.statsDashes - .milliseconds(50))
+        #expect(rig.model.statsPanel?.waitingLine == false)
+        rig.step(.milliseconds(50))
+        #expect(rig.model.statsPanel?.waitingLine == true)
 
         // The figures arrive: the rows replace the dashes, and the waiting is over.
         let playing = playerStatsFixture(state: .playing)
@@ -96,7 +101,10 @@ struct StatsTests {
         rig.model.apply(.clipboard(text: "Stats for nerds\nVideo: 1920 × 1080"))
         #expect(rig.copied == ["Stats for nerds\nVideo: 1920 × 1080"])
         #expect(rig.model.statsCopiedAt != nil)
-        try await until("Copied to go", timeout: .seconds(4)) { rig.model.statsCopiedAt == nil }
+        rig.step(PlayerTiming.statsCopied - .milliseconds(50))
+        #expect(rig.model.statsCopiedAt != nil)
+        rig.step(.milliseconds(50))
+        #expect(rig.model.statsCopiedAt == nil)
     }
 
     @Test func thePanelIsRememberedForTheNextPlaybackAndNotItsFigures() async throws {
@@ -133,7 +141,7 @@ struct StatsTests {
     @Test func whileTheRowsAreUpTheBufferRowIsTheOnlyAmberMark() async throws {
         let rig = Rig()
         try await rig.opened()
-        rig.model.bufferingSinceForTests(.now - .seconds(2))
+        rig.model.bufferingForTests(.seconds(2))
         #expect(rig.model.showsBufferingLine)
         rig.model.toggleStats()
         rig.model.apply(.playerStats(playback: 1, stats: playerStatsFixture(state: .buffering)))

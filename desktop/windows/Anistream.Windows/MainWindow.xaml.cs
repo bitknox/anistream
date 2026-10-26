@@ -91,7 +91,7 @@ public sealed partial class MainWindow : Window
             if (updater.State.Step != UpdateStep.Ready && readyToast == toastShown && Toast.IsOpen)
                 Toast.IsOpen = false;
         };
-        ctx = new Ctx { Session = session, Art = art, Window = this, Options = options, Updater = updater };
+        ctx = new Ctx { Session = session, Art = art, Window = this, Options = options, Updater = updater, Tv = tv };
         Ctx.Current = ctx;
         session.Batch += batch =>
         {
@@ -127,6 +127,7 @@ public sealed partial class MainWindow : Window
             return true;
         };
         session.Start();
+        StartTv(engine);
         // The network path, said to the engine now and on every change; it answers with one
         // online or offline state (Event.Connectivity) the pages show.
         network = new NetworkWatch(c => ctx.Send(c), ui, options.Offline);
@@ -334,6 +335,8 @@ public sealed partial class MainWindow : Window
 #if ANISTREAM_TESTING
         if (options.Show?.StartsWith("party-", StringComparison.Ordinal) == true)
             RehearseParty(options.Show);
+        if (options.Show?.StartsWith("tv-", StringComparison.Ordinal) == true)
+            RehearseTv(options.Show);
         // --show=devicecode: Trakt's sign-in code, for a screenshot.
         if (options.Show == "devicecode")
             ui.TryEnqueue(DispatcherQueuePriority.Low, async () =>
@@ -1064,6 +1067,7 @@ public sealed partial class MainWindow : Window
         toasts?.Stop();
         tray?.Dispose();
         network.Dispose();
+        StopTv();
         taskbar?.Clear();
         player?.Shutdown();
         session.Dispose();

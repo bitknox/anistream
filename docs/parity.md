@@ -73,7 +73,7 @@ episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are m
 | Subtitle and audio tracks | yes | yes | yes | yes | yes | yes | yes (7) | yes (8) |
 | Media keys and now playing | yes | yes | yes | yes | yes | yes | yes (9) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
-| Watch parties | dev (10) | dev (10) | dev (10) | n/a | n/a | yes | dev (10) | yes |
+| Watch parties | dev (10) | dev (10) | dev (10) | n/a | n/a | yes | yes | yes |
 | Discord presence | yes | n/a | n/a | n/a | n/a | yes | yes | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
@@ -96,7 +96,7 @@ episode, "Ep 10 · Dub · 16:30" (`Pages/CalendarPage.xaml.cs`). Only dubs are m
    has MPRIS (`mpris.rs`).
 10. The engine holds the party and drives the app's own player (`party` feature, on in these
     apps' builds, every Apple slice included), and the commands and events are in the bindings;
-    no screen starts a party yet. The settings rows (on, server, room) are the terminal's: in an
+    only Linux has the screens to start and join one so far (`desktop/linux/src/party/`). The settings rows (on, server, room) are the terminal's: in an
     app the on switch does nothing, as apps start parties when asked. See
     `docs/party-protocol.md`.
 
@@ -165,8 +165,8 @@ On Mac and iPad a queued download has Start Now beside it, and on iPhone a Start
 
 | Feature | Mac | iPhone | iPad | Android | TV | Windows | Linux | Terminal |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Play on TV (send) | yes | yes | yes | yes | receives | dev | dev | dev (1) |
-| Remote for the TV | yes | yes | yes | yes | pairs (2) | dev | dev | dev (1) |
+| Play on TV (send) | yes | yes | yes | yes | receives | yes | yes | dev (1) |
+| Remote for the TV | yes | yes | yes | yes | pairs (2) | yes | yes | dev (1) |
 | Arrow-key TV interface | n/a | n/a | n/a | n/a | yes | n/a | n/a | n/a |
 
 1. `anistream-remote` exists but neither the binary nor the TUI depends on it.
@@ -175,7 +175,11 @@ On Mac and iPad a queued download has Start Now beside it, and on iPhone a Start
    (docs/remote-protocol.md), not as a `FrontIntent`.
 
 The paired-TV list (`TVsGroup`) is in the Mac's Integrations pane, the iPad's Playback pane and
-the iPhone's settings sheet, so every Apple device can see and forget any TV it paired.
+the iPhone's settings sheet, so every Apple device can see and forget any TV it paired. On Linux
+it is in Settings > Integrations (`src/tv/paired.rs`), and Avahi finds TVs over D-Bus
+(`src/tv/avahi.rs`); with no Avahi running, a typed address still reaches a TV. Windows lists them
+in Settings > Integrations, finds TVs with Windows' own DNS-SD (a device watcher on
+`_anistream._tcp`), and hands the player's episode over from the player's top bar.
 
 ## Plugins and stores
 

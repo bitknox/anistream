@@ -447,6 +447,13 @@ struct PhoneCalendar: View {
             }
         }
         .task { if store.calendar.list.state == .idle { store.loadCalendar() } }
+        .onAppear {
+            // The day the launch route names, once.
+            guard navigator.calendarOpensOn != 0 else { return }
+            let today = Calendar.current.startOfDay(for: .now)
+            chosen = Calendar.current.date(byAdding: .day, value: navigator.calendarOpensOn, to: today) ?? today
+            navigator.calendarOpensOn = 0
+        }
     }
 
     private func dayHeading(_ day: Date) -> String {

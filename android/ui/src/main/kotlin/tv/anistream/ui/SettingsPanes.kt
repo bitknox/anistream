@@ -58,6 +58,7 @@ import tv.anistream.store.ComingModel
 import tv.anistream.store.DevicePreferences
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
+import tv.anistream.store.TorrentWords
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.store.Wording
 import tv.anistream.store.updates
@@ -571,11 +572,11 @@ internal fun SourcesPane(actions: AppActions) {
         )
         SettingsGroup(
             title = "Torrents",
-            footer = if (torrents) checkNote(view?.torrent?.onFailure, view?.torrent?.protection) else "Off by default. Turning this on asks how to protect your connection first.",
+            footer = if (torrents) checkNote(view?.torrent?.onFailure, view?.torrent?.protection) else TorrentWords.OFF_NOTE,
             rows = listOfNotNull(
                 @Composable { place: Place -> TorrentSourceRow(place, torrents) { sheet = TorrentSheetMode.TurnOn } },
                 if (torrents) @Composable { place: Place ->
-                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { picked = null; sheet = TorrentSheetMode.Change })
+                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { picked = null; sheet = TorrentSheetMode.Index })
                 } else null,
                 if (torrents) @Composable { place: Place ->
                     MenuRow(
@@ -590,6 +591,16 @@ internal fun SourcesPane(actions: AppActions) {
                             sheet = TorrentSheetMode.Change
                         }
                     }
+                } else null,
+                // Beside the choice, once a proxy is saved: its details, applied only once they pass the check.
+                if (torrents && view?.torrent?.protection == TorrentProtection.PROXY) @Composable { place: Place ->
+                    val proxy = view?.torrent?.proxy
+                    InfoRow(
+                        place,
+                        "Edit proxy…",
+                        proxy?.let { TorrentWords.proxyLine(it.host, it.port.toString(), it.user.orEmpty()) },
+                        onClick = { picked = null; sheet = TorrentSheetMode.EditProxy },
+                    )
                 } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
@@ -617,18 +628,8 @@ internal fun SourcesPane(actions: AppActions) {
     }
 }
 
-/** What the connection check does, said wherever torrents are on. */
-internal const val CHECK_NOTE =
-    "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, " +
-        "and pauses torrents if that check fails. Your VPN or proxy is what protects you."
-
 /** The check's note for what a failed check does, and that none runs with no protection. */
-internal fun checkNote(onFailure: FailedCheck?, protection: TorrentProtection?): String = when {
-    protection == TorrentProtection.NONE -> "With no protection, anistream does not check the connection."
-    onFailure == FailedCheck.WARN -> CHECK_NOTE.replace("pauses torrents if that check fails", "warns you if that check fails")
-    onFailure == FailedCheck.STOP -> CHECK_NOTE.replace("pauses torrents if that check fails", "stops torrents if that check fails")
-    else -> CHECK_NOTE
-}
+internal fun checkNote(onFailure: FailedCheck?, protection: TorrentProtection?): String = TorrentWords.checkNote(onFailure, protection)
 
 /** The torrent source's switch. Turning it off is a switch; turning it on asks for protection first. */
 @Composable
@@ -685,11 +686,7 @@ private fun FailedCheckRow(place: Place) {
 }
 
 /** "SOCKS5 proxy", "VPN on this device", "No protection". */
-internal fun protectionWords(protection: TorrentProtection?): String = when (protection) {
-    TorrentProtection.PROXY -> "SOCKS5 proxy"
-    TorrentProtection.DEVICE, null -> "VPN on this device"
-    TorrentProtection.NONE -> "No protection"
-}
+internal fun protectionWords(protection: TorrentProtection?): String = TorrentWords.protection(protection)
 
 /** The connection check's last word, with its dot, where traffic leaves from, and Check now. */
 @Composable
@@ -725,29 +722,8 @@ private fun LastCheckRow(place: Place) {
     }
 }
 
-/** The check's verdict as the row says it: its status, the line under it, and its dot's colour. */
-internal data class GuardWords(val status: String, val note: String?, val problem: Boolean, val passed: Boolean)
-
-internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.currentTimeMillis(), onFailure: FailedCheck? = null): GuardWords {
-    // What happened to torrents on a failed check, as "If a check fails" has it.
-    val then = when (onFailure) {
-        FailedCheck.WARN -> "Torrents keep running."
-        FailedCheck.STOP -> "Torrents are stopped."
-        else -> "Torrents are paused."
-    }
-    val ago = check?.let {
-        val seconds = ((now - it.at) / 1000).coerceAtLeast(0)
-        if (seconds < 60) "$seconds s ago" else AccountWords.agoWords(seconds)
-    }
-    return when (val view = check?.view) {
-        is GuardView.Protected -> GuardWords("Passed" + (ago?.let { " · $it" } ?: ""), "Leaving through ${view.exit}", problem = false, passed = true)
-        GuardView.Checking -> GuardWords("Checking", "Checking where torrent traffic leaves from", problem = false, passed = false)
-        GuardView.Leaking -> GuardWords("Failed", "Traffic left outside the protection. $then", problem = true, passed = false)
-        GuardView.Unreachable -> GuardWords("Failed", "The check could not be made. $then", problem = true, passed = false)
-        GuardView.Unprotected -> GuardWords("Unprotected", "No protection is set", problem = false, passed = false)
-        null -> GuardWords("Not checked yet", null, problem = false, passed = false)
-    }
-}
+internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.currentTimeMillis(), onFailure: FailedCheck? = null): TorrentWords.Check =
+    TorrentWords.check(check, now, onFailure)
 
 // Accounts
 

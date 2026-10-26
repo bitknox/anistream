@@ -77,6 +77,42 @@ struct TVRemoteTests {
         #expect(!store.tv.open(URL(string: "https://example.com")!))
     }
 
+    @Test func aCodeUsedUpLocksUntilANewOneIsAskedFor() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = try await started(root: root)
+        defer { store.shutdown() }
+        let tv = store.tv
+
+        tv.openPicker()
+        tv.startBrowsing()
+        defer { tv.stopBrowsing() }
+        try await waitFor { tv.rows.count == 2 }
+        tv.choose(try #require(tv.rows.first { $0.name == "Living room" }))
+        try await waitFor { tv.pairing?.working == false }
+        let fake = try #require(fakes(of: store).first)
+        let wrong = try #require(fake.shownCode()) == "000000" ? "111111" : "000000"
+
+        // The TV takes three wrong codes, then has none.
+        for _ in 0..<4 where tv.pairing?.expired == false {
+            tv.submit(code: wrong)
+            try await waitFor { tv.pairing?.working == false && tv.pairing?.problem != nil }
+        }
+        #expect(tv.pairing?.expired == true)
+        #expect(tv.pairing?.problem == "Code expired")
+
+        // Nothing more is tried with it.
+        tv.submit(code: wrong)
+        #expect(tv.pairing?.working == false)
+
+        tv.requestCodeAgain()
+        #expect(tv.pairing?.expired == false)
+        try await waitFor { tv.pairing?.working == false }
+        tv.submit(code: try #require(fake.shownCode()))
+        try await waitFor { tv.sheet == .remote }
+        #expect(tv.paired.map(\.name) == ["Living room"])
+    }
+
     /// The made-up TVs the store's browse finds.
     func fakes(of store: AppStore) -> [FfiFakeTv] {
         (store.tv.browser as? FixtureTVBrowser)?.tvs ?? []

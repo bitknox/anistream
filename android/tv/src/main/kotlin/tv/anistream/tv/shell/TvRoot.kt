@@ -66,6 +66,7 @@ import tv.anistream.tv.screens.TitleScreen
 import tv.anistream.tv.screens.UpdateScreen
 import tv.anistream.tv.signin.JoinStoreScreen
 import tv.anistream.tv.signin.SignInScreen
+import tv.anistream.tv.signin.TorrentScreen
 import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.ui.LocalReducedMotion
 import tv.anistream.tv.ui.NoticeView
@@ -270,6 +271,7 @@ private fun Browse(nav: TvNavigator, play: (AnilistId, UInt) -> Unit, playFromSt
                                 )
                                 is Page.SignIn -> SignInScreen(target.tracker, onDone = { nav.pop() })
                                 is Page.JoinStore -> JoinStoreScreen(onDone = { nav.pop() })
+                                is Page.Torrents -> TorrentScreen(target.mode, target.start, onDone = { nav.pop() })
                                 is Page.Update -> UpdateScreen(target.memory, onDone = { nav.pop() })
                                 Destination.Continue -> ContinueScreen(nav, nav.memory(target as Destination), onOpen = nav::openTitle, onPlay = play)
                                 Destination.Search -> SearchScreen(nav, nav.memory(Destination.Search), onOpen = nav::openTitle)
