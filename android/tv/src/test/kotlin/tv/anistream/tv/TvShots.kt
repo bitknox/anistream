@@ -9,25 +9,27 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.isRoot
-import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.requestFocus
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.pressKey
+import androidx.compose.ui.test.requestFocus
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
@@ -48,31 +50,33 @@ import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
-import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
-import tv.anistream.engine.model.Ending
+import tv.anistream.engine.ffi.playerStatsFixture
 import tv.anistream.engine.model.ContentFor
 import tv.anistream.engine.model.ContentList
+import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
-import tv.anistream.engine.model.ProtectionView
-import tv.anistream.engine.model.ProxyView
-import tv.anistream.engine.model.SettingKey
-import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.engine.model.MenuChoices
+import tv.anistream.engine.model.MenuSource
 import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
+import tv.anistream.engine.model.ProtectionView
+import tv.anistream.engine.model.ProxyView
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.SkipKind
 import tv.anistream.engine.model.StatsFixture
-import tv.anistream.engine.ffi.playerStatsFixture
+import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.player.MpvEvent
 import tv.anistream.player.MpvNative
 import tv.anistream.player.MpvValue
@@ -91,6 +95,8 @@ import tv.anistream.tv.remote.PairRequestDialog
 import tv.anistream.tv.shell.Destination
 import tv.anistream.tv.shell.TvNavigator
 import tv.anistream.tv.shell.TvRoot
+import tv.anistream.tv.signin.LocalPageHost
+import tv.anistream.tv.signin.SignInPage
 import tv.anistream.tv.ui.OFFLINE_LINE
 import tv.anistream.tv.ui.TV_ART_BUDGET
 import tv.anistream.tv.ui.TvArtDecoder
@@ -282,11 +288,20 @@ class TvShots {
 
     /** Settings › Add a plugin store, from Settings: the QR code for a phone, and Type the link. */
     @Test
-    fun join_store() = shoot("tv-join-store", start = Destination.Settings) {
+    fun join_store() = shoot("tv-join-store", start = Destination.Settings, pageHost = "192.0.2.10") {
         compose.runOnUiThread { nav.openJoinStore() }
         compose.mainClock.advanceTimeBy(3_000)
         compose.waitForIdle()
         assertEquals("Type the link", focusedText())
+    }
+
+    /** Kitsu's sign-in: the QR code for its page, and the whole address with the page's key. */
+    @Test
+    fun sign_in_kitsu() = shoot("tv-sign-in-kitsu", start = Destination.Settings, pageHost = "192.0.2.10") {
+        compose.runOnUiThread { nav.openSignIn("kitsu") }
+        compose.mainClock.advanceTimeBy(3_000)
+        compose.waitForIdle()
+        compose.onNodeWithText("#k=", substring = true).assertExists()
     }
 
     /** Settings › Sources, torrents off: the switch, and that turning on asks for protection first. */
@@ -349,10 +364,53 @@ class TvShots {
         // Drawn as dots, and marked a password, so TalkBack does not read it out.
         fields[4].assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Password))
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-type-it.png")
-        // Done: the details, whole, as rows, and Turn on.
+        // Done: the details, whole, as rows, and focus back on Type it.
         compose.onNodeWithText("Done").performSemanticsAction(SemanticsActions.OnClick)
         settle()
+        assertEquals("Type it", focusedText())
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-ready.png")
+
+        // Turn on checks the new proxy first, the other buttons locked and focus kept on it.
+        repeat(4) { if (focusedText() != "Turn on") press(Key.DirectionLeft) }
+        assertEquals("Turn on", focusedText())
+        press(Key.DirectionCenter)
+        compose.mainClock.advanceTimeBy(1_000)
+        settle()
+        assertEquals("Turn on", focusedText())
+        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onNodeWithText("Type it").assertIsNotEnabled()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-turn-on-checking.png")
+
+        // Failed: nothing saved, torrents still off, and focus where it was.
+        compose.runOnUiThread { shot.apply(listOf(Event.ProtectionChecked(GuardView.Leaking))) }
+        settle()
+        assertEquals("Turn on", focusedText())
+        compose.onNodeWithText("Torrents are still off", substring = true).assertExists()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-turn-on-failed.png")
+    }
+
+    /**
+     * Protect with, from Settings: its panel, then the proxy picked, which asks for its details on
+     * a page behind a real QR code with its address; after 10 minutes the code expires.
+     */
+    @Test
+    fun torrents_change_protection() = shoot(null, section = "Sources", torrents = GuardView.Protected("203.0.113.24"), pageHost = "192.0.2.10") {
+        press(Key.DirectionRight)
+        downTo("Protect with")
+        press(Key.DirectionCenter)
+        settle()
+        captureScreenRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-protect-with-panel.png")
+        press(Key.DirectionUp)
+        assertTrue(focusedTexts().any { it.startsWith("SOCKS5 proxy") })
+        press(Key.DirectionCenter)
+        settle()
+        compose.onNodeWithText("Protect torrent traffic").assertExists()
+        compose.onNodeWithText("http://192.0.2.10:", substring = true).assertExists()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-change.png")
+        compose.mainClock.advanceTimeBy(SignInPage.LIFETIME_NANOS / 1_000_000 + 1_000)
+        settle()
+        compose.onNodeWithText("Code expired").assertExists()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-code-expired.png")
     }
 
     /** Torrents on, the check passed 12 s ago: its water dot, where traffic leaves from, Check now. */
@@ -440,20 +498,63 @@ class TvShots {
         downTo("Torrent index")
         press(Key.DirectionCenter)
         settle()
+        assertEquals("Save", focusedText())
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-index.png")
         compose.onNodeWithText("Cancel").performSemanticsAction(SemanticsActions.OnClick)
         settle()
         assertTrue(focusedText().startsWith("Torrent index"))
     }
 
-    /** Edit proxy's Change: the page for the proxy alone, here on a TV no phone can reach. */
+    /** Edit proxy's Type it: the proxy's fields, and focus back on Type it once they are done. */
+    @Test
+    fun torrents_edit_proxy_type_it() = shoot(null, section = "Sources", torrents = GuardView.Protected("203.0.113.24"), proxy = true) {
+        press(Key.DirectionRight)
+        downTo("Edit proxy…")
+        press(Key.DirectionCenter)
+        settle()
+        compose.onNodeWithText("Type it").performSemanticsAction(SemanticsActions.OnClick)
+        settle()
+        // Named whatever they hold, the filled ones as the empty.
+        compose.onNodeWithContentDescription("Proxy host").assertExists()
+        compose.onNodeWithContentDescription("Password, if asked").assertExists()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-type-it.png")
+        compose.onNodeWithText("Done").performSemanticsAction(SemanticsActions.OnClick)
+        settle()
+        assertEquals("Type it", focusedText())
+    }
+
+    /** Offline, Edit proxy's check cannot reach the proxy: Unreachable, and the saved proxy kept. */
+    @Test
+    fun torrents_edit_proxy_offline() = shoot(null, section = "Sources", torrents = GuardView.Protected("203.0.113.24"), proxy = true, offline = true) {
+        press(Key.DirectionRight)
+        downTo("Edit proxy…")
+        press(Key.DirectionCenter)
+        settle()
+        press(Key.DirectionCenter)
+        // A slow network: half a minute in, still checking.
+        compose.mainClock.advanceTimeBy(30_000)
+        settle()
+        compose.onNodeWithText("Checking the proxy").assertExists()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-slow.png")
+        compose.runOnUiThread { shot.apply(listOf(Event.ProtectionChecked(GuardView.Unreachable))) }
+        settle()
+        assertEquals("Save", focusedText())
+        compose.onNodeWithText("Not saved", substring = true).assertExists()
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-unreachable.png")
+    }
+
+    /** Edit proxy's Use a phone: the page for the proxy alone, here on a TV no phone can reach, focus on Type it. */
     @Test
     fun torrents_edit_proxy_page() = shoot(null, section = "Sources", torrents = GuardView.Protected("203.0.113.24"), proxy = true) {
         press(Key.DirectionRight)
         downTo("Edit proxy…")
         press(Key.DirectionCenter)
         settle()
-        compose.onNodeWithText("Change").performSemanticsAction(SemanticsActions.OnClick)
+        press(Key.DirectionRight)
+        assertEquals("Use a phone", focusedText())
+        press(Key.DirectionCenter)
         settle()
+        assertEquals("Type it", focusedText())
         compose.onNodeWithText("Scan with your phone, then change the proxy on the page that opens.").assertExists()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-torrents-edit-proxy-page.png")
     }
@@ -475,12 +576,70 @@ class TvShots {
 
     /** A torrent that stalled mid-episode: the stall card, Switch source focused. */
     @Test
-    fun player_torrent_stalled() = playerShot("tv-player-torrent-stalled") { model ->
-        time = CHROME_HIDE + 1_000
-        compose.runOnUiThread { model.apply(Event.PlayerUi(1u, PlayerUi.Stall(12uL))) }
-        compose.mainClock.advanceTimeBy(1_000)
-        compose.waitForIdle()
+    fun player_torrent_stalled() {
+        playerShot(null) { model ->
+            time = CHROME_HIDE + 1_000
+            compose.runOnUiThread { model.apply(Event.PlayerUi(1u, PlayerUi.Stall(12uL))) }
+            compose.mainClock.advanceTimeBy(1_000)
+            compose.waitForIdle()
+            assertEquals("Switch source", focusedText())
+        }
+        // The chrome goes and the card keeps focus, drawn so.
+        // A second at a time, so the chrome's fade runs its frames.
+        repeat(3) {
+            compose.mainClock.advanceTimeBy(1_000)
+            compose.waitForIdle()
+        }
+        compose.onNodeWithText("Episodes").assertDoesNotExist()
         assertEquals("Switch source", focusedText())
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-player-torrent-stalled.png")
+    }
+
+    /** The Source panel with torrents among the sources, the one playing marked. */
+    @Test
+    fun player_torrent_sources() = playerShot("tv-player-torrent-sources") { model ->
+        compose.runOnUiThread {
+            model.apply(
+                Event.PlayerUi(
+                    1u,
+                    PlayerUi.Menus(
+                        episodes = emptyList(),
+                        sources = listOf(
+                            MenuSource("0", "torrent", "1080p · torrent · 1", current = true),
+                            MenuSource("1", "torrent", "1080p · torrent · 2"),
+                            MenuSource("2", "alpha", "720p · HLS", health = "failed the last 3 times · 12 min ago"),
+                        ),
+                        translation = Translation.SUB,
+                        upscaling = MenuChoices("off"),
+                        toneMapping = null,
+                        nightMode = false,
+                    ),
+                ),
+            )
+        }
+        repeat(6) { if (focusedText() != "Source") press(Key.DirectionRight) }
+        assertEquals("Source", focusedText())
+        press(Key.DirectionCenter)
+        settle()
+    }
+
+    /** A torrent that never started: the engine's reason, and another source focused. */
+    @Test
+    fun player_torrent_failed() {
+        AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
+        val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
+        val model = PlayerModel(send = {}, backend = { ScriptedMpv() }, scope = scope, now = { time }, hwdec = "no")
+        compose.runOnUiThread {
+            model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
+            model.apply(Event.Toast(Notice(NoticeKind.ALERT, "no playable stream: waiting for metadata: deadline has elapsed", null)))
+            model.apply(Event.PlaybackEnded(false, Ending.Failed, false))
+        }
+        compose.setContent {
+            TvTheme { TvRoot(store, model, TvNavigator(), play = { _, _ -> }) }
+        }
+        settle()
+        assertEquals("Choose another source", focusedText())
+        compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/tv-player-torrent-failed.png")
     }
 
     /** A playback that never played: why, as the engine said it, and another source focused. */
@@ -616,6 +775,8 @@ class TvShots {
         torrents: GuardView? = null,
         /** With torrents on, behind a saved SOCKS5 proxy rather than the VPN on this device. */
         proxy: Boolean = false,
+        /** The TV's address on the network, so a QR page has one: none, as the JVM has no network, when null. */
+        pageHost: String? = null,
         then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
@@ -639,7 +800,15 @@ class TvShots {
         }
         val nav = nav
         compose.setContent {
-            TvTheme { TvRoot(store, player, nav, play = { _, _ -> }, firstLaunch = firstLaunch) }
+            TvTheme {
+                if (pageHost == null) {
+                    TvRoot(store, player, nav, play = { _, _ -> }, firstLaunch = firstLaunch)
+                } else {
+                    CompositionLocalProvider(LocalPageHost provides { _ -> pageHost }) {
+                        TvRoot(store, player, nav, play = { _, _ -> }, firstLaunch = firstLaunch)
+                    }
+                }
+            }
         }
         compose.waitForIdle()
         store.apply(events)

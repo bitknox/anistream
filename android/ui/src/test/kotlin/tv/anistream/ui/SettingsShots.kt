@@ -2,12 +2,15 @@ package tv.anistream.ui
 
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -20,9 +23,9 @@ import java.time.Clock
 import java.time.ZoneId
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -42,30 +45,31 @@ import tv.anistream.engine.model.DownloadState
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
-import tv.anistream.engine.model.ProtectionView
-import tv.anistream.engine.model.ProxyView
-import tv.anistream.engine.model.SettingKey
-import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.InvitePreview
 import tv.anistream.engine.model.InvitedStore
+import tv.anistream.engine.model.ProtectionView
 import tv.anistream.engine.model.ProviderOrigin
+import tv.anistream.engine.model.ProviderRow
+import tv.anistream.engine.model.ProviderUpdate
+import tv.anistream.engine.model.ProxyView
+import tv.anistream.engine.model.Release
+import tv.anistream.engine.model.ReleaseAsset
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.StorePluginRow
 import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.StoreRow
 import tv.anistream.engine.model.StoreState
-import tv.anistream.engine.model.ProviderRow
-import tv.anistream.engine.model.ProviderUpdate
-import tv.anistream.store.AppClock
-import tv.anistream.engine.model.Release
-import tv.anistream.engine.model.ReleaseAsset
+import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.UpdateStatus
 import tv.anistream.store.ApkFacts
+import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
+import tv.anistream.store.HAS_TESTING_ENGINE
+import tv.anistream.store.TorrentWords
 import tv.anistream.store.UpdateFiles
 import tv.anistream.store.UpdateHost
 import tv.anistream.store.UpdateOffer
 import tv.anistream.store.UpdateState
-import tv.anistream.store.HAS_TESTING_ENGINE
 import tv.anistream.testkit.FixtureArt
 import tv.anistream.testkit.Scene
 
@@ -164,6 +168,69 @@ class SettingsShots {
         thenTap = "Save",
         after = { it.apply(listOf(Event.ProtectionChecked(GuardView.Leaking))) },
     )
+
+    /** Edit proxy passed its check: saved, the sheet closed, and the snackbar says so. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_edit_proxy_saved() = shoot(
+        "phone-torrents-edit-proxy-saved",
+        settingsRoute(SettingsPane.Sources),
+        then = ::proxyOn,
+        tap = "Edit proxy…",
+        thenTap = "Save",
+        after = { it.apply(listOf(Event.ProtectionChecked(GuardView.Protected("203.0.113.24")))) },
+        check = { compose.onNodeWithText(TorrentWords.SAID_PROXY).assertExists() },
+    )
+
+    /** The Torrent index row's sheet: the index alone, under the row's own name. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_index() = shoot("phone-torrents-index", settingsRoute(SettingsPane.Sources), then = ::proxyOn, tap = "Torrent index")
+
+    /** Turning torrents on behind a new proxy: checked first, the sheet locked while it runs. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_turn_on_checking() = shoot(
+        "phone-torrents-turn-on-checking",
+        settingsRoute(SettingsPane.Sources),
+        then = ::indexOnly,
+        tap = "Torrent source",
+        fill = ::proxyTyped,
+        thenTap = "Turn on",
+        check = {
+            compose.onNodeWithText(TorrentWords.CHECKING_PROXY).assertExists()
+            compose.onNodeWithText("Host").assertIsNotEnabled()
+        },
+    )
+
+    /** The check failed: torrents still off, nothing saved, and why. */
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_turn_on_failed() = shoot(
+        "phone-torrents-turn-on-failed",
+        settingsRoute(SettingsPane.Sources),
+        then = ::indexOnly,
+        tap = "Torrent source",
+        fill = ::proxyTyped,
+        thenTap = "Turn on",
+        after = { it.apply(listOf(Event.ProtectionChecked(GuardView.Unreachable))) },
+        check = { compose.onNodeWithText("Torrents are still off", substring = true).assertExists() },
+    )
+
+    /** SOCKS5 proxy picked in the sheet, and its host and port typed. */
+    private fun proxyTyped() {
+        compose.onNodeWithText("SOCKS5 proxy").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Host").performTextInput("proxy.example")
+        compose.onNodeWithText("Port").performTextInput("1080")
+        compose.waitForIdle()
+    }
+
+    /** Torrents still off, with an index already set. */
+    private fun indexOnly(store: AppStore) {
+        val view = store.settings.view.value ?: return
+        store.apply(listOf(Event.Settings(view.copy(sources = view.sources.copy(index = "https://index.example/rss?q=")))))
+    }
 
     /** Torrents on from an index, behind a saved SOCKS5 proxy. */
     private fun proxyOn(store: AppStore) {
@@ -386,6 +453,10 @@ class SettingsShots {
         thenTap: String? = null,
         /** What the engine says once [thenTap] is tapped. */
         after: (AppStore) -> Unit = {},
+        /** What to fill in, in the sheet [tap] opened, before [thenTap]. */
+        fill: () -> Unit = {},
+        /** What must be on screen before the capture. */
+        check: () -> Unit = {},
         then: (AppStore) -> Unit = {},
     ) {
         val recorded = Scene.named(scene)
@@ -417,6 +488,7 @@ class SettingsShots {
         if (longPress) nodes[tapIndex].performTouchInput { longClick() } else nodes[tapIndex].performClick()
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
+        fill()
         if (thenTap != null) {
             compose.onAllNodesWithText(thenTap)[0].performClick()
             compose.mainClock.advanceTimeBy(1_000)
@@ -425,6 +497,7 @@ class SettingsShots {
             compose.mainClock.advanceTimeBy(1_000)
             compose.waitForIdle()
         }
+        check()
         if (dismiss) {
             compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
             compose.mainClock.advanceTimeBy(1_000)

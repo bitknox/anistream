@@ -562,7 +562,7 @@ internal fun SourcesPane(actions: AppActions) {
             rows = listOfNotNull(
                 @Composable { place: Place -> TorrentSourceRow(place, torrents) { sheet = TorrentSheetMode.TurnOn } },
                 if (torrents) @Composable { place: Place ->
-                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { picked = null; sheet = TorrentSheetMode.Change })
+                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { picked = null; sheet = TorrentSheetMode.Index })
                 } else null,
                 if (torrents) @Composable { place: Place ->
                     MenuRow(

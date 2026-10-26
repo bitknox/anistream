@@ -458,7 +458,7 @@ rows on the right (x 412 to 912). Moving through sections shows their rows; Righ
   for a problem, an update or off. A provider's page holds its version, hosts and response time.
   Then the phone's Torrents group: "Torrent source" (a switch; turning it on opens TVTorrents
   first), and while on "Torrent index", "Protect with" (a radio panel; another choice opens
-  TVTorrents on it), "Edit proxy…" while a proxy is set (its address and user name), "Last check" (its status with a vermilion dot for a failed check or a water
+  TVTorrents on it), "Torrent index" opens a screen of that name for the index alone, "Edit proxy…" while a proxy is set (its address and user name), "Last check" (its status with a vermilion dot for a failed check or a water
   dot for a pass, where traffic leaves from, Center checks now) and "If a check fails" (Warn only
   is confirmed first). Under it the check's note, or "Off by default. Turning this on asks how to
   protect your connection first." While on, a Seeding group: seed after watching, seed for at
@@ -504,6 +504,12 @@ TVSignIn, which offers the ways that tracker allows, best first:
   with a one-time path) and the steps: "Scan with your phone. Open AniList there, allow anistream,
   then paste the code on this page." The page takes the code (or Kitsu's username and password) and
   the TV signs in. The page stops when TVSignIn closes or after 10 minutes.
+- Every such page (sign-in, Join store, torrents) is sealed: the address ends in `#k=` and a
+  one-time key, which a browser never sends. The page encrypts what is typed with that key
+  (AES-256-GCM, in the page itself, as plain HTTP has no `crypto.subtle`) and the TV decrypts it,
+  so nothing typed crosses the network readable. The address under the QR code is shown whole,
+  key included. Opened without its key, the page says "Scan the code again"; a form not sealed
+  with the key is turned away.
 - Two ways side by side at most: the left column the phone, the right the code. First focus: the
   phone's button when there is one, else nothing to press (the code waits), with focus on "Get a
   new code".
@@ -530,9 +536,19 @@ Turning torrents on (TVTorrents), from Settings › Sources:
 - On the right, while the details are not whole, the sign-in page's QR: the page takes the torrent
   index, and for a proxy its host, port, user name and password. It takes one answer and closes,
   or closes after 10 minutes, and is reachable only on the local network while it is open. Once
-  the details are whole they show as rows, with "Change" for a new page.
-- Then the check's note, the amber "Turn on" (or "Save"), "Type it" (the same fields on the system
-  keyboard, as pills) and "Cancel". Back leaves the screen and changes nothing.
+  the details are whole they show as rows, with "Use a phone" for a new page. Focus then moves
+  to "Type it", which takes the place of the button pressed, and comes back to it after Done or
+  Back from the typing.
+- Then one status place, held at one height whatever it says so the buttons never move: the
+  check's note, "Checking the proxy" with its spinner, or the vermilion dot and why. TalkBack says
+  each as it comes. Under it the amber "Turn on" (or "Save"), "Type it" (the same fields on the
+  system keyboard, as pills, each named for TalkBack whatever it holds) and "Cancel", all 56 high.
+  Back leaves the screen and changes nothing.
+- A new or changed proxy is checked before anything is saved, turning torrents on included: the
+  amber button keeps focus, the others are locked, and a failed check saves nothing ("Torrents
+  are still off. …" or "Not saved. …, so the saved protection stays."). A verdict counts only for
+  the exact details it checked. A saved change says so in a notice: "Torrents are on", "Torrent
+  protection saved", "Torrent index saved", "Proxy saved".
 - "Edit proxy…" opens the same screen on the saved proxy: "Edit proxy", the line that torrents keep
   the saved proxy until the new one passes the connection check, the proxy as a row, and the QR
   page for the proxy alone, filled in but for the password (left empty, the saved one is kept).

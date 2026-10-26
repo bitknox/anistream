@@ -33,14 +33,36 @@ object TorrentWords {
     /** Under the password, on Edit proxy. */
     const val PASSWORD_KEPT = "Leave the password empty to keep the saved one."
 
-    /** While Edit proxy's check runs. */
+    /** What the torrent index is, where it is asked for. */
+    const val INDEX_ABOUT = "The RSS search address anistream asks for torrents. anistream hosts no content."
+
+    /** Said once torrents' settings are saved: turned on, the protection, the index, an edited proxy. */
+    const val SAID_ON = "Torrents are on"
+    const val SAID_PROTECTION = "Torrent protection saved"
+    const val SAID_INDEX = "Torrent index saved"
+    const val SAID_PROXY = "Proxy saved"
+
+    /** While a proxy's check runs, before it is saved. */
     const val CHECKING_PROXY = "Checking the proxy"
 
-    /** Why an edited proxy was not saved, from the check's [view] of it. */
-    fun editFailed(view: GuardView): String = when (view) {
-        GuardView.Leaking -> "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays."
-        else -> "Not saved. The check could not be made through this proxy, so the saved proxy stays."
+    /** What a form was doing with the proxy it checked: what stays when the check fails. */
+    enum class Kept { EditedProxy, Protection, TurningOn }
+
+    /** Why a proxy was not saved, from the check's [view] of it, and what [kept] says stays. */
+    fun proxyFailed(view: GuardView, kept: Kept): String {
+        val why = when (view) {
+            GuardView.Leaking -> "Torrent traffic left outside this proxy"
+            else -> "The check could not be made through this proxy"
+        }
+        return when (kept) {
+            Kept.EditedProxy -> "Not saved. $why, so the saved proxy stays."
+            Kept.Protection -> "Not saved. $why, so the saved protection stays."
+            Kept.TurningOn -> "Torrents are still off. $why."
+        }
     }
+
+    /** Why an edited proxy was not saved, from the check's [view] of it. */
+    fun editFailed(view: GuardView): String = proxyFailed(view, Kept.EditedProxy)
 
     /** "proxy.example:1080 · as mika": where the proxy is, and who it lets in. */
     fun proxyLine(host: String, port: String, user: String): String =
@@ -52,7 +74,7 @@ object TorrentWords {
         return when {
             trimmed.isEmpty() -> "Torrents need an index address."
             !indexOk(trimmed) -> "Use an http or https address."
-            else -> "The RSS search address anistream asks for torrents. anistream ships none."
+            else -> INDEX_ABOUT
         }
     }
 
@@ -113,7 +135,7 @@ object TorrentWords {
         }
         return when (val view = check?.view) {
             is GuardView.Protected -> Check("Passed" + (ago?.let { " · $it" } ?: ""), "Leaving through ${view.exit}", problem = false, passed = true)
-            GuardView.Checking -> Check("Checking", "Checking where torrent traffic leaves from", problem = false, passed = false)
+            GuardView.Checking -> Check("Checking", "Where torrent traffic leaves from", problem = false, passed = false)
             GuardView.Leaking -> Check("Failed", "Traffic left outside the protection. $then", problem = true, passed = false)
             GuardView.Unreachable -> Check("Failed", "The check could not be made. $then", problem = true, passed = false)
             GuardView.Unprotected -> Check("Unprotected", "No protection is set", problem = false, passed = false)

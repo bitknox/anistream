@@ -163,6 +163,9 @@ fun SettingsScreen(nav: TvNavigator, memory: FocusMemory, start: SettingsSection
         // the section's first row, never to whichever row happens to sit level with the section.
         val firstRow = remember { FocusRequester() }
         val first = Modifier.focusRequester(firstRow)
+        // What the providers answer and where torrent traffic leaves from, as the phone's pane asks
+        // on opening: once as Sources opens, not each time its rows scroll back into view.
+        if (section == SettingsSection.Sources) LaunchedEffect(Unit) { store.checkProviders() }
         ScrollRule(spec) {
             LazyColumn(
                 state = rememberLazyListState(),
@@ -325,8 +328,6 @@ private fun change(store: AppStore, key: SettingKey, change: SettingChange?, swi
 
 private fun LazyListScope.sources(nav: TvNavigator, store: AppStore, view: SettingsView?, memory: FocusMemory, first: Modifier) {
     item(key = "sources", contentType = "list") {
-        // What the providers answer and where torrent traffic leaves from, as the phone's pane asks on opening.
-        LaunchedEffect(Unit) { store.checkProviders() }
         val rows by store.providers.rows.collectAsStateWithLifecycle()
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (rows.isEmpty()) {
@@ -392,7 +393,7 @@ private fun LazyListScope.torrents(nav: TvNavigator, store: AppStore, view: Sett
             if (on) {
                 TvListRow(
                     "Torrent index",
-                    onClick = { nav.openTorrents(TorrentMode.Change) },
+                    onClick = { nav.openTorrents(TorrentMode.Index) },
                     supporting = view?.sources?.index ?: "None set",
                     modifier = Modifier.remembered(memory, "torrent/index"),
                 )

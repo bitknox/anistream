@@ -135,6 +135,8 @@ fun TvPlayerScreen(
     video: @Composable (Modifier) -> Unit = { VideoSurface(model, it) },
 ) {
     val root = remember { FocusRequester() }
+    // The corner card's button (Play now, or Switch source), which keeps focus as the chrome goes.
+    val cardFocus = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
     val barFocus = remember { FocusRequester() }
     val episodesFocus = remember { FocusRequester() }
@@ -218,12 +220,18 @@ fun TvPlayerScreen(
     val layerButtons = starting && (
         model.failure != null && !model.choosingSource || model.starting?.offersChoice(model.clock) == true
         )
-    LaunchedEffect(chrome, wanted, onRoot, layerButtons) {
+    // A corner card up: the chrome going hands focus to it, not to the root behind it.
+    val cardUp = !starting && panel == null && (
+        model.corner == PlayerModel.Corner.Stall && model.stall != null && !model.choosingSource ||
+            model.corner == PlayerModel.Corner.UpNext && model.upNext != null
+        )
+    LaunchedEffect(chrome, wanted, onRoot, layerButtons, cardUp) {
         if (!chrome) {
             if (layerButtons) return@LaunchedEffect
+            val home = if (cardUp) cardFocus else root
             repeat(3) {
                 androidx.compose.runtime.withFrameNanos { }
-                if (root.tryFocus()) return@LaunchedEffect
+                if (home.tryFocus()) return@LaunchedEffect
             }
             return@LaunchedEffect
         }
@@ -370,13 +378,13 @@ fun TvPlayerScreen(
         var lastNext by remember { mutableStateOf(upNext?.next) }
         if (upNext != null) lastNext = upNext.next
         Fading(upNext != null, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 27.dp)) {
-            lastNext?.let { UpNextCard(model, it, Modifier) }
+            lastNext?.let { UpNextCard(model, it, cardFocus, Modifier) }
         }
         val stall = model.stall?.takeIf { !starting && model.corner == PlayerModel.Corner.Stall && panel == null && !model.choosingSource }
         var lastStall by remember { mutableStateOf(stall) }
         if (stall != null) lastStall = stall
         Fading(stall != null, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 27.dp)) {
-            lastStall?.let { StallPrompt(model, it) }
+            lastStall?.let { StallPrompt(model, it, cardFocus) }
         }
         // A card going away hands focus back to the root, so the D-pad still works the player.
         LaunchedEffect(stall != null, upNext != null) {
@@ -768,11 +776,12 @@ private fun Fading(visible: Boolean, modifier: Modifier, content: @Composable ()
  * waiting, and Switch source focused beside Keep waiting. Back keeps waiting.
  */
 @Composable
-private fun StallPrompt(model: PlayerModel, stall: tv.anistream.player.StallCard) {
-    val switch = remember { FocusRequester() }
-    LaunchedEffect(Unit) { switch.focusSoon() }
+private fun StallPrompt(model: PlayerModel, stall: tv.anistream.player.StallCard, switch: FocusRequester) {
     Column(
         Modifier
+            // It comes up in place of the hidden root, which holds focus: taken through the card,
+            // so Switch source is drawn focused, not only focused.
+            .entryFocus(switch)
             .width(UP_NEXT_WIDTH)
             .background(ObiSilk.RaisedHigh, RoundedCornerShape(16.dp))
             .padding(16.dp),
@@ -792,8 +801,7 @@ private fun StallPrompt(model: PlayerModel, stall: tv.anistream.player.StallCard
  * blurred, as it is not watched yet), "Plays in 8 s" over the bar, Play now focused and Cancel.
  */
 @Composable
-private fun UpNextCard(model: PlayerModel, next: NextEpisode, modifier: Modifier) {
-    val play = remember { FocusRequester() }
+private fun UpNextCard(model: PlayerModel, next: NextEpisode, play: FocusRequester, modifier: Modifier) {
     LaunchedEffect(next.number) {
         repeat(5) {
             androidx.compose.runtime.withFrameNanos { }

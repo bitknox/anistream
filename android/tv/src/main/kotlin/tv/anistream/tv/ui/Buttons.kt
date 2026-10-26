@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.Button
@@ -30,18 +31,22 @@ private const val FOCUSED_SCALE = 1.05f
 /** Disabled is 38 % opacity, still focusable where it explains itself, with the ring only. */
 private const val DISABLED = 0.38f
 
-/** A tonal button, 48 high: #343A57 with a silk label, silk with a ground label when focused. */
+/**
+ * A tonal button, 48 high: #343A57 with a silk label, silk with a ground label when focused.
+ * [height] 56 sets it level with the amber action in the same row, its label on the same line.
+ */
 @Composable
 fun TonalButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    height: Dp = 48.dp,
     content: @Composable RowScope.() -> Unit,
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = 48.dp),
+        modifier = modifier.heightIn(min = height),
         enabled = enabled,
         scale = ButtonDefaults.scale(focusedScale = FOCUSED_SCALE),
         glow = ButtonDefaults.glow(),
@@ -57,7 +62,7 @@ fun TonalButton(
         border = ButtonDefaults.border(
             focusedDisabledBorder = Border(BorderStroke(2.dp, ObiSilk.Silk), inset = 2.dp, shape = CircleShape),
         ),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp + (height - 48.dp) / 2),
     ) {
         ButtonContent(icon, content)
     }

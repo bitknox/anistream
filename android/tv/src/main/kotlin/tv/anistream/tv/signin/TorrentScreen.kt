@@ -1,11 +1,13 @@
 // TVTorrents: turning torrents on, or changing what protects them, on the TV. The phone's sheet on
 // the D-pad: Protect with as radio rows, no protection confirmed before it is picked, and the
 // torrent index (with a SOCKS5 proxy's address when that is the choice) from the TV's own page on
-// a phone, or typed with the system keyboard as the last resort. Edit proxy is the same form for a
-// saved proxy, filled in, and saves only once the connection check passes through the new one.
+// a phone, or typed with the system keyboard as the last resort. A new or changed proxy is saved
+// only once the connection check passes through it, and a failed check saves nothing. The torrent
+// index has a screen of its own, and Edit proxy is the proxy's form, filled in.
 
 package tv.anistream.tv.signin
 
+import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,21 +36,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.MaterialTheme
@@ -61,6 +69,7 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
+import tv.anistream.engine.model.ProxyView
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
@@ -74,16 +83,26 @@ import tv.anistream.tv.ui.AmberButton
 import tv.anistream.tv.ui.ButtonLabel
 import tv.anistream.tv.ui.Canvas
 import tv.anistream.tv.ui.LocalAppStore
+import tv.anistream.tv.ui.LocalNotices
 import tv.anistream.tv.ui.TonalButton
 import tv.anistream.tv.ui.TvInfoRow
 import tv.anistream.tv.ui.TvListRow
 import tv.anistream.tv.ui.focusSoon
 
-/** Why the screen is open: torrents turning on, their protection or index changing, or the saved proxy's details. */
-enum class TorrentMode { TurnOn, Change, EditProxy }
+/**
+ * Why the screen is open: torrents turning on, their protection changing, the index changing, or
+ * the saved proxy's details.
+ */
+enum class TorrentMode { TurnOn, Change, Index, EditProxy }
 
 /** The protections, in the phone's order. */
 private val Protections = listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE)
+
+/** Where the QR page's address is reached on this network: this TV's own address, or none. */
+val LocalPageHost = staticCompositionLocalOf<(Context) -> String?> { ::localAddress }
+
+/** "Use a phone": asks for the details again from a new QR page. */
+private const val USE_PHONE = "Use a phone"
 
 /**
  * TVTorrents, until Turn on (or Save) or Back, then [onDone]. [start] is the protection picked in
@@ -91,11 +110,18 @@ private val Protections = listOf(TorrentProtection.PROXY, TorrentProtection.DEVI
  */
 @Composable
 fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Unit) {
-    if (mode == TorrentMode.EditProxy) {
-        EditProxyScreen(onDone)
-        return
+    when (mode) {
+        TorrentMode.EditProxy -> EditProxyScreen(onDone)
+        TorrentMode.Index -> IndexScreen(onDone)
+        TorrentMode.TurnOn, TorrentMode.Change -> ProtectScreen(mode, start, onDone)
     }
+}
+
+/** Turn on torrents, or Protect torrent traffic: the protection, the index, and a proxy's details. */
+@Composable
+private fun ProtectScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Unit) {
     val store = LocalAppStore.current
+    val notices = LocalNotices.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val torrent = view?.torrent
     val saved = torrent?.proxy
@@ -109,37 +135,39 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
     var user by remember { mutableStateOf(saved?.user.orEmpty()) }
     // Never kept with the screen's state: it goes to the keystore-sealed store, and nowhere else.
     var password by remember { mutableStateOf("") }
-    var typing by remember { mutableStateOf(false) }
-    // Asked for again from the details once they are whole: Change opens a new page.
-    var asked by remember { mutableIntStateOf(0) }
+    val form = rememberForm()
     val proxy = protection == TorrentProtection.PROXY
     val whole = TorrentWords.indexOk(index) && (!proxy || TorrentWords.proxyOk(host, port))
+    val details = if (proxy) proxyOf(host, port, user, password) else null
+    // A new or changed proxy is checked before anything is saved; the same saved one is not again.
+    val checks = proxy && (mode == TorrentMode.TurnOn || torrent?.protection != TorrentProtection.PROXY || !sameAs(saved, host, port, user) || password.isNotEmpty())
     val done by rememberUpdatedState(onDone)
-    BackHandler { if (typing) typing = false else done() }
+    BackHandler { if (form.typing) form.stopTyping() else done() }
 
-    val turnOn = {
+    val save = { checked: TorrentProxy? ->
         val trimmed = index.trim()
         if (trimmed != view?.sources?.index) store.setSetting(SettingKey.TORRENT_INDEX, SettingValue.Str(trimmed))
         store.setTorrentProtection(
             protection,
-            proxy = if (proxy) {
-                TorrentProxy(
-                    host = host.trim(),
-                    port = port.trim().toInt().toUShort(),
-                    user = user.trim().ifEmpty { null },
-                    // Left empty, the one kept already stays.
-                    password = password.takeIf { it.isNotEmpty() },
-                )
-            } else {
-                null
-            },
+            proxy = checked,
             onFailure = torrent?.onFailure ?: FailedCheck.PAUSE,
             acknowledged = protection == TorrentProtection.NONE && acknowledged,
         )
         password = ""
         if (mode == TorrentMode.TurnOn) store.setSwitch(SettingKey.TORRENTS, true)
+        notices?.say(if (mode == TorrentMode.TurnOn) TorrentWords.SAID_ON else TorrentWords.SAID_PROTECTION)
         done()
     }
+    val check = proxyCheck(details.takeIf { checks }, onPassed = save)
+    val press = {
+        when {
+            // Kept enabled while the check runs, so focus stays on it; a press then waits.
+            check.checking -> {}
+            checks && details != null -> store.checkTorrentProtection(TorrentProtection.PROXY, details)
+            else -> save(details)
+        }
+    }
+    LaunchedEffect(Unit) { form.first.focusSoon() }
 
     Column(
         Modifier
@@ -155,7 +183,7 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
             modifier = Modifier.semantics { heading() },
         )
         Text(TorrentWords.WHY, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
-        if (typing) {
+        if (form.typing) {
             TypeDetails(
                 proxy = proxy,
                 index = index,
@@ -168,22 +196,21 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
                 onPort = { port = it.filter(Char::isDigit).take(5) },
                 onUser = { user = it },
                 onPassword = { password = it },
-                onDone = { typing = false },
+                onDone = form::stopTyping,
             )
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(40.dp)) {
-                ProtectWith(protection) { picked ->
+            Row(horizontalArrangement = Arrangement.spacedBy(32.dp)) {
+                ProtectWith(protection, form.first) { picked ->
                     when {
-                        picked == protection -> {}
+                        picked == protection || check.checking -> {}
                         picked == TorrentProtection.NONE && !acknowledged -> asking = true
                         else -> protection = picked
                     }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Torrents' details: from the page while they are not whole, or once Change asks again.
-                    val form = if (proxy) PageForm.TorrentProxy else PageForm.Torrent
-                    if (!whole || asked > 0) {
-                        DetailsPage(form, opened = asked) { answer ->
+                    // Torrents' details: from the page while they are not whole, or once a phone is asked again.
+                    if (!whole || form.asked > 0) {
+                        DetailsPage(if (proxy) PageForm.TorrentProxy else PageForm.Torrent, opened = form.asked) { answer ->
                             index = answer.index
                             if (proxy) {
                                 host = answer.host
@@ -191,7 +218,7 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
                                 user = answer.user
                                 password = answer.password
                             }
-                            asked = 0
+                            form.answered()
                         }
                     } else {
                         Column {
@@ -199,21 +226,15 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
                             if (proxy) TvInfoRow("Proxy", supporting = proxyLine(host, port, user))
                         }
                     }
-                    Text(
-                        TorrentWords.checkNote(torrent?.onFailure, protection),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = ObiSilk.Haze,
+                    Status(
+                        PROTECT_STATUS,
+                        checking = check.checking,
+                        failed = check.failed?.let {
+                            TorrentWords.proxyFailed(it, if (mode == TorrentMode.TurnOn) TorrentWords.Kept.TurningOn else TorrentWords.Kept.Protection)
+                        },
+                        otherwise = TorrentWords.checkNote(torrent?.onFailure, protection),
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        AmberButton(onClick = turnOn, icon = null, enabled = whole) {
-                            ButtonLabel(if (mode == TorrentMode.TurnOn) "Turn on" else "Save")
-                        }
-                        if (whole && asked == 0) {
-                            TonalButton(onClick = { asked += 1 }) { ButtonLabel("Change") }
-                        }
-                        TonalButton(onClick = { typing = true }) { ButtonLabel("Type it") }
-                        TonalButton(onClick = done) { ButtonLabel("Cancel") }
-                    }
+                    FormButtons(form, primary = if (mode == TorrentMode.TurnOn) "Turn on" else "Save", whole = whole, checking = check.checking, onPrimary = press, onCancel = done)
                 }
             }
         }
@@ -233,8 +254,64 @@ fun TorrentScreen(mode: TorrentMode, start: TorrentProtection?, onDone: () -> Un
     }
 }
 
-/** "proxy.example:1080 · as mika": where the proxy is, and who it lets in. */
-internal fun proxyLine(host: String, port: String, user: String): String = TorrentWords.proxyLine(host, port, user)
+/** The torrent index alone, from the Torrent index row: from a phone, or typed. */
+@Composable
+private fun IndexScreen(onDone: () -> Unit) {
+    val store = LocalAppStore.current
+    val notices = LocalNotices.current
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    var index by remember { mutableStateOf(view?.sources?.index.orEmpty()) }
+    val form = rememberForm()
+    val whole = TorrentWords.indexOk(index)
+    val done by rememberUpdatedState(onDone)
+    BackHandler { if (form.typing) form.stopTyping() else done() }
+    LaunchedEffect(Unit) { form.first.focusSoon() }
+    val save = {
+        val trimmed = index.trim()
+        if (trimmed != view?.sources?.index) store.setSetting(SettingKey.TORRENT_INDEX, SettingValue.Str(trimmed))
+        notices?.say(TorrentWords.SAID_INDEX)
+        done()
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(ObiSilk.Ground)
+            .padding(start = Canvas.Keyline, end = Canvas.SafeX, top = 72.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Text("Torrent index", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
+        Text(TorrentWords.INDEX_ABOUT, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
+        if (form.typing) {
+            TypeDetails(
+                proxy = false,
+                index = index,
+                host = "",
+                port = "",
+                user = "",
+                password = "",
+                onIndex = { index = it },
+                onHost = {},
+                onPort = {},
+                onUser = {},
+                onPassword = {},
+                onDone = form::stopTyping,
+            )
+        } else {
+            Column(Modifier.widthIn(max = 880.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                if (!whole || form.asked > 0) {
+                    DetailsPage(PageForm.Torrent, opened = form.asked) { answer ->
+                        index = answer.index
+                        form.answered()
+                    }
+                } else {
+                    TvInfoRow("Torrent index", supporting = index.trim())
+                }
+                FormButtons(form, primary = "Save", whole = whole, checking = false, onPrimary = save, onCancel = done, primaryFirst = true)
+            }
+        }
+    }
+}
 
 /**
  * Edit proxy: the saved proxy's details, filled in but for the password, changed from the page or
@@ -244,43 +321,26 @@ internal fun proxyLine(host: String, port: String, user: String): String = Torre
 @Composable
 private fun EditProxyScreen(onDone: () -> Unit) {
     val store = LocalAppStore.current
+    val notices = LocalNotices.current
     val view by store.settings.view.collectAsStateWithLifecycle()
-    val trial by store.providers.trial.collectAsStateWithLifecycle()
     val saved = view?.torrent?.proxy
     var host by remember { mutableStateOf(saved?.host.orEmpty()) }
     var port by remember { mutableStateOf(saved?.port?.toString().orEmpty()) }
     var user by remember { mutableStateOf(saved?.user.orEmpty()) }
     // Never kept with the screen's state: it goes to the keystore-sealed store, and nowhere else.
     var password by remember { mutableStateOf("") }
-    var typing by remember { mutableStateOf(false) }
-    var asked by remember { mutableIntStateOf(0) }
-    val checking = trial == ProvidersModel.Trial.Checking
-    val failed = (trial as? ProvidersModel.Trial.Said)?.view?.takeIf { it !is GuardView.Protected }
+    val form = rememberForm()
     val whole = TorrentWords.proxyOk(host, port)
+    val details = proxyOf(host, port, user, password)
     val done by rememberUpdatedState(onDone)
-    val proxy = {
-        TorrentProxy(
-            host = host.trim(),
-            port = port.trim().toInt().toUShort(),
-            user = user.trim().ifEmpty { null },
-            // Left empty, the one kept already stays.
-            password = password.takeIf { it.isNotEmpty() },
-        )
+    val check = proxyCheck(details) { checked ->
+        store.setTorrentProtection(TorrentProtection.PROXY, checked, view?.torrent?.onFailure ?: FailedCheck.PAUSE, acknowledged = false)
+        password = ""
+        notices?.say(TorrentWords.SAID_PROXY)
+        done()
     }
-    BackHandler { if (typing) typing = false else done() }
-    DisposableEffect(Unit) { onDispose { store.providers.clearTrial() } }
-    LaunchedEffect(trial) {
-        val said = trial as? ProvidersModel.Trial.Said ?: return@LaunchedEffect
-        if (said.view is GuardView.Protected) {
-            store.setTorrentProtection(TorrentProtection.PROXY, proxy(), view?.torrent?.onFailure ?: FailedCheck.PAUSE, acknowledged = false)
-            password = ""
-            done()
-        }
-    }
-    // New details are a new try: a failed check's reason no longer stands.
-    val changed = { if (failed != null) store.providers.clearTrial() }
-    val save = remember { FocusRequester() }
-    LaunchedEffect(Unit) { save.focusSoon() }
+    BackHandler { if (form.typing) form.stopTyping() else done() }
+    LaunchedEffect(Unit) { form.first.focusSoon() }
 
     Column(
         Modifier
@@ -291,7 +351,7 @@ private fun EditProxyScreen(onDone: () -> Unit) {
     ) {
         Text("Edit proxy", style = MaterialTheme.typography.titleLarge, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
         Text(TorrentWords.EDIT_NOTE, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, modifier = Modifier.widthIn(max = 640.dp))
-        if (typing) {
+        if (form.typing) {
             TypeDetails(
                 proxy = true,
                 withIndex = false,
@@ -301,52 +361,190 @@ private fun EditProxyScreen(onDone: () -> Unit) {
                 user = user,
                 password = password,
                 onIndex = {},
-                onHost = { host = it; changed() },
-                onPort = { port = it.filter(Char::isDigit).take(5); changed() },
-                onUser = { user = it; changed() },
-                onPassword = { password = it; changed() },
-                onDone = { typing = false },
+                onHost = { host = it },
+                onPort = { port = it.filter(Char::isDigit).take(5) },
+                onUser = { user = it },
+                onPassword = { password = it },
+                onDone = form::stopTyping,
             )
         } else {
             Column(Modifier.widthIn(max = 880.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                if (asked > 0 || !whole) {
-                    DetailsPage(PageForm.Proxy, opened = asked, filled = mapOf("host" to host, "port" to port, "user" to user)) { answer ->
+                if (form.asked > 0 || !whole) {
+                    DetailsPage(PageForm.Proxy, opened = form.asked, filled = mapOf("host" to host, "port" to port, "user" to user)) { answer ->
                         host = answer.host
                         port = answer.port
                         user = answer.user
                         password = answer.password
-                        changed()
-                        asked = 0
+                        form.answered()
                     }
                 } else {
                     TvInfoRow("Proxy", supporting = proxyLine(host, port, user))
                 }
-                when {
-                    checking -> CheckingLine()
-                    failed != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
-                        Text(TorrentWords.editFailed(failed), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-                    }
-                    else -> Text(TorrentWords.PASSWORD_KEPT, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    AmberButton(
-                        // Kept enabled while the check runs, so focus stays on it; a press then waits.
-                        onClick = { if (!checking) store.checkTorrentProtection(TorrentProtection.PROXY, proxy()) },
-                        icon = null,
-                        enabled = whole,
-                        modifier = Modifier.focusRequester(save),
-                    ) { ButtonLabel("Save") }
-                    if (whole && asked == 0) {
-                        TonalButton(onClick = { asked += 1 }) { ButtonLabel("Change") }
-                    }
-                    TonalButton(onClick = { typing = true }) { ButtonLabel("Type it") }
-                    TonalButton(onClick = done) { ButtonLabel("Cancel") }
-                }
+                Status(EDIT_STATUS, checking = check.checking, failed = check.failed?.let(TorrentWords::editFailed), otherwise = TorrentWords.PASSWORD_KEPT)
+                FormButtons(
+                    form,
+                    primary = "Save",
+                    whole = whole,
+                    checking = check.checking,
+                    onPrimary = { if (!check.checking && details != null) store.checkTorrentProtection(TorrentProtection.PROXY, details) },
+                    onCancel = done,
+                    primaryFirst = true,
+                )
             }
         }
     }
 }
+
+/**
+ * A torrents form's moving parts: the page asked for again ([asked]), the details being typed,
+ * and where focus goes as they come and go. [first] is the screen's first focus; [phone] and
+ * [type] are the buttons that open the page and the typing.
+ */
+private class FormState {
+    var asked by mutableIntStateOf(0)
+        private set
+    var typing by mutableStateOf(false)
+        private set
+
+    /** Bumped as the typing closes, so Type it takes focus back. */
+    var typed by mutableIntStateOf(0)
+        private set
+    val first = FocusRequester()
+    val type = FocusRequester()
+
+    fun askPhone() {
+        asked += 1
+    }
+
+    fun answered() {
+        asked = 0
+    }
+
+    fun startTyping() {
+        typing = true
+    }
+
+    fun stopTyping() {
+        typing = false
+        typed += 1
+    }
+}
+
+@Composable
+private fun rememberForm(): FormState = remember { FormState() }
+
+/**
+ * The form's buttons, all one height: [primary] in amber, "Use a phone" while the details are
+ * whole and no page is open, "Type it" and "Cancel". While a check runs the others are locked,
+ * and the amber one keeps focus. Focus comes back to Type it as the typing or a new page takes the
+ * place of the button pressed. [primaryFirst] focuses the amber one as the screen opens.
+ */
+@Composable
+private fun FormButtons(
+    form: FormState,
+    primary: String,
+    whole: Boolean,
+    checking: Boolean,
+    onPrimary: () -> Unit,
+    onCancel: () -> Unit,
+    primaryFirst: Boolean = false,
+) {
+    // The page replaces Use a phone, and Type it moves into its place: focus goes with it.
+    LaunchedEffect(form.asked) { if (form.asked > 0) form.type.focusSoon() }
+    LaunchedEffect(form.typed) { if (form.typed > 0) form.type.focusSoon() }
+    // Four buttons fit beside Protect with only this close together.
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        AmberButton(onClick = onPrimary, icon = null, enabled = whole, modifier = if (primaryFirst) Modifier.focusRequester(form.first) else Modifier) {
+            ButtonLabel(primary)
+        }
+        if (whole && form.asked == 0) {
+            TonalButton(onClick = form::askPhone, enabled = !checking, height = BUTTON_HEIGHT) { ButtonLabel(USE_PHONE) }
+        }
+        TonalButton(onClick = form::startTyping, enabled = !checking, height = BUTTON_HEIGHT, modifier = Modifier.focusRequester(form.type)) { ButtonLabel("Type it") }
+        TonalButton(onClick = onCancel, height = BUTTON_HEIGHT) { ButtonLabel("Cancel") }
+    }
+}
+
+/** The amber action's height, which the row's tonal buttons take too. */
+private val BUTTON_HEIGHT = 56.dp
+
+/** What a proxy's check before saving says on screen: under way, or why it failed. */
+private class ProxyCheck(val checking: Boolean, val failed: GuardView?)
+
+/**
+ * The check of [asked], the details the form holds now: a verdict on any other details, ones
+ * since changed or a check from before, is set aside. A pass hands [onPassed] exactly what was
+ * checked, the password as given included.
+ */
+@Composable
+private fun proxyCheck(asked: TorrentProxy?, onPassed: (TorrentProxy) -> Unit): ProxyCheck {
+    val store = LocalAppStore.current
+    val trial by store.providers.trial.collectAsStateWithLifecycle()
+    val mine = trial?.takeIf { asked != null && it.isFor(TorrentProtection.PROXY, asked) }
+    val passed by rememberUpdatedState(onPassed)
+    DisposableEffect(Unit) { onDispose { store.providers.clearTrial() } }
+    LaunchedEffect(mine) {
+        val said = mine as? ProvidersModel.Trial.Said ?: return@LaunchedEffect
+        val checked = said.proxy
+        if (said.view is GuardView.Protected && checked != null) {
+            store.providers.clearTrial()
+            passed(checked)
+        }
+    }
+    return ProxyCheck(
+        checking = mine is ProvidersModel.Trial.Checking,
+        failed = (mine as? ProvidersModel.Trial.Said)?.view?.takeIf { it !is GuardView.Protected },
+    )
+}
+
+/** The proxy the fields make, once its host and port are whole. A password left empty keeps the one saved. */
+private fun proxyOf(host: String, port: String, user: String, password: String): TorrentProxy? {
+    if (!TorrentWords.proxyOk(host, port)) return null
+    return TorrentProxy(
+        host = host.trim(),
+        port = port.trim().toInt().toUShort(),
+        user = user.trim().ifEmpty { null },
+        password = password.takeIf { it.isNotEmpty() },
+    )
+}
+
+/** Whether the fields still say the [saved] proxy. */
+private fun sameAs(saved: ProxyView?, host: String, port: String, user: String): Boolean =
+    saved != null && saved.host == host.trim() && saved.port.toString() == port.trim() && saved.user.orEmpty() == user.trim()
+
+/** "proxy.example:1080 · as mika": where the proxy is, and who it lets in. */
+internal fun proxyLine(host: String, port: String, user: String): String = TorrentWords.proxyLine(host, port, user)
+
+/**
+ * One place under the details for what the check says, [height] high whatever is in it so the
+ * buttons never move: Checking the proxy while it runs, why it failed, or [otherwise]. TalkBack
+ * says each change as it comes.
+ */
+@Composable
+private fun Status(height: Dp, checking: Boolean, failed: String?, otherwise: String?) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        when {
+            checking -> CheckingLine()
+            failed != null -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(8.dp).background(ObiSilk.Vermilion, CircleShape))
+                Text(failed, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            otherwise != null -> Text(otherwise, style = MaterialTheme.typography.bodyMedium, color = ObiSilk.Haze, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** Protect with's status: the check's three-line note, or what the check says in its place. */
+private val PROTECT_STATUS = 64.dp
+
+/** Edit proxy's status: the password's one line, or what the check says in its place. */
+private val EDIT_STATUS = 52.dp
 
 /** Checking the proxy, its spinner after a moment so a quick answer never flashes it. */
 @Composable
@@ -365,10 +563,12 @@ private fun CheckingLine() {
 /** How long Checking the proxy waits before its spinner shows, as Checking the store does. */
 private const val SPINNER_WAIT = 400L
 
-/** Protect with: the three protections as radio rows, the chosen one in the amber container and focused first. */
+/**
+ * Protect with: the three protections as radio rows, the chosen one in the amber container. [first]
+ * marks the chosen one, which the screen focuses as it opens.
+ */
 @Composable
-private fun ProtectWith(chosen: TorrentProtection, onPick: (TorrentProtection) -> Unit) {
-    val first = remember { FocusRequester() }
+private fun ProtectWith(chosen: TorrentProtection, first: FocusRequester, onPick: (TorrentProtection) -> Unit) {
     Column(Modifier.width(300.dp).selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text("Protect with", style = MaterialTheme.typography.labelLarge, color = ObiSilk.Haze, modifier = Modifier.padding(start = 16.dp, bottom = 4.dp))
         Protections.forEach { each ->
@@ -383,7 +583,6 @@ private fun ProtectWith(chosen: TorrentProtection, onPick: (TorrentProtection) -
             )
         }
     }
-    LaunchedEffect(Unit) { first.focusSoon() }
 }
 
 /**
@@ -394,6 +593,7 @@ private fun ProtectWith(chosen: TorrentProtection, onPick: (TorrentProtection) -
 @Composable
 private fun DetailsPage(form: PageForm, opened: Int, filled: Map<String, String> = emptyMap(), onAnswer: (PageAnswer.Torrent) -> Unit) {
     val context = LocalContext.current
+    val host = LocalPageHost.current
     val scope = rememberCoroutineScope()
     val answer by rememberUpdatedState(onAnswer)
     var address by remember { mutableStateOf<String?>(null) }
@@ -409,8 +609,8 @@ private fun DetailsPage(form: PageForm, opened: Int, filled: Map<String, String>
         }
         val job = scope.launch {
             val port = withContext(Dispatchers.IO) { page.start() }
-            val local = localAddress(context)
-            address = if (port != null && local != null) "http://$local:$port/${page.path}" else null
+            val local = host(context)
+            address = if (port != null && local != null) page.address(local, port) else null
             started = true
             if (port != null) {
                 delay(SignInPage.LIFETIME_NANOS / 1_000_000)
@@ -452,10 +652,11 @@ private fun DetailsPage(form: PageForm, opened: Int, filled: Map<String, String>
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = ObiSilk.Haze,
-                maxLines = 3,
+                // The whole address, its key included, so it can be typed as well as scanned.
+                maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text("The page closes once it's sent, or in 10 minutes.", style = MaterialTheme.typography.bodySmall, color = ObiSilk.Haze)
+            if (!expired) Text("The page closes once it's sent, or in 10 minutes.", style = MaterialTheme.typography.bodySmall, color = ObiSilk.Haze)
             if (expired) {
                 TonalButton(onClick = { again += 1 }) { ButtonLabel("Get a new code") }
             }
@@ -509,7 +710,7 @@ private fun TypeDetails(
 
 /**
  * One typed field, Search's pill: the raised ground and its name in haze until something is
- * typed, silk with ground ink while focused.
+ * typed, silk with ground ink while focused. TalkBack says its name whatever it holds.
  */
 @Composable
 private fun Field(
@@ -527,7 +728,10 @@ private fun Field(
         modifier.fillMaxWidth().height(56.dp).background(if (focused) ObiSilk.Silk else ObiSilk.Raised, CircleShape).padding(horizontal = 24.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        if (text.isEmpty()) Text(name, style = MaterialTheme.typography.bodyLarge, color = if (focused) ObiSilk.Ground else ObiSilk.Haze, maxLines = 1)
+        if (text.isEmpty()) {
+            // Drawn only while empty, so it is not what names the field: the field's own semantics do.
+            Text(name, style = MaterialTheme.typography.bodyLarge, color = if (focused) ObiSilk.Ground else ObiSilk.Haze, maxLines = 1, modifier = Modifier.clearAndSetSemantics {})
+        }
         BasicTextField(
             value = text,
             onValueChange = onChange,
@@ -538,6 +742,7 @@ private fun Field(
             keyboardOptions = KeyboardOptions(keyboardType = type, imeAction = ImeAction.Next, autoCorrectEnabled = false),
             modifier = Modifier
                 .fillMaxWidth()
+                .semantics { contentDescription = name }
                 .let { if (focus != null) it.focusRequester(focus) else it }
                 .onFocusChanged { focused = it.isFocused },
         )

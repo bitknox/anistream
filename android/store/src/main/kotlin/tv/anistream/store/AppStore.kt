@@ -702,8 +702,7 @@ class AppStore(
         mode: tv.anistream.engine.model.TorrentProtection,
         proxy: tv.anistream.engine.model.TorrentProxy?,
     ) {
-        providers.trialStarted()
-        send(Command.CheckTorrentProtection(mode, proxy))
+        providers.trialAsked(mode, proxy)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
     }
 
     /** Check every provider again. */
@@ -860,7 +859,7 @@ class AppStore(
             is Event.ProviderNote -> providers.note(event.v1)
             Event.SourcesChanged -> providers.sourcesChanged()
             is Event.Vpn -> providers.guardSaid(event.v1)
-            is Event.ProtectionChecked -> providers.trialSaid(event.v1)
+            is Event.ProtectionChecked -> providers.trialSaid(event.v1)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
             is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.StorePreview -> stores.previewed(event.v1)
