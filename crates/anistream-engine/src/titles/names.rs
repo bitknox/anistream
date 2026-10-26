@@ -106,6 +106,8 @@ pub(crate) struct Unnamed {
     numbering: Numbering,
     /// The source that listed them.
     provider_id: String,
+    /// Which rows were filled from another source, and which no source lists.
+    marks: super::coverage::Marks,
     /// When the table was loaded.
     now: i64,
 }
@@ -119,6 +121,7 @@ impl Unnamed {
         episodes: &[Episode],
         numbering: Numbering,
         provider_id: &str,
+        marks: super::coverage::Marks,
         now: i64,
     ) -> Option<Self> {
         if numbering == Numbering::Unknown {
@@ -133,6 +136,7 @@ impl Unnamed {
             episodes: episodes.to_vec(),
             numbering,
             provider_id: provider_id.to_owned(),
+            marks,
             now,
         })
     }
@@ -150,7 +154,8 @@ impl Unnamed {
 
     /// `episodes`' rows, as a load makes them: watched as the store has it now, and dated.
     fn rows(&self, episodes: &[Episode], store: &Store, id: AnilistId) -> Vec<EpisodeRow> {
-        let rows = data::episode_rows(episodes, store, id);
+        let mut rows = data::episode_rows(episodes, store, id);
+        self.marks.apply(&mut rows);
         episodes::dated(rows, &self.media, self.numbering, store, id, self.now)
     }
 
@@ -338,7 +343,9 @@ impl Naming {
         store: &Store,
         registry: &ProviderRegistry,
         tx: &Outbox,
+        ticket: &super::refresh::Ticket,
     ) {
+        let ticket = ticket.clone();
         let Self { names, offline, clock } = self;
         let others = others(store, registry, id, &unnamed.provider_id);
         let route = route(&unnamed.provider_id, &others);
@@ -347,7 +354,7 @@ impl Naming {
             Some((borrowed, _)) => unnamed.named(borrowed),
             None => unnamed.episodes.clone(),
         };
-        let _ = tx.send(Event::Episodes { id, rows: unnamed.rows(&sent, store, id) });
+        ticket.send(tx, Event::Episodes { id, rows: unnamed.rows(&sent, store, id) });
         let fresh = kept.is_some_and(|(_, fresh)| fresh);
         if offline || fresh || others.is_empty() {
             return;
@@ -391,7 +398,8 @@ impl Naming {
             };
             // Said only when it names more than the table already showed.
             if shown(&named) != shown(&sent) {
-                let _ = tx.send(Event::Episodes { id, rows: unnamed.rows(&named, &store, id) });
+                ticket
+                    .send(&tx, Event::Episodes { id, rows: unnamed.rows(&named, &store, id) });
             }
         };
         let handle = tokio::spawn(lookup).abort_handle();
@@ -452,6 +460,7 @@ mod tests {
     use tokio::sync::mpsc;
 
     use super::*;
+    use crate::titles::refresh::Ticket;
 
     const SHOW: AnilistId = AnilistId::new(900_211);
 
@@ -546,10 +555,22 @@ mod tests {
             let mut episodes = episodes;
             let numbering = data::enrich_episodes(&mut episodes, &self.media, 0);
             let naming = self.names.naming(SHOW, offline, &self.clock);
-            match Unnamed::of(&self.media, &episodes, numbering, "torrent", 0) {
-                Some(unnamed) => {
-                    naming.say(SHOW, unnamed, &self.store, &self.registry, &self.tx)
-                }
+            match Unnamed::of(
+                &self.media,
+                &episodes,
+                numbering,
+                "torrent",
+                Default::default(),
+                0,
+            ) {
+                Some(unnamed) => naming.say(
+                    SHOW,
+                    unnamed,
+                    &self.store,
+                    &self.registry,
+                    &self.tx,
+                    &Ticket::standalone(SHOW),
+                ),
                 None => {
                     let rows = data::episode_rows(&episodes, &self.store, SHOW);
                     let _ = self.tx.send(Event::Episodes { id: SHOW, rows });
@@ -647,7 +668,10 @@ mod tests {
         let airing = media(true);
         let numbering = data::enrich_episodes(&mut episodes, &airing, 0);
         assert_eq!(numbering, Numbering::Unknown);
-        assert!(Unnamed::of(&airing, &episodes, numbering, "torrent", 0).is_none());
+        assert!(
+            Unnamed::of(&airing, &episodes, numbering, "torrent", Default::default(), 0)
+                .is_none()
+        );
     }
 
     #[tokio::test]
@@ -858,5 +882,21 @@ mod tests {
         let borrowed = Borrowed::from_listing(&listed, &media(false), 0);
         assert_eq!(borrowed.stills.keys().collect::<Vec<_>>(), [&1]);
         assert_eq!(borrowed.titles.len(), 3);
+    }
+
+    #[test]
+    fn a_table_made_again_by_naming_keeps_its_marks() {
+        let episodes: Vec<Episode> = (1..=3).map(Episode::new).collect();
+        let marks = super::super::coverage::Marks {
+            filled: [("2".to_owned(), "Shelf".to_owned())].into(),
+            missing: ["3".to_owned()].into(),
+        };
+        let unnamed =
+            Unnamed::of(&media(false), &episodes, Numbering::Same, "torrent", marks, 0)
+                .expect("nothing is named");
+        let store = Store::open_in_memory().unwrap();
+        let rows = unnamed.rows(&episodes, &store, SHOW);
+        assert_eq!(rows[1].source.as_deref(), Some("Shelf"));
+        assert!(rows[2].unsourced && !rows[0].unsourced);
     }
 }

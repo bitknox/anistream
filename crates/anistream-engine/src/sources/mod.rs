@@ -6,6 +6,7 @@
 //! whole interface and look. A probe can now ask it directly.
 
 pub mod commands;
+pub mod options;
 pub mod torrent;
 pub mod vpn;
 
@@ -129,6 +130,9 @@ pub fn place(
 pub fn arrange(registry: &ProviderRegistry, config: &Config) {
     let order = &config.providers.order;
     registry.rank_by(|p| rank(p, order));
+    // Whatever the user just did to the sources, a source that went down earlier gets to
+    // answer again, rather than staying out until the app is restarted.
+    registry.retry_down();
 }
 
 /// Where a source stands in `order`: at its own entry when the order names it, at `"plugins"`
@@ -557,6 +561,22 @@ mod tests {
         let order = &config.providers.order;
         assert_eq!(rank(source("remote", ProviderKind::Remote).as_ref(), order).0, 1);
         assert_eq!(rank(plugin("alpha").as_ref(), order).0, 0);
+    }
+
+    #[test]
+    fn a_source_that_went_down_is_tried_again_once_the_order_changes() {
+        let registry = ProviderRegistry::new(vec![plugin("alpha"), plugin("beta")]);
+        let failure = anistream_core::error::ProviderError::Transport("timed out".into());
+        for _ in 0..3 {
+            registry.health().record_failure("alpha", &failure, 0);
+        }
+        assert_eq!(registry.usable_ids(), ["beta"], "alpha is down");
+        arrange(&registry, &order(&["beta", "alpha"]));
+        assert_eq!(
+            registry.usable_ids(),
+            ["beta", "alpha"],
+            "the user's change is a new chance"
+        );
     }
 
     #[test]

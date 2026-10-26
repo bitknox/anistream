@@ -15,6 +15,16 @@ use anistream_core::ids::AnilistId;
 
 use crate::{Result, Store};
 
+/// A release pinned for a title, with the source that offers it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleasePin {
+    pub provider_id: String,
+    /// The source's own id for the release, as `SourceCandidate::id` has it.
+    pub release_id: String,
+    /// The release as the source titled it, kept to say what is pinned when it cannot be listed.
+    pub title: String,
+}
+
 impl Store {
     /// The provider pinned for a title, if any.
     ///
@@ -50,9 +60,62 @@ impl Store {
                 "INSERT INTO provider_preference (anilist_id, provider_id, created_at)
                  VALUES (?1, ?2, ?3)
                  ON CONFLICT(anilist_id) DO UPDATE SET
-                    provider_id = excluded.provider_id,
-                    created_at  = excluded.created_at",
+                    provider_id   = excluded.provider_id,
+                    release_id    = NULL,
+                    release_title = NULL,
+                    created_at    = excluded.created_at",
                 rusqlite::params![anilist_id.get(), provider_id, at],
+            )?;
+            Ok(())
+        })
+    }
+
+    /// The release pinned within the pinned source for a title, if any.
+    pub fn release_preference(&self, anilist_id: AnilistId) -> Result<Option<ReleasePin>> {
+        self.with_conn(|c| {
+            let found = c
+                .query_row(
+                    "SELECT provider_id, release_id, release_title FROM provider_preference
+                     WHERE anilist_id = ?1 AND release_id IS NOT NULL",
+                    [anilist_id.get()],
+                    |row| {
+                        Ok(ReleasePin {
+                            provider_id: row.get(0)?,
+                            release_id: row.get(1)?,
+                            title: row.get::<_, Option<String>>(2)?.unwrap_or_default(),
+                        })
+                    },
+                )
+                .ok();
+            Ok(found)
+        })
+    }
+
+    /// Pin a source and one of its releases for a title: the source is pinned as by
+    /// [`Self::set_provider_preference`], and the release is tried first within it.
+    pub fn set_release_preference(
+        &self,
+        anilist_id: AnilistId,
+        pin: &ReleasePin,
+        at: i64,
+    ) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute(
+                "INSERT INTO provider_preference
+                    (anilist_id, provider_id, created_at, release_id, release_title)
+                 VALUES (?1, ?2, ?3, ?4, ?5)
+                 ON CONFLICT(anilist_id) DO UPDATE SET
+                    provider_id   = excluded.provider_id,
+                    release_id    = excluded.release_id,
+                    release_title = excluded.release_title,
+                    created_at    = excluded.created_at",
+                rusqlite::params![
+                    anilist_id.get(),
+                    pin.provider_id,
+                    at,
+                    pin.release_id,
+                    pin.title
+                ],
             )?;
             Ok(())
         })
@@ -80,6 +143,27 @@ mod tests {
 
     fn id(v: u32) -> AnilistId {
         AnilistId::new(v)
+    }
+
+    #[test]
+    fn a_release_pin_survives_reopening_and_a_plain_pin_replaces_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("a.db");
+        let pin = ReleasePin {
+            provider_id: "torrent".into(),
+            release_id: "guid-1".into(),
+            title: "Hidden Star batch".into(),
+        };
+        {
+            let store = Store::open(&path).unwrap();
+            store.set_release_preference(id(21), &pin, 1).unwrap();
+        }
+        let store = Store::open(&path).unwrap();
+        assert_eq!(store.release_preference(id(21)).unwrap(), Some(pin));
+        assert_eq!(store.provider_preference(id(21)).unwrap().as_deref(), Some("torrent"));
+        store.set_provider_preference(id(21), "torrent", 2).unwrap();
+        assert_eq!(store.release_preference(id(21)).unwrap(), None);
+        assert_eq!(store.provider_preference(id(21)).unwrap().as_deref(), Some("torrent"));
     }
 
     #[test]

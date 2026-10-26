@@ -6,7 +6,7 @@ use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice, progre
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-use super::names;
+use super::{coverage, names};
 use crate::{
     data, dispatch::Lent, now_epoch, outbox::Outbox, services::Services, state::EngineState,
 };
@@ -39,16 +39,53 @@ pub async fn load_episodes(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
 ) -> std::result::Result<EpisodeLoad, String> {
-    load_listed(meta, store, registry, id).await.map(|(load, _)| load)
+    load_listed(meta, store, registry, id, &mut |_| ()).await.map(|(load, _)| load)
+}
+
+/// What a pin on a title came to, when it was looked at.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Pin {
+    /// Not pinned: the order is the user's order.
+    Automatic,
+    /// Pinned, and the source is in the chain and usable: it is first.
+    Held(String),
+    /// Pinned to a source that is switched off, removed, still loading or resting. The title
+    /// goes by the order, and the pin is kept for when the source is back.
+    Unavailable(String),
+}
+
+/// The pin on title `id`, as the chain stands.
+pub fn pin_of(store: &Store, registry: &ProviderRegistry, id: AnilistId) -> Pin {
+    match store.provider_preference(id).ok().flatten() {
+        None => Pin::Automatic,
+        Some(provider) if registry.usable_ids().contains(&provider) => Pin::Held(provider),
+        Some(provider) => Pin::Unavailable(provider),
+    }
+}
+
+/// The chain for title `id`: the user's order, with the source pinned for the title first. A
+/// pin ranks a source; it does not drop the rest, since a source with part of a season is no
+/// reason to leave the remainder unplayable.
+pub fn chain_for(
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+) -> ProviderRegistry {
+    match pin_of(store, registry, id) {
+        Pin::Held(provider) => registry.preferring(&provider),
+        _ => registry.clone(),
+    }
 }
 
 /// [`load_episodes`], and what naming its rows takes when a source listed them and left some
-/// without a title or a still: see [`names`].
+/// without a title or a still: see [`names`]. `progress` is given the table as it stands each
+/// time a source answers that leaves the season short, ahead of the sources still being asked.
 async fn load_listed(
     meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
+    progress: &mut (dyn FnMut(Vec<EpisodeRow>) + Send),
 ) -> std::result::Result<(EpisodeLoad, Option<names::Unnamed>), String> {
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
     // Numbered by the source a play would use, which may be one still compiling.
@@ -61,16 +98,26 @@ async fn load_listed(
     if registry.is_empty() {
         return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason: None }, None));
     }
-    let answer = listed(&media, store, registry, id, Translation::Sub, now).await;
+    let chain = chain_for(store, registry, id);
+    let answer = anistream_providers::gather(
+        store,
+        &chain,
+        id,
+        &media.match_target(),
+        Translation::Sub,
+        now,
+        |source, key| async move { source.episodes(&key, Translation::Sub, now).await },
+        |answers| coverage::is_whole(&media, answers, now),
+        |answers| progress(build(&media, store, registry, id, answers, now).rows),
+    )
+    .await;
 
-    let (provider_id, mut episodes) = match answer {
-        anistream_providers::Answer::Answered { provider_id, value, .. } => {
-            (provider_id, value)
-        }
+    let answers = match answer {
+        anistream_providers::Gathered::Answered(answers) => answers,
         // Candidates exist, none confidently enough to pick. That is a question, not a
         // failure: the user can see which of these is their show, and the answer is
         // remembered as an override so it is asked once.
-        anistream_providers::Answer::Ambiguous { provider_id, candidates } => {
+        anistream_providers::Gathered::Ambiguous { provider_id, candidates } => {
             let candidates = candidates
                 .iter()
                 .map(|candidate| anistream_model::sources::MatchCandidate {
@@ -82,20 +129,67 @@ async fn load_listed(
                 .collect();
             return Ok((EpisodeLoad::Choose { provider_id, candidates }, None));
         }
-        anistream_providers::Answer::Unanswered { .. } => {
+        anistream_providers::Gathered::Unanswered { .. } => {
             let reason = Some(answer.explain());
             return Ok((EpisodeLoad::Unlisted { rows: from_metadata(), reason }, None));
         }
     };
 
-    // A torrent source knows an episode exists but not what it is called, and some sources
-    // list nothing but the numbers. The metadata we already fetched above knows more, so it
-    // fills in what they lack before they reach the table.
-    let numbering = data::enrich_episodes(&mut episodes, &media, now);
-    let rows = data::episode_rows(&episodes, store, id);
-    let rows = dated(rows, &media, numbering, store, id, now);
-    let unnamed = names::Unnamed::of(&media, &episodes, numbering, &provider_id, now);
-    Ok((EpisodeLoad::Rows(rows), unnamed))
+    let built = build(&media, store, registry, id, &answers, now);
+    let unnamed = names::Unnamed::of(
+        &media,
+        &built.episodes,
+        built.numbering,
+        &built.main,
+        built.marks,
+        now,
+    );
+    Ok((EpisodeLoad::Rows(built.rows), unnamed))
+}
+
+/// A table built from the sources' answers.
+struct Built {
+    rows: Vec<EpisodeRow>,
+    episodes: Vec<anistream_core::media::Episode>,
+    numbering: data::Numbering,
+    main: String,
+    marks: coverage::Marks,
+}
+
+/// The table for title `id` from `answers`, in rank order: merged across the sources, named
+/// from what AniList knows of what they left out, and marked with where a gap was filled from.
+///
+/// A torrent source knows an episode exists but not what it is called, and some sources
+/// list nothing but the numbers. The metadata already fetched knows more, so it fills in what
+/// they lack before the rows reach the table.
+fn build(
+    media: &anistream_meta::anilist::Media,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+    answers: &[anistream_providers::Contribution<Vec<anistream_core::media::Episode>>],
+    now: i64,
+) -> Built {
+    let merged = coverage::merge(media, answers, now);
+    let mut episodes = merged.episodes.clone();
+    let numbering = data::enrich_episodes(&mut episodes, media, now);
+    let marks = coverage::Marks {
+        filled: merged
+            .filled
+            .iter()
+            .map(|(number, provider)| {
+                let name = registry
+                    .get(provider)
+                    .map_or_else(|| provider.clone(), |p| p.manifest().display_name.clone());
+                (number.clone(), name)
+            })
+            .collect(),
+        missing: merged.missing.clone(),
+    };
+    let mut rows = data::episode_rows(&episodes, store, id);
+    marks.apply(&mut rows);
+    let rows = dated(rows, media, numbering, store, id, now);
+    Built { rows, episodes, numbering, main: merged.main, marks }
 }
 
 /// `rows`, dated by when each aired or airs, so an episode not out yet can be told from one
@@ -141,31 +235,6 @@ pub(crate) fn said(
     }
 }
 
-/// A title's episodes in `translation`, from the source playback would use: the one pinned for
-/// this title, or else the first in the order that has it, so the table's numbering is the one
-/// Enter plays.
-async fn listed(
-    media: &anistream_meta::anilist::Media,
-    store: &Store,
-    registry: &ProviderRegistry,
-    id: AnilistId,
-    translation: Translation,
-    now: i64,
-) -> anistream_providers::Answer<Vec<anistream_core::media::Episode>> {
-    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
-    let registry = pinned.as_ref().unwrap_or(registry);
-    anistream_providers::first_answer(
-        store,
-        registry,
-        id,
-        &media.match_target(),
-        translation,
-        now,
-        |source, key| async move { source.episodes(&key, translation, now).await },
-    )
-    .await
-}
-
 /// Title `id`'s episodes in the dub, from the source a play would use, once the sources on
 /// their way have arrived: `None` when no source answered. What the new-episode check reads, for
 /// a show watched dubbed.
@@ -204,8 +273,7 @@ pub(crate) async fn dub_answer(
         atomic::{AtomicBool, AtomicUsize, Ordering},
     };
     crate::sources::arrived(registry, || ()).await;
-    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
-    let registry = pinned.as_ref().unwrap_or(registry);
+    let registry = &chain_for(store, registry, id);
     // How many sources were listed, and whether each found nothing: a source that failed says
     // nothing of whether there is a dub.
     let (asked, nothing) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicBool::new(true)));
@@ -249,17 +317,43 @@ pub(crate) async fn dub_answer(
 /// A title's episodes, from the source playback would use, or the candidates to choose
 /// between when the ladder could not choose. A table that left episodes without a title or a
 /// still is named by `naming`, from what another source said of them: see [`names`].
-pub(crate) async fn list_episodes(lent: Lent, id: AnilistId, naming: names::Naming) {
+///
+/// Only the newest listing of a title speaks: `ticket` is checked before anything is sent, so a
+/// slow earlier load cannot land over a newer table. `announce` is whether a pin on a source
+/// that is not available is said (a load the viewer asked for, or a pin just set), not on every
+/// quiet relist.
+pub(crate) async fn list_episodes(
+    lent: Lent,
+    id: AnilistId,
+    naming: names::Naming,
+    ticket: super::refresh::Ticket,
+    announce: bool,
+) {
     let Lent { meta, store, registry, tx, .. } = lent;
-    let load = match load_listed(&meta, &store, &registry, id).await {
+    // A source still compiling is not an unavailable one: wait for those on their way.
+    crate::sources::arrived(&registry, || ()).await;
+    if announce && let Pin::Unavailable(provider) = pin_of(&store, &registry, id) {
+        let name = registry
+            .get(&provider)
+            .map_or_else(|| provider.clone(), |p| p.manifest().display_name.clone());
+        ticket.send(&tx, Event::PinUnavailable { id, provider_id: provider, name });
+    }
+    // A table that is short of the season is shown as it comes, and the sources still being
+    // asked fill in the rest.
+    let mut early = |rows| {
+        for event in said(id, Ok(EpisodeLoad::Rows(rows))) {
+            ticket.send(&tx, event);
+        }
+    };
+    let load = match load_listed(&meta, &store, &registry, id, &mut early).await {
         Ok((EpisodeLoad::Rows(_), Some(unnamed))) => {
-            naming.say(id, unnamed, &store, &registry, &tx);
+            naming.say(id, unnamed, &store, &registry, &tx, &ticket);
             return;
         }
         load => load.map(|(load, _)| load),
     };
     for event in said(id, load) {
-        let _ = tx.send(event);
+        ticket.send(&tx, event);
     }
 }
 
@@ -401,6 +495,119 @@ mod tests {
                 .collect::<Vec<_>>(),
             "nextAiringEpisode": { "episode": 6, "airingAt": 600, "timeUntilAiring": 50 },
         }))
+    }
+
+    /// A title the cache holds, over offline metadata: a finished season of thirteen.
+    mod coverage {
+        use anistream_core::{ids::ProviderKey, media::SearchHit};
+        use anistream_providers::MockProvider;
+
+        use super::*;
+
+        pub const SHOW: AnilistId = AnilistId::new(900_301);
+
+        pub fn meta(store: &Store) -> Meta {
+            let media = serde_json::json!({
+                "id": 900_301,
+                "title": { "romaji": "Hoshi no Kakurega", "english": "The Hidden Star" },
+                "format": "TV", "status": "FINISHED", "episodes": 13, "duration": 24,
+            });
+            store.cache_media(SHOW, &media.to_string(), now_epoch()).unwrap();
+            let http = anistream_net::HttpClient::offline(
+                &anistream_core::config::NetworkConfig::default(),
+            )
+            .unwrap();
+            Meta::new(anistream_meta::AniList::new(http, 30), None, store.clone())
+        }
+
+        /// A source that carries the show and lists episodes `listed`.
+        pub fn source(id: &str, listed: std::ops::RangeInclusive<u32>) -> MockProvider {
+            let key = format!("{id}-key");
+            let hit = SearchHit {
+                episode_count: Some(13),
+                ..SearchHit::new(ProviderKey::new(&key), "The Hidden Star")
+            };
+            MockProvider::new(id).with_hits(vec![hit]).with_episodes(bare(listed))
+        }
+    }
+
+    #[tokio::test]
+    async fn a_source_with_part_of_the_season_is_filled_from_the_next() {
+        let store = store();
+        let meta = coverage::meta(&store);
+        let registry = ProviderRegistry::new(vec![
+            coverage::source("batch", 1..=6).arc(),
+            coverage::source("shelf", 1..=13).arc(),
+        ]);
+        let load = load_episodes(&meta, &store, &registry, coverage::SHOW).await.unwrap();
+        let EpisodeLoad::Rows(rows) = load else { panic!("rows") };
+        assert_eq!(rows.len(), 13, "the whole season is listed");
+        let elsewhere: Vec<_> = rows
+            .iter()
+            .filter(|row| row.source.is_some())
+            .map(|row| row.number.as_str())
+            .collect();
+        assert_eq!(elsewhere, ["7", "8", "9", "10", "11", "12", "13"]);
+        assert!(rows.iter().all(|row| !row.unsourced));
+    }
+
+    #[tokio::test]
+    async fn an_episode_no_source_lists_stays_in_the_table_marked() {
+        let store = store();
+        let meta = coverage::meta(&store);
+        let registry = ProviderRegistry::new(vec![
+            coverage::source("batch", 1..=6).arc(),
+            coverage::source("shelf", 1..=9).arc(),
+        ]);
+        let Ok(EpisodeLoad::Rows(rows)) =
+            load_episodes(&meta, &store, &registry, coverage::SHOW).await
+        else {
+            panic!("rows")
+        };
+        let unsourced: Vec<_> =
+            rows.iter().filter(|row| row.unsourced).map(|r| r.number.as_str()).collect();
+        assert_eq!(unsourced, ["10", "11", "12", "13"]);
+    }
+
+    #[tokio::test]
+    async fn a_pin_ranks_a_source_first_and_the_others_still_fill_its_gaps() {
+        let store = store();
+        let meta = coverage::meta(&store);
+        let registry = ProviderRegistry::new(vec![
+            coverage::source("shelf", 1..=13).arc(),
+            coverage::source("batch", 1..=6).arc(),
+        ]);
+        store.set_provider_preference(coverage::SHOW, "batch", 0).unwrap();
+        let Ok(EpisodeLoad::Rows(rows)) =
+            load_episodes(&meta, &store, &registry, coverage::SHOW).await
+        else {
+            panic!("rows")
+        };
+        assert_eq!(rows.len(), 13);
+        assert!(rows[..6].iter().all(|row| row.source.is_none()), "the pinned source's own");
+        assert!(rows[6..].iter().all(|row| row.source.as_deref() == Some("shelf")));
+
+        // Back to automatic: the order decides again, and the first source has all of it.
+        store.clear_provider_preference(coverage::SHOW).unwrap();
+        let Ok(EpisodeLoad::Rows(rows)) =
+            load_episodes(&meta, &store, &registry, coverage::SHOW).await
+        else {
+            panic!("rows")
+        };
+        assert!(rows.iter().all(|row| row.source.is_none()));
+    }
+
+    #[test]
+    fn a_pin_on_a_source_that_is_off_or_gone_is_unavailable_not_an_error() {
+        let store = store();
+        let registry = ProviderRegistry::new(vec![coverage::source("shelf", 1..=13).arc()]);
+        assert_eq!(pin_of(&store, &registry, coverage::SHOW), Pin::Automatic);
+        store.set_provider_preference(coverage::SHOW, "gone", 0).unwrap();
+        assert_eq!(pin_of(&store, &registry, coverage::SHOW), Pin::Unavailable("gone".into()));
+        store.set_provider_preference(coverage::SHOW, "shelf", 0).unwrap();
+        assert_eq!(pin_of(&store, &registry, coverage::SHOW), Pin::Held("shelf".into()));
+        registry.set_disabled(["shelf".to_owned()]);
+        assert_eq!(pin_of(&store, &registry, coverage::SHOW), Pin::Unavailable("shelf".into()));
     }
 
     #[test]

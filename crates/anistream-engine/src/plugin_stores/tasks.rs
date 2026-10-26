@@ -125,6 +125,8 @@ impl StoreTaskContext {
         match self.stores.remove(&plugin).await {
             Ok(()) => {
                 self.registry.remove(&plugin);
+                // Titles on screen were listed with it: the engine lists them again.
+                let _ = self.tx.internal(crate::outbox::Internal::SourcesReordered);
                 self.send(Event::Providers(data::provider_rows(&self.registry, &self.stores)));
                 self.rows();
                 self.toast(Notice::info(format!("removed {plugin}")));
@@ -285,6 +287,7 @@ impl StoreTaskContext {
                 // update was swapped in place and keeps it.
                 self.registry.put(provider);
                 sources::arrange(&self.registry, &self.config);
+                let _ = self.tx.internal(crate::outbox::Internal::SourcesReordered);
                 self.send(Event::Providers(data::provider_rows(&self.registry, &self.stores)));
                 self.toast(Notice::info(format!("installed {name} {version}")));
             }

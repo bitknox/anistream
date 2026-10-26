@@ -33,6 +33,11 @@ struct Prefetched {
 }
 
 impl Prefetch {
+    /// Drop what was found ahead: it was found from sources that have since changed.
+    pub fn clear(&self) {
+        *self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+    }
+
     pub fn keep(
         &self,
         id: anistream_core::ids::AnilistId,

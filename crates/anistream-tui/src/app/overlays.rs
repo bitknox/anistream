@@ -210,6 +210,7 @@ impl App {
             Some(Overlay::Rate) => self.confirm_rating(),
             Some(Overlay::Conflicts) => self.confirm_conflict(),
             Some(Overlay::SourceProvider) => self.confirm_source_provider(),
+            Some(Overlay::SourceRelease) => self.confirm_source_release(),
             Some(Overlay::WatchOrder) => self.confirm_watch_order(),
             Some(Overlay::Recommendations) => self.confirm_recommendation(),
             Some(Overlay::Sources) => self.confirm_source(),
@@ -237,6 +238,7 @@ impl App {
             Some(Overlay::Disambiguate) => self.match_candidates.len(),
             Some(Overlay::Sources) => self.sources.len(),
             Some(Overlay::SourceProvider) => self.provider_choices().len(),
+            Some(Overlay::SourceRelease) => self.release_choices().len(),
             Some(Overlay::WatchOrder) => {
                 self.target().map_or(0, |e| super::watch_order(e).len())
             }

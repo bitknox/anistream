@@ -9,7 +9,7 @@
 
 use std::{
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use anistream_core::error::{Health, ProviderError};
@@ -18,6 +18,13 @@ use anistream_core::error::{Health, ProviderError};
 ///
 /// More than one, because a single timeout is usually the network rather than the source.
 const DOWN_AFTER: u32 = 3;
+
+/// How long a source that went down is left alone before it is asked once more.
+///
+/// A source that is never asked can never show that it recovered, so without this a flaky
+/// afternoon switched a source off until the app was restarted. One ask per interval keeps the
+/// cost of a source that is really gone to a single failed call.
+const RETRY_DOWN_AFTER: Duration = Duration::from_secs(90);
 
 /// What the Providers screen shows for one source.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,6 +39,9 @@ pub struct ProviderHealth {
     pub last_checked: Option<i64>,
     /// Set when local policy is withholding the provider — a failing VPN guard, say.
     pub held_back: Option<String>,
+    /// When the provider last failed while down or went down, so it is asked again after
+    /// [`RETRY_DOWN_AFTER`].
+    pub down_since: Option<Instant>,
 }
 
 impl ProviderHealth {
@@ -44,6 +54,7 @@ impl ProviderHealth {
             last_latency: None,
             last_checked: None,
             held_back: None,
+            down_since: None,
         }
     }
 
@@ -109,6 +120,7 @@ impl HealthTracker {
         self.with(|list| {
             let entry = Self::entry(list, id);
             entry.health = Health::Ready;
+            entry.down_since = None;
             entry.consecutive_failures = 0;
             entry.last_error = None;
             entry.last_latency = Some(latency);
@@ -133,6 +145,7 @@ impl HealthTracker {
             entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
             entry.last_error = Some(error.to_string());
             entry.health = if entry.consecutive_failures >= DOWN_AFTER {
+                entry.down_since = Some(Instant::now());
                 Health::Down
             } else {
                 Health::Degraded
@@ -170,7 +183,10 @@ impl HealthTracker {
             order
                 .iter()
                 .filter(|id| {
-                    list.iter().find(|h| &&h.id == id).is_none_or(|h| h.health != Health::Down)
+                    list.iter().find(|h| &&h.id == id).is_none_or(|h| {
+                        h.health != Health::Down
+                            || h.down_since.is_none_or(|at| at.elapsed() >= RETRY_DOWN_AFTER)
+                    })
                 })
                 .cloned()
                 .collect()
@@ -182,8 +198,23 @@ impl HealthTracker {
         self.with(|list| {
             let entry = Self::entry(list, id);
             entry.health = Health::Unknown;
+            entry.down_since = None;
             entry.consecutive_failures = 0;
             entry.last_error = None;
+        });
+    }
+
+    /// Give every source that went down another chance, for a change the user made to the
+    /// sources: a source they have just switched on, moved up or installed should be asked,
+    /// whatever it did before.
+    pub fn reset_down(&self) {
+        self.with(|list| {
+            for entry in list.iter_mut().filter(|h| h.health == Health::Down) {
+                entry.health = Health::Unknown;
+                entry.down_since = None;
+                entry.consecutive_failures = 0;
+                entry.last_error = None;
+            }
         });
     }
 }

@@ -649,7 +649,7 @@ fn fill_episodes(
 /// The episode after `episode` in a list, when the list has it.
 fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
     let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
-    rows.iter().any(|row| row.number == next).then_some(next)
+    rows.iter().any(|row| row.number == next && !row.unsourced).then_some(next)
 }
 
 #[cfg(test)]
@@ -673,6 +673,8 @@ mod tests {
                 airs_at: None,
                 delayed_from: None,
                 metadata_only: false,
+                source: None,
+                unsourced: false,
             })
             .collect();
         assert_eq!(following(&rows, "1").as_deref(), Some("2"));

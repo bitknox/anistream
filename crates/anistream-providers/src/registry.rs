@@ -310,6 +310,32 @@ impl ProviderRegistry {
         })
     }
 
+    /// The same registry with `provider_id` first in the order, and every other source kept
+    /// behind it, for a title the user has pinned to one.
+    ///
+    /// A pin ranks a source first. It does not take the others away: a source with part of a
+    /// season is no reason to leave the rest of it unplayable. A view like [`Self::pinned`], so
+    /// the health record is shared. A source that is not in the chain leaves the order as it is.
+    pub fn preferring(&self, provider_id: &str) -> Self {
+        let mut providers = self.snapshot();
+        if let Some(at) = providers.iter().position(|p| p.manifest().id == provider_id) {
+            let first = providers.remove(at);
+            providers.insert(0, first);
+        }
+        Self {
+            providers: Arc::new(std::sync::RwLock::new(providers)),
+            health: self.health.clone(),
+            disabled: self.disabled.clone(),
+            arriving: Arc::clone(&self.arriving),
+        }
+    }
+
+    /// Give every source that went down another chance, for a change to the sources the user
+    /// made: see [`HealthTracker::reset_down`].
+    pub fn retry_down(&self) {
+        self.health.reset_down();
+    }
+
     /// The ids of the sources worth trying right now, in preference order.
     pub fn usable_ids(&self) -> Vec<String> {
         self.candidates().iter().map(|p| p.manifest().id.clone()).collect()

@@ -137,6 +137,8 @@ pub(super) fn app_at_episodes() -> App {
                     airs_at: None,
                     delayed_from: None,
                     metadata_only: false,
+                    source: None,
+                    unsourced: false,
                     thumbnail: None,
                     description: None,
                 })

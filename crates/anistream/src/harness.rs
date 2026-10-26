@@ -764,6 +764,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::ProviderPreference(_) => "ProviderPreference",
         Event::MatchChoices { .. } => "MatchChoices",
         Event::Sources { .. } => "Sources",
+        Event::SourceOptions { .. } => "SourceOptions",
+        Event::PinUnavailable { .. } => "PinUnavailable",
         Event::PlaybackVolume(_) => "PlaybackVolume",
         Event::ActiveProvider(_) => "ActiveProvider",
         Event::PlayerPlayEpisode { .. } => "PlayerPlayEpisode",
@@ -893,6 +895,14 @@ fn copy(update: &Event) -> Event {
         },
         Event::Sources { id, episode, candidates } => {
             Event::Sources { id: *id, episode: episode.clone(), candidates: candidates.clone() }
+        }
+        Event::PinUnavailable { id, provider_id, name } => Event::PinUnavailable {
+            id: *id,
+            provider_id: provider_id.clone(),
+            name: name.clone(),
+        },
+        Event::SourceOptions { id, options } => {
+            Event::SourceOptions { id: *id, options: options.clone() }
         }
         Event::PlaybackVolume(volume) => Event::PlaybackVolume(*volume),
         Event::ActiveProvider(provider) => Event::ActiveProvider(provider.clone()),
