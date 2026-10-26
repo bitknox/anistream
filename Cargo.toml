@@ -58,6 +58,7 @@ unic-langid = "0.9"
 icu_plurals = "2"
 icu_locale_core = "2"
 regex = "1"
+roxmltree = "0.20"
 
 # --- errors / logging ---
 thiserror = "2"

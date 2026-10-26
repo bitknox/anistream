@@ -285,3 +285,36 @@ fn the_pseudo_locale_is_generated_from_english_and_longer() {
     // Arguments stay intact.
     assert!(xa.contains("{ $title }") && xa.contains("{ $count }"));
 }
+
+#[test]
+fn every_xml_output_parses_strictly_and_a_resw_is_a_resw() {
+    let dir = fixture();
+    let cat = Catalogue::load(dir.path()).unwrap();
+    let files = generate_all(&cat, Mode::Dev).unwrap();
+    let mut xml = 0;
+    for (path, text) in &files {
+        if !(path.ends_with(".xml") || path.ends_with(".resw")) {
+            continue;
+        }
+        xml += 1;
+        assert!(text.starts_with("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"), "{path}");
+        let doc = roxmltree::Document::parse(text)
+            .unwrap_or_else(|e| panic!("{path} is not well-formed XML: {e}"));
+        if path.ends_with(".resw") {
+            let root = doc.root_element();
+            assert_eq!(root.tag_name().name(), "root", "{path}");
+            for name in ["resmimetype", "version", "reader", "writer"] {
+                assert!(
+                    root.children().any(|n| n.has_tag_name("resheader")
+                        && n.attribute("name") == Some(name)),
+                    "{path} lacks the {name} resheader"
+                );
+            }
+            assert!(
+                root.children().filter(|n| n.has_tag_name("data")).count() > 0,
+                "{path} has no strings"
+            );
+        }
+    }
+    assert!(xml >= 4, "expected strings.xml, locales_config.xml and .resw files, saw {xml}");
+}
