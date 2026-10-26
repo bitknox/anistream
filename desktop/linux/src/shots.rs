@@ -382,7 +382,9 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
         "torrents-edit-proxy" => {
             by_proxy(shell);
             shell.settings_pane("sources");
-            crate::pages::torrents::edit_proxy(&shell.ctx);
+            once_proxy_saved(shell, |ctx| {
+                crate::pages::torrents::edit_proxy(ctx);
+            });
             3.0
         }
         #[cfg(feature = "fixtures")]
@@ -396,8 +398,8 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
                 "torrents-check-failed" => Some(GuardView::Leaking),
                 _ => Some(GuardView::Protected { exit: "proxy.example".into() }),
             }));
-            let dialog = crate::pages::torrents::edit_proxy(&shell.ctx);
-            glib::timeout_add_local_once(Duration::from_millis(1500), move || {
+            once_proxy_saved(shell, |ctx| {
+                let dialog = crate::pages::torrents::edit_proxy(ctx);
                 let child = dialog.upcast_ref::<gtk::Widget>();
                 for (title, text) in
                     [("Host", "proxy.example"), ("Port", "1080"), ("User name", "viewer")]
@@ -836,6 +838,27 @@ fn entry_titled(widget: &gtk::Widget, title: &str) -> Option<adw::EntryRow> {
         child = next.next_sibling();
     }
     None
+}
+
+/// Run `then` once the proxy `by_proxy` sets has reached the app, so a form opens filled in.
+#[cfg(feature = "fixtures")]
+fn once_proxy_saved(shell: &Rc<Shell>, then: impl FnOnce(&Rc<crate::window::Ctx>) + 'static) {
+    let ctx = Rc::clone(&shell.ctx);
+    let mut then = Some(then);
+    let mut tries = 0;
+    glib::timeout_add_local(Duration::from_millis(100), move || {
+        tries += 1;
+        let saved = crate::pages::torrents::current(&ctx)
+            .proxy
+            .is_some_and(|proxy| proxy.host == "127.0.0.1");
+        if !saved && tries < 40 {
+            return glib::ControlFlow::Continue;
+        }
+        if let Some(then) = then.take() {
+            then(&ctx);
+        }
+        glib::ControlFlow::Break
+    });
 }
 
 /// Torrents on through a proxy nothing listens on: its check fails on this machine, and never

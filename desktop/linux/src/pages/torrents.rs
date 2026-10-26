@@ -274,17 +274,25 @@ pub const PASSWORD_KEPT: &str = "Leave the password empty to keep the saved one.
 /// While a proxy is checked before it is saved.
 pub const CHECKING_PROXY: &str = "Checking the proxy";
 
-/// Once the check passes and the proxy is saved, before the form closes.
-pub const SAVED: &str = "Proxy saved";
+/// Once the check passes and the form's choices are saved, before it closes.
+fn saved(purpose: Purpose) -> &'static str {
+    match purpose {
+        Purpose::TurnOn => "Torrents are on",
+        Purpose::Protect => "Torrent protection saved",
+        Purpose::EditProxy => "Proxy saved",
+    }
+}
 
-/// Why a proxy was not saved, from the check's `view` of it, and what stays.
-pub fn not_saved(view: &GuardView, editing: bool) -> String {
-    let stays = if editing { ", so the saved proxy stays" } else { "" };
-    match view {
-        GuardView::Leaking => {
-            format!("Not saved. Torrent traffic left outside this proxy{stays}.")
-        }
-        _ => format!("Not saved. The check could not be made through this proxy{stays}."),
+/// Why a proxy was not saved, from the check's `view` of it, and what stays as it was.
+fn not_saved(view: &GuardView, purpose: Purpose) -> String {
+    let why = match view {
+        GuardView::Leaking => "Torrent traffic left outside this proxy",
+        _ => "The check could not be made through this proxy",
+    };
+    match purpose {
+        Purpose::EditProxy => format!("Not saved. {why}, so the saved proxy stays."),
+        Purpose::Protect => format!("Not saved. {why}, so the saved protection stays."),
+        Purpose::TurnOn => format!("Torrents are still off. {why}."),
     }
 }
 
@@ -457,6 +465,8 @@ fn form(
     words.set_xalign(0.0);
     words.set_wrap(true);
     words.set_hexpand(true);
+    spinner.set_visible(false);
+    dot.set_visible(false);
     status.append(&spinner);
     status.append(&dot);
     status.append(&words);
@@ -467,7 +477,9 @@ fn form(
     page.add(&proxy);
     let status_group = adw::PreferencesGroup::new();
     status_group.add(&status);
-    status_group.set_visible(false);
+    // Two lines kept for it while a proxy is the choice, so neither the note nor the dialog
+    // moves as the check comes and goes.
+    status.set_size_request(-1, 44);
     page.add(&status_group);
     page.add(&note);
     fields.extend([choices.clone(), proxy.clone()]);
@@ -499,7 +511,7 @@ fn form(
             }
             let said = match standing {
                 Standing::Idle => {
-                    status.set_visible(false);
+                    words.set_label("");
                     return;
                 }
                 Standing::Checking => CHECKING_PROXY.to_owned(),
@@ -509,11 +521,10 @@ fn form(
                 }
                 Standing::Saved => {
                     dot.add_css_class("water");
-                    SAVED.to_owned()
+                    saved(purpose).to_owned()
                 }
             };
             words.set_label(&said);
-            status.set_visible(true);
             status
                 .upcast_ref::<gtk::Widget>()
                 .announce(&said, gtk::AccessibleAnnouncementPriority::High);
@@ -522,11 +533,18 @@ fn form(
 
     // The proxy's fields only while it is the choice; Turn On only once the choices are whole.
     let refresh = {
-        let (draft, proxy, send, busy) =
-            (Rc::clone(&draft), proxy.clone(), send.clone(), Rc::clone(&busy));
+        let (draft, proxy, send, busy, status_group) = (
+            Rc::clone(&draft),
+            proxy.clone(),
+            send.clone(),
+            Rc::clone(&busy),
+            status_group.clone(),
+        );
         move || {
             let draft = draft.borrow();
-            proxy.set_visible(draft.protection == Some(TorrentProtection::Proxy));
+            let by_proxy = draft.protection == Some(TorrentProtection::Proxy);
+            proxy.set_visible(by_proxy);
+            status_group.set_visible(by_proxy);
             send.set_sensitive(!busy.get() && draft.complete());
         }
     };
@@ -579,13 +597,16 @@ fn form(
     // Why a check could not be made comes just after its verdict, and shows here under the
     // failure, not as a toast, for as long as the form is open.
     let claim = ctx.claim_alerts({
-        let (words, status) = (words.clone(), status_group.clone());
+        let (words, dot) = (words.clone(), dot.clone());
         move |text| {
-            if !text.starts_with("Not checked") || !status.is_visible() {
+            if !text.starts_with("Not checked") || !dot.has_css_class("vermilion") {
                 return false;
             }
             let said = format!("{} {text}.", words.label());
             words.set_label(&said);
+            words
+                .upcast_ref::<gtk::Widget>()
+                .announce(&format!("{text}."), gtk::AccessibleAnnouncementPriority::High);
             true
         }
     });
@@ -675,7 +696,7 @@ fn form(
                                 let linger = 900;
                                 save(linger);
                             } else {
-                                show(Standing::Failed(not_saved(view, editing)));
+                                show(Standing::Failed(not_saved(view, purpose)));
                             }
                         }
                     });
@@ -760,19 +781,21 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_check_says_nothing_was_saved_and_why() {
+    fn a_failed_check_says_nothing_was_saved_and_what_stays() {
         assert_eq!(
-            not_saved(&GuardView::Leaking, true),
+            not_saved(&GuardView::Leaking, Purpose::EditProxy),
             "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays."
         );
         assert_eq!(
-            not_saved(&GuardView::Unreachable, true),
-            "Not saved. The check could not be made through this proxy, so the saved proxy stays."
+            not_saved(&GuardView::Unreachable, Purpose::Protect),
+            "Not saved. The check could not be made through this proxy, so the saved \
+             protection stays."
         );
         assert_eq!(
-            not_saved(&GuardView::Unreachable, false),
-            "Not saved. The check could not be made through this proxy."
+            not_saved(&GuardView::Unreachable, Purpose::TurnOn),
+            "Torrents are still off. The check could not be made through this proxy."
         );
+        assert_eq!(saved(Purpose::EditProxy), "Proxy saved");
     }
 
     #[test]
