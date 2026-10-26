@@ -33,21 +33,21 @@ Android TV, Windows, Linux, Terminal.
 | Seasonal charts | yes | yes | yes | yes | yes | yes | yes | yes |
 | Airing calendar | yes | yes | yes | yes | yes | yes | yes | yes |
 | Seasons on the title page | yes | yes | yes | yes | yes | partial (4) | yes | yes (5) |
-| English or romaji titles | yes | yes | yes | yes | yes (6) | yes | yes (7) | yes |
-| How far the dub goes | dev (8) | dev (8) | dev (8) | dev (8) | dev (8) | dev (8) | yes | yes |
+| English or romaji titles | yes | yes | yes | yes | yes (6) | yes | yes | yes |
+| How far the dub goes | dev (7) | dev (7) | dev (7) | dev (7) | dev (7) | dev (7) | yes | yes |
 | Continue | yes | yes | yes | yes | yes | yes | yes | yes |
 | Library by status | yes | yes | yes | yes | yes | yes | yes | yes |
 
 1. Sort, genre, year, season and format chips over the results, each a panel on the right; no
    status filter or All filters. `android/tv/.../screens/SearchScreen.kt`.
 2. `SearchPage.xaml.cs` sends the query text only; its comment says the filters come later.
-3. Genre, format, season, status and sort; no year filter. `desktop/linux/src/pages/search.rs`.
+3. The Mac's row: genres wanted or left out, year, season once a year is chosen, formats,
+   statuses and the sort, shown before typing, with chips and Clear All.
+   `desktop/linux/src/pages/search_filters.rs`.
 4. A Related list, with no season picker. `Pages/TitlePage.xaml.cs`.
 5. The franchise is a watch-order list (`Action::WatchOrder`).
 6. Settings > Playback > Title language.
-7. Linux does not handle `Event::TitlesChanged`, so pages already on screen keep the old names
-   until they load again.
-8. The engine answers `Command::LoadDub` with `Event::TitleDub`, and `present::dub_line` (also
+7. The engine answers `Command::LoadDub` with `Event::TitleDub`, and `present::dub_line` (also
    `words::dub_line` over FFI) words it as "Dub to episode 6" or "Dubbed". Only Linux
    (`pages/title.rs`, under the meta line) and the terminal (the Episodes header,
    `screens/episodes.rs`) send it and draw it.
@@ -69,11 +69,11 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
 | Resume | yes | yes | yes | yes | yes | yes | yes | yes |
 | Pick a source by hand | yes | yes | yes | yes | yes | yes | yes | yes |
 | Sub or dub | yes | yes | yes | yes | yes (7) | yes | yes (7) | yes |
-| Subtitle and audio tracks | yes | yes | yes | yes | yes | dev (8) | dev (9) | yes (10) |
-| Media keys and now playing | yes | yes | yes | yes | yes | dev (11) | dev (11) | mpv's |
+| Subtitle and audio tracks | yes | yes | yes | yes | yes | dev (8) | yes (9) | yes (10) |
+| Media keys and now playing | yes | yes | yes | yes | yes | dev (11) | yes (11) | mpv's |
 | Picture in Picture | yes | yes | yes | yes | n/a | mini player | mini player | n/a |
 | Watch parties | dev (12) | dev (12) | dev (12) | n/a | n/a | dev (12) | dev (12) | yes |
-| Discord presence | yes | n/a | n/a | n/a | n/a | dev (13) | dev (13) | yes |
+| Discord presence | yes | n/a | n/a | n/a | n/a | dev (13) | yes | yes |
 
 1. The terminal app drives the mpv you install, over JSON IPC. The apps embed libmpv: Metal
    through MoltenVK on Apple, GLES into a SurfaceView on Android and TV, a d3d11 swap chain in a
@@ -92,17 +92,17 @@ show them (`CalendarScreen.swift`, `PhoneScreens.swift`).
    is on `fix/android-tv-audit`.
 8. The Tracks menu has sub or dub only, not the file's own subtitle and audio tracks
    (`Player/PlayerView.xaml.cs`).
-9. The player's menus are Source and Upscaling only (`desktop/linux/src/player/mod.rs`).
+9. A Tracks menu (T) with the file's subtitle and audio tracks (`desktop/linux/src/player/mod.rs`).
 10. Through anistream's menu inside mpv; the TUI has no track action of its own.
 11. Apple has `MPNowPlayingInfoCenter` and `MPRemoteCommandCenter` (`PlayerSystem.swift`);
     Android and TV a media3 `MediaSession` (`player/PlayerService.kt`). Windows has no
-    SystemMediaTransportControls or taskbar thumbnail buttons; Linux has no MPRIS.
+    SystemMediaTransportControls or taskbar thumbnail buttons; Linux has MPRIS (`mpris.rs`).
 12. The engine holds the party and drives the app's own player (`party` feature, on in these
     apps' builds, every Apple slice included), and the commands and events are in the bindings;
     no screen starts a party yet. The settings rows (on, server, room) are the terminal's: in an
     app the on switch does nothing, as apps start parties when asked. See
     `docs/party-protocol.md`.
-13. Settings rows exist, but the engine is built without the `presence` feature for these apps.
+13. Settings rows exist, but the engine is built without the `presence` feature for Windows.
 
 The Mac's Subtitles and Audio menus, in the player and in the menu bar, also load a subtitle or
 audio file for the episode playing (Load Subtitle File…, Load Audio File…), as Linux's do: mpv's
@@ -113,8 +113,8 @@ On Mac, iPhone and iPad the seek line draws the engine's own opening and ending 
 reads from mpv's `demuxer-cache-state` (`Event::PlayerBuffered`), in `PlayerParts.swift`.
 
 Undo after an automatic skip: the Mac binds U and ⌘Z (`MacPlayerView.swift`) and the mpv
-companion binds u. Windows and Linux bind neither, and Linux's skip toast has no Undo. No player
-binds T for the tracks the desktop brief gives it.
+companion binds u. Linux binds U and Ctrl+Z, with Undo on its skip card, and T opens its
+Tracks menu. Windows binds neither.
 
 ## Tracking and syncing
 
@@ -122,9 +122,9 @@ binds T for the tracks the desktop brief gives it.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | History with no account | yes | yes | yes | yes | yes | yes | yes | yes |
 | AniList | yes | yes | yes | yes | yes | yes | yes | yes |
-| MyAnimeList | yes | yes | yes | yes | no (1) | yes | dev | yes |
-| Kitsu | yes | yes | yes | yes | yes | yes | dev | yes |
-| Simkl, Trakt | yes | yes | yes | yes | yes | dev | dev | yes |
+| MyAnimeList | yes | yes | yes | yes | no (1) | yes | yes | yes |
+| Kitsu | yes | yes | yes | yes | yes | yes | yes | yes |
+| Simkl, Trakt | yes | yes | yes | yes | yes | dev | yes | yes |
 | Mark episodes watched | yes | yes | yes | yes | yes | yes | yes | yes |
 | Per-show settings | yes | yes | yes | yes | yes (2) | dev (3) | yes | partial (4) |
 
@@ -190,7 +190,7 @@ the iPhone's settings sheet, so every Apple device can see and forget any TV it 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Add and order sources | yes | yes | yes | yes | partial (1) | yes | yes | yes |
 | Join plugin stores | yes | yes | yes | yes | yes (2) | yes | yes | yes |
-| Torrents with the VPN guard | yes | yes | yes | yes | dev | yes (3) | partial (4) | yes (5) |
+| Torrents with the VPN guard | yes | yes | yes | yes | dev | yes (3) | yes (4) | yes (5) |
 
 1. Settings > Sources lists them read-only; sources arrive only by joining a store.
 2. On `fix/android-tv-audit`: `signin/JoinStoreScreen.kt` takes the invite through a QR code to
@@ -199,9 +199,8 @@ the iPhone's settings sheet, so every Apple device can see and forget any TV it 
    protocol keeps stores off the wire, and its `text` command always lands in Search.
 3. A plain switch, without the confirm sheet Apple and Android show ("Protect with" and the IP
    check, `TorrentSheet.swift`, `TorrentSheet.kt`).
-4. The Torrents switch is insensitive ("Set up from Providers in a later build",
-   `pages/settings.rs`) and the plugin page offers only Disable, so torrents work only when
-   config.toml already has them on.
+4. Turning Torrents on opens the setup dialog with "Protect with" and the connection check
+   (`pages/torrents.rs`).
 5. VPN mode is set in config.toml, not in the TUI.
 
 ## On the device
@@ -211,7 +210,7 @@ the iPhone's settings sheet, so every Apple device can see and forget any TV it 
 | Home screen widgets | yes | yes | yes | yes | n/a | dev | n/a | n/a |
 | New-episode notifications | yes | yes | yes | yes | n/a (1) | dev (2) | yes | config (3) |
 | Handoff, Spotlight, Shortcuts | yes | yes | yes | n/a (4) | n/a | n/a | n/a | n/a |
-| Updates from the app | yes | via SideStore | via SideStore | yes | yes (5) | dev (6) | dev (7) | yes |
+| Updates from the app | yes | via SideStore | via SideStore | yes | yes (5) | dev (6) | yes (7) | yes |
 | Export lists and history | dev (8) | n/a | n/a | n/a | n/a | dev (8) | dev (8) | yes (9) |
 | Command line with JSON | n/a | n/a | n/a | n/a | n/a | n/a | n/a | yes |
 
@@ -224,9 +223,10 @@ the iPhone's settings sheet, so every Apple device can see and forget any TV it 
 5. Settings > About checks the GitHub releases, downloads the TV's APK, checks its size and
    SHA-256 and hands it to Android's installer, which asks to confirm.
 6. A Check for updates button asks the engine; there is no installer or self-update.
-7. An Updates settings row only; nothing sends `Command::CheckForUpdates`.
-8. The engine has no export command. Linux shows a disabled "Export Lists and History…"
-   (`window.rs`); the Mac's More menu holds Sync Now only.
+7. The AppImage downloads and checks the new version, puts it in its own place and restarts
+   into it; in a folder it cannot write to, it saves the new version to Downloads and says so
+   (`desktop/linux/src/updater.rs`).
+8. The engine has no export command, and no app shows the item until it has one.
 9. `anistream --export` (`crates/anistream/src/main.rs`).
 
 ## Other gaps worth knowing

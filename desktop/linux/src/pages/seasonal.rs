@@ -152,6 +152,13 @@ impl Page {
     }
 
     fn heard(&self, event: &Event) {
+        // Titles are named another way now: the season again, once it has been shown.
+        if matches!(event, Event::TitlesChanged(_)) {
+            if self.body.has_answer() {
+                self.pick(self.picked.get());
+            }
+            return;
+        }
         let Event::Content { view, content } = event else { return };
         let ours = match view {
             ContentFor::Seasonal => self.picked.get() == self.now,

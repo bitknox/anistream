@@ -296,6 +296,8 @@ impl Page {
             }
             // Progress moved: a broadcast may be watched now.
             Event::Progress { .. } if !self.rows.borrow().is_empty() => self.show(),
+            // Titles are named another way now: the week again, once it has been shown.
+            Event::TitlesChanged(_) if self.answered.get() => self.load(),
             _ => {}
         }
     }
@@ -600,7 +602,7 @@ fn time(unix: i64) -> String {
 /// Whether times read on a 12-hour clock: GNOME's clock setting, through the settings portal
 /// (which a sandbox allows) or else straight from GSettings, otherwise the locale's own way of
 /// writing a time.
-fn twelve_hour() -> bool {
+pub fn twelve_hour() -> bool {
     if let Some(format) = portal_clock_format() {
         return format == "12h";
     }

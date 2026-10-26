@@ -248,6 +248,8 @@ impl Page {
 
     fn heard(&self, event: &Event) {
         match event {
+            // Titles are named another way now: this one and its related titles again.
+            Event::TitlesChanged(_) => self.ctx.hub.send(Command::LoadDetail(self.id)),
             Event::Detail(entry) if entry.id == self.id => {
                 if let Some(navigation) = self.navigation.upgrade() {
                     navigation.set_title(&entry.title);

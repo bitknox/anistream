@@ -27,8 +27,106 @@ struct Join {
     edits: Cell<u64>,
 }
 
-/// Open the dialog, with `link` in it when one was pasted or opened.
+/// The dialog's name, so a link opened while one is up replaces it.
+const NAME: &str = "join-store";
+
+/// The store's https invite in `text`, when it holds one: the link as the store makes it,
+/// `https://…/join/{code}#{key}` (or its open link, `?open` before the `#`), or one the app is
+/// opened with, `anistream://join?link=<the https link>` or the https link with the app's
+/// scheme in front of the host. Spaces around it are ignored.
+pub fn invite_in(text: &str) -> Option<String> {
+    let text = text.trim();
+    let (scheme, rest) = text.split_once("://")?;
+    let host_end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
+    let (host, tail) = rest.split_at(host_end);
+    let path = tail.split(['?', '#']).next().unwrap_or_default();
+    if scheme.eq_ignore_ascii_case("https") {
+        let joins = path
+            .split('/')
+            .collect::<Vec<_>>()
+            .windows(2)
+            .any(|pair| pair[0].eq_ignore_ascii_case("join") && !pair[1].is_empty());
+        return (!host.is_empty() && joins && !text.contains(char::is_whitespace))
+            .then(|| text.to_owned());
+    }
+    if !scheme.eq_ignore_ascii_case("anistream") {
+        return None;
+    }
+    match host.to_ascii_lowercase().as_str() {
+        "join" => {
+            let query = tail.split_once('?')?.1;
+            let link = query
+                .split('&')
+                .find_map(|pair| pair.strip_prefix("link="))
+                .map(percent_decoded)?;
+            invite_in(&link)
+        }
+        "auth" | "party" | "" => None,
+        _ => invite_in(&format!("https://{rest}")),
+    }
+}
+
+/// `text` with its `%XX` escapes and `+` decoded, as a link's query carries it.
+fn percent_decoded(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut at = 0;
+    while at < bytes.len() {
+        match bytes[at] {
+            b'%' if at + 2 < bytes.len() => {
+                match std::str::from_utf8(&bytes[at + 1..at + 3])
+                    .ok()
+                    .and_then(|hex| u8::from_str_radix(hex, 16).ok())
+                {
+                    Some(byte) => {
+                        out.push(byte);
+                        at += 3;
+                        continue;
+                    }
+                    None => out.push(b'%'),
+                }
+            }
+            b'+' => out.push(b' '),
+            byte => out.push(byte),
+        }
+        at += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Open the dialog, with the invite link on the clipboard in it when it holds one: Join Store
+/// from the main menu.
+pub fn open_from_clipboard(ctx: &Rc<Ctx>) {
+    clipboard_invite(ctx, |ctx, invite| open(ctx, invite.as_deref()));
+}
+
+/// A paste with no text field to take it: when the clipboard holds an invite link, the dialog
+/// opens with it, and otherwise nothing happens.
+pub fn paste(ctx: &Rc<Ctx>) {
+    clipboard_invite(ctx, |ctx, invite| {
+        if let Some(invite) = invite {
+            open(ctx, Some(&invite));
+        }
+    });
+}
+
+fn clipboard_invite(ctx: &Rc<Ctx>, then: impl FnOnce(&Rc<Ctx>, Option<String>) + 'static) {
+    let weak = Rc::downgrade(ctx);
+    ctx.window.clipboard().read_text_async(gtk::gio::Cancellable::NONE, move |text| {
+        if let Some(ctx) = weak.upgrade() {
+            then(&ctx, text.ok().flatten().and_then(|text| invite_in(&text)));
+        }
+    });
+}
+
+/// Open the dialog, with `link` in it when one was pasted or opened. One already up gives way
+/// to it.
 pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
+    if let Some(dialog) = ctx.window.visible_dialog()
+        && dialog.widget_name() == NAME
+    {
+        dialog.force_close();
+    }
     let header = adw::HeaderBar::new();
     header.set_show_end_title_buttons(false);
     header.set_show_start_title_buttons(false);
@@ -71,6 +169,7 @@ pub fn open(ctx: &Rc<Ctx>, link: Option<&str>) {
     view.add_top_bar(&header);
     view.set_content(Some(&scroll));
     let dialog = adw::Dialog::builder()
+        .name(NAME)
         .title("Join a Plugin Store")
         .follows_content_size(true)
         .child(&view)
@@ -268,5 +367,47 @@ impl Join {
         let label = self.device.borrow().as_ref().map(|d| d.text().to_string());
         self.join.set_sensitive(false);
         self.ctx.hub.send(Command::JoinStore { link: store.link, label });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_invite_is_found_in_what_was_pasted_or_opened() {
+        let link = "https://plugins.example/join/abc#key";
+        assert_eq!(
+            invite_in("  https://plugins.example/join/abc#key \n").as_deref(),
+            Some(link)
+        );
+        assert_eq!(
+            invite_in("anistream://join?link=https%3A%2F%2Fplugins.example%2Fjoin%2Fabc%23key")
+                .as_deref(),
+            Some(link)
+        );
+        assert_eq!(
+            invite_in("anistream://plugins.example/join/abc#key").as_deref(),
+            Some(link)
+        );
+        assert_eq!(
+            invite_in("https://plugins.example/join/abc?open#key").as_deref(),
+            Some("https://plugins.example/join/abc?open#key")
+        );
+        assert_eq!(invite_in("https://plugins.example/about"), None);
+        assert_eq!(invite_in("https://plugins.example/join/"), None);
+        assert_eq!(invite_in("http://plugins.example/join/abc#key"), None);
+        assert_eq!(invite_in("anistream://auth/anilist#access_token=x"), None);
+        assert_eq!(invite_in("anistream://party?server=a&room=b"), None);
+        assert_eq!(invite_in("anistream://join?link=not%20a%20link"), None);
+        assert_eq!(invite_in("not a link"), None);
+        assert_eq!(invite_in("see https://plugins.example/join/abc#key"), None);
+    }
+
+    #[test]
+    fn a_query_value_is_decoded() {
+        assert_eq!(percent_decoded("a%2Fb+c%23"), "a/b c#");
+        assert_eq!(percent_decoded("100%"), "100%");
+        assert_eq!(percent_decoded("%zz"), "%zz");
     }
 }

@@ -1,7 +1,8 @@
 //! Search: a sidebar destination and the header bar's search button. Typing anywhere in the
-//! window opens the search bar and searches. Before typing, recent searches, This season and the
-//! genres; then the poster grid with its filters as a row of drop-downs, and the Settings rows
-//! whose names match under "Settings".
+//! window opens the search bar and searches. The filters stand under the bar from the start, so
+//! the titles can be browsed by genre, year or format without a word typed. Before anything is
+//! typed or chosen, recent searches, This season and the genres; then the poster grid, and the
+//! Settings rows whose names match under "Settings".
 
 use std::{
     cell::{Cell, RefCell},
@@ -10,11 +11,13 @@ use std::{
 
 use adw::prelude::*;
 use anistream_model::{
-    catalog::{AiringStatus, ContentFor, ContentList, Entry, Season},
+    catalog::{ContentFor, ContentList, Entry},
     command::Command,
     event::Event,
-    search::{MediaFormat, SearchQuery, SearchSort},
+    search::SearchQuery,
 };
+
+use super::search_filters::Filters;
 
 use crate::{
     catalog,
@@ -22,62 +25,6 @@ use crate::{
     widgets::{self, PosterGrid},
     window::Ctx,
 };
-
-/// AniList's genres, as its search takes them.
-const GENRES: [&str; 16] = [
-    "Action",
-    "Adventure",
-    "Comedy",
-    "Drama",
-    "Fantasy",
-    "Horror",
-    "Mecha",
-    "Music",
-    "Mystery",
-    "Psychological",
-    "Romance",
-    "Sci-Fi",
-    "Slice of Life",
-    "Sports",
-    "Supernatural",
-    "Thriller",
-];
-
-const FORMATS: [(&str, Option<MediaFormat>); 6] = [
-    ("Any format", None),
-    ("TV", Some(MediaFormat::Tv)),
-    ("Movie", Some(MediaFormat::Movie)),
-    ("ONA", Some(MediaFormat::Ona)),
-    ("OVA", Some(MediaFormat::Ova)),
-    ("Special", Some(MediaFormat::Special)),
-];
-const SEASONS: [(&str, Option<Season>); 5] = [
-    ("Any season", None),
-    ("Winter", Some(Season::Winter)),
-    ("Spring", Some(Season::Spring)),
-    ("Summer", Some(Season::Summer)),
-    ("Fall", Some(Season::Fall)),
-];
-const STATUSES: [(&str, Option<AiringStatus>); 4] = [
-    ("Any status", None),
-    ("Airing", Some(AiringStatus::Releasing)),
-    ("Finished", Some(AiringStatus::Finished)),
-    ("Not yet aired", Some(AiringStatus::NotYetReleased)),
-];
-const SORTS: [(&str, Option<SearchSort>); 4] = [
-    ("Best match", None),
-    ("Popular", Some(SearchSort::Popularity)),
-    ("Top rated", Some(SearchSort::Score)),
-    ("Newest", Some(SearchSort::Newest)),
-];
-
-/// A drop-down of these options' names.
-fn drop_down<T>(options: &[(&str, T)]) -> gtk::DropDown {
-    let names: Vec<&str> = options.iter().map(|(n, _)| *n).collect();
-    let drop = gtk::DropDown::from_strings(&names);
-    drop.add_css_class("flat");
-    drop
-}
 
 /// How many recent searches the page keeps.
 const RECENT: usize = 6;
@@ -101,6 +48,8 @@ struct Inner {
     /// The page to ask for as the end comes near, while there is one, and whether it is asked.
     next_page: Cell<Option<u32>>,
     asking_more: Cell<bool>,
+    /// Under the results while the next page is on its way.
+    more_spinner: adw::Spinner,
     /// Whether searching as you type waits for Return, to stay within AniList's limits.
     paused: Cell<bool>,
     season: PosterGrid,
@@ -109,8 +58,7 @@ struct Inner {
     recent: gtk::FlowBox,
     recent_group: gtk::Box,
     empty: adw::StatusPage,
-    filters: [gtk::DropDown; 4],
-    genre: RefCell<Option<String>>,
+    filters: Rc<Filters>,
     asked: RefCell<Option<SearchQuery>>,
     searches: RefCell<Vec<String>>,
     capture: Cell<bool>,
@@ -138,20 +86,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_end(&toggle);
 
-    let filters =
-        [drop_down(&FORMATS), drop_down(&SEASONS), drop_down(&STATUSES), drop_down(&SORTS)];
-    let filter_row = gtk::FlowBox::builder()
-        .selection_mode(gtk::SelectionMode::None)
-        .max_children_per_line(5)
-        .column_spacing(6)
-        .row_spacing(6)
-        .homogeneous(false)
-        .build();
-    for filter in &filters {
-        filter_row.append(filter);
-    }
-    filter_row.set_margin_start(12);
-    filter_row.set_margin_end(12);
+    let filters = Filters::new();
 
     // Before typing.
     let recent = gtk::FlowBox::builder()
@@ -184,10 +119,10 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .row_spacing(8)
         .homogeneous(true)
         .build();
-    for genre in GENRES {
-        let tile = gtk::Button::with_label(genre);
+    for genre in filters.genres() {
+        let tile = gtk::Button::with_label(&genre);
         tile.add_css_class("genre-tile");
-        tile.set_widget_name(genre);
+        tile.set_widget_name(&genre);
         genres.append(&tile);
     }
     let before = gtk::Box::new(gtk::Orientation::Vertical, 18);
@@ -214,6 +149,14 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     let results = gtk::Box::new(gtk::Orientation::Vertical, 12);
     results.set_margin_bottom(24);
     results.append(&grid.widget);
+    let more_spinner = adw::Spinner::new();
+    more_spinner.set_size_request(24, 24);
+    more_spinner.set_halign(gtk::Align::Center);
+    more_spinner.set_visible(false);
+    more_spinner
+        .upcast_ref::<gtk::Widget>()
+        .update_property(&[gtk::accessible::Property::Label("Loading more titles")]);
+    results.append(&more_spinner);
     results.append(&settings_group);
     let results = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
@@ -222,6 +165,20 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .build();
 
     let empty = crate::states::plain("Nothing Found", "");
+    // With filters set, the way out, as the Mac offers it.
+    let clear_filters = gtk::Button::with_label("Clear Filters");
+    clear_filters.add_css_class("pill");
+    clear_filters.set_halign(gtk::Align::Center);
+    clear_filters.set_visible(false);
+    clear_filters.connect_clicked({
+        let filters = Rc::downgrade(&filters);
+        move |_| {
+            if let Some(filters) = filters.upgrade() {
+                filters.clear();
+            }
+        }
+    });
+    empty.set_child(Some(&clear_filters));
     let states = States::new(&ctx.hub, &results, Shape::Grid, &empty, "Couldn't Search");
     states.offline_words("Search Needs a Connection", "Downloaded episodes still play.");
     let body = gtk::Stack::new();
@@ -231,15 +188,9 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 6);
     column.append(&bar);
-    column.append(&filter_row);
+    column.append(&filters.row);
+    column.append(&filters.chips);
     column.append(&body);
-    body.connect_visible_child_name_notify({
-        let filter_row = filter_row.clone();
-        move |body| {
-            filter_row.set_visible(body.visible_child_name().as_deref() != Some("before"));
-        }
-    });
-    filter_row.set_visible(false);
 
     let inner = Rc::new(Inner {
         ctx: Rc::clone(ctx),
@@ -251,6 +202,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         entries: RefCell::default(),
         next_page: Cell::new(None),
         asking_more: Cell::new(false),
+        more_spinner,
         paused: Cell::new(false),
         season,
         settings,
@@ -258,8 +210,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         recent,
         recent_group,
         empty,
-        filters,
-        genre: RefCell::default(),
+        filters: Rc::clone(&filters),
         asked: RefCell::default(),
         searches: RefCell::new(ctx.prefs.recent_searches()),
         capture: Cell::new(false),
@@ -291,16 +242,14 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
             }
         }
     });
-    for filter in &inner.filters {
-        filter.connect_selected_notify({
-            let inner = Rc::downgrade(&inner);
-            move |_| {
-                if let Some(inner) = inner.upgrade() {
-                    inner.search(true);
-                }
+    inner.filters.on_change({
+        let inner = Rc::downgrade(&inner);
+        move || {
+            if let Some(inner) = inner.upgrade() {
+                inner.search(true);
             }
-        });
-    }
+        }
+    });
     inner.states.on_retry({
         let inner = Rc::downgrade(&inner);
         move || {
@@ -329,8 +278,12 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
                 let inner = Rc::downgrade(&inner);
                 move |button| {
                     if let Some(inner) = inner.upgrade() {
-                        inner.genre.replace(Some(button.widget_name().to_string()));
-                        inner.search(true);
+                        // A genre's titles, as its filter alone.
+                        let genre = button.widget_name().to_string();
+                        inner.filters.set(&SearchQuery {
+                            genres: vec![genre],
+                            ..SearchQuery::default()
+                        });
                     }
                 }
             });
@@ -364,6 +317,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         }
     });
     inner.capture_keys(true);
+    ctx.hub.send(Command::LoadSearchFacets);
 
     let page = widgets::content_page("Search", &header, &column);
     SearchPage { page, inner }
@@ -380,6 +334,26 @@ impl SearchPage {
     /// player, which has keys of its own, does.
     pub fn capture_keys(&self, on: bool) {
         self.inner.capture_keys(on);
+    }
+
+    /// Browse by `query`'s filters with nothing typed, as a screenshot asks.
+    #[cfg(feature = "fixtures")]
+    pub fn browse(&self, query: &SearchQuery) {
+        self.focus();
+        self.inner.entry.set_text("");
+        self.inner.filters.set(query);
+    }
+
+    /// The query on screen, and the next page asked for, as a screenshot of paging asks.
+    #[cfg(feature = "fixtures")]
+    pub fn asked(&self) -> Option<SearchQuery> {
+        self.inner.asked.borrow().clone()
+    }
+
+    /// Ask for the next page, as reaching the end does.
+    #[cfg(feature = "fixtures")]
+    pub fn more(&self) {
+        self.inner.more();
     }
 
     /// Search for `query`, as a screenshot or a deep link asks.
@@ -401,28 +375,16 @@ impl Inner {
         self.bar.is_mapped()
     }
 
-    fn picked<T: Copy>(drop: &gtk::DropDown, options: &[(&str, Option<T>)]) -> Option<T> {
-        options.get(drop.selected() as usize)?.1
-    }
-
     /// What is typed and chosen, the text trimmed as the engine tags its answer.
     fn query(&self) -> SearchQuery {
-        let [format, season, status, sort] = &self.filters;
-        SearchQuery {
-            text: self.entry.text().trim().to_owned(),
-            genres: self.genre.borrow().iter().cloned().collect(),
-            season: Self::picked(season, &SEASONS),
-            formats: Self::picked(format, &FORMATS).into_iter().collect(),
-            statuses: Self::picked(status, &STATUSES).into_iter().collect(),
-            sort: Self::picked(sort, &SORTS),
-            ..SearchQuery::default()
-        }
+        self.filters.query(&self.entry.text())
     }
 
     /// Search for what is typed and chosen: `live` as it changes, which the engine waits on
     /// until the changes stop, or at once on Return.
     fn search(&self, live: bool) {
         let query = self.query();
+        self.filters.typed(!query.trimmed_text().is_empty());
         if query.is_blank() {
             self.asked.replace(None);
             self.body.set_visible_child_name("before");
@@ -437,7 +399,7 @@ impl Inner {
         }
         self.asked.replace(Some(query.clone()));
         self.next_page.set(None);
-        self.asking_more.set(false);
+        self.more_waits(false);
         self.body.set_visible_child_name("results");
         // The results on screen stay for 600 ms, then placeholders stand in their place.
         self.states.loading(Command::Search { query: query.clone() }.activity());
@@ -455,12 +417,24 @@ impl Inner {
         if self.asking_more.get() || !self.states.has_answer() {
             return;
         }
-        self.asking_more.set(true);
+        self.more_waits(true);
         self.ctx.hub.send(Command::SearchMore { query, page });
+    }
+
+    fn more_waits(&self, on: bool) {
+        self.asking_more.set(on);
+        self.more_spinner.set_visible(on);
     }
 
     fn heard(&self, event: &Event) {
         match event {
+            // Titles are named another way now: what was found, searched for again.
+            Event::TitlesChanged(_) => {
+                if let Some(query) = self.asked.borrow().clone() {
+                    self.ctx.hub.send(Command::Search { query });
+                }
+            }
+            Event::Facets(facets) => self.filters.set_genres(&facets.genres),
             Event::Content { view: ContentFor::Seasonal, content } => {
                 let entries = content.entries();
                 self.season.set(&entries[..entries.len().min(12)]);
@@ -471,6 +445,9 @@ impl Inner {
                 if *paused && !self.states.has_answer() && self.asked.borrow().is_some() {
                     self.asked.replace(None);
                     self.empty.set_title("Press Enter to Search");
+                    if let Some(clear) = self.empty.child() {
+                        clear.set_visible(false);
+                    }
                     self.empty.set_description(Some(
                         "Searching as you type is paused for a moment, to stay within \
                          AniList's limits.",
@@ -487,7 +464,7 @@ impl Inner {
                 if self.asked.borrow().as_ref() != Some(query) {
                     return;
                 }
-                self.asking_more.set(false);
+                self.more_waits(false);
                 if entries.is_empty() {
                     // That page failed: asked for again on the next scroll.
                     return;
@@ -511,13 +488,13 @@ impl Inner {
                         self.states
                             .loading(Command::Search { query: query.clone() }.activity());
                     }
-                    ContentList::Entries(entries) => {
+                    ContentList::Entries(entries) if !entries.is_empty() => {
                         self.entries.replace(entries.clone());
                         self.grid.set(entries);
                         self.grid.widget.set_visible(true);
                         self.states.content();
                     }
-                    ContentList::Empty | ContentList::Failed(_) => {
+                    ContentList::Entries(_) | ContentList::Empty | ContentList::Failed(_) => {
                         self.entries.borrow_mut().clear();
                         self.grid.set(&[]);
                         self.grid.widget.set_visible(false);
@@ -528,9 +505,14 @@ impl Inner {
                             self.states.failed(why);
                         } else {
                             self.empty.set_title(&query.nothing_found());
-                            self.empty.set_description(Some(
-                                "Try another spelling, or fewer filters.",
-                            ));
+                            if let Some(clear) = self.empty.child() {
+                                clear.set_visible(query.has_filters());
+                            }
+                            self.empty.set_description(Some(if query.is_browse() {
+                                "Try fewer filters."
+                            } else {
+                                "Try another spelling, or fewer filters."
+                            }));
                             self.states.empty();
                         }
                     }
