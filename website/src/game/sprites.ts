@@ -6,7 +6,7 @@
  *
  * Shared by the website's hero and the store's admin page.
  */
-import { SPRITE, SPRITE_COLORS, SPRITE_W } from '../data/nagare';
+import { SPRITE, SPRITE_COLORS, SPRITE_W } from './nagare';
 
 export type RGB = [number, number, number];
 

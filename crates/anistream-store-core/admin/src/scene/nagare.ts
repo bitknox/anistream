@@ -1,4 +1,4 @@
-// A copy of website/src/data/nagare.ts. Keep the two in step.
+// A copy of website/src/game/nagare.ts. Keep the two in step.
 
 /**
  * Nagare (流, "stream"), anistream's mascot: an original character. A hand-authored pixel sprite,

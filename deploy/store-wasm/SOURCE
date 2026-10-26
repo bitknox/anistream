@@ -124,7 +124,7 @@ crates/anistream-store-core/admin/src/components/Updates.tsx fab5ce60f3a4673f0e1
 crates/anistream-store-core/admin/src/format.ts 585dfda3f3258485042a6dc12edd2af7799483e7
 crates/anistream-store-core/admin/src/hosts.ts cef67c1897e1499d9fad36371dde8664123b25e0
 crates/anistream-store-core/admin/src/main.tsx 65a79bab337bb311f49b9f3d517aa8d34715da92
-crates/anistream-store-core/admin/src/scene/nagare.ts 77331662ff2477f67e3a87ef79c284c74649761a
+crates/anistream-store-core/admin/src/scene/nagare.ts 63ddcedee100c526678ef88560d90bb92e088efb
 crates/anistream-store-core/admin/src/scene/scene.ts 362fa3d13b42f6d79313cdaa58f6ca5f727449bb
 crates/anistream-store-core/admin/src/types.ts 67dc22d3067d13dd033f930be9732272469285fb
 crates/anistream-store-core/admin/src/update.ts f7617723ff024d3bd96d69d3c73909e39a65d067

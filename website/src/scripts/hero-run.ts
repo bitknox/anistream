@@ -11,7 +11,7 @@
  * With reduced motion both ways are a short crossfade.
  */
 import gsap from 'gsap';
-import { SPRITE_W } from '../data/nagare';
+import { SPRITE_W } from '../game/nagare';
 import { type Geometry, Run } from '../game/run';
 import type { PlaneName, SceneState } from './scene';
 

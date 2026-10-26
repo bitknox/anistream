@@ -86,7 +86,6 @@ jobs:
             # The runner game the admin page shares with the website's hero.
             admin:
               - 'website/src/game/**'
-              - 'website/src/data/nagare.ts'
 
       # The files this change touches, and from them the three things the macOS and Windows jobs
       # are decided by:

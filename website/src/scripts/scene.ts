@@ -8,7 +8,7 @@
  * with its railing and Nagare. A seeded generator draws it, so a width always gives the same art.
  * At 180 by 70 and 65 by 70 it is the art the design boards show.
  */
-import { SPRITE, SPRITE_COLORS, SPRITE_H, SPRITE_W } from '../data/nagare';
+import { SPRITE, SPRITE_COLORS, SPRITE_H, SPRITE_W } from '../game/nagare';
 
 type RGB = [number, number, number];
 
