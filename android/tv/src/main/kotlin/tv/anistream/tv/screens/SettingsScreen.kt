@@ -848,6 +848,8 @@ private val Licences = listOf(
     "Licence" to "MIT, open source and non-commercial",
     "Typefaces" to "Roboto Flex and Zen Kaku Gothic New, under the SIL Open Font License 1.1",
     "Libraries" to "JNA and AndroidX, under the Apache License 2.0",
+    // Shipped in the TV's QR pages, which a phone's browser runs; the phone app serves no pages.
+    "Page encryption" to "noble-ciphers, under the MIT License",
 )
 
 /** A row that only says something: its label and its value, not focusable. */
