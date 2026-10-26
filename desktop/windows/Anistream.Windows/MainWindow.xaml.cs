@@ -384,6 +384,11 @@ public sealed partial class MainWindow : Window
                 case Event.Sync:
                     ShowAccount();
                     break;
+                case Event.TitlesChanged:
+                    // Every title is named another way now: what has been shown is asked for again.
+                    foreach (var command in ctx.Known.AskAgain())
+                        ctx.Send(command);
+                    break;
                 case Event.Toast t when !Lines.SettingSaved(t.V1):
                     ShowToast(t.V1);
                     break;

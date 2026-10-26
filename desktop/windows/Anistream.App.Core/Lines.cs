@@ -1,4 +1,5 @@
 using Anistream.Engine.Core;
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 
 namespace Anistream.App;
@@ -10,12 +11,13 @@ namespace Anistream.App;
 public static class Lines
 {
     /// <summary>
-    /// An episode as the player names it, its Dub mark after the label: "Episode 10 · Dub ·
-    /// The Return". A sub says nothing, since that is what most episodes play.
+    /// An episode as the player and Continue's preview name it, its Dub mark after the label:
+    /// "Episode 10 · Dub · The Return". A sub, or a translation not known, says nothing, since
+    /// that is what most episodes play. The mark is the engine's <c>episode_line</c>.
     /// </summary>
-    public static string Episode(string label, string? title, Translation translation)
+    public static string Episode(string label, string? title, Translation? translation)
     {
-        var line = translation == Translation.Dub ? $"{label} · Dub" : label;
+        var line = AnistreamFfiMethods.EpisodeLine(label, translation);
         return title is { Length: > 0 } t ? $"{line} · {t}" : line;
     }
 

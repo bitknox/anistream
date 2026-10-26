@@ -116,7 +116,7 @@ amber action per screen, progress, selection, switches on; status text is never 
 ## Shape and size
 
 - Covers 2:3, radius 8. 16:9 cards and episode stills radius 8. Banners bleed full width with no
-  radius (they meet the screen edge). Buttons full (pill), chips 8, panels 16 on the inner edge,
+  radius (they meet the screen edge). Buttons and chips full (pill), panels 16 on the inner edge,
   dialogs 28.
 - Focus targets at least 48 × 48. Buttons 48 high (the amber hero action 56), icon buttons 48,
   list rows 56 (one line) and 72 (two lines), chips 40.
@@ -380,8 +380,8 @@ A week as day tabs, and one day's schedule as a list, so text stays large.
   airing" (My list when signed in, All airing otherwise).
 - The day: a list of 72-high rows, one per entry in air order. Each row: the time at x 124 (labelLarge,
   "16:30", "~23:00", or "16:30 (was 23:00)" in haze for delays), a 16:9 still or banner crop
-  (96 × 54, radius 8) at x 220, the title (Zen Kaku 16), "Episode 10" and the translation ("Sub",
-  "Dub") as a second line, a water "Airing" or "Aired" state on the right, and a progress chip
+  (96 × 54, radius 8) at x 220, the title (Zen Kaku 16), "Episode 10" as a second line, "Episode 10 · Dub"
+  for a dub (a sub is not marked), a water "Airing" or "Aired" state on the right, and a progress chip
   ("E7 of 24") for shows on a list. Sub and dub air times are separate rows when they differ.
 - The row for the next airing on today is the first focus; past rows sit above it, dimmed to haze.
 - Left and Right on a row move to the previous or next day at the nearest time, without going
@@ -458,7 +458,7 @@ rows on the right (x 412 to 912). Moving through sections shows their rows; Righ
   for a problem, an update or off. A provider's page holds its version, hosts and response time.
 - Plugin stores: one row per store, "Add a plugin store", and each store's page (plugins, Update
   with the amber, "This update also contacts …").
-- Accounts: AniList, MyAnimeList, Kitsu, Simkl, Trakt, each with its state ("Signed in as Mika",
+- Accounts: AniList, Kitsu, Simkl, Trakt, each with its state ("Signed in as Mika",
   "Last synced 2 min ago" or "Not signed in"), Sign in or Sign out, and Sync now.
 - Remotes: the TV's name for phones ("Living room TV", from the system's device name, editable),
   "Pair a phone", paired phones with last seen ("Mika's phone · connected", "Ren's tablet · last
@@ -478,9 +478,11 @@ TVSignIn, which offers the ways that tracker allows, best first:
 | Tracker | From a paired anistream phone | A code on any phone | Typed on the TV |
 |---|---|---|---|
 | AniList | the phone's account, confirmed on the phone | AniList's PIN page, pasted into the TV's sign-in page | no |
-| MyAnimeList | the phone's account | no (its redirect must match one registered address) | no |
 | Kitsu | the phone's account | the TV's sign-in page (username and password form) | yes, with the system keyboard |
 | Simkl, Trakt | the phone's account | the service's device code (engine `DeviceFlow`) | no |
+
+MyAnimeList is left out of the TV's Accounts: its redirect must match the one address it has
+registered, so a TV has no way to finish its sign-in.
 
 - From a phone (first, when a paired phone is signed in to that tracker): "Use Mika's phone", with
   "AniList as Mika" below. Center asks the phone; the phone shows "Sign in Living room TV to AniList
@@ -538,8 +540,8 @@ Over a 35 % dim of the ground colour, fading in on fade-in and out on fade-out, 
 - Top left (x 48, y 27): show title (Zen Kaku 22), the episode line "E7 · The Lantern Road" (bodyLarge
   haze). Top right: the clock "19:42" and "Ends at 19:56" (labelMedium haze).
 - Bottom: elapsed "10:29" and remaining "−13:31" (labelMedium) above the seek bar, the bar from x 48
-  to 912 at y 437, 6 high, amber on #434653, with the opening and ending as silk 40 % segments on
-  the track. Below it at y 465, the button row (48 high): play/pause, then Episodes, Subtitles and
+  to 912 at y 437, 6 high, amber on #434653, with the opening and ending as water segments on top
+  of the buffered and played parts. Below it at y 465, the button row (48 high): play/pause, then Episodes, Subtitles and
   audio, Source, Info as tonal pill buttons with icon and label, and "Next episode" at the right end.
 - The chrome hides after 5 s with no key (the phone's 3 s is short across a room), never while the
   seek bar is scrubbing, while a panel is open, or while paused. Controls stay up while paused.

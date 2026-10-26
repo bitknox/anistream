@@ -57,6 +57,7 @@ import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
 import tv.anistream.engine.model.StatsFixture
 import tv.anistream.engine.ffi.playerStatsFixture
+import tv.anistream.player.MpvCall
 import tv.anistream.player.MpvEvent
 import tv.anistream.player.MpvNative
 import tv.anistream.player.MpvValue
@@ -185,6 +186,23 @@ class TvShots {
         }
     }
 
+    /** The subtitles stand above the chrome while it is up, and go back down once it hides. */
+    @Test
+    fun subtitles_rise_above_the_controls() {
+        fun subPos() = (playerMpv!!.calls.filterIsInstance<MpvCall.Set>().lastOrNull { it.property == "sub-pos" }?.value as? MpvValue.Real)?.value
+        var up: Double? = null
+        playerShot(null) {
+            up = subPos()
+            time = CHROME_HIDE + 1_000
+        }
+        // The model's ticker reads its clock on the main looper, every 250 ms.
+        org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(1))
+        compose.mainClock.advanceTimeBy(2_000)
+        compose.waitForIdle()
+        assertTrue("lifted while the chrome is up: $up", up != null && up!! < 80.0)
+        assertEquals(100.0, subPos()!!, 0.5)
+    }
+
     /** The chrome gone again, the skip offer holding Center in the bottom right. */
     @Test
     fun player_skip() = playerShot("tv-player-skip") { time = CHROME_HIDE + 1_000 }
@@ -295,6 +313,9 @@ class TvShots {
     /** The model's clock, held where a shot puts it. */
     private var time = 0L
 
+    /** The mpv the last [playerShot] played on. */
+    private var playerMpv: ScriptedMpv? = null
+
     /** The navigator of the root [shoot] drew. */
     private var nav = TvNavigator()
 
@@ -302,7 +323,7 @@ class TvShots {
         AppClock.clock = Clock.fixed(Instant.parse("2026-10-20T19:02:00Z"), ZONE)
         val store = AppStore(scope, decoder = TvArtDecoder, artworkBudget = TV_ART_BUDGET, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         var mpv: ScriptedMpv? = null
-        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { time }, hwdec = "no")
+        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it; playerMpv = it } }, scope = scope, now = { time }, hwdec = "no")
         compose.runOnUiThread {
             model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
             model.apply(Event.PlayerOps(1u, listOf(PlayerOp.Open(true, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))))

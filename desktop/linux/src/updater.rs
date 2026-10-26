@@ -1,8 +1,10 @@
 //! The app updating itself from its AppImage. Once the engine's check finds a newer release with
 //! an AppImage for this machine, it downloads into the cache and is checked against the size and
 //! SHA-256 the release lists. Restart to Update then puts it in place of the AppImage this copy
-//! runs from, quits, and opens the new version with the same arguments. A fixture run goes
-//! through the same steps and fetches and installs nothing. See [`crate::updates`].
+//! runs from, quits, and opens the new version with the same arguments. When the AppImage's folder
+//! can't be written to, the checked download is saved to Downloads instead, and the app says so.
+//! A fixture run goes through the same steps and fetches and installs nothing. See
+//! [`crate::updates`].
 
 use std::{
     cell::{Cell, RefCell},
@@ -16,7 +18,7 @@ use std::{
 };
 
 use anistream_model::updates::{Release, ReleaseAsset, UpdateStatus};
-use gtk::glib;
+use gtk::{glib, prelude::*};
 
 use crate::updates::{self, Progress, Step};
 
@@ -28,8 +30,9 @@ enum Heard {
 
 /// Run whenever the update moves on.
 type Listener = Box<dyn Fn()>;
-/// Run with the version once a release the check told of is ready.
-type Ready = Box<dyn Fn(&str)>;
+/// Run with the version once a release the check told of is ready, and whether it was saved to
+/// Downloads rather than made ready to install.
+type Ready = Box<dyn Fn(&str, bool)>;
 
 pub struct Updater {
     progress: RefCell<Progress>,
@@ -41,6 +44,9 @@ pub struct Updater {
     /// Where downloads go, and the note a restart to update leaves for the copy it opens.
     dir: PathBuf,
     appimage: Option<PathBuf>,
+    /// A fixture run rehearsing an AppImage in a folder it can't write to.
+    #[cfg_attr(not(feature = "fixtures"), allow(dead_code))]
+    unwritable: Cell<bool>,
     /// Counts the downloads started, so a stopped one's last words are not taken for a newer one's.
     started: Cell<u64>,
     stop: RefCell<Option<Arc<AtomicBool>>>,
@@ -59,6 +65,7 @@ impl Updater {
             staged,
             dir: cache.join("update"),
             appimage: updates::appimage(),
+            unwritable: Cell::new(false),
             started: Cell::new(0),
             stop: RefCell::default(),
             changed: RefCell::default(),
@@ -92,8 +99,9 @@ impl Updater {
         self.changed.borrow_mut().push(Box::new(f));
     }
 
-    /// Run `f` with the version once a release the check told of is ready to install.
-    pub fn on_ready(&self, f: impl Fn(&str) + 'static) {
+    /// Run `f` with the version once a release the check told of is ready to install, or saved
+    /// to Downloads.
+    pub fn on_ready(&self, f: impl Fn(&str, bool) + 'static) {
         self.ready.replace(Some(Box::new(f)));
     }
 
@@ -123,6 +131,22 @@ impl Updater {
         self.said();
     }
 
+    /// Rehearse an AppImage in a folder the app can't write to, in a fixture run.
+    #[cfg(feature = "fixtures")]
+    pub fn rehearse_unwritable(&self) {
+        self.unwritable.set(true);
+    }
+
+    /// Where the new version goes once checked, when not in place of the AppImage: Downloads,
+    /// for an AppImage in a folder the app can't write to.
+    fn saving_to(&self) -> Option<PathBuf> {
+        if self.staged {
+            return self.unwritable.get().then(updates::downloads_dir);
+        }
+        let dir = self.appimage.as_deref()?.parent()?;
+        (!updates::writable(dir)).then(updates::downloads_dir)
+    }
+
     /// Download and check this machine's AppImage, when the release on offer has one.
     pub fn download(self: &Rc<Self>) {
         let Some((version, asset)) = self.asset() else { return };
@@ -137,11 +161,13 @@ impl Updater {
         self.set(&version, Step::Downloading { received: 0, expected: asset.size });
 
         let (tx, rx) = async_channel::unbounded::<Heard>();
+        let saving = self.saving_to();
         if self.staged {
-            rehearse(asset, self.dir.clone(), tx, stop);
+            rehearse(asset, saving.clone().unwrap_or_else(|| self.dir.clone()), tx, stop);
         } else {
             tidy(&self.dir, Some(&asset.name));
             let dir = self.dir.clone();
+            let saving = saving.clone();
             std::thread::spawn(move || {
                 let end =
                     match tokio::runtime::Builder::new_current_thread().enable_all().build() {
@@ -155,9 +181,17 @@ impl Updater {
                         )),
                         Err(e) => Some(Err(format!("The download couldn't start: {e}."))),
                     };
+                // Checked, and copied to Downloads when it can't go in place.
+                let end = match (end, saving) {
+                    (Some(Ok(path)), Some(downloads)) => {
+                        Some(updates::save_to(&path, &downloads))
+                    }
+                    (end, _) => end,
+                };
                 let _ = tx.send_blocking(Heard::Done(end));
             });
         }
+        let saved = saving.is_some();
         let weak = Rc::downgrade(self);
         glib::spawn_future_local(async move {
             while let Ok(heard) = rx.recv().await {
@@ -174,11 +208,14 @@ impl Updater {
                         this.set(&version, Step::Failed(reason));
                     }
                     Heard::Done(Some(Ok(path))) => {
-                        this.set(&version, Step::Ready(path));
+                        this.set(
+                            &version,
+                            if saved { Step::Saved(path) } else { Step::Ready(path) },
+                        );
                         if this.tell.replace(false)
                             && let Some(ready) = this.ready.borrow().as_ref()
                         {
-                            ready(&version);
+                            ready(&version, saved);
                         }
                     }
                 }
@@ -201,6 +238,26 @@ impl Updater {
             stop.store(true, Ordering::Relaxed);
         }
         self.started.set(self.started.get() + 1);
+    }
+
+    /// Show the new version saved to Downloads in the file manager, selected.
+    pub fn show_saved(&self, window: &impl IsA<gtk::Window>, failed: impl FnOnce() + 'static) {
+        let Step::Saved(path) = self.progress().step else { return };
+        if self.staged {
+            tracing::info!(path = %path.display(), "the saved version, not shown in a scene");
+            return;
+        }
+        let launcher = gtk::FileLauncher::new(Some(&gtk::gio::File::for_path(&path)));
+        launcher.open_containing_folder(
+            Some(window),
+            gtk::gio::Cancellable::NONE,
+            move |done| {
+                if let Err(e) = done {
+                    tracing::warn!(error = %e, "the folder did not open");
+                    failed();
+                }
+            },
+        );
     }
 
     /// Restart to Update: the new version goes in place of the AppImage, the app quits, and the

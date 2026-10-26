@@ -22,6 +22,9 @@
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 //   code      a tracker whose device-code sheet opens, with a made-up code that expires in 15 minutes
+//   expires   seconds the `code` sheet's code has left, 0 for one already expired
+//   day       days after today the calendar opens on, for a day with broadcasts: the fixtures'
+//             own day has none
 
 package tv.anistream.app
 
@@ -203,12 +206,16 @@ internal object Flavour {
             store.loadContinue(force = true)
             for ((id, _) in marks) store.loadDetail(id)
         }
+        intent.getStringExtra("day")?.toIntOrNull()?.let { store.calendar.opensOn = it }
         intent.getStringExtra("code")?.let { tracker ->
-            val expiresAt = System.currentTimeMillis() / 1000 + 899
+            val expiresAt = System.currentTimeMillis() / 1000 + codeSecondsLeft(intent)
             store.apply(Event.DeviceCode(DeviceCodePrompt(tracker, "4F2K9QX1", "https://activate.example/pin", expiresAt)))
         }
         for (later in listOf("sheet", "player")) {
             intent.getStringExtra(later)?.let { Log.w(AnistreamApp.TAG, "$later=$it is not in this build yet") }
         }
     }
+
+    /** How long a `code` extra's prompt has left: `expires=<seconds>`, 0 for an expired code, or 899. */
+    private fun codeSecondsLeft(intent: Intent): Long = intent.getStringExtra("expires")?.toLongOrNull()?.coerceAtLeast(0) ?: 899
 }

@@ -65,6 +65,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -297,7 +298,7 @@ private fun TvPairing(tv: TvRemoteModel, step: TvPairingStep) {
         SheetText(TvWords.pairingLine(step.tvName, deviceWord()))
         TvHeading("Code on ${step.tvName}")
         TvCodeBoxes(code, { code = it }) { digits -> if (!step.working) tv.submit(digits) }
-        step.problem?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.error, modifier = Modifier.padding(top = 8.dp)) }
+        step.problem?.let { ProblemLine(it) }
         SheetButtons {
             QuietButton("Back", onClick = tv::cancelPairing)
             QuietButton("Show a new code", enabled = !step.working) {
@@ -420,7 +421,7 @@ private fun TvRemote(tv: TvRemoteModel) {
         actions = KeyboardActions(onSearch = { tv.send(FfiTvCommand.Text(search, submit = true)) }),
         enabled = live,
     )
-    problem?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.error, modifier = Modifier.padding(top = 8.dp)) }
+    problem?.let { ProblemLine(it) }
     SheetButtons {
         if (TvWords.lost(card)) {
             QuietButton("Pair again") {
@@ -760,4 +761,18 @@ internal fun TvSettingsGroup() {
             }
         } + listOf(@Composable { place: Place -> ActionRow(place, "Pair a TV", onClick = tv::openPicker) }),
     )
+}
+
+/** A problem under a field: the error's dot, then its words in the surface's own colour, never vermilion text. */
+@Composable
+private fun ProblemLine(text: String) {
+    val style = MaterialTheme.typography.bodyMedium
+    // The dot sits level with the first line, however many lines the words wrap to.
+    val line = with(LocalDensity.current) { style.lineHeight.toDp() }
+    Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.height(line), contentAlignment = Alignment.Center) {
+            StateDot(MaterialTheme.colorScheme.error)
+        }
+        Text(text, style = style, color = MaterialTheme.colorScheme.onSurface)
+    }
 }

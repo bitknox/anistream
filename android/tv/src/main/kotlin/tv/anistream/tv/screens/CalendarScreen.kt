@@ -164,7 +164,7 @@ fun CalendarScreen(nav: TvNavigator, memory: FocusMemory, onOpen: (AnilistId) ->
     val now = AppClock.now()
     val zone = AppClock.zone
     val today = now.atZone(zone).toLocalDate()
-    var offset by rememberSaveable { mutableIntStateOf(0) }
+    var offset by rememberSaveable { mutableIntStateOf(store.calendar.opensOn.coerceIn(0, DAYS - 1)) }
     val day = today.plusDays(offset.toLong())
     val airings = remember(window) { window.airings(now) }
     val shown = airings.filter { it.at.atZone(zone).toLocalDate() == day && (!onlyMine || it.entry.listStatus != null) }

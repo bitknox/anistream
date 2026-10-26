@@ -1,4 +1,6 @@
 using System.Globalization;
+using Anistream.Engine.Core;
+using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 
 namespace Anistream.App;
@@ -12,18 +14,36 @@ public sealed record Broadcast(Entry Entry, uint Episode, long Airs, long? Was)
     public bool IsNew(long now) => Airs <= now && !Watched;
 
     /// <summary>
-    /// "Ep 10 · 16:30", "~16:30" when the time is an estimate, with "(was 23:00)" when the
-    /// schedule moved it. The engine's <c>air_time</c>.
+    /// "Ep 10 · Dub · 16:30" for a dub row, "Ep 10 · 16:30" for any other, "~16:30" when the time
+    /// is an estimate, with "(was 23:00)" when the schedule moved it. The engine's
+    /// <c>episode_line</c> and <c>air_time</c>.
     /// </summary>
     public string Line(TimeZoneInfo zone, CultureInfo? culture = null)
     {
-        var time = Anistream.Engine.Ffi.AnistreamFfiMethods.AirTime(Calendar.Time(Airs, zone, culture), Entry.AiringApproximate);
-        var line = $"Ep {Episode} · {time}";
+        var time = AnistreamFfiMethods.AirTime(Calendar.Time(Airs, zone, culture), Entry.AiringApproximate);
+        var line = $"{EpisodeText} · {time}";
         return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
     }
 
-    /// <summary>"Dub" for a dub row, beside its time, else null (a sub row is not marked): the engine's <c>calendar_mark</c>.</summary>
-    public string? Mark => Anistream.Engine.Ffi.AnistreamFfiMethods.CalendarMark(Entry);
+    /// <summary>
+    /// The line as Narrator reads it: "about 16:30" for an estimate, which the shown line marks
+    /// with a tilde that would be read out as one.
+    /// </summary>
+    public string Spoken(TimeZoneInfo zone, CultureInfo? culture = null)
+    {
+        var shown = Calendar.Time(Airs, zone, culture);
+        var line = $"{EpisodeText} · {(Entry.AiringApproximate ? $"about {shown}" : shown)}";
+        return Was is { } was ? $"{line} (was {Calendar.Time(was, zone, culture)})" : line;
+    }
+
+    /// <summary>
+    /// The episode with the row's mark after it, as every episode line ends its episode: "Ep 10 ·
+    /// Dub" for a dub row, "Ep 10" for a sub row, which is not marked.
+    /// </summary>
+    public string EpisodeText => AnistreamFfiMethods.EpisodeLine($"Ep {Episode}", Mark is null ? null : Translation.Dub);
+
+    /// <summary>"Dub" for a dub row, else null (a sub row is not marked): the engine's <c>calendar_mark</c>.</summary>
+    public string? Mark => AnistreamFfiMethods.CalendarMark(Entry);
 }
 
 /// <summary>The calendar's week: Monday first, in the viewer's time zone.</summary>

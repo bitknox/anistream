@@ -90,7 +90,11 @@ static class Ui
 
     public static string Bytes(ulong n) => AnistreamFfiMethods.HumanBytes(n);
 
-    /// <summary>A destructive action's confirmation: Cancel is the default, the action names itself.</summary>
+    /// <summary>
+    /// A destructive action's confirmation: the action names itself and has the accent, as the
+    /// primary action does in every dialog, and Enter presses neither, so a key typed on does
+    /// not confirm it. Escape is Cancel.
+    /// </summary>
     public static async Task<bool> Confirm(XamlRoot root, string title, string text, string action)
     {
         var dialog = new ContentDialog
@@ -100,7 +104,8 @@ static class Ui
             Content = Text(text, "BodyTextBlockStyle"),
             PrimaryButtonText = action,
             CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Close,
+            DefaultButton = ContentDialogButton.None,
+            PrimaryButtonStyle = Res<Style>("AccentButtonStyle"),
         };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }

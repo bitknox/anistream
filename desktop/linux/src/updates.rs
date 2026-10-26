@@ -4,7 +4,9 @@
 //! Run from an AppImage, the app updates itself: a newer release names an AppImage for this
 //! machine with its size and SHA-256, the app downloads it into its cache and checks it, and
 //! Restart to Update puts it in place of the running AppImage, under the same name, then opens
-//! it once this copy has quit. Built any other way, the check says a version is out and offers
+//! it once this copy has quit. An AppImage in a folder the app can't write to, in /opt or on a
+//! read-only mount, can't be replaced: the checked download is saved to Downloads instead, for
+//! the viewer to put in its place. Built any other way, the check says a version is out and offers
 //! its page. Inside Flatpak, Flatpak updates the app, from Software or `flatpak update`: the
 //! check still says a version is out, and offers nothing to install.
 
@@ -69,6 +71,9 @@ pub enum Step {
     Verifying,
     /// Downloaded and checked, at this path: Restart to Update puts it in place.
     Ready(PathBuf),
+    /// Downloaded and checked, and saved at this path in Downloads, since the AppImage's own
+    /// folder can't be written to: the viewer replaces the old file with it.
+    Saved(PathBuf),
     /// It is going in place, and the app quits to open it.
     Installing,
     /// It stopped, for this reason, said as a sentence.
@@ -89,7 +94,7 @@ impl Progress {
             Step::Downloading { received, expected } if expected > 0 => {
                 Some((received as f64 / expected as f64).min(1.0))
             }
-            Step::Verifying | Step::Ready(_) | Step::Installing => Some(1.0),
+            Step::Verifying | Step::Ready(_) | Step::Saved(_) | Step::Installing => Some(1.0),
             _ => None,
         }
     }
@@ -116,6 +121,7 @@ pub fn line(
         Step::Downloading { .. } => format!("Downloading version {version}"),
         Step::Verifying => format!("Checking the download of version {version}…"),
         Step::Ready(_) => format!("Version {version} is ready to install"),
+        Step::Saved(_) => saved_words(version, appimage().as_deref()),
         Step::Installing => format!("Installing version {version}…"),
         Step::Failed(reason) => format!("The update to version {version} stopped. {reason}"),
         Step::Idle => match status {
@@ -125,6 +131,66 @@ pub fn line(
             _ => words(status, offline, flatpak),
         },
     }
+}
+
+/// What the Updates row says of a new version saved to Downloads: what to do with it, and where
+/// the file it replaces is, when this copy runs from one.
+pub fn saved_words(version: &str, old: Option<&Path>) -> String {
+    match old {
+        Some(old) => format!(
+            "Version {version} saved to Downloads. Replace the old file, {}, with it to update.",
+            home_short(old)
+        ),
+        None => {
+            format!(
+                "Version {version} saved to Downloads. Replace the old file with it to update."
+            )
+        }
+    }
+}
+
+/// The notice for a new version saved to Downloads: short, the steps are in the Updates row.
+pub fn saved_notice(version: &str) -> String {
+    format!("Version {version} saved to Downloads")
+}
+
+/// A path with the home folder as `~`, as a file manager's path bar reads it.
+fn home_short(path: &Path) -> String {
+    let home = gtk::glib::home_dir();
+    match path.strip_prefix(&home) {
+        Ok(rest) if !home.as_os_str().is_empty() => format!("~/{}", rest.display()),
+        _ => path.display().to_string(),
+    }
+}
+
+/// Whether the app can write in `dir`: what replacing the AppImage there needs. Tried with a
+/// file of its own, so a read-only mount answers as truly as the folder's permissions.
+pub fn writable(dir: &Path) -> bool {
+    let probe = dir.join(format!(".anistream-update-check-{}", std::process::id()));
+    let made = std::fs::OpenOptions::new().write(true).create_new(true).open(&probe);
+    let _ = std::fs::remove_file(&probe);
+    made.is_ok()
+}
+
+/// The viewer's Downloads folder.
+pub fn downloads_dir() -> PathBuf {
+    gtk::glib::user_special_dir(gtk::glib::UserDirectory::Downloads)
+        .unwrap_or_else(|| gtk::glib::home_dir().join("Downloads"))
+}
+
+/// Save the checked download at `ready` into `dir` under its own name, able to run, and say
+/// where it went.
+pub fn save_to(ready: &Path, dir: &Path) -> Result<PathBuf, String> {
+    use std::os::unix::fs::PermissionsExt;
+    let name = ready.file_name().ok_or("The download has no name.")?;
+    let path = dir.join(name);
+    let failed = |e: std::io::Error| {
+        format!("The new version couldn't be saved to {}: {e}.", dir.display())
+    };
+    std::fs::create_dir_all(dir).map_err(failed)?;
+    std::fs::copy(ready, &path).map_err(failed)?;
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).map_err(failed)?;
+    Ok(path)
 }
 
 /// A size in megabytes, or kilobytes under one: "34 MB".
@@ -402,6 +468,16 @@ mod tests {
         assert_eq!(line(Step::Ready("/x".into())), "Version 1.4.0 is ready to install");
         assert_eq!(line(Step::Installing), "Installing version 1.4.0…");
         assert_eq!(
+            line(Step::Saved("/x".into())),
+            "Version 1.4.0 saved to Downloads. Replace the old file with it to update."
+        );
+        assert_eq!(
+            saved_words("1.4.0", Some(&gtk::glib::home_dir().join("Apps/anistream.AppImage"))),
+            "Version 1.4.0 saved to Downloads. Replace the old file, ~/Apps/anistream.AppImage, \
+             with it to update."
+        );
+        assert_eq!(saved_notice("1.4.0"), "Version 1.4.0 saved to Downloads");
+        assert_eq!(
             line(Step::Failed("The download stopped: the connection was lost.".into())),
             "The update to version 1.4.0 stopped. The download stopped: the connection was lost."
         );
@@ -452,6 +528,30 @@ mod tests {
 
         let missing = dir.path().join("gone").join("anistream.AppImage");
         assert!(install(&ready, &missing).is_err());
+    }
+
+    #[test]
+    fn a_folder_that_cannot_be_written_to_gets_the_new_version_in_downloads() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let (opt, downloads) = (dir.path().join("opt"), dir.path().join("Downloads"));
+        std::fs::create_dir(&opt).unwrap();
+        assert!(writable(&opt));
+        assert_eq!(std::fs::read_dir(&opt).unwrap().count(), 0, "the check leaves nothing");
+        std::fs::set_permissions(&opt, std::fs::Permissions::from_mode(0o555)).unwrap();
+        // Root writes anywhere, so only an ordinary user can see the folder refuse.
+        let root = std::fs::write(opt.join("x"), b"").is_ok();
+        if !root {
+            assert!(!writable(&opt));
+        }
+        std::fs::set_permissions(&opt, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let ready = dir.path().join("anistream-2.1.0-linux-x86_64.AppImage");
+        std::fs::write(&ready, b"new").unwrap();
+        let saved = save_to(&ready, &downloads).unwrap();
+        assert_eq!(saved, downloads.join("anistream-2.1.0-linux-x86_64.AppImage"));
+        assert_eq!(std::fs::read(&saved).unwrap(), b"new");
+        assert_eq!(std::fs::metadata(&saved).unwrap().permissions().mode() & 0o777, 0o755);
     }
 
     #[test]

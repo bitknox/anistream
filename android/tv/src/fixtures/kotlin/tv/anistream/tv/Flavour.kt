@@ -8,6 +8,9 @@
 //   title     a title page to open, by id
 //   query     a search to type, on Search
 //   signin    a tracker whose device-code sign-in opens, with a made-up code that expires in 15 minutes
+//   expires   seconds the `signin` code has left, 0 for one already expired
+//   day       days after today the calendar opens on, 0 to 6, for a day with broadcasts: the
+//             fixtures' own day has none
 //   firstLaunch  true to show first launch's pages, which fixtures leave out otherwise
 //   update    a made-up release staged for the update's page, which opens over the section:
 //             available, allowing, downloading, failed or storage; nothing is fetched or installed
@@ -84,11 +87,13 @@ internal object Flavour {
 
     /**
      * The device-code prompt a `signin` extra asks for, kept up for the screen: the testing engine
-     * has no tracker to answer with one.
+     * has no tracker to answer with one. `expires=<seconds>` sets how long its code has left, 0 for
+     * one already expired, 899 unless it says.
      */
     fun started(store: AppStore, intent: Intent) {
+        intent.getStringExtra("day")?.toIntOrNull()?.let { store.calendar.opensOn = it }
         val tracker = intent.getStringExtra("signin") ?: return
-        val expiresAt = System.currentTimeMillis() / 1000 + 899
+        val expiresAt = System.currentTimeMillis() / 1000 + (intent.getStringExtra("expires")?.toLongOrNull()?.coerceAtLeast(0) ?: 899)
         MainScope().launch {
             while (true) {
                 if (store.accounts.deviceCode.value == null) {

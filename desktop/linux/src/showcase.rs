@@ -3,14 +3,42 @@
 //! as the Mac's showcase invents them, and only ever on the fixture engine.
 
 use anistream_model::{
+    command::Command,
     downloads::SeedRow,
     event::Event,
     sources::{ProviderOrigin, ProviderRow, ProviderUpdate},
     stores::{
-        InvitePreview, InvitedStore, Secret, StorePluginRow, StorePluginStatus, StoreRow,
-        StoreState,
+        AnonymousDeviceRow, InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow,
+        OpenJoinView, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
+        StorePluginStatus, StoreRow, StoreState,
     },
 };
+
+/// How the showcase's stores answer, for a shot of each state an owner's dialog has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Mood {
+    #[default]
+    Usual,
+    /// Nothing comes back: a store still thinking, and a next page of search on its way.
+    Silent,
+    /// Every question fails, as with the store's computer off.
+    Failing,
+    /// Only publishing fails.
+    PublishFails,
+    /// No invites waiting, and no plugins on this computer.
+    Bare,
+    /// Only people invited can join.
+    Closed,
+}
+
+thread_local! {
+    static MOOD: std::cell::Cell<Mood> = const { std::cell::Cell::new(Mood::Usual) };
+}
+
+/// Answer as `mood` until set again.
+pub fn set_mood(mood: Mood) {
+    MOOD.with(|m| m.set(mood));
+}
 
 /// The link the join shot pastes.
 pub const INVITE: &str = "https://plugins.hotaru.example/join/fixture#key";
@@ -40,6 +68,146 @@ pub fn invite() -> Event {
         anonymous: false,
         device_label: "Computer".into(),
     }))
+}
+
+/// What a store's owner is answered, for the showcase's stores: who is in Mika's store, who can
+/// join it, the plugins this computer could publish there and an invite link. `None` for any
+/// other command, which goes to the engine.
+pub fn answer(command: &Command) -> Option<Vec<Event>> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs() as i64);
+    let ours = |store: &str| stores().iter().any(|s| s.id == store);
+    let members = |store: &str| Event::StoreMembers {
+        store: store.into(),
+        members: vec![
+            member("mika", "Mika", true, 2, true),
+            member("ren", "Ren", false, 1, false),
+            member("sora", "Sora", false, 3, false),
+        ],
+        invites: vec![
+            StoreInviteRow {
+                id: "kai".into(),
+                name: "Kai".into(),
+                device: false,
+                expires_at: now + 5 * 86_400,
+            },
+            StoreInviteRow {
+                id: "device".into(),
+                name: String::new(),
+                device: true,
+                expires_at: now + 86_400,
+            },
+        ],
+    };
+    let open_join = |store: &str, open: bool| Event::OpenJoin {
+        store: store.into(),
+        view: OpenJoinView {
+            open,
+            link: open
+                .then(|| Secret("https://plugins.mika.example/join/open?open#key".into())),
+            devices: 3,
+            recent: vec![
+                AnonymousDeviceRow {
+                    id: "a".into(),
+                    joined_at: now - 2 * 86_400,
+                    last_seen: Some(now - 3 * 3_600),
+                },
+                AnonymousDeviceRow {
+                    id: "b".into(),
+                    joined_at: now - 6 * 86_400,
+                    last_seen: None,
+                },
+            ],
+        },
+    };
+    let mood = MOOD.with(std::cell::Cell::get);
+    let owners = matches!(
+        command,
+        Command::CreateInvite { .. }
+            | Command::LoadMembers { .. }
+            | Command::LoadLocalPlugins { .. }
+            | Command::PublishPlugin { .. }
+    );
+    let failed =
+        |why: &str| vec![Event::Toast(anistream_model::notice::Notice::alert(why.to_owned()))];
+    match (mood, command) {
+        (Mood::Silent, Command::SearchMore { .. }) => return Some(Vec::new()),
+        (Mood::Silent, _) if owners => return Some(Vec::new()),
+        (Mood::Failing, _) if owners => {
+            return Some(failed(
+                "couldn't reach plugins.mika.example: the connection timed out",
+            ));
+        }
+        (Mood::PublishFails, Command::PublishPlugin { plugin, .. }) => {
+            return Some(failed(&format!(
+                "{plugin} not published: the store refused a plugin it can't verify"
+            )));
+        }
+        (Mood::Bare, Command::LoadMembers { store }) => {
+            let Event::StoreMembers { members, .. } = members(store) else { return None };
+            return Some(vec![
+                Event::StoreMembers { store: store.clone(), members, invites: Vec::new() },
+                open_join(store, false),
+            ]);
+        }
+        (Mood::Bare, Command::LoadLocalPlugins { store }) => {
+            return Some(vec![Event::LocalPlugins {
+                store: store.clone(),
+                plugins: Vec::new(),
+            }]);
+        }
+        (Mood::Closed, Command::LoadMembers { store }) => {
+            return Some(vec![members(store), open_join(store, false)]);
+        }
+        _ => {}
+    }
+    Some(match command {
+        Command::CreateInvite { store, name } if ours(store) => {
+            vec![Event::InviteLink(InviteLinkView {
+                store: store.clone(),
+                link: Secret("https://plugins.mika.example/join/x7kp2q#key".into()),
+                for_whom: name.clone(),
+                expires_at: now + 7 * 86_400,
+            })]
+        }
+        Command::LoadMembers { store } if ours(store) => {
+            vec![members(store), open_join(store, true)]
+        }
+        Command::RemoveMember { store, .. } | Command::CancelInvite { store, .. }
+            if ours(store) =>
+        {
+            vec![members(store)]
+        }
+        Command::SetOpenJoin { store, open } if ours(store) => vec![open_join(store, *open)],
+        Command::RemoveAnonymous { store, .. } if ours(store) => vec![open_join(store, true)],
+        Command::LoadLocalPlugins { store } if ours(store) => vec![Event::LocalPlugins {
+            store: store.clone(),
+            plugins: vec![
+                local("machi-library-films", "Machi Library Films", "0.3.0", None),
+                local("lantern-road-guide", "Lantern Road Guide", "1.2.0", Some("1.1.0")),
+                local("atelier-hotaru-shorts", "Atelier Hotaru Shorts", "1.0.2", Some("1.0.2")),
+            ],
+        }],
+        Command::PublishPlugin { store, .. } | Command::OpenAdmin { store } if ours(store) => {
+            Vec::new()
+        }
+        _ => return None,
+    })
+}
+
+fn member(id: &str, name: &str, owner: bool, devices: u32, you: bool) -> StoreMemberRow {
+    StoreMemberRow { id: id.into(), name: name.into(), owner, devices, last_seen: None, you }
+}
+
+fn local(id: &str, name: &str, version: &str, published: Option<&str>) -> LocalPluginRow {
+    LocalPluginRow {
+        id: id.into(),
+        name: name.into(),
+        version: version.into(),
+        hosts: Vec::new(),
+        published: published.map(Into::into),
+    }
 }
 
 fn hosts(hosts: &[&str]) -> Vec<String> {

@@ -48,7 +48,8 @@ class WidgetModelTest {
     @Test
     fun continue_says_the_time_left_and_starts_what_was_not_begun() {
         val view = continuing(Fixtures.record()) as ContinueView.Shows
-        assertEquals(listOf("E7 · 14 min left", "E2 · 6 min left", "Start E4"), view.shows.map { it.line })
+        // Hagane no Niwashi is watched dubbed: the engine's mark follows its episode.
+        assertEquals(listOf("E7 · 14 min left", "E2 · Dub · 6 min left", "Start E4"), view.shows.map { it.line })
         assertEquals(0.75f, view.shows[1].progress!!, 0.001f)
         assertNull("no bar for an episode not begun", view.shows[2].progress)
         assertNull(view.updated)
@@ -115,6 +116,27 @@ class WidgetModelTest {
         assertEquals("E2", rows.getValue("22:30").state)
         // The week after today is held, not shown today.
         assertTrue(view.rows.none { it.episode == 10u })
+    }
+
+    @Test
+    fun only_a_dub_is_marked_and_a_sub_says_nothing() {
+        val record = Fixtures.record()
+        val subbed = record.copy(airingToday = record.airingToday.map { if (it.airsAt == at(20, 22, 0).epochSecond) it.copy(translation = tv.anistream.engine.core.Translation.SUB) else it })
+        val rows = (airing(subbed) as AiringView.Today).rows.associateBy { it.time }
+        assertEquals("E4", rows.getValue("22:00").state)
+        assertNull(rows.getValue("22:00").translation)
+        assertEquals("E9 · Dub", rows.getValue("21:00").state)
+    }
+
+    @Test
+    fun continue_marks_a_dub_where_each_line_names_the_episode() {
+        val dub = Fixtures.continuing[1].copy(mark = "Dub")
+        fun line(row: tv.anistream.engine.model.WidgetContinue) =
+            ((continuing(Fixtures.record(continuing = listOf(row))) as ContinueView.Shows).shows.single())
+        assertEquals("Start E2 · Dub", line(dub.copy(resume = false, fraction = null)).line)
+        assertEquals("E2 of 10 · Dub", line(dub.copy(minutesLeft = null)).line)
+        assertEquals("Resume episode 2, Dub, of Hagane no Niwashi", playLabel(line(dub)))
+        assertEquals("Resume episode 7 of Hoshikuzu no Tabibito", playLabel(line(Fixtures.continuing[0])))
     }
 
     @Test

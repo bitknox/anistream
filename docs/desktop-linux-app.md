@@ -12,8 +12,11 @@ GTK 4 and libadwaita in Rust, no web views. Dark only for now.
 - Continue: the queue (In progress, New this week) beside a preview of the selected title, and a
   setup card while nothing is connected. Enter plays, Delete hides, Ctrl+Shift+M marks watched.
 - Seasonal: the season in the header's centre, the format in a toggle group, a poster grid.
-- Search: typing anywhere starts it. Recent searches, This Season and genres before typing;
-  filters, results and matching settings after.
+- Search: typing anywhere starts it. The filters stand under the search bar from the start, so
+  the titles can be browsed with nothing typed: genres wanted or left out, year, season, formats,
+  statuses, and the sort at the end, with what is set as chips to take off one at a time or all.
+  Recent searches, This Season and genres before anything is typed or chosen; results and
+  matching settings after.
 - A title's page: banner, cover, the one main action, list status, seasons, episode rows with
   watched checks and spoiler-blurred stills, details and related titles beside.
 - The player: libmpv's GL render API in a `GtkGLArea`, native controls over the video (top bar,
@@ -50,6 +53,18 @@ Phase 2 added:
 - Recent searches kept between launches, the tracker's name on the account row when it gives
   no user name, and the app icon at every hicolor size from `assets/icon`.
 
+Later added:
+
+- A store owner's tools in the store page's menu, as the Mac has them: Invite Someone, Show
+  Members (removing members, cancelling invites), Who Can Join (the store's open link and the
+  devices that joined with it), Publish a Plugin and Open Admin Page; Link Another Device for a
+  named member.
+- An invite link pasted anywhere outside a text field opens Join Store with it, and so does an
+  `anistream://join` link or a store invite opened with the app.
+- Titles change language on every open page when the setting changes, without a reload.
+- An AppImage in a folder the app cannot write to saves its update to Downloads and says so,
+  with Show in Files.
+
 The engine runs in-process on a tokio runtime of its own. The window only queues commands, and
 the engine's events reach GTK's main loop over a channel, where `hub.rs` hands them out.
 
@@ -74,8 +89,4 @@ the sizes (`wide medium narrow`) and `SHOTS` the wide run's shots.
 
 ## Not yet
 
-- Store owner tools (invites, members, publishing), pasting an invite anywhere in the window,
-  and `anistream://join` links.
-- The torrent switch stays off: its confirmation dialog with the connection check is still to
-  come.
 - Night mode and the subtitle style have no picture of their own yet.

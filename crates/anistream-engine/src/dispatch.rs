@@ -361,6 +361,10 @@ pub(crate) fn dispatch(
         Command::SetTorrentProtection { mode, proxy, on_failure, acknowledged } => {
             set_torrent_protection(mode, proxy, on_failure, acknowledged, engine, services, tx)
         }
+        // Off the loop, with no job: the verdict is the answer.
+        Command::CheckTorrentProtection { mode, proxy } => {
+            crate::protection::check_torrent_protection(mode, proxy, engine, services, tx)
+        }
         Command::LoadShowSettings { id } => load_show_settings(id, engine, services, tx),
         Command::SetShowSetting { id, key, value } => {
             set_show_setting(id, key, value, engine, services, tx);

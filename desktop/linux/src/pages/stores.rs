@@ -1,6 +1,7 @@
 //! Plugin Stores: the stores this computer joined, as a boxed list, each opening its own page
-//! with who runs it, its key and its plugins. Join Store in the header bar; the legal line at the
-//! foot of the list.
+//! with who runs it, its key and its plugins, and its menu: an owner's tools (see
+//! [`store_owner`]), Link Another Device and Leave Store. Join Store in the header bar; the legal
+//! line at the foot of the list.
 
 use std::{cell::Cell, rc::Rc};
 
@@ -14,7 +15,7 @@ use gtk::{gio, glib};
 
 use crate::{
     nagare,
-    pages::plugin,
+    pages::{plugin, store_owner},
     widgets,
     window::{Ctx, Size},
 };
@@ -175,11 +176,34 @@ impl Page {
     }
 }
 
+/// One of the store menu's dialogs or actions, for the store it is opened from.
+type OwnerTool = fn(&Rc<Ctx>, &str);
+
 /// Push the page of the joined store `id`.
 pub fn push_store(ctx: &Rc<Ctx>, id: &str) {
     let Some(nav) = ctx.nav() else { return };
     let menu = gio::Menu::new();
-    menu.append(Some("Leave Store…"), Some("store.leave"));
+    let row = ctx.hub.known.borrow().stores.iter().find(|s| s.id == id).cloned();
+    if let Some(row) = row.filter(|row| row.state != StoreState::Revoked) {
+        if row.owner {
+            let owner = gio::Menu::new();
+            owner.append(Some("Invite Someone…"), Some("store.invite"));
+            owner.append(Some("Show Members"), Some("store.members"));
+            owner.append(Some("Who Can Join…"), Some("store.joining"));
+            owner.append(Some("Publish a Plugin…"), Some("store.publish"));
+            owner.append(Some("Open Admin Page"), Some("store.admin"));
+            menu.append_section(None, &owner);
+        }
+        // A device that joined with the store's link joins another the same way.
+        if !row.anonymous {
+            let device = gio::Menu::new();
+            device.append(Some("Link Another Device…"), Some("store.device"));
+            menu.append_section(None, &device);
+        }
+    }
+    let leave = gio::Menu::new();
+    leave.append(Some("Leave Store…"), Some("store.leave"));
+    menu.append_section(None, &leave);
     let more = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
         .tooltip_text("More")
@@ -203,6 +227,25 @@ pub fn push_store(ctx: &Rc<Ctx>, id: &str) {
     });
     let group = gio::SimpleActionGroup::new();
     group.add_action(&leave);
+    let tools: [(&str, OwnerTool); 6] = [
+        ("invite", |ctx, id| store_owner::invite(ctx, id, false)),
+        ("device", |ctx, id| store_owner::invite(ctx, id, true)),
+        ("members", store_owner::members),
+        ("joining", store_owner::joining),
+        ("publish", store_owner::publish),
+        ("admin", |ctx, id| ctx.hub.send(Command::OpenAdmin { store: id.to_owned() })),
+    ];
+    for (name, open) in tools {
+        let action = gio::SimpleAction::new(name, None);
+        let ctx = Rc::downgrade(ctx);
+        let id = id.to_owned();
+        action.connect_activate(move |_, _| {
+            if let Some(ctx) = ctx.upgrade() {
+                open(&ctx, &id);
+            }
+        });
+        group.add_action(&action);
+    }
     page.insert_action_group("store", Some(&group));
 
     let refresh = {

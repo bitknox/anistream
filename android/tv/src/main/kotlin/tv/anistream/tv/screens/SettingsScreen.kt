@@ -112,10 +112,12 @@ val PlaybackRows: List<Pair<SettingKey, String>> = listOf(
     SettingKey.NIGHT_MODE to "Night mode",
 )
 
-/** The trackers, in the phone's order: their engine ids and names. */
+/**
+ * The trackers a TV signs in to, in the phone's order: their engine ids and names. MyAnimeList is
+ * left out, as rows that only work elsewhere are: it has no sign-in a TV can finish.
+ */
 private val Trackers = listOf(
     "anilist" to "AniList",
-    "mal" to "MyAnimeList",
     "kitsu" to "Kitsu",
     "simkl" to "Simkl",
     "trakt" to "Trakt",
