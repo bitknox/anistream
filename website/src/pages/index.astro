@@ -1,6 +1,7 @@
 ---
 import '../styles/theme.css';
 import '../styles/landing.css';
+import FeatureVideo from '../components/FeatureVideo.astro';
 import Shot from '../components/Shot.astro';
 import SiteFooter from '../components/site/SiteFooter.astro';
 import SiteHead from '../components/site/SiteHead.astro';
@@ -9,43 +10,8 @@ import TerminalDemo from '../components/TerminalDemo.astro';
 import UpscaleCompare from '../components/UpscaleCompare.astro';
 import { APP_DOWNLOADS, APPS, FEATURES, GITHUB, INSTALL_GUIDE, LATEST, LEGAL, TOOLKITS } from '../data/site';
 
-const features: [string, [string, string][]][] = [
-	[
-		'Browse',
-		[
-			['Browse without an account', 'Search, seasonal charts and an airing calendar laid out by day, from AniList’s public API, with no account and no config.'],
-			['Titles the way you read them', 'Each title is named the way your AniList account names it, or in English or romaji if you pick one, in every app.'],
-		],
-	],
-	[
-		'Watch',
-		[
-			['mpv does the playing', 'The apps build mpv into their own player, and the terminal app runs it with anistream’s controls inside. Both have a skip button, Up Next and resume to the second.'],
-			['Upscaling built in', 'ArtCNN for a natural look or Anime4K for a sharp one, chosen per file for the source, the display and the battery.'],
-			['Ranked source picks', 'Automatic selection is ranked and gives its reason in one line. You can list every candidate, and the release you choose plays with no failover behind it.'],
-			['Downloads with history and resume', 'Download an episode to watch later, with the same history and resume as a stream.'],
-			['Play on TV', 'Send an episode from your phone or computer to the Android TV app, and use it as the remote.'],
-		],
-	],
-	[
-		'Track',
-		[
-			['History stays on your device', 'Watch history is a SQLite database on your device and works with no account. Trackers receive a copy of it, and a pull from one only moves your progress forward.'],
-			['Sync that works offline', 'AniList, MyAnimeList, Kitsu, Simkl and Trakt through a durable outbox. Watch offline for a week and it pushes in order when you return.'],
-		],
-	],
-	[
-		'Extend',
-		[
-			['Sources as plugins', 'Sandboxed WebAssembly components in Rust, JavaScript or any language that builds for WASI 0.2. The host lends fetch, and only to the hosts a plugin declares.'],
-			['Plugin stores by invite', 'Run a small private plugin store and invite the people you choose. Each device gets its own token, and every plugin list is signed with the store’s key.'],
-		],
-	],
-];
-
 const terminalRows: [string, string][] = [
-	['Real images in the terminal', 'Covers render over the Kitty, Sixel and iTerm2 protocols and are decoded off the event loop, so scrolling does not wait on them. Elsewhere they fall back to halfblocks.'],
-	['Vim keys you can rebind', 'hjkl everywhere, with the arrow keys working too. The help overlay is built from your resolved keymap, so it matches what you set.'],
+	['Vim keys you can rebind', 'hjkl or the arrow keys. The help overlay lists the keys you set.'],
 	['Watch parties', 'Press y and the episode plays in a party room instead, with everyone’s player in step. A party leaves your saved position alone.'],
 	['A command line for scripts', '--search, --stats and --random take --json for scripts and jq, and --continue resumes the episode you left half watched.'],
 ];
@@ -188,31 +154,43 @@ const installHtml = [
 		<main>
 			<section class="wrap sect" aria-labelledby="features-h">
 				<h2 id="features-h">What anistream does</h2>
-				<p class="lede">
-					anistream covers finding a show, playing it, keeping your lists in step and adding
-					sources, on the same engine in every app. Each part that depends on an outside service
-					sits behind an interface, so a source can change or disappear without changes to the rest
-					of the client.
-				</p>
-				<div class="feat-list">
-					<span class="spine" aria-hidden="true">アニストリーム</span>
-					{
-						features.map(([group, rows]) => (
-							<div class="feat-group" role="group" aria-label={group}>
-								<p class="caps feat-label feat-label-above">{group}</p>
-								{rows.map(([title, body], i) => (
-									<div class="feat-row">
-										{i === 0 ? <p class="caps feat-label feat-label-beside">{group}</p> : <span />}
-										<h3>{title}</h3>
-										<p>{body}</p>
-									</div>
-								))}
-							</div>
-						))
-					}
+				<div class="glance">
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="android-title" frame="phone" alt="The Android app on Continue, then a show’s page and its episodes">
+								<Shot name="android-continue" frame="phone" sizes="240px" alt="The Android app on Continue" />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>Continue watching</h3>
+							<p>The shows you are partway through wait on Continue, one tap from the next episode.</p>
+						</figcaption>
+					</figure>
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="iphone-calendar" frame="phone" alt="The iPhone app’s calendar: the days of the week, then every show airing">
+								<Shot name="iphone-title" frame="phone" sizes="240px" alt="The iPhone app on a title page" />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>Keep up with the season</h3>
+							<p>The calendar shows what airs each day, and your progress syncs to AniList, MyAnimeList, Kitsu, Simkl and Trakt.</p>
+						</figcaption>
+					</figure>
+					<figure>
+						<div class="glance-media">
+							<FeatureVideo name="iphone-tv-remote" frame="phone" alt="The iPhone app sending an episode to a TV, then pausing it as the remote">
+								<Shot name="iphone-tv-remote" frame="phone" sizes="240px" alt="The iPhone app as the TV’s remote" />
+							</FeatureVideo>
+						</div>
+						<figcaption>
+							<h3>Play on TV</h3>
+							<p>Send an episode to the Android TV app, then use your phone or computer as the remote.</p>
+						</figcaption>
+					</figure>
 				</div>
 				<div class="actions sect-actions">
-					<a class="btn" href={FEATURES}>Every feature, by app</a>
+					<a class="btn" href={FEATURES}>See all features</a>
 				</div>
 			</section>
 
@@ -220,9 +198,7 @@ const installHtml = [
 				<h2 id="apps-h">Native on every platform</h2>
 				<p class="lede">
 					Each app is written in its platform’s own toolkit, with that platform’s navigation and
-					controls. None of them is a web view or a shared cross-platform interface. Under all of
-					them runs one engine, written in Rust, so search, playback, history and sync work the same
-					in each, and mpv is built into every app.
+					controls. They all run one engine, written in Rust, with mpv built in.
 				</p>
 				<dl class="rows toolkits">
 					{

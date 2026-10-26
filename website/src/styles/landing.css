@@ -53,15 +53,6 @@ body.landing {
 	white-space: nowrap;
 }
 
-.caps {
-	font-size: 11px;
-	font-weight: 500;
-	line-height: 14px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--ani-dim);
-}
-
 .caption {
 	font-size: 14px;
 	line-height: 20px;
@@ -859,93 +850,79 @@ html:not(.js) .scene {
 	}
 }
 
-/* What is in the app: one dense list, grouped */
-.feat-list {
-	position: relative;
-	margin-top: 40px;
-	border-bottom: 1px solid var(--ani-rule-faint);
-}
-
-.feat-row {
+/* What anistream does: three tasks, each a clip over one plain sentence. */
+.glance {
 	display: grid;
-	grid-template-columns: minmax(0, 200fr) minmax(0, 344fr) minmax(0, 608fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	column-gap: 24px;
-	padding: 16px 0;
-	border-top: 1px solid var(--ani-rule-faint);
+	margin-top: 40px;
 }
 
-.feat-label-above {
-	display: none;
+.glance figure {
+	display: grid;
+	grid-row: span 2;
+	grid-template-rows: subgrid;
+	row-gap: 20px;
 }
 
-.feat-label-beside {
-	padding-top: 5px;
+.glance-media {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
 }
 
-.feat-row h3 {
+.glance-media .shot {
+	width: min(232px, 64%);
+}
+
+/* Android's screen is a little taller than the iPhone's: narrower, so the three stand level. */
+.glance-media .shot-android {
+	width: min(227px, 62.6%);
+}
+
+.glance h3 {
 	font-size: 17px;
 	font-weight: 600;
 	line-height: 24px;
 }
 
-.feat-row p:last-child {
+.glance figcaption p {
+	margin-top: 4px;
 	font-size: 15px;
 	line-height: 24px;
+	color: var(--ani-dim);
 }
 
-/* The katakana spine, faint, in the right margin beside the list */
-.spine {
-	position: absolute;
-	top: 0;
-	right: calc((100% - 100vw) / 2 + 10px);
-	writing-mode: vertical-rl;
-	font-family: var(--ani-font-display);
-	font-size: 104px;
-	font-weight: 700;
-	line-height: 1;
-	letter-spacing: 0.06em;
-	white-space: nowrap;
-	color: var(--ani-text);
-	opacity: 0.05;
-	/* Vertical text spills past its line box; clipping it keeps the page from scrolling sideways. */
-	overflow: hidden;
-	pointer-events: none;
-	user-select: none;
-}
-
-@media (max-width: 1279px) {
-	.spine {
-		display: none;
-	}
-}
-
+/* On a phone each task is a row: the clip small on the left, its sentence beside it. */
 @media (max-width: 899px) {
-	.feat-list {
-		margin-top: 12px;
+	.glance {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 24px;
+		margin-top: 24px;
 	}
 
-	.feat-label-above {
-		display: block;
-		padding: 20px 0 8px;
+	.glance figure {
+		grid-row: auto;
+		grid-template-rows: none;
+		grid-template-columns: 132px minmax(0, 1fr);
+		align-items: center;
+		column-gap: 16px;
 	}
 
-	.feat-row {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		padding: 14px 0;
+	.glance-media {
+		flex: 0 0 132px;
 	}
 
-	.feat-row > :first-child {
-		display: none;
+	.glance-media .shot {
+		width: 132px;
 	}
 
-	.feat-row h3 {
+	.glance h3 {
 		font-size: 16px;
 		line-height: 22px;
 	}
 
-	.feat-row p:last-child {
+	.glance figcaption p {
 		line-height: 22px;
 	}
 }
@@ -1240,11 +1217,9 @@ html:not(.js) .scene {
 .release-files thead th {
 	height: 32px;
 	padding-right: 24px;
-	font-size: 11px;
+	font-size: 13px;
 	font-weight: 500;
-	line-height: 14px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
+	line-height: 18px;
 	color: var(--ani-dim);
 	vertical-align: middle;
 }
