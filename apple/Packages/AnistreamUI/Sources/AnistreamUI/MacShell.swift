@@ -211,7 +211,7 @@ struct LibrarySegments: View {
     }
 }
 
-/// The Library's order, and More: Sync Now and Export.
+/// The Library's order, and More: Sync Now.
 struct LibraryMenus: View {
     @Environment(AppStore.self) private var store
     @AppStorage("anistream.librarySort") private var sort: LibrarySort = .lastWatched

@@ -506,8 +506,8 @@ async fn follow(
     follow: Follow,
 ) {
     let Follow { card, names, known, changes, tv, addr } = follow;
-    let read = |current: &LinkStatus, tv_state: Option<&RemoteState>| {
-        let mut read = RemoteCard::read(&tv.name, current, tv_state);
+    let read = |current: &LinkStatus, tv_state: Option<&RemoteState>, reach: Reach| {
+        let mut read = RemoteCard::read(&tv.name, current, tv_state, reach);
         if let Some(now) = &mut read.now
             && let Some(name) = lock(&names).get(&now.id)
         {
@@ -516,9 +516,11 @@ async fn follow(
         read
     };
     let mut was_connected = false;
+    let mut reach = Reach::First;
     let mut hold = Hold::new(Instant::now());
     loop {
         let current = status.borrow_and_update().clone();
+        reach = reach.after(&current);
         let connected = matches!(current, LinkStatus::Connected { .. });
         if let LinkStatus::Connected { tv_name } = &current
             && !was_connected
@@ -528,7 +530,7 @@ async fn follow(
         }
         was_connected = connected;
         let tv_state = state.borrow_and_update().clone();
-        let mut next = read(&current, tv_state.as_ref());
+        let mut next = read(&current, tv_state.as_ref(), reach);
         let at = Instant::now();
         hold.saw(&next, at);
         next.over = next.over || hold.over(at);
@@ -543,7 +545,7 @@ async fn follow(
         if !open {
             let current = status.borrow().clone();
             let tv_state = state.borrow().clone();
-            card.send_replace(read(&current, tv_state.as_ref()));
+            card.send_replace(read(&current, tv_state.as_ref(), reach.after(&current)));
             return;
         }
     }
@@ -598,6 +600,31 @@ impl Hold {
     }
 }
 
+/// How far a link has got this session, for what the card says while it is not connected.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Reach {
+    /// The first try is under way.
+    First,
+    /// No try has reached the TV yet.
+    Unreached,
+    /// Connected now, or last.
+    Connected,
+    /// It worked, then dropped, and is trying again.
+    Lost,
+}
+
+impl Reach {
+    /// Where the link stands after `status`, from where it stood.
+    pub fn after(self, status: &LinkStatus) -> Self {
+        match (self, status) {
+            (_, LinkStatus::Connected { .. }) => Self::Connected,
+            (Self::First, LinkStatus::Retrying { .. }) => Self::Unreached,
+            (Self::Connected, LinkStatus::Retrying { .. }) => Self::Lost,
+            (reach, _) => reach,
+        }
+    }
+}
+
 /// How a link stands, as the card shows it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinkPhase {
@@ -625,6 +652,9 @@ pub struct RemoteCard {
     /// playing something, or has been out of reach for minutes. An app holding the link in the
     /// background lets it go; the remote screen only shows the card.
     pub over: bool,
+    /// The link has reached the TV this session: while it is down, it was lost rather than
+    /// never there.
+    pub reached: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -659,33 +689,50 @@ impl RemoteCard {
         Self {
             tv_name: tv_name.to_owned(),
             phase: LinkPhase::Connecting,
-            phase_line: Some(format!("Connecting to {tv_name}")),
+            phase_line: Some(format!("Connecting to {tv_name}…")),
             screen: Screen::Home,
             now: None,
             rev: 0,
             over: false,
+            reached: false,
         }
     }
 
     /// The card for a TV known as `tv_name`, its link standing as `status`, with the state it
-    /// last sent.
-    pub fn read(tv_name: &str, status: &LinkStatus, state: Option<&RemoteState>) -> Self {
+    /// last sent, and how far the link got this session (`reach`).
+    pub fn read(
+        tv_name: &str,
+        status: &LinkStatus,
+        state: Option<&RemoteState>,
+        reach: Reach,
+    ) -> Self {
         let name = match status {
             LinkStatus::Connected { tv_name } if !tv_name.is_empty() => tv_name.as_str(),
             _ => tv_name,
         };
-        let (phase, phase_line) = match status {
-            LinkStatus::Connecting => {
-                (LinkPhase::Connecting, Some(format!("Connecting to {name}")))
+        let lost = || format!("Lost {name}. Trying again.");
+        let unreached =
+            || format!("Can't reach {name}. Check that it's on and on the same network.");
+        let (phase, phase_line) = match (status, reach) {
+            // A try between the waits says what the waits say, so the line does not flicker.
+            (LinkStatus::Connecting, Reach::Lost) => (LinkPhase::Connecting, Some(lost())),
+            (LinkStatus::Connecting, Reach::Unreached) => {
+                (LinkPhase::Connecting, Some(unreached()))
             }
-            LinkStatus::Connected { .. } => (LinkPhase::Connected, None),
-            LinkStatus::Retrying { .. } => {
-                (LinkPhase::Retrying, Some(format!("Lost {name}. Trying again.")))
+            (LinkStatus::Connecting, _) => {
+                (LinkPhase::Connecting, Some(format!("Connecting to {name}…")))
             }
-            LinkStatus::Unpaired => {
+            (LinkStatus::Connected { .. }, _) => (LinkPhase::Connected, None),
+            (LinkStatus::Retrying { .. }, Reach::Connected | Reach::Lost) => {
+                (LinkPhase::Retrying, Some(lost()))
+            }
+            (LinkStatus::Retrying { .. }, Reach::First | Reach::Unreached) => {
+                (LinkPhase::Retrying, Some(unreached()))
+            }
+            (LinkStatus::Unpaired, _) => {
                 (LinkPhase::Unpaired, Some(Problem::Unpaired.message().to_owned()))
             }
-            LinkStatus::KeyChanged => {
+            (LinkStatus::KeyChanged, _) => {
                 (LinkPhase::KeyChanged, Some(Problem::KeyChanged.message().to_owned()))
             }
         };
@@ -697,6 +744,7 @@ impl RemoteCard {
             now: state.and_then(|s| s.now_playing.as_ref()).map(NowCard::read),
             rev: state.map_or(0, |s| s.rev),
             over: matches!(phase, LinkPhase::Unpaired | LinkPhase::KeyChanged),
+            reached: matches!(reach, Reach::Connected | Reach::Lost),
         }
     }
 }
@@ -769,7 +817,7 @@ impl Problem {
             Self::WrongCode => {
                 "That code didn't match. Check the code on the TV and try again."
             }
-            Self::NoCode => "The code on the TV ran out. Ask for a new one.",
+            Self::NoCode => "Code expired",
             Self::Full => {
                 "This TV has as many devices paired as it can keep. Remove one in the TV's \
                  Settings, under Remotes."
@@ -895,9 +943,47 @@ mod tests {
 
     #[test]
     fn a_tv_that_forgot_this_device_ends_the_session_at_once() {
-        let card = RemoteCard::read("Hall TV", &LinkStatus::Unpaired, None);
+        let card = RemoteCard::read("Hall TV", &LinkStatus::Unpaired, None, Reach::Connected);
         assert!(card.over);
-        let card = RemoteCard::read("Hall TV", &LinkStatus::Connecting, None);
+        let card = RemoteCard::read("Hall TV", &LinkStatus::Connecting, None, Reach::First);
         assert!(!card.over);
+    }
+
+    #[test]
+    fn a_tv_never_reached_says_so_and_one_lost_says_it_is_trying_again() {
+        let retrying = LinkStatus::Retrying { attempt: 1, after: Duration::from_secs(1) };
+        let connected = LinkStatus::Connected { tv_name: "Bedroom".into() };
+        let line = |status: &LinkStatus, reach| {
+            RemoteCard::read("Bedroom", status, None, reach).phase_line
+        };
+        let unreached = "Can't reach Bedroom. Check that it's on and on the same network.";
+
+        // The first try, then each try after it failed: never "Lost", nothing reached yet.
+        let mut reach = Reach::First.after(&LinkStatus::Connecting);
+        assert_eq!(
+            line(&LinkStatus::Connecting, reach).as_deref(),
+            Some("Connecting to Bedroom…")
+        );
+        reach = reach.after(&retrying);
+        assert_eq!(line(&retrying, reach).as_deref(), Some(unreached));
+        reach = reach.after(&LinkStatus::Connecting);
+        assert_eq!(line(&LinkStatus::Connecting, reach).as_deref(), Some(unreached));
+
+        // Reached, then dropped.
+        reach = reach.after(&connected);
+        assert_eq!(line(&connected, reach), None);
+        reach = reach.after(&retrying);
+        assert_eq!(line(&retrying, reach).as_deref(), Some("Lost Bedroom. Trying again."));
+        reach = reach.after(&LinkStatus::Connecting);
+        assert_eq!(
+            line(&LinkStatus::Connecting, reach).as_deref(),
+            Some("Lost Bedroom. Trying again.")
+        );
+        assert_eq!(reach.after(&connected), Reach::Connected);
+    }
+
+    #[test]
+    fn a_used_up_code_says_it_expired() {
+        assert_eq!(Problem::NoCode.message(), "Code expired");
     }
 }

@@ -79,10 +79,20 @@ struct TVNowPlayingButton: View {
             Button {
                 store.tv.openRemote()
             } label: {
+                #if os(macOS)
+                if card.phase == .connected {
+                    Label(store.tv.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
+                        .labelStyle(.titleAndIcon)
+                } else {
+                    // While the link is down it says so in the same place, with the app's dots.
+                    HStack(spacing: 6) {
+                        Circle().fill(TVWords.barDot(card)).frame(width: 6, height: 6)
+                        Text(TVWords.barLine(card)).foregroundStyle(.silk)
+                    }
+                }
+                #else
                 Label(store.tv.now == nil ? card.tvName : "Playing on \(card.tvName)", systemImage: "tv")
-                    #if os(macOS)
-                    .labelStyle(.titleAndIcon)
-                    #endif
+                #endif
             }
             .help("Show the remote for \(card.tvName)")
         }
@@ -214,6 +224,26 @@ enum TVWords {
         card?.phaseLine ?? "Connected"
     }
 
+    /// What the toolbar's button says while the link is down: "Reconnecting to Living room",
+    /// "Living room not found" once the engine has given up on it, "Can't reach Living room"
+    /// when it never answered, "Pair Living room again".
+    static func barLine(_ card: FfiRemoteCard) -> String {
+        let name = card.tvName
+        switch card.phase {
+        case .connected: return name
+        case .connecting: return card.reached ? "Reconnecting to \(name)" : "Connecting to \(name)…"
+        case .retrying where !card.reached: return "Can't reach \(name)"
+        case .retrying: return card.over ? "\(name) not found" : "Reconnecting to \(name)"
+        case .unpaired, .keyChanged: return "Pair \(name) again"
+        }
+    }
+
+    /// The toolbar's dot beside it: vermilion once the link will not come back by itself, or
+    /// never answered.
+    static func barDot(_ card: FfiRemoteCard) -> Color {
+        card.over || lost(card) || (card.phase == .retrying && !card.reached) ? .vermilion : dot(card.phase)
+    }
+
     static func lost(_ card: FfiRemoteCard?) -> Bool {
         card?.phase == .unpaired || card?.phase == .keyChanged
     }
@@ -223,6 +253,29 @@ enum TVWords {
 private func sixDigits(_ code: String) -> String? {
     let digits = code.filter(\.isNumber)
     return digits.count == 6 ? digits : nil
+}
+
+/// Something that went wrong, as the sheets say it: the error's dot, then the words in the
+/// sheet's own colour, never coloured text. The dot sits on the first line, however many the
+/// words wrap to.
+struct TVProblemLine: View {
+    let text: String
+    let touch: Bool
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Circle()
+                .fill(.vermilion)
+                .frame(width: 6, height: 6)
+                .alignmentGuide(.firstTextBaseline) { $0[.bottom] }
+                .accessibilityHidden(true)
+            Text(text)
+                .font(touch ? .ui(13) : .mac(12))
+                .foregroundStyle(.silk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+    }
 }
 
 // MARK: - Parts both platforms share
@@ -238,6 +291,11 @@ struct TVSeekLine: View {
     /// not jump back to the old playhead meanwhile.
     @State private var held: Double?
     @State private var heldRev: UInt64?
+
+    /// The TV has reported this episode playing: a length, and not starting.
+    private var reported: Bool {
+        !now.loading && now.duration != nil
+    }
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -280,6 +338,10 @@ struct TVSeekLine: View {
                 .font(touch ? .ui(13) : .mac(11))
                 .monospacedDigit()
                 .foregroundStyle(.haze)
+                // Until the TV has said where it is, there is nothing to read: the place stays,
+                // so nothing moves when it comes.
+                .opacity(reported ? 1 : 0)
+                .accessibilityHidden(!reported)
             }
             .accessibilityElement()
             .accessibilityLabel("Position")
@@ -376,6 +438,8 @@ struct TVCodeBoxes: View {
     @Binding var code: String
     var focused: FocusState<Bool>.Binding
     let touch: Bool
+    /// The code ran out: nothing can be typed until a new one is asked for.
+    var locked = false
     let submit: () -> Void
 
     var body: some View {
@@ -394,6 +458,7 @@ struct TVCodeBoxes: View {
                     if kept.count == 6 { submit() }
                 }
                 .onSubmit(submit)
+                .disabled(locked)
                 .accessibilityLabel("Pairing code")
             HStack(spacing: touch ? 8 : 6) {
                 ForEach(0..<6, id: \.self) { index in
@@ -412,9 +477,10 @@ struct TVCodeBoxes: View {
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+            .opacity(locked ? 0.4 : 1)
         }
         .contentShape(.rect)
-        .onTapGesture { focused.wrappedValue = true }
+        .onTapGesture { if !locked { focused.wrappedValue = true } }
     }
 }
 
@@ -637,7 +703,7 @@ struct MacTVPairing: View {
         let typing = step.needsCode && !step.tvName.isEmpty
         if typing {
             MacSheetHeading(title: "Pair with \(step.tvName)", line: TVWords.pairingLine(step.tvName))
-            TVCodeBoxes(code: $code, focused: $focused, touch: false, submit: submit)
+            TVCodeBoxes(code: $code, focused: $focused, touch: false, locked: step.expired, submit: submit)
                 .padding(.top, 18)
         } else {
             MacSheetHeading(
@@ -645,11 +711,7 @@ struct MacTVPairing: View {
                 line: "This takes a moment.")
         }
         if let problem = step.problem {
-            Text(problem)
-                .font(.mac(12))
-                .foregroundStyle(.vermilion)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 12)
+            TVProblemLine(text: problem, touch: false).padding(.top, 12)
         }
         HStack(spacing: 10) {
             Button("Back") { tv.cancelPairing() }
@@ -657,13 +719,16 @@ struct MacTVPairing: View {
                 .keyboardShortcut(.cancelAction)
             Spacer()
             if step.working { ProgressView().controlSize(.small) }
-            if typing {
-                Button("Show New Code") {
-                    code = ""
-                    tv.requestCodeAgain()
-                }
-                .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                .disabled(step.working)
+            if typing, step.expired {
+                // The one way on once the code ran out.
+                Button("Get a New Code", action: newCode)
+                    .buttonStyle(PrimaryCapsuleStyle(height: 28))
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(step.working)
+            } else if typing {
+                Button("Get a New Code", action: newCode)
+                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+                    .disabled(step.working)
                 Button("Pair", action: submit)
                     .buttonStyle(PrimaryCapsuleStyle(height: 28))
                     .keyboardShortcut(.defaultAction)
@@ -671,10 +736,18 @@ struct MacTVPairing: View {
             }
         }
         .padding(.top, 20)
-        .onAppear { focused = true }
+        .onAppear { focused = !step.expired }
         .onChange(of: step.problem) { _, problem in
-            if problem != nil { code = ""; focused = true }
+            if problem != nil { code = ""; focused = !step.expired }
         }
+        .onChange(of: step.expired) { _, expired in
+            if !expired { focused = true }
+        }
+    }
+
+    private func newCode() {
+        code = ""
+        store.tv.requestCodeAgain()
     }
 
     private func submit() {
@@ -754,7 +827,7 @@ struct MacTVRemote: View {
             .onSubmit { tv.send(.text(text: search, submit: true)) }
             .padding(.top, 14)
         if let problem = tv.problem {
-            Text(problem).font(.mac(12)).foregroundStyle(.vermilion).padding(.top, 10)
+            TVProblemLine(text: problem, touch: false).padding(.top, 10)
         }
         HStack(spacing: 10) {
             if TVWords.lost(card) {
@@ -911,7 +984,7 @@ struct PhoneTVPairing: View {
         PhoneList {
             if typing {
                 Section {
-                    TVCodeBoxes(code: $code, focused: $focused, touch: true, submit: submit)
+                    TVCodeBoxes(code: $code, focused: $focused, touch: true, locked: step.expired, submit: submit)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4))
@@ -919,17 +992,17 @@ struct PhoneTVPairing: View {
                     PhoneSectionHeader("Code on \(step.tvName)")
                 } footer: {
                     if let problem = step.problem {
-                        Text(problem).foregroundStyle(.vermilion)
+                        TVProblemLine(text: problem, touch: true)
                     } else {
                         Text(TVWords.pairingLine(step.tvName))
                     }
                 }
-                Section {
-                    PhoneActionRow(title: "Show a new code") {
-                        code = ""
-                        tv.requestCodeAgain()
+                // Once the code ran out, the button at the foot asks for a new one instead.
+                if !step.expired {
+                    Section {
+                        PhoneActionRow(title: "Get a new code", action: newCode)
+                            .disabled(step.working)
                     }
-                    .disabled(step.working)
                 }
             } else {
                 Section {
@@ -940,7 +1013,7 @@ struct PhoneTVPairing: View {
                     }
                     .listRowBackground(Palette.raised)
                 } footer: {
-                    if let problem = step.problem { Text(problem).foregroundStyle(.vermilion) }
+                    if let problem = step.problem { TVProblemLine(text: problem, touch: true) }
                 }
             }
         }
@@ -953,24 +1026,34 @@ struct PhoneTVPairing: View {
         }
         .safeAreaInset(edge: .bottom) {
             if typing {
-                Button(action: submit) {
+                Button {
+                    if step.expired { newCode() } else { submit() }
+                } label: {
                     // The label stays centred; the spinner sits beside it without moving it.
-                    Text("Pair")
+                    Text(step.expired ? "Get a new code" : "Pair")
                         .overlay(alignment: .leading) {
                             if step.working { ProgressView().tint(.ground).offset(x: -28) }
                         }
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
-                .disabled(sixDigits(code) == nil || step.working)
+                .disabled((!step.expired && sixDigits(code) == nil) || step.working)
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
             }
         }
-        .onAppear { focused = true }
+        .onAppear { focused = !step.expired }
         .onChange(of: step.problem) { _, problem in
-            if problem != nil { code = ""; focused = true }
+            if problem != nil { code = ""; focused = !step.expired }
         }
+        .onChange(of: step.expired) { _, expired in
+            if !expired { focused = true }
+        }
+    }
+
+    private func newCode() {
+        code = ""
+        store.tv.requestCodeAgain()
     }
 
     private func submit() {
@@ -1050,7 +1133,7 @@ struct PhoneTVRemote: View {
             } header: {
                 PhoneSectionHeader("Search on the TV")
             } footer: {
-                if let problem = tv.problem { Text(problem).foregroundStyle(.vermilion) }
+                if let problem = tv.problem { TVProblemLine(text: problem, touch: true) }
             }
             Section {
                 if TVWords.lost(card) {
