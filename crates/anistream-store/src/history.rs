@@ -240,60 +240,72 @@ impl Store {
         })
     }
 
-    /// Erase one episode's events and refresh the projection — the unmark half of a
-    /// manual toggle. Local history is the source of truth, so forgetting is allowed;
-    /// trackers are monotonic and simply keep their high-water mark.
+    /// Erase one episode's events and refresh the projection.
+    ///
+    /// The whole of it, viewing and all: an episode forgotten has no history left to resume.
+    /// The unmark half of a manual toggle is [`Self::unmark_episode`], which keeps what was
+    /// watched of an episode only marked.
     pub fn forget_episode(&self, anilist_id: AnilistId, episode: &str) -> Result<()> {
         self.with_tx(|tx| {
             tx.execute(
                 "DELETE FROM watch_event WHERE anilist_id = ?1 AND episode = ?2",
                 rusqlite::params![anilist_id.get(), episode],
             )?;
-            let episodes_done: u32 = tx.query_row(
-                "SELECT COUNT(DISTINCT episode) FROM watch_event
-                  WHERE anilist_id = ?1 AND completed = 1",
-                [anilist_id.get()],
+            reproject(tx, anilist_id)
+        })
+    }
+
+    /// Take back that one episode was watched, the unmark half of a manual toggle, and say what
+    /// of it survives: its newest event left, if any.
+    ///
+    /// A mark carries no viewing, only that the episode counts, so taking one back leaves what
+    /// was watched under it: an episode marked watched halfway through and then unmarked, as an
+    /// Undo does, is halfway through again, at the same place.
+    ///
+    /// An episode a playback finished is unwatched whole, as [`Self::forget_episode`] does:
+    /// what is left of the play under the finish is the credits, not a place to return to.
+    /// Local history is the source of truth, so either is allowed; trackers are monotonic and
+    /// simply keep their high-water mark.
+    pub fn unmark_episode(
+        &self,
+        anilist_id: AnilistId,
+        episode: &str,
+    ) -> Result<Option<WatchEvent>> {
+        self.with_tx(|tx| {
+            let params = rusqlite::params![anilist_id.get(), episode];
+            let played_through: bool = tx.query_row(
+                &format!(
+                    "SELECT EXISTS (SELECT 1 FROM watch_event
+                      WHERE anilist_id = ?1 AND episode = ?2 AND completed = 1
+                        AND NOT ({MARK}))"
+                ),
+                params,
                 |r| r.get(0),
             )?;
-            // The projection has to stop describing history that no longer exists. It named
-            // the erased episode and its position, so the CONTINUE rail went on offering
-            // "episode 6, 42%" for a title with nothing behind it and no resume point to
-            // return to. Rebuilt from the newest surviving event, or dropped when the last
-            // one is gone.
-            let newest: Option<(String, f64, Option<f64>, i64)> = tx
-                .query_row(
-                    "SELECT episode, position_secs, duration_secs, at FROM watch_event
-                      WHERE anilist_id = ?1 ORDER BY at DESC, id DESC LIMIT 1",
-                    [anilist_id.get()],
-                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
-                )
-                .optional()?;
-
-            match newest {
-                Some((last_episode, last_position, last_duration, at)) => {
-                    tx.execute(
-                        "UPDATE watch_progress
-                            SET last_episode = ?2, last_position = ?3, last_duration = ?4,
-                                episodes_done = ?5, updated_at = ?6
-                          WHERE anilist_id = ?1",
-                        rusqlite::params![
-                            anilist_id.get(),
-                            last_episode,
-                            last_position,
-                            last_duration,
-                            episodes_done,
-                            at,
-                        ],
-                    )?;
-                }
-                None => {
-                    tx.execute(
-                        "DELETE FROM watch_progress WHERE anilist_id = ?1",
-                        [anilist_id.get()],
-                    )?;
-                }
+            if played_through {
+                tx.execute(
+                    "DELETE FROM watch_event WHERE anilist_id = ?1 AND episode = ?2",
+                    params,
+                )?;
+            } else {
+                tx.execute(
+                    "DELETE FROM watch_event
+                      WHERE anilist_id = ?1 AND episode = ?2 AND completed = 1",
+                    params,
+                )?;
             }
-            Ok(())
+            reproject(tx, anilist_id)?;
+            Ok(tx
+                .query_row(
+                    &format!(
+                        "SELECT {EVENT_COLUMNS} FROM watch_event
+                          WHERE anilist_id = ?1 AND episode = ?2
+                          ORDER BY at DESC, id DESC LIMIT 1"
+                    ),
+                    params,
+                    row_to_event,
+                )
+                .optional()?)
         })
     }
 
@@ -465,30 +477,86 @@ impl Store {
     /// Full event log for a title, newest first. Used by the stats view.
     pub fn events_for(&self, anilist_id: AnilistId, limit: u32) -> Result<Vec<WatchEvent>> {
         self.with_conn(|c| {
-            let mut stmt = c.prepare(
-                "SELECT anilist_id, episode, position_secs, duration_secs, watched_secs,
-                        provider_id, translation, completed, at
+            let mut stmt = c.prepare(&format!(
+                "SELECT {EVENT_COLUMNS}
                    FROM watch_event
                   WHERE anilist_id = ?1
                   ORDER BY at DESC
-                  LIMIT ?2",
-            )?;
-            let rows = stmt.query_map(rusqlite::params![anilist_id.get(), limit], |r| {
-                Ok(WatchEvent {
-                    anilist_id: AnilistId::new(r.get::<_, u32>(0)?),
-                    episode: r.get(1)?,
-                    position_secs: r.get(2)?,
-                    duration_secs: r.get(3)?,
-                    watched_secs: r.get(4)?,
-                    provider_id: r.get(5)?,
-                    translation: r.get::<_, Option<String>>(6)?.and_then(|s| s.parse().ok()),
-                    completed: r.get::<_, i32>(7)? != 0,
-                    at: r.get(8)?,
-                })
-            })?;
+                  LIMIT ?2"
+            ))?;
+            let rows =
+                stmt.query_map(rusqlite::params![anilist_id.get(), limit], row_to_event)?;
             Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
         })
     }
+}
+
+/// Whether a `watch_event` row is a mark: an episode counted watched with nothing played, by
+/// hand or adopted from a tracker, rather than a playback's observation.
+const MARK: &str = "completed = 1 AND position_secs <= 0 AND watched_secs <= 0";
+
+/// The columns [`row_to_event`] reads, in its order.
+const EVENT_COLUMNS: &str = "anilist_id, episode, position_secs, duration_secs, watched_secs,
+                        provider_id, translation, completed, at";
+
+fn row_to_event(r: &rusqlite::Row<'_>) -> rusqlite::Result<WatchEvent> {
+    Ok(WatchEvent {
+        anilist_id: AnilistId::new(r.get::<_, u32>(0)?),
+        episode: r.get(1)?,
+        position_secs: r.get(2)?,
+        duration_secs: r.get(3)?,
+        watched_secs: r.get(4)?,
+        provider_id: r.get(5)?,
+        translation: r.get::<_, Option<String>>(6)?.and_then(|s| s.parse().ok()),
+        completed: r.get::<_, i32>(7)? != 0,
+        at: r.get(8)?,
+    })
+}
+
+/// Refresh title `anilist_id`'s projection after events of it were erased.
+///
+/// The projection has to stop describing history that no longer exists. It named the erased
+/// episode and its position, so the CONTINUE rail went on offering "episode 6, 42%" for a title
+/// with nothing behind it and no resume point to return to. Rebuilt from the newest surviving
+/// event, or dropped when the last one is gone.
+fn reproject(tx: &rusqlite::Transaction<'_>, anilist_id: AnilistId) -> Result<()> {
+    let episodes_done: u32 = tx.query_row(
+        "SELECT COUNT(DISTINCT episode) FROM watch_event
+          WHERE anilist_id = ?1 AND completed = 1",
+        [anilist_id.get()],
+        |r| r.get(0),
+    )?;
+    let newest: Option<(String, f64, Option<f64>, i64)> = tx
+        .query_row(
+            "SELECT episode, position_secs, duration_secs, at FROM watch_event
+              WHERE anilist_id = ?1 ORDER BY at DESC, id DESC LIMIT 1",
+            [anilist_id.get()],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        )
+        .optional()?;
+
+    match newest {
+        Some((last_episode, last_position, last_duration, at)) => {
+            tx.execute(
+                "UPDATE watch_progress
+                    SET last_episode = ?2, last_position = ?3, last_duration = ?4,
+                        episodes_done = ?5, updated_at = ?6
+                  WHERE anilist_id = ?1",
+                rusqlite::params![
+                    anilist_id.get(),
+                    last_episode,
+                    last_position,
+                    last_duration,
+                    episodes_done,
+                    at,
+                ],
+            )?;
+        }
+        None => {
+            tx.execute("DELETE FROM watch_progress WHERE anilist_id = ?1", [anilist_id.get()])?;
+        }
+    }
+    Ok(())
 }
 
 fn row_to_progress(r: &rusqlite::Row<'_>) -> rusqlite::Result<Progress> {
@@ -603,6 +671,60 @@ mod tests {
         store.forget_episode(HOSHIKUZU, "5").unwrap();
         assert!(store.progress(HOSHIKUZU).unwrap().is_none());
         assert!(store.continue_list(10).unwrap().is_empty());
+    }
+
+    /// A mark, as the menu writes one: the episode counted watched, nothing played.
+    fn marked(ep: &str, at: i64) -> WatchEvent {
+        WatchEvent { completed: true, at, ..WatchEvent::new(HOSHIKUZU, ep, 0.0) }
+    }
+
+    #[test]
+    fn unmarking_an_episode_marked_partway_through_leaves_it_where_it_was() {
+        // Marked watched at twelve minutes in, then unmarked, as the phone's Undo does: the
+        // episode is twelve minutes in again. Unmarking used to erase the episode, so the
+        // resume point went with the mark.
+        let store = Store::open_in_memory().unwrap();
+        let mut stopped = event("4", 720.0, 1440.0, 1_000);
+        stopped.watched_secs = 720.0;
+        store.record_event(&event("3", 1400.0, 1440.0, 500)).unwrap();
+        store.record_event(&stopped).unwrap();
+        let before = store.progress(HOSHIKUZU).unwrap();
+        store.record_event(&marked("4", 2_000)).unwrap();
+        assert_eq!(store.resume_position(HOSHIKUZU, "4").unwrap(), None, "watched, then");
+
+        let left = store.unmark_episode(HOSHIKUZU, "4").unwrap();
+
+        assert_eq!(left, Some(stopped), "what survives is the stop under the mark");
+        assert_eq!(store.resume_position(HOSHIKUZU, "4").unwrap(), Some(720.0));
+        assert_eq!(store.completed_episodes(HOSHIKUZU).unwrap(), ["3"]);
+        assert_eq!(store.progress(HOSHIKUZU).unwrap(), before, "the rail as it was");
+    }
+
+    #[test]
+    fn unmarking_an_episode_a_playback_finished_unwatches_it_whole() {
+        // What is left under a finish is the credits, not a place to come back to: an episode
+        // played through and unmarked starts over, as it always did.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("5", 600.0, 1440.0, 1_000)).unwrap();
+        let mut finished = event("5", 1400.0, 1440.0, 2_000);
+        finished.watched_secs = 1400.0;
+        store.record_event(&finished).unwrap();
+
+        assert_eq!(store.unmark_episode(HOSHIKUZU, "5").unwrap(), None);
+        assert_eq!(store.resume_position(HOSHIKUZU, "5").unwrap(), None);
+        assert!(store.progress(HOSHIKUZU).unwrap().is_none(), "nothing left of it");
+    }
+
+    #[test]
+    fn unmarking_a_mark_on_an_episode_never_played_leaves_nothing() {
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("1", 1400.0, 1440.0, 500)).unwrap();
+        store.record_event(&marked("2", 1_000)).unwrap();
+
+        assert_eq!(store.unmark_episode(HOSHIKUZU, "2").unwrap(), None);
+        assert_eq!(store.completed_episodes(HOSHIKUZU).unwrap(), ["1"]);
+        let progress = store.progress(HOSHIKUZU).unwrap().expect("episode 1 is still watched");
+        assert_eq!((progress.last_episode.as_str(), progress.episodes_done), ("1", 1));
     }
 
     #[test]

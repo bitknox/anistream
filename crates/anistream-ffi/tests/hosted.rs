@@ -22,6 +22,7 @@ use anistream_core::{
 };
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
 use anistream_model::{
+    catalog::ResumePoint,
     command::{AppState, Command, PlayerCommand},
     event::Event,
     hosted::{
@@ -1087,6 +1088,58 @@ fn a_mark_out_of_order_or_undone_moves_the_count_with_the_rows() {
         _ => None,
     });
     assert_eq!(row.progress, Some(TitleProgress { done: 1, next: 2 }));
+    app.shutdown();
+}
+
+#[test]
+fn a_mark_undone_leaves_the_episode_where_it_was_left() {
+    // Ten minutes into episode 2 of the airing title.
+    let app = App::fixtures("");
+    {
+        let store =
+            anistream_store::Store::open(app.root.path().join("data/anistream.db")).unwrap();
+        let left = anistream_store::WatchEvent {
+            duration_secs: Some(1_440.0),
+            watched_secs: 600.0,
+            provider_id: Some(sources::PROVIDER_ID.to_owned()),
+            ..anistream_store::WatchEvent::new(AIRING, "2", 600.0)
+        };
+        store.record_event(&left).unwrap();
+    }
+    let mut app = app;
+    app.engine.send(Command::LoadDetail(AIRING));
+    app.until("the page", |event| matches!(event, Event::Detail(_)).then_some(()));
+    app.engine.send(Command::LoadEpisodes(AIRING));
+    app.until("its table", |event| {
+        matches!(event, Event::Episodes { id, .. } if *id == AIRING).then_some(())
+    });
+    let meter = |app: &App| {
+        let rows = &app.titles.tables[&AIRING];
+        rows.iter().find(|row| row.number == "2").map(|row| (row.watched, row.completed))
+    };
+    let before = meter(&app);
+    assert_eq!(before, Some((600.0 / 1_440.0, false)), "partway through");
+
+    // Marked watched, then the Undo: the mark taken back.
+    let standing = |app: &mut App, watched| {
+        let episodes = vec!["2".to_owned()];
+        app.engine.send(Command::SetWatched { id: AIRING, episodes, watched });
+        app.until("the mark's answer", |event| match event {
+            Event::Progress { id, progress, resume, .. } if *id == AIRING => {
+                Some((progress.map(|p| (p.done, p.next)), *resume))
+            }
+            _ => None,
+        })
+    };
+    assert_eq!(standing(&mut app, true), (Some((1, 3)), None));
+    assert_eq!(meter(&app), Some((1.0, true)));
+    let resume = Some(ResumePoint { position: 600.0, fraction: Some(600.0 / 1_440.0) });
+    assert_eq!(standing(&mut app, false), (Some((0, 2)), resume), "Continue resumes it");
+    assert_eq!(meter(&app), before, "the row as it was");
+
+    // And a play of it carries on from there.
+    app.play(AIRING, "2");
+    assert_eq!(app.load().option("start"), Some("600"));
     app.shutdown();
 }
 

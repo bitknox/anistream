@@ -2,7 +2,7 @@
 
 use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_meta::Meta;
-use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice};
+use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice, progress::Watch};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
@@ -263,8 +263,9 @@ pub(crate) async fn list_episodes(lent: Lent, id: AnilistId, naming: names::Nami
     }
 }
 
-/// Mark episodes watched, or forget that they were: in local history, and on the signed-in
-/// trackers when marking. Then the record of the titles is moved on by what the store now
+/// Mark episodes watched, or take back that they were: in local history, and on the signed-in
+/// trackers when marking. An unmark keeps what was watched of an episode only marked (see
+/// `Store::unmark_episode`), so an episode is as it was before the mark. Then the record of the titles is moved on by what the store now
 /// holds, and the title said whole, as the answer to the mark.
 ///
 /// Said whether the record holds the title or not. A mark sent before any list or page showed
@@ -280,13 +281,21 @@ pub fn set_watched(
 ) {
     let Services { store, sync, .. } = services;
     let now = anistream_store::now();
+    // What an unmark leaves of each episode: the viewing a mark sat on, put back on the record
+    // below, so Undo returns an episode to where it was rather than to the start.
+    let mut kept = Vec::new();
     for episode in episodes {
         if watched {
             let mut event = anistream_store::WatchEvent::new(id, episode.clone(), 0.0);
             event.completed = true;
             let _ = store.record_event(&event);
-        } else {
-            let _ = store.forget_episode(id, episode);
+        } else if let Ok(Some(left)) = store.unmark_episode(id, episode) {
+            kept.push(Watch {
+                episode: episode.clone(),
+                position: left.position_secs,
+                duration: left.duration_secs,
+                completed: left.completed,
+            });
         }
     }
     // Project to trackers only when marking: progress there is monotonic, so an
@@ -311,6 +320,9 @@ pub fn set_watched(
     let held =
         |episode: &str| held.as_ref().map_or(watched, |held| held.iter().any(|e| e == episode));
     let marked = engine.cache.marked(id, episodes, watched, held);
+    for watch in &kept {
+        engine.cache.kept(id, watch);
+    }
     let said = marked.and_then(|id| engine.cache.progress(id)).unwrap_or_else(|| {
         // Without its episode count, which only its metadata has: Continue's episode is
         // counted on from where history stands, as it is for a title of unknown length.

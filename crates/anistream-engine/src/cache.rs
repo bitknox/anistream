@@ -246,6 +246,14 @@ impl TitleCache {
         self.titles.contains_key(&id).then_some(id)
     }
 
+    /// What an unmark left of an episode in the store, put back once [`Self::marked`] has
+    /// emptied its row: the viewing a mark sat on, on the row's meter and as where Continue
+    /// resumes, as the playback that recorded it put it there. So an episode marked watched
+    /// partway through and then unmarked, as an Undo does, reads as it did before the mark.
+    pub fn kept(&mut self, id: AnilistId, watch: &Watch) {
+        self.watch(id, watch);
+    }
+
     /// What a play of `episode` of `id` takes from the record. Not a playback of one's own
     /// table: the rows are the table loaded last, when it is this title's, and otherwise none,
     /// which the playback loads behind itself.
