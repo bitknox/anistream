@@ -231,6 +231,10 @@ public sealed partial class TitlePage : Page, IPageKeys
                 case Event.Downloads d:
                     ShowDownloads(d.V1);
                     break;
+                case Event.TitlesChanged:
+                    // Named another way now, with its relations and recommendations.
+                    ctx.Send(new Command.LoadDetail(id));
+                    break;
             }
         }
     }

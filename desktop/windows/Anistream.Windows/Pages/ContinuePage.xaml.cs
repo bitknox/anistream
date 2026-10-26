@@ -1,3 +1,4 @@
+using Anistream.App;
 using Anistream.Engine.Ffi;
 using Anistream.Engine.Model;
 using Microsoft.UI.Xaml;
@@ -37,6 +38,9 @@ public sealed partial class ContinuePage : Page, IPageKeys
 {
     readonly Ctx ctx = Ctx.Current;
     QueueRow? selected;
+#if ANISTREAM_TESTING
+    bool asked;
+#endif
     bool loaded;
     DateTimeOffset lastPick;
 
@@ -116,9 +120,14 @@ public sealed partial class ContinuePage : Page, IPageKeys
             State.Done();
 
         var keep = selected?.Item.Entry.Id;
+        var rows = groups.SelectMany(g => g).ToList();
+#if ANISTREAM_TESTING
+        // --select=<id>: that title's row once it is there, for a screenshot.
+        if (!asked && uint.TryParse(ctx.Options.Select, out var wanted) && rows.Any(r => r.Item.Entry.Id == wanted))
+            (keep, asked) = (wanted, true);
+#endif
         Groups.Source = groups;
         Queue.ItemsSource = Groups.View;
-        var rows = groups.SelectMany(g => g).ToList();
         var pick = rows.FirstOrDefault(r => r.Item.Entry.Id == keep) ?? rows[0];
         Queue.SelectedItem = pick;
         ShowPreview(pick);
@@ -169,7 +178,8 @@ public sealed partial class ContinuePage : Page, IPageKeys
         var episodeTitle = ctx.Known.Episodes.TryGetValue(entry.Id, out var rows)
             ? rows.FirstOrDefault(r => r.Number == item.Episode.ToString())?.Title
             : null;
-        EpisodeLine.Text = episodeTitle is { Length: > 0 } ? $"Episode {item.Episode} · {episodeTitle}" : $"Episode {item.Episode}";
+        // "Episode 7 · Dub · The Lantern Road": a show watched dubbed is marked, as its row is.
+        EpisodeLine.Text = Lines.Episode($"Episode {item.Episode}", episodeTitle, item.Entry.WatchedIn);
         Meter.Visibility = item.Fraction is not null ? Visibility.Visible : Visibility.Collapsed;
         EpisodeProgress.Value = item.Fraction ?? 0;
         LeftLine.Text = item.Left ?? "";
