@@ -22,7 +22,17 @@ sealed class Ctx
     /// <summary>Every batch of the engine's events, on the UI thread, after Known has them.</summary>
     public event Action<IReadOnlyList<Event>>? Batch;
 
-    public void Heard(IReadOnlyList<Event> batch) => Batch?.Invoke(batch);
+    /// <summary>Protections checked before they are saved: the proxy dialog's checks.</summary>
+    public ProtectionTrials Trials => trials ??= new(command => Send(command));
+    ProtectionTrials? trials;
+
+    public void Heard(IReadOnlyList<Event> batch)
+    {
+        foreach (var e in batch)
+            if (e is Event.ProtectionChecked checkedNow)
+                Trials.Heard(checkedNow.V1);
+        Batch?.Invoke(batch);
+    }
 
     public ulong? Send(Command command)
     {
@@ -46,6 +56,14 @@ sealed class Ctx
                 Session.Known.Take(events[0]);
                 Heard(events);
             });
+            return null;
+        }
+        // A proxy dialog's check held while it checks, or answered as failed, for a screenshot:
+        // the fixture's own check always passes.
+        if (command is Command.CheckTorrentProtection && Options.Show is "torrent-edit-checking" or "torrent-edit-failed")
+        {
+            if (Options.Show == "torrent-edit-failed")
+                _ = Task.Delay(1200).ContinueWith(_ => Window.DispatcherQueue.TryEnqueue(() => Heard([new Event.ProtectionChecked(new GuardView.Leaking())])));
             return null;
         }
 #endif
