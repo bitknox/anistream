@@ -605,7 +605,9 @@ class TvShots {
         }
         // The chrome goes and the card keeps focus, drawn so.
         // A second at a time, so the chrome's fade runs its frames.
+        // The model's ticker reads its clock on the main looper, so the looper runs too.
         repeat(3) {
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofSeconds(1))
             compose.mainClock.advanceTimeBy(1_000)
             compose.waitForIdle()
         }
