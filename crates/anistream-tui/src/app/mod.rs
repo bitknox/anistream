@@ -561,6 +561,9 @@ impl App {
             | Event::PlayerBuffered { .. }
             | Event::PlayerStats { .. }
             | Event::Clipboard { .. } => {}
+            // A check a native app's protection form asks for before it saves; the terminal's
+            // protection is the config file's, read at launch.
+            Event::ProtectionChecked(_) => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
             //

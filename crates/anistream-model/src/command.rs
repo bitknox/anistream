@@ -461,6 +461,20 @@ pub enum Command {
         on_failure: FailedCheck,
         acknowledged: bool,
     },
+    /// Check where torrent traffic would leave from under `mode`, through `proxy` when it is
+    /// one, before any of it is saved: the guard's own check, made once on these settings and
+    /// on the rest of the file's, as a protection sheet asks before it saves. A proxy given
+    /// with no password is checked with the one kept, as saving it would keep it.
+    ///
+    /// Writes nothing: not the file, not the secret store, not the torrent source, which
+    /// carries on as it was. Answered, with no job, with
+    /// [`Event::ProtectionChecked`](crate::event::Event::ProtectionChecked): the verdict, or
+    /// `Unreachable` and a notice saying why when the settings cannot be checked at all, as a
+    /// proxy with no address.
+    CheckTorrentProtection {
+        mode: TorrentProtection,
+        proxy: Option<TorrentProxy>,
+    },
     /// Read one show's settings sheet: answered with
     /// [`Event::ShowSettings`](crate::event::Event::ShowSettings).
     LoadShowSettings {
