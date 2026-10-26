@@ -26,9 +26,11 @@ sealed class TvDialog
     readonly TvRemote tv;
     readonly ContentDialog dialog;
     readonly Grid body = new() { Width = 420 };
+    readonly XamlRoot root;
     readonly DispatcherQueueTimer clock;
     Action? primary, secondary;
     View? shown;
+    UIElement? keysAt;
     bool closing;
 
     public static TvDialog? Showing { get; private set; }
@@ -36,8 +38,26 @@ sealed class TvDialog
     TvDialog(Ctx ctx, XamlRoot root)
     {
         this.ctx = ctx;
+        this.root = root;
         tv = ctx.Tv;
         dialog = new ContentDialog { XamlRoot = root, Content = body };
+        // As wide as the Mac's sheet, and narrower in a narrow window so nothing clips.
+        Fit();
+        root.Changed += Resized;
+        // Space and K play or pause the TV from the remote, as they do the player. The dialog's
+        // content sits in a popup of its own, so the keys are heard at the top of that, which
+        // the dialog's buttons are under too.
+        body.Loaded += (_, _) =>
+        {
+            DependencyObject top = body;
+            while (VisualTreeHelper.GetParent(top) is { } parent)
+                top = parent;
+            if (top is UIElement element && keysAt is null)
+            {
+                keysAt = element;
+                element.PreviewKeyDown += Keys;
+            }
+        };
         dialog.PrimaryButtonClick += (_, e) =>
         {
             e.Cancel = true;
@@ -82,6 +102,9 @@ sealed class TvDialog
         finally
         {
             it.clock.Stop();
+            it.root.Changed -= it.Resized;
+            if (it.keysAt is not null)
+                it.keysAt.PreviewKeyDown -= it.Keys;
             it.tv.Changed -= it.Update;
             it.shown?.Leave();
             it.tv.StopBrowsing();
@@ -89,6 +112,26 @@ sealed class TvDialog
             it.tv.SheetClosed();
         }
     }
+
+    void Keys(object sender, KeyRoutedEventArgs e)
+    {
+        if (shown is RemoteView remote && e.Key is global::Windows.System.VirtualKey.Space or global::Windows.System.VirtualKey.K)
+            e.Handled = remote.Key(e.Key, FocusManager.GetFocusedElement(root));
+    }
+
+    void Resized(XamlRoot sender, XamlRootChangedEventArgs e)
+    {
+        var was = body.Width;
+        Fit();
+        if (body.Width != was)
+            shown?.Update();
+    }
+
+    /// <summary>Whether the dialog is at its full width, with room for the longer button labels.</summary>
+    bool Roomy => body.Width >= 420;
+
+    /// <summary>The body's width: 420, less in a window too narrow for the dialog around it.</summary>
+    void Fit() => body.Width = Math.Clamp(root.Size.Width - 112, 260, 420);
 
     /// <summary>Closes the dialog from outside: the sheet went down.</summary>
     public void Close()
@@ -110,11 +153,20 @@ sealed class TvDialog
             : shown as PickerView ?? new PickerView(this);
         if (next != shown)
         {
+            // The dialog grows or shrinks to the new view on the standard token, rather than jumping.
+            var from = shown is null ? 0 : body.ActualHeight;
             shown?.Leave();
             shown = next;
             body.Children.Clear();
             body.Children.Add(next.Root);
             Motion.FadeIn(next.Root);
+            next.Update();
+            if (from > 0)
+            {
+                next.Root.Measure(new global::Windows.Foundation.Size(body.Width, double.PositiveInfinity));
+                Motion.Height(body, from, next.Root.DesiredSize.Height);
+            }
+            return;
         }
         next.Update();
     }
@@ -134,19 +186,46 @@ sealed class TvDialog
         dialog.CloseButtonText = close;
     }
 
-    static TextBlock Problem(string? text)
-    {
-        var block = Ui.Text(text ?? "", "CaptionTextBlockStyle");
-        block.Foreground = new SolidColorBrush(Ui.Vermilion);
-        block.Visibility = text is null ? Visibility.Collapsed : Visibility.Visible;
-        AutomationProperties.SetLiveSetting(block, AutomationLiveSetting.Assertive);
-        return block;
-    }
+    /// <summary>Has Narrator say what an element now says, once.</summary>
+    static void Announce(UIElement element) =>
+        FrameworkElementAutomationPeer.CreatePeerForElement(element)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
 
-    static void Say(TextBlock block, string? text)
+    /// <summary>
+    /// What went wrong, as the app draws an error: the vermilion dot, then the engine's words in
+    /// plain text. Said by Narrator as it changes.
+    /// </summary>
+    sealed class ProblemLine
     {
-        block.Text = text ?? "";
-        block.Visibility = text is null ? Visibility.Collapsed : Visibility.Visible;
+        readonly TextBlock text = Ui.Text("", "CaptionTextBlockStyle");
+        string? said;
+
+        public ProblemLine()
+        {
+            var dot = Ui.Dot(Ui.Vermilion);
+            dot.Margin = new Thickness(0, 5, 0, 0);
+            dot.VerticalAlignment = VerticalAlignment.Top;
+            Root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Root.Children.Add(dot);
+            Grid.SetColumn(text, 1);
+            Root.Children.Add(text);
+            AutomationProperties.SetAccessibilityView(dot, AccessibilityView.Raw);
+            AutomationProperties.SetLiveSetting(text, AutomationLiveSetting.Assertive);
+            Root.Visibility = Visibility.Collapsed;
+        }
+
+        public Grid Root { get; } = new() { ColumnSpacing = 8 };
+
+        public void Say(string? problem)
+        {
+            if (problem == said)
+                return;
+            said = problem;
+            text.Text = problem ?? "";
+            Root.Visibility = problem is null ? Visibility.Collapsed : Visibility.Visible;
+            if (problem is not null)
+                Announce(text);
+        }
     }
 
     /// <summary>Rows on a card with hairlines between them, as Settings draws its groups.</summary>
@@ -267,7 +346,9 @@ sealed class TvDialog
                 if (rows.Children is [Grid { Tag: string was }] && was != stage)
                 {
                     rows.Children.Clear();
-                    rows.Children.Add(Searching());
+                    var row = Searching();
+                    rows.Children.Add(row);
+                    row.Loaded += (_, _) => Announce(row);
                 }
             }
         }
@@ -381,7 +462,7 @@ sealed class TvDialog
         readonly Border[] boxes = new Border[6];
         readonly TextBlock[] digits = new TextBlock[6];
         readonly StackPanel waiting = new() { Orientation = Orientation.Horizontal, Spacing = 10, Margin = new Thickness(0, 18, 0, 0) };
-        readonly TextBlock problem = Problem(null);
+        readonly ProblemLine problem = new();
         readonly ProgressRing working = new() { IsActive = true, Width = 16, Height = 16, HorizontalAlignment = HorizontalAlignment.Left };
         string? lastProblem;
         bool focused;
@@ -401,6 +482,7 @@ sealed class TvDialog
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                 };
+                Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(digits[i], FontNumeralAlignment.Tabular);
                 boxes[i] = new Border
                 {
                     Width = 42,
@@ -434,13 +516,18 @@ sealed class TvDialog
             };
             typed.GotFocus += (_, _) => { focused = true; Draw(); };
             typed.LostFocus += (_, _) => { focused = false; Draw(); };
-            code.Tapped += (_, _) => typed.Focus(FocusState.Pointer);
+            code.Tapped += (_, _) =>
+            {
+                if (!typed.IsReadOnly)
+                    typed.Focus(FocusState.Pointer);
+            };
+            Motion.QuickOpacity(code);
             root.Children.Add(code);
             waiting.Children.Add(new ProgressRing { IsActive = true, Width = 16, Height = 16 });
             waiting.Children.Add(Ui.Haze("Waiting for the TV", wrap: false));
             root.Children.Add(waiting);
-            problem.Margin = new Thickness(0, 12, 0, 0);
-            root.Children.Add(problem);
+            problem.Root.Margin = new Thickness(0, 12, 0, 0);
+            root.Children.Add(problem.Root);
             working.Margin = new Thickness(0, 12, 0, 0);
             root.Children.Add(working);
             Draw();
@@ -467,7 +554,7 @@ sealed class TvDialog
             for (var i = 0; i < 6; i++)
             {
                 digits[i].Text = i < text.Length ? text[i].ToString() : "";
-                var next = focused && i == Math.Min(text.Length, 5);
+                var next = focused && !typed.IsReadOnly && i == Math.Min(text.Length, 5);
                 boxes[i].BorderBrush = next ? Ui.Res<Brush>("TextFillColorPrimaryBrush") : Ui.Res<Brush>("ControlStrokeColorDefaultBrush");
             }
         }
@@ -483,17 +570,19 @@ sealed class TvDialog
             code.Visibility = typing ? Visibility.Visible : Visibility.Collapsed;
             waiting.Visibility = typing ? Visibility.Collapsed : Visibility.Visible;
             ((TextBlock)waiting.Children[1]).Text = step.TvName.Length == 0 ? "Waiting for the TV" : $"Waiting for {step.TvName}";
-            typed.IsReadOnly = step.Working;
+            // A code that ran out takes no more digits: the boxes lock and dim until a new one.
+            typed.IsReadOnly = step.Working || step.Expired;
+            code.Opacity = step.Expired ? 0.4 : 1;
             working.Visibility = typing && step.Working ? Visibility.Visible : Visibility.Collapsed;
             if (step.Problem != lastProblem)
             {
                 lastProblem = step.Problem;
-                Say(problem, step.Problem);
+                problem.Say(step.Problem);
                 if (step.Problem is not null)
                 {
                     // Another try starts from empty boxes.
                     typed.Text = "";
-                    if (typing)
+                    if (typing && !step.Expired)
                         typed.Focus(FocusState.Programmatic);
                 }
                 // The spinner stopped: the problem in its place.
@@ -502,10 +591,14 @@ sealed class TvDialog
             }
             else if (step.Problem is not null && !typing)
                 waiting.Visibility = Visibility.Collapsed;
-            owner.Buttons(TvWords.PairingTitle(step),
-                typing ? ("Pair", Submit, TvWords.SixDigits(typed.Text) is not null && !step.Working, true) : null,
-                typing ? ("Show new code", Again, !step.Working) : null,
-                "Back");
+            if (typing && step.Expired)
+                owner.Buttons(TvWords.PairingTitle(step), (TvWords.NewCode, Again, !step.Working, true), null, "Back");
+            else
+                owner.Buttons(TvWords.PairingTitle(step),
+                    typing ? ("Pair", Submit, TvWords.SixDigits(typed.Text) is not null && !step.Working, true) : null,
+                    typing ? (TvWords.NewCode, Again, !step.Working) : null,
+                    "Back");
+            Draw();
             if (typing && !step.Working && !focused && step.Problem is null)
                 typed.Focus(FocusState.Programmatic);
         }
@@ -531,7 +624,8 @@ sealed class TvDialog
         readonly TextBlock title = Ui.Text("", "ShowTitleStyle", wrap: false);
         readonly TextBlock episode = Ui.Text("", "HazeCaptionStyle", wrap: false);
         readonly Button skip = new() { Height = 32 };
-        readonly Slider seek = new() { Minimum = 0, Maximum = 1, StepFrequency = 1, IsThumbToolTipEnabled = false, Margin = new Thickness(0, 10, 0, 0) };
+        // Arrow keys step 10 s, as the transport's buttons and the Mac's playhead do.
+        readonly Slider seek = new() { Minimum = 0, Maximum = 1, StepFrequency = 1, SmallChange = 10, LargeChange = 60, IsThumbToolTipEnabled = false, Margin = new Thickness(0, 10, 0, 0) };
         readonly TextBlock elapsed = Ui.Text("0:00", "HazeCaptionStyle", wrap: false);
         readonly TextBlock remaining = Ui.Text("", "HazeCaptionStyle", wrap: false);
         readonly StackPanel transport = new() { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 2, 0, 0) };
@@ -545,8 +639,9 @@ sealed class TvDialog
         readonly Border rowsCard;
         readonly TextBlock nothing = Ui.Haze(TvWords.Nothing);
         readonly TextBox search = new() { PlaceholderText = "Search on the TV", Margin = new Thickness(0, 14, 0, 0) };
-        readonly TextBlock problem = Problem(null);
+        readonly ProblemLine problem = new();
         readonly DispatcherQueueTimer settle;
+        string? statusSaid;
         double? held;
         ulong? heldRev;
         DateTimeOffset heldAt;
@@ -602,6 +697,8 @@ sealed class TvDialog
                 settle.Start();
             };
             playing.Children.Add(seek);
+            Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(elapsed, FontNumeralAlignment.Tabular);
+            Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(remaining, FontNumeralAlignment.Tabular);
             var times = new Grid { Margin = new Thickness(0, -6, 0, 0) };
             remaining.HorizontalAlignment = HorizontalAlignment.Right;
             times.Children.Add(elapsed);
@@ -626,8 +723,6 @@ sealed class TvDialog
             volume.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 14 }, "Volume down", new FfiTvCommand.Volume(-5), small: true));
             volume.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 14 }, "Volume up", new FfiTvCommand.Volume(5), small: true));
             settings.Children.Add(SettingRow("TV volume", volumeNote, volume));
-            AutomationProperties.SetName(subtitles, "Subtitles");
-            AutomationProperties.SetName(audio, "Audio");
             Motion.QuickOpacity(transport);
             rowsCard = Rows(settings);
             Motion.QuickOpacity(rowsCard);
@@ -654,11 +749,25 @@ sealed class TvDialog
                 }
             };
             root.Children.Add(search);
-            problem.Margin = new Thickness(0, 10, 0, 0);
-            root.Children.Add(problem);
+            problem.Root.Margin = new Thickness(0, 10, 0, 0);
+            root.Children.Add(problem.Root);
         }
 
         public override FrameworkElement Root => root;
+
+        /// <summary>
+        /// Space or K pressed in the remote: play or pause, while the TV can hear it. Not while
+        /// typing a search, nor Space on a focused button or menu, which it presses.
+        /// </summary>
+        public bool Key(global::Windows.System.VirtualKey key, object? focused)
+        {
+            if (focused is TextBox || (key == global::Windows.System.VirtualKey.Space && focused is ButtonBase))
+                return false;
+            if (owner.tv.Now is not { Loading: false } || !owner.tv.Live)
+                return false;
+            _ = owner.tv.Send(new FfiTvCommand.TogglePause());
+            return true;
+        }
 
         static FrameworkElement Ten(bool back)
         {
@@ -727,8 +836,15 @@ sealed class TvDialog
                 _ => Colours.Haze,
             });
             status.Text = TvWords.Status(card);
+            if (status.Text != statusSaid)
+            {
+                // Said as the link changes, not when the dialog opens on it.
+                if (statusSaid is not null)
+                    Announce(status);
+                statusSaid = status.Text;
+            }
             owner.Buttons(card?.TvName ?? "TV",
-                TvWords.Lost(card) ? ("Pair again", () => _ = tv.PairAgain(), true, false) : ("Choose another TV…", tv.OpenPicker, true, false),
+                TvWords.Lost(card) ? ("Pair again", () => _ = tv.PairAgain(), true, false) : (owner.Roomy ? "Choose another TV…" : "Another TV…", tv.OpenPicker, true, false),
                 ("Disconnect", () =>
                 {
                     tv.Disconnect();
@@ -741,7 +857,7 @@ sealed class TvDialog
             // line says what the link is doing.
             nothing.Visibility = now is null && live ? Visibility.Visible : Visibility.Collapsed;
             search.IsEnabled = live;
-            Say(problem, tv.Problem);
+            problem.Say(tv.Problem);
             if (now is null)
                 return;
 
@@ -794,6 +910,8 @@ sealed class TvDialog
             tracksDrawn = key;
             subtitles.Content = TvWords.Chosen(now.Subtitles, now.SubtitlesOff);
             audio.Content = TvWords.Chosen(now.Audio, off: false);
+            AutomationProperties.SetName(subtitles, $"Subtitles, {subtitles.Content}");
+            AutomationProperties.SetName(audio, $"Audio, {audio.Content}");
             subtitles.Flyout = Menu(FfiTvTrackKind.Subtitle, now.Subtitles, now.SubtitlesOff);
             audio.Flyout = Menu(FfiTvTrackKind.Audio, now.Audio, off: false);
         }

@@ -59,6 +59,17 @@ public class TvWordsTests
     }
 
     [Fact]
+    public void TheTitleBarSaysHowTheLinkStands()
+    {
+        FfiRemoteCard Card(FfiLinkPhase phase) => new("Living room", phase, null, new FfiScreen.Home(), null, 1);
+        Assert.Equal("Playing on Living room", TvWords.BarLine(Card(FfiLinkPhase.Connected), playing: true));
+        Assert.Equal("Living room", TvWords.BarLine(Card(FfiLinkPhase.Connected), playing: false));
+        Assert.Equal("Connecting to Living room", TvWords.BarLine(Card(FfiLinkPhase.Connecting), playing: true));
+        Assert.Equal("Reconnecting to Living room", TvWords.BarLine(Card(FfiLinkPhase.Retrying), playing: true));
+        Assert.Equal("Pair again with Living room", TvWords.BarLine(Card(FfiLinkPhase.Unpaired), playing: true));
+    }
+
+    [Fact]
     public void SettingsSaysWhenATvWasPairedAndSeen()
     {
         var now = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
@@ -126,6 +137,19 @@ public class TvRemoteTests
             await remote.Submit(shown == "111111" ? "222222" : "111111");
             await Until(() => remote.Pairing is { Working: false, Problem: not null }, "the wrong code's problem");
             Assert.Equal("That code didn't match. Check the code on the TV and try again.", remote.Pairing!.Problem);
+            Assert.False(remote.Pairing.Expired);
+
+            // Wrong codes until the TV gives up on its code: then only a new code goes on.
+            for (var i = 0; i < 5 && remote.Pairing is { Expired: false }; i++)
+            {
+                await remote.Submit(shown == "111111" ? "222222" : "111111");
+                await Until(() => remote.Pairing is { Working: false, Problem: not null }, "another wrong code's problem");
+            }
+            Assert.True(remote.Pairing!.Expired);
+            await remote.RequestCodeAgain();
+            await Until(() => remote.Pairing is { Typing: true, Working: false, Problem: null, Expired: false }, "a new code");
+            shown = fake.ShownCode();
+            Assert.NotNull(shown);
 
             await remote.Submit(shown!);
             await Until(() => remote.Connected is not null && remote.Sheet == TvSheet.Remote, "the link");

@@ -118,9 +118,7 @@
                       <MenuFlyout>
                         <MenuFlyoutItem Text="Play" Click="OnEpisodePlay" Tag="{x:Bind}" IsEnabled="{x:Bind Playable}" />
                         <MenuFlyoutItem Text="Play from the beginning" Click="OnEpisodeFromStart" Tag="{x:Bind}" Visibility="{x:Bind PartWay}" />
-                        <MenuFlyoutItem Text="Play on TV" Click="OnEpisodeOnTv" Tag="{x:Bind}" Visibility="{x:Bind OnTv}" IsEnabled="{x:Bind Playable}">
-                          <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7F4;" /></MenuFlyoutItem.Icon>
-                        </MenuFlyoutItem>
+                        <MenuFlyoutItem Text="Play on TV" Click="OnEpisodeOnTv" Tag="{x:Bind}" Visibility="{x:Bind OnTv}" IsEnabled="{x:Bind Playable}" />
                         <MenuFlyoutItem Text="{x:Bind WatchedAction}" Click="OnEpisodeWatched" Tag="{x:Bind}" />
                         <MenuFlyoutItem Text="Download" Click="OnEpisodeDownload" Tag="{x:Bind}" IsEnabled="{x:Bind CanDownload, Mode=OneWay}" />
                       </MenuFlyout>

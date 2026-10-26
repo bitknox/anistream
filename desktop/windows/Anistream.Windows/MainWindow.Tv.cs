@@ -69,12 +69,16 @@ public sealed partial class MainWindow
 #if ANISTREAM_TESTING
         foreach (var fake in fakeTvs)
             fake.Stop();
+        StopSilentTv();
 #endif
     }
 
     void TvChanged()
     {
         ShowTvBar();
+        // While a TV plays, the media keys and Windows' media controls drive it.
+        var now = tv.Connected is null ? null : tv.Now;
+        media?.Tv(now, now is null ? 0 : tv.Playhead() ?? now.Position, tv.Live, Picture(now), c => _ = tv.Send(c));
         if (tv.Sheet is not null && TvDialog.Showing is null && !openingTv)
             OpenTvDialog();
     }
@@ -100,9 +104,13 @@ public sealed partial class MainWindow
         }
     }
 
+    /// <summary>The show's banner or cover for the media overlay, when the catalogue knows the show.</summary>
+    string? Picture(FfiNowCard? now) =>
+        now is null || ctx.Known.Entry(now.Id) is not { } entry ? null : entry.BannerUrl ?? entry.CoverUrl;
+
     /// <summary>
-    /// The way back to the card while a TV is driven, at the title bar's right: the TV's name,
-    /// and what it does while it plays something.
+    /// The way back to the card while a TV is driven, at the title bar's right: the TV's name and
+    /// what it plays while the link is up, and how the link stands, by its dot, while it is not.
     /// </summary>
     void ShowTvBar()
     {
@@ -111,6 +119,7 @@ public sealed partial class MainWindow
         {
             if (tvBar is not null)
                 tvBar.Visibility = Visibility.Collapsed;
+            KeepSearchInPlace();
             return;
         }
         if (tvBar is null)
@@ -125,19 +134,46 @@ public sealed partial class MainWindow
                 BorderThickness = new Thickness(0),
             };
             var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            line.Children.Add(new FontIcon { Glyph = "", FontSize = 14 });
+            var mark = new Grid { Width = 14, VerticalAlignment = VerticalAlignment.Center };
+            mark.Children.Add(new FontIcon { Glyph = "", FontSize = 14 });
+            mark.Children.Add(Ui.Dot(Colours.Haze));
+            line.Children.Add(mark);
             line.Children.Add(new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 220 });
             tvBar.Content = line;
             tvBar.Click += (_, _) => tv.OpenRemote();
+            tvBar.SizeChanged += (_, _) => KeepSearchInPlace();
+            AppTitleBar.SizeChanged += (_, _) => KeepSearchInPlace();
             AppTitleBar.RightHeader = tvBar;
         }
-        var text = tv.Now is null ? card.TvName : $"Playing on {card.TvName}";
-        ((TextBlock)((StackPanel)tvBar.Content).Children[1]).Text = text;
+        var parts = ((StackPanel)tvBar.Content).Children;
+        // The TV's glyph while the link is up; the link's dot, as the remote's status line draws it, while not.
+        var connected = card.Phase == FfiLinkPhase.Connected;
+        var glyphAndDot = ((Grid)parts[0]).Children;
+        glyphAndDot[0].Visibility = connected ? Visibility.Visible : Visibility.Collapsed;
+        glyphAndDot[1].Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
+        ((Microsoft.UI.Xaml.Shapes.Ellipse)glyphAndDot[1]).Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            TvWords.DotFor(card.Phase) == TvWords.Dot.Vermilion ? Ui.Vermilion : Colours.Haze);
+        var text = TvWords.BarLine(card, tv.Now is not null);
+        ((TextBlock)parts[1]).Text = text;
         var tip = $"Show the remote for {card.TvName}";
         ToolTipService.SetToolTip(tvBar, tip);
         AutomationProperties.SetName(tvBar, text);
         AutomationProperties.SetHelpText(tvBar, tip);
         tvBar.Visibility = Visibility.Visible;
+        KeepSearchInPlace();
+    }
+
+    /// <summary>
+    /// The title bar centres the search box in what is left between its headers, so the TV's
+    /// button would push it left by half its width. A left margin of that width puts it back
+    /// where it sat, while the bar has room for both.
+    /// </summary>
+    void KeepSearchInPlace()
+    {
+        var width = tvBar is { Visibility: Visibility.Visible } bar ? bar.ActualWidth + bar.Margin.Left + bar.Margin.Right : 0;
+        var left = AppTitleBar.ActualWidth >= 1000 ? width : 0;
+        if (SearchBox.Margin.Left != left)
+            SearchBox.Margin = new Thickness(left, 0, 0, 0);
     }
 
 #if ANISTREAM_TESTING
@@ -147,8 +183,9 @@ public sealed partial class MainWindow
     /// <summary>
     /// The fixture run's TVs: two made-up ones on the loopback interface, each a real remote
     /// server with a scripted player (<c>StartFakeTv</c>), found as DNS-SD would find them. For
-    /// tv-slow, a third found at an address nothing answers on; for tv-empty and tv-looking, a
-    /// network where no TV answers.
+    /// tv-slow, a third whose address is a loopback listener that takes the connection and never
+    /// answers, so nothing leaves the machine; for tv-empty and tv-looking, a network where no TV
+    /// answers.
     /// </summary>
     FfiTvBrowser FixtureTvs(FfiEngine engine)
     {
@@ -159,17 +196,57 @@ public sealed partial class MainWindow
             FfiFakeTv? slow = options.Show == "tv-slow" ? engine.StartFakeTv("Kitchen") : null;
             if (slow is not null)
                 fakeTvs.Add(slow);
-            fixtureTvs = new FixtureTvBrowser(fakeTvs.Take(2).ToArray(), slow, silent: options.Show is "tv-empty" or "tv-looking");
+            var slowPort = slow is null ? (ushort)0 : StartSilentTv();
+            fixtureTvs = new FixtureTvBrowser(fakeTvs.Take(2).ToArray(), slow, slowPort, silent: options.Show is "tv-empty" or "tv-looking");
         }
         catch (FfiException e)
         {
             AnistreamFfiMethods.LogLine(FfiLogLevel.Warn, "tv", $"the fake TVs did not start: {e.Message}");
-            fixtureTvs = new FixtureTvBrowser([], null, silent: true);
+            fixtureTvs = new FixtureTvBrowser([], null, 0, silent: true);
         }
         return fixtureTvs;
     }
 
-    sealed class FixtureTvBrowser(FfiFakeTv[] tvs, FfiFakeTv? slow, bool silent) : FfiTvBrowser
+    System.Net.Sockets.TcpListener? silentTv;
+    readonly List<System.Net.Sockets.Socket> heldOpen = [];
+
+    /// <summary>tv-slow's TV: a port on the loopback interface that takes connections and never says a word.</summary>
+    ushort StartSilentTv()
+    {
+        var listener = silentTv = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (true)
+                {
+                    var socket = await listener.AcceptSocketAsync();
+                    lock (heldOpen)
+                        heldOpen.Add(socket);
+                }
+            }
+            catch (Exception)
+            {
+                // Stopped.
+            }
+        });
+        return (ushort)((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+    }
+
+    void StopSilentTv()
+    {
+        silentTv?.Stop();
+        silentTv = null;
+        lock (heldOpen)
+        {
+            foreach (var socket in heldOpen)
+                socket.Dispose();
+            heldOpen.Clear();
+        }
+    }
+
+    sealed class FixtureTvBrowser(FfiFakeTv[] tvs, FfiFakeTv? slow, ushort slowPort, bool silent) : FfiTvBrowser
     {
         public FfiFakeTv[] Tvs => tvs;
 
@@ -185,7 +262,7 @@ public sealed partial class MainWindow
             if (slow is not null)
             {
                 var advert = slow.Advert();
-                sink.Found(advert.Instance, ["10.255.255.1"], slow.Port(), advert.Txt);
+                sink.Found(advert.Instance, ["127.0.0.1"], slowPort, advert.Txt);
             }
         }
 
@@ -263,7 +340,7 @@ public sealed partial class MainWindow
                         var wrong = living.ShownCode() == "111111" ? "222222" : "111111";
                         await tv.Submit(wrong);
                         await Until(() => tv.Pairing is { Working: false });
-                        if (scene == "tv-wrong" || tv.Pairing?.Problem?.Contains("ran out", StringComparison.Ordinal) != false)
+                        if (scene == "tv-wrong" || tv.Pairing is not { Expired: false })
                             return;
                         await Task.Delay(300);
                     }

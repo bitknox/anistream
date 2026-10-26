@@ -11,10 +11,11 @@ namespace Anistream.App;
 public sealed record TvPlay(uint Id, string Title, string Episode, double? From = null, bool FromPlayer = false);
 
 /// <summary>
-/// A pairing under way: the TV, whether a code is to be typed, whether a try is out, and the
-/// engine's words for the last one that failed.
+/// A pairing under way: the TV, whether a code is to be typed, whether a try is out, the
+/// engine's words for the last one that failed, and whether that was the code running out, after
+/// which only a new code goes on.
 /// </summary>
-public sealed record TvPairingStep(string TvName, bool NeedsCode, bool Working, string? Problem = null)
+public sealed record TvPairingStep(string TvName, bool NeedsCode, bool Working, string? Problem = null, bool Expired = false)
 {
     /// <summary>The six digits are asked for: the TV answered and needs them.</summary>
     public bool Typing => NeedsCode && TvName.Length > 0;
@@ -246,7 +247,7 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         if (steps is not { } current || Pairing is not { Working: false } step)
             return;
         var mine = attempt;
-        Pairing = step with { Working = true, Problem = null };
+        Pairing = step with { Working = true, Problem = null, Expired = false };
         Say();
         try
         {
@@ -264,7 +265,7 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
         if (steps is not { } current || Pairing is not { } step)
             return;
         var mine = attempt;
-        Pairing = step with { Working = true, Problem = null };
+        Pairing = step with { Working = true, Problem = null, Expired = false };
         Say();
         try
         {
@@ -304,7 +305,12 @@ public sealed class TvRemote(Func<DateTimeOffset>? clock = null)
     {
         if (mine != attempt || Pairing is null)
             return;
-        Pairing = Pairing with { Working = false, Problem = TvWords.Of(e) };
+        Pairing = Pairing with
+        {
+            Working = false,
+            Problem = TvWords.Of(e),
+            Expired = e is FfiTvException.Failed { problem: FfiTvProblem.NoCode },
+        };
         Say();
     }
 
@@ -551,6 +557,21 @@ public static class TvWords
         now.Volume is { } v ? $"{(int)Math.Round(v)} of 100" : null;
 
     public static string Status(FfiRemoteCard? card) => card?.PhaseLine ?? "Connected";
+
+    /// <summary>
+    /// What the title bar's button says: the TV and what it plays while the link is up, and how
+    /// the link stands while it is not.
+    /// </summary>
+    public static string BarLine(FfiRemoteCard card, bool playing) => card.Phase switch
+    {
+        FfiLinkPhase.Connected => playing ? $"Playing on {card.TvName}" : card.TvName,
+        FfiLinkPhase.Connecting => $"Connecting to {card.TvName}",
+        FfiLinkPhase.Retrying => $"Reconnecting to {card.TvName}",
+        _ => $"Pair again with {card.TvName}",
+    };
+
+    /// <summary>Pairing's way to a fresh code, the one way on once the code ran out.</summary>
+    public const string NewCode = "Get a new code";
 
     /// <summary>The TV let this PC go: Pair again in place of Choose another TV.</summary>
     public static bool Lost(FfiRemoteCard? card) => card?.Phase is FfiLinkPhase.Unpaired or FfiLinkPhase.KeyChanged;
