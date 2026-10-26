@@ -165,26 +165,32 @@ pub async fn resolve_for_playback(
     //
     // The order matters: a `ProviderKey` is only meaningful to the provider that issued it, so
     // matching against the whole chain and then resolving against a pinned source would hand one
-    // provider's key to another and look like a missing episode.
+    // provider's key to another and look like a missing episode. Each source is matched on its
+    // own, so the pinned one is simply first.
+    //
+    // A pin ranks a source; it does not remove the others. A pinned source with part of a season
+    // hands the episodes it lacks to the next, as the automatic order does.
     //
     // Skipped when the user picked an exact release from the Sources overlay. That pick is the
     // more immediate instruction of the two, it already names its own provider, and honouring the
     // remembered preference instead would refuse a release the user is looking straight at.
     //
-    // A preference naming a provider that is not registered — a plugin removed, or one still
-    // compiling in the background — falls back to the normal chain. Refusing to play because a
-    // remembered choice is momentarily unresolvable would be a worse answer than playing.
-    let preference =
-        pick.is_none().then(|| store.provider_preference(id).ok().flatten()).flatten();
-    let pinned = preference.as_deref().and_then(|id| registry.pinned(id));
-    if let Some(name) = &preference
-        && pinned.is_none()
-    {
-        tracing::info!(provider = %name, "pinned source is not registered, using the chain");
-    } else if let Some(name) = &preference {
-        tracing::info!(provider = %name, "the series is pinned to a source");
-    }
-    let registry = pinned.as_ref().unwrap_or(registry);
+    // A preference naming a provider that is not registered, is switched off or is resting falls
+    // back to the normal chain: refusing to play because a remembered choice is momentarily
+    // unusable would be a worse answer than playing.
+    let chain = pick.is_none().then(|| {
+        match crate::titles::episodes::pin_of(store, registry, id) {
+            crate::titles::episodes::Pin::Held(name) => {
+                tracing::info!(provider = %name, "the series is pinned to a source");
+            }
+            crate::titles::episodes::Pin::Unavailable(name) => {
+                tracing::info!(provider = %name, "pinned source is not usable, using the chain");
+            }
+            crate::titles::episodes::Pin::Automatic => {}
+        }
+        crate::titles::episodes::chain_for(store, registry, id)
+    });
+    let registry = chain.as_ref().unwrap_or(registry);
     let target = media.match_target();
 
     step(format!("searching sources for ep {episode}"));
@@ -221,27 +227,43 @@ pub async fn resolve_for_playback(
                 .map_err(|e| format!("could not start that release: {e}"))?
         }
         None => {
-            let answer = anistream_providers::first_answer(
+            let from_release = pinned_release(
                 store,
                 registry,
                 id,
                 &target,
+                episode,
                 playback.translation,
                 now,
-                |source, key| async move {
-                    source.resolve(&key, episode, playback.translation, now).await
-                },
             )
             .await;
-            match answer {
-                anistream_providers::Answer::Answered { value, .. } => value,
-                anistream_providers::Answer::Ambiguous { .. } => {
-                    return Err(
-                        format!("could not match this title: {}", answer.explain()).into()
-                    );
-                }
-                anistream_providers::Answer::Unanswered { .. } => {
-                    return Err(answer.explain().into());
+            if let Some(streams) = from_release {
+                streams
+            } else {
+                let answer = anistream_providers::first_answer(
+                    store,
+                    registry,
+                    id,
+                    &target,
+                    playback.translation,
+                    now,
+                    |source, key| async move {
+                        source.resolve(&key, episode, playback.translation, now).await
+                    },
+                )
+                .await;
+                match answer {
+                    anistream_providers::Answer::Answered { value, .. } => value,
+                    anistream_providers::Answer::Ambiguous { .. } => {
+                        return Err(format!(
+                            "could not match this title: {}",
+                            answer.explain()
+                        )
+                        .into());
+                    }
+                    anistream_providers::Answer::Unanswered { matched, .. } => {
+                        return Err(no_source_has(episode, matched, &answer.explain()).into());
+                    }
                 }
             }
         }
@@ -302,6 +324,54 @@ pub async fn resolve_for_playback(
         episode_total: media.episodes,
     };
     Ok((streams, context))
+}
+
+/// The streams of the release pinned for a title, when one is pinned, its source is in use and
+/// the release holds `episode`. Otherwise `None`, and the episode is found as ever: a batch
+/// that stops at episode 6 is no reason to refuse episode 7.
+async fn pinned_release(
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: AnilistId,
+    target: &anistream_meta::title::MatchTarget,
+    episode: &str,
+    translation: anistream_core::media::Translation,
+    now: i64,
+) -> Option<Vec<anistream_core::stream::Stream>> {
+    let pin = store.release_preference(id).ok().flatten()?;
+    if !registry.usable_ids().contains(&pin.provider_id) {
+        return None;
+    }
+    let source = registry.pinned(&pin.provider_id)?;
+    let resolution =
+        anistream_providers::resolve(store, &source, id, target, translation, now).await;
+    let key = resolution.key()?.clone();
+    let offered = source.sources(&key, episode, translation, now).await;
+    if !offered.iter().any(|candidate| candidate.id == pin.release_id) {
+        tracing::info!(provider = %pin.provider_id, episode, "the pinned release does not hold this episode");
+        return None;
+    }
+    match source
+        .resolve_source(&pin.provider_id, &key, episode, translation, &pin.release_id, now)
+        .await
+    {
+        Ok(streams) if !streams.is_empty() => Some(streams),
+        Ok(_) => None,
+        Err(error) => {
+            tracing::info!(provider = %pin.provider_id, %error, "the pinned release did not play");
+            None
+        }
+    }
+}
+
+/// What a play says when no source gave the episode: that none has it, when each source matched
+/// the title and lacked the episode, and otherwise what each source said.
+fn no_source_has(episode: &str, matched: bool, reasons: &str) -> String {
+    if matched {
+        format!("no source has episode {episode}: {reasons}")
+    } else {
+        reasons.to_owned()
+    }
 }
 
 /// The selectable releases for one episode, across every usable provider.

@@ -41,6 +41,7 @@ pub use episode_notice::EpisodeNotice;
 pub use history::{MIN_RESUME_SECS, Progress, RESUME_CEILING, WatchEvent, is_complete};
 pub use mapping::{ResolutionRung, ResolvedMapping};
 pub use outbox::OutboxEntry;
+pub use preference::ReleasePin;
 pub use server_health::{ServerFailure, ServerHealth, ServerKey};
 
 #[derive(Debug, thiserror::Error)]

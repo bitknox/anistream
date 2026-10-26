@@ -152,6 +152,8 @@ impl TorrentTasks {
         let snapshot =
             config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
         sources::place(registry, up.provider, &snapshot);
+        // A source joined the chain: what is on screen was listed without it.
+        let _ = tx.internal(crate::outbox::Internal::SourcesReordered);
         if let Some(warning) = up.warning {
             let _ = tx.send(Event::Toast(Notice::info(warning)));
         }
@@ -333,6 +335,7 @@ pub async fn reload_sources(
     providers.extend(plugins);
     registry.replace(providers);
     registry.set_disabled(snapshot.providers.disabled.iter().cloned());
+    registry.retry_down();
     // The plugins were carried across behind the rebuilt sources; a plugin the order names
     // ahead of one of those goes back in front of it.
     sources::arrange(registry, &snapshot);

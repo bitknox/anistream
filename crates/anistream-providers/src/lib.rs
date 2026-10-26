@@ -19,5 +19,6 @@ pub use registry::{Attempt, ProviderRegistry};
 pub use remote::RemoteHttpProvider;
 pub use resolve::{
     Answer, Candidate, Contribution, Gathered, Resolution, confirm, first_answer, gather, resolve,
+    survey, Surveyed,
 };
 pub use vpn::{GuardState, KernelEnforcement, VpnGuard};

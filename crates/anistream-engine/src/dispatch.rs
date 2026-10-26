@@ -79,6 +79,22 @@ pub(crate) fn lend(services: &Services, tx: &Outbox) -> Lent {
     }
 }
 
+/// List title `id`'s episodes again, quietly: no activity row, as a source change is not
+/// something the viewer asked a title for.
+pub(crate) fn list_episodes_again(
+    id: anistream_core::ids::AnilistId,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let table = engine.dubs.table(id);
+    let naming = engine.names.naming(id, engine.network.offline, &services.clock);
+    spawn(None, services, tx, move |lent| async move {
+        list_episodes(lent, id, naming).await;
+        drop(table);
+    });
+}
+
 /// Run a task off the UI thread, once the AniList rate limit lets it, and let it report back
 /// through the channel.
 fn spawn<W, F>(job: Option<JobGuard>, services: &Services, tx: &Outbox, work: W)
@@ -198,6 +214,7 @@ pub(crate) fn dispatch(
         // `titles::dub`.
         Command::LoadDub(id) => engine.dubs.ask(id, engine.network.offline, services, tx),
         Command::LoadEpisodes(id) => {
+            engine.listed.note(id);
             // A lookup of the title's dub waits for this.
             let table = engine.dubs.table(id);
             // Named from another source where its own left titles and stills out: see
@@ -229,7 +246,9 @@ pub(crate) fn dispatch(
         Command::SetProviderPreference { id, provider } => {
             engine.dubs.forget(id);
             engine.names.forget(id);
-            set_provider_preference(id, provider, engine, services, tx)
+            set_provider_preference(id, provider, engine, services, tx);
+            // The pin applies to what is on screen now, not the next time it opens.
+            crate::titles::refresh::relist(id, engine, services, tx);
         }
 
         // Playback.
@@ -279,6 +298,18 @@ pub(crate) fn dispatch(
             #[cfg(feature = "party")]
             crate::party::join_by_default(engine, services, tx);
             play_local(id, episode, title, path, job, engine, services, tx)
+        }
+        Command::LoadSourceOptions(id) => {
+            crate::sources::options::load_source_options(id, job, engine, services, tx)
+        }
+        Command::PinRelease { id, provider_id, release_id, title } => {
+            crate::sources::options::pin_release(
+                id,
+                anistream_store::ReleasePin { provider_id, release_id, title },
+                engine,
+                services,
+                tx,
+            )
         }
         Command::LoadSources { id, episode } => {
             load_sources(id, episode, job, engine, services, tx)
@@ -529,6 +560,7 @@ pub(crate) async fn handle_internal(
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
             sources::arrange(&services.registry, engine.config.effective());
+            crate::titles::refresh::sources_changed(engine, services, tx);
             said.push(Event::Providers(data::provider_rows(
                 &services.registry,
                 &services.stores,
@@ -547,6 +579,7 @@ pub(crate) async fn handle_internal(
                 &engine.arrivals,
             )
             .await;
+            crate::titles::refresh::sources_changed(engine, services, tx);
             // Passed on, ahead of what the rebuild reports: the screen says it reloads.
             said.push(Event::SourcesChanged);
         }

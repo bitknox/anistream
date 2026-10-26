@@ -210,6 +210,8 @@ mod tests {
                 airs_at: None,
                 delayed_from: None,
                 metadata_only: false,
+                source: None,
+                unsourced: false,
             })
             .collect();
         let mut cache = TitleCache::default();

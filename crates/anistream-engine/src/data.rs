@@ -858,6 +858,8 @@ pub fn episode_rows_with_filler(
                 airs_at: None,
                 delayed_from: None,
                 metadata_only: false,
+                source: None,
+                unsourced: false,
             }
         })
         .collect()
@@ -1244,6 +1246,8 @@ mod tests {
                 airs_at: Some(1),
                 delayed_from: None,
                 metadata_only: false,
+                source: None,
+                unsourced: false,
             })
             .collect();
         date_episodes(&mut rows, &[(1, 100), (2, 200)].into_iter().collect());

@@ -6,6 +6,7 @@
 //! whole interface and look. A probe can now ask it directly.
 
 pub mod commands;
+pub mod options;
 pub mod torrent;
 pub mod vpn;
 
@@ -129,6 +130,9 @@ pub fn place(
 pub fn arrange(registry: &ProviderRegistry, config: &Config) {
     let order = &config.providers.order;
     registry.rank_by(|p| rank(p, order));
+    // Whatever the user just did to the sources, a source that went down earlier gets to
+    // answer again, rather than staying out until the app is restarted.
+    registry.retry_down();
 }
 
 /// Where a source stands in `order`: at its own entry when the order names it, at `"plugins"`

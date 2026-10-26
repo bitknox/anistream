@@ -400,6 +400,8 @@ fn row(number: &str) -> anistream_model::episodes::EpisodeRow {
         airs_at: None,
         delayed_from: None,
         metadata_only: false,
+        source: None,
+        unsourced: false,
     }
 }
 

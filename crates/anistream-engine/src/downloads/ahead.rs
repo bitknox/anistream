@@ -893,6 +893,8 @@ mod tests {
             airs_at: None,
             delayed_from: None,
             metadata_only,
+            source: None,
+            unsourced: false,
         };
         Event::Episodes { id, rows: (1..=12).map(row).collect() }
     }

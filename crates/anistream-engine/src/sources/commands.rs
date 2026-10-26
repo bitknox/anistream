@@ -57,6 +57,8 @@ pub fn disable_plugin(
         engine.config.effective_mut().providers.disabled = saved;
     }
     registry.set_disabled(engine.config.effective().providers.disabled.iter().cloned());
+    registry.retry_down();
+    crate::titles::refresh::sources_changed(engine, services, tx);
     let _ = tx.send(Event::Settings(engine.config.view()));
     let _ = tx.send(Event::Providers(data::provider_rows(registry, stores)));
     let landed = written.is_ok();

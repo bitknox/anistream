@@ -360,8 +360,9 @@ const HEDGE: std::time::Duration = std::time::Duration::from_millis(400);
 /// one that was needed and not the sum of them. Sources that cannot outrank anything already
 /// found are not waited for once `complete` is satisfied, and are dropped.
 ///
-/// `progress` sees the answers in rank order each time one more arrives, so a page can show the
-/// first table without waiting for the rest.
+/// `progress` sees the answers in rank order each time one more arrives that is still short of
+/// `complete`, so a page can show the first table without waiting for the rest. The last state
+/// is the return value, not a progress call.
 ///
 /// The user's order decides which source wins an episode, and decides what is asked: a source
 /// first in the order that finds candidates and cannot choose is a question, as in
@@ -422,9 +423,6 @@ where
                 _ => None,
             })
             .collect();
-        if matches!(outcomes[rank], Some(Outcome::Answered(_))) {
-            progress(&answered);
-        }
         // The first source in the order that settled with anything but "no": if the sources
         // above it are all settled and it is a question, it is the answer already.
         let settled_question = outcomes
@@ -437,6 +435,10 @@ where
             break;
         }
         if !complete(&answered) {
+            // Short of everything: shown as it is, and the sources below are asked now.
+            if matches!(outcomes[rank], Some(Outcome::Answered(_))) {
+                progress(&answered);
+            }
             let _ = nudge.send(());
             continue;
         }
@@ -479,6 +481,49 @@ where
         return Gathered::Unanswered { reasons, matched };
     }
     Gathered::Answered(answered)
+}
+
+/// What one source said when [`survey`] asked it.
+#[derive(Debug)]
+pub enum Surveyed<T> {
+    Answered(Contribution<T>),
+    /// It found candidates and could not choose between them.
+    Ambiguous,
+    /// It could not match the title or answer, with why.
+    Failed(String),
+}
+
+/// Ask the sources `ids` about a title together, each under its own key, and say what each one
+/// answered, in the order given. For a picker that shows every source side by side; asking is
+/// the same as for [`gather`], with no early stop.
+pub async fn survey<T, F, Fut>(
+    store: &Store,
+    registry: &ProviderRegistry,
+    ids: &[String],
+    anilist_id: AnilistId,
+    target: &MatchTarget,
+    translation: Translation,
+    now: i64,
+    ask: F,
+) -> Vec<(String, Surveyed<T>)>
+where
+    F: Fn(ProviderRegistry, ProviderKey) -> Fut,
+    Fut: std::future::Future<Output = Attempt<T>>,
+{
+    let ask = &ask;
+    let asked = ids.iter().map(|provider_id| async move {
+        let outcome =
+            match_and_ask(store, registry, provider_id, anilist_id, target, translation, now, ask)
+                .await;
+        let said = match outcome {
+            Outcome::Answered(contribution) => Surveyed::Answered(contribution),
+            Outcome::Ambiguous { .. } => Surveyed::Ambiguous,
+            Outcome::Failed { reason, .. } => Surveyed::Failed(reason),
+            Outcome::Skipped => Surveyed::Failed("not in use".into()),
+        };
+        (provider_id.clone(), said)
+    });
+    futures::future::join_all(asked).await
 }
 
 /// Record a user's choice from the disambiguation overlay.

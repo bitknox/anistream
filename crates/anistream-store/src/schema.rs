@@ -423,6 +423,16 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ALTER TABLE download ADD COLUMN front_at INTEGER;
     "#,
     ),
+    (
+        "0014_release_preference",
+        r#"
+    -- A release pinned within the pinned source, for a source that offers several (a torrent
+    -- source, with a batch and single releases for one show). The id is the source's own and
+    -- means nothing to another. NULL for a source pinned as a whole.
+    ALTER TABLE provider_preference ADD COLUMN release_id    TEXT;
+    ALTER TABLE provider_preference ADD COLUMN release_title TEXT;
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.

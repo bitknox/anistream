@@ -86,6 +86,7 @@ fn refreshes(command: &Command) -> bool {
             | Command::LoadDub(_)
             | Command::LoadLibrary(_)
             | Command::LoadSources { .. }
+            | Command::LoadSourceOptions(_)
             | Command::LoadStores
     )
 }

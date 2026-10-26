@@ -53,6 +53,37 @@ pub enum ProviderOrigin {
     ByHand,
 }
 
+/// One source, as a title's source picker lists it: what it has of the title's episodes, so the
+/// choice is an informed one.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct SourceOption {
+    pub provider_id: String,
+    /// The name it goes by.
+    pub name: String,
+    /// How many of the title's episodes that are out this source lists: the 6 of "6 of 13".
+    pub covered: u32,
+    /// How many episodes are out, as AniList has it: the 13. When AniList does not say, what
+    /// the sources list.
+    pub of: u32,
+    /// This is the source pinned for the title.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub pinned: bool,
+    /// Why there is nothing to count, when there is not: switched off, resting after failures,
+    /// could not tell which title it is, or what it said when asked. `None` for a source that
+    /// listed episodes.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub note: Option<String>,
+    /// The releases it offers for the title's first episode, for a source that offers several (a
+    /// torrent source: a batch, and single releases). Empty for a source with one stream per
+    /// episode. A release is pinned with `Command::PinRelease`.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub releases: Vec<anistream_core::traits::SourceCandidate>,
+    /// The id of the release pinned within this source, when one is.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub pinned_release: Option<String>,
+}
+
 /// A newer version of a plugin, offered by the store it came from.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]

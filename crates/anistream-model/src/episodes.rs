@@ -55,6 +55,16 @@ pub struct EpisodeRow {
     /// a front end offers to add a source instead. A table is all of one kind or the other.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub metadata_only: bool,
+    /// The name of the source that serves this episode, when it is not the one the table is
+    /// from: the title's first source in the order had no such episode, and this one filled the
+    /// gap. `None` for an episode from the table's own source, which is nearly all of them.
+    /// A front end shows it quietly, where it already says an episode's source.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub source: Option<String>,
+    /// AniList says the episode is out and no source set up lists it. It stays in the table so
+    /// the season is whole and can be marked watched, and a play says no source has it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub unsourced: bool,
 }
 
 /// How far a title's dub goes, as the source a dubbed play would use lists it: what

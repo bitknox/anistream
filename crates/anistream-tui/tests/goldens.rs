@@ -1143,6 +1143,8 @@ fn episode(number: u32, title: &str) -> EpisodeRow {
         airs_at: None,
         delayed_from: None,
         metadata_only: false,
+        source: None,
+        unsourced: false,
     }
 }
 
@@ -2002,6 +2004,8 @@ fn episodes_from_anilist(s: &mut Screen) {
             let row = EpisodeRow {
                 duration_secs: Some(24 * 60),
                 metadata_only: true,
+                source: None,
+                unsourced: false,
                 ..episode(n, &format!("Letter No. {n}"))
             };
             match n {

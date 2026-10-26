@@ -58,6 +58,8 @@ impl Command {
             }
             Self::PlayParty { episode, .. } => format!("starting ep {episode} for the party"),
             Self::LoadSources { episode, .. } => format!("listing sources for ep {episode}"),
+            Self::LoadSourceOptions(_) => "checking sources".into(),
+            Self::PinRelease { .. } => "choosing a release".into(),
             Self::ManualSearch { query, .. } => {
                 format!("searching sources for \u{201c}{query}\u{201d}")
             }
@@ -307,6 +309,21 @@ pub enum Command {
     LoadSources {
         id: AnilistId,
         episode: String,
+    },
+    /// List the sources that could serve a title with how many of its episodes each has, for
+    /// the source picker. Answered with [`Event::SourceOptions`](crate::event::Event::SourceOptions).
+    /// Picking one is [`Command::SetProviderPreference`]; one of a source's releases is
+    /// [`Command::PinRelease`]; `SetProviderPreference` with `None` returns to automatic.
+    LoadSourceOptions(AnilistId),
+    /// Pin one release of a source for a title, such as a batch among a torrent source's
+    /// results: the source is pinned as by [`Command::SetProviderPreference`], and the release
+    /// is played for every episode it holds. The others come from the other sources, in order.
+    PinRelease {
+        id: AnilistId,
+        provider_id: String,
+        release_id: String,
+        /// The release as the source titles it, kept to say what is pinned.
+        title: String,
     },
     /// Search providers with the user's own words when the automatic match is wrong.
     /// Results come back as [`Event::MatchChoices`](crate::event::Event::MatchChoices),

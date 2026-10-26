@@ -153,6 +153,13 @@ pub enum Event {
         episode: String,
         candidates: Vec<SourceCandidate>,
     },
+    /// The sources that could serve a title, each with how much of the title's episodes it has,
+    /// in the order they are tried, for a source picker: the answer to
+    /// [`Command::LoadSourceOptions`](crate::command::Command::LoadSourceOptions).
+    SourceOptions {
+        id: AnilistId,
+        options: Vec<crate::sources::SourceOption>,
+    },
     /// The user changed the player volume.
     PlaybackVolume(f64),
     /// Which provider the current stream actually came from.
