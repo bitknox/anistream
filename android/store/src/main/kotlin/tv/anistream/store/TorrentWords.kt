@@ -27,6 +27,25 @@ object TorrentWords {
     const val WARN_TITLE = "Keep torrents running if a check fails?"
     const val WARN_BODY = "anistream will warn you instead of pausing. If your VPN or proxy is down, other people can see your IP address."
 
+    /** Edit proxy's line over its form. */
+    const val EDIT_NOTE = "Torrents keep using the saved proxy until the new one passes the connection check."
+
+    /** Under the password, on Edit proxy. */
+    const val PASSWORD_KEPT = "Leave the password empty to keep the saved one."
+
+    /** While Edit proxy's check runs. */
+    const val CHECKING_PROXY = "Checking the proxy"
+
+    /** Why an edited proxy was not saved, from the check's [view] of it. */
+    fun editFailed(view: GuardView): String = when (view) {
+        GuardView.Leaking -> "Not saved. Torrent traffic left outside this proxy, so the saved proxy stays."
+        else -> "Not saved. The check could not be made through this proxy, so the saved proxy stays."
+    }
+
+    /** "proxy.example:1080 · as mika": where the proxy is, and who it lets in. */
+    fun proxyLine(host: String, port: String, user: String): String =
+        listOfNotNull("${host.trim()}:${port.trim()}", user.trim().takeIf { it.isNotEmpty() }?.let { "as $it" }).joinToString(" · ")
+
     /** The index field's note: what is missing, or what it is for. */
     fun indexNote(index: String): String {
         val trimmed = index.trim()

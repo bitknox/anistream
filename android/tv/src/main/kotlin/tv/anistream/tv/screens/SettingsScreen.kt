@@ -414,6 +414,16 @@ private fun LazyListScope.torrents(nav: TvNavigator, store: AppStore, view: Sett
                     value = TorrentWords.protection(torrent?.protection),
                     modifier = Modifier.remembered(memory, "torrent/protect"),
                 )
+                // Beside the choice, once a proxy is saved: its details, applied only once they pass the check.
+                val proxy = torrent?.proxy
+                if (torrent?.protection == TorrentProtection.PROXY && proxy != null) {
+                    TvListRow(
+                        "Edit proxy…",
+                        onClick = { nav.openTorrents(TorrentMode.EditProxy) },
+                        supporting = TorrentWords.proxyLine(proxy.host, proxy.port.toString(), proxy.user.orEmpty()),
+                        modifier = Modifier.remembered(memory, "torrent/proxy"),
+                    )
+                }
                 LastCheckRow(store, view, memory)
                 FailedCheckRow(store, view, memory)
             }

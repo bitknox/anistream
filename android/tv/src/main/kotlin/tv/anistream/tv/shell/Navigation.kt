@@ -225,6 +225,8 @@ class TvNavigator(start: Destination = Destination.Continue) {
     fun pop(): Boolean {
         val page = pages.removeLastOrNull() ?: return false
         forget(page.key)
+        // What shows again keeps where its focus was until it puts it back.
+        focus.hold()
         return true
     }
 }

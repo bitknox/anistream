@@ -40,6 +40,12 @@ import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.DownloadRow
 import tv.anistream.engine.model.DownloadState
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.FailedCheck
+import tv.anistream.engine.model.GuardView
+import tv.anistream.engine.model.ProtectionView
+import tv.anistream.engine.model.ProxyView
+import tv.anistream.engine.model.SettingKey
+import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.InvitePreview
 import tv.anistream.engine.model.InvitedStore
 import tv.anistream.engine.model.ProviderOrigin
@@ -134,6 +140,46 @@ class SettingsShots {
     @Test
     @Config(qualifiers = PHONE)
     fun phone_settings_sources() = shoot("phone-settings-sources", settingsRoute(SettingsPane.Sources))
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_edit_proxy_row() = shoot("phone-torrents-edit-proxy-row", settingsRoute(SettingsPane.Sources), then = ::proxyOn)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_edit_proxy() = shoot("phone-torrents-edit-proxy", settingsRoute(SettingsPane.Sources), then = ::proxyOn, tap = "Edit proxy…")
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_edit_proxy_checking() =
+        shoot("phone-torrents-edit-proxy-checking", settingsRoute(SettingsPane.Sources), then = ::proxyOn, tap = "Edit proxy…", thenTap = "Save")
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_torrents_edit_proxy_failed() = shoot(
+        "phone-torrents-edit-proxy-failed",
+        settingsRoute(SettingsPane.Sources),
+        then = ::proxyOn,
+        tap = "Edit proxy…",
+        thenTap = "Save",
+        after = { it.apply(listOf(Event.ProtectionChecked(GuardView.Leaking))) },
+    )
+
+    /** Torrents on from an index, behind a saved SOCKS5 proxy. */
+    private fun proxyOn(store: AppStore) {
+        val view = store.settings.view.value ?: return
+        store.apply(
+            listOf(
+                Event.Settings(
+                    view.copy(
+                        rows = view.rows.map { if (it.key == SettingKey.TORRENTS) it.copy(value = "on") else it },
+                        sources = view.sources.copy(torrent = true, index = "https://index.example/rss?q="),
+                        torrent = ProtectionView(TorrentProtection.PROXY, ProxyView("proxy.example", 1080u, "mika"), FailedCheck.PAUSE),
+                    ),
+                ),
+            ),
+        )
+    }
 
     @Test
     @Config(qualifiers = PHONE)
@@ -338,6 +384,8 @@ class SettingsShots {
         longPress: Boolean = false,
         /** What to tap next, in the menu or sheet [tap] opened. */
         thenTap: String? = null,
+        /** What the engine says once [thenTap] is tapped. */
+        after: (AppStore) -> Unit = {},
         then: (AppStore) -> Unit = {},
     ) {
         val recorded = Scene.named(scene)
@@ -371,6 +419,9 @@ class SettingsShots {
         compose.waitForIdle()
         if (thenTap != null) {
             compose.onAllNodesWithText(thenTap)[0].performClick()
+            compose.mainClock.advanceTimeBy(1_000)
+            compose.waitForIdle()
+            compose.runOnUiThread { after(store) }
             compose.mainClock.advanceTimeBy(1_000)
             compose.waitForIdle()
         }

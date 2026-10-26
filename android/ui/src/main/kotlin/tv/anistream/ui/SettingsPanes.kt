@@ -578,6 +578,16 @@ internal fun SourcesPane(actions: AppActions) {
                         }
                     }
                 } else null,
+                // Beside the choice, once a proxy is saved: its details, applied only once they pass the check.
+                if (torrents && view?.torrent?.protection == TorrentProtection.PROXY) @Composable { place: Place ->
+                    val proxy = view?.torrent?.proxy
+                    InfoRow(
+                        place,
+                        "Edit proxy…",
+                        proxy?.let { TorrentWords.proxyLine(it.host, it.port.toString(), it.user.orEmpty()) },
+                        onClick = { picked = null; sheet = TorrentSheetMode.EditProxy },
+                    )
+                } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
                 // Only where the device has a cellular radio to spare.

@@ -117,6 +117,28 @@ class SignInPageTest {
     }
 
     @Test
+    fun edit_proxy_page_opens_filled_in_but_for_the_password_and_takes_no_index() {
+        val started = SignInPage(
+            "torrents",
+            PageForm.Proxy,
+            authorizeUrl = null,
+            onAnswer = { answers.add(it) },
+            filled = mapOf("host" to "proxy.example", "port" to "1080", "user" to "mika", "password" to "kept"),
+        )
+        page = started
+        val url = "http://127.0.0.1:${started.start(port = 0)!!}/${started.path}"
+        val (code, form) = get(url)
+        assertEquals(200, code)
+        assertTrue(form.contains("value=\"proxy.example\""))
+        assertTrue(form.contains("value=\"mika\""))
+        assertFalse(form.contains("kept"))
+        assertFalse(form.contains("name=\"index\""))
+        // Its password left empty, the TV checks with the one it keeps.
+        assertTrue(post(url, "host=proxy.example&port=1081&user=mika&password=").contains("Sent to the TV"))
+        assertEquals(PageAnswer.Torrent("", "proxy.example", "1081", "mika", ""), answers.poll(5, TimeUnit.SECONDS))
+    }
+
+    @Test
     fun torrents_answer_never_says_its_password() {
         val said = PageAnswer.Torrent("https://index.example/rss", "proxy.example", "1080", "mika", "p&ss").toString()
         assertFalse(said.contains("p&ss"))

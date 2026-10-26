@@ -458,7 +458,7 @@ rows on the right (x 412 to 912). Moving through sections shows their rows; Righ
   for a problem, an update or off. A provider's page holds its version, hosts and response time.
   Then the phone's Torrents group: "Torrent source" (a switch; turning it on opens TVTorrents
   first), and while on "Torrent index", "Protect with" (a radio panel; another choice opens
-  TVTorrents on it), "Last check" (its status with a vermilion dot for a failed check or a water
+  TVTorrents on it), "Edit proxy…" while a proxy is set (its address and user name), "Last check" (its status with a vermilion dot for a failed check or a water
   dot for a pass, where traffic leaves from, Center checks now) and "If a check fails" (Warn only
   is confirmed first). Under it the check's note, or "Off by default. Turning this on asks how to
   protect your connection first." While on, a Seeding group: seed after watching, seed for at
@@ -533,6 +533,11 @@ Turning torrents on (TVTorrents), from Settings › Sources:
   the details are whole they show as rows, with "Change" for a new page.
 - Then the check's note, the amber "Turn on" (or "Save"), "Type it" (the same fields on the system
   keyboard, as pills) and "Cancel". Back leaves the screen and changes nothing.
+- "Edit proxy…" opens the same screen on the saved proxy: "Edit proxy", the line that torrents keep
+  the saved proxy until the new one passes the connection check, the proxy as a row, and the QR
+  page for the proxy alone, filled in but for the password (left empty, the saved one is kept).
+  "Save" checks first: a spinner and "Checking the proxy", then either the screen closes or a
+  vermilion dot says why nothing was saved.
 - The password never shows: not on the TV, not in the page's address, not in the logs.
 - Downloads stay off on the TV; torrents stream only. Seeding is best effort, while anistream is
   open: the engine is told when the app goes to the background.

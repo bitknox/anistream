@@ -39,6 +39,32 @@ class ProvidersModel(private val clock: () -> Long = { AppClock.now().toEpochMil
     /** The connection check's last verdict; `null` while torrents are off or before it said. */
     val check: StateFlow<Check?> = _check.asStateFlow()
 
+    /** A protection checked before it is saved: under way, then the check's verdict on it. */
+    sealed interface Trial {
+        data object Checking : Trial
+
+        data class Said(val view: GuardView) : Trial
+    }
+
+    private val _trial = MutableStateFlow<Trial?>(null)
+
+    /** The check Edit proxy asked for; `null` until it asks, and once it is done with it. */
+    val trial: StateFlow<Trial?> = _trial.asStateFlow()
+
+    internal fun trialStarted() {
+        _trial.value = Trial.Checking
+    }
+
+    internal fun trialSaid(view: GuardView) {
+        // A verdict no form is waiting for any more is not kept.
+        if (_trial.value == Trial.Checking) _trial.value = Trial.Said(view)
+    }
+
+    /** Done with the check: its form closed, or it started again. */
+    fun clearTrial() {
+        _trial.value = null
+    }
+
     private val _preference = MutableStateFlow<String?>(null)
 
     /**

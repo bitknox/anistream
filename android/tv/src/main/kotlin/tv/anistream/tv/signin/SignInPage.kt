@@ -42,7 +42,7 @@ sealed interface PageAnswer {
  * Which form the page shows: a code, a user name and password, a plugin store's link, or the
  * torrent index, alone or with a SOCKS5 proxy's address.
  */
-enum class PageForm { Code, Password, Link, Torrent, TorrentProxy }
+enum class PageForm { Code, Password, Link, Torrent, TorrentProxy, Proxy }
 
 /**
  * The page for [tracker] ("AniList"), its form [form], with a link to [authorizeUrl] to open
@@ -52,8 +52,12 @@ class SignInPage(
     private val tracker: String,
     private val form: PageForm,
     private val authorizeUrl: String?,
+    /** What the form opens filled in with: a saved proxy's host, port and user name, never a password. */
+    filled: Map<String, String> = emptyMap(),
     private val onAnswer: (PageAnswer) -> Unit,
 ) {
+    private val filled = filled - "password"
+
     /** The one-time path: 128 random bits, so no one on the network guesses it. */
     val path: String = ByteArray(16).also(SecureRandom()::nextBytes).joinToString("") { "%02x".format(it) }
 
@@ -109,7 +113,7 @@ class SignInPage(
         }
     }
 
-    private val torrents = form == PageForm.Torrent || form == PageForm.TorrentProxy
+    private val torrents = form == PageForm.Torrent || form == PageForm.TorrentProxy || form == PageForm.Proxy
 
     @Volatile
     private var answered = false
@@ -121,7 +125,7 @@ class SignInPage(
         val out = client.getOutputStream()
         val reply = when {
             request.target.substringBefore('?') != "/$path" -> Reply(404, page("Not found", "<p>This page is not here.</p>"))
-            request.method == "GET" -> Reply(200, formPage())
+            request.method == "GET" -> Reply(200, formPage(kept = filled))
             request.method == "POST" -> {
                 val fields = parseForm(request.body)
                 val answer = when (form) {
@@ -132,7 +136,7 @@ class SignInPage(
                         if (user.isNotEmpty() && password.isNotEmpty()) PageAnswer.Password(user, password) else null
                     }
                     PageForm.Link -> fields["link"]?.trim()?.takeIf { it.isNotEmpty() }?.let(PageAnswer::Link)
-                    PageForm.Torrent, PageForm.TorrentProxy -> torrentAnswer(fields)
+                    PageForm.Torrent, PageForm.TorrentProxy, PageForm.Proxy -> torrentAnswer(fields)
                 }
                 if (answer == null) {
                     val problem = if (torrents) torrentProblem(fields) else "Fill in the form, then send it again."
@@ -143,6 +147,7 @@ class SignInPage(
                     val next = when (form) {
                         PageForm.Link -> "it shows the store, to join there"
                         PageForm.Torrent, PageForm.TorrentProxy -> "check the details there, then Turn on"
+                        PageForm.Proxy -> "check the proxy there, then Save"
                         else -> "it signs in to ${escape(tracker)} now"
                     }
                     Reply(200, page("Sent to the TV", "<p>Look at the TV: $next. You can close this page.</p>"))
@@ -170,9 +175,10 @@ class SignInPage(
 
     /** Torrents' details from the form, when they are whole: an http index, and a proxy's host and port when asked. */
     private fun torrentAnswer(fields: Map<String, String>): PageAnswer.Torrent? {
-        val index = fields["index"]?.trim().orEmpty()
-        if (!TorrentWords.indexOk(index)) return null
-        if (form != PageForm.TorrentProxy) return PageAnswer.Torrent(index)
+        // The proxy alone leaves the index as it is.
+        val index = if (form == PageForm.Proxy) "" else fields["index"]?.trim().orEmpty()
+        if (form != PageForm.Proxy && !TorrentWords.indexOk(index)) return null
+        if (form == PageForm.Torrent) return PageAnswer.Torrent(index)
         val host = fields["host"]?.trim().orEmpty()
         val port = fields["port"]?.trim().orEmpty()
         if (!TorrentWords.proxyOk(host, port)) return null
@@ -182,7 +188,7 @@ class SignInPage(
     /** What is missing from torrents' form, as the TV's own fields say it. */
     private fun torrentProblem(fields: Map<String, String>): String {
         val index = fields["index"].orEmpty()
-        if (!TorrentWords.indexOk(index)) return TorrentWords.indexNote(index)
+        if (form != PageForm.Proxy && !TorrentWords.indexOk(index)) return TorrentWords.indexNote(index)
         return "The proxy needs a host and a port from 1 to 65535."
     }
 
@@ -201,6 +207,7 @@ class SignInPage(
             PageForm.Link -> "<p>Paste the plugin store's invite link. The TV shows the store before it joins.</p>"
             PageForm.Torrent -> "<p>The torrent index anistream asks for torrents. anistream ships none. The page closes once it is sent.</p>"
             PageForm.TorrentProxy -> "<p>The torrent index anistream asks for torrents, and the SOCKS5 proxy torrent traffic goes through. anistream ships no index. The page closes once it is sent.</p>"
+            PageForm.Proxy -> "<p>The SOCKS5 proxy torrent traffic goes through. ${TorrentWords.PASSWORD_KEPT} The TV checks the proxy before it saves it. The page closes once it is sent.</p>"
         }
         val index = "<label>Torrent index<input name=\"index\" type=\"url\" placeholder=\"https://\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"${value("index")}></label>"
         val fields = when (form) {
@@ -210,7 +217,7 @@ class SignInPage(
                     "<label>Password<input name=\"password\" type=\"password\" autocomplete=\"current-password\"></label>"
             PageForm.Link -> "<label>Invite link<input name=\"link\" type=\"url\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"></label>"
             PageForm.Torrent -> index
-            PageForm.TorrentProxy -> index +
+            PageForm.TorrentProxy, PageForm.Proxy -> (if (form == PageForm.Proxy) "" else index) +
                 "<label>Proxy host<input name=\"host\" autocomplete=\"off\" autocapitalize=\"off\" spellcheck=\"false\"${value("host")}></label>" +
                 "<label>Proxy port<input name=\"port\" inputmode=\"numeric\" autocomplete=\"off\"${value("port")}></label>" +
                 "<p>User name and password only if the proxy asks for them.</p>" +
@@ -221,7 +228,7 @@ class SignInPage(
         return page(
             when (form) {
                 PageForm.Link -> "Add a plugin store"
-                PageForm.Torrent, PageForm.TorrentProxy -> "Torrents for anistream"
+                PageForm.Torrent, PageForm.TorrentProxy, PageForm.Proxy -> "Torrents for anistream"
                 else -> "Sign in to $tracker"
             },
             "$steps$warning<form method=\"post\" action=\"/$path\">$fields<button type=\"submit\">Send to the TV</button></form>",
