@@ -403,6 +403,56 @@ mod tests {
         }))
     }
 
+    /// A title the cache holds, over offline metadata: a finished season of thirteen.
+    mod coverage {
+        use anistream_core::{
+            ids::ProviderKey,
+            media::SearchHit,
+        };
+        use anistream_providers::MockProvider;
+
+        use super::*;
+
+        pub const SHOW: AnilistId = AnilistId::new(900_301);
+
+        pub fn meta(store: &Store) -> Meta {
+            let media = serde_json::json!({
+                "id": 900_301,
+                "title": { "romaji": "Hoshi no Kakurega", "english": "The Hidden Star" },
+                "format": "TV", "status": "FINISHED", "episodes": 13, "duration": 24,
+            });
+            store.cache_media(SHOW, &media.to_string(), now_epoch()).unwrap();
+            let http = anistream_net::HttpClient::offline(
+                &anistream_core::config::NetworkConfig::default(),
+            )
+            .unwrap();
+            Meta::new(anistream_meta::AniList::new(http, 30), None, store.clone())
+        }
+
+        /// A source that carries the show and lists episodes `listed`.
+        pub fn source(id: &str, listed: std::ops::RangeInclusive<u32>) -> MockProvider {
+            let key = format!("{id}-key");
+            let hit = SearchHit {
+                episode_count: Some(13),
+                ..SearchHit::new(ProviderKey::new(&key), "The Hidden Star")
+            };
+            MockProvider::new(id).with_hits(vec![hit]).with_episodes(bare(listed))
+        }
+    }
+
+    #[tokio::test]
+    async fn a_source_with_part_of_the_season_is_filled_from_the_next() {
+        let store = store();
+        let meta = coverage::meta(&store);
+        let registry = ProviderRegistry::new(vec![
+            coverage::source("batch", 1..=6).arc(),
+            coverage::source("shelf", 1..=13).arc(),
+        ]);
+        let load = load_episodes(&meta, &store, &registry, coverage::SHOW).await.unwrap();
+        let EpisodeLoad::Rows(rows) = load else { panic!("rows") };
+        assert_eq!(rows.len(), 13, "the whole season is listed");
+    }
+
     #[test]
     fn with_no_source_a_finished_show_has_every_episode_its_count_says() {
         let store = store();

@@ -560,6 +560,19 @@ mod tests {
     }
 
     #[test]
+    fn a_source_that_went_down_is_tried_again_once_the_order_changes() {
+        let registry =
+            ProviderRegistry::new(vec![plugin("alpha"), plugin("beta")]);
+        let failure = anistream_core::error::ProviderError::Transport("timed out".into());
+        for _ in 0..3 {
+            registry.health().record_failure("alpha", &failure, 0);
+        }
+        assert_eq!(registry.usable_ids(), ["beta"], "alpha is down");
+        arrange(&registry, &order(&["beta", "alpha"]));
+        assert_eq!(registry.usable_ids(), ["beta", "alpha"], "the user's change is a new chance");
+    }
+
+    #[test]
     fn arranging_puts_the_chain_in_the_order_the_config_gives() {
         // As plugins arrive: in the order their files were read, after the built-in sources.
         let registry = ProviderRegistry::new(vec![
