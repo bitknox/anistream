@@ -165,8 +165,8 @@ On Mac and iPad a queued download has Start Now beside it, and on iPhone a Start
 
 | Feature | Mac | iPhone | iPad | Android | TV | Windows | Linux | Terminal |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Play on TV (send) | yes | yes | yes | yes | receives | dev | yes | dev (1) |
-| Remote for the TV | yes | yes | yes | yes | pairs (2) | dev | yes | dev (1) |
+| Play on TV (send) | yes | yes | yes | yes | receives | yes | yes | dev (1) |
+| Remote for the TV | yes | yes | yes | yes | pairs (2) | yes | yes | dev (1) |
 | Arrow-key TV interface | n/a | n/a | n/a | n/a | yes | n/a | n/a | n/a |
 
 1. `anistream-remote` exists but neither the binary nor the TUI depends on it.
@@ -177,7 +177,9 @@ On Mac and iPad a queued download has Start Now beside it, and on iPhone a Start
 The paired-TV list (`TVsGroup`) is in the Mac's Integrations pane, the iPad's Playback pane and
 the iPhone's settings sheet, so every Apple device can see and forget any TV it paired. On Linux
 it is in Settings > Integrations (`src/tv/paired.rs`), and Avahi finds TVs over D-Bus
-(`src/tv/avahi.rs`); with no Avahi running, a typed address still reaches a TV.
+(`src/tv/avahi.rs`); with no Avahi running, a typed address still reaches a TV. Windows lists them
+in Settings > Integrations, finds TVs with Windows' own DNS-SD (a device watcher on
+`_anistream._tcp`), and hands the player's episode over from the player's top bar.
 
 ## Plugins and stores
 
