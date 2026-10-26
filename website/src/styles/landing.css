@@ -376,6 +376,122 @@ html:not(.js) .scene {
 	}
 }
 
+/* ── Nagare's run: Space, or a tap on Nagare, turns the hero into the game ── */
+/* Only where a keyboard is likely: a mouse or trackpad that hovers. */
+.hero-run-hint {
+	display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	html.js .hero-run-hint {
+		position: absolute;
+		right: var(--gutter);
+		bottom: 18px;
+		display: block;
+		font-size: 12px;
+		line-height: 16px;
+		color: rgb(146 152 181 / 0.55);
+		pointer-events: none;
+	}
+}
+
+/* While she runs, a finger on the scene is a jump or a slide, not a scroll. The copy has faded,
+   so presses go through it to the scene. */
+/* A finger moving up the scene still scrolls the page; the game takes taps and short flicks down. */
+.hero.is-playing .scene {
+	touch-action: pan-y;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+}
+
+.hero-run-hud {
+	position: absolute;
+	top: calc(var(--nav-h) + 14px);
+	right: var(--gutter);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 6px;
+	max-width: min(340px, 64vw);
+	text-align: right;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--ani-fade-in);
+}
+
+.hero-run-hud.is-on {
+	opacity: 1;
+}
+
+.hero-run-score {
+	display: flex;
+	align-items: baseline;
+	gap: 16px;
+	font-size: 15px;
+	line-height: 20px;
+	font-variant-numeric: tabular-nums;
+}
+
+.hero-run-best {
+	color: var(--ani-dim);
+}
+
+.hero-run-best:empty {
+	display: none;
+}
+
+.hero-run-leave {
+	padding: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	font-size: 13px;
+	color: var(--ani-dim);
+	text-decoration: underline;
+	text-decoration-color: transparent;
+	text-underline-offset: 3px;
+	cursor: pointer;
+	transition:
+		color var(--ani-quick) var(--ani-spring),
+		text-decoration-color var(--ani-quick) var(--ani-spring);
+}
+
+.hero-run-hud.is-on .hero-run-leave {
+	pointer-events: auto;
+}
+
+.hero-run-leave:hover {
+	color: var(--ani-text);
+	text-decoration-color: currentColor;
+}
+
+.hero-run-leave:focus-visible {
+	outline: 2px solid var(--ani-obi);
+	outline-offset: 3px;
+	border-radius: 2px;
+}
+
+/* A finger needs more room than the word. */
+@media (pointer: coarse) {
+	.hero-run-leave {
+		margin: -12px;
+		padding: 12px;
+	}
+}
+
+.hero-run-msg {
+	font-size: 14px;
+	line-height: 20px;
+	color: var(--ani-dim);
+	opacity: 0;
+	transition: opacity var(--ani-fade-in);
+}
+
+.hero-run-msg.is-on {
+	opacity: 1;
+}
+
 /* ── The apps beside the copy: the Mac app with a phone in front ─────────── */
 .hero-apps {
 	display: flex;

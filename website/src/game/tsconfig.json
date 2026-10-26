@@ -1,0 +1,17 @@
+{
+  // The run and Nagare's sprite, shared with the store's admin page, which builds them without
+  // the website's packages. So this stands alone: the strict Astro settings, spelled out.
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": true
+  },
+  "include": ["**/*"]
+}

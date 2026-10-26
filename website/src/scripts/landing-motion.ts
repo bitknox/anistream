@@ -243,11 +243,86 @@ function buildDemo() {
 	return tl;
 }
 
+/* ── Nagare's run: Space, or a tap on Nagare, turns the hero into the game ── */
+let heroScene: Scene | null = null;
+let heroSway: { settle(): Promise<void>; release(): void } | null = null;
+const heroRun = { active: false };
+
+/**
+ * Listens for the start of the game. The game itself loads on idle, or on the first Space or tap,
+ * so none of it is in the page's first paint. Space starts it only while most of the scene is on
+ * screen and nothing has focus; otherwise Space scrolls the page as it always does.
+ */
+function heroRunTrigger() {
+	const hero = $('.hero');
+	const box = $('[data-scene]');
+	if (!hero || !box) return;
+	let game: Promise<typeof import('./hero-run')> | null = null;
+	const load = () => (game ??= import('./hero-run'));
+	const idle = () => {
+		if ('requestIdleCallback' in window) window.requestIdleCallback(() => void load(), { timeout: 6000 });
+		else window.setTimeout(() => void load(), 3000);
+	};
+	if (document.readyState === 'complete') idle();
+	else window.addEventListener('load', idle, { once: true });
+
+	let ratio = 0;
+	new IntersectionObserver(([e]) => (ratio = e.intersectionRatio), {
+		threshold: [0, 0.25, 0.5, 0.6, 0.75, 1],
+	}).observe(box);
+
+	const begin = () => {
+		const scene = heroScene;
+		const state = scene?.state;
+		if (!scene || !state || heroRun.active) return;
+		void load().then((m) =>
+			m.start({
+				box: scene.box,
+				canvases: scene.canvases,
+				state,
+				cell: scene.cell,
+				margin: SWAY_MARGIN,
+				reduced: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+				settle: () => heroSway?.settle() ?? Promise.resolve(),
+				release: () => heroSway?.release(),
+				flag: heroRun,
+			})
+		);
+	};
+
+	const focusFree = () => {
+		const a = document.activeElement;
+		return !a || a === document.body || a === document.documentElement;
+	};
+	document.addEventListener('keydown', (e) => {
+		if (heroRun.active || e.key !== ' ' || e.repeat) return;
+		if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
+		if (ratio < 0.6 || !focusFree() || !heroScene?.state) return;
+		e.preventDefault();
+		begin();
+	});
+
+	// A tap or a click on Nagare herself.
+	hero.addEventListener('click', (e) => {
+		const scene = heroScene;
+		const cfg = scene?.state?.cfg;
+		if (heroRun.active || !scene || !cfg) return;
+		if ((e.target as Element).closest('a, button, input, select, textarea, summary')) return;
+		const r = scene.canvases.front.getBoundingClientRect();
+		const x = (e.clientX - r.left) / scene.cell - cfg.nagareX;
+		const y = (e.clientY - r.top) / scene.cell - (cfg.feetRow - 31);
+		if (x < -1 || x > 21 || y < -1 || y > 33) return;
+		begin();
+	});
+}
+heroRunTrigger();
+
 /* ── Full motion ────────────────────────────────────────────────────────── */
 let stopLive: (() => void) | null = null;
 
 function full() {
 	const scene = drawScene();
+	heroScene = scene;
 	paintTermCover();
 
 	// While the scene is on screen it stays alive: the shower falls, stars breathe, windows in the
@@ -264,16 +339,45 @@ function full() {
 		// and settle back when the pointer leaves the window.
 		let target = 0;
 		let at = 0;
+		// While Nagare runs the planes hold still, so the game's planes stand where the hero's do.
+		let held = false;
 		const aim = (e: PointerEvent) => {
 			if (e.pointerType === 'mouse') target = (e.clientX / window.innerWidth) * 2 - 1;
 		};
 		const settle = () => (target = 0);
-		const sway = () => {
-			if (Math.abs(target - at) < 0.0005) return;
-			at += (target - at) * 0.05;
+		const place = () => {
 			for (const p of PLANES) {
 				if (PLANE_SWAY[p]) gsap.set(scene.canvases[p], { x: at * PLANE_SWAY[p] * scene.cell });
 			}
+		};
+		const sway = () => {
+			if (held || Math.abs(target - at) < 0.0005) return;
+			at += (target - at) * 0.05;
+			place();
+		};
+		heroSway = {
+			settle: () =>
+				new Promise<void>((done) => {
+					held = true;
+					const from = { v: at };
+					gsap.to(from, {
+						v: 0,
+						duration: Math.abs(at) < 0.01 ? 0 : 0.3,
+						ease: 'power2.out',
+						onUpdate: () => {
+							at = from.v;
+							place();
+						},
+						onComplete: () => {
+							at = 0;
+							place();
+							done();
+						},
+					});
+				}),
+			release: () => {
+				held = false;
+			},
 		};
 		window.addEventListener('pointermove', aim, { passive: true });
 		document.documentElement.addEventListener('pointerleave', settle);
@@ -436,7 +540,8 @@ function full() {
 function reduced() {
 	stopLive?.();
 	stopLive = null;
-	drawScene();
+	heroSway = null;
+	heroScene = drawScene();
 	paintTermCover();
 	for (const s of $$('.term .screen')) gsap.set(s, { autoAlpha: s.dataset.screen === 'home' ? 1 : 0 });
 	gsap.set('.term-cover', { autoAlpha: 1 });

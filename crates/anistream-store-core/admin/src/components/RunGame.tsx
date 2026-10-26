@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { GH, Run } from '../game/run';
+// The run is shared with the website's hero, which is where its one copy lives.
+import { GH, Run } from '../../../../../website/src/game/run';
 
 type Phase = 'idle' | 'running' | 'paused' | 'over';
 
@@ -22,12 +23,20 @@ function keepBest(score: number) {
 }
 
 const isJump = (event: React.KeyboardEvent) => event.key === ' ' || event.key === 'ArrowUp';
+const isDuck = (event: React.KeyboardEvent) =>
+	event.key === 'ArrowDown' || event.key === 's' || event.key === 'S';
+
+/** A tap waits this long for a swipe down before it jumps, in milliseconds. */
+const TAP_WAIT = 50;
+/** How far a finger moves down to make a swipe, in CSS pixels. */
+const SWIPE = 14;
 
 /**
  * Nagare's run, a small endless runner on the dusk rooftops. Nothing moves until it is
  * started, by its button, Space, the up arrow or a tap; it pauses when the page is hidden,
  * scrolled away or loses focus. Space, the up arrow or a press on the scene jumps, and holding
- * jumps higher. The score is read out only when a run ends.
+ * jumps higher. The down arrow, S or a swipe down slides under what flies. The score is read
+ * out only when a run ends.
  */
 export function RunGame() {
 	const box = useRef<HTMLDivElement>(null);
@@ -36,6 +45,7 @@ export function RunGame() {
 	const run = useRef<Run | null>(null);
 	const phaseRef = useRef<Phase>('idle');
 	const frame = useRef(0);
+	const touch = useRef<{ y: number; timer: number; jumped: boolean; ducked: boolean } | null>(null);
 	const overAt = useRef(0);
 	const [phase, setPhaseState] = useState<Phase>('idle');
 	const [best, setBest] = useState(readBest);
@@ -66,7 +76,7 @@ export function RunGame() {
 		const cell = window.matchMedia('(max-width: 599px), (max-height: 499px)').matches ? 3 : 4;
 		const W = Math.ceil(el.clientWidth / cell);
 		if (run.current?.W !== W) {
-			run.current = new Run(W, (Math.random() * 2 ** 32) >>> 0);
+			run.current = new Run(W, { seed: (Math.random() * 2 ** 32) >>> 0 });
 		} else run.current.reset();
 		c.width = W;
 		c.height = GH;
@@ -133,6 +143,7 @@ export function RunGame() {
 		if (phaseRef.current !== 'running') return;
 		stop();
 		run.current?.release();
+		run.current?.unduck();
 		setPhase('paused');
 	}, [setPhase, stop]);
 
@@ -183,20 +194,58 @@ export function RunGame() {
 				// biome-ignore lint/a11y/noNoninteractiveTabindex: the game takes Space and the up arrow, so it is focusable, as an application.
 				tabIndex={0}
 				onKeyDown={(event) => {
-					if (!isJump(event) || fromButton(event.target)) return;
+					if (fromButton(event.target)) return;
+					if (isDuck(event) && phaseRef.current === 'running') {
+						event.preventDefault();
+						if (!event.repeat) run.current?.duck();
+						return;
+					}
+					if (!isJump(event)) return;
 					event.preventDefault();
 					if (!event.repeat) press();
 				}}
 				onKeyUp={(event) => {
 					if (isJump(event)) run.current?.release();
+					if (isDuck(event)) run.current?.unduck();
 				}}
 				onPointerDown={(event) => {
 					if (fromButton(event.target) || event.button > 0) return;
 					event.currentTarget.setPointerCapture(event.pointerId);
-					press();
+					if (phaseRef.current !== 'running' || event.pointerType === 'mouse') {
+						press();
+						return;
+					}
+					// A finger might be starting a swipe down, so the jump waits a moment for it.
+					const t = { y: event.clientY, timer: 0, jumped: false, ducked: false };
+					t.timer = window.setTimeout(() => {
+						t.jumped = true;
+						run.current?.press();
+					}, TAP_WAIT);
+					touch.current = t;
 				}}
-				onPointerUp={() => run.current?.release()}
-				onPointerCancel={() => run.current?.release()}
+				onPointerMove={(event) => {
+					const t = touch.current;
+					if (!t || t.ducked || event.clientY - t.y < SWIPE) return;
+					window.clearTimeout(t.timer);
+					t.ducked = true;
+					run.current?.release();
+					run.current?.duck();
+					run.current?.unduck();
+				}}
+				onPointerUp={() => {
+					const t = touch.current;
+					touch.current = null;
+					if (t && !t.jumped && !t.ducked) {
+						window.clearTimeout(t.timer);
+						run.current?.press();
+					}
+					run.current?.release();
+				}}
+				onPointerCancel={() => {
+					if (touch.current) window.clearTimeout(touch.current.timer);
+					touch.current = null;
+					run.current?.release();
+				}}
 				onBlur={(event) => {
 					if (!event.currentTarget.contains(event.relatedTarget as Node | null)) pause();
 				}}
@@ -226,7 +275,8 @@ export function RunGame() {
 			<p id={describedBy} className="sr-only">
 				A small game. Nagare runs along the rooftops, and Space, the up arrow or a tap makes her
 				jump over chimneys, lanterns, sleeping cats and the gaps between roofs. Holding jumps
-				higher. The score is read out when a run ends.
+				higher. The down arrow, S or a swipe down makes her slide under crows, kites and signs. The
+				score is read out when a run ends.
 			</p>
 			<p className="sr-only" aria-live="polite">
 				{said}
