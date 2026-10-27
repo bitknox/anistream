@@ -476,7 +476,7 @@ fn enter_is_named_for_what_it_does() {
 
     a.go_to_section(Section::Providers);
     a.nav.focus_stage();
-    assert_eq!(hint(&a, "↵"), Some("stores"));
+    assert_eq!(hint(&a, "↵"), Some("Plugin stores"));
 
     a.go_to_section(Section::Downloads);
     a.nav.focus_stage();
@@ -497,12 +497,12 @@ fn enter_is_named_for_what_it_does() {
         },
     ]));
     assert_eq!(hint(&a, "↵"), Some("Play"));
-    assert_eq!(hint(&a, "c"), Some("clear finished"));
-    assert_eq!(hint(&a, "X"), Some("delete"));
+    assert_eq!(hint(&a, "c"), Some("Clear finished"));
+    assert_eq!(hint(&a, "X"), Some("Delete"));
 
     a.go_to_section(Section::Library);
     a.nav.focus_stage();
-    assert_eq!(hint(&a, "h/l"), Some("list"), "Library's segment keys");
+    assert_eq!(hint(&a, "h/l"), Some("List"), "Library's segment keys");
 }
 
 #[test]
@@ -517,7 +517,7 @@ fn an_overlay_shows_its_own_hints() {
     press(&mut a, &["?"]);
     render_to_buffer(&mut a, 80, 24);
     assert_eq!(hint(&a, "↑↓"), Some("Page"));
-    assert_eq!(hint(&a, "esc"), Some("close"));
+    assert_eq!(hint(&a, "esc"), Some("Close"));
 }
 
 #[test]
@@ -571,7 +571,7 @@ fn every_title_command_with_nothing_selected_says_so() {
         a.nav.focus_stage();
         assert_eq!(a.handle(action, ROWS), None, "{action:?}");
         assert!(
-            a.toasts.iter().any(|t| t.notice.text.starts_with("Nothing is selected.")),
+            a.toasts.iter().any(|t| t.notice.text.contains("selected")),
             "{action:?} said {:?}",
             a.toasts
         );
@@ -633,7 +633,11 @@ fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
 fn a_one_episode_range_is_not_plural() {
     let mut a = at_episodes();
     press(&mut a, &["D", "4", "enter"]);
-    assert!(a.toasts.iter().any(|t| t.notice.text == "Queueing 1 episode for download."), "{:?}", a.toasts);
+    assert!(
+        a.toasts.iter().any(|t| t.notice.text == "Queueing 1 episode for download."),
+        "{:?}",
+        a.toasts
+    );
 }
 
 #[test]

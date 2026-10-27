@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │  ────────────────────────────────────────────────────────────────────────
    │    Press Enter to type a language code. There are too many values to c…
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                        ↵ save   esc cancel
+plugins · Subbed · 1080p                                     ↵ save   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -55,8 +55,8 @@ r19 c00-79 fg=rule
 r20 c00-79 fg=rule
 r21 c00-79 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
-r23 c21-60 fg=rule
+r23 c00-23 fg=text-dim
+r23 c24-60 fg=rule
 r23 c61-61 fg=text
 r23 c62-69 fg=text-dim
 r23 c70-72 fg=text

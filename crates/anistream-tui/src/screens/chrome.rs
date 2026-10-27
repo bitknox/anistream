@@ -183,12 +183,11 @@ pub(super) fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame, help_
         return;
     }
     let state = if app.status.is_empty() {
-        format!(
-            "{} · {} · {}p",
-            app.source_label(),
-            app.settings.translation,
-            app.settings.quality
-        )
+        let audio = match app.settings.translation {
+            anistream_core::media::Translation::Sub => t::audio_subbed(),
+            anistream_core::media::Translation::Dub => t::audio_dubbed(),
+        };
+        t::chrome_status_state(&app.source_label(), &audio, i64::from(app.settings.quality))
     } else {
         app.status.clone()
     };
@@ -654,7 +653,10 @@ mod tests {
         // first one that is not switched off rather than the first in the list.
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
+        assert!(
+            text.contains("plugins · Subbed · 1080p"),
+            "status line missing state:\n{text}"
+        );
     }
 
     #[test]
@@ -698,9 +700,7 @@ mod tests {
         let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         let before = lines_of(&mut app, 80, 24);
-        app.push_toast(crate::app::info(
-            "saved · counts as watched at",
-        ));
+        app.push_toast(crate::app::info("saved · counts as watched at"));
         let after = lines_of(&mut app, 80, 24);
         let rule = after.len() - 2;
         assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");

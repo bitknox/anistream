@@ -21,7 +21,7 @@ anistream                                                   torrent ○  plugins
    │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
    │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                        j move down   l move right   ? keys
+plugins · Subbed · 1080p                     j move down   l move right   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -78,7 +78,7 @@ r20 c06-56 fg=rule
 r21 c03-03 fg=rule
 r21 c06-48 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c45-45 fg=text
 r23 c46-58 fg=text-dim
 r23 c59-59 fg=text

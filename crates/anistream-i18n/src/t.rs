@@ -1200,6 +1200,11 @@ pub fn tui_config_problem_logged(path: &str, problem: &str) -> String {
     text("tui-config-problem-logged", &[("path", Arg::Text(path)), ("problem", Arg::Text(problem))])
 }
 
+/// The status line at the foot of the screen when nothing is being said: the source in use, the audio and the quality.
+pub fn chrome_status_state(source: &str, audio: &str, quality: i64) -> String {
+    text("chrome-status-state", &[("source", Arg::Text(source)), ("audio", Arg::Text(audio)), ("quality", Arg::Int(quality))])
+}
+
 /// Heading of the title page when no title is highlighted.
 pub fn title_heading() -> String {
     text("title-heading", &[])

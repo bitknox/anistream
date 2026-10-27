@@ -31,7 +31,7 @@ anistream                                                                       
                             │    Tsuki to Kujira no Uta - 06     ███████▎░░░░  0.6 of 1.0 · 6h left · 734 MB up
                             │    Kaze no Tegami - 08             ███████▊░░░░  1.3 of 2.0 · 42m left · 1.4 GB up
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                               c clear finished   x cancel   ? keys
+plugins · Subbed · 1080p                                                            c clear finished   x cancel   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -133,7 +133,7 @@ r31 c65-72 fg=state
 r31 c73-76 fg=rule
 r31 c77-111 fg=text-dim
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c84-84 fg=text
 r33 c85-102 fg=text-dim
 r33 c103-103 fg=text

@@ -271,9 +271,7 @@ mod tests {
     #[test]
     fn reporting_a_bug_opens_an_issue_with_the_last_alert_and_keeps_the_link() {
         let mut a = app();
-        a.apply(Event::Toast(alert(
-            "no stream from lantern.example for \"Hidden Title\"",
-        )));
+        a.apply(Event::Toast(alert("no stream from lantern.example for \"Hidden Title\"")));
         let Some(Command::OpenExternal { url }) = a.handle(Action::ReportBug, 5) else {
             panic!("the browser opens");
         };
@@ -307,10 +305,7 @@ mod tests {
             format!("{stalled} Press x to stop playback.")
         );
         assert_eq!(
-            said(
-                info("Plugin update ready: alpha.")
-                    .with_hint(NoticeHint::OpenStores)
-            ),
+            said(info("Plugin update ready: alpha.").with_hint(NoticeHint::OpenStores)),
             format!("Plugin update ready: alpha. {}", t::hint_open_stores())
         );
         assert_eq!(
@@ -333,8 +328,7 @@ mod tests {
     #[test]
     fn a_hinted_notice_is_shown_and_logged_as_the_terminal_words_it() {
         let mut a = app();
-        let notice =
-            info("Plugin update ready: alpha.").with_hint(NoticeHint::OpenStores);
+        let notice = info("Plugin update ready: alpha.").with_hint(NoticeHint::OpenStores);
         let said = format!("Plugin update ready: alpha. {}", t::hint_open_stores());
         a.apply(Event::Toast(notice.clone()));
         a.apply(Event::Toast(notice));
@@ -464,10 +458,7 @@ mod tests {
 
     #[test]
     fn alerts_stay_up_longer_than_info() {
-        assert!(
-            Toast::from(alert("provider down")).ttl
-                > Toast::from(info("switched")).ttl
-        );
+        assert!(Toast::from(alert("provider down")).ttl > Toast::from(info("switched")).ttl);
     }
 
     #[test]

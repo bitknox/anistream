@@ -765,6 +765,9 @@ tui-config-problem-at-line = [{ $file } ļîñé { $line }: { $what }. Ûšîñ�
 # Log line for the same problem. The path is the whole path of the config file.
 tui-config-problem-logged = [{ $path }: { $problem }. Ûšîñĝ ţĥé ðéƒàüļţš.~~~~~~~~~]
 
+# The status line at the foot of the screen when nothing is being said: the source in use, the audio and the quality.
+chrome-status-state = [{ $source } · { $audio } · { $quality }þ~~~~~]
+
 # Heading of the title page when no title is highlighted.
 title-heading = [Ţîţļé~~]
 

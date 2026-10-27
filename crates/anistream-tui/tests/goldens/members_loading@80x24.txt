@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                   ↵ open   q back   ? keys
+plugins · Subbed · 1080p                                ↵ open   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -70,7 +70,7 @@ r19 c03-03 fg=rule
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c56-56 fg=text
 r23 c57-64 fg=text-dim
 r23 c65-65 fg=text

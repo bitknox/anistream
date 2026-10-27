@@ -31,7 +31,7 @@ anistream                                                                       
    │
    │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                               ↵ add a source to play   u watched   q back   ? keys
+plugins · Subbed · 1080p                                            ↵ add a source to play   u watched   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -134,7 +134,7 @@ r29 c03-03 fg=rule
 r30 c03-03 fg=rule
 r31 c03-03 fg=rule
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c68-68 fg=text
 r33 c69-92 fg=text-dim
 r33 c93-93 fg=text

@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Tsuki to Kujira no Uta -… ██████░░░░  0.6 of 1.0 · 6h left · 734 MB up
    │    Kaze no Tegami - 08       █████▉░░░  1.3 of 2.0 · 42m left · 1.4 GB up
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                       c clear finished   x cancel   ? keys
+plugins · Subbed · 1080p                    c clear finished   x cancel   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -103,7 +103,7 @@ r21 c34-39 fg=state
 r21 c40-42 fg=rule
 r21 c43-77 fg=text-dim
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c44-44 fg=text
 r23 c45-62 fg=text-dim
 r23 c63-63 fg=text

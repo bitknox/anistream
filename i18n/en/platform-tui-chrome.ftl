@@ -174,3 +174,9 @@ tui-config-problem-at-line = { $file } line { $line }: { $what }. Using the defa
 # @arg path: text
 # @arg problem: text
 tui-config-problem-logged = { $path }: { $problem }. Using the defaults.
+
+# The status line at the foot of the screen when nothing is being said: the source in use, the audio and the quality.
+# @arg source: text
+# @arg audio: text
+# @arg quality: int
+chrome-status-state = { $source } · { $audio } · { $quality }p

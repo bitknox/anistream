@@ -31,7 +31,7 @@ anistream                                                                       
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    ↵ Remove this device, known only by when it joined
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
+plugins · Subbed · 1080p                                                                        ↵ open   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -119,7 +119,7 @@ r30 c31-117 fg=rule
 r31 c28-28 fg=rule
 r31 c33-82 fg=text-dim
 r32 c00-119 fg=rule
-r33 c00-20 fg=text-dim
+r33 c00-23 fg=text-dim
 r33 c96-96 fg=text
 r33 c97-104 fg=text-dim
 r33 c105-105 fg=text

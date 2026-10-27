@@ -31,7 +31,7 @@ anistream                                                                       
 
 
 ────────────────────────────────────────────────────────────────────────────────────────────────── ▌ Resumed at 13:32. ─
-yamabiko · sub · 1080p                                                          space pause   S skip   q detach   ? keys
+yamabiko · Subbed · 1080p                                                       space pause   S skip   q detach   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -98,7 +98,7 @@ r32 c98-98 fg=text
 r32 c99-99 fg=state
 r32 c100-118 fg=text
 r32 c119-119 fg=rule
-r33 c00-21 fg=text-dim
+r33 c00-24 fg=text-dim
 r33 c80-84 fg=text
 r33 c85-93 fg=text-dim
 r33 c94-94 fg=text

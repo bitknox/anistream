@@ -21,7 +21,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p             space play next   ↵ episodes   q back   ? keys
+plugins · Subbed · 1080p          space play next   ↵ episodes   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
@@ -79,7 +79,7 @@ r21 c06-10 fg=obi
 r21 c11-25 fg=rule
 r21 c28-64 fg=text-dim
 r22 c00-79 fg=rule
-r23 c00-20 fg=text-dim
+r23 c00-23 fg=text-dim
 r23 c34-38 fg=text
 r23 c39-51 fg=text-dim
 r23 c52-52 fg=text

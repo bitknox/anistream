@@ -31,7 +31,7 @@ anistream                                                                       
                             │
                             │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                                       ↵ play   e episodes   ? keys
+plugins · Subbed · 1080p                                                                    ↵ play   e episodes   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text bg=#161a2e mod=BOLD
@@ -237,8 +237,8 @@ r31 c90-91 bg=#161a2e
 r31 c92-107 fg=#9298b5 bg=#161a2e
 r31 c108-119 bg=#161a2e
 r32 c00-119 fg=#434653 bg=#161a2e
-r33 c00-20 fg=#9298b5 bg=#161a2e
-r33 c21-91 bg=#161a2e
+r33 c00-23 fg=#9298b5 bg=#161a2e
+r33 c24-91 bg=#161a2e
 r33 c92-92 fg=text bg=#161a2e
 r33 c93-100 fg=#9298b5 bg=#161a2e
 r33 c101-101 fg=text bg=#161a2e

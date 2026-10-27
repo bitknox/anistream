@@ -31,7 +31,7 @@ anistream                                                   torrent ○  plugins
                             │
                             │
 ────────────────────────────────────────────────────── ▌ MyAnimeList needs signing in again. Press 8 to open Accounts. ─
-plugins · sub · 1080p                                                                                ↵ next   esc cancel
+plugins · Subbed · 1080p                                                                             ↵ next   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=rule mod=BOLD
@@ -81,8 +81,8 @@ r32 c54-54 fg=text
 r32 c55-55 fg=alert
 r32 c56-118 fg=text
 r32 c119-119 fg=rule
-r33 c00-20 fg=text-dim
-r33 c21-100 fg=rule
+r33 c00-23 fg=text-dim
+r33 c24-100 fg=rule
 r33 c101-101 fg=text
 r33 c102-109 fg=text-dim
 r33 c110-112 fg=text
