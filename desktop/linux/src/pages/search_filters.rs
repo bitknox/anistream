@@ -10,29 +10,31 @@ use anistream_model::{
     catalog::Season,
     search::{
         ActiveFilter, FilterKey, MediaFormat, Pick, SEARCH_STATUSES, SearchQuery, SearchSort,
-        season_label, status_label,
     },
 };
+use anistream_i18n::t;
 use gtk::{gio, glib};
+
+use crate::say;
 
 /// AniList's genres, until the engine says which it offers.
 const GENRES: [&str; 16] = [
-    "Action",
-    "Adventure",
-    "Comedy",
-    "Drama",
-    "Fantasy",
-    "Horror",
-    "Mecha",
-    "Music",
-    "Mystery",
-    "Psychological",
-    "Romance",
-    "Sci-Fi",
-    "Slice of Life",
-    "Sports",
-    "Supernatural",
-    "Thriller",
+    "Action", // i18n-skip
+    "Adventure", // i18n-skip
+    "Comedy", // i18n-skip
+    "Drama", // i18n-skip
+    "Fantasy", // i18n-skip
+    "Horror", // i18n-skip
+    "Mecha", // i18n-skip
+    "Music", // i18n-skip
+    "Mystery", // i18n-skip
+    "Psychological", // i18n-skip
+    "Romance", // i18n-skip
+    "Sci-Fi", // i18n-skip
+    "Slice of Life", // i18n-skip
+    "Sports", // i18n-skip
+    "Supernatural", // i18n-skip
+    "Thriller", // i18n-skip
 ];
 
 const SEASONS: [Season; 4] = [Season::Winter, Season::Spring, Season::Summer, Season::Fall];
@@ -74,11 +76,11 @@ fn menu_button(label: &str) -> gtk::MenuButton {
 
 impl Filters {
     pub fn new() -> Rc<Self> {
-        let genres = menu_button("Genres");
-        let year = menu_button("Year");
-        let season = menu_button("Season");
-        let format = menu_button("Format");
-        let status = menu_button("Status");
+        let genres = menu_button(&t::filter_genres());
+        let year = menu_button(&t::filter_year());
+        let season = menu_button(&t::filter_season());
+        let format = menu_button(&t::filter_format());
+        let status = menu_button(&t::filter_status());
         let sort_label = gtk::Label::new(None);
         let sort_line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         sort_line.append(&gtk::Image::from_icon_name("view-sort-descending-symbolic"));
@@ -319,25 +321,25 @@ impl Filters {
                 let on = q.genre_pick(&named) == Pick::Exclude;
                 q.picking_genre(&named, if on { Pick::Off } else { Pick::Exclude })
             });
-            wanted.append(Some(name), Some(&format!("filter.{want}")));
-            left_out.append(Some(name), Some(&format!("filter.{leave}")));
+            wanted.append(Some(&say::genre(name)), Some(&format!("filter.{want}")));
+            left_out.append(Some(&say::genre(name)), Some(&format!("filter.{leave}")));
         }
         let menu = gio::Menu::new();
         menu.append_section(None, &wanted);
         let more = gio::Menu::new();
-        more.append_submenu(Some("Leave Out"), &left_out);
+        more.append_submenu(Some(&t::filter_left_out()), &left_out);
         menu.append_section(None, &more);
         let set = query.genres.len() + query.genres_excluded.len();
         if set > 0 {
             let any = gio::Menu::new();
-            any.append(Some("Any Genre"), Some("filter.any-genre"));
+            any.append(Some(&t::filter_any_genre()), Some("filter.any-genre"));
             menu.append_section(None, &any);
         }
         self.genres.set_menu_model(Some(&menu));
         let label = match set {
-            0 => "Genres".to_owned(),
-            1 => query.active().into_iter().next().map(|f| f.label).unwrap_or_default(),
-            n => format!("{n} Genres"),
+            0 => t::filter_genres(),
+            1 => query.active().into_iter().next().map(|f| chip_label(query, &f)).unwrap_or_default(),
+            n => t::filter_linux_genres_count(n as i64),
         };
         set_label(&self.genres, &label, set > 0);
     }
@@ -345,7 +347,7 @@ impl Filters {
     fn show_year(&self, query: &SearchQuery) {
         let menu = gio::Menu::new();
         let any = gio::Menu::new();
-        any.append(Some("Any Year"), Some("filter.year::"));
+        any.append(Some(&t::filter_any_year()), Some("filter.year::"));
         menu.append_section(None, &any);
         let years = gio::Menu::new();
         for year in (FIRST_YEAR..=this_year() + 1).rev() {
@@ -357,18 +359,22 @@ impl Filters {
         self.set_state("year", &single.map(|y| y.to_string()).unwrap_or_default());
         let label = query.active().into_iter().find(|f| f.key == FilterKey::Years);
         let set = !query.years.is_open();
-        set_label(&self.year, &label.map(|f| f.label).unwrap_or_else(|| "Year".into()), set);
+        set_label(
+            &self.year,
+            &label.map(|f| f.label).unwrap_or_else(t::filter_year),
+            set,
+        );
     }
 
     fn show_season(&self, query: &SearchQuery) {
         let menu = gio::Menu::new();
         let any = gio::Menu::new();
-        any.append(Some("Any Season"), Some("filter.season::"));
+        any.append(Some(&t::filter_any_season()), Some("filter.season::"));
         menu.append_section(None, &any);
         let seasons = gio::Menu::new();
         for season in SEASONS {
             seasons.append(
-                Some(season_label(season)),
+                Some(&say::season_name(season)),
                 Some(&format!("filter.season::{}", season_name(season))),
             );
         }
@@ -378,9 +384,9 @@ impl Filters {
         // A season is a season of one year.
         let open = query.years.single().is_some() || query.season.is_some();
         self.season.set_sensitive(open);
-        self.season.set_tooltip_text((!open).then_some("Choose a year first"));
-        let label = query.season.map(season_label).unwrap_or("Season");
-        set_label(&self.season, label, query.season.is_some());
+        self.season.set_tooltip_text((!open).then(t::filter_season_pick_year).as_deref());
+        let label = query.season.map(say::season_name).unwrap_or_else(t::filter_season);
+        set_label(&self.season, &label, query.season.is_some());
     }
 
     fn show_formats(self: &Rc<Self>, query: &SearchQuery) {
@@ -391,20 +397,20 @@ impl Filters {
             self.check(&name, query.formats.contains(&format), move |q| {
                 q.toggling_format(format)
             });
-            all.append(Some(format.label()), Some(&format!("filter.{name}")));
+            all.append(Some(&format_name(format)), Some(&format!("filter.{name}")));
         }
         menu.append_section(None, &all);
         let count = query.formats.len();
         if count > 0 {
             let any = gio::Menu::new();
-            any.append(Some("Any Format"), Some("filter.any-format"));
+            any.append(Some(&t::filter_any_format()), Some("filter.any-format"));
             menu.append_section(None, &any);
         }
         self.format.set_menu_model(Some(&menu));
         let label = match count {
-            0 => "Format".to_owned(),
-            1 | 2 => label_of(query, &FilterKey::Formats).unwrap_or_else(|| "Format".into()),
-            n => format!("{n} Formats"),
+            0 => t::filter_format(),
+            1 | 2 => formats_line(&query.formats),
+            n => t::filter_linux_formats_count(n as i64),
         };
         set_label(&self.format, &label, count > 0);
     }
@@ -417,20 +423,20 @@ impl Filters {
             self.check(&name, query.statuses.contains(&status), move |q: &SearchQuery| {
                 q.toggling_status(status)
             });
-            all.append(Some(status_label(status)), Some(&format!("filter.{name}")));
+            all.append(Some(&say::airing_status(status)), Some(&format!("filter.{name}")));
         }
         menu.append_section(None, &all);
         let count = query.statuses.len();
         if count > 0 {
             let any = gio::Menu::new();
-            any.append(Some("Any Status"), Some("filter.any-status"));
+            any.append(Some(&t::filter_any_status()), Some("filter.any-status"));
             menu.append_section(None, &any);
         }
         self.status.set_menu_model(Some(&menu));
         let label = match count {
-            0 => "Status".to_owned(),
-            1 => label_of(query, &FilterKey::Statuses).unwrap_or_else(|| "Status".into()),
-            n => format!("{n} Statuses"),
+            0 => t::filter_status(),
+            1 => say::airing_status(query.statuses[0]),
+            n => t::filter_linux_statuses_count(n as i64),
         };
         set_label(&self.status, &label, count > 0);
     }
@@ -448,13 +454,13 @@ impl Filters {
             if sort == SearchSort::Relevance && !with_text {
                 continue;
             }
-            sorts.append(Some(sort.label()), Some(&format!("filter.sort::{}", sort.label())));
+            sorts.append(Some(&sort_name(sort)), Some(&format!("filter.sort::{}", sort.label())));
         }
-        menu.append_section(Some("Sort By"), &sorts);
+        menu.append_section(Some(&t::filter_linux_sort_by()), &sorts);
         self.sort.set_menu_model(Some(&menu));
         self.set_state("sort", effect.label());
-        self.sort_label.set_label(effect.label());
-        self.sort.set_tooltip_text(Some(&format!("Sort by {}", effect.label())));
+        self.sort_label.set_label(&sort_name(effect));
+        self.sort.set_tooltip_text(Some(&t::sort_label(&sort_name(effect))));
         if query.sort.is_some() {
             self.sort.remove_css_class("flat");
         } else {
@@ -481,12 +487,13 @@ impl Filters {
     }
 
     fn show_chips(&self, active: &[ActiveFilter]) {
+        let query = self.query.borrow().clone();
         while let Some(child) = self.chips.first_child() {
             self.chips.remove(&child);
         }
         for (at, filter) in active.iter().enumerate() {
             let line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
-            let label = gtk::Label::new(Some(&filter.label));
+            let label = gtk::Label::new(Some(&chip_label(&query, filter)));
             label.set_ellipsize(gtk::pango::EllipsizeMode::End);
             label.set_max_width_chars(28);
             line.append(&label);
@@ -495,17 +502,16 @@ impl Filters {
             chip.add_css_class("pill");
             chip.add_css_class("filter-chip");
             chip.set_halign(gtk::Align::Start);
-            chip.set_tooltip_text(Some(&format!("Remove {}", filter.label)));
-            chip.update_property(&[gtk::accessible::Property::Label(&format!(
-                "Remove {}",
-                filter.label
+            chip.set_tooltip_text(Some(&t::filter_remove(&chip_label(&query, filter))));
+            chip.update_property(&[gtk::accessible::Property::Label(&t::filter_remove(
+                &chip_label(&query, filter),
             ))]);
             chip.set_action_name(Some("filter.remove"));
             chip.set_action_target_value(Some(&(at as u32).to_variant()));
             self.chips.append(&chip);
         }
         if active.len() > 1 {
-            let clear = gtk::Button::with_label("Clear All");
+            let clear = gtk::Button::with_label(&t::filter_linux_clear_all());
             clear.add_css_class("flat");
             clear.set_halign(gtk::Align::Start);
             clear.set_action_name(Some("filter.clear"));
@@ -525,9 +531,50 @@ fn set_label(button: &gtk::MenuButton, label: &str, set: bool) {
     }
 }
 
-/// What the chip for `key` says, when it is set.
-fn label_of(query: &SearchQuery, key: &FilterKey) -> Option<String> {
-    query.active().into_iter().find(|f| f.key == *key).map(|f| f.label)
+/// A format as the catalogue says it.
+fn format_name(format: MediaFormat) -> String {
+    match format {
+        MediaFormat::Tv => t::format_tv(),
+        MediaFormat::TvShort => t::format_tv_short(),
+        MediaFormat::Movie => t::format_movie(),
+        MediaFormat::Special => t::format_special(),
+        MediaFormat::Ova => t::format_ova(),
+        MediaFormat::Ona => t::format_ona(),
+        MediaFormat::Music => t::format_music(),
+    }
+}
+
+fn formats_line(formats: &[MediaFormat]) -> String {
+    formats.iter().map(|f| format_name(*f)).collect::<Vec<_>>().join(", ")
+}
+
+/// A sort as the catalogue says it.
+fn sort_name(sort: SearchSort) -> String {
+    match sort {
+        SearchSort::Relevance => t::sort_relevance(),
+        SearchSort::Trending => t::filter_linux_sort_trending(),
+        SearchSort::Popularity => t::sort_popularity(),
+        SearchSort::Score => t::sort_score(),
+        SearchSort::Newest => t::filter_linux_sort_newest(),
+        SearchSort::Oldest => t::filter_linux_sort_oldest(),
+        SearchSort::Title => t::library_sort_title(),
+        SearchSort::Favourites => t::filter_linux_sort_favourites(),
+    }
+}
+
+/// What a chip says, in the language in use where the catalogue has the words; the engine's own
+/// wording for the filters it words alone.
+fn chip_label(query: &SearchQuery, filter: &ActiveFilter) -> String {
+    match &filter.key {
+        FilterKey::Genre { name } => say::genre(name),
+        FilterKey::NotGenre { name } => t::filter_linux_not(&say::genre(name)),
+        FilterKey::Formats => formats_line(&query.formats),
+        FilterKey::Statuses => {
+            query.statuses.iter().map(|s| say::airing_status(*s)).collect::<Vec<_>>().join(", ")
+        }
+        FilterKey::Premiered => query.season.map(say::season_name).unwrap_or_default(),
+        _ => filter.label.clone(),
+    }
 }
 
 /// A season's name as an action's target.
@@ -583,9 +630,9 @@ fn faded_scroll(capsules: &gtk::Box) -> gtk::Overlay {
         (fade, arrow)
     };
     let (start_fade, start_arrow) =
-        edge("start", gtk::Align::Start, "go-previous-symbolic", "Earlier Filters", -1.0);
+        edge("start", gtk::Align::Start, "go-previous-symbolic", &t::filter_linux_earlier(), -1.0);
     let (end_fade, end_arrow) =
-        edge("end", gtk::Align::End, "go-next-symbolic", "More Filters", 1.0);
+        edge("end", gtk::Align::End, "go-next-symbolic", &t::filter_linux_more(), 1.0);
     let overlay = gtk::Overlay::builder().child(&scroll).hexpand(true).build();
     for widget in [&start_fade, &end_fade] {
         overlay.add_overlay(widget);

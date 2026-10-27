@@ -17,6 +17,8 @@ use anistream_model::{
     search::SearchQuery,
 };
 
+use anistream_i18n::t;
+
 use super::search_filters::Filters;
 
 use crate::{
@@ -66,7 +68,7 @@ struct Inner {
 
 pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     let entry = gtk::SearchEntry::builder()
-        .placeholder_text("Search titles and settings")
+        .placeholder_text(t::search_linux_placeholder())
         .hexpand(true)
         .build();
     let clamp = adw::Clamp::builder().maximum_size(480).child(&entry).build();
@@ -75,7 +77,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
 
     let toggle = gtk::ToggleButton::builder()
         .icon_name("system-search-symbolic")
-        .tooltip_text("Search")
+        .tooltip_text(t::nav_search())
         .build();
     toggle
         .bind_property("active", &bar, "search-mode-enabled")
@@ -96,12 +98,12 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .column_spacing(6)
         .row_spacing(6)
         .build();
-    let recent_group = section("Recent Searches", &recent);
+    let recent_group = section(&t::search_recent(), &recent);
     recent_group.set_visible(false);
-    let clear = gtk::Button::with_label("Clear");
+    let clear = gtk::Button::with_label(&t::action_clear());
     clear.add_css_class("flat");
     clear.set_halign(gtk::Align::End);
-    clear.set_tooltip_text(Some("Clear Recent Searches"));
+    clear.set_tooltip_text(Some(&t::search_linux_clear_recent()));
     if let Some(heading) = recent_group.first_child() {
         let line = gtk::Box::new(gtk::Orientation::Horizontal, 6);
         recent_group.remove(&heading);
@@ -121,7 +123,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .homogeneous(true)
         .build();
     for genre in filters.genres() {
-        let tile = gtk::Button::with_label(&genre);
+        let tile = gtk::Button::with_label(&crate::say::genre(&genre));
         tile.add_css_class("genre-tile");
         tile.set_widget_name(&genre);
         genres.append(&tile);
@@ -130,8 +132,8 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     before.set_margin_top(12);
     before.set_margin_bottom(24);
     before.append(&recent_group);
-    before.append(&section("This Season", &season.widget));
-    before.append(&section("Genres", &genres));
+    before.append(&section(&t::continue_this_season(), &season.widget));
+    before.append(&section(&t::search_genres(), &genres));
     let before = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&before)
@@ -146,7 +148,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     let settings = gtk::ListBox::new();
     settings.add_css_class("boxed-list");
     settings.set_selection_mode(gtk::SelectionMode::None);
-    let settings_group = section("Settings", &settings);
+    let settings_group = section(&t::nav_settings(), &settings);
     let results = gtk::Box::new(gtk::Orientation::Vertical, 12);
     results.set_margin_bottom(24);
     results.append(&grid.widget);
@@ -156,7 +158,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     more_spinner.set_visible(false);
     more_spinner
         .upcast_ref::<gtk::Widget>()
-        .update_property(&[gtk::accessible::Property::Label("Loading more titles")]);
+        .update_property(&[gtk::accessible::Property::Label(&t::search_loading_more())]);
     results.append(&more_spinner);
     results.append(&settings_group);
     let results = gtk::ScrolledWindow::builder()
@@ -165,9 +167,9 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         .child(&results)
         .build();
 
-    let empty = crate::states::plain("Nothing Found", "");
+    let empty = crate::states::plain(&t::search_linux_nothing_found(), "");
     // With filters set, the way out, as the Mac offers it.
-    let clear_filters = gtk::Button::with_label("Clear Filters");
+    let clear_filters = gtk::Button::with_label(&t::search_clear_filters());
     clear_filters.add_css_class("pill");
     clear_filters.set_halign(gtk::Align::Center);
     clear_filters.set_visible(false);
@@ -180,8 +182,8 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
         }
     });
     empty.set_child(Some(&clear_filters));
-    let states = States::new(&ctx.hub, &results, Shape::Grid, &empty, "Couldn't Search");
-    states.offline_words("Search Needs a Connection", "Downloaded episodes still play.");
+    let states = States::new(&ctx.hub, &results, Shape::Grid, &empty, &t::search_failed());
+    states.offline_words(&t::search_needs_connection(), &t::state_offline_detail());
     let body = gtk::Stack::new();
     body.set_vexpand(true);
     body.add_named(&before, Some("before"));
@@ -320,7 +322,7 @@ pub fn build(ctx: &Rc<Ctx>) -> SearchPage {
     inner.capture_keys(true);
     ctx.hub.send(Command::LoadSearchFacets);
 
-    let page = widgets::content_page("Search", &header, &column);
+    let page = widgets::content_page(&t::nav_search(), &header, &column);
     SearchPage { page, inner }
 }
 
@@ -403,7 +405,7 @@ impl Inner {
         self.more_waits(false);
         self.body.set_visible_child_name("results");
         // The results on screen stay for 600 ms, then placeholders stand in their place.
-        self.states.loading(Command::Search { query: query.clone() }.activity());
+        self.states.loading(Some(searching(&query)));
         self.ctx.hub.send(if live && !self.paused.get() {
             Command::SearchLive { query }
         } else {
@@ -445,14 +447,13 @@ impl Inner {
                 // A change of text that was not searched: Return searches it.
                 if *paused && !self.states.has_answer() && self.asked.borrow().is_some() {
                     self.asked.replace(None);
-                    self.empty.set_title("Press Enter to Search");
+                    self.empty.set_title(&t::search_linux_press_enter());
                     if let Some(clear) = self.empty.child() {
                         clear.set_visible(false);
                     }
-                    self.empty.set_description(Some(
-                        "Searching as you type is paused for a moment, to stay within \
-                         AniList's limits.",
-                    ));
+                    self.empty.set_description(Some(&t::search_linux_paused(
+                        crate::say::tracker_name("anilist"),
+                    )));
                     self.states.empty();
                 }
             }
@@ -487,7 +488,7 @@ impl Inner {
                 match content {
                     ContentList::Loading => {
                         self.states
-                            .loading(Command::Search { query: query.clone() }.activity());
+                            .loading(Some(searching(query)));
                     }
                     ContentList::Entries(entries) if !entries.is_empty() => {
                         self.entries.replace(entries.clone());
@@ -505,14 +506,14 @@ impl Inner {
                         } else if let ContentList::Failed(why) = content {
                             self.states.failed(why);
                         } else {
-                            self.empty.set_title(&query.nothing_found());
+                            self.empty.set_title(&nothing_found(query));
                             if let Some(clear) = self.empty.child() {
                                 clear.set_visible(query.has_filters());
                             }
-                            self.empty.set_description(Some(if query.is_browse() {
-                                "Try fewer filters."
+                            self.empty.set_description(Some(&if query.has_filters() {
+                                t::search_try_fewer_filters()
                             } else {
-                                "Try another spelling, or fewer filters."
+                                t::search_nothing_found_detail()
                             }));
                             self.states.empty();
                         }
@@ -594,6 +595,25 @@ impl Inner {
 }
 
 /// A heading over a block of the page, at the page's margins.
+/// The faint line while a search runs.
+fn searching(query: &SearchQuery) -> String {
+    if query.is_browse() {
+        t::activity_browse()
+    } else {
+        t::search_searching(query.trimmed_text())
+    }
+}
+
+/// What a search that found nothing says, from its text and filters.
+fn nothing_found(query: &SearchQuery) -> String {
+    match (query.is_browse(), query.has_filters()) {
+        (true, true) => t::search_nothing_with_filters(),
+        (true, false) => t::search_linux_nothing_found(),
+        (false, true) => t::search_nothing_found_with_filters(query.trimmed_text()),
+        (false, false) => t::search_nothing_found(query.trimmed_text()),
+    }
+}
+
 fn section(title: &str, child: &impl IsA<gtk::Widget>) -> gtk::Box {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
     column.set_margin_start(18);

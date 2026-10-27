@@ -14,6 +14,7 @@ use anistream_model::{
     event::Event,
     present,
 };
+use anistream_i18n::t;
 use gtk::{gio, glib};
 
 use crate::{
@@ -50,34 +51,39 @@ impl Broadcast {
 
     /// "Dub" when the row is the dub's: a sub is the plain case and has no mark.
     fn dub(&self) -> bool {
-        present::calendar_mark(&self.entry) == Some("Dub")
+        present::calendar_mark(&self.entry) == Some("Dub") // i18n-skip
     }
 
     /// "Ep 10 · 16:30 · Dub": "~16:30" for an estimate, and the mark only on a dub. One line,
     /// which never wraps; where the broadcast moved from is in [`Broadcast::moved`].
     fn line(&self) -> String {
-        let mut line = format!("Ep {} · {}", self.episode, self.clock());
+        let episode = i64::from(self.episode);
         if self.dub() {
-            line.push_str(" · Dub");
+            t::calendar_row_time_dubbed(episode, &self.clock())
+        } else {
+            t::calendar_row_time(episode, &self.clock())
         }
-        line
     }
 
     /// "Moved from 23:00", when the schedule moved it.
     fn moved(&self) -> Option<String> {
-        self.was.map(|was| format!("Moved from {}", time(was)))
+        self.was.map(|was| t::calendar_moved_from(&time(was)))
     }
 
     /// The line as a screen reader says it: "Episode 10, about 16:30, dub, moved from 23:00".
     fn spoken(&self) -> String {
         let at = time(self.airs);
-        let mut said = vec![format!("Episode {}", self.episode)];
-        said.push(if self.entry.airing_approximate { format!("about {at}") } else { at });
+        let mut said = vec![t::episode_number(i64::from(self.episode))];
+        said.push(if self.entry.airing_approximate {
+            t::calendar_linux_about(&at)
+        } else {
+            at
+        });
         if self.dub() {
-            said.push("dub".into());
+            said.push(t::calendar_linux_dubbed());
         }
         if let Some(was) = self.was {
-            said.push(format!("moved from {}", time(was)));
+            said.push(t::calendar_moved_from(&time(was)));
         }
         said.join(", ")
     }
@@ -118,27 +124,27 @@ struct Page {
 }
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
-    let title = adw::WindowTitle::new("Calendar", "");
+    let title = adw::WindowTitle::new(&t::nav_calendar(), "");
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
     header.pack_start(&crate::window::tv_session_button(ctx));
     header.set_title_widget(Some(&title));
     let previous = gtk::Button::from_icon_name("go-previous-symbolic");
-    previous.set_tooltip_text(Some("Previous Week"));
+    previous.set_tooltip_text(Some(&t::calendar_previous_week()));
     let next = gtk::Button::from_icon_name("go-next-symbolic");
-    next.set_tooltip_text(Some("Next Week"));
+    next.set_tooltip_text(Some(&t::calendar_next_week()));
     let steps = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     steps.add_css_class("linked");
     steps.append(&previous);
     steps.append(&next);
-    let this_week = gtk::Button::with_label("This Week");
+    let this_week = gtk::Button::with_label(&t::calendar_this_week());
     this_week.set_visible(false);
     header.pack_end(&steps);
     header.pack_end(&this_week);
 
     let toggles = adw::ToggleGroup::new();
-    toggles.add(adw::Toggle::builder().name("mine").label("My List").build());
-    toggles.add(adw::Toggle::builder().name("all").label("All Airing").build());
+    toggles.add(adw::Toggle::builder().name("mine").label(t::calendar_filter_mine()).build());
+    toggles.add(adw::Toggle::builder().name("all").label(t::calendar_filter_all()).build());
     toggles.set_active_name(Some("mine"));
     toggles.add_css_class("round");
     toggles.set_halign(gtk::Align::Center);
@@ -165,16 +171,16 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
         .vexpand(true)
         .child(&adw::Clamp::builder().maximum_size(760).child(&agenda).build())
         .build();
-    let empty = states::plain("Nothing Airing", "Nothing on your list airs this week.");
+    let empty = states::plain(&t::calendar_empty_title(), &t::calendar_empty_mine());
     let views = gtk::Stack::new();
     views.add_named(&scroll_week, Some("week"));
     views.add_named(&scroll_agenda, Some("agenda"));
-    let body = States::new(&ctx.hub, &views, Shape::Week, &empty, "Couldn't Load the Calendar");
+    let body = States::new(&ctx.hub, &views, Shape::Week, &empty, &t::calendar_load_failed());
 
     let column = gtk::Box::new(gtk::Orientation::Vertical, 0);
     column.append(&toggles);
     column.append(&body.widget);
-    let navigation = widgets::content_page("Calendar", &header, &column);
+    let navigation = widgets::content_page(&t::nav_calendar(), &header, &column);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -258,7 +264,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 
 impl Page {
     fn load(&self) {
-        self.body.loading(Command::LoadCalendar.activity());
+        self.body.loading(Some(t::activity_calendar()));
         self.ctx.hub.send(Command::LoadCalendar);
     }
 
@@ -270,7 +276,7 @@ impl Page {
                 self.more_past.set(*more_past);
             }
             Event::Content { view: ContentFor::Calendar, content } => match content {
-                ContentList::Loading => self.body.loading(Command::LoadCalendar.activity()),
+                ContentList::Loading => self.body.loading(Some(t::activity_calendar())),
                 ContentList::Failed(why) => {
                     tracing::warn!(%why, "the calendar did not load");
                     self.answered.set(false);
@@ -369,10 +375,10 @@ impl Page {
             .filter(|b| b.airs >= start && b.airs < end)
             .collect();
         if broadcasts.is_empty() {
-            self.empty.set_description(Some(if self.mine.get() {
-                "Nothing on your list airs this week."
+            self.empty.set_description(Some(&if self.mine.get() {
+                t::calendar_empty_mine()
             } else {
-                "Nothing airs this week."
+                t::calendar_empty_all()
             }));
             self.body.empty();
             return;
@@ -460,11 +466,11 @@ impl Page {
             }
             let name = day_heading(day, month_first());
             let heading =
-                widgets::heading(&if is_today { format!("Today, {name}") } else { name });
+                widgets::heading(&if is_today { t::calendar_today_heading(&name) } else { name });
             let section = gtk::Box::new(gtk::Orientation::Vertical, 8);
             section.append(&heading);
             if on_day.is_empty() {
-                section.append(&widgets::haze("Nothing airs today", ""));
+                section.append(&widgets::haze(&t::calendar_empty_today(), ""));
             } else {
                 let list = gtk::ListBox::new();
                 list.add_css_class("boxed-list");
@@ -503,7 +509,7 @@ impl Page {
         if broadcast.watched() {
             line.add_css_class("dim-label");
             let done = gtk::Image::from_icon_name("object-select-symbolic");
-            done.set_tooltip_text(Some("Watched"));
+            done.set_tooltip_text(Some(&t::episode_watched()));
             line.append(&done);
         }
         let row = gtk::ListBoxRow::builder().child(&line).activatable(true).build();
@@ -528,11 +534,13 @@ fn episode_line(broadcast: &Broadcast, now: i64, roomy: bool) -> gtk::Box {
         let dot = gtk::Box::new(gtk::Orientation::Horizontal, 0);
         dot.add_css_class("state-dot");
         dot.set_valign(gtk::Align::Center);
-        dot.set_tooltip_text(Some("Out, not watched"));
+        dot.set_tooltip_text(Some(&t::calendar_out_unwatched()));
         line.append(&dot);
     }
     let words = match (broadcast.was, roomy) {
-        (Some(was), true) => format!("{} · moved from {}", broadcast.line(), time(was)),
+        (Some(was), true) => {
+            format!("{} · {}", broadcast.line(), t::calendar_moved_from(&time(was)))
+        }
         _ => broadcast.line(),
     };
     let text = widgets::haze(&words, "caption");
@@ -638,7 +646,7 @@ fn portal_clock_format() -> Option<String> {
         .ok()
     };
     // ReadOne answers (v); the older Read answers the value wrapped once more.
-    let answer = ask("ReadOne").or_else(|| ask("Read"))?;
+    let answer = ask("ReadOne").or_else(|| ask("Read"))?; // i18n-skip
     let mut value = answer.try_child_value(0)?;
     while let Some(inner) = value.as_variant() {
         value = inner;
@@ -776,12 +784,12 @@ mod tests {
             airs: at,
             was: None,
         };
-        assert!(broadcast.line().starts_with("Ep 10 · "));
+        assert!(broadcast.line().starts_with("E10 · "));
         broadcast.was = Some(at - 3600);
         assert!(!broadcast.line().contains("was"), "the line stays one short line");
         assert!(broadcast.moved().is_some_and(|m| m.starts_with("Moved from ")));
         assert!(broadcast.spoken().starts_with("Episode 10, "));
-        assert!(broadcast.spoken().contains(", moved from "));
+        assert!(broadcast.spoken().contains(", Moved from "));
         assert!(broadcast.is_new(at + 1));
         broadcast.entry.progress =
             Some(anistream_model::progress::TitleProgress { done: 10, next: 11 });
@@ -799,11 +807,11 @@ mod tests {
             was: None,
         };
         assert!(!broadcast.line().contains('~'));
-        assert!(!broadcast.line().ends_with("Dub") && !broadcast.line().ends_with("Sub"));
+        assert!(!broadcast.line().contains("dubbed") && !broadcast.line().contains("Sub"));
         broadcast.entry.airing_approximate = true;
         broadcast.entry.airing_translation = Some(Translation::Dub);
-        assert!(broadcast.line().starts_with("Ep 3 · ~"));
-        assert!(broadcast.line().ends_with(" · Dub"));
+        assert!(broadcast.line().starts_with("E3 dubbed · ~"));
+        assert!(broadcast.line().contains("dubbed"));
         assert!(!broadcast.spoken().contains('~'), "said as about, not tilde");
         assert!(broadcast.spoken().contains(", about "));
         // A sub is the plain case: no mark.

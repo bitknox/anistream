@@ -980,6 +980,171 @@ pub fn notice_episodes_queued(count: i64) -> String {
     text("notice-episodes-queued", &[("count", Arg::Int(count))])
 }
 
+/// Note under the connection-check group of the torrents dialog: what the check does.
+pub fn torrents_linux_check_note() -> String {
+    text("torrents-linux-check-note", &[])
+}
+
+/// Confirmation text when choosing "Warn only" for a failed check.
+pub fn torrents_linux_warn_confirm() -> String {
+    text("torrents-linux-warn-confirm", &[])
+}
+
+/// Status line once the protection has been checked and saved.
+pub fn torrents_linux_protection_saved() -> String {
+    text("torrents-linux-protection-saved", &[])
+}
+
+/// Title of the dialog that turns torrents on.
+pub fn torrents_linux_turn_on_title() -> String {
+    text("torrents-linux-turn-on-title", &[])
+}
+
+/// Title of the dialog that changes what protects torrents.
+pub fn torrents_linux_protect_title() -> String {
+    text("torrents-linux-protect-title", &[])
+}
+
+/// Title of the dialog that edits the proxy.
+pub fn torrents_linux_edit_proxy_title() -> String {
+    text("torrents-linux-edit-proxy-title", &[])
+}
+
+/// Button that turns torrents on in the dialog.
+pub fn torrents_linux_turn_on_button() -> String {
+    text("torrents-linux-turn-on-button", &[])
+}
+
+/// Seeding row: time left until the goal, in a span already worded ("18h", "1d 6h").
+pub fn downloads_linux_seed_left(span: &str) -> String {
+    text("downloads-linux-seed-left", &[("span", Arg::Text(span))])
+}
+
+/// Seeding row: less than an hour left until the goal.
+pub fn downloads_linux_seed_left_soon() -> String {
+    text("downloads-linux-seed-left-soon", &[])
+}
+
+/// Storage row: free space, the disk's size and what downloads take. All three are sizes already formatted.
+pub fn downloads_linux_space_free(free: &str, total: &str, taken: &str) -> String {
+    text("downloads-linux-space-free", &[("free", Arg::Text(free)), ("total", Arg::Text(total)), ("taken", Arg::Text(taken))])
+}
+
+/// Placeholder of the search field. It also finds settings.
+pub fn search_linux_placeholder() -> String {
+    text("search-linux-placeholder", &[])
+}
+
+/// Tooltip of the button that clears the recent searches.
+pub fn search_linux_clear_recent() -> String {
+    text("search-linux-clear-recent", &[])
+}
+
+/// Title of the state when a browse with no filters lists nothing.
+pub fn search_linux_nothing_found() -> String {
+    text("search-linux-nothing-found", &[])
+}
+
+/// Title of the state when a typed search waits for Enter.
+pub fn search_linux_press_enter() -> String {
+    text("search-linux-press-enter", &[])
+}
+
+/// Line under the Enter title: why results do not come as you type. The tracker is a name.
+pub fn search_linux_paused(tracker: &str) -> String {
+    text("search-linux-paused", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Menu title over the sort choices of the filter row.
+pub fn filter_linux_sort_by() -> String {
+    text("filter-linux-sort-by", &[])
+}
+
+/// Sort choice: what is rising now.
+pub fn filter_linux_sort_trending() -> String {
+    text("filter-linux-sort-trending", &[])
+}
+
+/// Sort choice: the most recent first.
+pub fn filter_linux_sort_newest() -> String {
+    text("filter-linux-sort-newest", &[])
+}
+
+/// Sort choice: the earliest first.
+pub fn filter_linux_sort_oldest() -> String {
+    text("filter-linux-sort-oldest", &[])
+}
+
+/// Sort choice: the most favourited first.
+pub fn filter_linux_sort_favourites() -> String {
+    text("filter-linux-sort-favourites", &[])
+}
+
+/// Genre filter button when several genres are set.
+pub fn filter_linux_genres_count(count: i64) -> String {
+    text("filter-linux-genres-count", &[("count", Arg::Int(count))])
+}
+
+/// Format filter button when several formats are set.
+pub fn filter_linux_formats_count(count: i64) -> String {
+    text("filter-linux-formats-count", &[("count", Arg::Int(count))])
+}
+
+/// Status filter button when several statuses are set.
+pub fn filter_linux_statuses_count(count: i64) -> String {
+    text("filter-linux-statuses-count", &[("count", Arg::Int(count))])
+}
+
+/// Chip for a genre that is left out of the results. The genre is already named.
+pub fn filter_linux_not(genre: &str) -> String {
+    text("filter-linux-not", &[("genre", Arg::Text(genre))])
+}
+
+/// Button that takes off every filter chip.
+pub fn filter_linux_clear_all() -> String {
+    text("filter-linux-clear-all", &[])
+}
+
+/// Tooltip of the arrow that scrolls the filter row back.
+pub fn filter_linux_earlier() -> String {
+    text("filter-linux-earlier", &[])
+}
+
+/// Tooltip of the arrow that scrolls the filter row on.
+pub fn filter_linux_more() -> String {
+    text("filter-linux-more", &[])
+}
+
+/// What a screen reader says for a broadcast whose time is an estimate. The time is already formatted.
+pub fn calendar_linux_about(time: &str) -> String {
+    text("calendar-linux-about", &[("time", Arg::Text(time))])
+}
+
+/// What a screen reader says for a broadcast that is the dub's.
+pub fn calendar_linux_dubbed() -> String {
+    text("calendar-linux-dubbed", &[])
+}
+
+/// Title of the menu, and tooltip of its button, that orders a list.
+pub fn library_linux_order() -> String {
+    text("library-linux-order", &[])
+}
+
+/// A list's tab: its name and how many titles it holds.
+pub fn library_linux_list_count(list: &str, count: &str) -> String {
+    text("library-linux-list-count", &[("list", Arg::Text(list)), ("count", Arg::Text(count))])
+}
+
+/// Description read by a screen reader on the button that plays the shown episode on a TV.
+pub fn title_linux_play_on_tv_help() -> String {
+    text("title-linux-play-on-tv-help", &[])
+}
+
+/// Description read by a screen reader on an episode's watched check box.
+pub fn title_linux_episode_watched(episode: i64) -> String {
+    text("title-linux-episode-watched", &[("episode", Arg::Int(episode))])
+}
+
 /// Under a release in the source picker: how many people share it right now.
 pub fn source_picker_seeders_linux(count: i64) -> String {
     text("source-picker-seeders-linux", &[("count", Arg::Int(count))])
