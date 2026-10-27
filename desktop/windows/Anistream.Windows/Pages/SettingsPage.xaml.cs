@@ -20,41 +20,123 @@ namespace Anistream.Windows.Pages;
 /// </summary>
 public sealed partial class SettingsPage : Page
 {
-    sealed record Pane(string Name, string Title, string Glyph, (string Heading, K[] Keys)[] Groups);
+    /// <summary>A pane: its name (what navigation asks for), its icon, and its groups by id, each with its settings.</summary>
+    sealed record Pane(string Name, string Glyph, (string Group, K[] Keys)[] Groups)
+    {
+        /// <summary>The pane's name as the list shows it.</summary>
+        public string Title => Name switch
+        {
+            "playback" => T.SettingsGroupPlayback,
+            "downloads" => T.NavDownloads,
+            "notifications" => T.SettingsGroupNotifications,
+            "sources" => T.SourcesTitle,
+            "accounts" => T.NavAccounts,
+            "integrations" => T.SettingsGroupIntegrations,
+            "advanced" => T.SettingsGroupAdvanced,
+            _ => T.AboutTitle,
+        };
+    }
 
     static readonly Pane[] PaneList =
     [
-        new("playback", "Playback", "",
+        new("playback", "",
         [
             // The app's language and how titles read everywhere, not only while watching, so they
             // head the pane on their own.
-            ("Language", [K.Titles]),
-            ("Watching", [K.Translation, K.Quality, K.Subtitles, K.CommitThreshold]),
-            ("Player", [K.AutoNext, K.UpNextCountdown, K.SkipOpening, K.SkipFiller, K.MarkChapters, K.SkipButton, K.Fullscreen]),
-            ("Picture", [K.Upscaling, K.NightMode, K.SpoilerProtection, K.Motion]),
+            ("language", [K.Titles]),
+            ("watching", [K.Translation, K.Quality, K.Subtitles, K.CommitThreshold]),
+            ("player", [K.AutoNext, K.UpNextCountdown, K.SkipOpening, K.SkipFiller, K.MarkChapters, K.SkipButton, K.Fullscreen]),
+            ("picture", [K.Upscaling, K.NightMode, K.SpoilerProtection, K.Motion]),
         ]),
-        new("downloads", "Downloads", "",
+        new("downloads", "",
         [
-            ("Files", [K.DownloadDir, K.DownloadQuality, K.MergeSubtitles, K.DownloadHook]),
-            ("Ahead", [K.KeepNextEpisodes]),
+            ("files", [K.DownloadDir, K.DownloadQuality, K.MergeSubtitles, K.DownloadHook]),
+            ("ahead", [K.KeepNextEpisodes]),
         ]),
-        new("notifications", "Notifications", "", [("New episodes", [K.EpisodeNotifications])]),
-        new("sources", "Sources", "",
+        new("notifications", "", [("new-episodes", [K.EpisodeNotifications])]),
+        new("sources", "",
         [
             // Laid out by ShowTorrents: the switch, the index, what protects them, the last
             // check and what a failed one does.
-            ("Torrents", [K.Torrents, K.VpnMode, K.VpnOnFailure]),
-            ("Seeding", [K.KeepSeeding, K.SeedRatio, K.SeedHours, K.UploadLimit]),
+            ("torrents", [K.Torrents, K.VpnMode, K.VpnOnFailure]),
+            ("seeding", [K.KeepSeeding, K.SeedRatio, K.SeedHours, K.UploadLimit]),
         ]),
-        new("accounts", "Accounts", "", []),
-        new("integrations", "Integrations", "",
+        new("accounts", "", []),
+        new("integrations", "",
         [
-            ("Discord", [K.Presence, K.PresenceTitle, K.PresenceRich]),
-            ("Updates", [K.UpdateCheck]),
+            ("discord", [K.Presence, K.PresenceTitle, K.PresenceRich]),
+            ("updates", [K.UpdateCheck]),
         ]),
-        new("advanced", "Advanced", "", [("mpv", [K.MpvOptions])]),
-        new("about", "About", "", []),
+        new("advanced", "", [("mpv", [K.MpvOptions])]),
+        new("about", "", []),
     ];
+
+    /// <summary>A group's heading, from its id.</summary>
+    static string GroupHeading(string group) => group switch
+    {
+        "language" => T.SettingsLanguage,
+        "watching" => T.SettingsGroupWatching,
+        "player" => T.SettingsGroupPlayer,
+        "picture" => T.SettingsGroupPicture,
+        "files" => T.SettingsGroupFiles,
+        "ahead" => T.SettingsGroupAhead,
+        "new-episodes" => T.SettingsNewEpisodes,
+        "torrents" => T.TorrentsTitle,
+        "seeding" => T.DownloadsSeedingTitle,
+        "discord" => T.SettingsDiscord,
+        "updates" => T.UpdatesTitle,
+        _ => T.SettingsGroupMpv,
+    };
+
+    /// <summary>A setting's row title, from the catalogue.</summary>
+    static string Title(K key) => key switch
+    {
+        K.Theme => T.SettingsTheme,
+        K.Motion => T.SettingsMotion,
+        K.Titles => T.SettingsTitleLanguage,
+        K.Translation => T.SettingsAudio,
+        K.Quality => T.SettingsQuality,
+        K.Subtitles => T.PlayerSubtitles,
+        K.CommitThreshold => T.SettingsCountsWatched,
+        K.AutoNext => T.SettingsAutoPlay,
+        K.SkipOpening => T.SettingsSkipOpening,
+        K.SkipFiller => T.SettingsSkipFiller,
+        K.MarkChapters => T.SettingsMarkOpening,
+        K.SkipButton => T.SettingsSkipButton,
+        K.Fullscreen => T.SettingsStartFullscreen,
+        K.Upscaling => T.PlayerUpscaling,
+        K.PlayerUi => T.SettingsPlayerInterface,
+        K.NightMode => T.PlayerNightMode,
+        K.DownloadDir => T.DownloadsFolder,
+        K.MergeSubtitles => T.SettingsMergeSubtitles,
+        K.KeepSeeding => T.SettingsKeepSeeding,
+        K.DownloadHook => T.SettingsAfterDownload,
+        K.Presence => T.SettingsDiscordPresence,
+        K.PresenceTitle => T.SettingsPresenceTitle,
+        K.PresenceRich => T.SettingsPresenceRich,
+        K.Torrents => T.SettingsTorrentSource,
+        K.TorrentIndex => T.TorrentsIndex,
+        K.VpnMode => T.SettingsVpnMode,
+        K.SeedRatio => T.SettingsSeedAfter,
+        K.SeedHours => T.SettingsSeedFor,
+        K.UploadLimit => T.SettingsUploadLimit,
+        K.TokenStorage => T.SettingsTokenStorage,
+        K.Syncplay => T.SettingsWatchParties,
+        K.SyncplayServer => T.PartyServer,
+        K.SyncplayRoom => T.PartyRoom,
+        K.UpdateCheck => T.SettingsCheckUpdates,
+        K.SourceOrder => T.SettingsSourceOrder,
+        K.UpNextCountdown => T.SettingsUpNextCountdown,
+        K.SpoilerProtection => T.SettingsSpoiler,
+        K.DownloadQuality => T.DownloadsQuality,
+        K.KeepNextEpisodes => T.SettingsKeepNext,
+        K.DownloadsOnCellular => T.SettingsDownloadsCellular,
+        K.TorrentsOnCellular => T.SettingsTorrentsCellular,
+        K.VpnOnFailure => T.TorrentsIfCheckFails,
+        K.AdultTitles => T.SettingsAdult,
+        K.EpisodeNotifications => T.SettingsEpisodeNotifications,
+        _ => T.SettingsMpvOptions,
+    };
 
     readonly Ctx ctx = Ctx.Current;
     Pane pane = PaneList[0];
@@ -86,7 +168,7 @@ public sealed partial class SettingsPage : Page
                 plates.Children.Add(new Border { Height = 48, CornerRadius = new CornerRadius(4), Background = Ui.Res<Microsoft.UI.Xaml.Media.Brush>("RaisedBrush") });
             return plates;
         };
-        State.ActivityText = "Loading settings";
+        State.ActivityText = T.SettingsLoading;
         // "· 2 min ago" moves on while the Last check card is on screen.
         guardClock = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread().CreateTimer();
         guardClock.Interval = TimeSpan.FromSeconds(30);
@@ -167,7 +249,7 @@ public sealed partial class SettingsPage : Page
         CardScroll.Visibility = !narrow || !picking ? Visibility.Visible : Visibility.Collapsed;
         Grid.SetColumn(Panes, 0);
         Crumbs.Visibility = narrow ? Visibility.Visible : Visibility.Collapsed;
-        Crumbs.ItemsSource = picking ? new[] { "Settings" } : new[] { "Settings", pane.Title };
+        Crumbs.ItemsSource = picking ? new[] { T.SettingsTitle } : new[] { T.SettingsTitle, pane.Title };
     }
 
     static T Res<T>(string key) => (T)Application.Current.Resources[key];
@@ -196,12 +278,12 @@ public sealed partial class SettingsPage : Page
                     break;
                 }
                 tvGroup = null;
-                foreach (var (heading, keys) in pane.Groups)
+                foreach (var (group, keys) in pane.Groups)
                 {
                     // Play on TV's paired TVs, between Discord and Updates.
-                    if (pane.Name == "integrations" && heading == "Updates" && ctx.Tv.Available)
+                    if (pane.Name == "integrations" && group == "updates" && ctx.Tv.Available)
                     {
-                        Cards.Children.Add(Heading("Play on TV"));
+                        Cards.Children.Add(Heading(T.TvPlayOn));
                         tvGroup = new StackPanel { Spacing = 4 };
                         ShowTvs(tvGroup);
                         Cards.Children.Add(tvGroup);
@@ -209,25 +291,25 @@ public sealed partial class SettingsPage : Page
                     // Only where the engine was built with a presence to publish.
                     if (keys.Contains(K.Presence) && ctx.Known.Settings is { PresenceAvailable: false })
                         continue;
-                    if (heading == "Torrents")
+                    if (group == "torrents")
                     {
                         ShowTorrents();
                         continue;
                     }
                     // Seeding only says anything once torrents are on.
-                    if (heading == "Seeding" && !SettingsCatalog.IsOn(ctx.Known.Setting(K.Torrents)))
+                    if (group == "seeding" && !SettingsCatalog.IsOn(ctx.Known.Setting(K.Torrents)))
                         continue;
                     var rows = keys.Select(k => ctx.Known.Setting(k)).OfType<SettingRow>().ToList();
                     if (rows.Count == 0)
                         continue;
-                    Cards.Children.Add(Heading(heading));
-                    if (heading == "Seeding")
-                        Cards.Children.Add(Note("Seeding runs only while anistream is open."));
-                    if (heading == "Language")
+                    Cards.Children.Add(Heading(GroupHeading(group)));
+                    if (group == "seeding")
+                        Cards.Children.Add(Note(T.SettingsSeedingOpenOnly));
+                    if (group == "language")
                         Cards.Children.Add(LanguageCard());
                     foreach (var row in rows)
                         Cards.Children.Add(Card(row));
-                    if (pane.Name == "downloads" && heading == "Files")
+                    if (pane.Name == "downloads" && group == "files")
                         Cards.Children.Add(WhenClosingCard());
                 }
                 State.Done();
@@ -265,18 +347,18 @@ public sealed partial class SettingsPage : Page
         group.Children.Clear();
         foreach (var (paired, note) in notes)
         {
-            var forget = new Button { Content = "Forget" };
-            AutomationProperties.SetName(forget, $"Forget {paired.Name}");
+            var forget = new Button { Content = T.ActionForget };
+            AutomationProperties.SetName(forget, T.TvForgetLabel(paired.Name));
             forget.Click += async (_, _) =>
             {
-                if (XamlRoot is { } root && await Ui.Confirm(root, $"Forget {paired.Name}?", "To play on it again, pair with it again.", "Forget"))
+                if (XamlRoot is { } root && await Ui.Confirm(root, T.TvForgetTitle(paired.Name), T.TvForgetDetail, T.ActionForget))
                     await tv.Forget(paired.Fingerprint);
             };
             group.Children.Add(CardFrame(paired.Name, note, forget, "\uE7F4"));
         }
-        var pair = new Button { Content = "Pair a TV…" };
+        var pair = new Button { Content = T.TvPairMenu };
         pair.Click += (_, _) => tv.OpenPicker();
-        group.Children.Add(CardFrame(tv.Paired.Length == 0 ? "No TVs paired yet" : "Another TV", TvWords.PairNote, pair, tv.Paired.Length == 0 ? "\uE7F4" : "\uE710"));
+        group.Children.Add(CardFrame(tv.Paired.Length == 0 ? T.TvNonePaired : T.SettingsAnotherTv, TvWords.PairNote, pair, tv.Paired.Length == 0 ? "\uE7F4" : "\uE710"));
         if (tv.ShortFingerprint.Length > 0)
         {
             var foot = Ui.Text(TvWords.Footnote(tv.ShortFingerprint), "HazeCaptionStyle");
@@ -304,16 +386,16 @@ public sealed partial class SettingsPage : Page
     /// <summary>What closing the window does while episodes download: ask, keep going, or stop.</summary>
     SettingsCard WhenClosingCard()
     {
-        var choices = new[] { (CloseChoice.Ask, "Ask"), (CloseChoice.KeepGoing, "Keep going"), (CloseChoice.Stop, "Stop") };
+        var choices = new[] { (CloseChoice.Ask, T.DownloadsBackgroundAsk), (CloseChoice.KeepGoing, T.DownloadsBackgroundKeep), (CloseChoice.Stop, T.DownloadsBackgroundStop) };
         var box = new ComboBox { MinWidth = 200, ItemsSource = choices.Select(c => c.Item2).ToList() };
         box.SelectedIndex = Array.FindIndex(choices, c => c.Item1 == ctx.Window.WhenClosing);
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, "When the window closes with downloads running");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, T.DownloadsBackgroundTitle);
         box.SelectionChanged += (_, _) =>
         {
             if (!quiet && box.SelectedIndex >= 0)
                 ctx.Window.WhenClosing = choices[box.SelectedIndex].Item1;
         };
-        return CardFrame("When the window closes with downloads running", "Keep going leaves anistream in the notification area until they finish.", box);
+        return CardFrame(T.DownloadsBackgroundTitle, T.SettingsClosingDetail, box);
     }
 
     /// <summary>
@@ -389,7 +471,7 @@ public sealed partial class SettingsPage : Page
             return;
         var on = SettingsCatalog.IsOn(row);
         var view = settings.Torrent;
-        Cards.Children.Add(Heading("Torrents"));
+        Cards.Children.Add(Heading(T.TorrentsTitle));
         if (Card(row) is SettingsCard toggle)
         {
             toggle.Description = on ? TorrentWords.OnNote(view) : TorrentWords.OffNote;
@@ -400,8 +482,8 @@ public sealed partial class SettingsPage : Page
 
         // The index, sent when the box is left or Enter is pressed.
         var saved = settings.Sources.Index ?? "";
-        var index = new TextBox { Text = saved, MinWidth = 280, PlaceholderText = "https://…/?q={query}" };
-        var indexTitle = Words.SettingTitle(K.TorrentIndex);
+        var index = new TextBox { Text = saved, MinWidth = 280, PlaceholderText = T.TorrentsIndexHint };
+        var indexTitle = Title(K.TorrentIndex);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(index, indexTitle);
         void Commit()
         {
@@ -425,7 +507,7 @@ public sealed partial class SettingsPage : Page
             ItemsSource = TorrentWords.Order.Select(TorrentWords.Label).ToList(),
             SelectedIndex = Array.IndexOf(TorrentWords.Order, view.Protection),
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protect, "Protect with");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protect, T.TorrentsProtectWith);
         protect.SelectionChanged += async (_, _) =>
         {
             var current = ctx.Known.Settings?.Torrent ?? view;
@@ -457,7 +539,7 @@ public sealed partial class SettingsPage : Page
             Motion.QuickOpacity(savedMark);
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetAccessibilityView(savedMark, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
             protectRow.Children.Add(savedMark);
-            var edit = new Button { Content = "Edit proxy…", VerticalAlignment = VerticalAlignment.Center };
+            var edit = new Button { Content = T.SettingsEditProxy, VerticalAlignment = VerticalAlignment.Center };
             edit.Click += async (_, _) =>
             {
                 if (await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.EditProxy) is not null)
@@ -466,13 +548,13 @@ public sealed partial class SettingsPage : Page
             protectRow.Children.Add(edit);
         }
         protectRow.Children.Add(protect);
-        protectCard = CardFrame("Protect with", null, protectRow);
+        protectCard = CardFrame(T.TorrentsProtectWith, null, protectRow);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetLiveSetting(protectCard, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
         Cards.Children.Add(protectCard);
         ShowSaved();
 
         // The last check: where traffic left through and when, and how it went.
-        guardCard = CardFrame("Last check", null, null);
+        guardCard = CardFrame(T.TorrentsLastCheck, null, null);
         Cards.Children.Add(guardCard);
         ShowGuard();
         guardClock.Start();
@@ -484,7 +566,7 @@ public sealed partial class SettingsPage : Page
             ItemsSource = TorrentWords.FailedChecks.Select(TorrentWords.Label).ToList(),
             SelectedIndex = Array.IndexOf(TorrentWords.FailedChecks, view.OnFailure),
         };
-        var failedTitle = Words.SettingTitle(K.VpnOnFailure);
+        var failedTitle = Title(K.VpnOnFailure);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(failed, failedTitle);
         failed.SelectionChanged += async (_, _) =>
         {
@@ -494,7 +576,7 @@ public sealed partial class SettingsPage : Page
                 return;
             var check = TorrentWords.FailedChecks[failed.SelectedIndex];
             if (check == FailedCheck.Warn
-                && !await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, "Warn only"))
+                && !await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, T.TorrentsFailWarn))
             {
                 PutBack(failed, was);
                 return;
@@ -538,7 +620,7 @@ public sealed partial class SettingsPage : Page
             savedUntil = null;
         if (savedMark is not null)
             savedMark.Opacity = showing ? 1 : 0;
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protectCard, showing ? $"Protect with, {TorrentWords.ProxySaved}" : "Protect with");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(protectCard, showing ? T.SettingsCardState(T.TorrentsProtectWith, TorrentWords.ProxySaved) : T.TorrentsProtectWith);
     }
 
     /// <summary>A drop-down back on what is set, for a choice not made.</summary>
@@ -597,7 +679,7 @@ public sealed partial class SettingsPage : Page
                 switch (show)
                 {
                     case "torrents-warn":
-                        await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, "Warn only");
+                        await Ui.Confirm(XamlRoot, TorrentWords.WarnTitle, TorrentWords.WarnMessage, T.TorrentsFailWarn);
                         break;
                     case "torrent-protect":
                         await TorrentDialog.Ask(ctx, XamlRoot, TorrentDialog.Purpose.Protect, start: TorrentProtection.Proxy);
@@ -662,16 +744,16 @@ public sealed partial class SettingsPage : Page
             verdict.Children.Add(again);
         }
         guardCard.Content = verdict;
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(guardCard, $"Last check, {word}, {note}");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(guardCard, T.SettingsCardCheck(T.TorrentsLastCheck, word, note));
     }
 
     FrameworkElement Card(SettingRow row)
     {
-        var title = Words.SettingTitle(row.Key);
+        var title = Title(row.Key);
         var overridden = ctx.Known.Settings?.Overridden?.FirstOrDefault(o => o.Key == row.Key);
-        string? description = overridden is { Shows: > 0 } o ? $"Overridden for {AnistreamFfiMethods.Plural(o.Shows, "show")}" : null;
+        string? description = overridden is { Shows: > 0 } o ? T.SettingsOverridden((long)o.Shows) : null;
         if (row.Key == K.PresenceRich)
-            description = "The cover, a progress bar and a link to the show on AniList. Needs the title shown.";
+            description = T.SettingsPresenceRichDetail(AnistreamFfiMethods.TrackerName("anilist"));
         FrameworkElement control;
         switch (SettingsCatalog.ControlFor(row))
         {
@@ -694,10 +776,10 @@ public sealed partial class SettingsPage : Page
             case SettingControl.Choice:
             {
                 var options = SettingsCatalog.Options(row.Key);
-                var box = new ComboBox { MinWidth = 200, ItemsSource = options.Select(o => Shown(o.Label)).ToList() };
+                var box = new ComboBox { MinWidth = 200, ItemsSource = options.Select(o => o.Shown).ToList() };
                 var at = SettingsCatalog.Current(row) is { } current ? options.ToList().IndexOf(current) : -1;
                 if (at < 0)
-                    box.PlaceholderText = Shown(row.Value);
+                    box.PlaceholderText = SettingsCatalog.Shown(row.Key, row.Value);
                 else
                     box.SelectedIndex = at;
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, title);
@@ -712,7 +794,7 @@ public sealed partial class SettingsPage : Page
             case SettingControl.Text:
             {
                 var text = SettingsCatalog.TypedText(row) ?? "";
-                var box = new TextBox { Text = text, MinWidth = 220, PlaceholderText = "Not set" };
+                var box = new TextBox { Text = text, MinWidth = 220, PlaceholderText = T.SettingsNotSet };
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(box, title);
                 void Commit()
                 {
@@ -729,7 +811,7 @@ public sealed partial class SettingsPage : Page
                 break;
             }
             default:
-                control = new TextBlock { Text = Shown(row.Value), Style = Res<Style>("HazeBodyStyle") };
+                control = new TextBlock { Text = SettingsCatalog.Shown(row.Key, row.Value), Style = Res<Style>("HazeBodyStyle") };
                 break;
         }
         var card = CardFrame(title, description, control);
@@ -738,12 +820,9 @@ public sealed partial class SettingsPage : Page
         return card;
     }
 
-    /// <summary>A value as a row shows it, in sentence case.</summary>
-    static string Shown(string value) => value.Length == 0 ? "None" : char.ToUpperInvariant(value[0]) + value[1..];
-
     void ShowAccounts()
     {
-        Cards.Children.Add(Heading("Trackers"));
+        Cards.Children.Add(Heading(T.SettingsTrackers));
         foreach (var tracker in new[] { "anilist", "mal", "kitsu", "simkl", "trakt" })
         {
             var name = AnistreamFfiMethods.TrackerName(tracker);
@@ -752,24 +831,29 @@ public sealed partial class SettingsPage : Page
             string description;
             if (state is { Connected: true })
             {
-                description = state.User is { } user ? $"Signed in as {user}" : "Signed in";
-                if (state.Outbox > 0)
-                    description += $" · {AnistreamFfiMethods.Plural(state.Outbox, "change")} waiting to sync";
-                action = new Button { Content = "Sign out" };
+                var waiting = (long)state.Outbox;
+                description = (state.User, waiting) switch
+                {
+                    ({ } user, > 0) => T.AccountsStateSignedInWaiting(name, user, waiting),
+                    ({ } user, _) => T.AccountsStateSignedIn(name, user),
+                    (null, > 0) => T.SettingsSignedInWaiting(waiting),
+                    _ => T.SettingsSignedIn,
+                };
+                action = new Button { Content = T.AccountsSignOut };
                 action.Click += (_, _) => ctx.Send(new Command.Disconnect(tracker));
             }
             else
             {
-                description = tracker is "simkl" or "trakt" ? "Not signed in · You enter a code on its site" : "Not signed in";
-                action = new Button { Content = "Sign in" };
+                description = tracker is "simkl" or "trakt" ? T.SettingsSignedOutCode : T.AccountsStateSignedOut;
+                action = new Button { Content = T.AccountsSignIn };
                 action.Click += (_, _) => ctx.Send(new Command.Connect(tracker));
             }
             Cards.Children.Add(CardFrame(name, description, action));
         }
-        var sync = new Button { Content = "Sync now" };
+        var sync = new Button { Content = T.AccountsSyncNow };
         sync.Click += (_, _) => ctx.Send(new Command.SyncNow());
-        Cards.Children.Add(Heading("Sync"));
-        Cards.Children.Add(CardFrame("Sync with the trackers", "Sends what changed here and fetches what changed elsewhere.", sync));
+        Cards.Children.Add(Heading(T.SettingsSync));
+        Cards.Children.Add(CardFrame(T.AccountsSyncAll, T.SettingsSyncDetail, sync));
     }
 
     void ShowAbout()
@@ -779,20 +863,21 @@ public sealed partial class SettingsPage : Page
         top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         top.Children.Add(new Nagare(6));
         var text = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
-        text.Children.Add(new TextBlock { Text = "anistream", Style = Res<Style>("SubtitleTextBlockStyle") });
-        text.Children.Add(new TextBlock { Text = $"Version {Updater.Current}", Style = Res<Style>("HazeBodyStyle") });
-        text.Children.Add(new TextBlock { Text = "anistream hosts no content.", Style = Res<Style>("HazeBodyStyle") });
+        text.Children.Add(new TextBlock { Text = T.AppName, Style = Res<Style>("SubtitleTextBlockStyle") });
+        text.Children.Add(new TextBlock { Text = T.AboutVersion(Updater.Current), Style = Res<Style>("HazeBodyStyle") });
+        text.Children.Add(new TextBlock { Text = T.LegalHostsNoContent, Style = Res<Style>("HazeBodyStyle") });
         text.Children.Add(new UpdatePanel(ctx, ctx.Updater) { Margin = new Thickness(0, 6, 0, 0) });
         Grid.SetColumn(text, 1);
         top.Children.Add(text);
         Cards.Children.Add(top);
-        Cards.Children.Add(Heading("Notices"));
+        Cards.Children.Add(Heading(T.SettingsNotices));
+        // The typeface's and the library's names are their own, and stay as they are.
         foreach (var (name, line) in new[]
         {
-            ("anistream", "MIT licence"),
-            ("Zen Kaku Gothic New", "SIL Open Font Licence 1.1"),
-            ("libmpv", "LGPL 2.1 or later"),
-            ("Artwork under CC BY-NC", "Attribution in the app's notices"),
+            (T.AppName, T.AboutLicence),
+            ("Zen Kaku Gothic New", T.AboutFontLicence),
+            ("libmpv", T.SettingsLibmpvLicence),
+            (T.SettingsArtwork, T.SettingsArtworkDetail),
         })
             Cards.Children.Add(CardFrame(name, line, null));
     }

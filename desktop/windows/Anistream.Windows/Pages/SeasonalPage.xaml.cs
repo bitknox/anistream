@@ -28,12 +28,12 @@ public sealed partial class SeasonalPage : Page
         for (var step = Ahead; step >= -Back; step--)
         {
             var season = AnistreamFfiMethods.SeasonStep(now, step);
-            var item = new RadioMenuFlyoutItem { Text = AnistreamFfiMethods.SeasonName(season), GroupName = "season", Tag = season };
+            var item = new RadioMenuFlyoutItem { Text = Wording.SeasonWithYear(season), GroupName = "season", Tag = season };
             item.Click += (_, _) => Pick(season);
             SeasonMenu.Items.Add(item);
         }
         State.Placeholders = () => States.Covers();
-        State.ActivityText = "Loading this season";
+        State.ActivityText = T.SeasonalLoading;
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
         Unloaded += (_, _) => ctx.Batch -= Heard;
@@ -50,7 +50,7 @@ public sealed partial class SeasonalPage : Page
     void Pick(SeasonYear season)
     {
         picked = season;
-        SeasonPicker.Content = AnistreamFfiMethods.SeasonName(season);
+        SeasonPicker.Content = Wording.SeasonWithYear(season);
         foreach (var item in SeasonMenu.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Tag is SeasonYear s && s == season;
         var first = SeasonMenu.Items.OfType<RadioMenuFlyoutItem>().First().Tag as SeasonYear;
@@ -104,7 +104,7 @@ public sealed partial class SeasonalPage : Page
         if (shown.Count > 0)
             State.Done();
         else if (answered)
-            State.Empty(States.Unavailable(entries.Length == 0 ? $"Nothing listed for {AnistreamFfiMethods.SeasonName(picked)} yet" : "No titles in this format", entries.Length == 0 ? "AniList adds a season's titles as they're announced." : "Try All."));
+            State.Empty(States.Unavailable(entries.Length == 0 ? T.SeasonalEmptyTitle(Wording.SeasonWithYear(picked)) : T.SeasonalEmptyFormat, entries.Length == 0 ? T.SeasonalEmptyDetail : T.SeasonalEmptyFormatDetail));
     }
 
     void OnFormatChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs e)

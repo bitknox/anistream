@@ -34,13 +34,13 @@ sealed class TorrentDialog
     readonly Ctx ctx;
     readonly Purpose purpose;
     readonly ContentDialog dialog;
-    readonly TextBox index = new() { Header = "Torrent index", PlaceholderText = "https://…/?q={query}" };
+    readonly TextBox index = new() { Header = T.TorrentsIndex, PlaceholderText = T.TorrentsIndexHint };
     readonly StackPanel protections = new() { Spacing = 4, XYFocusKeyboardNavigation = XYFocusKeyboardNavigationMode.Enabled };
     readonly List<RadioButton> choices = [];
-    readonly TextBox host = new() { Header = "Host", PlaceholderText = "proxy.example" };
-    readonly TextBox port = new() { Header = "Port", PlaceholderText = "1080", Width = 96 };
-    readonly TextBox user = new() { Header = "User name" };
-    readonly PasswordBox password = new() { Header = "Password" };
+    readonly TextBox host = new() { Header = T.TorrentsProxyHost, PlaceholderText = T.TorrentsProxyHostExample };
+    readonly TextBox port = new() { Header = T.TorrentsProxyPort, PlaceholderText = "1080", Width = 96 };
+    readonly TextBox user = new() { Header = T.TorrentsProxyUser };
+    readonly PasswordBox password = new() { Header = T.TorrentsProxyPassword };
     readonly Grid proxy = new() { ColumnSpacing = 12, RowSpacing = 10, Margin = new Thickness(28, 4, 0, 8) };
     // The note and the checking or failed line share one place, so the dialog keeps its height
     // and its buttons stay where they are from the press to the verdict.
@@ -87,16 +87,16 @@ sealed class TorrentDialog
             // Protect with, the proxy's address under its choice, only while it is the choice:
             // the Mac's sheet. Buttons in one group, not RadioButtons, so the address sits
             // between them.
-            protections.Children.Add(new TextBlock { Text = "Protect with", Margin = new Thickness(0, 0, 0, 4) });
+            protections.Children.Add(new TextBlock { Text = T.TorrentsProtectWith, Margin = new Thickness(0, 0, 0, 4) });
             body.Children.Add(protections);
-            AutomationProperties.SetName(protections, "Protect with");
+            AutomationProperties.SetName(protections, T.TorrentsProtectWith);
             foreach (var choice in TorrentWords.Order)
             {
                 var words = new StackPanel { Spacing = 2 };
                 words.Children.Add(Ui.Text(TorrentWords.Label(choice)));
                 words.Children.Add(Ui.Text(TorrentWords.Detail(choice), "HazeCaptionStyle"));
                 var button = new RadioButton { Content = words, GroupName = "protect", IsChecked = choice == draft.Protection };
-                AutomationProperties.SetName(button, $"{TorrentWords.Label(choice)}. {TorrentWords.Detail(choice)}");
+                AutomationProperties.SetName(button, T.TorrentsChoiceSpoken(TorrentWords.Label(choice), TorrentWords.Detail(choice)));
                 button.Checked += (_, _) => Changed(draft with { Protection = choice });
                 choices.Add(button);
                 protections.Children.Add(button);
@@ -167,10 +167,10 @@ sealed class TorrentDialog
         dialog = new ContentDialog
         {
             XamlRoot = root,
-            Title = purpose switch { Purpose.TurnOn => "Turn on torrents", Purpose.Protect => "Protect torrents", _ => "Edit proxy" },
+            Title = purpose switch { Purpose.TurnOn => T.TorrentsDialogTurnOn, Purpose.Protect => T.TorrentsDialogProtect, _ => T.TorrentsDialogEditProxy },
             Content = body,
-            PrimaryButtonText = turningOn ? "Turn on" : "Save",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = turningOn ? T.TorrentsDialogTurnOnAction : T.ActionSave,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Primary,
         };
         dialog.PrimaryButtonStyle = Ui.Res<Style>("AccentButtonStyle");

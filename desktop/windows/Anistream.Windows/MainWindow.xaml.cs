@@ -87,7 +87,7 @@ public sealed partial class MainWindow : Window
         var updater = new Updater(ui, staged: options.Fixture && options.UpdateFrom is null) { Quit = CloseNow };
         updater.Ready += version =>
         {
-            ShowToast(InfoBarSeverity.Informational, $"Version {version} is ready to install", "Restart to update", updater.Install);
+            ShowToast(InfoBarSeverity.Informational, T.UpdatesReady(version), T.UpdatesRestart, updater.Install);
             readyToast = toastShown;
         };
         // The offer goes once the update moves on, from About or a failure.
@@ -298,9 +298,9 @@ public sealed partial class MainWindow : Window
             ui.TryEnqueue(DispatcherQueuePriority.Low, () =>
             {
                 if (restarted.Installed)
-                    ShowToast(InfoBarSeverity.Success, $"Updated to version {Updater.Current}");
+                    ShowToast(InfoBarSeverity.Success, T.UpdatesUpdated(Updater.Current));
                 else
-                    ShowToast(InfoBarSeverity.Warning, $"Version {restarted.Version} didn't install. About can try again.", "Open About",
+                    ShowToast(InfoBarSeverity.Warning, T.UpdatesDidNotInstall(restarted.Version), T.UpdatesOpenAbout,
                         () => ContentFrame.Navigate(typeof(SettingsPage), "about", new SuppressNavigationTransitionInfo()));
             });
 #if ANISTREAM_TESTING
@@ -443,6 +443,9 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>The tracker the window syncs with, by its own name, which no language changes.</summary>
+    const string Tracker = "AniList";
+
     /// <summary>
     /// The account in the pane's foot. Water is calm state: changes waiting to sync. A sign-in
     /// that needs renewing is a problem, so it says so in words beside the error glyph.
@@ -451,13 +454,13 @@ public sealed partial class MainWindow : Window
     {
         var anilist = ctx.Known.Anilist;
         var reauth = anilist is { NeedsReauth: true };
-        AccountText.Text = anilist is null ? "Not signed in" : reauth ? "Sign in again" : anilist.User ?? "AniList";
+        AccountText.Text = anilist is null ? T.AccountsStateSignedOut : reauth ? T.AccountsPaneSignInAgain : anilist.User ?? Tracker;
         AccountDot.Visibility = anilist is { Outbox: > 0 } && !reauth ? Visibility.Visible : Visibility.Collapsed;
         AccountAlert.Visibility = reauth ? Visibility.Visible : Visibility.Collapsed;
-        var tip = anilist is null ? "Sign in to AniList"
-            : reauth ? "AniList needs you to sign in again"
-            : anilist.Outbox > 0 ? $"Signed in to AniList as {anilist.User} · {AnistreamFfiMethods.Plural(anilist.Outbox, "change")} waiting to sync"
-            : $"Signed in to AniList as {anilist.User}";
+        var tip = anilist is null ? T.LibrarySignedOutAction
+            : reauth ? T.AccountsStateExpired(Tracker)
+            : anilist.Outbox > 0 ? T.AccountsStateSignedInWaiting(Tracker, anilist.User ?? Tracker, anilist.Outbox)
+            : T.AccountsStateSignedIn(Tracker, anilist.User ?? Tracker);
         ToolTipService.SetToolTip(AccountItem, tip);
         AutomationProperties.SetName(AccountItem, tip);
     }
@@ -476,9 +479,9 @@ public sealed partial class MainWindow : Window
         var text = notice.Msg?.Text() ?? "";
         var (button, act) = notice.Hint switch
         {
-            NoticeHint.StopPlayback => ("Stop", (Action)(() => { if (Player.Showing) Player.Close(); })),
-            NoticeHint.OpenStores => ("Open stores", () => Go("stores")),
-            NoticeHint.KitsuCredentials => ("Sign in", () => ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo())),
+            NoticeHint.StopPlayback => (T.ActionStop, (Action)(() => { if (Player.Showing) Player.Close(); })),
+            NoticeHint.OpenStores => (T.ToastOpenStores, () => Go("stores")),
+            NoticeHint.KitsuCredentials => (T.ActionSignIn, () => ContentFrame.Navigate(typeof(SettingsPage), "accounts", new SuppressNavigationTransitionInfo())),
             _ => (null, null),
         };
         ShowToast(notice.Kind == NoticeKind.Alert ? InfoBarSeverity.Warning : InfoBarSeverity.Informational, text, button, act);
@@ -779,18 +782,18 @@ public sealed partial class MainWindow : Window
         if (downloading + seeding == 0)
             (downloading, seeding) = options.AskClose ? (2, 1) : (0, 0);
         askedClose = true;
-        var dontAsk = new CheckBox { Content = "Don't ask again" };
+        var dontAsk = new CheckBox { Content = T.CloseDontAsk };
         var body = new StackPanel { Spacing = 16 };
         body.Children.Add(new TextBlock { Text = CloseLine(downloading, seeding), TextWrapping = TextWrapping.WrapWholeWords });
         body.Children.Add(dontAsk);
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Downloads are still running",
+            Title = T.CloseTitle,
             Content = body,
-            PrimaryButtonText = "Keep going",
-            SecondaryButtonText = "Stop and close",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = T.CloseKeepGoing,
+            SecondaryButtonText = T.CloseStop,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Primary,
         };
         var answer = await dialog.ShowAsync();
@@ -807,12 +810,13 @@ public sealed partial class MainWindow : Window
 
     static string CloseLine(int downloading, int seeding)
     {
-        var parts = new List<string>();
+        var lines = new List<string>();
         if (downloading > 0)
-            parts.Add(downloading == 1 ? "1 episode is downloading" : $"{downloading} episodes are downloading");
+            lines.Add(T.CloseDownloading(downloading));
         if (seeding > 0)
-            parts.Add(seeding == 1 ? "1 is seeding" : $"{seeding} are seeding");
-        return $"{string.Join(" and ", parts)}. Keep them going after the window closes, or stop them?";
+            lines.Add(T.CloseSeeding(seeding));
+        lines.Add(T.CloseAsk);
+        return string.Join(" ", lines);
     }
 
     DispatcherQueueTimer? keepGoing;
@@ -918,7 +922,7 @@ public sealed partial class MainWindow : Window
     void Notified(string title, string body)
     {
         if ((inFront && AppWindow.IsVisible) || toasts is null)
-            ShowToast(InfoBarSeverity.Informational, $"{title}: {body}");
+            ShowToast(InfoBarSeverity.Informational, T.ToastTitled(title, body));
         else
             toasts.Post(new SystemNotice($"engine-{title}", title, body, 0, null, null));
     }
@@ -1003,7 +1007,7 @@ public sealed partial class MainWindow : Window
                 break;
             default:
                 AnistreamFfiMethods.LogLine(FfiLogLevel.Info, "windows", "a link this app does not open");
-                ShowToast(InfoBarSeverity.Warning, "anistream can't open that link");
+                ShowToast(InfoBarSeverity.Warning, T.LinkCantOpen);
                 break;
         }
     }
@@ -1144,7 +1148,7 @@ public sealed partial class MainWindow : Window
         if (ctx.Known.Anilist is null)
             return;
         ctx.Send(new Command.SyncNow());
-        ShowToast(InfoBarSeverity.Informational, "Syncing with AniList");
+        ShowToast(InfoBarSeverity.Informational, T.AccountsSyncRunningWith(Tracker));
     }
 
     /// <summary>Ctrl+/: every key the window and the player answer, in a dialog.</summary>
@@ -1174,38 +1178,38 @@ public sealed partial class MainWindow : Window
             grid.Children.Add(name);
             grid.Children.Add(key);
         }
-        Section("Window");
-        Line("Continue to Plugin stores", "Ctrl+1 to Ctrl+7");
-        Line("Search", "Ctrl+F, Ctrl+E");
-        Line("Back", "Alt+Left, mouse back");
-        Line("Settings", "Ctrl+,");
-        Line("Sync now", "Ctrl+R, F5");
-        Line("Mark as watched", "Ctrl+Shift+M");
-        Line("Hide from Continue", "Delete");
-        Line("Context menu", "Shift+F10, Menu key");
-        Line("Keyboard shortcuts", "Ctrl+/");
-        Section("Player");
-        Line("Play or pause", "Space, K");
-        Line("Back or forward 5 s, 30 s with Shift", "Left, Right");
-        Line("Back or forward 10 s", "J, L");
-        Line("Volume", "Up, Down");
-        Line("Mute", "M");
-        Line("Full screen", "F, F11");
-        Line("Skip, undo the skip", "S, U");
-        Line("Next or previous episode", "N, Shift+N");
-        Line("Episodes", "E");
-        Line("Subtitles and audio", "T");
-        Line("Stats for nerds", "I");
-        Line("Slower, faster, normal speed", "[, ], Backspace");
-        Line("Mini player", "P");
-        Line("Take the corner card's action", "Enter");
-        Line("Close the player", "Esc, Alt+Left");
+        Section(T.ShortcutsWindow);
+        Line(T.ShortcutsSections, T.ShortcutsKeysRange("Ctrl+1", "Ctrl+7"));
+        Line(T.NavSearch, "Ctrl+F, Ctrl+E");
+        Line(T.ActionBack, T.ShortcutsKeysBack("Alt+Left"));
+        Line(T.NavSettings, "Ctrl+,");
+        Line(T.AccountsSyncNow, "Ctrl+R, F5");
+        Line(T.EpisodeMarkWatched, "Ctrl+Shift+M");
+        Line(T.ContinueHide, "Delete");
+        Line(T.ShortcutsContextMenu, T.ShortcutsKeysMenu("Shift+F10"));
+        Line(T.ShortcutsTitle, "Ctrl+/");
+        Section(T.SettingsGroupPlayer);
+        Line(T.ShortcutsPlayPause, "Space, K");
+        Line(T.ShortcutsSeek, "Left, Right");
+        Line(T.ShortcutsSeekTen, "J, L");
+        Line(T.PlayerVolume, "Up, Down");
+        Line(T.ShortcutsMute, "M");
+        Line(T.PlayerFullscreen, "F, F11");
+        Line(T.ShortcutsSkip, "S, U");
+        Line(T.ShortcutsNextPrevious, "N, Shift+N");
+        Line(T.PlayerEpisodes, "E");
+        Line(T.PlayerSubtitlesAndAudio, "T");
+        Line(T.PlayerStats, "I");
+        Line(T.ShortcutsSpeed, "[, ], Backspace");
+        Line(T.PlayerMiniPlayer, "P");
+        Line(T.ShortcutsCornerCard, "Enter");
+        Line(T.ShortcutsClosePlayer, "Esc, Alt+Left");
         var dialog = new ContentDialog
         {
             XamlRoot = Root.XamlRoot,
-            Title = "Keyboard shortcuts",
+            Title = T.ShortcutsTitle,
             Content = new ScrollViewer { Content = grid, MaxHeight = 480, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(0, 0, 16, 0) },
-            CloseButtonText = "Close",
+            CloseButtonText = T.ActionClose,
             DefaultButton = ContentDialogButton.Close,
         };
         try

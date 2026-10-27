@@ -35,11 +35,11 @@ sealed class PartyDialog
     readonly ContentDialog dialog;
     readonly For what;
     readonly TextBlock episode = Ui.Text("", "BodyStrongTextBlockStyle");
-    readonly AutoSuggestBox server = new() { Header = "Server", PlaceholderText = "host:port", IsEnabled = false };
+    readonly AutoSuggestBox server = new() { Header = T.PartyServer, PlaceholderText = T.PartyServerHint, IsEnabled = false };
     readonly TextBlock serverHint = Ui.Text("", "HazeCaptionStyle");
-    readonly Button useSuggested = new() { Content = "Use it", Padding = new Thickness(10, 2, 10, 3), MinHeight = 0, VerticalAlignment = VerticalAlignment.Top };
-    readonly TextBox room = new() { Header = "Room", IsEnabled = false };
-    readonly TextBox name = new() { Header = "Your name in the room", IsEnabled = false, MaxLength = 40 };
+    readonly Button useSuggested = new() { Content = T.PartyUseIt, Padding = new Thickness(10, 2, 10, 3), MinHeight = 0, VerticalAlignment = VerticalAlignment.Top };
+    readonly TextBox room = new() { Header = T.PartyRoom, IsEnabled = false };
+    readonly TextBox name = new() { Header = T.PartyYourName, IsEnabled = false, MaxLength = 40 };
     readonly TextBlock invitePlace = Ui.Text("", "BodyTextBlockStyle");
     readonly ProgressRing ring = new() { Width = 16, Height = 16, IsActive = false, Opacity = 0 };
     // Where the ring is while joining, the error mark once it failed: the line never moves.
@@ -47,7 +47,8 @@ sealed class PartyDialog
     readonly TextBlock status = Ui.Text("", "CaptionTextBlockStyle");
     readonly TextBlock privacy = new()
     {
-        Text = "The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources. anistream hosts no content.",
+        // The legal line goes with the privacy note wherever a party is set up.
+        Text = T.PartyPrivacy + " " + T.LegalHostsNoContent,
         TextWrapping = TextWrapping.WrapWholeWords,
     };
     readonly Grid line = new() { ColumnSpacing = 8, VerticalAlignment = VerticalAlignment.Top, Opacity = 0 };
@@ -108,10 +109,10 @@ sealed class PartyDialog
         dialog = new ContentDialog
         {
             XamlRoot = root,
-            Title = what is For.Invite ? "Join the party?" : "Watch together",
+            Title = what is For.Invite ? T.PartyJoinTitle : T.PartyTitle,
             Content = body,
-            PrimaryButtonText = what is For.Invite ? "Join party" : "Start party",
-            CloseButtonText = "Cancel",
+            PrimaryButtonText = what is For.Invite ? T.PartyJoin : T.PartyStart,
+            CloseButtonText = T.ActionCancel,
             DefaultButton = ContentDialogButton.Primary,
             IsPrimaryButtonEnabled = false,
         };
@@ -140,7 +141,7 @@ sealed class PartyDialog
         name.TextChanged += (_, _) => Update();
         ShowEpisode();
         if (what is For.Invite invite)
-            invitePlace.Text = $"Room {invite.Link.Room} on {invite.Link.Server}";
+            invitePlace.Text = T.PartyInviteRoom(invite.Link.Room, invite.Link.Server);
     }
 
     public async Task ShowAsync(Action<PartyDialog>? shown = null)
@@ -194,8 +195,8 @@ sealed class PartyDialog
             _ => null,
         };
         episode.Text = ep is { } x
-            ? ctx.Known.Entry(x.Id) is { } entry ? $"Episode {x.Number} of {entry.Title}" : $"Episode {x.Number}"
-            : "What's playing now plays with the room.";
+            ? ctx.Known.Entry(x.Id) is { } entry ? T.EpisodeLabelOf(x.Number, entry.Title) : T.EpisodeLabel(x.Number)
+            : T.PartyFormNothing;
     }
 
     void Fill(PartyForm form)
@@ -218,23 +219,23 @@ sealed class PartyDialog
         if (form is not null)
         {
             serverHint.Text = what is For.Invite
-                ? Parties.ServerHint(serverText, form) is var h && h.StartsWith("A public", StringComparison.Ordinal) ? h : "A server the person who invited you chose. anistream doesn't run it."
+                ? string.Equals(serverText.Trim(), form.SuggestedServer, StringComparison.OrdinalIgnoreCase) ? Parties.ServerHint(serverText, form) : T.PartyServerInvited
                 : Parties.ServerProblem(serverText) ?? Parties.ServerHint(serverText, form);
             var suggested = string.Equals(serverText.Trim(), form.SuggestedServer, StringComparison.OrdinalIgnoreCase);
             // Faded rather than removed, so the line keeps its height.
             useSuggested.Opacity = suggested ? 0 : 1;
             useSuggested.IsEnabled = !suggested && !joining;
-            AutomationProperties.SetName(useSuggested, $"Use {form.SuggestedServer}");
+            AutomationProperties.SetName(useSuggested, T.PartyUseServer(form.SuggestedServer));
         }
         else
             useSuggested.Opacity = 0;
         if (!joining)
         {
             if (ctx.Known.Offline)
-                Say("A party needs a connection. You're offline.", error: true);
+                Say(T.PartyNeedsConnection, error: true);
             else if (form is null)
-                Say("Getting things ready…", busy: true);
-            else if (status.Text is "Getting things ready…" or "A party needs a connection. You're offline.")
+                Say(T.PartyGettingReady, busy: true);
+            else if (status.Text == T.PartyGettingReady || status.Text == T.PartyNeedsConnection)
                 Say("");
         }
         dialog.IsPrimaryButtonEnabled = form is not null && !joining && !ctx.Known.Offline
@@ -268,7 +269,7 @@ sealed class PartyDialog
         var (serverText, roomText) = what is For.Invite i ? (i.Link.Server, i.Link.Room) : (server.Text.Trim(), room.Text.Trim());
         joining = true;
         server.IsEnabled = room.IsEnabled = name.IsEnabled = false;
-        Say($"Joining {roomText} on {serverText}…", busy: true);
+        Say(T.PartyJoining(roomText, serverText), busy: true);
         Update();
         // The room first, and the episode once in it: a server that can't be reached leaves
         // nothing playing behind the dialog.
@@ -296,8 +297,8 @@ sealed class PartyDialog
                 case Event.PartyLeft left when joining:
                     joining = false;
                     server.IsEnabled = room.IsEnabled = name.IsEnabled = true;
-                    dialog.PrimaryButtonText = "Try again";
-                    Say(left.Reason is { } why ? why.Text() : "The party ended before it began.", error: true);
+                    dialog.PrimaryButtonText = T.ActionTryAgain;
+                    Say(left.Reason is { } why ? why.Text() : T.PartyEndedEarly, error: true);
                     break;
                 case Event.Connectivity:
                     break;

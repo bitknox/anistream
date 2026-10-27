@@ -20,7 +20,7 @@ public sealed class QueueRow
     public QueueItem Item { get; }
     public CoverItem Cover { get; }
     public string Name => $"{Item.Entry.Title}, {Item.Action}";
-    public string MenuPlay => Item.Resume is not null ? "Resume" : "Play";
+    public string MenuPlay => Item.Resume is not null ? T.ContinueMenuResume : T.ActionPlay;
     public Visibility FromStartShown => Item.Resume is not null ? Visibility.Visible : Visibility.Collapsed;
 }
 
@@ -48,7 +48,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
     {
         InitializeComponent();
         State.Placeholders = () => States.Rows(5, 36, 54);
-        State.ActivityText = "Loading what you're watching";
+        State.ActivityText = T.ContinueLoading;
         // Heard from the start: what arrives before the page is loaded is not missed.
         ctx.Batch += Heard;
         Unloaded += (_, _) => ctx.Batch -= Heard;
@@ -97,9 +97,9 @@ public sealed partial class ContinuePage : Page, IPageKeys
         var queue = Wording.Said(AnistreamFfiMethods.ContinueQueue(entries, [.. known.HiddenFromContinue], Casing.Sentence));
         var groups = new List<QueueGroup>();
         if (queue.InProgress.Length > 0)
-            groups.Add(new("In progress", queue.InProgress.Select(Row)));
+            groups.Add(new(T.GroupInProgress, queue.InProgress.Select(Row)));
         if (queue.NewThisWeek.Length > 0)
-            groups.Add(new("New this week", queue.NewThisWeek.Select(Row)));
+            groups.Add(new(T.GroupNewThisWeek, queue.NewThisWeek.Select(Row)));
 
         var empty = groups.Count == 0;
         ShowSyncLine();
@@ -117,7 +117,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
         }
         else if (empty)
         {
-            State.Empty(States.Empty("Nothing watched yet", "Pick something from Seasonal, or search for a title.", "Browse Seasonal", () => ctx.Window.Go("seasonal")));
+            State.Empty(States.Empty(T.ContinueEmptyTitle, T.ContinueEmptyDetail, T.ContinueEmptyAction, () => ctx.Window.Go("seasonal")));
             return;
         }
         else
@@ -165,7 +165,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
     void ShowSyncLine()
     {
         var waiting = ctx.Known.Anilist?.Outbox ?? 0;
-        SyncLine.Text = waiting > 0 ? $"{AnistreamFfiMethods.Plural(waiting, "change")} waiting to sync" : "";
+        SyncLine.Text = waiting > 0 ? T.ContinueSyncWaiting(waiting) : "";
         SyncLine.Visibility = waiting > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -196,8 +196,11 @@ public sealed partial class ContinuePage : Page, IPageKeys
         var episodeTitle = ctx.Known.Episodes.TryGetValue(entry.Id, out var rows)
             ? rows.FirstOrDefault(r => r.Number == item.Episode.ToString())?.Title
             : null;
-        // "Episode 7 · Dub · The Lantern Road": a show watched dubbed is marked, as its row is.
-        EpisodeLine.Text = Lines.Episode($"Episode {item.Episode}", episodeTitle, item.Entry.WatchedIn);
+        // "Episode 7 · Dubbed · The Lantern Road": a show watched dubbed is marked, as its row is.
+        var dubbed = item.Entry.WatchedIn == Anistream.Engine.Core.Translation.Dub;
+        EpisodeLine.Text = episodeTitle is { Length: > 0 } named
+            ? dubbed ? T.EpisodeWithTitleDubbed(item.Episode, named) : T.EpisodeWithTitle(item.Episode, named)
+            : Wording.EpisodeLine(T.EpisodeNumber(item.Episode), item.Entry.WatchedIn);
         Meter.Visibility = item.Fraction is not null ? Visibility.Visible : Visibility.Collapsed;
         EpisodeProgress.Value = item.Fraction ?? 0;
         LeftLine.Text = item.Left ?? "";

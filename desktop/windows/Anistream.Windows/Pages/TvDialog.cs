@@ -268,7 +268,7 @@ sealed class TvDialog
         readonly TextBlock line = Ui.Haze("");
         readonly StackPanel rows = new();
         readonly StackPanel typed = new() { Spacing = 6, Margin = new Thickness(0, 14, 0, 0), Visibility = Visibility.Collapsed };
-        readonly TextBox address = new() { PlaceholderText = "192.168.1.20:47811", Header = "Address" };
+        readonly TextBox address = new() { PlaceholderText = "192.168.1.20:47811", Header = T.TvAddress };
         readonly DateTimeOffset opened = DateTimeOffset.UtcNow;
         string? drawn;
         bool typing;
@@ -308,9 +308,9 @@ sealed class TvDialog
             var tv = owner.tv;
             line.Text = TvWords.PickerLine(tv.Request);
             owner.Buttons(TvWords.PickerTitle(tv.Request),
-                typing ? ("Connect", Connect, address.Text.Trim().Length > 0, true) : null,
-                typing ? null : ("Type an address…", Type, true),
-                "Done");
+                typing ? (T.TvConnect, Connect, address.Text.Trim().Length > 0, true) : null,
+                typing ? null : (T.TvTypeAddress, Type, true),
+                T.ActionDone);
             // The rows again only when they read differently, so focus stays where it was.
             var now = string.Join("|", tv.Rows.Select(r => $"{r.Key},{r.Name},{r.Detail},{r.Kind},{r.Fingerprint == tv.Connected}"));
             if (now == drawn && tv.Rows.Length > 0)
@@ -387,7 +387,7 @@ sealed class TvDialog
             {
                 Motion.FadeIn(grid);
                 AutomationProperties.SetLiveSetting(grid, AutomationLiveSetting.Polite);
-                AutomationProperties.SetName(grid, stage == "looking" ? TvWords.Looking : $"{TvWords.NoneFound}. {TvWords.NoneLine(owner.tv.Request)}");
+                AutomationProperties.SetName(grid, stage == "looking" ? TvWords.Looking : T.TvNoneFoundName(TvWords.NoneFound, TvWords.NoneLine(owner.tv.Request)));
             }
             return grid;
         }
@@ -405,7 +405,7 @@ sealed class TvDialog
             grid.Children.Add(words);
             FrameworkElement? end = row.Kind switch
             {
-                FfiTvRowKind.New => new TextBlock { Text = "Pair", Style = Ui.Res<Style>("BodyStrongTextBlockStyle") },
+                FfiTvRowKind.New => new TextBlock { Text = T.ActionPair, Style = Ui.Res<Style>("BodyStrongTextBlockStyle") },
                 FfiTvRowKind.Paired or FfiTvRowKind.PairedAway when tv.Connected == row.Fingerprint => new FontIcon { Glyph = "", FontSize = 14 },
                 FfiTvRowKind.Paired or FfiTvRowKind.PairedAway => new FontIcon { Glyph = "", FontSize = 12, Foreground = Ui.Res<Brush>("TextFillColorSecondaryBrush") },
                 _ => null,
@@ -430,9 +430,9 @@ sealed class TvDialog
                 Opacity = row.Kind == FfiTvRowKind.NeedsUpdate ? 0.55 : 1,
             };
             var connected = tv.Connected == row.Fingerprint && row.Fingerprint is not null;
-            AutomationProperties.SetName(button, $"{row.Name}, {row.Detail}" + (connected ? ", connected" : ""));
+            AutomationProperties.SetName(button, connected ? T.TvRowNameConnected(row.Name, row.Detail) : T.TvRowName(row.Name, row.Detail));
             if (row.Kind == FfiTvRowKind.New)
-                AutomationProperties.SetHelpText(button, "Pairs with this TV");
+                AutomationProperties.SetHelpText(button, T.TvRowPairHelp);
             button.Click += (_, _) => tv.Choose(row);
             return button;
         }
@@ -498,7 +498,7 @@ sealed class TvDialog
             }
             code.Children.Add(boxRow);
             code.Children.Add(typed);
-            AutomationProperties.SetName(typed, "Pairing code");
+            AutomationProperties.SetName(typed, T.TvPairingCode);
             typed.InputScope = new InputScope { Names = { new(InputScopeNameValue.Number) } };
             typed.TextChanged += (_, _) =>
             {
@@ -524,7 +524,7 @@ sealed class TvDialog
             Motion.QuickOpacity(code);
             root.Children.Add(code);
             waiting.Children.Add(new ProgressRing { IsActive = true, Width = 16, Height = 16 });
-            waiting.Children.Add(Ui.Haze("Waiting for the TV", wrap: false));
+            waiting.Children.Add(Ui.Haze(T.TvWaiting, wrap: false));
             root.Children.Add(waiting);
             problem.Root.Margin = new Thickness(0, 12, 0, 0);
             root.Children.Add(problem.Root);
@@ -569,7 +569,7 @@ sealed class TvDialog
             line.Visibility = !typing && step.Problem is not null ? Visibility.Collapsed : Visibility.Visible;
             code.Visibility = typing ? Visibility.Visible : Visibility.Collapsed;
             waiting.Visibility = typing ? Visibility.Collapsed : Visibility.Visible;
-            ((TextBlock)waiting.Children[1]).Text = step.TvName.Length == 0 ? "Waiting for the TV" : $"Waiting for {step.TvName}";
+            ((TextBlock)waiting.Children[1]).Text = step.TvName.Length == 0 ? T.TvWaiting : T.TvWaitingFor(step.TvName);
             // A code that ran out takes no more digits: the boxes lock and dim until a new one.
             typed.IsReadOnly = step.Working || step.Expired;
             code.Opacity = step.Expired ? 0.4 : 1;
@@ -592,12 +592,12 @@ sealed class TvDialog
             else if (step.Problem is not null && !typing)
                 waiting.Visibility = Visibility.Collapsed;
             if (typing && step.Expired)
-                owner.Buttons(TvWords.PairingTitle(step), (TvWords.NewCode, Again, !step.Working, true), null, "Back");
+                owner.Buttons(TvWords.PairingTitle(step), (TvWords.NewCode, Again, !step.Working, true), null, T.ActionBack);
             else
                 owner.Buttons(TvWords.PairingTitle(step),
-                    typing ? ("Pair", Submit, TvWords.SixDigits(typed.Text) is not null && !step.Working, true) : null,
+                    typing ? (T.ActionPair, Submit, TvWords.SixDigits(typed.Text) is not null && !step.Working, true) : null,
                     typing ? (TvWords.NewCode, Again, !step.Working) : null,
-                    "Back");
+                    T.ActionBack);
             Draw();
             if (typing && !step.Working && !focused && step.Problem is null)
                 typed.Focus(FocusState.Programmatic);
@@ -638,7 +638,7 @@ sealed class TvDialog
         readonly StackPanel volume = new() { Orientation = Orientation.Horizontal, Spacing = 6 };
         readonly Border rowsCard;
         readonly TextBlock nothing = Ui.Haze(TvWords.Nothing);
-        readonly TextBox search = new() { PlaceholderText = "Search on the TV", Margin = new Thickness(0, 14, 0, 0) };
+        readonly TextBox search = new() { PlaceholderText = T.TvSearchOnTv, Margin = new Thickness(0, 14, 0, 0) };
         readonly ProblemLine problem = new();
         readonly DispatcherQueueTimer settle;
         string? statusSaid;
@@ -684,7 +684,7 @@ sealed class TvDialog
             playing.Children.Add(nowRow);
 
             // The playhead, dragged or stepped to seek.
-            AutomationProperties.SetName(seek, "Position");
+            AutomationProperties.SetName(seek, T.PlayerPosition);
             seek.ValueChanged += (_, e) =>
             {
                 if (quiet)
@@ -706,23 +706,23 @@ sealed class TvDialog
             playing.Children.Add(times);
 
             // Back and forward 10 seconds, play or pause, and the next episode, as the player's bar draws them.
-            transport.Children.Add(Glyph(Ten(back: true), "Back 10 seconds", new FfiTvCommand.Seek(-10)));
+            transport.Children.Add(Glyph(Ten(back: true), T.PlayerBack10, new FfiTvCommand.Seek(-10)));
             playButton.Content = playIcon;
-            Style(playButton, "Pause");
+            Style(playButton, T.ActionPause);
             playButton.Click += (_, _) => _ = owner.tv.Send(new FfiTvCommand.TogglePause());
             transport.Children.Add(playButton);
-            transport.Children.Add(Glyph(Ten(back: false), "Forward 10 seconds", new FfiTvCommand.Seek(10)));
-            transport.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 18 }, "Next episode", new FfiTvCommand.Next()));
+            transport.Children.Add(Glyph(Ten(back: false), T.PlayerForward10, new FfiTvCommand.Seek(10)));
+            transport.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 18 }, T.PlayerNextEpisode, new FfiTvCommand.Next()));
             playing.Children.Add(transport);
 
             // Subtitles, audio and the TV's own volume.
-            settings.Children.Add(SettingRow("Subtitles", null, subtitles));
+            settings.Children.Add(SettingRow(T.PlayerSubtitles, null, subtitles));
             settings.Children.Add(Hairline());
-            settings.Children.Add(SettingRow("Audio", null, audio));
+            settings.Children.Add(SettingRow(T.PlayerAudio, null, audio));
             settings.Children.Add(Hairline());
-            volume.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 14 }, "Volume down", new FfiTvCommand.Volume(-5), small: true));
-            volume.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 14 }, "Volume up", new FfiTvCommand.Volume(5), small: true));
-            settings.Children.Add(SettingRow("TV volume", volumeNote, volume));
+            volume.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 14 }, T.TvVolumeDown, new FfiTvCommand.Volume(-5), small: true));
+            volume.Children.Add(Glyph(new FontIcon { Glyph = "", FontSize = 14 }, T.TvVolumeUp, new FfiTvCommand.Volume(5), small: true));
+            settings.Children.Add(SettingRow(T.TvVolumeLabel, volumeNote, volume));
             Motion.QuickOpacity(transport);
             rowsCard = Rows(settings);
             Motion.QuickOpacity(rowsCard);
@@ -734,7 +734,7 @@ sealed class TvDialog
             root.Children.Add(nothing);
 
             // A search typed here lands in the TV's search, as each letter is typed.
-            AutomationProperties.SetName(search, "Search on the TV");
+            AutomationProperties.SetName(search, T.TvSearchOnTv);
             search.TextChanged += (_, _) =>
             {
                 if (!quiet)
@@ -843,14 +843,14 @@ sealed class TvDialog
                     Announce(status);
                 statusSaid = status.Text;
             }
-            owner.Buttons(card?.TvName ?? "TV",
-                TvWords.Lost(card) ? ("Pair again", () => _ = tv.PairAgain(), true, false) : (owner.Roomy ? "Choose another TV…" : "Another TV…", tv.OpenPicker, true, false),
-                ("Disconnect", () =>
+            owner.Buttons(card?.TvName ?? T.TvUnnamed,
+                TvWords.Lost(card) ? (T.TvPairAgain, () => _ = tv.PairAgain(), true, false) : (owner.Roomy ? T.TvChooseAnother : T.TvAnotherShort, tv.OpenPicker, true, false),
+                (T.ActionDisconnect, () =>
                 {
                     tv.Disconnect();
                     owner.Close();
                 }, true),
-                "Done");
+                T.ActionDone);
 
             playing.Visibility = now is null ? Visibility.Collapsed : Visibility.Visible;
             // What to do from here is said only while the TV can hear it; otherwise the status
@@ -873,7 +873,8 @@ sealed class TvDialog
             episode.Text = now.Loading ? TvWords.StartingLine : now.EpisodeLine;
             skip.Visibility = now.Skip is null ? Visibility.Collapsed : Visibility.Visible;
             if (now.Skip is { } offered)
-                skip.Content = Words.Sentence(offered.Label);
+                // The card names the part in English; the button says it from the catalogue.
+                skip.Content = offered.Label == "Skip ending" ? T.PlayerSkipEnding : T.PlayerSkipOpening;
             skip.IsEnabled = live;
 
             var controls = live && !now.Loading;
@@ -881,7 +882,7 @@ sealed class TvDialog
             foreach (var child in transport.Children.OfType<Control>())
                 child.IsEnabled = controls;
             playIcon.Glyph = now.Paused ? "" : "";
-            var name = now.Paused ? "Play" : "Pause";
+            var name = now.Paused ? T.ActionPlay : T.ActionPause;
             ToolTipService.SetToolTip(playButton, name);
             AutomationProperties.SetName(playButton, name);
             seek.IsEnabled = controls && now.Duration is not null;
@@ -910,8 +911,8 @@ sealed class TvDialog
             tracksDrawn = key;
             subtitles.Content = TvWords.Chosen(now.Subtitles, now.SubtitlesOff);
             audio.Content = TvWords.Chosen(now.Audio, off: false);
-            AutomationProperties.SetName(subtitles, $"Subtitles, {subtitles.Content}");
-            AutomationProperties.SetName(audio, $"Audio, {audio.Content}");
+            AutomationProperties.SetName(subtitles, T.TvSettingValue(T.PlayerSubtitles, (string)subtitles.Content));
+            AutomationProperties.SetName(audio, T.TvSettingValue(T.PlayerAudio, (string)audio.Content));
             subtitles.Flyout = Menu(FfiTvTrackKind.Subtitle, now.Subtitles, now.SubtitlesOff);
             audio.Flyout = Menu(FfiTvTrackKind.Audio, now.Audio, off: false);
         }
@@ -922,7 +923,7 @@ sealed class TvDialog
             var group = kind.ToString();
             if (kind == FfiTvTrackKind.Subtitle)
             {
-                var none = new RadioMenuFlyoutItem { Text = "Off", GroupName = group, IsChecked = off };
+                var none = new RadioMenuFlyoutItem { Text = T.ValueOff, GroupName = group, IsChecked = off };
                 none.Click += (_, _) => _ = owner.tv.Send(new FfiTvCommand.Track(kind, null));
                 menu.Items.Add(none);
             }

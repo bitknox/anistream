@@ -3,6 +3,7 @@
     x:Class="Anistream.Windows.Pages.DownloadsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:app="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
@@ -16,16 +17,16 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Spacing="2">
-        <TextBlock Text="Downloads" Style="{StaticResource PageTitleStyle}" />
+        <TextBlock Text="{x:Bind app:T.DownloadsTitle}" Style="{StaticResource PageTitleStyle}" />
         <TextBlock x:Name="Subtitle" Style="{StaticResource HazeBodyStyle}" />
       </StackPanel>
       <StackPanel x:Name="Actions" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-        <Button x:Name="PauseAll" Content="Pause all" Click="OnPauseAll" Height="32" />
-        <Button x:Name="ClearDone" Content="Clear completed" Click="OnClearCompleted" Height="32" />
-        <Button Content="Open folder" Click="OnOpenFolder" Height="32" />
+        <Button x:Name="PauseAll" Content="{x:Bind app:T.DownloadsPauseAll}" Click="OnPauseAll" Height="32" />
+        <Button x:Name="ClearDone" Content="{x:Bind app:T.DownloadsClearFinished}" Click="OnClearCompleted" Height="32" />
+        <Button Content="{x:Bind app:T.DownloadsOpenFolder}" Click="OnOpenFolder" Height="32" />
       </StackPanel>
     </Grid>
-    <ProgressBar x:Name="Meter" Grid.Row="1" Minimum="0" Maximum="1" Height="4" AutomationProperties.Name="Space used by downloads" />
+    <ProgressBar x:Name="Meter" Grid.Row="1" Minimum="0" Maximum="1" Height="4" AutomationProperties.Name="{x:Bind app:T.DownloadsSpaceLabel}" />
     <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
       <StackPanel x:Name="Body" Spacing="8" Padding="0,4,12,24" MaxWidth="900" HorizontalAlignment="Stretch" />
     </ScrollViewer>

@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Anistream.Windows.Pages"
+    xmlns:app="using:Anistream.App"
     Background="{ThemeResource GroundBrush}">
   <Grid Padding="36,20,36,0" RowSpacing="12">
     <Grid.RowDefinitions>
@@ -16,11 +17,11 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Spacing="2">
-        <TextBlock Text="Plugin stores" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+        <TextBlock Text="{x:Bind app:T.NavPluginStores}" Style="{StaticResource PageTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
         <local:OfflineLine />
-        <TextBlock Text="Plugins add sources. Each one lists the hosts it contacts before you install it." Style="{StaticResource HazeBodyStyle}" />
+        <TextBlock Text="{x:Bind app:T.StoresIntro}" Style="{StaticResource HazeBodyStyle}" />
       </StackPanel>
-      <Button Grid.Column="1" Style="{StaticResource AccentButtonStyle}" Content="Join a store" Click="OnJoin" Height="32" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Style="{StaticResource AccentButtonStyle}" Content="{x:Bind app:T.StoresJoinShort}" Click="OnJoin" Height="32" VerticalAlignment="Center" />
     </Grid>
     <!-- The stores beside the selected one; below about 760 the detail goes under the list. -->
     <Grid Grid.Row="1" ColumnSpacing="24" RowSpacing="16" SizeChanged="OnColumnsSizeChanged">
@@ -35,12 +36,12 @@
       <ScrollViewer x:Name="ListScroll" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="8" Padding="0,0,8,24">
           <ListView x:Name="StoreList" SelectionMode="Single" SelectionChanged="OnSelected" Margin="-12,0,0,0"
-                    AutomationProperties.Name="Plugin stores" />
+                    AutomationProperties.Name="{x:Bind app:T.NavPluginStores}" />
           <StackPanel x:Name="Empty" Spacing="4" Margin="0,16,0,0" Visibility="Collapsed">
-            <TextBlock Text="No stores yet" Style="{StaticResource BodyStrongTextBlockStyle}" />
-            <TextBlock Text="A store's owner sends you an invite link. Paste it under Join a store." Style="{StaticResource HazeBodyStyle}" />
+            <TextBlock Text="{x:Bind app:T.StoresEmptyTitle}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            <TextBlock Text="{x:Bind app:T.StoresEmptyDetail}" Style="{StaticResource HazeBodyStyle}" />
           </StackPanel>
-          <TextBlock Text="anistream hosts no content." Style="{StaticResource HazeCaptionStyle}" Margin="0,8,0,0" />
+          <TextBlock Text="{x:Bind app:T.LegalHostsNoContent}" Style="{StaticResource HazeCaptionStyle}" Margin="0,8,0,0" />
         </StackPanel>
       </ScrollViewer>
       <ScrollViewer x:Name="DetailScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto">

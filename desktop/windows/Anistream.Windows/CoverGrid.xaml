@@ -3,7 +3,8 @@
     x:Class="Anistream.Windows.CoverGrid"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Anistream.Windows">
+    xmlns:local="using:Anistream.Windows"
+    xmlns:app="using:Anistream.App">
   <!-- A poster grid: covers 150 wide at 2:3, as many columns as fit with 16 between, the title in
        Zen Kaku 15 and one caption line in haze under each. -->
   <ItemsView x:Name="Items" SelectionMode="None" IsItemInvokedEnabled="True" ItemInvoked="OnInvoked"
@@ -16,10 +17,10 @@
         <ItemContainer AutomationProperties.Name="{x:Bind Name}" CornerRadius="8">
           <ItemContainer.ContextFlyout>
             <MenuFlyout>
-              <MenuFlyoutItem Text="Open title" Click="OnOpen" Tag="{x:Bind}">
+              <MenuFlyoutItem Text="{x:Bind app:T.TitleOpen}" Click="OnOpen" Tag="{x:Bind}">
                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8A7;" /></MenuFlyoutItem.Icon>
               </MenuFlyoutItem>
-              <MenuFlyoutItem Text="Add to Planning" Click="OnPlan" Tag="{x:Bind}">
+              <MenuFlyoutItem Text="{x:Bind app:T.LibraryAddPlanning}" Click="OnPlan" Tag="{x:Bind}">
                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE710;" /></MenuFlyoutItem.Icon>
               </MenuFlyoutItem>
             </MenuFlyout>
