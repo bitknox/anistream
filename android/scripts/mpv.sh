@@ -177,10 +177,25 @@ step() { echo "mpv.sh: $* ($((SECONDS - started)) s)"; }
 
 # --- Sources ---------------------------------------------------------------------------------------
 
+# A second host for archives whose own host has been down for a whole release (Savannah, 27 October
+# 2026). It serves the same file, and the SHA-256 check below holds either way.
+mirror_of() {
+  case "$1" in
+    https://download.savannah.gnu.org/releases/freetype/freetype-*)
+      local archive="${1##*/}" version
+      version="${archive#freetype-}"
+      version="${version%.tar.*}"
+      echo "https://downloads.sourceforge.net/project/freetype/freetype2/$version/$archive" ;;
+  esac
+}
+
 download() {
-  local name="$1" url="$2" sum="$3" file="$cache/downloads/$1.${2##*.}"
+  local name="$1" url="$2" sum="$3" file="$cache/downloads/$1.${2##*.}" mirror
   if [[ ! -f "$file" ]] || [[ "$(shasum -a 256 "$file" | cut -d' ' -f1)" != "$sum" ]]; then
-    curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o "$file.part" "$url"
+    mirror="$(mirror_of "$url")"
+    curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 3 -o "$file.part" "$url" ||
+      { [[ -n "$mirror" ]] && echo "mpv.sh: $url failed, trying $mirror" >&2 &&
+        curl -fsSL --connect-timeout 20 --retry 5 --retry-all-errors --retry-delay 3 -o "$file.part" "$mirror"; }
     mv "$file.part" "$file"
   fi
   [[ "$(shasum -a 256 "$file" | cut -d' ' -f1)" == "$sum" ]] ||
