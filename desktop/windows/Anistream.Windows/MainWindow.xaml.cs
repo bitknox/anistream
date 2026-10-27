@@ -59,6 +59,11 @@ public sealed partial class MainWindow : Window
     {
         this.options = options;
         InitializeComponent();
+        Title = T.AppName;
+        // Each destination's tooltip names its shortcut: Ctrl+1 to Ctrl+7, in the sidebar's order.
+        string[] names = [T.NavContinue, T.NavCalendar, T.NavSeasonal, T.NavLibrary, T.NavDownloads, T.SourcesTitle, T.NavPluginStores];
+        foreach (var (item, n) in Nav.MenuItems.OfType<NavigationViewItem>().Select((item, i) => (item, i)))
+            ToolTipService.SetToolTip(item, T.TooltipWithKey(names[n], $"Ctrl+{n + 1}"));
         ui = DispatcherQueue.GetForCurrentThread();
 
         ExtendsContentIntoTitleBar = true;
@@ -430,7 +435,7 @@ public sealed partial class MainWindow : Window
                 case Event.Content { View: ContentFor.Continue, ContentValue: ContentList.Entries } when options.Play && !played:
                     played = true;
                     var entries = ctx.Known.ListEntries(new ContentFor.Continue());
-                    var queue = AnistreamFfiMethods.ContinueQueue(entries, [.. ctx.Known.HiddenFromContinue], Casing.Sentence);
+                    var queue = Wording.Said(AnistreamFfiMethods.ContinueQueue(entries, [.. ctx.Known.HiddenFromContinue], Casing.Sentence));
                     if (queue.InProgress.Concat(queue.NewThisWeek).FirstOrDefault(q => q.Playable) is { } first)
                         ctx.Play(first.Entry.Id, first.Episode.ToString());
                     break;
@@ -468,7 +473,7 @@ public sealed partial class MainWindow : Window
 
     void ShowToast(Notice notice)
     {
-        var text = Words.Notice(notice.Text);
+        var text = notice.Msg?.Text() ?? "";
         var (button, act) = notice.Hint switch
         {
             NoticeHint.StopPlayback => ("Stop", (Action)(() => { if (Player.Showing) Player.Close(); })),

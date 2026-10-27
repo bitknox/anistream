@@ -94,7 +94,7 @@ public sealed partial class ContinuePage : Page, IPageKeys
     {
         var known = ctx.Known;
         var entries = known.ListEntries(new ContentFor.Continue());
-        var queue = AnistreamFfiMethods.ContinueQueue(entries, [.. known.HiddenFromContinue], Casing.Sentence);
+        var queue = Wording.Said(AnistreamFfiMethods.ContinueQueue(entries, [.. known.HiddenFromContinue], Casing.Sentence));
         var groups = new List<QueueGroup>();
         if (queue.InProgress.Length > 0)
             groups.Add(new("In progress", queue.InProgress.Select(Row)));

@@ -83,14 +83,14 @@ public sealed partial class MainWindow
                     if (inParty && PartyDialog.Showing is null && !closing && !Player.Showing)
                     {
                         if (left.Reason is { } why)
-                            ShowToast(InfoBarSeverity.Warning, AnistreamFfiMethods.MsgEnglish(why)); // i18n P2: replace with the catalogue
+                            ShowToast(InfoBarSeverity.Warning, why.Text());
                         else
                             ShowToast(InfoBarSeverity.Informational, "You left the party. What's playing goes on, just for you.");
                     }
                     inParty = false;
                     break;
                 case Event.PartyNoSource none:
-                    ShowPartySource(none.Id, none.Episode, none.Why, AnistreamFfiMethods.MsgEnglish(none.Reason)); // i18n P2: replace with the catalogue
+                    ShowPartySource(none.Id, none.Episode, none.Why, none.Reason.Text());
                     break;
             }
         }

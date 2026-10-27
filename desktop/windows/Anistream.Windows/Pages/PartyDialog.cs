@@ -297,7 +297,7 @@ sealed class PartyDialog
                     joining = false;
                     server.IsEnabled = room.IsEnabled = name.IsEnabled = true;
                     dialog.PrimaryButtonText = "Try again";
-                    Say(left.Reason is { } why ? AnistreamFfiMethods.MsgEnglish(why) : "The party ended before it began.", error: true); // i18n P2: replace with the catalogue
+                    Say(left.Reason is { } why ? why.Text() : "The party ended before it began.", error: true);
                     break;
                 case Event.Connectivity:
                     break;

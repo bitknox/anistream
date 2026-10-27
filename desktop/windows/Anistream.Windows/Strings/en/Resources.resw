@@ -871,6 +871,22 @@
     <value>{count} seeders</value>
     <comment>Under a release in the source picker: how many people share it right now.</comment>
   </data>
+  <data name="TimeJustNow" xml:space="preserve">
+    <value>just now</value>
+    <comment>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</comment>
+  </data>
+  <data name="EpisodeLineDubbed" xml:space="preserve">
+    <value>{label} · Dubbed</value>
+    <comment>An episode line for a dubbed episode: the episode as the line names it, then the mark.</comment>
+  </data>
+  <data name="RatePerSecond" xml:space="preserve">
+    <value>{size}/s</value>
+    <comment>A transfer rate. The size is already formatted, such as "1.2 MB".</comment>
+  </data>
+  <data name="AppName" xml:space="preserve">
+    <value>anistream</value>
+    <comment>The window's title and the title bar's name: the app's name.</comment>
+  </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>About</value>
     <comment>Title of the about page.</comment>

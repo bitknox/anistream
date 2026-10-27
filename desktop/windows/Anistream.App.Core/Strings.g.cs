@@ -603,6 +603,18 @@ public static partial class T
     /// <summary>Under a release in the source picker: how many people share it right now.</summary>
     public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>How long ago something happened, under a minute. Lower case: it follows other words, as in "out just now".</summary>
+    public static string TimeJustNow => Get("TimeJustNow");
+
+    /// <summary>An episode line for a dubbed episode: the episode as the line names it, then the mark.</summary>
+    public static string EpisodeLineDubbed(string label) => Fill(Get("EpisodeLineDubbed"), ("label", label));
+
+    /// <summary>A transfer rate. The size is already formatted, such as "1.2 MB".</summary>
+    public static string RatePerSecond(string size) => Fill(Get("RatePerSecond"), ("size", size));
+
+    /// <summary>The window's title and the title bar's name: the app's name.</summary>
+    public static string AppName => Get("AppName");
+
     /// <summary>Title of the about page.</summary>
     public static string AboutTitle => Get("AboutTitle");
 
@@ -4363,6 +4375,10 @@ public static partial class T
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
         ["SourcePickerSeeders_one"] = "One seeder",
         ["SourcePickerSeeders_other"] = "{count} seeders",
+        ["TimeJustNow"] = "just now",
+        ["EpisodeLineDubbed"] = "{label} · Dubbed",
+        ["RatePerSecond"] = "{size}/s",
+        ["AppName"] = "anistream",
         ["AboutTitle"] = "About",
         ["AboutTitleApp"] = "About anistream",
         ["AboutVersion"] = "Version {version}",

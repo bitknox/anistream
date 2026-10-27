@@ -26,8 +26,9 @@ public sealed partial class SettingsPage : Page
     [
         new("playback", "Playback", "",
         [
-            // How titles read everywhere, not only while watching, so it heads the pane on its own.
-            ("General", [K.Titles]),
+            // The app's language and how titles read everywhere, not only while watching, so they
+            // head the pane on their own.
+            ("Language", [K.Titles]),
             ("Watching", [K.Translation, K.Quality, K.Subtitles, K.CommitThreshold]),
             ("Player", [K.AutoNext, K.UpNextCountdown, K.SkipOpening, K.SkipFiller, K.MarkChapters, K.SkipButton, K.Fullscreen]),
             ("Picture", [K.Upscaling, K.NightMode, K.SpoilerProtection, K.Motion]),
@@ -222,6 +223,8 @@ public sealed partial class SettingsPage : Page
                     Cards.Children.Add(Heading(heading));
                     if (heading == "Seeding")
                         Cards.Children.Add(Note("Seeding runs only while anistream is open."));
+                    if (heading == "Language")
+                        Cards.Children.Add(LanguageCard());
                     foreach (var row in rows)
                         Cards.Children.Add(Card(row));
                     if (pane.Name == "downloads" && heading == "Files")
@@ -311,6 +314,44 @@ public sealed partial class SettingsPage : Page
                 ctx.Window.WhenClosing = choices[box.SelectedIndex].Item1;
         };
         return CardFrame("When the window closes with downloads running", "Keep going leaves anistream in the notification area until they finish.", box);
+    }
+
+    /// <summary>
+    /// The app's own language: the system's by default, or one this build ships, a draft one
+    /// labelled. Kept in the app's language override and read at start, so a change says that a
+    /// restart applies it.
+    /// </summary>
+    SettingsCard LanguageCard()
+    {
+        static string Name((string Tag, string Name, bool Draft) l) => l.Draft ? $"{l.Name} · {T.LanguageDraftLabel}" : l.Name;
+        var languages = T.Languages.ToList();
+#if ANISTREAM_TESTING
+        languages.Add(("qps-ploc", "Pseudo", true));
+#endif
+        var names = new List<string> { T.LanguageFollowSystem };
+        names.AddRange(languages.Select(Name));
+        var box = new ComboBox { MinWidth = 200, ItemsSource = names };
+        var at = languages.FindIndex(l => l.Tag == StringResources.Chosen);
+        box.SelectedIndex = at + 1;
+        AutomationProperties.SetName(box, T.SettingsLanguageApp);
+        string? Description()
+        {
+            var parts = new List<string>();
+            if (languages.FirstOrDefault(l => l.Tag == StringResources.Chosen) is { Draft: true })
+                parts.Add(T.LanguageDraftNote);
+            if (StringResources.Chosen != StringResources.AtStart)
+                parts.Add(T.LanguageRestartNote);
+            return parts.Count == 0 ? null : string.Join(" ", parts);
+        }
+        var card = CardFrame(T.SettingsLanguageApp, Description(), box, "\uF2B7");
+        box.SelectionChanged += (_, _) =>
+        {
+            if (quiet || box.SelectedIndex < 0)
+                return;
+            StringResources.Choose(box.SelectedIndex == 0 ? null : languages[box.SelectedIndex - 1].Tag);
+            card.Description = Description();
+        };
+        return card;
     }
 
     static TextBlock Note(string text)
