@@ -116,7 +116,7 @@ record "$archive" "$(used_by libplacebo)" "$(sha "$stage/sources/$archive")" \
 
 for entry in "${apple_sources[@]}"; do
   IFS='|' read -r _ archive url sum <<<"$entry"
-  curl -fsSL --retry 3 --max-time 600 -o "$stage/sources/$archive" "$url"
+  curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --max-time 600 -o "$stage/sources/$archive" "$url"
   [[ "$(sha "$stage/sources/$archive")" == "$sum" ]] || fail "$url does not match its SHA-256 $sum"
   record "$archive" "Apple" "$sum" "$url"
 done

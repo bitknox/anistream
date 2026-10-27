@@ -180,7 +180,7 @@ step() { echo "mpv.sh: $* ($((SECONDS - started)) s)"; }
 download() {
   local name="$1" url="$2" sum="$3" file="$cache/downloads/$1.${2##*.}"
   if [[ ! -f "$file" ]] || [[ "$(shasum -a 256 "$file" | cut -d' ' -f1)" != "$sum" ]]; then
-    curl -fsSL --retry 3 -o "$file.part" "$url"
+    curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o "$file.part" "$url"
     mv "$file.part" "$file"
   fi
   [[ "$(shasum -a 256 "$file" | cut -d' ' -f1)" == "$sum" ]] ||

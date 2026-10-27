@@ -68,7 +68,7 @@ for entry in "${files[@]}"; do
     continue
   fi
   from=network
-  curl -fsSL --retry 3 --max-time 300 -o "$out.partial/$path" "$base/$source"
+  curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 --max-time 300 -o "$out.partial/$path" "$base/$source"
   if [[ "$(shasum -a 256 "$out.partial/$path" | cut -d' ' -f1)" != "$sha" ]]; then
     rm -rf "$out.partial"
     echo "fonts.sh: $base/$source does not match its SHA-256 $sha" >&2
