@@ -18,12 +18,12 @@ object Strings {
         context.getString(R.string.cause_no_sources)
 
     /** A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date. */
-    fun noticeNotAired(context: Context, episode: Int, when: String): String =
-        context.getString(R.string.notice_not_aired, episode, when)
+    fun noticeNotAired(context: Context, episode: Int, `when`: String): String =
+        context.getString(R.string.notice_not_aired, episode, `when`)
 
     /** A play's explanation: the episode is after the next one to air. The "when" says when that one airs. */
-    fun noticeNotAiredYet(context: Context, episode: Int, next: Int, when: String): String =
-        context.getString(R.string.notice_not_aired_yet, episode, next, when)
+    fun noticeNotAiredYet(context: Context, episode: Int, next: Int, `when`: String): String =
+        context.getString(R.string.notice_not_aired_yet, episode, next, `when`)
 
     /** Part of an air time: the broadcast is later today. The time is the viewer's local time. */
     fun causeAirsToday(context: Context, time: String): String =
