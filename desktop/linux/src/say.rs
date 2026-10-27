@@ -6,13 +6,24 @@ use std::ops::Deref;
 
 use anistream_i18n::t;
 use anistream_model::{
-    Size, SizeUnit, Span,
+    Cause, Msg, Size, SizeUnit, Span,
     catalog::{Entry, Season},
     episodes::EpisodeRow,
     present::{QUEUE_ROWS, QueueItem},
 };
 
 use crate::choices;
+
+/// An engine message in the language in use: notices, reasons and causes the engine sends as
+/// ids, never its English.
+pub fn msg(msg: &Msg) -> String {
+    msg.text(&anistream_i18n::localizer())
+}
+
+/// An engine cause in the language in use.
+pub fn cause(cause: &Cause) -> String {
+    cause.text(&anistream_i18n::localizer())
+}
 
 /// A percentage as the language writes it: "82%". The catalogue passes percentages in already
 /// formatted, as the platform's formatter would.
