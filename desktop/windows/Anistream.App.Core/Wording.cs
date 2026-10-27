@@ -110,9 +110,9 @@ public static class Wording
     };
 
     /// <summary>A season and its year: "Autumn 2026".</summary>
-    public static string Season(SeasonYear season) => Season(season.Season, season.Year);
+    public static string SeasonWithYear(SeasonYear season) => SeasonWithYear(season.Season, season.Year);
 
-    public static string Season(Season season, long year) => T.SeasonWithYear(SeasonName(season), year.ToString(CultureInfo.InvariantCulture));
+    public static string SeasonWithYear(Season season, long year) => T.SeasonWithYear(SeasonName(season), year.ToString(CultureInfo.InvariantCulture));
 
     /// <summary>A format as a caption says it: "TV", "Movie", "OVA". AniList's wire name, or a name it has not got a word for, as it came.</summary>
     public static string Format(string wire) => wire.ToUpperInvariant() switch
@@ -134,7 +134,7 @@ public static class Wording
         if (entry.Format is { Length: > 0 } f)
             parts.Add(Format(f));
         if (entry.Season is { } s && entry.Year is { } y)
-            parts.Add(Season(s, y));
+            parts.Add(SeasonWithYear(s, y));
         else if (entry.Year is { } year)
             parts.Add(year.ToString(CultureInfo.InvariantCulture));
         if (entry.Episodes is > 0 and var n)

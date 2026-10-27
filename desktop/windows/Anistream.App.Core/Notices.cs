@@ -32,8 +32,8 @@ public static class Notices
 
     public static (string Body, uint Play) Words(uint episode, uint next, bool dubbed)
     {
-        var out_ = $"Episode {episode} is out{(dubbed ? ", dubbed" : "")}.";
-        return next < episode ? ($"{out_} Next for you: episode {next}.", next) : (out_, episode);
+        var out_ = dubbed ? T.NotifyEpisodeOutDubbed(episode) : T.NotifyEpisodeOut(episode);
+        return next < episode ? ($"{out_} {T.NotifyNextForYou(next)}", next) : (out_, episode);
     }
 
     /// <summary>
@@ -52,7 +52,7 @@ public static class Notices
             .Select(g =>
             {
                 var rows = g.ToArray();
-                var body = rows.Length == 1 ? $"Episode {rows[0].Episode} downloaded." : $"{rows.Length} episodes downloaded.";
+                var body = rows.Length == 1 ? T.NotifyDownloadedOne(rows[0].Episode) : T.NotifyDownloaded(rows.Length);
                 var first = rows.OrderBy(r => double.TryParse(r.Episode, out var n) ? n : double.MaxValue).First();
                 return new SystemNotice($"downloaded-{g.Key}-{string.Join('.', rows.Select(r => r.Id))}", rows[0].Title, body, g.Key, first.Episode, null);
             })];
