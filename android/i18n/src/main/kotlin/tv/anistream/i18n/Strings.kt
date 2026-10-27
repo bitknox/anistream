@@ -9,6 +9,182 @@ import android.content.Context
  * `stringResource(R.string.x)` and `pluralStringResource(R.plurals.x, n, ...)` directly.
  */
 object Strings {
+    /** Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList. */
+    fun noticeSignedIn(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_in, tracker)
+
+    /** Toast after a sign-in succeeded and the token went into the system keychain. */
+    fun noticeSignedInKeychain(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_in_keychain, tracker)
+
+    /** Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows. */
+    fun noticeSignedInFile(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_in_file, tracker)
+
+    /** Toast when a sign-in worked but the token could not be stored. The reason comes from the system. */
+    fun noticeSignedInUnsaved(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_signed_in_unsaved, tracker, reason)
+
+    /** Toast when a sign-in token could not be stored. The reason comes from the system. */
+    fun noticeTokenNotSaved(context: Context, reason: String): String =
+        context.getString(R.string.notice_token_not_saved, reason)
+
+    /** Toast when a sign-in did not finish. The reason comes from the tracker or the network. */
+    fun noticeSignInFailed(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_sign_in_failed, tracker, reason)
+
+    /** Toast when the wait for a sign-in ended early. The reason comes from the system. */
+    fun noticeSignInStopped(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_sign_in_stopped, tracker, reason)
+
+    /** Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker. */
+    fun noticeTokenExchangeFailed(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_token_exchange_failed, tracker, reason)
+
+    /** Toast when no browser could be opened for a sign-in. The reason comes from the system. */
+    fun noticeBrowserNotOpened(context: Context, reason: String): String =
+        context.getString(R.string.notice_browser_not_opened, reason)
+
+    /** Toast when a sign-in redirect arrives and no sign-in is waiting for it. */
+    fun noticeSignInNotWaiting(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_not_waiting, tracker)
+
+    /** Toast when a sign-in redirect does not match the request that was made. */
+    fun noticeSignInWrongRequest(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_wrong_request, tracker)
+
+    /** Toast when a tracker sent the person back without a token. */
+    fun noticeSignInNoToken(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_no_token, tracker)
+
+    /** Toast when this build has no MyAnimeList client to finish a sign-in with. */
+    fun noticeMalClientMissingBuild(context: Context): String =
+        context.getString(R.string.notice_mal_client_missing_build)
+
+    /** Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it. */
+    fun noticeKitsuSignsInOnAccounts(context: Context): String =
+        context.getString(R.string.notice_kitsu_signs_in_on_accounts)
+
+    /** Toast when a tracker has no way to sign in yet. */
+    fun noticeSignInUnsupported(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_unsupported, tracker)
+
+    /** Toast on an app that cannot receive a browser redirect. */
+    fun noticeSignInNeedsRedirect(context: Context, tracker: String): String =
+        context.getString(R.string.notice_sign_in_needs_redirect, tracker)
+
+    /** Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated. */
+    fun noticeAnilistImplicitFlow(context: Context, setting: String): String =
+        context.getString(R.string.notice_anilist_implicit_flow, setting)
+
+    /** Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated. */
+    fun noticeAnilistClientMissing(context: Context, client: String, secret: String): String =
+        context.getString(R.string.notice_anilist_client_missing, client, secret)
+
+    /** Toast when AniList is set to paste the code by hand, which a running terminal app cannot take. */
+    fun noticeAnilistPasteFlow(context: Context): String =
+        context.getString(R.string.notice_anilist_paste_flow)
+
+    /** Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated. */
+    fun noticeMalClientMissing(context: Context, setting: String): String =
+        context.getString(R.string.notice_mal_client_missing, setting)
+
+    /** Status line while the browser sign-in is open and the app waits for it to come back. */
+    fun statusWaitingForRedirect(context: Context, tracker: String): String =
+        context.getString(R.string.status_waiting_for_redirect, tracker)
+
+    /** Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month. */
+    fun noticeMalNoRefreshToken(context: Context): String =
+        context.getString(R.string.notice_mal_no_refresh_token)
+
+    /** Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated. */
+    fun noticeClientIdMissing(context: Context, setting: String): String =
+        context.getString(R.string.notice_client_id_missing, setting)
+
+    /** Toast after signing out of a tracker with nothing waiting to send. */
+    fun noticeSignedOut(context: Context, tracker: String): String =
+        context.getString(R.string.notice_signed_out, tracker)
+
+    /** Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in. */
+    fun noticeSignedOutQueue(context: Context, tracker: String, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notice_signed_out_queue, count, tracker, count)
+
+    /** Toast when signing out of a tracker failed. The reason comes from the system. */
+    fun noticeSignOutFailed(context: Context, tracker: String, reason: String): String =
+        context.getString(R.string.notice_sign_out_failed, tracker, reason)
+
+    /** Toast when a setting could not be stored. The cause says why and what to do. */
+    fun noticeNotSavedBecause(context: Context, cause: String): String =
+        context.getString(R.string.notice_not_saved_because, cause)
+
+    /** Toast when the torrent protection choice was saved. */
+    fun noticeProtectionSaved(context: Context): String =
+        context.getString(R.string.notice_protection_saved)
+
+    /** Toast when the torrent protection could not be checked. The cause says why. */
+    fun noticeProtectionNotChecked(context: Context, cause: String): String =
+        context.getString(R.string.notice_protection_not_checked, cause)
+
+    /** Toast when the proxy's password could not be stored. The reason comes from the system. */
+    fun noticeProxyPasswordNotKept(context: Context, reason: String): String =
+        context.getString(R.string.notice_proxy_password_not_kept, reason)
+
+    /** Toast when a show's setting was given a value it does not take. The value is what was given. */
+    fun noticeShowSettingRefused(context: Context, value: String, setting: String): String =
+        context.getString(R.string.notice_show_setting_refused, value, setting)
+
+    /** Toast when resetting a show's settings failed. The reason comes from the local database. */
+    fun noticeShowNotReset(context: Context, reason: String): String =
+        context.getString(R.string.notice_show_not_reset, reason)
+
+    /** Toast when a subtitle choice names subtitles the show has not used. */
+    fun noticeShowNoSuchSubtitles(context: Context): String =
+        context.getString(R.string.notice_show_no_such_subtitles)
+
+    /** Toast while torrents are held until the connection check passes. */
+    fun noticeTorrentsWaitingForCheck(context: Context): String =
+        context.getString(R.string.notice_torrents_waiting_for_check)
+
+    /** Toast when the mapping data downloads work again after a failure. */
+    fun noticeMappingDataRefreshed(context: Context): String =
+        context.getString(R.string.notice_mapping_data_refreshed)
+
+    /** Toast when the mapping data could not be downloaded. It is said once; the retries are silent. */
+    fun noticeMappingDataFailed(context: Context, datasets: String, wait: String, cause: String): String =
+        context.getString(R.string.notice_mapping_data_failed, datasets, wait, cause)
+
+    /** Toast, and desktop notification, for one episode that aired while the app was closed. */
+    fun noticeEpisodeAired(context: Context, title: String, episode: Int): String =
+        context.getString(R.string.notice_episode_aired, title, episode)
+
+    /** Toast, and desktop notification, for several episodes that aired while the app was closed. */
+    fun noticeEpisodesAired(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.notice_episodes_aired, count, count)
+
+    /** Toast when a new release of anistream is out, on the terminal app. The command is not translated. */
+    fun noticeUpdateAvailable(context: Context, tag: String): String =
+        context.getString(R.string.notice_update_available, tag)
+
+    /** The reason a setting was refused until the person confirms having no protection. */
+    fun causeConfirmNoProtection(context: Context): String =
+        context.getString(R.string.cause_confirm_no_protection)
+
+    /** The reason a setting was refused until the person confirms the "warn only" choice. */
+    fun causeConfirmWarnOnly(context: Context): String =
+        context.getString(R.string.cause_confirm_warn_only)
+
+    /** The reason a proxy was refused: it has no host or no port. */
+    fun causeProxyNeedsAddress(context: Context): String =
+        context.getString(R.string.cause_proxy_needs_address)
+
+    /** The reason a proxy could not be checked: its address is not one the check can use. */
+    fun causeProxyAddressUnusable(context: Context): String =
+        context.getString(R.string.cause_proxy_address_unusable)
+
+    /** The reason a request failed: it never reached the server. */
+    fun causeServerUnreachable(context: Context): String =
+        context.getString(R.string.cause_server_unreachable)
+
     /** The legal line. It exists once, so no translation can paraphrase it. */
     fun legalHostsNoContent(context: Context): String =
         context.getString(R.string.legal_hosts_no_content)

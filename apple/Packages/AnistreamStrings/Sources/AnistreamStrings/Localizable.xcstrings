@@ -61,6 +61,66 @@
         }
       }
     },
+    "cause-confirm-no-protection" : {
+      "comment" : "The reason a setting was refused until the person confirms having no protection.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm that you want no protection first."
+          }
+        }
+      }
+    },
+    "cause-confirm-warn-only" : {
+      "comment" : "The reason a setting was refused until the person confirms the \"warn only\" choice.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm that you want to be warned only first."
+          }
+        }
+      }
+    },
+    "cause-proxy-address-unusable" : {
+      "comment" : "The reason a proxy could not be checked: its address is not one the check can use.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The proxy's address is not one a check can use."
+          }
+        }
+      }
+    },
+    "cause-proxy-needs-address" : {
+      "comment" : "The reason a proxy was refused: it has no host or no port.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A proxy needs a host and a port."
+          }
+        }
+      }
+    },
+    "cause-server-unreachable" : {
+      "comment" : "The reason a request failed: it never reached the server.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The server couldn't be reached."
+          }
+        }
+      }
+    },
     "duration-days" : {
       "comment" : "A span of time in whole days. The unit letter belongs to the language. Argument 1: days (Int).",
       "extractionState" : "manual",
@@ -287,6 +347,112 @@
         }
       }
     },
+    "notice-anilist-client-missing" : {
+      "comment" : "Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated. Argument 1: client (Text). Argument 2: secret (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AniList needs a client id and secret. Set %1$@ and %2$@ in the config file, then sign in again. To get the sign-in address, run anistream --login-url."
+          }
+        }
+      }
+    },
+    "notice-anilist-implicit-flow" : {
+      "comment" : "Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated. Argument 1: setting (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This AniList sign-in method works only in the anistream app. To sign in here, set %1$@ to \"loopback\" in the config file."
+          }
+        }
+      }
+    },
+    "notice-anilist-paste-flow" : {
+      "comment" : "Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pasting a code isn't possible here. Quit and run anistream --login instead."
+          }
+        }
+      }
+    },
+    "notice-browser-not-opened" : {
+      "comment" : "Toast when no browser could be opened for a sign-in. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@"
+          }
+        }
+      }
+    },
+    "notice-client-id-missing" : {
+      "comment" : "Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated. Argument 1: setting (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set %1$@ in the config file first."
+          }
+        }
+      }
+    },
+    "notice-episode-aired" : {
+      "comment" : "Toast, and desktop notification, for one episode that aired while the app was closed. Argument 1: title (Text). Argument 2: episode (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, episode %2$lld, aired while you were away."
+          }
+        }
+      }
+    },
+    "notice-episodes-aired" : {
+      "comment" : "Toast, and desktop notification, for several episodes that aired while the app was closed. Argument 1: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "One new episode of a show you watch aired. The calendar has it."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%1$lld new episodes of shows you watch aired. The calendar has them."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "notice-episodes-queued" : {
       "comment" : "Toast after episodes are added to the download queue. Argument 1: count (Int).",
       "extractionState" : "manual",
@@ -321,8 +487,92 @@
         }
       }
     },
+    "notice-kitsu-signs-in-on-accounts" : {
+      "comment" : "Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kitsu signs in from the Accounts screen."
+          }
+        }
+      }
+    },
+    "notice-mal-client-missing" : {
+      "comment" : "Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated. Argument 1: setting (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file."
+          }
+        }
+      }
+    },
+    "notice-mal-client-missing-build" : {
+      "comment" : "Toast when this build has no MyAnimeList client to finish a sign-in with.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't finish signing in to MyAnimeList: this build has no client for it."
+          }
+        }
+      }
+    },
+    "notice-mal-no-refresh-token" : {
+      "comment" : "Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month."
+          }
+        }
+      }
+    },
+    "notice-mapping-data-failed" : {
+      "comment" : "Toast when the mapping data could not be downloaded. It is said once; the retries are silent. Argument 1: datasets (Text). Argument 2: wait (Seconds). Argument 3: cause (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't refresh the mapping data (%1$@). Trying again in %2$@. %3$@"
+          }
+        }
+      }
+    },
+    "notice-mapping-data-refreshed" : {
+      "comment" : "Toast when the mapping data downloads work again after a failure.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mapping data refreshed."
+          }
+        }
+      }
+    },
     "notice-not-saved" : {
       "comment" : "Toast when a setting could not be stored. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that setting. %1$@"
+          }
+        }
+      }
+    },
+    "notice-not-saved-because" : {
+      "comment" : "Toast when a setting could not be stored. The cause says why and what to do. Argument 1: cause (Cause).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -345,6 +595,42 @@
         }
       }
     },
+    "notice-protection-not-checked" : {
+      "comment" : "Toast when the torrent protection could not be checked. The cause says why. Argument 1: cause (Cause).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't check the torrent protection. %1$@"
+          }
+        }
+      }
+    },
+    "notice-protection-saved" : {
+      "comment" : "Toast when the torrent protection choice was saved.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved torrent protection."
+          }
+        }
+      }
+    },
+    "notice-proxy-password-not-kept" : {
+      "comment" : "Toast when the proxy's password could not be stored. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't keep the proxy's password. Enter it again to try saving it. %1$@"
+          }
+        }
+      }
+    },
     "notice-saved" : {
       "comment" : "Toast after a setting is stored. The label is the setting's name. Argument 1: label (Text).",
       "extractionState" : "manual",
@@ -357,6 +643,232 @@
         }
       }
     },
+    "notice-show-no-such-subtitles" : {
+      "comment" : "Toast when a subtitle choice names subtitles the show has not used.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that subtitle choice. This show hasn't used those subtitles before."
+          }
+        }
+      }
+    },
+    "notice-show-not-reset" : {
+      "comment" : "Toast when resetting a show's settings failed. The reason comes from the local database. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't reset this show's settings. %1$@"
+          }
+        }
+      }
+    },
+    "notice-show-setting-refused" : {
+      "comment" : "Toast when a show's setting was given a value it does not take. The value is what was given. Argument 1: value (Text). Argument 2: setting (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save that setting. %1$@ isn't a value for %2$@."
+          }
+        }
+      }
+    },
+    "notice-sign-in-failed" : {
+      "comment" : "Toast when a sign-in did not finish. The reason comes from the tracker or the network. Argument 1: tracker (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't sign in to %1$@. Try again. %2$@"
+          }
+        }
+      }
+    },
+    "notice-sign-in-needs-redirect" : {
+      "comment" : "Toast on an app that cannot receive a browser redirect. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in to %1$@ needs a browser redirect, which this app can't receive."
+          }
+        }
+      }
+    },
+    "notice-sign-in-no-token" : {
+      "comment" : "Toast when a tracker sent the person back without a token. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sign-in to %1$@ came back without a token. Try again."
+          }
+        }
+      }
+    },
+    "notice-sign-in-not-waiting" : {
+      "comment" : "Toast when a sign-in redirect arrives and no sign-in is waiting for it. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No sign-in to %1$@ is waiting for that. Start the sign-in again."
+          }
+        }
+      }
+    },
+    "notice-sign-in-stopped" : {
+      "comment" : "Toast when the wait for a sign-in ended early. The reason comes from the system. Argument 1: tracker (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The sign-in to %1$@ stopped before it finished. Try again. %2$@"
+          }
+        }
+      }
+    },
+    "notice-sign-in-unsupported" : {
+      "comment" : "Toast when a tracker has no way to sign in yet. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signing in to %1$@ isn't supported yet."
+          }
+        }
+      }
+    },
+    "notice-sign-in-wrong-request" : {
+      "comment" : "Toast when a sign-in redirect does not match the request that was made. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That sign-in to %1$@ didn't come back from this request. Start the sign-in again."
+          }
+        }
+      }
+    },
+    "notice-sign-out-failed" : {
+      "comment" : "Toast when signing out of a tracker failed. The reason comes from the system. Argument 1: tracker (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't sign out of %1$@. Try again. %2$@"
+          }
+        }
+      }
+    },
+    "notice-signed-in" : {
+      "comment" : "Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in to %1$@."
+          }
+        }
+      }
+    },
+    "notice-signed-in-file" : {
+      "comment" : "Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in to %1$@. No keychain is available, so the token is in a private file on this device."
+          }
+        }
+      }
+    },
+    "notice-signed-in-keychain" : {
+      "comment" : "Toast after a sign-in succeeded and the token went into the system keychain. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in to %1$@. The token is in the OS keychain."
+          }
+        }
+      }
+    },
+    "notice-signed-in-unsaved" : {
+      "comment" : "Toast when a sign-in worked but the token could not be stored. The reason comes from the system. Argument 1: tracker (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed in to %1$@, but the token wasn't saved, so you'll need to sign in again next time. %2$@"
+          }
+        }
+      }
+    },
+    "notice-signed-out" : {
+      "comment" : "Toast after signing out of a tracker with nothing waiting to send. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signed out of %1$@."
+          }
+        }
+      }
+    },
+    "notice-signed-out-queue" : {
+      "comment" : "Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in. Argument 1: tracker (Text). Argument 2: count (Int).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Signed out of %1$@. One queued change is kept for the next sign-in."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "Signed out of %1$@. %2$lld queued changes are kept for the next sign-in."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "notice-title-load-failed" : {
       "comment" : "Toast when a title's details did not load.",
       "extractionState" : "manual",
@@ -365,6 +877,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn't load this title. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "notice-token-exchange-failed" : {
+      "comment" : "Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker. Argument 1: tracker (Text). Argument 2: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't get a token from %1$@. Try signing in again. %2$@"
+          }
+        }
+      }
+    },
+    "notice-token-not-saved" : {
+      "comment" : "Toast when a sign-in token could not be stored. The reason comes from the system. Argument 1: reason (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save the sign-in token. Try signing in again. %1$@"
+          }
+        }
+      }
+    },
+    "notice-torrents-waiting-for-check" : {
+      "comment" : "Toast while torrents are held until the connection check passes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Torrents are waiting for the connection check to pass again."
+          }
+        }
+      }
+    },
+    "notice-update-available" : {
+      "comment" : "Toast when a new release of anistream is out, on the terminal app. The command is not translated. Argument 1: tag (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ is out. Run anistream --update to install it."
           }
         }
       }
@@ -731,6 +1291,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sources"
+          }
+        }
+      }
+    },
+    "status-waiting-for-redirect" : {
+      "comment" : "Status line while the browser sign-in is open and the app waits for it to come back. Argument 1: tracker (Text).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for %1$@ to redirect back…"
           }
         }
       }

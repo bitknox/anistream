@@ -5,6 +5,226 @@
 
 use crate::{Arg, text};
 
+/// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
+pub fn notice_signed_in(tracker: &str) -> String {
+    text("notice-signed-in", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast after a sign-in succeeded and the token went into the system keychain.
+pub fn notice_signed_in_keychain(tracker: &str) -> String {
+    text("notice-signed-in-keychain", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.
+pub fn notice_signed_in_file(tracker: &str) -> String {
+    text("notice-signed-in-file", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when a sign-in worked but the token could not be stored. The reason comes from the system.
+pub fn notice_signed_in_unsaved(tracker: &str, reason: &str) -> String {
+    text("notice-signed-in-unsaved", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when a sign-in token could not be stored. The reason comes from the system.
+pub fn notice_token_not_saved(reason: &str) -> String {
+    text("notice-token-not-saved", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a sign-in did not finish. The reason comes from the tracker or the network.
+pub fn notice_sign_in_failed(tracker: &str, reason: &str) -> String {
+    text("notice-sign-in-failed", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when the wait for a sign-in ended early. The reason comes from the system.
+pub fn notice_sign_in_stopped(tracker: &str, reason: &str) -> String {
+    text("notice-sign-in-stopped", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.
+pub fn notice_token_exchange_failed(tracker: &str, reason: &str) -> String {
+    text("notice-token-exchange-failed", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when no browser could be opened for a sign-in. The reason comes from the system.
+pub fn notice_browser_not_opened(reason: &str) -> String {
+    text("notice-browser-not-opened", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a sign-in redirect arrives and no sign-in is waiting for it.
+pub fn notice_sign_in_not_waiting(tracker: &str) -> String {
+    text("notice-sign-in-not-waiting", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when a sign-in redirect does not match the request that was made.
+pub fn notice_sign_in_wrong_request(tracker: &str) -> String {
+    text("notice-sign-in-wrong-request", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when a tracker sent the person back without a token.
+pub fn notice_sign_in_no_token(tracker: &str) -> String {
+    text("notice-sign-in-no-token", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when this build has no MyAnimeList client to finish a sign-in with.
+pub fn notice_mal_client_missing_build() -> String {
+    text("notice-mal-client-missing-build", &[])
+}
+
+/// Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.
+pub fn notice_kitsu_signs_in_on_accounts() -> String {
+    text("notice-kitsu-signs-in-on-accounts", &[])
+}
+
+/// Toast when a tracker has no way to sign in yet.
+pub fn notice_sign_in_unsupported(tracker: &str) -> String {
+    text("notice-sign-in-unsupported", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast on an app that cannot receive a browser redirect.
+pub fn notice_sign_in_needs_redirect(tracker: &str) -> String {
+    text("notice-sign-in-needs-redirect", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.
+pub fn notice_anilist_implicit_flow(setting: &str) -> String {
+    text("notice-anilist-implicit-flow", &[("setting", Arg::Text(setting))])
+}
+
+/// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
+pub fn notice_anilist_client_missing(client: &str, secret: &str) -> String {
+    text("notice-anilist-client-missing", &[("client", Arg::Text(client)), ("secret", Arg::Text(secret))])
+}
+
+/// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+pub fn notice_anilist_paste_flow() -> String {
+    text("notice-anilist-paste-flow", &[])
+}
+
+/// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
+pub fn notice_mal_client_missing(setting: &str) -> String {
+    text("notice-mal-client-missing", &[("setting", Arg::Text(setting))])
+}
+
+/// Status line while the browser sign-in is open and the app waits for it to come back.
+pub fn status_waiting_for_redirect(tracker: &str) -> String {
+    text("status-waiting-for-redirect", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
+pub fn notice_mal_no_refresh_token() -> String {
+    text("notice-mal-no-refresh-token", &[])
+}
+
+/// Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.
+pub fn notice_client_id_missing(setting: &str) -> String {
+    text("notice-client-id-missing", &[("setting", Arg::Text(setting))])
+}
+
+/// Toast after signing out of a tracker with nothing waiting to send.
+pub fn notice_signed_out(tracker: &str) -> String {
+    text("notice-signed-out", &[("tracker", Arg::Text(tracker))])
+}
+
+/// Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.
+pub fn notice_signed_out_queue(tracker: &str, count: i64) -> String {
+    text("notice-signed-out-queue", &[("tracker", Arg::Text(tracker)), ("count", Arg::Int(count))])
+}
+
+/// Toast when signing out of a tracker failed. The reason comes from the system.
+pub fn notice_sign_out_failed(tracker: &str, reason: &str) -> String {
+    text("notice-sign-out-failed", &[("tracker", Arg::Text(tracker)), ("reason", Arg::Text(reason))])
+}
+
+/// Toast when a setting could not be stored. The cause says why and what to do.
+pub fn notice_not_saved_because(cause: &str) -> String {
+    text("notice-not-saved-because", &[("cause", Arg::Text(cause))])
+}
+
+/// Toast when the torrent protection choice was saved.
+pub fn notice_protection_saved() -> String {
+    text("notice-protection-saved", &[])
+}
+
+/// Toast when the torrent protection could not be checked. The cause says why.
+pub fn notice_protection_not_checked(cause: &str) -> String {
+    text("notice-protection-not-checked", &[("cause", Arg::Text(cause))])
+}
+
+/// Toast when the proxy's password could not be stored. The reason comes from the system.
+pub fn notice_proxy_password_not_kept(reason: &str) -> String {
+    text("notice-proxy-password-not-kept", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a show's setting was given a value it does not take. The value is what was given.
+pub fn notice_show_setting_refused(value: &str, setting: &str) -> String {
+    text("notice-show-setting-refused", &[("value", Arg::Text(value)), ("setting", Arg::Text(setting))])
+}
+
+/// Toast when resetting a show's settings failed. The reason comes from the local database.
+pub fn notice_show_not_reset(reason: &str) -> String {
+    text("notice-show-not-reset", &[("reason", Arg::Text(reason))])
+}
+
+/// Toast when a subtitle choice names subtitles the show has not used.
+pub fn notice_show_no_such_subtitles() -> String {
+    text("notice-show-no-such-subtitles", &[])
+}
+
+/// Toast while torrents are held until the connection check passes.
+pub fn notice_torrents_waiting_for_check() -> String {
+    text("notice-torrents-waiting-for-check", &[])
+}
+
+/// Toast when the mapping data downloads work again after a failure.
+pub fn notice_mapping_data_refreshed() -> String {
+    text("notice-mapping-data-refreshed", &[])
+}
+
+/// Toast when the mapping data could not be downloaded. It is said once; the retries are silent.
+pub fn notice_mapping_data_failed(datasets: &str, wait: &str, cause: &str) -> String {
+    text("notice-mapping-data-failed", &[("datasets", Arg::Text(datasets)), ("wait", Arg::Text(wait)), ("cause", Arg::Text(cause))])
+}
+
+/// Toast, and desktop notification, for one episode that aired while the app was closed.
+pub fn notice_episode_aired(title: &str, episode: i64) -> String {
+    text("notice-episode-aired", &[("title", Arg::Text(title)), ("episode", Arg::Int(episode))])
+}
+
+/// Toast, and desktop notification, for several episodes that aired while the app was closed.
+pub fn notice_episodes_aired(count: i64) -> String {
+    text("notice-episodes-aired", &[("count", Arg::Int(count))])
+}
+
+/// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+pub fn notice_update_available(tag: &str) -> String {
+    text("notice-update-available", &[("tag", Arg::Text(tag))])
+}
+
+/// The reason a setting was refused until the person confirms having no protection.
+pub fn cause_confirm_no_protection() -> String {
+    text("cause-confirm-no-protection", &[])
+}
+
+/// The reason a setting was refused until the person confirms the "warn only" choice.
+pub fn cause_confirm_warn_only() -> String {
+    text("cause-confirm-warn-only", &[])
+}
+
+/// The reason a proxy was refused: it has no host or no port.
+pub fn cause_proxy_needs_address() -> String {
+    text("cause-proxy-needs-address", &[])
+}
+
+/// The reason a proxy could not be checked: its address is not one the check can use.
+pub fn cause_proxy_address_unusable() -> String {
+    text("cause-proxy-address-unusable", &[])
+}
+
+/// The reason a request failed: it never reached the server.
+pub fn cause_server_unreachable() -> String {
+    text("cause-server-unreachable", &[])
+}
+
 /// The legal line. It exists once, so no translation can paraphrase it.
 pub fn legal_hosts_no_content() -> String {
     text("legal-hosts-no-content", &[])

@@ -18,6 +18,7 @@ use std::sync::Arc;
 
 use anistream_core::config::Config;
 use anistream_model::{
+    Msg,
     command::{AppState, PlayerCommand},
     event::Event,
     notice::Notice,
@@ -157,8 +158,7 @@ async fn apply(
         let state = guard.verify().await;
         let _ = tx.send(Event::Vpn(Some(crate::sources::guard_view(&state))));
         if !state.is_protected() {
-            let notice = "torrents wait for the connection check to pass again";
-            let _ = tx.send(Event::Toast(Notice::raw_info(notice)));
+            let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeTorrentsWaitingForCheck)));
         }
     }
     // Refused while the guard fails: what is held stays held, for the guard's own recovery to

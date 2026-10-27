@@ -3,7 +3,7 @@
 use std::time::Duration;
 
 use anistream_meta::dataset;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Cause, Msg, Span, event::Event, notice::Notice};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
@@ -29,31 +29,36 @@ pub(crate) async fn keep_datasets_current(store: Store, http: HttpClient, tx: Ou
         }) else {
             if said {
                 tracing::info!("mapping datasets refreshed after failing");
-                let _ = tx.send(Event::Toast(Notice::raw_info("mapping data refreshed")));
+                let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeMappingDataRefreshed)));
             }
             return;
         };
         tracing::warn!(datasets = ?failed, %reason, retry_secs = wait.as_secs(), "mapping refresh failed");
         if !said {
             said = true;
-            let _ = tx.send(Event::Toast(Notice::raw_alert(format!(
-                "mapping data could not be refreshed ({}: {}) — trying again in {} min",
-                failed.join(", "),
-                plain_failure(reason),
-                wait.as_secs() / 60
-            ))));
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeMappingDataFailed {
+                datasets: failed.join(", "),
+                wait: Span::countdown(wait.as_secs() as i64),
+                cause: failure_cause(reason),
+            })));
         }
         tokio::time::sleep(wait).await;
         wait = (wait * 2).min(Duration::from_secs(3600));
     }
 }
 
+/// [`plain_failure`] as the cause a notice carries: a closed reason where there is one, and the
+/// source's own words where there is not.
+fn failure_cause(reason: &str) -> Cause {
+    if is_unreachable(reason) { Cause::ServerUnreachable } else { Cause::verbatim(reason) }
+}
+
+fn is_unreachable(reason: &str) -> bool {
+    reason.contains("error sending request") || reason.contains("timed out")
+}
+
 /// A request failure without the plumbing: "could not be reached" rather than the client's
 /// "error sending request for url (…)", which names the URL and not the problem.
 pub fn plain_failure(reason: &str) -> &str {
-    if reason.contains("error sending request") || reason.contains("timed out") {
-        "the server could not be reached"
-    } else {
-        reason
-    }
+    if is_unreachable(reason) { "the server could not be reached" } else { reason }
 }

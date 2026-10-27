@@ -7,9 +7,10 @@ use std::sync::Arc;
 
 use anistream_core::config::{Config, VpnMode};
 use anistream_model::{
+    Cause, Msg,
     event::Event,
     notice::Notice,
-    protection::{self, FailedCheck, PROXY_SECRET, TorrentProtection, TorrentProxy},
+    protection::{self, FailedCheck, PROXY_SECRET, Refusal, TorrentProtection, TorrentProxy},
     settings::{SettingKey, SettingsView},
     sources::GuardView,
     stores::Secret,
@@ -43,8 +44,8 @@ pub fn set_torrent_protection(
         Err(refusal) => {
             let refused = Some(refusal.setting());
             let _ = tx.send(Event::Settings(SettingsView { refused, ..engine.config.view() }));
-            let reason = format!("not saved: {}", refusal.reason());
-            let _ = tx.send(Event::Toast(Notice::raw_alert(reason)));
+            let cause = refusal_cause(refusal);
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeNotSavedBecause { cause })));
             return;
         }
     };
@@ -55,7 +56,7 @@ pub fn set_torrent_protection(
         Ok(()) => {
             // Before the source is brought back up, which reads it.
             keep_password(mode, proxy.and_then(|proxy| proxy.password), services, tx);
-            let _ = tx.send(Event::Toast(Notice::raw_info("saved · torrent protection")));
+            let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeProtectionSaved)));
             let _ = tx.internal(Internal::SettingsSaved);
             if engine.config.effective().providers.torrent.enabled {
                 let _ = tx.internal(Internal::SourcesChanged);
@@ -66,7 +67,7 @@ pub fn set_torrent_protection(
                 anistream_core::Error::Config(reason) => reason,
                 other => other.to_string(),
             };
-            let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not saved: {reason}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeNotSaved { reason })));
         }
     }
 }
@@ -102,7 +103,7 @@ pub fn check_torrent_protection(
         Ok(guard) => guard,
         // Its reason can name the proxy's URL, password and all: said in fixed words instead.
         Err(_) => {
-            not_checked("the proxy's address is not one a check can use", tx);
+            not_checked(Cause::ProxyAddressUnusable, tx);
             return;
         }
     };
@@ -121,14 +122,14 @@ fn trial(
     mode: TorrentProtection,
     proxy: Option<TorrentProxy>,
     kept: impl FnOnce() -> Option<String>,
-) -> Result<Option<Config>, &'static str> {
+) -> Result<Option<Config>, Cause> {
     let mut config = config.clone();
     let vpn = &mut config.providers.torrent.vpn;
     match mode {
         TorrentProtection::Proxy => {
             let proxy = proxy
                 .filter(|proxy| !proxy.host.trim().is_empty() && proxy.port != 0)
-                .ok_or("a proxy needs its address and port")?;
+                .ok_or(Cause::ProxyNeedsAddress)?;
             let user = proxy.user.as_deref().map(str::trim).filter(|user| !user.is_empty());
             let password = match proxy.password {
                 Some(Secret(password)) => {
@@ -149,9 +150,18 @@ fn trial(
 }
 
 /// Settings that cannot be checked at all: `Unreachable`, and why.
-fn not_checked(reason: &str, tx: &Outbox) {
+fn not_checked(cause: Cause, tx: &Outbox) {
     let _ = tx.send(Event::ProtectionChecked(GuardView::Unreachable));
-    let _ = tx.send(Event::Toast(Notice::raw_alert(format!("not checked: {reason}"))));
+    let _ = tx.send(Event::Toast(Notice::alert(Msg::NoticeProtectionNotChecked { cause })));
+}
+
+/// Why a protection choice was refused, as the notice says it.
+fn refusal_cause(refusal: Refusal) -> Cause {
+    match refusal {
+        Refusal::Unprotected => Cause::ConfirmNoProtection,
+        Refusal::Warn => Cause::ConfirmWarnOnly,
+        Refusal::NoProxy => Cause::ProxyNeedsAddress,
+    }
 }
 
 /// The proxy's password the secret store keeps, if any.
@@ -183,8 +193,9 @@ fn keep_password(
     };
     if let Err(error) = kept {
         tracing::warn!(%error, "could not keep the proxy's password");
-        let notice = format!("the proxy's password was not kept: {error}");
-        let _ = tx.send(Event::Toast(Notice::raw_alert(notice)));
+        let reason = error.to_string();
+        let _ =
+            tx.send(Event::Toast(Notice::alert(Msg::NoticeProxyPasswordNotKept { reason })));
     }
 }
 

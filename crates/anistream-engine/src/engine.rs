@@ -1070,6 +1070,7 @@ mod tests {
     use super::*;
     use anistream_core::config::{Config, Paths};
     use anistream_model::playback::PlayerTheme;
+    use anistream_model::{Cause, Msg};
     use anistream_net::HttpClient;
     use anistream_providers::ProviderRegistry;
 
@@ -1206,7 +1207,10 @@ mod tests {
         let bare = Secret("anistream://auth/mal?code=a-code".into());
         engine.send(Command::FinishSignIn { tracker: "mal".into(), callback: bare });
         let refused = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
-        assert_eq!(refused.text, "that sign-in to mal did not come back from this request");
+        assert_eq!(
+            refused.msg,
+            Some(Msg::NoticeSignInWrongRequest { tracker: "MyAnimeList".into() })
+        );
 
         // The code comes back with the state; its exchange, which asks MyAnimeList itself,
         // cannot leave this test, and nothing is kept.
@@ -1214,7 +1218,11 @@ mod tests {
         engine.send(Command::FinishSignIn { tracker: "mal".into(), callback });
         let failed = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
         assert_eq!(failed.kind, NoticeKind::Alert);
-        assert!(failed.text.starts_with("token exchange failed"), "{}", failed.text);
+        assert!(
+            matches!(&failed.msg, Some(Msg::NoticeTokenExchangeFailed { tracker, .. }) if tracker == "MyAnimeList"),
+            "{:?}",
+            failed.msg
+        );
         assert_eq!(kept.get("mal").unwrap(), None);
     }
 
@@ -1374,7 +1382,7 @@ mod tests {
         let row = view.rows.iter().find(|row| row.key == SettingKey::AutoNext).unwrap();
         assert_eq!(row.value, "off");
         assert_eq!(view.refused, None);
-        assert_eq!(saved.text, "saved · auto-play next");
+        assert_eq!(saved.msg, Some(Msg::NoticeSaved { label: "auto-play next".into() }));
         let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
         assert_eq!(file, "[playback]\nauto_next = false\n");
     }
@@ -1397,7 +1405,11 @@ mod tests {
         assert_eq!(row.value, "off", "put back to what the file holds");
         assert!(!view.sources.torrent);
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert!(refusal.text.starts_with("not saved: torrents need"), "{}", refusal.text);
+        assert!(
+            matches!(&refusal.msg, Some(Msg::NoticeNotSaved { reason }) if reason.starts_with("torrents need")),
+            "{:?}",
+            refusal.msg
+        );
         assert!(!dir.path().join("config.toml").exists(), "nothing written");
     }
 
@@ -1483,7 +1495,13 @@ mod tests {
         let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
         let [Event::Toast(refusal)] = &seen[..] else { panic!("the refusal alone: {seen:?}") };
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert_eq!(refusal.text, "not saved: \u{201c}hd\u{201d} is not a quality");
+        assert_eq!(
+            refusal.msg,
+            Some(Msg::NoticeShowSettingRefused {
+                value: "\u{201c}hd\u{201d}".into(),
+                setting: "quality".into(),
+            })
+        );
     }
 
     #[tokio::test]
@@ -1561,7 +1579,7 @@ mod tests {
             panic!("the settings, then the notice: {seen:?}")
         };
         assert_eq!(view.refused, None);
-        assert_eq!(saved.text, "saved · torrent protection");
+        assert_eq!(saved.msg, Some(Msg::NoticeProtectionSaved));
         assert_eq!(view.torrent.protection, TorrentProtection::Proxy);
         assert_eq!(view.torrent.on_failure, FailedCheck::Stop);
         let user = Some("mika".to_owned());
@@ -1609,7 +1627,10 @@ mod tests {
         assert_eq!(view.refused, Some(SettingKey::VpnMode));
         assert_eq!(view.torrent.protection, TorrentProtection::Proxy, "as the file has it");
         assert_eq!(refusal.kind, NoticeKind::Alert);
-        assert_eq!(refusal.text, "not saved: no protection needs your confirmation first");
+        assert_eq!(
+            refusal.msg,
+            Some(Msg::NoticeNotSavedBecause { cause: Cause::ConfirmNoProtection })
+        );
 
         // Warn only, as a setting, which cannot carry the confirmation.
         let warn = SettingValue::Str("warn".into());
@@ -1619,7 +1640,10 @@ mod tests {
             panic!("the settings, then the notice: {seen:?}")
         };
         assert_eq!(view.refused, Some(SettingKey::VpnOnFailure));
-        assert_eq!(refusal.text, "not saved: warn only needs your confirmation first");
+        assert_eq!(
+            refusal.msg,
+            Some(Msg::NoticeNotSavedBecause { cause: Cause::ConfirmWarnOnly })
+        );
         assert!(!dir.path().join("config.toml").exists(), "nothing written");
 
         // Confirmed, it is.

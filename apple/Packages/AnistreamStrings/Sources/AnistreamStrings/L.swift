@@ -5,6 +5,200 @@ import Foundation
 
 /// Every string the apps show, by catalogue id. A missing translation falls back to English per string.
 public enum L {
+    /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
+    public static func noticeSignedIn(tracker: String) -> String {
+        format("notice-signed-in", fallback: "Signed in to %1$@.", tracker)
+    }
+
+    /// Toast after a sign-in succeeded and the token went into the system keychain.
+    public static func noticeSignedInKeychain(tracker: String) -> String {
+        format("notice-signed-in-keychain", fallback: "Signed in to %1$@. The token is in the OS keychain.", tracker)
+    }
+
+    /// Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.
+    public static func noticeSignedInFile(tracker: String) -> String {
+        format("notice-signed-in-file", fallback: "Signed in to %1$@. No keychain is available, so the token is in a private file on this device.", tracker)
+    }
+
+    /// Toast when a sign-in worked but the token could not be stored. The reason comes from the system.
+    public static func noticeSignedInUnsaved(tracker: String, reason: String) -> String {
+        format("notice-signed-in-unsaved", fallback: "Signed in to %1$@, but the token wasn't saved, so you'll need to sign in again next time. %2$@", tracker, reason)
+    }
+
+    /// Toast when a sign-in token could not be stored. The reason comes from the system.
+    public static func noticeTokenNotSaved(reason: String) -> String {
+        format("notice-token-not-saved", fallback: "Couldn't save the sign-in token. Try signing in again. %1$@", reason)
+    }
+
+    /// Toast when a sign-in did not finish. The reason comes from the tracker or the network.
+    public static func noticeSignInFailed(tracker: String, reason: String) -> String {
+        format("notice-sign-in-failed", fallback: "Couldn't sign in to %1$@. Try again. %2$@", tracker, reason)
+    }
+
+    /// Toast when the wait for a sign-in ended early. The reason comes from the system.
+    public static func noticeSignInStopped(tracker: String, reason: String) -> String {
+        format("notice-sign-in-stopped", fallback: "The sign-in to %1$@ stopped before it finished. Try again. %2$@", tracker, reason)
+    }
+
+    /// Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.
+    public static func noticeTokenExchangeFailed(tracker: String, reason: String) -> String {
+        format("notice-token-exchange-failed", fallback: "Couldn't get a token from %1$@. Try signing in again. %2$@", tracker, reason)
+    }
+
+    /// Toast when no browser could be opened for a sign-in. The reason comes from the system.
+    public static func noticeBrowserNotOpened(reason: String) -> String {
+        format("notice-browser-not-opened", fallback: "Couldn't open a browser for the sign-in. Check that one is installed and try again. %1$@", reason)
+    }
+
+    /// Toast when a sign-in redirect arrives and no sign-in is waiting for it.
+    public static func noticeSignInNotWaiting(tracker: String) -> String {
+        format("notice-sign-in-not-waiting", fallback: "No sign-in to %1$@ is waiting for that. Start the sign-in again.", tracker)
+    }
+
+    /// Toast when a sign-in redirect does not match the request that was made.
+    public static func noticeSignInWrongRequest(tracker: String) -> String {
+        format("notice-sign-in-wrong-request", fallback: "That sign-in to %1$@ didn't come back from this request. Start the sign-in again.", tracker)
+    }
+
+    /// Toast when a tracker sent the person back without a token.
+    public static func noticeSignInNoToken(tracker: String) -> String {
+        format("notice-sign-in-no-token", fallback: "The sign-in to %1$@ came back without a token. Try again.", tracker)
+    }
+
+    /// Toast when this build has no MyAnimeList client to finish a sign-in with.
+    public static var noticeMalClientMissingBuild: String { string("notice-mal-client-missing-build", fallback: "Couldn't finish signing in to MyAnimeList: this build has no client for it.") }
+
+    /// Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.
+    public static var noticeKitsuSignsInOnAccounts: String { string("notice-kitsu-signs-in-on-accounts", fallback: "Kitsu signs in from the Accounts screen.") }
+
+    /// Toast when a tracker has no way to sign in yet.
+    public static func noticeSignInUnsupported(tracker: String) -> String {
+        format("notice-sign-in-unsupported", fallback: "Signing in to %1$@ isn't supported yet.", tracker)
+    }
+
+    /// Toast on an app that cannot receive a browser redirect.
+    public static func noticeSignInNeedsRedirect(tracker: String) -> String {
+        format("notice-sign-in-needs-redirect", fallback: "Signing in to %1$@ needs a browser redirect, which this app can't receive.", tracker)
+    }
+
+    /// Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.
+    public static func noticeAnilistImplicitFlow(setting: String) -> String {
+        format("notice-anilist-implicit-flow", fallback: "This AniList sign-in method works only in the anistream app. To sign in here, set %1$@ to \"loopback\" in the config file.", setting)
+    }
+
+    /// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
+    public static func noticeAnilistClientMissing(client: String, secret: String) -> String {
+        format("notice-anilist-client-missing", fallback: "AniList needs a client id and secret. Set %1$@ and %2$@ in the config file, then sign in again. To get the sign-in address, run anistream --login-url.", client, secret)
+    }
+
+    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+    public static var noticeAnilistPasteFlow: String { string("notice-anilist-paste-flow", fallback: "Pasting a code isn't possible here. Quit and run anistream --login instead.") }
+
+    /// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
+    public static func noticeMalClientMissing(setting: String) -> String {
+        format("notice-mal-client-missing", fallback: "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set %1$@ in the config file.", setting)
+    }
+
+    /// Status line while the browser sign-in is open and the app waits for it to come back.
+    public static func statusWaitingForRedirect(tracker: String) -> String {
+        format("status-waiting-for-redirect", fallback: "Waiting for %1$@ to redirect back…", tracker)
+    }
+
+    /// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
+    public static var noticeMalNoRefreshToken: String { string("notice-mal-no-refresh-token", fallback: "MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.") }
+
+    /// Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.
+    public static func noticeClientIdMissing(setting: String) -> String {
+        format("notice-client-id-missing", fallback: "Set %1$@ in the config file first.", setting)
+    }
+
+    /// Toast after signing out of a tracker with nothing waiting to send.
+    public static func noticeSignedOut(tracker: String) -> String {
+        format("notice-signed-out", fallback: "Signed out of %1$@.", tracker)
+    }
+
+    /// Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.
+    public static func noticeSignedOutQueue(tracker: String, count: Int) -> String {
+        format("notice-signed-out-queue", fallback: "Signed out of %1$@. %2$lld queued changes are kept for the next sign-in.", tracker, count)
+    }
+
+    /// Toast when signing out of a tracker failed. The reason comes from the system.
+    public static func noticeSignOutFailed(tracker: String, reason: String) -> String {
+        format("notice-sign-out-failed", fallback: "Couldn't sign out of %1$@. Try again. %2$@", tracker, reason)
+    }
+
+    /// Toast when a setting could not be stored. The cause says why and what to do.
+    public static func noticeNotSavedBecause(cause: String) -> String {
+        format("notice-not-saved-because", fallback: "Couldn't save that setting. %1$@", cause)
+    }
+
+    /// Toast when the torrent protection choice was saved.
+    public static var noticeProtectionSaved: String { string("notice-protection-saved", fallback: "Saved torrent protection.") }
+
+    /// Toast when the torrent protection could not be checked. The cause says why.
+    public static func noticeProtectionNotChecked(cause: String) -> String {
+        format("notice-protection-not-checked", fallback: "Couldn't check the torrent protection. %1$@", cause)
+    }
+
+    /// Toast when the proxy's password could not be stored. The reason comes from the system.
+    public static func noticeProxyPasswordNotKept(reason: String) -> String {
+        format("notice-proxy-password-not-kept", fallback: "Couldn't keep the proxy's password. Enter it again to try saving it. %1$@", reason)
+    }
+
+    /// Toast when a show's setting was given a value it does not take. The value is what was given.
+    public static func noticeShowSettingRefused(value: String, setting: String) -> String {
+        format("notice-show-setting-refused", fallback: "Couldn't save that setting. %1$@ isn't a value for %2$@.", value, setting)
+    }
+
+    /// Toast when resetting a show's settings failed. The reason comes from the local database.
+    public static func noticeShowNotReset(reason: String) -> String {
+        format("notice-show-not-reset", fallback: "Couldn't reset this show's settings. %1$@", reason)
+    }
+
+    /// Toast when a subtitle choice names subtitles the show has not used.
+    public static var noticeShowNoSuchSubtitles: String { string("notice-show-no-such-subtitles", fallback: "Couldn't save that subtitle choice. This show hasn't used those subtitles before.") }
+
+    /// Toast while torrents are held until the connection check passes.
+    public static var noticeTorrentsWaitingForCheck: String { string("notice-torrents-waiting-for-check", fallback: "Torrents are waiting for the connection check to pass again.") }
+
+    /// Toast when the mapping data downloads work again after a failure.
+    public static var noticeMappingDataRefreshed: String { string("notice-mapping-data-refreshed", fallback: "Mapping data refreshed.") }
+
+    /// Toast when the mapping data could not be downloaded. It is said once; the retries are silent.
+    public static func noticeMappingDataFailed(datasets: String, wait: String, cause: String) -> String {
+        format("notice-mapping-data-failed", fallback: "Couldn't refresh the mapping data (%1$@). Trying again in %2$@. %3$@", datasets, wait, cause)
+    }
+
+    /// Toast, and desktop notification, for one episode that aired while the app was closed.
+    public static func noticeEpisodeAired(title: String, episode: Int) -> String {
+        format("notice-episode-aired", fallback: "%1$@, episode %2$lld, aired while you were away.", title, episode)
+    }
+
+    /// Toast, and desktop notification, for several episodes that aired while the app was closed.
+    public static func noticeEpisodesAired(count: Int) -> String {
+        format("notice-episodes-aired", fallback: "%1$lld new episodes of shows you watch aired. The calendar has them.", count)
+    }
+
+    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+    public static func noticeUpdateAvailable(tag: String) -> String {
+        format("notice-update-available", fallback: "%1$@ is out. Run anistream --update to install it.", tag)
+    }
+
+    /// The reason a setting was refused until the person confirms having no protection.
+    public static var causeConfirmNoProtection: String { string("cause-confirm-no-protection", fallback: "Confirm that you want no protection first.") }
+
+    /// The reason a setting was refused until the person confirms the "warn only" choice.
+    public static var causeConfirmWarnOnly: String { string("cause-confirm-warn-only", fallback: "Confirm that you want to be warned only first.") }
+
+    /// The reason a proxy was refused: it has no host or no port.
+    public static var causeProxyNeedsAddress: String { string("cause-proxy-needs-address", fallback: "A proxy needs a host and a port.") }
+
+    /// The reason a proxy could not be checked: its address is not one the check can use.
+    public static var causeProxyAddressUnusable: String { string("cause-proxy-address-unusable", fallback: "The proxy's address is not one a check can use.") }
+
+    /// The reason a request failed: it never reached the server.
+    public static var causeServerUnreachable: String { string("cause-server-unreachable", fallback: "The server couldn't be reached.") }
+
     /// The legal line. It exists once, so no translation can paraphrase it.
     public static var legalHostsNoContent: String { string("legal-hosts-no-content", fallback: "anistream hosts no content.") }
 

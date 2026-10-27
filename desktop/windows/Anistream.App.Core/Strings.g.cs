@@ -15,6 +15,138 @@ public static partial class T
     /// <summary>The language the resolver answers in, which picks plural forms. Set with the resolver.</summary>
     public static string Language { get; set; } = "en";
 
+    /// <summary>Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.</summary>
+    public static string NoticeSignedIn(string tracker) => Fill(Get("NoticeSignedIn"), ("tracker", tracker));
+
+    /// <summary>Toast after a sign-in succeeded and the token went into the system keychain.</summary>
+    public static string NoticeSignedInKeychain(string tracker) => Fill(Get("NoticeSignedInKeychain"), ("tracker", tracker));
+
+    /// <summary>Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.</summary>
+    public static string NoticeSignedInFile(string tracker) => Fill(Get("NoticeSignedInFile"), ("tracker", tracker));
+
+    /// <summary>Toast when a sign-in worked but the token could not be stored. The reason comes from the system.</summary>
+    public static string NoticeSignedInUnsaved(string tracker, string reason) => Fill(Get("NoticeSignedInUnsaved"), ("tracker", tracker), ("reason", reason));
+
+    /// <summary>Toast when a sign-in token could not be stored. The reason comes from the system.</summary>
+    public static string NoticeTokenNotSaved(string reason) => Fill(Get("NoticeTokenNotSaved"), ("reason", reason));
+
+    /// <summary>Toast when a sign-in did not finish. The reason comes from the tracker or the network.</summary>
+    public static string NoticeSignInFailed(string tracker, string reason) => Fill(Get("NoticeSignInFailed"), ("tracker", tracker), ("reason", reason));
+
+    /// <summary>Toast when the wait for a sign-in ended early. The reason comes from the system.</summary>
+    public static string NoticeSignInStopped(string tracker, string reason) => Fill(Get("NoticeSignInStopped"), ("tracker", tracker), ("reason", reason));
+
+    /// <summary>Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.</summary>
+    public static string NoticeTokenExchangeFailed(string tracker, string reason) => Fill(Get("NoticeTokenExchangeFailed"), ("tracker", tracker), ("reason", reason));
+
+    /// <summary>Toast when no browser could be opened for a sign-in. The reason comes from the system.</summary>
+    public static string NoticeBrowserNotOpened(string reason) => Fill(Get("NoticeBrowserNotOpened"), ("reason", reason));
+
+    /// <summary>Toast when a sign-in redirect arrives and no sign-in is waiting for it.</summary>
+    public static string NoticeSignInNotWaiting(string tracker) => Fill(Get("NoticeSignInNotWaiting"), ("tracker", tracker));
+
+    /// <summary>Toast when a sign-in redirect does not match the request that was made.</summary>
+    public static string NoticeSignInWrongRequest(string tracker) => Fill(Get("NoticeSignInWrongRequest"), ("tracker", tracker));
+
+    /// <summary>Toast when a tracker sent the person back without a token.</summary>
+    public static string NoticeSignInNoToken(string tracker) => Fill(Get("NoticeSignInNoToken"), ("tracker", tracker));
+
+    /// <summary>Toast when this build has no MyAnimeList client to finish a sign-in with.</summary>
+    public static string NoticeMalClientMissingBuild => Get("NoticeMalClientMissingBuild");
+
+    /// <summary>Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.</summary>
+    public static string NoticeKitsuSignsInOnAccounts => Get("NoticeKitsuSignsInOnAccounts");
+
+    /// <summary>Toast when a tracker has no way to sign in yet.</summary>
+    public static string NoticeSignInUnsupported(string tracker) => Fill(Get("NoticeSignInUnsupported"), ("tracker", tracker));
+
+    /// <summary>Toast on an app that cannot receive a browser redirect.</summary>
+    public static string NoticeSignInNeedsRedirect(string tracker) => Fill(Get("NoticeSignInNeedsRedirect"), ("tracker", tracker));
+
+    /// <summary>Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.</summary>
+    public static string NoticeAnilistImplicitFlow(string setting) => Fill(Get("NoticeAnilistImplicitFlow"), ("setting", setting));
+
+    /// <summary>Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.</summary>
+    public static string NoticeAnilistClientMissing(string client, string secret) => Fill(Get("NoticeAnilistClientMissing"), ("client", client), ("secret", secret));
+
+    /// <summary>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</summary>
+    public static string NoticeAnilistPasteFlow => Get("NoticeAnilistPasteFlow");
+
+    /// <summary>Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.</summary>
+    public static string NoticeMalClientMissing(string setting) => Fill(Get("NoticeMalClientMissing"), ("setting", setting));
+
+    /// <summary>Status line while the browser sign-in is open and the app waits for it to come back.</summary>
+    public static string StatusWaitingForRedirect(string tracker) => Fill(Get("StatusWaitingForRedirect"), ("tracker", tracker));
+
+    /// <summary>Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.</summary>
+    public static string NoticeMalNoRefreshToken => Get("NoticeMalNoRefreshToken");
+
+    /// <summary>Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.</summary>
+    public static string NoticeClientIdMissing(string setting) => Fill(Get("NoticeClientIdMissing"), ("setting", setting));
+
+    /// <summary>Toast after signing out of a tracker with nothing waiting to send.</summary>
+    public static string NoticeSignedOut(string tracker) => Fill(Get("NoticeSignedOut"), ("tracker", tracker));
+
+    /// <summary>Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.</summary>
+    public static string NoticeSignedOutQueue(string tracker, long count) => Fill(GetPlural("NoticeSignedOutQueue", count), ("tracker", tracker), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when signing out of a tracker failed. The reason comes from the system.</summary>
+    public static string NoticeSignOutFailed(string tracker, string reason) => Fill(Get("NoticeSignOutFailed"), ("tracker", tracker), ("reason", reason));
+
+    /// <summary>Toast when a setting could not be stored. The cause says why and what to do.</summary>
+    public static string NoticeNotSavedBecause(string cause) => Fill(Get("NoticeNotSavedBecause"), ("cause", cause));
+
+    /// <summary>Toast when the torrent protection choice was saved.</summary>
+    public static string NoticeProtectionSaved => Get("NoticeProtectionSaved");
+
+    /// <summary>Toast when the torrent protection could not be checked. The cause says why.</summary>
+    public static string NoticeProtectionNotChecked(string cause) => Fill(Get("NoticeProtectionNotChecked"), ("cause", cause));
+
+    /// <summary>Toast when the proxy's password could not be stored. The reason comes from the system.</summary>
+    public static string NoticeProxyPasswordNotKept(string reason) => Fill(Get("NoticeProxyPasswordNotKept"), ("reason", reason));
+
+    /// <summary>Toast when a show's setting was given a value it does not take. The value is what was given.</summary>
+    public static string NoticeShowSettingRefused(string value, string setting) => Fill(Get("NoticeShowSettingRefused"), ("value", value), ("setting", setting));
+
+    /// <summary>Toast when resetting a show's settings failed. The reason comes from the local database.</summary>
+    public static string NoticeShowNotReset(string reason) => Fill(Get("NoticeShowNotReset"), ("reason", reason));
+
+    /// <summary>Toast when a subtitle choice names subtitles the show has not used.</summary>
+    public static string NoticeShowNoSuchSubtitles => Get("NoticeShowNoSuchSubtitles");
+
+    /// <summary>Toast while torrents are held until the connection check passes.</summary>
+    public static string NoticeTorrentsWaitingForCheck => Get("NoticeTorrentsWaitingForCheck");
+
+    /// <summary>Toast when the mapping data downloads work again after a failure.</summary>
+    public static string NoticeMappingDataRefreshed => Get("NoticeMappingDataRefreshed");
+
+    /// <summary>Toast when the mapping data could not be downloaded. It is said once; the retries are silent.</summary>
+    public static string NoticeMappingDataFailed(string datasets, string wait, string cause) => Fill(Get("NoticeMappingDataFailed"), ("datasets", datasets), ("wait", wait), ("cause", cause));
+
+    /// <summary>Toast, and desktop notification, for one episode that aired while the app was closed.</summary>
+    public static string NoticeEpisodeAired(string title, long episode) => Fill(Get("NoticeEpisodeAired"), ("title", title), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast, and desktop notification, for several episodes that aired while the app was closed.</summary>
+    public static string NoticeEpisodesAired(long count) => Fill(GetPlural("NoticeEpisodesAired", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</summary>
+    public static string NoticeUpdateAvailable(string tag) => Fill(Get("NoticeUpdateAvailable"), ("tag", tag));
+
+    /// <summary>The reason a setting was refused until the person confirms having no protection.</summary>
+    public static string CauseConfirmNoProtection => Get("CauseConfirmNoProtection");
+
+    /// <summary>The reason a setting was refused until the person confirms the "warn only" choice.</summary>
+    public static string CauseConfirmWarnOnly => Get("CauseConfirmWarnOnly");
+
+    /// <summary>The reason a proxy was refused: it has no host or no port.</summary>
+    public static string CauseProxyNeedsAddress => Get("CauseProxyNeedsAddress");
+
+    /// <summary>The reason a proxy could not be checked: its address is not one the check can use.</summary>
+    public static string CauseProxyAddressUnusable => Get("CauseProxyAddressUnusable");
+
+    /// <summary>The reason a request failed: it never reached the server.</summary>
+    public static string CauseServerUnreachable => Get("CauseServerUnreachable");
+
     /// <summary>The legal line. It exists once, so no translation can paraphrase it.</summary>
     public static string LegalHostsNoContent => Get("LegalHostsNoContent");
 
@@ -179,6 +311,52 @@ public static partial class T
 
     static readonly Dictionary<string, string> English = new()
     {
+        ["NoticeSignedIn"] = "Signed in to {tracker}.",
+        ["NoticeSignedInKeychain"] = "Signed in to {tracker}. The token is in the OS keychain.",
+        ["NoticeSignedInFile"] = "Signed in to {tracker}. No keychain is available, so the token is in a private file on this device.",
+        ["NoticeSignedInUnsaved"] = "Signed in to {tracker}, but the token wasn't saved, so you'll need to sign in again next time. {reason}",
+        ["NoticeTokenNotSaved"] = "Couldn't save the sign-in token. Try signing in again. {reason}",
+        ["NoticeSignInFailed"] = "Couldn't sign in to {tracker}. Try again. {reason}",
+        ["NoticeSignInStopped"] = "The sign-in to {tracker} stopped before it finished. Try again. {reason}",
+        ["NoticeTokenExchangeFailed"] = "Couldn't get a token from {tracker}. Try signing in again. {reason}",
+        ["NoticeBrowserNotOpened"] = "Couldn't open a browser for the sign-in. Check that one is installed and try again. {reason}",
+        ["NoticeSignInNotWaiting"] = "No sign-in to {tracker} is waiting for that. Start the sign-in again.",
+        ["NoticeSignInWrongRequest"] = "That sign-in to {tracker} didn't come back from this request. Start the sign-in again.",
+        ["NoticeSignInNoToken"] = "The sign-in to {tracker} came back without a token. Try again.",
+        ["NoticeMalClientMissingBuild"] = "Couldn't finish signing in to MyAnimeList: this build has no client for it.",
+        ["NoticeKitsuSignsInOnAccounts"] = "Kitsu signs in from the Accounts screen.",
+        ["NoticeSignInUnsupported"] = "Signing in to {tracker} isn't supported yet.",
+        ["NoticeSignInNeedsRedirect"] = "Signing in to {tracker} needs a browser redirect, which this app can't receive.",
+        ["NoticeAnilistImplicitFlow"] = "This AniList sign-in method works only in the anistream app. To sign in here, set {setting} to \"loopback\" in the config file.",
+        ["NoticeAnilistClientMissing"] = "AniList needs a client id and secret. Set {client} and {secret} in the config file, then sign in again. To get the sign-in address, run anistream --login-url.",
+        ["NoticeAnilistPasteFlow"] = "Pasting a code isn't possible here. Quit and run anistream --login instead.",
+        ["NoticeMalClientMissing"] = "MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set {setting} in the config file.",
+        ["StatusWaitingForRedirect"] = "Waiting for {tracker} to redirect back…",
+        ["NoticeMalNoRefreshToken"] = "MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.",
+        ["NoticeClientIdMissing"] = "Set {setting} in the config file first.",
+        ["NoticeSignedOut"] = "Signed out of {tracker}.",
+        ["NoticeSignedOutQueue_one"] = "Signed out of {tracker}. One queued change is kept for the next sign-in.",
+        ["NoticeSignedOutQueue_other"] = "Signed out of {tracker}. {count} queued changes are kept for the next sign-in.",
+        ["NoticeSignOutFailed"] = "Couldn't sign out of {tracker}. Try again. {reason}",
+        ["NoticeNotSavedBecause"] = "Couldn't save that setting. {cause}",
+        ["NoticeProtectionSaved"] = "Saved torrent protection.",
+        ["NoticeProtectionNotChecked"] = "Couldn't check the torrent protection. {cause}",
+        ["NoticeProxyPasswordNotKept"] = "Couldn't keep the proxy's password. Enter it again to try saving it. {reason}",
+        ["NoticeShowSettingRefused"] = "Couldn't save that setting. {value} isn't a value for {setting}.",
+        ["NoticeShowNotReset"] = "Couldn't reset this show's settings. {reason}",
+        ["NoticeShowNoSuchSubtitles"] = "Couldn't save that subtitle choice. This show hasn't used those subtitles before.",
+        ["NoticeTorrentsWaitingForCheck"] = "Torrents are waiting for the connection check to pass again.",
+        ["NoticeMappingDataRefreshed"] = "Mapping data refreshed.",
+        ["NoticeMappingDataFailed"] = "Couldn't refresh the mapping data ({datasets}). Trying again in {wait}. {cause}",
+        ["NoticeEpisodeAired"] = "{title}, episode {episode}, aired while you were away.",
+        ["NoticeEpisodesAired_one"] = "One new episode of a show you watch aired. The calendar has it.",
+        ["NoticeEpisodesAired_other"] = "{count} new episodes of shows you watch aired. The calendar has them.",
+        ["NoticeUpdateAvailable"] = "{tag} is out. Run anistream --update to install it.",
+        ["CauseConfirmNoProtection"] = "Confirm that you want no protection first.",
+        ["CauseConfirmWarnOnly"] = "Confirm that you want to be warned only first.",
+        ["CauseProxyNeedsAddress"] = "A proxy needs a host and a port.",
+        ["CauseProxyAddressUnusable"] = "The proxy's address is not one a check can use.",
+        ["CauseServerUnreachable"] = "The server couldn't be reached.",
         ["LegalHostsNoContent"] = "anistream hosts no content.",
         ["NoticeSaved"] = "Saved {label}.",
         ["NoticeNotSaved"] = "Couldn't save that setting. {reason}",

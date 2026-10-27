@@ -35,6 +35,190 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="NoticeSignedIn" xml:space="preserve">
+    <value>Signed in to {tracker}.</value>
+    <comment>Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.</comment>
+  </data>
+  <data name="NoticeSignedInKeychain" xml:space="preserve">
+    <value>Signed in to {tracker}. The token is in the OS keychain.</value>
+    <comment>Toast after a sign-in succeeded and the token went into the system keychain.</comment>
+  </data>
+  <data name="NoticeSignedInFile" xml:space="preserve">
+    <value>Signed in to {tracker}. No keychain is available, so the token is in a private file on this device.</value>
+    <comment>Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.</comment>
+  </data>
+  <data name="NoticeSignedInUnsaved" xml:space="preserve">
+    <value>Signed in to {tracker}, but the token wasn't saved, so you'll need to sign in again next time. {reason}</value>
+    <comment>Toast when a sign-in worked but the token could not be stored. The reason comes from the system.</comment>
+  </data>
+  <data name="NoticeTokenNotSaved" xml:space="preserve">
+    <value>Couldn't save the sign-in token. Try signing in again. {reason}</value>
+    <comment>Toast when a sign-in token could not be stored. The reason comes from the system.</comment>
+  </data>
+  <data name="NoticeSignInFailed" xml:space="preserve">
+    <value>Couldn't sign in to {tracker}. Try again. {reason}</value>
+    <comment>Toast when a sign-in did not finish. The reason comes from the tracker or the network.</comment>
+  </data>
+  <data name="NoticeSignInStopped" xml:space="preserve">
+    <value>The sign-in to {tracker} stopped before it finished. Try again. {reason}</value>
+    <comment>Toast when the wait for a sign-in ended early. The reason comes from the system.</comment>
+  </data>
+  <data name="NoticeTokenExchangeFailed" xml:space="preserve">
+    <value>Couldn't get a token from {tracker}. Try signing in again. {reason}</value>
+    <comment>Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.</comment>
+  </data>
+  <data name="NoticeBrowserNotOpened" xml:space="preserve">
+    <value>Couldn't open a browser for the sign-in. Check that one is installed and try again. {reason}</value>
+    <comment>Toast when no browser could be opened for a sign-in. The reason comes from the system.</comment>
+  </data>
+  <data name="NoticeSignInNotWaiting" xml:space="preserve">
+    <value>No sign-in to {tracker} is waiting for that. Start the sign-in again.</value>
+    <comment>Toast when a sign-in redirect arrives and no sign-in is waiting for it.</comment>
+  </data>
+  <data name="NoticeSignInWrongRequest" xml:space="preserve">
+    <value>That sign-in to {tracker} didn't come back from this request. Start the sign-in again.</value>
+    <comment>Toast when a sign-in redirect does not match the request that was made.</comment>
+  </data>
+  <data name="NoticeSignInNoToken" xml:space="preserve">
+    <value>The sign-in to {tracker} came back without a token. Try again.</value>
+    <comment>Toast when a tracker sent the person back without a token.</comment>
+  </data>
+  <data name="NoticeMalClientMissingBuild" xml:space="preserve">
+    <value>Couldn't finish signing in to MyAnimeList: this build has no client for it.</value>
+    <comment>Toast when this build has no MyAnimeList client to finish a sign-in with.</comment>
+  </data>
+  <data name="NoticeKitsuSignsInOnAccounts" xml:space="preserve">
+    <value>Kitsu signs in from the Accounts screen.</value>
+    <comment>Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.</comment>
+  </data>
+  <data name="NoticeSignInUnsupported" xml:space="preserve">
+    <value>Signing in to {tracker} isn't supported yet.</value>
+    <comment>Toast when a tracker has no way to sign in yet.</comment>
+  </data>
+  <data name="NoticeSignInNeedsRedirect" xml:space="preserve">
+    <value>Signing in to {tracker} needs a browser redirect, which this app can't receive.</value>
+    <comment>Toast on an app that cannot receive a browser redirect.</comment>
+  </data>
+  <data name="NoticeAnilistImplicitFlow" xml:space="preserve">
+    <value>This AniList sign-in method works only in the anistream app. To sign in here, set {setting} to "loopback" in the config file.</value>
+    <comment>Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.</comment>
+  </data>
+  <data name="NoticeAnilistClientMissing" xml:space="preserve">
+    <value>AniList needs a client id and secret. Set {client} and {secret} in the config file, then sign in again. To get the sign-in address, run anistream --login-url.</value>
+    <comment>Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.</comment>
+  </data>
+  <data name="NoticeAnilistPasteFlow" xml:space="preserve">
+    <value>Pasting a code isn't possible here. Quit and run anistream --login instead.</value>
+    <comment>Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.</comment>
+  </data>
+  <data name="NoticeMalClientMissing" xml:space="preserve">
+    <value>MyAnimeList needs a client id. Register an app of type other at myanimelist.net/apiconfig, then set {setting} in the config file.</value>
+    <comment>Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.</comment>
+  </data>
+  <data name="StatusWaitingForRedirect" xml:space="preserve">
+    <value>Waiting for {tracker} to redirect back…</value>
+    <comment>Status line while the browser sign-in is open and the app waits for it to come back.</comment>
+  </data>
+  <data name="NoticeMalNoRefreshToken" xml:space="preserve">
+    <value>MyAnimeList didn't issue a refresh token. You'll need to sign in again in about a month.</value>
+    <comment>Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.</comment>
+  </data>
+  <data name="NoticeClientIdMissing" xml:space="preserve">
+    <value>Set {setting} in the config file first.</value>
+    <comment>Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.</comment>
+  </data>
+  <data name="NoticeSignedOut" xml:space="preserve">
+    <value>Signed out of {tracker}.</value>
+    <comment>Toast after signing out of a tracker with nothing waiting to send.</comment>
+  </data>
+  <data name="NoticeSignedOutQueue_one" xml:space="preserve">
+    <value>Signed out of {tracker}. One queued change is kept for the next sign-in.</value>
+    <comment>Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.</comment>
+  </data>
+  <data name="NoticeSignedOutQueue_other" xml:space="preserve">
+    <value>Signed out of {tracker}. {count} queued changes are kept for the next sign-in.</value>
+    <comment>Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.</comment>
+  </data>
+  <data name="NoticeSignOutFailed" xml:space="preserve">
+    <value>Couldn't sign out of {tracker}. Try again. {reason}</value>
+    <comment>Toast when signing out of a tracker failed. The reason comes from the system.</comment>
+  </data>
+  <data name="NoticeNotSavedBecause" xml:space="preserve">
+    <value>Couldn't save that setting. {cause}</value>
+    <comment>Toast when a setting could not be stored. The cause says why and what to do.</comment>
+  </data>
+  <data name="NoticeProtectionSaved" xml:space="preserve">
+    <value>Saved torrent protection.</value>
+    <comment>Toast when the torrent protection choice was saved.</comment>
+  </data>
+  <data name="NoticeProtectionNotChecked" xml:space="preserve">
+    <value>Couldn't check the torrent protection. {cause}</value>
+    <comment>Toast when the torrent protection could not be checked. The cause says why.</comment>
+  </data>
+  <data name="NoticeProxyPasswordNotKept" xml:space="preserve">
+    <value>Couldn't keep the proxy's password. Enter it again to try saving it. {reason}</value>
+    <comment>Toast when the proxy's password could not be stored. The reason comes from the system.</comment>
+  </data>
+  <data name="NoticeShowSettingRefused" xml:space="preserve">
+    <value>Couldn't save that setting. {value} isn't a value for {setting}.</value>
+    <comment>Toast when a show's setting was given a value it does not take. The value is what was given.</comment>
+  </data>
+  <data name="NoticeShowNotReset" xml:space="preserve">
+    <value>Couldn't reset this show's settings. {reason}</value>
+    <comment>Toast when resetting a show's settings failed. The reason comes from the local database.</comment>
+  </data>
+  <data name="NoticeShowNoSuchSubtitles" xml:space="preserve">
+    <value>Couldn't save that subtitle choice. This show hasn't used those subtitles before.</value>
+    <comment>Toast when a subtitle choice names subtitles the show has not used.</comment>
+  </data>
+  <data name="NoticeTorrentsWaitingForCheck" xml:space="preserve">
+    <value>Torrents are waiting for the connection check to pass again.</value>
+    <comment>Toast while torrents are held until the connection check passes.</comment>
+  </data>
+  <data name="NoticeMappingDataRefreshed" xml:space="preserve">
+    <value>Mapping data refreshed.</value>
+    <comment>Toast when the mapping data downloads work again after a failure.</comment>
+  </data>
+  <data name="NoticeMappingDataFailed" xml:space="preserve">
+    <value>Couldn't refresh the mapping data ({datasets}). Trying again in {wait}. {cause}</value>
+    <comment>Toast when the mapping data could not be downloaded. It is said once; the retries are silent.</comment>
+  </data>
+  <data name="NoticeEpisodeAired" xml:space="preserve">
+    <value>{title}, episode {episode}, aired while you were away.</value>
+    <comment>Toast, and desktop notification, for one episode that aired while the app was closed.</comment>
+  </data>
+  <data name="NoticeEpisodesAired_one" xml:space="preserve">
+    <value>One new episode of a show you watch aired. The calendar has it.</value>
+    <comment>Toast, and desktop notification, for several episodes that aired while the app was closed.</comment>
+  </data>
+  <data name="NoticeEpisodesAired_other" xml:space="preserve">
+    <value>{count} new episodes of shows you watch aired. The calendar has them.</value>
+    <comment>Toast, and desktop notification, for several episodes that aired while the app was closed.</comment>
+  </data>
+  <data name="NoticeUpdateAvailable" xml:space="preserve">
+    <value>{tag} is out. Run anistream --update to install it.</value>
+    <comment>Toast when a new release of anistream is out, on the terminal app. The command is not translated.</comment>
+  </data>
+  <data name="CauseConfirmNoProtection" xml:space="preserve">
+    <value>Confirm that you want no protection first.</value>
+    <comment>The reason a setting was refused until the person confirms having no protection.</comment>
+  </data>
+  <data name="CauseConfirmWarnOnly" xml:space="preserve">
+    <value>Confirm that you want to be warned only first.</value>
+    <comment>The reason a setting was refused until the person confirms the "warn only" choice.</comment>
+  </data>
+  <data name="CauseProxyNeedsAddress" xml:space="preserve">
+    <value>A proxy needs a host and a port.</value>
+    <comment>The reason a proxy was refused: it has no host or no port.</comment>
+  </data>
+  <data name="CauseProxyAddressUnusable" xml:space="preserve">
+    <value>The proxy's address is not one a check can use.</value>
+    <comment>The reason a proxy could not be checked: its address is not one the check can use.</comment>
+  </data>
+  <data name="CauseServerUnreachable" xml:space="preserve">
+    <value>The server couldn't be reached.</value>
+    <comment>The reason a request failed: it never reached the server.</comment>
+  </data>
   <data name="LegalHostsNoContent" xml:space="preserve">
     <value>anistream hosts no content.</value>
     <comment>The legal line. It exists once, so no translation can paraphrase it.</comment>

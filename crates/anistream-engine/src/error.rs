@@ -11,3 +11,13 @@ pub enum EngineError {
     #[error("{reason}")]
     PluginStores { reason: String },
 }
+
+impl EngineError {
+    /// What the app says when the engine does not start. The reason comes from the plugin store
+    /// client, so it is shown as it is.
+    pub fn msg(&self) -> anistream_model::Msg {
+        match self {
+            Self::PluginStores { reason } => anistream_model::Msg::verbatim(reason.clone()),
+        }
+    }
+}

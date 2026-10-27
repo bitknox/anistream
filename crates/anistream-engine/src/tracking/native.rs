@@ -14,7 +14,7 @@ use std::{
 };
 
 use anistream_core::config::Config;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{Msg, event::Event, notice::Notice};
 use anistream_track::{TokenPair, auth, mal};
 
 use super::{Sync, activate};
@@ -123,7 +123,7 @@ pub fn begin(sync: &Sync, clients: &AppClients, tracker: &str, tx: &Outbox) -> b
         ("anilist", Some(client), _) => match auth::implicit_url(client, &state) {
             Ok(url) => (url, None),
             Err(e) => {
-                let _ = tx.send(Event::Toast(Notice::raw_alert(e.to_string())));
+                let _ = tx.send(Event::Toast(Notice::alert(Msg::verbatim(e.to_string()))));
                 return true;
             }
         },
@@ -153,11 +153,12 @@ pub async fn finish(
     callback: String,
     tx: Outbox,
 ) {
-    let alert = |text: String| {
-        let _ = tx.send(Event::Toast(Notice::raw_alert(text)));
+    let name = super::tracker_name(&tracker);
+    let alert = |msg: Msg| {
+        let _ = tx.send(Event::Toast(Notice::alert(msg)));
     };
     let Some(pending) = sync.pending.take(&tracker) else {
-        return alert(format!("no sign-in to {tracker} is waiting for that"));
+        return alert(Msg::NoticeSignInNotWaiting { tracker: name });
     };
     let params = auth::callback_params(&callback);
     let param = |name: &str| params.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_str());
@@ -173,11 +174,11 @@ pub async fn finish(
             "a sign-in redirect that does not carry this request's state, refused"
         );
         sync.pending.put(&tracker, pending);
-        return alert(format!("that sign-in to {tracker} did not come back from this request"));
+        return alert(Msg::NoticeSignInWrongRequest { tracker: name });
     }
     if let Some(error) = param("error") {
         let reason = param("error_description").unwrap_or(error);
-        return alert(format!("sign-in to {tracker} failed: {reason}"));
+        return alert(Msg::NoticeSignInFailed { tracker: name, reason: reason.to_owned() });
     }
     let pair = match (tracker.as_str(), param("access_token"), param("code")) {
         ("anilist", Some(token), _) => TokenPair {
@@ -187,7 +188,7 @@ pub async fn finish(
         },
         ("mal", _, Some(code)) => {
             let (Some(client), Some(verifier)) = (&clients.mal, &pending.verifier) else {
-                return alert("no MyAnimeList client to finish with".into());
+                return alert(Msg::NoticeMalClientMissingBuild);
             };
             let exchanged = mal::exchange_code(
                 sync.http.plain(),
@@ -200,10 +201,15 @@ pub async fn finish(
             .await;
             match exchanged {
                 Ok(pair) => pair,
-                Err(e) => return alert(format!("token exchange failed: {e}")),
+                Err(e) => {
+                    return alert(Msg::NoticeTokenExchangeFailed {
+                        tracker: name,
+                        reason: e.to_string(),
+                    });
+                }
             }
         }
-        _ => return alert(format!("the sign-in to {tracker} came back with no token")),
+        _ => return alert(Msg::NoticeSignInNoToken { tracker: name }),
     };
     // AniList's as a bare token, as the terminal keeps it; MyAnimeList's with its refresh.
     let kept = match tracker.as_str() {
@@ -217,11 +223,10 @@ pub async fn finish(
     };
     match kept {
         Ok(_) => {
-            let name = if tracker == "mal" { "MyAnimeList" } else { "AniList" };
-            let _ = tx.send(Event::Toast(Notice::raw_info(format!("signed in to {name}"))));
+            let _ = tx.send(Event::Toast(Notice::info(Msg::NoticeSignedIn { tracker: name })));
             activate(&sync, &tracker, &pair, &tx).await;
         }
-        Err(e) => alert(format!("could not store the token: {e}")),
+        Err(e) => alert(Msg::NoticeTokenNotSaved { reason: e.to_string() }),
     }
 }
 

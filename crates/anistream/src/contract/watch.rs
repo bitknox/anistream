@@ -208,7 +208,10 @@ async fn signing_out_says_what_was_kept_then_republishes_every_tracker() {
 
     assert!(job.is_none());
     assert_eq!(names(&updates), ["Toast", "Sync", "Sync"]);
-    assert_eq!(toasts(&updates), ["info: signed out of anilist — 1 queued change kept"]);
+    assert_eq!(
+        toasts(&updates),
+        ["info: Signed out of AniList. One queued change is kept for the next sign-in."]
+    );
     let states: Vec<(&str, bool)> =
         updates[1..].iter().map(state).map(|s| (s.tracker.as_str(), s.connected)).collect();
     assert_eq!(states, [("anilist", false), ("kitsu", false)]);

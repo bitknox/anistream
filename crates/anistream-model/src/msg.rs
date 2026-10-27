@@ -11,6 +11,84 @@ use crate::msg_text::{Size, Span, Value};
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Msg {
+    /// Toast after a tracker sign-in succeeded. The tracker is its name, such as AniList.
+    NoticeSignedIn { tracker: String },
+    /// Toast after a sign-in succeeded and the token went into the system keychain.
+    NoticeSignedInKeychain { tracker: String },
+    /// Toast after a sign-in succeeded on a device with no keychain. The token is in a file only this user can read. It is said so that someone on a shared computer knows.
+    NoticeSignedInFile { tracker: String },
+    /// Toast when a sign-in worked but the token could not be stored. The reason comes from the system.
+    NoticeSignedInUnsaved { tracker: String, reason: String },
+    /// Toast when a sign-in token could not be stored. The reason comes from the system.
+    NoticeTokenNotSaved { reason: String },
+    /// Toast when a sign-in did not finish. The reason comes from the tracker or the network.
+    NoticeSignInFailed { tracker: String, reason: String },
+    /// Toast when the wait for a sign-in ended early. The reason comes from the system.
+    NoticeSignInStopped { tracker: String, reason: String },
+    /// Toast when a tracker would not give a token for the sign-in. The reason comes from the tracker.
+    NoticeTokenExchangeFailed { tracker: String, reason: String },
+    /// Toast when no browser could be opened for a sign-in. The reason comes from the system.
+    NoticeBrowserNotOpened { reason: String },
+    /// Toast when a sign-in redirect arrives and no sign-in is waiting for it.
+    NoticeSignInNotWaiting { tracker: String },
+    /// Toast when a sign-in redirect does not match the request that was made.
+    NoticeSignInWrongRequest { tracker: String },
+    /// Toast when a tracker sent the person back without a token.
+    NoticeSignInNoToken { tracker: String },
+    /// Toast when this build has no MyAnimeList client to finish a sign-in with.
+    NoticeMalClientMissingBuild,
+    /// Toast on a screen that opens Kitsu's sign-in as a prompt. It is shown with a button to open it.
+    NoticeKitsuSignsInOnAccounts,
+    /// Toast when a tracker has no way to sign in yet.
+    NoticeSignInUnsupported { tracker: String },
+    /// Toast on an app that cannot receive a browser redirect.
+    NoticeSignInNeedsRedirect { tracker: String },
+    /// Toast when AniList is set to a sign-in method only the anistream app can finish. The setting name is a key of the config file and is not translated.
+    NoticeAnilistImplicitFlow { setting: String },
+    /// Toast when AniList sign-in needs a client id and secret in the config file. The setting names and the command are not translated.
+    NoticeAnilistClientMissing { client: String, secret: String },
+    /// Toast when AniList is set to paste the code by hand, which a running terminal app cannot take.
+    NoticeAnilistPasteFlow,
+    /// Toast when MyAnimeList sign-in needs a client id in the config file. The setting name and the address are not translated.
+    NoticeMalClientMissing { setting: String },
+    /// Status line while the browser sign-in is open and the app waits for it to come back.
+    StatusWaitingForRedirect { tracker: String },
+    /// Toast when MyAnimeList signed in without a refresh token, so the sign-in lapses in about a month.
+    NoticeMalNoRefreshToken,
+    /// Toast when a device-code sign-in needs a client id in the config file. The setting name is a key of the config file and is not translated.
+    NoticeClientIdMissing { setting: String },
+    /// Toast after signing out of a tracker with nothing waiting to send.
+    NoticeSignedOut { tracker: String },
+    /// Toast after signing out of a tracker. The changes were not discarded: they are sent after the next sign-in.
+    NoticeSignedOutQueue { tracker: String, count: i64 },
+    /// Toast when signing out of a tracker failed. The reason comes from the system.
+    NoticeSignOutFailed { tracker: String, reason: String },
+    /// Toast when a setting could not be stored. The cause says why and what to do.
+    NoticeNotSavedBecause { cause: Cause },
+    /// Toast when the torrent protection choice was saved.
+    NoticeProtectionSaved,
+    /// Toast when the torrent protection could not be checked. The cause says why.
+    NoticeProtectionNotChecked { cause: Cause },
+    /// Toast when the proxy's password could not be stored. The reason comes from the system.
+    NoticeProxyPasswordNotKept { reason: String },
+    /// Toast when a show's setting was given a value it does not take. The value is what was given.
+    NoticeShowSettingRefused { value: String, setting: String },
+    /// Toast when resetting a show's settings failed. The reason comes from the local database.
+    NoticeShowNotReset { reason: String },
+    /// Toast when a subtitle choice names subtitles the show has not used.
+    NoticeShowNoSuchSubtitles,
+    /// Toast while torrents are held until the connection check passes.
+    NoticeTorrentsWaitingForCheck,
+    /// Toast when the mapping data downloads work again after a failure.
+    NoticeMappingDataRefreshed,
+    /// Toast when the mapping data could not be downloaded. It is said once; the retries are silent.
+    NoticeMappingDataFailed { datasets: String, wait: Span, cause: Cause },
+    /// Toast, and desktop notification, for one episode that aired while the app was closed.
+    NoticeEpisodeAired { title: String, episode: i64 },
+    /// Toast, and desktop notification, for several episodes that aired while the app was closed.
+    NoticeEpisodesAired { count: i64 },
+    /// Toast when a new release of anistream is out, on the terminal app. The command is not translated.
+    NoticeUpdateAvailable { tag: String },
     /// The legal line. It exists once, so no translation can paraphrase it.
     LegalHostsNoContent,
     /// Toast after a setting is stored. The label is the setting's name.
@@ -31,6 +109,45 @@ impl Msg {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::NoticeSignedIn { .. } => "notice-signed-in",
+            Self::NoticeSignedInKeychain { .. } => "notice-signed-in-keychain",
+            Self::NoticeSignedInFile { .. } => "notice-signed-in-file",
+            Self::NoticeSignedInUnsaved { .. } => "notice-signed-in-unsaved",
+            Self::NoticeTokenNotSaved { .. } => "notice-token-not-saved",
+            Self::NoticeSignInFailed { .. } => "notice-sign-in-failed",
+            Self::NoticeSignInStopped { .. } => "notice-sign-in-stopped",
+            Self::NoticeTokenExchangeFailed { .. } => "notice-token-exchange-failed",
+            Self::NoticeBrowserNotOpened { .. } => "notice-browser-not-opened",
+            Self::NoticeSignInNotWaiting { .. } => "notice-sign-in-not-waiting",
+            Self::NoticeSignInWrongRequest { .. } => "notice-sign-in-wrong-request",
+            Self::NoticeSignInNoToken { .. } => "notice-sign-in-no-token",
+            Self::NoticeMalClientMissingBuild => "notice-mal-client-missing-build",
+            Self::NoticeKitsuSignsInOnAccounts => "notice-kitsu-signs-in-on-accounts",
+            Self::NoticeSignInUnsupported { .. } => "notice-sign-in-unsupported",
+            Self::NoticeSignInNeedsRedirect { .. } => "notice-sign-in-needs-redirect",
+            Self::NoticeAnilistImplicitFlow { .. } => "notice-anilist-implicit-flow",
+            Self::NoticeAnilistClientMissing { .. } => "notice-anilist-client-missing",
+            Self::NoticeAnilistPasteFlow => "notice-anilist-paste-flow",
+            Self::NoticeMalClientMissing { .. } => "notice-mal-client-missing",
+            Self::StatusWaitingForRedirect { .. } => "status-waiting-for-redirect",
+            Self::NoticeMalNoRefreshToken => "notice-mal-no-refresh-token",
+            Self::NoticeClientIdMissing { .. } => "notice-client-id-missing",
+            Self::NoticeSignedOut { .. } => "notice-signed-out",
+            Self::NoticeSignedOutQueue { .. } => "notice-signed-out-queue",
+            Self::NoticeSignOutFailed { .. } => "notice-sign-out-failed",
+            Self::NoticeNotSavedBecause { .. } => "notice-not-saved-because",
+            Self::NoticeProtectionSaved => "notice-protection-saved",
+            Self::NoticeProtectionNotChecked { .. } => "notice-protection-not-checked",
+            Self::NoticeProxyPasswordNotKept { .. } => "notice-proxy-password-not-kept",
+            Self::NoticeShowSettingRefused { .. } => "notice-show-setting-refused",
+            Self::NoticeShowNotReset { .. } => "notice-show-not-reset",
+            Self::NoticeShowNoSuchSubtitles => "notice-show-no-such-subtitles",
+            Self::NoticeTorrentsWaitingForCheck => "notice-torrents-waiting-for-check",
+            Self::NoticeMappingDataRefreshed => "notice-mapping-data-refreshed",
+            Self::NoticeMappingDataFailed { .. } => "notice-mapping-data-failed",
+            Self::NoticeEpisodeAired { .. } => "notice-episode-aired",
+            Self::NoticeEpisodesAired { .. } => "notice-episodes-aired",
+            Self::NoticeUpdateAvailable { .. } => "notice-update-available",
             Self::LegalHostsNoContent => "legal-hosts-no-content",
             Self::NoticeSaved { .. } => "notice-saved",
             Self::NoticeNotSaved { .. } => "notice-not-saved",
@@ -44,6 +161,45 @@ impl Msg {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::NoticeSignedIn { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignedInKeychain { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignedInFile { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignedInUnsaved { tracker, reason } => vec![("tracker", Value::Text(tracker.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeTokenNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeSignInFailed { tracker, reason } => vec![("tracker", Value::Text(tracker.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeSignInStopped { tracker, reason } => vec![("tracker", Value::Text(tracker.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeTokenExchangeFailed { tracker, reason } => vec![("tracker", Value::Text(tracker.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeBrowserNotOpened { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeSignInNotWaiting { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignInWrongRequest { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignInNoToken { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeMalClientMissingBuild => Vec::new(),
+            Self::NoticeKitsuSignsInOnAccounts => Vec::new(),
+            Self::NoticeSignInUnsupported { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignInNeedsRedirect { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeAnilistImplicitFlow { setting } => vec![("setting", Value::Text(setting.clone()))],
+            Self::NoticeAnilistClientMissing { client, secret } => vec![("client", Value::Text(client.clone())), ("secret", Value::Text(secret.clone()))],
+            Self::NoticeAnilistPasteFlow => Vec::new(),
+            Self::NoticeMalClientMissing { setting } => vec![("setting", Value::Text(setting.clone()))],
+            Self::StatusWaitingForRedirect { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeMalNoRefreshToken => Vec::new(),
+            Self::NoticeClientIdMissing { setting } => vec![("setting", Value::Text(setting.clone()))],
+            Self::NoticeSignedOut { tracker } => vec![("tracker", Value::Text(tracker.clone()))],
+            Self::NoticeSignedOutQueue { tracker, count } => vec![("tracker", Value::Text(tracker.clone())), ("count", Value::Int(*count))],
+            Self::NoticeSignOutFailed { tracker, reason } => vec![("tracker", Value::Text(tracker.clone())), ("reason", Value::Text(reason.clone()))],
+            Self::NoticeNotSavedBecause { cause } => vec![("cause", Value::Cause(cause.clone()))],
+            Self::NoticeProtectionSaved => Vec::new(),
+            Self::NoticeProtectionNotChecked { cause } => vec![("cause", Value::Cause(cause.clone()))],
+            Self::NoticeProxyPasswordNotKept { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeShowSettingRefused { value, setting } => vec![("value", Value::Text(value.clone())), ("setting", Value::Text(setting.clone()))],
+            Self::NoticeShowNotReset { reason } => vec![("reason", Value::Text(reason.clone()))],
+            Self::NoticeShowNoSuchSubtitles => Vec::new(),
+            Self::NoticeTorrentsWaitingForCheck => Vec::new(),
+            Self::NoticeMappingDataRefreshed => Vec::new(),
+            Self::NoticeMappingDataFailed { datasets, wait, cause } => vec![("datasets", Value::Text(datasets.clone())), ("wait", Value::Span(*wait)), ("cause", Value::Cause(cause.clone()))],
+            Self::NoticeEpisodeAired { title, episode } => vec![("title", Value::Text(title.clone())), ("episode", Value::Int(*episode))],
+            Self::NoticeEpisodesAired { count } => vec![("count", Value::Int(*count))],
+            Self::NoticeUpdateAvailable { tag } => vec![("tag", Value::Text(tag.clone()))],
             Self::LegalHostsNoContent => Vec::new(),
             Self::NoticeSaved { label } => vec![("label", Value::Text(label.clone()))],
             Self::NoticeNotSaved { reason } => vec![("reason", Value::Text(reason.clone()))],
@@ -59,6 +215,16 @@ impl Msg {
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Cause {
+    /// The reason a setting was refused until the person confirms having no protection.
+    ConfirmNoProtection,
+    /// The reason a setting was refused until the person confirms the "warn only" choice.
+    ConfirmWarnOnly,
+    /// The reason a proxy was refused: it has no host or no port.
+    ProxyNeedsAddress,
+    /// The reason a proxy could not be checked: its address is not one the check can use.
+    ProxyAddressUnusable,
+    /// The reason a request failed: it never reached the server.
+    ServerUnreachable,
     /// Text anistream does not own, shown as it is: a plugin's note, a tracker's error.
     Verbatim { text: String },
 }
@@ -67,6 +233,11 @@ impl Cause {
     /// The catalogue id of the message.
     pub fn id(&self) -> &'static str {
         match self {
+            Self::ConfirmNoProtection => "cause-confirm-no-protection",
+            Self::ConfirmWarnOnly => "cause-confirm-warn-only",
+            Self::ProxyNeedsAddress => "cause-proxy-needs-address",
+            Self::ProxyAddressUnusable => "cause-proxy-address-unusable",
+            Self::ServerUnreachable => "cause-server-unreachable",
             Self::Verbatim { .. } => "verbatim",
         }
     }
@@ -74,6 +245,11 @@ impl Cause {
     /// The message's arguments, by catalogue name.
     pub fn values(&self) -> Vec<(&'static str, Value)> {
         match self {
+            Self::ConfirmNoProtection => Vec::new(),
+            Self::ConfirmWarnOnly => Vec::new(),
+            Self::ProxyNeedsAddress => Vec::new(),
+            Self::ProxyAddressUnusable => Vec::new(),
+            Self::ServerUnreachable => Vec::new(),
             Self::Verbatim { text } => vec![("text", Value::Text(text.clone()))],
         }
     }
