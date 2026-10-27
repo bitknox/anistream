@@ -72,10 +72,9 @@ pub const VIEWER_ID: u32 = 5150;
 /// `aired` is not a field of AniList's `Media`: the single-title query asks for it beside the
 /// title, and the fake moves it there. The fixtures keep it on the title because that is where
 /// the app's `Media` holds it once read.
-pub(crate) const DETAIL_ONLY: [&str; 11] = [
+pub(crate) const DETAIL_ONLY: [&str; 10] = [
     "externalLinks",
     "streamingEpisodes",
-    "trailer",
     "relations",
     "recommendations",
     "tags",

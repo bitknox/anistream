@@ -177,6 +177,60 @@ pub struct Entry {
     /// [`Translation::Dub`]: anistream_core::media::Translation::Dub
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub watched_in: Option<anistream_core::media::Translation>,
+    /// The title's trailer, the one AniList lists, on list rows and the title page alike: what
+    /// the banner and the hover preview play, through [`crate::trailer::embed_page`], and what
+    /// Play trailer opens. [`Self::trailer_url`] is its watch URL, kept until every front end
+    /// reads this.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub trailer: Option<Trailer>,
+}
+
+/// A title's trailer: a video on a host, as AniList names it. Never searched for: the app plays
+/// the one AniList lists, or none.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Trailer {
+    pub host: TrailerHost,
+    /// The host's id for the video.
+    pub id: String,
+}
+
+/// Where a trailer is hosted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum TrailerHost {
+    YouTube,
+    Dailymotion,
+}
+
+impl Trailer {
+    /// The trailer from AniList's `trailer { id site }`: `None` for a site this app does not know
+    /// or an empty id, rather than a guessed URL that opens a 404.
+    pub fn from_site(site: &str, id: &str) -> Option<Self> {
+        let host = match site {
+            "youtube" => TrailerHost::YouTube,
+            "dailymotion" => TrailerHost::Dailymotion,
+            _ => return None,
+        };
+        (!id.is_empty()).then(|| Self { host, id: id.to_owned() })
+    }
+
+    /// Where Play trailer goes when the embed refuses it: the host's own watch page.
+    pub fn watch_url(&self) -> String {
+        match self.host {
+            TrailerHost::YouTube => format!("https://www.youtube.com/watch?v={}", self.id),
+            TrailerHost::Dailymotion => format!("https://www.dailymotion.com/video/{}", self.id),
+        }
+    }
+
+    /// Whether the app's own player can play it: a YouTube video whose id is one YouTube could
+    /// have given. A Dailymotion trailer keeps the browser link, as decided: a second player
+    /// would be a second set of terms to keep to.
+    pub fn embeddable(&self) -> bool {
+        self.host == TrailerHost::YouTube
+            && (1..=64).contains(&self.id.len())
+            && self.id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+    }
 }
 
 /// Where a title is in its run, as AniList says.
@@ -536,6 +590,7 @@ impl Entry {
             airing_translation: None,
             airing_dubbed: false,
             watched_in: None,
+            trailer: None,
         }
     }
 

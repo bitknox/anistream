@@ -64,6 +64,12 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
             })
             .collect(),
         trailer_url: media.trailer_url(),
+        trailer: media.trailer.as_ref().and_then(|trailer| {
+            anistream_model::catalog::Trailer::from_site(
+                trailer.site.as_deref()?,
+                trailer.id.as_deref()?,
+            )
+        }),
         title_romaji: media.title.romaji.clone(),
         title_english: media.title.english.clone(),
         title_native: media.title.native.clone(),

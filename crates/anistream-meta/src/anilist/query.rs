@@ -29,6 +29,7 @@ pub const MEDIA_FIELDS: &str = r"
     bannerImage
     nextAiringEpisode { episode airingAt timeUntilAiring }
     studios(isMain: true) { nodes { name } }
+    trailer { id site }
 ";
 
 /// Extra fields only the Title screen needs. Excluded from list queries because
@@ -41,7 +42,6 @@ pub const MEDIA_FIELDS: &str = r"
 pub const MEDIA_DETAIL_FIELDS: &str = r"
     externalLinks { site url type language }
     streamingEpisodes { title url site thumbnail }
-    trailer { id site }
     tags { name rank isMediaSpoiler isGeneralSpoiler category }
     upcoming: airingSchedule(notYetAired: true, perPage: 50) { nodes { episode airingAt } }
     rankings { rank type context allTime season year }

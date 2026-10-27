@@ -4,12 +4,13 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▤│    Theme                       Adaptive
   ▦│    Motion                      On
   /│    Titles                      AniList's choice
-  ▥│
+  ▥│    Play trailers               Always
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────
   subtitles. Enter saves, Esc leaves it as it is.
 
+   │    Counts as watched at        85%
    │    Auto-play next              On
    │    Skip opening automatically  On
    │    Skip filler automatically   Off
@@ -17,7 +18,6 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │    Show skip button            On
    │    Start fullscreen            Off
    │    Upscaling                   Natural · ArtCNN
-   │    Player interface            anistream
    │  ────────────────────────────────────────────────────────────────────────
    │    Press Enter to type a language code. There are too many values to c…
 ────────────────────────────────────────────────────────────────────────────────
@@ -39,11 +39,11 @@ r08 c02-15 fg=text bg=ground mod=BOLD
 r08 c16-79 fg=rule bg=ground
 r09 c00-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-35 fg=text-dim bg=ground
-r10 c36-38 fg=text-dim bg=ground mod=BOLD
-r10 c39-48 fg=text-dim bg=ground
+r10 c02-48 fg=text-dim bg=ground
 r10 c49-79 fg=rule bg=ground
-r11 c00-79 fg=rule bg=ground
+r11 c00-35 fg=rule bg=ground
+r11 c36-38 fg=rule bg=ground mod=BOLD
+r11 c39-79 fg=rule bg=ground
 r12 c00-79 fg=rule
 r13 c00-79 fg=rule
 r14 c00-79 fg=rule

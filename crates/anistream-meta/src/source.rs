@@ -159,8 +159,8 @@ impl Answered {
 /// [`REUSE_FOR`].
 ///
 /// Kept beside the cache, not read from it: the cache holds whichever fetch touched a title
-/// last, and a list fetch writes a title without its relations, recommendations, trailer or
-/// episode names. A title page drawn from that row would be missing half of itself.
+/// last, and a list fetch writes a title without its relations, recommendations or episode
+/// names. A title page drawn from that row would be missing half of itself.
 #[derive(Default)]
 struct Recent {
     titles: HashMap<AnilistId, Flight>,

@@ -786,6 +786,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::PlaybackEnded { .. } => "PlaybackEnded",
         Event::PlaybackStaged { .. } => "PlaybackStaged",
         Event::Connectivity { .. } => "Connectivity",
+        Event::Autoplay(_) => "Autoplay",
         Event::Resumed { .. } => "Resumed",
         Event::PlayerOps { .. } => "PlayerOps",
         Event::PlayerUi { .. } => "PlayerUi",
@@ -948,6 +949,7 @@ fn copy(update: &Event) -> Event {
             }
         }
         Event::Connectivity { offline } => Event::Connectivity { offline: *offline },
+        Event::Autoplay(view) => Event::Autoplay(*view),
         Event::Resumed { position } => Event::Resumed { position: *position },
         Event::PlayerOps { playback, ops } => {
             Event::PlayerOps { playback: *playback, ops: ops.clone() }
