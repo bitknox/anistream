@@ -2,8 +2,153 @@
 //! read from the state the keys are read in, so a hint never names a key that does
 //! something else here.
 
-use super::{Action, Binding, Keymap};
+use anistream_i18n::t;
+
+use super::{Action, Binding, Keymap, said};
 use crate::nav::Section;
+
+/// Two keys drawn as one hint.
+fn pair(first: &str, second: &str) -> String {
+    format!("{first}/{second}") // i18n-skip
+}
+
+const ESC: &str = "esc"; // i18n-skip
+
+fn hint_add_source() -> &'static str {
+    said(t::keys_hint_add_source())
+}
+
+fn hint_back() -> &'static str {
+    said(t::keys_hint_back())
+}
+
+fn hint_cancel() -> &'static str {
+    said(t::keys_hint_cancel())
+}
+
+fn hint_change() -> &'static str {
+    said(t::keys_hint_change())
+}
+
+fn hint_check() -> &'static str {
+    said(t::keys_hint_check())
+}
+
+fn hint_choose() -> &'static str {
+    said(t::keys_hint_choose())
+}
+
+fn hint_close() -> &'static str {
+    said(t::keys_hint_close())
+}
+
+fn hint_confirm() -> &'static str {
+    said(t::keys_hint_confirm())
+}
+
+fn hint_keep() -> &'static str {
+    said(t::keys_hint_keep())
+}
+
+fn hint_list() -> &'static str {
+    said(t::keys_hint_list())
+}
+
+fn hint_make_link() -> &'static str {
+    said(t::keys_hint_make_link())
+}
+
+fn hint_move() -> &'static str {
+    said(t::keys_hint_move())
+}
+
+fn hint_next() -> &'static str {
+    said(t::keys_hint_next())
+}
+
+fn hint_open() -> &'static str {
+    said(t::keys_hint_open())
+}
+
+fn hint_order() -> &'static str {
+    said(t::keys_hint_order())
+}
+
+fn hint_page() -> &'static str {
+    said(t::keys_hint_page())
+}
+
+fn hint_pause() -> &'static str {
+    said(t::keys_hint_pause())
+}
+
+fn hint_pin() -> &'static str {
+    said(t::keys_hint_pin())
+}
+
+fn hint_play() -> &'static str {
+    said(t::keys_hint_play())
+}
+
+fn hint_publish() -> &'static str {
+    said(t::keys_hint_publish())
+}
+
+fn hint_queue() -> &'static str {
+    said(t::keys_hint_queue())
+}
+
+fn hint_rate() -> &'static str {
+    said(t::keys_hint_rate())
+}
+
+fn hint_resolve() -> &'static str {
+    said(t::keys_hint_resolve())
+}
+
+fn hint_results() -> &'static str {
+    said(t::keys_hint_results())
+}
+
+fn hint_resume() -> &'static str {
+    said(t::keys_hint_resume())
+}
+
+fn hint_run() -> &'static str {
+    said(t::keys_hint_run())
+}
+
+fn hint_save() -> &'static str {
+    said(t::keys_hint_save())
+}
+
+fn hint_search() -> &'static str {
+    said(t::keys_hint_search())
+}
+
+fn hint_set() -> &'static str {
+    said(t::keys_hint_set())
+}
+
+fn hint_sign_in() -> &'static str {
+    said(t::keys_hint_sign_in())
+}
+
+fn hint_sign_out() -> &'static str {
+    said(t::keys_hint_sign_out())
+}
+
+fn hint_start_now() -> &'static str {
+    said(t::keys_hint_start_now())
+}
+
+fn hint_stores() -> &'static str {
+    said(t::keys_hint_stores())
+}
+
+fn hint_use() -> &'static str {
+    said(t::keys_hint_use())
+}
 
 /// The two or three contextual hints shown at the right of the status line.
 ///
@@ -30,16 +175,16 @@ pub(crate) fn status_hints_paged(
     if app.is_typing() {
         // Search's field: letters are the query, so only the keys that cannot be typed are
         // offered. Esc and Enter are fixed for every field; see `modal_action`.
-        let enter = if app.search_opens_on_enter() { "open" } else { "search" };
+        let enter = if app.search_opens_on_enter() { hint_open() } else { hint_search() };
         let mut hints = vec![("↵".to_string(), enter)];
         // ↓ is how the keyboard gets from the field into the results; with none it does nothing.
         if !app.content.is_empty() {
-            hints.push(("↓".to_string(), "results"));
+            hints.push(("↓".to_string(), hint_results()));
         }
         if let Some(key) = app.keymap.keys_for(Action::FilterSearch).first() {
             hints.push((key.render(), Action::FilterSearch.hint()));
         }
-        hints.push(("esc".to_string(), "back"));
+        hints.push((ESC.to_string(), hint_back()));
         return hints;
     }
 
@@ -61,7 +206,7 @@ pub(crate) fn status_hints_paged(
         V::Episodes(_) => vec![
             (
                 Action::Open,
-                if app.selected_unlisted() { "add a source to play" } else { "play" },
+                if app.selected_unlisted() { hint_add_source() } else { hint_play() },
             ),
             (Action::ToggleWatched, Action::ToggleWatched.hint()),
             (Action::Back, Action::Back.hint()),
@@ -72,7 +217,7 @@ pub(crate) fn status_hints_paged(
             if app.playing.is_some() {
                 (Action::PlayPause, Action::PlayPause.hint())
             } else if app.unlisted(*id) {
-                (Action::PlayNext, "add a source to play")
+                (Action::PlayNext, hint_add_source())
             } else {
                 (Action::PlayNext, Action::PlayNext.hint())
             },
@@ -89,16 +234,16 @@ pub(crate) fn status_hints_paged(
         }
         V::Section(Section::Home) => vec![
             // A part-watched row resumes on Enter rather than opening.
-            (Action::Open, if app.resumes_on_enter() { "play" } else { "open" }),
+            (Action::Open, if app.resumes_on_enter() { hint_play() } else { hint_open() }),
             (Action::ShowEpisodes, Action::ShowEpisodes.hint()),
         ],
         // The segment keys go first so they are dropped first; Enter is what a row is for.
         V::Section(Section::Library) => {
             let mut hints: Vec<(String, &'static str)> = Vec::new();
             if let (Some(left), Some(right)) = (key(Action::Left), key(Action::Right)) {
-                hints.push((format!("{left}/{right}"), "list"));
+                hints.push((pair(&left, &right), hint_list()));
             }
-            hints.extend(key(Action::Open).map(|k| (k, "open")));
+            hints.extend(key(Action::Open).map(|k| (k, hint_open())));
             hints.extend(key(Action::ShowEpisodes).map(|k| (k, Action::ShowEpisodes.hint())));
             return with_help(keymap, hints);
         }
@@ -120,22 +265,22 @@ pub(crate) fn status_hints_paged(
                 Some(DownloadState::Done) => vec![
                     clear,
                     (Action::DeleteDownload, Action::DeleteDownload.hint()),
-                    (Action::Open, "play"),
+                    (Action::Open, hint_play()),
                 ],
-                Some(DownloadState::Failed) => vec![clear, (cancel, "cancel")],
+                Some(DownloadState::Failed) => vec![clear, (cancel, hint_cancel())],
                 Some(DownloadState::Paused) => vec![
                     clear,
-                    (cancel, "cancel"),
-                    (pause, "resume"),
-                    (Action::Open, "start now"),
+                    (cancel, hint_cancel()),
+                    (pause, hint_resume()),
+                    (Action::Open, hint_start_now()),
                 ],
                 Some(DownloadState::Queued) => vec![
                     clear,
-                    (cancel, "cancel"),
-                    (pause, "pause"),
-                    (Action::Open, "start now"),
+                    (cancel, hint_cancel()),
+                    (pause, hint_pause()),
+                    (Action::Open, hint_start_now()),
                 ],
-                Some(_) => vec![clear, (cancel, "cancel"), (pause, "pause")],
+                Some(_) => vec![clear, (cancel, hint_cancel()), (pause, hint_pause())],
                 None => Vec::new(),
             }
         }
@@ -148,25 +293,25 @@ pub(crate) fn status_hints_paged(
                 && let (Some(up), Some(down)) =
                     (key(Action::RaiseSource), key(Action::LowerSource))
             {
-                hints.push((format!("{up}/{down}"), "order"));
+                hints.push((pair(&up, &down), hint_order()));
             }
             hints.extend(key(Action::Refresh).map(|k| (k, Action::Refresh.hint())));
-            hints.extend(key(Action::Open).map(|k| (k, "stores")));
+            hints.extend(key(Action::Open).map(|k| (k, hint_stores())));
             return with_help(keymap, hints);
         }
         // Enter signs the highlighted tracker in or out, so it is named for which.
         V::Section(Section::Accounts) => match app.sync.get(app.cursors.accounts.selected) {
             Some(tracker) if tracker.connected && !tracker.needs_reauth => {
-                vec![(Action::Open, "sign out")]
+                vec![(Action::Open, hint_sign_out())]
             }
-            Some(_) => vec![(Action::Open, "sign in")],
+            Some(_) => vec![(Action::Open, hint_sign_in())],
             None => Vec::new(),
         },
         // Settings has nothing to open and no episodes, so offering those keys would be a lie.
         // Left and Right are what actually do something here.
         V::Section(Section::Settings) => {
             let hints = match (key(Action::Left), key(Action::Right)) {
-                (Some(left), Some(right)) => vec![(format!("{left}/{right}"), "change")],
+                (Some(left), Some(right)) => vec![(pair(&left, &right), hint_change())],
                 _ => Vec::new(),
             };
             return with_help(keymap, hints);
@@ -204,39 +349,41 @@ fn overlay_hints(
     use crate::nav::Overlay as O;
     let hint = |key: &str, label: &'static str| (key.to_string(), label);
     match overlay {
-        O::Help if help_pages > 1 => vec![hint("↑↓", "page"), hint("esc", "close")],
-        O::Help => vec![hint("esc", "close")],
-        O::InviteLink | O::OpenLink => vec![hint("↵", "close")],
-        O::Logs if app.logs.is_empty() => vec![hint("esc", "close")],
-        O::Logs => vec![hint("↑↓", "move"), hint("esc", "close")],
+        O::Help if help_pages > 1 => vec![hint("↑↓", hint_page()), hint(ESC, hint_close())],
+        O::Help => vec![hint(ESC, hint_close())],
+        O::InviteLink | O::OpenLink => vec![hint("↵", hint_close())],
+        O::Logs if app.logs.is_empty() => vec![hint(ESC, hint_close())],
+        O::Logs => vec![hint("↑↓", hint_move()), hint(ESC, hint_close())],
         O::SearchFilters => {
-            vec![hint("←→", "change"), hint("↵", "search"), hint("esc", "keep")]
+            vec![hint("←→", hint_change()), hint("↵", hint_search()), hint(ESC, hint_keep())]
         }
-        O::CommandPalette => vec![hint("↑↓", "move"), hint("↵", "run"), hint("esc", "close")],
+        O::CommandPalette => {
+            vec![hint("↑↓", hint_move()), hint("↵", hint_run()), hint(ESC, hint_close())]
+        }
         other => {
             let verb = match other {
-                O::ListStatus => "set",
-                O::Rate => "rate",
-                O::Sources => "play",
-                O::SourceProvider => "pin",
-                O::SourceRelease => "pin",
-                O::Disambiguate => "use",
-                O::WatchOrder | O::Recommendations => "open",
-                O::Accounts => "choose",
-                O::Conflicts => "resolve",
-                O::PluginAction => "choose",
-                O::PublishPick => "publish",
-                O::StoreConfirm => "confirm",
-                O::ManualQuery => "search",
-                O::DownloadRange => "queue",
-                O::EditSetting => "save",
-                O::KitsuUsername => "next",
-                O::KitsuPassword => "sign in",
-                O::JoinStore => "check",
-                O::InviteName => "make link",
-                _ => "choose",
+                O::ListStatus => hint_set(),
+                O::Rate => hint_rate(),
+                O::Sources => hint_play(),
+                O::SourceProvider => hint_pin(),
+                O::SourceRelease => hint_pin(),
+                O::Disambiguate => hint_use(),
+                O::WatchOrder | O::Recommendations => hint_open(),
+                O::Accounts => hint_choose(),
+                O::Conflicts => hint_resolve(),
+                O::PluginAction => hint_choose(),
+                O::PublishPick => hint_publish(),
+                O::StoreConfirm => hint_confirm(),
+                O::ManualQuery => hint_search(),
+                O::DownloadRange => hint_queue(),
+                O::EditSetting => hint_save(),
+                O::KitsuUsername => hint_next(),
+                O::KitsuPassword => hint_sign_in(),
+                O::JoinStore => hint_check(),
+                O::InviteName => hint_make_link(),
+                _ => hint_choose(),
             };
-            vec![hint("↵", verb), hint("esc", "cancel")]
+            vec![hint("↵", verb), hint(ESC, hint_cancel())]
         }
     }
 }
@@ -306,23 +453,23 @@ mod tests {
         };
         app.apply(anistream_model::event::Event::Providers(vec![row("alpha")]));
         let hints = status_hints(&app);
-        assert!(hints.iter().all(|(_, label)| *label != "order"), "{hints:?}");
+        assert!(hints.iter().all(|(_, label)| *label != "Order"), "{hints:?}");
 
         app.apply(anistream_model::event::Event::Providers(vec![row("alpha"), row("beta")]));
         let hints = status_hints(&app);
         assert_eq!(
             hints,
             [
-                ("K/J".to_string(), "order"),
-                ("r".to_string(), "refresh"),
-                ("↵".to_string(), "stores"),
-                ("?".to_string(), "keys"),
+                ("K/J".to_string(), "Order"),
+                ("r".to_string(), "Refresh"),
+                ("↵".to_string(), "Plugin stores"),
+                ("?".to_string(), "Keys"),
             ]
         );
 
         // Named by the live table, so a rebind shows.
         app.keymap.apply_overrides(&BTreeMap::from([("raise_source".into(), "U".into())]));
-        assert_eq!(status_hints(&app)[0], ("U/J".to_string(), "order"));
+        assert_eq!(status_hints(&app)[0], ("U/J".to_string(), "Order"));
     }
 
     #[test]
@@ -336,12 +483,12 @@ mod tests {
         );
         app.nav.push(crate::nav::StageView::Title(anistream_core::ids::AnilistId::new(1)));
         let hints = status_hints(&app);
-        assert!(hints.contains(&("space".into(), "play next")), "{hints:?}");
+        assert!(hints.contains(&("space".into(), "Play next")), "{hints:?}");
 
         app.playing = Some(crate::app::NowPlaying::default());
         let hints = status_hints(&app);
-        assert!(hints.contains(&("space".into(), "pause")), "{hints:?}");
-        assert!(hints.iter().all(|(_, label)| *label != "play next"), "{hints:?}");
-        assert!(hints.contains(&("esc".into(), "Back")), "{hints:?}");
+        assert!(hints.contains(&("space".into(), "Pause")), "{hints:?}");
+        assert!(hints.iter().all(|(_, label)| *label != "Play next"), "{hints:?}");
+        assert!(hints.contains(&(ESC.into(), "Back")), "{hints:?}");
     }
 }

@@ -44,23 +44,24 @@ impl Section {
         Self::Settings,
     ];
 
-    /// Label as rendered in the rail, in caps but *not* letterspaced.
+    /// Label as rendered in the rail, in sentence case and *not* letterspaced.
     ///
     /// Tracking is for eyebrows and metadata. Applied to eight stacked navigation labels it
     /// nearly doubles their width and makes the one piece of chrome you read most often the
     /// hardest thing on the screen to read — measured on a real terminal, not theorised.
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::Home => "CONTINUE",
-            Self::Calendar => "CALENDAR",
-            Self::Seasonal => "SEASONAL",
-            Self::Search => "SEARCH",
-            Self::Library => "LIBRARY",
-            Self::Downloads => "DOWNLOADS",
-            Self::Providers => "PROVIDERS",
-            Self::Accounts => "ACCOUNTS",
-            Self::Settings => "SETTINGS",
-        }
+    pub fn label(self) -> &'static str {
+        use anistream_i18n::t;
+        crate::keymap::said(match self {
+            Self::Home => t::nav_section_continue(),
+            Self::Calendar => t::nav_section_calendar(),
+            Self::Seasonal => t::nav_section_seasonal(),
+            Self::Search => t::nav_section_search(),
+            Self::Library => t::nav_section_library(),
+            Self::Downloads => t::nav_section_downloads(),
+            Self::Providers => t::sources_title(),
+            Self::Accounts => t::nav_section_accounts(),
+            Self::Settings => t::nav_section_settings(),
+        })
     }
 
     /// The section's mark, shown beside the label in the rail and alone when it collapses.
@@ -184,35 +185,36 @@ pub enum Overlay {
 }
 
 impl Overlay {
-    pub const fn title(&self) -> &'static str {
-        match self {
-            Self::CommandPalette => "RUN",
-            Self::Help => "KEYS",
-            Self::Sources => "SOURCES",
-            Self::SourceProvider => "SOURCE FOR THIS TITLE",
-            Self::SourceRelease => "RELEASE FOR THIS TITLE",
-            Self::Disambiguate => "WHICH ONE",
-            Self::ManualQuery => "FIND MANUALLY",
-            Self::WatchOrder => "WATCH ORDER",
-            Self::Recommendations => "RECOMMENDED",
-            Self::DownloadRange => "DOWNLOAD EPISODES",
-            Self::EditSetting => "EDIT",
-            Self::ListStatus => "LIST STATUS",
-            Self::Rate => "RATE",
-            Self::SearchFilters => "FILTERS",
-            Self::KitsuUsername => "SIGN IN TO KITSU",
-            Self::KitsuPassword => "KITSU PASSWORD",
-            Self::Accounts => "ACCOUNTS",
-            Self::Conflicts => "CONFLICTS",
-            Self::Logs => "LOGS",
-            Self::JoinStore => "JOIN A STORE",
-            Self::StoreConfirm => "CONFIRM",
-            Self::PluginAction => "PLUGIN",
-            Self::InviteName => "INVITE SOMEONE",
-            Self::InviteLink => "INVITE LINK",
-            Self::OpenLink => "THE STORE'S LINK",
-            Self::PublishPick => "PUBLISH A PLUGIN",
-        }
+    pub fn title(&self) -> &'static str {
+        use anistream_i18n::t;
+        crate::keymap::said(match self {
+            Self::CommandPalette => t::nav_overlay_palette(),
+            Self::Help => t::nav_overlay_help(),
+            Self::Sources => t::sources_title(),
+            Self::SourceProvider => t::source_picker_title(),
+            Self::SourceRelease => t::nav_overlay_release_for_title(),
+            Self::Disambiguate => t::nav_overlay_disambiguate(),
+            Self::ManualQuery => t::nav_overlay_manual_query(),
+            Self::WatchOrder => t::nav_overlay_watch_order(),
+            Self::Recommendations => t::nav_overlay_recommendations(),
+            Self::DownloadRange => t::nav_overlay_download_range(),
+            Self::EditSetting => t::nav_overlay_edit_setting(),
+            Self::ListStatus => t::nav_overlay_list_status(),
+            Self::Rate => t::nav_overlay_rate(),
+            Self::SearchFilters => t::nav_overlay_filters(),
+            Self::KitsuUsername => t::nav_overlay_kitsu_username(),
+            Self::KitsuPassword => t::nav_overlay_kitsu_password(),
+            Self::Accounts => t::nav_overlay_accounts(),
+            Self::Conflicts => t::nav_overlay_conflicts(),
+            Self::Logs => t::nav_overlay_logs(),
+            Self::JoinStore => t::nav_overlay_join_store(),
+            Self::StoreConfirm => t::nav_overlay_store_confirm(),
+            Self::PluginAction => t::nav_overlay_plugin_action(),
+            Self::InviteName => t::nav_overlay_invite_name(),
+            Self::InviteLink => t::nav_overlay_invite_link(),
+            Self::OpenLink => t::nav_overlay_open_link(),
+            Self::PublishPick => t::nav_overlay_publish_pick(),
+        })
     }
 
     /// Whether this overlay takes text input, which suppresses single-key bindings.
@@ -253,11 +255,11 @@ impl RailWidth {
 impl fmt::Display for RailWidth {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Expanded => "expanded",
-            Self::Collapsed => "collapsed",
-            Self::Hidden => "hidden",
+            Self::Expanded => anistream_i18n::t::nav_rail_expanded(),
+            Self::Collapsed => anistream_i18n::t::nav_rail_collapsed(),
+            Self::Hidden => anistream_i18n::t::nav_rail_hidden(),
         };
-        f.write_str(s)
+        f.write_str(&s)
     }
 }
 

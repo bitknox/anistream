@@ -26,6 +26,23 @@ use std::collections::BTreeMap;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+/// Catalogue text kept for the life of the process, so labels can be handed out as `&'static str`.
+///
+/// The terminal picks its language once at start-up (tests may switch it), and the set of
+/// distinct labels is small and fixed, so each distinct text is kept once.
+pub(crate) fn said(text: String) -> &'static str {
+    use std::collections::HashSet;
+    use std::sync::{Mutex, OnceLock};
+    static KEPT: OnceLock<Mutex<HashSet<&'static str>>> = OnceLock::new();
+    let mut kept = KEPT.get_or_init(Mutex::default).lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(found) = kept.get(text.as_str()) {
+        return found;
+    }
+    let leaked: &'static str = Box::leak(text.into_boxed_str());
+    kept.insert(leaked);
+    leaked
+}
+
 pub use action::{Action, Scope};
 pub use binding::Binding;
 pub use hints::status_hints;
@@ -86,11 +103,11 @@ impl Keymap {
         let mut wanted: Vec<(&str, Action, bool, Binding, &str)> = Vec::new();
         for (action_name, spec) in overrides {
             let Some((action, is_playback)) = by_key.get(action_name) else {
-                rejected.push(format!("unknown action {action_name:?}"));
+                rejected.push(anistream_i18n::t::keys_error_unknown_action(action_name));
                 continue;
             };
             let Some(binding) = Binding::parse(spec) else {
-                rejected.push(format!("cannot parse key {spec:?} for {action_name}"));
+                rejected.push(anistream_i18n::t::keys_error_bad_key(spec, action_name));
                 continue;
             };
             wanted.push((action_name, *action, *is_playback, binding, spec));
@@ -104,10 +121,7 @@ impl Keymap {
                 let (a, b) = (&wanted[j], &wanted[i]);
                 if a.2 == b.2 && a.3 == b.3 {
                     if accepted[i] {
-                        rejected.push(format!(
-                            "key {:?} is given to both {} and {}",
-                            b.4, a.0, b.0
-                        ));
+                        rejected.push(anistream_i18n::t::keys_error_key_twice(b.4, a.0, b.0));
                     }
                     accepted[i] = false;
                     accepted[j] = false;
@@ -131,9 +145,10 @@ impl Keymap {
                 let holder_moves =
                     wanted.iter().zip(&accepted).any(|(w, ok)| *ok && w.1 == holder);
                 if !holder_moves {
-                    rejected.push(format!(
-                        "key {spec:?} for {name} is already bound to {}",
-                        holder.config_key()
+                    rejected.push(anistream_i18n::t::keys_error_key_taken(
+                        spec,
+                        name,
+                        &holder.config_key(),
                     ));
                     accepted[i] = false;
                     changed = true;
@@ -195,7 +210,7 @@ impl Keymap {
         let mut keys = self.keys_for(action);
         keys.sort();
         keys.first().map_or_else(
-            || format!("\u{201c}{}\u{201d} in the palette", action.label().to_lowercase()),
+            || anistream_i18n::t::keys_unbound(&action.label().to_lowercase()),
             Binding::render,
         )
     }
@@ -328,8 +343,8 @@ mod tests {
         ]);
         let rejected = keymap.apply_overrides(&overrides);
         assert_eq!(rejected.len(), 2);
-        assert!(rejected.iter().any(|r| r.contains("cannot parse")));
-        assert!(rejected.iter().any(|r| r.contains("unknown action")));
+        assert!(rejected.iter().any(|r| r.contains("Can't read the key")));
+        assert!(rejected.iter().any(|r| r.contains("Unknown action")));
     }
 
     #[test]
@@ -372,7 +387,7 @@ mod tests {
             ("toggle_rail".to_string(), "z".to_string()),
         ]));
         assert_eq!(rejected.len(), 1, "{rejected:?}");
-        assert!(rejected[0].contains("given to both"), "{rejected:?}");
+        assert!(rejected[0].contains("is given to both"), "{rejected:?}");
         assert_eq!(keymap.action_for(key('z'), Context::Browsing), None);
         assert_eq!(keymap.action_for(key('r'), Context::Browsing), Some(Action::Refresh));
     }
