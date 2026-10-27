@@ -109,6 +109,49 @@ public enum L {
     /// Warning at install and in onboarding, in the same words in both.
     public static var pluginRiskWarning: String { string("plugin-risk-warning", fallback: "Plugins are written by other people and run on your device. Install only from people you trust.") }
 
+    /// Menu and palette entry that opens the picker, and the picker's title.
+    public static var sourcePickerTitle: String { string("source-picker-title", fallback: "Source for this title") }
+
+    /// The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail.
+    public static var sourcePickerAutomatic: String { string("source-picker-automatic", fallback: "Automatic") }
+
+    /// Under "Automatic": what it does.
+    public static var sourcePickerAutomaticDetail: String { string("source-picker-automatic-detail", fallback: "Each episode from the first source that has it") }
+
+    /// Under a source: how many of the title's released episodes it lists.
+    public static func sourcePickerCoverage(covered: Int, of: Int) -> String {
+        format("source-picker-coverage", fallback: "%1$lld of %2$lld episodes", covered, of)
+    }
+
+    /// Under a source that is switched off in Settings.
+    public static var sourceNoteOff: String { string("source-note-off", fallback: "Switched off") }
+
+    /// Under a source that failed a few times in a row. It is tried again shortly.
+    public static var sourceNoteResting: String { string("source-note-resting", fallback: "Not responding, trying again soon") }
+
+    /// Under a source picked for this title that is no longer installed.
+    public static var sourceNoteGone: String { string("source-note-gone", fallback: "Not installed") }
+
+    /// Under a source that found more than one show by this name and could not tell which is this one.
+    public static var sourceNoteAmbiguous: String { string("source-note-ambiguous", fallback: "Couldn't match this title") }
+
+    /// Under a source held back by the VPN check in Settings.
+    public static var sourceNoteHeldBack: String { string("source-note-held-back", fallback: "Held back by the VPN check") }
+
+    /// Heading over one source's releases, for a source that offers several (a batch, single episodes).
+    public static var sourcePickerReleases: String { string("source-picker-releases", fallback: "Releases") }
+
+    /// Accessibility label and badge for the chosen row.
+    public static var sourcePickerChosen: String { string("source-picker-chosen", fallback: "Chosen") }
+
+    /// Notice when the source picked for a title is off, removed or failing. Shown once per visit.
+    public static func sourcePinUnavailable(name: String) -> String {
+        format("source-pin-unavailable", fallback: "%1$@ isn't available right now, so this title's episodes come from your other sources.", name)
+    }
+
+    /// Under an episode that is out but that no source lists. The row is dimmed and can't be played.
+    public static var episodeUnsourced: String { string("episode-unsourced", fallback: "No source has this episode") }
+
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [
         Language(tag: "en", name: "English", draft: false),

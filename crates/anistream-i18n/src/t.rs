@@ -150,3 +150,68 @@ pub fn plugin_risk_warning() -> String {
     text("plugin-risk-warning", &[])
 }
 
+/// Menu and palette entry that opens the picker, and the picker's title.
+pub fn source_picker_title() -> String {
+    text("source-picker-title", &[])
+}
+
+/// The first choice: let anistream pick per episode. Paired with source-picker-automatic-detail.
+pub fn source_picker_automatic() -> String {
+    text("source-picker-automatic", &[])
+}
+
+/// Under "Automatic": what it does.
+pub fn source_picker_automatic_detail() -> String {
+    text("source-picker-automatic-detail", &[])
+}
+
+/// Under a source: how many of the title's released episodes it lists.
+pub fn source_picker_coverage(covered: i64, of: i64) -> String {
+    text("source-picker-coverage", &[("covered", Arg::Int(covered)), ("of", Arg::Int(of))])
+}
+
+/// Under a source that is switched off in Settings.
+pub fn source_note_off() -> String {
+    text("source-note-off", &[])
+}
+
+/// Under a source that failed a few times in a row. It is tried again shortly.
+pub fn source_note_resting() -> String {
+    text("source-note-resting", &[])
+}
+
+/// Under a source picked for this title that is no longer installed.
+pub fn source_note_gone() -> String {
+    text("source-note-gone", &[])
+}
+
+/// Under a source that found more than one show by this name and could not tell which is this one.
+pub fn source_note_ambiguous() -> String {
+    text("source-note-ambiguous", &[])
+}
+
+/// Under a source held back by the VPN check in Settings.
+pub fn source_note_held_back() -> String {
+    text("source-note-held-back", &[])
+}
+
+/// Heading over one source's releases, for a source that offers several (a batch, single episodes).
+pub fn source_picker_releases() -> String {
+    text("source-picker-releases", &[])
+}
+
+/// Accessibility label and badge for the chosen row.
+pub fn source_picker_chosen() -> String {
+    text("source-picker-chosen", &[])
+}
+
+/// Notice when the source picked for a title is off, removed or failing. Shown once per visit.
+pub fn source_pin_unavailable(name: &str) -> String {
+    text("source-pin-unavailable", &[("name", Arg::Text(name))])
+}
+
+/// Under an episode that is out but that no source lists. The row is dimmed and can't be played.
+pub fn episode_unsourced() -> String {
+    text("episode-unsourced", &[])
+}
+
