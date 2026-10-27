@@ -1,22 +1,22 @@
-anistream                                                                   torrent ○  plugins ●  meta ▲  ·  anilist ⇅ 2
+anistream                                                               torrent ○  plugins ●  Metadata ▲  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  PROVIDERS
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    PROVIDER            KIND        STATE           LATENCY
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │    yamabiko            plugin      ready           182ms
-  ↓  DOWNLOADS              │  ▌ tsubame             plugin      failing
-▌ ◇  PROVIDERS              │    kawasemi            plugin      ready           1204ms
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▸  Continue               │  Sources
+  ▤  Calendar               │
+  ▦  Seasonal               │    Source              Kind        State           Latency
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │    yamabiko            Plugin      Ready           182 ms
+  ↓  Downloads              │  ▌ tsubame             Plugin      failing
+▌ ◇  Sources                │    kawasemi            Plugin      Ready           1204 ms
+  ◎  Accounts               │
+  ⚙  Settings               │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    tsubame: search timed out after 8 s
                             │
-                            │  PLUGIN STORES
-                            │    2 joined  ·  1 update                                                         ↵ open
+                            │  Plugin stores
+                            │    2 joined  ·  1 update                                                         ↵ Open
                             │
-                            │  METADATA
+                            │  Metadata
                             │
-                            │    anilist             resting     skipped until 21:44 — rate limited
+                            │    anilist             resting     Skipped until 21:44 (rate limited)
                             │    tenrai              answering   serving from the mirror
                             │
                             │
@@ -31,14 +31,14 @@ anistream                                                                   torr
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-plugins · sub · 1080p                                                          K/J order   r refresh   ↵ stores   ? keys
+plugins · sub · 1080p                                                   K/J order   r refresh   ↵ plugin stores   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
 r00 c00-08 fg=text mod=BOLD
-r00 c76-86 fg=text-dim
-r00 c87-95 fg=state
-r00 c96-97 fg=text-dim
-r00 c98-103 fg=alert
+r00 c72-82 fg=text-dim
+r00 c83-91 fg=state
+r00 c92-93 fg=text-dim
+r00 c94-103 fg=alert
 r00 c104-105 fg=text-dim
 r00 c106-106 fg=rule
 r00 c107-108 fg=text-dim
@@ -47,14 +47,14 @@ r01 c00-119 fg=rule
 r02 c02-02 fg=text-dim
 r02 c05-12 fg=text-dim
 r02 c28-28 fg=rule
-r02 c31-39 fg=text mod=BOLD
+r02 c31-37 fg=text mod=BOLD
 r03 c02-02 fg=text-dim
 r03 c05-12 fg=text-dim
 r03 c28-28 fg=rule
 r04 c02-02 fg=text-dim
 r04 c05-12 fg=text-dim
 r04 c28-28 fg=rule
-r04 c33-40 fg=text-dim
+r04 c33-38 fg=text-dim
 r04 c53-56 fg=text-dim
 r04 c65-69 fg=text-dim
 r04 c81-87 fg=text-dim
@@ -68,7 +68,7 @@ r06 c28-28 fg=rule
 r06 c33-40 fg=text
 r06 c53-58 fg=text-dim
 r06 c65-69 fg=state
-r06 c81-85 fg=text-dim
+r06 c81-86 fg=text-dim
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
@@ -78,12 +78,12 @@ r07 c53-58 fg=text-dim
 r07 c65-71 fg=alert
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
-r08 c05-13 fg=text mod=BOLD
+r08 c05-11 fg=text mod=BOLD
 r08 c28-28 fg=rule
 r08 c33-40 fg=text
 r08 c53-58 fg=text-dim
 r08 c65-69 fg=state
-r08 c81-86 fg=text-dim
+r08 c81-87 fg=text-dim
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule
@@ -125,11 +125,11 @@ r30 c28-28 fg=rule
 r31 c28-28 fg=rule
 r32 c00-119 fg=rule
 r33 c00-20 fg=text-dim
-r33 c79-81 fg=text
-r33 c82-90 fg=text-dim
-r33 c91-91 fg=text
-r33 c92-102 fg=text-dim
-r33 c103-103 fg=text
-r33 c104-113 fg=text-dim
+r33 c72-74 fg=text
+r33 c75-83 fg=text-dim
+r33 c84-84 fg=text
+r33 c85-95 fg=text-dim
+r33 c96-96 fg=text
+r33 c97-113 fg=text-dim
 r33 c114-114 fg=text
 r33 c115-119 fg=text-dim

@@ -1,9 +1,9 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
 ────────────────────────────────────────────────────────────────────────────────
-▌ RUN   go to▏
+▌ Run   go to▏
 ────────────────────────────────────────────────────────────────────────────────
   Go to Continue                                                           1
   Go to Calendar                                                           2
@@ -11,7 +11,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   Go to Search                                                             4
   Go to Library                                                            5
   Go to Downloads                                                          6
-  Go to Providers                                                          7
+  Go to Sources                                                            7
   Go to Accounts                                                           8
   Go to Settings                                                           9
 
@@ -69,8 +69,8 @@ r12 c17-74 fg=rule bg=ground
 r12 c75-75 fg=text bg=ground
 r12 c76-79 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-16 fg=text-dim bg=ground
-r13 c17-74 fg=rule bg=ground
+r13 c02-14 fg=text-dim bg=ground
+r13 c15-74 fg=rule bg=ground
 r13 c75-75 fg=text bg=ground
 r13 c76-79 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground

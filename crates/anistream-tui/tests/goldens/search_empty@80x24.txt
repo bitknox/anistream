@@ -1,6 +1,6 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  FIND ▏
+  ▸│  Find ▏
   ▤│
   ▦│         ▄
 ▌ /│      ▄▀▀▀▀▀▄
@@ -11,9 +11,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ⚙│    ▀▀▀▀▀▀▀▀▀▄
    │    ▀ ▀▀   ▀▀
    │
-   │  TYPE TO SEARCH
+   │  Type to search
    │
-   │  or ↵ to browse the most popular
+   │  Or press ↵ to browse the most popular.
    │
    │
    │
@@ -99,7 +99,7 @@ r13 c03-03 fg=rule
 r13 c06-19 fg=text-dim
 r14 c03-03 fg=rule
 r15 c03-03 fg=rule
-r15 c06-36 fg=text-dim
+r15 c06-43 fg=text-dim
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
 r18 c03-03 fg=rule

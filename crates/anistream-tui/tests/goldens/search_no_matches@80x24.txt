@@ -1,6 +1,6 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  FIND hoshikuzu▏
+  ▸│  Find hoshikuzu▏
   ▤│
   ▦│         ▄
 ▌ /│      ▄▀▀▀▀▀▄
@@ -11,9 +11,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ⚙│    ▀▀▀▀▀▀▀▀▀▄
    │    ▀ ▀▀   ▀▀
    │
-   │  NO MATCHES
+   │  No matches
    │
-   │  try a shorter query, or the romaji title
+   │  Try a shorter query, or the romaji title.
    │
    │
    │
@@ -99,7 +99,7 @@ r13 c03-03 fg=rule
 r13 c06-15 fg=text-dim
 r14 c03-03 fg=rule
 r15 c03-03 fg=rule
-r15 c06-45 fg=text-dim
+r15 c06-46 fg=text-dim
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
 r18 c03-03 fg=rule

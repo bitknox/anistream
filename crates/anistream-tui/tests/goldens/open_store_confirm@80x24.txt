@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  HEARTH PLUGINS                                                    owner
-  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▸│  Hearth plugins                                                    Owner
+  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦│
 ────────────────────────────────────────────────────────────────────────────────
-▌ LET ANYONE WITH THE LINK JOIN HEARTH PLUGINS?
+▌ Let anyone with the link join Hearth plugins?
 ────────────────────────────────────────────────────────────────────────────────
-  anyone with the store's link can join it, without a name
-  the link is new each time, so an earlier one stays dead
-  members see that the store is open
+  Anyone with the store's link can join it, without a name.
+  The link is new each time, so an earlier one stays dead.
+  Members see that the store is open.
 
-  enter opens it · esc keeps it to invites
+  Enter opens it · Esc keeps it to invites
 
-   │  ▌ who can join                only people you invite
-   │    publish a plugin
-   │    open the admin page
-   │    leave this store
+   │  ▌ Who can join                Only people you invite
+   │    Publish a plugin
+   │    Open the admin page
+   │    Leave this store
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    ↵ let anyone with the store's link join, without a name
+   │    ↵ Let anyone with the store's link join, without a name
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                     ↵ confirm   esc cancel
 === styles ===
@@ -39,14 +39,14 @@ r06 c02-46 fg=text bg=ground mod=BOLD
 r06 c47-79 fg=rule bg=ground
 r07 c00-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
-r08 c02-57 fg=text-dim bg=ground
-r08 c58-79 fg=rule bg=ground
+r08 c02-58 fg=text-dim bg=ground
+r08 c59-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
-r09 c02-56 fg=text-dim bg=ground
-r09 c57-79 fg=rule bg=ground
+r09 c02-57 fg=text-dim bg=ground
+r09 c58-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-35 fg=text-dim bg=ground
-r10 c36-79 fg=rule bg=ground
+r10 c02-36 fg=text-dim bg=ground
+r10 c37-79 fg=rule bg=ground
 r11 c00-79 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
 r12 c02-41 fg=text-dim bg=ground

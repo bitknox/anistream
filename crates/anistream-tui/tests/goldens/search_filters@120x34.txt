@@ -1,20 +1,20 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  FIND    Comedy · 2026 · fall · tv · airing · score
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │         ▄
-▌ /  SEARCH                 │      ▄▀▀▀▀▀▄
-  ▥  LIBRARY                │      ▀▀▀▀▀▀▀▀
-  ↓  DOWNLOADS              │    ▀▄▀▀▀▀▀▀▀ ▄▄
+  ▸  Continue               │  Find    Comedy · 2026 · Autumn · TV · Airing · Score
+  ▤  Calendar               │
+  ▦  Seasonal               │         ▄
+▌ /  Search                 │      ▄▀▀▀▀▀▄
+  ▥  Library                │      ▀▀▀▀▀▀▀▀
+  ↓  Downloads              │    ▀▄▀▀▀▀▀▀▀ ▄▄
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ FILTERS   ←/→ pick · enter searches · esc keeps them
+▌ Filters   ←/→ pick. Enter searches. Esc keeps them.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  GENRE                                                                                                       Comedy
-  YEAR                                                                                                          2026
-  SEASON                                                                                                        fall
-  FORMAT                                                                                                          tv
-  STATUS                                                                                                      airing
-▌ SORT                                                                                                         score
+  Genre                                                                                                       Comedy
+  Year                                                                                                          2026
+  Season                                                                                                      Autumn
+  Format                                                                                                          TV
+  Status                                                                                                      Airing
+▌ Sort                                                                                                         Score
 
                             │
                             │
@@ -63,8 +63,8 @@ r07 c42-119 fg=rule
 r08 c00-119 fg=rule bg=ground
 r09 c00-00 fg=obi bg=ground
 r09 c01-01 fg=rule bg=ground
-r09 c02-53 fg=text bg=ground mod=BOLD
-r09 c54-119 fg=rule bg=ground
+r09 c02-52 fg=text bg=ground mod=BOLD
+r09 c53-119 fg=rule bg=ground
 r10 c00-119 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
 r11 c02-06 fg=text-dim bg=ground
@@ -78,8 +78,8 @@ r12 c112-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
 r13 c02-07 fg=text-dim bg=ground
-r13 c08-111 fg=rule bg=ground
-r13 c112-115 fg=text bg=ground
+r13 c08-109 fg=rule bg=ground
+r13 c110-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
 r14 c02-07 fg=text-dim bg=ground

@@ -190,33 +190,6 @@ title-progress-aired = { $done } of { $aired } aired
 # @only tui
 title-progress-watched = { $done } watched
 
-# On the title page: an episode is out, and when it came out is not known.
-# @arg episode: int
-# @only tui
-title-episode-out = Episode { $episode } out
-
-# On the title page: an episode came out less than a minute ago.
-# @arg episode: int
-# @only tui
-title-episode-out-now = Episode { $episode } out just now
-
-# On the title page: an episode came out a while ago. The span is short, such as 2d 3h.
-# @arg episode: int
-# @arg span: text
-# @only tui
-title-episode-out-ago = Episode { $episode } out { $span } ago
-
-# On the title page: when an episode will air. The span is short, such as 2d 3h.
-# @arg episode: int
-# @arg span: text
-# @only tui
-title-episode-in = Episode { $episode } in { $span }
-
-# On the title page: when the next episode will air, its number unknown. The span is short.
-# @arg span: text
-# @only tui
-title-next-in = Next in { $span }
-
 ## The episode table.
 
 # Heading of the episode table when the title is not known.

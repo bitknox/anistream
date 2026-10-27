@@ -1,15 +1,15 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  PLUGIN STORES
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    STORE                       PLUGINS   YOU       STATE
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │    Hearth plugins              3         owner     1 update
-  ↓  DOWNLOADS              │    Rin's sources               1         member    ● up to date
-▌ ◇  PROVIDERS              │  ▌ Kumo club                   0         member    ▲ offline
-  ◎  ACCOUNTS               │    Old lab                     0         member    access removed
-  ⚙  SETTINGS               │
-                            │    + join a store
+  ▸  Continue               │  Plugin stores
+  ▤  Calendar               │
+  ▦  Seasonal               │    Store                       Plugins   You       State
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │    Hearth plugins              3         Owner     1 update
+  ↓  Downloads              │    Rin's sources               1         Member    ● Up to date
+▌ ◇  Sources                │  ▌ Kumo club                   0         Member    ▲ Offline
+  ◎  Accounts               │    Old lab                     0         Member    Access removed
+  ⚙  Settings               │
+                            │    + Join a store
                             │
                             │
                             │
@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    https://kumo.example — no answer after 10 s
+                            │    https://kumo.example (no answer after 10 s)
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
 === styles ===
@@ -76,7 +76,7 @@ r07 c71-76 fg=text-dim
 r07 c81-92 fg=text-dim
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
-r08 c05-13 fg=text mod=BOLD
+r08 c05-11 fg=text mod=BOLD
 r08 c28-28 fg=rule
 r08 c31-31 fg=obi
 r08 c33-41 fg=text mod=BOLD

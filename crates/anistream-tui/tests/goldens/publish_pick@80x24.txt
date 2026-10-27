@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  HEARTH PLUGINS                                                    owner
-  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▸│  Hearth plugins                                                    Owner
+  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦│
-  /│    PLUGIN                      VERSION       STATE
+  /│    Plugin                      Version       State
 ────────────────────────────────────────────────────────────────────────────────
-▌ PUBLISH A PLUGIN   to Hearth plugins
+▌ Publish a plugin   To Hearth plugins
 ────────────────────────────────────────────────────────────────────────────────
-  Shirasagi  0.1.0                                                       new
-  Yamabiko  1.4.0                                                  published
-▌ Kawasemi  2.2.0                                             replaces 2.1.0
+  Shirasagi  0.1.0                                                       New
+  Yamabiko  1.4.0                                                  Published
+▌ Kawasemi  2.2.0                                             Replaces 2.1.0
 
-   │    members
-   │    who can join                only people you invite
-   │  ▌ publish a plugin
-   │    open the admin page
-   │    leave this store
+   │    Members
+   │    Who can join                Only people you invite
+   │  ▌ Publish a plugin
+   │    Open the admin page
+   │    Leave this store
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    offer a plugin from this machine's plugin directory
+   │    Offer a plugin from this machine's plugin directory
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                     ↵ publish   esc cancel
 === styles ===

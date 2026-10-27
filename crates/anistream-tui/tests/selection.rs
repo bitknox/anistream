@@ -21,6 +21,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 const ROWS: usize = 20;
 
 fn app() -> App {
+    anistream_i18n::set_language("en");
     App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 

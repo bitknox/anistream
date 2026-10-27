@@ -1,8 +1,8 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  FIND hoshikuzu▏
+  ▸│  Find hoshikuzu▏
   ▤│
-  ▦│  █▓▒  LOADING
+  ▦│  █▓▒  Loading…
 ▌ /│
   ▥│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ↓│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -40,7 +40,7 @@ r03 c03-03 fg=rule
 r04 c02-02 fg=text-dim
 r04 c03-03 fg=rule
 r04 c06-08 fg=obi
-r04 c11-17 fg=text-dim
+r04 c11-18 fg=text-dim
 r05 c00-00 fg=text-dim
 r05 c02-02 fg=text
 r05 c03-03 fg=rule

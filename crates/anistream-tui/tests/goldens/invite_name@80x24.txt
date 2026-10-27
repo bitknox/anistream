@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  HEARTH PLUGINS                                                    owner
-  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▸│  Hearth plugins                                                    Owner
+  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦│
-  /│    PLUGIN                      VERSION       STATE
+  /│    Plugin                      Version       State
   ▥│  ────────────────────────────────────────────────────────────────────────
 ────────────────────────────────────────────────────────────────────────────────
-▌ INVITE SOMEONE   Kai Nakam▏
+▌ Invite someone   Kai Nakam▏
 ────────────────────────────────────────────────────────────────────────────────
-  their name, as the members list will show it — enter makes the link
+  Their name, as the members list will show it. Enter makes the link.
 
-   │  ▌ invite someone
-   │    members
-   │    who can join                only people you invite
-   │    publish a plugin
-   │    open the admin page
-   │    leave this store
+   │  ▌ Invite someone
+   │    Members
+   │    Who can join                Only people you invite
+   │    Publish a plugin
+   │    Open the admin page
+   │    Leave this store
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    a one-time link for someone new
+   │    A one-time link for someone new
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                   ↵ make link   esc cancel
 === styles ===

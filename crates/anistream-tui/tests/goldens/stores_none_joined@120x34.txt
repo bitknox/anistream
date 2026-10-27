@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  PLUGIN STORES
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    STORE                       PLUGINS   YOU       STATE
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │    none joined yet
-  ↓  DOWNLOADS              │
-▌ ◇  PROVIDERS              │  ▌ + join a store
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Plugin stores
+  ▤  Calendar               │
+  ▦  Seasonal               │    Store                       Plugins   You       State
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │    None joined yet
+  ↓  Downloads              │
+▌ ◇  Sources                │  ▌ + Join a store
+  ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    paste the invite or store link you were given
+                            │    Paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
 === styles ===
@@ -69,7 +69,7 @@ r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
-r08 c05-13 fg=text mod=BOLD
+r08 c05-11 fg=text mod=BOLD
 r08 c28-28 fg=rule
 r08 c31-31 fg=obi
 r08 c33-46 fg=text mod=BOLD

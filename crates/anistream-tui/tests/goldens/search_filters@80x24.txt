@@ -1,19 +1,19 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  FIND    Comedy · 2026 · fall · tv · airing · score
+  ▸│  Find    Comedy · 2026 · Autumn · TV · Airing · Score
   ▤│
   ▦│         ▄
 ────────────────────────────────────────────────────────────────────────────────
-▌ FILTERS   ←/→ pick · enter searches · esc keeps them
+▌ Filters   ←/→ pick. Enter searches. Esc keeps them.
 ────────────────────────────────────────────────────────────────────────────────
-  GENRE                                                               Comedy
-  YEAR                                                                  2026
-  SEASON                                                                fall
-  FORMAT                                                                  tv
-  STATUS                                                              airing
-▌ SORT                                                                 score
+  Genre                                                               Comedy
+  Year                                                                  2026
+  Season                                                              Autumn
+  Format                                                                  TV
+  Status                                                              Airing
+▌ Sort                                                                 Score
 
-   │  or ↵ to browse with these filters
+   │  Or press ↵ to browse with these filters.
    │
    │
    │
@@ -33,8 +33,8 @@ r04 c00-79 fg=rule
 r05 c00-79 fg=rule bg=ground
 r06 c00-00 fg=obi bg=ground
 r06 c01-01 fg=rule bg=ground
-r06 c02-53 fg=text bg=ground mod=BOLD
-r06 c54-79 fg=rule bg=ground
+r06 c02-52 fg=text bg=ground mod=BOLD
+r06 c53-79 fg=rule bg=ground
 r07 c00-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
 r08 c02-06 fg=text-dim bg=ground
@@ -48,8 +48,8 @@ r09 c72-75 fg=text bg=ground
 r09 c76-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
 r10 c02-07 fg=text-dim bg=ground
-r10 c08-71 fg=rule bg=ground
-r10 c72-75 fg=text bg=ground
+r10 c08-69 fg=rule bg=ground
+r10 c70-75 fg=text bg=ground
 r10 c76-79 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
 r11 c02-07 fg=text-dim bg=ground

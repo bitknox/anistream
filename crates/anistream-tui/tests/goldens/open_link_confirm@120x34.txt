@@ -1,23 +1,23 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  PLUGIN STORES
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    STORE                       PLUGINS   YOU       STATE
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │    Hearth plugins              3         owner     1 update
+  ▸  Continue               │  Plugin stores
+  ▤  Calendar               │
+  ▦  Seasonal               │    Store                       Plugins   You       State
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │    Hearth plugins              3         Owner     1 update
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ JOIN HEARTH PLUGINS?
+▌ Join Hearth plugins?
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  address   https://plugins.example
-  key       489f 49ea 0372 41ac  — matches the link
-  run by    Mirei
-  offers    2 plugins
-            Yamabiko 1.4.0  may contact api.yamabiko.example · installed
+  Address   https://plugins.example
+  Key       489f 49ea 0372 41ac  (matches the link)
+  Run by    Mirei
+  Offers    2 plugins
+            Yamabiko 1.4.0  may contact api.yamabiko.example · Installed
             Hotaru 0.3.0  may contact subs.example
-  anyone with the link can join
-  you join without a name, and another device joins with the same link
+  Anyone with the link can join.
+  You join without a name, and another device joins with the same link.
 
-  enter joins · esc cancels
+  Enter joins · Esc cancels
 
                             │
                             │
@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    paste the invite or store link you were given
+                            │    Paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                             ↵ confirm   esc cancel
 === styles ===
@@ -71,11 +71,11 @@ r15 c00-01 fg=rule bg=ground
 r15 c02-49 fg=text-dim bg=ground
 r15 c50-119 fg=rule bg=ground
 r16 c00-01 fg=rule bg=ground
-r16 c02-30 fg=text-dim bg=ground
-r16 c31-119 fg=rule bg=ground
+r16 c02-31 fg=text-dim bg=ground
+r16 c32-119 fg=rule bg=ground
 r17 c00-01 fg=rule bg=ground
-r17 c02-69 fg=text-dim bg=ground
-r17 c70-119 fg=rule bg=ground
+r17 c02-70 fg=text-dim bg=ground
+r17 c71-119 fg=rule bg=ground
 r18 c00-119 fg=rule bg=ground
 r19 c00-01 fg=rule bg=ground
 r19 c02-26 fg=text-dim bg=ground

@@ -633,6 +633,2406 @@ notice-episodes-queued =
        *[other] Queued { $count } episodes.
     }
 
+# Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
+chrome-meta-chip = Metadata { $mark }
+
+# Activity row: how many more running jobs there are than fit. It follows the last job shown.
+chrome-activity-more = +{ $count }
+
+# Activity row: a running job that is held up (a rate-limit pause), with the wait counting down. The note says what it waits on; the countdown is a clock such as 0:12.
+chrome-job-held = { $note }, { $countdown }
+
+# Heading of an overlay that lists the lines of a long table: which lines are in view.
+overlays-window-position = { $from }–{ $to } of { $total }
+
+# Heading of the help overlay when its table does not fit on one page.
+overlays-help-page = Page { $page } of { $pages }
+
+# The log overlay, when nothing has been logged this session.
+overlays-logs-empty = Nothing logged yet.
+
+# Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
+overlays-hint-manual-query = Type what to search for. An empty Enter resets to the automatic match.
+
+# Prompt hint for the first step of signing in to Kitsu.
+overlays-hint-kitsu-username = Email or username. Enter continues, Esc cancels.
+
+# Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
+overlays-hint-kitsu-password = Exchanged for a token once and never stored. Enter signs in.
+
+# Prompt hint for the download range. The examples are episode numbers and stay as written.
+overlays-hint-download-range = 4 for one episode, 1-12 for a run, 7- for everything from there.
+
+# Prompt hint for editing a setting. The setting is named by its label on the Settings screen.
+overlays-hint-edit-setting = { $setting }. Enter saves, Esc leaves it as it is.
+
+# Prompt hint for editing a setting, when the setting is not known.
+overlays-hint-edit-setting-bare = Enter saves, Esc leaves it as it is.
+
+# Prompt hint for joining a { -plugin-store }.
+overlays-hint-join-store = Paste the invite or store link you were given. Enter checks it, Esc cancels.
+
+# Prompt hint for naming the person an invite link is for.
+overlays-hint-invite-name = Their name, as the members list will show it. Enter makes the link.
+
+# Overlay heading after the title: the plugin's version and the { -plugin-store } it comes from. The plugin's name leads the heading.
+overlays-heading-plugin = { $name }   { $version }  ·  from { $store }
+
+# Overlay heading, after the title "Invite link": whom the link is for.
+overlays-heading-invite-for = For { $name }
+
+# Title of the invite link overlay when the link is not for a named person.
+overlays-title-link-device = Link another device
+
+# Overlay heading, after the title of the store's link: which { -plugin-store } it opens.
+overlays-heading-open-link-of = { $store }
+
+# Overlay heading, after the title of the publish list: where the plugin goes.
+overlays-heading-publish-to = To { $store }
+
+# Overlay heading, after the title "Which one": the title being matched.
+overlays-heading-disambiguate = Match for { $name }. Enter pins it.
+
+# Same, when no title is known.
+overlays-heading-disambiguate-bare = Enter pins it.
+
+# Overlay heading, after the title "Watch order": the title the order is built around.
+overlays-heading-watch-order = Around { $name }. Enter opens.
+
+# Same, when no title is known.
+overlays-heading-watch-order-bare = Enter opens.
+
+# Overlay heading, after the title "Recommended": the title the list came from.
+overlays-heading-recommendations = Because you liked { $name }. Enter opens.
+
+# Same, when no title is known.
+overlays-heading-recommendations-bare = Enter opens.
+
+# Overlay heading, after the title of the release list.
+overlays-heading-release = Enter pins it. The other sources fill what it lacks.
+
+# Overlay heading, after the title of the { -source } list: the choice is kept for this title.
+overlays-heading-source = { $name }. Enter pins it.
+
+# Same, when no title is known.
+overlays-heading-source-bare = Enter pins it.
+
+# Overlay heading, after the title "Filters": the keys of the filter editor.
+overlays-heading-filters = ←/→ pick. Enter searches. Esc keeps them.
+
+# Overlay heading, after the title of the releases list: the episode it is for.
+overlays-heading-releases = Episode { $episode }. Enter plays your pick.
+
+# Same, when no episode is known.
+overlays-heading-releases-bare = Enter plays your pick.
+
+# Toast: a download that is finished cannot be cancelled, only deleted. The key is the delete key.
+toast-download-done = Already downloaded. Press { $delete } to delete it and its file.
+
+# Toast: a command needs a title and none is selected.
+toast-nothing-selected = Nothing is selected. Pick a title first.
+
+# Toast: the download-range key was pressed away from the episode table.
+toast-ranges-elsewhere = Ranges are queued from the episode table.
+
+# Toast: the filter key was pressed on a screen without filters.
+toast-filters-elsewhere = Filters live in search and the episode table.
+
+# Toast: a watched-mark key was pressed away from the episode table.
+toast-watched-elsewhere = Watched marks live in the episode table.
+
+# Toast: Back was pressed at the top of a section. The key is the quit key.
+toast-at-top = You're at the top. Press { $quit } to quit.
+
+# Toast: an action was run that does nothing on this screen. The action is its label, such as "Mark all previous watched"; the place says where it works, such as "in the episode table".
+toast-works-elsewhere = { $action } works { $place }.
+
+# Toast: the bug report is being opened.
+toast-bug-report-opening = Opening a bug report in your browser. The link is in the log.
+
+# Log line holding the whole bug report link, for a terminal that cannot open it.
+tui-log-bug-report-link = Bug report: { $url }
+
+# Toast: a key binding in the config file was refused. The problem says which and why.
+toast-keybinding-not-applied = Key binding not applied: { $problem }. Check the keys section of the config file.
+
+# Standing notice: the config file did not load. The problem is the parser's own text.
+tui-config-problem = { $file }: { $what }. Using the defaults until it is fixed.
+
+# Same, when the problem is on a known line.
+tui-config-problem-at-line = { $file } line { $line }: { $what }. Using the defaults until it is fixed.
+
+# Log line for the same problem. The path is the whole path of the config file.
+tui-config-problem-logged = { $path }: { $problem }. Using the defaults.
+
+# Heading of the title page when no title is highlighted.
+title-heading = Title
+
+# Under the heading of the title page and the episode table when no title is highlighted.
+title-nothing-selected-note = Nothing selected
+
+# Toast when a title action is asked for and no title is highlighted.
+title-nothing-selected = Nothing is selected. Highlight a title and try again.
+
+# Toast when something that needs a title's full page is asked from a list.
+title-trailer-off-page = Open the title's page to find its trailer.
+
+# Toast when something that needs a title's full page is asked from a list.
+title-recommendations-off-page = Open the title's page to see its recommendations.
+
+# Toast when something that needs a title's full page is asked from a list.
+title-seasons-off-page = Open the title's page to see its connected seasons.
+
+# Toast when a title has no trailer on record.
+title-no-trailer = No trailer is on record for this title.
+
+# Toast when a title has no recommendations.
+title-no-recommendations = No recommendations are known for this title.
+
+# Toast when a title has no connected seasons.
+title-no-seasons = No connected seasons are known for this title.
+
+# Toast when the { -source } picker is asked for from a list.
+title-pin-off-page = Open the title's page to pick a source for it.
+
+# Toast when the { -source } picker is asked for and no { -source } is registered. They register a moment after launch.
+title-no-sources-yet = No sources are registered yet. Try again in a moment.
+
+# Toast when a list status or rating is asked for and no { -tracker } is signed in. The command is typed as it is.
+title-status-needs-tracker = Your list status is kept on a tracker, and none is signed in. Use :accounts to sign in to one.
+
+# Toast when a rating is asked for and no { -tracker } is signed in. The command is typed as it is.
+title-rating-needs-tracker = Ratings are kept on a tracker, and none is signed in. Use :accounts to sign in to one.
+
+# Toast after a list status is picked. The status is one of the status names; the trackers are a comma separated list.
+title-status-set = Status set to { $status }. Queued for { $trackers }.
+
+# Toast after a rating is picked.
+title-rated = Rated { $score }/10. Queued for { $trackers }.
+
+# List status in the status picker and in the toast after picking one.
+title-status-watching = Watching
+
+# List status in the status picker and in the toast after picking one.
+title-status-planning = Planning
+
+# List status in the status picker and in the toast after picking one.
+title-status-completed = Completed
+
+# List status in the status picker and in the toast after picking one.
+title-status-paused = Paused
+
+# List status in the status picker and in the toast after picking one.
+title-status-dropped = Dropped
+
+# Beside the Completed status in the status picker, when the title has progress: what choosing it does.
+title-status-completed-hint = Sets progress to the last episode
+
+# A rating in the rating picker, beside the number 10.
+title-rating-10 = Masterpiece
+
+# A rating in the rating picker, beside the number 9.
+title-rating-9 = Great
+
+# A rating in the rating picker, beside the number 8.
+title-rating-8 = Very good
+
+# A rating in the rating picker, beside the number 7.
+title-rating-7 = Good
+
+# A rating in the rating picker, beside the number 6.
+title-rating-6 = Fine
+
+# A rating in the rating picker, beside the number 5.
+title-rating-5 = Average
+
+# A rating in the rating picker, beside the number 4.
+title-rating-4 = Poor
+
+# A rating in the rating picker, beside the number 3.
+title-rating-3 = Bad
+
+# A rating in the rating picker, beside the number 2.
+title-rating-2 = Awful
+
+# A rating in the rating picker, beside the number 1.
+title-rating-1 = Appalling
+
+# Place of a title in the watch order: the nth season of its franchise. Sits in a narrow column.
+title-season = Season { $number }
+
+# Place of a title in the watch order: it comes before this one.
+title-relation-prequel = Prequel
+
+# Place of a title in the watch order: it is the story this one comes from.
+title-relation-parent = Parent
+
+# Place of a title in the watch order: it comes after this one.
+title-relation-sequel = Sequel
+
+# First choice in the { -source } picker: let anistream pick.
+title-source-automatic = Automatic (best available source)
+
+# Beside a { -source } in the picker when it is failing and so not used.
+title-source-failing = Failing
+
+# First choice in the { -release } picker: the { -source } decides.
+title-release-first = Whichever release the source ranks first
+
+# Beside a { -release } in the picker: how many people share it.
+title-release-seeders =
+    { $count ->
+        [one] { $count } seeder
+       *[other] { $count } seeders
+    }
+
+# The services a title is available on, under its metadata. The list is already joined.
+title-available-on = Available on { $services }
+
+# Beside the progress meter on the title page: the episode that follows what has been watched.
+title-up-next = Up next: episode { $next }
+
+# Beside the progress meter when the watched count is against the episodes that have aired so far.
+title-progress-aired = { $done } of { $aired } aired
+
+# Beside the progress meter when there is nothing to count against.
+title-progress-watched = { $done } watched
+
+# Heading of the episode table when the title is not known.
+episodes-heading = Episodes
+
+# Column heading over the episode titles.
+episodes-column-title = Title
+
+# Column heading over the running time of each episode.
+episodes-column-run = Run
+
+# Column heading over how much of each episode is watched.
+episodes-column-watched = Watched
+
+# Beside a finished episode, in the last column.
+episodes-done = Done
+
+# In the last column for an episode that is not out yet. The span is short, such as 2d 3h.
+episodes-airs-in = In { $span }
+
+# Episode kind in the last column: the story episodes.
+episodes-kind-canon = Canon
+
+# Episode kind in the last column: part story, part filler.
+episodes-kind-mixed = Mixed
+
+# Episode kind in the last column: filler, which can be skipped.
+episodes-kind-filler = Filler
+
+# Episode kind in the last column: made for the anime and not in the book it comes from.
+episodes-kind-anime-canon = Anime canon
+
+# The episode filter shown when nothing is filtered, and named at the top right of the table.
+episodes-filter-all = All episodes
+
+# The episode filter that hides the episodes already watched.
+episodes-filter-unwatched = Unwatched
+
+# The episode filter that hides filler.
+episodes-filter-no-filler = No filler
+
+# Toast after the filter changes.
+episodes-showing-all = Showing all episodes.
+
+# Toast after the filter changes.
+episodes-showing-unwatched = Showing unwatched episodes.
+
+# Toast after the filter changes.
+episodes-showing-no-filler = Showing episodes without filler.
+
+# Top right of the episode table: how far the dub goes, for a dub that stops short of what has aired.
+episodes-dub-through = Dub to episode { $through }
+
+# Top right of the episode table: the dub has every episode.
+episodes-dub-complete = Dubbed
+
+# Heading of the empty episode table when the filter hides every episode.
+episodes-empty-filtered = Nothing matches the filter
+
+# Under the heading when the filter hides every episode. The key is the filter key.
+episodes-empty-filtered-hint = Press { $key } to cycle the filter. It is hiding every episode now.
+
+# Heading of the empty episode table when no { -source } is ready.
+episodes-empty-no-source = No episodes yet
+
+# Under the heading when no { -source } is ready. The key opens the { -source-pl } screen.
+episodes-empty-no-source-hint = AniList lists no episodes for this title yet, and no source is ready. Press { $key } to open the Sources screen.
+
+# Heading of the empty episode table when the title has not aired yet.
+episodes-empty-unaired = Nothing has aired yet
+
+# Under the heading when the title has not aired yet. The span is short, such as 2d 3h.
+episodes-empty-unaired-hint = Episode { $episode } airs in { $span }.
+
+# Heading of the empty episode table when a { -source } matched the title and listed nothing.
+episodes-empty-none-listed = No episodes listed
+
+# Under the heading when a { -source } listed no episodes. The keys search by hand and pick another { -source }.
+episodes-empty-none-listed-hint = The source listed no episodes for this title. Press { $search } to search for the right match, or { $pick } to pick another source.
+
+# Toast when an episode has no { -release } to pick from.
+episodes-no-releases = No releases are available to pick from for this episode.
+
+# Toast when a download is asked for from a table listed from AniList alone. The key opens the { -source-pl } screen.
+episodes-add-source-to-download = Add a source before downloading. Press { $key } to open the Sources screen.
+
+# Toast when marking the episodes before the highlighted one and the table is empty.
+episodes-mark-none-listed = No episodes are listed to mark.
+
+# Toast when marking the episodes before the first one.
+episodes-mark-nothing-before = Nothing comes before the first episode.
+
+# Toast when every episode before the highlighted one is already watched.
+episodes-mark-already-watched = Everything before episode { $episode } is already watched.
+
+# Toast after the episodes before the highlighted one are marked watched.
+episodes-marked-watched =
+    { $count ->
+        [one] Marked { $count } episode watched.
+       *[other] Marked { $count } episodes watched.
+    }
+
+# Toast when the range typed for a download is not understood. The examples are typed as they are.
+episodes-range-invalid = Couldn't read that range. Use one episode (4), a range (1-12) or everything from one on (7-).
+
+# Toast when no episode falls in the range typed for a download.
+episodes-range-empty = No episodes in that range. Try another range.
+
+# Toast after a range is queued for download.
+episodes-queueing =
+    { $count ->
+        [one] Queueing { $count } episode for download.
+       *[other] Queueing { $count } episodes for download.
+    }
+
+# Toast when a match is fixed from a list.
+episodes-match-off-page = Open the title's page to fix its match.
+
+# Toast when a match is fixed and no title is highlighted.
+episodes-match-nothing = Nothing is selected to re-match.
+
+# Toast after a match is picked. The title is the candidate's own.
+episodes-matched = Matched to { $title }.
+
+# After a { -release } in the picker: it holds both the subbed and the dubbed audio.
+episodes-release-dual = Subbed and dubbed
+
+# After a { -release } in the picker: it is dubbed.
+episodes-release-dub = Dubbed
+
+# After a { -release } in the picker: it is the one anistream would play on its own.
+episodes-release-current-pick = Current pick
+
+# Action label in the help overlay and the command palette.
+keys-action-show-keys = Show keys
+
+# Action label in the help overlay and the command palette.
+keys-action-command-palette = Run a command
+
+# Action label in the help overlay and the command palette.
+keys-action-quit = Quit
+
+# Action label in the help overlay and the command palette.
+keys-action-back = Back
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-rail = Toggle rail width
+
+# Action label in the help overlay and the command palette.
+keys-action-refresh = Refresh this view
+
+# Action label in the help overlay and the command palette.
+keys-action-force-resync = Force a full resync
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-translation = Subbed or dubbed
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-continue = Go to Continue
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-calendar = Go to Calendar
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-seasonal = Go to Seasonal
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-search = Go to Search
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-library = Go to Library
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-downloads = Go to Downloads
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-sources = Go to Sources
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-accounts = Go to Accounts
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-settings = Go to Settings
+
+# Action label in the help overlay and the command palette.
+keys-action-jump-section = Go to section
+
+# Action label in the help overlay and the command palette.
+keys-action-focus-search = Search
+
+# Action label in the help overlay and the command palette.
+keys-action-show-accounts = Accounts and sync
+
+# Action label in the help overlay and the command palette.
+keys-action-show-conflicts = Resolve sync conflicts
+
+# Action label in the help overlay and the command palette.
+keys-action-show-logs = Recent messages
+
+# Action label in the help overlay and the command palette.
+keys-action-open-privacy = Open the privacy page
+
+# Action label in the help overlay and the command palette.
+keys-action-report-bug = Report a bug
+
+# Action label in the help overlay and the command palette.
+keys-action-up = Move up
+
+# Action label in the help overlay and the command palette.
+keys-action-down = Move down
+
+# Action label in the help overlay and the command palette.
+keys-action-left = Move left
+
+# Action label in the help overlay and the command palette.
+keys-action-right = Move right
+
+# Action label in the help overlay and the command palette.
+keys-action-top = Jump to top
+
+# Action label in the help overlay and the command palette.
+keys-action-bottom = Jump to bottom
+
+# Action label in the help overlay and the command palette.
+keys-action-page-up = Page up
+
+# Action label in the help overlay and the command palette.
+keys-action-page-down = Page down
+
+# Action label in the help overlay and the command palette.
+keys-action-open = Open
+
+# Action label in the help overlay and the command palette.
+keys-action-play-next = Play next unwatched
+
+# Action label in the help overlay and the command palette.
+keys-action-set-list-status = Set list status
+
+# Action label in the help overlay and the command palette.
+keys-action-rate-title = Rate this title
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-synopsis = Expand synopsis
+
+# Action label in the help overlay and the command palette.
+keys-action-hide-from-continue = Remove from Continue
+
+# Action label in the help overlay and the command palette.
+keys-action-show-episodes = Episodes
+
+# Action label in the help overlay and the command palette.
+keys-action-fix-mapping = Fix this match
+
+# Action label in the help overlay and the command palette.
+keys-action-download = Download
+
+# Action label in the help overlay and the command palette.
+keys-action-watch-order = Watch order
+
+# Action label in the help overlay and the command palette.
+keys-action-recommendations = Recommendations
+
+# Action label in the help overlay and the command palette.
+keys-action-play-trailer = Play the trailer
+
+# Action label in the help overlay and the command palette.
+keys-action-open-in-browser = Open on AniList
+
+# Action label in the help overlay and the command palette.
+keys-action-clear-completed = Clear finished downloads
+
+# Action label in the help overlay and the command palette.
+keys-action-delete-download = Delete download and its file
+
+# Action label in the help overlay and the command palette.
+keys-action-raise-source = Move source up
+
+# Action label in the help overlay and the command palette.
+keys-action-lower-source = Move source down
+
+# Action label in the help overlay and the command palette.
+keys-action-download-range = Download a range of episodes
+
+# Action label in the help overlay and the command palette.
+keys-action-play-party = Play in a watch party
+
+# Action label in the help overlay and the command palette.
+keys-action-toggle-watched = Toggle watched
+
+# Action label in the help overlay and the command palette.
+keys-action-mark-all-previous = Mark all previous watched
+
+# Action label in the help overlay and the command palette.
+keys-action-filter = Filter
+
+# Action label in the help overlay and the command palette.
+keys-action-filter-search = Search filters
+
+# Action label in the help overlay and the command palette.
+keys-action-play-pause = Play or pause
+
+# Action label in the help overlay and the command palette.
+keys-action-seek-back = Back 5 seconds
+
+# Action label in the help overlay and the command palette.
+keys-action-seek-forward = Forward 5 seconds
+
+# Action label in the help overlay and the command palette.
+keys-action-seek-back-far = Back 30 seconds
+
+# Action label in the help overlay and the command palette.
+keys-action-seek-forward-far = Forward 30 seconds
+
+# Action label in the help overlay and the command palette.
+keys-action-next-episode = Next episode
+
+# Action label in the help overlay and the command palette.
+keys-action-previous-episode = Previous episode
+
+# Action label in the help overlay and the command palette.
+keys-action-skip-opening = Skip opening
+
+# Action label in the help overlay and the command palette.
+keys-action-speed-down = Slower
+
+# Action label in the help overlay and the command palette.
+keys-action-speed-up = Faster
+
+# Action label in the help overlay and the command palette.
+keys-action-volume-down = Volume down
+
+# Action label in the help overlay and the command palette.
+keys-action-volume-up = Volume up
+
+# Action label in the help overlay and the command palette.
+keys-action-fullscreen = Fullscreen
+
+# Action label in the help overlay and the command palette.
+keys-action-detach = Leave player running
+
+# Action label in the help overlay and the command palette.
+keys-action-stop-playback = Stop playback
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-pause = Pause
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-skip = Skip
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-detach = Detach
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-stop = Stop
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-play-next = Play next
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-episodes = Episodes
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-on-anilist = On AniList
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-mark-previous = Mark previous
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-filters = Filters
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-resync = Resync
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-keys = Keys
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-refresh = Refresh
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-watched = Watched
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-clear-finished = Clear finished
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-delete = Delete
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-move-up = Move up
+
+# Short form of an action for the status line's hints, drawn beside its key. Room is tight, so keep it to a word or two.
+keys-hint-move-down = Move down
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-open = Open
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-search = Search
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-results = Results
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-back = Back
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-add-source = Add a source to play
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-play = Play
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-list = List
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-cancel = Cancel
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-resume = Resume
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-start-now = Start now
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-order = Order
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-stores = Plugin stores
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-sign-out = Sign out
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-sign-in = Sign in
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-change = Change
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-page = Page
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-close = Close
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-move = Move
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-keep = Keep
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-run = Run
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-set = Set
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-rate = Rate
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-pin = Pin
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-use = Use
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-choose = Choose
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-resolve = Resolve
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-publish = Publish
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-confirm = Confirm
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-queue = Queue
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-save = Save
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-next = Next
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-check = Check
+
+# Status line hint beside a key, saying what that key does here. Keep it to a word or two.
+keys-hint-make-link = Make link
+
+# Heading of a group of keys in the help overlay.
+keys-scope-global = Global
+
+# Heading of a group of keys in the help overlay.
+keys-scope-movement = Movement
+
+# Heading of a group of keys in the help overlay.
+keys-scope-lists = Lists and grids
+
+# Heading of a group of keys in the help overlay.
+keys-scope-title = Title
+
+# Heading of a group of keys in the help overlay.
+keys-scope-episodes = Episodes
+
+# Heading of a group of keys in the help overlay.
+keys-scope-downloads = Downloads
+
+# Heading of a group of keys in the help overlay.
+keys-scope-sources = Sources
+
+# Heading of a group of keys in the help overlay.
+keys-scope-playback = Now playing
+
+# Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+keys-where-playback = while something is playing
+
+# Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+keys-where-downloads = on the Downloads screen
+
+# Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+keys-where-sources = on the Sources screen
+
+# Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+keys-where-episodes = in the episode table
+
+# Ends the toast that says a command does nothing on this screen: it follows the command's name and "works", and names where the command does work.
+keys-where-elsewhere = on another screen
+
+# Names a command that has no key, inside a sentence such as "Press … to confirm". The action is its label in lower case.
+keys-unbound = “{ $action }” in the palette
+
+# Config problem shown at start-up: a [keys] entry names an action that does not exist. The action is the name as typed.
+keys-error-unknown-action = Unknown action “{ $action }”.
+
+# Config problem shown at start-up: a [keys] entry has a key that can't be parsed.
+keys-error-bad-key = Can't read the key “{ $key }” for { $action }.
+
+# Config problem shown at start-up: two [keys] entries ask for the same key. Both names are action names as typed.
+keys-error-key-twice = “{ $key }” is given to both { $first } and { $second }.
+
+# Config problem shown at start-up: a [keys] entry asks for a key another action keeps.
+keys-error-key-taken = “{ $key }” for { $action } is already bound to { $holder }.
+
+# Label of the one help row that stands for every section jump key.
+keys-help-jump-section = Go to section
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-continue = Continue
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-calendar = Calendar
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-seasonal = Seasonal
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-search = Search
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-library = Library
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-downloads = Downloads
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-accounts = Accounts
+
+# Name of a section in the navigation rail. The rail is 28 cells wide.
+nav-section-settings = Settings
+
+# Title of an overlay panel.
+nav-overlay-palette = Run
+
+# Title of an overlay panel.
+nav-overlay-help = Keys
+
+# Title of an overlay panel.
+nav-overlay-release-for-title = Release for this title
+
+# Title of an overlay panel.
+nav-overlay-disambiguate = Which one
+
+# Title of an overlay panel.
+nav-overlay-manual-query = Find manually
+
+# Title of an overlay panel.
+nav-overlay-watch-order = Watch order
+
+# Title of an overlay panel.
+nav-overlay-recommendations = Recommended
+
+# Title of an overlay panel.
+nav-overlay-download-range = Download episodes
+
+# Title of an overlay panel.
+nav-overlay-edit-setting = Edit
+
+# Title of an overlay panel.
+nav-overlay-list-status = List status
+
+# Title of an overlay panel.
+nav-overlay-rate = Rate
+
+# Title of an overlay panel.
+nav-overlay-filters = Filters
+
+# Title of an overlay panel.
+nav-overlay-kitsu-username = Sign in to Kitsu
+
+# Title of an overlay panel.
+nav-overlay-kitsu-password = Kitsu password
+
+# Title of an overlay panel.
+nav-overlay-accounts = Accounts
+
+# Title of an overlay panel.
+nav-overlay-conflicts = Conflicts
+
+# Title of an overlay panel.
+nav-overlay-logs = Logs
+
+# Title of an overlay panel.
+nav-overlay-join-store = Join a plugin store
+
+# Title of an overlay panel.
+nav-overlay-store-confirm = Confirm
+
+# Title of an overlay panel.
+nav-overlay-plugin-action = Plugin
+
+# Title of an overlay panel.
+nav-overlay-invite-name = Invite someone
+
+# Title of an overlay panel.
+nav-overlay-invite-link = Invite link
+
+# Title of an overlay panel.
+nav-overlay-open-link = Link to the plugin store
+
+# Title of an overlay panel.
+nav-overlay-publish-pick = Publish a plugin
+
+# Name of the rail's width setting, shown in a toast when it changes.
+nav-rail-expanded = Expanded
+
+# Name of the rail's width setting, shown in a toast when it changes.
+nav-rail-collapsed = Collapsed
+
+# Name of the rail's width setting, shown in a toast when it changes.
+nav-rail-hidden = Hidden
+
+# Shown in place of a screen when the terminal is too small to draw it.
+lists-terminal-too-small = Needs a larger terminal
+
+# Title of the Downloads screen, shown in the placeholder when the terminal is too small.
+downloads-screen-title = Downloads
+
+# Column heading above the downloads' titles.
+downloads-column-title = Title
+
+# Column heading above each download's state.
+downloads-column-state = State
+
+# Column heading above each download's progress meter.
+downloads-column-progress = Progress
+
+# Heading of the Downloads screen when nothing is queued.
+downloads-empty-heading = Nothing queued
+
+# Hint under the empty Downloads screen. The key is the one bound to downloading, as the key map draws it.
+downloads-empty-hint = Press { $key } on a title or episode to queue it for offline.
+
+# A download's row: the episode number after the title. The title is cut before this is.
+downloads-row-episode = E{ $episode }
+
+# A download's row for an episode queued ahead of time because the person is watching on. The episode number comes after the title, which is cut before this is.
+downloads-row-episode-ahead = E{ $episode } · ahead
+
+# Beside a download's meter: the bytes so far and the total, each already sized (such as "700 MB").
+downloads-note-sizes = { $downloaded } / { $total }
+
+# Beside the meter of a download that is running but has no size yet.
+downloads-note-waiting-metadata = Waiting for metadata
+
+# Beside the meter of a queued download while torrents are switched off, so it will not start.
+downloads-note-torrents-off = Torrents are off
+
+# Beside the meter of a queued download that has not started.
+downloads-note-waiting-start = Waiting to start
+
+# A download's state in the table. A narrow column.
+downloads-state-queued = Queued
+
+# A download's state in the table. A narrow column.
+downloads-state-active = Downloading
+
+# A download's state in the table. A narrow column.
+downloads-state-paused = Paused
+
+# A download's state in the table. A narrow column.
+downloads-state-done = Complete
+
+# A download's state in the table. A narrow column.
+downloads-state-failed = Failed
+
+# Detail line for a download queued ahead of time, on its own.
+downloads-detail-ahead = Downloaded ahead, removed a day after you watch it
+
+# Detail line for a download queued ahead of time: where it stands, then what becomes of it.
+downloads-detail-with-ahead = { $detail } · Downloaded ahead, removed a day after you watch it
+
+# Detail line for a paused download. Both sizes are already formatted (such as "734 MB").
+downloads-detail-paused-at = Paused at { $downloaded } of { $total } (it carries on from there)
+
+# Detail line for a download paused before any bytes arrived.
+downloads-detail-paused-early = Paused before it started
+
+# Detail line for a queued download while torrents are off. The key opens the Settings screen, as the key map draws it.
+downloads-detail-torrents-off = Downloads need torrents, which are off (press { $key } for Settings)
+
+# Detail line for a queued download.
+downloads-detail-queued = Queued (it starts when a download slot is free)
+
+# Detail line for a running download that has no size yet.
+downloads-detail-waiting-metadata = Waiting for the torrent's metadata
+
+# Heading of the list of torrents still seeding after the episode was watched.
+downloads-seeding-heading = Seeding after watching
+
+# A seeding torrent: the share ratio so far, the ratio it is aiming for, the time left and the amount uploaded. The ratios are already formatted with one decimal.
+downloads-seeding-detail = { $ratio } of { $goal } · { $left } left · { $uploaded } up
+
+# Toast when Enter is pressed on a failed download that has no recorded reason.
+downloads-failed-no-reason = The download failed and no reason was recorded.
+
+# Toast when Enter is pressed on a download that is running and has not finished.
+downloads-not-finished = That download hasn't finished yet.
+
+# Title of the Accounts screen, shown in the placeholder when the terminal is too small.
+accounts-screen-title = Accounts
+
+# A { -tracker }'s chip in the header when it needs signing in again. The mark is a symbol that says the account is down.
+accounts-badge-sign-in = { $tracker } { $mark } sign in
+
+# Status line while the browser is opened for a { -tracker } sign-in.
+accounts-status-opening-browser = Opening your browser to sign in…
+
+# Toast when a { -tracker } needs signing in again. The key opens the Accounts screen, as the key map draws it.
+accounts-needs-sign-in = { $tracker } needs signing in again. Press { $key } to open Accounts.
+
+# Toast when sync disagreements appear. The key opens the list of them, as the key map draws it.
+accounts-conflicts-found =
+    { $count ->
+        [one] 1 sync disagreement found. Press { $key } to settle it.
+       *[other] { $count } sync disagreements found. Press { $key } to settle them.
+    }
+
+# Toast when the sync disagreements list is opened and there are none.
+accounts-conflicts-none = There are no sync disagreements to settle.
+
+# Toast when a sync is asked for and no { -tracker } is set up. The key opens the Accounts screen, as the key map draws it.
+accounts-no-tracker = No tracker is connected. Press { $key } to open Accounts.
+
+# Heading of the sign-in prompt shown while a device code is waiting to be entered.
+accounts-finish-signing-in = Finish signing in to { $tracker }
+
+# First step of the device-code sign-in: the address to open. The spaces keep it aligned with the next step.
+accounts-step-open = 1. Open   { $url }
+
+# Second step of the device-code sign-in: the code is shown after this, in the same row.
+accounts-step-enter = 2. Enter
+
+# Under a device code that is about to run out, seconds left.
+accounts-code-expires-seconds = Expires in { $seconds } s
+
+# Under a device code, whole minutes left.
+accounts-code-expires-minutes = Expires in { $minutes } min
+
+# Under a device code that has run out. Pressing Enter on the row asks for a new one.
+accounts-code-expired = Code expired
+
+# Column heading above the { -tracker-pl }' names.
+accounts-column-tracker = Tracker
+
+# Column heading above each account's state.
+accounts-column-state = State
+
+# Column heading above the number of changes waiting to be sent to the { -tracker }.
+accounts-column-queued = Queued
+
+# Column heading above where the sign-in token is stored.
+accounts-column-token = Token
+
+# Heading when no { -tracker } is enabled in the config file.
+accounts-empty-heading = No trackers enabled
+
+# Hint under the empty Accounts screen. The setting is the config key that lists the enabled { -tracker-pl }, such as trackers.enabled, and stays as written; config.toml is the file name.
+accounts-empty-hint = Add one to { $setting } in config.toml. Your watch history works without any.
+
+# State of an account whose sign-in has lapsed. A narrow column, after a mark.
+accounts-state-sign-in-again = Sign in again
+
+# State of a signed-in account. A narrow column, after a mark.
+accounts-state-connected = Connected
+
+# State of an account that is not signed in. A narrow column, after a mark.
+accounts-state-not-connected = Not connected
+
+# Under an account whose last fetch of the list failed, when it failed today. The time is already formatted, and the reason is the { -tracker }'s own text.
+accounts-pull-failed-today = Fetching your list failed at { $time }: { $error }
+
+# Under an account whose last fetch of the list failed, on an earlier day.
+accounts-pull-failed-dated = Fetching your list failed on { $date } at { $time }: { $error }
+
+# Under an account whose last fetch of the list failed, when the time is not known.
+accounts-pull-failed = Fetching your list failed: { $error }
+
+# Note under the accounts when sign-in tokens are kept in files because the system keychain cannot be used. 0600 is the file permission and stays as written.
+accounts-token-files = Tokens are stored in files with 0600 permissions because the OS keychain is unavailable.
+
+# Hint under the accounts for the selected row that is connected. Enter signs it out.
+accounts-enter-sign-out = ↵ Sign out
+
+# Hint under the accounts for the selected row that is not connected. Enter signs it in.
+accounts-enter-sign-in = ↵ Sign in
+
+# Action on an account row whose sign-in has lapsed.
+accounts-action-sign-in-again = Sign in again
+
+# Action on a connected account row.
+accounts-action-sign-out = Sign out
+
+# Action on an account row that is not connected.
+accounts-action-sign-in = Sign in
+
+# Overlay row shown when no { -tracker } is enabled. The setting is the config key that lists the enabled { -tracker-pl }, and stays as written; config.toml is the file name.
+accounts-rows-empty = No trackers enabled. Add one to { $setting } in config.toml.
+
+# Part of an account's overlay row: who is signed in.
+accounts-row-signed-in-as = Signed in as { $user }
+
+# Part of an account's overlay row: signed in with no user name known.
+accounts-row-connected = Connected
+
+# Part of an account's overlay row: not signed in.
+accounts-row-not-connected = Not connected
+
+# Part of an account's overlay row: changes waiting to be sent.
+accounts-row-queued =
+    { $count ->
+        [one] { $count } queued
+       *[other] { $count } queued
+    }
+
+# Part of an account's overlay row: changes waiting to be sent, and some of them held back until the title is matched to the { -tracker }'s own id.
+accounts-row-queued-held = { $queued } queued, { $held } waiting for an id mapping
+
+# Action beside a sync disagreement in the overlay: Enter keeps the value on this device.
+accounts-conflict-keep-mine = Keep mine
+
+# A sync disagreement in the overlay: the title, the field that differs, then this device's value and the { -tracker }'s. The title is cut to 34 characters before it goes in.
+accounts-conflict-row = { $title }  ·  { $field }: mine { $local } / theirs { $remote }
+
+# Title of the Library screen, shown in the placeholder when the terminal is too small.
+lists-library-title = Library
+
+# Toast when the remove key is pressed outside the { -continue-cap } list.
+lists-remove-wrong-list = You can only remove titles from the Continue list.
+
+# Toast when a title is removed from the { -continue-cap } list.
+lists-continue-removed = { $title } removed from Continue. Watching it again brings it back.
+
+# Toast when Enter is pressed on a list with nothing highlighted.
+lists-nothing-selected = No title is selected.
+
+# The search box's prompt: the label, then what has been typed (and the cursor).
+lists-search-prompt = Find { $query }
+
+# Heading when a list could not be loaded. The reason follows under it.
+lists-load-failed = Couldn't load this list
+
+# Shown beside the loading skeleton.
+lists-loading = Loading…
+
+# Heading of an empty search whose query has been typed but not yet sent.
+lists-empty-press-enter = Press ↵ to search
+
+# Heading of the Search screen before anything is searched.
+lists-empty-type-to-search = Type to search
+
+# Hint under the Search heading when filters are set. ↵ is the Enter key.
+lists-empty-browse-filtered = Or press ↵ to browse with these filters.
+
+# Hint under the Search heading when no filter is set. ↵ is the Enter key.
+lists-empty-browse-popular = Or press ↵ to browse the most popular.
+
+# Heading when a search or a browse found nothing.
+lists-empty-no-matches = No matches
+
+# Hint when browsing with filters found nothing.
+lists-empty-fewer-filters = Try fewer filters.
+
+# Hint when a search found nothing.
+lists-empty-shorter-query = Try a shorter query, or the romaji title.
+
+# Heading of the { -continue-cap } list when there is no watch history.
+lists-empty-nothing-watched = Nothing watched yet
+
+# Hint under the empty { -continue-cap } and Library lists. The keys are the ones bound to the Seasonal screen and to search, as the key map draws them.
+lists-empty-ways-on = Press { $seasonal } for this season, or { $search } to search.
+
+# Heading of the { -continue-cap } list when everything in the history was removed from it.
+lists-empty-nothing-to-continue = Nothing to continue
+
+# Hint under it. The keys are the ones bound to the Seasonal screen and to search.
+lists-empty-hidden-come-back = Titles you removed come back when you watch them. Press { $seasonal } for this season, or { $search } to search.
+
+# Heading of any other empty list.
+lists-empty-nothing-here = Nothing here yet
+
+# Heading of the Library when no account is connected.
+lists-library-no-account = No account connected
+
+# Line under it.
+lists-library-works-without = Your watch history works without one. The library mirrors the list on a tracker.
+
+# Line under it when no { -tracker } is enabled. The key opens the Accounts screen, as the key map draws it. The setting is the config key that lists the enabled { -tracker-pl }, and stays as written; config.toml is the file name.
+lists-library-enable-tracker = Add one to { $setting } in config.toml, then press { $key } to open Accounts.
+
+# Line under it when a { -tracker } is enabled but not signed in. The key opens the Accounts screen.
+lists-library-sign-in = Press { $key } to open Accounts and sign in.
+
+# A Library segment in the strip across the top.
+lists-segment-watching = Watching
+
+# A Library segment in the strip across the top.
+lists-segment-planning = Planning
+
+# A Library segment in the strip across the top.
+lists-segment-completed = Completed
+
+# A Library segment in the strip across the top.
+lists-segment-paused = Paused
+
+# A Library segment in the strip across the top.
+lists-segment-dropped = Dropped
+
+# An episode in a list row.
+lists-episode = E{ $episode }
+
+# An episode in a list row, for a title watched dubbed.
+lists-episode-dubbed = E{ $episode } · Dubbed
+
+# A row on the { -continue-cap } list: the episode and how far into it the person stopped.
+lists-row-resume-percent = { $episode } · { $percent }%
+
+# A row on the { -continue-cap } list: the episode and the playhead where the person stopped.
+lists-row-resume-clock = { $episode } · { $clock }
+
+# A row for a show with an episode out that has not been watched.
+lists-episode-out = { $episode } out
+
+# A row, or a line in the preview, for the next episode and the time until it airs. The countdown is already formatted (such as "4d 20h").
+lists-episode-in = { $episode } in { $countdown }
+
+# A row, or a line in the preview, for a show whose next episode number is not known.
+lists-next-in = Next in { $countdown }
+
+# A line in the preview: an episode that came out a while ago. The countdown is already formatted.
+lists-episode-out-ago = { $episode } out { $countdown } ago
+
+# A line in the preview: an episode that came out under a minute ago.
+lists-episode-out-just-now = { $episode } out just now
+
+# The calendar's time column for an episode still to come. The countdown is already formatted.
+lists-time-in = In { $countdown }
+
+# The calendar's time column for an episode that aired a while ago.
+lists-time-ago = { $countdown } ago
+
+# The calendar's time column for an episode that aired under a minute ago.
+lists-time-just-now = Just now
+
+# The calendar's time column when the broadcast time is an estimate. The time is already formatted, with "In" or "ago".
+lists-time-approximate = ~{ $time }
+
+# A calendar day heading.
+lists-day-today = Today
+
+# A calendar day heading.
+lists-day-yesterday = Yesterday
+
+# A calendar day heading.
+lists-day-tomorrow = Tomorrow
+
+# The line in the preview that says where the person stopped. The mark in front is added by the screen.
+lists-preview-continue-percent = Continue { $episode } at { $clock } ({ $percent }%)
+
+# The same line when the fraction is not known.
+lists-preview-continue = Continue { $episode } at { $clock }
+
+# Beside the progress meter: episodes watched out of the total.
+lists-progress-aired =
+    { $total ->
+        [one] { $done } of { $total } episode aired
+       *[other] { $done } of { $total } episodes aired
+    }
+
+# Beside the progress meter when there is nothing to count against.
+lists-progress-watched =
+    { $count ->
+        [one] 1 episode watched
+       *[other] { $count } episodes watched
+    }
+
+# Filter row label in the search filters overlay.
+lists-filter-genre = Genre
+
+# Filter row label in the search filters overlay.
+lists-filter-year = Year
+
+# Filter row label in the search filters overlay.
+lists-filter-season = Season
+
+# Filter row label in the search filters overlay.
+lists-filter-format = Format
+
+# Filter row label in the search filters overlay.
+lists-filter-status = Status
+
+# Filter row label in the search filters overlay.
+lists-filter-sort = Sort
+
+# A filter that is not set.
+lists-filter-any = Any
+
+# The search sort order when none is chosen.
+lists-sort-relevance = Relevance
+
+# A filter value for the season of the year.
+lists-season-winter = Winter
+
+# A filter value for the season of the year.
+lists-season-spring = Spring
+
+# A filter value for the season of the year.
+lists-season-summer = Summer
+
+# A filter value for the season of the year.
+lists-season-fall = Autumn
+
+# A filter value for the format of a title.
+lists-format-tv = TV
+
+# A filter value for the format of a title: short episodes of a few minutes.
+lists-format-tv-short = TV short
+
+# A filter value for the format of a title.
+lists-format-movie = Movie
+
+# A filter value for the format of a title: original video animation.
+lists-format-ova = OVA
+
+# A filter value for the format of a title: original net animation.
+lists-format-ona = ONA
+
+# A filter value for the format of a title.
+lists-format-special = Special
+
+# A filter value for the format of a title.
+lists-format-music = Music
+
+# A filter value for whether a title is still airing.
+lists-status-airing = Airing
+
+# A filter value for whether a title is still airing.
+lists-status-finished = Finished
+
+# A filter value for whether a title is still airing.
+lists-status-upcoming = Upcoming
+
+# A search sort order.
+lists-sort-popularity = Popularity
+
+# A search sort order.
+lists-sort-score = Score
+
+# A search sort order.
+lists-sort-trending = Trending
+
+# A search sort order.
+lists-sort-newest = Newest
+
+# Notice when the person leaves Now Playing while mpv carries on in its own window.
+playback-detached = Detached. mpv is still playing.
+
+# Notice when the skip key is pressed and no opening or ending is on offer.
+playback-no-skip = There is nothing to skip here.
+
+# Notice when a play key is pressed with no show under the cursor.
+playback-nothing-selected = Nothing is selected. Choose a show first.
+
+# Title shown on the transition over the screen when the show being played is not known yet.
+playback-fallback-title = Playing
+
+# Notice when an episode reaches its end.
+playback-episode-finished = Episode finished.
+
+# Notice when playback picks up where the person left off.
+playback-resumed = Resumed at { $time }.
+
+# Label on the transition over the screen while a stream is found: the show, then its episode.
+playback-transition-label = { $title }  ·  Episode { $episode }
+
+# Heading of the Now Playing screen.
+playback-title = Now playing
+
+# Shown on the Now Playing screen when nothing is playing.
+playback-nothing-playing = Nothing is playing. Choose an episode to start one.
+
+# Player state at the top right of Now Playing while the video is paused.
+playback-state-paused = Paused
+
+# Player state at the top right of Now Playing while the video plays. The mark is a status glyph.
+playback-state-playing = mpv { $mark }
+
+# Top right of Now Playing: the player state, then the name of the source serving the stream.
+playback-status = { $state }  ·  { $source }
+
+# Episode number at the right of the title on Now Playing. The number is zero-padded.
+playback-episode-number = Episode { $number }
+
+# Prompt over the controls while an opening can be skipped. The key is the one bound to skipping.
+playback-skip-opening = ⟨ Skip opening: { $key } ⟩
+
+# Prompt over the controls while an ending can be skipped. The key is the one bound to skipping.
+playback-skip-ending = ⟨ Skip ending: { $key } ⟩
+
+# Note on the transition when finding a stream takes more than a moment. The time is how long it has taken so far.
+playback-still-finding = Still finding a stream  ·  { $time }
+
+# Short label for the status line when no source is configured.
+sources-none-label = No source
+
+# Note on the Sources screen when the window is too small to draw it.
+sources-too-small = Needs a larger terminal.
+
+# Heading shown on the Sources screen when there is nothing to list, in the alert colour.
+sources-none-available = No sources available
+
+# Reason shown when no source is available and the engine gave none. The setting is the name of a key in the config file and is not translated.
+sources-torrents-off = Torrents are off until { $setting } and a VPN mode are set.
+
+# Column heading in the Sources table: the name of the source.
+sources-column-source = Source
+
+# Column heading in the Sources table: what kind of source it is (plugin, torrent and so on).
+sources-column-kind = Kind
+
+# Column heading in the Sources table: whether the source is working.
+sources-column-state = State
+
+# Column heading in the Sources table: how long the source took to answer last.
+sources-column-latency = Latency
+
+# How long a source took to answer, in milliseconds.
+sources-latency = { $ms } ms
+
+# Line under the Sources table: the name of the source that failed last, then why.
+sources-last-error = { $name }: { $error }
+
+# Kind of source: built in to the app.
+sources-kind-native = Built in
+
+# Kind of source: an installed { -plugin }.
+sources-kind-plugin = Plugin
+
+# Kind of source: another device's source reached over the network.
+sources-kind-remote = Remote
+
+# Kind of source: the torrent source.
+sources-kind-torrent = Torrent
+
+# Kind of source: one that streams licensed content.
+sources-kind-licensed = Licensed
+
+# State of a source: it is working.
+sources-state-ready = Ready
+
+# State of a source: it is working but slowly or only in part.
+sources-state-degraded = Degraded
+
+# State of a source: it is not responding.
+sources-state-down = Down
+
+# State of a source: it has not been tried yet.
+sources-state-unchecked = Not checked yet
+
+# State of a source: it works but local rules (the VPN check) are withholding it.
+sources-state-held-back = Held back
+
+# Heading of the line about { -plugin-store-pl }.
+sources-stores-title = Plugin stores
+
+# Under the heading when no { -plugin-store } is joined or the list has not arrived.
+sources-stores-invite = Plugins shared by people you know. Join with an invite link.
+
+# Part of the { -plugin-store } summary: how many { -plugin-store-pl } are joined.
+sources-stores-joined = { $count } joined
+
+# Part of the { -plugin-store } summary: how many { -plugin } updates are waiting.
+sources-stores-updates =
+    { $count ->
+        [one] { $count } update
+       *[other] { $count } updates
+    }
+
+# Part of the { -plugin-store } summary: how many { -plugin-store-pl } have stopped accepting this device.
+sources-stores-removed =
+    { $count ->
+        [one] { $count } no longer accepting this device
+       *[other] { $count } no longer accepting this device
+    }
+
+# Hint at the right of the { -plugin-store } line. The arrow is the Enter key.
+sources-stores-open = ↵ Open
+
+# Heading of the list of metadata services (where titles, covers and descriptions come from).
+sources-metadata-title = Metadata
+
+# State of a metadata service: answering normally.
+sources-meta-state-live = Live
+
+# State of a metadata service: not answering.
+sources-meta-state-unreachable = Unreachable
+
+# State of a metadata service: failed recently and is being left alone for a while.
+sources-meta-state-backing-off = Backing off
+
+# State of a metadata service: switched off in the config.
+sources-meta-state-off = Off
+
+# State of a metadata service: the one answering now, in place of the first choice.
+sources-meta-state-serving = Serving
+
+# State of a metadata service: ready if the others fail.
+sources-meta-state-standby = Standby
+
+# State of a metadata service: failing.
+sources-meta-state-failing = Failing
+
+# Detail for a metadata service that failed, with no reason given.
+sources-meta-cause-failing = Failing
+
+# Detail for a metadata service being left alone until the given clock time. The cause is the service's own error text.
+sources-meta-skipped-until = Skipped until { $time } ({ $cause })
+
+# Detail for a metadata service whose wait is over: it is asked again when something needs it. The cause is the service's own error text.
+sources-meta-next-request = Tried again on the next request ({ $cause })
+
+# Header chip while the VPN check is running. The mark is a status glyph.
+sources-vpn-checking = VPN { $mark }  Checking
+
+# Header chip when the VPN protects the connection. The name is where traffic leaves the network.
+sources-vpn-protected = VPN { $mark }  { $exit }
+
+# Header chip when the VPN check found traffic leaving outside the tunnel.
+sources-vpn-leaking = VPN { $mark }  Leaking
+
+# Header chip when the VPN check could not be completed.
+sources-vpn-unreachable = VPN { $mark }  Unreachable
+
+# Header chip when the configuration runs with no VPN on purpose.
+sources-vpn-unprotected = VPN { $mark }  Unprotected
+
+# Notice when the VPN check finds a leak and torrents are paused.
+sources-vpn-leak-paused = The VPN is leaking. Torrents are paused until it is protected again.
+
+# Notice when the VPN check cannot be completed and torrents are paused.
+sources-vpn-unreachable-paused = The VPN can't be reached. Torrents are paused until it can.
+
+# Notice after the person submits an empty value for a text setting.
+settings-unchanged = Left unchanged. Delete the line in config.toml to unset it.
+
+# Notice after switching between subbed and dubbed audio for this session only.
+settings-session-subbed = Using subbed audio for this session.
+
+# Notice after switching between subbed and dubbed audio for this session only.
+settings-session-dubbed = Using dubbed audio for this session.
+
+# Notice when a setting cannot be changed from the terminal and has no explanation of its own.
+settings-not-editable = This setting can't be changed here.
+
+# Notice when an arrow key is pressed on a setting that is typed rather than cycled.
+settings-enter-types = Press Enter to type a value.
+
+# Value of a setting that is on.
+settings-value-on = On
+
+# Value of a setting that is off.
+settings-value-off = Off
+
+# Value of a setting that has nothing set.
+settings-value-none = None
+
+# Value of a setting that is set, where the value is not shown.
+settings-value-configured = Configured
+
+# Value of a setting where the saved choice and this session's differ.
+settings-value-this-session = { $saved } · { $current } this session
+
+# Value of the theme setting: follows the terminal's colours.
+settings-value-theme-adaptive = Adaptive
+
+# Value of the theme setting: draws its own background.
+settings-value-theme-immersive = Immersive
+
+# Value of the titles setting: use the language AniList picks for the signed-in account.
+settings-value-titles-anilist = AniList's choice
+
+# Value of the titles setting: English titles.
+settings-value-titles-english = English
+
+# Value of the titles setting: titles in Latin letters as written in Japanese.
+settings-value-titles-romaji = Romaji
+
+# Value of the upscaling setting: a natural look. The name after the dot is the shader used.
+settings-value-upscaling-natural = Natural · ArtCNN
+
+# Value of the upscaling setting: a sharper look. The name after the dot is the shader used.
+settings-value-upscaling-sharp = Sharp · Anime4K
+
+# Value of the player interface setting: the app's own look.
+settings-value-player-ui-anistream = anistream
+
+# Value of the player interface setting: mpv's own interface and the person's configuration.
+settings-value-player-ui-mpv = Your mpv setup
+
+# Value of the download folder setting when no folder is set.
+settings-value-download-dir-default = Kept with the torrent cache
+
+# Value of the Syncplay room setting when no room is set.
+settings-value-room-unset = Not set (needed for watch parties)
+
+# Value of the VPN mode setting: traffic goes through a proxy server (SOCKS5).
+settings-value-vpn-socks5 = Proxy
+
+# Value of the VPN mode setting: a tunnel set up outside the app.
+settings-value-vpn-external = External
+
+# Value of the seeding ratio setting: seed until the ratio is reached.
+settings-value-seed-ratio = Until ratio { $ratio }
+
+# Value of the upload limit setting when there is no limit.
+settings-value-unlimited = Unlimited
+
+# Value of the upload limit setting: a speed. The size is already formatted, with its unit.
+settings-value-per-second = { $size }/s
+
+# Settings heading: how the app looks.
+settings-category-appearance = Appearance
+
+# Settings heading: how episodes play.
+settings-category-playback = Playback
+
+# Settings heading: downloads.
+settings-category-downloads = Downloads
+
+# Settings heading: where episodes come from.
+settings-category-sources = Sources
+
+# Settings heading: links to other services.
+settings-category-integrations = Integrations
+
+# Settings heading: notifications.
+settings-category-notifications = Notifications
+
+# Settings heading: options for experienced users.
+settings-category-advanced = Advanced
+
+# Settings row: the colour theme.
+settings-label-theme = Theme
+
+# Settings row: whether the interface moves.
+settings-label-motion = Motion
+
+# Settings row: which language titles are shown in.
+settings-label-titles = Titles
+
+# Settings row: subbed or dubbed audio.
+settings-label-translation = Audio
+
+# Settings row: the video quality to look for.
+settings-label-quality = Quality
+
+# Settings row: the language of subtitles.
+settings-label-subtitles = Subtitles
+
+# Settings row: how much of an episode must play before it counts as watched.
+settings-label-commit-threshold = Counts as watched at
+
+# Settings row: whether the next episode starts by itself.
+settings-label-auto-next = Auto-play next
+
+# Settings row: whether openings are skipped without asking.
+settings-label-skip-opening = Skip opening automatically
+
+# Settings row: whether filler episodes are skipped.
+settings-label-skip-filler = Skip filler automatically
+
+# Settings row: whether the opening and ending are marked on the seek bar.
+settings-label-mark-chapters = Mark opening and ending
+
+# Settings row: whether a skip button is shown over the video.
+settings-label-skip-button = Show skip button
+
+# Settings row: whether the player opens fullscreen.
+settings-label-fullscreen = Start fullscreen
+
+# Settings row: the video upscaling mode.
+settings-label-upscaling = Upscaling
+
+# Settings row: which interface the player shows.
+settings-label-player-ui = Player interface
+
+# Settings row: whether quiet and loud sound is evened out.
+settings-label-night-mode = Night mode
+
+# Settings row: the folder downloads are saved in.
+settings-label-download-dir = Download folder
+
+# Settings row: whether subtitles are merged into the downloaded file.
+settings-label-merge-subtitles = Merge subtitles in
+
+# Settings row: whether finished downloads keep being shared.
+settings-label-keep-seeding = Keep seeding
+
+# Settings row: a command run when a download finishes.
+settings-label-download-hook = After each download
+
+# Settings row: Syncplay { -watch-party-pl }.
+settings-label-syncplay = Syncplay watch parties
+
+# Settings row: the Syncplay server.
+settings-label-syncplay-server = Syncplay server
+
+# Settings row: the Syncplay room.
+settings-label-syncplay-room = Syncplay room
+
+# Settings row: whether the app checks for a new version.
+settings-label-update-check = Check for updates
+
+# Settings row: Discord presence, showing what is being watched.
+settings-label-presence = Discord presence
+
+# Settings row: whether Discord shows the show's title.
+settings-label-presence-title = Presence shows the title
+
+# Settings row: whether Discord shows a card with cover and progress.
+settings-label-presence-rich = Rich presence
+
+# Settings row: the torrent source on or off.
+settings-label-torrents = Torrent source
+
+# Settings row: the { -torrent-index } used to look up releases.
+settings-label-torrent-index = Torrent index
+
+# Settings row: how long watched episodes keep being shared, by ratio.
+settings-label-seed-ratio = Seed after watching
+
+# Settings row: how long watched episodes keep being shared, in hours.
+settings-label-seed-hours = Seed for at most
+
+# Settings row: the cap on torrent upload speed.
+settings-label-upload-limit = Upload limit
+
+# Settings row: how traffic is protected by a VPN.
+settings-label-vpn-mode = VPN mode
+
+# Settings row: where sign-in tokens are kept.
+settings-label-token-storage = Token storage
+
+# Name of the order in which { -source-pl } are tried.
+settings-label-source-order = Source order
+
+# Settings row: seconds counted down before the next episode starts.
+settings-label-up-next-countdown = Up next countdown
+
+# Settings row: whether stills of unwatched episodes are blurred.
+settings-label-spoiler-protection = Spoiler protection
+
+# Settings row: the version of an episode downloads take.
+settings-label-download-quality = Download quality
+
+# Settings row: how many following episodes downloads keep.
+settings-label-keep-next-episodes = Keep next episodes
+
+# Settings row: whether downloads run on a mobile connection.
+settings-label-downloads-on-cellular = Downloads on cellular
+
+# Settings row: whether torrents run on a mobile connection.
+settings-label-torrents-on-cellular = Torrents on cellular
+
+# Settings row: what happens to torrents when the VPN check fails.
+settings-label-vpn-on-failure = If a check fails
+
+# Settings row: whether the app notifies of new episodes.
+settings-label-episode-notifications = New episode notifications
+
+# Settings row: the person's own options for mpv.
+settings-label-mpv-options = mpv options
+
+# Settings row: whether titles marked adult are shown.
+settings-label-adult-titles = Adult titles
+
+# Note under the titles row.
+settings-note-titles = AniList's choice follows your AniList account, and is English when you're signed out.
+
+# Note under the subtitles row.
+settings-note-subtitles = Press Enter to type a language code. There are too many values to cycle through.
+
+# Note under the opening and ending marks row.
+settings-note-mark-chapters = Adds chapter marks to the seek bar when the stream has none.
+
+# Note under the skip button row.
+settings-note-skip-button = Shows a button over the opening and ending when the skip isn't automatic.
+
+# Note under the fullscreen row. "f" is mpv's own key and is not translated.
+settings-note-fullscreen = mpv opens fullscreen. Its own f key still leaves fullscreen.
+
+# Note under the upscaling row.
+settings-note-upscaling = Adapts to the video and your graphics card. Applies from the next episode.
+
+# Note under the player interface row.
+settings-note-player-ui = Shows thumbnails, menus and the skip button in the anistream look.
+
+# Note under the night mode row.
+settings-note-night-mode = Evens out quiet dialogue and loud music.
+
+# Note under the download folder row.
+settings-note-download-dir = Press Enter to type a path. Applies to the next download.
+
+# Note under the merge subtitles row.
+settings-note-merge-subtitles = Applies to the next download that finishes.
+
+# Note under the keep seeding row. It is a privacy choice.
+settings-note-keep-seeding = While on, you stay listed as a seeder. Applies immediately.
+
+# Note under the after each download row.
+settings-note-download-hook = Press Enter to type a command. It runs after each finished download.
+
+# Note under the Syncplay row. The key is the one that plays a single episode in a { -watch-party }.
+settings-note-syncplay = Press { $key } to play one episode in the room set below. While on, every play goes there.
+
+# Note under the Syncplay server row.
+settings-note-syncplay-server = Press Enter to type host:port. There is no server until you choose one.
+
+# Note under the Syncplay room row.
+settings-note-syncplay-room = Press Enter to type a friend's room. Leave it empty to start one nobody can guess.
+
+# Note under the check for updates row.
+settings-note-update-check = One cached request a day, made at startup.
+
+# Note under the Discord presence row once a client ID is set.
+settings-note-presence = Takes effect on the next episode.
+
+# Note under the Discord presence row when no client ID is set. The address is a web address.
+settings-note-presence-needs-client = Needs a client ID. Register an app at discord.com/developers.
+
+# Note under the presence title row. The quoted text is what Discord shows.
+settings-note-presence-title = Off shows “Watching anime” without naming the show.
+
+# Note under the rich presence row.
+settings-note-presence-rich = Adds the cover, a progress bar and an AniList link. Needs the title shown.
+
+# Note under the torrent source row.
+settings-note-torrents = Needs a VPN configured. Takes effect immediately.
+
+# Note under the VPN mode row.
+settings-note-vpn-mode = Edit config.toml to change this. Turning protection off takes an explicit step.
+
+# Note under the seed after watching row.
+settings-note-seed-ratio = Keeps watched episodes seeding while anistream is open.
+
+# Note under the seed for at most row.
+settings-note-seed-hours = The longest one episode keeps seeding, whatever its ratio.
+
+# Note under the upload limit row.
+settings-note-upload-limit = Caps all torrent upload, so seeding never slows playback.
+
+# Note under the token storage row. The option is a command-line flag and is not translated.
+settings-note-token-storage = Use --token-to-file to move an existing token.
+
+# Heading of the { -plugin-store } screens when the terminal is too small to draw them.
+stores-needs-larger-terminal = Needs a larger terminal
+
+# Heading of the list of { -plugin-store-pl } this machine has joined.
+stores-list-heading = Plugin stores
+
+# Heading of one { -plugin-store }'s page while it loads, and when the terminal is too small.
+stores-page-heading = Plugin store
+
+# Heading of a { -plugin-store }'s members screen when the terminal is too small.
+stores-members-placeholder-heading = Members
+
+# Column heading over the names of the stores joined.
+stores-column-store = Store
+
+# Column heading over how many plugins each store offers. Ten cells wide.
+stores-column-plugins = Plugins
+
+# Column heading over whether this person owns the store or is a member. Ten cells wide.
+stores-column-you = You
+
+# Column heading over each store's condition: up to date, offline, access removed. Takes the rest of the row.
+stores-column-state = State
+
+# Shown under the column headings when no { -plugin-store } has been joined.
+stores-none-joined = None joined yet
+
+# Role in a store, in the list of stores and on the members screen. Ten cells wide.
+stores-role-owner = Owner
+
+# Role in a store, in the list of stores and on the members screen. Ten cells wide.
+stores-role-member = Member
+
+# Row under the list of stores that opens the prompt for joining another.
+stores-join-row = + Join a store
+
+# State of a store whose owner removed this device. Column of about 30 cells.
+stores-state-revoked = Access removed
+
+# State of a store that could not be reached. The symbol before it is drawn by the program.
+stores-state-offline = Offline
+
+# State of a store with nothing to update. The symbol before it is drawn by the program.
+stores-state-up-to-date = Up to date
+
+# State of a store that has newer versions of installed plugins.
+stores-state-updates =
+    { $count ->
+        [one] { $count } update
+       *[other] { $count } updates
+    }
+
+# Footer of the list of stores when the focused store has removed this device's access.
+stores-footer-revoked = This store no longer accepts this device. Its owner can send a new invite.
+
+# Footer of the list of stores when the focused store cannot be reached. The reason comes from the network.
+stores-footer-offline = { $url } ({ $reason })
+
+# Part of a store's footer line: the store's key fingerprint, as groups of hexadecimal digits.
+stores-key = Key { $fingerprint }
+
+# Part of a store's footer line when this device joined with the store's link, which keeps no name.
+stores-joined-without-name = Joined without a name
+
+# Part of a store's footer line: the name this device joined under.
+stores-joined-as = Joined as { $name }
+
+# Footer of the list of stores when the focused row is the one that joins another store.
+stores-footer-join = Paste the invite or store link you were given
+
+# Tag at the top right of a store's page when this person owns it. Up to seven cells wide.
+stores-owner-tag = Owner
+
+# Part of a store's note line when anyone with its link can join.
+stores-anyone-can-join = Anyone with the link can join
+
+# Note under a store's name when it cannot be reached and its last list is shown. The reason comes from the network.
+stores-note-offline = Offline, showing the last list it sent ({ $reason })
+
+# Note under a store's name when it removed this device's access.
+stores-note-revoked = This store no longer accepts this device. What it installed keeps working.
+
+# Column heading of a store's page over the plugin names.
+stores-column-plugin = Plugin
+
+# Column heading of a store's page over the plugin versions. Fourteen cells wide.
+stores-column-version = Version
+
+# Shown on a store's page when it offers nothing and this person owns it, who can publish from the rows below.
+stores-empty-owner = Nothing published yet. Publish a plugin from below.
+
+# Shown on a store's page when it offers nothing and this person is a member.
+stores-empty-member = Nothing published yet
+
+# Row on a store's page: makes a one-time link that joins another computer of this person's.
+stores-line-link-device = Link another device
+
+# Row on a store's page: makes an invite for someone new. Owners only.
+stores-line-invite = Invite someone
+
+# Row on a store's page: opens the members screen. Owners only.
+stores-line-members = Members
+
+# Row on a store's page: switches between invite-only and open to anyone with the link. Owners only.
+stores-line-who-can-join = Who can join
+
+# Row on a store's page: offers a plugin from the plugin directory. Owners only.
+stores-line-publish = Publish a plugin
+
+# Row on a store's page: opens the store's admin page in a browser. Owners only.
+stores-line-admin = Open the admin page
+
+# Row on a store's page: leaves the store.
+stores-line-leave = Leave this store
+
+# What a plugin is, in a store's page, when it is not installed. Column of about 20 cells.
+stores-plugin-not-installed = Not installed
+
+# What a plugin is, in a store's page, when it is installed. The symbol before it is drawn by the program.
+stores-plugin-installed = Installed
+
+# What a plugin is, in a store's page, when a newer version is offered. Column of about 20 cells.
+stores-plugin-update-from = Update from { $from }
+
+# What a plugin is, in a store's page, when the same file was put in the plugin directory by hand.
+stores-plugin-added-by-hand = Added by hand
+
+# What a plugin is, in a store's page, when another store installed it.
+stores-plugin-from-another-store = From another store
+
+# Footer of a store's page on a plugin whose update asks to contact more hosts than before.
+stores-footer-update-hosts = The update also wants to contact { $hosts }
+
+# Footer of a store's page on a plugin: the hosts it may contact, as a list.
+stores-footer-may-contact = May contact { $hosts }
+
+# Footer of a store's page on the row that makes a link for another of this person's computers.
+stores-footer-link-device = A one-time link that joins another of your computers as you
+
+# Footer of a store's page on the row that makes an invite.
+stores-footer-invite = A one-time link for someone new
+
+# Footer of a store's page on the row that opens the members screen.
+stores-footer-members = Who has joined, and removing someone's access
+
+# Footer of a store's page on the row that changes who can join, while the store is open to anyone with its link. Enter is the key on this screen.
+stores-footer-close-join = ↵ Only let people you invite join, and stop the link
+
+# Footer of a store's page on the row that changes who can join, while the store is invite-only. Enter is the key on this screen.
+stores-footer-open-join = ↵ Let anyone with the store's link join, without a name
+
+# Footer of a store's page on the row that publishes a plugin.
+stores-footer-publish = Offer a plugin from this machine's plugin directory
+
+# Footer of a store's page on the row that opens the admin page.
+stores-footer-admin = Manage members, invites and plugins in your browser
+
+# Footer of a store's page on the row that leaves the store.
+stores-footer-leave = Plugins installed from it stay on this machine and stop updating
+
+# Value beside the "who can join" row while anyone with the store's link can join. Takes the rest of the row.
+stores-who-open = Anyone with the link
+
+# Value beside the "who can join" row while only invited people can join. Takes the rest of the row.
+stores-who-invite-only = Only people you invite
+
+# Label before the number of plugins a store offers, in the join confirmation. Padded to line up with the other labels there.
+stores-label-offers = Offers
+
+# The number of plugins a store offers, after the label "Offers".
+stores-offers-count =
+    { $count ->
+        [one] { $count } plugin
+       *[other] { $count } plugins
+    }
+
+# A plugin the store offers, in the join confirmation. The hosts are what the plugin may contact.
+stores-offered-plugin = { $name } { $version }  may contact { $hosts }
+
+# Added after an offered plugin that is already installed here.
+stores-offered-installed = Installed
+
+# Added after an offered plugin when an older version is installed here.
+stores-offered-installed-version = { $from } installed
+
+# Added after an offered plugin when the same file was put in the plugin directory by hand.
+stores-offered-added-by-hand = Added by hand
+
+# Added after an offered plugin that another store installed here.
+stores-offered-from-other = From { $other }
+
+# Last line of the plugins a store offers, when only the first few are listed.
+stores-offered-more = and { $count } more
+
+# What a plugin may contact when it has no hosts. It follows "may contact" in a sentence, so it is lower case.
+stores-hosts-none = nothing
+
+# Shown on the members screen while the members load.
+stores-loading = Loading…
+
+# After a member's name, when that member is this person.
+stores-member-you = { $name } (you)
+
+# Column heading of the members screen over names.
+stores-column-name = Name
+
+# Column heading of the members screen over the role. Ten cells wide.
+stores-column-role = Role
+
+# Column heading of the members screen over how many devices each member has. Ten cells wide.
+stores-column-devices = Devices
+
+# Column heading of the members screen over when each member was last seen. Takes the rest of the row.
+stores-column-last-seen = Last seen
+
+# Title of the members screen.
+stores-members-heading = Members · { $name }
+
+# Name of a store on the members screen when it is not known.
+stores-unnamed = Plugin store
+
+# Heading over invites that have not been used.
+stores-invites-heading = Invites not used yet
+
+# An invite on the members screen that makes a link for another of the person's own computers.
+stores-invite-another-device = { $name }, another device
+
+# When a member was last seen, when never. Column value.
+stores-seen-never = Never
+
+# How long ago a member was last seen, under 1 hour. Column value.
+stores-ago-just-now = Just now
+
+# How long ago a member was last seen, 1 to 24 hours. Column value.
+stores-ago-today = Today
+
+# How long ago a member was last seen, 1 day. Column value.
+stores-ago-yesterday = Yesterday
+
+# How long ago a member was last seen, 2 days or more. Column value.
+stores-ago-days =
+    { $days ->
+        [one] { $days } day ago
+       *[other] { $days } days ago
+    }
+
+# After "Joined" or "Seen" on a row, under 1 hour. Lower case: it follows a word.
+stores-ago-inline-just-now = just now
+
+# After "Joined" or "Seen" on a row, 1 to 24 hours. Lower case: it follows a word.
+stores-ago-inline-today = today
+
+# After "Joined" or "Seen" on a row, 1 day. Lower case: it follows a word.
+stores-ago-inline-yesterday = yesterday
+
+# After "Joined" or "Seen" on a row, 2 days or more. Lower case: it follows a word.
+stores-ago-inline-days =
+    { $days ->
+        [one] { $days } day ago
+       *[other] { $days } days ago
+    }
+
+# When an invite stops working, already past. Column value.
+stores-expired = Expired
+
+# When an invite stops working, within a day. Column value.
+stores-expires-today = Expires today
+
+# When an invite stops working, in a day. Column value.
+stores-expires-tomorrow = Expires tomorrow
+
+# When an invite stops working, in 2 days or more. Column value.
+stores-expires-days =
+    { $days ->
+        [one] Expires in { $days } day
+       *[other] Expires in { $days } days
+    }
+
+# Heading over the store's link and the devices that joined with it, while anyone with the link can join.
+stores-open-heading = Anyone with the link can join · { $joined } joined with it
+
+# Heading over the devices that joined with the store's link, after it was closed.
+stores-closed-heading = Joined with the link before it was closed · { $joined }
+
+# How many devices joined with the store's link, inside the headings over them.
+stores-joined-devices =
+    { $count ->
+        [one] { $count } device
+       *[other] { $count } devices
+    }
+
+# Row on the members screen that shows the store's open link.
+stores-open-link-row = The store's link
+
+# Note beside the row of the store's link.
+stores-open-link-note = Show and copy
+
+# Row of one device that joined with the store's link. The time reads like "just now" or "3 days ago".
+stores-anonymous-joined = Joined { $when }
+
+# Note beside a device that joined with the store's link: when it was last seen.
+stores-anonymous-seen = Seen { $when }
+
+# Note beside a device that joined with the store's link and was never seen again.
+stores-anonymous-never-seen = Not seen yet
+
+# Row on the members screen that removes the single device that joined with the store's link, or all of them.
+stores-remove-devices =
+    { $count ->
+        [one] Remove it
+       *[other] Remove all { $count }
+    }
+
+# Footer of the members screen on this person's own row.
+stores-footer-you = You are the owner. A store always keeps its owner.
+
+# Footer of the members screen on another member's row. Enter is the key on this screen.
+stores-footer-remove-member = ↵ Remove their access
+
+# Footer of the members screen on an invite not used yet.
+stores-footer-cancel-invite = ↵ Cancel this invite
+
+# Footer of the members screen on the store's link row.
+stores-footer-show-link = ↵ Show the link, to copy and share
+
+# Footer of the members screen on a device that joined with the store's link.
+stores-footer-remove-anonymous = ↵ Remove this device, known only by when it joined
+
+# Footer of the members screen on the row that removes every device that joined with the link.
+stores-footer-remove-all-anonymous = ↵ Remove every device that joined with the link
+
+# Line in the store's link overlay, once the link was copied.
+stores-link-copied = Copied to the clipboard where the terminal allows it, or select it to copy.
+
+# Line in a link overlay before the link was copied, or when the terminal cannot copy.
+stores-link-select = Select it to copy.
+
+# Line in the store's link overlay.
+stores-open-link-warning = Anyone with it can join, without a name, as often as they like.
+
+# Line in the store's link overlay.
+stores-open-link-lasts = It works until the store goes back to invites only.
+
+# Last line of the link overlays: Enter is the key.
+stores-link-close = Enter closes
+
+# Line in an invite link overlay: the link works once, and when it stops working. The expiry reads like "Expires today".
+stores-invite-works-once = Works once. { $expiry }.
+
+# Line in an invite link overlay.
+stores-invite-preview-safe = Opening it in a browser shows how to join and does not use it up.
+
+# Question in the heading of the confirmation to join a store.
+stores-confirm-join = Join { $name }?
+
+# Question in the heading of the confirmation to leave a store.
+stores-confirm-leave = Leave { $name }?
+
+# Question in the heading of the confirmation to remove a member.
+stores-confirm-remove-member = Remove { $name }?
+
+# Question in the heading of the confirmation to cancel an invite.
+stores-confirm-cancel-invite = Cancel the invite for { $name }?
+
+# Question in the heading of the confirmation to stop offering a plugin in a store.
+stores-confirm-unpublish = Stop offering { $name }?
+
+# Question in the heading of the confirmation to let anyone with the store's link join.
+stores-confirm-open = Let anyone with the link join { $name }?
+
+# Question in the heading of the confirmation to let only invited people join.
+stores-confirm-close = Only let people you invite join { $name }?
+
+# Question in the heading of the confirmation to remove one device that joined with the store's link.
+stores-confirm-remove-device = Remove this device?
+
+# Question in the heading of the confirmation to remove devices that joined with the store's link.
+stores-confirm-remove-devices =
+    { $count ->
+        [one] Remove the device that joined with the link?
+       *[other] Remove all { $count } devices that joined with the link?
+    }
+
+# Heading of a store confirmation when nothing is being confirmed.
+stores-confirm-fallback = Confirm
+
+# Label before the store's address in the join confirmation. Padded to line up with the other labels there.
+stores-label-address = Address
+
+# Label before the store's key fingerprint in the join confirmation.
+stores-label-key = Key
+
+# Label before the people who run the store in the join confirmation.
+stores-label-run-by = Run by
+
+# Label before this device's name in the join confirmation.
+stores-label-device = Device
+
+# The store's key fingerprint, in the join confirmation of an open link, with a note that it matches the link.
+stores-key-matches-link = { $fingerprint }  (matches the link)
+
+# The store's key fingerprint, in the join confirmation of an invite, with a note that it matches the invite.
+stores-key-matches-invite = { $fingerprint }  (matches the invite)
+
+# Line of the join confirmation when the store is open to anyone with its link.
+stores-join-open = Anyone with the link can join.
+
+# Line of the join confirmation when it is an open link, which keeps no name.
+stores-join-anonymous = You join without a name, and another device joins with the same link.
+
+# Line of the join confirmation when this device has already joined.
+stores-join-already = Already joined. Joining again gives this device a new token.
+
+# Note under the device name field in the join confirmation.
+stores-join-device-note = The store's owner sees this name. Type to change it.
+
+# Last line of the join confirmation: Enter and Esc are the keys.
+stores-join-keys = Enter joins · Esc cancels
+
+# Lines of the leave confirmation.
+stores-leave-plugins = Plugins installed from it stay on this machine and stop updating.
+
+# Lines of the leave confirmation.
+stores-leave-revoked = This device's access to the store is revoked.
+
+# Last line of the leave confirmation.
+stores-leave-keys = Enter leaves · Esc stays
+
+# Line of the remove member confirmation.
+stores-remove-member-devices =
+    { $count ->
+        [one] Their device stops working with this store at once.
+       *[other] Their { $count } devices stop working with this store at once.
+    }
+
+# Line of the remove member confirmation.
+stores-remove-member-plugins = Plugins they already installed stay on their machines.
+
+# Last line of the remove member confirmation.
+stores-remove-member-keys = Enter removes · Esc keeps them
+
+# Line of the cancel invite confirmation.
+stores-cancel-invite-link = The link stops working.
+
+# Last line of the cancel invite confirmation.
+stores-cancel-invite-keys = Enter cancels it · Esc keeps it
+
+# Line of the stop offering confirmation.
+stores-unpublish-members = Members who installed it keep it, and it stops updating.
+
+# Last line of the stop offering confirmation.
+stores-unpublish-keys = Enter withdraws it · Esc keeps it
+
+# Line of the confirmation to let anyone with the store's link join.
+stores-open-anyone = Anyone with the store's link can join it, without a name.
+
+# Line of the confirmation to let anyone with the store's link join.
+stores-open-link-new = The link is new each time, so an earlier one stays dead.
+
+# Line of the confirmation to let anyone with the store's link join.
+stores-open-members-see = Members see that the store is open.
+
+# Last line of the confirmation to let anyone with the store's link join.
+stores-open-keys = Enter opens it · Esc keeps it to invites
+
+# Line of the confirmation to let only invited people join.
+stores-close-link = The link stops working, and no one new joins without an invite.
+
+# Line of the confirmation to let only invited people join.
+stores-close-devices = Devices that joined with it keep working until you remove them in members.
+
+# Last line of the confirmation to let only invited people join.
+stores-close-keys = Enter limits it to invites · Esc keeps it open
+
+# Line of the confirmation to remove one device that joined with the store's link.
+stores-anonymous-one-stops = It stops working with this store at once.
+
+# Line of the confirmation to remove all devices that joined with the store's link.
+stores-anonymous-all-stop = They stop working with this store at once.
+
+# Line of the confirmation to remove devices that joined with the store's link.
+stores-anonymous-plugins = Plugins already installed stay where they are.
+
+# Line of the confirmation to remove devices that joined with the store's link.
+stores-anonymous-still-joins = While the store is open, the link still joins anyone.
+
+# Last line of the confirmation to remove devices that joined with the store's link.
+stores-anonymous-keys = Enter removes · Esc keeps
+
+# Line of the plugin overlay: the hosts the plugin may contact.
+stores-plugin-may-contact = May contact { $hosts }
+
+# Line of the plugin overlay: what a plugin can never do.
+stores-plugin-cannot = It cannot read files, open sockets or see your environment.
+
+# Line of the plugin overlay when an update adds hosts to what the plugin may contact.
+stores-plugin-update-adds = The update adds { $hosts } to what it may contact.
+
+# Line of the plugin overlay when a file of the same name is already in the plugin directory. The id is the file name without ".wasm".
+stores-plugin-added-by-hand-note = { $id }.wasm is already in the plugin directory, added by hand.
+
+# Line of the plugin overlay when another store installed the plugin.
+stores-plugin-other-store-note = Installed from another store, which keeps it updated.
+
+# Choice in the plugin overlay: install the plugin.
+stores-choice-install = Install
+
+# Choice in the plugin overlay: install the newer version.
+stores-choice-update = Update to { $version }
+
+# Choice in the plugin overlay: overwrite the file that was added by hand.
+stores-choice-replace = Replace the copy added by hand
+
+# Choice in the plugin overlay: delete the plugin from this machine.
+stores-choice-remove = Remove from this machine
+
+# Choice in the plugin overlay: owners stop offering the plugin in the store.
+stores-choice-unpublish = Stop offering it in this store
+
+# Choice in the plugin overlay: close without doing anything.
+stores-choice-cancel = Cancel
+
+# Tag beside a local plugin in the publish picker when it was never published to the store. Column of about 12 cells.
+stores-publish-new = New
+
+# Tag beside a local plugin in the publish picker when the store has this version.
+stores-publish-published = Published
+
+# Tag beside a local plugin in the publish picker when publishing replaces another version.
+stores-publish-replaces = Replaces { $version }
+
+# Toast when a pasted invite checked out but the person is no longer on the store list.
+stores-toast-invite-checked = The invite checks out, but something else is open. Paste it again to join.
+
+# Toast when there is no plugin in the plugin directory to publish.
+stores-toast-nothing-to-publish = There are no plugins in your plugin directory to publish. Run "{ $command }" to see where it is.
+
+# Toast when the person tries to remove themselves from a store's members.
+stores-toast-that-is-you = That is you. A store always keeps its owner.
+
 # What the terminal says beside a notice that has something to do about it. The key is the one bound to stopping playback, as the key map draws it.
 hint-stop-playback = Press { $key } to stop playback.
 

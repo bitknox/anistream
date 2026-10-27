@@ -8,9 +8,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 
-                                                            ep 004
+                                                       Episode 004
 
-           Hoshikuzu no Tabibito  ·  ep 4
+         Hoshikuzu no Tabibito  ·  Episode 4
                                                       0:00 / --:--
 
                                                              ×1.00
@@ -49,13 +49,13 @@ r09 c00-52 bg=obi
 r10 c00-01 bg=obi
 r10 c02-22 fg=text bg=obi mod=BOLD
 r10 c23-52 bg=obi
-r10 c60-65 fg=text-dim
+r10 c55-65 fg=text-dim
 r11 c00-01 bg=obi
 r11 c02-28 fg=text-dim bg=obi
 r11 c29-52 bg=obi
-r12 c00-10 bg=obi
-r12 c11-40 fg=#161a2e bg=obi mod=BOLD
-r12 c41-52 bg=obi
+r12 c00-08 bg=obi
+r12 c09-43 fg=#161a2e bg=obi mod=BOLD
+r12 c44-52 bg=obi
 r13 c00-01 bg=obi
 r13 c02-49 fg=rule bg=obi
 r13 c50-52 bg=obi

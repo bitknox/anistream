@@ -511,9 +511,9 @@ mod tests {
         let mut app = app_with(ContentList::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
         let text = text_of(&render_to_buffer(&mut app, 120, 40));
-        assert!(text.contains("KEYS"));
+        assert!(text.contains("Keys"));
         assert!(text.contains("Episodes"), "help should list actions");
-        assert!(text.contains("GLOBAL"), "help should be grouped by scope");
+        assert!(text.contains("Global"), "help should be grouped by scope");
     }
 
     #[test]
@@ -533,7 +533,7 @@ mod tests {
         app.nav.open_overlay(Overlay::CommandPalette);
         app.set_text(Field::Palette, "episode".into());
         let text = text_of(&render_to_buffer(&mut app, 120, 40));
-        assert!(text.contains("RUN"));
+        assert!(text.contains("Run"));
         assert!(text.contains("episode"), "query should be visible");
         assert!(text.contains("Episodes"));
     }
@@ -629,11 +629,11 @@ mod tests {
     }
 
     #[test]
-    fn list_statuses_read_as_lowercase_values_in_the_picker() {
+    fn list_statuses_read_as_sentence_case_values_in_the_picker() {
         let mut app = app_with(ContentList::Entries(vec![entry(1, "Kite")]));
         app.nav.open_overlay(Overlay::ListStatus);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("watching"), "{text}");
+        assert!(text.contains("Watching"), "{text}");
         assert!(!text.contains("WATCHING"), "{text}");
     }
 }

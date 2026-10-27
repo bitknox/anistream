@@ -1,12 +1,12 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  PLUGIN STORES
+  ▸│  Plugin stores
   ▤│
-  ▦│    STORE                       PLUGINS   YOU       STATE
+  ▦│    Store                       Plugins   You       State
   /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    none joined yet
+  ▥│    None joined yet
   ↓│
-▌ ◇│  ▌ + join a store
+▌ ◇│  ▌ + Join a store
   ◎│
   ⚙│
    │
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    paste the invite or store link you were given
+   │    Paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                   ↵ open   q back   ? keys
 === styles ===

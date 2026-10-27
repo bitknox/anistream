@@ -1,6 +1,6 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  NOW PLAYING                                   mpv ●  ·  yamabiko
+  Now playing                                   mpv ●  ·  yamabiko
   ────────────────────────────────────────────────────────────────
 
 
@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 
-  Hoshikuzu no Tabibito                                     ep 004
+  Hoshikuzu no Tabibito                                Episode 004
   The Cartographer's Daughter
 
   ███████████████████████████▎░░░░░░░░░░░░░░░░░░░░   13:35 / 23:55
@@ -20,7 +20,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 
-─────────────────────────────────────────────────────────── ▌ resumed at 13:32 ─
+────────────────────────────────────────────────────────── ▌ Resumed at 13:32. ─
 yamabiko · sub · 1080p                  space pause   S skip   q detach   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -36,16 +36,16 @@ r02 c02-12 fg=text mod=BOLD
 r02 c48-65 fg=text-dim
 r03 c02-65 fg=rule
 r10 c02-22 fg=text mod=BOLD
-r10 c60-65 fg=text-dim
+r10 c55-65 fg=text-dim
 r11 c02-28 fg=text-dim
 r13 c02-29 fg=obi
 r13 c30-49 fg=rule
 r13 c53-65 fg=text-dim
 r15 c61-65 fg=text-dim
-r22 c00-58 fg=rule
-r22 c59-59 fg=text
-r22 c60-60 fg=state
-r22 c61-78 fg=text
+r22 c00-57 fg=rule
+r22 c58-58 fg=text
+r22 c59-59 fg=state
+r22 c60-78 fg=text
 r22 c79-79 fg=rule
 r23 c00-21 fg=text-dim
 r23 c40-44 fg=text

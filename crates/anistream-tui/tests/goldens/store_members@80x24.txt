@@ -1,16 +1,16 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  MEMBERS · HEARTH PLUGINS
+  ▸│  Members · Hearth plugins
   ▤│
-  ▦│    NAME                        ROLE      DEVICES   LAST SEEN
+  ▦│    Name                        Role      Devices   Last seen
   /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    Mirei (you)                 owner     2         just now
-  ↓│  ▌ Rin                         member    1         9 days ago
-▌ ◇│    Sora                        member    3         never
+  ▥│    Mirei (you)                 Owner     2         Just now
+  ↓│  ▌ Rin                         Member    1         9 days ago
+▌ ◇│    Sora                        Member    3         Never
   ◎│
-  ⚙│  INVITES NOT USED YET
-   │    Kai                                             expires tomorrow
-   │    Mirei, another device                           expires today
+  ⚙│  Invites not used yet
+   │    Kai                                             Expires tomorrow
+   │    Mirei, another device                           Expires today
    │
    │
    │
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    ↵ remove their access
+   │    ↵ Remove their access
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                   ↵ open   q back   ? keys
 === styles ===

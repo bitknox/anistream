@@ -271,7 +271,7 @@ mod tests {
     #[test]
     fn reporting_a_bug_opens_an_issue_with_the_last_alert_and_keeps_the_link() {
         let mut a = app();
-        a.apply(Event::Toast(Notice::raw_alert(
+        a.apply(Event::Toast(alert(
             "no stream from lantern.example for \"Hidden Title\"",
         )));
         let Some(Command::OpenExternal { url }) = a.handle(Action::ReportBug, 5) else {
@@ -303,30 +303,30 @@ mod tests {
         let said = |notice: Notice| worded(notice, &keymap).text;
         let stalled = "mpv has not started playing after 20s. The source may have no data.";
         assert_eq!(
-            said(Notice::raw_alert(stalled).with_hint(NoticeHint::StopPlayback)),
+            said(alert(stalled).with_hint(NoticeHint::StopPlayback)),
             format!("{stalled} Press x to stop playback.")
         );
         assert_eq!(
             said(
-                Notice::raw_info("Plugin update ready: alpha.")
+                info("Plugin update ready: alpha.")
                     .with_hint(NoticeHint::OpenStores)
             ),
             format!("Plugin update ready: alpha. {}", t::hint_open_stores())
         );
         assert_eq!(
             said(
-                Notice::raw_info("Kitsu signs in from the Accounts screen.")
+                info("Kitsu signs in from the Accounts screen.")
                     .with_hint(NoticeHint::KitsuCredentials)
             ),
             format!("Kitsu signs in from the Accounts screen. {}", t::hint_kitsu_credentials())
         );
-        assert_eq!(said(Notice::raw_info("No hint.")), "No hint.");
+        assert_eq!(said(info("No hint.")), "No hint.");
 
         // The key bound now, not the default.
         let mut keymap = Keymap::new();
         let rebound = [("stop_playback".to_owned(), "s".to_owned())].into_iter().collect();
         assert!(keymap.apply_overrides(&rebound).is_empty());
-        let notice = Notice::raw_alert("Stuck.").with_hint(NoticeHint::StopPlayback);
+        let notice = alert("Stuck.").with_hint(NoticeHint::StopPlayback);
         assert_eq!(worded(notice, &keymap).text, "Stuck. Press s to stop playback.");
     }
 
@@ -334,7 +334,7 @@ mod tests {
     fn a_hinted_notice_is_shown_and_logged_as_the_terminal_words_it() {
         let mut a = app();
         let notice =
-            Notice::raw_info("Plugin update ready: alpha.").with_hint(NoticeHint::OpenStores);
+            info("Plugin update ready: alpha.").with_hint(NoticeHint::OpenStores);
         let said = format!("Plugin update ready: alpha. {}", t::hint_open_stores());
         a.apply(Event::Toast(notice.clone()));
         a.apply(Event::Toast(notice));
@@ -347,7 +347,7 @@ mod tests {
     fn a_toast_already_up_is_refreshed_rather_than_counted_twice() {
         let mut a = app();
         for text in ["saved", "saved", "queued", "saved"] {
-            a.push_toast(Notice::raw_info(text));
+            a.push_toast(info(text));
         }
         let up: Vec<&str> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
         assert_eq!(up, ["queued", "saved"], "one of each, the repeat newest");
@@ -363,7 +363,7 @@ mod tests {
         // fails the *first* error is usually the one that explains the rest.
         let mut a = app();
         for i in 0..5 {
-            a.push_toast(Notice::raw_alert(format!("failure {i}")));
+            a.push_toast(alert(format!("failure {i}")));
         }
         assert_eq!(a.toasts.len(), 3, "the stack is still capped");
         assert_eq!(a.logs.len(), 5, "but nothing was lost");
@@ -451,7 +451,7 @@ mod tests {
     fn toasts_expire_and_never_stack_beyond_three() {
         let mut a = app();
         for i in 0..6 {
-            a.push_toast(Notice::raw_info(format!("message {i}")));
+            a.push_toast(info(format!("message {i}")));
         }
         assert_eq!(a.toasts.len(), 3, "a burst of failures must not cover the screen");
         assert!(a.toasts[0].notice.text.contains('3'), "oldest are dropped first");
@@ -465,8 +465,8 @@ mod tests {
     #[test]
     fn alerts_stay_up_longer_than_info() {
         assert!(
-            Toast::from(Notice::raw_alert("provider down")).ttl
-                > Toast::from(Notice::raw_info("switched")).ttl
+            Toast::from(alert("provider down")).ttl
+                > Toast::from(info("switched")).ttl
         );
     }
 
@@ -474,11 +474,11 @@ mod tests {
     fn a_repeated_toast_is_kept_up_rather_than_stacked() {
         let mut a = app();
         for _ in 0..5 {
-            a.push_toast(Notice::raw_info("saved quality"));
+            a.push_toast(info("saved quality"));
         }
         assert_eq!(a.toasts.len(), 1, "one message, said once");
         assert_eq!(a.logs[0].count, 5, "the log still counts every one");
-        a.push_toast(Notice::raw_info("saved theme"));
+        a.push_toast(info("saved theme"));
         assert_eq!(a.toasts.len(), 2);
     }
 }

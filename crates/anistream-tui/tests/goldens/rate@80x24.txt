@@ -1,20 +1,20 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
 ────────────────────────────────────────────────────────────────────────────────
-▌ RATE
+▌ Rate
 ────────────────────────────────────────────────────────────────────────────────
-  10                                                             masterpiece
-  9                                                                    great
-▌ 8                                                                very good
-  7                                                                     good
-  6                                                                     fine
-  5                                                                  average
-  4                                                                     poor
-  3                                                                      bad
-  2                                                                    awful
-  1                                                                appalling
+  10                                                             Masterpiece
+  9                                                                    Great
+▌ 8                                                                Very good
+  7                                                                     Good
+  6                                                                     Fine
+  5                                                                  Average
+  4                                                                     Poor
+  3                                                                      Bad
+  2                                                                    Awful
+  1                                                                Appalling
 
    │
    │

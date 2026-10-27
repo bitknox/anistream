@@ -1,12 +1,12 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │    Tsuki to Kujira no Uta      7 / 12   ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ RUN   go to▏
+▌ Run   go to▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Go to Continue                                                                                                   1
   Go to Calendar                                                                                                   2
@@ -14,22 +14,22 @@ anistream                                                                       
   Go to Search                                                                                                     4
   Go to Library                                                                                                    5
   Go to Downloads                                                                                                  6
-  Go to Providers                                                                                                  7
+  Go to Sources                                                                                                    7
   Go to Accounts                                                                                                   8
   Go to Settings                                                                                                   9
 
                             │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
-                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering
                             │                                         letters to towns that may no longer exist.…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                        ↑↓ move   ↵ run   esc close
 === styles ===
@@ -84,8 +84,8 @@ r15 c17-114 fg=rule bg=ground
 r15 c115-115 fg=text bg=ground
 r15 c116-119 fg=rule bg=ground
 r16 c00-01 fg=rule bg=ground
-r16 c02-16 fg=text-dim bg=ground
-r16 c17-69 fg=rule bg=ground
+r16 c02-14 fg=text-dim bg=ground
+r16 c15-69 fg=rule bg=ground
 r16 c70-90 fg=rule bg=ground mod=BOLD
 r16 c91-114 fg=rule bg=ground
 r16 c115-115 fg=text bg=ground

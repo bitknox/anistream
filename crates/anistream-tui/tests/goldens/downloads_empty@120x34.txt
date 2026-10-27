@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  TITLE                             STATE         PROGRESS
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │  NOTHING QUEUED
-  /  SEARCH                 │
-  ▥  LIBRARY                │  d on a title or episode queues it for offline
-▌ ↓  DOWNLOADS              │
-  ◇  PROVIDERS              │
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Title                             State         Progress
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │  Nothing queued
+  /  Search                 │
+  ▥  Library                │  Press d on a title or episode to queue it for offline.
+▌ ↓  Downloads              │
+  ◇  Sources                │
+  ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -62,13 +62,13 @@ r05 c28-28 fg=rule
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
-r06 c31-75 fg=text-dim
+r06 c31-84 fg=text-dim
 r07 c00-00 fg=text-dim
 r07 c02-02 fg=text
 r07 c05-13 fg=text mod=BOLD
 r07 c28-28 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim

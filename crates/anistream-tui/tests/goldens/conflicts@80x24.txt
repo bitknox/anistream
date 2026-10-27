@@ -1,15 +1,15 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
-  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
-  /│    Tsuki to Kujira no Uta                                         7 / 12
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
+  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
+  /│    Tsuki to Kujira no Uta                               7 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────
-▌ CONFLICTS
+▌ Conflicts
 ────────────────────────────────────────────────────────────────────────────────
-  Hoshikuzu no Tabibito  ·  progress: mine 3 / theirs 5            keep mine
-▌ Kaze no Tegami  ·  status: mine watching / theirs paused         keep mine
-  Tsuki to Kujira no Uta  ·  score: mine 9 / theirs 8              keep mine
+  Hoshikuzu no Tabibito  ·  progress: mine 3 / theirs 5            Keep mine
+▌ Kaze no Tegami  ·  status: mine watching / theirs paused         Keep mine
+  Tsuki to Kujira no Uta  ·  score: mine 9 / theirs 8              Keep mine
 
    │
    │
@@ -20,7 +20,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │
- ▌ 3 sync disagreements — “resolve sync conflicts” in the palette settles them ─
+ ▌ 3 sync disagreements found. Press “resolve sync conflicts” in the palette … ─
 plugins · sub · 1080p                                     ↵ resolve   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26

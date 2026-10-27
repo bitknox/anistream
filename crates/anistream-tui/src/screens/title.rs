@@ -10,7 +10,7 @@ use anistream_model::{
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
 
 use crate::{
-    app::{App, countdown_text, push_detail, status_text},
+    app::{App, push_detail, status_text},
     theme::Role,
     widgets::{truncate, wrap},
 };
@@ -154,26 +154,10 @@ fn progress_label(entry: &Entry) -> Option<String> {
     })
 }
 
-/// What most recently aired and what is next, in the language in use. Latest first, so a narrow
-/// column costs the countdown rather than the fact that an episode is out.
+/// What most recently aired and what is next: the line the preview gives, so the same fact reads
+/// the same on both.
 fn broadcast_line(entry: &Entry) -> String {
-    let mut parts: Vec<String> = Vec::new();
-    if let Some((episode, ago)) = entry.latest_aired() {
-        let episode = i64::from(episode);
-        parts.push(match ago {
-            Some(ago) if ago < 60 => t::title_episode_out_now(episode),
-            Some(ago) => t::title_episode_out_ago(episode, &countdown_text(ago)),
-            None => t::title_episode_out(episode),
-        });
-    }
-    if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
-        let span = countdown_text(seconds);
-        parts.push(match entry.next_episode {
-            Some(next) => t::title_episode_in(i64::from(next), &span),
-            None => t::title_next_in(&span),
-        });
-    }
-    parts.join("  ·  ")
+    super::lists::broadcast_text(entry)
 }
 
 /// The list-status picker.
@@ -304,7 +288,7 @@ mod tests {
         assert!(!text.contains("HOSHIKUZU"), "the hero title must not be letterspaced");
 
         // Metadata is still distinguished, by case and the dim role rather than by width.
-        assert!(text.contains("28 EP"), "metadata should be caps");
+        assert!(text.contains("28 episodes"), "metadata missing");
 
         // The plate occupies the top of the stage, above the title block.
         let plate_row = text.lines().position(|l| l.contains('░')).unwrap();

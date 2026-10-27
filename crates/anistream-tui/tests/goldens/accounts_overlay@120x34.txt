@@ -1,36 +1,36 @@
 anistream                                                   torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │    Tsuki to Kujira no Uta      7 / 12   ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ACCOUNTS
+▌ Accounts
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  anilist  ·  as tsubame_reads  ·  3 queued, 1 waiting for an id mapping  ·  pulled 214 titles              sign out
-▌ kitsu  ·  not connected  ·  0600 file                                                                      sign in
-  mal  ·  as hotaru_watches  ·  pull failed on Oct 16 at 17:28: the token was refused                  sign in again
+  AniList  ·  Signed in as tsubame_reads  ·  3 queued, 1 waiting for an id mapping  ·  pulled 214 titles    Sign out
+▌ Kitsu  ·  Not connected  ·  0600 file                                                                      Sign in
+  MyAnimeList  ·  Signed in as hotaru_watches  ·  Fetching your list failed on 16 Oct at 17:28: the t… Sign in again
 
                             │                                         Hoshikuzu no Tabibito
                             │                                         The Stardust Traveller
                             │
-                            │                                         TV  ·  12 EP  ·  2026  ·  84  ·  STUDIO KAWAS…
+                            │                                         TV  ·  12 episodes  ·  2026  ·  84  ·  Studio…
                             │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
-                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering
                             │                                         letters to towns that may no longer exist.…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
-────────────────────────────────────────────────────────────────── ▌ mal needs signing in again — press 8 for Accounts ─
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
+────────────────────────────────────────────────────── ▌ MyAnimeList needs signing in again. Press 8 to open Accounts. ─
 plugins · sub · 1080p                                                                              ↵ choose   esc cancel
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -55,8 +55,8 @@ r10 c02-09 fg=text bg=ground mod=BOLD
 r10 c10-119 fg=rule bg=ground
 r11 c00-119 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
-r12 c02-93 fg=text-dim bg=ground
-r12 c94-107 fg=rule bg=ground
+r12 c02-103 fg=text-dim bg=ground
+r12 c104-107 fg=rule bg=ground
 r12 c108-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
 r13 c00-00 fg=obi bg=ground
@@ -66,8 +66,8 @@ r13 c39-108 fg=rule bg=ground
 r13 c109-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
-r14 c02-84 fg=text-dim bg=ground
-r14 c85-102 fg=rule bg=ground
+r14 c02-101 fg=text-dim bg=ground
+r14 c102-102 fg=rule bg=ground
 r14 c103-115 fg=text bg=ground
 r14 c116-119 fg=rule bg=ground
 r15 c00-119 fg=rule bg=ground
@@ -91,10 +91,10 @@ r28 c00-119 fg=rule
 r29 c00-119 fg=rule
 r30 c00-119 fg=rule
 r31 c00-119 fg=rule
-r32 c00-65 fg=rule
-r32 c66-66 fg=text
-r32 c67-67 fg=alert
-r32 c68-118 fg=text
+r32 c00-53 fg=rule
+r32 c54-54 fg=text
+r32 c55-55 fg=alert
+r32 c56-118 fg=text
 r32 c119-119 fg=rule
 r33 c00-20 fg=text-dim
 r33 c21-98 fg=rule

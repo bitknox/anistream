@@ -406,7 +406,7 @@ mod tests {
         // way to know the stream failed.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Event::Toast(Notice::raw_alert("all providers failed")));
+        a.apply(Event::Toast(crate::app::alert("all providers failed")));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES * 3 {
             a.tick_animation();
         }
@@ -479,7 +479,7 @@ mod tests {
         assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
         assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
 
-        a.apply(Event::Toast(Notice::raw_alert("a: timed out")));
+        a.apply(Event::Toast(crate::app::alert("a: timed out")));
         a.apply(Event::PlaybackKept);
         let playing = a.playing.as_ref().unwrap();
         assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));

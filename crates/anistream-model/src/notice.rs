@@ -62,17 +62,6 @@ impl Notice {
         Self::new(NoticeKind::Alert, msg)
     }
 
-    /// A notice whose words are still written in the engine. Being converted to catalogue messages;
-    /// each use is a sentence the catalogue does not have yet.
-    pub fn raw_info(text: impl Into<String>) -> Self {
-        Self::info(Msg::verbatim(text))
-    }
-
-    /// See [`Notice::raw_info`].
-    pub fn raw_alert(text: impl Into<String>) -> Self {
-        Self::alert(Msg::verbatim(text))
-    }
-
     /// What the notice says: its message, or for one a front end made itself, its text.
     pub fn message(&self) -> Msg {
         self.msg.clone().unwrap_or_else(|| Msg::verbatim(self.text.clone()))

@@ -1,10 +1,10 @@
 anistream                                                   torrent ○  plugins ●
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  TRACKER         STATE             QUEUED    TOKEN
+  ▸│  Tracker         State             Queued    Token
   ▤│  ────────────────────────────────────────────────────────────────────────
-  ▦│  NO TRACKERS ENABLED
+  ▦│  No trackers enabled
   /│
-  ▥│  add one to trackers.enabled in config.toml — local history works withou…
+  ▥│  Add one to trackers.enabled in config.toml. Your watch history works wi…
   ↓│
   ◇│
 ▌ ◎│

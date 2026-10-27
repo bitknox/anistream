@@ -1,36 +1,36 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  APPEARANCE  ──────────────────────────────────────────────────────────────────────────
-  ▤  CALENDAR               │    THEME                       adaptive
-  ▦  SEASONAL               │    MOTION                      on
-  /  SEARCH                 │    TITLES                      AniList's choice
-  ▥  LIBRARY                │
-  ↓  DOWNLOADS              │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
-  ◇  PROVIDERS              │    TRANSLATION                 sub · dub this session
-  ◎  ACCOUNTS               │    QUALITY                     1080p
-▌ ⚙  SETTINGS               │    SUBTITLES                   eng
-                            │    COUNTS AS WATCHED AT        85%
-                            │    AUTO-PLAY NEXT              on
-                            │    SKIP OPENING AUTOMATICALLY  on
-                            │    SKIP FILLER AUTOMATICALLY   off
-                            │    MARK OPENING AND ENDING     on
-                            │    SHOW SKIP BUTTON            on
-                            │    START FULLSCREEN            off
-                            │  ▌ UPSCALING                   natural · ArtCNN
-                            │    PLAYER INTERFACE            anistream
-                            │    NIGHT MODE                  off
+  ▸  Continue               │  Appearance  ──────────────────────────────────────────────────────────────────────────
+  ▤  Calendar               │    Theme                       Adaptive
+  ▦  Seasonal               │    Motion                      On
+  /  Search                 │    Titles                      AniList's choice
+  ▥  Library                │
+  ↓  Downloads              │  Playback  ────────────────────────────────────────────────────────────────────────────
+  ◇  Sources                │    Audio                       Subbed · Dubbed this session
+  ◎  Accounts               │    Quality                     1080p
+▌ ⚙  Settings               │    Subtitles                   eng
+                            │    Counts as watched at        85%
+                            │    Auto-play next              On
+                            │    Skip opening automatically  On
+                            │    Skip filler automatically   Off
+                            │    Mark opening and ending     On
+                            │    Show skip button            On
+                            │    Start fullscreen            Off
+                            │  ▌ Upscaling                   Natural · ArtCNN
+                            │    Player interface            anistream
+                            │    Night mode                  Off
                             │
-                            │  DOWNLOADS  ───────────────────────────────────────────────────────────────────────────
-                            │    DOWNLOAD FOLDER             kept with the torrent cache
-                            │    MERGE SUBTITLES IN          on
-                            │    KEEP SEEDING                off
-                            │    AFTER EACH DOWNLOAD         none
+                            │  Downloads  ───────────────────────────────────────────────────────────────────────────
+                            │    Download folder             Kept with the torrent cache
+                            │    Merge subtitles in          On
+                            │    Keep seeding                Off
+                            │    After each download         None
                             │
-                            │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
-                            │    TORRENT SOURCE              off
+                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
+                            │    Torrent source              Off
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    adapts to the source and your GPU · from the next episode
-───────────────────────────────────────────────────────────────────────────────────── ▌ now using dub for this session ─
+                            │    Adapts to the video and your graphics card. Applies from the next episode.
+─────────────────────────────────────────────────────────────────────────────── ▌ Using dubbed audio for this session. ─
 config.toml line 12: unknown field `playbak` — using the defaults until it is fixed                  h/l change   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -71,10 +71,10 @@ r07 c28-28 fg=rule
 r07 c31-38 fg=text
 r07 c41-116 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
-r08 c33-43 fg=text-dim
-r08 c61-82 fg=text
+r08 c33-37 fg=text-dim
+r08 c61-88 fg=text
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule
@@ -143,11 +143,11 @@ r29 c61-63 fg=text
 r30 c28-28 fg=rule
 r30 c31-117 fg=rule
 r31 c28-28 fg=rule
-r31 c33-89 fg=text-dim
-r32 c00-84 fg=rule
-r32 c85-85 fg=text
-r32 c86-86 fg=state
-r32 c87-118 fg=text
+r31 c33-106 fg=text-dim
+r32 c00-78 fg=rule
+r32 c79-79 fg=text
+r32 c80-80 fg=state
+r32 c81-118 fg=text
 r32 c119-119 fg=rule
 r33 c00-82 fg=alert
 r33 c101-103 fg=text

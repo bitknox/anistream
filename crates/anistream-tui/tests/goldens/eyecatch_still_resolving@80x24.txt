@@ -10,9 +10,9 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 
-                         Hoshikuzu no Tabibito  ·  ep 4
+                      Hoshikuzu no Tabibito  ·  Episode 4
 
-                             still resolving  ·  3s
+                         Still finding a stream  ·  3s
 
 
 
@@ -48,23 +48,23 @@ r08 c00-79 bg=obi
 r09 c00-79 bg=obi
 r10 c00-01 bg=obi
 r10 c02-22 fg=text bg=obi mod=BOLD
-r10 c23-59 bg=obi
-r10 c60-65 fg=text-dim bg=obi
+r10 c23-54 bg=obi
+r10 c55-65 fg=text-dim bg=obi
 r10 c66-79 bg=obi
 r11 c00-01 bg=obi
 r11 c02-28 fg=text-dim bg=obi
 r11 c29-79 bg=obi
-r12 c00-24 bg=obi
-r12 c25-54 fg=#161a2e bg=obi mod=BOLD
-r12 c55-79 bg=obi
+r12 c00-21 bg=obi
+r12 c22-56 fg=#161a2e bg=obi mod=BOLD
+r12 c57-79 bg=obi
 r13 c00-01 bg=obi
 r13 c02-49 fg=rule bg=obi
 r13 c50-52 bg=obi
 r13 c53-65 fg=text-dim bg=obi
 r13 c66-79 bg=obi
-r14 c00-28 bg=obi
-r14 c29-50 fg=#161a2e bg=obi
-r14 c51-79 bg=obi
+r14 c00-24 bg=obi
+r14 c25-53 fg=#161a2e bg=obi
+r14 c54-79 bg=obi
 r15 c00-60 bg=obi
 r15 c61-65 fg=text-dim bg=obi
 r15 c66-79 bg=obi

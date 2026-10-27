@@ -4,13 +4,13 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▤│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ LIST STATUS
+▌ List status
 ────────────────────────────────────────────────────────────────────────────────
-  watching
-  planning
-▌ completed                                sets progress to the last episode
-  paused
-  dropped
+  Watching
+  Planning
+▌ Completed                                Sets progress to the last episode
+  Paused
+  Dropped
 
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  Drama  ·  Romance
    │
-   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+   │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                         ↵ set   esc cancel
 === styles ===

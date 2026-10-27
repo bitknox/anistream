@@ -459,7 +459,7 @@ mod tests {
         owner.effective.theme.motion = true;
         owner.tell(&mut a);
         assert_eq!(a.handle(Action::Right, 5), None, "a switch that is on stays on");
-        assert_eq!(setting_text(&a, SettingKey::Motion), "on");
+        assert_eq!(setting_text(&a, SettingKey::Motion), "On");
         let task = a.handle(Action::Left, 5);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Motion, delta: -1 }));
         owner.answer(&mut a, task);
@@ -467,7 +467,7 @@ mod tests {
         assert_eq!(a.nav.focus(), Focus::Rail);
         assert_eq!(
             setting_text(&a, SettingKey::Motion),
-            "off",
+            "Off",
             "reaching the rail changed nothing"
         );
 

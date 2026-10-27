@@ -20,7 +20,7 @@ keys-action-refresh = Refresh this view
 keys-action-force-resync = Force a full resync
 
 # Action label in the help overlay and the command palette.
-keys-action-toggle-translation = Switch between { -subbed } and { -dubbed }
+keys-action-toggle-translation = { -subbed-cap } or { -dubbed }
 
 # Action label in the help overlay and the command palette.
 keys-action-jump-continue = Go to { -continue-cap }

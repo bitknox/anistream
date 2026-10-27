@@ -1,10 +1,10 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
-  ▤│    Kaze no Tegami                                               ep 9 out
-  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                        E4 · 57%
+  ▤│    Kaze no Tegami                                                 E9 out
+  ▦│    Yoru no Toshokan                                         E6 in 2h 41m
 ────────────────────────────────────────────────────────────────────────────────
-▌ LOGS
+▌ Logs
 ────────────────────────────────────────────────────────────────────────────────
   ·  resumed at 13:32
 ▌ ·  now using dub for this session

@@ -1,29 +1,29 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  /  Search                 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ WATCH ORDER   around Kaze no Tegami — enter opens
+▌ Watch order   Around Kaze no Tegami. Enter opens.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Kaze no Tegami  ·  TV                                                                                     season 1
-  Kaze no Tegami Season 2  ·  TV                                                                            season 2
-  Kaze no Tegami Season 3  ·  TV                                                                            season 3
-  Kaze no Tegami Season 4  ·  TV                                                                            season 4
-  Kaze no Tegami Season 5  ·  TV                                                                            season 5
-  Kaze no Tegami Season 6  ·  TV                                                                            season 6
-  Kaze no Tegami Season 7  ·  TV                                                                            season 7
-  Kaze no Tegami Season 8  ·  TV                                                                            season 8
-▌ Kaze no Tegami Season 10  ·  TV                                                                          season 10
-  Kaze no Tegami Season 11  ·  TV                                                                          season 11
-  Kaze no Tegami Season 12  ·  TV                                                                          season 12
-  Kaze no Tegami: Hajimari no Fuukei  ·  OVA                                                                 prequel
+  Kaze no Tegami  ·  TV                                                                                     Season 1
+  Kaze no Tegami Season 2  ·  TV                                                                            Season 2
+  Kaze no Tegami Season 3  ·  TV                                                                            Season 3
+  Kaze no Tegami Season 4  ·  TV                                                                            Season 4
+  Kaze no Tegami Season 5  ·  TV                                                                            Season 5
+  Kaze no Tegami Season 6  ·  TV                                                                            Season 6
+  Kaze no Tegami Season 7  ·  TV                                                                            Season 7
+  Kaze no Tegami Season 8  ·  TV                                                                            Season 8
+▌ Kaze no Tegami Season 10  ·  TV                                                                          Season 10
+  Kaze no Tegami Season 11  ·  TV                                                                          Season 11
+  Kaze no Tegami Season 12  ·  TV                                                                          Season 12
+  Kaze no Tegami: Hajimari no Fuukei  ·  OVA                                                                 Prequel
 
                             │
                             │  Drama  ·  Romance
                             │
-                            │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+                            │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
                             │
                             │
                             │

@@ -1,19 +1,19 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  FIND ▏
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │         ▄
-▌ /  SEARCH                 │      ▄▀▀▀▀▀▄
-  ▥  LIBRARY                │      ▀▀▀▀▀▀▀▀
-  ↓  DOWNLOADS              │    ▀▄▀▀▀▀▀▀▀ ▄▄
-  ◇  PROVIDERS              │    ▀▀▀▀▀▀▀   ▀▀
-  ◎  ACCOUNTS               │    ▀▀▀▀▀▀▀▀▄
-  ⚙  SETTINGS               │    ▀▀▀▀▀▀▀▀▀▄
+  ▸  Continue               │  Find ▏
+  ▤  Calendar               │
+  ▦  Seasonal               │         ▄
+▌ /  Search                 │      ▄▀▀▀▀▀▄
+  ▥  Library                │      ▀▀▀▀▀▀▀▀
+  ↓  Downloads              │    ▀▄▀▀▀▀▀▀▀ ▄▄
+  ◇  Sources                │    ▀▀▀▀▀▀▀   ▀▀
+  ◎  Accounts               │    ▀▀▀▀▀▀▀▀▄
+  ⚙  Settings               │    ▀▀▀▀▀▀▀▀▀▄
                             │    ▀ ▀▀   ▀▀
                             │
-                            │  TYPE TO SEARCH
+                            │  Type to search
                             │
-                            │  or ↵ to browse the most popular
+                            │  Or press ↵ to browse the most popular.
                             │
                             │
                             │
@@ -85,7 +85,7 @@ r07 c41-41 fg=#c6bea9 bg=#c6bea9
 r07 c43-43 fg=#c57c2c
 r07 c44-44 fg=obi
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c33-33 fg=#8a6844 bg=#8a6844
 r08 c34-34 fg=#c57c2c bg=#68729e
@@ -118,7 +118,7 @@ r13 c28-28 fg=rule
 r13 c31-44 fg=text-dim
 r14 c28-28 fg=rule
 r15 c28-28 fg=rule
-r15 c31-61 fg=text-dim
+r15 c31-68 fg=text-dim
 r16 c28-28 fg=rule
 r17 c28-28 fg=rule
 r18 c28-28 fg=rule

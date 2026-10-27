@@ -1,18 +1,18 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │         ▄
-  ▤  CALENDAR               │      ▄▀▀▀▀▀▄
-  ▦  SEASONAL               │      ▀▀▀▀▀▀▀▀
-  /  SEARCH                 │    ▀▄▀▀▀▀▀▀▀ ▄▄
-  ▥  LIBRARY                │    ▀▀▀▀▀▀▀   ▀▀
-  ↓  DOWNLOADS              │    ▀▀▀▀▀▀▀▀▄
-  ◇  PROVIDERS              │    ▀▀▀▀▀▀▀▀▀▄
-  ◎  ACCOUNTS               │    ▀ ▀▀   ▀▀
-  ⚙  SETTINGS               │
-                            │  NOTHING TO CONTINUE
+▌ ▸  Continue               │         ▄
+  ▤  Calendar               │      ▄▀▀▀▀▀▄
+  ▦  Seasonal               │      ▀▀▀▀▀▀▀▀
+  /  Search                 │    ▀▄▀▀▀▀▀▀▀ ▄▄
+  ▥  Library                │    ▀▀▀▀▀▀▀   ▀▀
+  ↓  Downloads              │    ▀▀▀▀▀▀▀▀▄
+  ◇  Sources                │    ▀▀▀▀▀▀▀▀▀▄
+  ◎  Accounts               │    ▀ ▀▀   ▀▀
+  ⚙  Settings               │
+                            │  Nothing to continue
                             │
-                            │  titles you hid come back when you watch them · press 3 for this season, or / to search
-                            │
+                            │  Titles you removed come back when you watch them. Press 3 for this season, or / to
+                            │  search.
                             │
                             │
                             │
@@ -95,7 +95,7 @@ r07 c35-39 fg=#464e7c bg=#464e7c
 r07 c40-40 fg=#2e345c bg=#464e7c
 r07 c41-41 fg=#2e345c
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c33-33 fg=#8a6844 bg=#8a6844
 r08 c34-34 fg=#68729e bg=#68729e
@@ -115,8 +115,9 @@ r11 c28-28 fg=rule
 r11 c31-49 fg=text-dim
 r12 c28-28 fg=rule
 r13 c28-28 fg=rule
-r13 c31-116 fg=text-dim
+r13 c31-112 fg=text-dim
 r14 c28-28 fg=rule
+r14 c31-37 fg=text-dim
 r15 c28-28 fg=rule
 r16 c28-28 fg=rule
 r17 c28-28 fg=rule

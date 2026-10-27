@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 
 
 
-                                                            ep 004
+                                                       Episode 004
 
 
                                     ░░░░░░░░░░░░░░    0:00 / --:--
@@ -48,7 +48,7 @@ r09 c00-35 bg=obi
 r10 c00-01 bg=obi
 r10 c02-22 fg=text bg=obi mod=BOLD
 r10 c23-35 bg=obi
-r10 c60-65 fg=text-dim
+r10 c55-65 fg=text-dim
 r11 c00-01 bg=obi
 r11 c02-28 fg=text-dim bg=obi
 r11 c29-35 bg=obi

@@ -1,16 +1,16 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  MEMBERS · HEARTH PLUGINS
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    NAME                        ROLE      DEVICES   LAST SEEN
-  /  SEARCH                 │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▥  LIBRARY                │    Mirei (you)                 owner     2         just now
-  ↓  DOWNLOADS              │  ▌ Rin                         member    1         9 days ago
-▌ ◇  PROVIDERS              │    Sora                        member    3         never
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │  INVITES NOT USED YET
-                            │    Kai                                             expires tomorrow
-                            │    Mirei, another device                           expires today
+  ▸  Continue               │  Members · Hearth plugins
+  ▤  Calendar               │
+  ▦  Seasonal               │    Name                        Role      Devices   Last seen
+  /  Search                 │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▥  Library                │    Mirei (you)                 Owner     2         Just now
+  ↓  Downloads              │  ▌ Rin                         Member    1         9 days ago
+▌ ◇  Sources                │    Sora                        Member    3         Never
+  ◎  Accounts               │
+  ⚙  Settings               │  Invites not used yet
+                            │    Kai                                             Expires tomorrow
+                            │    Mirei, another device                           Expires today
                             │
                             │
                             │
@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    ↵ remove their access
+                            │    ↵ Remove their access
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                           ↵ open   q back   ? keys
 === styles ===
@@ -77,7 +77,7 @@ r07 c71-71 fg=text-dim
 r07 c81-90 fg=text-dim
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
-r08 c05-13 fg=text mod=BOLD
+r08 c05-11 fg=text mod=BOLD
 r08 c28-28 fg=rule
 r08 c33-36 fg=text
 r08 c61-66 fg=text-dim

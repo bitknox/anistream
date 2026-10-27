@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  APPEARANCE  ───────────────────────────────────────────────────────────
-  ▤│    THEME                       adaptive
-  ▦│    MOTION                      on
-  /│    TITLES                      AniList's choice
+  ▸│  Appearance  ───────────────────────────────────────────────────────────
+  ▤│    Theme                       Adaptive
+  ▦│    Motion                      On
+  /│    Titles                      AniList's choice
   ▥│
 ────────────────────────────────────────────────────────────────────────────────
-▌ EDIT   spa,en▏
+▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────
-  subtitles — enter saves, esc leaves it be
+  subtitles. Enter saves, Esc leaves it as it is.
 
-   │    AUTO-PLAY NEXT              on
-   │    SKIP OPENING AUTOMATICALLY  on
-   │    SKIP FILLER AUTOMATICALLY   off
-   │    MARK OPENING AND ENDING     on
-   │    SHOW SKIP BUTTON            on
-   │    START FULLSCREEN            off
-   │    UPSCALING                   natural · ArtCNN
-   │    PLAYER INTERFACE            anistream
+   │    Auto-play next              On
+   │    Skip opening automatically  On
+   │    Skip filler automatically   Off
+   │    Mark opening and ending     On
+   │    Show skip button            On
+   │    Start fullscreen            Off
+   │    Upscaling                   Natural · ArtCNN
+   │    Player interface            anistream
    │  ────────────────────────────────────────────────────────────────────────
-   │    enter types a language code — too many values to cycle
+   │    Press Enter to type a language code. There are too many values to c…
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                        ↵ save   esc cancel
 === styles ===
@@ -41,8 +41,8 @@ r09 c00-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
 r10 c02-35 fg=text-dim bg=ground
 r10 c36-38 fg=text-dim bg=ground mod=BOLD
-r10 c39-42 fg=text-dim bg=ground
-r10 c43-79 fg=rule bg=ground
+r10 c39-48 fg=text-dim bg=ground
+r10 c49-79 fg=rule bg=ground
 r11 c00-79 fg=rule bg=ground
 r12 c00-79 fg=rule
 r13 c00-79 fg=rule

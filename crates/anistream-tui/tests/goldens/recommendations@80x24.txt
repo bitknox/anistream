@@ -5,13 +5,13 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ RECOMMENDED   if you liked Kaze no Tegami — enter opens
+▌ Recommended   Because you liked Kaze no Tegami. Enter opens.
 ────────────────────────────────────────────────────────────────────────────────
   Yoru no Toshokan  ·  TV
 ▌ Tsuki to Kujira no Uta  ·  TV
   Kumo no Ue no Gakkou  ·  TV
 
-   │  available on  Hikari Stream
+   │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
    │  one arrives addressed to her in her own hand, dated ten years from now,
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  Drama  ·  Romance
    │
-   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+   │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                        ↵ open   esc cancel
 === styles ===
@@ -34,8 +34,8 @@ r05 c00-79 fg=rule
 r06 c00-79 fg=rule bg=ground
 r07 c00-00 fg=obi bg=ground
 r07 c01-01 fg=rule bg=ground
-r07 c02-56 fg=text bg=ground mod=BOLD
-r07 c57-79 fg=rule bg=ground
+r07 c02-61 fg=text bg=ground mod=BOLD
+r07 c62-79 fg=rule bg=ground
 r08 c00-05 fg=rule bg=ground
 r08 c06-19 fg=rule bg=ground mod=BOLD
 r08 c20-79 fg=rule bg=ground

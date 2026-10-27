@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  HEARTH PLUGINS                                                    owner
-  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▸│  Hearth plugins                                                    Owner
+  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
 ────────────────────────────────────────────────────────────────────────────────
-▌ KAWASEMI   2.1.0  ·  from Hearth plugins
+▌ Kawasemi   2.1.0  ·  from Hearth plugins
 ────────────────────────────────────────────────────────────────────────────────
-  may contact   kawasemi.example, img.kawasemi.example
-  cannot        read files, open sockets or see your environment
-  the update adds   img.kawasemi.example
+  May contact kawasemi.example, img.kawasemi.example
+  It cannot read files, open sockets or see your environment.
+  The update adds img.kawasemi.example to what it may contact.
 
-  update to 2.1.0                                                          ↵
-▌ remove from this machine
-  stop offering it in this store
-  cancel
+  Update to 2.1.0                                                          ↵
+▌ Remove from this machine
+  Stop offering it in this store
+  Cancel
 
-   │    open the admin page
-   │    leave this store
+   │    Open the admin page
+   │    Leave this store
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    the update also wants to contact  img.kawasemi.example
+   │    The update also wants to contact img.kawasemi.example
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                      ↵ choose   esc cancel
 === styles ===
@@ -38,16 +38,16 @@ r05 c02-41 fg=text bg=ground mod=BOLD
 r05 c42-79 fg=rule bg=ground
 r06 c00-79 fg=rule bg=ground
 r07 c00-01 fg=rule bg=ground
-r07 c02-53 fg=text-dim bg=ground
-r07 c54-79 fg=rule bg=ground
+r07 c02-51 fg=text-dim bg=ground
+r07 c52-79 fg=rule bg=ground
 r08 c00-01 fg=rule bg=ground
 r08 c02-07 fg=text-dim bg=ground
 r08 c08-15 fg=text-dim bg=ground mod=BOLD
-r08 c16-63 fg=text-dim bg=ground
-r08 c64-79 fg=rule bg=ground
+r08 c16-60 fg=text-dim bg=ground
+r08 c61-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
-r09 c02-39 fg=text-dim bg=ground
-r09 c40-79 fg=rule bg=ground
+r09 c02-61 fg=text-dim bg=ground
+r09 c62-79 fg=rule bg=ground
 r10 c00-79 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
 r11 c02-16 fg=text-dim bg=ground

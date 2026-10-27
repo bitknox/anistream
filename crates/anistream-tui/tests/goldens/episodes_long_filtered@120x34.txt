@@ -2,35 +2,35 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Tanuki Densha Monogatari
  ▤ │
- ▦ │    #     TITLE                                                                           RUN     WATCHED
+ ▦ │    #     Title                                                                           Run     Watched
  / │  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  ▥ │    007   Station No. 7                                                                   23:55   ██▏░░░░░░░
- ↓ │    008   Station No. 8                                                                   23:55   ░░░░░░░░░░  canon
- ◇ │    009   Station No. 9                                                                   23:55   ░░░░░░░░░░  canon
- ◎ │    010   Station No. 10                                                                  23:55   ░░░░░░░░░░  canon
- ⚙ │    011   Station No. 11                                                                  23:55   ░░░░░░░░░░  canon
-   │    012   Station No. 12                                                                  23:55   ░░░░░░░░░░  canon
-   │    013   Station No. 13                                                                  23:55   ░░░░░░░░░░  canon
-   │    014   Station No. 14                                                                  23:55   ░░░░░░░░░░  canon
-   │    015   Station No. 15                                                                  23:55   ░░░░░░░░░░  canon
-   │    016   Station No. 16                                                                  23:55   ░░░░░░░░░░  canon
-   │    017   Station No. 17                                                                  23:55   ░░░░░░░░░░  canon
-   │    018   Station No. 18                                                                  23:55   ░░░░░░░░░░  canon
-   │    019   Station No. 19                                                                  23:55   ░░░░░░░░░░  canon
-   │    025   Station No. 25                                                                  23:55   ░░░░░░░░░░  mixed
-   │    026   Station No. 26                                                                  23:55   ░░░░░░░░░░  canon
-   │    027   Station No. 27                                                                  23:55   ░░░░░░░░░░  canon
-   │    028   Station No. 28                                                                  23:55   ░░░░░░░░░░  canon
-   │    029   Station No. 29                                                                  23:55   ░░░░░░░░░░  canon
-   │    030   Station No. 30                                                                  23:55   ░░░░░░░░░░  canon
-   │    031   Station No. 31                                                                  23:55   ░░░░░░░░░░  canon
-   │    032   Station No. 32                                                                  23:55   ░░░░░░░░░░  canon
-   │    033   Station No. 33                                                                  23:55   ░░░░░░░░░░  canon
-   │    034   Station No. 34                                                                  23:55   ░░░░░░░░░░  canon
-   │    035   Station No. 35                                                                  23:55   ░░░░░░░░░░  canon
-   │    036   Station No. 36                                                                  23:55   ░░░░░░░░░░  canon
-   │  ▌ 037   Station No. 37                                                                  23:55   ░░░░░░░░░░  canon
-────────────────────────────────────────────────────────────────────────────────────────────── ▌ showing no filler  +1 ─
+ ↓ │    008   Station No. 8                                                                   23:55   ░░░░░░░░░░  Canon
+ ◇ │    009   Station No. 9                                                                   23:55   ░░░░░░░░░░  Canon
+ ◎ │    010   Station No. 10                                                                  23:55   ░░░░░░░░░░  Canon
+ ⚙ │    011   Station No. 11                                                                  23:55   ░░░░░░░░░░  Canon
+   │    012   Station No. 12                                                                  23:55   ░░░░░░░░░░  Canon
+   │    013   Station No. 13                                                                  23:55   ░░░░░░░░░░  Canon
+   │    014   Station No. 14                                                                  23:55   ░░░░░░░░░░  Canon
+   │    015   Station No. 15                                                                  23:55   ░░░░░░░░░░  Canon
+   │    016   Station No. 16                                                                  23:55   ░░░░░░░░░░  Canon
+   │    017   Station No. 17                                                                  23:55   ░░░░░░░░░░  Canon
+   │    018   Station No. 18                                                                  23:55   ░░░░░░░░░░  Canon
+   │    019   Station No. 19                                                                  23:55   ░░░░░░░░░░  Canon
+   │    025   Station No. 25                                                                  23:55   ░░░░░░░░░░  Mixed
+   │    026   Station No. 26                                                                  23:55   ░░░░░░░░░░  Canon
+   │    027   Station No. 27                                                                  23:55   ░░░░░░░░░░  Canon
+   │    028   Station No. 28                                                                  23:55   ░░░░░░░░░░  Canon
+   │    029   Station No. 29                                                                  23:55   ░░░░░░░░░░  Canon
+   │    030   Station No. 30                                                                  23:55   ░░░░░░░░░░  Canon
+   │    031   Station No. 31                                                                  23:55   ░░░░░░░░░░  Canon
+   │    032   Station No. 32                                                                  23:55   ░░░░░░░░░░  Canon
+   │    033   Station No. 33                                                                  23:55   ░░░░░░░░░░  Canon
+   │    034   Station No. 34                                                                  23:55   ░░░░░░░░░░  Canon
+   │    035   Station No. 35                                                                  23:55   ░░░░░░░░░░  Canon
+   │    036   Station No. 36                                                                  23:55   ░░░░░░░░░░  Canon
+   │  ▌ 037   Station No. 37                                                                  23:55   ░░░░░░░░░░  Canon
+─────────────────────────────────────────────────────────────────────────────── ▌ Showing episodes without filler.  +1 ─
 plugins · sub · 1080p                                                               ↵ play   u watched   q back   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -219,10 +219,10 @@ r31 c14-27 fg=text mod=BOLD
 r31 c94-98 fg=text-dim
 r31 c102-111 fg=rule
 r31 c114-118 fg=text-dim
-r32 c00-93 fg=rule
-r32 c94-94 fg=text
-r32 c95-95 fg=state
-r32 c96-113 fg=text
+r32 c00-78 fg=rule
+r32 c79-79 fg=text
+r32 c80-80 fg=state
+r32 c81-113 fg=text
 r32 c114-117 fg=text-dim
 r32 c118-118 fg=text
 r32 c119-119 fg=rule

@@ -146,12 +146,6 @@ downloads-failed-no-reason = The download failed and no reason was recorded.
 # @only tui
 downloads-not-finished = That download hasn't finished yet.
 
-# Toast when a download is asked for but there is no { -source } to download from. The key opens
-# the { -source-cap-pl } screen, as the key map draws it.
-# @arg key: text
-# @only tui
-downloads-needs-source = Can't download without a { -source }. Press { $key } for { -source-cap-pl } to add one.
-
 ## Accounts
 
 # Title of the Accounts screen, shown in the placeholder when the terminal is too small.

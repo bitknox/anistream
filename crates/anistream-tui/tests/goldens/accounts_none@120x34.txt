@@ -1,14 +1,14 @@
 anistream                                                                                           torrent ○  plugins ●
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  TRACKER         STATE             QUEUED    TOKEN
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │  NO TRACKERS ENABLED
-  /  SEARCH                 │
-  ▥  LIBRARY                │  add one to trackers.enabled in config.toml — local history works without any
-  ↓  DOWNLOADS              │
-  ◇  PROVIDERS              │
-▌ ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Tracker         State             Queued    Token
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │  No trackers enabled
+  /  Search                 │
+  ▥  Library                │  Add one to trackers.enabled in config.toml. Your watch history works without any.
+  ↓  Downloads              │
+  ◇  Sources                │
+▌ ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -59,12 +59,12 @@ r05 c28-28 fg=rule
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
-r06 c31-106 fg=text-dim
+r06 c31-111 fg=text-dim
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r09 c00-00 fg=text-dim
 r09 c02-02 fg=text

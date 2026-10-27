@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │    Tsuki to Kujira no Uta      7 / 12   ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │                                         ░░░░░░░░░░░░░░░░░
-  ⚙  SETTINGS               │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │                                         ░░░░░░░░░░░░░░░░░
+  ⚙  Settings               │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░░░░░
@@ -17,19 +17,19 @@ anistream                                                                       
                             │                                         Hoshikuzu no Tabibito
                             │                                         The Stardust Traveller
                             │
-                            │                                         TV  ·  12 EP  ·  2026  ·  84  ·  STUDIO KAWAS…
+                            │                                         TV  ·  12 episodes  ·  2026  ·  84  ·  Studio…
                             │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
-                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering
                             │                                         letters to towns that may no longer exist.…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                       ↵ play   e episodes   ? keys
 === styles ===
@@ -48,25 +48,25 @@ r02 c05-12 fg=text mod=BOLD
 r02 c28-28 fg=rule
 r02 c31-31 fg=obi
 r02 c33-53 fg=text mod=BOLD
-r02 c57-66 fg=state
+r02 c59-66 fg=state
 r02 c70-86 fg=rule
 r03 c02-02 fg=text-dim
 r03 c05-12 fg=text-dim
 r03 c28-28 fg=rule
 r03 c33-46 fg=text-dim
-r03 c59-66 fg=state
+r03 c61-66 fg=state
 r03 c70-86 fg=rule
 r04 c02-02 fg=text-dim
 r04 c05-12 fg=text-dim
 r04 c28-28 fg=rule
 r04 c33-48 fg=text-dim
-r04 c53-66 fg=text-dim
+r04 c55-66 fg=text-dim
 r04 c70-86 fg=rule
 r05 c02-02 fg=text-dim
 r05 c05-10 fg=text-dim
 r05 c28-28 fg=rule
-r05 c33-54 fg=text-dim
-r05 c61-66 fg=text-dim
+r05 c33-49 fg=text-dim
+r05 c51-66 fg=text-dim
 r05 c70-86 fg=rule
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
@@ -77,7 +77,7 @@ r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r07 c70-86 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c70-86 fg=rule
 r09 c02-02 fg=text-dim
@@ -114,7 +114,7 @@ r23 c70-83 fg=obi
 r23 c84-93 fg=rule
 r24 c28-28 fg=rule
 r25 c28-28 fg=rule
-r25 c70-106 fg=state
+r25 c70-102 fg=state
 r26 c28-28 fg=rule
 r27 c28-28 fg=rule
 r27 c70-114 fg=text-dim
@@ -126,7 +126,7 @@ r30 c28-28 fg=rule
 r31 c28-28 fg=rule
 r31 c70-74 fg=obi
 r31 c75-89 fg=rule
-r31 c92-97 fg=text-dim
+r31 c92-107 fg=text-dim
 r32 c00-119 fg=rule
 r33 c00-20 fg=text-dim
 r33 c92-92 fg=text

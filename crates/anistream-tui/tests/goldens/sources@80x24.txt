@@ -2,15 +2,15 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
- ▦ │    #     TITLE                                   RUN     WATCHED
+ ▦ │    #     Title                                   Run     Watched
  / │  ────────────────────────────────────────────────────────────────────────
 ────────────────────────────────────────────────────────────────────────────────
-▌ SOURCES   ep 4 — enter plays your pick
+▌ Sources   Episode 4. Enter plays your pick.
 ────────────────────────────────────────────────────────────────────────────────
   [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  …   212
-▌ [Tsuki] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  dual         ▲  14
+▌ [Tsuki] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  Subbed and … ▲  14
   [Nagi] Hoshikuzu no Tabibito - 04  ·  0.9 GiB                        ✕   3
-  Hoshikuzu no Tabibito — episode 4 (dub)  ·  dub
+  Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed
 
    │    009   Postmarked Yesterday                    23:55   ░░░░░░░░░░
    │    010   The Comet's Wake                        23:55   ░░░░░░░░░░
@@ -38,8 +38,8 @@ r05 c00-79 fg=rule
 r06 c00-79 fg=rule bg=ground
 r07 c00-00 fg=obi bg=ground
 r07 c01-01 fg=rule bg=ground
-r07 c02-39 fg=text bg=ground mod=BOLD
-r07 c40-79 fg=rule bg=ground
+r07 c02-44 fg=text bg=ground mod=BOLD
+r07 c45-79 fg=rule bg=ground
 r08 c00-79 fg=rule bg=ground
 r09 c00-01 fg=rule bg=ground
 r09 c02-07 fg=text-dim bg=ground
@@ -52,8 +52,8 @@ r09 c71-75 fg=text bg=ground
 r09 c76-79 fg=rule bg=ground
 r10 c00-00 fg=obi bg=ground
 r10 c01-01 fg=rule bg=ground
-r10 c02-61 fg=text bg=ground mod=BOLD
-r10 c62-70 fg=rule bg=ground
+r10 c02-69 fg=text bg=ground mod=BOLD
+r10 c70-70 fg=rule bg=ground
 r10 c71-75 fg=text bg=ground
 r10 c76-79 fg=rule bg=ground
 r11 c00-01 fg=rule bg=ground
@@ -62,8 +62,8 @@ r11 c47-70 fg=rule bg=ground
 r11 c71-75 fg=text bg=ground
 r11 c76-79 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
-r12 c02-48 fg=text-dim bg=ground
-r12 c49-79 fg=rule bg=ground
+r12 c02-51 fg=text-dim bg=ground
+r12 c52-79 fg=rule bg=ground
 r13 c00-79 fg=rule bg=ground
 r14 c00-79 fg=rule
 r15 c00-79 fg=rule

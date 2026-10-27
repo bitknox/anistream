@@ -2,10 +2,10 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
- ▦ │  NO EPISODES LISTED
+ ▦ │  No episodes listed
  / │
- ▥ │  the source listed none for this title — m searches for the right match,
- ↓ │  P picks another source
+ ▥ │  The source listed no episodes for this title. Press m to search for the
+ ↓ │  right match, or P to pick another source.
  ◇ │
  ◎ │
  ⚙ │
@@ -48,7 +48,7 @@ r06 c03-03 fg=rule
 r06 c06-76 fg=text-dim
 r07 c01-01 fg=text-dim
 r07 c03-03 fg=rule
-r07 c06-27 fg=text-dim
+r07 c06-46 fg=text-dim
 r08 c01-01 fg=text-dim
 r08 c03-03 fg=rule
 r09 c01-01 fg=text-dim

@@ -1,26 +1,26 @@
 anistream           torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  ▌ FINISH SIGNING IN TO MAL
+  ▸│  ▌ Finish signing in to MyAnimeList
   ▤│
-  ▦│    1. open   https://auth.example/device
-  /│    2. enter  K T Q 7 - M 2 W D
+  ▦│    1. Open   https://auth.example/device
+  /│    2. Enter  K T Q 7 - M 2 W D
   ▥│              Expires in 15 min
   ↓│
   ◇│  ────────────────────────────────────────────────────────────────────────
 ▌ ◎│
-  ⚙│  TRACKER         STATE             QUEUED    TOKEN
+  ⚙│  Tracker         State             Queued    Token
    │  ────────────────────────────────────────────────────────────────────────
-   │    ANILIST       ● connected       2         OS keychain
-   │    KITSU         ○ not connected   0         0600 file
-   │  ▌ MAL           ✕ sign in again   0         OS keychain
-   │                  pull failed at 19:24: the token was refused
+   │    AniList       ● Connected       2         OS keychain
+   │    Kitsu         ○ Not connected   0         0600 file
+   │  ▌ MyAnimeList   ✕ Sign in again   0         OS keychain
+   │                  Fetching your list failed at 19:24: the token was refu…
    │
-   │    tokens stored in 0600 files — OS keychain unavailable
+   │    Tokens are stored in files with 0600 permissions because the OS key…
    │  ────────────────────────────────────────────────────────────────────────
-   │    ↵ sign in
+   │    ↵ Sign in
    │
    │
-────────────────────────── ▌ mal needs signing in again — press 8 for Accounts ─
+────────────── ▌ MyAnimeList needs signing in again. Press 8 to open Accounts. ─
 plugins · sub · 1080p                                         ↵ sign in   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -39,7 +39,7 @@ r01 c00-79 fg=rule
 r02 c02-02 fg=text-dim
 r02 c03-03 fg=rule
 r02 c06-06 fg=obi
-r02 c08-31 fg=text mod=BOLD
+r02 c08-39 fg=text mod=BOLD
 r03 c02-02 fg=text-dim
 r03 c03-03 fg=rule
 r04 c02-02 fg=text-dim
@@ -80,25 +80,25 @@ r13 c40-40 fg=text-dim
 r13 c50-58 fg=text-dim
 r14 c03-03 fg=rule
 r14 c06-06 fg=obi
-r14 c08-10 fg=text mod=BOLD
+r14 c08-18 fg=text mod=BOLD
 r14 c22-36 fg=alert
 r14 c40-40 fg=text-dim
 r14 c50-60 fg=text-dim
 r15 c03-03 fg=rule
-r15 c22-64 fg=alert
+r15 c22-76 fg=alert
 r16 c03-03 fg=rule
 r17 c03-03 fg=rule
-r17 c08-60 fg=text-dim
+r17 c08-75 fg=text-dim
 r18 c03-03 fg=rule
 r18 c06-77 fg=rule
 r19 c03-03 fg=rule
 r19 c08-16 fg=text-dim
 r20 c03-03 fg=rule
 r21 c03-03 fg=rule
-r22 c00-25 fg=rule
-r22 c26-26 fg=text
-r22 c27-27 fg=alert
-r22 c28-78 fg=text
+r22 c00-13 fg=rule
+r22 c14-14 fg=text
+r22 c15-15 fg=alert
+r22 c16-78 fg=text
 r22 c79-79 fg=rule
 r23 c00-20 fg=text-dim
 r23 c62-62 fg=text

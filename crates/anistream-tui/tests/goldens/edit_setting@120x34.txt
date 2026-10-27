@@ -1,35 +1,35 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  APPEARANCE  ──────────────────────────────────────────────────────────────────────────
-  ▤  CALENDAR               │    THEME                       adaptive
-  ▦  SEASONAL               │    MOTION                      on
-  /  SEARCH                 │    TITLES                      AniList's choice
-  ▥  LIBRARY                │
-  ↓  DOWNLOADS              │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
-  ◇  PROVIDERS              │    TRANSLATION                 sub
-  ◎  ACCOUNTS               │    QUALITY                     1080p
+  ▸  Continue               │  Appearance  ──────────────────────────────────────────────────────────────────────────
+  ▤  Calendar               │    Theme                       Adaptive
+  ▦  Seasonal               │    Motion                      On
+  /  Search                 │    Titles                      AniList's choice
+  ▥  Library                │
+  ↓  Downloads              │  Playback  ────────────────────────────────────────────────────────────────────────────
+  ◇  Sources                │    Audio                       Subbed
+  ◎  Accounts               │    Quality                     1080p
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ EDIT   spa,en▏
+▌ Edit   spa,en▏
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  subtitles — enter saves, esc leaves it be
+  subtitles. Enter saves, Esc leaves it as it is.
 
-                            │    MARK OPENING AND ENDING     on
-                            │    SHOW SKIP BUTTON            on
-                            │    START FULLSCREEN            off
-                            │    UPSCALING                   natural · ArtCNN
-                            │    PLAYER INTERFACE            anistream
-                            │    NIGHT MODE                  off
+                            │    Mark opening and ending     On
+                            │    Show skip button            On
+                            │    Start fullscreen            Off
+                            │    Upscaling                   Natural · ArtCNN
+                            │    Player interface            anistream
+                            │    Night mode                  Off
                             │
-                            │  DOWNLOADS  ───────────────────────────────────────────────────────────────────────────
-                            │    DOWNLOAD FOLDER             kept with the torrent cache
-                            │    MERGE SUBTITLES IN          on
-                            │    KEEP SEEDING                off
-                            │    AFTER EACH DOWNLOAD         none
+                            │  Downloads  ───────────────────────────────────────────────────────────────────────────
+                            │    Download folder             Kept with the torrent cache
+                            │    Merge subtitles in          On
+                            │    Keep seeding                Off
+                            │    After each download         None
                             │
-                            │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
-                            │    TORRENT SOURCE              off
+                            │  Sources  ─────────────────────────────────────────────────────────────────────────────
+                            │    Torrent source              Off
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    enter types a language code — too many values to cycle
+                            │    Press Enter to type a language code. There are too many values to cycle through.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                                                ↵ save   esc cancel
 === styles ===
@@ -56,8 +56,8 @@ r11 c02-15 fg=text bg=ground mod=BOLD
 r11 c16-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-42 fg=text-dim bg=ground
-r13 c43-119 fg=rule bg=ground
+r13 c02-48 fg=text-dim bg=ground
+r13 c49-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-119 fg=rule

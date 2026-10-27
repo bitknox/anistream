@@ -77,8 +77,7 @@ impl App {
         };
         // Listed from AniList alone: no source here has it to download.
         if self.unlisted(id) {
-            let sources = self.section_key(Section::Providers);
-            self.push_toast(info(t::downloads_needs_source(&sources)));
+            self.say_add_a_source();
             return None;
         }
         Some(Command::DownloadEpisode { id, episode })

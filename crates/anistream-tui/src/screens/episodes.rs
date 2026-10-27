@@ -543,7 +543,7 @@ mod tests {
         });
 
         let text = text_of(&render_to_buffer(&mut app, 110, 24));
-        assert!(text.contains("WHICH ONE"), "the overlay names what it is asking");
+        assert!(text.contains("Which one"), "the overlay names what it is asking");
         assert!(text.contains("62%") && text.contains("61%"), "similarity has to be visible");
         assert!(text.contains("Hoshikuzu S1") && text.contains("Hoshikuzu S2"));
         // A rejection reason explains why a plausible row was passed over.
@@ -647,7 +647,7 @@ mod tests {
         let text = text_of(&render_to_buffer(&mut app, 110, 24));
         assert!(text.contains("100%"));
         assert!(!text.contains("no confident match"), "{text}");
-        assert!(text.contains("enter pins it"), "{text}");
+        assert!(text.contains("Enter pins it"), "{text}");
     }
 
     #[test]

@@ -1,14 +1,14 @@
 anistream                                                                             torrent ○  plugins ●  ·  anilist ○
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  ▌ watching    planning    completed    paused    dropped
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │
-  /  SEARCH                 │  NO ACCOUNT CONNECTED
-▌ ▥  LIBRARY                │
-  ↓  DOWNLOADS              │  your watch history works without one — the Library mirrors a tracker's list
-  ◇  PROVIDERS              │  press 8 for Accounts to sign in
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  ▌ Watching    Planning    Completed    Paused    Dropped
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │
+  /  Search                 │  No account connected
+▌ ▥  Library                │
+  ↓  Downloads              │  Your watch history works without one. The library mirrors the list on a tracker.
+  ◇  Sources                │  Press 8 to open Accounts and sign in.
+  ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -69,11 +69,11 @@ r06 c28-28 fg=rule
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
-r07 c31-105 fg=text-dim
+r07 c31-110 fg=text-dim
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
-r08 c31-61 fg=text-dim
+r08 c31-67 fg=text-dim
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule

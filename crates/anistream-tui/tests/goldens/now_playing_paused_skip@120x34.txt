@@ -1,6 +1,6 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  NOW PLAYING                                   paused  ·  plugins
+  Now playing                                   Paused  ·  plugins
   ────────────────────────────────────────────────────────────────
 
          ▄
@@ -13,12 +13,12 @@ anistream                                                                       
     ▀ ▀▀   ▀▀
 
 
-  Hoshikuzu no Tabibito                                     ep 004
+  Hoshikuzu no Tabibito                                Episode 004
   The Cartographer's Daughter
 
   ██▏░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    1:03 / 23:55
 
-  ⟨ skip opening — S ⟩                                       ×1.25
+  ⟨ Skip opening: S ⟩                                        ×1.25
 
 
 
@@ -87,12 +87,12 @@ r12 c04-04 fg=#8a6844
 r12 c06-07 fg=#232842
 r12 c11-12 fg=#232842
 r15 c02-22 fg=text mod=BOLD
-r15 c60-65 fg=text-dim
+r15 c55-65 fg=text-dim
 r16 c02-28 fg=text-dim
 r18 c02-04 fg=text-dim
 r18 c05-49 fg=rule
 r18 c53-65 fg=text-dim
-r20 c02-21 fg=obi
+r20 c02-20 fg=obi
 r20 c61-65 fg=text-dim
 r32 c00-119 fg=rule
 r33 c00-20 fg=text-dim

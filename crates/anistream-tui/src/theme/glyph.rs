@@ -83,14 +83,6 @@ pub fn meter_parts(fraction: f64, width: usize) -> (String, String) {
     (filled, empty)
 }
 
-/// An eyebrow: a small label above or beside content. It reads as text in sentence case, set apart
-/// by the dim role and the interpunct separators, never by capitals in the string.
-///
-/// Being removed: callers pass their text straight through.
-pub fn eyebrow(text: &str) -> String {
-    text.to_owned()
-}
-
 /// Shade ramp, darkest to brightest. Unlike [`RAMP`] these vary in *density* rather than
 /// width, so a sequence of them reads as one cell brightening rather than a bar growing.
 pub const SHADES: [char; 4] = ['░', '▒', '▓', '█'];
@@ -178,13 +170,6 @@ mod tests {
     fn meter_clamps_out_of_range_input() {
         assert_eq!(meter(-1.0, 3), "░░░");
         assert_eq!(meter(5.0, 3), "███");
-    }
-
-    #[test]
-    fn an_eyebrow_is_its_text_unchanged() {
-        assert_eq!(eyebrow("Atelier Hotaru"), "Atelier Hotaru");
-        assert_eq!(eyebrow("28 EP"), "28 EP");
-        assert_eq!(eyebrow(""), "");
     }
 
     #[test]

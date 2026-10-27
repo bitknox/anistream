@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │    watching    planning    completed  ▌ paused    dropped
-  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
-  ▦  SEASONAL               │
-  /  SEARCH                 │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░
-▌ ▥  LIBRARY                │  ▌ Tsuki to Kujira no Uta      7 / 12   ░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │                                         ░░░░░░░░░░░░░
-  ⚙  SETTINGS               │                                         ░░░░░░░░░░░░░
+  ▸  Continue               │    Watching    Planning    Completed  ▌ Paused    Dropped
+  ▤  Calendar               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  Seasonal               │
+  /  Search                 │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░
+▌ ▥  Library                │  ▌ Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░
+  ↓  Downloads              │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░
+  ◎  Accounts               │                                         ░░░░░░░░░░░░░
+  ⚙  Settings               │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
                             │                                         ░░░░░░░░░░░░░
@@ -17,7 +17,7 @@ anistream                                                                       
                             │                                         Tsuki to Kujira no Uta
                             │                                         Song of the Moon Whale
                             │
-                            │                                         TV  ·  12 EP  ·  2025  ·  91  ·  KUMO PICTURES
+                            │                                         TV  ·  12 episodes  ·  2025  ·  91  ·  Kumo P…
                             │                                         Drama  ·  Fantasy
                             │
                             │                                         Every hundred years a whale crosses the moon,
@@ -29,7 +29,7 @@ anistream                                                                       
                             │
                             │
                             │
-                            │                                         ███████████▋░░░░░░░░  7 / 12
+                            │                                         ███████████▋░░░░░░░░  7 of 12 episodes
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                                            h/l list   ↵ open   e episodes   ? keys
 === styles ===
@@ -62,15 +62,15 @@ r05 c02-02 fg=text-dim
 r05 c05-10 fg=text-dim
 r05 c28-28 fg=rule
 r05 c33-46 fg=text-dim
-r05 c59-66 fg=state
+r05 c61-66 fg=state
 r05 c70-82 fg=rule
 r06 c00-00 fg=text-dim
 r06 c02-02 fg=text
 r06 c05-11 fg=text mod=BOLD
 r06 c28-28 fg=rule
 r06 c31-31 fg=obi
-r06 c33-54 fg=text mod=BOLD
-r06 c61-66 fg=text-dim
+r06 c33-49 fg=text mod=BOLD
+r06 c51-66 fg=text-dim
 r06 c70-82 fg=rule
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
@@ -79,7 +79,7 @@ r07 c33-49 fg=text-dim
 r07 c65-66 fg=text-dim
 r07 c70-82 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c70-82 fg=rule
 r09 c02-02 fg=text-dim
@@ -124,7 +124,7 @@ r30 c28-28 fg=rule
 r31 c28-28 fg=rule
 r31 c70-81 fg=obi
 r31 c82-89 fg=rule
-r31 c92-97 fg=text-dim
+r31 c92-107 fg=text-dim
 r32 c00-119 fg=rule
 r33 c00-20 fg=text-dim
 r33 c81-83 fg=text

@@ -1,17 +1,17 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  FIND hoshikuzu▏
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │         ▄
-▌ /  SEARCH                 │      ▄▀▀▀▀▀▄
-  ▥  LIBRARY                │      ▀▀▀▀▀▀▀▀
-  ↓  DOWNLOADS              │    ▀▄▀▀▀▀▀▀▀ ▄▄
-  ◇  PROVIDERS              │    ▀▀▀▀▀▀▀   ▀▀
-  ◎  ACCOUNTS               │    ▀▀▀▀▀▀▀▀▄
-  ⚙  SETTINGS               │    ▀▀▀▀▀▀▀▀▀▄
+  ▸  Continue               │  Find hoshikuzu▏
+  ▤  Calendar               │
+  ▦  Seasonal               │         ▄
+▌ /  Search                 │      ▄▀▀▀▀▀▄
+  ▥  Library                │      ▀▀▀▀▀▀▀▀
+  ↓  Downloads              │    ▀▄▀▀▀▀▀▀▀ ▄▄
+  ◇  Sources                │    ▀▀▀▀▀▀▀   ▀▀
+  ◎  Accounts               │    ▀▀▀▀▀▀▀▀▄
+  ⚙  Settings               │    ▀▀▀▀▀▀▀▀▀▄
                             │    ▀ ▀▀   ▀▀
                             │
-                            │  ↵ TO SEARCH
+                            │  Press ↵ to search
                             │
                             │
                             │
@@ -85,7 +85,7 @@ r07 c41-41 fg=#c6bea9 bg=#c6bea9
 r07 c43-43 fg=#c57c2c
 r07 c44-44 fg=obi
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c33-33 fg=#8a6844 bg=#8a6844
 r08 c34-34 fg=#c57c2c bg=#68729e
@@ -115,7 +115,7 @@ r11 c35-36 fg=#232842
 r11 c40-41 fg=#232842
 r12 c28-28 fg=rule
 r13 c28-28 fg=rule
-r13 c31-41 fg=text-dim
+r13 c31-47 fg=text-dim
 r14 c28-28 fg=rule
 r15 c28-28 fg=rule
 r16 c28-28 fg=rule

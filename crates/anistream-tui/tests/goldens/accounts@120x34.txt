@@ -1,23 +1,23 @@
 anistream                                                   torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal ✕ sign in
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  ▌ FINISH SIGNING IN TO MAL
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │    1. open   https://auth.example/device
-  /  SEARCH                 │    2. enter  K T Q 7 - M 2 W D
-  ▥  LIBRARY                │              Expires in 15 min
-  ↓  DOWNLOADS              │
-  ◇  PROVIDERS              │  ───────────────────────────────────────────────────────────────────────────────────────
-▌ ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │  TRACKER         STATE             QUEUED    TOKEN
+  ▸  Continue               │  ▌ Finish signing in to MyAnimeList
+  ▤  Calendar               │
+  ▦  Seasonal               │    1. Open   https://auth.example/device
+  /  Search                 │    2. Enter  K T Q 7 - M 2 W D
+  ▥  Library                │              Expires in 15 min
+  ↓  Downloads              │
+  ◇  Sources                │  ───────────────────────────────────────────────────────────────────────────────────────
+▌ ◎  Accounts               │
+  ⚙  Settings               │  Tracker         State             Queued    Token
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    ANILIST       ● connected       2         OS keychain
-                            │    KITSU         ○ not connected   0         0600 file
-                            │  ▌ MAL           ✕ sign in again   0         OS keychain
-                            │                  pull failed at 19:24: the token was refused
+                            │    AniList       ● Connected       2         OS keychain
+                            │    Kitsu         ○ Not connected   0         0600 file
+                            │  ▌ MyAnimeList   ✕ Sign in again   0         OS keychain
+                            │                  Fetching your list failed at 19:24: the token was refused
                             │
-                            │    tokens stored in 0600 files — OS keychain unavailable
+                            │    Tokens are stored in files with 0600 permissions because the OS keychain is unavai…
                             │  ───────────────────────────────────────────────────────────────────────────────────────
-                            │    ↵ sign in
+                            │    ↵ Sign in
                             │
                             │
                             │
@@ -30,7 +30,7 @@ anistream                                                   torrent ○  plugins
                             │
                             │
                             │
-────────────────────────────────────────────────────────────────── ▌ mal needs signing in again — press 8 for Accounts ─
+────────────────────────────────────────────────────── ▌ MyAnimeList needs signing in again. Press 8 to open Accounts. ─
 plugins · sub · 1080p                                                                                 ↵ sign in   ? keys
 === styles ===
 colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
@@ -50,7 +50,7 @@ r02 c02-02 fg=text-dim
 r02 c05-12 fg=text-dim
 r02 c28-28 fg=rule
 r02 c31-31 fg=obi
-r02 c33-56 fg=text mod=BOLD
+r02 c33-64 fg=text mod=BOLD
 r03 c02-02 fg=text-dim
 r03 c05-12 fg=text-dim
 r03 c28-28 fg=rule
@@ -71,7 +71,7 @@ r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c31-117 fg=rule
 r09 c00-00 fg=text-dim
@@ -99,15 +99,15 @@ r13 c65-65 fg=text-dim
 r13 c75-83 fg=text-dim
 r14 c28-28 fg=rule
 r14 c31-31 fg=obi
-r14 c33-35 fg=text mod=BOLD
+r14 c33-43 fg=text mod=BOLD
 r14 c47-61 fg=alert
 r14 c65-65 fg=text-dim
 r14 c75-85 fg=text-dim
 r15 c28-28 fg=rule
-r15 c47-89 fg=alert
+r15 c47-103 fg=alert
 r16 c28-28 fg=rule
 r17 c28-28 fg=rule
-r17 c33-85 fg=text-dim
+r17 c33-115 fg=text-dim
 r18 c28-28 fg=rule
 r18 c31-117 fg=rule
 r19 c28-28 fg=rule
@@ -124,10 +124,10 @@ r28 c28-28 fg=rule
 r29 c28-28 fg=rule
 r30 c28-28 fg=rule
 r31 c28-28 fg=rule
-r32 c00-65 fg=rule
-r32 c66-66 fg=text
-r32 c67-67 fg=alert
-r32 c68-118 fg=text
+r32 c00-53 fg=rule
+r32 c54-54 fg=text
+r32 c55-55 fg=alert
+r32 c56-118 fg=text
 r32 c119-119 fg=rule
 r33 c00-20 fg=text-dim
 r33 c102-102 fg=text

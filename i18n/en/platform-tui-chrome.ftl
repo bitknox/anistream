@@ -68,36 +68,36 @@ overlays-heading-plugin = { $name }   { $version }  ·  from { $store }
 
 # Overlay heading, after the title "Invite link": whom the link is for.
 # @arg name: text
-overlays-heading-invite-for = for { $name }
+overlays-heading-invite-for = For { $name }
 
 # Title of the invite link overlay when the link is not for a named person.
 overlays-title-link-device = Link another { -device }
 
 # Overlay heading, after the title of the store's link: which { -plugin-store } it opens.
 # @arg store: text
-overlays-heading-open-link-of = of { $store }
+overlays-heading-open-link-of = { $store }
 
 # Overlay heading, after the title of the publish list: where the plugin goes.
 # @arg store: text
-overlays-heading-publish-to = to { $store }
+overlays-heading-publish-to = To { $store }
 
 # Overlay heading, after the title "Which one": the title being matched.
 # @arg name: text
-overlays-heading-disambiguate = is { $name }. Enter pins it.
+overlays-heading-disambiguate = Match for { $name }. Enter pins it.
 
 # Same, when no title is known.
 overlays-heading-disambiguate-bare = Enter pins it.
 
 # Overlay heading, after the title "Watch order": the title the order is built around.
 # @arg name: text
-overlays-heading-watch-order = around { $name }. Enter opens.
+overlays-heading-watch-order = Around { $name }. Enter opens.
 
 # Same, when no title is known.
 overlays-heading-watch-order-bare = Enter opens.
 
 # Overlay heading, after the title "Recommended": the title the list came from.
 # @arg name: text
-overlays-heading-recommendations = if you liked { $name }. Enter opens.
+overlays-heading-recommendations = Because you liked { $name }. Enter opens.
 
 # Same, when no title is known.
 overlays-heading-recommendations-bare = Enter opens.

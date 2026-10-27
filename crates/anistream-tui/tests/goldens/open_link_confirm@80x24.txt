@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  PLUGIN STORES
+  ▸│  Plugin stores
   ▤│
 ────────────────────────────────────────────────────────────────────────────────
-▌ JOIN HEARTH PLUGINS?
+▌ Join Hearth plugins?
 ────────────────────────────────────────────────────────────────────────────────
-  address   https://plugins.example
-  key       489f 49ea 0372 41ac  — matches the link
-  run by    Mirei
-  offers    2 plugins
-            Yamabiko 1.4.0  may contact api.yamabiko.example · installed
+  Address   https://plugins.example
+  Key       489f 49ea 0372 41ac  (matches the link)
+  Run by    Mirei
+  Offers    2 plugins
+            Yamabiko 1.4.0  may contact api.yamabiko.example · Installed
             Hotaru 0.3.0  may contact subs.example
-  anyone with the link can join
-  you join without a name, and another device joins with the same link
+  Anyone with the link can join.
+  You join without a name, and another device joins with the same link.
 
-  enter joins · esc cancels
+  Enter joins · Esc cancels
 
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    paste the invite or store link you were given
+   │    Paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                     ↵ confirm   esc cancel
 === styles ===
@@ -58,11 +58,11 @@ r12 c00-01 fg=rule bg=ground
 r12 c02-49 fg=text-dim bg=ground
 r12 c50-79 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-30 fg=text-dim bg=ground
-r13 c31-79 fg=rule bg=ground
+r13 c02-31 fg=text-dim bg=ground
+r13 c32-79 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
-r14 c02-69 fg=text-dim bg=ground
-r14 c70-79 fg=rule bg=ground
+r14 c02-70 fg=text-dim bg=ground
+r14 c71-79 fg=rule bg=ground
 r15 c00-79 fg=rule bg=ground
 r16 c00-01 fg=rule bg=ground
 r16 c02-26 fg=text-dim bg=ground

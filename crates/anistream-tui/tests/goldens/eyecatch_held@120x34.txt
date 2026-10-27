@@ -15,7 +15,7 @@ anistream                                                                       
 
 
 
-                                             Hoshikuzu no Tabibito  ·  ep 4
+                                          Hoshikuzu no Tabibito  ·  Episode 4
 
 
 
@@ -110,15 +110,15 @@ r13 c00-119 bg=obi
 r14 c00-119 bg=obi
 r15 c00-01 bg=obi
 r15 c02-22 fg=text bg=obi mod=BOLD
-r15 c23-59 bg=obi
-r15 c60-65 fg=text-dim bg=obi
+r15 c23-54 bg=obi
+r15 c55-65 fg=text-dim bg=obi
 r15 c66-119 bg=obi
 r16 c00-01 bg=obi
 r16 c02-28 fg=text-dim bg=obi
 r16 c29-119 bg=obi
-r17 c00-44 bg=obi
-r17 c45-74 fg=#161a2e bg=obi mod=BOLD
-r17 c75-119 bg=obi
+r17 c00-41 bg=obi
+r17 c42-76 fg=#161a2e bg=obi mod=BOLD
+r17 c77-119 bg=obi
 r18 c00-01 bg=obi
 r18 c02-49 fg=rule bg=obi
 r18 c50-52 bg=obi

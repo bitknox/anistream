@@ -5,13 +5,13 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ SOURCE FOR THIS TITLE   Kaze no Tegami — enter pins it
+▌ Source for this title   Kaze no Tegami. Enter pins it.
 ────────────────────────────────────────────────────────────────────────────────
-  Automatic — best available source
+  Automatic (best available source)
   yamabiko  ·  plugin
-▌ tsubame  ·  plugin                                                  in use
+▌ tsubame  ·  plugin                                                  Chosen
 
-   │  available on  Hikari Stream
+   │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
    │  one arrives addressed to her in her own hand, dated ten years from now,
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  Drama  ·  Romance
    │
-   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+   │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                         ↵ pin   esc cancel
 === styles ===

@@ -2,15 +2,15 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
- ▦ │    #     TITLE                                   RUN     WATCHED
+ ▦ │    #     Title                                   Run     Watched
  / │  ────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                     23:55   ██████████  done
- ↓ │    002   A Town Under Glass                      23:55   ██████████  done
- ◇ │    003   Lamplight, Lamplight                    23:55   ██████████  done
+ ▥ │    001   The Last Mail Coach                     23:55   ██████████  Done
+ ↓ │    002   A Town Under Glass                      23:55   ██████████  Done
+ ◇ │    003   Lamplight, Lamplight                    23:55   ██████████  Done
  ◎ │  ▌ 004   The Cartographer's Daughter             23:55   █████▊░░░░
  ⚙ │    005   Rain on the Rails                       23:55   ░░░░░░░░░░
-   │    006   Two Letters, One Name                   23:55   ░░░░░░░░░░  mixed
-   │    007   The Festival of Small Stars             23:55   ░░░░░░░░░░  filler
+   │    006   Two Letters, One Name                   23:55   ░░░░░░░░░░  Mixed
+   │    007   The Festival of Small Stars             23:55   ░░░░░░░░░░  Filler
    │    008   Where the Road Ends                     23:55   ░░░░░░░░░░
    │    009   Postmarked Yesterday                    23:55   ░░░░░░░░░░
    │    010   The Comet's Wake                        23:55   ░░░░░░░░░░

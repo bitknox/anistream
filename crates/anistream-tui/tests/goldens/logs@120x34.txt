@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
-  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │    Tsuki to Kujira no Uta      7 / 12   ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░░░
+▌ ▸  Continue               │  ▌ Hoshikuzu no Tabibito     E4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │    Kaze no Tegami              E9 out   ░░░░░░░░░░░░░░░░░
+  ▦  Seasonal               │    Yoru no Toshokan      E6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Tsuki to Kujira … 7 of 12 episodes   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │                                         ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │                                         ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │                                         ░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ LOGS
+▌ Logs
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   ·  resumed at 13:32
 ▌ ·  now using dub for this session
@@ -17,19 +17,19 @@ anistream                                                                       
   ·  saved upscaling
 
                             │
-                            │                                         TV  ·  12 EP  ·  2026  ·  84  ·  STUDIO KAWAS…
+                            │                                         TV  ·  12 episodes  ·  2026  ·  84  ·  Studio…
                             │                                         Adventure  ·  Fantasy  ·  Slice of Life
                             │
-                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         ▏ Continue E4 at 13:32 (57%)
                             │                                         █████████████▋░░░░░░░░░░
                             │
-                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │                                         E4 out 2d 3h ago  ·  E5 in 4d 20h
                             │
                             │                                         A lamplighter on a dying comet rides the last
                             │                                         mail coach between the stars, delivering
                             │                                         letters to towns that may no longer exist.…
                             │
-                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+                            │                                         █████░░░░░░░░░░░░░░░  3 of 12 episodes
 ─────────────────────────────────────────────────────────────────────────────────────────────── ▌ resumed at 13:32  +2 ─
 plugins · sub · 1080p                                                                                ↑↓ move   esc close
 === styles ===

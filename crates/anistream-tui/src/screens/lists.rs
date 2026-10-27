@@ -1338,7 +1338,7 @@ mod tests {
             app.content_here(ContentList::Entries((1..60).map(|i| entry(i, "Show")).collect())),
         );
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
+        assert!(text.contains("fall 2026 · the 40 most popular"), "{text}");
 
         // A caption belongs to the list it came with.
         app.apply(Event::Content {

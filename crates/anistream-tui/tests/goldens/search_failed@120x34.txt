@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │  FIND hoshikuzu▏
-  ▤  CALENDAR               │
-  ▦  SEASONAL               │  COULD NOT LOAD
-▌ /  SEARCH                 │
-  ▥  LIBRARY                │  AniList answered 500 Internal Server Error
-  ↓  DOWNLOADS              │
-  ◇  PROVIDERS              │
-  ◎  ACCOUNTS               │
-  ⚙  SETTINGS               │
+  ▸  Continue               │  Find hoshikuzu▏
+  ▤  Calendar               │
+  ▦  Seasonal               │  Couldn't load this list
+▌ /  Search                 │
+  ▥  Library                │  AniList answered 500 Internal Server Error
+  ↓  Downloads              │
+  ◇  Sources                │
+  ◎  Accounts               │
+  ⚙  Settings               │
                             │
                             │
                             │
@@ -52,7 +52,7 @@ r03 c28-28 fg=rule
 r04 c02-02 fg=text-dim
 r04 c05-12 fg=text-dim
 r04 c28-28 fg=rule
-r04 c31-44 fg=alert mod=BOLD
+r04 c31-53 fg=alert mod=BOLD
 r05 c00-00 fg=text-dim
 r05 c02-02 fg=text
 r05 c05-10 fg=text mod=BOLD
@@ -65,7 +65,7 @@ r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim

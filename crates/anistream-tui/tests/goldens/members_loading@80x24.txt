@@ -1,10 +1,10 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  MEMBERS · HEARTH PLUGINS
+  ▸│  Members · Hearth plugins
   ▤│
-  ▦│    NAME                        ROLE      DEVICES   LAST SEEN
+  ▦│    Name                        Role      Devices   Last seen
   /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    loading…
+  ▥│    Loading…
   ↓│
 ▌ ◇│
   ◎│

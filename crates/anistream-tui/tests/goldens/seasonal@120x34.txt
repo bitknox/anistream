@@ -1,14 +1,14 @@
 anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  ▸  CONTINUE               │    FALL 2026  ───────────────────────   ░░░░░░░░░░░░░░░░░
-  ▤  CALENDAR               │    Kitsune Ekiben                  87   ░░░░░░░░░░░░░░░░░
-▌ ▦  SEASONAL               │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░░░
-  /  SEARCH                 │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░░░
-  ▥  LIBRARY                │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░░░░░
-  ↓  DOWNLOADS              │    Komorebi Ryokan                 83   ░░░░░░░░░░░░░░░░░
-  ◇  PROVIDERS              │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░░░
-  ◎  ACCOUNTS               │    Ame Furu Machi no Robotto       81   ░░░░░░░░░░░░░░░░░
-  ⚙  SETTINGS               │    Kumo no Ue no Gakkou            80   ░░░░░░░░░░░░░░░░░
+  ▸  Continue               │    fall 2026  ───────────────────────   ░░░░░░░░░░░░░░░░░
+  ▤  Calendar               │    Kitsune Ekiben                  87   ░░░░░░░░░░░░░░░░░
+▌ ▦  Seasonal               │    Umibe no Kissaten               86   ░░░░░░░░░░░░░░░░░
+  /  Search                 │    Mori no Kajiya                  85   ░░░░░░░░░░░░░░░░░
+  ▥  Library                │    Ginga Yuubinkyoku               84   ░░░░░░░░░░░░░░░░░
+  ↓  Downloads              │    Komorebi Ryokan                 83   ░░░░░░░░░░░░░░░░░
+  ◇  Sources                │    Tetsu no Hanazono               82   ░░░░░░░░░░░░░░░░░
+  ◎  Accounts               │    Ame Furu Machi no Robotto       81   ░░░░░░░░░░░░░░░░░
+  ⚙  Settings               │    Kumo no Ue no Gakkou            80   ░░░░░░░░░░░░░░░░░
                             │    Shiosai Radio Kyoku             79   ░░░░░░░░░░░░░░░░░
                             │    Fuyu no Shika to Tabi           78   ░░░░░░░░░░░░░░░░░
                             │    Natsukusa Tanteisha             77   ░░░░░░░░░░░░░░░░░
@@ -16,7 +16,7 @@ anistream                                                                       
                             │    Kagami Kissa Ruri               75
                             │    Sakanaya no Musume              74   Komorebi Ryokan II
                             │    Tanuki Densha Monogatari        73
-                            │    Yuki Usagi Biyori               72   TV  ·  12 EP  ·  2026  ·  59  ·  STUDIO KAWAS…
+                            │    Yuki Usagi Biyori               72   TV  ·  12 episodes  ·  2026  ·  59  ·  Studio…
                             │    Kirin Koubou                    71   Comedy
                             │    Uta no Tou no Majo              70
                             │    Akari Shokudou                  69   Komorebi Ryokan II: a story told in twelve
@@ -80,7 +80,7 @@ r07 c33-47 fg=text-dim
 r07 c65-66 fg=text-dim
 r07 c70-86 fg=rule
 r08 c02-02 fg=text-dim
-r08 c05-13 fg=text-dim
+r08 c05-11 fg=text-dim
 r08 c28-28 fg=rule
 r08 c33-49 fg=text-dim
 r08 c65-66 fg=text-dim

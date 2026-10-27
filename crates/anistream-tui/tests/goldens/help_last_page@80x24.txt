@@ -1,11 +1,11 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
 ────────────────────────────────────────────────────────────────────────────────
-▌ KEYS                                                             page 3 of 3
+▌ Keys                                                             Page 3 of 3
 ────────────────────────────────────────────────────────────────────────────────
-    Fullscreen                      F
-    Leave player running            q
-    Stop playback                   x
+    Fullscreen                     F
+    Leave player running           q
+    Stop playback                  x
 
 
 
@@ -39,19 +39,19 @@ r03 c78-79 fg=rule bg=ground
 r04 c00-79 fg=rule bg=ground
 r05 c00-01 fg=rule bg=ground
 r05 c02-13 fg=text-dim bg=ground
-r05 c14-35 fg=rule bg=ground
-r05 c36-36 fg=text bg=ground
-r05 c37-79 fg=rule bg=ground
+r05 c14-34 fg=rule bg=ground
+r05 c35-35 fg=text bg=ground
+r05 c36-79 fg=rule bg=ground
 r06 c00-01 fg=rule bg=ground
 r06 c02-23 fg=text-dim bg=ground
-r06 c24-35 fg=rule bg=ground
-r06 c36-36 fg=text bg=ground
-r06 c37-79 fg=rule bg=ground
+r06 c24-34 fg=rule bg=ground
+r06 c35-35 fg=text bg=ground
+r06 c36-79 fg=rule bg=ground
 r07 c00-01 fg=rule bg=ground
 r07 c02-16 fg=text-dim bg=ground
-r07 c17-35 fg=rule bg=ground
-r07 c36-36 fg=text bg=ground
-r07 c37-79 fg=rule bg=ground
+r07 c17-34 fg=rule bg=ground
+r07 c35-35 fg=text bg=ground
+r07 c36-79 fg=rule bg=ground
 r08 c00-79 fg=rule bg=ground
 r09 c00-79 fg=rule bg=ground
 r10 c00-79 fg=rule bg=ground

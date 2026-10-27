@@ -2,18 +2,18 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌▸ │  ←  Hoshikuzu no Tabibito
  ▤ │
- ▦ │    #     TITLE                                                RUN     WATCHED
+ ▦ │    #     Title                                                Run     Watched
  / │  ─────────────────────────────────────────────────────────────────────────────────────
- ▥ │    001   The Last Mail Coach                                  23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ↓ │    002   A Town Under Glass                                   23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
- ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ▥ │    001   The Last Mail Coach                                  23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ↓ │    002   A Town Under Glass                                   23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
+ ◇ │    003   Lamplight, Lamplight                                 23:55   ██████████  Done  ░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-▌ SOURCES   ep 4 — enter plays your pick
+▌ Sources   Episode 4. Enter plays your pick.
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  current pick                                212
-▌ [Tsuki] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  dual                                                 ▲  14
+  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  Current pick                                212
+▌ [Tsuki] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  Subbed and dubbed                                    ▲  14
   [Nagi] Hoshikuzu no Tabibito - 04  ·  0.9 GiB                                                                ✕   3
-  Hoshikuzu no Tabibito — episode 4 (dub)  ·  dub
+  Hoshikuzu no Tabibito — episode 4 (dub)  ·  Dubbed
 
    │    012   The Stardust Traveller                               --:--   ░░░░░░░░░░        the coach takes a road
    │                                                                                         nobody has charted.
@@ -55,8 +55,8 @@ r09 c14-40 fg=rule bg=ground mod=BOLD
 r09 c41-119 fg=rule bg=ground
 r10 c00-00 fg=obi bg=ground
 r10 c01-01 fg=rule bg=ground
-r10 c02-39 fg=text bg=ground mod=BOLD
-r10 c40-119 fg=rule bg=ground
+r10 c02-44 fg=text bg=ground mod=BOLD
+r10 c45-119 fg=rule bg=ground
 r11 c00-119 fg=rule bg=ground
 r12 c00-01 fg=rule bg=ground
 r12 c02-80 fg=text-dim bg=ground
@@ -65,8 +65,8 @@ r12 c111-115 fg=text bg=ground
 r12 c116-119 fg=rule bg=ground
 r13 c00-00 fg=obi bg=ground
 r13 c01-01 fg=rule bg=ground
-r13 c02-61 fg=text bg=ground mod=BOLD
-r13 c62-110 fg=rule bg=ground
+r13 c02-74 fg=text bg=ground mod=BOLD
+r13 c75-110 fg=rule bg=ground
 r13 c111-115 fg=text bg=ground
 r13 c116-119 fg=rule bg=ground
 r14 c00-01 fg=rule bg=ground
@@ -75,8 +75,8 @@ r14 c47-110 fg=rule bg=ground
 r14 c111-115 fg=text bg=ground
 r14 c116-119 fg=rule bg=ground
 r15 c00-01 fg=rule bg=ground
-r15 c02-48 fg=text-dim bg=ground
-r15 c49-119 fg=rule bg=ground
+r15 c02-51 fg=text-dim bg=ground
+r15 c52-119 fg=rule bg=ground
 r16 c00-119 fg=rule bg=ground
 r17 c00-119 fg=rule
 r18 c00-119 fg=rule

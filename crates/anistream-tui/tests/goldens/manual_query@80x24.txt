@@ -6,12 +6,12 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
   ▥│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ────────────────────────────────────────────────────────────────────────────────
-▌ FIND MANUALLY   kaze no tegami 2026▏
+▌ Find manually   kaze no tegami 2026▏
 ────────────────────────────────────────────────────────────────────────────────
-  type what to search for — an empty enter resets to the automatic match
+  Type what to search for. An empty Enter resets to the automatic match.
 
    │
-   │  available on  Hikari Stream
+   │  Available on Hikari Stream
    │
    │  A postwoman in a hill town reads the wind for letters nobody sent. When
    │  one arrives addressed to her in her own hand, dated ten years from now,
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │  Drama  ·  Romance
    │
-   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+   │  █████░░░░░░░░░░░░░░░  6 of 24 episodes   Up next: episode 7
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                      ↵ search   esc cancel
 === styles ===

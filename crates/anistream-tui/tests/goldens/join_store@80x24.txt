@@ -1,14 +1,14 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  PLUGIN STORES
+  ▸│  Plugin stores
   ▤│
-  ▦│    STORE                       PLUGINS   YOU       STATE
+  ▦│    Store                       Plugins   You       State
   /│  ────────────────────────────────────────────────────────────────────────
-  ▥│    Hearth plugins              3         owner     1 update
+  ▥│    Hearth plugins              3         Owner     1 update
 ────────────────────────────────────────────────────────────────────────────────
-▌ JOIN A STORE   …ple/join/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
+▌ Join a plugin store   …n/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8▏
 ────────────────────────────────────────────────────────────────────────────────
-  paste the invite or store link you were given — enter checks it, esc can…
+  Paste the invite or store link you were given. Enter checks it, Esc canc…
 
    │
    │
@@ -19,7 +19,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    paste the invite or store link you were given
+   │    Paste the invite or store link you were given
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                       ↵ check   esc cancel
 === styles ===

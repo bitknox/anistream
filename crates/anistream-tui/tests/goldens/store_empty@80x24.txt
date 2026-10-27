@@ -1,25 +1,25 @@
 anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
 ────────────────────────────────────────────────────────────────────────────────
-  ▸│  HEARTH PLUGINS                                                    owner
-  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▸│  Hearth plugins                                                    Owner
+  ▤│  https://plugins.example  ·  Key 489f 49ea 0372 41ac
   ▦│
-  /│    PLUGIN                      VERSION       STATE
+  /│    Plugin                      Version       State
   ▥│  ────────────────────────────────────────────────────────────────────────
-  ↓│    nothing published yet — publish a plugin from below
+  ↓│    Nothing published yet. Publish a plugin from below.
 ▌ ◇│
-  ◎│  ▌ link another device
-  ⚙│    invite someone
-   │    members
-   │    who can join                only people you invite
-   │    publish a plugin
-   │    open the admin page
-   │    leave this store
+  ◎│  ▌ Link another device
+  ⚙│    Invite someone
+   │    Members
+   │    Who can join                Only people you invite
+   │    Publish a plugin
+   │    Open the admin page
+   │    Leave this store
    │
    │
    │
    │
    │  ────────────────────────────────────────────────────────────────────────
-   │    a one-time link that joins another of your computers as you
+   │    A one-time link that joins another of your computers as you
 ────────────────────────────────────────────────────────────────────────────────
 plugins · sub · 1080p                                   ↵ open   q back   ? keys
 === styles ===

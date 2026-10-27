@@ -287,7 +287,7 @@ impl App {
     }
 
     /// Said for a download asked of a table listed from AniList alone, in place of asking.
-    pub(super) fn say_add_a_source(&mut self) {
+    pub(crate) fn say_add_a_source(&mut self) {
         let sources = self.section_key(crate::nav::Section::Providers);
         self.push_toast(info(t::episodes_add_source_to_download(&sources)));
     }

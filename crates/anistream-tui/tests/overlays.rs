@@ -12,7 +12,6 @@ use anistream_model::{
     command::Command,
     episodes::EpisodeRow,
     event::Event,
-    notice::Notice,
     progress::TitleProgress,
     settings::SettingsView,
     sync::SyncState,
@@ -29,6 +28,7 @@ use ratatui::buffer::Buffer;
 const ROWS: usize = 20;
 
 fn app() -> App {
+    anistream_i18n::set_language("en");
     App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
@@ -286,6 +286,7 @@ fn esc_cancels_the_palette_whatever_back_is_rebound_to() {
     // was typed into the query.
     let mut keymap = Keymap::new();
     assert!(keymap.apply_overrides(&BTreeMap::from([("back".into(), "z".into())])).is_empty());
+    anistream_i18n::set_language("en");
     let mut a = App::new(SettingsView::default(), Palette::dark(), keymap);
     press(&mut a, &[":", "z"]);
     assert_eq!(a.text(Field::Palette), "z", "a letter is typed into the palette");
@@ -333,7 +334,7 @@ fn every_binding_is_on_some_page_of_help_at_every_size() {
         }
         if pages.len() > 1 {
             assert!(
-                pages[0].contains(&format!("page 1 of {}", pages.len())),
+                pages[0].contains(&format!("Page 1 of {}", pages.len())),
                 "{width}x{height}: a paged table must say so:\n{}",
                 pages[0]
             );
@@ -359,7 +360,10 @@ fn heading_rows(text: &str) -> Vec<(usize, usize)> {
             let pattern: Vec<char> = heading.chars().collect();
             for col in 0..chars.len().saturating_sub(pattern.len() - 1) {
                 if chars[col..col + pattern.len()] == pattern[..]
-                    && (col == 0 || chars[col - 1] == ' ')
+                    && col >= 2
+                    && chars[col - 1] == ' '
+                    && chars[col - 2] == ' '
+                    && (col == 2 || chars[col - 3] != ' ')
                 {
                     found.push((row, col));
                 }
@@ -404,7 +408,7 @@ fn a_wide_help_keeps_each_key_near_its_label() {
 fn logs_scroll_with_the_highlight() {
     let mut a = app();
     for i in 0..40 {
-        a.push_toast(Notice::raw_info(format!("line {i}")));
+        a.push_toast(anistream_tui::app::info(format!("line {i}")));
     }
     press(&mut a, &["L"]);
     for _ in 0..30 {
@@ -430,9 +434,9 @@ fn logs_scroll_with_the_highlight() {
 fn identical_log_lines_merge_into_one_with_a_count() {
     let mut a = app();
     for _ in 0..25 {
-        a.push_toast(Notice::raw_alert("cover unavailable"));
+        a.push_toast(anistream_tui::app::alert("cover unavailable"));
     }
-    a.push_toast(Notice::raw_info("something else"));
+    a.push_toast(anistream_tui::app::info("something else"));
     assert_eq!(a.logs.len(), 2);
     assert_eq!(a.logs[0].count, 25);
     press(&mut a, &["L"]);
@@ -450,13 +454,13 @@ fn typing_in_search_offers_no_key_that_would_be_typed() {
     assert!(!keys.contains(&"q".to_string()), "q would be typed: {keys:?}");
     assert!(!keys.contains(&"?".to_string()), "? would be typed: {keys:?}");
     assert!(keys.contains(&"esc".to_string()));
-    assert_eq!(hint(&a, "↵"), Some("search"));
+    assert_eq!(hint(&a, "↵"), Some("Search"));
 }
 
 #[test]
 fn enter_is_named_for_what_it_does() {
     let mut a = at_episodes();
-    assert_eq!(hint(&a, "↵"), Some("play"), "Enter plays in the episode table");
+    assert_eq!(hint(&a, "↵"), Some("Play"), "Enter plays in the episode table");
 
     let mut e = Entry::new(AnilistId::new(5), "Title");
     e.progress = Some(TitleProgress { done: 7, next: 8 });
@@ -466,9 +470,9 @@ fn enter_is_named_for_what_it_does() {
         a.content_here(ContentList::Entries(vec![e, Entry::new(AnilistId::new(6), "Other")])),
     );
     a.nav.focus_stage();
-    assert_eq!(hint(&a, "↵"), Some("play"), "a resumable Continue row plays on Enter");
+    assert_eq!(hint(&a, "↵"), Some("Play"), "a resumable Continue row plays on Enter");
     press(&mut a, &["j"]);
-    assert_eq!(hint(&a, "↵"), Some("open"), "a fresh one opens");
+    assert_eq!(hint(&a, "↵"), Some("Open"), "a fresh one opens");
 
     a.go_to_section(Section::Providers);
     a.nav.focus_stage();
@@ -492,7 +496,7 @@ fn enter_is_named_for_what_it_does() {
             ahead: false,
         },
     ]));
-    assert_eq!(hint(&a, "↵"), Some("play"));
+    assert_eq!(hint(&a, "↵"), Some("Play"));
     assert_eq!(hint(&a, "c"), Some("clear finished"));
     assert_eq!(hint(&a, "X"), Some("delete"));
 
@@ -505,14 +509,14 @@ fn enter_is_named_for_what_it_does() {
 fn an_overlay_shows_its_own_hints() {
     let mut a = at_episodes();
     press(&mut a, &["D"]);
-    assert_eq!(hint(&a, "↵"), Some("queue"));
-    assert_eq!(hint(&a, "esc"), Some("cancel"));
+    assert_eq!(hint(&a, "↵"), Some("Queue"));
+    assert_eq!(hint(&a, "esc"), Some("Cancel"));
     assert!(!hint_keys(&a).contains(&"?".to_string()), "? would be typed into the range");
 
     let mut a = app();
     press(&mut a, &["?"]);
     render_to_buffer(&mut a, 80, 24);
-    assert_eq!(hint(&a, "↑↓"), Some("page"));
+    assert_eq!(hint(&a, "↑↓"), Some("Page"));
     assert_eq!(hint(&a, "esc"), Some("close"));
 }
 
@@ -535,12 +539,12 @@ fn a_palette_command_that_means_nothing_here_says_where_it_works() {
     a.handle(anistream_tui::Action::RaiseSource, ROWS);
     let said: Vec<&str> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
     assert!(said.iter().all(|t| !t.contains("not wired up")), "{said:?}");
-    assert!(said.contains(&"stop playback works while something is playing"), "{said:?}");
+    assert!(said.contains(&"Stop playback works while something is playing."), "{said:?}");
     assert!(
-        said.contains(&"clear finished downloads works on the Downloads screen"),
+        said.contains(&"Clear finished downloads works on the Downloads screen."),
         "{said:?}"
     );
-    assert!(said.contains(&"move source up works on the Providers screen"), "{said:?}");
+    assert!(said.contains(&"Move source up works on the Sources screen."), "{said:?}");
 }
 
 #[test]
@@ -567,7 +571,7 @@ fn every_title_command_with_nothing_selected_says_so() {
         a.nav.focus_stage();
         assert_eq!(a.handle(action, ROWS), None, "{action:?}");
         assert!(
-            a.toasts.iter().any(|t| t.notice.text == "nothing selected"),
+            a.toasts.iter().any(|t| t.notice.text.starts_with("Nothing is selected.")),
             "{action:?} said {:?}",
             a.toasts
         );
@@ -629,7 +633,7 @@ fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
 fn a_one_episode_range_is_not_plural() {
     let mut a = at_episodes();
     press(&mut a, &["D", "4", "enter"]);
-    assert!(a.toasts.iter().any(|t| t.notice.text == "queueing 1 episode…"), "{:?}", a.toasts);
+    assert!(a.toasts.iter().any(|t| t.notice.text == "Queueing 1 episode for download."), "{:?}", a.toasts);
 }
 
 #[test]
@@ -637,7 +641,7 @@ fn now_playing_is_a_known_state_for_hints() {
     let mut a = at_episodes();
     a.playing = Some(NowPlaying::default());
     a.nav.push(StageView::NowPlaying);
-    assert_eq!(hint(&a, "space"), Some("pause"));
+    assert_eq!(hint(&a, "space"), Some("Pause"));
 }
 
 #[test]
@@ -667,7 +671,7 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
 fn the_palette_opens_on_its_first_row_wherever_the_overlay_before_it_was_left() {
     let mut a = app();
     for i in 0..40 {
-        a.push_toast(Notice::raw_info(format!("line {i}")));
+        a.push_toast(anistream_tui::app::info(format!("line {i}")));
     }
     // Logs at its oldest line, drawn, so its window has scrolled down to it.
     press(&mut a, &["L", "G"]);
