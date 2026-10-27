@@ -3945,6 +3945,16 @@ pub fn settings_label_adult_titles() -> String {
     text("settings-label-adult-titles", &[])
 }
 
+/// Settings row: whether an episode's AniList forum thread is looked up and opened in the app.
+pub fn settings_label_episode_discussions() -> String {
+    text("settings-label-episode-discussions", &[])
+}
+
+/// Settings row: whether images in discussion comments load inline.
+pub fn settings_label_comment_images() -> String {
+    text("settings-label-comment-images", &[])
+}
+
 /// Note under the titles row.
 pub fn settings_note_titles() -> String {
     text("settings-note-titles", &[])

@@ -2452,6 +2452,12 @@ settings-label-mpv-options = [ɱþṽ öþţîöñš~~~~]
 # Settings row: whether titles marked adult are shown.
 settings-label-adult-titles = [Åðüļţ ţîţļéš~~~~]
 
+# Settings row: whether an episode's AniList forum thread is looked up and opened in the app.
+settings-label-episode-discussions = [Éþîšöðé ðîšçüššîöñš~~~~~~]
+
+# Settings row: whether images in discussion comments load inline.
+settings-label-comment-images = [Ļöàð îɱàĝéš îñ çöɱɱéñţš~~~~~~~]
+
 # Note under the titles row.
 settings-note-titles = [ÅñîĻîšţ'š çĥöîçé ƒöļļöŵš ýöüŕ ÅñîĻîšţ àççöüñţ, àñð îš Éñĝļîšĥ ŵĥéñ ýöü'ŕé šîĝñéð öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~]
 
