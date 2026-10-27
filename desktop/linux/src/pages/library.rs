@@ -17,7 +17,7 @@ use crate::{
     states::{self, Shape, States},
     widgets::{self, PosterGrid},
     window::{Ctx, Size},
-    words,
+    say,
 };
 
 /// How a list is ordered.
@@ -71,7 +71,7 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     views.set_vexpand(true);
     let mut lists = Vec::new();
     for segment in LibrarySegment::ALL {
-        let grid = PosterGrid::with_caption(&ctx.hub, words::progress_caption);
+        let grid = PosterGrid::with_caption(&ctx.hub, say::progress_caption);
         let scroll = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never)
             .child(&grid.widget)

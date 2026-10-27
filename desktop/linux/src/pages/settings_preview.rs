@@ -198,7 +198,7 @@ pub fn caption(language: &str) -> gtk::Box {
             &[line.upcast()],
         ));
     }
-    let language = crate::words::language(language);
+    let language = crate::say::language(language);
     column.append(&note(&format!(
         "Plain subtitles look like this, in {language} when an episode has them. Styled \
          subtitles keep their own look."

@@ -985,6 +985,166 @@ pub fn source_picker_seeders_linux(count: i64) -> String {
     text("source-picker-seeders-linux", &[("count", Arg::Int(count))])
 }
 
+/// Tooltip on the header bar button that shows the sidebar while the window is narrow.
+pub fn sidebar_show() -> String {
+    text("sidebar-show", &[])
+}
+
+/// Faint line over Continue's placeholders while it loads.
+pub fn activity_continue() -> String {
+    text("activity-continue", &[])
+}
+
+/// Faint line over the calendar's placeholders while it loads.
+pub fn activity_calendar() -> String {
+    text("activity-calendar", &[])
+}
+
+/// Faint line over a title page's episode placeholders while they load.
+pub fn activity_episodes() -> String {
+    text("activity-episodes", &[])
+}
+
+/// Faint line over the Sources page while the sources are checked.
+pub fn activity_sources() -> String {
+    text("activity-sources", &[])
+}
+
+/// Faint line over the Downloads page while it loads.
+pub fn activity_downloads() -> String {
+    text("activity-downloads", &[])
+}
+
+/// Faint line over Search's placeholders while it lists titles with no query typed.
+pub fn activity_browse() -> String {
+    text("activity-browse", &[])
+}
+
+/// A transfer rate: a size already worded, per second.
+pub fn size_per_second(size: &str) -> String {
+    text("size-per-second", &[("size", Arg::Text(size))])
+}
+
+/// A wait that is over.
+pub fn time_now() -> String {
+    text("time-now", &[])
+}
+
+/// How long ago, when it was inside the last minute.
+pub fn time_just_now() -> String {
+    text("time-just-now", &[])
+}
+
+/// A length of time said for a screen reader, in hours.
+pub fn spoken_hours(count: i64) -> String {
+    text("spoken-hours", &[("count", Arg::Int(count))])
+}
+
+/// A length of time said for a screen reader, in minutes.
+pub fn spoken_minutes(count: i64) -> String {
+    text("spoken-minutes", &[("count", Arg::Int(count))])
+}
+
+/// A length of time said for a screen reader, in seconds.
+pub fn spoken_seconds(count: i64) -> String {
+    text("spoken-seconds", &[("count", Arg::Int(count))])
+}
+
+/// An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+pub fn episode_line_dubbed(line: &str) -> String {
+    text("episode-line-dubbed", &[("line", Arg::Text(line))])
+}
+
+/// Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
+pub fn continue_row_caught_up_airs(episode: i64, when: &str) -> String {
+    text("continue-row-caught-up-airs", &[("episode", Arg::Int(episode)), ("when", Arg::Text(when))])
+}
+
+/// Continue row: nothing new to watch, and the next episode has no date.
+pub fn continue_row_caught_up_not_out(episode: i64) -> String {
+    text("continue-row-caught-up-not-out", &[("episode", Arg::Int(episode))])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_english() -> String {
+    text("language-name-english", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_japanese() -> String {
+    text("language-name-japanese", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_spanish() -> String {
+    text("language-name-spanish", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_portuguese() -> String {
+    text("language-name-portuguese", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_french() -> String {
+    text("language-name-french", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_german() -> String {
+    text("language-name-german", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_italian() -> String {
+    text("language-name-italian", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_russian() -> String {
+    text("language-name-russian", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_arabic() -> String {
+    text("language-name-arabic", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_indonesian() -> String {
+    text("language-name-indonesian", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_korean() -> String {
+    text("language-name-korean", &[])
+}
+
+/// Name of a language, in a list of subtitle languages.
+pub fn language_name_chinese() -> String {
+    text("language-name-chinese", &[])
+}
+
+/// Seasonal's format toggle: every format.
+pub fn seasonal_format_all() -> String {
+    text("seasonal-format-all", &[])
+}
+
+/// Seasonal's format toggle: ONA, OVA and specials together.
+pub fn seasonal_format_ona_ova() -> String {
+    text("seasonal-format-ona-ova", &[])
+}
+
+/// Accessible name of a title's banner, which opens its page.
+pub fn title_open_named(title: &str) -> String {
+    text("title-open-named", &[("title", Arg::Text(title))])
+}
+
+/// Accessible name of the pane beside Continue's queue that previews the selected title.
+pub fn continue_preview() -> String {
+    text("continue-preview", &[])
+}
+
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 pub fn chrome_meta_chip(mark: &str) -> String {
     text("chrome-meta-chip", &[("mark", Arg::Text(mark))])

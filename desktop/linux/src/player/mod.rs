@@ -31,7 +31,7 @@ use crate::{
     mpris::{Action as MediaAction, Mpris, Track},
     video, widgets,
     window::{Ctx, Shell, Size},
-    words,
+    say,
 };
 
 mod stats;
@@ -644,7 +644,7 @@ impl PlayerView {
 
     /// "Resumed at 12:04" with Start Over, in the top leading corner.
     fn resumed(&self, position: f64) {
-        self.ui.resumed_line.set_label(&format!("Resumed at {}", words::clock(position)));
+        self.ui.resumed_line.set_label(&format!("Resumed at {}", say::clock(position)));
         self.resumed_from.set(Some(position));
         self.ui.resumed.set_visible(true);
         crate::motion::fade_in(&self.ui.resumed);
@@ -1035,14 +1035,14 @@ impl PlayerView {
             ui.timeline.set_range(0.0, duration.max(0.1));
         }
         if let Some(position) = state.position {
-            ui.position.set_label(&words::clock(position));
+            ui.position.set_label(&say::clock(position));
             if let Some(duration) = state.duration {
                 let left = (duration - position).max(0.0);
                 // A minus sign, not a hyphen, and said as time left.
-                ui.remaining.set_label(&format!("\u{2212}{}", words::clock(left)));
+                ui.remaining.set_label(&format!("\u{2212}{}", say::clock(left)));
                 ui.remaining.update_property(&[gtk::accessible::Property::Label(&format!(
                     "{} left",
-                    words::spoken_duration(left)
+                    say::spoken_duration(left)
                 ))]);
             }
             if Instant::now() >= self.held_until.get() {

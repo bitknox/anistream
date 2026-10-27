@@ -25,7 +25,7 @@ use crate::{
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
-    words,
+    say,
 };
 
 /// How far a watched episode's still dims.
@@ -456,14 +456,14 @@ impl Page {
         {
             text.append(&widgets::haze(other, ""));
         }
-        text.append(&widgets::haze(&words::meta_line(entry), "numeric"));
+        text.append(&widgets::haze(&say::meta_line(entry), "numeric"));
         if let Some(line) = self.dubbed_to.borrow().as_deref() {
             text.append(&widgets::haze(line, "numeric"));
         }
 
         let item = {
             let rows = self.rows.borrow();
-            words::queue_item(entry, (!rows.is_empty()).then_some(rows.as_slice()))
+            say::queue_item(entry, (!rows.is_empty()).then_some(rows.as_slice()))
         };
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         actions.set_margin_top(10);
@@ -893,7 +893,7 @@ impl Page {
                 let left = (d as f64 * (1.0 - row.watched)).max(60.0);
                 format!("{} min left", (left / 60.0).round() as u64)
             }
-            (false, Some(d)) => words::minutes(d),
+            (false, Some(d)) => say::minutes(d),
             _ if row.metadata_only => "Not out yet".to_owned(),
             _ => String::new(),
         };

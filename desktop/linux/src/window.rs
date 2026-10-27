@@ -26,7 +26,7 @@ use crate::{
     pages::{self, Dest},
     player::PlayerView,
     prefs::{CloseChoice, Prefs},
-    widgets, words,
+    say, widgets,
 };
 
 /// How wide the window is, by the brief's breakpoints.
@@ -207,7 +207,7 @@ impl Ctx {
         if alert {
             toast.set_priority(adw::ToastPriority::High);
         }
-        toast.set_timeout(words::notice_seconds(text, alert || button.is_some()));
+        toast.set_timeout(say::notice_seconds(text, alert || button.is_some()));
         self.toasts.add_toast(toast.clone());
         toast
     }
@@ -1315,7 +1315,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                     let user = state
                         .user
                         .clone()
-                        .unwrap_or_else(|| words::tracker_name(&state.tracker).into());
+                        .unwrap_or_else(|| say::tracker_name(&state.tracker).into());
                     avatar.set_text(Some(&user));
                     name.set_label(&user);
                     let waiting = state.outbox;
@@ -1328,7 +1328,7 @@ fn account_row(ctx: &Rc<Ctx>) -> gtk::ListBoxRow {
                         )
                     } else if state.user.is_some() {
                         // As the Accounts pane says it, the tracker beside a name of the user's.
-                        format!("{} · Synced", words::tracker_name(&state.tracker))
+                        format!("{} · Synced", say::tracker_name(&state.tracker))
                     } else {
                         "Synced".into()
                     });

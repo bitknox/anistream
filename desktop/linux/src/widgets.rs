@@ -10,7 +10,9 @@ use adw::prelude::*;
 use anistream_model::catalog::Entry;
 use gtk::{gdk, gio, glib};
 
-use crate::{fit::Fit, hub::Hub, words};
+use anistream_i18n::t;
+
+use crate::{fit::Fit, hub::Hub, say};
 
 /// The raised colour, which placeholders stand on.
 const RAISED: [u8; 3] = [0x22, 0x26, 0x38];
@@ -168,7 +170,7 @@ pub fn heading(text: &str) -> gtk::Label {
 pub fn sidebar_button(split: &adw::OverlaySplitView) -> gtk::ToggleButton {
     let button = gtk::ToggleButton::new();
     button.set_icon_name("sidebar-show-symbolic");
-    button.set_tooltip_text(Some("Show Sidebar"));
+    button.set_tooltip_text(Some(&t::sidebar_show()));
     split.bind_property("collapsed", &button, "visible").sync_create().build();
     split
         .bind_property("show-sidebar", &button, "active")
@@ -187,7 +189,7 @@ thread_local! {
 /// The banner under a page's header bar that says the device is offline: shown on every page
 /// that has one while it is, and gone once the network is back.
 pub fn offline_banner() -> adw::Banner {
-    let banner = adw::Banner::new("Offline. Downloaded episodes still play.");
+    let banner = adw::Banner::new(&t::state_offline_line());
     banner.add_css_class("offline");
     banner.set_revealed(OFFLINE.get());
     BANNERS.with_borrow_mut(|banners| {
@@ -328,7 +330,7 @@ pub struct PosterGrid {
 
 impl PosterGrid {
     pub fn new(hub: &Rc<Hub>) -> Self {
-        Self::with_caption(hub, words::cover_caption)
+        Self::with_caption(hub, say::cover_caption)
     }
 
     /// A grid whose caption line under each cover is `caption`'s: Library's says how far.
@@ -413,10 +415,10 @@ fn poster(hub: &Hub, entry: &Entry, caption: fn(&Entry) -> String) -> gtk::Box {
 pub fn title_menu(widget: &impl IsA<gtk::Widget>, id: u32, planning: bool) {
     let menu = gio::Menu::new();
     if planning {
-        menu.append(Some("Add to Planning"), Some(&format!("win.plan(uint32 {id})")));
+        menu.append(Some(&t::library_add_planning()), Some(&format!("win.plan(uint32 {id})")));
     }
-    menu.append(Some("Go to Title"), Some(&format!("win.open-title(uint32 {id})")));
-    menu.append(Some("Open on AniList"), Some(&format!("win.open-anilist(uint32 {id})")));
+    menu.append(Some(&t::title_open()), Some(&format!("win.open-title(uint32 {id})")));
+    menu.append(Some(&t::title_open_anilist()), Some(&format!("win.open-anilist(uint32 {id})")));
     context_menu(widget, &menu);
 }
 

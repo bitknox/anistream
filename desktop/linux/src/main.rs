@@ -21,6 +21,7 @@ mod party;
 mod player;
 mod portal;
 mod prefs;
+mod say;
 mod shots;
 #[cfg(feature = "fixtures")]
 mod showcase;
@@ -32,7 +33,6 @@ mod updates;
 mod video;
 mod widgets;
 mod window;
-mod words;
 
 use std::{cell::RefCell, path::PathBuf, rc::Rc, sync::Arc, time::Duration};
 

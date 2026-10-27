@@ -19,7 +19,7 @@ use anistream_model::{
 
 use anistream_i18n::t;
 
-use crate::{pages::providers, widgets, window::Ctx, words};
+use crate::{pages::providers, say, widgets, window::Ctx};
 
 /// The rows the sheet shows, as the Mac's sheet has them, by group.
 const GROUPS: [(&str, &[S]); 3] = [
@@ -71,10 +71,10 @@ pub fn subtitles(view: &ShowSettingsView, settings: &str) -> String {
     match remembered {
         Some(RememberedSubtitles::Off) => "Off".to_owned(),
         Some(RememberedSubtitles::Track { track }) => {
-            words::track(track.language.as_deref(), &track.title)
+            say::track(track.language.as_deref(), &track.title)
         }
         None if settings.is_empty() => "Use default".to_owned(),
-        None => format!("Use default · {}", words::language(settings)),
+        None => format!("Use default · {}", say::language(settings)),
     }
 }
 

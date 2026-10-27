@@ -55,7 +55,7 @@ pub fn tracks(list: &Value) -> Vec<Track> {
 /// A track as the menu says it: "English · Signs & Songs", the language by name and its title
 /// beside it, either alone, or "Audio 3" with neither.
 pub fn label(language: Option<&str>, title: Option<&str>, id: i64, kind: TrackKind) -> String {
-    let language = language.filter(|l| !l.trim().is_empty()).map(crate::words::language);
+    let language = language.filter(|l| !l.trim().is_empty()).map(crate::say::language);
     let title = title.map(str::trim).filter(|t| !t.is_empty());
     match (language, title) {
         (Some(language), Some(title)) if title.eq_ignore_ascii_case(&language) => language,

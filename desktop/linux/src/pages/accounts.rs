@@ -16,7 +16,7 @@ use anistream_model::{
 
 use gtk::glib;
 
-use crate::{hub::SignIn, widgets, window::Ctx, words};
+use crate::{hub::SignIn, widgets, window::Ctx, say};
 
 /// The trackers below AniList, in the order the other apps list them.
 const OTHERS: [&str; 4] = ["mal", "kitsu", "simkl", "trakt"];
@@ -103,7 +103,7 @@ impl Shown<'_> {
 
     /// The row's second line.
     fn subtitle(&self) -> String {
-        let name = words::tracker_name(self.tracker);
+        let name = say::tracker_name(self.tracker);
         match self.stand() {
             Stand::Checking => "Checking…".into(),
             Stand::InBrowser => "Waiting for the browser…".into(),
@@ -166,7 +166,7 @@ fn by_code(tracker: &str) -> bool {
 
 fn row(ctx: &Rc<Ctx>, shown: &Shown, rebuild: &Rc<dyn Fn()>) -> adw::ActionRow {
     let tracker = shown.tracker.to_owned();
-    let name = words::tracker_name(&tracker);
+    let name = say::tracker_name(&tracker);
     let row = adw::ActionRow::builder().title(name).subtitle(shown.subtitle()).build();
     let stand = shown.stand();
     let user = shown.state.and_then(|s| s.user.clone()).filter(|_| stand == Stand::SignedIn);
@@ -352,7 +352,7 @@ fn present_code(ctx: &Rc<Ctx>, prompt: &DeviceCodePrompt) -> adw::AlertDialog {
     if let Some(open) = CODE.with_borrow_mut(|(open, _)| open.take()) {
         open.force_close();
     }
-    let name = words::tracker_name(&prompt.tracker);
+    let name = say::tracker_name(&prompt.tracker);
     let host = host(&prompt.url);
     let dialog = adw::AlertDialog::new(
         Some(&format!("Sign In to {name}")),

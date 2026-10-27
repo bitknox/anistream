@@ -143,9 +143,9 @@ const SUBTITLE_LANGUAGES: [&str; 12] =
 /// none of them ("eng" is English, "pol" another).
 fn subtitle_codes(current: &str) -> Vec<String> {
     let mut codes: Vec<String> = SUBTITLE_LANGUAGES.iter().map(|c| (*c).to_owned()).collect();
-    let name = crate::words::language(current);
+    let name = crate::say::language(current);
     if !current.trim().is_empty()
-        && !SUBTITLE_LANGUAGES.iter().any(|c| crate::words::language(c) == name)
+        && !SUBTITLE_LANGUAGES.iter().any(|c| crate::say::language(c) == name)
     {
         codes.push(current.trim().to_owned());
     }
@@ -154,8 +154,8 @@ fn subtitle_codes(current: &str) -> Vec<String> {
 
 /// Where `current` stands among `codes`, by the language they name.
 fn subtitle_at(codes: &[String], current: &str) -> u32 {
-    let name = crate::words::language(current.trim());
-    codes.iter().position(|c| crate::words::language(c) == name).unwrap_or(0) as u32
+    let name = crate::say::language(current.trim());
+    codes.iter().position(|c| crate::say::language(c) == name).unwrap_or(0) as u32
 }
 
 pub fn pane_title(name: &str) -> &'static str {
@@ -702,7 +702,7 @@ impl Inner {
         let codes = Rc::new(RefCell::new(subtitle_codes(code)));
         let names = gtk::StringList::new(&[]);
         for code in codes.borrow().iter() {
-            names.append(&crate::words::language(code));
+            names.append(&crate::say::language(code));
         }
         let line = adw::ComboRow::builder().title(title).model(&names).build();
         line.set_selected(subtitle_at(&codes.borrow(), code));
@@ -722,7 +722,7 @@ impl Inner {
                 let wanted = subtitle_codes(code);
                 if *codes.borrow() != wanted {
                     let shown: Vec<String> =
-                        wanted.iter().map(|c| crate::words::language(c)).collect();
+                        wanted.iter().map(|c| crate::say::language(c)).collect();
                     let shown: Vec<&str> = shown.iter().map(String::as_str).collect();
                     names.splice(0, names.n_items(), &shown);
                     codes.replace(wanted);

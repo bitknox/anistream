@@ -640,6 +640,114 @@ source-picker-seeders-linux =
        *[other] [{ $count } šééðéŕš~~~~]
     }
 
+# Tooltip on the header bar button that shows the sidebar while the window is narrow.
+sidebar-show = [Šĥöŵ šîðéƀàŕ~~~~]
+
+# Faint line over Continue's placeholders while it loads.
+activity-continue = [Ļöàðîñĝ ŵĥàţ ýöü'ŕé ŵàţçĥîñĝ~~~~~~~~~]
+
+# Faint line over the calendar's placeholders while it loads.
+activity-calendar = [Ļöàðîñĝ ţĥé çàļéñðàŕ~~~~~~]
+
+# Faint line over a title page's episode placeholders while they load.
+activity-episodes = [Ļöàðîñĝ éþîšöðéš~~~~~]
+
+# Faint line over the Sources page while the sources are checked.
+activity-sources = [Çĥéçķîñĝ šöüŕçéš~~~~~]
+
+# Faint line over the Downloads page while it loads.
+activity-downloads = [Ļöàðîñĝ ðöŵñļöàðš~~~~~~]
+
+# Faint line over Search's placeholders while it lists titles with no query typed.
+activity-browse = [Ļöàðîñĝ ţîţļéš~~~~~]
+
+# A transfer rate: a size already worded, per second.
+size-per-second = [{ $size }/š~~]
+
+# A wait that is over.
+time-now = [Ñöŵ~]
+
+# How long ago, when it was inside the last minute.
+time-just-now = [Ĵüšţ ñöŵ~~~]
+
+# A length of time said for a screen reader, in hours.
+spoken-hours =
+    { $count ->
+        [one] [{ $count } ĥöüŕ~~~]
+       *[other] [{ $count } ĥöüŕš~~~]
+    }
+
+# A length of time said for a screen reader, in minutes.
+spoken-minutes =
+    { $count ->
+        [one] [{ $count } ɱîñüţé~~~]
+       *[other] [{ $count } ɱîñüţéš~~~~]
+    }
+
+# A length of time said for a screen reader, in seconds.
+spoken-seconds =
+    { $count ->
+        [one] [{ $count } šéçöñð~~~]
+       *[other] [{ $count } šéçöñðš~~~~]
+    }
+
+# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+episode-line-dubbed = [{ $line } · Ðüƀƀéð~~~~]
+
+# Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
+continue-row-caught-up-airs = [Çàüĝĥţ üþ · É{ $episode } àîŕš { $when }~~~~~~~~]
+
+# Continue row: nothing new to watch, and the next episode has no date.
+continue-row-caught-up-not-out = [Çàüĝĥţ üþ · É{ $episode } îš ñöţ öüţ ýéţ~~~~~~~~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-english = [Éñĝļîšĥ~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-japanese = [Ĵàþàñéšé~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-spanish = [Šþàñîšĥ~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-portuguese = [Þöŕţüĝüéšé~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-french = [Ƒŕéñçĥ~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-german = [Ĝéŕɱàñ~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-italian = [Îţàļîàñ~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-russian = [Ŕüššîàñ~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-arabic = [Åŕàƀîç~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-indonesian = [Îñðöñéšîàñ~~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-korean = [Ķöŕéàñ~~]
+
+# Name of a language, in a list of subtitle languages.
+language-name-chinese = [Çĥîñéšé~~~]
+
+# Seasonal's format toggle: every format.
+seasonal-format-all = [Åļļ~]
+
+# Seasonal's format toggle: ONA, OVA and specials together.
+seasonal-format-ona-ova = [ÖÑÅ àñð ÖṼÅ~~~~]
+
+# Accessible name of a title's banner, which opens its page.
+title-open-named = [Öþéñ { $title }~~~]
+
+# Accessible name of the pane beside Continue's queue that previews the selected title.
+continue-preview = [Þŕéṽîéŵ~~~]
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = [Ṁéţàðàţà { $mark }~~~~]
 

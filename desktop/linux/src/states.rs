@@ -16,7 +16,9 @@ use adw::prelude::*;
 use anistream_model::event::Event;
 use gtk::glib;
 
-use crate::{catalog, hub::Hub, motion};
+use anistream_i18n::t;
+
+use crate::{hub::Hub, motion};
 
 /// How long a wait is silent.
 const SILENT: Duration = Duration::from_millis(600);
@@ -88,7 +90,7 @@ impl States {
         activity.set_opacity(0.0);
         let held = gtk::Box::new(gtk::Orientation::Vertical, 8);
         held.set_can_target(false);
-        held.update_property(&[gtk::accessible::Property::Label("Loading")]);
+        held.update_property(&[gtk::accessible::Property::Label(&t::state_loading())]);
         held.append(&activity);
         let drawn = placeholders(shape);
         held.append(&drawn);
@@ -122,20 +124,20 @@ impl States {
             .build();
         failed.add_css_class("compact");
         failed.add_css_class("failed");
-        let again = gtk::Button::with_label("Try Again");
+        let again = gtk::Button::with_label(&t::action_try_again());
         again.add_css_class("pill");
         again.set_halign(gtk::Align::Center);
         failed.set_child(Some(&again));
         widget.add_named(&failed, Some("failed"));
 
-        let show_downloads = gtk::Button::with_label("Show Downloads");
+        let show_downloads = gtk::Button::with_label(&t::state_offline_show_downloads());
         show_downloads.add_css_class("pill");
         show_downloads.set_halign(gtk::Align::Center);
         show_downloads.set_action_name(Some("win.go"));
         show_downloads.set_action_target_value(Some(&"downloads".to_variant()));
         let offline = adw::StatusPage::builder()
-            .title("You're Offline")
-            .description("Downloaded episodes still play.")
+            .title(t::state_offline_title())
+            .description(t::state_offline_detail())
             .child(&show_downloads)
             .build();
         offline.add_css_class("compact");
@@ -203,7 +205,7 @@ impl States {
     /// A load started, said by its job's activity ("loading this season"): silent for 600 ms,
     /// then placeholders, then the activity line.
     pub fn loading(self: &Rc<Self>, activity: Option<String>) {
-        let label = activity.as_deref().map(catalog::shown).unwrap_or_default();
+        let label = activity.unwrap_or_default();
         // Already waiting: the wait goes on, with the newer words.
         let waiting = match self.phase.get() {
             Phase::Placeholders => true,
@@ -268,14 +270,15 @@ impl States {
         self.answer(Phase::Empty);
     }
 
-    /// The load failed, `why` in the engine's words: its first clause shows, or the offline
-    /// state while there is no network.
+    /// The load failed, `why` in the engine's words, which are for the log: the page says it in
+    /// the catalogue's, or shows the offline state while there is no network.
     pub fn failed(self: &Rc<Self>, why: &str) {
+        tracing::debug!(%why, "a load failed");
         if self.hub.known.borrow().offline {
             self.answer(Phase::Offline);
             return;
         }
-        self.failed.set_description(Some(&first_clause(why)));
+        self.failed.set_description(Some(&t::error_generic()));
         self.answer(Phase::Failed);
     }
 
@@ -345,16 +348,6 @@ fn show(stack: &gtk::Stack, phase: Phase, crossfade: bool) {
     if crossfade && let Some(child) = stack.visible_child() {
         motion::crossfade_in(&child);
     }
-}
-
-/// The first clause of an engine error, as a sentence: "could not reach AniList: error sending
-/// request" shows as "Could not reach AniList."
-pub fn first_clause(why: &str) -> String {
-    let clause = why.split(": ").next().unwrap_or(why).trim().trim_end_matches('.');
-    if clause.is_empty() {
-        return "Something went wrong.".into();
-    }
-    format!("{}.", catalog::shown(clause))
 }
 
 /// A small, frequent empty: a filtered list, a list of the library, a quiet week. No Nagare.
@@ -468,20 +461,5 @@ fn placeholders(shape: Shape) -> gtk::Widget {
             shapes.add_named(&agenda, Some("agenda"));
             shapes.upcast()
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn an_engine_error_shows_its_first_clause_as_a_sentence() {
-        assert_eq!(
-            first_clause("could not reach AniList: error sending request for url (x)"),
-            "Could not reach AniList."
-        );
-        assert_eq!(first_clause("timed out."), "Timed out.");
-        assert_eq!(first_clause(""), "Something went wrong.");
     }
 }

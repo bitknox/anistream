@@ -640,6 +640,114 @@ source-picker-seeders-linux =
        *[other] { $count } seeders
     }
 
+# Tooltip on the header bar button that shows the sidebar while the window is narrow.
+sidebar-show = Show sidebar
+
+# Faint line over Continue's placeholders while it loads.
+activity-continue = Loading what you're watching
+
+# Faint line over the calendar's placeholders while it loads.
+activity-calendar = Loading the calendar
+
+# Faint line over a title page's episode placeholders while they load.
+activity-episodes = Loading episodes
+
+# Faint line over the Sources page while the sources are checked.
+activity-sources = Checking sources
+
+# Faint line over the Downloads page while it loads.
+activity-downloads = Loading downloads
+
+# Faint line over Search's placeholders while it lists titles with no query typed.
+activity-browse = Loading titles
+
+# A transfer rate: a size already worded, per second.
+size-per-second = { $size }/s
+
+# A wait that is over.
+time-now = Now
+
+# How long ago, when it was inside the last minute.
+time-just-now = Just now
+
+# A length of time said for a screen reader, in hours.
+spoken-hours =
+    { $count ->
+        [one] { $count } hour
+       *[other] { $count } hours
+    }
+
+# A length of time said for a screen reader, in minutes.
+spoken-minutes =
+    { $count ->
+        [one] { $count } minute
+       *[other] { $count } minutes
+    }
+
+# A length of time said for a screen reader, in seconds.
+spoken-seconds =
+    { $count ->
+        [one] { $count } second
+       *[other] { $count } seconds
+    }
+
+# An episode's line with the audio it was watched in marked, as Continue and the title page word it.
+episode-line-dubbed = { $line } · Dubbed
+
+# Continue row: nothing new to watch, and the next episode airs at a known time. The time is already worded: "in 2d 3h".
+continue-row-caught-up-airs = Caught up · E{ $episode } airs { $when }
+
+# Continue row: nothing new to watch, and the next episode has no date.
+continue-row-caught-up-not-out = Caught up · E{ $episode } is not out yet
+
+# Name of a language, in a list of subtitle languages.
+language-name-english = English
+
+# Name of a language, in a list of subtitle languages.
+language-name-japanese = Japanese
+
+# Name of a language, in a list of subtitle languages.
+language-name-spanish = Spanish
+
+# Name of a language, in a list of subtitle languages.
+language-name-portuguese = Portuguese
+
+# Name of a language, in a list of subtitle languages.
+language-name-french = French
+
+# Name of a language, in a list of subtitle languages.
+language-name-german = German
+
+# Name of a language, in a list of subtitle languages.
+language-name-italian = Italian
+
+# Name of a language, in a list of subtitle languages.
+language-name-russian = Russian
+
+# Name of a language, in a list of subtitle languages.
+language-name-arabic = Arabic
+
+# Name of a language, in a list of subtitle languages.
+language-name-indonesian = Indonesian
+
+# Name of a language, in a list of subtitle languages.
+language-name-korean = Korean
+
+# Name of a language, in a list of subtitle languages.
+language-name-chinese = Chinese
+
+# Seasonal's format toggle: every format.
+seasonal-format-all = All
+
+# Seasonal's format toggle: ONA, OVA and specials together.
+seasonal-format-ona-ova = ONA and OVA
+
+# Accessible name of a title's banner, which opens its page.
+title-open-named = Open { $title }
+
+# Accessible name of the pane beside Continue's queue that previews the selected title.
+continue-preview = Preview
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = Metadata { $mark }
 

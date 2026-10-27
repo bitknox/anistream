@@ -24,7 +24,7 @@ use super::{Sheet as Shown, Tv};
 use crate::{
     widgets,
     window::{Ctx, Size},
-    words,
+    say,
 };
 
 /// The picker says nothing for this long while no TV is listed, as most TVs answer by then.
@@ -1362,7 +1362,7 @@ impl Remote {
     /// Moved by the viewer: the line follows, and once the drag rests the TV is told.
     fn dragged(&self, value: f64) {
         self.dragging.set(Some(value));
-        self.position.set_label(&words::clock(value));
+        self.position.set_label(&say::clock(value));
         if let Some(id) = self.drag_rest.take() {
             id.remove();
         }
@@ -1396,14 +1396,14 @@ impl Remote {
         if self.dragging.get().is_none() {
             self.seek.set_value(if now.duration.is_some() { position } else { 0.0 });
         }
-        self.position.set_label(&words::clock(position));
+        self.position.set_label(&say::clock(position));
         self.remaining.set_label(
             &now.duration
-                .map(|d| format!("\u{2212}{}", words::clock((d - position).max(0.0))))
+                .map(|d| format!("\u{2212}{}", say::clock((d - position).max(0.0))))
                 .unwrap_or_default(),
         );
         self.seek
-            .update_property(&[gtk::accessible::Property::ValueText(&words::clock(position))]);
+            .update_property(&[gtk::accessible::Property::ValueText(&say::clock(position))]);
     }
 }
 
