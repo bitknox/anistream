@@ -1,4 +1,4 @@
-//! Providers: the sources in the order failover tries them, as a boxed list. Each row has a
+//! Sources: the sources in the order failover tries them, as a boxed list. Each row has a
 //! handle to drag it by, its store in one quiet line, and a word only for a problem, an update
 //! or off. Move Up and Move Down are in each row's menu; a row opens its source's page.
 
@@ -6,6 +6,7 @@ use std::{cell::Cell, rc::Rc};
 
 use adw::prelude::*;
 use anistream_core::settings::SettingValue;
+use anistream_i18n::t;
 use anistream_model::{
     command::Command,
     event::Event,
@@ -52,8 +53,8 @@ impl Standing {
 /// The name a source goes by.
 pub fn name(row: &ProviderRow) -> String {
     match row.kind.as_str() {
-        "torrent" => "Torrents".into(),
-        "remote" => "Remote".into(),
+        "torrent" => t::sources_torrents(),
+        "remote" => t::sources_remote(),
         _ if row.name.is_empty() => row.id.clone(),
         _ => row.name.clone(),
     }
@@ -62,22 +63,24 @@ pub fn name(row: &ProviderRow) -> String {
 /// Where a source came from, in one quiet line: its store, or how it got here.
 pub fn origin(row: &ProviderRow) -> String {
     match (&row.origin, row.kind.as_str()) {
-        (_, "remote") => "Set in the config file".into(),
-        (ProviderOrigin::BuiltIn, _) => "Built in".into(),
+        (_, "remote") => t::sources_origin_config(),
+        (ProviderOrigin::BuiltIn, _) => t::sources_origin_built_in(),
         (ProviderOrigin::Store { name: Some(name), .. }, _) => name.clone(),
-        (ProviderOrigin::Store { name: None, .. }, _) => "From a store you left".into(),
-        (ProviderOrigin::ByHand, _) => "Added by hand".into(),
+        (ProviderOrigin::Store { name: None, .. }, _) => t::sources_origin_left_store(),
+        (ProviderOrigin::ByHand, _) => t::sources_origin_by_hand(),
     }
 }
 
 /// The word beside a source, and its mark: only for a problem, an update or off.
-pub fn standing_words(row: &ProviderRow) -> Option<(&'static str, &'static str)> {
+pub fn standing_words(row: &ProviderRow) -> Option<(String, &'static str)> {
     match Standing::of(row) {
-        Standing::Failing => Some(("Not answering", "vermilion")),
-        Standing::HeldBack => Some(("Held back", "ring")),
-        Standing::Off => Some(("Off", "ring")),
-        Standing::Slow => Some(("Slow", "haze")),
-        Standing::Working if row.update.is_some() => Some(("Update available", "water")),
+        Standing::Failing => Some((t::sources_status_not_answering(), "vermilion")),
+        Standing::HeldBack => Some((t::sources_status_held_back(), "ring")),
+        Standing::Off => Some((t::value_off(), "ring")),
+        Standing::Slow => Some((t::sources_status_slow(), "haze")),
+        Standing::Working if row.update.is_some() => {
+            Some((t::sources_status_update(), "water"))
+        }
         Standing::Working => None,
     }
 }
@@ -120,7 +123,7 @@ struct Page {
 
 pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
     let check = gtk::Button::from_icon_name("view-refresh-symbolic");
-    check.set_tooltip_text(Some("Check Again"));
+    check.set_tooltip_text(Some(&t::action_check_again()));
     check.set_action_name(Some("providers.check"));
     let header = adw::HeaderBar::new();
     header.pack_start(&widgets::sidebar_button(&ctx.split));
@@ -129,35 +132,29 @@ pub fn build(ctx: &Rc<Ctx>) -> adw::NavigationPage {
 
     let list = widgets::boxed_list();
     let column = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    column.append(&widgets::heading("Source Order"));
+    column.append(&widgets::heading(&t::sources_order()));
     column.append(&list);
-    let note = widgets::haze(
-        "Sources are tried top to bottom. Drag one by its handle to change the order.",
-        "caption",
-    );
+    let note = widgets::haze(&t::sources_order_detail(), "caption");
     column.append(&note);
-    let legal = widgets::haze("anistream hosts no content.", "caption");
+    let legal = widgets::haze(&t::legal_hosts_no_content(), "caption");
     legal.set_margin_top(12);
     column.append(&legal);
 
-    let join = gtk::Button::with_label("Join Store…");
+    let join = gtk::Button::with_label(&t::stores_join_menu());
     join.add_css_class("pill");
     join.set_action_name(Some("win.join-store"));
-    let empty = nagare::status_page(
-        "No Sources Yet",
-        "Sources come from plugin stores. Join one with the invite link its owner sends you.",
-        Some(&join),
-    );
+    let empty =
+        nagare::status_page(&t::sources_empty_title(), &t::sources_empty_detail(), Some(&join));
     let rows = Shape::Rows { count: 3, width: 16, height: 16 };
     let body = States::new(
         &ctx.hub,
         &widgets::column_page(&column, 720),
         rows,
         &empty,
-        "Couldn't Load Sources",
+        &t::sources_load_failed(),
     );
     body.loading(Command::CheckProviders.activity());
-    let navigation = widgets::content_page("Providers", &header, &body.widget);
+    let navigation = widgets::content_page(&t::sources_title(), &header, &body.widget);
 
     let page = Rc::new(Page {
         ctx: Rc::clone(ctx),
@@ -323,7 +320,7 @@ impl Page {
 
         let handle = gtk::Image::from_icon_name("list-drag-handle-symbolic");
         handle.add_css_class("dim-label");
-        handle.set_tooltip_text(Some("Drag to Change the Order"));
+        handle.set_tooltip_text(Some(&t::sources_drag_hint()));
         handle.set_cursor_from_name(Some("grab"));
         line.add_prefix(&handle);
         let drag = gtk::DragSource::new();
@@ -354,33 +351,45 @@ impl Page {
         if let Some((words, mark)) = standing_words(row) {
             if self.ctx.size() == Size::Narrow {
                 // No room beside the name: the mark stays, the words join the quiet line.
-                line.set_subtitle(&format!("{words} · {}", origin(row)));
+                line.set_subtitle(&format!("{words} · {}", origin(row))); // i18n-skip
                 let dot = widgets::standing("", mark);
-                dot.set_tooltip_text(Some(words));
+                dot.set_tooltip_text(Some(&words));
                 line.add_suffix(&dot);
             } else {
-                line.add_suffix(&widgets::standing(words, mark));
+                line.add_suffix(&widgets::standing(&words, mark));
             }
         }
         let menu = gio::Menu::new();
         let order = gio::Menu::new();
         if at > 0 {
-            order.append_item(&widgets::menu_item("Move Up", "providers.up", &row.id));
+            order.append_item(&widgets::menu_item(
+                &t::sources_move_up(),
+                "providers.up",
+                &row.id,
+            ));
         }
         if at + 1 < count {
-            order.append_item(&widgets::menu_item("Move Down", "providers.down", &row.id));
+            order.append_item(&widgets::menu_item(
+                &t::sources_move_down(),
+                "providers.down",
+                &row.id,
+            ));
         }
         menu.append_section(None, &order);
         if row.kind == "plugin" {
             let more = gio::Menu::new();
-            let toggle = if row.disabled { "Enable" } else { "Disable" };
-            more.append_item(&widgets::menu_item(toggle, "providers.toggle", &row.id));
-            more.append_item(&widgets::menu_item("Remove…", "providers.remove", &row.id));
+            let toggle = if row.disabled { t::action_enable() } else { t::action_disable() };
+            more.append_item(&widgets::menu_item(&toggle, "providers.toggle", &row.id));
+            more.append_item(&widgets::menu_item(
+                &t::action_remove(),
+                "providers.remove",
+                &row.id,
+            ));
             menu.append_section(None, &more);
         }
         let button = gtk::MenuButton::builder()
             .icon_name("view-more-symbolic")
-            .tooltip_text("More")
+            .tooltip_text(t::action_more())
             .menu_model(&menu)
             .valign(gtk::Align::Center)
             .build();
@@ -411,9 +420,9 @@ mod tests {
         let ready = row("a", "plugin");
         assert_eq!(standing_words(&ready), None);
         let down = ProviderRow { state: "down".into(), usable: false, ..row("a", "plugin") };
-        assert_eq!(standing_words(&down), Some(("Not answering", "vermilion")));
+        assert_eq!(standing_words(&down), Some(("Not answering".into(), "vermilion")));
         let off = ProviderRow { disabled: true, ..down.clone() };
-        assert_eq!(standing_words(&off), Some(("Off", "ring")));
+        assert_eq!(standing_words(&off), Some(("Off".into(), "ring")));
         let update = ProviderRow {
             update: Some(anistream_model::sources::ProviderUpdate {
                 version: "2".into(),
@@ -421,7 +430,7 @@ mod tests {
             }),
             ..row("a", "plugin")
         };
-        assert_eq!(standing_words(&update), Some(("Update available", "water")));
+        assert_eq!(standing_words(&update), Some(("Update available".into(), "water")));
         assert_eq!(name(&row("torrent", "torrent")), "Torrents");
         assert_eq!(origin(&row("torrent", "torrent")), "Built in");
     }
