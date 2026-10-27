@@ -105,11 +105,14 @@ pub fn network_path(network: Network, engine: &mut EngineState, tx: &Outbox) {
     let was = engine.network;
     engine.network = network;
     crate::connectivity::moved(was.offline, network.offline, &mut engine.missed, tx);
+    crate::autoplay::changed(engine, tx);
     reapply(engine, tx);
 }
 
 /// A setting was saved: what runs on cellular may be another thing now.
 pub fn settings_saved(engine: &mut EngineState, tx: &Outbox) {
+    // And whether trailers play may be another answer.
+    crate::autoplay::changed(engine, tx);
     let gate = gate_for(engine.phase, engine.network, engine.config.effective());
     if engine.gated.as_ref() != Some(&gate) {
         reapply(engine, tx);

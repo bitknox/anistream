@@ -4,11 +4,12 @@ anistream                                                                       
   ▤  Calendar               │  ▌ Theme                       Adaptive
   ▦  Seasonal               │    Motion                      On
   /  Search                 │    Titles                      AniList's choice
-  ▥  Library                │
-  ↓  Downloads              │  Playback  ────────────────────────────────────────────────────────────────────────────
-  ◇  Sources                │    Audio                       Subbed
-  ◎  Accounts               │    Quality                     1080p
-▌ ⚙  Settings               │    Subtitles                   eng
+  ▥  Library                │    Play trailers               Always
+  ↓  Downloads              │
+  ◇  Sources                │  Playback  ────────────────────────────────────────────────────────────────────────────
+  ◎  Accounts               │    Audio                       Subbed
+▌ ⚙  Settings               │    Quality                     1080p
+                            │    Subtitles                   eng
                             │    Counts as watched at        85%
                             │    Auto-play next              On
                             │    Skip opening automatically  On
@@ -27,7 +28,6 @@ anistream                                                                       
                             │    After each download         None
                             │
                             │  Sources  ─────────────────────────────────────────────────────────────────────────────
-                            │    Torrent source              Off
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
