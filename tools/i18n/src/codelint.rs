@@ -194,6 +194,9 @@ fn walk(
                 }
                 if patterns.iter().any(|p| p.is_match(line)) {
                     n += 1;
+                    if std::env::var_os("I18N_LIST").is_some() {
+                        println!("{}: {}", path.strip_prefix(root)?.display(), line.trim());
+                    }
                 }
             }
             if n > 0 {

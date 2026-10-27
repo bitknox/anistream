@@ -175,14 +175,14 @@ private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRem
     LaunchedEffect(update, player.isPresented) {
         if (player.isPresented) return@LaunchedEffect
         val offer = update ?: return@LaunchedEffect
-        notices.say("Update available: anistream ${offer.name}. Settings › About")
+        notices.say(tv.anistream.i18n.Strings.updatesAvailableTv(context, offer.name))
         store.updates.told(offer)
     }
     val said = remote?.notices ?: 0
     LaunchedEffect(said) { if (said > 0) remote?.notice?.let(notices::say) }
     val request = remote?.request
     val held = if (request != null && player.isPresented) {
-        ShownNotice(-1, "${request.phone} wants to pair: code ${grouped(request.code)}")
+        ShownNotice(-1, androidx.compose.ui.res.stringResource(tv.anistream.i18n.R.string.tv_pair_request_held, request.phone, grouped(request.code)))
     } else {
         null
     }

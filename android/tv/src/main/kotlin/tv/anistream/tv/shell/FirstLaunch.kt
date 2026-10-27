@@ -40,7 +40,6 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.i18n.R as I18nR
 import tv.anistream.store.AppStore
 import tv.anistream.store.DevicePreferences
-import tv.anistream.tv.signin.JOIN_LEGAL_LINE
 import tv.anistream.tv.signin.JoinStoreScreen
 import tv.anistream.tv.signin.SignInScreen
 import tv.anistream.tv.ui.AmberButton
@@ -113,12 +112,12 @@ private fun Pages(start: FirstLaunchPage, finish: () -> Unit) {
         when (shown) {
             FirstLaunchPage.Welcome -> Welcome(onNext = { page = FirstLaunchPage.AniList })
             // Signed in or Not now, Sources follows.
-            FirstLaunchPage.AniList -> SignInScreen("anilist", onDone = { page = FirstLaunchPage.Sources }, cancelLabel = "Not now")
+            FirstLaunchPage.AniList -> SignInScreen("anilist", onDone = { page = FirstLaunchPage.Sources }, cancelLabel = stringResource(I18nR.string.onboarding_not_now))
             FirstLaunchPage.Sources -> JoinStoreScreen(
                 onDone = { finish() },
-                cancelLabel = "Skip for now",
-                title = stringResource(I18nR.string.sources_title),
-                line = "Sources are plugins, shared through plugin stores by invite.",
+                cancelLabel = stringResource(I18nR.string.onboarding_skip_for_now),
+                title = stringResource(I18nR.string.onboarding_sources_title),
+                line = stringResource(I18nR.string.onboarding_sources_detail),
             )
         }
     }
@@ -137,10 +136,10 @@ private fun Welcome(onNext: () -> Unit) {
     ) {
         Box(Modifier.width(160.dp)) { Nagare(cell = 6) }
         Column(verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.widthIn(max = 560.dp)) {
-            Text("anistream", style = MaterialTheme.typography.displaySmall, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() })
-            Text("Keep track of anime and play it from sources you choose.", style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
-            Text(JOIN_LEGAL_LINE, style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
-            AmberButton(onClick = onNext, icon = null, modifier = Modifier.padding(top = 8.dp).focusRequester(next)) { ButtonLabel("Continue") }
+            Text("anistream", style = MaterialTheme.typography.displaySmall, color = ObiSilk.Silk, modifier = Modifier.semantics { heading() }) // i18n-skip
+            Text(stringResource(I18nR.string.onboarding_tagline), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Silk)
+            Text(stringResource(I18nR.string.legal_hosts_no_content), style = MaterialTheme.typography.bodyLarge, color = ObiSilk.Haze)
+            AmberButton(onClick = onNext, icon = null, modifier = Modifier.padding(top = 8.dp).focusRequester(next)) { ButtonLabel(stringResource(I18nR.string.onboarding_continue)) }
         }
     }
 }
