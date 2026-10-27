@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
@@ -93,11 +94,12 @@ internal fun EngineNotices(onHint: (NoticeHint) -> Unit) {
         val hint = item.notice.hint
         // An alert's button is its hint when it has one, and Report when it has none.
         if (hint == null && item.isAlert) {
-            snackbars.show(item.notice.text, "Report") {
-                openBugReport(context, store, tv.anistream.store.BugContext("message", item.notice.text))
+            val text = item.notice.text(context)
+            snackbars.show(text, "Report") {
+                openBugReport(context, store, tv.anistream.store.BugContext("message", text))
             }
         } else {
-            snackbars.show(item.notice.text, hint?.label()) { hint?.let(onHint) }
+            snackbars.show(item.notice.text(context), hint?.label()) { hint?.let(onHint) }
         }
         store.notices.dismiss(item)
     }

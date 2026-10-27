@@ -18,6 +18,7 @@
     <!-- No backup: the tokens are sealed with a key that never leaves this device's keystore, so a
          restored copy could not open them, and everything else comes back from AniList and the stores. -->
     <application
+        android:localeConfig="@xml/locales_config"
         android:name=".AnistreamApp"
         android:allowBackup="false"
         android:enableOnBackInvokedCallback="true"

@@ -16,6 +16,8 @@ android {
 
 dependencies {
     api(project(":engine"))
+    // The strings, for the engine's messages rendered in the person's language (generated/MsgText.kt).
+    api(project(":i18n"))
     api(libs.coroutines.android)
 
     testImplementation(libs.junit)

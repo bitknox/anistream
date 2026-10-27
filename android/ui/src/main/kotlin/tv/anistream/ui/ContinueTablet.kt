@@ -4,6 +4,8 @@
 
 package tv.anistream.ui
 
+import androidx.compose.ui.platform.LocalContext
+import tv.anistream.store.text
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -193,7 +195,7 @@ private fun QueueList(
 ) {
     // Under the title, as on a phone: the offline line, a job past 4 s, or the engine's status.
     val status by LocalAppStore.current.notices.status.collectAsStateWithLifecycle()
-    val line = frameLine(status)
+    val line = frameLine(status?.text(LocalContext.current))
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
         // The headings move with the rows, so a row never slides over a heading that snapped.
         item(key = "title", contentType = "title") {

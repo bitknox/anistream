@@ -4,6 +4,7 @@
 
 package tv.anistream.tv.shell
 
+import tv.anistream.store.text
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.EnterTransition
@@ -151,15 +152,16 @@ fun TvRoot(
 @Composable
 private fun BoxScope.Notices(store: AppStore, player: PlayerModel, remote: TvRemoteHost?, notices: TvNotices, onUpdatePage: Boolean) {
     val current by store.notices.current.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(current?.id) {
         val item = current ?: return@LaunchedEffect
         val failure = (store.updates.state.value as? UpdateState.Failed)?.failure?.text
-        if (!(onUpdatePage && item.notice.text == failure)) notices.say(item.notice.text)
+        val text = item.notice.text(context)
+        if (!(onUpdatePage && item.notice.msg == null && item.notice.text == failure)) notices.say(text)
         store.notices.dismiss(item)
     }
     // A source pinned for a title that can't be used: said once, whichever page is up.
     val pin by store.sourceChoices.pinNotice.collectAsStateWithLifecycle()
-    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(pin?.serial) {
         val said = pin ?: return@LaunchedEffect
         notices.say(tv.anistream.i18n.Strings.sourcePinUnavailable(context, said.name))

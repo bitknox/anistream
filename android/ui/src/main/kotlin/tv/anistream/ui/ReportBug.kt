@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.text
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -44,12 +45,12 @@ internal fun bugReportDevice(context: Context): BugReportDevice {
 }
 
 /** The newest problem the app has told of this session, for a report started from About. */
-internal fun lastProblem(store: AppStore): BugContext? =
-    store.notices.log.value.firstOrNull { it.isAlert }?.let { BugContext("message", it.notice.text) }
+internal fun lastProblem(context: Context, store: AppStore): BugContext? =
+    store.notices.log.value.firstOrNull { it.isAlert }?.let { BugContext("message", it.notice.text(context)) }
 
 /** Open the bug report with an intent, with [context] as its error, or the newest problem. */
 internal fun openBugReport(context: Context, store: AppStore, problem: BugContext? = null) {
-    val url = store.bugReportUrl(bugReportDevice(context), problem ?: lastProblem(store))
+    val url = store.bugReportUrl(bugReportDevice(context), problem ?: lastProblem(context, store))
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     try {
         context.startActivity(intent)

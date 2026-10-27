@@ -3,6 +3,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.text
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -106,7 +107,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     val leave = rememberLeave(leaving)
     ScreenFrame(
         title = "Continue",
-        subtitle = status ?: if (empty) "Nothing watched yet" else null,
+        subtitle = status?.text(LocalContext.current) ?: if (empty) "Nothing watched yet" else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
         Refreshable({ store.loadContinue(force = true) }, top = padding.calculateTopPadding()) {

@@ -4,6 +4,7 @@
 
 package tv.anistream.ui
 
+import tv.anistream.store.text
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -114,7 +115,7 @@ private fun slowJob(): String? {
         }
     }
     if (!slow || job == null) return null
-    return sentence(job.note ?: job.activity)
+    return sentence(job.note?.text(LocalContext.current) ?: job.activity)
 }
 
 /** Whether [active] has held for [millis]: work earns its place on screen only past 600 ms. */
