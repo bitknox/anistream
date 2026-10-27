@@ -188,6 +188,13 @@ fn walk(
                 if code.starts_with("//") || code.starts_with("///") || code.starts_with('*') {
                     continue;
                 }
+                // A literal that is a token, not text (an id, a symbol name, a format code).
+                if line.rsplit_once("//").is_some_and(|(_, comment)| comment.contains("i18n-skip")) {
+                    continue;
+                }
+                if std::env::var_os("I18N_LIST").is_some() && patterns.iter().any(|p| p.is_match(line)) {
+                    println!("{}: {}", path.strip_prefix(root)?.display(), code);
+                }
                 if patterns.iter().any(|p| p.is_match(line)) {
                     n += 1;
                 }
@@ -610,7 +617,7 @@ mod tests {
         let dir = tree(&[
             (
                 "apple/Packages/AnistreamUI/Sources/A.swift",
-                "Text(\"Library\")\nText(L.settingsLanguage)\nButton(\"Try again\") { }\nImage(\"icon\")\n// Text(\"Comment\")\n",
+                "Text(\"Library\")\nText(L.settingsLanguage)\nButton(\"Try again\") { }\nImage(\"icon\")\n// Text(\"Comment\")\nText(\"token-id\") // i18n-skip\n",
             ),
             ("apple/Packages/AnistreamUI/Tests/T.swift", "Text(\"Test only\")\n"),
         ]);
