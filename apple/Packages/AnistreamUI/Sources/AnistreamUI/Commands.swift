@@ -3,6 +3,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 /// The app's menus beside the system's. The Playback menu's items and Window's player item come
@@ -238,6 +239,10 @@ struct EpisodeCommands: View {
             .disabled(entry == nil)
             Button("Open on AniList") {
                 if let entry { store.openOnAniList(entry.id) }
+            }
+            .disabled(entry == nil)
+            Button(L.menuSourceForTitle) {
+                if let entry { navigator.sourcePicker = entry.id }
             }
             .disabled(entry == nil)
         }

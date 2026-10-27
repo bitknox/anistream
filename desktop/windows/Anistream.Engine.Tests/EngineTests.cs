@@ -323,7 +323,7 @@ public class EngineTests
         Assert.Contains("open https://anistream.example/help", host.Calls);
         var toast = read.OfType<Event.Toast>().Single();
         Assert.Equal(NoticeKind.Alert, toast.V1.Kind);
-        Assert.Equal("could not open: the app did not open it", toast.V1.Text);
+        Assert.Equal("Couldn't open that. the app did not open it", toast.V1.Text);
     }
 
     [Fact(Timeout = Minute)]

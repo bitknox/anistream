@@ -73,7 +73,10 @@ import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.ProtectionView
 import tv.anistream.engine.model.ProxyView
+import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.model.SettingKey
+import tv.anistream.engine.model.SourceNote
+import tv.anistream.engine.model.SourceOption
 import tv.anistream.engine.model.SkipKind
 import tv.anistream.engine.model.StatsFixture
 import tv.anistream.engine.ffi.playerStatsFixture
@@ -170,6 +173,70 @@ class TvShots {
 
     @Test
     fun title() = shoot("tv-title", title = 900001u)
+
+    /**
+     * Source for this title from the title page's More, by the D-pad alone: the panel lists Automatic
+     * and each source with its coverage or note, focus on the chosen one, long names cut short.
+     */
+    @Test
+    fun title_source_picker() = shoot("tv-source-picker", title = 900001u) { openSourcePicker() }
+
+    /** The same panel at 720p, where the rows must still fit the panel's 400 dp column. */
+    @Test
+    @Config(qualifiers = "w640dp-h360dp-land-television-xhdpi")
+    fun title_source_picker_720p() = shoot("tv-source-picker-720p", title = 900001u) { openSourcePicker() }
+
+    /** Nothing pinned: Automatic is the chosen row and holds the focus, the long name cut short. */
+    @Test
+    fun title_source_picker_automatic() = shoot("tv-source-picker-automatic", title = 900001u) { openSourcePicker(pinned = false) }
+
+    @Test
+    @Config(qualifiers = "w640dp-h360dp-land-television-xhdpi")
+    fun title_source_picker_automatic_720p() = shoot("tv-source-picker-automatic-720p", title = 900001u) { openSourcePicker(pinned = false) }
+
+    /** Center on a source pins it, closes the panel and sends the choice. */
+    @Test
+    fun source_picker_picks_with_center() = shoot(null, title = 900001u) {
+        openSourcePicker()
+        // Up from the chosen release, past its source, to the one above.
+        repeat(5) { if (!focusedText().startsWith("Mukashi Archive")) press(Key.DirectionUp) }
+        assertTrue("focus reaches the long name: ${focusedText()}", focusedText().startsWith("Mukashi Archive"))
+        press(Key.DirectionCenter)
+        assertTrue(
+            "the choice is sent",
+            shot.waiting.contains(tv.anistream.engine.model.Command.SetProviderPreference(900001u, "mukashi-archive")),
+        )
+        assertTrue("the panel closed", compose.onAllNodesWithText("Automatic").fetchSemanticsNodes().isEmpty())
+    }
+
+    private fun pickerOptions(pinned: Boolean = true) = listOf(
+        SourceOption("hotaru-open-archive", "Hotaru Open Archive", 13u, 13u, false, null, emptyList(), null),
+        SourceOption("mukashi-archive", "Mukashi Archive With A Very Long Name That Cannot Possibly Fit", 6u, 13u, false, null, emptyList(), null),
+        SourceOption(
+            "torrents", "Torrent source", 12u, 13u, pinned, null,
+            listOf(
+                SourceCandidate("batch-1080", "torrents", "Stardust Wayfarer complete batch", 1080u, 84u, "14.2 GiB", true, false, true),
+                SourceCandidate("single-1080", "torrents", "Stardust Wayfarer 01", 1080u, 31u, "1.1 GiB", false, false, false),
+                SourceCandidate("single-720", "torrents", "Stardust Wayfarer 01", 720u, 12u, "480 MiB", false, false, false),
+            ),
+            "single-1080".takeIf { pinned },
+        ),
+        SourceOption("fumi-mirror", "Fumi Mirror", 0u, 13u, false, SourceNote.Resting, emptyList(), null),
+        SourceOption("old-reel", "Old Reel", 0u, 13u, false, SourceNote.Failed("Timed out after 20 seconds"), emptyList(), null),
+    )
+
+    /** Focus More, open it, and choose Source for this title, as the remote would. */
+    private fun openSourcePicker(pinned: Boolean = true) {
+        compose.onNodeWithContentDescription("More").requestFocus()
+        compose.waitForIdle()
+        press(Key.DirectionCenter)
+        downTo("Source for this title")
+        press(Key.DirectionCenter)
+        shot.apply(Event.SourceOptions(900001u, pickerOptions(pinned)))
+        settle()
+        val first = if (pinned) "Stardust Wayfarer 01" else "Automatic"
+        assertTrue("the chosen row holds the focus: ${focusedText()}", focusedText().startsWith(first))
+    }
 
     @Test
     fun calendar() = shoot("tv-calendar", start = Destination.Calendar)

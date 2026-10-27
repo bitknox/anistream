@@ -863,6 +863,14 @@
     <value>Queued {count} episodes.</value>
     <comment>Toast after episodes are added to the download queue.</comment>
   </data>
+  <data name="SourcePickerSeeders_one" xml:space="preserve">
+    <value>One seeder</value>
+    <comment>Under a release in the source picker: how many people share it right now.</comment>
+  </data>
+  <data name="SourcePickerSeeders_other" xml:space="preserve">
+    <value>{count} seeders</value>
+    <comment>Under a release in the source picker: how many people share it right now.</comment>
+  </data>
   <data name="ActionTryAgain" xml:space="preserve">
     <value>Try again</value>
     <comment>Button that runs a failed action again.</comment>
@@ -914,6 +922,10 @@
   <data name="SizeGigabyte" xml:space="preserve">
     <value>{value} GB</value>
     <comment>A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.</comment>
+  </data>
+  <data name="ActionDone" xml:space="preserve">
+    <value>Done</value>
+    <comment>Button that closes a sheet whose changes have already been made.</comment>
   </data>
   <data name="QueueEpisodesLeft_one" xml:space="preserve">
     <value>One episode left in {title}</value>

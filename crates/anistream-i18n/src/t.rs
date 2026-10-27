@@ -4965,6 +4965,11 @@ pub fn size_gigabyte(value: &str) -> String {
     text("size-gigabyte", &[("value", Arg::Text(value))])
 }
 
+/// Button that closes a sheet whose changes have already been made.
+pub fn action_done() -> String {
+    text("action-done", &[])
+}
+
 /// Continue row subtitle. The show's title is cut first when the row is short.
 pub fn queue_episodes_left(count: i64, title: &str) -> String {
     text("queue-episodes-left", &[("count", Arg::Int(count)), ("title", Arg::Text(title))])

@@ -6,6 +6,7 @@ import Accessibility
 import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
+import AnistreamStrings
 import SwiftUI
 
 extension Entry {
@@ -103,6 +104,7 @@ extension EpisodeRow {
             parts.append(Wording.plural(max(1, Int((Double(seconds) / 60).rounded())), "minute"))
         }
         if kind == .filler { parts.append("filler") }
+        if unsourced { parts.append(L.episodeUnsourced) }
         return parts
     }
 }
@@ -215,7 +217,7 @@ struct TitleActions: View {
     let entry: Entry
 
     var body: some View {
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, episodes: store.titles.episodes[entry.id])
         if action.playable, store.titles.unlisted(entry.id) {
             Button(AddSourceWords.menu) { navigator.openProviders() }
         } else if action.playable {

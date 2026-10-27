@@ -221,7 +221,7 @@ public class LinesTests
     [Fact]
     public void ASavedSettingGoesUnsaidAndARefusalStillShows()
     {
-        Assert.True(Lines.SettingSaved(new Notice(NoticeKind.Info, "saved · auto-play next", null)));
+        Assert.True(Lines.SettingSaved(new Notice(NoticeKind.Info, "Saved auto-play next.", null, new Msg.NoticeSaved("auto-play next"))));
         Assert.False(Lines.SettingSaved(new Notice(NoticeKind.Alert, "not saved: the file is read-only", null)));
         Assert.False(Lines.SettingSaved(new Notice(NoticeKind.Info, "Episode 3 downloaded", null)));
     }

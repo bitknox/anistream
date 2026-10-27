@@ -3096,6 +3096,9 @@ size-megabyte = { $value } MB
 # A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
 size-gigabyte = { $value } GB
 
+# Button that closes a sheet whose changes have already been made.
+action-done = Done
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->

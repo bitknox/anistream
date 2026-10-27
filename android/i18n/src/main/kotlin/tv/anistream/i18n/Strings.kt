@@ -18,12 +18,12 @@ object Strings {
         context.getString(R.string.cause_no_sources)
 
     /** A play's explanation: the episode's broadcast is still ahead. The "when" says today, tomorrow or a date. */
-    fun noticeNotAired(context: Context, episode: Int, when: String): String =
-        context.getString(R.string.notice_not_aired, episode, when)
+    fun noticeNotAired(context: Context, episode: Int, `when`: String): String =
+        context.getString(R.string.notice_not_aired, episode, `when`)
 
     /** A play's explanation: the episode is after the next one to air. The "when" says when that one airs. */
-    fun noticeNotAiredYet(context: Context, episode: Int, next: Int, when: String): String =
-        context.getString(R.string.notice_not_aired_yet, episode, next, when)
+    fun noticeNotAiredYet(context: Context, episode: Int, next: Int, `when`: String): String =
+        context.getString(R.string.notice_not_aired_yet, episode, next, `when`)
 
     /** Part of an air time: the broadcast is later today. The time is the viewer's local time. */
     fun causeAirsToday(context: Context, time: String): String =
@@ -793,6 +793,10 @@ object Strings {
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)
 
+    /** Under a release in the source picker: how many people share it right now. */
+    fun releaseSeeders(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.release_seeders, count, count)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)
@@ -844,6 +848,10 @@ object Strings {
     /** A file size in gigabytes (1,000,000,000 bytes). The number is already formatted. */
     fun sizeGigabyte(context: Context, value: String): String =
         context.getString(R.string.size_gigabyte, value)
+
+    /** Button that closes a sheet whose changes have already been made. */
+    fun actionDone(context: Context): String =
+        context.getString(R.string.action_done)
 
     /** Continue row subtitle. The show's title is cut first when the row is short. */
     fun queueEpisodesLeft(context: Context, count: Int, title: String): String =

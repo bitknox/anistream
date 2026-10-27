@@ -48,3 +48,7 @@ size-megabyte = { $value } MB
 # A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.
 # @arg value: text
 size-gigabyte = { $value } GB
+
+# Button that closes a sheet whose changes have already been made.
+# @max 12
+action-done = Done

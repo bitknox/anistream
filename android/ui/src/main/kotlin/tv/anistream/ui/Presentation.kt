@@ -8,9 +8,11 @@ import java.time.ZoneId
 import java.util.Locale
 import tv.anistream.store.AppClock
 import tv.anistream.store.CalendarModel
+import tv.anistream.store.ContinueItem
 import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
 import tv.anistream.store.clock
+import tv.anistream.store.playableNext
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.ffi.episodeLine
@@ -68,9 +70,20 @@ val Entry.metadataLine: String
     }
 
 /** The episode a title's action plays, and how it says so. */
-data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null, val translation: Translation? = null) {
-    /** Whether there is an episode to play: never one still to air, which nothing could find. */
-    val playable: Boolean get() = airing.hasAired
+data class TitleAction(
+    val episode: UInt,
+    val resume: ResumePoint?,
+    val airing: EpisodeAiring,
+    val airsAt: Long? = null,
+    val translation: Translation? = null,
+    /** Every episode from the next on is one no source lists: nothing to play. */
+    val unsourced: Boolean = false,
+) {
+    /**
+     * Whether there is an episode to play: never one still to air, which nothing could find, and
+     * never one no source lists.
+     */
+    val playable: Boolean get() = airing.hasAired && !unsourced
 
     /** "Resume E7 · 10:06", "Start E8", and for a dub "Start E8 · Dub": what the amber action says. */
     val label: String
@@ -84,16 +97,23 @@ data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: 
      * with a water dot in the action's place, or "Episode 10 is not out yet" undated.
      */
     fun caughtUp(context: android.content.Context): String =
-        airsAt?.let { "Episode $episode airs ${airsWords(context, Instant.ofEpochSecond(it))}" }
+        if (unsourced) tv.anistream.i18n.Strings.episodeUnsourced(context)
+        else airsAt?.let { "Episode $episode airs ${airsWords(context, Instant.ofEpochSecond(it))}" }
             ?: airing.airs()?.let { "Episode $episode airs $it" }
             ?: "Episode $episode is not out yet"
 
     companion object {
-        fun of(entry: Entry, now: Long = AppClock.now().epochSecond): TitleAction {
-            val episode = entry.progress?.next ?: 1u
+        /**
+         * The action for [entry]: the engine's next episode, or in [rows], once the table is loaded,
+         * the first after it that some source lists.
+         */
+        fun of(entry: Entry, now: Long = AppClock.now().epochSecond, rows: List<EpisodeRow>? = null): TitleAction {
+            val target = entry.playableNext(rows)
+            val episode = target.episode
             val resume = entry.resume
             val dub = entry.watchedIn
             if (resume != null) return TitleAction(episode, resume, EpisodeAiring.Aired, translation = dub)
+            if (target.unsourced) return TitleAction(episode, null, entry.airing(episode), translation = dub, unsourced = true)
             // The schedule says when the very episode airs, where AniList has one.
             val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
             if (scheduled != null) {
@@ -197,3 +217,8 @@ fun formatLabel(format: String?): String? = when (format) {
     "MUSIC" -> "Music"
     else -> format
 }
+
+/** What a Continue row says it plays; with no source for what is left, that no source has it. */
+@androidx.compose.runtime.Composable
+internal fun ContinueItem.actionText(): String =
+    if (unsourced) androidx.compose.ui.res.stringResource(tv.anistream.i18n.R.string.episode_unsourced) else action

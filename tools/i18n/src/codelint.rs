@@ -21,7 +21,7 @@ struct Rules {
     /// Directories (relative to the repository) and the extensions scanned in them.
     roots: &'static [&'static str],
     extensions: &'static [&'static str],
-    /// Directory names never entered: tests, builds, generated code and the generated catalogue.
+    /// Directory and file names never entered: tests, builds, generated code and the generated catalogue.
     skip: &'static [&'static str],
     /// Each pattern's first group is the literal.
     patterns: Vec<String>,
@@ -67,7 +67,8 @@ fn rules(platform: Platform) -> Rules {
         Platform::Apple => Rules {
             roots: &["apple/Packages", "apple/App", "apple/Widgets"],
             extensions: &["swift"],
-            skip: skip(&["AnistreamStrings", "AnistreamDev"]),
+            // Showcase.swift is the Fixtures app's invented rows, never in a shipped build.
+            skip: skip(&["AnistreamStrings", "AnistreamDev", "Showcase.swift"]),
             patterns: vec![
                 p(r"\b(?:Text|Button|Label|Toggle|Section|Picker|TextField|SecureField|Menu|LabeledContent|ProgressView|Link|SettingsGroup|PhoneSectionHeader)\(\s*LIT"),
                 p(r"\.(?:navigationTitle|help|accessibilityLabel|accessibilityHint|badge|confirmationDialog|alert)\(\s*LIT"),
@@ -152,6 +153,8 @@ fn walk(
             if !rules.skip.contains(&name.as_str()) && !name.ends_with("Tests") {
                 walk(root, &path, rules, patterns, counts)?;
             }
+        } else if rules.skip.contains(&name.as_str()) {
+            // A file named in `skip`, as a directory is.
         } else if path.extension().is_some_and(|e| rules.extensions.iter().any(|x| e == *x)) {
             // Android's XML is only the layouts; its values are the generated catalogue.
             if platform_xml_skip(&path) {

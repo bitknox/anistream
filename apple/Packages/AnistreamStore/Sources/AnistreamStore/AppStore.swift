@@ -37,6 +37,8 @@ public final class AppStore {
     public let showSettings = ShowSettingsModel()
     public let accounts = AccountsModel()
     public let providers = ProvidersModel()
+    /// The source picker's options per title.
+    public let sourceChoices = SourceChoiceModel()
     public let stores = StoresModel()
     public let downloads = DownloadsModel()
     /// New-episode notifications: the week coming up, permission, and each show's switch.
@@ -567,7 +569,7 @@ public final class AppStore {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)
         case .jobNote(let job, let note, let wait):
-            jobs.note(job, note: note, wait: wait)
+            jobs.note(job, note: msgEnglish(msg: note), wait: wait)  // i18n P2: replace with the catalogue
         case .jobDone(let job):
             jobs.done(job)
             stores.done(job)
@@ -596,7 +598,7 @@ public final class AppStore {
             titles.dub(id: id, extent: dub)
 
         case .status(let text):
-            notices.status(text)
+            notices.status(text.map { msgEnglish(msg: $0) } ?? "")  // i18n P2: replace with the catalogue
         case .toast(let notice):
             party.apply(event)
             notices.post(notice)
@@ -636,11 +638,15 @@ public final class AppStore {
             providers.apply(rows)
             if !had, rows.contains(where: { $0.usable }) { sourcesArrived() }
         case .providerNote(let text):
-            providers.note(text)
+            providers.note(msgEnglish(msg: text))  // i18n P2: replace with the catalogue
         case .sourcesChanged:
             providers.sourcesChanged()
         case .providerPreference(let provider):
             providers.preference(provider)
+        case .sourceOptions(let id, let options):
+            sourceChoices.apply(id: id, options: options)
+        case .pinUnavailable(let id, let providerId, let name):
+            sourceChoices.pinUnavailable(id: id, providerId: providerId, name: name)
         case .vpn(let view):
             providers.guardSaid(view)
         case .protectionChecked(let view):

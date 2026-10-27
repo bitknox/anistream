@@ -1,4 +1,5 @@
 #if ANISTREAM_TESTING
+using Anistream.Engine.Core;
 using Anistream.Engine.Model;
 
 namespace Anistream.Windows;
@@ -53,6 +54,63 @@ static class Showcase
         Link: link, Name: "Hotaru Plugins", Url: "https://plugins.hotaru.example", Host: "plugins.hotaru.example",
         Fingerprint: "9f3c 1a2b 77de 0c41", AlreadyJoined: false, Owners: ["Ren"],
         Plugins: StoreRows[0].Plugins, Open: false, Anonymous: false, DeviceLabel: "Computer")));
+
+    /// <summary>
+    /// What each source has of a title, for the source picker's shots: one with all of it, one
+    /// with part, one that failed, one switched off and a torrent source with a batch and singles.
+    /// <paramref name="show"/> says which is pinned: source-picker-pinned, or source-picker-releases
+    /// for a release within the torrent source.
+    /// </summary>
+    public static SourceOption[] PickerOptions(string show)
+    {
+        SourceCandidate Release(string id, string title, uint quality, uint seeders, string size) =>
+            new(id, "torrent", title, quality, seeders, size);
+        SourceCandidate[] releases =
+        [
+            Release("batch-1080", "Hoshikuzu no Tabibito (Batch) 1080p", 1080, 84, "14.2 GiB"),
+            Release("batch-720", "Hoshikuzu no Tabibito (Batch) 720p", 720, 31, "6.8 GiB"),
+            Release("single-1080", "Hoshikuzu no Tabibito - 01 1080p", 1080, 12, "1.1 GiB"),
+        ];
+        var pinned = show switch
+        {
+            "source-picker-pinned" => "mukashi-archive",
+            "source-picker-releases" => "torrent",
+            _ => null,
+        };
+        SourceOption Option(string id, string name, uint covered, SourceNote? note = null, SourceCandidate[]? with = null) =>
+            new(id, name, covered, 13, id == pinned, note, with ?? [], id == pinned && with is not null ? "batch-720" : null);
+        var torrent = Option("torrent", "Torrent source", 6, with: show == "source-picker-pinned" ? null : releases);
+        return show switch
+        {
+            // Every state a source can be in: all of it, part of it, failed, off.
+            "source-picker-pinned" =>
+            [
+                Option("hotaru-open-archive", "Hotaru Open Archive", 13),
+                Option("mukashi-archive", "Mukashi Archive", 9),
+                torrent,
+                Option("machi-library-films", "Machi Library Films", 0, new SourceNote.Failed("the site did not answer in 15 s.")),
+                Option("sora-festival", "Sora Animation Festival", 0, new SourceNote.Off()),
+            ],
+            _ =>
+            [
+                Option("hotaru-open-archive", "Hotaru Open Archive", 13),
+                Option("mukashi-archive", "Mukashi Archive", 9),
+                torrent,
+                Option("machi-library-films", "Machi Library Films", 0, new SourceNote.Failed("the site did not answer in 15 s.")),
+            ],
+        };
+    }
+
+    /// <summary>
+    /// A title's table as if the sources fell short of it: the next episode, the one after and the
+    /// last three are listed by no source.
+    /// </summary>
+    public static Event.Episodes Unsourced(Event.Episodes table, uint next)
+    {
+        var last = table.Rows.Length;
+        return new(table.Id, [.. table.Rows.Select((row, at) =>
+            uint.TryParse(row.Number, out var n) && (n == next || n == next + 1 || at >= last - 3) ? row with { Unsourced = true } : row)]);
+    }
 
     static ProviderRow Plugin(string id, string name, string version, string[] hosts, ProviderOrigin origin,
         string state = "ready", string? error = null, ProviderUpdate? update = null, ulong? latency = 200) =>

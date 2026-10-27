@@ -232,7 +232,7 @@ public static partial class T
     public static string NoticeKeepNextFull => Get("NoticeKeepNextFull");
 
     /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</summary>
-    public static string PartyNeedsServer(string server, string operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", operator));
+    public static string PartyNeedsServer(string server, string @operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", @operator));
 
     /// <summary>Toast when a watch party is asked for in a build without watch parties.</summary>
     public static string NoticeNoParty => Get("NoticeNoParty");
@@ -600,6 +600,9 @@ public static partial class T
     /// <summary>Toast after episodes are added to the download queue.</summary>
     public static string NoticeEpisodesQueued(long count) => Fill(GetPlural("NoticeEpisodesQueued", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Under a release in the source picker: how many people share it right now.</summary>
+    public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Button that runs a failed action again.</summary>
     public static string ActionTryAgain => Get("ActionTryAgain");
 
@@ -638,6 +641,9 @@ public static partial class T
 
     /// <summary>A file size in gigabytes (1,000,000,000 bytes). The number is already formatted.</summary>
     public static string SizeGigabyte(string value) => Fill(Get("SizeGigabyte"), ("value", value));
+
+    /// <summary>Button that closes a sheet whose changes have already been made.</summary>
+    public static string ActionDone => Get("ActionDone");
 
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
@@ -953,6 +959,8 @@ public static partial class T
         ["NoticePlaybackFailed"] = "Playback failed. Try another source.",
         ["NoticeEpisodesQueued_one"] = "Queued one episode.",
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
+        ["SourcePickerSeeders_one"] = "One seeder",
+        ["SourcePickerSeeders_other"] = "{count} seeders",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",
@@ -966,6 +974,7 @@ public static partial class T
         ["SizeKilobyte"] = "{value} kB",
         ["SizeMegabyte"] = "{value} MB",
         ["SizeGigabyte"] = "{value} GB",
+        ["ActionDone"] = "Done",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",

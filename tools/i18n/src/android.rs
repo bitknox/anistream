@@ -147,9 +147,9 @@ fn kotlin(langs: &[Shipped]) -> String {
         }
         let mut params = vec!["context: Context".to_owned()];
         params.extend(m.args.iter().map(|a| {
-            format!("{}: {}", camel(&a.name), if a.ty.is_int() { "Int" } else { "String" })
+            format!("{}: {}", ident(&a.name), if a.ty.is_int() { "Int" } else { "String" })
         }));
-        let call_args: Vec<String> = m.args.iter().map(|a| camel(&a.name)).collect();
+        let call_args: Vec<String> = m.args.iter().map(|a| ident(&a.name)).collect();
         let body = match entry.body {
             Body::Plain(_) if call_args.is_empty() => {
                 format!("context.getString(R.string.{res})")
@@ -159,7 +159,7 @@ fn kotlin(langs: &[Shipped]) -> String {
             }
             Body::Plural { ref selector, .. } => format!(
                 "context.resources.getQuantityString(R.plurals.{res}, {}, {})",
-                camel(selector),
+                ident(selector),
                 call_args.join(", ")
             ),
         };
@@ -180,4 +180,40 @@ fn kotlin(langs: &[Shipped]) -> String {
     }
     out.push_str("    )\n}\n\n/** A language the build has text for; [name] is the language's name in itself. */\ndata class Language(val tag: String, val name: String, val draft: Boolean)\n");
     out
+}
+
+/// An argument's name as a Kotlin identifier: a hard keyword (`when`, `in`, `is`) is quoted.
+fn ident(name: &str) -> String {
+    const HARD: &[&str] = &[
+        "as",
+        "break",
+        "class",
+        "continue",
+        "do",
+        "else",
+        "false",
+        "for",
+        "fun",
+        "if",
+        "in",
+        "interface",
+        "is",
+        "null",
+        "object",
+        "package",
+        "return",
+        "super",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "typealias",
+        "typeof",
+        "val",
+        "var",
+        "when",
+        "while",
+    ];
+    let c = camel(name);
+    if HARD.contains(&c.as_str()) { format!("`{c}`") } else { c }
 }

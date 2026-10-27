@@ -64,6 +64,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
+import tv.anistream.i18n.R
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -1055,6 +1057,17 @@ private fun OtherForms(entry: Entry, modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * What the title's main button plays: the next episode that some source lists, once the episode
+ * table is loaded.
+ */
+@Composable
+internal fun titleAction(entry: Entry): TitleAction {
+    val store = LocalAppStore.current
+    val all by store.titles.episodes.collectAsStateWithLifecycle()
+    return TitleAction.of(entry, rows = all[entry.id])
+}
+
 /** Back and More, each a 40 circle on surfaceContainer in a 48 target, over the banner. */
 @Composable
 private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = Modifier) {
@@ -1062,13 +1075,15 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
     var more by remember { mutableStateOf(false) }
     var showSettings by rememberSaveable(entry.id) { mutableStateOf(false) }
     if (showSettings) ShowSettingsSheet(entry) { showSettings = false }
+    var showSources by rememberSaveable(entry.id) { mutableStateOf(false) }
+    if (showSources) SourcePickerSheet(entry) { showSources = false }
     Row(
         modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CircleIconButton(Icons.Back, "Back", onBack)
         Spacer(Modifier.weight(1f))
-        val action = TitleAction.of(entry)
+        val action = titleAction(entry)
         if (store.tv.available && action.playable) {
             CircleIconButton(Icons.Tv, "Play on TV", {
                 store.tv.offer(TvPlayRequest(entry.id, entry.showTitle, action.episode.toString(), action.resume?.position))
@@ -1083,6 +1098,14 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
                     onClick = {
                         more = false
                         showSettings = true
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.source_picker_title)) },
+                    leadingIcon = { Icon(Icons.Providers, null) },
+                    onClick = {
+                        more = false
+                        showSources = true
                     },
                 )
                 DropdownMenuItem(
@@ -1123,7 +1146,7 @@ private fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVect
 @Composable
 private fun TitleActions(entry: Entry, actions: AppActions, unlisted: Boolean) {
     val store = LocalAppStore.current
-    val action = TitleAction.of(entry)
+    val action = titleAction(entry)
     val colors = MaterialTheme.colorScheme
     Column(Modifier.padding(horizontal = 16.dp).padding(top = 16.dp)) {
         if (action.playable && unlisted) {
@@ -1703,7 +1726,7 @@ private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: A
             hidden = hidden,
             // One no source has plays nothing: a tap offers what can be done, adding a source among it.
             onPlay = {
-                if (row.metadataOnly) menu = true else if (!unaired) actions.play(entry.id, row.number)
+                if (row.metadataOnly || row.unsourced) menu = true else if (!unaired) actions.play(entry.id, row.number)
             },
             onMenu = { menu = true },
         )
@@ -1900,7 +1923,7 @@ private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidth(
 @Composable
 private fun TabletActions(entry: Entry, actions: AppActions, unlisted: Boolean, modifier: Modifier = Modifier) {
     val store = LocalAppStore.current
-    val action = TitleAction.of(entry)
+    val action = titleAction(entry)
     var open by remember { mutableStateOf(false) }
     Row(modifier.heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (action.playable && unlisted) {

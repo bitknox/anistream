@@ -129,7 +129,9 @@ struct ScreenRulesTests {
         #expect(lists.commands.isEmpty, "no title is focused, and no command is called hoshi")
         navigator.focusedTitle = 900_001
         lists = paletteItems(query: "hoshi", store: store, navigator: navigator)
-        #expect(lists.commands.map(\.name) == ["Mark Watched", "Hide from Continue", "Show Settings for This Show…"])
+        #expect(lists.commands.map(\.name) == ["Mark Watched", "Hide from Continue", "Source for this title", "Show Settings for This Show…"])
+        lists = paletteItems(query: "source", store: store, navigator: navigator)
+        #expect(lists.commands.map(\.name).contains("Source for this title"), "found by what it is called")
         lists = paletteItems(query: "cal", store: store, navigator: navigator)
         #expect(lists.titles.isEmpty)
         #expect(lists.commands.map(\.name).contains("Calendar"))

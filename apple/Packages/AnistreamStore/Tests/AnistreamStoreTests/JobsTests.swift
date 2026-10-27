@@ -49,7 +49,7 @@ struct JobsTests {
         clock.advance(.milliseconds(100))
         store.apply(.jobStarted(job: 2, activity: "loading the calendar"))
         clock.advance(.milliseconds(700))
-        store.apply(.jobNote(job: 1, note: "waiting on AniList", wait: 1.5))
+        store.apply(.jobNote(job: 1, note: .verbatim(text: "waiting on AniList"), wait: 1.5))
         #expect(store.jobs.shown.map(\.id) == [2, 1])
         let held = try! #require(store.jobs.shown.last)
         #expect(held.note == "waiting on AniList")

@@ -379,7 +379,7 @@ struct ReducerTests {
         store.apply([
             .toast(Notice(kind: .info, text: "plugin update ready: alpha", hint: .openStores)),
             .toast(Notice(kind: .alert, text: "AniList is not answering", hint: nil)),
-            .status("syncing"),
+            .status(.verbatim(text: "syncing")),
         ])
         #expect(store.notices.log.map(\.notice.text) == [
             "AniList is not answering", "plugin update ready: alpha",

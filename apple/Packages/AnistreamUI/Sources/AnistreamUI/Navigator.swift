@@ -67,6 +67,8 @@ public final class Navigator {
     public var searchPresented = false
     /// The title whose "More about this show" sheet is open.
     public var moreAbout: AnilistId?
+    /// The title whose source picker is open.
+    public var sourcePicker: AnilistId?
     /// The titles whose watched episodes are open in their episode lists, for the session.
     var watchedOpen: Set<AnilistId> = []
     /// An episode handed over from another device, which its title's page offers to resume.
@@ -86,6 +88,7 @@ public final class Navigator {
         if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }
         if route.sheet == "show" { showSettings = route.title }
         if route.sheet == "about" { moreAbout = route.title }
+        if route.sheet == "source" { sourcePicker = route.title }
         if route.sheet == "messages" { messagesShown = true }
         if route.fold == "open", let title = route.title { watchedOpen.insert(title) }
         if let day = route.day {
