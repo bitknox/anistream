@@ -633,6 +633,77 @@ notice-episodes-queued =
        *[other] [Ǫüéüéð { $count } éþîšöðéš.~~~~~~]
     }
 
+# Foot of the watch party form while the device is offline.
+party-needs-connection = [Å ŵàţçĥ þàŕţý ñééðš à çöññéçţîöñ. Ýöü'ŕé öƒƒļîñé.~~~~~~~~~~~~~~~]
+
+# Accessible label of the line that says how the watch party form is getting on.
+party-status = [Ŵàţçĥ þàŕţý šţàţüš~~~~~~]
+
+# Accessible label of the list of people in the watch party, in the player's panel.
+party-members = [Ṁéɱƀéŕš~~~]
+
+# Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+party-open-sources = [Öþéñ šöüŕçéš~~~~]
+
+# Title of the dialog that lists the sources that have the watch party's episode.
+party-choose-a-source = [Çĥööšé à šöüŕçé~~~~~]
+
+# Line while the sources are searched for the watch party's episode.
+party-looking-sources = [Ļööķîñĝ ţĥŕöüĝĥ ýöüŕ šöüŕçéš…~~~~~~~~~]
+
+# Line when no source lists the watch party's episode. A plugin store adds plugins, which add sources.
+party-sources-none-listed = [Ñö šöüŕçé ļîšţš éþîšöðé { $episode }. Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line above the list of sources that have the watch party's episode.
+party-sources-found-line =
+    { $count ->
+        [one] [Öñé šöüŕçé ĥàš îţ. Ţĥé öñé ýöü çĥööšé þļàýš ŵîţĥ ţĥé ŵàţçĥ þàŕţý.~~~~~~~~~~~~~~~~~~~~]
+       *[other] [{ $count } šöüŕçéš ĥàṽé îţ. Ţĥé öñé ýöü çĥööšé þļàýš ŵîţĥ ţĥé ŵàţçĥ þàŕţý.~~~~~~~~~~~~~~~~~~~~~]
+    }
+
+# Notice when the player could not start, or could not be reached to add a track.
+player-could-not-start = [Ţĥé þļàýéŕ çöüļð ñöţ šţàŕţ~~~~~~~~]
+
+# Notice when the file chosen for a subtitle or audio track has no path the app can read.
+player-file-unreadable = [Çöüļðñ'ţ ŕéàð ţĥàţ ƒîļé. Ţŕý àñöţĥéŕ.~~~~~~~~~~~~]
+
+# The reason the system gives for keeping the screen awake and the computer from sleeping while an episode plays. Other apps and the desktop may show it.
+player-inhibit-reason = [Þļàýîñĝ àñ éþîšöðé~~~~~~]
+
+# Accessible description of the time left in the episode, beside the countdown.
+player-time-left = [{ $time } ļéƒţ~~~]
+
+# Line on the starting screen after a note from the engine, with the seconds waited.
+player-note-waited = [{ $note } · { $seconds } š~~~~]
+
+# Starting screen's line before the episode is known.
+player-starting-plain = [Šţàŕţîñĝ~~~]
+
+# Tooltip of the Undo button on the card that says an opening was skipped. The letter is the key that does the same.
+player-undo-tooltip = [Ûñðö (Û)~~~]
+
+# Over the timeline: the time under the pointer, when it is inside an opening.
+player-time-opening = [{ $clock } · Öþéñîñĝ~~~~]
+
+# Over the timeline: the time under the pointer, when it is inside an ending.
+player-time-ending = [{ $clock } · Éñðîñĝ~~~~]
+
+# Name of a one-channel audio track in the audio menu.
+player-channels-mono = [Ṁöñö~~]
+
+# Name of a two-channel audio track in the audio menu.
+player-channels-stereo = [Šţéŕéö~~]
+
+# Name of an audio track with some other number of channels.
+player-channels =
+    { $count ->
+        [one] [Öñé çĥàññéļ~~~~]
+       *[other] [{ $count } çĥàññéļš~~~~]
+    }
+
+# Accessible label of the two buttons that switch between subbed and dubbed audio.
+player-translation-label = [Šüƀƀéð öŕ ðüƀƀéð~~~~~]
+
 # Under a release in the source picker: how many people share it right now.
 source-picker-seeders-linux =
     { $count ->

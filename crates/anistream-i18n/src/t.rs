@@ -980,6 +980,111 @@ pub fn notice_episodes_queued(count: i64) -> String {
     text("notice-episodes-queued", &[("count", Arg::Int(count))])
 }
 
+/// Foot of the watch party form while the device is offline.
+pub fn party_needs_connection() -> String {
+    text("party-needs-connection", &[])
+}
+
+/// Accessible label of the line that says how the watch party form is getting on.
+pub fn party_status() -> String {
+    text("party-status", &[])
+}
+
+/// Accessible label of the list of people in the watch party, in the player's panel.
+pub fn party_members() -> String {
+    text("party-members", &[])
+}
+
+/// Button that goes to the Sources page, when the watch party's episode has no source because none are set up.
+pub fn party_open_sources() -> String {
+    text("party-open-sources", &[])
+}
+
+/// Title of the dialog that lists the sources that have the watch party's episode.
+pub fn party_choose_a_source() -> String {
+    text("party-choose-a-source", &[])
+}
+
+/// Line while the sources are searched for the watch party's episode.
+pub fn party_looking_sources() -> String {
+    text("party-looking-sources", &[])
+}
+
+/// Line when no source lists the watch party's episode. A plugin store adds plugins, which add sources.
+pub fn party_sources_none_listed(episode: i64) -> String {
+    text("party-sources-none-listed", &[("episode", Arg::Int(episode))])
+}
+
+/// Line above the list of sources that have the watch party's episode.
+pub fn party_sources_found_line(count: i64) -> String {
+    text("party-sources-found-line", &[("count", Arg::Int(count))])
+}
+
+/// Notice when the player could not start, or could not be reached to add a track.
+pub fn player_could_not_start() -> String {
+    text("player-could-not-start", &[])
+}
+
+/// Notice when the file chosen for a subtitle or audio track has no path the app can read.
+pub fn player_file_unreadable() -> String {
+    text("player-file-unreadable", &[])
+}
+
+/// The reason the system gives for keeping the screen awake and the computer from sleeping while an episode plays. Other apps and the desktop may show it.
+pub fn player_inhibit_reason() -> String {
+    text("player-inhibit-reason", &[])
+}
+
+/// Accessible description of the time left in the episode, beside the countdown.
+pub fn player_time_left(time: &str) -> String {
+    text("player-time-left", &[("time", Arg::Text(time))])
+}
+
+/// Line on the starting screen after a note from the engine, with the seconds waited.
+pub fn player_note_waited(note: &str, seconds: i64) -> String {
+    text("player-note-waited", &[("note", Arg::Text(note)), ("seconds", Arg::Int(seconds))])
+}
+
+/// Starting screen's line before the episode is known.
+pub fn player_starting_plain() -> String {
+    text("player-starting-plain", &[])
+}
+
+/// Tooltip of the Undo button on the card that says an opening was skipped. The letter is the key that does the same.
+pub fn player_undo_tooltip() -> String {
+    text("player-undo-tooltip", &[])
+}
+
+/// Over the timeline: the time under the pointer, when it is inside an opening.
+pub fn player_time_opening(clock: &str) -> String {
+    text("player-time-opening", &[("clock", Arg::Text(clock))])
+}
+
+/// Over the timeline: the time under the pointer, when it is inside an ending.
+pub fn player_time_ending(clock: &str) -> String {
+    text("player-time-ending", &[("clock", Arg::Text(clock))])
+}
+
+/// Name of a one-channel audio track in the audio menu.
+pub fn player_channels_mono() -> String {
+    text("player-channels-mono", &[])
+}
+
+/// Name of a two-channel audio track in the audio menu.
+pub fn player_channels_stereo() -> String {
+    text("player-channels-stereo", &[])
+}
+
+/// Name of an audio track with some other number of channels.
+pub fn player_channels(count: i64) -> String {
+    text("player-channels", &[("count", Arg::Int(count))])
+}
+
+/// Accessible label of the two buttons that switch between subbed and dubbed audio.
+pub fn player_translation_label() -> String {
+    text("player-translation-label", &[])
+}
+
 /// Under a release in the source picker: how many people share it right now.
 pub fn source_picker_seeders_linux(count: i64) -> String {
     text("source-picker-seeders-linux", &[("count", Arg::Int(count))])

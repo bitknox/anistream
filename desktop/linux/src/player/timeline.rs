@@ -9,6 +9,7 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_mpv_host::Mpv;
 use gtk::gdk;
 use serde_json::{Value, json};
@@ -417,8 +418,8 @@ impl Preview {
     pub fn show(&self, x: f64, seconds: f64, segment: Option<Kind>) {
         let clock = say::clock(seconds);
         self.time.set_label(&match segment {
-            Some(Kind::Opening) => format!("{clock} · Opening"),
-            Some(Kind::Ending) => format!("{clock} · Ending"),
+            Some(Kind::Opening) => t::player_time_opening(&clock),
+            Some(Kind::Ending) => t::player_time_ending(&clock),
             None => clock,
         });
         self.popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, 0, 1, 1)));

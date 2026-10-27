@@ -11,6 +11,7 @@ use std::{
 };
 
 use adw::prelude::*;
+use anistream_i18n::t;
 use anistream_model::hosted::{DetailRow, PlayerStats, StatsAbout, StatsFixture};
 use gtk::glib;
 
@@ -57,7 +58,7 @@ pub struct Stats {
 
 impl Stats {
     pub fn new() -> Rc<Self> {
-        let title = gtk::Label::new(Some("Stats for nerds"));
+        let title = gtk::Label::new(Some(&t::player_stats()));
         title.add_css_class("heading");
         title.set_xalign(0.0);
         title.set_hexpand(true);
@@ -65,20 +66,20 @@ impl Stats {
         close.add_css_class("flat");
         close.add_css_class("circular");
         close.add_css_class("stats-close");
-        close.set_tooltip_text(Some("Close"));
-        close.update_property(&[gtk::accessible::Property::Label("Close stats for nerds")]);
+        close.set_tooltip_text(Some(&t::action_close()));
+        close.update_property(&[gtk::accessible::Property::Label(&t::player_stats_close())]);
         close.set_action_name(Some("player.stats"));
         let head = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         head.append(&title);
         head.append(&close);
 
-        let waiting_line = widgets::haze("Waiting for the stream", "");
+        let waiting_line = widgets::haze(&t::player_stats_waiting(), "");
         waiting_line.set_visible(false);
 
         let grid = gtk::Grid::new();
         grid.set_column_spacing(14);
         grid.set_row_spacing(5);
-        grid.update_property(&[gtk::accessible::Property::Label("Stats")]);
+        grid.update_property(&[gtk::accessible::Property::Label(&t::player_stats_heading())]);
         let scroll = gtk::ScrolledWindow::builder()
             .hscrollbar_policy(gtk::PolicyType::Never)
             .propagate_natural_height(true)
@@ -87,11 +88,11 @@ impl Stats {
             .build();
         scroll.set_margin_top(8);
 
-        let copy_button = gtk::Button::with_label("Copy Stats");
+        let copy_button = gtk::Button::with_label(&t::player_stats_copy());
         copy_button.add_css_class("pill");
         copy_button.add_css_class("stats-copy");
         copy_button.set_action_name(Some("player.copy-stats"));
-        let copied = widgets::haze("Copied", "");
+        let copied = widgets::haze(&t::action_copied(), "");
         copied.set_xalign(0.0);
         copied.add_css_class("stats-copied");
         let copy = gtk::Stack::new();
@@ -111,7 +112,7 @@ impl Stats {
         panel.append(&scroll);
         panel.append(&copy);
         panel.set_accessible_role(gtk::AccessibleRole::Group);
-        panel.update_property(&[gtk::accessible::Property::Label("Stats for nerds")]);
+        panel.update_property(&[gtk::accessible::Property::Label(&t::player_stats())]);
 
         let widget = gtk::Box::new(gtk::Orientation::Vertical, 0);
         widget.set_halign(gtk::Align::End);
@@ -340,7 +341,7 @@ pub fn about() -> StatsAbout {
     let system = ["/run/host/os-release", "/etc/os-release"]
         .iter()
         .find_map(|path| pretty_name(&std::fs::read_to_string(path).ok()?))
-        .unwrap_or_else(|| "Linux".into());
+        .unwrap_or_else(|| "Linux".into()) // i18n-skip;
     StatsAbout {
         app_version: anistream_engine::updates::CURRENT.to_owned(),
         system,
@@ -369,7 +370,7 @@ fn device_model() -> String {
         (true, _) => String::new(),
         (false, true) => product,
         (false, false) if version.chars().any(|c| c.is_ascii_alphabetic()) => {
-            format!("{product} ({version})")
+            format!("{product} ({version})") // i18n-skip
         }
         (false, false) => product,
     }

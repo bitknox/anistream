@@ -16,6 +16,7 @@ use std::{
 use adw::prelude::*;
 use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_engine::engine::Engine;
+use anistream_i18n::t;
 use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
@@ -545,7 +546,7 @@ impl PlayerView {
                     }
                 }
                 let Some(player) = &self.player else {
-                    self.ctx.toast("The player could not start");
+                    self.ctx.toast(&t::player_could_not_start());
                     return;
                 };
                 for op in ops {
@@ -606,8 +607,7 @@ impl PlayerView {
                     .get(job)
                     .is_some_and(|activity| activity.starts_with("starting"));
                 if starting {
-                    // i18n P2: replace with the catalogue
-                    self.starting_note.replace(Some(crate::catalog::shown(&note.english())));
+                    self.starting_note.replace(Some(say::msg(note)));
                 }
             }
             _ => {}
@@ -622,7 +622,7 @@ impl PlayerView {
         }
         self.starting_since.set(Some(Instant::now()));
         self.starting_note.replace(None);
-        self.ui.starting_line.set_label(&format!("Starting episode {episode}"));
+        self.ui.starting_line.set_label(&t::player_starting(crate::party::number(episode)));
         let me = self.me.clone();
         let tick = glib::timeout_add_local(Duration::from_secs(1), move || {
             let Some(view) = me.upgrade() else { return glib::ControlFlow::Break };
@@ -633,9 +633,12 @@ impl PlayerView {
             };
             let waited = since.elapsed();
             if waited >= STARTING_QUIET {
-                let note =
-                    view.starting_note.borrow().clone().unwrap_or("Finding a source".into());
-                view.ui.starting_line.set_label(&format!("{note} · {} s", waited.as_secs()));
+                let seconds = waited.as_secs() as i64;
+                let line = match view.starting_note.borrow().as_deref() {
+                    Some(note) => t::player_note_waited(note, seconds),
+                    None => t::player_finding_source(seconds),
+                };
+                view.ui.starting_line.set_label(&line);
             }
             glib::ControlFlow::Continue
         });
@@ -644,7 +647,7 @@ impl PlayerView {
 
     /// "Resumed at 12:04" with Start Over, in the top leading corner.
     fn resumed(&self, position: f64) {
-        self.ui.resumed_line.set_label(&format!("Resumed at {}", say::clock(position)));
+        self.ui.resumed_line.set_label(&t::player_resumed_at(&say::clock(position)));
         self.resumed_from.set(Some(position));
         self.ui.resumed.set_visible(true);
         crate::motion::fade_in(&self.ui.resumed);
@@ -730,9 +733,9 @@ impl PlayerView {
                 self.rebuild_menus();
             }
             PlayerUi::Skip { kind, .. } => {
-                self.ui.skip_button.set_label(match kind {
-                    SkipKind::Opening => "Skip Opening",
-                    SkipKind::Ending => "Skip Ending",
+                self.ui.skip_button.set_label(&match kind {
+                    SkipKind::Opening => t::player_skip_opening(),
+                    SkipKind::Ending => t::player_skip_ending(),
                 });
                 self.ui.skip.set(true);
             }
@@ -782,7 +785,7 @@ impl PlayerView {
         self.stall_since.set(Some(Instant::now() - Duration::from_secs(seconds)));
         let say = |view: &Self| {
             let held = view.stall_since.get().map_or(0, |since| since.elapsed().as_secs());
-            view.ui.stall_line.set_label(&format!("Source is buffering · {held} s"));
+            view.ui.stall_line.set_label(&t::player_stall_title(held as i64));
         };
         say(self);
         self.ui.stall.set(true);
@@ -826,7 +829,7 @@ impl PlayerView {
             source.remove();
         }
         if seconds == 0 {
-            self.ui.up_next_line.set_label("Up next");
+            self.ui.up_next_line.set_label(&t::player_up_next());
             self.ui.up_next_bar.set_visible(false);
             return;
         }
@@ -834,7 +837,7 @@ impl PlayerView {
         let left = Rc::new(Cell::new(seconds));
         let (line, bar) = (self.ui.up_next_line.clone(), self.ui.up_next_bar.clone());
         let say = move |left: u32| {
-            line.set_label(&format!("Plays in {left} s"));
+            line.set_label(&t::player_plays_in(i64::from(left)));
             bar.set_fraction(f64::from(left) / f64::from(seconds));
         };
         say(seconds);
@@ -859,9 +862,9 @@ impl PlayerView {
     fn auto_skipped(&self, kind: SkipKind, undo_to: f64) {
         self.forget_undo();
         self.undo.set(Some(Undo { to: undo_to, since: Instant::now(), landed: None }));
-        self.ui.undo_line.set_label(match kind {
-            SkipKind::Opening => "Skipped opening",
-            SkipKind::Ending => "Skipped ending",
+        self.ui.undo_line.set_label(&match kind {
+            SkipKind::Opening => t::player_skipped_opening(),
+            SkipKind::Ending => t::player_skipped_ending(),
         });
         self.ui.undo.set(true);
         // At most 15 s, even while paused, when no playback counts the 6 s down.
@@ -927,11 +930,11 @@ impl PlayerView {
     /// select it. mpv's alone: the next episode does not carry it.
     fn load_track(&self, kind: TrackKind) {
         let title = match kind {
-            TrackKind::Subtitle => "Load Subtitle File",
-            TrackKind::Audio => "Load Audio File",
+            TrackKind::Subtitle => t::player_load_subtitle_file(),
+            TrackKind::Audio => t::player_load_audio_file(),
         };
         let dialog = gtk::FileDialog::builder()
-            .title(title)
+            .title(title.trim_end_matches('…'))
             .modal(true)
             .filters(&tracks::filter(kind))
             .build();
@@ -944,12 +947,12 @@ impl PlayerView {
                 Err(e) if e.matches(gtk::DialogError::Dismissed) => return,
                 Err(e) => {
                     tracing::warn!(error = %e, "the file chooser failed");
-                    view.ctx.toast("Couldn't open the file chooser");
+                    view.ctx.toast(&t::player_file_picker_failed());
                     return;
                 }
             };
             let Some(path) = file.path() else {
-                view.ctx.toast("Couldn't read that file");
+                view.ctx.toast(&t::player_file_unreadable());
                 return;
             };
             let path = path.to_string_lossy().into_owned();
@@ -960,12 +963,12 @@ impl PlayerView {
                 Some(Ok(())) => view.fill_tracks(),
                 Some(Err(e)) => {
                     tracing::warn!(error = %e, "mpv did not load the track");
-                    view.ctx.toast(match kind {
-                        TrackKind::Subtitle => "Couldn't load that subtitle file",
-                        TrackKind::Audio => "Couldn't load that audio file",
+                    view.ctx.toast(&match kind {
+                        TrackKind::Subtitle => t::player_subtitle_file_failed(),
+                        TrackKind::Audio => t::player_audio_file_failed(),
                     });
                 }
-                None => view.ctx.toast("The player could not start"),
+                None => view.ctx.toast(&t::player_could_not_start()),
             }
             view.wake();
         });
@@ -993,7 +996,7 @@ impl PlayerView {
                         Some(&self.ctx.window),
                         gtk::ApplicationInhibitFlags::IDLE
                             | gtk::ApplicationInhibitFlags::SUSPEND,
-                        Some("Playing an episode"),
+                        Some(&t::player_inhibit_reason()),
                     );
                     // Zero when there is no session to ask, as in a headless run.
                     self.inhibit.set((cookie > 0).then_some(cookie));
@@ -1023,13 +1026,13 @@ impl PlayerView {
         }
         let ui = &self.ui;
         let (icon, tip) = if state.paused {
-            ("media-playback-start-symbolic", "Play")
+            ("media-playback-start-symbolic", t::action_play())
         } else {
-            ("media-playback-pause-symbolic", "Pause")
+            ("media-playback-pause-symbolic", t::action_pause())
         };
         for button in [&ui.play, &ui.mini_play] {
             button.set_icon_name(icon);
-            button.set_tooltip_text(Some(tip));
+            button.set_tooltip_text(Some(&tip));
         }
         if let Some(duration) = state.duration {
             ui.timeline.set_range(0.0, duration.max(0.1));
@@ -1041,8 +1044,8 @@ impl PlayerView {
                 // A minus sign, not a hyphen, and said as time left.
                 ui.remaining.set_label(&format!("\u{2212}{}", say::clock(left)));
                 ui.remaining.update_property(&[gtk::accessible::Property::Label(&format!(
-                    "{} left",
-                    say::spoken_duration(left)
+                    "{}",
+                    t::player_time_left(&say::spoken_duration(left))
                 ))]);
             }
             if Instant::now() >= self.held_until.get() {
@@ -1101,7 +1104,7 @@ impl PlayerView {
         }
         let label = speed_label(speed);
         self.ui.speed.set_label(&label);
-        self.ui.speed.set_tooltip_text(Some(&format!("Speed · {label}")));
+        self.ui.speed.set_tooltip_text(Some(&t::player_speed_is(&label)));
         self.speed_action.set_state(&speed.to_variant());
         if let Some(media) = self.media() {
             media.rate(speed);
@@ -1373,7 +1376,7 @@ impl PlayerView {
         let list = gio::Menu::new();
         for episode in episodes.iter().take(200) {
             let label = match &episode.title {
-                Some(title) => format!("{} · {title}", episode.label),
+                Some(title) => [episode.label.as_str(), title.as_str()].join(" · "),
                 None => episode.label.clone(),
             };
             list.append_item(&widgets::menu_item(&label, "player.episode", &episode.number));
@@ -1393,7 +1396,7 @@ impl PlayerView {
             ));
         }
         if !sources.is_empty() {
-            menu.append_section(Some("Source"), &source_menu);
+            menu.append_section(Some(&t::show_settings_source()), &source_menu);
         }
         let current = sources.iter().find(|s| s.current).map(|s| s.id.clone());
         self.source_action.set_state(&current.unwrap_or_default().to_variant());
@@ -1406,18 +1409,18 @@ impl PlayerView {
             ));
         }
         self.upscaling_action.set_state(&upscaling.current.to_variant());
-        menu.append_section(Some("Upscaling"), &picture);
+        menu.append_section(Some(&t::player_upscaling()), &picture);
         let night_menu = gio::Menu::new();
-        night_menu.append(Some("Night Mode"), Some("player.night"));
+        night_menu.append(Some(&t::player_night_mode()), Some("player.night"));
         self.night_action.set_state(&night.to_variant());
         menu.append_section(None, &night_menu);
         if self.ctx.tv.available() {
             let tv_menu = gio::Menu::new();
-            tv_menu.append(Some("Play on TV…"), Some("player.tv"));
+            tv_menu.append(Some(&t::tv_play_on_menu()), Some("player.tv"));
             menu.append_section(None, &tv_menu);
         }
         let stats_menu = gio::Menu::new();
-        stats_menu.append(Some("Stats for Nerds"), Some("player.stats"));
+        stats_menu.append(Some(&t::player_stats()), Some("player.stats"));
         menu.append_section(None, &stats_menu);
         self.ui.settings.set_menu_model(Some(&menu));
         widgets::mark_items(&self.ui.settings, "player.source", "amber-check");
@@ -1788,10 +1791,10 @@ impl PlayerView {
     pub fn shot_marks(&self, subtitle: &str) {
         let Some(player) = &self.player else { return };
         let list = serde_json::json!([
-            { "title": "Episode", "time": 0.0 },
-            { "title": "Opening", "time": 4.0 },
-            { "title": "Episode", "time": 16.0 },
-            { "title": "Ending", "time": 50.0 },
+            { "title": "Episode", "time": 0.0 }, // i18n-skip
+            { "title": "Opening", "time": 4.0 }, // i18n-skip
+            { "title": "Episode", "time": 16.0 }, // i18n-skip
+            { "title": "Ending", "time": 50.0 }, // i18n-skip
         ]);
         let _ = player.mpv().set("chapter-list", &list);
         let _ = player.mpv().command(&["sub-add", subtitle, "select"]);
@@ -1803,7 +1806,7 @@ impl PlayerView {
     pub fn shot_tracks(&self, subtitle: Option<&str>) {
         if let (Some(player), Some(subtitle)) = (&self.player, subtitle) {
             let _ =
-                player.mpv().command(&["sub-add", subtitle, "select", "Lantern Road", "eng"]);
+                player.mpv().command(&["sub-add", subtitle, "select", "Lantern Road", "eng"]); // i18n-skip
             return;
         }
         self.ui.tracks.popup();
@@ -1893,9 +1896,9 @@ impl PlayerView {
         let in_party = self.ctx.hub.known.borrow().party.is_some();
         // Faded rather than added, so nothing moves.
         self.ui.people_dot.set_opacity(if in_party { 1.0 } else { 0.0 });
-        let name = if in_party { "Watch Party" } else { "Watch Together" };
-        self.ui.people.set_tooltip_text(Some(name));
-        self.ui.people.update_property(&[gtk::accessible::Property::Label(name)]);
+        let name = t::party_title();
+        self.ui.people.set_tooltip_text(Some(&name));
+        self.ui.people.update_property(&[gtk::accessible::Property::Label(&name)]);
     }
 
     /// For a shot: the party's panel, under the people button, over the window.
@@ -2032,12 +2035,12 @@ fn log_pacing(pacing: Rc<video::Pacing>, player: Rc<Player>) {
 /// "Episode 7 · Dub · The Lantern Road": a dub marked on the episode line, a sub not, and the
 /// name when there is one.
 fn episode_line(number: &str, translation: Option<Translation>, title: Option<&str>) -> String {
-    let mut line = format!("Episode {number}");
-    if translation == Some(Translation::Dub) {
-        line.push_str(" · Dub");
-    }
+    let line = say::marked(
+        t::episode_number(crate::party::number(number)),
+        translation == Some(Translation::Dub),
+    );
     match title {
-        Some(title) if !title.is_empty() => format!("{line} · {title}"),
+        Some(title) if !title.is_empty() => [line.as_str(), title].join(" · "),
         _ => line,
     }
 }
@@ -2113,7 +2116,7 @@ fn card() -> gtk::Box {
 fn build_ui(video: &gtk::Widget) -> Ui {
     // The top bar: back, the show and the episode, and at the end episodes, settings and
     // fullscreen, with the window's own close button.
-    let back = icon_button("go-previous-symbolic", "Back", "player.back");
+    let back = icon_button("go-previous-symbolic", &t::action_back(), "player.back");
     let show = widgets::show_title("", "row");
     show.set_xalign(0.5);
     show.set_wrap(false);
@@ -2127,13 +2130,13 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     titles.append(&episode);
     let episodes = gtk::MenuButton::builder()
         .icon_name("view-list-symbolic")
-        .tooltip_text("Episodes")
+        .tooltip_text(t::player_episodes())
         .valign(gtk::Align::Center)
         .build();
     episodes.add_css_class("flat");
     let tracks = gtk::MenuButton::builder()
         .icon_name("media-view-subtitles-symbolic")
-        .tooltip_text("Subtitles and Audio")
+        .tooltip_text(t::player_subtitles_and_audio())
         .valign(gtk::Align::Center)
         .build();
     tracks.add_css_class("flat");
@@ -2148,16 +2151,16 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     people_icon.add_overlay(&people_dot);
     let people = gtk::Button::builder()
         .child(&people_icon)
-        .tooltip_text("Watch Together")
+        .tooltip_text(t::party_title())
         .action_name("player.party")
         .valign(gtk::Align::Center)
         .build();
     people.add_css_class("flat");
     people.add_css_class("image-button");
-    let tv = icon_button("video-display-symbolic", "Play on TV", "player.tv");
-    let full = icon_button("view-fullscreen-symbolic", "Fullscreen", "player.fullscreen");
+    let tv = icon_button("video-display-symbolic", &t::tv_play_on(), "player.tv");
+    let full = icon_button("view-fullscreen-symbolic", &t::player_fullscreen(), "player.fullscreen");
     let mini_button =
-        icon_button("anistream-mini-player-symbolic", "Mini Player", "player.mini");
+        icon_button("anistream-mini-player-symbolic", &t::player_mini_player(), "player.mini");
     let top = adw::HeaderBar::new();
     top.add_css_class("osd");
     top.add_css_class("player-top");
@@ -2171,12 +2174,12 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     top.pack_end(&tv);
 
     // The bottom bar.
-    let play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
+    let play = icon_button("media-playback-pause-symbolic", &t::action_pause(), "player.toggle");
     play.add_css_class("play");
     let back10 =
-        icon_button("media-seek-backward-symbolic", "Back 10 Seconds", "player.back-10");
+        icon_button("media-seek-backward-symbolic", &t::player_back_10(), "player.back-10");
     let forward10 =
-        icon_button("media-seek-forward-symbolic", "Forward 10 Seconds", "player.forward-10");
+        icon_button("media-seek-forward-symbolic", &t::player_forward_10(), "player.forward-10");
     let position = gtk::Label::new(Some("0:00"));
     let remaining = gtk::Label::new(Some("\u{2212}0:00"));
     for label in [&position, &remaining] {
@@ -2187,7 +2190,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     timeline.set_hexpand(true);
     timeline.set_draw_value(false);
     timeline.add_css_class("timeline");
-    timeline.update_property(&[gtk::accessible::Property::Label("Timeline")]);
+    timeline.update_property(&[gtk::accessible::Property::Label(&t::player_position())]);
     timeline.set_restrict_to_fill_level(false);
     let marked = Marked::new(&timeline);
 
@@ -2199,7 +2202,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     let volume_popover = gtk::Popover::builder().child(&volume).build();
     let volume_button = gtk::MenuButton::builder()
         .icon_name("audio-volume-high-symbolic")
-        .tooltip_text("Volume")
+        .tooltip_text(t::player_volume())
         .popover(&volume_popover)
         .valign(gtk::Align::Center)
         .build();
@@ -2213,7 +2216,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     // The speed as the button's own label, "1×", as mpv and the Mac show it.
     let speed_button = gtk::MenuButton::builder()
         .label(speed_label(1.0))
-        .tooltip_text("Speed · 1×")
+        .tooltip_text(t::player_speed_is(&speed_label(1.0)))
         .menu_model(&speeds)
         .valign(gtk::Align::Center)
         .always_show_arrow(false)
@@ -2223,7 +2226,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     speed_button.add_css_class("speed");
     let settings = gtk::MenuButton::builder()
         .icon_name("emblem-system-symbolic")
-        .tooltip_text("Playback Settings")
+        .tooltip_text(t::player_playback_settings())
         .valign(gtk::Align::Center)
         .build();
     settings.add_css_class("flat");
@@ -2252,7 +2255,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     starting_art.add_css_class("art-fade");
     let spinner = adw::Spinner::new();
     spinner.set_size_request(32, 32);
-    let starting_line = gtk::Label::new(Some("Starting"));
+    let starting_line = gtk::Label::new(Some(&t::player_starting_plain()));
     starting_line.add_css_class("title-3");
     let middle = gtk::Box::new(gtk::Orientation::Vertical, 16);
     middle.set_halign(gtk::Align::Center);
@@ -2273,7 +2276,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
 
     // The corner cards.
     let skip = Card::new();
-    let skip_button = gtk::Button::with_label("Skip Opening");
+    let skip_button = gtk::Button::with_label(&t::player_skip_opening());
     skip_button.add_css_class("pill");
     skip_button.set_action_name(Some("player.skip"));
     skip.widget.append(&skip_button);
@@ -2283,19 +2286,19 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     undo.widget.set_orientation(gtk::Orientation::Horizontal);
     undo.widget.set_spacing(6);
     undo.widget.add_css_class("undo-card");
-    let undo_line = gtk::Label::new(Some("Skipped opening"));
+    let undo_line = gtk::Label::new(Some(&t::player_skipped_opening()));
     let undo_dot = widgets::haze("·", "");
-    let undo_button = gtk::Button::with_label("Undo");
+    let undo_button = gtk::Button::with_label(&t::action_undo());
     undo_button.add_css_class("flat");
     undo_button.add_css_class("undo-button");
     undo_button.set_action_name(Some("player.undo-skip"));
-    undo_button.set_tooltip_text(Some("Undo (U)"));
+    undo_button.set_tooltip_text(Some(&t::player_undo_tooltip()));
     undo.widget.append(&undo_line);
     undo.widget.append(&undo_dot);
     undo.widget.append(&undo_button);
 
     let up_next = Card::new();
-    let up_next_line = widgets::haze("Up next", "caption");
+    let up_next_line = widgets::haze(&t::player_up_next(), "caption");
     let up_next_title = gtk::Label::new(None);
     up_next_title.set_xalign(0.0);
     up_next_title.set_wrap(true);
@@ -2303,11 +2306,11 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     let up_next_bar = gtk::ProgressBar::new();
     up_next_bar.add_css_class("countdown");
     let up_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    let play_now = gtk::Button::with_label("Play Now");
+    let play_now = gtk::Button::with_label(&t::action_play_now());
     play_now.add_css_class("pill");
     play_now.add_css_class("suggested-action");
     play_now.set_action_name(Some("player.play-next"));
-    let cancel = gtk::Button::with_label("Cancel");
+    let cancel = gtk::Button::with_label(&t::action_cancel());
     cancel.add_css_class("pill");
     cancel.set_action_name(Some("player.cancel-next"));
     up_buttons.append(&play_now);
@@ -2320,17 +2323,17 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     // "Source is buffering · 9 s", with Keep Waiting and Switch Source, the suggested one last.
     let stall = Card::new();
     stall.widget.set_size_request(320, -1);
-    let stall_line = gtk::Label::new(Some("Source is buffering"));
+    let stall_line = gtk::Label::new(Some(&t::player_stall_title(0)));
     stall_line.add_css_class("heading");
     stall_line.add_css_class("numeric");
     stall_line.set_xalign(0.0);
     let stall_buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     stall_buttons.set_halign(gtk::Align::End);
-    let switch = gtk::Button::with_label("Switch Source");
+    let switch = gtk::Button::with_label(&t::player_switch_source());
     switch.add_css_class("pill");
     switch.add_css_class("suggested-action");
     switch.set_action_name(Some("player.stall-switch"));
-    let wait = gtk::Button::with_label("Keep Waiting");
+    let wait = gtk::Button::with_label(&t::player_keep_waiting());
     wait.add_css_class("pill");
     wait.set_action_name(Some("player.stall-wait"));
     stall_buttons.append(&wait);
@@ -2348,7 +2351,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     let resumed_line = gtk::Label::new(None);
     resumed_line.add_css_class("numeric");
     resumed_line.set_valign(gtk::Align::Center);
-    let start_over = gtk::Button::with_label("Start Over");
+    let start_over = gtk::Button::with_label(&t::player_start_over());
     start_over.add_css_class("pill");
     start_over.set_action_name(Some("player.start-over"));
     resumed.append(&resumed_line);
@@ -2373,7 +2376,7 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     let mini = gtk::Box::new(gtk::Orientation::Vertical, 0);
     mini.set_visible(false);
     let full_window =
-        icon_button("anistream-mini-player-symbolic", "Back to the Full Window", "player.mini");
+        icon_button("anistream-mini-player-symbolic", &t::player_mini_back(), "player.mini");
     full_window.set_halign(gtk::Align::End);
     full_window.set_margin_top(8);
     full_window.set_margin_end(8);
@@ -2384,11 +2387,11 @@ fn build_ui(video: &gtk::Widget) -> Ui {
     middle_row.set_valign(gtk::Align::Center);
     middle_row.set_vexpand(true);
     middle_row.add_css_class("mini-controls");
-    let mini_play = icon_button("media-playback-pause-symbolic", "Pause", "player.toggle");
+    let mini_play = icon_button("media-playback-pause-symbolic", &t::action_pause(), "player.toggle");
     for button in [
-        icon_button("media-seek-backward-symbolic", "Back 10 Seconds", "player.back-10"),
+        icon_button("media-seek-backward-symbolic", &t::player_back_10(), "player.back-10"),
         mini_play.clone(),
-        icon_button("media-seek-forward-symbolic", "Forward 10 Seconds", "player.forward-10"),
+        icon_button("media-seek-forward-symbolic", &t::player_forward_10(), "player.forward-10"),
     ] {
         button.add_css_class("osd");
         middle_row.append(&button);
@@ -2481,7 +2484,7 @@ mod tests {
     fn only_a_dub_is_marked_on_the_episode_line() {
         assert_eq!(
             episode_line("10", Some(Translation::Dub), Some("The Lantern Road")),
-            "Episode 10 · Dub · The Lantern Road"
+            "Episode 10 · Dubbed · The Lantern Road"
         );
         assert_eq!(episode_line("10", Some(Translation::Sub), None), "Episode 10");
         assert_eq!(episode_line("3", None, Some("")), "Episode 3");
