@@ -3064,6 +3064,108 @@ status-reloading-sources = Reloading sources…
 # Toast when the { -source } pinned for a title can't be used and the others are tried instead.
 pin-unavailable = { $name } is pinned for this title but isn't available, so the other sources are used.
 
+# Title of the about page.
+about-title = About
+
+# Title of the about page on desktop.
+about-title-app = About anistream
+
+# Line with the version.
+about-version = Version { $version }
+
+# Line with the licence.
+about-licence = Released under the MIT licence.
+
+# Row opening the list of acknowledgements.
+about-acknowledgements = Acknowledgements
+
+# Row opening the licences of the parts used.
+about-licences = Licences
+
+# Row opening the website.
+about-website = Website
+
+# Button that opens a bug report.
+about-report-bug = Report a bug
+
+# Line under it: what the report carries.
+about-report-bug-detail = Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.
+
+# Line about artwork licences.
+about-artwork = Some artwork is licensed under Creative Commons BY-NC 4.0.
+
+# Line about fonts.
+about-font-licence = Licensed under the SIL Open Font License 1.1.
+
+# Button that shows the week before.
+calendar-previous-week = Previous week
+
+# Button that shows the week after.
+calendar-next-week = Next week
+
+# Button that jumps back to the current week.
+calendar-this-week = This week
+
+# Filter: only shows on the person's list.
+calendar-filter-mine = My list
+
+# Filter: every show that airs.
+calendar-filter-all = All airing
+
+# Heading of today's column or row. The day is already worded.
+calendar-today-heading = Today · { $day }
+
+# Title of the state when no show airs.
+calendar-empty-title = Nothing airing
+
+# Line when no show on the person's list airs this week.
+calendar-empty-mine = Nothing on your list airs this week.
+
+# Line when no show airs this week.
+calendar-empty-all = Nothing airs this week.
+
+# Line when no show airs today.
+calendar-empty-today = Nothing airs today.
+
+# Line when no show airs on the day. The day is already worded, such as "Thursday".
+calendar-empty-day = Nothing airs on { $day }.
+
+# Title of the state when the calendar could not load.
+calendar-load-failed = Couldn't load the calendar
+
+# Row: episode number and the time it airs.
+calendar-row-time = E{ $episode } · { $time }
+
+# Row: episode number, dubbed, and the time it airs.
+calendar-row-time-dubbed = E{ $episode } dubbed · { $time }
+
+# Note on a row whose episode moved to a later time.
+calendar-moved-from = Moved from { $time }
+
+# Note on a row whose episode was delayed. The note says how long.
+calendar-delayed = Delayed { $note }
+
+# Row: the episode came out a while ago. The span is already worded.
+calendar-out = Out { $ago }
+
+# Row in a small widget: the episode is out.
+calendar-episode-out = E{ $episode } out
+
+# Accessibility word for an aired episode that the person has not watched.
+calendar-out-unwatched = Out, not watched
+
+# Line saying when an episode airs. The time is already worded: "in 1h 30m", "Thursday 16:30".
+episode-airs = Episode { $episode } airs { $when }
+
+# Line for an episode that has not aired and has no date yet.
+episode-not-out = Episode { $episode } is not out yet
+
+# Header of the list of episodes that air in the next seven days.
+calendar-coming-up = Coming up · next 7 days
+
+# Line when no show the person follows airs in the next seven days.
+calendar-coming-up-empty = Nothing airs this week for the shows you follow.
+
 # Button that runs a failed action again.
 action-try-again = Try again
 
@@ -3106,6 +3208,421 @@ size-gigabyte = { $value } GB
 # Button that closes a sheet whose changes have already been made.
 action-done = Done
 
+# Button that closes a window or sheet.
+action-close = Close
+
+# Button and header control that goes to the screen before.
+action-back = Back
+
+# Button that deletes something for good, usually in a confirmation.
+action-delete = Delete
+
+# Button that takes something away from a list or from this device.
+action-remove = Remove
+
+# Button that stores what was typed or chosen.
+action-save = Save
+
+# Button that opens something to change it.
+action-edit = Edit
+
+# Button that opens an item.
+action-open = Open
+
+# Button that starts playing.
+action-play = Play
+
+# Button that pauses playback or a download.
+action-pause = Pause
+
+# Button that stops playback or a job.
+action-stop = Stop
+
+# Button that takes back the last automatic action.
+action-undo = Undo
+
+# Button that empties a list or a field.
+action-clear = Clear
+
+# Button that puts a form's choices back to how they started.
+action-reset = Reset
+
+# Button that installs a newer version of something.
+action-update = Update
+
+# Button that installs something.
+action-install = Install
+
+# Button that copies text to the clipboard.
+action-copy = Copy
+
+# What a copy button says for a moment after it copied.
+action-copied = Copied
+
+# Button that opens the system share sheet.
+action-share = Share
+
+# Name of an overflow menu: the extra actions for a row or a page.
+action-more = More
+
+# Button that skips an optional step.
+action-skip = Skip
+
+# Button that signs in to an account.
+action-sign-in = Sign in
+
+# Button that signs out of an account.
+action-sign-out = Sign out
+
+# Button that joins something, such as a { -plugin-store } or a { -watch-party }.
+action-join = Join
+
+# Button that leaves something that was joined.
+action-leave = Leave
+
+# Button that pairs two devices.
+action-pair = Pair
+
+# Button that connects to something.
+action-connect = Connect
+
+# Button that ends a connection.
+action-disconnect = Disconnect
+
+# Button that makes the app forget a paired TV.
+action-forget = Forget
+
+# Button that offers a plugin to other people in a { -plugin-store }.
+action-publish = Publish
+
+# Button that swaps one copy of a { -plugin } for another.
+action-replace = Replace
+
+# Menu item that turns a { -source } on.
+action-enable = Enable
+
+# Menu item that turns a { -source } off.
+action-disable = Disable
+
+# Button that checks now rather than waiting for the next scheduled check.
+action-check-now = Check now
+
+# Button that checks a { -source } again after it did not answer.
+action-check-again = Check again
+
+# Button that opens the system's own settings for the app.
+action-open-settings = Open settings
+
+# Button that reports an error as a bug.
+action-report = Report
+
+# Button that starts the next episode at once.
+action-play-now = Play now
+
+# Button that gets a new sign-in or pairing code after the old one expired.
+action-new-code = Get a new code
+
+# Button that opens a page in the browser.
+action-open-host = Open { $host }
+
+# Value of a switch that is on.
+value-on = On
+
+# Value of a switch that is off.
+value-off = Off
+
+# Value when nothing is chosen or nothing is there.
+value-none = None
+
+# Value that lets anistream choose.
+value-automatic = Automatic
+
+# Value that follows the app-wide setting. Shown beside a show's own settings.
+value-default = Default
+
+# Row that follows the app-wide setting for one show.
+value-use-default = Use default
+
+# Row that follows the app-wide setting, with what that setting is now.
+value-use-default-is = Use default · { $value }
+
+# Accessibility word for the chosen row in a list.
+value-selected = Selected
+
+# Accessibility word for a row that is the current one.
+value-current = Current
+
+# A value the app could not work out.
+value-unknown = Unknown
+
+# Day word for today.
+day-today = Today
+
+# Day word for tomorrow.
+day-tomorrow = Tomorrow
+
+# Day word for yesterday.
+day-yesterday = Yesterday
+
+# How long ago something happened.
+time-ago = { $span } ago
+
+# How long until something happens.
+time-in = in { $span }
+
+# Under a title or in a row: minutes left in an episode.
+time-minutes-left = { $minutes } min left
+
+# A length in minutes, for an episode.
+time-minutes = { $minutes } min
+
+# Line under a title when the device has no connection.
+state-offline-line = Offline. Downloaded episodes still play.
+
+# Title of the full-screen state when a screen needs a connection and there is none.
+state-offline-title = You're offline
+
+# Line under the offline title.
+state-offline-detail = Downloaded episodes still play.
+
+# Button on the offline state that opens the downloads.
+state-offline-show-downloads = Show downloads
+
+# Next step under any "couldn't load" title.
+state-check-connection = Check your connection and try again.
+
+# Generic failure when nothing more is known.
+error-generic = Something went wrong. Try again.
+
+# Failure to read a list the server sent.
+error-list-unreadable = Couldn't read the list. Try again.
+
+# Failure to reach a service. The name is the service, such as AniList.
+error-service-unreachable = Couldn't reach { $name }. Check your connection and try again.
+
+# Failure when a request took too long.
+error-timed-out = The request took too long. Try again.
+
+# Failure when a tracker rejects the saved sign-in.
+error-sign-in-expired = Your sign-in has expired. Sign in again under Accounts.
+
+# Accessibility label on the error icon.
+error-label = Problem
+
+# Accessibility label on a spinner.
+state-working = Working
+
+# Short placeholder while something loads.
+state-loading = Loading
+
+# Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
+downloads-title = Downloads
+
+# Button that pauses every running download.
+downloads-pause-all = Pause all
+
+# Button that resumes every paused download.
+downloads-resume-all = Resume all
+
+# Accessibility label of the pause-all button on a phone.
+downloads-pause-all-label = Pause all downloads
+
+# Accessibility label of the resume-all button on a phone.
+downloads-resume-all-label = Resume all downloads
+
+# Button that removes finished rows from the list. The files stay.
+downloads-clear-finished = Clear finished
+
+# Button that opens the folder with the files. Shown on desktop only.
+downloads-open-folder = Open folder
+
+# Menu item on a row: reveals one file in the file manager. Shown on desktop only.
+downloads-show-in-folder = Show in folder
+
+# Line showing the space the downloads use. The size is already formatted.
+downloads-space-used = Downloads take { $size }
+
+# Line in the phone settings with the space in use.
+downloads-in-downloads = { $size } in downloads
+
+# Accessibility label of the space-used bar.
+downloads-space-label = Space used by downloads
+
+# Title when nothing is downloaded.
+downloads-empty-title = No downloads
+
+# Line under the empty title.
+downloads-empty-detail = Downloaded episodes play without a connection.
+
+# Title when the list could not be read.
+downloads-load-failed = Couldn't load downloads
+
+# Line when the folder could not be opened. Shown on desktop only.
+downloads-folder-failed = Couldn't open the folder. Check that it still exists.
+
+# Name of a row.
+downloads-episode-name = Episode { $episode }
+
+# Row caption: waiting for a free place.
+downloads-caption-queued = Queued
+
+# Row caption: waiting for a free place, with the reason.
+downloads-caption-queued-slot = Queued · starts when a download slot is free
+
+# Row caption: a torrent is fetching its file list.
+downloads-caption-metadata = Waiting for metadata
+
+# Row caption: running. Both sizes are already formatted.
+downloads-caption-running = Downloading · { $done } of { $total }
+
+# Row caption: running, size not known yet.
+downloads-caption-running-plain = Downloading
+
+# Row caption: paused at a percentage.
+downloads-caption-paused = Paused · { $percent }
+
+# Row caption: finished. The size is already formatted.
+downloads-caption-done-size = Downloaded · { $size }
+
+# Row caption: finished.
+downloads-caption-done = Downloaded
+
+# Row caption: finished and removed a day after it is watched.
+downloads-caption-ahead = Downloaded ahead · Removed a day after you watch it
+
+# Short row caption for an episode downloaded before it was asked for.
+downloads-ahead = Downloaded ahead
+
+# Row caption: stopped with a reason, which is already a sentence fragment.
+downloads-caption-failed-why = Failed · { $why }
+
+# Row caption: stopped without a reason.
+downloads-caption-failed = Failed
+
+# Row caption: sharing back. Both amounts are ratios already formatted, the last is time left.
+downloads-seeding-line = Shared { $shared } of { $goal } · { $left }
+
+# Menu item that starts a queued download before the others.
+downloads-start-now = Start now
+
+# Tooltip of the start-now menu item.
+downloads-start-now-help = Start this download ahead of the queue
+
+# Menu item that takes a row off the queue. The file is not deleted.
+downloads-remove-from-queue = Remove from queue
+
+# Menu item that takes a finished row off the list. The file stays.
+downloads-remove-from-list = Remove from list
+
+# Menu item that removes the downloaded file.
+downloads-delete-file = Delete file…
+
+# Accessibility label: pause one download.
+downloads-pause-one = Pause download
+
+# Accessibility label: resume one download.
+downloads-resume-one = Resume download
+
+# Accessibility label: play one downloaded episode.
+downloads-play-episode = Play episode { $episode }
+
+# Title of the confirmation.
+downloads-delete-title = Delete { $name }?
+
+# Line under the confirmation title.
+downloads-delete-detail = The file is removed from this device.
+
+# Title of the confirmation on a phone.
+downloads-delete-one-title = Delete download
+
+# Line under it: what you lose.
+downloads-delete-one-detail = It plays again only with a connection, or once you download it again.
+
+# Button on the settings page that removes watched files.
+downloads-delete-watched = Delete watched downloads
+
+# Heading of the seeding group.
+downloads-seeding-title = Seeding
+
+# Heading of the seeding group on the downloads screen.
+downloads-seeding-after-watching = Seeding after watching
+
+# Line under the seeding heading.
+downloads-seeding-note = Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.
+
+# Heading of the setting. Shown on desktop only.
+downloads-background-title = When the window closes with downloads running
+
+# Option: downloads go on. Shown on desktop only.
+downloads-background-keep = Keep downloading
+
+# Option: downloads stop and resume later. Shown on desktop only.
+downloads-background-stop = Stop downloading
+
+# Option: ask each time. Shown on desktop only.
+downloads-background-ask = Ask each time
+
+# Line shown when the setting is Keep downloading. Shown on desktop only.
+downloads-background-keeps = Downloads keep going when you close the window.
+
+# Line shown when the setting is Stop downloading. Shown on desktop only.
+downloads-background-stops = Closing the window stops downloads. They resume the next time anistream opens.
+
+# Line shown when the setting is Ask each time. Shown on desktop only.
+downloads-background-asks = Downloads keep going when you close the window, if you choose to.
+
+# Title of the question when the window closes. Shown on desktop only.
+downloads-background-question = Keep downloads going?
+
+# Line on the Apple and Linux note in the notification area. Shown on desktop only.
+downloads-background-note = Downloads keep going after you leave anistream.
+
+# Label of the folder setting. Shown on desktop only.
+downloads-folder = Download folder
+
+# Label of the quality choice for downloads.
+downloads-quality = Download quality
+
+# Title of the notification when an episode finished.
+downloads-notice-done = Episode { $episode } downloaded
+
+# Body of that notification.
+downloads-notice-done-detail = { $title } · ready to watch offline
+
+# Notification text while several episodes download.
+downloads-notice-running =
+    { $count ->
+        [one] Downloading one episode
+       *[other] Downloading { $count } episodes
+    }
+
+# Notification text: first line of one running download.
+downloads-notice-episode-left = Episode { $episode } · { $left } left
+
+# Notification text: a download is starting.
+downloads-notice-starting = Starting
+
+# Button on a title page to download one episode.
+episode-download-one = Download episode { $episode }
+
+# Line under that button while it waits.
+episode-download-queued = Queued to download
+
+# Line under that button as the download begins.
+episode-download-starting = Starting the download
+
+# Line under that button while it runs.
+episode-download-running = Downloading · { $percent }
+
+# Line under that button while it is paused.
+episode-download-paused = Download paused at { $percent }
+
+# Line under that button once the file is saved.
+episode-download-done = Downloaded
+
+# Line under that button after a failure.
+episode-download-failed = Couldn't download episode { $episode }. Download again.
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->
@@ -3136,11 +3653,1117 @@ group-in-progress = In progress
 # Group header for what aired in the last few days.
 group-new-this-week = New this week
 
+# Title of the empty Continue screen.
+continue-empty-title = Nothing watched yet
+
+# Line under the empty Continue title. Seasonal is the name of a screen.
+continue-empty-detail = Pick something from Seasonal, or search for a title.
+
+# Button on the empty Continue screen that opens Seasonal.
+continue-empty-action = Browse Seasonal
+
+# Title of the state when Continue could not load.
+continue-load-failed = Couldn't load Continue
+
+# Row heading on the Continue screen and the TV home screen for the shows in progress.
+continue-heading = Continue watching
+
+# Header for the strip of shows that air today.
+continue-airing-today = Airing today
+
+# Header for the strip of shows from the current season.
+continue-this-season = This season
+
+# Menu item that takes a show off the Continue screen.
+continue-hide = Hide from Continue
+
+# Notice after a show was hidden from Continue.
+continue-hidden = Hidden from Continue.
+
+# Menu item that sets a show's status to Dropped and takes it off Continue.
+continue-drop = Drop
+
+# Accessibility label on the overflow button of a row.
+continue-more-for = More for { $title }
+
+# Row caption: resumes this episode where it stopped. The clock is the stored position.
+continue-row-resume = Continue E{ $episode } · { $clock }
+
+# Row caption: resumes this episode where it stopped, dubbed.
+continue-row-resume-dubbed = Continue E{ $episode } dubbed · { $clock }
+
+# Row caption: the next unwatched episode.
+continue-row-start = Play E{ $episode }
+
+# Row caption: the next unwatched episode, dubbed.
+continue-row-start-dubbed = Play E{ $episode } dubbed
+
+# Row caption: the next unwatched episode, which came out a while ago.
+continue-row-start-aired = Play E{ $episode } · out { $ago }
+
+# Row caption: nothing new to watch. The time is when the next episode airs.
+continue-row-caught-up = Caught up · E{ $episode } { $when }
+
+# Row caption: nothing new to watch and no date for the next episode.
+continue-row-caught-up-plain = Caught up
+
+# Title of the home-screen widget when the library is empty or signed out.
+continue-widget-connect = Connect AniList to see it here.
+
+# Line on the widget and the TV when there is nothing left to watch.
+continue-caught-up = You're caught up.
+
+# Main button of the title page: resumes the episode at its stored position.
+title-button-continue = Continue episode { $episode }
+
+# Main button of the title page: plays the next unwatched episode from the start.
+title-button-play = Play episode { $episode }
+
+# Main button of the title page when there is no { -source } to play from.
+title-button-add-source = Add a source to play
+
+# Status of a show on a person's list: watching it now.
+library-status-watching = Watching
+
+# Status of a show on a person's list: planned.
+library-status-planning = Planning
+
+# Status of a show on a person's list: finished.
+library-status-completed = Completed
+
+# Status of a show on a person's list: on hold.
+library-status-paused = Paused
+
+# Status of a show on a person's list: given up.
+library-status-dropped = Dropped
+
+# Sort order of the library: by when the list entry last changed.
+library-sort-updated = Last updated
+
+# Sort order of the library: by title.
+library-sort-title = Title
+
+# Sort order of the library: by the person's own score.
+library-sort-score = Score
+
+# Button showing the library's current sort order.
+library-sort-button = Sort: { $sort }
+
+# Accessibility label of the sort button.
+library-sort-label = Sort by { $sort }
+
+# Title of the library when no tracker is signed in.
+library-signed-out-title = Your lists come from AniList
+
+# Line under the signed-out library title.
+library-signed-out-detail = Sign in to sync what you watch and where you stopped.
+
+# Button on the signed-out library.
+library-signed-out-action = Sign in to AniList
+
+# Title of an empty list. The list is its status in running text, such as "planning".
+library-list-empty = Nothing on your { $list } list
+
+# Line under an empty list's title.
+library-list-empty-detail = Titles you add to this list on AniList show up here.
+
+# Title of the state when one list could not load.
+library-list-load-failed = Couldn't load your { $list } list
+
+# Short line while the library loads.
+library-loading = Loading your lists
+
+# Menu item on a title that adds it to a list.
+library-add-to-list = Add to list
+
+# Menu item that puts a title in the planning list.
+library-add-planning = Add to planning
+
+# Notice after a title was added to the planning list.
+library-added-planning = Added to planning.
+
+# Marker on a title that is already on the person's list.
+library-on-your-list = On your list
+
+# Shorter marker used in a widget row.
+library-in-your-list = In your list
+
+# Short progress under a show: the last episode watched out of the total.
+progress-episodes-short = E{ $done } of { $total }
+
+# Short progress under a show when the total is not known.
+progress-episode-short = E{ $done }
+
+# Format of a show: broadcast on television.
+format-tv = TV
+
+# Format of a show: a short series on television.
+format-tv-short = TV short
+
+# Format of a show: a film.
+format-movie = Movie
+
+# Format of a show: an extra episode that is not part of a series.
+format-special = Special
+
+# Format of a show: released straight to video.
+format-ova = OVA
+
+# Format of a show: released straight to the web.
+format-ona = ONA
+
+# Format of a show: a music video.
+format-music = Music
+
+# A season of the year, for when a show airs.
+season-winter = Winter
+
+# A season of the year, for when a show airs.
+season-spring = Spring
+
+# A season of the year, for when a show airs.
+season-summer = Summer
+
+# A season of the year, for when a show airs. British English.
+season-autumn = Autumn
+
+# A season and its year, such as "Autumn 2026". Both are already worded.
+season-with-year = { $season } { $year }
+
+# Status of a show that has finished airing.
+media-status-aired = Aired
+
+# Status of a show that is airing now.
+media-status-airing = Airing
+
+# Status of a show that has not started airing.
+media-status-upcoming = Not yet released
+
+# Status of a show that was cancelled.
+media-status-cancelled = Cancelled
+
+# Status of a show that is on a break.
+media-status-hiatus = On hiatus
+
+# Date line of a show that is airing: when it started.
+media-airing-since = Since { $date }
+
+# Date line of a show that has not started: when it will.
+media-airing-from = From { $date }
+
+# Value of "Based on": a story written for the screen.
+material-original = Original story
+
+# Value of "Based on".
+material-manga = Manga
+
+# Value of "Based on".
+material-light-novel = Light novel
+
+# Value of "Based on".
+material-web-novel = Web novel
+
+# Value of "Based on".
+material-visual-novel = Visual novel
+
+# Value of "Based on".
+material-video-game = Video game
+
+# Value of "Based on".
+material-novel = Novel
+
+# Value of "Based on".
+material-doujinshi = Doujinshi
+
+# Value of "Based on": another anime.
+material-anime = Anime
+
+# Value of "Based on".
+material-live-action = Live action
+
+# Value of "Based on".
+material-game = Game
+
+# Value of "Based on".
+material-comic = Comic
+
+# Value of "Based on".
+material-multimedia = Multimedia project
+
+# Value of "Based on".
+material-picture-book = Picture book
+
+# Relation of a related title: it comes before this one.
+relation-prequel = Prequel
+
+# Relation of a related title: it comes after this one.
+relation-sequel = Sequel
+
+# Relation of a related title: the story this one branches from.
+relation-parent = Parent story
+
+# Relation of a related title: a story set beside this one.
+relation-side-story = Side story
+
+# Relation of a related title: a show that grew out of this one.
+relation-spin-off = Spin-off
+
+# Relation of a related title: a retelling.
+relation-alternative = Alternative
+
+# Relation of a related title: a recap.
+relation-summary = Summary
+
+# Relation of a related title: a compilation of this one.
+relation-compilation = Compilation
+
+# Relation of a related title: it contains this one.
+relation-contains = Contains
+
+# Relation of a related title: set in the same universe.
+relation-same-universe = Same universe
+
+# Relation of a related title: it shares characters with this one.
+relation-shares-characters = Shares characters
+
+# Relation of a related title: an adaptation of this one.
+relation-adaptation = Adaptation
+
+# Relation of a related title: the work this show is based on.
+relation-original-work = Original work
+
+# Relation of a related title that fits none of the others.
+relation-other = Related
+
+# A related title's relation, its format and its year.
+relation-line = { $relation } · { $format } · { $year }
+
+# Ranking line, such as "#4 Highest rated, Autumn 2026". The label is already worded.
+ranking-line = #{ $rank } { $label }
+
+# Label of a ranking by score within a period.
+ranking-highest-rated = Highest rated, { $scope }
+
+# Label of a ranking by popularity within a period.
+ranking-most-popular = Most popular, { $scope }
+
+# The period of a ranking that covers everything.
+ranking-all-time = all time
+
+# Genre name.
+genre-action = Action
+
+# Genre name.
+genre-adventure = Adventure
+
+# Genre name.
+genre-comedy = Comedy
+
+# Genre name.
+genre-drama = Drama
+
+# Genre name.
+genre-ecchi = Ecchi
+
+# Genre name.
+genre-fantasy = Fantasy
+
+# Genre name.
+genre-horror = Horror
+
+# Genre name.
+genre-mahou-shoujo = Mahou shoujo
+
+# Genre name.
+genre-mecha = Mecha
+
+# Genre name.
+genre-music = Music
+
+# Genre name.
+genre-mystery = Mystery
+
+# Genre name.
+genre-psychological = Psychological
+
+# Genre name.
+genre-romance = Romance
+
+# Genre name.
+genre-sci-fi = Sci-fi
+
+# Genre name.
+genre-slice-of-life = Slice of life
+
+# Genre name.
+genre-sports = Sports
+
+# Genre name.
+genre-supernatural = Supernatural
+
+# Genre name.
+genre-thriller = Thriller
+
+# Tab and sidebar row for the shows in progress.
+nav-continue = Continue
+
+# Tab and sidebar row for the weekly airing schedule.
+nav-calendar = Calendar
+
+# Tab and sidebar row for what is airing this season.
+nav-seasonal = Seasonal
+
+# Tab and sidebar row for the shows a person has saved.
+nav-library = Library
+
+# Tab and sidebar row for finding a show.
+nav-search = Search
+
+# Tab and sidebar row for downloaded episodes.
+nav-downloads = Downloads
+
+# Sidebar row for the { -plugin-store-pl } a person has joined.
+nav-plugin-stores = Plugin stores
+
+# Tab, sidebar row and window title for the settings.
+nav-settings = Settings
+
+# Name of the screen and settings page for tracker accounts.
+nav-accounts = Accounts
+
+# Button on a phone's header that opens accounts and the settings.
+nav-accounts-and-settings = Accounts and settings
+
+# Accessibility label for the list of sections in the sidebar.
+nav-sections-label = Sections
+
+# Button that folds the navigation rail on a wide screen.
+nav-collapse = Collapse navigation
+
+# Button that opens the navigation rail on a wide screen.
+nav-expand = Expand navigation
+
+# Name of a shortcut or tooltip: the name, then the key that does it.
+tooltip-with-key = { $name } ({ $key })
+
+# Title of the welcome window.
+onboarding-welcome = Welcome
+
+# Title of the first page.
+onboarding-welcome-to = Welcome to anistream
+
+# Line under the title.
+onboarding-tagline = Keep track of anime and play it from sources you choose.
+
+# Button that goes to the next page.
+onboarding-continue = Continue
+
+# Button that skips a page.
+onboarding-skip = Skip
+
+# Button that skips a page for now.
+onboarding-skip-for-now = Skip for now
+
+# Button that declines the sign-in page for now.
+onboarding-not-now = Not now
+
+# Heading of the page about sources.
+onboarding-sources-title = Sources
+
+# Line under it.
+onboarding-sources-detail = Sources are plugins, shared through plugin stores by invite.
+
+# Button that joins a store from the welcome page.
+onboarding-join = Join
+
+# Hint inside the invite field on the welcome page.
+onboarding-invite-hint = Invite link
+
+# Button on the title page and in the player that opens the watch party form.
+party-open = Watch party…
+
+# Title of the form and the panel.
+party-title = Watch party
+
+# Title of the form when an invite link opened it.
+party-join-title = Join the watch party?
+
+# Button that sends the form and begins the party.
+party-start = Start watch party
+
+# Button that sends the form and joins the party.
+party-join = Join watch party
+
+# Button on the panel that leaves the party.
+party-leave = Leave watch party
+
+# Label of the leave button while it works.
+party-leaving = Leaving…
+
+# Label of the button that marks you as ready.
+party-ready-action = I'm ready
+
+# Button that copies the link to invite someone.
+party-copy-invite = Copy invite link
+
+# Button in the leave confirmation that ignores it.
+party-stay = Stay
+
+# Button in the leave confirmation that closes the app.
+party-leave-and-close = Leave and close
+
+# Button on the invite card that is not accepted now.
+party-not-now = Not now
+
+# Line while the form fetches its suggestions.
+party-getting-ready = Getting things ready…
+
+# Label of the server field.
+party-server = Server
+
+# Hint inside the empty server field.
+party-server-hint = host:port
+
+# Accessibility label of the list of servers used before.
+party-recent-servers = Recent servers
+
+# Heading of the servers used before.
+party-recent-servers-heading = Servers used before
+
+# Button that fills the suggested server in. The server is a host name.
+party-use-server = Use { $server }
+
+# Button that fills in what was suggested.
+party-use-it = Use it
+
+# Label of the room field.
+party-room = Room
+
+# Label of the name field.
+party-your-name = Your name in the room
+
+# Line under the server field when the public server is chosen. The operator is a name.
+party-server-public = A public server run by { $operator }, not by anistream.
+
+# Line under the server field when something else is typed.
+party-server-suggest = No server of your own? { $server } is a public one, run by { $operator }.
+
+# Line under an invite's room when the server is not the public one.
+party-server-invited = A server the person who invited you chose. anistream doesn't run it.
+
+# Line when the server was typed in a shape that cannot be used.
+party-server-shape = Write the server as a host and a port, like party.example:8999.
+
+# Line under the form: what the server learns and what each person plays. The app shows legal-hosts-no-content after it.
+party-privacy = The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources.
+
+# Line under the room: how others join.
+party-room-hint = Anyone who knows the room's name can join it. The invite link carries it, so nobody has to read it out.
+
+# Line on the invite card naming the room and server.
+party-invite-room = Room { $room } on { $server }
+
+# Line while the form joins the party.
+party-joining = Joining { $room } on { $server }…
+
+# Line on the form when no episode is playing yet.
+party-form-nothing = What's playing now plays with the room.
+
+# Line naming the episode of the form.
+party-form-episode-of = Episode { $episode } of { $title }
+
+# Line naming the episode of the form when the show has no name.
+party-form-episode = Episode { $episode }
+
+# Line on the form when the party could not begin.
+party-ended-early = The party ended before it began.
+
+# Line in the panel while nobody has joined.
+party-waiting-members = Waiting for the room's members
+
+# Heading in the panel for people using another app.
+party-other-app = For Syncplay's own app
+
+# Server and room in the panel, for another app.
+party-other-app-detail = Server { $server }. Room { $room }.
+
+# Name of a member who is this device.
+party-member-you = { $name } (you)
+
+# Word for you in a sentence about who is not ready.
+party-you = you
+
+# Short word in the member list: this member is ready.
+party-member-ready = Ready
+
+# Short word in the member list: this member is not ready.
+party-member-not-ready = Not ready
+
+# Short word in the member list: ready state is not shared.
+party-member-no-ready-state = No ready state
+
+# Note on a member who plays another file.
+party-member-other-file = Playing a different file
+
+# Note on a member who has nothing open.
+party-member-no-file = Nothing open yet
+
+# Line when nobody else is in the room.
+party-alone = Nobody else is here yet. Send the invite link.
+
+# Line when everyone is ready.
+party-all-ready = Everyone is ready
+
+# Line when you are the one still to be ready.
+party-wait-you = Play starts once you're ready
+
+# Line when one other member is still to be ready.
+party-wait-one = Play starts once { $name } is ready
+
+# Line when two members are still to be ready.
+party-wait-two = Play starts once { $first } and { $second } are ready
+
+# Line when more than two members are still to be ready.
+party-wait-many = Play starts once { $count } more are ready
+
+# Connection line while the party reconnects.
+party-connection-lost = Connection lost. Trying again, { $attempt } of { $of }
+
+# Connection line: encrypted.
+party-connected-encrypted = Connected, encrypted
+
+# Connection line: not encrypted.
+party-connected-plain = Connected, not encrypted
+
+# Connection line with the round trip time.
+party-connected-latency = { $line } · { $ms } ms
+
+# Line under the invite link button before any episode plays.
+party-invite-after-play = The invite link comes once an episode plays.
+
+# Line under the invite link button.
+party-invite-detail = It names the room and the episode. Each friend plays it from their own sources.
+
+# Line shown in the room with nothing playing.
+party-in-room-idle = You're in { $room } on { $server }, with nothing playing.
+
+# Line shown in the room with nothing playing, when the room is unknown.
+party-in-room-idle-plain = You're in the room, with nothing playing.
+
+# Note when an invite link lacks parts.
+party-link-incomplete = That party link is missing its server, room or episode.
+
+# Note when the link is for the party you are in.
+party-already-in = You're already in this watch party.
+
+# Note after joining on a desktop: where the link is.
+party-in-note = You're in the watch party. The people button has the invite link.
+
+# Note after joining in the player: where the link is.
+party-in-note-player = You're in the watch party. The people button in the player has the invite link.
+
+# Note after leaving: playback goes on.
+party-left-note = You left the watch party. What's playing goes on, just for you.
+
+# Title of the confirmation on closing the app while in a party.
+party-leave-title = Leave the watch party?
+
+# Line under it. The room is a name.
+party-leave-detail = Closing anistream leaves { $room }. Everyone else carries on without you.
+
+# Title when the user has installed no source.
+party-nosource-none-title = You have no sources yet
+
+# Line under it.
+party-nosource-none-detail = Sources come from plugins, which a plugin store adds. { $what } plays with the room once one of them has it.
+
+# Title when no source has the episode.
+party-nosource-missing-title = None of your sources has this episode
+
+# Line under it. The reason is a sentence without its full stop.
+party-nosource-missing-detail = { $why }. { $what } plays with the room once you choose a source that has it.
+
+# Line under a title that says the episode has not aired.
+party-nosource-unaired = Your sources won't have episode { $episode } before it's out.
+
+# Line under a title that says the episode has not aired and no date is known.
+party-nosource-unaired-plain = Your sources won't have it before then. It plays with the room once one of them does.
+
+# Line over the list of sources that list the episode.
+party-sources-found =
+    { $count ->
+        [one] One source has it
+       *[other] { $count } sources have it
+    }
+
+# Accessibility label of the list of sources for the episode.
+party-sources-label = Sources for this episode
+
+# Line of a source: its quality and size already formatted, and the number of seeders.
+party-source-seeders = { $seeders } seeders
+
 # Label on the card for the episode that plays after this one.
 player-up-next = Up next
 
 # Label before the name of the work a show is based on.
 title-based-on = Based on
+
+# Line on the starting screen, from the moment the player is asked to play until the first frame.
+player-starting = Starting episode { $episode }
+
+# Line on the starting screen after a few seconds: the app is looking for a stream.
+player-finding-source = Finding a source · { $seconds } s
+
+# Same line before the wait is counted.
+player-finding-source-plain = Finding a source
+
+# Title of the card shown when an episode could not play.
+player-failed-title = Couldn't play episode { $episode }
+
+# Line under the failure title when every { -source } was tried.
+player-failed-detail = No source had a stream that played. Try another.
+
+# Line when nothing is installed to play from.
+player-failed-no-sources = No sources yet. Add a plugin store to play.
+
+# Button that opens the { -source } picker.
+player-choose-source = Choose source
+
+# Button on the failure card of the TV: offers a different { -source }.
+player-choose-another-source = Choose another source
+
+# Button that adds a { -plugin-store } when there are no { -source-pl }.
+player-add-plugin-store = Add a plugin store
+
+# Short word while the video buffers.
+player-buffering = Buffering
+
+# Title of the stall card. The seconds count up.
+player-stall-title = Source is buffering · { $seconds } s
+
+# Line under the stall title.
+player-stall-detail = Another stream may play without waiting.
+
+# Button on the stall card that moves to another { -source }.
+player-switch-source = Switch source
+
+# Button on the stall card that keeps waiting.
+player-keep-waiting = Keep waiting
+
+# Line on the Up next card: the episode starts when the count ends.
+player-plays-in = Plays in { $seconds } s
+
+# Button that skips the opening.
+player-skip-opening = Skip opening
+
+# Button that skips the ending.
+player-skip-ending = Skip ending
+
+# Note after the opening was skipped by itself.
+player-skipped-opening = Skipped opening
+
+# Note after the ending was skipped by itself.
+player-skipped-ending = Skipped ending
+
+# Note at the top of the video after it resumed where it stopped.
+player-resumed-at = Resumed at { $clock }
+
+# Button beside the resume note that plays from the start.
+player-start-over = Start over
+
+# Title of the card that asks whether anyone is still there.
+player-still-watching = Still watching?
+
+# Line under the still-watching title.
+player-still-watching-detail =
+    { $count ->
+        [one] Paused after one episode in a row.
+       *[other] Paused after { $count } episodes in a row.
+    }
+
+# Button on the still-watching card that goes on.
+player-still-watching-continue = Continue watching
+
+# Line on the TV player: when the episode ends. The time is already formatted.
+player-ends-at = Ends at { $time }
+
+# Accessibility label and tooltip: go back ten seconds.
+player-back-10 = Back 10 seconds
+
+# Accessibility label and tooltip: go forward ten seconds.
+player-forward-10 = Forward 10 seconds
+
+# Accessibility label of the seek bar.
+player-position = Position
+
+# Accessibility label of the volume control.
+player-volume = Volume
+
+# Note on screen after the volume changed. The number is a percentage.
+player-volume-level = Volume { $percent }
+
+# Note on screen while the sound is off.
+player-muted = Muted
+
+# Button and menu for the playback speed.
+player-speed = Speed
+
+# Accessibility label of the speed control, with the speed now.
+player-speed-is = Playback speed, { $speed }
+
+# Menu item that goes back to the normal speed.
+player-speed-normal = Normal speed
+
+# Menu item that slows playback down.
+player-slower = Slower
+
+# Menu item that speeds playback up.
+player-faster = Faster
+
+# Button and sheet for the subtitle tracks.
+player-subtitles = Subtitles
+
+# Button and sheet for the audio tracks.
+player-audio = Audio
+
+# Button that opens subtitles and audio together.
+player-subtitles-and-audio = Subtitles and audio
+
+# Title of the phone sheet with subtitles, audio and the picture options.
+player-subtitles-audio-picture = Subtitles, audio and picture
+
+# Heading and menu item for the picture options.
+player-picture-and-sound = Picture and sound
+
+# Button that opens the episode list.
+player-episodes = Episodes
+
+# Button that opens the player's information on the TV.
+player-info = Info
+
+# Button that plays the next episode.
+player-next-episode = Next episode
+
+# Button that plays the previous episode.
+player-previous-episode = Previous episode
+
+# Row and menu item for the upscaling setting.
+player-upscaling = Upscaling
+
+# Row and menu item for the night mode setting.
+player-night-mode = Night mode
+
+# Note under night mode: what it does.
+player-night-mode-detail = Quiet parts louder, loud parts quieter
+
+# Note under the track pickers: choices are kept per show.
+player-remembered = Remembered for this show
+
+# Button that shows the video over other windows.
+player-picture-in-picture = Picture in picture
+
+# Button that fills the screen with the video.
+player-fullscreen = Full screen
+
+# Button that shrinks the player to a small window.
+player-mini-player = Mini player
+
+# Button on the mini player that brings the full window back.
+player-mini-back = Back to the full window
+
+# Accessibility label of the button that closes the player.
+player-close = Close player
+
+# Tooltip of the gear button that opens the playback options.
+player-playback-settings = Playback settings
+
+# Button that opens the statistics panel.
+player-stats = Stats for nerds
+
+# Line in the statistics panel before the stream has started.
+player-stats-waiting = Waiting for the stream
+
+# Accessibility label of the button that closes the statistics panel.
+player-stats-close = Close stats for nerds
+
+# Title over the statistics numbers.
+player-stats-heading = Stats
+
+# Button that copies the statistics.
+player-stats-copy = Copy stats
+
+# Notice when the statistics could not be copied.
+player-stats-copy-failed = Couldn't copy the stats. Try again.
+
+# Menu item that loads a subtitle file from disk.
+player-load-subtitle-file = Load subtitle file…
+
+# Menu item that loads an audio file from disk.
+player-load-audio-file = Load audio file…
+
+# Notice when the file chooser could not open.
+player-file-picker-failed = Couldn't open the file chooser. Try again.
+
+# Notice when a chosen subtitle file could not be loaded.
+player-subtitle-file-failed = Couldn't load that subtitle file. Check that it is a subtitle file.
+
+# Notice when a chosen audio file could not be loaded.
+player-audio-file-failed = Couldn't load that audio file. Check that it is an audio file.
+
+# Name of a track that has no name or language.
+player-track-unnamed = Unnamed track
+
+# Name of an audio track the file does not describe.
+player-audio-track-n = Audio { $id }
+
+# Name of a subtitle track the file does not describe.
+player-subtitle-track-n = Subtitles { $id }
+
+# Line in the track list before the file has told which tracks it has.
+player-no-tracks = No tracks yet
+
+# Line while the picker looks for streams.
+source-picker-finding = Finding sources…
+
+# Line when the picker found no stream for the episode.
+source-picker-empty = No source has a stream for this episode.
+
+# Title of the picker sheet in the player.
+player-sources = Sources
+
+# Button that shows the season before.
+seasonal-previous = Previous season
+
+# Button that shows the season after.
+seasonal-next = Next season
+
+# Short line while a season loads.
+seasonal-loading = Loading this season
+
+# Title of the state when a season could not load.
+seasonal-load-failed = Couldn't load this season
+
+# Title of the state when a season lists no titles. The season is already worded.
+seasonal-empty-title = Nothing listed for { $season } yet
+
+# Line under the empty season title.
+seasonal-empty-detail = AniList adds a season's titles as they're announced.
+
+# Title of the state when the chosen format has no titles this season.
+seasonal-empty-format = No titles in this format
+
+# Line under the empty format title.
+seasonal-empty-format-detail = Try all formats.
+
+# Button that opens the season in Search, where filters narrow it.
+seasonal-filter-in-search = Filter in Search
+
+# Tooltip of the Filter in Search button.
+seasonal-filter-help = This season in Search, where every filter narrows it
+
+# Sort option on Seasonal and Search: most popular first.
+sort-popularity = Popularity
+
+# Sort option on Seasonal and Search: highest score first.
+sort-score = Score
+
+# Sort option on Seasonal: by the day of the week the show airs.
+sort-air-day = Air day
+
+# Sort option on Search: best match for the words typed.
+sort-relevance = Relevance
+
+# Button showing the current sort order.
+sort-button = Sort: { $sort }
+
+# Accessibility label of the sort button.
+sort-label = Sort by { $sort }
+
+# Placeholder of the search field.
+search-placeholder = Search titles
+
+# Accessibility label of the button that empties the search field.
+search-clear = Clear search
+
+# Row under the field while a search runs. The query is what the person typed.
+search-searching = Searching for “{ $query }”
+
+# Heading over the results of a search.
+search-results-for = Results for “{ $query }”
+
+# Heading over the titles shown when nothing was typed.
+search-browse = Browse
+
+# Title of the state when a search finds nothing.
+search-nothing-found = Nothing found for “{ $query }”
+
+# Line under the title when a search finds nothing.
+search-nothing-found-detail = Check the spelling, or try the English or Japanese title.
+
+# Title of the state when filters leave nothing.
+search-nothing-with-filters = Nothing found with these filters
+
+# Title of the state when a search and its filters leave nothing.
+search-nothing-found-with-filters = Nothing found for “{ $query }” with these filters
+
+# Line under a state that filters emptied.
+search-try-fewer-filters = Try fewer filters.
+
+# Button that removes every filter.
+search-clear-filters = Clear filters
+
+# Title of the state when a search failed.
+search-failed = Couldn't search
+
+# Title of the state when search needs a connection and there is none.
+search-needs-connection = Search needs a connection
+
+# Line when the search service does not answer.
+search-unreachable = Search isn't reachable right now. Try again in a minute.
+
+# Heading over the searches a person made lately.
+search-recent = Recent searches
+
+# Accessibility label of the button that forgets one recent search.
+search-recent-remove = Remove { $query }
+
+# Button that shows every title in a group.
+search-see-all = See all
+
+# Heading over the genre shortcuts.
+search-genres = Genres
+
+# Line while more results load at the end of a list.
+search-loading-more = Loading more titles
+
+# Title of the filters sheet and panel.
+filters-title = Filters
+
+# Button that opens the filters, with how many are on.
+filters-button-count = All filters · { $count }
+
+# Button that opens the filters when none is on.
+filters-button = All filters
+
+# Filter name.
+filter-genre = Genre
+
+# Filter name, and the heading over the genre choices.
+filter-genres = Genres
+
+# Filter name.
+filter-year = Year
+
+# Filter name.
+filter-season = Season
+
+# Filter name.
+filter-format = Format
+
+# Filter name.
+filter-status = Status
+
+# Filter name: how long a show is, in episodes.
+filter-length = Length
+
+# Filter name: the number of episodes.
+filter-episodes = Episodes
+
+# Filter name: the length of one episode.
+filter-episode-length = Episode length
+
+# Filter group: how well a show was received.
+filter-reception = Reception
+
+# Filter name: a show's minimum score.
+filter-score-at-least = Score at least
+
+# Filter name: hides titles few people rated.
+filter-hide-obscure = Hide obscure titles
+
+# Filter group: where a show comes from.
+filter-origin = Origin
+
+# Filter name: the country a show was made in.
+filter-country = Country
+
+# Filter name: when a show came out.
+filter-released = Released
+
+# Filter group: where a show can be watched.
+filter-where-to-watch = Where to watch
+
+# Filter name: only shows with a legal licence.
+filter-licensed-only = Licensed only
+
+# Filter name: how titles already on the person's list are treated.
+filter-my-list = Titles on my list
+
+# Value of a three-way filter: include the titles.
+filter-show = Show
+
+# Value of a three-way filter: leave the titles out.
+filter-hide = Hide
+
+# Value of a three-way filter: only the titles.
+filter-only = Only
+
+# Note under the filters that tells results change as the person picks.
+filter-live-note = Results update as you change these.
+
+# Filter group: tags.
+filter-tags = Tags
+
+# Placeholder of the field that finds a tag.
+filter-tag-find = Find a tag
+
+# Line when no tag matches what was typed.
+filter-tag-none = No tag has that in its name
+
+# Filter name: how closely a tag must fit a show.
+filter-tag-rank = Tag rank at least { $rank }
+
+# Switch that shows tags that give away the story.
+filter-spoiler-tags = Show spoiler tags
+
+# Choice meaning no genre filter.
+filter-any-genre = Any genre
+
+# Choice meaning no year filter.
+filter-any-year = Any year
+
+# Choice meaning no season filter.
+filter-any-season = Any season
+
+# Choice meaning no format filter.
+filter-any-format = Any format
+
+# Choice meaning no status filter.
+filter-any-status = Any status
+
+# Choice meaning every format on Seasonal.
+filter-all-formats = All formats
+
+# Note on the season filter while no year is chosen.
+filter-season-pick-year = Choose a year first
+
+# Choice in the year range: up to a year.
+filter-years-up-to = Up to { $year }
+
+# State of a genre or tag in a filter: it must be there.
+filter-included = Included
+
+# State of a genre or tag in a filter: it must not be there.
+filter-left-out = Left out
+
+# Hint on a genre or tag on a touch screen.
+filter-hint-touch = Tap once to include, twice to leave out.
+
+# Hint on a genre or tag on the TV, where a remote presses. Only the Android TV app shows it.
+filter-hint-remote = Press once to include, twice to leave out.
+
+# Accessibility label of the button that removes one filter.
+filter-remove = Remove { $filter }
 
 # Settings group and row title for choosing a language.
 settings-language = Language
@@ -3168,6 +4791,325 @@ audio-subbed = Subbed
 
 # Value of the audio setting: translated audio.
 audio-dubbed = Dubbed
+
+# Heading of the settings screen.
+settings-title = Settings
+
+# Group heading.
+settings-group-general = General
+
+# Group heading.
+settings-group-titles = Titles
+
+# Group heading.
+settings-group-playback = Playback
+
+# Group heading.
+settings-group-watching = Watching
+
+# Group heading.
+settings-group-player = Player
+
+# Group heading.
+settings-group-picture = Picture
+
+# Group heading.
+settings-group-files = Files
+
+# Group heading.
+settings-group-ahead = Ahead
+
+# Group heading.
+settings-group-notifications = Notifications
+
+# Group heading.
+settings-group-integrations = Integrations
+
+# Group heading.
+settings-group-advanced = Advanced
+
+# Group heading.
+settings-group-storage = Storage
+
+# Group heading.
+settings-group-episodes = Episodes
+
+# Row: how titles are written.
+settings-title-language = Title language
+
+# Option: use the tracker's own choice. The tracker is a name.
+settings-title-tracker = { $tracker }'s choice
+
+# Option: English titles.
+settings-title-english = English
+
+# Option: Japanese titles in Latin letters.
+settings-title-romaji = Romaji
+
+# Option: Japanese titles in Japanese.
+settings-title-native = Native
+
+# Row: show adult titles.
+settings-adult = Show adult titles
+
+# Line under it. The tracker is a name.
+settings-adult-detail = Titles { $tracker } marks adult, in Search and Seasonal
+
+# Row: quality.
+settings-quality = Quality
+
+# Row: play the next episode on its own.
+settings-auto-play = Auto-play next
+
+# Row: length of the Up next countdown.
+settings-up-next-countdown = Up next countdown
+
+# Row: skip the opening.
+settings-skip-opening = Skip opening automatically
+
+# Row: skip filler.
+settings-skip-filler = Skip filler automatically
+
+# Row: mark the opening and ending.
+settings-mark-opening = Mark opening and ending
+
+# Row: show the skip button.
+settings-skip-button = Show skip button
+
+# Line under it.
+settings-skip-button-detail = While the opening or ending plays, when it isn't skipped automatically
+
+# Row: when an episode counts as watched.
+settings-counts-watched = Counts as watched at
+
+# Line under it.
+settings-counts-watched-detail = Or when the ending starts, if it is marked
+
+# Row: spoiler protection.
+settings-spoiler = Spoiler protection
+
+# Line under it.
+settings-spoiler-detail = Blurs stills of unwatched episodes after the next one
+
+# Line under the audio row.
+settings-audio-detail = Each show remembers its own audio and subtitles.
+
+# Row: follow the system's caption style.
+settings-system-captions = Follow system caption style
+
+# Line under it.
+settings-system-captions-detail = Plain subtitles use your caption preferences from Accessibility. Styled subtitles keep their own look.
+
+# Line: how many shows override a setting.
+settings-overridden =
+    { $count ->
+        [one] Overridden for one show
+       *[other] Overridden for { $count } shows
+    }
+
+# Row: new downloads.
+settings-new-downloads = New downloads
+
+# Row: keep the next episodes.
+settings-keep-next = Keep next episodes
+
+# Line under it.
+settings-keep-next-detail = Downloads the episodes after the one you are on, for each show you watch
+
+# Row: merge subtitles into the file.
+settings-merge-subtitles = Merge subtitles in
+
+# Row: keep seeding.
+settings-keep-seeding = Keep seeding
+
+# Row: download only on Wi-Fi.
+settings-wifi-only = Wi-Fi only
+
+# Line under it.
+settings-wifi-only-detail = Downloads wait for Wi-Fi
+
+# Row: torrents on a mobile connection.
+settings-torrents-cellular = Torrents on cellular
+
+# Row: seeding after watching.
+settings-seed-after = Seed after watching
+
+# Row: longest time to seed.
+settings-seed-for = Seed for at most
+
+# Row: upload limit.
+settings-upload-limit = Upload limit
+
+# Value: nothing set yet.
+settings-none-yet = None yet
+
+# Value: nothing set.
+settings-not-set = Not set
+
+# Value: no store joined.
+settings-none-joined = None joined
+
+# Row: edit the proxy.
+settings-edit-proxy = Edit proxy…
+
+# Row: Discord presence.
+settings-discord = Discord
+
+# Row: Discord presence on Apple.
+settings-discord-presence = Discord presence
+
+# Row: choose a folder.
+settings-choose = Choose…
+
+# Row: show the file in the file manager.
+settings-show-in-files = Show in Files
+
+# Row: check for updates.
+settings-check-updates = Check for updates
+
+# Row: privacy.
+settings-privacy = Privacy
+
+# Line under it.
+settings-privacy-detail = What anistream sends, and what stays on this device
+
+# Row: typefaces.
+settings-typefaces = Typefaces
+
+# Row: libraries used.
+settings-libraries = Libraries
+
+# Line under the update row on desktop about page, the build cannot update.
+settings-notices = Notices
+
+# Line about the artwork licence.
+settings-artwork = Artwork under CC BY-NC
+
+# Line under it.
+settings-artwork-detail = Attribution in the app's notices
+
+# Heading and row for notifications of new episodes.
+settings-new-episodes = New episodes
+
+# Line under it.
+settings-new-episodes-detail = For shows in your Watching list
+
+# Line explaining what a notification says.
+settings-notify-detail = One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.
+
+# Row: the coming-up digest.
+settings-coming-up = Coming up · next 7 days
+
+# Row: the system's notification settings.
+settings-system-notifications = Notification settings
+
+# Line under it on Android.
+settings-system-notifications-detail = Sound, vibration and the lock screen
+
+# Line under it on Apple.
+settings-system-notifications-apple = Opens System Settings, where the banner style, sound and badges are set.
+
+# Line when the system blocks notifications.
+settings-notifications-blocked = Off: the system isn't allowing notifications for anistream
+
+# Line when the show turned notifications on.
+settings-notifications-show-on = On in this show's settings
+
+# Line on the show settings: when an episode comes out.
+settings-notify-show = When an episode of this show comes out
+
+# Title of the sheet.
+show-settings-title = Settings for this show
+
+# Group heading.
+show-settings-audio-subtitles = Audio and subtitles
+
+# Row.
+show-settings-skip-opening = Skip opening
+
+# Row.
+show-settings-skip-filler = Skip filler
+
+# Option: blur stills ahead.
+show-settings-blur-ahead = Blur stills ahead
+
+# Option: show everything.
+show-settings-show-everything = Show everything
+
+# Line under spoiler protection.
+show-settings-spoiler-detail = Blurs stills after the next episode.
+
+# Option: always.
+show-settings-always = Always
+
+# Option: never.
+show-settings-never = Never
+
+# Line under the subtitles row.
+show-settings-subs-remembered = Remembered from your last episode.
+
+# Line under the subtitles row, when nothing is remembered.
+show-settings-subs-follow = Chosen in the player. Following Settings › Playback.
+
+# Row: the source for this show.
+show-settings-source = Source
+
+# Line under it.
+show-settings-source-detail = Automatic tries your sources in order.
+
+# Button that resets the show.
+show-settings-reset = Reset to defaults
+
+# Line under it.
+show-settings-reset-detail = Also clears the remembered audio and subtitles.
+
+# Line when nothing is set.
+show-settings-nothing = Nothing set for this show
+
+# Row: the default track.
+show-settings-default = Default
+
+# Line: notifications are off because the show is not being watched.
+show-settings-not-watching = Off · not watching
+
+# Name of a track with a part in brackets. The part is already formatted.
+show-settings-track-with = { $language } ({ $part })
+
+# Title of the airing widget.
+widget-airing-today = Airing today
+
+# Line when there is no schedule yet.
+widget-no-schedule = No schedule for today yet. Open anistream to update it.
+
+# Line when nothing airs today.
+widget-nothing-today = Nothing airing today.
+
+# Line when nothing airs today and the next is known.
+widget-nothing-next = Nothing airing. Next: { $when }.
+
+# Heading of the section that shows what is in the library.
+widget-in-your-list = In your list
+
+# Short word: an episode was watched.
+widget-watched = Watched
+
+# Line telling when the widget was updated.
+widget-updated = Updated { $when }
+
+# Line on the continue widget when nothing is connected.
+widget-connect-detail = Connect tracker, or play an episode, to see it here.
+
+# Button on the widget.
+widget-connect = Connect
+
+# Accessibility label of a widget row: continue an episode.
+widget-continue-label = Continue episode { $episode } of { $title }
+
+# Accessibility label of a widget row: start an episode.
+widget-start-label = Play episode { $episode } of { $title }
+
+# Accessibility label of a widget row: continue a dubbed episode.
+widget-continue-dubbed-label = Continue episode { $episode }, dubbed, of { $title }
 
 # Title of the screen or section that lists sources.
 sources-title = Sources
@@ -3220,4 +5162,1504 @@ source-pin-unavailable = { $name } isn't available right now, so this title's ep
 
 # Under an episode that is out but that no source lists. The row is dimmed and can't be played.
 episode-unsourced = No source has this episode
+
+# Heading of the order list.
+sources-order = Source order
+
+# Line under the heading.
+sources-order-detail = Sources are tried top to bottom. Drag one by its handle to change the order.
+
+# Line under the heading on a phone, where a show can keep its own.
+sources-order-detail-show = Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.
+
+# Accessibility hint of the drag handle.
+sources-drag-hint = Drag to change the order
+
+# Menu item that moves a source up.
+sources-move-up = Move up
+
+# Menu item that moves a source down.
+sources-move-down = Move down
+
+# Title when the list could not be read.
+sources-load-failed = Couldn't load sources
+
+# Title when no source is installed.
+sources-empty-title = No sources yet
+
+# Line under it.
+sources-empty-detail = Sources come from plugin stores. Join one with the invite link its owner sends you.
+
+# Row for the built-in torrent source.
+sources-torrents = Torrents
+
+# Label of a source that is not a plugin and controls this device.
+sources-remote = Remote
+
+# Origin: set in the config file.
+sources-origin-config = Set in the config file
+
+# Origin: built into the app.
+sources-origin-built-in = Built in
+
+# Origin: from a store the user left.
+sources-origin-left-store = From a plugin store you left
+
+# Origin: added by hand.
+sources-origin-by-hand = Added by hand
+
+# Origin: not from a store.
+sources-origin-no-store = Not from a plugin store
+
+# Origin: from a store.
+sources-origin-from = From { $name }
+
+# Origin: from a store, with the place in the list.
+sources-origin-in = In { $place }
+
+# Status: the source does not answer.
+sources-status-not-answering = Not answering
+
+# Status: held back.
+sources-status-held-back = Held back
+
+# Status: slow.
+sources-status-slow = Slow
+
+# Status: an update exists.
+sources-status-update = Update available
+
+# Status line: no answer, with a reason.
+sources-detail-not-answering = Not answering. { $why }
+
+# Status line: no answer.
+sources-detail-not-answering-plain = Not answering.
+
+# Status line: held back by the check.
+sources-detail-held-back = Held back until the connection check passes.
+
+# Status line: disabled.
+sources-detail-disabled = Disabled. It keeps its place and is not tried.
+
+# Status line: the source is gone.
+sources-detail-gone = This source is no longer here.
+
+# Status line: the site did not answer.
+sources-detail-site = The site did not answer.
+
+# Row label: version.
+sources-version = Version
+
+# Row label: response time.
+sources-response-time = Response time
+
+# Value: no answer to measure.
+sources-no-answer = No answer
+
+# Value: not checked yet.
+sources-not-checked = Not checked yet
+
+# Row label: the hosts a plugin contacts.
+sources-contacts-label = Contacts
+
+# Value: how the plugin is listed.
+sources-listed-by-store = Listed by its plugin store
+
+# Line: the plugin contacts one host.
+sources-contacts-one = Contacts { $first }
+
+# Line: the plugin contacts several hosts. The count is the hosts after the first.
+sources-contacts-line =
+    { $more ->
+        [one] Contacts { $first } and one more
+       *[other] Contacts { $first } and { $more } more
+    }
+
+# Line: the plugin contacts no host.
+sources-contacts-none = Contacts no hosts
+
+# Value when no host is listed.
+sources-no-hosts = No hosts
+
+# Line: an update adds one host.
+sources-update-contacts-one = This update also contacts { $first }.
+
+# Line: an update adds several hosts. The count is the hosts after the first.
+sources-update-contacts =
+    { $more ->
+        [one] This update also contacts { $first } and one more.
+       *[other] This update also contacts { $first } and { $more } more.
+    }
+
+# Title of the update question.
+sources-update-title = Update { $name }?
+
+# Title of the replace question.
+sources-replace-title = Replace { $name }?
+
+# Line under the update question.
+sources-update-detail = Version { $version } from { $store } replaces { $from }.
+
+# Line under the replace question.
+sources-replace-detail = Version { $version } from { $store } replaces the copy added by hand. { $detail }.
+
+# Button that opens the settings for sources.
+sources-open-settings = Open source settings
+
+# Heading of the torrent group in the settings.
+sources-torrent-source = Torrent source
+
+# Row: where the plugin's page stands.
+sources-source-order-row = Source order
+
+# Short label for a joined store, on a row.
+stores-joined = Joined
+
+# Title of the empty list.
+stores-empty-title = No plugin stores yet
+
+# Line under the empty title.
+stores-empty-detail = Plugin stores are run by people you know. Join one with the invite link its owner sends you.
+
+# Line under the title of the screen when plugins add sources.
+stores-intro = Plugins add sources. Each one lists the hosts it contacts before you install it.
+
+# Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
+stores-not-from-app = Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.
+
+# Line when the store has no plugins.
+stores-no-plugins = This plugin store offers no plugins yet.
+
+# Heading of the plugin list of a store.
+stores-plugins = Plugins
+
+# Line under the plugin list: what a plugin may do.
+stores-plugin-limits = Each plugin can contact only the hosts listed with it and cannot read your files.
+
+# Line in the update sheet: what a plugin may do.
+stores-plugin-limits-short = Plugins cannot read your files or contact a host that is not listed.
+
+# Line under the name of a store: who runs it and where.
+stores-run-by = Run by { $owner } · { $host }
+
+# Line under a store added by hand.
+stores-added-by-hand = Added by hand · { $detail }
+
+# Short status: the store cannot be reached.
+stores-status-offline = Offline
+
+# Short status: the store does not answer.
+stores-status-not-answering = Not answering
+
+# Short status: the owner ended this device's access.
+stores-status-access-ended = Access ended
+
+# Line when the owner ended access. Installed plugins keep working.
+stores-access-ended-detail = This plugin store's owner ended your access. Installed plugins keep working, and none will update.
+
+# Line on the page of a store that no longer lets the device in.
+stores-access-ended-page = This plugin store no longer lets this device in. Its plugins stay installed until you remove them.
+
+# Line on a row where the store is gone from the device.
+stores-no-longer-joined = This plugin store is no longer joined.
+
+# Line when the store cannot be reached but a list was kept. The reason is a sentence fragment.
+stores-offline-last-list = Offline: { $reason }. The plugins below are the last list that was checked.
+
+# Line when offline, without a reason.
+stores-offline-last-list-plain = Offline. Showing the last list it sent.
+
+# Line with the store's key and how this device joined.
+stores-key-line = Store key { $key } · { $joined }
+
+# How the device joined, when a name was given.
+stores-device-joined-as = Joined as { $name }
+
+# How the device joined, when no name was given.
+stores-joined-nameless = Joined without a name
+
+# Row label: who can join.
+stores-who-can-join = Who can join
+
+# Row value and line: no invite is needed.
+stores-anyone-with-link = Anyone with the link can join
+
+# Short value of the same row.
+stores-anyone-short = Anyone with the link
+
+# Row label: the store's address.
+stores-address = Address
+
+# Row label: the store's key.
+stores-key-fingerprint = Key fingerprint
+
+# Heading of the section about this store.
+stores-this-store = This store
+
+# Button that opens the join form.
+stores-join-action = Join a plugin store
+
+# Short button on a phone for the same.
+stores-join-short = Join a store
+
+# Menu item that opens the join form.
+stores-join-menu = Join plugin store…
+
+# Menu item and button that leaves a store.
+stores-leave = Leave plugin store
+
+# Title of the leave confirmation.
+stores-leave-title = Leave { $name }?
+
+# Line under it.
+stores-leave-detail = This device can no longer install or update its plugins. Plugins already installed stay.
+
+# Line under it, when a new invite is needed to return.
+stores-leave-rejoin = Plugins installed from it stay installed. To join again, you need a new invite from its owner.
+
+# Button that opens the owner's admin page.
+stores-open-admin = Open admin page
+
+# Menu item: invite a person.
+stores-invite-someone = Invite someone…
+
+# Menu item: link another device of your own.
+stores-link-device = Link another device…
+
+# Menu item and button: list the members.
+stores-show-members = Show members
+
+# Menu item: who can join.
+stores-who-can-join-menu = Who can join…
+
+# Menu item: publish a plugin.
+stores-publish-menu = Publish a plugin…
+
+# Accessibility label of the row's actions menu.
+stores-actions-for = Actions for { $name }
+
+# Short status: installed.
+stores-plugin-state-installed = Installed
+
+# Short status: installed from another store.
+stores-plugin-from = From { $other }
+
+# Short status: the store is offline, so the plugin cannot be installed.
+stores-plugin-offline = Offline
+
+# Short status: the store no longer offers the plugin.
+stores-plugin-unavailable = Not available
+
+# Line: the version installed and the one now offered.
+stores-plugin-update-line = Version { $from } installed, { $to } available
+
+# Line: the version installed.
+stores-plugin-version = Version { $version }
+
+# Accessibility label of the update button.
+stores-update-label = Update { $name } to { $version }
+
+# Accessibility label of the install button.
+stores-install-label = Install { $name }
+
+# Accessibility label of the replace button, for a plugin that was added by hand.
+stores-replace-label = Replace the copy of { $name } added by hand
+
+# Title of the remove confirmation.
+stores-remove-plugin-title = Remove { $name }?
+
+# Line under it.
+stores-remove-plugin-detail = It is deleted from this device. The plugin store can install it again.
+
+# Label before the hosts a new version also contacts.
+stores-newly-contacts = Newly contacts
+
+# Line in the update sheet: the hosts the new version adds. The hosts are a list already joined.
+stores-update-contacts = This update also contacts { $hosts }.
+
+# Heading in the update sheet for what changed.
+stores-new-in = New in { $version }
+
+# Title of the join form.
+stores-join-title = Join a plugin store
+
+# Title of the join form on the TV, which adds rather than joins.
+stores-add-title = Add a plugin store
+
+# Line under the form title.
+stores-join-detail = Paste the link the plugin store's owner sent you.
+
+# Line under the form title on desktop, where nothing happens before the check.
+stores-join-detail-desktop = Paste the invite link a plugin store's owner sent you. You see what the plugin store offers before anything is joined or installed.
+
+# Line under the field on a phone when a link was opened from another app.
+stores-join-detail-opened = Paste the link the plugin store's owner sent you. A anistream:// invite link opened from Messages fills this sheet in directly.
+
+# Label and hint of the link field.
+stores-invite-link = Invite link
+
+# Hint inside the empty link field.
+stores-invite-link-hint = https://…/join/…
+
+# Button that checks the link.
+stores-check-link = Check the link
+
+# Button that checks the link, desktop wording.
+stores-check-invite = Check invite
+
+# Line while the link is checked.
+stores-checking-link = Checking the link…
+
+# Line while the store is checked.
+stores-checking-store = Checking the plugin store…
+
+# Line when the text is not an invite link.
+stores-not-an-invite = That is not an invite link.
+
+# Line when the link could not be opened.
+stores-link-failed = Couldn't open this link.
+
+# Button that goes back to the link field.
+stores-try-another-link = Try another link
+
+# Title of the confirmation on a desktop.
+stores-join-confirm-title = Join { $name }?
+
+# Line: joining installs nothing.
+stores-join-installs-nothing = Joining installs nothing. You choose which plugins to install, and each one asks for the hosts it contacts.
+
+# Line when the key in the link matches the store. The key is shown beside it.
+stores-key-matches = Key { $key } matches the plugin store.
+
+# Line when the link is open to anyone.
+stores-anyone-note = You join without a name. Another device joins with the same link.
+
+# Line when the device joined this store already.
+stores-already-joined-note = This device has joined this plugin store already.
+
+# Label of the device name field.
+stores-device-name = Device name
+
+# Line under the device name field.
+stores-device-name-detail = The plugin store's owner sees this device by this name.
+
+# Button that joins.
+stores-join-button = Join plugin store
+
+# Button that opens a store that was joined already.
+stores-open-store = Open plugin store
+
+# Notice when the TV joined a store. The name is a store name.
+stores-tv-joined = Joined { $name }
+
+# Notice when the TV joined a store with no name known.
+stores-tv-joined-plain = Joined the plugin store
+
+# Button that skips the join step in onboarding.
+stores-skip = Skip for now
+
+# Button that types the link instead of scanning.
+stores-type-link = Type the link
+
+# Line beside the QR code on the TV.
+stores-qr-instructions = Scan the QR code with your phone, then paste the plugin store's invite link on the page that opens.
+
+# Line over the address under the QR code.
+stores-or-open-address = Or open this address
+
+# Line when the code on the TV ran out.
+stores-code-expired = Code expired
+
+# Line under it: how long the page lived.
+stores-page-closed = The page closed after 10 minutes.
+
+# Button that makes a new code.
+stores-new-code = Get a new code
+
+# Line when the TV has no reachable address.
+stores-tv-no-network = This TV isn't on a network a phone can reach.
+
+# Line under the QR code on the TV: when the page closes.
+stores-page-closes = The page closes with this screen, or in 10 minutes.
+
+# Heading of the people section.
+stores-people = People
+
+# Heading of the members list.
+stores-members-of = Members of { $name }
+
+# Heading of the members section on a small screen.
+stores-members = Members
+
+# Row for the owner. The devices count is already formatted.
+stores-owner-devices = Owner · { $devices }
+
+# Line of a member: the number of devices.
+stores-member-devices =
+    { $count ->
+        [one] Their one device
+       *[other] Their { $count } devices
+    }
+
+# Label of the field for the name of the person invited.
+stores-invite-for = Who is it for? (optional)
+
+# Placeholder in the name field of the invite sheet.
+stores-their-name = Their name
+
+# Button that makes an invite.
+stores-make-link = Make invite link
+
+# Title of the sheet that links a device of your own.
+stores-link-device-title = Link another device
+
+# Title of the invite sheet.
+stores-invite-title = Invite someone
+
+# Line under the link-your-device button.
+stores-link-device-detail = Make a link to open on your other device.
+
+# Line under an invite link: it works once, for one person.
+stores-invite-once = Works once, for the person you send it to.
+
+# Line under a link made for your own device.
+stores-link-once-until = Open this link on the other device. It works once, until { $until }.
+
+# Title of an invite for a named person.
+stores-invite-for-name = Invite for { $name }
+
+# Line when no invites wait.
+stores-no-invites = No invites waiting. An invite link shows here until it is used.
+
+# Heading over the list of unused invites.
+stores-invites-unused = Invites not used yet
+
+# Name of an invite that was not given one.
+stores-invite-unnamed = Another device
+
+# Line of an unused invite.
+stores-invited-until = Invited, until { $until }
+
+# Menu item that cancels an invite.
+stores-cancel-invite = Cancel invite
+
+# Menu item that removes a member.
+stores-remove-member = Remove member
+
+# Title of the confirmation that removes a member.
+stores-remove-member-title = Remove { $name }?
+
+# Line under it.
+stores-remove-member-detail = Their devices lose access to this plugin store. Plugins they installed keep working but stop updating.
+
+# Heading of the who-can-join sheet.
+stores-who-can-join-title = Who can join { $name }
+
+# Option: anyone with the store's link.
+stores-anyone-with-store-link = Anyone with the plugin store's link
+
+# Option: only people invited.
+stores-only-invited = Only people you invite
+
+# Line over the list of devices that joined with the link.
+stores-devices-joined =
+    { $count ->
+        [one] One device joined with the link
+       *[other] { $count } devices joined with the link
+    }
+
+# Line of a device that joined.
+stores-device-joined-at = Joined { $when }
+
+# Line under the list when it is cut off.
+stores-newest-listed = The newest { $count } are listed.
+
+# Line when the store's server cannot offer the choice.
+stores-server-older = This plugin store's server is older, and lets in only people you invite. Updating it adds the choice.
+
+# Title of the confirmation that removes devices that joined with the link.
+stores-remove-devices-title = Remove the devices that joined with the link?
+
+# Line under it.
+stores-remove-devices-detail = They stop working with { $name } at once. Plugins already installed on them stay.
+
+# Title of the publish sheet.
+stores-publish-title = Publish a plugin to { $name }
+
+# Line when there is nothing to publish.
+stores-publish-none = No plugins on this device to publish.
+
+# Version line of a plugin in the publish sheet.
+stores-plugin-name-version = { $name } { $version }
+
+# Title of the state when a title page could not load.
+title-load-failed = Couldn't load this title
+
+# Line under the load failure when AniList did not answer.
+title-no-answer = AniList didn't answer. Try again.
+
+# Short line while a title page loads.
+title-loading = Loading this title
+
+# Button on the title page that plays the trailer.
+title-trailer = Trailer
+
+# Menu item that plays the trailer.
+title-play-trailer = Play trailer
+
+# Menu item that opens the title on the AniList website.
+title-open-anilist = Open on AniList
+
+# Menu item that opens the title page of the show a row belongs to.
+title-open = Open title
+
+# Heading of the list of seasons.
+title-seasons = Seasons
+
+# Name of one season of a show, such as "Season 2".
+season-number = Season { $number }
+
+# Heading of the list of episodes.
+title-episodes = Episodes
+
+# Heading of the list of related titles.
+title-related = Related
+
+# Heading of the block of facts about a title.
+title-details = Details
+
+# Label of the studio in the details.
+title-studio = Studio
+
+# Heading of the block of tags.
+title-tags = Tags
+
+# Button that opens the full page of facts about a show.
+title-more-about = More about this show
+
+# Accessibility hint of the button that expands a synopsis.
+title-synopsis-hint = Shows the whole synopsis
+
+# Label under a season: which episodes are dubbed so far.
+title-dubbed-to = Dubbed to episode { $episode }
+
+# State of a title with no episodes listed yet.
+title-no-episodes = No episodes yet
+
+# Line when the episodes could not be listed.
+title-episodes-load-failed = Couldn't list episodes
+
+# Line under the episode list when it comes from AniList and no source can play them.
+title-episodes-no-source = Episodes come from AniList. Add a source to play them.
+
+# Button that collapses the watched episodes of a season.
+title-hide-watched = Hide watched episodes
+
+# Button that shows the watched episodes of a season again.
+title-show-watched = Show watched episodes
+
+# Accessibility state of a section that is open.
+state-expanded = Expanded
+
+# Accessibility state of a section that is closed.
+state-collapsed = Collapsed
+
+# Row that stands for several watched episodes in a row, such as "Episodes 1 to 5 watched".
+title-watched-range = Episodes { $first } to { $last } watched
+
+# Name of an episode, such as "Episode 7".
+episode-number = Episode { $number }
+
+# Short name of an episode, for tight spaces.
+episode-number-short = E{ $number }
+
+# An episode and its name.
+episode-with-title = Episode { $number } · { $title }
+
+# An episode, dubbed, and its name.
+episode-with-title-dubbed = Episode { $number } · Dubbed · { $title }
+
+# Badge on an episode the person has watched.
+episode-watched = Watched
+
+# Badge on an episode that is filler.
+episode-filler = Filler
+
+# Row note for an episode that has not aired.
+episode-row-not-out = Not out yet
+
+# Row note for an episode that has not aired, with when it does.
+episode-row-airs = Airs { $when }
+
+# Accessibility label of an episode's still while spoiler protection hides it.
+episode-spoiler-hidden = Still hidden: spoiler protection
+
+# Accessibility label of the button that opens an episode's menu.
+episode-options = Episode options
+
+# Menu item that marks an episode as watched.
+episode-mark-watched = Mark watched
+
+# Menu item that marks an episode as not watched.
+episode-mark-unwatched = Mark unwatched
+
+# Menu item that marks every episode before this one as watched.
+episode-mark-previous-watched = Mark all previous watched
+
+# Menu item that marks every episode up to a given one as watched.
+episode-mark-up-to = Mark watched up to episode { $episode }
+
+# Menu item that marks one numbered episode as watched.
+episode-mark-n-watched = Mark episode { $episode } watched
+
+# Menu item that marks one numbered episode as not watched.
+episode-mark-n-unwatched = Mark episode { $episode } unwatched
+
+# Notice after an episode was marked watched.
+episode-marked-watched = Marked episode { $episode } watched.
+
+# Menu item that starts an episode from the beginning.
+episode-play-from-beginning = Play from the beginning
+
+# Menu item that downloads one numbered episode.
+episode-download-n = Download episode { $episode }
+
+# Menu item that downloads every episode not yet watched.
+episode-download-unwatched = Download unwatched episodes
+
+# Heading of the cast list.
+more-cast = Cast
+
+# Note under the cast heading: whose voices are listed.
+more-cast-voices = Japanese voices
+
+# Role of a character in the story.
+more-role-main = Main
+
+# Role of a character in the story.
+more-role-supporting = Supporting
+
+# Role of a character in the story.
+more-role-background = Background
+
+# Heading of the staff list.
+more-staff = Staff
+
+# Heading of the list of recommended titles.
+more-recommendations = Recommendations
+
+# Heading of the list of rankings.
+more-rankings = Rankings
+
+# Line when AniList has no cast, staff or recommendations for a show.
+more-empty = AniList has no cast, staff or recommendations for this show yet.
+
+# Badge on a tag that gives away the story.
+more-spoiler = Spoiler
+
+# Button that hides the spoiler tags.
+more-hide-spoiler-tags = Hide spoiler tags
+
+# Button that shows the spoiler tags.
+more-show-spoiler-tags =
+    { $count ->
+        [one] Show one spoiler tag
+       *[other] Show { $count } spoiler tags
+    }
+
+# Title of the settings group and the screen.
+torrents-title = Torrents
+
+# Label and short value for the switch.
+torrents-on = Torrents are on
+
+# Line under the switch while torrents are off.
+torrents-off-detail = Off by default. Turning this on asks how to protect your connection first.
+
+# Line explaining the risk, before torrents start.
+torrents-risk = Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.
+
+# Line in the Apple sources screen: torrents belong to the app, not to a plugin.
+torrents-not-a-plugin = Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.
+
+# Label of the choice of protection.
+torrents-protect-with = Protect with
+
+# Option: no protection.
+torrents-protect-none = No protection
+
+# Option: a proxy.
+torrents-protect-proxy = Proxy
+
+# Option: a VPN already running on the device.
+torrents-protect-vpn = VPN
+
+# Line under the proxy option.
+torrents-protect-proxy-detail = Torrent traffic goes through a proxy you run or rent.
+
+# Line under the VPN option.
+torrents-protect-vpn-detail = Uses the VPN already running on this device.
+
+# Line under the no-protection option.
+torrents-protect-none-detail = Your address is visible to everyone in the torrent.
+
+# Line when no protection is set.
+torrents-protect-none-note = With no protection, anistream does not check the connection.
+
+# Summary: a proxy protects. Host and port are already formatted.
+torrents-summary-proxy-at = Protected by a SOCKS5 proxy at { $host }:{ $port }.
+
+# Summary: a proxy protects, address not shown.
+torrents-summary-proxy = Protected by a SOCKS5 proxy.
+
+# Summary: a VPN protects.
+torrents-summary-vpn = Protected by the VPN on this device.
+
+# Summary: nothing protects.
+torrents-summary-none = Not protected. Your address is visible to everyone in the torrent.
+
+# Title of the question when torrents are turned on without protection.
+torrents-unprotected-title = Use torrents without protection?
+
+# Line under it.
+torrents-unprotected-detail = Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.
+
+# Button that confirms turning torrents on without protection.
+torrents-turn-on-unprotected = Turn on without protection
+
+# Button that confirms using no protection.
+torrents-use-unprotected = Use without protection
+
+# Label of the proxy host field.
+torrents-proxy-host = Proxy host
+
+# Label of the proxy port field.
+torrents-proxy-port = Proxy port
+
+# Label of the proxy user name field.
+torrents-proxy-user = User name
+
+# Label of the proxy password field.
+torrents-proxy-password = Password
+
+# Line under the password field.
+torrents-password-keep = Leave the password empty to keep the saved one.
+
+# Line under the proxy form: what happens while the new proxy is checked.
+torrents-proxy-keeps-saved = Torrents keep using the saved proxy until the new one passes the connection check.
+
+# Line when the host or port is wrong.
+torrents-proxy-invalid = The proxy needs a host and a port from 1 to 65535.
+
+# Line while the proxy is checked.
+torrents-checking-proxy = Checking the proxy…
+
+# Notice after the proxy was saved.
+torrents-proxy-saved = Proxy saved
+
+# Why a save was refused: traffic left outside the proxy.
+torrents-left-outside-proxy = Torrent traffic left outside this proxy
+
+# Why a save was refused: the check could not run through the proxy.
+torrents-check-not-made-proxy = The check could not be made through this proxy
+
+# Notice when a proxy was not saved. The reason is a sentence fragment.
+torrents-proxy-not-saved = Not saved. { $why }, so the saved proxy stays.
+
+# Notice when protection was not saved. The reason is a sentence fragment.
+torrents-protection-not-saved = Not saved. { $why }, so the saved protection stays.
+
+# Notice when torrents stayed off. The reason is a sentence fragment.
+torrents-still-off = Torrents are still off. { $why }.
+
+# Label of the index address field.
+torrents-index = Torrent index
+
+# Line under the index field. The app shows legal-hosts-no-content after it.
+torrents-index-detail = The RSS search address anistream asks for torrents.
+
+# Hint inside the index field.
+torrents-index-hint = https://…/?q={ "{" }query{ "}" }
+
+# Line when no index address is set.
+torrents-index-needed = Torrents need an index address.
+
+# Line when the index address has the wrong scheme.
+torrents-index-scheme = Use an http or https address.
+
+# Notice after the index was saved.
+torrents-index-saved = Torrent index saved
+
+# Label of the choice of what to do when a check fails.
+torrents-if-check-fails = If a check fails
+
+# Title of the question that asks whether torrents may keep running.
+torrents-keep-running-title = Keep torrents running if a check fails?
+
+# Line under the question: what the choice is about.
+torrents-keep-running-detail = What happens to torrents when the check finds traffic leaving outside your VPN or proxy.
+
+# Option: pause torrents.
+torrents-fail-pause = Pause torrents
+
+# Option: stop torrents.
+torrents-fail-stop = Stop torrents
+
+# Option: only warn.
+torrents-fail-warn = Warn only
+
+# Result of the choice: torrents run.
+torrents-fail-warn-result = Torrents keep running.
+
+# Result of the choice: torrents stop.
+torrents-fail-stop-result = Torrents are stopped.
+
+# Result of the choice: torrents pause.
+torrents-fail-pause-result = Torrents are paused.
+
+# Label of the last check.
+torrents-last-check = Last check
+
+# Check passed. The exit is where the traffic leaves from, already formatted.
+torrents-check-passed-exit = Leaving through { $exit }
+
+# Check passed.
+torrents-check-passed = Passed
+
+# Check running: the line.
+torrents-check-running-line = Checking where torrent traffic leaves from
+
+# Check running: the short word.
+torrents-check-running = Checking
+
+# Check failed: traffic left outside. The consequence follows.
+torrents-check-leaked = Traffic left outside the protection. { $then }
+
+# Check failed: the check could not be made. The consequence follows.
+torrents-check-unmade = The check could not be made. { $then }
+
+# Short word: the check failed.
+torrents-check-failed = Failed
+
+# Line: no protection is set, so nothing was checked.
+torrents-check-none-line = No protection is set
+
+# Short word: unprotected.
+torrents-check-none = Unprotected
+
+# Line: no check yet.
+torrents-check-waiting-line = Not checked yet
+
+# Short word: waiting for the first check.
+torrents-check-waiting = Waiting
+
+# Short word: no check.
+torrents-not-checked = Not checked
+
+# Button that runs the check.
+torrents-check-now = Check now
+
+# Title of the page on the phone for the torrent setup.
+torrents-for-app = Torrents for anistream
+
+# Title of the page on the phone for signing in. The tracker is a name.
+torrents-page-sign-in = Sign in to { $tracker }
+
+# Line on that page: the form was not complete.
+torrents-page-fill-form = Fill in the form, then send it again.
+
+# Line on that page after sending.
+torrents-page-look-at-tv = Look at the TV: { $next }. You can close this page.
+
+# Title when the page address is wrong.
+torrents-page-not-found = Not found
+
+# Title when the page is not allowed.
+torrents-page-not-allowed = Not allowed
+
+# Line when the address lacks its key.
+torrents-page-missing-key = This address is missing its key. Scan the QR code on the TV again, and open the whole address it gives.
+
+# Line when the TV could not read what was sent.
+torrents-page-unreadable = The TV couldn't read this. Scan the QR code on the TV again.
+
+# Line when the page needs script.
+torrents-page-needs-script = This page needs JavaScript to send the form to the TV safely.
+
+# Title of the accounts screen. The sidebar item is nav-accounts.
+accounts-title = Accounts
+
+# Heading over the trackers other than the first.
+accounts-other-trackers = Other trackers
+
+# Line on the welcome screen: where the other trackers are.
+accounts-other-trackers-note = Other trackers are in Settings, under Accounts.
+
+# Line on the welcome screen: why to sign in.
+accounts-welcome-detail = Sign in to { $tracker } to sync your list and where you stopped.
+
+# Line under a tracker that brings in lists.
+accounts-brings-lists = Brings in your lists and fills Continue with what you are watching.
+
+# Line under the accounts screen when the library needs a tracker.
+accounts-library-needs = Library and sync need a { $tracker } account
+
+# Line on the settings page: where the library gets its lists.
+accounts-library-from = Library shows your lists from { $tracker }.
+
+# Line on the library when signed out, one sentence.
+accounts-lists-come-from = Your lists come from { $tracker }.
+
+# Line on the library for an empty status.
+accounts-status-empty = Titles you set to this status on { $tracker } show here.
+
+# Line on the library for an empty list.
+accounts-list-empty = Titles you add on { $tracker } show up here.
+
+# Status: not signed in.
+accounts-state-signed-out = Not signed in
+
+# Status: signed in. The name is the user's name on the tracker.
+accounts-state-signed-in = Signed in to { $tracker } as { $name }
+
+# Status: signed in, with changes waiting to be sent.
+accounts-state-signed-in-waiting =
+    { $count ->
+        [one] Signed in to { $tracker } as { $name } · one change waiting
+       *[other] Signed in to { $tracker } as { $name } · { $count } changes waiting
+    }
+
+# Status: the sign-in ran out.
+accounts-state-expired = { $tracker } needs you to sign in again
+
+# Status: the sign-in ran out, short.
+accounts-state-expired-short = Sign in again to keep syncing
+
+# Status: checking the account.
+accounts-state-checking = Checking…
+
+# Status: waiting for the browser to return.
+accounts-state-waiting-browser = Waiting for the browser…
+
+# Status: waiting for a tracker.
+accounts-state-waiting = Waiting for { $tracker }…
+
+# Status: signing in.
+accounts-state-signing-in = Signing in…
+
+# Status: no network, so the sign-in waits.
+accounts-state-offline = Sign in once you're back online
+
+# Status: sync running.
+accounts-sync-running = Syncing…
+
+# Status: sync running, with the tracker.
+accounts-sync-running-with = Syncing with { $tracker }
+
+# Status: synced.
+accounts-sync-done = Synced
+
+# Status: sync failed. The reason is a sentence fragment.
+accounts-sync-failed = Not synced: { $why }
+
+# Line on the sync menu: sync with every tracker.
+accounts-sync-all = Sync with trackers
+
+# Line on a screen that cannot reach the tracker: changes wait.
+accounts-offline-changes = You're offline. Changes wait here and sync once you're back.
+
+# Short line on the TV for the same.
+accounts-offline-changes-tv = Offline. Changes sync once the network is back.
+
+# Line on the TV when the sign-in ran out.
+accounts-expired-tv = Your sign-in has expired. Sign in again in Accounts.
+
+# Button that starts signing in.
+accounts-sign-in = Sign in
+
+# Button that starts signing in on a menu.
+accounts-sign-in-menu = Sign in…
+
+# Button that signs in again.
+accounts-sign-in-again = Sign in again…
+
+# Button that signs in to a named tracker.
+accounts-sign-in-to = Sign in to { $tracker }
+
+# Button that signs out.
+accounts-sign-out = Sign out
+
+# Button that syncs now.
+accounts-sync-now = Sync now
+
+# Button that opens the settings for accounts.
+accounts-settings = Accounts settings…
+
+# Line in the confirmation that signs out on the TV.
+accounts-sign-out-tv-detail = This TV stops syncing with { $name }. Your list stays on { $name }.
+
+# Line telling where sign-in tokens are kept: in the keychain.
+accounts-tokens-keychain = Sign-in tokens are kept in this device's keychain.
+
+# Line telling where sign-in tokens are kept: in a file.
+accounts-tokens-file = Sign-in tokens are kept in a file on this device, readable only by you.
+
+# Line telling where sign-in tokens are kept: sealed by the keystore.
+accounts-tokens-keystore = Sign-in tokens are kept on this device, sealed with a key in its keystore.
+
+# Title of the form.
+accounts-form-title = Sign in to { $tracker }
+
+# Line under the title: where the password goes.
+accounts-form-detail = Your password goes to { $tracker } once, for a token kept on this device.
+
+# Label of the name field.
+accounts-user-or-email = Email or user name
+
+# Label of the password field.
+accounts-password = Password
+
+# Button label while the sign-in runs.
+accounts-signing-in-action = Signing in
+
+# Line under the title: what to do.
+accounts-code-detail = Go to { $host } and enter this code. anistream signs in once you have.
+
+# Accessibility label of the code. The code is spelled out.
+accounts-code-label = Code { $code }
+
+# Line while waiting for the tracker.
+accounts-code-waiting = Waiting for { $tracker }
+
+# Line telling when the code ends. The time is already formatted.
+accounts-code-expires = Expires in { $time }
+
+# Line when the code ended.
+accounts-code-ended = Code expired
+
+# Button that copies the code.
+accounts-copy-code = Copy code
+
+# Button that opens the tracker's page. The host is a website.
+accounts-open-host = Open { $host }
+
+# Line while a new code is fetched.
+accounts-getting-code = Getting a new code…
+
+# Button that shows the code.
+accounts-show-code = Show code
+
+# Notice when the browser could not be opened.
+accounts-browser-failed = Couldn't open your browser. Open the address by hand.
+
+# Line on the TV's sign-in screen for a tracker that signs in by code.
+accounts-scan-code = Scan with your phone. Open { $tracker } there, allow anistream, then paste the code on this page.
+
+# Line on the TV's sign-in screen for a tracker that signs in by password.
+accounts-scan-password = Scan with your phone, then enter your { $tracker } user name and password on the page.
+
+# Title of the clash sheet.
+accounts-clash-title = Different on { $tracker }
+
+# Line under it.
+accounts-clash-detail = These changed on { $tracker } and here since the last sync. Keep one side of each.
+
+# One row of the clash sheet.
+accounts-clash-row = { $field }: { $local } here, { $remote } on { $tracker }
+
+# Button that keeps this device's value.
+accounts-keep-mine = Keep this device's
+
+# Button that keeps the tracker's value.
+accounts-keep-theirs = Keep { $tracker }'s
+
+# Menu item and button.
+accounts-open-on = Open on { $tracker }
+
+# Menu item on the title page, as the title is listed there.
+accounts-listed-by = Listed by { $tracker }
+
+# Line when the tracker did not answer.
+accounts-did-not-answer = { $tracker } did not answer.
+
+# Line when the tracker has nothing for the show.
+accounts-no-extras = { $tracker } has no cast, staff or recommendations for this show yet.
+
+# Line when episodes come from the tracker only.
+accounts-episodes-from = Episodes from { $tracker }. Add a source to play them.
+
+# Line on a list of seasonal titles.
+accounts-adds-season = { $tracker } adds a season's titles as they're announced.
+
+# Name of the setting that follows the tracker's own choice.
+accounts-tracker-choice = { $tracker }'s choice
+
+# Line under that setting.
+accounts-follows-account = Follows your { $tracker } account
+
+# Line under that setting while signed out.
+accounts-follows-signed-out = English while signed out of { $tracker }
+
+# Button and menu item that sends the episode to a paired TV.
+tv-play-on = Play on TV
+
+# Same, with an ellipsis, for a menu item that opens a sheet.
+tv-play-on-menu = Play on TV…
+
+# Title of the sheet when no TV is paired and the user came from Play on TV.
+tv-sheet-title-pair = Pair a TV
+
+# Button that opens the pairing sheet.
+tv-pair-action = Pair a TV
+
+# Menu item that opens the pairing sheet.
+tv-pair-menu = Pair a TV…
+
+# Title of the pairing sheet.
+tv-pair-with-tv = Pair with a TV
+
+# Title of the pairing step for one TV. The name is the name the TV gave itself.
+tv-pair-with = Pair with { $name }
+
+# Title while pairing is under way.
+tv-pairing-with = Pairing with { $name }
+
+# Button that pairs.
+tv-pair = Pair
+
+# Button that pairs again after the pairing was lost.
+tv-pair-again = Pair again
+
+# Title of the card of a TV that needs pairing again.
+tv-pair-again-with = Pair again with { $name }
+
+# Button that picks another TV.
+tv-choose-another = Choose another TV…
+
+# Accessibility label of the pairing code field.
+tv-pairing-code = Pairing code
+
+# Line telling where to open the app on the TV.
+tv-open-on-tv = Open anistream on the TV. It needs to be on the same Wi-Fi as this device.
+
+# Line telling what to type.
+tv-type-code = Type the six digits { $name } shows. After this, this device connects by itself.
+
+# Line while pairing is under way.
+tv-pairing-moment = This takes a moment.
+
+# Line while the app looks for TVs.
+tv-looking = Looking for TVs on this network
+
+# Title when no TV answered.
+tv-none-found = No TVs found
+
+# Line under it.
+tv-none-found-detail = Check that anistream is open on the TV, on the same Wi-Fi as this device.
+
+# Shorter line under it where the network is not the problem.
+tv-none-found-short = Check that anistream is open on the TV.
+
+# Line telling where the TV shows its address.
+tv-address-hint = The TV shows its address on its Pair a phone screen.
+
+# Line telling how to scan the TV's code.
+tv-scan-hint = Point the camera app at the code on the TV. It opens anistream and pairs.
+
+# Line telling what to do once paired.
+tv-after-pairing = Choose Play on TV on an episode, or search on the TV from here.
+
+# Line while the TV starts the episode.
+tv-starting-on = Starting on { $name }
+
+# Line while the app starts on the TV, without a name.
+tv-starting = Starting on the TV
+
+# Line when something failed while talking to the TV.
+tv-talk-failed = Something went wrong talking to the TV. Try again.
+
+# Line when the TV did not start the episode. The reason is a sentence fragment.
+tv-play-failed = Play on TV did not start: { $reason }
+
+# Label of the address field.
+tv-address = Address
+
+# Menu item and title: type the address of a TV by hand.
+tv-type-address = Type an address…
+
+# Button that connects to the typed address.
+tv-connect = Connect
+
+# Line in the settings when none is paired.
+tv-none-paired = No TVs paired yet
+
+# Line under it.
+tv-none-paired-detail = Open anistream on the TV, on the same Wi-Fi, then pair with it here.
+
+# Line on the settings row of a paired TV.
+tv-paired-on = Paired { $when }
+
+# Short word: paired, no date known.
+tv-paired = Paired
+
+# Line with the address.
+tv-connected-at = Connected · { $address }
+
+# Title of the confirmation that forgets a TV.
+tv-forget-title = Forget { $name }?
+
+# Line under it.
+tv-forget-detail = To play on it again, pair with it again.
+
+# Accessibility label of the forget button.
+tv-forget-label = Forget { $name }
+
+# Tooltip of a card that opens the remote.
+tv-show-remote = Show the remote for { $name }
+
+# Status on the remote: playing on a TV.
+tv-status-playing = Playing on { $name }
+
+# Status on the remote: connecting.
+tv-status-connecting = Connecting to { $name }
+
+# Status on the remote: connection lost, trying again.
+tv-status-reconnecting = Reconnecting to { $name }
+
+# Status on the remote: connected.
+tv-status-connected = Connected
+
+# Label of the search field on the remote.
+tv-search-on-tv = Search on the TV
+
+# Hint inside the search field on the remote.
+tv-type-search = Type a search
+
+# Name of a track that has no name.
+tv-track-n = Track { $id }
+
+# Title of the screen on the TV that waits for a phone.
+tv-pair-phone = Pair a phone
+
+# Line on that screen.
+tv-pair-phone-detail = Open anistream on your phone and choose Play on TV, then scan this code.
+
+# Line over the code to type.
+tv-or-enter-code = Or enter this code
+
+# Line naming this TV on that screen.
+tv-this-tv = This TV: { $name }, { $address }
+
+# Line: how often the code changes.
+tv-code-changes = The code changes every 5 minutes.
+
+# Title of the question on the TV when a phone asks to pair.
+tv-pair-request = Pair with { $name }?
+
+# Line under it.
+tv-pair-request-detail = Enter this code on the phone.
+
+# Line on the TV after a phone paired. The name is a phone name.
+tv-phone-paired = { $name } is paired
+
+# Title of the confirmation on the TV that removes a phone.
+tv-remove-phone-title = Remove { $name }?
+
+# Line under it.
+tv-remove-phone-detail = It stops working as a remote for this TV. It can pair again with a new code.
+
+# Heading of the settings group on the TV that lists the remotes.
+tv-remotes = Remotes
+
+# Heading of the update row in settings and about.
+updates-title = Updates
+
+# Line while the app checks.
+updates-checking = Checking for a newer version…
+
+# Line when the app is current.
+updates-up-to-date = Up to date
+
+# Line when there is no connection to check.
+updates-checks-online = Checks once you're back online
+
+# Line before the first check.
+updates-not-checked = Not checked yet
+
+# Line when the check failed. The reason starts with a capital.
+updates-check-failed = Couldn't check: { $reason }
+
+# Line when the check failed on the phone. The reason is already a sentence.
+updates-not-checked-because = Not checked. { $reason }
+
+# Line describing the schedule.
+updates-schedule = Once a day. Nothing is downloaded until you choose to update.
+
+# Line when the package manager updates the app.
+updates-managed = Updates come from your package manager.
+
+# Line when Flatpak updates the app.
+updates-flatpak = Flatpak keeps anistream up to date
+
+# Line when a version is out.
+updates-version-out = Version { $version } is out
+
+# Line when a version is out and the software centre installs it.
+updates-version-out-software = Version { $version } is out. Software installs it.
+
+# Line when a version is out and its page has the installer.
+updates-version-out-page = Version { $version } is out. Its page has the installer.
+
+# Line when a version is out and its page has the AppImage.
+updates-version-out-appimage = Version { $version } is out. Its page has the AppImage.
+
+# Title of the offer card.
+updates-available = anistream { $version } is available
+
+# Banner on the TV pointing to the update.
+updates-available-tv = Update available: anistream { $version }. Settings › About
+
+# Button that starts the update.
+updates-update-to = Update to { $version }
+
+# Line on the TV: the version now installed.
+updates-this-has = This TV has { $version }
+
+# Line when the notes are on the release page.
+updates-notes-on-page = The notes for this version are on its page.
+
+# Line when this build cannot update itself.
+updates-no-self-update = This build doesn't update itself. Install the new version from its page.
+
+# Line on the TV: Android asks first.
+updates-android-asks = Nothing installs until Android asks you to confirm.
+
+# Line on the phone: the release page opens.
+updates-opens-page = Opens the page for this version
+
+# Line while downloading, with the version.
+updates-downloading = Downloading version { $version }
+
+# Line while downloading, with progress. Sizes are already formatted.
+updates-downloading-size = Downloading version { $version } · { $done } of { $total }
+
+# Line while downloading, with a percentage.
+updates-downloading-percent = Downloading { $percent }
+
+# Line while downloading, with a percentage and sizes.
+updates-downloading-full = Downloading · { $percent } · { $done } of { $total }
+
+# Line while the download is about to start.
+updates-starting-download = Starting the download
+
+# Line while the download is checked.
+updates-checking-download = Checking the download of version { $version }…
+
+# Short line while the download is checked.
+updates-checking-download-short = Checking the download
+
+# Line when the download is ready.
+updates-ready = Version { $version } is ready to install
+
+# Line while installing.
+updates-installing = Installing version { $version }…
+
+# Line after Android is asked to install.
+updates-confirm-on-android = Android is asking to install the update. Confirm on its screen; your sign-ins, lists and settings stay.
+
+# Line after the update: when it opens.
+updates-updated-tv = Updated to { $version }. It opens next time you start anistream.
+
+# Notice after restarting into the new version.
+updates-updated = Updated to version { $version }
+
+# Short line after the update on a phone.
+updates-opens-next-time = The new version opens next time
+
+# Line when the update stopped.
+updates-stopped = The update to version { $version } stopped. { $reason }
+
+# Notice when the new version did not install.
+updates-did-not-install = Version { $version } didn't install. About can try again.
+
+# Button that opens About.
+updates-open-about = Open About
+
+# Line on Linux when the file is saved to the downloads folder.
+updates-saved = Version { $version } saved to Downloads
+
+# Line on Linux telling what to replace.
+updates-saved-replace = Version { $version } saved to Downloads. Replace the old file, { $file }, with it to update.
+
+# Line on Linux telling what to replace, file unknown.
+updates-saved-replace-plain = Version { $version } saved to Downloads. Replace the old file with it to update.
+
+# The server refused. The code is a number.
+updates-why-server = The download stopped: the server answered { $code }.
+
+# The connection broke.
+updates-why-connection = The download stopped: the connection was lost.
+
+# The file could not be saved. The reason is a sentence fragment.
+updates-why-save = The download couldn't be saved: { $reason }
+
+# The file has the wrong size. Sizes are already formatted.
+updates-why-size = The download is { $got }, not the { $expected } listed for this version.
+
+# The file does not match its checksum.
+updates-why-checksum = The download doesn't match the checksum listed for this version.
+
+# Android: the file does not match its checksum, and nothing was installed.
+updates-why-checksum-android = The download does not match the checksum listed for this version, so it was not installed.
+
+# Android: not an app.
+updates-why-not-app = The download is not an Android app, so it was not installed.
+
+# Android: another app.
+updates-why-other-app = The download is a different app, so it was not installed.
+
+# Android: not signed with the right key.
+updates-why-unsigned = The download is not signed with anistream's key, so it was not installed.
+
+# Android: not newer.
+updates-why-not-newer = The download is not newer than this version, so it was not installed.
+
+# Android: no space.
+updates-why-space = Not enough free space for the update. Free some and try again.
+
+# Android: install failed.
+updates-why-install = Couldn't install the update. Try again.
+
+# Android: the download did not work.
+updates-why-download = Couldn't download the update. Check the connection and try again.
+
+# Android: the download did not start.
+updates-why-start = Couldn't start the download. Try again.
+
+# Android: the system stopped the download.
+updates-why-system = Android stopped the download
+
+# The installer would not start. The reason is a sentence fragment.
+updates-why-installer = The installer couldn't start: { $reason }
+
+# Title of the step.
+updates-allow-title = Allow anistream to install its update
+
+# Name of the Android setting.
+updates-unknown-apps = Install unknown apps
+
+# Step one.
+updates-allow-step-1 = Choose Open settings. Android shows the apps that may install other apps.
+
+# Step two.
+updates-allow-step-2 = Turn on anistream.
+
+# Step three.
+updates-allow-step-3 = Press Back. The update downloads, and Android asks you to confirm it.
+
+# Line while waiting for the switch. The path is the Android settings path.
+updates-allow-waiting = Waiting for the switch. If Android's page didn't open, find it under { $path }.
+
+# Line the first time. The path is the Android settings path.
+updates-allow-once = Android asks this once. If its page doesn't open, the switch is under { $path }.
 

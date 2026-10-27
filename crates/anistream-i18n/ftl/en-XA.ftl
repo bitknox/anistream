@@ -3064,6 +3064,108 @@ status-reloading-sources = [Ŕéļöàðîñĝ šöüŕçéš…~~~~~~]
 # Toast when the { -source } pinned for a title can't be used and the others are tried instead.
 pin-unavailable = [{ $name } îš þîññéð ƒöŕ ţĥîš ţîţļé ƀüţ îšñ'ţ àṽàîļàƀļé, šö ţĥé öţĥéŕ šöüŕçéš àŕé üšéð.~~~~~~~~~~~~~~~~~~~~~~~~]
 
+# Title of the about page.
+about-title = [Åƀöüţ~~]
+
+# Title of the about page on desktop.
+about-title-app = [Åƀöüţ àñîšţŕéàɱ~~~~~]
+
+# Line with the version.
+about-version = [Ṽéŕšîöñ { $version }~~~~]
+
+# Line with the licence.
+about-licence = [Ŕéļéàšéð üñðéŕ ţĥé ṀÎŢ ļîçéñçé.~~~~~~~~~~]
+
+# Row opening the list of acknowledgements.
+about-acknowledgements = [Åçķñöŵļéðĝéɱéñţš~~~~~]
+
+# Row opening the licences of the parts used.
+about-licences = [Ļîçéñçéš~~~]
+
+# Row opening the website.
+about-website = [Ŵéƀšîţé~~~]
+
+# Button that opens a bug report.
+about-report-bug = [Ŕéþöŕţ à ƀüĝ~~~~]
+
+# Line under it: what the report carries.
+about-report-bug-detail = [Öþéñš à ƀüĝ ŕéþöŕţ öñ ĜîţĤüƀ, ŵĥéŕé ýöü šîĝñ îñ. Îţ çàŕŕîéš ýöüŕ ṽéŕšîöñš àñð ţĥé ļàšţ éŕŕöŕ, ŵîţĥ ñö àððŕéššéš, ƒîļé þàţĥš öŕ ţîţļéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line about artwork licences.
+about-artwork = [Šöɱé àŕţŵöŕķ îš ļîçéñšéð üñðéŕ Çŕéàţîṽé Çöɱɱöñš ƁÝ-ÑÇ 4.0.~~~~~~~~~~~~~~~~~~]
+
+# Line about fonts.
+about-font-licence = [Ļîçéñšéð üñðéŕ ţĥé ŠÎĻ Öþéñ Ƒöñţ Ļîçéñšé 1.1.~~~~~~~~~~~~~~]
+
+# Button that shows the week before.
+calendar-previous-week = [Þŕéṽîöüš ŵééķ~~~~]
+
+# Button that shows the week after.
+calendar-next-week = [Ñéẋţ ŵééķ~~~]
+
+# Button that jumps back to the current week.
+calendar-this-week = [Ţĥîš ŵééķ~~~]
+
+# Filter: only shows on the person's list.
+calendar-filter-mine = [Ṁý ļîšţ~~~]
+
+# Filter: every show that airs.
+calendar-filter-all = [Åļļ àîŕîñĝ~~~]
+
+# Heading of today's column or row. The day is already worded.
+calendar-today-heading = [Ţöðàý · { $day }~~~~]
+
+# Title of the state when no show airs.
+calendar-empty-title = [Ñöţĥîñĝ àîŕîñĝ~~~~~]
+
+# Line when no show on the person's list airs this week.
+calendar-empty-mine = [Ñöţĥîñĝ öñ ýöüŕ ļîšţ àîŕš ţĥîš ŵééķ.~~~~~~~~~~~]
+
+# Line when no show airs this week.
+calendar-empty-all = [Ñöţĥîñĝ àîŕš ţĥîš ŵééķ.~~~~~~~]
+
+# Line when no show airs today.
+calendar-empty-today = [Ñöţĥîñĝ àîŕš ţöðàý.~~~~~~]
+
+# Line when no show airs on the day. The day is already worded, such as "Thursday".
+calendar-empty-day = [Ñöţĥîñĝ àîŕš öñ { $day }.~~~~~~]
+
+# Title of the state when the calendar could not load.
+calendar-load-failed = [Çöüļðñ'ţ ļöàð ţĥé çàļéñðàŕ~~~~~~~~]
+
+# Row: episode number and the time it airs.
+calendar-row-time = [É{ $episode } · { $time }~~~]
+
+# Row: episode number, dubbed, and the time it airs.
+calendar-row-time-dubbed = [É{ $episode } ðüƀƀéð · { $time }~~~~~~]
+
+# Note on a row whose episode moved to a later time.
+calendar-moved-from = [Ṁöṽéð ƒŕöɱ { $time }~~~~~]
+
+# Note on a row whose episode was delayed. The note says how long.
+calendar-delayed = [Ðéļàýéð { $note }~~~~]
+
+# Row: the episode came out a while ago. The span is already worded.
+calendar-out = [Öüţ { $ago }~~~]
+
+# Row in a small widget: the episode is out.
+calendar-episode-out = [É{ $episode } öüţ~~~]
+
+# Accessibility word for an aired episode that the person has not watched.
+calendar-out-unwatched = [Öüţ, ñöţ ŵàţçĥéð~~~~~]
+
+# Line saying when an episode airs. The time is already worded: "in 1h 30m", "Thursday 16:30".
+episode-airs = [Éþîšöðé { $episode } àîŕš { $when }~~~~~~]
+
+# Line for an episode that has not aired and has no date yet.
+episode-not-out = [Éþîšöðé { $episode } îš ñöţ öüţ ýéţ~~~~~~~~]
+
+# Header of the list of episodes that air in the next seven days.
+calendar-coming-up = [Çöɱîñĝ üþ · ñéẋţ 7 ðàýš~~~~~~~]
+
+# Line when no show the person follows airs in the next seven days.
+calendar-coming-up-empty = [Ñöţĥîñĝ àîŕš ţĥîš ŵééķ ƒöŕ ţĥé šĥöŵš ýöü ƒöļļöŵ.~~~~~~~~~~~~~~~]
+
 # Button that runs a failed action again.
 action-try-again = [Ţŕý àĝàîñ~~~]
 
@@ -3106,6 +3208,421 @@ size-gigabyte = [{ $value } ĜƁ~~]
 # Button that closes a sheet whose changes have already been made.
 action-done = [Ðöñé~~]
 
+# Button that closes a window or sheet.
+action-close = [Çļöšé~~]
+
+# Button and header control that goes to the screen before.
+action-back = [Ɓàçķ~~]
+
+# Button that deletes something for good, usually in a confirmation.
+action-delete = [Ðéļéţé~~]
+
+# Button that takes something away from a list or from this device.
+action-remove = [Ŕéɱöṽé~~]
+
+# Button that stores what was typed or chosen.
+action-save = [Šàṽé~~]
+
+# Button that opens something to change it.
+action-edit = [Éðîţ~~]
+
+# Button that opens an item.
+action-open = [Öþéñ~~]
+
+# Button that starts playing.
+action-play = [Þļàý~~]
+
+# Button that pauses playback or a download.
+action-pause = [Þàüšé~~]
+
+# Button that stops playback or a job.
+action-stop = [Šţöþ~~]
+
+# Button that takes back the last automatic action.
+action-undo = [Ûñðö~~]
+
+# Button that empties a list or a field.
+action-clear = [Çļéàŕ~~]
+
+# Button that puts a form's choices back to how they started.
+action-reset = [Ŕéšéţ~~]
+
+# Button that installs a newer version of something.
+action-update = [Ûþðàţé~~]
+
+# Button that installs something.
+action-install = [Îñšţàļļ~~~]
+
+# Button that copies text to the clipboard.
+action-copy = [Çöþý~~]
+
+# What a copy button says for a moment after it copied.
+action-copied = [Çöþîéð~~]
+
+# Button that opens the system share sheet.
+action-share = [Šĥàŕé~~]
+
+# Name of an overflow menu: the extra actions for a row or a page.
+action-more = [Ṁöŕé~~]
+
+# Button that skips an optional step.
+action-skip = [Šķîþ~~]
+
+# Button that signs in to an account.
+action-sign-in = [Šîĝñ îñ~~~]
+
+# Button that signs out of an account.
+action-sign-out = [Šîĝñ öüţ~~~]
+
+# Button that joins something, such as a { -plugin-store } or a { -watch-party }.
+action-join = [Ĵöîñ~~]
+
+# Button that leaves something that was joined.
+action-leave = [Ļéàṽé~~]
+
+# Button that pairs two devices.
+action-pair = [Þàîŕ~~]
+
+# Button that connects to something.
+action-connect = [Çöññéçţ~~~]
+
+# Button that ends a connection.
+action-disconnect = [Ðîšçöññéçţ~~~]
+
+# Button that makes the app forget a paired TV.
+action-forget = [Ƒöŕĝéţ~~]
+
+# Button that offers a plugin to other people in a { -plugin-store }.
+action-publish = [Þüƀļîšĥ~~~]
+
+# Button that swaps one copy of a { -plugin } for another.
+action-replace = [Ŕéþļàçé~~~]
+
+# Menu item that turns a { -source } on.
+action-enable = [Éñàƀļé~~]
+
+# Menu item that turns a { -source } off.
+action-disable = [Ðîšàƀļé~~~]
+
+# Button that checks now rather than waiting for the next scheduled check.
+action-check-now = [Çĥéçķ ñöŵ~~~]
+
+# Button that checks a { -source } again after it did not answer.
+action-check-again = [Çĥéçķ àĝàîñ~~~~]
+
+# Button that opens the system's own settings for the app.
+action-open-settings = [Öþéñ šéţţîñĝš~~~~]
+
+# Button that reports an error as a bug.
+action-report = [Ŕéþöŕţ~~]
+
+# Button that starts the next episode at once.
+action-play-now = [Þļàý ñöŵ~~~]
+
+# Button that gets a new sign-in or pairing code after the old one expired.
+action-new-code = [Ĝéţ à ñéŵ çöðé~~~~~]
+
+# Button that opens a page in the browser.
+action-open-host = [Öþéñ { $host }~~~]
+
+# Value of a switch that is on.
+value-on = [Öñ~]
+
+# Value of a switch that is off.
+value-off = [Öƒƒ~]
+
+# Value when nothing is chosen or nothing is there.
+value-none = [Ñöñé~~]
+
+# Value that lets anistream choose.
+value-automatic = [Åüţöɱàţîç~~~]
+
+# Value that follows the app-wide setting. Shown beside a show's own settings.
+value-default = [Ðéƒàüļţ~~~]
+
+# Row that follows the app-wide setting for one show.
+value-use-default = [Ûšé ðéƒàüļţ~~~~]
+
+# Row that follows the app-wide setting, with what that setting is now.
+value-use-default-is = [Ûšé ðéƒàüļţ · { $value }~~~~~~]
+
+# Accessibility word for the chosen row in a list.
+value-selected = [Šéļéçţéð~~~]
+
+# Accessibility word for a row that is the current one.
+value-current = [Çüŕŕéñţ~~~]
+
+# A value the app could not work out.
+value-unknown = [Ûñķñöŵñ~~~]
+
+# Day word for today.
+day-today = [Ţöðàý~~]
+
+# Day word for tomorrow.
+day-tomorrow = [Ţöɱöŕŕöŵ~~~]
+
+# Day word for yesterday.
+day-yesterday = [Ýéšţéŕðàý~~~]
+
+# How long ago something happened.
+time-ago = [{ $span } àĝö~~~]
+
+# How long until something happens.
+time-in = [îñ { $span }~~]
+
+# Under a title or in a row: minutes left in an episode.
+time-minutes-left = [{ $minutes } ɱîñ ļéƒţ~~~~]
+
+# A length in minutes, for an episode.
+time-minutes = [{ $minutes } ɱîñ~~~]
+
+# Line under a title when the device has no connection.
+state-offline-line = [Öƒƒļîñé. Ðöŵñļöàðéð éþîšöðéš šţîļļ þļàý.~~~~~~~~~~~~]
+
+# Title of the full-screen state when a screen needs a connection and there is none.
+state-offline-title = [Ýöü'ŕé öƒƒļîñé~~~~~]
+
+# Line under the offline title.
+state-offline-detail = [Ðöŵñļöàðéð éþîšöðéš šţîļļ þļàý.~~~~~~~~~~]
+
+# Button on the offline state that opens the downloads.
+state-offline-show-downloads = [Šĥöŵ ðöŵñļöàðš~~~~~]
+
+# Next step under any "couldn't load" title.
+state-check-connection = [Çĥéçķ ýöüŕ çöññéçţîöñ àñð ţŕý àĝàîñ.~~~~~~~~~~~]
+
+# Generic failure when nothing more is known.
+error-generic = [Šöɱéţĥîñĝ ŵéñţ ŵŕöñĝ. Ţŕý àĝàîñ.~~~~~~~~~~]
+
+# Failure to read a list the server sent.
+error-list-unreadable = [Çöüļðñ'ţ ŕéàð ţĥé ļîšţ. Ţŕý àĝàîñ.~~~~~~~~~~~]
+
+# Failure to reach a service. The name is the service, such as AniList.
+error-service-unreachable = [Çöüļðñ'ţ ŕéàçĥ { $name }. Çĥéçķ ýöüŕ çöññéçţîöñ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~]
+
+# Failure when a request took too long.
+error-timed-out = [Ţĥé ŕéƣüéšţ ţööķ ţöö ļöñĝ. Ţŕý àĝàîñ.~~~~~~~~~~~~]
+
+# Failure when a tracker rejects the saved sign-in.
+error-sign-in-expired = [Ýöüŕ šîĝñ-îñ ĥàš éẋþîŕéð. Šîĝñ îñ àĝàîñ üñðéŕ Åççöüñţš.~~~~~~~~~~~~~~~~~]
+
+# Accessibility label on the error icon.
+error-label = [Þŕöƀļéɱ~~~]
+
+# Accessibility label on a spinner.
+state-working = [Ŵöŕķîñĝ~~~]
+
+# Short placeholder while something loads.
+state-loading = [Ļöàðîñĝ~~~]
+
+# Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
+downloads-title = [Ðöŵñļöàðš~~~]
+
+# Button that pauses every running download.
+downloads-pause-all = [Þàüšé àļļ~~~]
+
+# Button that resumes every paused download.
+downloads-resume-all = [Ŕéšüɱé àļļ~~~]
+
+# Accessibility label of the pause-all button on a phone.
+downloads-pause-all-label = [Þàüšé àļļ ðöŵñļöàðš~~~~~~]
+
+# Accessibility label of the resume-all button on a phone.
+downloads-resume-all-label = [Ŕéšüɱé àļļ ðöŵñļöàðš~~~~~~]
+
+# Button that removes finished rows from the list. The files stay.
+downloads-clear-finished = [Çļéàŕ ƒîñîšĥéð~~~~~]
+
+# Button that opens the folder with the files. Shown on desktop only.
+downloads-open-folder = [Öþéñ ƒöļðéŕ~~~~]
+
+# Menu item on a row: reveals one file in the file manager. Shown on desktop only.
+downloads-show-in-folder = [Šĥöŵ îñ ƒöļðéŕ~~~~~]
+
+# Line showing the space the downloads use. The size is already formatted.
+downloads-space-used = [Ðöŵñļöàðš ţàķé { $size }~~~~~~]
+
+# Line in the phone settings with the space in use.
+downloads-in-downloads = [{ $size } îñ ðöŵñļöàðš~~~~~]
+
+# Accessibility label of the space-used bar.
+downloads-space-label = [Šþàçé üšéð ƀý ðöŵñļöàðš~~~~~~~]
+
+# Title when nothing is downloaded.
+downloads-empty-title = [Ñö ðöŵñļöàðš~~~~]
+
+# Line under the empty title.
+downloads-empty-detail = [Ðöŵñļöàðéð éþîšöðéš þļàý ŵîţĥöüţ à çöññéçţîöñ.~~~~~~~~~~~~~~]
+
+# Title when the list could not be read.
+downloads-load-failed = [Çöüļðñ'ţ ļöàð ðöŵñļöàðš~~~~~~~]
+
+# Line when the folder could not be opened. Shown on desktop only.
+downloads-folder-failed = [Çöüļðñ'ţ öþéñ ţĥé ƒöļðéŕ. Çĥéçķ ţĥàţ îţ šţîļļ éẋîšţš.~~~~~~~~~~~~~~~~]
+
+# Name of a row.
+downloads-episode-name = [Éþîšöðé { $episode }~~~~]
+
+# Row caption: waiting for a free place.
+downloads-caption-queued = [Ǫüéüéð~~]
+
+# Row caption: waiting for a free place, with the reason.
+downloads-caption-queued-slot = [Ǫüéüéð · šţàŕţš ŵĥéñ à ðöŵñļöàð šļöţ îš ƒŕéé~~~~~~~~~~~~~~]
+
+# Row caption: a torrent is fetching its file list.
+downloads-caption-metadata = [Ŵàîţîñĝ ƒöŕ ɱéţàðàţà~~~~~~]
+
+# Row caption: running. Both sizes are already formatted.
+downloads-caption-running = [Ðöŵñļöàðîñĝ · { $done } öƒ { $total }~~~~~~~~]
+
+# Row caption: running, size not known yet.
+downloads-caption-running-plain = [Ðöŵñļöàðîñĝ~~~~]
+
+# Row caption: paused at a percentage.
+downloads-caption-paused = [Þàüšéð · { $percent }~~~~]
+
+# Row caption: finished. The size is already formatted.
+downloads-caption-done-size = [Ðöŵñļöàðéð · { $size }~~~~~]
+
+# Row caption: finished.
+downloads-caption-done = [Ðöŵñļöàðéð~~~]
+
+# Row caption: finished and removed a day after it is watched.
+downloads-caption-ahead = [Ðöŵñļöàðéð àĥéàð · Ŕéɱöṽéð à ðàý àƒţéŕ ýöü ŵàţçĥ îţ~~~~~~~~~~~~~~~~]
+
+# Short row caption for an episode downloaded before it was asked for.
+downloads-ahead = [Ðöŵñļöàðéð àĥéàð~~~~~]
+
+# Row caption: stopped with a reason, which is already a sentence fragment.
+downloads-caption-failed-why = [Ƒàîļéð · { $why }~~~~]
+
+# Row caption: stopped without a reason.
+downloads-caption-failed = [Ƒàîļéð~~]
+
+# Row caption: sharing back. Both amounts are ratios already formatted, the last is time left.
+downloads-seeding-line = [Šĥàŕéð { $shared } öƒ { $goal } · { $left }~~~~~~~]
+
+# Menu item that starts a queued download before the others.
+downloads-start-now = [Šţàŕţ ñöŵ~~~]
+
+# Tooltip of the start-now menu item.
+downloads-start-now-help = [Šţàŕţ ţĥîš ðöŵñļöàð àĥéàð öƒ ţĥé ƣüéüé~~~~~~~~~~~~]
+
+# Menu item that takes a row off the queue. The file is not deleted.
+downloads-remove-from-queue = [Ŕéɱöṽé ƒŕöɱ ƣüéüé~~~~~~]
+
+# Menu item that takes a finished row off the list. The file stays.
+downloads-remove-from-list = [Ŕéɱöṽé ƒŕöɱ ļîšţ~~~~~]
+
+# Menu item that removes the downloaded file.
+downloads-delete-file = [Ðéļéţé ƒîļé…~~~~]
+
+# Accessibility label: pause one download.
+downloads-pause-one = [Þàüšé ðöŵñļöàð~~~~~]
+
+# Accessibility label: resume one download.
+downloads-resume-one = [Ŕéšüɱé ðöŵñļöàð~~~~~]
+
+# Accessibility label: play one downloaded episode.
+downloads-play-episode = [Þļàý éþîšöðé { $episode }~~~~~]
+
+# Title of the confirmation.
+downloads-delete-title = [Ðéļéţé { $name }?~~~~]
+
+# Line under the confirmation title.
+downloads-delete-detail = [Ţĥé ƒîļé îš ŕéɱöṽéð ƒŕöɱ ţĥîš ðéṽîçé.~~~~~~~~~~~~]
+
+# Title of the confirmation on a phone.
+downloads-delete-one-title = [Ðéļéţé ðöŵñļöàð~~~~~]
+
+# Line under it: what you lose.
+downloads-delete-one-detail = [Îţ þļàýš àĝàîñ öñļý ŵîţĥ à çöññéçţîöñ, öŕ öñçé ýöü ðöŵñļöàð îţ àĝàîñ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Button on the settings page that removes watched files.
+downloads-delete-watched = [Ðéļéţé ŵàţçĥéð ðöŵñļöàðš~~~~~~~~]
+
+# Heading of the seeding group.
+downloads-seeding-title = [Šééðîñĝ~~~]
+
+# Heading of the seeding group on the downloads screen.
+downloads-seeding-after-watching = [Šééðîñĝ àƒţéŕ ŵàţçĥîñĝ~~~~~~~]
+
+# Line under the seeding heading.
+downloads-seeding-note = [Ŵàţçĥéð éþîšöðéš àŕé šĥàŕéð ƀàçķ ŵĥîļé àñîšţŕéàɱ îš öþéñ, üñţîļ ţĥé ŕàţîö öŕ ţĥé ţîɱé ļîɱîţ šéţ îñ Šöüŕçéš îš ŕéàçĥéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading of the setting. Shown on desktop only.
+downloads-background-title = [Ŵĥéñ ţĥé ŵîñðöŵ çļöšéš ŵîţĥ ðöŵñļöàðš ŕüññîñĝ~~~~~~~~~~~~~~]
+
+# Option: downloads go on. Shown on desktop only.
+downloads-background-keep = [Ķééþ ðöŵñļöàðîñĝ~~~~~]
+
+# Option: downloads stop and resume later. Shown on desktop only.
+downloads-background-stop = [Šţöþ ðöŵñļöàðîñĝ~~~~~]
+
+# Option: ask each time. Shown on desktop only.
+downloads-background-ask = [Åšķ éàçĥ ţîɱé~~~~]
+
+# Line shown when the setting is Keep downloading. Shown on desktop only.
+downloads-background-keeps = [Ðöŵñļöàðš ķééþ ĝöîñĝ ŵĥéñ ýöü çļöšé ţĥé ŵîñðöŵ.~~~~~~~~~~~~~~~]
+
+# Line shown when the setting is Stop downloading. Shown on desktop only.
+downloads-background-stops = [Çļöšîñĝ ţĥé ŵîñðöŵ šţöþš ðöŵñļöàðš. Ţĥéý ŕéšüɱé ţĥé ñéẋţ ţîɱé àñîšţŕéàɱ öþéñš.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line shown when the setting is Ask each time. Shown on desktop only.
+downloads-background-asks = [Ðöŵñļöàðš ķééþ ĝöîñĝ ŵĥéñ ýöü çļöšé ţĥé ŵîñðöŵ, îƒ ýöü çĥööšé ţö.~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the question when the window closes. Shown on desktop only.
+downloads-background-question = [Ķééþ ðöŵñļöàðš ĝöîñĝ?~~~~~~~]
+
+# Line on the Apple and Linux note in the notification area. Shown on desktop only.
+downloads-background-note = [Ðöŵñļöàðš ķééþ ĝöîñĝ àƒţéŕ ýöü ļéàṽé àñîšţŕéàɱ.~~~~~~~~~~~~~~~]
+
+# Label of the folder setting. Shown on desktop only.
+downloads-folder = [Ðöŵñļöàð ƒöļðéŕ~~~~~]
+
+# Label of the quality choice for downloads.
+downloads-quality = [Ðöŵñļöàð ƣüàļîţý~~~~~]
+
+# Title of the notification when an episode finished.
+downloads-notice-done = [Éþîšöðé { $episode } ðöŵñļöàðéð~~~~~~~]
+
+# Body of that notification.
+downloads-notice-done-detail = [{ $title } · ŕéàðý ţö ŵàţçĥ öƒƒļîñé~~~~~~~~~]
+
+# Notification text while several episodes download.
+downloads-notice-running =
+    { $count ->
+        [one] [Ðöŵñļöàðîñĝ öñé éþîšöðé~~~~~~~]
+       *[other] [Ðöŵñļöàðîñĝ { $count } éþîšöðéš~~~~~~~~]
+    }
+
+# Notification text: first line of one running download.
+downloads-notice-episode-left = [Éþîšöðé { $episode } · { $left } ļéƒţ~~~~~~~]
+
+# Notification text: a download is starting.
+downloads-notice-starting = [Šţàŕţîñĝ~~~]
+
+# Button on a title page to download one episode.
+episode-download-one = [Ðöŵñļöàð éþîšöðé { $episode }~~~~~~]
+
+# Line under that button while it waits.
+episode-download-queued = [Ǫüéüéð ţö ðöŵñļöàð~~~~~~]
+
+# Line under that button as the download begins.
+episode-download-starting = [Šţàŕţîñĝ ţĥé ðöŵñļöàð~~~~~~~]
+
+# Line under that button while it runs.
+episode-download-running = [Ðöŵñļöàðîñĝ · { $percent }~~~~~~]
+
+# Line under that button while it is paused.
+episode-download-paused = [Ðöŵñļöàð þàüšéð àţ { $percent }~~~~~~~]
+
+# Line under that button once the file is saved.
+episode-download-done = [Ðöŵñļöàðéð~~~]
+
+# Line under that button after a failure.
+episode-download-failed = [Çöüļðñ'ţ ðöŵñļöàð éþîšöðé { $episode }. Ðöŵñļöàð àĝàîñ.~~~~~~~~~~~~~~]
+
 # Continue row subtitle. The show's title is cut first when the row is short.
 queue-episodes-left =
     { $count ->
@@ -3136,11 +3653,1117 @@ group-in-progress = [Îñ þŕöĝŕéšš~~~~]
 # Group header for what aired in the last few days.
 group-new-this-week = [Ñéŵ ţĥîš ŵééķ~~~~]
 
+# Title of the empty Continue screen.
+continue-empty-title = [Ñöţĥîñĝ ŵàţçĥéð ýéţ~~~~~~]
+
+# Line under the empty Continue title. Seasonal is the name of a screen.
+continue-empty-detail = [Þîçķ šöɱéţĥîñĝ ƒŕöɱ Šéàšöñàļ, öŕ šéàŕçĥ ƒöŕ à ţîţļé.~~~~~~~~~~~~~~~~]
+
+# Button on the empty Continue screen that opens Seasonal.
+continue-empty-action = [Ɓŕöŵšé Šéàšöñàļ~~~~~]
+
+# Title of the state when Continue could not load.
+continue-load-failed = [Çöüļðñ'ţ ļöàð Çöñţîñüé~~~~~~~]
+
+# Row heading on the Continue screen and the TV home screen for the shows in progress.
+continue-heading = [Çöñţîñüé ŵàţçĥîñĝ~~~~~~]
+
+# Header for the strip of shows that air today.
+continue-airing-today = [Åîŕîñĝ ţöðàý~~~~]
+
+# Header for the strip of shows from the current season.
+continue-this-season = [Ţĥîš šéàšöñ~~~~]
+
+# Menu item that takes a show off the Continue screen.
+continue-hide = [Ĥîðé ƒŕöɱ Çöñţîñüé~~~~~~]
+
+# Notice after a show was hidden from Continue.
+continue-hidden = [Ĥîððéñ ƒŕöɱ Çöñţîñüé.~~~~~~~]
+
+# Menu item that sets a show's status to Dropped and takes it off Continue.
+continue-drop = [Ðŕöþ~~]
+
+# Accessibility label on the overflow button of a row.
+continue-more-for = [Ṁöŕé ƒöŕ { $title }~~~~]
+
+# Row caption: resumes this episode where it stopped. The clock is the stored position.
+continue-row-resume = [Çöñţîñüé É{ $episode } · { $clock }~~~~~~]
+
+# Row caption: resumes this episode where it stopped, dubbed.
+continue-row-resume-dubbed = [Çöñţîñüé É{ $episode } ðüƀƀéð · { $clock }~~~~~~~~]
+
+# Row caption: the next unwatched episode.
+continue-row-start = [Þļàý É{ $episode }~~~]
+
+# Row caption: the next unwatched episode, dubbed.
+continue-row-start-dubbed = [Þļàý É{ $episode } ðüƀƀéð~~~~~]
+
+# Row caption: the next unwatched episode, which came out a while ago.
+continue-row-start-aired = [Þļàý É{ $episode } · öüţ { $ago }~~~~~~]
+
+# Row caption: nothing new to watch. The time is when the next episode airs.
+continue-row-caught-up = [Çàüĝĥţ üþ · É{ $episode } { $when }~~~~~~]
+
+# Row caption: nothing new to watch and no date for the next episode.
+continue-row-caught-up-plain = [Çàüĝĥţ üþ~~~]
+
+# Title of the home-screen widget when the library is empty or signed out.
+continue-widget-connect = [Çöññéçţ ÅñîĻîšţ ţö šéé îţ ĥéŕé.~~~~~~~~~~]
+
+# Line on the widget and the TV when there is nothing left to watch.
+continue-caught-up = [Ýöü'ŕé çàüĝĥţ üþ.~~~~~~]
+
+# Main button of the title page: resumes the episode at its stored position.
+title-button-continue = [Çöñţîñüé éþîšöðé { $episode }~~~~~~]
+
+# Main button of the title page: plays the next unwatched episode from the start.
+title-button-play = [Þļàý éþîšöðé { $episode }~~~~~]
+
+# Main button of the title page when there is no { -source } to play from.
+title-button-add-source = [Åðð à šöüŕçé ţö þļàý~~~~~~]
+
+# Status of a show on a person's list: watching it now.
+library-status-watching = [Ŵàţçĥîñĝ~~~]
+
+# Status of a show on a person's list: planned.
+library-status-planning = [Þļàññîñĝ~~~]
+
+# Status of a show on a person's list: finished.
+library-status-completed = [Çöɱþļéţéð~~~]
+
+# Status of a show on a person's list: on hold.
+library-status-paused = [Þàüšéð~~]
+
+# Status of a show on a person's list: given up.
+library-status-dropped = [Ðŕöþþéð~~~]
+
+# Sort order of the library: by when the list entry last changed.
+library-sort-updated = [Ļàšţ üþðàţéð~~~~]
+
+# Sort order of the library: by title.
+library-sort-title = [Ţîţļé~~]
+
+# Sort order of the library: by the person's own score.
+library-sort-score = [Šçöŕé~~]
+
+# Button showing the library's current sort order.
+library-sort-button = [Šöŕţ: { $sort }~~~]
+
+# Accessibility label of the sort button.
+library-sort-label = [Šöŕţ ƀý { $sort }~~~~]
+
+# Title of the library when no tracker is signed in.
+library-signed-out-title = [Ýöüŕ ļîšţš çöɱé ƒŕöɱ ÅñîĻîšţ~~~~~~~~~]
+
+# Line under the signed-out library title.
+library-signed-out-detail = [Šîĝñ îñ ţö šýñç ŵĥàţ ýöü ŵàţçĥ àñð ŵĥéŕé ýöü šţöþþéð.~~~~~~~~~~~~~~~~]
+
+# Button on the signed-out library.
+library-signed-out-action = [Šîĝñ îñ ţö ÅñîĻîšţ~~~~~~]
+
+# Title of an empty list. The list is its status in running text, such as "planning".
+library-list-empty = [Ñöţĥîñĝ öñ ýöüŕ { $list } ļîšţ~~~~~~~~]
+
+# Line under an empty list's title.
+library-list-empty-detail = [Ţîţļéš ýöü àðð ţö ţĥîš ļîšţ öñ ÅñîĻîšţ šĥöŵ üþ ĥéŕé.~~~~~~~~~~~~~~~~]
+
+# Title of the state when one list could not load.
+library-list-load-failed = [Çöüļðñ'ţ ļöàð ýöüŕ { $list } ļîšţ~~~~~~~~~]
+
+# Short line while the library loads.
+library-loading = [Ļöàðîñĝ ýöüŕ ļîšţš~~~~~~]
+
+# Menu item on a title that adds it to a list.
+library-add-to-list = [Åðð ţö ļîšţ~~~~]
+
+# Menu item that puts a title in the planning list.
+library-add-planning = [Åðð ţö þļàññîñĝ~~~~~]
+
+# Notice after a title was added to the planning list.
+library-added-planning = [Åððéð ţö þļàññîñĝ.~~~~~~]
+
+# Marker on a title that is already on the person's list.
+library-on-your-list = [Öñ ýöüŕ ļîšţ~~~~]
+
+# Shorter marker used in a widget row.
+library-in-your-list = [Îñ ýöüŕ ļîšţ~~~~]
+
+# Short progress under a show: the last episode watched out of the total.
+progress-episodes-short = [É{ $done } öƒ { $total }~~~~]
+
+# Short progress under a show when the total is not known.
+progress-episode-short = [É{ $done }~~]
+
+# Format of a show: broadcast on television.
+format-tv = [ŢṼ~]
+
+# Format of a show: a short series on television.
+format-tv-short = [ŢṼ šĥöŕţ~~~]
+
+# Format of a show: a film.
+format-movie = [Ṁöṽîé~~]
+
+# Format of a show: an extra episode that is not part of a series.
+format-special = [Šþéçîàļ~~~]
+
+# Format of a show: released straight to video.
+format-ova = [ÖṼÅ~]
+
+# Format of a show: released straight to the web.
+format-ona = [ÖÑÅ~]
+
+# Format of a show: a music video.
+format-music = [Ṁüšîç~~]
+
+# A season of the year, for when a show airs.
+season-winter = [Ŵîñţéŕ~~]
+
+# A season of the year, for when a show airs.
+season-spring = [Šþŕîñĝ~~]
+
+# A season of the year, for when a show airs.
+season-summer = [Šüɱɱéŕ~~]
+
+# A season of the year, for when a show airs. British English.
+season-autumn = [Åüţüɱñ~~]
+
+# A season and its year, such as "Autumn 2026". Both are already worded.
+season-with-year = [{ $season } { $year }~~~]
+
+# Status of a show that has finished airing.
+media-status-aired = [Åîŕéð~~]
+
+# Status of a show that is airing now.
+media-status-airing = [Åîŕîñĝ~~]
+
+# Status of a show that has not started airing.
+media-status-upcoming = [Ñöţ ýéţ ŕéļéàšéð~~~~~]
+
+# Status of a show that was cancelled.
+media-status-cancelled = [Çàñçéļļéð~~~]
+
+# Status of a show that is on a break.
+media-status-hiatus = [Öñ ĥîàţüš~~~]
+
+# Date line of a show that is airing: when it started.
+media-airing-since = [Šîñçé { $date }~~~]
+
+# Date line of a show that has not started: when it will.
+media-airing-from = [Ƒŕöɱ { $date }~~~]
+
+# Value of "Based on": a story written for the screen.
+material-original = [Öŕîĝîñàļ šţöŕý~~~~~]
+
+# Value of "Based on".
+material-manga = [Ṁàñĝà~~]
+
+# Value of "Based on".
+material-light-novel = [Ļîĝĥţ ñöṽéļ~~~~]
+
+# Value of "Based on".
+material-web-novel = [Ŵéƀ ñöṽéļ~~~]
+
+# Value of "Based on".
+material-visual-novel = [Ṽîšüàļ ñöṽéļ~~~~]
+
+# Value of "Based on".
+material-video-game = [Ṽîðéö ĝàɱé~~~]
+
+# Value of "Based on".
+material-novel = [Ñöṽéļ~~]
+
+# Value of "Based on".
+material-doujinshi = [Ðöüĵîñšĥî~~~]
+
+# Value of "Based on": another anime.
+material-anime = [Åñîɱé~~]
+
+# Value of "Based on".
+material-live-action = [Ļîṽé àçţîöñ~~~~]
+
+# Value of "Based on".
+material-game = [Ĝàɱé~~]
+
+# Value of "Based on".
+material-comic = [Çöɱîç~~]
+
+# Value of "Based on".
+material-multimedia = [Ṁüļţîɱéðîà þŕöĵéçţ~~~~~~]
+
+# Value of "Based on".
+material-picture-book = [Þîçţüŕé ƀööķ~~~~]
+
+# Relation of a related title: it comes before this one.
+relation-prequel = [Þŕéƣüéļ~~~]
+
+# Relation of a related title: it comes after this one.
+relation-sequel = [Šéƣüéļ~~]
+
+# Relation of a related title: the story this one branches from.
+relation-parent = [Þàŕéñţ šţöŕý~~~~]
+
+# Relation of a related title: a story set beside this one.
+relation-side-story = [Šîðé šţöŕý~~~]
+
+# Relation of a related title: a show that grew out of this one.
+relation-spin-off = [Šþîñ-öƒƒ~~~]
+
+# Relation of a related title: a retelling.
+relation-alternative = [Åļţéŕñàţîṽé~~~~]
+
+# Relation of a related title: a recap.
+relation-summary = [Šüɱɱàŕý~~~]
+
+# Relation of a related title: a compilation of this one.
+relation-compilation = [Çöɱþîļàţîöñ~~~~]
+
+# Relation of a related title: it contains this one.
+relation-contains = [Çöñţàîñš~~~]
+
+# Relation of a related title: set in the same universe.
+relation-same-universe = [Šàɱé üñîṽéŕšé~~~~]
+
+# Relation of a related title: it shares characters with this one.
+relation-shares-characters = [Šĥàŕéš çĥàŕàçţéŕš~~~~~~]
+
+# Relation of a related title: an adaptation of this one.
+relation-adaptation = [Åðàþţàţîöñ~~~]
+
+# Relation of a related title: the work this show is based on.
+relation-original-work = [Öŕîĝîñàļ ŵöŕķ~~~~]
+
+# Relation of a related title that fits none of the others.
+relation-other = [Ŕéļàţéð~~~]
+
+# A related title's relation, its format and its year.
+relation-line = [{ $relation } · { $format } · { $year }~~~~~]
+
+# Ranking line, such as "#4 Highest rated, Autumn 2026". The label is already worded.
+ranking-line = [#{ $rank } { $label }~~~]
+
+# Label of a ranking by score within a period.
+ranking-highest-rated = [Ĥîĝĥéšţ ŕàţéð, { $scope }~~~~~~]
+
+# Label of a ranking by popularity within a period.
+ranking-most-popular = [Ṁöšţ þöþüļàŕ, { $scope }~~~~~~]
+
+# The period of a ranking that covers everything.
+ranking-all-time = [àļļ ţîɱé~~~]
+
+# Genre name.
+genre-action = [Åçţîöñ~~]
+
+# Genre name.
+genre-adventure = [Åðṽéñţüŕé~~~]
+
+# Genre name.
+genre-comedy = [Çöɱéðý~~]
+
+# Genre name.
+genre-drama = [Ðŕàɱà~~]
+
+# Genre name.
+genre-ecchi = [Éççĥî~~]
+
+# Genre name.
+genre-fantasy = [Ƒàñţàšý~~~]
+
+# Genre name.
+genre-horror = [Ĥöŕŕöŕ~~]
+
+# Genre name.
+genre-mahou-shoujo = [Ṁàĥöü šĥöüĵö~~~~]
+
+# Genre name.
+genre-mecha = [Ṁéçĥà~~]
+
+# Genre name.
+genre-music = [Ṁüšîç~~]
+
+# Genre name.
+genre-mystery = [Ṁýšţéŕý~~~]
+
+# Genre name.
+genre-psychological = [Þšýçĥöļöĝîçàļ~~~~]
+
+# Genre name.
+genre-romance = [Ŕöɱàñçé~~~]
+
+# Genre name.
+genre-sci-fi = [Šçî-ƒî~~]
+
+# Genre name.
+genre-slice-of-life = [Šļîçé öƒ ļîƒé~~~~]
+
+# Genre name.
+genre-sports = [Šþöŕţš~~]
+
+# Genre name.
+genre-supernatural = [Šüþéŕñàţüŕàļ~~~~]
+
+# Genre name.
+genre-thriller = [Ţĥŕîļļéŕ~~~]
+
+# Tab and sidebar row for the shows in progress.
+nav-continue = [Çöñţîñüé~~~]
+
+# Tab and sidebar row for the weekly airing schedule.
+nav-calendar = [Çàļéñðàŕ~~~]
+
+# Tab and sidebar row for what is airing this season.
+nav-seasonal = [Šéàšöñàļ~~~]
+
+# Tab and sidebar row for the shows a person has saved.
+nav-library = [Ļîƀŕàŕý~~~]
+
+# Tab and sidebar row for finding a show.
+nav-search = [Šéàŕçĥ~~]
+
+# Tab and sidebar row for downloaded episodes.
+nav-downloads = [Ðöŵñļöàðš~~~]
+
+# Sidebar row for the { -plugin-store-pl } a person has joined.
+nav-plugin-stores = [Þļüĝîñ šţöŕéš~~~~]
+
+# Tab, sidebar row and window title for the settings.
+nav-settings = [Šéţţîñĝš~~~]
+
+# Name of the screen and settings page for tracker accounts.
+nav-accounts = [Åççöüñţš~~~]
+
+# Button on a phone's header that opens accounts and the settings.
+nav-accounts-and-settings = [Åççöüñţš àñð šéţţîñĝš~~~~~~~]
+
+# Accessibility label for the list of sections in the sidebar.
+nav-sections-label = [Šéçţîöñš~~~]
+
+# Button that folds the navigation rail on a wide screen.
+nav-collapse = [Çöļļàþšé ñàṽîĝàţîöñ~~~~~~]
+
+# Button that opens the navigation rail on a wide screen.
+nav-expand = [Éẋþàñð ñàṽîĝàţîöñ~~~~~~]
+
+# Name of a shortcut or tooltip: the name, then the key that does it.
+tooltip-with-key = [{ $name } ({ $key })~~~]
+
+# Title of the welcome window.
+onboarding-welcome = [Ŵéļçöɱé~~~]
+
+# Title of the first page.
+onboarding-welcome-to = [Ŵéļçöɱé ţö àñîšţŕéàɱ~~~~~~]
+
+# Line under the title.
+onboarding-tagline = [Ķééþ ţŕàçķ öƒ àñîɱé àñð þļàý îţ ƒŕöɱ šöüŕçéš ýöü çĥööšé.~~~~~~~~~~~~~~~~~]
+
+# Button that goes to the next page.
+onboarding-continue = [Çöñţîñüé~~~]
+
+# Button that skips a page.
+onboarding-skip = [Šķîþ~~]
+
+# Button that skips a page for now.
+onboarding-skip-for-now = [Šķîþ ƒöŕ ñöŵ~~~~]
+
+# Button that declines the sign-in page for now.
+onboarding-not-now = [Ñöţ ñöŵ~~~]
+
+# Heading of the page about sources.
+onboarding-sources-title = [Šöüŕçéš~~~]
+
+# Line under it.
+onboarding-sources-detail = [Šöüŕçéš àŕé þļüĝîñš, šĥàŕéð ţĥŕöüĝĥ þļüĝîñ šţöŕéš ƀý îñṽîţé.~~~~~~~~~~~~~~~~~~]
+
+# Button that joins a store from the welcome page.
+onboarding-join = [Ĵöîñ~~]
+
+# Hint inside the invite field on the welcome page.
+onboarding-invite-hint = [Îñṽîţé ļîñķ~~~~]
+
+# Button on the title page and in the player that opens the watch party form.
+party-open = [Ŵàţçĥ þàŕţý…~~~~]
+
+# Title of the form and the panel.
+party-title = [Ŵàţçĥ þàŕţý~~~~]
+
+# Title of the form when an invite link opened it.
+party-join-title = [Ĵöîñ ţĥé ŵàţçĥ þàŕţý?~~~~~~~]
+
+# Button that sends the form and begins the party.
+party-start = [Šţàŕţ ŵàţçĥ þàŕţý~~~~~~]
+
+# Button that sends the form and joins the party.
+party-join = [Ĵöîñ ŵàţçĥ þàŕţý~~~~~]
+
+# Button on the panel that leaves the party.
+party-leave = [Ļéàṽé ŵàţçĥ þàŕţý~~~~~~]
+
+# Label of the leave button while it works.
+party-leaving = [Ļéàṽîñĝ…~~~]
+
+# Label of the button that marks you as ready.
+party-ready-action = [Î'ɱ ŕéàðý~~~]
+
+# Button that copies the link to invite someone.
+party-copy-invite = [Çöþý îñṽîţé ļîñķ~~~~~]
+
+# Button in the leave confirmation that ignores it.
+party-stay = [Šţàý~~]
+
+# Button in the leave confirmation that closes the app.
+party-leave-and-close = [Ļéàṽé àñð çļöšé~~~~~]
+
+# Button on the invite card that is not accepted now.
+party-not-now = [Ñöţ ñöŵ~~~]
+
+# Line while the form fetches its suggestions.
+party-getting-ready = [Ĝéţţîñĝ ţĥîñĝš ŕéàðý…~~~~~~~]
+
+# Label of the server field.
+party-server = [Šéŕṽéŕ~~]
+
+# Hint inside the empty server field.
+party-server-hint = [ĥöšţ:þöŕţ~~~]
+
+# Accessibility label of the list of servers used before.
+party-recent-servers = [Ŕéçéñţ šéŕṽéŕš~~~~~]
+
+# Heading of the servers used before.
+party-recent-servers-heading = [Šéŕṽéŕš üšéð ƀéƒöŕé~~~~~~]
+
+# Button that fills the suggested server in. The server is a host name.
+party-use-server = [Ûšé { $server }~~~]
+
+# Button that fills in what was suggested.
+party-use-it = [Ûšé îţ~~]
+
+# Label of the room field.
+party-room = [Ŕööɱ~~]
+
+# Label of the name field.
+party-your-name = [Ýöüŕ ñàɱé îñ ţĥé ŕööɱ~~~~~~~]
+
+# Line under the server field when the public server is chosen. The operator is a name.
+party-server-public = [Å þüƀļîç šéŕṽéŕ ŕüñ ƀý { $operator }, ñöţ ƀý àñîšţŕéàɱ.~~~~~~~~~~~~~~]
+
+# Line under the server field when something else is typed.
+party-server-suggest = [Ñö šéŕṽéŕ öƒ ýöüŕ öŵñ? { $server } îš à þüƀļîç öñé, ŕüñ ƀý { $operator }.~~~~~~~~~~~~~~~~~]
+
+# Line under an invite's room when the server is not the public one.
+party-server-invited = [Å šéŕṽéŕ ţĥé þéŕšöñ ŵĥö îñṽîţéð ýöü çĥöšé. àñîšţŕéàɱ ðöéšñ'ţ ŕüñ îţ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the server was typed in a shape that cannot be used.
+party-server-shape = [Ŵŕîţé ţĥé šéŕṽéŕ àš à ĥöšţ àñð à þöŕţ, ļîķé þàŕţý.éẋàɱþļé:8999.~~~~~~~~~~~~~~~~~~~]
+
+# Line under the form: what the server learns and what each person plays. The app shows legal-hosts-no-content after it.
+party-privacy = [Ţĥé šéŕṽéŕ šééš ýöüŕ ñàɱé, ţĥé ŕööɱ, àñð ŵĥéñ àñýöñé þļàýš, þàüšéš öŕ šééķš. Éàçĥ öƒ ýöü þļàýš ţĥé éþîšöðé ƒŕöɱ ýöüŕ öŵñ šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the room: how others join.
+party-room-hint = [Åñýöñé ŵĥö ķñöŵš ţĥé ŕööɱ'š ñàɱé çàñ ĵöîñ îţ. Ţĥé îñṽîţé ļîñķ çàŕŕîéš îţ, šö ñöƀöðý ĥàš ţö ŕéàð îţ öüţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the invite card naming the room and server.
+party-invite-room = [Ŕööɱ { $room } öñ { $server }~~~~~]
+
+# Line while the form joins the party.
+party-joining = [Ĵöîñîñĝ { $room } öñ { $server }…~~~~~~]
+
+# Line on the form when no episode is playing yet.
+party-form-nothing = [Ŵĥàţ'š þļàýîñĝ ñöŵ þļàýš ŵîţĥ ţĥé ŕööɱ.~~~~~~~~~~~~]
+
+# Line naming the episode of the form.
+party-form-episode-of = [Éþîšöðé { $episode } öƒ { $title }~~~~~~]
+
+# Line naming the episode of the form when the show has no name.
+party-form-episode = [Éþîšöðé { $episode }~~~~]
+
+# Line on the form when the party could not begin.
+party-ended-early = [Ţĥé þàŕţý éñðéð ƀéƒöŕé îţ ƀéĝàñ.~~~~~~~~~~]
+
+# Line in the panel while nobody has joined.
+party-waiting-members = [Ŵàîţîñĝ ƒöŕ ţĥé ŕööɱ'š ɱéɱƀéŕš~~~~~~~~~]
+
+# Heading in the panel for people using another app.
+party-other-app = [Ƒöŕ Šýñçþļàý'š öŵñ àþþ~~~~~~~]
+
+# Server and room in the panel, for another app.
+party-other-app-detail = [Šéŕṽéŕ { $server }. Ŕööɱ { $room }.~~~~~~~]
+
+# Name of a member who is this device.
+party-member-you = [{ $name } (ýöü)~~~]
+
+# Word for you in a sentence about who is not ready.
+party-you = [ýöü~]
+
+# Short word in the member list: this member is ready.
+party-member-ready = [Ŕéàðý~~]
+
+# Short word in the member list: this member is not ready.
+party-member-not-ready = [Ñöţ ŕéàðý~~~]
+
+# Short word in the member list: ready state is not shared.
+party-member-no-ready-state = [Ñö ŕéàðý šţàţé~~~~~]
+
+# Note on a member who plays another file.
+party-member-other-file = [Þļàýîñĝ à ðîƒƒéŕéñţ ƒîļé~~~~~~~~]
+
+# Note on a member who has nothing open.
+party-member-no-file = [Ñöţĥîñĝ öþéñ ýéţ~~~~~]
+
+# Line when nobody else is in the room.
+party-alone = [Ñöƀöðý éļšé îš ĥéŕé ýéţ. Šéñð ţĥé îñṽîţé ļîñķ.~~~~~~~~~~~~~~]
+
+# Line when everyone is ready.
+party-all-ready = [Éṽéŕýöñé îš ŕéàðý~~~~~~]
+
+# Line when you are the one still to be ready.
+party-wait-you = [Þļàý šţàŕţš öñçé ýöü'ŕé ŕéàðý~~~~~~~~~]
+
+# Line when one other member is still to be ready.
+party-wait-one = [Þļàý šţàŕţš öñçé { $name } îš ŕéàðý~~~~~~~~~]
+
+# Line when two members are still to be ready.
+party-wait-two = [Þļàý šţàŕţš öñçé { $first } àñð { $second } àŕé ŕéàðý~~~~~~~~~~~~]
+
+# Line when more than two members are still to be ready.
+party-wait-many = [Þļàý šţàŕţš öñçé { $count } ɱöŕé àŕé ŕéàðý~~~~~~~~~~~]
+
+# Connection line while the party reconnects.
+party-connection-lost = [Çöññéçţîöñ ļöšţ. Ţŕýîñĝ àĝàîñ, { $attempt } öƒ { $of }~~~~~~~~~~~~~]
+
+# Connection line: encrypted.
+party-connected-encrypted = [Çöññéçţéð, éñçŕýþţéð~~~~~~]
+
+# Connection line: not encrypted.
+party-connected-plain = [Çöññéçţéð, ñöţ éñçŕýþţéð~~~~~~~~]
+
+# Connection line with the round trip time.
+party-connected-latency = [{ $line } · { $ms } ɱš~~~~]
+
+# Line under the invite link button before any episode plays.
+party-invite-after-play = [Ţĥé îñṽîţé ļîñķ çöɱéš öñçé àñ éþîšöðé þļàýš.~~~~~~~~~~~~~~]
+
+# Line under the invite link button.
+party-invite-detail = [Îţ ñàɱéš ţĥé ŕööɱ àñð ţĥé éþîšöðé. Éàçĥ ƒŕîéñð þļàýš îţ ƒŕöɱ ţĥéîŕ öŵñ šöüŕçéš.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line shown in the room with nothing playing.
+party-in-room-idle = [Ýöü'ŕé îñ { $room } öñ { $server }, ŵîţĥ ñöţĥîñĝ þļàýîñĝ.~~~~~~~~~~~~~]
+
+# Line shown in the room with nothing playing, when the room is unknown.
+party-in-room-idle-plain = [Ýöü'ŕé îñ ţĥé ŕööɱ, ŵîţĥ ñöţĥîñĝ þļàýîñĝ.~~~~~~~~~~~~~]
+
+# Note when an invite link lacks parts.
+party-link-incomplete = [Ţĥàţ þàŕţý ļîñķ îš ɱîššîñĝ îţš šéŕṽéŕ, ŕööɱ öŕ éþîšöðé.~~~~~~~~~~~~~~~~~]
+
+# Note when the link is for the party you are in.
+party-already-in = [Ýöü'ŕé àļŕéàðý îñ ţĥîš ŵàţçĥ þàŕţý.~~~~~~~~~~~]
+
+# Note after joining on a desktop: where the link is.
+party-in-note = [Ýöü'ŕé îñ ţĥé ŵàţçĥ þàŕţý. Ţĥé þéöþļé ƀüţţöñ ĥàš ţĥé îñṽîţé ļîñķ.~~~~~~~~~~~~~~~~~~~~]
+
+# Note after joining in the player: where the link is.
+party-in-note-player = [Ýöü'ŕé îñ ţĥé ŵàţçĥ þàŕţý. Ţĥé þéöþļé ƀüţţöñ îñ ţĥé þļàýéŕ ĥàš ţĥé îñṽîţé ļîñķ.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Note after leaving: playback goes on.
+party-left-note = [Ýöü ļéƒţ ţĥé ŵàţçĥ þàŕţý. Ŵĥàţ'š þļàýîñĝ ĝöéš öñ, ĵüšţ ƒöŕ ýöü.~~~~~~~~~~~~~~~~~~~]
+
+# Title of the confirmation on closing the app while in a party.
+party-leave-title = [Ļéàṽé ţĥé ŵàţçĥ þàŕţý?~~~~~~~]
+
+# Line under it. The room is a name.
+party-leave-detail = [Çļöšîñĝ àñîšţŕéàɱ ļéàṽéš { $room }. Éṽéŕýöñé éļšé çàŕŕîéš öñ ŵîţĥöüţ ýöü.~~~~~~~~~~~~~~~~~~~~~]
+
+# Title when the user has installed no source.
+party-nosource-none-title = [Ýöü ĥàṽé ñö šöüŕçéš ýéţ~~~~~~~]
+
+# Line under it.
+party-nosource-none-detail = [Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñš, ŵĥîçĥ à þļüĝîñ šţöŕé àððš. { $what } þļàýš ŵîţĥ ţĥé ŕööɱ öñçé öñé öƒ ţĥéɱ ĥàš îţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Title when no source has the episode.
+party-nosource-missing-title = [Ñöñé öƒ ýöüŕ šöüŕçéš ĥàš ţĥîš éþîšöðé~~~~~~~~~~~~]
+
+# Line under it. The reason is a sentence without its full stop.
+party-nosource-missing-detail = [{ $why }. { $what } þļàýš ŵîţĥ ţĥé ŕööɱ öñçé ýöü çĥööšé à šöüŕçé ţĥàţ ĥàš îţ.~~~~~~~~~~~~~~~~~~~~]
+
+# Line under a title that says the episode has not aired.
+party-nosource-unaired = [Ýöüŕ šöüŕçéš ŵöñ'ţ ĥàṽé éþîšöðé { $episode } ƀéƒöŕé îţ'š öüţ.~~~~~~~~~~~~~~~~]
+
+# Line under a title that says the episode has not aired and no date is known.
+party-nosource-unaired-plain = [Ýöüŕ šöüŕçéš ŵöñ'ţ ĥàṽé îţ ƀéƒöŕé ţĥéñ. Îţ þļàýš ŵîţĥ ţĥé ŕööɱ öñçé öñé öƒ ţĥéɱ ðöéš.~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line over the list of sources that list the episode.
+party-sources-found =
+    { $count ->
+        [one] [Öñé šöüŕçé ĥàš îţ~~~~~~]
+       *[other] [{ $count } šöüŕçéš ĥàṽé îţ~~~~~~]
+    }
+
+# Accessibility label of the list of sources for the episode.
+party-sources-label = [Šöüŕçéš ƒöŕ ţĥîš éþîšöðé~~~~~~~~]
+
+# Line of a source: its quality and size already formatted, and the number of seeders.
+party-source-seeders = [{ $seeders } šééðéŕš~~~~]
+
 # Label on the card for the episode that plays after this one.
 player-up-next = [Ûþ ñéẋţ~~~]
 
 # Label before the name of the work a show is based on.
 title-based-on = [Ɓàšéð öñ~~~]
+
+# Line on the starting screen, from the moment the player is asked to play until the first frame.
+player-starting = [Šţàŕţîñĝ éþîšöðé { $episode }~~~~~~]
+
+# Line on the starting screen after a few seconds: the app is looking for a stream.
+player-finding-source = [Ƒîñðîñĝ à šöüŕçé · { $seconds } š~~~~~~~~]
+
+# Same line before the wait is counted.
+player-finding-source-plain = [Ƒîñðîñĝ à šöüŕçé~~~~~]
+
+# Title of the card shown when an episode could not play.
+player-failed-title = [Çöüļðñ'ţ þļàý éþîšöðé { $episode }~~~~~~~~]
+
+# Line under the failure title when every { -source } was tried.
+player-failed-detail = [Ñö šöüŕçé ĥàð à šţŕéàɱ ţĥàţ þļàýéð. Ţŕý àñöţĥéŕ.~~~~~~~~~~~~~~~]
+
+# Line when nothing is installed to play from.
+player-failed-no-sources = [Ñö šöüŕçéš ýéţ. Åðð à þļüĝîñ šţöŕé ţö þļàý.~~~~~~~~~~~~~]
+
+# Button that opens the { -source } picker.
+player-choose-source = [Çĥööšé šöüŕçé~~~~]
+
+# Button on the failure card of the TV: offers a different { -source }.
+player-choose-another-source = [Çĥööšé àñöţĥéŕ šöüŕçé~~~~~~~]
+
+# Button that adds a { -plugin-store } when there are no { -source-pl }.
+player-add-plugin-store = [Åðð à þļüĝîñ šţöŕé~~~~~~]
+
+# Short word while the video buffers.
+player-buffering = [Ɓüƒƒéŕîñĝ~~~]
+
+# Title of the stall card. The seconds count up.
+player-stall-title = [Šöüŕçé îš ƀüƒƒéŕîñĝ · { $seconds } š~~~~~~~~~]
+
+# Line under the stall title.
+player-stall-detail = [Åñöţĥéŕ šţŕéàɱ ɱàý þļàý ŵîţĥöüţ ŵàîţîñĝ.~~~~~~~~~~~~]
+
+# Button on the stall card that moves to another { -source }.
+player-switch-source = [Šŵîţçĥ šöüŕçé~~~~]
+
+# Button on the stall card that keeps waiting.
+player-keep-waiting = [Ķééþ ŵàîţîñĝ~~~~]
+
+# Line on the Up next card: the episode starts when the count ends.
+player-plays-in = [Þļàýš îñ { $seconds } š~~~~~]
+
+# Button that skips the opening.
+player-skip-opening = [Šķîþ öþéñîñĝ~~~~]
+
+# Button that skips the ending.
+player-skip-ending = [Šķîþ éñðîñĝ~~~~]
+
+# Note after the opening was skipped by itself.
+player-skipped-opening = [Šķîþþéð öþéñîñĝ~~~~~]
+
+# Note after the ending was skipped by itself.
+player-skipped-ending = [Šķîþþéð éñðîñĝ~~~~~]
+
+# Note at the top of the video after it resumed where it stopped.
+player-resumed-at = [Ŕéšüɱéð àţ { $clock }~~~~~]
+
+# Button beside the resume note that plays from the start.
+player-start-over = [Šţàŕţ öṽéŕ~~~]
+
+# Title of the card that asks whether anyone is still there.
+player-still-watching = [Šţîļļ ŵàţçĥîñĝ?~~~~~]
+
+# Line under the still-watching title.
+player-still-watching-detail =
+    { $count ->
+        [one] [Þàüšéð àƒţéŕ öñé éþîšöðé îñ à ŕöŵ.~~~~~~~~~~~]
+       *[other] [Þàüšéð àƒţéŕ { $count } éþîšöðéš îñ à ŕöŵ.~~~~~~~~~~~]
+    }
+
+# Button on the still-watching card that goes on.
+player-still-watching-continue = [Çöñţîñüé ŵàţçĥîñĝ~~~~~~]
+
+# Line on the TV player: when the episode ends. The time is already formatted.
+player-ends-at = [Éñðš àţ { $time }~~~~]
+
+# Accessibility label and tooltip: go back ten seconds.
+player-back-10 = [Ɓàçķ 10 šéçöñðš~~~~~]
+
+# Accessibility label and tooltip: go forward ten seconds.
+player-forward-10 = [Ƒöŕŵàŕð 10 šéçöñðš~~~~~~]
+
+# Accessibility label of the seek bar.
+player-position = [Þöšîţîöñ~~~]
+
+# Accessibility label of the volume control.
+player-volume = [Ṽöļüɱé~~]
+
+# Note on screen after the volume changed. The number is a percentage.
+player-volume-level = [Ṽöļüɱé { $percent }~~~]
+
+# Note on screen while the sound is off.
+player-muted = [Ṁüţéð~~]
+
+# Button and menu for the playback speed.
+player-speed = [Šþééð~~]
+
+# Accessibility label of the speed control, with the speed now.
+player-speed-is = [Þļàýƀàçķ šþééð, { $speed }~~~~~~]
+
+# Menu item that goes back to the normal speed.
+player-speed-normal = [Ñöŕɱàļ šþééð~~~~]
+
+# Menu item that slows playback down.
+player-slower = [Šļöŵéŕ~~]
+
+# Menu item that speeds playback up.
+player-faster = [Ƒàšţéŕ~~]
+
+# Button and sheet for the subtitle tracks.
+player-subtitles = [Šüƀţîţļéš~~~]
+
+# Button and sheet for the audio tracks.
+player-audio = [Åüðîö~~]
+
+# Button that opens subtitles and audio together.
+player-subtitles-and-audio = [Šüƀţîţļéš àñð àüðîö~~~~~~]
+
+# Title of the phone sheet with subtitles, audio and the picture options.
+player-subtitles-audio-picture = [Šüƀţîţļéš, àüðîö àñð þîçţüŕé~~~~~~~~~]
+
+# Heading and menu item for the picture options.
+player-picture-and-sound = [Þîçţüŕé àñð šöüñð~~~~~~]
+
+# Button that opens the episode list.
+player-episodes = [Éþîšöðéš~~~]
+
+# Button that opens the player's information on the TV.
+player-info = [Îñƒö~~]
+
+# Button that plays the next episode.
+player-next-episode = [Ñéẋţ éþîšöðé~~~~]
+
+# Button that plays the previous episode.
+player-previous-episode = [Þŕéṽîöüš éþîšöðé~~~~~]
+
+# Row and menu item for the upscaling setting.
+player-upscaling = [Ûþšçàļîñĝ~~~]
+
+# Row and menu item for the night mode setting.
+player-night-mode = [Ñîĝĥţ ɱöðé~~~]
+
+# Note under night mode: what it does.
+player-night-mode-detail = [Ǫüîéţ þàŕţš ļöüðéŕ, ļöüð þàŕţš ƣüîéţéŕ~~~~~~~~~~~~]
+
+# Note under the track pickers: choices are kept per show.
+player-remembered = [Ŕéɱéɱƀéŕéð ƒöŕ ţĥîš šĥöŵ~~~~~~~~]
+
+# Button that shows the video over other windows.
+player-picture-in-picture = [Þîçţüŕé îñ þîçţüŕé~~~~~~]
+
+# Button that fills the screen with the video.
+player-fullscreen = [Ƒüļļ šçŕééñ~~~~]
+
+# Button that shrinks the player to a small window.
+player-mini-player = [Ṁîñî þļàýéŕ~~~~]
+
+# Button on the mini player that brings the full window back.
+player-mini-back = [Ɓàçķ ţö ţĥé ƒüļļ ŵîñðöŵ~~~~~~~]
+
+# Accessibility label of the button that closes the player.
+player-close = [Çļöšé þļàýéŕ~~~~]
+
+# Tooltip of the gear button that opens the playback options.
+player-playback-settings = [Þļàýƀàçķ šéţţîñĝš~~~~~~]
+
+# Button that opens the statistics panel.
+player-stats = [Šţàţš ƒöŕ ñéŕðš~~~~~]
+
+# Line in the statistics panel before the stream has started.
+player-stats-waiting = [Ŵàîţîñĝ ƒöŕ ţĥé šţŕéàɱ~~~~~~~]
+
+# Accessibility label of the button that closes the statistics panel.
+player-stats-close = [Çļöšé šţàţš ƒöŕ ñéŕðš~~~~~~~]
+
+# Title over the statistics numbers.
+player-stats-heading = [Šţàţš~~]
+
+# Button that copies the statistics.
+player-stats-copy = [Çöþý šţàţš~~~]
+
+# Notice when the statistics could not be copied.
+player-stats-copy-failed = [Çöüļðñ'ţ çöþý ţĥé šţàţš. Ţŕý àĝàîñ.~~~~~~~~~~~]
+
+# Menu item that loads a subtitle file from disk.
+player-load-subtitle-file = [Ļöàð šüƀţîţļé ƒîļé…~~~~~~]
+
+# Menu item that loads an audio file from disk.
+player-load-audio-file = [Ļöàð àüðîö ƒîļé…~~~~~]
+
+# Notice when the file chooser could not open.
+player-file-picker-failed = [Çöüļðñ'ţ öþéñ ţĥé ƒîļé çĥööšéŕ. Ţŕý àĝàîñ.~~~~~~~~~~~~~]
+
+# Notice when a chosen subtitle file could not be loaded.
+player-subtitle-file-failed = [Çöüļðñ'ţ ļöàð ţĥàţ šüƀţîţļé ƒîļé. Çĥéçķ ţĥàţ îţ îš à šüƀţîţļé ƒîļé.~~~~~~~~~~~~~~~~~~~~~]
+
+# Notice when a chosen audio file could not be loaded.
+player-audio-file-failed = [Çöüļðñ'ţ ļöàð ţĥàţ àüðîö ƒîļé. Çĥéçķ ţĥàţ îţ îš àñ àüðîö ƒîļé.~~~~~~~~~~~~~~~~~~~]
+
+# Name of a track that has no name or language.
+player-track-unnamed = [Ûññàɱéð ţŕàçķ~~~~]
+
+# Name of an audio track the file does not describe.
+player-audio-track-n = [Åüðîö { $id }~~~]
+
+# Name of a subtitle track the file does not describe.
+player-subtitle-track-n = [Šüƀţîţļéš { $id }~~~~]
+
+# Line in the track list before the file has told which tracks it has.
+player-no-tracks = [Ñö ţŕàçķš ýéţ~~~~]
+
+# Line while the picker looks for streams.
+source-picker-finding = [Ƒîñðîñĝ šöüŕçéš…~~~~~]
+
+# Line when the picker found no stream for the episode.
+source-picker-empty = [Ñö šöüŕçé ĥàš à šţŕéàɱ ƒöŕ ţĥîš éþîšöðé.~~~~~~~~~~~~]
+
+# Title of the picker sheet in the player.
+player-sources = [Šöüŕçéš~~~]
+
+# Button that shows the season before.
+seasonal-previous = [Þŕéṽîöüš šéàšöñ~~~~~]
+
+# Button that shows the season after.
+seasonal-next = [Ñéẋţ šéàšöñ~~~~]
+
+# Short line while a season loads.
+seasonal-loading = [Ļöàðîñĝ ţĥîš šéàšöñ~~~~~~]
+
+# Title of the state when a season could not load.
+seasonal-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš šéàšöñ~~~~~~~~]
+
+# Title of the state when a season lists no titles. The season is already worded.
+seasonal-empty-title = [Ñöţĥîñĝ ļîšţéð ƒöŕ { $season } ýéţ~~~~~~~~]
+
+# Line under the empty season title.
+seasonal-empty-detail = [ÅñîĻîšţ àððš à šéàšöñ'š ţîţļéš àš ţĥéý'ŕé àññöüñçéð.~~~~~~~~~~~~~~~~]
+
+# Title of the state when the chosen format has no titles this season.
+seasonal-empty-format = [Ñö ţîţļéš îñ ţĥîš ƒöŕɱàţ~~~~~~~~]
+
+# Line under the empty format title.
+seasonal-empty-format-detail = [Ţŕý àļļ ƒöŕɱàţš.~~~~~]
+
+# Button that opens the season in Search, where filters narrow it.
+seasonal-filter-in-search = [Ƒîļţéŕ îñ Šéàŕçĥ~~~~~]
+
+# Tooltip of the Filter in Search button.
+seasonal-filter-help = [Ţĥîš šéàšöñ îñ Šéàŕçĥ, ŵĥéŕé éṽéŕý ƒîļţéŕ ñàŕŕöŵš îţ~~~~~~~~~~~~~~~~]
+
+# Sort option on Seasonal and Search: most popular first.
+sort-popularity = [Þöþüļàŕîţý~~~]
+
+# Sort option on Seasonal and Search: highest score first.
+sort-score = [Šçöŕé~~]
+
+# Sort option on Seasonal: by the day of the week the show airs.
+sort-air-day = [Åîŕ ðàý~~~]
+
+# Sort option on Search: best match for the words typed.
+sort-relevance = [Ŕéļéṽàñçé~~~]
+
+# Button showing the current sort order.
+sort-button = [Šöŕţ: { $sort }~~~]
+
+# Accessibility label of the sort button.
+sort-label = [Šöŕţ ƀý { $sort }~~~~]
+
+# Placeholder of the search field.
+search-placeholder = [Šéàŕçĥ ţîţļéš~~~~]
+
+# Accessibility label of the button that empties the search field.
+search-clear = [Çļéàŕ šéàŕçĥ~~~~]
+
+# Row under the field while a search runs. The query is what the person typed.
+search-searching = [Šéàŕçĥîñĝ ƒöŕ “{ $query }”~~~~~~]
+
+# Heading over the results of a search.
+search-results-for = [Ŕéšüļţš ƒöŕ “{ $query }”~~~~~~]
+
+# Heading over the titles shown when nothing was typed.
+search-browse = [Ɓŕöŵšé~~]
+
+# Title of the state when a search finds nothing.
+search-nothing-found = [Ñöţĥîñĝ ƒöüñð ƒöŕ “{ $query }”~~~~~~~]
+
+# Line under the title when a search finds nothing.
+search-nothing-found-detail = [Çĥéçķ ţĥé šþéļļîñĝ, öŕ ţŕý ţĥé Éñĝļîšĥ öŕ Ĵàþàñéšé ţîţļé.~~~~~~~~~~~~~~~~~~]
+
+# Title of the state when filters leave nothing.
+search-nothing-with-filters = [Ñöţĥîñĝ ƒöüñð ŵîţĥ ţĥéšé ƒîļţéŕš~~~~~~~~~~]
+
+# Title of the state when a search and its filters leave nothing.
+search-nothing-found-with-filters = [Ñöţĥîñĝ ƒöüñð ƒöŕ “{ $query }” ŵîţĥ ţĥéšé ƒîļţéŕš~~~~~~~~~~~~~]
+
+# Line under a state that filters emptied.
+search-try-fewer-filters = [Ţŕý ƒéŵéŕ ƒîļţéŕš.~~~~~~]
+
+# Button that removes every filter.
+search-clear-filters = [Çļéàŕ ƒîļţéŕš~~~~]
+
+# Title of the state when a search failed.
+search-failed = [Çöüļðñ'ţ šéàŕçĥ~~~~~]
+
+# Title of the state when search needs a connection and there is none.
+search-needs-connection = [Šéàŕçĥ ñééðš à çöññéçţîöñ~~~~~~~~]
+
+# Line when the search service does not answer.
+search-unreachable = [Šéàŕçĥ îšñ'ţ ŕéàçĥàƀļé ŕîĝĥţ ñöŵ. Ţŕý àĝàîñ îñ à ɱîñüţé.~~~~~~~~~~~~~~~~~]
+
+# Heading over the searches a person made lately.
+search-recent = [Ŕéçéñţ šéàŕçĥéš~~~~~]
+
+# Accessibility label of the button that forgets one recent search.
+search-recent-remove = [Ŕéɱöṽé { $query }~~~]
+
+# Button that shows every title in a group.
+search-see-all = [Šéé àļļ~~~]
+
+# Heading over the genre shortcuts.
+search-genres = [Ĝéñŕéš~~]
+
+# Line while more results load at the end of a list.
+search-loading-more = [Ļöàðîñĝ ɱöŕé ţîţļéš~~~~~~]
+
+# Title of the filters sheet and panel.
+filters-title = [Ƒîļţéŕš~~~]
+
+# Button that opens the filters, with how many are on.
+filters-button-count = [Åļļ ƒîļţéŕš · { $count }~~~~~~]
+
+# Button that opens the filters when none is on.
+filters-button = [Åļļ ƒîļţéŕš~~~~]
+
+# Filter name.
+filter-genre = [Ĝéñŕé~~]
+
+# Filter name, and the heading over the genre choices.
+filter-genres = [Ĝéñŕéš~~]
+
+# Filter name.
+filter-year = [Ýéàŕ~~]
+
+# Filter name.
+filter-season = [Šéàšöñ~~]
+
+# Filter name.
+filter-format = [Ƒöŕɱàţ~~]
+
+# Filter name.
+filter-status = [Šţàţüš~~]
+
+# Filter name: how long a show is, in episodes.
+filter-length = [Ļéñĝţĥ~~]
+
+# Filter name: the number of episodes.
+filter-episodes = [Éþîšöðéš~~~]
+
+# Filter name: the length of one episode.
+filter-episode-length = [Éþîšöðé ļéñĝţĥ~~~~~]
+
+# Filter group: how well a show was received.
+filter-reception = [Ŕéçéþţîöñ~~~]
+
+# Filter name: a show's minimum score.
+filter-score-at-least = [Šçöŕé àţ ļéàšţ~~~~~]
+
+# Filter name: hides titles few people rated.
+filter-hide-obscure = [Ĥîðé öƀšçüŕé ţîţļéš~~~~~~]
+
+# Filter group: where a show comes from.
+filter-origin = [Öŕîĝîñ~~]
+
+# Filter name: the country a show was made in.
+filter-country = [Çöüñţŕý~~~]
+
+# Filter name: when a show came out.
+filter-released = [Ŕéļéàšéð~~~]
+
+# Filter group: where a show can be watched.
+filter-where-to-watch = [Ŵĥéŕé ţö ŵàţçĥ~~~~~]
+
+# Filter name: only shows with a legal licence.
+filter-licensed-only = [Ļîçéñšéð öñļý~~~~]
+
+# Filter name: how titles already on the person's list are treated.
+filter-my-list = [Ţîţļéš öñ ɱý ļîšţ~~~~~~]
+
+# Value of a three-way filter: include the titles.
+filter-show = [Šĥöŵ~~]
+
+# Value of a three-way filter: leave the titles out.
+filter-hide = [Ĥîðé~~]
+
+# Value of a three-way filter: only the titles.
+filter-only = [Öñļý~~]
+
+# Note under the filters that tells results change as the person picks.
+filter-live-note = [Ŕéšüļţš üþðàţé àš ýöü çĥàñĝé ţĥéšé.~~~~~~~~~~~]
+
+# Filter group: tags.
+filter-tags = [Ţàĝš~~]
+
+# Placeholder of the field that finds a tag.
+filter-tag-find = [Ƒîñð à ţàĝ~~~]
+
+# Line when no tag matches what was typed.
+filter-tag-none = [Ñö ţàĝ ĥàš ţĥàţ îñ îţš ñàɱé~~~~~~~~~]
+
+# Filter name: how closely a tag must fit a show.
+filter-tag-rank = [Ţàĝ ŕàñķ àţ ļéàšţ { $rank }~~~~~~~]
+
+# Switch that shows tags that give away the story.
+filter-spoiler-tags = [Šĥöŵ šþöîļéŕ ţàĝš~~~~~~]
+
+# Choice meaning no genre filter.
+filter-any-genre = [Åñý ĝéñŕé~~~]
+
+# Choice meaning no year filter.
+filter-any-year = [Åñý ýéàŕ~~~]
+
+# Choice meaning no season filter.
+filter-any-season = [Åñý šéàšöñ~~~]
+
+# Choice meaning no format filter.
+filter-any-format = [Åñý ƒöŕɱàţ~~~]
+
+# Choice meaning no status filter.
+filter-any-status = [Åñý šţàţüš~~~]
+
+# Choice meaning every format on Seasonal.
+filter-all-formats = [Åļļ ƒöŕɱàţš~~~~]
+
+# Note on the season filter while no year is chosen.
+filter-season-pick-year = [Çĥööšé à ýéàŕ ƒîŕšţ~~~~~~]
+
+# Choice in the year range: up to a year.
+filter-years-up-to = [Ûþ ţö { $year }~~~]
+
+# State of a genre or tag in a filter: it must be there.
+filter-included = [Îñçļüðéð~~~]
+
+# State of a genre or tag in a filter: it must not be there.
+filter-left-out = [Ļéƒţ öüţ~~~]
+
+# Hint on a genre or tag on a touch screen.
+filter-hint-touch = [Ţàþ öñçé ţö îñçļüðé, ţŵîçé ţö ļéàṽé öüţ.~~~~~~~~~~~~]
+
+# Hint on a genre or tag on the TV, where a remote presses. Only the Android TV app shows it.
+filter-hint-remote = [Þŕéšš öñçé ţö îñçļüðé, ţŵîçé ţö ļéàṽé öüţ.~~~~~~~~~~~~~]
+
+# Accessibility label of the button that removes one filter.
+filter-remove = [Ŕéɱöṽé { $filter }~~~]
 
 # Settings group and row title for choosing a language.
 settings-language = [Ļàñĝüàĝé~~~]
@@ -3168,6 +4791,325 @@ audio-subbed = [Šüƀƀéð~~]
 
 # Value of the audio setting: translated audio.
 audio-dubbed = [Ðüƀƀéð~~]
+
+# Heading of the settings screen.
+settings-title = [Šéţţîñĝš~~~]
+
+# Group heading.
+settings-group-general = [Ĝéñéŕàļ~~~]
+
+# Group heading.
+settings-group-titles = [Ţîţļéš~~]
+
+# Group heading.
+settings-group-playback = [Þļàýƀàçķ~~~]
+
+# Group heading.
+settings-group-watching = [Ŵàţçĥîñĝ~~~]
+
+# Group heading.
+settings-group-player = [Þļàýéŕ~~]
+
+# Group heading.
+settings-group-picture = [Þîçţüŕé~~~]
+
+# Group heading.
+settings-group-files = [Ƒîļéš~~]
+
+# Group heading.
+settings-group-ahead = [Åĥéàð~~]
+
+# Group heading.
+settings-group-notifications = [Ñöţîƒîçàţîöñš~~~~]
+
+# Group heading.
+settings-group-integrations = [Îñţéĝŕàţîöñš~~~~]
+
+# Group heading.
+settings-group-advanced = [Åðṽàñçéð~~~]
+
+# Group heading.
+settings-group-storage = [Šţöŕàĝé~~~]
+
+# Group heading.
+settings-group-episodes = [Éþîšöðéš~~~]
+
+# Row: how titles are written.
+settings-title-language = [Ţîţļé ļàñĝüàĝé~~~~~]
+
+# Option: use the tracker's own choice. The tracker is a name.
+settings-title-tracker = [{ $tracker }'š çĥöîçé~~~~]
+
+# Option: English titles.
+settings-title-english = [Éñĝļîšĥ~~~]
+
+# Option: Japanese titles in Latin letters.
+settings-title-romaji = [Ŕöɱàĵî~~]
+
+# Option: Japanese titles in Japanese.
+settings-title-native = [Ñàţîṽé~~]
+
+# Row: show adult titles.
+settings-adult = [Šĥöŵ àðüļţ ţîţļéš~~~~~~]
+
+# Line under it. The tracker is a name.
+settings-adult-detail = [Ţîţļéš { $tracker } ɱàŕķš àðüļţ, îñ Šéàŕçĥ àñð Šéàšöñàļ~~~~~~~~~~~~~~]
+
+# Row: quality.
+settings-quality = [Ǫüàļîţý~~~]
+
+# Row: play the next episode on its own.
+settings-auto-play = [Åüţö-þļàý ñéẋţ~~~~~]
+
+# Row: length of the Up next countdown.
+settings-up-next-countdown = [Ûþ ñéẋţ çöüñţðöŵñ~~~~~~]
+
+# Row: skip the opening.
+settings-skip-opening = [Šķîþ öþéñîñĝ àüţöɱàţîçàļļý~~~~~~~~]
+
+# Row: skip filler.
+settings-skip-filler = [Šķîþ ƒîļļéŕ àüţöɱàţîçàļļý~~~~~~~~]
+
+# Row: mark the opening and ending.
+settings-mark-opening = [Ṁàŕķ öþéñîñĝ àñð éñðîñĝ~~~~~~~]
+
+# Row: show the skip button.
+settings-skip-button = [Šĥöŵ šķîþ ƀüţţöñ~~~~~]
+
+# Line under it.
+settings-skip-button-detail = [Ŵĥîļé ţĥé öþéñîñĝ öŕ éñðîñĝ þļàýš, ŵĥéñ îţ îšñ'ţ šķîþþéð àüţöɱàţîçàļļý~~~~~~~~~~~~~~~~~~~~~]
+
+# Row: when an episode counts as watched.
+settings-counts-watched = [Çöüñţš àš ŵàţçĥéð àţ~~~~~~]
+
+# Line under it.
+settings-counts-watched-detail = [Öŕ ŵĥéñ ţĥé éñðîñĝ šţàŕţš, îƒ îţ îš ɱàŕķéð~~~~~~~~~~~~~]
+
+# Row: spoiler protection.
+settings-spoiler = [Šþöîļéŕ þŕöţéçţîöñ~~~~~~]
+
+# Line under it.
+settings-spoiler-detail = [Ɓļüŕš šţîļļš öƒ üñŵàţçĥéð éþîšöðéš àƒţéŕ ţĥé ñéẋţ öñé~~~~~~~~~~~~~~~~]
+
+# Line under the audio row.
+settings-audio-detail = [Éàçĥ šĥöŵ ŕéɱéɱƀéŕš îţš öŵñ àüðîö àñð šüƀţîţļéš.~~~~~~~~~~~~~~~]
+
+# Row: follow the system's caption style.
+settings-system-captions = [Ƒöļļöŵ šýšţéɱ çàþţîöñ šţýļé~~~~~~~~~]
+
+# Line under it.
+settings-system-captions-detail = [Þļàîñ šüƀţîţļéš üšé ýöüŕ çàþţîöñ þŕéƒéŕéñçéš ƒŕöɱ Åççéššîƀîļîţý. Šţýļéð šüƀţîţļéš ķééþ ţĥéîŕ öŵñ ļööķ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line: how many shows override a setting.
+settings-overridden =
+    { $count ->
+        [one] [Öṽéŕŕîððéñ ƒöŕ öñé šĥöŵ~~~~~~~]
+       *[other] [Öṽéŕŕîððéñ ƒöŕ { $count } šĥöŵš~~~~~~~~]
+    }
+
+# Row: new downloads.
+settings-new-downloads = [Ñéŵ ðöŵñļöàðš~~~~]
+
+# Row: keep the next episodes.
+settings-keep-next = [Ķééþ ñéẋţ éþîšöðéš~~~~~~]
+
+# Line under it.
+settings-keep-next-detail = [Ðöŵñļöàðš ţĥé éþîšöðéš àƒţéŕ ţĥé öñé ýöü àŕé öñ, ƒöŕ éàçĥ šĥöŵ ýöü ŵàţçĥ~~~~~~~~~~~~~~~~~~~~~~]
+
+# Row: merge subtitles into the file.
+settings-merge-subtitles = [Ṁéŕĝé šüƀţîţļéš îñ~~~~~~]
+
+# Row: keep seeding.
+settings-keep-seeding = [Ķééþ šééðîñĝ~~~~]
+
+# Row: download only on Wi-Fi.
+settings-wifi-only = [Ŵî-Ƒî öñļý~~~]
+
+# Line under it.
+settings-wifi-only-detail = [Ðöŵñļöàðš ŵàîţ ƒöŕ Ŵî-Ƒî~~~~~~~~]
+
+# Row: torrents on a mobile connection.
+settings-torrents-cellular = [Ţöŕŕéñţš öñ çéļļüļàŕ~~~~~~]
+
+# Row: seeding after watching.
+settings-seed-after = [Šééð àƒţéŕ ŵàţçĥîñĝ~~~~~~]
+
+# Row: longest time to seed.
+settings-seed-for = [Šééð ƒöŕ àţ ɱöšţ~~~~~]
+
+# Row: upload limit.
+settings-upload-limit = [Ûþļöàð ļîɱîţ~~~~]
+
+# Value: nothing set yet.
+settings-none-yet = [Ñöñé ýéţ~~~]
+
+# Value: nothing set.
+settings-not-set = [Ñöţ šéţ~~~]
+
+# Value: no store joined.
+settings-none-joined = [Ñöñé ĵöîñéð~~~~]
+
+# Row: edit the proxy.
+settings-edit-proxy = [Éðîţ þŕöẋý…~~~~]
+
+# Row: Discord presence.
+settings-discord = [Ðîšçöŕð~~~]
+
+# Row: Discord presence on Apple.
+settings-discord-presence = [Ðîšçöŕð þŕéšéñçé~~~~~]
+
+# Row: choose a folder.
+settings-choose = [Çĥööšé…~~~]
+
+# Row: show the file in the file manager.
+settings-show-in-files = [Šĥöŵ îñ Ƒîļéš~~~~]
+
+# Row: check for updates.
+settings-check-updates = [Çĥéçķ ƒöŕ üþðàţéš~~~~~~]
+
+# Row: privacy.
+settings-privacy = [Þŕîṽàçý~~~]
+
+# Line under it.
+settings-privacy-detail = [Ŵĥàţ àñîšţŕéàɱ šéñðš, àñð ŵĥàţ šţàýš öñ ţĥîš ðéṽîçé~~~~~~~~~~~~~~~~]
+
+# Row: typefaces.
+settings-typefaces = [Ţýþéƒàçéš~~~]
+
+# Row: libraries used.
+settings-libraries = [Ļîƀŕàŕîéš~~~]
+
+# Line under the update row on desktop about page, the build cannot update.
+settings-notices = [Ñöţîçéš~~~]
+
+# Line about the artwork licence.
+settings-artwork = [Åŕţŵöŕķ üñðéŕ ÇÇ ƁÝ-ÑÇ~~~~~~~]
+
+# Line under it.
+settings-artwork-detail = [Åţţŕîƀüţîöñ îñ ţĥé àþþ'š ñöţîçéš~~~~~~~~~~]
+
+# Heading and row for notifications of new episodes.
+settings-new-episodes = [Ñéŵ éþîšöðéš~~~~]
+
+# Line under it.
+settings-new-episodes-detail = [Ƒöŕ šĥöŵš îñ ýöüŕ Ŵàţçĥîñĝ ļîšţ~~~~~~~~~~]
+
+# Line explaining what a notification says.
+settings-notify-detail = [Öñé ñöţîƒîçàţîöñ ŵĥéñ àñ éþîšöðé öƒ à šĥöŵ ýöü ƒöļļöŵ çöɱéš öüţ: ţĥé šĥöŵ àñð ţĥé éþîšöðé'š ñüɱƀéŕ, ñéṽéŕ îţš ñàɱé. Å šĥöŵ çàñ ţüŕñ îţš öŵñ öƒƒ îñ îţš šéţţîñĝš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Row: the coming-up digest.
+settings-coming-up = [Çöɱîñĝ üþ · ñéẋţ 7 ðàýš~~~~~~~]
+
+# Row: the system's notification settings.
+settings-system-notifications = [Ñöţîƒîçàţîöñ šéţţîñĝš~~~~~~~]
+
+# Line under it on Android.
+settings-system-notifications-detail = [Šöüñð, ṽîƀŕàţîöñ àñð ţĥé ļöçķ šçŕééñ~~~~~~~~~~~]
+
+# Line under it on Apple.
+settings-system-notifications-apple = [Öþéñš Šýšţéɱ Šéţţîñĝš, ŵĥéŕé ţĥé ƀàññéŕ šţýļé, šöüñð àñð ƀàðĝéš àŕé šéţ.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the system blocks notifications.
+settings-notifications-blocked = [Öƒƒ: ţĥé šýšţéɱ îšñ'ţ àļļöŵîñĝ ñöţîƒîçàţîöñš ƒöŕ àñîšţŕéàɱ~~~~~~~~~~~~~~~~~~]
+
+# Line when the show turned notifications on.
+settings-notifications-show-on = [Öñ îñ ţĥîš šĥöŵ'š šéţţîñĝš~~~~~~~~]
+
+# Line on the show settings: when an episode comes out.
+settings-notify-show = [Ŵĥéñ àñ éþîšöðé öƒ ţĥîš šĥöŵ çöɱéš öüţ~~~~~~~~~~~~]
+
+# Title of the sheet.
+show-settings-title = [Šéţţîñĝš ƒöŕ ţĥîš šĥöŵ~~~~~~~]
+
+# Group heading.
+show-settings-audio-subtitles = [Åüðîö àñð šüƀţîţļéš~~~~~~]
+
+# Row.
+show-settings-skip-opening = [Šķîþ öþéñîñĝ~~~~]
+
+# Row.
+show-settings-skip-filler = [Šķîþ ƒîļļéŕ~~~~]
+
+# Option: blur stills ahead.
+show-settings-blur-ahead = [Ɓļüŕ šţîļļš àĥéàð~~~~~~]
+
+# Option: show everything.
+show-settings-show-everything = [Šĥöŵ éṽéŕýţĥîñĝ~~~~~]
+
+# Line under spoiler protection.
+show-settings-spoiler-detail = [Ɓļüŕš šţîļļš àƒţéŕ ţĥé ñéẋţ éþîšöðé.~~~~~~~~~~~]
+
+# Option: always.
+show-settings-always = [Åļŵàýš~~]
+
+# Option: never.
+show-settings-never = [Ñéṽéŕ~~]
+
+# Line under the subtitles row.
+show-settings-subs-remembered = [Ŕéɱéɱƀéŕéð ƒŕöɱ ýöüŕ ļàšţ éþîšöðé.~~~~~~~~~~~]
+
+# Line under the subtitles row, when nothing is remembered.
+show-settings-subs-follow = [Çĥöšéñ îñ ţĥé þļàýéŕ. Ƒöļļöŵîñĝ Šéţţîñĝš › Þļàýƀàçķ.~~~~~~~~~~~~~~~~]
+
+# Row: the source for this show.
+show-settings-source = [Šöüŕçé~~]
+
+# Line under it.
+show-settings-source-detail = [Åüţöɱàţîç ţŕîéš ýöüŕ šöüŕçéš îñ öŕðéŕ.~~~~~~~~~~~~]
+
+# Button that resets the show.
+show-settings-reset = [Ŕéšéţ ţö ðéƒàüļţš~~~~~~]
+
+# Line under it.
+show-settings-reset-detail = [Åļšö çļéàŕš ţĥé ŕéɱéɱƀéŕéð àüðîö àñð šüƀţîţļéš.~~~~~~~~~~~~~~~]
+
+# Line when nothing is set.
+show-settings-nothing = [Ñöţĥîñĝ šéţ ƒöŕ ţĥîš šĥöŵ~~~~~~~~]
+
+# Row: the default track.
+show-settings-default = [Ðéƒàüļţ~~~]
+
+# Line: notifications are off because the show is not being watched.
+show-settings-not-watching = [Öƒƒ · ñöţ ŵàţçĥîñĝ~~~~~~]
+
+# Name of a track with a part in brackets. The part is already formatted.
+show-settings-track-with = [{ $language } ({ $part })~~~]
+
+# Title of the airing widget.
+widget-airing-today = [Åîŕîñĝ ţöðàý~~~~]
+
+# Line when there is no schedule yet.
+widget-no-schedule = [Ñö šçĥéðüļé ƒöŕ ţöðàý ýéţ. Öþéñ àñîšţŕéàɱ ţö üþðàţé îţ.~~~~~~~~~~~~~~~~~]
+
+# Line when nothing airs today.
+widget-nothing-today = [Ñöţĥîñĝ àîŕîñĝ ţöðàý.~~~~~~~]
+
+# Line when nothing airs today and the next is known.
+widget-nothing-next = [Ñöţĥîñĝ àîŕîñĝ. Ñéẋţ: { $when }.~~~~~~~~]
+
+# Heading of the section that shows what is in the library.
+widget-in-your-list = [Îñ ýöüŕ ļîšţ~~~~]
+
+# Short word: an episode was watched.
+widget-watched = [Ŵàţçĥéð~~~]
+
+# Line telling when the widget was updated.
+widget-updated = [Ûþðàţéð { $when }~~~~]
+
+# Line on the continue widget when nothing is connected.
+widget-connect-detail = [Çöññéçţ ţŕàçķéŕ, öŕ þļàý àñ éþîšöðé, ţö šéé îţ ĥéŕé.~~~~~~~~~~~~~~~~]
+
+# Button on the widget.
+widget-connect = [Çöññéçţ~~~]
+
+# Accessibility label of a widget row: continue an episode.
+widget-continue-label = [Çöñţîñüé éþîšöðé { $episode } öƒ { $title }~~~~~~~~~]
+
+# Accessibility label of a widget row: start an episode.
+widget-start-label = [Þļàý éþîšöðé { $episode } öƒ { $title }~~~~~~~]
+
+# Accessibility label of a widget row: continue a dubbed episode.
+widget-continue-dubbed-label = [Çöñţîñüé éþîšöðé { $episode }, ðüƀƀéð, öƒ { $title }~~~~~~~~~~~]
 
 # Title of the screen or section that lists sources.
 sources-title = [Šöüŕçéš~~~]
@@ -3220,4 +5162,1504 @@ source-pin-unavailable = [{ $name } îšñ'ţ àṽàîļàƀļé ŕîĝĥţ ñ�
 
 # Under an episode that is out but that no source lists. The row is dimmed and can't be played.
 episode-unsourced = [Ñö šöüŕçé ĥàš ţĥîš éþîšöðé~~~~~~~~]
+
+# Heading of the order list.
+sources-order = [Šöüŕçé öŕðéŕ~~~~]
+
+# Line under the heading.
+sources-order-detail = [Šöüŕçéš àŕé ţŕîéð ţöþ ţö ƀöţţöɱ. Ðŕàĝ öñé ƀý îţš ĥàñðļé ţö çĥàñĝé ţĥé öŕðéŕ.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the heading on a phone, where a show can keep its own.
+sources-order-detail-show = [Šöüŕçéš àŕé ţŕîéð îñ öŕðéŕ, ţöþ ţö ƀöţţöɱ. Å šĥöŵ çàñ ķééþ îţš öŵñ šöüŕçé, çĥöšéñ ƒŕöɱ îţš ţîţļé þàĝé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Accessibility hint of the drag handle.
+sources-drag-hint = [Ðŕàĝ ţö çĥàñĝé ţĥé öŕðéŕ~~~~~~~~]
+
+# Menu item that moves a source up.
+sources-move-up = [Ṁöṽé üþ~~~]
+
+# Menu item that moves a source down.
+sources-move-down = [Ṁöṽé ðöŵñ~~~]
+
+# Title when the list could not be read.
+sources-load-failed = [Çöüļðñ'ţ ļöàð šöüŕçéš~~~~~~~]
+
+# Title when no source is installed.
+sources-empty-title = [Ñö šöüŕçéš ýéţ~~~~~]
+
+# Line under it.
+sources-empty-detail = [Šöüŕçéš çöɱé ƒŕöɱ þļüĝîñ šţöŕéš. Ĵöîñ öñé ŵîţĥ ţĥé îñṽîţé ļîñķ îţš öŵñéŕ šéñðš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Row for the built-in torrent source.
+sources-torrents = [Ţöŕŕéñţš~~~]
+
+# Label of a source that is not a plugin and controls this device.
+sources-remote = [Ŕéɱöţé~~]
+
+# Origin: set in the config file.
+sources-origin-config = [Šéţ îñ ţĥé çöñƒîĝ ƒîļé~~~~~~~]
+
+# Origin: built into the app.
+sources-origin-built-in = [Ɓüîļţ îñ~~~]
+
+# Origin: from a store the user left.
+sources-origin-left-store = [Ƒŕöɱ à þļüĝîñ šţöŕé ýöü ļéƒţ~~~~~~~~~]
+
+# Origin: added by hand.
+sources-origin-by-hand = [Åððéð ƀý ĥàñð~~~~]
+
+# Origin: not from a store.
+sources-origin-no-store = [Ñöţ ƒŕöɱ à þļüĝîñ šţöŕé~~~~~~~]
+
+# Origin: from a store.
+sources-origin-from = [Ƒŕöɱ { $name }~~~]
+
+# Origin: from a store, with the place in the list.
+sources-origin-in = [Îñ { $place }~~]
+
+# Status: the source does not answer.
+sources-status-not-answering = [Ñöţ àñšŵéŕîñĝ~~~~]
+
+# Status: held back.
+sources-status-held-back = [Ĥéļð ƀàçķ~~~]
+
+# Status: slow.
+sources-status-slow = [Šļöŵ~~]
+
+# Status: an update exists.
+sources-status-update = [Ûþðàţé àṽàîļàƀļé~~~~~]
+
+# Status line: no answer, with a reason.
+sources-detail-not-answering = [Ñöţ àñšŵéŕîñĝ. { $why }~~~~~~]
+
+# Status line: no answer.
+sources-detail-not-answering-plain = [Ñöţ àñšŵéŕîñĝ.~~~~~]
+
+# Status line: held back by the check.
+sources-detail-held-back = [Ĥéļð ƀàçķ üñţîļ ţĥé çöññéçţîöñ çĥéçķ þàššéš.~~~~~~~~~~~~~~]
+
+# Status line: disabled.
+sources-detail-disabled = [Ðîšàƀļéð. Îţ ķééþš îţš þļàçé àñð îš ñöţ ţŕîéð.~~~~~~~~~~~~~~]
+
+# Status line: the source is gone.
+sources-detail-gone = [Ţĥîš šöüŕçé îš ñö ļöñĝéŕ ĥéŕé.~~~~~~~~~]
+
+# Status line: the site did not answer.
+sources-detail-site = [Ţĥé šîţé ðîð ñöţ àñšŵéŕ.~~~~~~~~]
+
+# Row label: version.
+sources-version = [Ṽéŕšîöñ~~~]
+
+# Row label: response time.
+sources-response-time = [Ŕéšþöñšé ţîɱé~~~~]
+
+# Value: no answer to measure.
+sources-no-answer = [Ñö àñšŵéŕ~~~]
+
+# Value: not checked yet.
+sources-not-checked = [Ñöţ çĥéçķéð ýéţ~~~~~]
+
+# Row label: the hosts a plugin contacts.
+sources-contacts-label = [Çöñţàçţš~~~]
+
+# Value: how the plugin is listed.
+sources-listed-by-store = [Ļîšţéð ƀý îţš þļüĝîñ šţöŕé~~~~~~~~]
+
+# Line: the plugin contacts one host.
+sources-contacts-one = [Çöñţàçţš { $first }~~~~]
+
+# Line: the plugin contacts several hosts. The count is the hosts after the first.
+sources-contacts-line =
+    { $more ->
+        [one] [Çöñţàçţš { $first } àñð öñé ɱöŕé~~~~~~~~]
+       *[other] [Çöñţàçţš { $first } àñð { $more } ɱöŕé~~~~~~~~]
+    }
+
+# Line: the plugin contacts no host.
+sources-contacts-none = [Çöñţàçţš ñö ĥöšţš~~~~~~]
+
+# Value when no host is listed.
+sources-no-hosts = [Ñö ĥöšţš~~~]
+
+# Line: an update adds one host.
+sources-update-contacts-one = [Ţĥîš üþðàţé àļšö çöñţàçţš { $first }.~~~~~~~~~]
+
+# Line: an update adds several hosts. The count is the hosts after the first.
+sources-update-contacts =
+    { $more ->
+        [one] [Ţĥîš üþðàţé àļšö çöñţàçţš { $first } àñð öñé ɱöŕé.~~~~~~~~~~~~~]
+       *[other] [Ţĥîš üþðàţé àļšö çöñţàçţš { $first } àñð { $more } ɱöŕé.~~~~~~~~~~~~~]
+    }
+
+# Title of the update question.
+sources-update-title = [Ûþðàţé { $name }?~~~~]
+
+# Title of the replace question.
+sources-replace-title = [Ŕéþļàçé { $name }?~~~~]
+
+# Line under the update question.
+sources-update-detail = [Ṽéŕšîöñ { $version } ƒŕöɱ { $store } ŕéþļàçéš { $from }.~~~~~~~~~~~]
+
+# Line under the replace question.
+sources-replace-detail = [Ṽéŕšîöñ { $version } ƒŕöɱ { $store } ŕéþļàçéš ţĥé çöþý àððéð ƀý ĥàñð. { $detail }.~~~~~~~~~~~~~~~~~~]
+
+# Button that opens the settings for sources.
+sources-open-settings = [Öþéñ šöüŕçé šéţţîñĝš~~~~~~]
+
+# Heading of the torrent group in the settings.
+sources-torrent-source = [Ţöŕŕéñţ šöüŕçé~~~~~]
+
+# Row: where the plugin's page stands.
+sources-source-order-row = [Šöüŕçé öŕðéŕ~~~~]
+
+# Short label for a joined store, on a row.
+stores-joined = [Ĵöîñéð~~]
+
+# Title of the empty list.
+stores-empty-title = [Ñö þļüĝîñ šţöŕéš ýéţ~~~~~~]
+
+# Line under the empty title.
+stores-empty-detail = [Þļüĝîñ šţöŕéš àŕé ŕüñ ƀý þéöþļé ýöü ķñöŵ. Ĵöîñ öñé ŵîţĥ ţĥé îñṽîţé ļîñķ îţš öŵñéŕ šéñðš ýöü.~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the title of the screen when plugins add sources.
+stores-intro = [Þļüĝîñš àðð šöüŕçéš. Éàçĥ öñé ļîšţš ţĥé ĥöšţš îţ çöñţàçţš ƀéƒöŕé ýöü îñšţàļļ îţ.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
+stores-not-from-app = [Þļüĝîñš çöɱé ƒŕöɱ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ, ñöţ ƒŕöɱ àñîšţŕéàɱ. Ýöü çàñ ļéàṽé à þļüĝîñ šţöŕé àţ àñý ţîɱé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the store has no plugins.
+stores-no-plugins = [Ţĥîš þļüĝîñ šţöŕé öƒƒéŕš ñö þļüĝîñš ýéţ.~~~~~~~~~~~~]
+
+# Heading of the plugin list of a store.
+stores-plugins = [Þļüĝîñš~~~]
+
+# Line under the plugin list: what a plugin may do.
+stores-plugin-limits = [Éàçĥ þļüĝîñ çàñ çöñţàçţ öñļý ţĥé ĥöšţš ļîšţéð ŵîţĥ îţ àñð çàññöţ ŕéàð ýöüŕ ƒîļéš.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line in the update sheet: what a plugin may do.
+stores-plugin-limits-short = [Þļüĝîñš çàññöţ ŕéàð ýöüŕ ƒîļéš öŕ çöñţàçţ à ĥöšţ ţĥàţ îš ñöţ ļîšţéð.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the name of a store: who runs it and where.
+stores-run-by = [Ŕüñ ƀý { $owner } · { $host }~~~~~]
+
+# Line under a store added by hand.
+stores-added-by-hand = [Åððéð ƀý ĥàñð · { $detail }~~~~~~]
+
+# Short status: the store cannot be reached.
+stores-status-offline = [Öƒƒļîñé~~~]
+
+# Short status: the store does not answer.
+stores-status-not-answering = [Ñöţ àñšŵéŕîñĝ~~~~]
+
+# Short status: the owner ended this device's access.
+stores-status-access-ended = [Åççéšš éñðéð~~~~]
+
+# Line when the owner ended access. Installed plugins keep working.
+stores-access-ended-detail = [Ţĥîš þļüĝîñ šţöŕé'š öŵñéŕ éñðéð ýöüŕ àççéšš. Îñšţàļļéð þļüĝîñš ķééþ ŵöŕķîñĝ, àñð ñöñé ŵîļļ üþðàţé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the page of a store that no longer lets the device in.
+stores-access-ended-page = [Ţĥîš þļüĝîñ šţöŕé ñö ļöñĝéŕ ļéţš ţĥîš ðéṽîçé îñ. Îţš þļüĝîñš šţàý îñšţàļļéð üñţîļ ýöü ŕéɱöṽé ţĥéɱ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on a row where the store is gone from the device.
+stores-no-longer-joined = [Ţĥîš þļüĝîñ šţöŕé îš ñö ļöñĝéŕ ĵöîñéð.~~~~~~~~~~~~]
+
+# Line when the store cannot be reached but a list was kept. The reason is a sentence fragment.
+stores-offline-last-list = [Öƒƒļîñé: { $reason }. Ţĥé þļüĝîñš ƀéļöŵ àŕé ţĥé ļàšţ ļîšţ ţĥàţ ŵàš çĥéçķéð.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when offline, without a reason.
+stores-offline-last-list-plain = [Öƒƒļîñé. Šĥöŵîñĝ ţĥé ļàšţ ļîšţ îţ šéñţ.~~~~~~~~~~~~]
+
+# Line with the store's key and how this device joined.
+stores-key-line = [Šţöŕé ķéý { $key } · { $joined }~~~~~~]
+
+# How the device joined, when a name was given.
+stores-device-joined-as = [Ĵöîñéð àš { $name }~~~~]
+
+# How the device joined, when no name was given.
+stores-joined-nameless = [Ĵöîñéð ŵîţĥöüţ à ñàɱé~~~~~~~]
+
+# Row label: who can join.
+stores-who-can-join = [Ŵĥö çàñ ĵöîñ~~~~]
+
+# Row value and line: no invite is needed.
+stores-anyone-with-link = [Åñýöñé ŵîţĥ ţĥé ļîñķ çàñ ĵöîñ~~~~~~~~~]
+
+# Short value of the same row.
+stores-anyone-short = [Åñýöñé ŵîţĥ ţĥé ļîñķ~~~~~~]
+
+# Row label: the store's address.
+stores-address = [Åððŕéšš~~~]
+
+# Row label: the store's key.
+stores-key-fingerprint = [Ķéý ƒîñĝéŕþŕîñţ~~~~~]
+
+# Heading of the section about this store.
+stores-this-store = [Ţĥîš šţöŕé~~~]
+
+# Button that opens the join form.
+stores-join-action = [Ĵöîñ à þļüĝîñ šţöŕé~~~~~~]
+
+# Short button on a phone for the same.
+stores-join-short = [Ĵöîñ à šţöŕé~~~~]
+
+# Menu item that opens the join form.
+stores-join-menu = [Ĵöîñ þļüĝîñ šţöŕé…~~~~~~]
+
+# Menu item and button that leaves a store.
+stores-leave = [Ļéàṽé þļüĝîñ šţöŕé~~~~~~]
+
+# Title of the leave confirmation.
+stores-leave-title = [Ļéàṽé { $name }?~~~]
+
+# Line under it.
+stores-leave-detail = [Ţĥîš ðéṽîçé çàñ ñö ļöñĝéŕ îñšţàļļ öŕ üþðàţé îţš þļüĝîñš. Þļüĝîñš àļŕéàðý îñšţàļļéð šţàý.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under it, when a new invite is needed to return.
+stores-leave-rejoin = [Þļüĝîñš îñšţàļļéð ƒŕöɱ îţ šţàý îñšţàļļéð. Ţö ĵöîñ àĝàîñ, ýöü ñééð à ñéŵ îñṽîţé ƒŕöɱ îţš öŵñéŕ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that opens the owner's admin page.
+stores-open-admin = [Öþéñ àðɱîñ þàĝé~~~~~]
+
+# Menu item: invite a person.
+stores-invite-someone = [Îñṽîţé šöɱéöñé…~~~~~]
+
+# Menu item: link another device of your own.
+stores-link-device = [Ļîñķ àñöţĥéŕ ðéṽîçé…~~~~~~]
+
+# Menu item and button: list the members.
+stores-show-members = [Šĥöŵ ɱéɱƀéŕš~~~~]
+
+# Menu item: who can join.
+stores-who-can-join-menu = [Ŵĥö çàñ ĵöîñ…~~~~]
+
+# Menu item: publish a plugin.
+stores-publish-menu = [Þüƀļîšĥ à þļüĝîñ…~~~~~~]
+
+# Accessibility label of the row's actions menu.
+stores-actions-for = [Åçţîöñš ƒöŕ { $name }~~~~~]
+
+# Short status: installed.
+stores-plugin-state-installed = [Îñšţàļļéð~~~]
+
+# Short status: installed from another store.
+stores-plugin-from = [Ƒŕöɱ { $other }~~~]
+
+# Short status: the store is offline, so the plugin cannot be installed.
+stores-plugin-offline = [Öƒƒļîñé~~~]
+
+# Short status: the store no longer offers the plugin.
+stores-plugin-unavailable = [Ñöţ àṽàîļàƀļé~~~~]
+
+# Line: the version installed and the one now offered.
+stores-plugin-update-line = [Ṽéŕšîöñ { $from } îñšţàļļéð, { $to } àṽàîļàƀļé~~~~~~~~~~~]
+
+# Line: the version installed.
+stores-plugin-version = [Ṽéŕšîöñ { $version }~~~~]
+
+# Accessibility label of the update button.
+stores-update-label = [Ûþðàţé { $name } ţö { $version }~~~~~~]
+
+# Accessibility label of the install button.
+stores-install-label = [Îñšţàļļ { $name }~~~~]
+
+# Accessibility label of the replace button, for a plugin that was added by hand.
+stores-replace-label = [Ŕéþļàçé ţĥé çöþý öƒ { $name } àððéð ƀý ĥàñð~~~~~~~~~~~~]
+
+# Title of the remove confirmation.
+stores-remove-plugin-title = [Ŕéɱöṽé { $name }?~~~~]
+
+# Line under it.
+stores-remove-plugin-detail = [Îţ îš ðéļéţéð ƒŕöɱ ţĥîš ðéṽîçé. Ţĥé þļüĝîñ šţöŕé çàñ îñšţàļļ îţ àĝàîñ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Label before the hosts a new version also contacts.
+stores-newly-contacts = [Ñéŵļý çöñţàçţš~~~~~]
+
+# Line in the update sheet: the hosts the new version adds. The hosts are a list already joined.
+stores-update-contacts = [Ţĥîš üþðàţé àļšö çöñţàçţš { $hosts }.~~~~~~~~~]
+
+# Heading in the update sheet for what changed.
+stores-new-in = [Ñéŵ îñ { $version }~~~]
+
+# Title of the join form.
+stores-join-title = [Ĵöîñ à þļüĝîñ šţöŕé~~~~~~]
+
+# Title of the join form on the TV, which adds rather than joins.
+stores-add-title = [Åðð à þļüĝîñ šţöŕé~~~~~~]
+
+# Line under the form title.
+stores-join-detail = [Þàšţé ţĥé ļîñķ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ šéñţ ýöü.~~~~~~~~~~~~~~~]
+
+# Line under the form title on desktop, where nothing happens before the check.
+stores-join-detail-desktop = [Þàšţé ţĥé îñṽîţé ļîñķ à þļüĝîñ šţöŕé'š öŵñéŕ šéñţ ýöü. Ýöü šéé ŵĥàţ ţĥé þļüĝîñ šţöŕé öƒƒéŕš ƀéƒöŕé àñýţĥîñĝ îš ĵöîñéð öŕ îñšţàļļéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the field on a phone when a link was opened from another app.
+stores-join-detail-opened = [Þàšţé ţĥé ļîñķ ţĥé þļüĝîñ šţöŕé'š öŵñéŕ šéñţ ýöü. Å àñîšţŕéàɱ:// îñṽîţé ļîñķ öþéñéð ƒŕöɱ Ṁéššàĝéš ƒîļļš ţĥîš šĥééţ îñ ðîŕéçţļý.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Label and hint of the link field.
+stores-invite-link = [Îñṽîţé ļîñķ~~~~]
+
+# Hint inside the empty link field.
+stores-invite-link-hint = [ĥţţþš://…/ĵöîñ/…~~~~~]
+
+# Button that checks the link.
+stores-check-link = [Çĥéçķ ţĥé ļîñķ~~~~~]
+
+# Button that checks the link, desktop wording.
+stores-check-invite = [Çĥéçķ îñṽîţé~~~~]
+
+# Line while the link is checked.
+stores-checking-link = [Çĥéçķîñĝ ţĥé ļîñķ…~~~~~~]
+
+# Line while the store is checked.
+stores-checking-store = [Çĥéçķîñĝ ţĥé þļüĝîñ šţöŕé…~~~~~~~~]
+
+# Line when the text is not an invite link.
+stores-not-an-invite = [Ţĥàţ îš ñöţ àñ îñṽîţé ļîñķ.~~~~~~~~~]
+
+# Line when the link could not be opened.
+stores-link-failed = [Çöüļðñ'ţ öþéñ ţĥîš ļîñķ.~~~~~~~~]
+
+# Button that goes back to the link field.
+stores-try-another-link = [Ţŕý àñöţĥéŕ ļîñķ~~~~~]
+
+# Title of the confirmation on a desktop.
+stores-join-confirm-title = [Ĵöîñ { $name }?~~~]
+
+# Line: joining installs nothing.
+stores-join-installs-nothing = [Ĵöîñîñĝ îñšţàļļš ñöţĥîñĝ. Ýöü çĥööšé ŵĥîçĥ þļüĝîñš ţö îñšţàļļ, àñð éàçĥ öñé àšķš ƒöŕ ţĥé ĥöšţš îţ çöñţàçţš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the key in the link matches the store. The key is shown beside it.
+stores-key-matches = [Ķéý { $key } ɱàţçĥéš ţĥé þļüĝîñ šţöŕé.~~~~~~~~~~]
+
+# Line when the link is open to anyone.
+stores-anyone-note = [Ýöü ĵöîñ ŵîţĥöüţ à ñàɱé. Åñöţĥéŕ ðéṽîçé ĵöîñš ŵîţĥ ţĥé šàɱé ļîñķ.~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the device joined this store already.
+stores-already-joined-note = [Ţĥîš ðéṽîçé ĥàš ĵöîñéð ţĥîš þļüĝîñ šţöŕé àļŕéàðý.~~~~~~~~~~~~~~~]
+
+# Label of the device name field.
+stores-device-name = [Ðéṽîçé ñàɱé~~~~]
+
+# Line under the device name field.
+stores-device-name-detail = [Ţĥé þļüĝîñ šţöŕé'š öŵñéŕ šééš ţĥîš ðéṽîçé ƀý ţĥîš ñàɱé.~~~~~~~~~~~~~~~~~]
+
+# Button that joins.
+stores-join-button = [Ĵöîñ þļüĝîñ šţöŕé~~~~~~]
+
+# Button that opens a store that was joined already.
+stores-open-store = [Öþéñ þļüĝîñ šţöŕé~~~~~~]
+
+# Notice when the TV joined a store. The name is a store name.
+stores-tv-joined = [Ĵöîñéð { $name }~~~]
+
+# Notice when the TV joined a store with no name known.
+stores-tv-joined-plain = [Ĵöîñéð ţĥé þļüĝîñ šţöŕé~~~~~~~]
+
+# Button that skips the join step in onboarding.
+stores-skip = [Šķîþ ƒöŕ ñöŵ~~~~]
+
+# Button that types the link instead of scanning.
+stores-type-link = [Ţýþé ţĥé ļîñķ~~~~]
+
+# Line beside the QR code on the TV.
+stores-qr-instructions = [Šçàñ ţĥé ǪŔ çöðé ŵîţĥ ýöüŕ þĥöñé, ţĥéñ þàšţé ţĥé þļüĝîñ šţöŕé'š îñṽîţé ļîñķ öñ ţĥé þàĝé ţĥàţ öþéñš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line over the address under the QR code.
+stores-or-open-address = [Öŕ öþéñ ţĥîš àððŕéšš~~~~~~]
+
+# Line when the code on the TV ran out.
+stores-code-expired = [Çöðé éẋþîŕéð~~~~]
+
+# Line under it: how long the page lived.
+stores-page-closed = [Ţĥé þàĝé çļöšéð àƒţéŕ 10 ɱîñüţéš.~~~~~~~~~~]
+
+# Button that makes a new code.
+stores-new-code = [Ĝéţ à ñéŵ çöðé~~~~~]
+
+# Line when the TV has no reachable address.
+stores-tv-no-network = [Ţĥîš ŢṼ îšñ'ţ öñ à ñéţŵöŕķ à þĥöñé çàñ ŕéàçĥ.~~~~~~~~~~~~~~]
+
+# Line under the QR code on the TV: when the page closes.
+stores-page-closes = [Ţĥé þàĝé çļöšéš ŵîţĥ ţĥîš šçŕééñ, öŕ îñ 10 ɱîñüţéš.~~~~~~~~~~~~~~~~]
+
+# Heading of the people section.
+stores-people = [Þéöþļé~~]
+
+# Heading of the members list.
+stores-members-of = [Ṁéɱƀéŕš öƒ { $name }~~~~~]
+
+# Heading of the members section on a small screen.
+stores-members = [Ṁéɱƀéŕš~~~]
+
+# Row for the owner. The devices count is already formatted.
+stores-owner-devices = [Öŵñéŕ · { $devices }~~~~]
+
+# Line of a member: the number of devices.
+stores-member-devices =
+    { $count ->
+        [one] [Ţĥéîŕ öñé ðéṽîçé~~~~~]
+       *[other] [Ţĥéîŕ { $count } ðéṽîçéš~~~~~~]
+    }
+
+# Label of the field for the name of the person invited.
+stores-invite-for = [Ŵĥö îš îţ ƒöŕ? (öþţîöñàļ)~~~~~~~~]
+
+# Placeholder in the name field of the invite sheet.
+stores-their-name = [Ţĥéîŕ ñàɱé~~~]
+
+# Button that makes an invite.
+stores-make-link = [Ṁàķé îñṽîţé ļîñķ~~~~~]
+
+# Title of the sheet that links a device of your own.
+stores-link-device-title = [Ļîñķ àñöţĥéŕ ðéṽîçé~~~~~~]
+
+# Title of the invite sheet.
+stores-invite-title = [Îñṽîţé šöɱéöñé~~~~~]
+
+# Line under the link-your-device button.
+stores-link-device-detail = [Ṁàķé à ļîñķ ţö öþéñ öñ ýöüŕ öţĥéŕ ðéṽîçé.~~~~~~~~~~~~~]
+
+# Line under an invite link: it works once, for one person.
+stores-invite-once = [Ŵöŕķš öñçé, ƒöŕ ţĥé þéŕšöñ ýöü šéñð îţ ţö.~~~~~~~~~~~~~]
+
+# Line under a link made for your own device.
+stores-link-once-until = [Öþéñ ţĥîš ļîñķ öñ ţĥé öţĥéŕ ðéṽîçé. Îţ ŵöŕķš öñçé, üñţîļ { $until }.~~~~~~~~~~~~~~~~~~~]
+
+# Title of an invite for a named person.
+stores-invite-for-name = [Îñṽîţé ƒöŕ { $name }~~~~~]
+
+# Line when no invites wait.
+stores-no-invites = [Ñö îñṽîţéš ŵàîţîñĝ. Åñ îñṽîţé ļîñķ šĥöŵš ĥéŕé üñţîļ îţ îš üšéð.~~~~~~~~~~~~~~~~~~~]
+
+# Heading over the list of unused invites.
+stores-invites-unused = [Îñṽîţéš ñöţ üšéð ýéţ~~~~~~]
+
+# Name of an invite that was not given one.
+stores-invite-unnamed = [Åñöţĥéŕ ðéṽîçé~~~~~]
+
+# Line of an unused invite.
+stores-invited-until = [Îñṽîţéð, üñţîļ { $until }~~~~~~]
+
+# Menu item that cancels an invite.
+stores-cancel-invite = [Çàñçéļ îñṽîţé~~~~]
+
+# Menu item that removes a member.
+stores-remove-member = [Ŕéɱöṽé ɱéɱƀéŕ~~~~]
+
+# Title of the confirmation that removes a member.
+stores-remove-member-title = [Ŕéɱöṽé { $name }?~~~~]
+
+# Line under it.
+stores-remove-member-detail = [Ţĥéîŕ ðéṽîçéš ļöšé àççéšš ţö ţĥîš þļüĝîñ šţöŕé. Þļüĝîñš ţĥéý îñšţàļļéð ķééþ ŵöŕķîñĝ ƀüţ šţöþ üþðàţîñĝ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading of the who-can-join sheet.
+stores-who-can-join-title = [Ŵĥö çàñ ĵöîñ { $name }~~~~~]
+
+# Option: anyone with the store's link.
+stores-anyone-with-store-link = [Åñýöñé ŵîţĥ ţĥé þļüĝîñ šţöŕé'š ļîñķ~~~~~~~~~~~]
+
+# Option: only people invited.
+stores-only-invited = [Öñļý þéöþļé ýöü îñṽîţé~~~~~~~]
+
+# Line over the list of devices that joined with the link.
+stores-devices-joined =
+    { $count ->
+        [one] [Öñé ðéṽîçé ĵöîñéð ŵîţĥ ţĥé ļîñķ~~~~~~~~~~]
+       *[other] [{ $count } ðéṽîçéš ĵöîñéð ŵîţĥ ţĥé ļîñķ~~~~~~~~~~]
+    }
+
+# Line of a device that joined.
+stores-device-joined-at = [Ĵöîñéð { $when }~~~]
+
+# Line under the list when it is cut off.
+stores-newest-listed = [Ţĥé ñéŵéšţ { $count } àŕé ļîšţéð.~~~~~~~~]
+
+# Line when the store's server cannot offer the choice.
+stores-server-older = [Ţĥîš þļüĝîñ šţöŕé'š šéŕṽéŕ îš öļðéŕ, àñð ļéţš îñ öñļý þéöþļé ýöü îñṽîţé. Ûþðàţîñĝ îţ àððš ţĥé çĥöîçé.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the confirmation that removes devices that joined with the link.
+stores-remove-devices-title = [Ŕéɱöṽé ţĥé ðéṽîçéš ţĥàţ ĵöîñéð ŵîţĥ ţĥé ļîñķ?~~~~~~~~~~~~~~]
+
+# Line under it.
+stores-remove-devices-detail = [Ţĥéý šţöþ ŵöŕķîñĝ ŵîţĥ { $name } àţ öñçé. Þļüĝîñš àļŕéàðý îñšţàļļéð öñ ţĥéɱ šţàý.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the publish sheet.
+stores-publish-title = [Þüƀļîšĥ à þļüĝîñ ţö { $name }~~~~~~~]
+
+# Line when there is nothing to publish.
+stores-publish-none = [Ñö þļüĝîñš öñ ţĥîš ðéṽîçé ţö þüƀļîšĥ.~~~~~~~~~~~~]
+
+# Version line of a plugin in the publish sheet.
+stores-plugin-name-version = [{ $name } { $version }~~~]
+
+# Title of the state when a title page could not load.
+title-load-failed = [Çöüļðñ'ţ ļöàð ţĥîš ţîţļé~~~~~~~~]
+
+# Line under the load failure when AniList did not answer.
+title-no-answer = [ÅñîĻîšţ ðîðñ'ţ àñšŵéŕ. Ţŕý àĝàîñ.~~~~~~~~~~]
+
+# Short line while a title page loads.
+title-loading = [Ļöàðîñĝ ţĥîš ţîţļé~~~~~~]
+
+# Button on the title page that plays the trailer.
+title-trailer = [Ţŕàîļéŕ~~~]
+
+# Menu item that plays the trailer.
+title-play-trailer = [Þļàý ţŕàîļéŕ~~~~]
+
+# Menu item that opens the title on the AniList website.
+title-open-anilist = [Öþéñ öñ ÅñîĻîšţ~~~~~]
+
+# Menu item that opens the title page of the show a row belongs to.
+title-open = [Öþéñ ţîţļé~~~]
+
+# Heading of the list of seasons.
+title-seasons = [Šéàšöñš~~~]
+
+# Name of one season of a show, such as "Season 2".
+season-number = [Šéàšöñ { $number }~~~]
+
+# Heading of the list of episodes.
+title-episodes = [Éþîšöðéš~~~]
+
+# Heading of the list of related titles.
+title-related = [Ŕéļàţéð~~~]
+
+# Heading of the block of facts about a title.
+title-details = [Ðéţàîļš~~~]
+
+# Label of the studio in the details.
+title-studio = [Šţüðîö~~]
+
+# Heading of the block of tags.
+title-tags = [Ţàĝš~~]
+
+# Button that opens the full page of facts about a show.
+title-more-about = [Ṁöŕé àƀöüţ ţĥîš šĥöŵ~~~~~~]
+
+# Accessibility hint of the button that expands a synopsis.
+title-synopsis-hint = [Šĥöŵš ţĥé ŵĥöļé šýñöþšîš~~~~~~~~]
+
+# Label under a season: which episodes are dubbed so far.
+title-dubbed-to = [Ðüƀƀéð ţö éþîšöðé { $episode }~~~~~~~]
+
+# State of a title with no episodes listed yet.
+title-no-episodes = [Ñö éþîšöðéš ýéţ~~~~~]
+
+# Line when the episodes could not be listed.
+title-episodes-load-failed = [Çöüļðñ'ţ ļîšţ éþîšöðéš~~~~~~~]
+
+# Line under the episode list when it comes from AniList and no source can play them.
+title-episodes-no-source = [Éþîšöðéš çöɱé ƒŕöɱ ÅñîĻîšţ. Åðð à šöüŕçé ţö þļàý ţĥéɱ.~~~~~~~~~~~~~~~~~]
+
+# Button that collapses the watched episodes of a season.
+title-hide-watched = [Ĥîðé ŵàţçĥéð éþîšöðéš~~~~~~~]
+
+# Button that shows the watched episodes of a season again.
+title-show-watched = [Šĥöŵ ŵàţçĥéð éþîšöðéš~~~~~~~]
+
+# Accessibility state of a section that is open.
+state-expanded = [Éẋþàñðéð~~~]
+
+# Accessibility state of a section that is closed.
+state-collapsed = [Çöļļàþšéð~~~]
+
+# Row that stands for several watched episodes in a row, such as "Episodes 1 to 5 watched".
+title-watched-range = [Éþîšöðéš { $first } ţö { $last } ŵàţçĥéð~~~~~~~~~]
+
+# Name of an episode, such as "Episode 7".
+episode-number = [Éþîšöðé { $number }~~~~]
+
+# Short name of an episode, for tight spaces.
+episode-number-short = [É{ $number }~~]
+
+# An episode and its name.
+episode-with-title = [Éþîšöðé { $number } · { $title }~~~~~~]
+
+# An episode, dubbed, and its name.
+episode-with-title-dubbed = [Éþîšöðé { $number } · Ðüƀƀéð · { $title }~~~~~~~~]
+
+# Badge on an episode the person has watched.
+episode-watched = [Ŵàţçĥéð~~~]
+
+# Badge on an episode that is filler.
+episode-filler = [Ƒîļļéŕ~~]
+
+# Row note for an episode that has not aired.
+episode-row-not-out = [Ñöţ öüţ ýéţ~~~~]
+
+# Row note for an episode that has not aired, with when it does.
+episode-row-airs = [Åîŕš { $when }~~~]
+
+# Accessibility label of an episode's still while spoiler protection hides it.
+episode-spoiler-hidden = [Šţîļļ ĥîððéñ: šþöîļéŕ þŕöţéçţîöñ~~~~~~~~~~]
+
+# Accessibility label of the button that opens an episode's menu.
+episode-options = [Éþîšöðé öþţîöñš~~~~~]
+
+# Menu item that marks an episode as watched.
+episode-mark-watched = [Ṁàŕķ ŵàţçĥéð~~~~]
+
+# Menu item that marks an episode as not watched.
+episode-mark-unwatched = [Ṁàŕķ üñŵàţçĥéð~~~~~]
+
+# Menu item that marks every episode before this one as watched.
+episode-mark-previous-watched = [Ṁàŕķ àļļ þŕéṽîöüš ŵàţçĥéð~~~~~~~~]
+
+# Menu item that marks every episode up to a given one as watched.
+episode-mark-up-to = [Ṁàŕķ ŵàţçĥéð üþ ţö éþîšöðé { $episode }~~~~~~~~~]
+
+# Menu item that marks one numbered episode as watched.
+episode-mark-n-watched = [Ṁàŕķ éþîšöðé { $episode } ŵàţçĥéð~~~~~~~~]
+
+# Menu item that marks one numbered episode as not watched.
+episode-mark-n-unwatched = [Ṁàŕķ éþîšöðé { $episode } üñŵàţçĥéð~~~~~~~~]
+
+# Notice after an episode was marked watched.
+episode-marked-watched = [Ṁàŕķéð éþîšöðé { $episode } ŵàţçĥéð.~~~~~~~~~]
+
+# Menu item that starts an episode from the beginning.
+episode-play-from-beginning = [Þļàý ƒŕöɱ ţĥé ƀéĝîññîñĝ~~~~~~~]
+
+# Menu item that downloads one numbered episode.
+episode-download-n = [Ðöŵñļöàð éþîšöðé { $episode }~~~~~~]
+
+# Menu item that downloads every episode not yet watched.
+episode-download-unwatched = [Ðöŵñļöàð üñŵàţçĥéð éþîšöðéš~~~~~~~~~]
+
+# Heading of the cast list.
+more-cast = [Çàšţ~~]
+
+# Note under the cast heading: whose voices are listed.
+more-cast-voices = [Ĵàþàñéšé ṽöîçéš~~~~~]
+
+# Role of a character in the story.
+more-role-main = [Ṁàîñ~~]
+
+# Role of a character in the story.
+more-role-supporting = [Šüþþöŕţîñĝ~~~]
+
+# Role of a character in the story.
+more-role-background = [Ɓàçķĝŕöüñð~~~]
+
+# Heading of the staff list.
+more-staff = [Šţàƒƒ~~]
+
+# Heading of the list of recommended titles.
+more-recommendations = [Ŕéçöɱɱéñðàţîöñš~~~~~]
+
+# Heading of the list of rankings.
+more-rankings = [Ŕàñķîñĝš~~~]
+
+# Line when AniList has no cast, staff or recommendations for a show.
+more-empty = [ÅñîĻîšţ ĥàš ñö çàšţ, šţàƒƒ öŕ ŕéçöɱɱéñðàţîöñš ƒöŕ ţĥîš šĥöŵ ýéţ.~~~~~~~~~~~~~~~~~~~~]
+
+# Badge on a tag that gives away the story.
+more-spoiler = [Šþöîļéŕ~~~]
+
+# Button that hides the spoiler tags.
+more-hide-spoiler-tags = [Ĥîðé šþöîļéŕ ţàĝš~~~~~~]
+
+# Button that shows the spoiler tags.
+more-show-spoiler-tags =
+    { $count ->
+        [one] [Šĥöŵ öñé šþöîļéŕ ţàĝ~~~~~~]
+       *[other] [Šĥöŵ { $count } šþöîļéŕ ţàĝš~~~~~~~]
+    }
+
+# Title of the settings group and the screen.
+torrents-title = [Ţöŕŕéñţš~~~]
+
+# Label and short value for the switch.
+torrents-on = [Ţöŕŕéñţš àŕé öñ~~~~~]
+
+# Line under the switch while torrents are off.
+torrents-off-detail = [Öƒƒ ƀý ðéƒàüļţ. Ţüŕñîñĝ ţĥîš öñ àšķš ĥöŵ ţö þŕöţéçţ ýöüŕ çöññéçţîöñ ƒîŕšţ.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line explaining the risk, before torrents start.
+torrents-risk = [Öţĥéŕ þéöþļé çàñ šéé ýöüŕ ÎÞ àððŕéšš ŵĥîļé ýöü ðöŵñļöàð àñð šĥàŕé à ţöŕŕéñţ. Çĥööšé ŵĥàţ þŕöţéçţš îţ ƀéƒöŕé ţöŕŕéñţš šţàŕţ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line in the Apple sources screen: torrents belong to the app, not to a plugin.
+torrents-not-a-plugin = [Ţöŕŕéñţš àŕé þàŕţ öƒ àñîšţŕéàɱ, ñöţ à þļüĝîñ. Ŵĥàţ þŕöţéçţš ţĥéîŕ ţŕàƒƒîç, ţĥé çöññéçţîöñ çĥéçķ àñð šééðîñĝ àŕé šéţ îñ Šöüŕçéš šéţţîñĝš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Label of the choice of protection.
+torrents-protect-with = [Þŕöţéçţ ŵîţĥ~~~~]
+
+# Option: no protection.
+torrents-protect-none = [Ñö þŕöţéçţîöñ~~~~]
+
+# Option: a proxy.
+torrents-protect-proxy = [Þŕöẋý~~]
+
+# Option: a VPN already running on the device.
+torrents-protect-vpn = [ṼÞÑ~]
+
+# Line under the proxy option.
+torrents-protect-proxy-detail = [Ţöŕŕéñţ ţŕàƒƒîç ĝöéš ţĥŕöüĝĥ à þŕöẋý ýöü ŕüñ öŕ ŕéñţ.~~~~~~~~~~~~~~~~]
+
+# Line under the VPN option.
+torrents-protect-vpn-detail = [Ûšéš ţĥé ṼÞÑ àļŕéàðý ŕüññîñĝ öñ ţĥîš ðéṽîçé.~~~~~~~~~~~~~~]
+
+# Line under the no-protection option.
+torrents-protect-none-detail = [Ýöüŕ àððŕéšš îš ṽîšîƀļé ţö éṽéŕýöñé îñ ţĥé ţöŕŕéñţ.~~~~~~~~~~~~~~~~]
+
+# Line when no protection is set.
+torrents-protect-none-note = [Ŵîţĥ ñö þŕöţéçţîöñ, àñîšţŕéàɱ ðöéš ñöţ çĥéçķ ţĥé çöññéçţîöñ.~~~~~~~~~~~~~~~~~~]
+
+# Summary: a proxy protects. Host and port are already formatted.
+torrents-summary-proxy-at = [Þŕöţéçţéð ƀý à ŠÖÇĶŠ5 þŕöẋý àţ { $host }:{ $port }.~~~~~~~~~~~~]
+
+# Summary: a proxy protects, address not shown.
+torrents-summary-proxy = [Þŕöţéçţéð ƀý à ŠÖÇĶŠ5 þŕöẋý.~~~~~~~~~]
+
+# Summary: a VPN protects.
+torrents-summary-vpn = [Þŕöţéçţéð ƀý ţĥé ṼÞÑ öñ ţĥîš ðéṽîçé.~~~~~~~~~~~]
+
+# Summary: nothing protects.
+torrents-summary-none = [Ñöţ þŕöţéçţéð. Ýöüŕ àððŕéšš îš ṽîšîƀļé ţö éṽéŕýöñé îñ ţĥé ţöŕŕéñţ.~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the question when torrents are turned on without protection.
+torrents-unprotected-title = [Ûšé ţöŕŕéñţš ŵîţĥöüţ þŕöţéçţîöñ?~~~~~~~~~~]
+
+# Line under it.
+torrents-unprotected-detail = [Öţĥéŕ þéöþļé çàñ šéé ýöüŕ ÎÞ àððŕéšš ŵĥîļé ýöü ðöŵñļöàð àñð šĥàŕé à ţöŕŕéñţ, àñð àñîšţŕéàɱ ðöéš ñöţ çĥéçķ ţĥé çöññéçţîöñ.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Button that confirms turning torrents on without protection.
+torrents-turn-on-unprotected = [Ţüŕñ öñ ŵîţĥöüţ þŕöţéçţîöñ~~~~~~~~]
+
+# Button that confirms using no protection.
+torrents-use-unprotected = [Ûšé ŵîţĥöüţ þŕöţéçţîöñ~~~~~~~]
+
+# Label of the proxy host field.
+torrents-proxy-host = [Þŕöẋý ĥöšţ~~~]
+
+# Label of the proxy port field.
+torrents-proxy-port = [Þŕöẋý þöŕţ~~~]
+
+# Label of the proxy user name field.
+torrents-proxy-user = [Ûšéŕ ñàɱé~~~]
+
+# Label of the proxy password field.
+torrents-proxy-password = [Þàššŵöŕð~~~]
+
+# Line under the password field.
+torrents-password-keep = [Ļéàṽé ţĥé þàššŵöŕð éɱþţý ţö ķééþ ţĥé šàṽéð öñé.~~~~~~~~~~~~~~~]
+
+# Line under the proxy form: what happens while the new proxy is checked.
+torrents-proxy-keeps-saved = [Ţöŕŕéñţš ķééþ üšîñĝ ţĥé šàṽéð þŕöẋý üñţîļ ţĥé ñéŵ öñé þàššéš ţĥé çöññéçţîöñ çĥéçķ.~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the host or port is wrong.
+torrents-proxy-invalid = [Ţĥé þŕöẋý ñééðš à ĥöšţ àñð à þöŕţ ƒŕöɱ 1 ţö 65535.~~~~~~~~~~~~~~~]
+
+# Line while the proxy is checked.
+torrents-checking-proxy = [Çĥéçķîñĝ ţĥé þŕöẋý…~~~~~~]
+
+# Notice after the proxy was saved.
+torrents-proxy-saved = [Þŕöẋý šàṽéð~~~~]
+
+# Why a save was refused: traffic left outside the proxy.
+torrents-left-outside-proxy = [Ţöŕŕéñţ ţŕàƒƒîç ļéƒţ öüţšîðé ţĥîš þŕöẋý~~~~~~~~~~~~]
+
+# Why a save was refused: the check could not run through the proxy.
+torrents-check-not-made-proxy = [Ţĥé çĥéçķ çöüļð ñöţ ƀé ɱàðé ţĥŕöüĝĥ ţĥîš þŕöẋý~~~~~~~~~~~~~~]
+
+# Notice when a proxy was not saved. The reason is a sentence fragment.
+torrents-proxy-not-saved = [Ñöţ šàṽéð. { $why }, šö ţĥé šàṽéð þŕöẋý šţàýš.~~~~~~~~~~~~~]
+
+# Notice when protection was not saved. The reason is a sentence fragment.
+torrents-protection-not-saved = [Ñöţ šàṽéð. { $why }, šö ţĥé šàṽéð þŕöţéçţîöñ šţàýš.~~~~~~~~~~~~~~]
+
+# Notice when torrents stayed off. The reason is a sentence fragment.
+torrents-still-off = [Ţöŕŕéñţš àŕé šţîļļ öƒƒ. { $why }.~~~~~~~~~]
+
+# Label of the index address field.
+torrents-index = [Ţöŕŕéñţ îñðéẋ~~~~]
+
+# Line under the index field. The app shows legal-hosts-no-content after it.
+torrents-index-detail = [Ţĥé ŔŠŠ šéàŕçĥ àððŕéšš àñîšţŕéàɱ àšķš ƒöŕ ţöŕŕéñţš.~~~~~~~~~~~~~~~~]
+
+# Hint inside the index field.
+torrents-index-hint = [ĥţţþš://…/?ƣ={ "{" }ƣüéŕý{ "}" }~~~~~~]
+
+# Line when no index address is set.
+torrents-index-needed = [Ţöŕŕéñţš ñééð àñ îñðéẋ àððŕéšš.~~~~~~~~~~]
+
+# Line when the index address has the wrong scheme.
+torrents-index-scheme = [Ûšé àñ ĥţţþ öŕ ĥţţþš àððŕéšš.~~~~~~~~~]
+
+# Notice after the index was saved.
+torrents-index-saved = [Ţöŕŕéñţ îñðéẋ šàṽéð~~~~~~]
+
+# Label of the choice of what to do when a check fails.
+torrents-if-check-fails = [Îƒ à çĥéçķ ƒàîļš~~~~~]
+
+# Title of the question that asks whether torrents may keep running.
+torrents-keep-running-title = [Ķééþ ţöŕŕéñţš ŕüññîñĝ îƒ à çĥéçķ ƒàîļš?~~~~~~~~~~~~]
+
+# Line under the question: what the choice is about.
+torrents-keep-running-detail = [Ŵĥàţ ĥàþþéñš ţö ţöŕŕéñţš ŵĥéñ ţĥé çĥéçķ ƒîñðš ţŕàƒƒîç ļéàṽîñĝ öüţšîðé ýöüŕ ṼÞÑ öŕ þŕöẋý.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Option: pause torrents.
+torrents-fail-pause = [Þàüšé ţöŕŕéñţš~~~~~]
+
+# Option: stop torrents.
+torrents-fail-stop = [Šţöþ ţöŕŕéñţš~~~~]
+
+# Option: only warn.
+torrents-fail-warn = [Ŵàŕñ öñļý~~~]
+
+# Result of the choice: torrents run.
+torrents-fail-warn-result = [Ţöŕŕéñţš ķééþ ŕüññîñĝ.~~~~~~~]
+
+# Result of the choice: torrents stop.
+torrents-fail-stop-result = [Ţöŕŕéñţš àŕé šţöþþéð.~~~~~~~]
+
+# Result of the choice: torrents pause.
+torrents-fail-pause-result = [Ţöŕŕéñţš àŕé þàüšéð.~~~~~~]
+
+# Label of the last check.
+torrents-last-check = [Ļàšţ çĥéçķ~~~]
+
+# Check passed. The exit is where the traffic leaves from, already formatted.
+torrents-check-passed-exit = [Ļéàṽîñĝ ţĥŕöüĝĥ { $exit }~~~~~~]
+
+# Check passed.
+torrents-check-passed = [Þàššéð~~]
+
+# Check running: the line.
+torrents-check-running-line = [Çĥéçķîñĝ ŵĥéŕé ţöŕŕéñţ ţŕàƒƒîç ļéàṽéš ƒŕöɱ~~~~~~~~~~~~~]
+
+# Check running: the short word.
+torrents-check-running = [Çĥéçķîñĝ~~~]
+
+# Check failed: traffic left outside. The consequence follows.
+torrents-check-leaked = [Ţŕàƒƒîç ļéƒţ öüţšîðé ţĥé þŕöţéçţîöñ. { $then }~~~~~~~~~~~~]
+
+# Check failed: the check could not be made. The consequence follows.
+torrents-check-unmade = [Ţĥé çĥéçķ çöüļð ñöţ ƀé ɱàðé. { $then }~~~~~~~~~~]
+
+# Short word: the check failed.
+torrents-check-failed = [Ƒàîļéð~~]
+
+# Line: no protection is set, so nothing was checked.
+torrents-check-none-line = [Ñö þŕöţéçţîöñ îš šéţ~~~~~~]
+
+# Short word: unprotected.
+torrents-check-none = [Ûñþŕöţéçţéð~~~~]
+
+# Line: no check yet.
+torrents-check-waiting-line = [Ñöţ çĥéçķéð ýéţ~~~~~]
+
+# Short word: waiting for the first check.
+torrents-check-waiting = [Ŵàîţîñĝ~~~]
+
+# Short word: no check.
+torrents-not-checked = [Ñöţ çĥéçķéð~~~~]
+
+# Button that runs the check.
+torrents-check-now = [Çĥéçķ ñöŵ~~~]
+
+# Title of the page on the phone for the torrent setup.
+torrents-for-app = [Ţöŕŕéñţš ƒöŕ àñîšţŕéàɱ~~~~~~~]
+
+# Title of the page on the phone for signing in. The tracker is a name.
+torrents-page-sign-in = [Šîĝñ îñ ţö { $tracker }~~~~~]
+
+# Line on that page: the form was not complete.
+torrents-page-fill-form = [Ƒîļļ îñ ţĥé ƒöŕɱ, ţĥéñ šéñð îţ àĝàîñ.~~~~~~~~~~~~]
+
+# Line on that page after sending.
+torrents-page-look-at-tv = [Ļööķ àţ ţĥé ŢṼ: { $next }. Ýöü çàñ çļöšé ţĥîš þàĝé.~~~~~~~~~~~~~~]
+
+# Title when the page address is wrong.
+torrents-page-not-found = [Ñöţ ƒöüñð~~~]
+
+# Title when the page is not allowed.
+torrents-page-not-allowed = [Ñöţ àļļöŵéð~~~~]
+
+# Line when the address lacks its key.
+torrents-page-missing-key = [Ţĥîš àððŕéšš îš ɱîššîñĝ îţš ķéý. Šçàñ ţĥé ǪŔ çöðé öñ ţĥé ŢṼ àĝàîñ, àñð öþéñ ţĥé ŵĥöļé àððŕéšš îţ ĝîṽéš.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line when the TV could not read what was sent.
+torrents-page-unreadable = [Ţĥé ŢṼ çöüļðñ'ţ ŕéàð ţĥîš. Šçàñ ţĥé ǪŔ çöðé öñ ţĥé ŢṼ àĝàîñ.~~~~~~~~~~~~~~~~~~]
+
+# Line when the page needs script.
+torrents-page-needs-script = [Ţĥîš þàĝé ñééðš ĴàṽàŠçŕîþţ ţö šéñð ţĥé ƒöŕɱ ţö ţĥé ŢṼ šàƒéļý.~~~~~~~~~~~~~~~~~~~]
+
+# Title of the accounts screen. The sidebar item is nav-accounts.
+accounts-title = [Åççöüñţš~~~]
+
+# Heading over the trackers other than the first.
+accounts-other-trackers = [Öţĥéŕ ţŕàçķéŕš~~~~~]
+
+# Line on the welcome screen: where the other trackers are.
+accounts-other-trackers-note = [Öţĥéŕ ţŕàçķéŕš àŕé îñ Šéţţîñĝš, üñðéŕ Åççöüñţš.~~~~~~~~~~~~~~~]
+
+# Line on the welcome screen: why to sign in.
+accounts-welcome-detail = [Šîĝñ îñ ţö { $tracker } ţö šýñç ýöüŕ ļîšţ àñð ŵĥéŕé ýöü šţöþþéð.~~~~~~~~~~~~~~~~~]
+
+# Line under a tracker that brings in lists.
+accounts-brings-lists = [Ɓŕîñĝš îñ ýöüŕ ļîšţš àñð ƒîļļš Çöñţîñüé ŵîţĥ ŵĥàţ ýöü àŕé ŵàţçĥîñĝ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line under the accounts screen when the library needs a tracker.
+accounts-library-needs = [Ļîƀŕàŕý àñð šýñç ñééð à { $tracker } àççöüñţ~~~~~~~~~~~]
+
+# Line on the settings page: where the library gets its lists.
+accounts-library-from = [Ļîƀŕàŕý šĥöŵš ýöüŕ ļîšţš ƒŕöɱ { $tracker }.~~~~~~~~~~~]
+
+# Line on the library when signed out, one sentence.
+accounts-lists-come-from = [Ýöüŕ ļîšţš çöɱé ƒŕöɱ { $tracker }.~~~~~~~~]
+
+# Line on the library for an empty status.
+accounts-status-empty = [Ţîţļéš ýöü šéţ ţö ţĥîš šţàţüš öñ { $tracker } šĥöŵ ĥéŕé.~~~~~~~~~~~~~~~]
+
+# Line on the library for an empty list.
+accounts-list-empty = [Ţîţļéš ýöü àðð öñ { $tracker } šĥöŵ üþ ĥéŕé.~~~~~~~~~~~]
+
+# Status: not signed in.
+accounts-state-signed-out = [Ñöţ šîĝñéð îñ~~~~]
+
+# Status: signed in. The name is the user's name on the tracker.
+accounts-state-signed-in = [Šîĝñéð îñ ţö { $tracker } àš { $name }~~~~~~~]
+
+# Status: signed in, with changes waiting to be sent.
+accounts-state-signed-in-waiting =
+    { $count ->
+        [one] [Šîĝñéð îñ ţö { $tracker } àš { $name } · öñé çĥàñĝé ŵàîţîñĝ~~~~~~~~~~~~~~]
+       *[other] [Šîĝñéð îñ ţö { $tracker } àš { $name } · { $count } çĥàñĝéš ŵàîţîñĝ~~~~~~~~~~~~~~]
+    }
+
+# Status: the sign-in ran out.
+accounts-state-expired = [{ $tracker } ñééðš ýöü ţö šîĝñ îñ àĝàîñ~~~~~~~~~]
+
+# Status: the sign-in ran out, short.
+accounts-state-expired-short = [Šîĝñ îñ àĝàîñ ţö ķééþ šýñçîñĝ~~~~~~~~~]
+
+# Status: checking the account.
+accounts-state-checking = [Çĥéçķîñĝ…~~~]
+
+# Status: waiting for the browser to return.
+accounts-state-waiting-browser = [Ŵàîţîñĝ ƒöŕ ţĥé ƀŕöŵšéŕ…~~~~~~~~]
+
+# Status: waiting for a tracker.
+accounts-state-waiting = [Ŵàîţîñĝ ƒöŕ { $tracker }…~~~~~]
+
+# Status: signing in.
+accounts-state-signing-in = [Šîĝñîñĝ îñ…~~~~]
+
+# Status: no network, so the sign-in waits.
+accounts-state-offline = [Šîĝñ îñ öñçé ýöü'ŕé ƀàçķ öñļîñé~~~~~~~~~~]
+
+# Status: sync running.
+accounts-sync-running = [Šýñçîñĝ…~~~]
+
+# Status: sync running, with the tracker.
+accounts-sync-running-with = [Šýñçîñĝ ŵîţĥ { $tracker }~~~~~]
+
+# Status: synced.
+accounts-sync-done = [Šýñçéð~~]
+
+# Status: sync failed. The reason is a sentence fragment.
+accounts-sync-failed = [Ñöţ šýñçéð: { $why }~~~~~]
+
+# Line on the sync menu: sync with every tracker.
+accounts-sync-all = [Šýñç ŵîţĥ ţŕàçķéŕš~~~~~~]
+
+# Line on a screen that cannot reach the tracker: changes wait.
+accounts-offline-changes = [Ýöü'ŕé öƒƒļîñé. Çĥàñĝéš ŵàîţ ĥéŕé àñð šýñç öñçé ýöü'ŕé ƀàçķ.~~~~~~~~~~~~~~~~~~]
+
+# Short line on the TV for the same.
+accounts-offline-changes-tv = [Öƒƒļîñé. Çĥàñĝéš šýñç öñçé ţĥé ñéţŵöŕķ îš ƀàçķ.~~~~~~~~~~~~~~~]
+
+# Line on the TV when the sign-in ran out.
+accounts-expired-tv = [Ýöüŕ šîĝñ-îñ ĥàš éẋþîŕéð. Šîĝñ îñ àĝàîñ îñ Åççöüñţš.~~~~~~~~~~~~~~~~]
+
+# Button that starts signing in.
+accounts-sign-in = [Šîĝñ îñ~~~]
+
+# Button that starts signing in on a menu.
+accounts-sign-in-menu = [Šîĝñ îñ…~~~]
+
+# Button that signs in again.
+accounts-sign-in-again = [Šîĝñ îñ àĝàîñ…~~~~~]
+
+# Button that signs in to a named tracker.
+accounts-sign-in-to = [Šîĝñ îñ ţö { $tracker }~~~~~]
+
+# Button that signs out.
+accounts-sign-out = [Šîĝñ öüţ~~~]
+
+# Button that syncs now.
+accounts-sync-now = [Šýñç ñöŵ~~~]
+
+# Button that opens the settings for accounts.
+accounts-settings = [Åççöüñţš šéţţîñĝš…~~~~~~]
+
+# Line in the confirmation that signs out on the TV.
+accounts-sign-out-tv-detail = [Ţĥîš ŢṼ šţöþš šýñçîñĝ ŵîţĥ { $name }. Ýöüŕ ļîšţ šţàýš öñ { $name }.~~~~~~~~~~~~~~~~~]
+
+# Line telling where sign-in tokens are kept: in the keychain.
+accounts-tokens-keychain = [Šîĝñ-îñ ţöķéñš àŕé ķéþţ îñ ţĥîš ðéṽîçé'š ķéýçĥàîñ.~~~~~~~~~~~~~~~]
+
+# Line telling where sign-in tokens are kept: in a file.
+accounts-tokens-file = [Šîĝñ-îñ ţöķéñš àŕé ķéþţ îñ à ƒîļé öñ ţĥîš ðéṽîçé, ŕéàðàƀļé öñļý ƀý ýöü.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line telling where sign-in tokens are kept: sealed by the keystore.
+accounts-tokens-keystore = [Šîĝñ-îñ ţöķéñš àŕé ķéþţ öñ ţĥîš ðéṽîçé, šéàļéð ŵîţĥ à ķéý îñ îţš ķéýšţöŕé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the form.
+accounts-form-title = [Šîĝñ îñ ţö { $tracker }~~~~~]
+
+# Line under the title: where the password goes.
+accounts-form-detail = [Ýöüŕ þàššŵöŕð ĝöéš ţö { $tracker } öñçé, ƒöŕ à ţöķéñ ķéþţ öñ ţĥîš ðéṽîçé.~~~~~~~~~~~~~~~~~~~~]
+
+# Label of the name field.
+accounts-user-or-email = [Éɱàîļ öŕ üšéŕ ñàɱé~~~~~~]
+
+# Label of the password field.
+accounts-password = [Þàššŵöŕð~~~]
+
+# Button label while the sign-in runs.
+accounts-signing-in-action = [Šîĝñîñĝ îñ~~~]
+
+# Line under the title: what to do.
+accounts-code-detail = [Ĝö ţö { $host } àñð éñţéŕ ţĥîš çöðé. àñîšţŕéàɱ šîĝñš îñ öñçé ýöü ĥàṽé.~~~~~~~~~~~~~~~~~~~~]
+
+# Accessibility label of the code. The code is spelled out.
+accounts-code-label = [Çöðé { $code }~~~]
+
+# Line while waiting for the tracker.
+accounts-code-waiting = [Ŵàîţîñĝ ƒöŕ { $tracker }~~~~~]
+
+# Line telling when the code ends. The time is already formatted.
+accounts-code-expires = [Éẋþîŕéš îñ { $time }~~~~~]
+
+# Line when the code ended.
+accounts-code-ended = [Çöðé éẋþîŕéð~~~~]
+
+# Button that copies the code.
+accounts-copy-code = [Çöþý çöðé~~~]
+
+# Button that opens the tracker's page. The host is a website.
+accounts-open-host = [Öþéñ { $host }~~~]
+
+# Line while a new code is fetched.
+accounts-getting-code = [Ĝéţţîñĝ à ñéŵ çöðé…~~~~~~]
+
+# Button that shows the code.
+accounts-show-code = [Šĥöŵ çöðé~~~]
+
+# Notice when the browser could not be opened.
+accounts-browser-failed = [Çöüļðñ'ţ öþéñ ýöüŕ ƀŕöŵšéŕ. Öþéñ ţĥé àððŕéšš ƀý ĥàñð.~~~~~~~~~~~~~~~~]
+
+# Line on the TV's sign-in screen for a tracker that signs in by code.
+accounts-scan-code = [Šçàñ ŵîţĥ ýöüŕ þĥöñé. Öþéñ { $tracker } ţĥéŕé, àļļöŵ àñîšţŕéàɱ, ţĥéñ þàšţé ţĥé çöðé öñ ţĥîš þàĝé.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the TV's sign-in screen for a tracker that signs in by password.
+accounts-scan-password = [Šçàñ ŵîţĥ ýöüŕ þĥöñé, ţĥéñ éñţéŕ ýöüŕ { $tracker } üšéŕ ñàɱé àñð þàššŵöŕð öñ ţĥé þàĝé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Title of the clash sheet.
+accounts-clash-title = [Ðîƒƒéŕéñţ öñ { $tracker }~~~~~]
+
+# Line under it.
+accounts-clash-detail = [Ţĥéšé çĥàñĝéð öñ { $tracker } àñð ĥéŕé šîñçé ţĥé ļàšţ šýñç. Ķééþ öñé šîðé öƒ éàçĥ.~~~~~~~~~~~~~~~~~~~~~~]
+
+# One row of the clash sheet.
+accounts-clash-row = [{ $field }: { $local } ĥéŕé, { $remote } öñ { $tracker }~~~~~~~~]
+
+# Button that keeps this device's value.
+accounts-keep-mine = [Ķééþ ţĥîš ðéṽîçé'š~~~~~~]
+
+# Button that keeps the tracker's value.
+accounts-keep-theirs = [Ķééþ { $tracker }'š~~~]
+
+# Menu item and button.
+accounts-open-on = [Öþéñ öñ { $tracker }~~~~]
+
+# Menu item on the title page, as the title is listed there.
+accounts-listed-by = [Ļîšţéð ƀý { $tracker }~~~~]
+
+# Line when the tracker did not answer.
+accounts-did-not-answer = [{ $tracker } ðîð ñöţ àñšŵéŕ.~~~~~~]
+
+# Line when the tracker has nothing for the show.
+accounts-no-extras = [{ $tracker } ĥàš ñö çàšţ, šţàƒƒ öŕ ŕéçöɱɱéñðàţîöñš ƒöŕ ţĥîš šĥöŵ ýéţ.~~~~~~~~~~~~~~~~~~]
+
+# Line when episodes come from the tracker only.
+accounts-episodes-from = [Éþîšöðéš ƒŕöɱ { $tracker }. Åðð à šöüŕçé ţö þļàý ţĥéɱ.~~~~~~~~~~~~~~]
+
+# Line on a list of seasonal titles.
+accounts-adds-season = [{ $tracker } àððš à šéàšöñ'š ţîţļéš àš ţĥéý'ŕé àññöüñçéð.~~~~~~~~~~~~~~~]
+
+# Name of the setting that follows the tracker's own choice.
+accounts-tracker-choice = [{ $tracker }'š çĥöîçé~~~~]
+
+# Line under that setting.
+accounts-follows-account = [Ƒöļļöŵš ýöüŕ { $tracker } àççöüñţ~~~~~~~~]
+
+# Line under that setting while signed out.
+accounts-follows-signed-out = [Éñĝļîšĥ ŵĥîļé šîĝñéð öüţ öƒ { $tracker }~~~~~~~~~~]
+
+# Button and menu item that sends the episode to a paired TV.
+tv-play-on = [Þļàý öñ ŢṼ~~~]
+
+# Same, with an ellipsis, for a menu item that opens a sheet.
+tv-play-on-menu = [Þļàý öñ ŢṼ…~~~~]
+
+# Title of the sheet when no TV is paired and the user came from Play on TV.
+tv-sheet-title-pair = [Þàîŕ à ŢṼ~~~]
+
+# Button that opens the pairing sheet.
+tv-pair-action = [Þàîŕ à ŢṼ~~~]
+
+# Menu item that opens the pairing sheet.
+tv-pair-menu = [Þàîŕ à ŢṼ…~~~]
+
+# Title of the pairing sheet.
+tv-pair-with-tv = [Þàîŕ ŵîţĥ à ŢṼ~~~~~]
+
+# Title of the pairing step for one TV. The name is the name the TV gave itself.
+tv-pair-with = [Þàîŕ ŵîţĥ { $name }~~~~]
+
+# Title while pairing is under way.
+tv-pairing-with = [Þàîŕîñĝ ŵîţĥ { $name }~~~~~]
+
+# Button that pairs.
+tv-pair = [Þàîŕ~~]
+
+# Button that pairs again after the pairing was lost.
+tv-pair-again = [Þàîŕ àĝàîñ~~~]
+
+# Title of the card of a TV that needs pairing again.
+tv-pair-again-with = [Þàîŕ àĝàîñ ŵîţĥ { $name }~~~~~~]
+
+# Button that picks another TV.
+tv-choose-another = [Çĥööšé àñöţĥéŕ ŢṼ…~~~~~~]
+
+# Accessibility label of the pairing code field.
+tv-pairing-code = [Þàîŕîñĝ çöðé~~~~]
+
+# Line telling where to open the app on the TV.
+tv-open-on-tv = [Öþéñ àñîšţŕéàɱ öñ ţĥé ŢṼ. Îţ ñééðš ţö ƀé öñ ţĥé šàɱé Ŵî-Ƒî àš ţĥîš ðéṽîçé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line telling what to type.
+tv-type-code = [Ţýþé ţĥé šîẋ ðîĝîţš { $name } šĥöŵš. Åƒţéŕ ţĥîš, ţĥîš ðéṽîçé çöññéçţš ƀý îţšéļƒ.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line while pairing is under way.
+tv-pairing-moment = [Ţĥîš ţàķéš à ɱöɱéñţ.~~~~~~]
+
+# Line while the app looks for TVs.
+tv-looking = [Ļööķîñĝ ƒöŕ ŢṼš öñ ţĥîš ñéţŵöŕķ~~~~~~~~~~]
+
+# Title when no TV answered.
+tv-none-found = [Ñö ŢṼš ƒöüñð~~~~]
+
+# Line under it.
+tv-none-found-detail = [Çĥéçķ ţĥàţ àñîšţŕéàɱ îš öþéñ öñ ţĥé ŢṼ, öñ ţĥé šàɱé Ŵî-Ƒî àš ţĥîš ðéṽîçé.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Shorter line under it where the network is not the problem.
+tv-none-found-short = [Çĥéçķ ţĥàţ àñîšţŕéàɱ îš öþéñ öñ ţĥé ŢṼ.~~~~~~~~~~~~]
+
+# Line telling where the TV shows its address.
+tv-address-hint = [Ţĥé ŢṼ šĥöŵš îţš àððŕéšš öñ îţš Þàîŕ à þĥöñé šçŕééñ.~~~~~~~~~~~~~~~~]
+
+# Line telling how to scan the TV's code.
+tv-scan-hint = [Þöîñţ ţĥé çàɱéŕà àþþ àţ ţĥé çöðé öñ ţĥé ŢṼ. Îţ öþéñš àñîšţŕéàɱ àñð þàîŕš.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line telling what to do once paired.
+tv-after-pairing = [Çĥööšé Þļàý öñ ŢṼ öñ àñ éþîšöðé, öŕ šéàŕçĥ öñ ţĥé ŢṼ ƒŕöɱ ĥéŕé.~~~~~~~~~~~~~~~~~~~]
+
+# Line while the TV starts the episode.
+tv-starting-on = [Šţàŕţîñĝ öñ { $name }~~~~~]
+
+# Line while the app starts on the TV, without a name.
+tv-starting = [Šţàŕţîñĝ öñ ţĥé ŢṼ~~~~~~]
+
+# Line when something failed while talking to the TV.
+tv-talk-failed = [Šöɱéţĥîñĝ ŵéñţ ŵŕöñĝ ţàļķîñĝ ţö ţĥé ŢṼ. Ţŕý àĝàîñ.~~~~~~~~~~~~~~~]
+
+# Line when the TV did not start the episode. The reason is a sentence fragment.
+tv-play-failed = [Þļàý öñ ŢṼ ðîð ñöţ šţàŕţ: { $reason }~~~~~~~~~]
+
+# Label of the address field.
+tv-address = [Åððŕéšš~~~]
+
+# Menu item and title: type the address of a TV by hand.
+tv-type-address = [Ţýþé àñ àððŕéšš…~~~~~]
+
+# Button that connects to the typed address.
+tv-connect = [Çöññéçţ~~~]
+
+# Line in the settings when none is paired.
+tv-none-paired = [Ñö ŢṼš þàîŕéð ýéţ~~~~~~]
+
+# Line under it.
+tv-none-paired-detail = [Öþéñ àñîšţŕéàɱ öñ ţĥé ŢṼ, öñ ţĥé šàɱé Ŵî-Ƒî, ţĥéñ þàîŕ ŵîţĥ îţ ĥéŕé.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the settings row of a paired TV.
+tv-paired-on = [Þàîŕéð { $when }~~~]
+
+# Short word: paired, no date known.
+tv-paired = [Þàîŕéð~~]
+
+# Line with the address.
+tv-connected-at = [Çöññéçţéð · { $address }~~~~~]
+
+# Title of the confirmation that forgets a TV.
+tv-forget-title = [Ƒöŕĝéţ { $name }?~~~~]
+
+# Line under it.
+tv-forget-detail = [Ţö þļàý öñ îţ àĝàîñ, þàîŕ ŵîţĥ îţ àĝàîñ.~~~~~~~~~~~~]
+
+# Accessibility label of the forget button.
+tv-forget-label = [Ƒöŕĝéţ { $name }~~~]
+
+# Tooltip of a card that opens the remote.
+tv-show-remote = [Šĥöŵ ţĥé ŕéɱöţé ƒöŕ { $name }~~~~~~~]
+
+# Status on the remote: playing on a TV.
+tv-status-playing = [Þļàýîñĝ öñ { $name }~~~~~]
+
+# Status on the remote: connecting.
+tv-status-connecting = [Çöññéçţîñĝ ţö { $name }~~~~~~]
+
+# Status on the remote: connection lost, trying again.
+tv-status-reconnecting = [Ŕéçöññéçţîñĝ ţö { $name }~~~~~~]
+
+# Status on the remote: connected.
+tv-status-connected = [Çöññéçţéð~~~]
+
+# Label of the search field on the remote.
+tv-search-on-tv = [Šéàŕçĥ öñ ţĥé ŢṼ~~~~~]
+
+# Hint inside the search field on the remote.
+tv-type-search = [Ţýþé à šéàŕçĥ~~~~]
+
+# Name of a track that has no name.
+tv-track-n = [Ţŕàçķ { $id }~~~]
+
+# Title of the screen on the TV that waits for a phone.
+tv-pair-phone = [Þàîŕ à þĥöñé~~~~]
+
+# Line on that screen.
+tv-pair-phone-detail = [Öþéñ àñîšţŕéàɱ öñ ýöüŕ þĥöñé àñð çĥööšé Þļàý öñ ŢṼ, ţĥéñ šçàñ ţĥîš çöðé.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line over the code to type.
+tv-or-enter-code = [Öŕ éñţéŕ ţĥîš çöðé~~~~~~]
+
+# Line naming this TV on that screen.
+tv-this-tv = [Ţĥîš ŢṼ: { $name }, { $address }~~~~~~]
+
+# Line: how often the code changes.
+tv-code-changes = [Ţĥé çöðé çĥàñĝéš éṽéŕý 5 ɱîñüţéš.~~~~~~~~~~]
+
+# Title of the question on the TV when a phone asks to pair.
+tv-pair-request = [Þàîŕ ŵîţĥ { $name }?~~~~~]
+
+# Line under it.
+tv-pair-request-detail = [Éñţéŕ ţĥîš çöðé öñ ţĥé þĥöñé.~~~~~~~~~]
+
+# Line on the TV after a phone paired. The name is a phone name.
+tv-phone-paired = [{ $name } îš þàîŕéð~~~~]
+
+# Title of the confirmation on the TV that removes a phone.
+tv-remove-phone-title = [Ŕéɱöṽé { $name }?~~~~]
+
+# Line under it.
+tv-remove-phone-detail = [Îţ šţöþš ŵöŕķîñĝ àš à ŕéɱöţé ƒöŕ ţĥîš ŢṼ. Îţ çàñ þàîŕ àĝàîñ ŵîţĥ à ñéŵ çöðé.~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Heading of the settings group on the TV that lists the remotes.
+tv-remotes = [Ŕéɱöţéš~~~]
+
+# Heading of the update row in settings and about.
+updates-title = [Ûþðàţéš~~~]
+
+# Line while the app checks.
+updates-checking = [Çĥéçķîñĝ ƒöŕ à ñéŵéŕ ṽéŕšîöñ…~~~~~~~~~]
+
+# Line when the app is current.
+updates-up-to-date = [Ûþ ţö ðàţé~~~]
+
+# Line when there is no connection to check.
+updates-checks-online = [Çĥéçķš öñçé ýöü'ŕé ƀàçķ öñļîñé~~~~~~~~~]
+
+# Line before the first check.
+updates-not-checked = [Ñöţ çĥéçķéð ýéţ~~~~~]
+
+# Line when the check failed. The reason starts with a capital.
+updates-check-failed = [Çöüļðñ'ţ çĥéçķ: { $reason }~~~~~~]
+
+# Line when the check failed on the phone. The reason is already a sentence.
+updates-not-checked-because = [Ñöţ çĥéçķéð. { $reason }~~~~~]
+
+# Line describing the schedule.
+updates-schedule = [Öñçé à ðàý. Ñöţĥîñĝ îš ðöŵñļöàðéð üñţîļ ýöü çĥööšé ţö üþðàţé.~~~~~~~~~~~~~~~~~~~]
+
+# Line when the package manager updates the app.
+updates-managed = [Ûþðàţéš çöɱé ƒŕöɱ ýöüŕ þàçķàĝé ɱàñàĝéŕ.~~~~~~~~~~~~]
+
+# Line when Flatpak updates the app.
+updates-flatpak = [Ƒļàţþàķ ķééþš àñîšţŕéàɱ üþ ţö ðàţé~~~~~~~~~~~]
+
+# Line when a version is out.
+updates-version-out = [Ṽéŕšîöñ { $version } îš öüţ~~~~~~]
+
+# Line when a version is out and the software centre installs it.
+updates-version-out-software = [Ṽéŕšîöñ { $version } îš öüţ. Šöƒţŵàŕé îñšţàļļš îţ.~~~~~~~~~~~~~]
+
+# Line when a version is out and its page has the installer.
+updates-version-out-page = [Ṽéŕšîöñ { $version } îš öüţ. Îţš þàĝé ĥàš ţĥé îñšţàļļéŕ.~~~~~~~~~~~~~~~]
+
+# Line when a version is out and its page has the AppImage.
+updates-version-out-appimage = [Ṽéŕšîöñ { $version } îš öüţ. Îţš þàĝé ĥàš ţĥé ÅþþÎɱàĝé.~~~~~~~~~~~~~~]
+
+# Title of the offer card.
+updates-available = [àñîšţŕéàɱ { $version } îš àṽàîļàƀļé~~~~~~~~]
+
+# Banner on the TV pointing to the update.
+updates-available-tv = [Ûþðàţé àṽàîļàƀļé: àñîšţŕéàɱ { $version }. Šéţţîñĝš › Åƀöüţ~~~~~~~~~~~~~~~]
+
+# Button that starts the update.
+updates-update-to = [Ûþðàţé ţö { $version }~~~~]
+
+# Line on the TV: the version now installed.
+updates-this-has = [Ţĥîš ŢṼ ĥàš { $version }~~~~~]
+
+# Line when the notes are on the release page.
+updates-notes-on-page = [Ţĥé ñöţéš ƒöŕ ţĥîš ṽéŕšîöñ àŕé öñ îţš þàĝé.~~~~~~~~~~~~~]
+
+# Line when this build cannot update itself.
+updates-no-self-update = [Ţĥîš ƀüîļð ðöéšñ'ţ üþðàţé îţšéļƒ. Îñšţàļļ ţĥé ñéŵ ṽéŕšîöñ ƒŕöɱ îţš þàĝé.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on the TV: Android asks first.
+updates-android-asks = [Ñöţĥîñĝ îñšţàļļš üñţîļ Åñðŕöîð àšķš ýöü ţö çöñƒîŕɱ.~~~~~~~~~~~~~~~~]
+
+# Line on the phone: the release page opens.
+updates-opens-page = [Öþéñš ţĥé þàĝé ƒöŕ ţĥîš ṽéŕšîöñ~~~~~~~~~~]
+
+# Line while downloading, with the version.
+updates-downloading = [Ðöŵñļöàðîñĝ ṽéŕšîöñ { $version }~~~~~~~]
+
+# Line while downloading, with progress. Sizes are already formatted.
+updates-downloading-size = [Ðöŵñļöàðîñĝ ṽéŕšîöñ { $version } · { $done } öƒ { $total }~~~~~~~~~~~]
+
+# Line while downloading, with a percentage.
+updates-downloading-percent = [Ðöŵñļöàðîñĝ { $percent }~~~~~]
+
+# Line while downloading, with a percentage and sizes.
+updates-downloading-full = [Ðöŵñļöàðîñĝ · { $percent } · { $done } öƒ { $total }~~~~~~~~~]
+
+# Line while the download is about to start.
+updates-starting-download = [Šţàŕţîñĝ ţĥé ðöŵñļöàð~~~~~~~]
+
+# Line while the download is checked.
+updates-checking-download = [Çĥéçķîñĝ ţĥé ðöŵñļöàð öƒ ṽéŕšîöñ { $version }…~~~~~~~~~~~~]
+
+# Short line while the download is checked.
+updates-checking-download-short = [Çĥéçķîñĝ ţĥé ðöŵñļöàð~~~~~~~]
+
+# Line when the download is ready.
+updates-ready = [Ṽéŕšîöñ { $version } îš ŕéàðý ţö îñšţàļļ~~~~~~~~~~]
+
+# Line while installing.
+updates-installing = [Îñšţàļļîñĝ ṽéŕšîöñ { $version }…~~~~~~~]
+
+# Line after Android is asked to install.
+updates-confirm-on-android = [Åñðŕöîð îš àšķîñĝ ţö îñšţàļļ ţĥé üþðàţé. Çöñƒîŕɱ öñ îţš šçŕééñ; ýöüŕ šîĝñ-îñš, ļîšţš àñð šéţţîñĝš šţàý.~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line after the update: when it opens.
+updates-updated-tv = [Ûþðàţéð ţö { $version }. Îţ öþéñš ñéẋţ ţîɱé ýöü šţàŕţ àñîšţŕéàɱ.~~~~~~~~~~~~~~~~~]
+
+# Notice after restarting into the new version.
+updates-updated = [Ûþðàţéð ţö ṽéŕšîöñ { $version }~~~~~~~]
+
+# Short line after the update on a phone.
+updates-opens-next-time = [Ţĥé ñéŵ ṽéŕšîöñ öþéñš ñéẋţ ţîɱé~~~~~~~~~~]
+
+# Line when the update stopped.
+updates-stopped = [Ţĥé üþðàţé ţö ṽéŕšîöñ { $version } šţöþþéð. { $reason }~~~~~~~~~~~~]
+
+# Notice when the new version did not install.
+updates-did-not-install = [Ṽéŕšîöñ { $version } ðîðñ'ţ îñšţàļļ. Åƀöüţ çàñ ţŕý àĝàîñ.~~~~~~~~~~~~~~~]
+
+# Button that opens About.
+updates-open-about = [Öþéñ Åƀöüţ~~~]
+
+# Line on Linux when the file is saved to the downloads folder.
+updates-saved = [Ṽéŕšîöñ { $version } šàṽéð ţö Ðöŵñļöàðš~~~~~~~~~]
+
+# Line on Linux telling what to replace.
+updates-saved-replace = [Ṽéŕšîöñ { $version } šàṽéð ţö Ðöŵñļöàðš. Ŕéþļàçé ţĥé öļð ƒîļé, { $file }, ŵîţĥ îţ ţö üþðàţé.~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line on Linux telling what to replace, file unknown.
+updates-saved-replace-plain = [Ṽéŕšîöñ { $version } šàṽéð ţö Ðöŵñļöàðš. Ŕéþļàçé ţĥé öļð ƒîļé ŵîţĥ îţ ţö üþðàţé.~~~~~~~~~~~~~~~~~~~~~~]
+
+# The server refused. The code is a number.
+updates-why-server = [Ţĥé ðöŵñļöàð šţöþþéð: ţĥé šéŕṽéŕ àñšŵéŕéð { $code }.~~~~~~~~~~~~~~]
+
+# The connection broke.
+updates-why-connection = [Ţĥé ðöŵñļöàð šţöþþéð: ţĥé çöññéçţîöñ ŵàš ļöšţ.~~~~~~~~~~~~~~]
+
+# The file could not be saved. The reason is a sentence fragment.
+updates-why-save = [Ţĥé ðöŵñļöàð çöüļðñ'ţ ƀé šàṽéð: { $reason }~~~~~~~~~~~]
+
+# The file has the wrong size. Sizes are already formatted.
+updates-why-size = [Ţĥé ðöŵñļöàð îš { $got }, ñöţ ţĥé { $expected } ļîšţéð ƒöŕ ţĥîš ṽéŕšîöñ.~~~~~~~~~~~~~~~~~~]
+
+# The file does not match its checksum.
+updates-why-checksum = [Ţĥé ðöŵñļöàð ðöéšñ'ţ ɱàţçĥ ţĥé çĥéçķšüɱ ļîšţéð ƒöŕ ţĥîš ṽéŕšîöñ.~~~~~~~~~~~~~~~~~~~~]
+
+# Android: the file does not match its checksum, and nothing was installed.
+updates-why-checksum-android = [Ţĥé ðöŵñļöàð ðöéš ñöţ ɱàţçĥ ţĥé çĥéçķšüɱ ļîšţéð ƒöŕ ţĥîš ṽéŕšîöñ, šö îţ ŵàš ñöţ îñšţàļļéð.~~~~~~~~~~~~~~~~~~~~~~~~~~~]
+
+# Android: not an app.
+updates-why-not-app = [Ţĥé ðöŵñļöàð îš ñöţ àñ Åñðŕöîð àþþ, šö îţ ŵàš ñöţ îñšţàļļéð.~~~~~~~~~~~~~~~~~~]
+
+# Android: another app.
+updates-why-other-app = [Ţĥé ðöŵñļöàð îš à ðîƒƒéŕéñţ àþþ, šö îţ ŵàš ñöţ îñšţàļļéð.~~~~~~~~~~~~~~~~~~]
+
+# Android: not signed with the right key.
+updates-why-unsigned = [Ţĥé ðöŵñļöàð îš ñöţ šîĝñéð ŵîţĥ àñîšţŕéàɱ'š ķéý, šö îţ ŵàš ñöţ îñšţàļļéð.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Android: not newer.
+updates-why-not-newer = [Ţĥé ðöŵñļöàð îš ñöţ ñéŵéŕ ţĥàñ ţĥîš ṽéŕšîöñ, šö îţ ŵàš ñöţ îñšţàļļéð.~~~~~~~~~~~~~~~~~~~~~]
+
+# Android: no space.
+updates-why-space = [Ñöţ éñöüĝĥ ƒŕéé šþàçé ƒöŕ ţĥé üþðàţé. Ƒŕéé šöɱé àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~]
+
+# Android: install failed.
+updates-why-install = [Çöüļðñ'ţ îñšţàļļ ţĥé üþðàţé. Ţŕý àĝàîñ.~~~~~~~~~~~~]
+
+# Android: the download did not work.
+updates-why-download = [Çöüļðñ'ţ ðöŵñļöàð ţĥé üþðàţé. Çĥéçķ ţĥé çöññéçţîöñ àñð ţŕý àĝàîñ.~~~~~~~~~~~~~~~~~~~~]
+
+# Android: the download did not start.
+updates-why-start = [Çöüļðñ'ţ šţàŕţ ţĥé ðöŵñļöàð. Ţŕý àĝàîñ.~~~~~~~~~~~~]
+
+# Android: the system stopped the download.
+updates-why-system = [Åñðŕöîð šţöþþéð ţĥé ðöŵñļöàð~~~~~~~~~]
+
+# The installer would not start. The reason is a sentence fragment.
+updates-why-installer = [Ţĥé îñšţàļļéŕ çöüļðñ'ţ šţàŕţ: { $reason }~~~~~~~~~~]
+
+# Title of the step.
+updates-allow-title = [Åļļöŵ àñîšţŕéàɱ ţö îñšţàļļ îţš üþðàţé~~~~~~~~~~~~]
+
+# Name of the Android setting.
+updates-unknown-apps = [Îñšţàļļ üñķñöŵñ àþþš~~~~~~]
+
+# Step one.
+updates-allow-step-1 = [Çĥööšé Öþéñ šéţţîñĝš. Åñðŕöîð šĥöŵš ţĥé àþþš ţĥàţ ɱàý îñšţàļļ öţĥéŕ àþþš.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Step two.
+updates-allow-step-2 = [Ţüŕñ öñ àñîšţŕéàɱ.~~~~~~]
+
+# Step three.
+updates-allow-step-3 = [Þŕéšš Ɓàçķ. Ţĥé üþðàţé ðöŵñļöàðš, àñð Åñðŕöîð àšķš ýöü ţö çöñƒîŕɱ îţ.~~~~~~~~~~~~~~~~~~~~~]
+
+# Line while waiting for the switch. The path is the Android settings path.
+updates-allow-waiting = [Ŵàîţîñĝ ƒöŕ ţĥé šŵîţçĥ. Îƒ Åñðŕöîð'š þàĝé ðîðñ'ţ öþéñ, ƒîñð îţ üñðéŕ { $path }.~~~~~~~~~~~~~~~~~~~~~~]
+
+# Line the first time. The path is the Android settings path.
+updates-allow-once = [Åñðŕöîð àšķš ţĥîš öñçé. Îƒ îţš þàĝé ðöéšñ'ţ öþéñ, ţĥé šŵîţçĥ îš üñðéŕ { $path }.~~~~~~~~~~~~~~~~~~~~~~~]
 

@@ -851,6 +851,130 @@ public enum L {
         format("source-release-seeders", fallback: "%1$lld seeders", count)
     }
 
+    /// Title of the about page.
+    public static var aboutTitle: String { string("about-title", fallback: "About") }
+
+    /// Title of the about page on desktop.
+    public static var aboutTitleApp: String { string("about-title-app", fallback: "About anistream") }
+
+    /// Line with the version.
+    public static func aboutVersion(version: String) -> String {
+        format("about-version", fallback: "Version %1$@", version)
+    }
+
+    /// Line with the licence.
+    public static var aboutLicence: String { string("about-licence", fallback: "Released under the MIT licence.") }
+
+    /// Row opening the list of acknowledgements.
+    public static var aboutAcknowledgements: String { string("about-acknowledgements", fallback: "Acknowledgements") }
+
+    /// Row opening the licences of the parts used.
+    public static var aboutLicences: String { string("about-licences", fallback: "Licences") }
+
+    /// Row opening the website.
+    public static var aboutWebsite: String { string("about-website", fallback: "Website") }
+
+    /// Button that opens a bug report.
+    public static var aboutReportBug: String { string("about-report-bug", fallback: "Report a bug") }
+
+    /// Line under it: what the report carries.
+    public static var aboutReportBugDetail: String { string("about-report-bug-detail", fallback: "Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.") }
+
+    /// Line about artwork licences.
+    public static var aboutArtwork: String { string("about-artwork", fallback: "Some artwork is licensed under Creative Commons BY-NC 4.0.") }
+
+    /// Line about fonts.
+    public static var aboutFontLicence: String { string("about-font-licence", fallback: "Licensed under the SIL Open Font License 1.1.") }
+
+    /// Button that shows the week before.
+    public static var calendarPreviousWeek: String { string("calendar-previous-week", fallback: "Previous week") }
+
+    /// Button that shows the week after.
+    public static var calendarNextWeek: String { string("calendar-next-week", fallback: "Next week") }
+
+    /// Button that jumps back to the current week.
+    public static var calendarThisWeek: String { string("calendar-this-week", fallback: "This week") }
+
+    /// Filter: only shows on the person's list.
+    public static var calendarFilterMine: String { string("calendar-filter-mine", fallback: "My list") }
+
+    /// Filter: every show that airs.
+    public static var calendarFilterAll: String { string("calendar-filter-all", fallback: "All airing") }
+
+    /// Heading of today's column or row. The day is already worded.
+    public static func calendarTodayHeading(day: String) -> String {
+        format("calendar-today-heading", fallback: "Today · %1$@", day)
+    }
+
+    /// Title of the state when no show airs.
+    public static var calendarEmptyTitle: String { string("calendar-empty-title", fallback: "Nothing airing") }
+
+    /// Line when no show on the person's list airs this week.
+    public static var calendarEmptyMine: String { string("calendar-empty-mine", fallback: "Nothing on your list airs this week.") }
+
+    /// Line when no show airs this week.
+    public static var calendarEmptyAll: String { string("calendar-empty-all", fallback: "Nothing airs this week.") }
+
+    /// Line when no show airs today.
+    public static var calendarEmptyToday: String { string("calendar-empty-today", fallback: "Nothing airs today.") }
+
+    /// Line when no show airs on the day. The day is already worded, such as "Thursday".
+    public static func calendarEmptyDay(day: String) -> String {
+        format("calendar-empty-day", fallback: "Nothing airs on %1$@.", day)
+    }
+
+    /// Title of the state when the calendar could not load.
+    public static var calendarLoadFailed: String { string("calendar-load-failed", fallback: "Couldn't load the calendar") }
+
+    /// Row: episode number and the time it airs.
+    public static func calendarRowTime(episode: Int, time: String) -> String {
+        format("calendar-row-time", fallback: "E%1$lld · %2$@", episode, time)
+    }
+
+    /// Row: episode number, dubbed, and the time it airs.
+    public static func calendarRowTimeDubbed(episode: Int, time: String) -> String {
+        format("calendar-row-time-dubbed", fallback: "E%1$lld dubbed · %2$@", episode, time)
+    }
+
+    /// Note on a row whose episode moved to a later time.
+    public static func calendarMovedFrom(time: String) -> String {
+        format("calendar-moved-from", fallback: "Moved from %1$@", time)
+    }
+
+    /// Note on a row whose episode was delayed. The note says how long.
+    public static func calendarDelayed(note: String) -> String {
+        format("calendar-delayed", fallback: "Delayed %1$@", note)
+    }
+
+    /// Row: the episode came out a while ago. The span is already worded.
+    public static func calendarOut(ago: String) -> String {
+        format("calendar-out", fallback: "Out %1$@", ago)
+    }
+
+    /// Row in a small widget: the episode is out.
+    public static func calendarEpisodeOut(episode: Int) -> String {
+        format("calendar-episode-out", fallback: "E%1$lld out", episode)
+    }
+
+    /// Accessibility word for an aired episode that the person has not watched.
+    public static var calendarOutUnwatched: String { string("calendar-out-unwatched", fallback: "Out, not watched") }
+
+    /// Line saying when an episode airs. The time is already worded: "in 1h 30m", "Thursday 16:30".
+    public static func episodeAirs(episode: Int, when: String) -> String {
+        format("episode-airs", fallback: "Episode %1$lld airs %2$@", episode, when)
+    }
+
+    /// Line for an episode that has not aired and has no date yet.
+    public static func episodeNotOut(episode: Int) -> String {
+        format("episode-not-out", fallback: "Episode %1$lld is not out yet", episode)
+    }
+
+    /// Header of the list of episodes that air in the next seven days.
+    public static var calendarComingUp: String { string("calendar-coming-up", fallback: "Coming up · next 7 days") }
+
+    /// Line when no show the person follows airs in the next seven days.
+    public static var calendarComingUpEmpty: String { string("calendar-coming-up-empty", fallback: "Nothing airs this week for the shows you follow.") }
+
     /// Button that runs a failed action again.
     public static var actionTryAgain: String { string("action-try-again", fallback: "Try again") }
 
@@ -913,6 +1037,467 @@ public enum L {
     /// Button that closes a sheet whose changes have already been made.
     public static var actionDone: String { string("action-done", fallback: "Done") }
 
+    /// Button that closes a window or sheet.
+    public static var actionClose: String { string("action-close", fallback: "Close") }
+
+    /// Button and header control that goes to the screen before.
+    public static var actionBack: String { string("action-back", fallback: "Back") }
+
+    /// Button that deletes something for good, usually in a confirmation.
+    public static var actionDelete: String { string("action-delete", fallback: "Delete") }
+
+    /// Button that takes something away from a list or from this device.
+    public static var actionRemove: String { string("action-remove", fallback: "Remove") }
+
+    /// Button that stores what was typed or chosen.
+    public static var actionSave: String { string("action-save", fallback: "Save") }
+
+    /// Button that opens something to change it.
+    public static var actionEdit: String { string("action-edit", fallback: "Edit") }
+
+    /// Button that opens an item.
+    public static var actionOpen: String { string("action-open", fallback: "Open") }
+
+    /// Button that starts playing.
+    public static var actionPlay: String { string("action-play", fallback: "Play") }
+
+    /// Button that pauses playback or a download.
+    public static var actionPause: String { string("action-pause", fallback: "Pause") }
+
+    /// Button that stops playback or a job.
+    public static var actionStop: String { string("action-stop", fallback: "Stop") }
+
+    /// Button that takes back the last automatic action.
+    public static var actionUndo: String { string("action-undo", fallback: "Undo") }
+
+    /// Button that empties a list or a field.
+    public static var actionClear: String { string("action-clear", fallback: "Clear") }
+
+    /// Button that puts a form's choices back to how they started.
+    public static var actionReset: String { string("action-reset", fallback: "Reset") }
+
+    /// Button that installs a newer version of something.
+    public static var actionUpdate: String { string("action-update", fallback: "Update") }
+
+    /// Button that installs something.
+    public static var actionInstall: String { string("action-install", fallback: "Install") }
+
+    /// Button that copies text to the clipboard.
+    public static var actionCopy: String { string("action-copy", fallback: "Copy") }
+
+    /// What a copy button says for a moment after it copied.
+    public static var actionCopied: String { string("action-copied", fallback: "Copied") }
+
+    /// Button that opens the system share sheet.
+    public static var actionShare: String { string("action-share", fallback: "Share") }
+
+    /// Name of an overflow menu: the extra actions for a row or a page.
+    public static var actionMore: String { string("action-more", fallback: "More") }
+
+    /// Button that skips an optional step.
+    public static var actionSkip: String { string("action-skip", fallback: "Skip") }
+
+    /// Button that signs in to an account.
+    public static var actionSignIn: String { string("action-sign-in", fallback: "Sign in") }
+
+    /// Button that signs out of an account.
+    public static var actionSignOut: String { string("action-sign-out", fallback: "Sign out") }
+
+    /// Button that joins something, such as a { -plugin-store } or a { -watch-party }.
+    public static var actionJoin: String { string("action-join", fallback: "Join") }
+
+    /// Button that leaves something that was joined.
+    public static var actionLeave: String { string("action-leave", fallback: "Leave") }
+
+    /// Button that pairs two devices.
+    public static var actionPair: String { string("action-pair", fallback: "Pair") }
+
+    /// Button that connects to something.
+    public static var actionConnect: String { string("action-connect", fallback: "Connect") }
+
+    /// Button that ends a connection.
+    public static var actionDisconnect: String { string("action-disconnect", fallback: "Disconnect") }
+
+    /// Button that makes the app forget a paired TV.
+    public static var actionForget: String { string("action-forget", fallback: "Forget") }
+
+    /// Button that offers a plugin to other people in a { -plugin-store }.
+    public static var actionPublish: String { string("action-publish", fallback: "Publish") }
+
+    /// Button that swaps one copy of a { -plugin } for another.
+    public static var actionReplace: String { string("action-replace", fallback: "Replace") }
+
+    /// Menu item that turns a { -source } on.
+    public static var actionEnable: String { string("action-enable", fallback: "Enable") }
+
+    /// Menu item that turns a { -source } off.
+    public static var actionDisable: String { string("action-disable", fallback: "Disable") }
+
+    /// Button that checks now rather than waiting for the next scheduled check.
+    public static var actionCheckNow: String { string("action-check-now", fallback: "Check now") }
+
+    /// Button that checks a { -source } again after it did not answer.
+    public static var actionCheckAgain: String { string("action-check-again", fallback: "Check again") }
+
+    /// Button that opens the system's own settings for the app.
+    public static var actionOpenSettings: String { string("action-open-settings", fallback: "Open settings") }
+
+    /// Button that reports an error as a bug.
+    public static var actionReport: String { string("action-report", fallback: "Report") }
+
+    /// Button that starts the next episode at once.
+    public static var actionPlayNow: String { string("action-play-now", fallback: "Play now") }
+
+    /// Button that gets a new sign-in or pairing code after the old one expired.
+    public static var actionNewCode: String { string("action-new-code", fallback: "Get a new code") }
+
+    /// Button that opens a page in the browser.
+    public static func actionOpenHost(host: String) -> String {
+        format("action-open-host", fallback: "Open %1$@", host)
+    }
+
+    /// Value of a switch that is on.
+    public static var valueOn: String { string("value-on", fallback: "On") }
+
+    /// Value of a switch that is off.
+    public static var valueOff: String { string("value-off", fallback: "Off") }
+
+    /// Value when nothing is chosen or nothing is there.
+    public static var valueNone: String { string("value-none", fallback: "None") }
+
+    /// Value that lets anistream choose.
+    public static var valueAutomatic: String { string("value-automatic", fallback: "Automatic") }
+
+    /// Value that follows the app-wide setting. Shown beside a show's own settings.
+    public static var valueDefault: String { string("value-default", fallback: "Default") }
+
+    /// Row that follows the app-wide setting for one show.
+    public static var valueUseDefault: String { string("value-use-default", fallback: "Use default") }
+
+    /// Row that follows the app-wide setting, with what that setting is now.
+    public static func valueUseDefaultIs(value: String) -> String {
+        format("value-use-default-is", fallback: "Use default · %1$@", value)
+    }
+
+    /// Accessibility word for the chosen row in a list.
+    public static var valueSelected: String { string("value-selected", fallback: "Selected") }
+
+    /// Accessibility word for a row that is the current one.
+    public static var valueCurrent: String { string("value-current", fallback: "Current") }
+
+    /// A value the app could not work out.
+    public static var valueUnknown: String { string("value-unknown", fallback: "Unknown") }
+
+    /// Day word for today.
+    public static var dayToday: String { string("day-today", fallback: "Today") }
+
+    /// Day word for tomorrow.
+    public static var dayTomorrow: String { string("day-tomorrow", fallback: "Tomorrow") }
+
+    /// Day word for yesterday.
+    public static var dayYesterday: String { string("day-yesterday", fallback: "Yesterday") }
+
+    /// How long ago something happened.
+    public static func timeAgo(span: String) -> String {
+        format("time-ago", fallback: "%1$@ ago", span)
+    }
+
+    /// How long until something happens.
+    public static func timeIn(span: String) -> String {
+        format("time-in", fallback: "in %1$@", span)
+    }
+
+    /// Under a title or in a row: minutes left in an episode.
+    public static func timeMinutesLeft(minutes: Int) -> String {
+        format("time-minutes-left", fallback: "%1$lld min left", minutes)
+    }
+
+    /// A length in minutes, for an episode.
+    public static func timeMinutes(minutes: Int) -> String {
+        format("time-minutes", fallback: "%1$lld min", minutes)
+    }
+
+    /// Line under a title when the device has no connection.
+    public static var stateOfflineLine: String { string("state-offline-line", fallback: "Offline. Downloaded episodes still play.") }
+
+    /// Title of the full-screen state when a screen needs a connection and there is none.
+    public static var stateOfflineTitle: String { string("state-offline-title", fallback: "You're offline") }
+
+    /// Line under the offline title.
+    public static var stateOfflineDetail: String { string("state-offline-detail", fallback: "Downloaded episodes still play.") }
+
+    /// Button on the offline state that opens the downloads.
+    public static var stateOfflineShowDownloads: String { string("state-offline-show-downloads", fallback: "Show downloads") }
+
+    /// Next step under any "couldn't load" title.
+    public static var stateCheckConnection: String { string("state-check-connection", fallback: "Check your connection and try again.") }
+
+    /// Generic failure when nothing more is known.
+    public static var errorGeneric: String { string("error-generic", fallback: "Something went wrong. Try again.") }
+
+    /// Failure to read a list the server sent.
+    public static var errorListUnreadable: String { string("error-list-unreadable", fallback: "Couldn't read the list. Try again.") }
+
+    /// Failure to reach a service. The name is the service, such as AniList.
+    public static func errorServiceUnreachable(name: String) -> String {
+        format("error-service-unreachable", fallback: "Couldn't reach %1$@. Check your connection and try again.", name)
+    }
+
+    /// Failure when a request took too long.
+    public static var errorTimedOut: String { string("error-timed-out", fallback: "The request took too long. Try again.") }
+
+    /// Failure when a tracker rejects the saved sign-in.
+    public static var errorSignInExpired: String { string("error-sign-in-expired", fallback: "Your sign-in has expired. Sign in again under Accounts.") }
+
+    /// Accessibility label on the error icon.
+    public static var errorLabel: String { string("error-label", fallback: "Problem") }
+
+    /// Accessibility label on a spinner.
+    public static var stateWorking: String { string("state-working", fallback: "Working") }
+
+    /// Short placeholder while something loads.
+    public static var stateLoading: String { string("state-loading", fallback: "Loading") }
+
+    /// Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.
+    public static var downloadsTitle: String { string("downloads-title", fallback: "Downloads") }
+
+    /// Button that pauses every running download.
+    public static var downloadsPauseAll: String { string("downloads-pause-all", fallback: "Pause all") }
+
+    /// Button that resumes every paused download.
+    public static var downloadsResumeAll: String { string("downloads-resume-all", fallback: "Resume all") }
+
+    /// Accessibility label of the pause-all button on a phone.
+    public static var downloadsPauseAllLabel: String { string("downloads-pause-all-label", fallback: "Pause all downloads") }
+
+    /// Accessibility label of the resume-all button on a phone.
+    public static var downloadsResumeAllLabel: String { string("downloads-resume-all-label", fallback: "Resume all downloads") }
+
+    /// Button that removes finished rows from the list. The files stay.
+    public static var downloadsClearFinished: String { string("downloads-clear-finished", fallback: "Clear finished") }
+
+    /// Button that opens the folder with the files. Shown on desktop only.
+    public static var downloadsOpenFolder: String { string("downloads-open-folder", fallback: "Open folder") }
+
+    /// Menu item on a row: reveals one file in the file manager. Shown on desktop only.
+    public static var downloadsShowInFolder: String { string("downloads-show-in-folder", fallback: "Show in folder") }
+
+    /// Line showing the space the downloads use. The size is already formatted.
+    public static func downloadsSpaceUsed(size: String) -> String {
+        format("downloads-space-used", fallback: "Downloads take %1$@", size)
+    }
+
+    /// Line in the phone settings with the space in use.
+    public static func downloadsInDownloads(size: String) -> String {
+        format("downloads-in-downloads", fallback: "%1$@ in downloads", size)
+    }
+
+    /// Accessibility label of the space-used bar.
+    public static var downloadsSpaceLabel: String { string("downloads-space-label", fallback: "Space used by downloads") }
+
+    /// Title when nothing is downloaded.
+    public static var downloadsEmptyTitle: String { string("downloads-empty-title", fallback: "No downloads") }
+
+    /// Line under the empty title.
+    public static var downloadsEmptyDetail: String { string("downloads-empty-detail", fallback: "Downloaded episodes play without a connection.") }
+
+    /// Title when the list could not be read.
+    public static var downloadsLoadFailed: String { string("downloads-load-failed", fallback: "Couldn't load downloads") }
+
+    /// Line when the folder could not be opened. Shown on desktop only.
+    public static var downloadsFolderFailed: String { string("downloads-folder-failed", fallback: "Couldn't open the folder. Check that it still exists.") }
+
+    /// Name of a row.
+    public static func downloadsEpisodeName(episode: Int) -> String {
+        format("downloads-episode-name", fallback: "Episode %1$lld", episode)
+    }
+
+    /// Row caption: waiting for a free place.
+    public static var downloadsCaptionQueued: String { string("downloads-caption-queued", fallback: "Queued") }
+
+    /// Row caption: waiting for a free place, with the reason.
+    public static var downloadsCaptionQueuedSlot: String { string("downloads-caption-queued-slot", fallback: "Queued · starts when a download slot is free") }
+
+    /// Row caption: a torrent is fetching its file list.
+    public static var downloadsCaptionMetadata: String { string("downloads-caption-metadata", fallback: "Waiting for metadata") }
+
+    /// Row caption: running. Both sizes are already formatted.
+    public static func downloadsCaptionRunning(done: String, total: String) -> String {
+        format("downloads-caption-running", fallback: "Downloading · %1$@ of %2$@", done, total)
+    }
+
+    /// Row caption: running, size not known yet.
+    public static var downloadsCaptionRunningPlain: String { string("downloads-caption-running-plain", fallback: "Downloading") }
+
+    /// Row caption: paused at a percentage.
+    public static func downloadsCaptionPaused(percent: String) -> String {
+        format("downloads-caption-paused", fallback: "Paused · %1$@", percent)
+    }
+
+    /// Row caption: finished. The size is already formatted.
+    public static func downloadsCaptionDoneSize(size: String) -> String {
+        format("downloads-caption-done-size", fallback: "Downloaded · %1$@", size)
+    }
+
+    /// Row caption: finished.
+    public static var downloadsCaptionDone: String { string("downloads-caption-done", fallback: "Downloaded") }
+
+    /// Row caption: finished and removed a day after it is watched.
+    public static var downloadsCaptionAhead: String { string("downloads-caption-ahead", fallback: "Downloaded ahead · Removed a day after you watch it") }
+
+    /// Short row caption for an episode downloaded before it was asked for.
+    public static var downloadsAhead: String { string("downloads-ahead", fallback: "Downloaded ahead") }
+
+    /// Row caption: stopped with a reason, which is already a sentence fragment.
+    public static func downloadsCaptionFailedWhy(why: String) -> String {
+        format("downloads-caption-failed-why", fallback: "Failed · %1$@", why)
+    }
+
+    /// Row caption: stopped without a reason.
+    public static var downloadsCaptionFailed: String { string("downloads-caption-failed", fallback: "Failed") }
+
+    /// Row caption: sharing back. Both amounts are ratios already formatted, the last is time left.
+    public static func downloadsSeedingLine(shared: String, goal: String, left: String) -> String {
+        format("downloads-seeding-line", fallback: "Shared %1$@ of %2$@ · %3$@", shared, goal, left)
+    }
+
+    /// Menu item that starts a queued download before the others.
+    public static var downloadsStartNow: String { string("downloads-start-now", fallback: "Start now") }
+
+    /// Tooltip of the start-now menu item.
+    public static var downloadsStartNowHelp: String { string("downloads-start-now-help", fallback: "Start this download ahead of the queue") }
+
+    /// Menu item that takes a row off the queue. The file is not deleted.
+    public static var downloadsRemoveFromQueue: String { string("downloads-remove-from-queue", fallback: "Remove from queue") }
+
+    /// Menu item that takes a finished row off the list. The file stays.
+    public static var downloadsRemoveFromList: String { string("downloads-remove-from-list", fallback: "Remove from list") }
+
+    /// Menu item that removes the downloaded file.
+    public static var downloadsDeleteFile: String { string("downloads-delete-file", fallback: "Delete file…") }
+
+    /// Accessibility label: pause one download.
+    public static var downloadsPauseOne: String { string("downloads-pause-one", fallback: "Pause download") }
+
+    /// Accessibility label: resume one download.
+    public static var downloadsResumeOne: String { string("downloads-resume-one", fallback: "Resume download") }
+
+    /// Accessibility label: play one downloaded episode.
+    public static func downloadsPlayEpisode(episode: Int) -> String {
+        format("downloads-play-episode", fallback: "Play episode %1$lld", episode)
+    }
+
+    /// Title of the confirmation.
+    public static func downloadsDeleteTitle(name: String) -> String {
+        format("downloads-delete-title", fallback: "Delete %1$@?", name)
+    }
+
+    /// Line under the confirmation title.
+    public static var downloadsDeleteDetail: String { string("downloads-delete-detail", fallback: "The file is removed from this device.") }
+
+    /// Title of the confirmation on a phone.
+    public static var downloadsDeleteOneTitle: String { string("downloads-delete-one-title", fallback: "Delete download") }
+
+    /// Line under it: what you lose.
+    public static var downloadsDeleteOneDetail: String { string("downloads-delete-one-detail", fallback: "It plays again only with a connection, or once you download it again.") }
+
+    /// Button on the settings page that removes watched files.
+    public static var downloadsDeleteWatched: String { string("downloads-delete-watched", fallback: "Delete watched downloads") }
+
+    /// Heading of the seeding group.
+    public static var downloadsSeedingTitle: String { string("downloads-seeding-title", fallback: "Seeding") }
+
+    /// Heading of the seeding group on the downloads screen.
+    public static var downloadsSeedingAfterWatching: String { string("downloads-seeding-after-watching", fallback: "Seeding after watching") }
+
+    /// Line under the seeding heading.
+    public static var downloadsSeedingNote: String { string("downloads-seeding-note", fallback: "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.") }
+
+    /// Heading of the setting. Shown on desktop only.
+    public static var downloadsBackgroundTitle: String { string("downloads-background-title", fallback: "When the window closes with downloads running") }
+
+    /// Option: downloads go on. Shown on desktop only.
+    public static var downloadsBackgroundKeep: String { string("downloads-background-keep", fallback: "Keep downloading") }
+
+    /// Option: downloads stop and resume later. Shown on desktop only.
+    public static var downloadsBackgroundStop: String { string("downloads-background-stop", fallback: "Stop downloading") }
+
+    /// Option: ask each time. Shown on desktop only.
+    public static var downloadsBackgroundAsk: String { string("downloads-background-ask", fallback: "Ask each time") }
+
+    /// Line shown when the setting is Keep downloading. Shown on desktop only.
+    public static var downloadsBackgroundKeeps: String { string("downloads-background-keeps", fallback: "Downloads keep going when you close the window.") }
+
+    /// Line shown when the setting is Stop downloading. Shown on desktop only.
+    public static var downloadsBackgroundStops: String { string("downloads-background-stops", fallback: "Closing the window stops downloads. They resume the next time anistream opens.") }
+
+    /// Line shown when the setting is Ask each time. Shown on desktop only.
+    public static var downloadsBackgroundAsks: String { string("downloads-background-asks", fallback: "Downloads keep going when you close the window, if you choose to.") }
+
+    /// Title of the question when the window closes. Shown on desktop only.
+    public static var downloadsBackgroundQuestion: String { string("downloads-background-question", fallback: "Keep downloads going?") }
+
+    /// Line on the Apple and Linux note in the notification area. Shown on desktop only.
+    public static var downloadsBackgroundNote: String { string("downloads-background-note", fallback: "Downloads keep going after you leave anistream.") }
+
+    /// Label of the folder setting. Shown on desktop only.
+    public static var downloadsFolder: String { string("downloads-folder", fallback: "Download folder") }
+
+    /// Label of the quality choice for downloads.
+    public static var downloadsQuality: String { string("downloads-quality", fallback: "Download quality") }
+
+    /// Title of the notification when an episode finished.
+    public static func downloadsNoticeDone(episode: Int) -> String {
+        format("downloads-notice-done", fallback: "Episode %1$lld downloaded", episode)
+    }
+
+    /// Body of that notification.
+    public static func downloadsNoticeDoneDetail(title: String) -> String {
+        format("downloads-notice-done-detail", fallback: "%1$@ · ready to watch offline", title)
+    }
+
+    /// Notification text while several episodes download.
+    public static func downloadsNoticeRunning(count: Int) -> String {
+        format("downloads-notice-running", fallback: "Downloading %1$lld episodes", count)
+    }
+
+    /// Notification text: first line of one running download.
+    public static func downloadsNoticeEpisodeLeft(episode: Int, left: String) -> String {
+        format("downloads-notice-episode-left", fallback: "Episode %1$lld · %2$@ left", episode, left)
+    }
+
+    /// Notification text: a download is starting.
+    public static var downloadsNoticeStarting: String { string("downloads-notice-starting", fallback: "Starting") }
+
+    /// Button on a title page to download one episode.
+    public static func episodeDownloadOne(episode: Int) -> String {
+        format("episode-download-one", fallback: "Download episode %1$lld", episode)
+    }
+
+    /// Line under that button while it waits.
+    public static var episodeDownloadQueued: String { string("episode-download-queued", fallback: "Queued to download") }
+
+    /// Line under that button as the download begins.
+    public static var episodeDownloadStarting: String { string("episode-download-starting", fallback: "Starting the download") }
+
+    /// Line under that button while it runs.
+    public static func episodeDownloadRunning(percent: String) -> String {
+        format("episode-download-running", fallback: "Downloading · %1$@", percent)
+    }
+
+    /// Line under that button while it is paused.
+    public static func episodeDownloadPaused(percent: String) -> String {
+        format("episode-download-paused", fallback: "Download paused at %1$@", percent)
+    }
+
+    /// Line under that button once the file is saved.
+    public static var episodeDownloadDone: String { string("episode-download-done", fallback: "Downloaded") }
+
+    /// Line under that button after a failure.
+    public static func episodeDownloadFailed(episode: Int) -> String {
+        format("episode-download-failed", fallback: "Couldn't download episode %1$lld. Download again.", episode)
+    }
+
     /// Continue row subtitle. The show's title is cut first when the row is short.
     public static func queueEpisodesLeft(count: Int, title: String) -> String {
         format("queue-episodes-left", fallback: "%1$lld episodes left in %2$@", count, title)
@@ -939,11 +1524,1245 @@ public enum L {
     /// Group header for what aired in the last few days.
     public static var groupNewThisWeek: String { string("group-new-this-week", fallback: "New this week") }
 
+    /// Title of the empty Continue screen.
+    public static var continueEmptyTitle: String { string("continue-empty-title", fallback: "Nothing watched yet") }
+
+    /// Line under the empty Continue title. Seasonal is the name of a screen.
+    public static var continueEmptyDetail: String { string("continue-empty-detail", fallback: "Pick something from Seasonal, or search for a title.") }
+
+    /// Button on the empty Continue screen that opens Seasonal.
+    public static var continueEmptyAction: String { string("continue-empty-action", fallback: "Browse Seasonal") }
+
+    /// Title of the state when Continue could not load.
+    public static var continueLoadFailed: String { string("continue-load-failed", fallback: "Couldn't load Continue") }
+
+    /// Row heading on the Continue screen and the TV home screen for the shows in progress.
+    public static var continueHeading: String { string("continue-heading", fallback: "Continue watching") }
+
+    /// Header for the strip of shows that air today.
+    public static var continueAiringToday: String { string("continue-airing-today", fallback: "Airing today") }
+
+    /// Header for the strip of shows from the current season.
+    public static var continueThisSeason: String { string("continue-this-season", fallback: "This season") }
+
+    /// Menu item that takes a show off the Continue screen.
+    public static var continueHide: String { string("continue-hide", fallback: "Hide from Continue") }
+
+    /// Notice after a show was hidden from Continue.
+    public static var continueHidden: String { string("continue-hidden", fallback: "Hidden from Continue.") }
+
+    /// Menu item that sets a show's status to Dropped and takes it off Continue.
+    public static var continueDrop: String { string("continue-drop", fallback: "Drop") }
+
+    /// Accessibility label on the overflow button of a row.
+    public static func continueMoreFor(title: String) -> String {
+        format("continue-more-for", fallback: "More for %1$@", title)
+    }
+
+    /// Row caption: resumes this episode where it stopped. The clock is the stored position.
+    public static func continueRowResume(episode: Int, clock: String) -> String {
+        format("continue-row-resume", fallback: "Continue E%1$lld · %2$@", episode, clock)
+    }
+
+    /// Row caption: resumes this episode where it stopped, dubbed.
+    public static func continueRowResumeDubbed(episode: Int, clock: String) -> String {
+        format("continue-row-resume-dubbed", fallback: "Continue E%1$lld dubbed · %2$@", episode, clock)
+    }
+
+    /// Row caption: the next unwatched episode.
+    public static func continueRowStart(episode: Int) -> String {
+        format("continue-row-start", fallback: "Play E%1$lld", episode)
+    }
+
+    /// Row caption: the next unwatched episode, dubbed.
+    public static func continueRowStartDubbed(episode: Int) -> String {
+        format("continue-row-start-dubbed", fallback: "Play E%1$lld dubbed", episode)
+    }
+
+    /// Row caption: the next unwatched episode, which came out a while ago.
+    public static func continueRowStartAired(episode: Int, ago: String) -> String {
+        format("continue-row-start-aired", fallback: "Play E%1$lld · out %2$@", episode, ago)
+    }
+
+    /// Row caption: nothing new to watch. The time is when the next episode airs.
+    public static func continueRowCaughtUp(episode: Int, when: String) -> String {
+        format("continue-row-caught-up", fallback: "Caught up · E%1$lld %2$@", episode, when)
+    }
+
+    /// Row caption: nothing new to watch and no date for the next episode.
+    public static var continueRowCaughtUpPlain: String { string("continue-row-caught-up-plain", fallback: "Caught up") }
+
+    /// Title of the home-screen widget when the library is empty or signed out.
+    public static var continueWidgetConnect: String { string("continue-widget-connect", fallback: "Connect AniList to see it here.") }
+
+    /// Line on the widget and the TV when there is nothing left to watch.
+    public static var continueCaughtUp: String { string("continue-caught-up", fallback: "You're caught up.") }
+
+    /// Main button of the title page: resumes the episode at its stored position.
+    public static func titleButtonContinue(episode: Int) -> String {
+        format("title-button-continue", fallback: "Continue episode %1$lld", episode)
+    }
+
+    /// Main button of the title page: plays the next unwatched episode from the start.
+    public static func titleButtonPlay(episode: Int) -> String {
+        format("title-button-play", fallback: "Play episode %1$lld", episode)
+    }
+
+    /// Main button of the title page when there is no { -source } to play from.
+    public static var titleButtonAddSource: String { string("title-button-add-source", fallback: "Add a source to play") }
+
+    /// Status of a show on a person's list: watching it now.
+    public static var libraryStatusWatching: String { string("library-status-watching", fallback: "Watching") }
+
+    /// Status of a show on a person's list: planned.
+    public static var libraryStatusPlanning: String { string("library-status-planning", fallback: "Planning") }
+
+    /// Status of a show on a person's list: finished.
+    public static var libraryStatusCompleted: String { string("library-status-completed", fallback: "Completed") }
+
+    /// Status of a show on a person's list: on hold.
+    public static var libraryStatusPaused: String { string("library-status-paused", fallback: "Paused") }
+
+    /// Status of a show on a person's list: given up.
+    public static var libraryStatusDropped: String { string("library-status-dropped", fallback: "Dropped") }
+
+    /// Sort order of the library: by when the list entry last changed.
+    public static var librarySortUpdated: String { string("library-sort-updated", fallback: "Last updated") }
+
+    /// Sort order of the library: by title.
+    public static var librarySortTitle: String { string("library-sort-title", fallback: "Title") }
+
+    /// Sort order of the library: by the person's own score.
+    public static var librarySortScore: String { string("library-sort-score", fallback: "Score") }
+
+    /// Button showing the library's current sort order.
+    public static func librarySortButton(sort: String) -> String {
+        format("library-sort-button", fallback: "Sort: %1$@", sort)
+    }
+
+    /// Accessibility label of the sort button.
+    public static func librarySortLabel(sort: String) -> String {
+        format("library-sort-label", fallback: "Sort by %1$@", sort)
+    }
+
+    /// Title of the library when no tracker is signed in.
+    public static var librarySignedOutTitle: String { string("library-signed-out-title", fallback: "Your lists come from AniList") }
+
+    /// Line under the signed-out library title.
+    public static var librarySignedOutDetail: String { string("library-signed-out-detail", fallback: "Sign in to sync what you watch and where you stopped.") }
+
+    /// Button on the signed-out library.
+    public static var librarySignedOutAction: String { string("library-signed-out-action", fallback: "Sign in to AniList") }
+
+    /// Title of an empty list. The list is its status in running text, such as "planning".
+    public static func libraryListEmpty(list: String) -> String {
+        format("library-list-empty", fallback: "Nothing on your %1$@ list", list)
+    }
+
+    /// Line under an empty list's title.
+    public static var libraryListEmptyDetail: String { string("library-list-empty-detail", fallback: "Titles you add to this list on AniList show up here.") }
+
+    /// Title of the state when one list could not load.
+    public static func libraryListLoadFailed(list: String) -> String {
+        format("library-list-load-failed", fallback: "Couldn't load your %1$@ list", list)
+    }
+
+    /// Short line while the library loads.
+    public static var libraryLoading: String { string("library-loading", fallback: "Loading your lists") }
+
+    /// Menu item on a title that adds it to a list.
+    public static var libraryAddToList: String { string("library-add-to-list", fallback: "Add to list") }
+
+    /// Menu item that puts a title in the planning list.
+    public static var libraryAddPlanning: String { string("library-add-planning", fallback: "Add to planning") }
+
+    /// Notice after a title was added to the planning list.
+    public static var libraryAddedPlanning: String { string("library-added-planning", fallback: "Added to planning.") }
+
+    /// Marker on a title that is already on the person's list.
+    public static var libraryOnYourList: String { string("library-on-your-list", fallback: "On your list") }
+
+    /// Shorter marker used in a widget row.
+    public static var libraryInYourList: String { string("library-in-your-list", fallback: "In your list") }
+
+    /// Short progress under a show: the last episode watched out of the total.
+    public static func progressEpisodesShort(done: Int, total: Int) -> String {
+        format("progress-episodes-short", fallback: "E%1$lld of %2$lld", done, total)
+    }
+
+    /// Short progress under a show when the total is not known.
+    public static func progressEpisodeShort(done: Int) -> String {
+        format("progress-episode-short", fallback: "E%1$lld", done)
+    }
+
+    /// Format of a show: broadcast on television.
+    public static var formatTv: String { string("format-tv", fallback: "TV") }
+
+    /// Format of a show: a short series on television.
+    public static var formatTvShort: String { string("format-tv-short", fallback: "TV short") }
+
+    /// Format of a show: a film.
+    public static var formatMovie: String { string("format-movie", fallback: "Movie") }
+
+    /// Format of a show: an extra episode that is not part of a series.
+    public static var formatSpecial: String { string("format-special", fallback: "Special") }
+
+    /// Format of a show: released straight to video.
+    public static var formatOva: String { string("format-ova", fallback: "OVA") }
+
+    /// Format of a show: released straight to the web.
+    public static var formatOna: String { string("format-ona", fallback: "ONA") }
+
+    /// Format of a show: a music video.
+    public static var formatMusic: String { string("format-music", fallback: "Music") }
+
+    /// A season of the year, for when a show airs.
+    public static var seasonWinter: String { string("season-winter", fallback: "Winter") }
+
+    /// A season of the year, for when a show airs.
+    public static var seasonSpring: String { string("season-spring", fallback: "Spring") }
+
+    /// A season of the year, for when a show airs.
+    public static var seasonSummer: String { string("season-summer", fallback: "Summer") }
+
+    /// A season of the year, for when a show airs. British English.
+    public static var seasonAutumn: String { string("season-autumn", fallback: "Autumn") }
+
+    /// A season and its year, such as "Autumn 2026". Both are already worded.
+    public static func seasonWithYear(season: String, year: String) -> String {
+        format("season-with-year", fallback: "%1$@ %2$@", season, year)
+    }
+
+    /// Status of a show that has finished airing.
+    public static var mediaStatusAired: String { string("media-status-aired", fallback: "Aired") }
+
+    /// Status of a show that is airing now.
+    public static var mediaStatusAiring: String { string("media-status-airing", fallback: "Airing") }
+
+    /// Status of a show that has not started airing.
+    public static var mediaStatusUpcoming: String { string("media-status-upcoming", fallback: "Not yet released") }
+
+    /// Status of a show that was cancelled.
+    public static var mediaStatusCancelled: String { string("media-status-cancelled", fallback: "Cancelled") }
+
+    /// Status of a show that is on a break.
+    public static var mediaStatusHiatus: String { string("media-status-hiatus", fallback: "On hiatus") }
+
+    /// Date line of a show that is airing: when it started.
+    public static func mediaAiringSince(date: String) -> String {
+        format("media-airing-since", fallback: "Since %1$@", date)
+    }
+
+    /// Date line of a show that has not started: when it will.
+    public static func mediaAiringFrom(date: String) -> String {
+        format("media-airing-from", fallback: "From %1$@", date)
+    }
+
+    /// Value of "Based on": a story written for the screen.
+    public static var materialOriginal: String { string("material-original", fallback: "Original story") }
+
+    /// Value of "Based on".
+    public static var materialManga: String { string("material-manga", fallback: "Manga") }
+
+    /// Value of "Based on".
+    public static var materialLightNovel: String { string("material-light-novel", fallback: "Light novel") }
+
+    /// Value of "Based on".
+    public static var materialWebNovel: String { string("material-web-novel", fallback: "Web novel") }
+
+    /// Value of "Based on".
+    public static var materialVisualNovel: String { string("material-visual-novel", fallback: "Visual novel") }
+
+    /// Value of "Based on".
+    public static var materialVideoGame: String { string("material-video-game", fallback: "Video game") }
+
+    /// Value of "Based on".
+    public static var materialNovel: String { string("material-novel", fallback: "Novel") }
+
+    /// Value of "Based on".
+    public static var materialDoujinshi: String { string("material-doujinshi", fallback: "Doujinshi") }
+
+    /// Value of "Based on": another anime.
+    public static var materialAnime: String { string("material-anime", fallback: "Anime") }
+
+    /// Value of "Based on".
+    public static var materialLiveAction: String { string("material-live-action", fallback: "Live action") }
+
+    /// Value of "Based on".
+    public static var materialGame: String { string("material-game", fallback: "Game") }
+
+    /// Value of "Based on".
+    public static var materialComic: String { string("material-comic", fallback: "Comic") }
+
+    /// Value of "Based on".
+    public static var materialMultimedia: String { string("material-multimedia", fallback: "Multimedia project") }
+
+    /// Value of "Based on".
+    public static var materialPictureBook: String { string("material-picture-book", fallback: "Picture book") }
+
+    /// Relation of a related title: it comes before this one.
+    public static var relationPrequel: String { string("relation-prequel", fallback: "Prequel") }
+
+    /// Relation of a related title: it comes after this one.
+    public static var relationSequel: String { string("relation-sequel", fallback: "Sequel") }
+
+    /// Relation of a related title: the story this one branches from.
+    public static var relationParent: String { string("relation-parent", fallback: "Parent story") }
+
+    /// Relation of a related title: a story set beside this one.
+    public static var relationSideStory: String { string("relation-side-story", fallback: "Side story") }
+
+    /// Relation of a related title: a show that grew out of this one.
+    public static var relationSpinOff: String { string("relation-spin-off", fallback: "Spin-off") }
+
+    /// Relation of a related title: a retelling.
+    public static var relationAlternative: String { string("relation-alternative", fallback: "Alternative") }
+
+    /// Relation of a related title: a recap.
+    public static var relationSummary: String { string("relation-summary", fallback: "Summary") }
+
+    /// Relation of a related title: a compilation of this one.
+    public static var relationCompilation: String { string("relation-compilation", fallback: "Compilation") }
+
+    /// Relation of a related title: it contains this one.
+    public static var relationContains: String { string("relation-contains", fallback: "Contains") }
+
+    /// Relation of a related title: set in the same universe.
+    public static var relationSameUniverse: String { string("relation-same-universe", fallback: "Same universe") }
+
+    /// Relation of a related title: it shares characters with this one.
+    public static var relationSharesCharacters: String { string("relation-shares-characters", fallback: "Shares characters") }
+
+    /// Relation of a related title: an adaptation of this one.
+    public static var relationAdaptation: String { string("relation-adaptation", fallback: "Adaptation") }
+
+    /// Relation of a related title: the work this show is based on.
+    public static var relationOriginalWork: String { string("relation-original-work", fallback: "Original work") }
+
+    /// Relation of a related title that fits none of the others.
+    public static var relationOther: String { string("relation-other", fallback: "Related") }
+
+    /// A related title's relation, its format and its year.
+    public static func relationLine(relation: String, format: String, year: String) -> String {
+        format("relation-line", fallback: "%1$@ · %2$@ · %3$@", relation, format, year)
+    }
+
+    /// Ranking line, such as "#4 Highest rated, Autumn 2026". The label is already worded.
+    public static func rankingLine(rank: Int, label: String) -> String {
+        format("ranking-line", fallback: "#%1$lld %2$@", rank, label)
+    }
+
+    /// Label of a ranking by score within a period.
+    public static func rankingHighestRated(scope: String) -> String {
+        format("ranking-highest-rated", fallback: "Highest rated, %1$@", scope)
+    }
+
+    /// Label of a ranking by popularity within a period.
+    public static func rankingMostPopular(scope: String) -> String {
+        format("ranking-most-popular", fallback: "Most popular, %1$@", scope)
+    }
+
+    /// The period of a ranking that covers everything.
+    public static var rankingAllTime: String { string("ranking-all-time", fallback: "all time") }
+
+    /// Genre name.
+    public static var genreAction: String { string("genre-action", fallback: "Action") }
+
+    /// Genre name.
+    public static var genreAdventure: String { string("genre-adventure", fallback: "Adventure") }
+
+    /// Genre name.
+    public static var genreComedy: String { string("genre-comedy", fallback: "Comedy") }
+
+    /// Genre name.
+    public static var genreDrama: String { string("genre-drama", fallback: "Drama") }
+
+    /// Genre name.
+    public static var genreEcchi: String { string("genre-ecchi", fallback: "Ecchi") }
+
+    /// Genre name.
+    public static var genreFantasy: String { string("genre-fantasy", fallback: "Fantasy") }
+
+    /// Genre name.
+    public static var genreHorror: String { string("genre-horror", fallback: "Horror") }
+
+    /// Genre name.
+    public static var genreMahouShoujo: String { string("genre-mahou-shoujo", fallback: "Mahou shoujo") }
+
+    /// Genre name.
+    public static var genreMecha: String { string("genre-mecha", fallback: "Mecha") }
+
+    /// Genre name.
+    public static var genreMusic: String { string("genre-music", fallback: "Music") }
+
+    /// Genre name.
+    public static var genreMystery: String { string("genre-mystery", fallback: "Mystery") }
+
+    /// Genre name.
+    public static var genrePsychological: String { string("genre-psychological", fallback: "Psychological") }
+
+    /// Genre name.
+    public static var genreRomance: String { string("genre-romance", fallback: "Romance") }
+
+    /// Genre name.
+    public static var genreSciFi: String { string("genre-sci-fi", fallback: "Sci-fi") }
+
+    /// Genre name.
+    public static var genreSliceOfLife: String { string("genre-slice-of-life", fallback: "Slice of life") }
+
+    /// Genre name.
+    public static var genreSports: String { string("genre-sports", fallback: "Sports") }
+
+    /// Genre name.
+    public static var genreSupernatural: String { string("genre-supernatural", fallback: "Supernatural") }
+
+    /// Genre name.
+    public static var genreThriller: String { string("genre-thriller", fallback: "Thriller") }
+
+    /// Tab and sidebar row for the shows in progress.
+    public static var navContinue: String { string("nav-continue", fallback: "Continue") }
+
+    /// Tab and sidebar row for the weekly airing schedule.
+    public static var navCalendar: String { string("nav-calendar", fallback: "Calendar") }
+
+    /// Tab and sidebar row for what is airing this season.
+    public static var navSeasonal: String { string("nav-seasonal", fallback: "Seasonal") }
+
+    /// Tab and sidebar row for the shows a person has saved.
+    public static var navLibrary: String { string("nav-library", fallback: "Library") }
+
+    /// Tab and sidebar row for finding a show.
+    public static var navSearch: String { string("nav-search", fallback: "Search") }
+
+    /// Tab and sidebar row for downloaded episodes.
+    public static var navDownloads: String { string("nav-downloads", fallback: "Downloads") }
+
+    /// Sidebar row for the { -plugin-store-pl } a person has joined.
+    public static var navPluginStores: String { string("nav-plugin-stores", fallback: "Plugin stores") }
+
+    /// Tab, sidebar row and window title for the settings.
+    public static var navSettings: String { string("nav-settings", fallback: "Settings") }
+
+    /// Name of the screen and settings page for tracker accounts.
+    public static var navAccounts: String { string("nav-accounts", fallback: "Accounts") }
+
+    /// Button on a phone's header that opens accounts and the settings.
+    public static var navAccountsAndSettings: String { string("nav-accounts-and-settings", fallback: "Accounts and settings") }
+
+    /// Accessibility label for the list of sections in the sidebar.
+    public static var navSectionsLabel: String { string("nav-sections-label", fallback: "Sections") }
+
+    /// Button that folds the navigation rail on a wide screen.
+    public static var navCollapse: String { string("nav-collapse", fallback: "Collapse navigation") }
+
+    /// Button that opens the navigation rail on a wide screen.
+    public static var navExpand: String { string("nav-expand", fallback: "Expand navigation") }
+
+    /// Name of a shortcut or tooltip: the name, then the key that does it.
+    public static func tooltipWithKey(name: String, key: String) -> String {
+        format("tooltip-with-key", fallback: "%1$@ (%2$@)", name, key)
+    }
+
+    /// Title of the welcome window.
+    public static var onboardingWelcome: String { string("onboarding-welcome", fallback: "Welcome") }
+
+    /// Title of the first page.
+    public static var onboardingWelcomeTo: String { string("onboarding-welcome-to", fallback: "Welcome to anistream") }
+
+    /// Line under the title.
+    public static var onboardingTagline: String { string("onboarding-tagline", fallback: "Keep track of anime and play it from sources you choose.") }
+
+    /// Button that goes to the next page.
+    public static var onboardingContinue: String { string("onboarding-continue", fallback: "Continue") }
+
+    /// Button that skips a page.
+    public static var onboardingSkip: String { string("onboarding-skip", fallback: "Skip") }
+
+    /// Button that skips a page for now.
+    public static var onboardingSkipForNow: String { string("onboarding-skip-for-now", fallback: "Skip for now") }
+
+    /// Button that declines the sign-in page for now.
+    public static var onboardingNotNow: String { string("onboarding-not-now", fallback: "Not now") }
+
+    /// Heading of the page about sources.
+    public static var onboardingSourcesTitle: String { string("onboarding-sources-title", fallback: "Sources") }
+
+    /// Line under it.
+    public static var onboardingSourcesDetail: String { string("onboarding-sources-detail", fallback: "Sources are plugins, shared through plugin stores by invite.") }
+
+    /// Button that joins a store from the welcome page.
+    public static var onboardingJoin: String { string("onboarding-join", fallback: "Join") }
+
+    /// Hint inside the invite field on the welcome page.
+    public static var onboardingInviteHint: String { string("onboarding-invite-hint", fallback: "Invite link") }
+
+    /// Button on the title page and in the player that opens the watch party form.
+    public static var partyOpen: String { string("party-open", fallback: "Watch party…") }
+
+    /// Title of the form and the panel.
+    public static var partyTitle: String { string("party-title", fallback: "Watch party") }
+
+    /// Title of the form when an invite link opened it.
+    public static var partyJoinTitle: String { string("party-join-title", fallback: "Join the watch party?") }
+
+    /// Button that sends the form and begins the party.
+    public static var partyStart: String { string("party-start", fallback: "Start watch party") }
+
+    /// Button that sends the form and joins the party.
+    public static var partyJoin: String { string("party-join", fallback: "Join watch party") }
+
+    /// Button on the panel that leaves the party.
+    public static var partyLeave: String { string("party-leave", fallback: "Leave watch party") }
+
+    /// Label of the leave button while it works.
+    public static var partyLeaving: String { string("party-leaving", fallback: "Leaving…") }
+
+    /// Label of the button that marks you as ready.
+    public static var partyReadyAction: String { string("party-ready-action", fallback: "I'm ready") }
+
+    /// Button that copies the link to invite someone.
+    public static var partyCopyInvite: String { string("party-copy-invite", fallback: "Copy invite link") }
+
+    /// Button in the leave confirmation that ignores it.
+    public static var partyStay: String { string("party-stay", fallback: "Stay") }
+
+    /// Button in the leave confirmation that closes the app.
+    public static var partyLeaveAndClose: String { string("party-leave-and-close", fallback: "Leave and close") }
+
+    /// Button on the invite card that is not accepted now.
+    public static var partyNotNow: String { string("party-not-now", fallback: "Not now") }
+
+    /// Line while the form fetches its suggestions.
+    public static var partyGettingReady: String { string("party-getting-ready", fallback: "Getting things ready…") }
+
+    /// Label of the server field.
+    public static var partyServer: String { string("party-server", fallback: "Server") }
+
+    /// Hint inside the empty server field.
+    public static var partyServerHint: String { string("party-server-hint", fallback: "host:port") }
+
+    /// Accessibility label of the list of servers used before.
+    public static var partyRecentServers: String { string("party-recent-servers", fallback: "Recent servers") }
+
+    /// Heading of the servers used before.
+    public static var partyRecentServersHeading: String { string("party-recent-servers-heading", fallback: "Servers used before") }
+
+    /// Button that fills the suggested server in. The server is a host name.
+    public static func partyUseServer(server: String) -> String {
+        format("party-use-server", fallback: "Use %1$@", server)
+    }
+
+    /// Button that fills in what was suggested.
+    public static var partyUseIt: String { string("party-use-it", fallback: "Use it") }
+
+    /// Label of the room field.
+    public static var partyRoom: String { string("party-room", fallback: "Room") }
+
+    /// Label of the name field.
+    public static var partyYourName: String { string("party-your-name", fallback: "Your name in the room") }
+
+    /// Line under the server field when the public server is chosen. The operator is a name.
+    public static func partyServerPublic(`operator`: String) -> String {
+        format("party-server-public", fallback: "A public server run by %1$@, not by anistream.", `operator`)
+    }
+
+    /// Line under the server field when something else is typed.
+    public static func partyServerSuggest(server: String, `operator`: String) -> String {
+        format("party-server-suggest", fallback: "No server of your own? %1$@ is a public one, run by %2$@.", server, `operator`)
+    }
+
+    /// Line under an invite's room when the server is not the public one.
+    public static var partyServerInvited: String { string("party-server-invited", fallback: "A server the person who invited you chose. anistream doesn't run it.") }
+
+    /// Line when the server was typed in a shape that cannot be used.
+    public static var partyServerShape: String { string("party-server-shape", fallback: "Write the server as a host and a port, like party.example:8999.") }
+
+    /// Line under the form: what the server learns and what each person plays. The app shows legal-hosts-no-content after it.
+    public static var partyPrivacy: String { string("party-privacy", fallback: "The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources.") }
+
+    /// Line under the room: how others join.
+    public static var partyRoomHint: String { string("party-room-hint", fallback: "Anyone who knows the room's name can join it. The invite link carries it, so nobody has to read it out.") }
+
+    /// Line on the invite card naming the room and server.
+    public static func partyInviteRoom(room: String, server: String) -> String {
+        format("party-invite-room", fallback: "Room %1$@ on %2$@", room, server)
+    }
+
+    /// Line while the form joins the party.
+    public static func partyJoining(room: String, server: String) -> String {
+        format("party-joining", fallback: "Joining %1$@ on %2$@…", room, server)
+    }
+
+    /// Line on the form when no episode is playing yet.
+    public static var partyFormNothing: String { string("party-form-nothing", fallback: "What's playing now plays with the room.") }
+
+    /// Line naming the episode of the form.
+    public static func partyFormEpisodeOf(episode: Int, title: String) -> String {
+        format("party-form-episode-of", fallback: "Episode %1$lld of %2$@", episode, title)
+    }
+
+    /// Line naming the episode of the form when the show has no name.
+    public static func partyFormEpisode(episode: Int) -> String {
+        format("party-form-episode", fallback: "Episode %1$lld", episode)
+    }
+
+    /// Line on the form when the party could not begin.
+    public static var partyEndedEarly: String { string("party-ended-early", fallback: "The party ended before it began.") }
+
+    /// Line in the panel while nobody has joined.
+    public static var partyWaitingMembers: String { string("party-waiting-members", fallback: "Waiting for the room's members") }
+
+    /// Heading in the panel for people using another app.
+    public static var partyOtherApp: String { string("party-other-app", fallback: "For Syncplay's own app") }
+
+    /// Server and room in the panel, for another app.
+    public static func partyOtherAppDetail(server: String, room: String) -> String {
+        format("party-other-app-detail", fallback: "Server %1$@. Room %2$@.", server, room)
+    }
+
+    /// Name of a member who is this device.
+    public static func partyMemberYou(name: String) -> String {
+        format("party-member-you", fallback: "%1$@ (you)", name)
+    }
+
+    /// Word for you in a sentence about who is not ready.
+    public static var partyYou: String { string("party-you", fallback: "you") }
+
+    /// Short word in the member list: this member is ready.
+    public static var partyMemberReady: String { string("party-member-ready", fallback: "Ready") }
+
+    /// Short word in the member list: this member is not ready.
+    public static var partyMemberNotReady: String { string("party-member-not-ready", fallback: "Not ready") }
+
+    /// Short word in the member list: ready state is not shared.
+    public static var partyMemberNoReadyState: String { string("party-member-no-ready-state", fallback: "No ready state") }
+
+    /// Note on a member who plays another file.
+    public static var partyMemberOtherFile: String { string("party-member-other-file", fallback: "Playing a different file") }
+
+    /// Note on a member who has nothing open.
+    public static var partyMemberNoFile: String { string("party-member-no-file", fallback: "Nothing open yet") }
+
+    /// Line when nobody else is in the room.
+    public static var partyAlone: String { string("party-alone", fallback: "Nobody else is here yet. Send the invite link.") }
+
+    /// Line when everyone is ready.
+    public static var partyAllReady: String { string("party-all-ready", fallback: "Everyone is ready") }
+
+    /// Line when you are the one still to be ready.
+    public static var partyWaitYou: String { string("party-wait-you", fallback: "Play starts once you're ready") }
+
+    /// Line when one other member is still to be ready.
+    public static func partyWaitOne(name: String) -> String {
+        format("party-wait-one", fallback: "Play starts once %1$@ is ready", name)
+    }
+
+    /// Line when two members are still to be ready.
+    public static func partyWaitTwo(first: String, second: String) -> String {
+        format("party-wait-two", fallback: "Play starts once %1$@ and %2$@ are ready", first, second)
+    }
+
+    /// Line when more than two members are still to be ready.
+    public static func partyWaitMany(count: Int) -> String {
+        format("party-wait-many", fallback: "Play starts once %1$lld more are ready", count)
+    }
+
+    /// Connection line while the party reconnects.
+    public static func partyConnectionLost(attempt: Int, of: Int) -> String {
+        format("party-connection-lost", fallback: "Connection lost. Trying again, %1$lld of %2$lld", attempt, of)
+    }
+
+    /// Connection line: encrypted.
+    public static var partyConnectedEncrypted: String { string("party-connected-encrypted", fallback: "Connected, encrypted") }
+
+    /// Connection line: not encrypted.
+    public static var partyConnectedPlain: String { string("party-connected-plain", fallback: "Connected, not encrypted") }
+
+    /// Connection line with the round trip time.
+    public static func partyConnectedLatency(line: String, ms: Int) -> String {
+        format("party-connected-latency", fallback: "%1$@ · %2$lld ms", line, ms)
+    }
+
+    /// Line under the invite link button before any episode plays.
+    public static var partyInviteAfterPlay: String { string("party-invite-after-play", fallback: "The invite link comes once an episode plays.") }
+
+    /// Line under the invite link button.
+    public static var partyInviteDetail: String { string("party-invite-detail", fallback: "It names the room and the episode. Each friend plays it from their own sources.") }
+
+    /// Line shown in the room with nothing playing.
+    public static func partyInRoomIdle(room: String, server: String) -> String {
+        format("party-in-room-idle", fallback: "You're in %1$@ on %2$@, with nothing playing.", room, server)
+    }
+
+    /// Line shown in the room with nothing playing, when the room is unknown.
+    public static var partyInRoomIdlePlain: String { string("party-in-room-idle-plain", fallback: "You're in the room, with nothing playing.") }
+
+    /// Note when an invite link lacks parts.
+    public static var partyLinkIncomplete: String { string("party-link-incomplete", fallback: "That party link is missing its server, room or episode.") }
+
+    /// Note when the link is for the party you are in.
+    public static var partyAlreadyIn: String { string("party-already-in", fallback: "You're already in this watch party.") }
+
+    /// Note after joining on a desktop: where the link is.
+    public static var partyInNote: String { string("party-in-note", fallback: "You're in the watch party. The people button has the invite link.") }
+
+    /// Note after joining in the player: where the link is.
+    public static var partyInNotePlayer: String { string("party-in-note-player", fallback: "You're in the watch party. The people button in the player has the invite link.") }
+
+    /// Note after leaving: playback goes on.
+    public static var partyLeftNote: String { string("party-left-note", fallback: "You left the watch party. What's playing goes on, just for you.") }
+
+    /// Title of the confirmation on closing the app while in a party.
+    public static var partyLeaveTitle: String { string("party-leave-title", fallback: "Leave the watch party?") }
+
+    /// Line under it. The room is a name.
+    public static func partyLeaveDetail(room: String) -> String {
+        format("party-leave-detail", fallback: "Closing anistream leaves %1$@. Everyone else carries on without you.", room)
+    }
+
+    /// Title when the user has installed no source.
+    public static var partyNosourceNoneTitle: String { string("party-nosource-none-title", fallback: "You have no sources yet") }
+
+    /// Line under it.
+    public static func partyNosourceNoneDetail(what: String) -> String {
+        format("party-nosource-none-detail", fallback: "Sources come from plugins, which a plugin store adds. %1$@ plays with the room once one of them has it.", what)
+    }
+
+    /// Title when no source has the episode.
+    public static var partyNosourceMissingTitle: String { string("party-nosource-missing-title", fallback: "None of your sources has this episode") }
+
+    /// Line under it. The reason is a sentence without its full stop.
+    public static func partyNosourceMissingDetail(why: String, what: String) -> String {
+        format("party-nosource-missing-detail", fallback: "%1$@. %2$@ plays with the room once you choose a source that has it.", why, what)
+    }
+
+    /// Line under a title that says the episode has not aired.
+    public static func partyNosourceUnaired(episode: Int) -> String {
+        format("party-nosource-unaired", fallback: "Your sources won't have episode %1$lld before it's out.", episode)
+    }
+
+    /// Line under a title that says the episode has not aired and no date is known.
+    public static var partyNosourceUnairedPlain: String { string("party-nosource-unaired-plain", fallback: "Your sources won't have it before then. It plays with the room once one of them does.") }
+
+    /// Line over the list of sources that list the episode.
+    public static func partySourcesFound(count: Int) -> String {
+        format("party-sources-found", fallback: "%1$lld sources have it", count)
+    }
+
+    /// Accessibility label of the list of sources for the episode.
+    public static var partySourcesLabel: String { string("party-sources-label", fallback: "Sources for this episode") }
+
+    /// Line of a source: its quality and size already formatted, and the number of seeders.
+    public static func partySourceSeeders(seeders: Int) -> String {
+        format("party-source-seeders", fallback: "%1$lld seeders", seeders)
+    }
+
     /// Label on the card for the episode that plays after this one.
     public static var playerUpNext: String { string("player-up-next", fallback: "Up next") }
 
     /// Label before the name of the work a show is based on.
     public static var titleBasedOn: String { string("title-based-on", fallback: "Based on") }
+
+    /// Line on the starting screen, from the moment the player is asked to play until the first frame.
+    public static func playerStarting(episode: Int) -> String {
+        format("player-starting", fallback: "Starting episode %1$lld", episode)
+    }
+
+    /// Line on the starting screen after a few seconds: the app is looking for a stream.
+    public static func playerFindingSource(seconds: Int) -> String {
+        format("player-finding-source", fallback: "Finding a source · %1$lld s", seconds)
+    }
+
+    /// Same line before the wait is counted.
+    public static var playerFindingSourcePlain: String { string("player-finding-source-plain", fallback: "Finding a source") }
+
+    /// Title of the card shown when an episode could not play.
+    public static func playerFailedTitle(episode: Int) -> String {
+        format("player-failed-title", fallback: "Couldn't play episode %1$lld", episode)
+    }
+
+    /// Line under the failure title when every { -source } was tried.
+    public static var playerFailedDetail: String { string("player-failed-detail", fallback: "No source had a stream that played. Try another.") }
+
+    /// Line when nothing is installed to play from.
+    public static var playerFailedNoSources: String { string("player-failed-no-sources", fallback: "No sources yet. Add a plugin store to play.") }
+
+    /// Button that opens the { -source } picker.
+    public static var playerChooseSource: String { string("player-choose-source", fallback: "Choose source") }
+
+    /// Button on the failure card of the TV: offers a different { -source }.
+    public static var playerChooseAnotherSource: String { string("player-choose-another-source", fallback: "Choose another source") }
+
+    /// Button that adds a { -plugin-store } when there are no { -source-pl }.
+    public static var playerAddPluginStore: String { string("player-add-plugin-store", fallback: "Add a plugin store") }
+
+    /// Short word while the video buffers.
+    public static var playerBuffering: String { string("player-buffering", fallback: "Buffering") }
+
+    /// Title of the stall card. The seconds count up.
+    public static func playerStallTitle(seconds: Int) -> String {
+        format("player-stall-title", fallback: "Source is buffering · %1$lld s", seconds)
+    }
+
+    /// Line under the stall title.
+    public static var playerStallDetail: String { string("player-stall-detail", fallback: "Another stream may play without waiting.") }
+
+    /// Button on the stall card that moves to another { -source }.
+    public static var playerSwitchSource: String { string("player-switch-source", fallback: "Switch source") }
+
+    /// Button on the stall card that keeps waiting.
+    public static var playerKeepWaiting: String { string("player-keep-waiting", fallback: "Keep waiting") }
+
+    /// Line on the Up next card: the episode starts when the count ends.
+    public static func playerPlaysIn(seconds: Int) -> String {
+        format("player-plays-in", fallback: "Plays in %1$lld s", seconds)
+    }
+
+    /// Button that skips the opening.
+    public static var playerSkipOpening: String { string("player-skip-opening", fallback: "Skip opening") }
+
+    /// Button that skips the ending.
+    public static var playerSkipEnding: String { string("player-skip-ending", fallback: "Skip ending") }
+
+    /// Note after the opening was skipped by itself.
+    public static var playerSkippedOpening: String { string("player-skipped-opening", fallback: "Skipped opening") }
+
+    /// Note after the ending was skipped by itself.
+    public static var playerSkippedEnding: String { string("player-skipped-ending", fallback: "Skipped ending") }
+
+    /// Note at the top of the video after it resumed where it stopped.
+    public static func playerResumedAt(clock: String) -> String {
+        format("player-resumed-at", fallback: "Resumed at %1$@", clock)
+    }
+
+    /// Button beside the resume note that plays from the start.
+    public static var playerStartOver: String { string("player-start-over", fallback: "Start over") }
+
+    /// Title of the card that asks whether anyone is still there.
+    public static var playerStillWatching: String { string("player-still-watching", fallback: "Still watching?") }
+
+    /// Line under the still-watching title.
+    public static func playerStillWatchingDetail(count: Int) -> String {
+        format("player-still-watching-detail", fallback: "Paused after %1$lld episodes in a row.", count)
+    }
+
+    /// Button on the still-watching card that goes on.
+    public static var playerStillWatchingContinue: String { string("player-still-watching-continue", fallback: "Continue watching") }
+
+    /// Line on the TV player: when the episode ends. The time is already formatted.
+    public static func playerEndsAt(time: String) -> String {
+        format("player-ends-at", fallback: "Ends at %1$@", time)
+    }
+
+    /// Accessibility label and tooltip: go back ten seconds.
+    public static var playerBack10: String { string("player-back-10", fallback: "Back 10 seconds") }
+
+    /// Accessibility label and tooltip: go forward ten seconds.
+    public static var playerForward10: String { string("player-forward-10", fallback: "Forward 10 seconds") }
+
+    /// Accessibility label of the seek bar.
+    public static var playerPosition: String { string("player-position", fallback: "Position") }
+
+    /// Accessibility label of the volume control.
+    public static var playerVolume: String { string("player-volume", fallback: "Volume") }
+
+    /// Note on screen after the volume changed. The number is a percentage.
+    public static func playerVolumeLevel(percent: String) -> String {
+        format("player-volume-level", fallback: "Volume %1$@", percent)
+    }
+
+    /// Note on screen while the sound is off.
+    public static var playerMuted: String { string("player-muted", fallback: "Muted") }
+
+    /// Button and menu for the playback speed.
+    public static var playerSpeed: String { string("player-speed", fallback: "Speed") }
+
+    /// Accessibility label of the speed control, with the speed now.
+    public static func playerSpeedIs(speed: String) -> String {
+        format("player-speed-is", fallback: "Playback speed, %1$@", speed)
+    }
+
+    /// Menu item that goes back to the normal speed.
+    public static var playerSpeedNormal: String { string("player-speed-normal", fallback: "Normal speed") }
+
+    /// Menu item that slows playback down.
+    public static var playerSlower: String { string("player-slower", fallback: "Slower") }
+
+    /// Menu item that speeds playback up.
+    public static var playerFaster: String { string("player-faster", fallback: "Faster") }
+
+    /// Button and sheet for the subtitle tracks.
+    public static var playerSubtitles: String { string("player-subtitles", fallback: "Subtitles") }
+
+    /// Button and sheet for the audio tracks.
+    public static var playerAudio: String { string("player-audio", fallback: "Audio") }
+
+    /// Button that opens subtitles and audio together.
+    public static var playerSubtitlesAndAudio: String { string("player-subtitles-and-audio", fallback: "Subtitles and audio") }
+
+    /// Title of the phone sheet with subtitles, audio and the picture options.
+    public static var playerSubtitlesAudioPicture: String { string("player-subtitles-audio-picture", fallback: "Subtitles, audio and picture") }
+
+    /// Heading and menu item for the picture options.
+    public static var playerPictureAndSound: String { string("player-picture-and-sound", fallback: "Picture and sound") }
+
+    /// Button that opens the episode list.
+    public static var playerEpisodes: String { string("player-episodes", fallback: "Episodes") }
+
+    /// Button that opens the player's information on the TV.
+    public static var playerInfo: String { string("player-info", fallback: "Info") }
+
+    /// Button that plays the next episode.
+    public static var playerNextEpisode: String { string("player-next-episode", fallback: "Next episode") }
+
+    /// Button that plays the previous episode.
+    public static var playerPreviousEpisode: String { string("player-previous-episode", fallback: "Previous episode") }
+
+    /// Row and menu item for the upscaling setting.
+    public static var playerUpscaling: String { string("player-upscaling", fallback: "Upscaling") }
+
+    /// Row and menu item for the night mode setting.
+    public static var playerNightMode: String { string("player-night-mode", fallback: "Night mode") }
+
+    /// Note under night mode: what it does.
+    public static var playerNightModeDetail: String { string("player-night-mode-detail", fallback: "Quiet parts louder, loud parts quieter") }
+
+    /// Note under the track pickers: choices are kept per show.
+    public static var playerRemembered: String { string("player-remembered", fallback: "Remembered for this show") }
+
+    /// Button that shows the video over other windows.
+    public static var playerPictureInPicture: String { string("player-picture-in-picture", fallback: "Picture in picture") }
+
+    /// Button that fills the screen with the video.
+    public static var playerFullscreen: String { string("player-fullscreen", fallback: "Full screen") }
+
+    /// Button that shrinks the player to a small window.
+    public static var playerMiniPlayer: String { string("player-mini-player", fallback: "Mini player") }
+
+    /// Button on the mini player that brings the full window back.
+    public static var playerMiniBack: String { string("player-mini-back", fallback: "Back to the full window") }
+
+    /// Accessibility label of the button that closes the player.
+    public static var playerClose: String { string("player-close", fallback: "Close player") }
+
+    /// Tooltip of the gear button that opens the playback options.
+    public static var playerPlaybackSettings: String { string("player-playback-settings", fallback: "Playback settings") }
+
+    /// Button that opens the statistics panel.
+    public static var playerStats: String { string("player-stats", fallback: "Stats for nerds") }
+
+    /// Line in the statistics panel before the stream has started.
+    public static var playerStatsWaiting: String { string("player-stats-waiting", fallback: "Waiting for the stream") }
+
+    /// Accessibility label of the button that closes the statistics panel.
+    public static var playerStatsClose: String { string("player-stats-close", fallback: "Close stats for nerds") }
+
+    /// Title over the statistics numbers.
+    public static var playerStatsHeading: String { string("player-stats-heading", fallback: "Stats") }
+
+    /// Button that copies the statistics.
+    public static var playerStatsCopy: String { string("player-stats-copy", fallback: "Copy stats") }
+
+    /// Notice when the statistics could not be copied.
+    public static var playerStatsCopyFailed: String { string("player-stats-copy-failed", fallback: "Couldn't copy the stats. Try again.") }
+
+    /// Menu item that loads a subtitle file from disk.
+    public static var playerLoadSubtitleFile: String { string("player-load-subtitle-file", fallback: "Load subtitle file…") }
+
+    /// Menu item that loads an audio file from disk.
+    public static var playerLoadAudioFile: String { string("player-load-audio-file", fallback: "Load audio file…") }
+
+    /// Notice when the file chooser could not open.
+    public static var playerFilePickerFailed: String { string("player-file-picker-failed", fallback: "Couldn't open the file chooser. Try again.") }
+
+    /// Notice when a chosen subtitle file could not be loaded.
+    public static var playerSubtitleFileFailed: String { string("player-subtitle-file-failed", fallback: "Couldn't load that subtitle file. Check that it is a subtitle file.") }
+
+    /// Notice when a chosen audio file could not be loaded.
+    public static var playerAudioFileFailed: String { string("player-audio-file-failed", fallback: "Couldn't load that audio file. Check that it is an audio file.") }
+
+    /// Name of a track that has no name or language.
+    public static var playerTrackUnnamed: String { string("player-track-unnamed", fallback: "Unnamed track") }
+
+    /// Name of an audio track the file does not describe.
+    public static func playerAudioTrackN(id: Int) -> String {
+        format("player-audio-track-n", fallback: "Audio %1$lld", id)
+    }
+
+    /// Name of a subtitle track the file does not describe.
+    public static func playerSubtitleTrackN(id: Int) -> String {
+        format("player-subtitle-track-n", fallback: "Subtitles %1$lld", id)
+    }
+
+    /// Line in the track list before the file has told which tracks it has.
+    public static var playerNoTracks: String { string("player-no-tracks", fallback: "No tracks yet") }
+
+    /// Line while the picker looks for streams.
+    public static var sourcePickerFinding: String { string("source-picker-finding", fallback: "Finding sources…") }
+
+    /// Line when the picker found no stream for the episode.
+    public static var sourcePickerEmpty: String { string("source-picker-empty", fallback: "No source has a stream for this episode.") }
+
+    /// Title of the picker sheet in the player.
+    public static var playerSources: String { string("player-sources", fallback: "Sources") }
+
+    /// Button that shows the season before.
+    public static var seasonalPrevious: String { string("seasonal-previous", fallback: "Previous season") }
+
+    /// Button that shows the season after.
+    public static var seasonalNext: String { string("seasonal-next", fallback: "Next season") }
+
+    /// Short line while a season loads.
+    public static var seasonalLoading: String { string("seasonal-loading", fallback: "Loading this season") }
+
+    /// Title of the state when a season could not load.
+    public static var seasonalLoadFailed: String { string("seasonal-load-failed", fallback: "Couldn't load this season") }
+
+    /// Title of the state when a season lists no titles. The season is already worded.
+    public static func seasonalEmptyTitle(season: String) -> String {
+        format("seasonal-empty-title", fallback: "Nothing listed for %1$@ yet", season)
+    }
+
+    /// Line under the empty season title.
+    public static var seasonalEmptyDetail: String { string("seasonal-empty-detail", fallback: "AniList adds a season's titles as they're announced.") }
+
+    /// Title of the state when the chosen format has no titles this season.
+    public static var seasonalEmptyFormat: String { string("seasonal-empty-format", fallback: "No titles in this format") }
+
+    /// Line under the empty format title.
+    public static var seasonalEmptyFormatDetail: String { string("seasonal-empty-format-detail", fallback: "Try all formats.") }
+
+    /// Button that opens the season in Search, where filters narrow it.
+    public static var seasonalFilterInSearch: String { string("seasonal-filter-in-search", fallback: "Filter in Search") }
+
+    /// Tooltip of the Filter in Search button.
+    public static var seasonalFilterHelp: String { string("seasonal-filter-help", fallback: "This season in Search, where every filter narrows it") }
+
+    /// Sort option on Seasonal and Search: most popular first.
+    public static var sortPopularity: String { string("sort-popularity", fallback: "Popularity") }
+
+    /// Sort option on Seasonal and Search: highest score first.
+    public static var sortScore: String { string("sort-score", fallback: "Score") }
+
+    /// Sort option on Seasonal: by the day of the week the show airs.
+    public static var sortAirDay: String { string("sort-air-day", fallback: "Air day") }
+
+    /// Sort option on Search: best match for the words typed.
+    public static var sortRelevance: String { string("sort-relevance", fallback: "Relevance") }
+
+    /// Button showing the current sort order.
+    public static func sortButton(sort: String) -> String {
+        format("sort-button", fallback: "Sort: %1$@", sort)
+    }
+
+    /// Accessibility label of the sort button.
+    public static func sortLabel(sort: String) -> String {
+        format("sort-label", fallback: "Sort by %1$@", sort)
+    }
+
+    /// Placeholder of the search field.
+    public static var searchPlaceholder: String { string("search-placeholder", fallback: "Search titles") }
+
+    /// Accessibility label of the button that empties the search field.
+    public static var searchClear: String { string("search-clear", fallback: "Clear search") }
+
+    /// Row under the field while a search runs. The query is what the person typed.
+    public static func searchSearching(query: String) -> String {
+        format("search-searching", fallback: "Searching for “%1$@”", query)
+    }
+
+    /// Heading over the results of a search.
+    public static func searchResultsFor(query: String) -> String {
+        format("search-results-for", fallback: "Results for “%1$@”", query)
+    }
+
+    /// Heading over the titles shown when nothing was typed.
+    public static var searchBrowse: String { string("search-browse", fallback: "Browse") }
+
+    /// Title of the state when a search finds nothing.
+    public static func searchNothingFound(query: String) -> String {
+        format("search-nothing-found", fallback: "Nothing found for “%1$@”", query)
+    }
+
+    /// Line under the title when a search finds nothing.
+    public static var searchNothingFoundDetail: String { string("search-nothing-found-detail", fallback: "Check the spelling, or try the English or Japanese title.") }
+
+    /// Title of the state when filters leave nothing.
+    public static var searchNothingWithFilters: String { string("search-nothing-with-filters", fallback: "Nothing found with these filters") }
+
+    /// Title of the state when a search and its filters leave nothing.
+    public static func searchNothingFoundWithFilters(query: String) -> String {
+        format("search-nothing-found-with-filters", fallback: "Nothing found for “%1$@” with these filters", query)
+    }
+
+    /// Line under a state that filters emptied.
+    public static var searchTryFewerFilters: String { string("search-try-fewer-filters", fallback: "Try fewer filters.") }
+
+    /// Button that removes every filter.
+    public static var searchClearFilters: String { string("search-clear-filters", fallback: "Clear filters") }
+
+    /// Title of the state when a search failed.
+    public static var searchFailed: String { string("search-failed", fallback: "Couldn't search") }
+
+    /// Title of the state when search needs a connection and there is none.
+    public static var searchNeedsConnection: String { string("search-needs-connection", fallback: "Search needs a connection") }
+
+    /// Line when the search service does not answer.
+    public static var searchUnreachable: String { string("search-unreachable", fallback: "Search isn't reachable right now. Try again in a minute.") }
+
+    /// Heading over the searches a person made lately.
+    public static var searchRecent: String { string("search-recent", fallback: "Recent searches") }
+
+    /// Accessibility label of the button that forgets one recent search.
+    public static func searchRecentRemove(query: String) -> String {
+        format("search-recent-remove", fallback: "Remove %1$@", query)
+    }
+
+    /// Button that shows every title in a group.
+    public static var searchSeeAll: String { string("search-see-all", fallback: "See all") }
+
+    /// Heading over the genre shortcuts.
+    public static var searchGenres: String { string("search-genres", fallback: "Genres") }
+
+    /// Line while more results load at the end of a list.
+    public static var searchLoadingMore: String { string("search-loading-more", fallback: "Loading more titles") }
+
+    /// Title of the filters sheet and panel.
+    public static var filtersTitle: String { string("filters-title", fallback: "Filters") }
+
+    /// Button that opens the filters, with how many are on.
+    public static func filtersButtonCount(count: Int) -> String {
+        format("filters-button-count", fallback: "All filters · %1$lld", count)
+    }
+
+    /// Button that opens the filters when none is on.
+    public static var filtersButton: String { string("filters-button", fallback: "All filters") }
+
+    /// Filter name.
+    public static var filterGenre: String { string("filter-genre", fallback: "Genre") }
+
+    /// Filter name, and the heading over the genre choices.
+    public static var filterGenres: String { string("filter-genres", fallback: "Genres") }
+
+    /// Filter name.
+    public static var filterYear: String { string("filter-year", fallback: "Year") }
+
+    /// Filter name.
+    public static var filterSeason: String { string("filter-season", fallback: "Season") }
+
+    /// Filter name.
+    public static var filterFormat: String { string("filter-format", fallback: "Format") }
+
+    /// Filter name.
+    public static var filterStatus: String { string("filter-status", fallback: "Status") }
+
+    /// Filter name: how long a show is, in episodes.
+    public static var filterLength: String { string("filter-length", fallback: "Length") }
+
+    /// Filter name: the number of episodes.
+    public static var filterEpisodes: String { string("filter-episodes", fallback: "Episodes") }
+
+    /// Filter name: the length of one episode.
+    public static var filterEpisodeLength: String { string("filter-episode-length", fallback: "Episode length") }
+
+    /// Filter group: how well a show was received.
+    public static var filterReception: String { string("filter-reception", fallback: "Reception") }
+
+    /// Filter name: a show's minimum score.
+    public static var filterScoreAtLeast: String { string("filter-score-at-least", fallback: "Score at least") }
+
+    /// Filter name: hides titles few people rated.
+    public static var filterHideObscure: String { string("filter-hide-obscure", fallback: "Hide obscure titles") }
+
+    /// Filter group: where a show comes from.
+    public static var filterOrigin: String { string("filter-origin", fallback: "Origin") }
+
+    /// Filter name: the country a show was made in.
+    public static var filterCountry: String { string("filter-country", fallback: "Country") }
+
+    /// Filter name: when a show came out.
+    public static var filterReleased: String { string("filter-released", fallback: "Released") }
+
+    /// Filter group: where a show can be watched.
+    public static var filterWhereToWatch: String { string("filter-where-to-watch", fallback: "Where to watch") }
+
+    /// Filter name: only shows with a legal licence.
+    public static var filterLicensedOnly: String { string("filter-licensed-only", fallback: "Licensed only") }
+
+    /// Filter name: how titles already on the person's list are treated.
+    public static var filterMyList: String { string("filter-my-list", fallback: "Titles on my list") }
+
+    /// Value of a three-way filter: include the titles.
+    public static var filterShow: String { string("filter-show", fallback: "Show") }
+
+    /// Value of a three-way filter: leave the titles out.
+    public static var filterHide: String { string("filter-hide", fallback: "Hide") }
+
+    /// Value of a three-way filter: only the titles.
+    public static var filterOnly: String { string("filter-only", fallback: "Only") }
+
+    /// Note under the filters that tells results change as the person picks.
+    public static var filterLiveNote: String { string("filter-live-note", fallback: "Results update as you change these.") }
+
+    /// Filter group: tags.
+    public static var filterTags: String { string("filter-tags", fallback: "Tags") }
+
+    /// Placeholder of the field that finds a tag.
+    public static var filterTagFind: String { string("filter-tag-find", fallback: "Find a tag") }
+
+    /// Line when no tag matches what was typed.
+    public static var filterTagNone: String { string("filter-tag-none", fallback: "No tag has that in its name") }
+
+    /// Filter name: how closely a tag must fit a show.
+    public static func filterTagRank(rank: String) -> String {
+        format("filter-tag-rank", fallback: "Tag rank at least %1$@", rank)
+    }
+
+    /// Switch that shows tags that give away the story.
+    public static var filterSpoilerTags: String { string("filter-spoiler-tags", fallback: "Show spoiler tags") }
+
+    /// Choice meaning no genre filter.
+    public static var filterAnyGenre: String { string("filter-any-genre", fallback: "Any genre") }
+
+    /// Choice meaning no year filter.
+    public static var filterAnyYear: String { string("filter-any-year", fallback: "Any year") }
+
+    /// Choice meaning no season filter.
+    public static var filterAnySeason: String { string("filter-any-season", fallback: "Any season") }
+
+    /// Choice meaning no format filter.
+    public static var filterAnyFormat: String { string("filter-any-format", fallback: "Any format") }
+
+    /// Choice meaning no status filter.
+    public static var filterAnyStatus: String { string("filter-any-status", fallback: "Any status") }
+
+    /// Choice meaning every format on Seasonal.
+    public static var filterAllFormats: String { string("filter-all-formats", fallback: "All formats") }
+
+    /// Note on the season filter while no year is chosen.
+    public static var filterSeasonPickYear: String { string("filter-season-pick-year", fallback: "Choose a year first") }
+
+    /// Choice in the year range: up to a year.
+    public static func filterYearsUpTo(year: String) -> String {
+        format("filter-years-up-to", fallback: "Up to %1$@", year)
+    }
+
+    /// State of a genre or tag in a filter: it must be there.
+    public static var filterIncluded: String { string("filter-included", fallback: "Included") }
+
+    /// State of a genre or tag in a filter: it must not be there.
+    public static var filterLeftOut: String { string("filter-left-out", fallback: "Left out") }
+
+    /// Hint on a genre or tag on a touch screen.
+    public static var filterHintTouch: String { string("filter-hint-touch", fallback: "Tap once to include, twice to leave out.") }
+
+    /// Hint on a genre or tag on the TV, where a remote presses. Only the Android TV app shows it.
+    public static var filterHintRemote: String { string("filter-hint-remote", fallback: "Press once to include, twice to leave out.") }
+
+    /// Accessibility label of the button that removes one filter.
+    public static func filterRemove(filter: String) -> String {
+        format("filter-remove", fallback: "Remove %1$@", filter)
+    }
 
     /// Settings group and row title for choosing a language.
     public static var settingsLanguage: String { string("settings-language", fallback: "Language") }
@@ -971,6 +2790,339 @@ public enum L {
 
     /// Value of the audio setting: translated audio.
     public static var audioDubbed: String { string("audio-dubbed", fallback: "Dubbed") }
+
+    /// Heading of the settings screen.
+    public static var settingsTitle: String { string("settings-title", fallback: "Settings") }
+
+    /// Group heading.
+    public static var settingsGroupGeneral: String { string("settings-group-general", fallback: "General") }
+
+    /// Group heading.
+    public static var settingsGroupTitles: String { string("settings-group-titles", fallback: "Titles") }
+
+    /// Group heading.
+    public static var settingsGroupPlayback: String { string("settings-group-playback", fallback: "Playback") }
+
+    /// Group heading.
+    public static var settingsGroupWatching: String { string("settings-group-watching", fallback: "Watching") }
+
+    /// Group heading.
+    public static var settingsGroupPlayer: String { string("settings-group-player", fallback: "Player") }
+
+    /// Group heading.
+    public static var settingsGroupPicture: String { string("settings-group-picture", fallback: "Picture") }
+
+    /// Group heading.
+    public static var settingsGroupFiles: String { string("settings-group-files", fallback: "Files") }
+
+    /// Group heading.
+    public static var settingsGroupAhead: String { string("settings-group-ahead", fallback: "Ahead") }
+
+    /// Group heading.
+    public static var settingsGroupNotifications: String { string("settings-group-notifications", fallback: "Notifications") }
+
+    /// Group heading.
+    public static var settingsGroupIntegrations: String { string("settings-group-integrations", fallback: "Integrations") }
+
+    /// Group heading.
+    public static var settingsGroupAdvanced: String { string("settings-group-advanced", fallback: "Advanced") }
+
+    /// Group heading.
+    public static var settingsGroupStorage: String { string("settings-group-storage", fallback: "Storage") }
+
+    /// Group heading.
+    public static var settingsGroupEpisodes: String { string("settings-group-episodes", fallback: "Episodes") }
+
+    /// Row: how titles are written.
+    public static var settingsTitleLanguage: String { string("settings-title-language", fallback: "Title language") }
+
+    /// Option: use the tracker's own choice. The tracker is a name.
+    public static func settingsTitleTracker(tracker: String) -> String {
+        format("settings-title-tracker", fallback: "%1$@'s choice", tracker)
+    }
+
+    /// Option: English titles.
+    public static var settingsTitleEnglish: String { string("settings-title-english", fallback: "English") }
+
+    /// Option: Japanese titles in Latin letters.
+    public static var settingsTitleRomaji: String { string("settings-title-romaji", fallback: "Romaji") }
+
+    /// Option: Japanese titles in Japanese.
+    public static var settingsTitleNative: String { string("settings-title-native", fallback: "Native") }
+
+    /// Row: show adult titles.
+    public static var settingsAdult: String { string("settings-adult", fallback: "Show adult titles") }
+
+    /// Line under it. The tracker is a name.
+    public static func settingsAdultDetail(tracker: String) -> String {
+        format("settings-adult-detail", fallback: "Titles %1$@ marks adult, in Search and Seasonal", tracker)
+    }
+
+    /// Row: quality.
+    public static var settingsQuality: String { string("settings-quality", fallback: "Quality") }
+
+    /// Row: play the next episode on its own.
+    public static var settingsAutoPlay: String { string("settings-auto-play", fallback: "Auto-play next") }
+
+    /// Row: length of the Up next countdown.
+    public static var settingsUpNextCountdown: String { string("settings-up-next-countdown", fallback: "Up next countdown") }
+
+    /// Row: skip the opening.
+    public static var settingsSkipOpening: String { string("settings-skip-opening", fallback: "Skip opening automatically") }
+
+    /// Row: skip filler.
+    public static var settingsSkipFiller: String { string("settings-skip-filler", fallback: "Skip filler automatically") }
+
+    /// Row: mark the opening and ending.
+    public static var settingsMarkOpening: String { string("settings-mark-opening", fallback: "Mark opening and ending") }
+
+    /// Row: show the skip button.
+    public static var settingsSkipButton: String { string("settings-skip-button", fallback: "Show skip button") }
+
+    /// Line under it.
+    public static var settingsSkipButtonDetail: String { string("settings-skip-button-detail", fallback: "While the opening or ending plays, when it isn't skipped automatically") }
+
+    /// Row: when an episode counts as watched.
+    public static var settingsCountsWatched: String { string("settings-counts-watched", fallback: "Counts as watched at") }
+
+    /// Line under it.
+    public static var settingsCountsWatchedDetail: String { string("settings-counts-watched-detail", fallback: "Or when the ending starts, if it is marked") }
+
+    /// Row: spoiler protection.
+    public static var settingsSpoiler: String { string("settings-spoiler", fallback: "Spoiler protection") }
+
+    /// Line under it.
+    public static var settingsSpoilerDetail: String { string("settings-spoiler-detail", fallback: "Blurs stills of unwatched episodes after the next one") }
+
+    /// Line under the audio row.
+    public static var settingsAudioDetail: String { string("settings-audio-detail", fallback: "Each show remembers its own audio and subtitles.") }
+
+    /// Row: follow the system's caption style.
+    public static var settingsSystemCaptions: String { string("settings-system-captions", fallback: "Follow system caption style") }
+
+    /// Line under it.
+    public static var settingsSystemCaptionsDetail: String { string("settings-system-captions-detail", fallback: "Plain subtitles use your caption preferences from Accessibility. Styled subtitles keep their own look.") }
+
+    /// Line: how many shows override a setting.
+    public static func settingsOverridden(count: Int) -> String {
+        format("settings-overridden", fallback: "Overridden for %1$lld shows", count)
+    }
+
+    /// Row: new downloads.
+    public static var settingsNewDownloads: String { string("settings-new-downloads", fallback: "New downloads") }
+
+    /// Row: keep the next episodes.
+    public static var settingsKeepNext: String { string("settings-keep-next", fallback: "Keep next episodes") }
+
+    /// Line under it.
+    public static var settingsKeepNextDetail: String { string("settings-keep-next-detail", fallback: "Downloads the episodes after the one you are on, for each show you watch") }
+
+    /// Row: merge subtitles into the file.
+    public static var settingsMergeSubtitles: String { string("settings-merge-subtitles", fallback: "Merge subtitles in") }
+
+    /// Row: keep seeding.
+    public static var settingsKeepSeeding: String { string("settings-keep-seeding", fallback: "Keep seeding") }
+
+    /// Row: download only on Wi-Fi.
+    public static var settingsWifiOnly: String { string("settings-wifi-only", fallback: "Wi-Fi only") }
+
+    /// Line under it.
+    public static var settingsWifiOnlyDetail: String { string("settings-wifi-only-detail", fallback: "Downloads wait for Wi-Fi") }
+
+    /// Row: torrents on a mobile connection.
+    public static var settingsTorrentsCellular: String { string("settings-torrents-cellular", fallback: "Torrents on cellular") }
+
+    /// Row: seeding after watching.
+    public static var settingsSeedAfter: String { string("settings-seed-after", fallback: "Seed after watching") }
+
+    /// Row: longest time to seed.
+    public static var settingsSeedFor: String { string("settings-seed-for", fallback: "Seed for at most") }
+
+    /// Row: upload limit.
+    public static var settingsUploadLimit: String { string("settings-upload-limit", fallback: "Upload limit") }
+
+    /// Value: nothing set yet.
+    public static var settingsNoneYet: String { string("settings-none-yet", fallback: "None yet") }
+
+    /// Value: nothing set.
+    public static var settingsNotSet: String { string("settings-not-set", fallback: "Not set") }
+
+    /// Value: no store joined.
+    public static var settingsNoneJoined: String { string("settings-none-joined", fallback: "None joined") }
+
+    /// Row: edit the proxy.
+    public static var settingsEditProxy: String { string("settings-edit-proxy", fallback: "Edit proxy…") }
+
+    /// Row: Discord presence.
+    public static var settingsDiscord: String { string("settings-discord", fallback: "Discord") }
+
+    /// Row: Discord presence on Apple.
+    public static var settingsDiscordPresence: String { string("settings-discord-presence", fallback: "Discord presence") }
+
+    /// Row: choose a folder.
+    public static var settingsChoose: String { string("settings-choose", fallback: "Choose…") }
+
+    /// Row: show the file in the file manager.
+    public static var settingsShowInFiles: String { string("settings-show-in-files", fallback: "Show in Files") }
+
+    /// Row: check for updates.
+    public static var settingsCheckUpdates: String { string("settings-check-updates", fallback: "Check for updates") }
+
+    /// Row: privacy.
+    public static var settingsPrivacy: String { string("settings-privacy", fallback: "Privacy") }
+
+    /// Line under it.
+    public static var settingsPrivacyDetail: String { string("settings-privacy-detail", fallback: "What anistream sends, and what stays on this device") }
+
+    /// Row: typefaces.
+    public static var settingsTypefaces: String { string("settings-typefaces", fallback: "Typefaces") }
+
+    /// Row: libraries used.
+    public static var settingsLibraries: String { string("settings-libraries", fallback: "Libraries") }
+
+    /// Line under the update row on desktop about page, the build cannot update.
+    public static var settingsNotices: String { string("settings-notices", fallback: "Notices") }
+
+    /// Line about the artwork licence.
+    public static var settingsArtwork: String { string("settings-artwork", fallback: "Artwork under CC BY-NC") }
+
+    /// Line under it.
+    public static var settingsArtworkDetail: String { string("settings-artwork-detail", fallback: "Attribution in the app's notices") }
+
+    /// Heading and row for notifications of new episodes.
+    public static var settingsNewEpisodes: String { string("settings-new-episodes", fallback: "New episodes") }
+
+    /// Line under it.
+    public static var settingsNewEpisodesDetail: String { string("settings-new-episodes-detail", fallback: "For shows in your Watching list") }
+
+    /// Line explaining what a notification says.
+    public static var settingsNotifyDetail: String { string("settings-notify-detail", fallback: "One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.") }
+
+    /// Row: the coming-up digest.
+    public static var settingsComingUp: String { string("settings-coming-up", fallback: "Coming up · next 7 days") }
+
+    /// Row: the system's notification settings.
+    public static var settingsSystemNotifications: String { string("settings-system-notifications", fallback: "Notification settings") }
+
+    /// Line under it on Android.
+    public static var settingsSystemNotificationsDetail: String { string("settings-system-notifications-detail", fallback: "Sound, vibration and the lock screen") }
+
+    /// Line under it on Apple.
+    public static var settingsSystemNotificationsApple: String { string("settings-system-notifications-apple", fallback: "Opens System Settings, where the banner style, sound and badges are set.") }
+
+    /// Line when the system blocks notifications.
+    public static var settingsNotificationsBlocked: String { string("settings-notifications-blocked", fallback: "Off: the system isn't allowing notifications for anistream") }
+
+    /// Line when the show turned notifications on.
+    public static var settingsNotificationsShowOn: String { string("settings-notifications-show-on", fallback: "On in this show's settings") }
+
+    /// Line on the show settings: when an episode comes out.
+    public static var settingsNotifyShow: String { string("settings-notify-show", fallback: "When an episode of this show comes out") }
+
+    /// Title of the sheet.
+    public static var showSettingsTitle: String { string("show-settings-title", fallback: "Settings for this show") }
+
+    /// Group heading.
+    public static var showSettingsAudioSubtitles: String { string("show-settings-audio-subtitles", fallback: "Audio and subtitles") }
+
+    /// Row.
+    public static var showSettingsSkipOpening: String { string("show-settings-skip-opening", fallback: "Skip opening") }
+
+    /// Row.
+    public static var showSettingsSkipFiller: String { string("show-settings-skip-filler", fallback: "Skip filler") }
+
+    /// Option: blur stills ahead.
+    public static var showSettingsBlurAhead: String { string("show-settings-blur-ahead", fallback: "Blur stills ahead") }
+
+    /// Option: show everything.
+    public static var showSettingsShowEverything: String { string("show-settings-show-everything", fallback: "Show everything") }
+
+    /// Line under spoiler protection.
+    public static var showSettingsSpoilerDetail: String { string("show-settings-spoiler-detail", fallback: "Blurs stills after the next episode.") }
+
+    /// Option: always.
+    public static var showSettingsAlways: String { string("show-settings-always", fallback: "Always") }
+
+    /// Option: never.
+    public static var showSettingsNever: String { string("show-settings-never", fallback: "Never") }
+
+    /// Line under the subtitles row.
+    public static var showSettingsSubsRemembered: String { string("show-settings-subs-remembered", fallback: "Remembered from your last episode.") }
+
+    /// Line under the subtitles row, when nothing is remembered.
+    public static var showSettingsSubsFollow: String { string("show-settings-subs-follow", fallback: "Chosen in the player. Following Settings › Playback.") }
+
+    /// Row: the source for this show.
+    public static var showSettingsSource: String { string("show-settings-source", fallback: "Source") }
+
+    /// Line under it.
+    public static var showSettingsSourceDetail: String { string("show-settings-source-detail", fallback: "Automatic tries your sources in order.") }
+
+    /// Button that resets the show.
+    public static var showSettingsReset: String { string("show-settings-reset", fallback: "Reset to defaults") }
+
+    /// Line under it.
+    public static var showSettingsResetDetail: String { string("show-settings-reset-detail", fallback: "Also clears the remembered audio and subtitles.") }
+
+    /// Line when nothing is set.
+    public static var showSettingsNothing: String { string("show-settings-nothing", fallback: "Nothing set for this show") }
+
+    /// Row: the default track.
+    public static var showSettingsDefault: String { string("show-settings-default", fallback: "Default") }
+
+    /// Line: notifications are off because the show is not being watched.
+    public static var showSettingsNotWatching: String { string("show-settings-not-watching", fallback: "Off · not watching") }
+
+    /// Name of a track with a part in brackets. The part is already formatted.
+    public static func showSettingsTrackWith(language: String, part: String) -> String {
+        format("show-settings-track-with", fallback: "%1$@ (%2$@)", language, part)
+    }
+
+    /// Title of the airing widget.
+    public static var widgetAiringToday: String { string("widget-airing-today", fallback: "Airing today") }
+
+    /// Line when there is no schedule yet.
+    public static var widgetNoSchedule: String { string("widget-no-schedule", fallback: "No schedule for today yet. Open anistream to update it.") }
+
+    /// Line when nothing airs today.
+    public static var widgetNothingToday: String { string("widget-nothing-today", fallback: "Nothing airing today.") }
+
+    /// Line when nothing airs today and the next is known.
+    public static func widgetNothingNext(when: String) -> String {
+        format("widget-nothing-next", fallback: "Nothing airing. Next: %1$@.", when)
+    }
+
+    /// Heading of the section that shows what is in the library.
+    public static var widgetInYourList: String { string("widget-in-your-list", fallback: "In your list") }
+
+    /// Short word: an episode was watched.
+    public static var widgetWatched: String { string("widget-watched", fallback: "Watched") }
+
+    /// Line telling when the widget was updated.
+    public static func widgetUpdated(when: String) -> String {
+        format("widget-updated", fallback: "Updated %1$@", when)
+    }
+
+    /// Line on the continue widget when nothing is connected.
+    public static var widgetConnectDetail: String { string("widget-connect-detail", fallback: "Connect tracker, or play an episode, to see it here.") }
+
+    /// Button on the widget.
+    public static var widgetConnect: String { string("widget-connect", fallback: "Connect") }
+
+    /// Accessibility label of a widget row: continue an episode.
+    public static func widgetContinueLabel(episode: Int, title: String) -> String {
+        format("widget-continue-label", fallback: "Continue episode %1$lld of %2$@", episode, title)
+    }
+
+    /// Accessibility label of a widget row: start an episode.
+    public static func widgetStartLabel(episode: Int, title: String) -> String {
+        format("widget-start-label", fallback: "Play episode %1$lld of %2$@", episode, title)
+    }
+
+    /// Accessibility label of a widget row: continue a dubbed episode.
+    public static func widgetContinueDubbedLabel(episode: Int, title: String) -> String {
+        format("widget-continue-dubbed-label", fallback: "Continue episode %1$lld, dubbed, of %2$@", episode, title)
+    }
 
     /// Title of the screen or section that lists sources.
     public static var sourcesTitle: String { string("sources-title", fallback: "Sources") }
@@ -1023,6 +3175,1786 @@ public enum L {
 
     /// Under an episode that is out but that no source lists. The row is dimmed and can't be played.
     public static var episodeUnsourced: String { string("episode-unsourced", fallback: "No source has this episode") }
+
+    /// Heading of the order list.
+    public static var sourcesOrder: String { string("sources-order", fallback: "Source order") }
+
+    /// Line under the heading.
+    public static var sourcesOrderDetail: String { string("sources-order-detail", fallback: "Sources are tried top to bottom. Drag one by its handle to change the order.") }
+
+    /// Line under the heading on a phone, where a show can keep its own.
+    public static var sourcesOrderDetailShow: String { string("sources-order-detail-show", fallback: "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.") }
+
+    /// Accessibility hint of the drag handle.
+    public static var sourcesDragHint: String { string("sources-drag-hint", fallback: "Drag to change the order") }
+
+    /// Menu item that moves a source up.
+    public static var sourcesMoveUp: String { string("sources-move-up", fallback: "Move up") }
+
+    /// Menu item that moves a source down.
+    public static var sourcesMoveDown: String { string("sources-move-down", fallback: "Move down") }
+
+    /// Title when the list could not be read.
+    public static var sourcesLoadFailed: String { string("sources-load-failed", fallback: "Couldn't load sources") }
+
+    /// Title when no source is installed.
+    public static var sourcesEmptyTitle: String { string("sources-empty-title", fallback: "No sources yet") }
+
+    /// Line under it.
+    public static var sourcesEmptyDetail: String { string("sources-empty-detail", fallback: "Sources come from plugin stores. Join one with the invite link its owner sends you.") }
+
+    /// Row for the built-in torrent source.
+    public static var sourcesTorrents: String { string("sources-torrents", fallback: "Torrents") }
+
+    /// Label of a source that is not a plugin and controls this device.
+    public static var sourcesRemote: String { string("sources-remote", fallback: "Remote") }
+
+    /// Origin: set in the config file.
+    public static var sourcesOriginConfig: String { string("sources-origin-config", fallback: "Set in the config file") }
+
+    /// Origin: built into the app.
+    public static var sourcesOriginBuiltIn: String { string("sources-origin-built-in", fallback: "Built in") }
+
+    /// Origin: from a store the user left.
+    public static var sourcesOriginLeftStore: String { string("sources-origin-left-store", fallback: "From a plugin store you left") }
+
+    /// Origin: added by hand.
+    public static var sourcesOriginByHand: String { string("sources-origin-by-hand", fallback: "Added by hand") }
+
+    /// Origin: not from a store.
+    public static var sourcesOriginNoStore: String { string("sources-origin-no-store", fallback: "Not from a plugin store") }
+
+    /// Origin: from a store.
+    public static func sourcesOriginFrom(name: String) -> String {
+        format("sources-origin-from", fallback: "From %1$@", name)
+    }
+
+    /// Origin: from a store, with the place in the list.
+    public static func sourcesOriginIn(place: String) -> String {
+        format("sources-origin-in", fallback: "In %1$@", place)
+    }
+
+    /// Status: the source does not answer.
+    public static var sourcesStatusNotAnswering: String { string("sources-status-not-answering", fallback: "Not answering") }
+
+    /// Status: held back.
+    public static var sourcesStatusHeldBack: String { string("sources-status-held-back", fallback: "Held back") }
+
+    /// Status: slow.
+    public static var sourcesStatusSlow: String { string("sources-status-slow", fallback: "Slow") }
+
+    /// Status: an update exists.
+    public static var sourcesStatusUpdate: String { string("sources-status-update", fallback: "Update available") }
+
+    /// Status line: no answer, with a reason.
+    public static func sourcesDetailNotAnswering(why: String) -> String {
+        format("sources-detail-not-answering", fallback: "Not answering. %1$@", why)
+    }
+
+    /// Status line: no answer.
+    public static var sourcesDetailNotAnsweringPlain: String { string("sources-detail-not-answering-plain", fallback: "Not answering.") }
+
+    /// Status line: held back by the check.
+    public static var sourcesDetailHeldBack: String { string("sources-detail-held-back", fallback: "Held back until the connection check passes.") }
+
+    /// Status line: disabled.
+    public static var sourcesDetailDisabled: String { string("sources-detail-disabled", fallback: "Disabled. It keeps its place and is not tried.") }
+
+    /// Status line: the source is gone.
+    public static var sourcesDetailGone: String { string("sources-detail-gone", fallback: "This source is no longer here.") }
+
+    /// Status line: the site did not answer.
+    public static var sourcesDetailSite: String { string("sources-detail-site", fallback: "The site did not answer.") }
+
+    /// Row label: version.
+    public static var sourcesVersion: String { string("sources-version", fallback: "Version") }
+
+    /// Row label: response time.
+    public static var sourcesResponseTime: String { string("sources-response-time", fallback: "Response time") }
+
+    /// Value: no answer to measure.
+    public static var sourcesNoAnswer: String { string("sources-no-answer", fallback: "No answer") }
+
+    /// Value: not checked yet.
+    public static var sourcesNotChecked: String { string("sources-not-checked", fallback: "Not checked yet") }
+
+    /// Row label: the hosts a plugin contacts.
+    public static var sourcesContactsLabel: String { string("sources-contacts-label", fallback: "Contacts") }
+
+    /// Value: how the plugin is listed.
+    public static var sourcesListedByStore: String { string("sources-listed-by-store", fallback: "Listed by its plugin store") }
+
+    /// Line: the plugin contacts one host.
+    public static func sourcesContactsOne(first: String) -> String {
+        format("sources-contacts-one", fallback: "Contacts %1$@", first)
+    }
+
+    /// Line: the plugin contacts several hosts. The count is the hosts after the first.
+    public static func sourcesContactsLine(first: String, more: Int) -> String {
+        format("sources-contacts-line", fallback: "Contacts %1$@ and %2$lld more", first, more)
+    }
+
+    /// Line: the plugin contacts no host.
+    public static var sourcesContactsNone: String { string("sources-contacts-none", fallback: "Contacts no hosts") }
+
+    /// Value when no host is listed.
+    public static var sourcesNoHosts: String { string("sources-no-hosts", fallback: "No hosts") }
+
+    /// Line: an update adds one host.
+    public static func sourcesUpdateContactsOne(first: String) -> String {
+        format("sources-update-contacts-one", fallback: "This update also contacts %1$@.", first)
+    }
+
+    /// Line: an update adds several hosts. The count is the hosts after the first.
+    public static func sourcesUpdateContacts(first: String, more: Int) -> String {
+        format("sources-update-contacts", fallback: "This update also contacts %1$@ and %2$lld more.", first, more)
+    }
+
+    /// Title of the update question.
+    public static func sourcesUpdateTitle(name: String) -> String {
+        format("sources-update-title", fallback: "Update %1$@?", name)
+    }
+
+    /// Title of the replace question.
+    public static func sourcesReplaceTitle(name: String) -> String {
+        format("sources-replace-title", fallback: "Replace %1$@?", name)
+    }
+
+    /// Line under the update question.
+    public static func sourcesUpdateDetail(version: String, store: String, from: String) -> String {
+        format("sources-update-detail", fallback: "Version %1$@ from %2$@ replaces %3$@.", version, store, from)
+    }
+
+    /// Line under the replace question.
+    public static func sourcesReplaceDetail(version: String, store: String, detail: String) -> String {
+        format("sources-replace-detail", fallback: "Version %1$@ from %2$@ replaces the copy added by hand. %3$@.", version, store, detail)
+    }
+
+    /// Button that opens the settings for sources.
+    public static var sourcesOpenSettings: String { string("sources-open-settings", fallback: "Open source settings") }
+
+    /// Heading of the torrent group in the settings.
+    public static var sourcesTorrentSource: String { string("sources-torrent-source", fallback: "Torrent source") }
+
+    /// Row: where the plugin's page stands.
+    public static var sourcesSourceOrderRow: String { string("sources-source-order-row", fallback: "Source order") }
+
+    /// Short label for a joined store, on a row.
+    public static var storesJoined: String { string("stores-joined", fallback: "Joined") }
+
+    /// Title of the empty list.
+    public static var storesEmptyTitle: String { string("stores-empty-title", fallback: "No plugin stores yet") }
+
+    /// Line under the empty title.
+    public static var storesEmptyDetail: String { string("stores-empty-detail", fallback: "Plugin stores are run by people you know. Join one with the invite link its owner sends you.") }
+
+    /// Line under the title of the screen when plugins add sources.
+    public static var storesIntro: String { string("stores-intro", fallback: "Plugins add sources. Each one lists the hosts it contacts before you install it.") }
+
+    /// Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.
+    public static var storesNotFromApp: String { string("stores-not-from-app", fallback: "Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.") }
+
+    /// Line when the store has no plugins.
+    public static var storesNoPlugins: String { string("stores-no-plugins", fallback: "This plugin store offers no plugins yet.") }
+
+    /// Heading of the plugin list of a store.
+    public static var storesPlugins: String { string("stores-plugins", fallback: "Plugins") }
+
+    /// Line under the plugin list: what a plugin may do.
+    public static var storesPluginLimits: String { string("stores-plugin-limits", fallback: "Each plugin can contact only the hosts listed with it and cannot read your files.") }
+
+    /// Line in the update sheet: what a plugin may do.
+    public static var storesPluginLimitsShort: String { string("stores-plugin-limits-short", fallback: "Plugins cannot read your files or contact a host that is not listed.") }
+
+    /// Line under the name of a store: who runs it and where.
+    public static func storesRunBy(owner: String, host: String) -> String {
+        format("stores-run-by", fallback: "Run by %1$@ · %2$@", owner, host)
+    }
+
+    /// Line under a store added by hand.
+    public static func storesAddedByHand(detail: String) -> String {
+        format("stores-added-by-hand", fallback: "Added by hand · %1$@", detail)
+    }
+
+    /// Short status: the store cannot be reached.
+    public static var storesStatusOffline: String { string("stores-status-offline", fallback: "Offline") }
+
+    /// Short status: the store does not answer.
+    public static var storesStatusNotAnswering: String { string("stores-status-not-answering", fallback: "Not answering") }
+
+    /// Short status: the owner ended this device's access.
+    public static var storesStatusAccessEnded: String { string("stores-status-access-ended", fallback: "Access ended") }
+
+    /// Line when the owner ended access. Installed plugins keep working.
+    public static var storesAccessEndedDetail: String { string("stores-access-ended-detail", fallback: "This plugin store's owner ended your access. Installed plugins keep working, and none will update.") }
+
+    /// Line on the page of a store that no longer lets the device in.
+    public static var storesAccessEndedPage: String { string("stores-access-ended-page", fallback: "This plugin store no longer lets this device in. Its plugins stay installed until you remove them.") }
+
+    /// Line on a row where the store is gone from the device.
+    public static var storesNoLongerJoined: String { string("stores-no-longer-joined", fallback: "This plugin store is no longer joined.") }
+
+    /// Line when the store cannot be reached but a list was kept. The reason is a sentence fragment.
+    public static func storesOfflineLastList(reason: String) -> String {
+        format("stores-offline-last-list", fallback: "Offline: %1$@. The plugins below are the last list that was checked.", reason)
+    }
+
+    /// Line when offline, without a reason.
+    public static var storesOfflineLastListPlain: String { string("stores-offline-last-list-plain", fallback: "Offline. Showing the last list it sent.") }
+
+    /// Line with the store's key and how this device joined.
+    public static func storesKeyLine(key: String, joined: String) -> String {
+        format("stores-key-line", fallback: "Store key %1$@ · %2$@", key, joined)
+    }
+
+    /// How the device joined, when a name was given.
+    public static func storesDeviceJoinedAs(name: String) -> String {
+        format("stores-device-joined-as", fallback: "Joined as %1$@", name)
+    }
+
+    /// How the device joined, when no name was given.
+    public static var storesJoinedNameless: String { string("stores-joined-nameless", fallback: "Joined without a name") }
+
+    /// Row label: who can join.
+    public static var storesWhoCanJoin: String { string("stores-who-can-join", fallback: "Who can join") }
+
+    /// Row value and line: no invite is needed.
+    public static var storesAnyoneWithLink: String { string("stores-anyone-with-link", fallback: "Anyone with the link can join") }
+
+    /// Short value of the same row.
+    public static var storesAnyoneShort: String { string("stores-anyone-short", fallback: "Anyone with the link") }
+
+    /// Row label: the store's address.
+    public static var storesAddress: String { string("stores-address", fallback: "Address") }
+
+    /// Row label: the store's key.
+    public static var storesKeyFingerprint: String { string("stores-key-fingerprint", fallback: "Key fingerprint") }
+
+    /// Heading of the section about this store.
+    public static var storesThisStore: String { string("stores-this-store", fallback: "This store") }
+
+    /// Button that opens the join form.
+    public static var storesJoinAction: String { string("stores-join-action", fallback: "Join a plugin store") }
+
+    /// Short button on a phone for the same.
+    public static var storesJoinShort: String { string("stores-join-short", fallback: "Join a store") }
+
+    /// Menu item that opens the join form.
+    public static var storesJoinMenu: String { string("stores-join-menu", fallback: "Join plugin store…") }
+
+    /// Menu item and button that leaves a store.
+    public static var storesLeave: String { string("stores-leave", fallback: "Leave plugin store") }
+
+    /// Title of the leave confirmation.
+    public static func storesLeaveTitle(name: String) -> String {
+        format("stores-leave-title", fallback: "Leave %1$@?", name)
+    }
+
+    /// Line under it.
+    public static var storesLeaveDetail: String { string("stores-leave-detail", fallback: "This device can no longer install or update its plugins. Plugins already installed stay.") }
+
+    /// Line under it, when a new invite is needed to return.
+    public static var storesLeaveRejoin: String { string("stores-leave-rejoin", fallback: "Plugins installed from it stay installed. To join again, you need a new invite from its owner.") }
+
+    /// Button that opens the owner's admin page.
+    public static var storesOpenAdmin: String { string("stores-open-admin", fallback: "Open admin page") }
+
+    /// Menu item: invite a person.
+    public static var storesInviteSomeone: String { string("stores-invite-someone", fallback: "Invite someone…") }
+
+    /// Menu item: link another device of your own.
+    public static var storesLinkDevice: String { string("stores-link-device", fallback: "Link another device…") }
+
+    /// Menu item and button: list the members.
+    public static var storesShowMembers: String { string("stores-show-members", fallback: "Show members") }
+
+    /// Menu item: who can join.
+    public static var storesWhoCanJoinMenu: String { string("stores-who-can-join-menu", fallback: "Who can join…") }
+
+    /// Menu item: publish a plugin.
+    public static var storesPublishMenu: String { string("stores-publish-menu", fallback: "Publish a plugin…") }
+
+    /// Accessibility label of the row's actions menu.
+    public static func storesActionsFor(name: String) -> String {
+        format("stores-actions-for", fallback: "Actions for %1$@", name)
+    }
+
+    /// Short status: installed.
+    public static var storesPluginStateInstalled: String { string("stores-plugin-state-installed", fallback: "Installed") }
+
+    /// Short status: installed from another store.
+    public static func storesPluginFrom(other: String) -> String {
+        format("stores-plugin-from", fallback: "From %1$@", other)
+    }
+
+    /// Short status: the store is offline, so the plugin cannot be installed.
+    public static var storesPluginOffline: String { string("stores-plugin-offline", fallback: "Offline") }
+
+    /// Short status: the store no longer offers the plugin.
+    public static var storesPluginUnavailable: String { string("stores-plugin-unavailable", fallback: "Not available") }
+
+    /// Line: the version installed and the one now offered.
+    public static func storesPluginUpdateLine(from: String, to: String) -> String {
+        format("stores-plugin-update-line", fallback: "Version %1$@ installed, %2$@ available", from, to)
+    }
+
+    /// Line: the version installed.
+    public static func storesPluginVersion(version: String) -> String {
+        format("stores-plugin-version", fallback: "Version %1$@", version)
+    }
+
+    /// Accessibility label of the update button.
+    public static func storesUpdateLabel(name: String, version: String) -> String {
+        format("stores-update-label", fallback: "Update %1$@ to %2$@", name, version)
+    }
+
+    /// Accessibility label of the install button.
+    public static func storesInstallLabel(name: String) -> String {
+        format("stores-install-label", fallback: "Install %1$@", name)
+    }
+
+    /// Accessibility label of the replace button, for a plugin that was added by hand.
+    public static func storesReplaceLabel(name: String) -> String {
+        format("stores-replace-label", fallback: "Replace the copy of %1$@ added by hand", name)
+    }
+
+    /// Title of the remove confirmation.
+    public static func storesRemovePluginTitle(name: String) -> String {
+        format("stores-remove-plugin-title", fallback: "Remove %1$@?", name)
+    }
+
+    /// Line under it.
+    public static var storesRemovePluginDetail: String { string("stores-remove-plugin-detail", fallback: "It is deleted from this device. The plugin store can install it again.") }
+
+    /// Label before the hosts a new version also contacts.
+    public static var storesNewlyContacts: String { string("stores-newly-contacts", fallback: "Newly contacts") }
+
+    /// Line in the update sheet: the hosts the new version adds. The hosts are a list already joined.
+    public static func storesUpdateContacts(hosts: String) -> String {
+        format("stores-update-contacts", fallback: "This update also contacts %1$@.", hosts)
+    }
+
+    /// Heading in the update sheet for what changed.
+    public static func storesNewIn(version: String) -> String {
+        format("stores-new-in", fallback: "New in %1$@", version)
+    }
+
+    /// Title of the join form.
+    public static var storesJoinTitle: String { string("stores-join-title", fallback: "Join a plugin store") }
+
+    /// Title of the join form on the TV, which adds rather than joins.
+    public static var storesAddTitle: String { string("stores-add-title", fallback: "Add a plugin store") }
+
+    /// Line under the form title.
+    public static var storesJoinDetail: String { string("stores-join-detail", fallback: "Paste the link the plugin store's owner sent you.") }
+
+    /// Line under the form title on desktop, where nothing happens before the check.
+    public static var storesJoinDetailDesktop: String { string("stores-join-detail-desktop", fallback: "Paste the invite link a plugin store's owner sent you. You see what the plugin store offers before anything is joined or installed.") }
+
+    /// Line under the field on a phone when a link was opened from another app.
+    public static var storesJoinDetailOpened: String { string("stores-join-detail-opened", fallback: "Paste the link the plugin store's owner sent you. A anistream:// invite link opened from Messages fills this sheet in directly.") }
+
+    /// Label and hint of the link field.
+    public static var storesInviteLink: String { string("stores-invite-link", fallback: "Invite link") }
+
+    /// Hint inside the empty link field.
+    public static var storesInviteLinkHint: String { string("stores-invite-link-hint", fallback: "https://…/join/…") }
+
+    /// Button that checks the link.
+    public static var storesCheckLink: String { string("stores-check-link", fallback: "Check the link") }
+
+    /// Button that checks the link, desktop wording.
+    public static var storesCheckInvite: String { string("stores-check-invite", fallback: "Check invite") }
+
+    /// Line while the link is checked.
+    public static var storesCheckingLink: String { string("stores-checking-link", fallback: "Checking the link…") }
+
+    /// Line while the store is checked.
+    public static var storesCheckingStore: String { string("stores-checking-store", fallback: "Checking the plugin store…") }
+
+    /// Line when the text is not an invite link.
+    public static var storesNotAnInvite: String { string("stores-not-an-invite", fallback: "That is not an invite link.") }
+
+    /// Line when the link could not be opened.
+    public static var storesLinkFailed: String { string("stores-link-failed", fallback: "Couldn't open this link.") }
+
+    /// Button that goes back to the link field.
+    public static var storesTryAnotherLink: String { string("stores-try-another-link", fallback: "Try another link") }
+
+    /// Title of the confirmation on a desktop.
+    public static func storesJoinConfirmTitle(name: String) -> String {
+        format("stores-join-confirm-title", fallback: "Join %1$@?", name)
+    }
+
+    /// Line: joining installs nothing.
+    public static var storesJoinInstallsNothing: String { string("stores-join-installs-nothing", fallback: "Joining installs nothing. You choose which plugins to install, and each one asks for the hosts it contacts.") }
+
+    /// Line when the key in the link matches the store. The key is shown beside it.
+    public static func storesKeyMatches(key: String) -> String {
+        format("stores-key-matches", fallback: "Key %1$@ matches the plugin store.", key)
+    }
+
+    /// Line when the link is open to anyone.
+    public static var storesAnyoneNote: String { string("stores-anyone-note", fallback: "You join without a name. Another device joins with the same link.") }
+
+    /// Line when the device joined this store already.
+    public static var storesAlreadyJoinedNote: String { string("stores-already-joined-note", fallback: "This device has joined this plugin store already.") }
+
+    /// Label of the device name field.
+    public static var storesDeviceName: String { string("stores-device-name", fallback: "Device name") }
+
+    /// Line under the device name field.
+    public static var storesDeviceNameDetail: String { string("stores-device-name-detail", fallback: "The plugin store's owner sees this device by this name.") }
+
+    /// Button that joins.
+    public static var storesJoinButton: String { string("stores-join-button", fallback: "Join plugin store") }
+
+    /// Button that opens a store that was joined already.
+    public static var storesOpenStore: String { string("stores-open-store", fallback: "Open plugin store") }
+
+    /// Notice when the TV joined a store. The name is a store name.
+    public static func storesTvJoined(name: String) -> String {
+        format("stores-tv-joined", fallback: "Joined %1$@", name)
+    }
+
+    /// Notice when the TV joined a store with no name known.
+    public static var storesTvJoinedPlain: String { string("stores-tv-joined-plain", fallback: "Joined the plugin store") }
+
+    /// Button that skips the join step in onboarding.
+    public static var storesSkip: String { string("stores-skip", fallback: "Skip for now") }
+
+    /// Button that types the link instead of scanning.
+    public static var storesTypeLink: String { string("stores-type-link", fallback: "Type the link") }
+
+    /// Line beside the QR code on the TV.
+    public static var storesQrInstructions: String { string("stores-qr-instructions", fallback: "Scan the QR code with your phone, then paste the plugin store's invite link on the page that opens.") }
+
+    /// Line over the address under the QR code.
+    public static var storesOrOpenAddress: String { string("stores-or-open-address", fallback: "Or open this address") }
+
+    /// Line when the code on the TV ran out.
+    public static var storesCodeExpired: String { string("stores-code-expired", fallback: "Code expired") }
+
+    /// Line under it: how long the page lived.
+    public static var storesPageClosed: String { string("stores-page-closed", fallback: "The page closed after 10 minutes.") }
+
+    /// Button that makes a new code.
+    public static var storesNewCode: String { string("stores-new-code", fallback: "Get a new code") }
+
+    /// Line when the TV has no reachable address.
+    public static var storesTvNoNetwork: String { string("stores-tv-no-network", fallback: "This TV isn't on a network a phone can reach.") }
+
+    /// Line under the QR code on the TV: when the page closes.
+    public static var storesPageCloses: String { string("stores-page-closes", fallback: "The page closes with this screen, or in 10 minutes.") }
+
+    /// Heading of the people section.
+    public static var storesPeople: String { string("stores-people", fallback: "People") }
+
+    /// Heading of the members list.
+    public static func storesMembersOf(name: String) -> String {
+        format("stores-members-of", fallback: "Members of %1$@", name)
+    }
+
+    /// Heading of the members section on a small screen.
+    public static var storesMembers: String { string("stores-members", fallback: "Members") }
+
+    /// Row for the owner. The devices count is already formatted.
+    public static func storesOwnerDevices(devices: String) -> String {
+        format("stores-owner-devices", fallback: "Owner · %1$@", devices)
+    }
+
+    /// Line of a member: the number of devices.
+    public static func storesMemberDevices(count: Int) -> String {
+        format("stores-member-devices", fallback: "Their %1$lld devices", count)
+    }
+
+    /// Label of the field for the name of the person invited.
+    public static var storesInviteFor: String { string("stores-invite-for", fallback: "Who is it for? (optional)") }
+
+    /// Placeholder in the name field of the invite sheet.
+    public static var storesTheirName: String { string("stores-their-name", fallback: "Their name") }
+
+    /// Button that makes an invite.
+    public static var storesMakeLink: String { string("stores-make-link", fallback: "Make invite link") }
+
+    /// Title of the sheet that links a device of your own.
+    public static var storesLinkDeviceTitle: String { string("stores-link-device-title", fallback: "Link another device") }
+
+    /// Title of the invite sheet.
+    public static var storesInviteTitle: String { string("stores-invite-title", fallback: "Invite someone") }
+
+    /// Line under the link-your-device button.
+    public static var storesLinkDeviceDetail: String { string("stores-link-device-detail", fallback: "Make a link to open on your other device.") }
+
+    /// Line under an invite link: it works once, for one person.
+    public static var storesInviteOnce: String { string("stores-invite-once", fallback: "Works once, for the person you send it to.") }
+
+    /// Line under a link made for your own device.
+    public static func storesLinkOnceUntil(until: String) -> String {
+        format("stores-link-once-until", fallback: "Open this link on the other device. It works once, until %1$@.", until)
+    }
+
+    /// Title of an invite for a named person.
+    public static func storesInviteForName(name: String) -> String {
+        format("stores-invite-for-name", fallback: "Invite for %1$@", name)
+    }
+
+    /// Line when no invites wait.
+    public static var storesNoInvites: String { string("stores-no-invites", fallback: "No invites waiting. An invite link shows here until it is used.") }
+
+    /// Heading over the list of unused invites.
+    public static var storesInvitesUnused: String { string("stores-invites-unused", fallback: "Invites not used yet") }
+
+    /// Name of an invite that was not given one.
+    public static var storesInviteUnnamed: String { string("stores-invite-unnamed", fallback: "Another device") }
+
+    /// Line of an unused invite.
+    public static func storesInvitedUntil(until: String) -> String {
+        format("stores-invited-until", fallback: "Invited, until %1$@", until)
+    }
+
+    /// Menu item that cancels an invite.
+    public static var storesCancelInvite: String { string("stores-cancel-invite", fallback: "Cancel invite") }
+
+    /// Menu item that removes a member.
+    public static var storesRemoveMember: String { string("stores-remove-member", fallback: "Remove member") }
+
+    /// Title of the confirmation that removes a member.
+    public static func storesRemoveMemberTitle(name: String) -> String {
+        format("stores-remove-member-title", fallback: "Remove %1$@?", name)
+    }
+
+    /// Line under it.
+    public static var storesRemoveMemberDetail: String { string("stores-remove-member-detail", fallback: "Their devices lose access to this plugin store. Plugins they installed keep working but stop updating.") }
+
+    /// Heading of the who-can-join sheet.
+    public static func storesWhoCanJoinTitle(name: String) -> String {
+        format("stores-who-can-join-title", fallback: "Who can join %1$@", name)
+    }
+
+    /// Option: anyone with the store's link.
+    public static var storesAnyoneWithStoreLink: String { string("stores-anyone-with-store-link", fallback: "Anyone with the plugin store's link") }
+
+    /// Option: only people invited.
+    public static var storesOnlyInvited: String { string("stores-only-invited", fallback: "Only people you invite") }
+
+    /// Line over the list of devices that joined with the link.
+    public static func storesDevicesJoined(count: Int) -> String {
+        format("stores-devices-joined", fallback: "%1$lld devices joined with the link", count)
+    }
+
+    /// Line of a device that joined.
+    public static func storesDeviceJoinedAt(when: String) -> String {
+        format("stores-device-joined-at", fallback: "Joined %1$@", when)
+    }
+
+    /// Line under the list when it is cut off.
+    public static func storesNewestListed(count: Int) -> String {
+        format("stores-newest-listed", fallback: "The newest %1$lld are listed.", count)
+    }
+
+    /// Line when the store's server cannot offer the choice.
+    public static var storesServerOlder: String { string("stores-server-older", fallback: "This plugin store's server is older, and lets in only people you invite. Updating it adds the choice.") }
+
+    /// Title of the confirmation that removes devices that joined with the link.
+    public static var storesRemoveDevicesTitle: String { string("stores-remove-devices-title", fallback: "Remove the devices that joined with the link?") }
+
+    /// Line under it.
+    public static func storesRemoveDevicesDetail(name: String) -> String {
+        format("stores-remove-devices-detail", fallback: "They stop working with %1$@ at once. Plugins already installed on them stay.", name)
+    }
+
+    /// Title of the publish sheet.
+    public static func storesPublishTitle(name: String) -> String {
+        format("stores-publish-title", fallback: "Publish a plugin to %1$@", name)
+    }
+
+    /// Line when there is nothing to publish.
+    public static var storesPublishNone: String { string("stores-publish-none", fallback: "No plugins on this device to publish.") }
+
+    /// Version line of a plugin in the publish sheet.
+    public static func storesPluginNameVersion(name: String, version: String) -> String {
+        format("stores-plugin-name-version", fallback: "%1$@ %2$@", name, version)
+    }
+
+    /// Title of the state when a title page could not load.
+    public static var titleLoadFailed: String { string("title-load-failed", fallback: "Couldn't load this title") }
+
+    /// Line under the load failure when AniList did not answer.
+    public static var titleNoAnswer: String { string("title-no-answer", fallback: "AniList didn't answer. Try again.") }
+
+    /// Short line while a title page loads.
+    public static var titleLoading: String { string("title-loading", fallback: "Loading this title") }
+
+    /// Button on the title page that plays the trailer.
+    public static var titleTrailer: String { string("title-trailer", fallback: "Trailer") }
+
+    /// Menu item that plays the trailer.
+    public static var titlePlayTrailer: String { string("title-play-trailer", fallback: "Play trailer") }
+
+    /// Menu item that opens the title on the AniList website.
+    public static var titleOpenAnilist: String { string("title-open-anilist", fallback: "Open on AniList") }
+
+    /// Menu item that opens the title page of the show a row belongs to.
+    public static var titleOpen: String { string("title-open", fallback: "Open title") }
+
+    /// Heading of the list of seasons.
+    public static var titleSeasons: String { string("title-seasons", fallback: "Seasons") }
+
+    /// Name of one season of a show, such as "Season 2".
+    public static func seasonNumber(number: Int) -> String {
+        format("season-number", fallback: "Season %1$lld", number)
+    }
+
+    /// Heading of the list of episodes.
+    public static var titleEpisodes: String { string("title-episodes", fallback: "Episodes") }
+
+    /// Heading of the list of related titles.
+    public static var titleRelated: String { string("title-related", fallback: "Related") }
+
+    /// Heading of the block of facts about a title.
+    public static var titleDetails: String { string("title-details", fallback: "Details") }
+
+    /// Label of the studio in the details.
+    public static var titleStudio: String { string("title-studio", fallback: "Studio") }
+
+    /// Heading of the block of tags.
+    public static var titleTags: String { string("title-tags", fallback: "Tags") }
+
+    /// Button that opens the full page of facts about a show.
+    public static var titleMoreAbout: String { string("title-more-about", fallback: "More about this show") }
+
+    /// Accessibility hint of the button that expands a synopsis.
+    public static var titleSynopsisHint: String { string("title-synopsis-hint", fallback: "Shows the whole synopsis") }
+
+    /// Label under a season: which episodes are dubbed so far.
+    public static func titleDubbedTo(episode: Int) -> String {
+        format("title-dubbed-to", fallback: "Dubbed to episode %1$lld", episode)
+    }
+
+    /// State of a title with no episodes listed yet.
+    public static var titleNoEpisodes: String { string("title-no-episodes", fallback: "No episodes yet") }
+
+    /// Line when the episodes could not be listed.
+    public static var titleEpisodesLoadFailed: String { string("title-episodes-load-failed", fallback: "Couldn't list episodes") }
+
+    /// Line under the episode list when it comes from AniList and no source can play them.
+    public static var titleEpisodesNoSource: String { string("title-episodes-no-source", fallback: "Episodes come from AniList. Add a source to play them.") }
+
+    /// Button that collapses the watched episodes of a season.
+    public static var titleHideWatched: String { string("title-hide-watched", fallback: "Hide watched episodes") }
+
+    /// Button that shows the watched episodes of a season again.
+    public static var titleShowWatched: String { string("title-show-watched", fallback: "Show watched episodes") }
+
+    /// Accessibility state of a section that is open.
+    public static var stateExpanded: String { string("state-expanded", fallback: "Expanded") }
+
+    /// Accessibility state of a section that is closed.
+    public static var stateCollapsed: String { string("state-collapsed", fallback: "Collapsed") }
+
+    /// Row that stands for several watched episodes in a row, such as "Episodes 1 to 5 watched".
+    public static func titleWatchedRange(first: Int, last: Int) -> String {
+        format("title-watched-range", fallback: "Episodes %1$lld to %2$lld watched", first, last)
+    }
+
+    /// Name of an episode, such as "Episode 7".
+    public static func episodeNumber(number: Int) -> String {
+        format("episode-number", fallback: "Episode %1$lld", number)
+    }
+
+    /// Short name of an episode, for tight spaces.
+    public static func episodeNumberShort(number: Int) -> String {
+        format("episode-number-short", fallback: "E%1$lld", number)
+    }
+
+    /// An episode and its name.
+    public static func episodeWithTitle(number: Int, title: String) -> String {
+        format("episode-with-title", fallback: "Episode %1$lld · %2$@", number, title)
+    }
+
+    /// An episode, dubbed, and its name.
+    public static func episodeWithTitleDubbed(number: Int, title: String) -> String {
+        format("episode-with-title-dubbed", fallback: "Episode %1$lld · Dubbed · %2$@", number, title)
+    }
+
+    /// Badge on an episode the person has watched.
+    public static var episodeWatched: String { string("episode-watched", fallback: "Watched") }
+
+    /// Badge on an episode that is filler.
+    public static var episodeFiller: String { string("episode-filler", fallback: "Filler") }
+
+    /// Row note for an episode that has not aired.
+    public static var episodeRowNotOut: String { string("episode-row-not-out", fallback: "Not out yet") }
+
+    /// Row note for an episode that has not aired, with when it does.
+    public static func episodeRowAirs(when: String) -> String {
+        format("episode-row-airs", fallback: "Airs %1$@", when)
+    }
+
+    /// Accessibility label of an episode's still while spoiler protection hides it.
+    public static var episodeSpoilerHidden: String { string("episode-spoiler-hidden", fallback: "Still hidden: spoiler protection") }
+
+    /// Accessibility label of the button that opens an episode's menu.
+    public static var episodeOptions: String { string("episode-options", fallback: "Episode options") }
+
+    /// Menu item that marks an episode as watched.
+    public static var episodeMarkWatched: String { string("episode-mark-watched", fallback: "Mark watched") }
+
+    /// Menu item that marks an episode as not watched.
+    public static var episodeMarkUnwatched: String { string("episode-mark-unwatched", fallback: "Mark unwatched") }
+
+    /// Menu item that marks every episode before this one as watched.
+    public static var episodeMarkPreviousWatched: String { string("episode-mark-previous-watched", fallback: "Mark all previous watched") }
+
+    /// Menu item that marks every episode up to a given one as watched.
+    public static func episodeMarkUpTo(episode: Int) -> String {
+        format("episode-mark-up-to", fallback: "Mark watched up to episode %1$lld", episode)
+    }
+
+    /// Menu item that marks one numbered episode as watched.
+    public static func episodeMarkNWatched(episode: Int) -> String {
+        format("episode-mark-n-watched", fallback: "Mark episode %1$lld watched", episode)
+    }
+
+    /// Menu item that marks one numbered episode as not watched.
+    public static func episodeMarkNUnwatched(episode: Int) -> String {
+        format("episode-mark-n-unwatched", fallback: "Mark episode %1$lld unwatched", episode)
+    }
+
+    /// Notice after an episode was marked watched.
+    public static func episodeMarkedWatched(episode: Int) -> String {
+        format("episode-marked-watched", fallback: "Marked episode %1$lld watched.", episode)
+    }
+
+    /// Menu item that starts an episode from the beginning.
+    public static var episodePlayFromBeginning: String { string("episode-play-from-beginning", fallback: "Play from the beginning") }
+
+    /// Menu item that downloads one numbered episode.
+    public static func episodeDownloadN(episode: Int) -> String {
+        format("episode-download-n", fallback: "Download episode %1$lld", episode)
+    }
+
+    /// Menu item that downloads every episode not yet watched.
+    public static var episodeDownloadUnwatched: String { string("episode-download-unwatched", fallback: "Download unwatched episodes") }
+
+    /// Heading of the cast list.
+    public static var moreCast: String { string("more-cast", fallback: "Cast") }
+
+    /// Note under the cast heading: whose voices are listed.
+    public static var moreCastVoices: String { string("more-cast-voices", fallback: "Japanese voices") }
+
+    /// Role of a character in the story.
+    public static var moreRoleMain: String { string("more-role-main", fallback: "Main") }
+
+    /// Role of a character in the story.
+    public static var moreRoleSupporting: String { string("more-role-supporting", fallback: "Supporting") }
+
+    /// Role of a character in the story.
+    public static var moreRoleBackground: String { string("more-role-background", fallback: "Background") }
+
+    /// Heading of the staff list.
+    public static var moreStaff: String { string("more-staff", fallback: "Staff") }
+
+    /// Heading of the list of recommended titles.
+    public static var moreRecommendations: String { string("more-recommendations", fallback: "Recommendations") }
+
+    /// Heading of the list of rankings.
+    public static var moreRankings: String { string("more-rankings", fallback: "Rankings") }
+
+    /// Line when AniList has no cast, staff or recommendations for a show.
+    public static var moreEmpty: String { string("more-empty", fallback: "AniList has no cast, staff or recommendations for this show yet.") }
+
+    /// Badge on a tag that gives away the story.
+    public static var moreSpoiler: String { string("more-spoiler", fallback: "Spoiler") }
+
+    /// Button that hides the spoiler tags.
+    public static var moreHideSpoilerTags: String { string("more-hide-spoiler-tags", fallback: "Hide spoiler tags") }
+
+    /// Button that shows the spoiler tags.
+    public static func moreShowSpoilerTags(count: Int) -> String {
+        format("more-show-spoiler-tags", fallback: "Show %1$lld spoiler tags", count)
+    }
+
+    /// Title of the settings group and the screen.
+    public static var torrentsTitle: String { string("torrents-title", fallback: "Torrents") }
+
+    /// Label and short value for the switch.
+    public static var torrentsOn: String { string("torrents-on", fallback: "Torrents are on") }
+
+    /// Line under the switch while torrents are off.
+    public static var torrentsOffDetail: String { string("torrents-off-detail", fallback: "Off by default. Turning this on asks how to protect your connection first.") }
+
+    /// Line explaining the risk, before torrents start.
+    public static var torrentsRisk: String { string("torrents-risk", fallback: "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.") }
+
+    /// Line in the Apple sources screen: torrents belong to the app, not to a plugin.
+    public static var torrentsNotAPlugin: String { string("torrents-not-a-plugin", fallback: "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.") }
+
+    /// Label of the choice of protection.
+    public static var torrentsProtectWith: String { string("torrents-protect-with", fallback: "Protect with") }
+
+    /// Option: no protection.
+    public static var torrentsProtectNone: String { string("torrents-protect-none", fallback: "No protection") }
+
+    /// Option: a proxy.
+    public static var torrentsProtectProxy: String { string("torrents-protect-proxy", fallback: "Proxy") }
+
+    /// Option: a VPN already running on the device.
+    public static var torrentsProtectVpn: String { string("torrents-protect-vpn", fallback: "VPN") }
+
+    /// Line under the proxy option.
+    public static var torrentsProtectProxyDetail: String { string("torrents-protect-proxy-detail", fallback: "Torrent traffic goes through a proxy you run or rent.") }
+
+    /// Line under the VPN option.
+    public static var torrentsProtectVpnDetail: String { string("torrents-protect-vpn-detail", fallback: "Uses the VPN already running on this device.") }
+
+    /// Line under the no-protection option.
+    public static var torrentsProtectNoneDetail: String { string("torrents-protect-none-detail", fallback: "Your address is visible to everyone in the torrent.") }
+
+    /// Line when no protection is set.
+    public static var torrentsProtectNoneNote: String { string("torrents-protect-none-note", fallback: "With no protection, anistream does not check the connection.") }
+
+    /// Summary: a proxy protects. Host and port are already formatted.
+    public static func torrentsSummaryProxyAt(host: String, port: String) -> String {
+        format("torrents-summary-proxy-at", fallback: "Protected by a SOCKS5 proxy at %1$@:%2$@.", host, port)
+    }
+
+    /// Summary: a proxy protects, address not shown.
+    public static var torrentsSummaryProxy: String { string("torrents-summary-proxy", fallback: "Protected by a SOCKS5 proxy.") }
+
+    /// Summary: a VPN protects.
+    public static var torrentsSummaryVpn: String { string("torrents-summary-vpn", fallback: "Protected by the VPN on this device.") }
+
+    /// Summary: nothing protects.
+    public static var torrentsSummaryNone: String { string("torrents-summary-none", fallback: "Not protected. Your address is visible to everyone in the torrent.") }
+
+    /// Title of the question when torrents are turned on without protection.
+    public static var torrentsUnprotectedTitle: String { string("torrents-unprotected-title", fallback: "Use torrents without protection?") }
+
+    /// Line under it.
+    public static var torrentsUnprotectedDetail: String { string("torrents-unprotected-detail", fallback: "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.") }
+
+    /// Button that confirms turning torrents on without protection.
+    public static var torrentsTurnOnUnprotected: String { string("torrents-turn-on-unprotected", fallback: "Turn on without protection") }
+
+    /// Button that confirms using no protection.
+    public static var torrentsUseUnprotected: String { string("torrents-use-unprotected", fallback: "Use without protection") }
+
+    /// Label of the proxy host field.
+    public static var torrentsProxyHost: String { string("torrents-proxy-host", fallback: "Proxy host") }
+
+    /// Label of the proxy port field.
+    public static var torrentsProxyPort: String { string("torrents-proxy-port", fallback: "Proxy port") }
+
+    /// Label of the proxy user name field.
+    public static var torrentsProxyUser: String { string("torrents-proxy-user", fallback: "User name") }
+
+    /// Label of the proxy password field.
+    public static var torrentsProxyPassword: String { string("torrents-proxy-password", fallback: "Password") }
+
+    /// Line under the password field.
+    public static var torrentsPasswordKeep: String { string("torrents-password-keep", fallback: "Leave the password empty to keep the saved one.") }
+
+    /// Line under the proxy form: what happens while the new proxy is checked.
+    public static var torrentsProxyKeepsSaved: String { string("torrents-proxy-keeps-saved", fallback: "Torrents keep using the saved proxy until the new one passes the connection check.") }
+
+    /// Line when the host or port is wrong.
+    public static var torrentsProxyInvalid: String { string("torrents-proxy-invalid", fallback: "The proxy needs a host and a port from 1 to 65535.") }
+
+    /// Line while the proxy is checked.
+    public static var torrentsCheckingProxy: String { string("torrents-checking-proxy", fallback: "Checking the proxy…") }
+
+    /// Notice after the proxy was saved.
+    public static var torrentsProxySaved: String { string("torrents-proxy-saved", fallback: "Proxy saved") }
+
+    /// Why a save was refused: traffic left outside the proxy.
+    public static var torrentsLeftOutsideProxy: String { string("torrents-left-outside-proxy", fallback: "Torrent traffic left outside this proxy") }
+
+    /// Why a save was refused: the check could not run through the proxy.
+    public static var torrentsCheckNotMadeProxy: String { string("torrents-check-not-made-proxy", fallback: "The check could not be made through this proxy") }
+
+    /// Notice when a proxy was not saved. The reason is a sentence fragment.
+    public static func torrentsProxyNotSaved(why: String) -> String {
+        format("torrents-proxy-not-saved", fallback: "Not saved. %1$@, so the saved proxy stays.", why)
+    }
+
+    /// Notice when protection was not saved. The reason is a sentence fragment.
+    public static func torrentsProtectionNotSaved(why: String) -> String {
+        format("torrents-protection-not-saved", fallback: "Not saved. %1$@, so the saved protection stays.", why)
+    }
+
+    /// Notice when torrents stayed off. The reason is a sentence fragment.
+    public static func torrentsStillOff(why: String) -> String {
+        format("torrents-still-off", fallback: "Torrents are still off. %1$@.", why)
+    }
+
+    /// Label of the index address field.
+    public static var torrentsIndex: String { string("torrents-index", fallback: "Torrent index") }
+
+    /// Line under the index field. The app shows legal-hosts-no-content after it.
+    public static var torrentsIndexDetail: String { string("torrents-index-detail", fallback: "The RSS search address anistream asks for torrents.") }
+
+    /// Hint inside the index field.
+    public static var torrentsIndexHint: String { string("torrents-index-hint", fallback: "https://…/?q={query}") }
+
+    /// Line when no index address is set.
+    public static var torrentsIndexNeeded: String { string("torrents-index-needed", fallback: "Torrents need an index address.") }
+
+    /// Line when the index address has the wrong scheme.
+    public static var torrentsIndexScheme: String { string("torrents-index-scheme", fallback: "Use an http or https address.") }
+
+    /// Notice after the index was saved.
+    public static var torrentsIndexSaved: String { string("torrents-index-saved", fallback: "Torrent index saved") }
+
+    /// Label of the choice of what to do when a check fails.
+    public static var torrentsIfCheckFails: String { string("torrents-if-check-fails", fallback: "If a check fails") }
+
+    /// Title of the question that asks whether torrents may keep running.
+    public static var torrentsKeepRunningTitle: String { string("torrents-keep-running-title", fallback: "Keep torrents running if a check fails?") }
+
+    /// Line under the question: what the choice is about.
+    public static var torrentsKeepRunningDetail: String { string("torrents-keep-running-detail", fallback: "What happens to torrents when the check finds traffic leaving outside your VPN or proxy.") }
+
+    /// Option: pause torrents.
+    public static var torrentsFailPause: String { string("torrents-fail-pause", fallback: "Pause torrents") }
+
+    /// Option: stop torrents.
+    public static var torrentsFailStop: String { string("torrents-fail-stop", fallback: "Stop torrents") }
+
+    /// Option: only warn.
+    public static var torrentsFailWarn: String { string("torrents-fail-warn", fallback: "Warn only") }
+
+    /// Result of the choice: torrents run.
+    public static var torrentsFailWarnResult: String { string("torrents-fail-warn-result", fallback: "Torrents keep running.") }
+
+    /// Result of the choice: torrents stop.
+    public static var torrentsFailStopResult: String { string("torrents-fail-stop-result", fallback: "Torrents are stopped.") }
+
+    /// Result of the choice: torrents pause.
+    public static var torrentsFailPauseResult: String { string("torrents-fail-pause-result", fallback: "Torrents are paused.") }
+
+    /// Label of the last check.
+    public static var torrentsLastCheck: String { string("torrents-last-check", fallback: "Last check") }
+
+    /// Check passed. The exit is where the traffic leaves from, already formatted.
+    public static func torrentsCheckPassedExit(exit: String) -> String {
+        format("torrents-check-passed-exit", fallback: "Leaving through %1$@", exit)
+    }
+
+    /// Check passed.
+    public static var torrentsCheckPassed: String { string("torrents-check-passed", fallback: "Passed") }
+
+    /// Check running: the line.
+    public static var torrentsCheckRunningLine: String { string("torrents-check-running-line", fallback: "Checking where torrent traffic leaves from") }
+
+    /// Check running: the short word.
+    public static var torrentsCheckRunning: String { string("torrents-check-running", fallback: "Checking") }
+
+    /// Check failed: traffic left outside. The consequence follows.
+    public static func torrentsCheckLeaked(then: String) -> String {
+        format("torrents-check-leaked", fallback: "Traffic left outside the protection. %1$@", then)
+    }
+
+    /// Check failed: the check could not be made. The consequence follows.
+    public static func torrentsCheckUnmade(then: String) -> String {
+        format("torrents-check-unmade", fallback: "The check could not be made. %1$@", then)
+    }
+
+    /// Short word: the check failed.
+    public static var torrentsCheckFailed: String { string("torrents-check-failed", fallback: "Failed") }
+
+    /// Line: no protection is set, so nothing was checked.
+    public static var torrentsCheckNoneLine: String { string("torrents-check-none-line", fallback: "No protection is set") }
+
+    /// Short word: unprotected.
+    public static var torrentsCheckNone: String { string("torrents-check-none", fallback: "Unprotected") }
+
+    /// Line: no check yet.
+    public static var torrentsCheckWaitingLine: String { string("torrents-check-waiting-line", fallback: "Not checked yet") }
+
+    /// Short word: waiting for the first check.
+    public static var torrentsCheckWaiting: String { string("torrents-check-waiting", fallback: "Waiting") }
+
+    /// Short word: no check.
+    public static var torrentsNotChecked: String { string("torrents-not-checked", fallback: "Not checked") }
+
+    /// Button that runs the check.
+    public static var torrentsCheckNow: String { string("torrents-check-now", fallback: "Check now") }
+
+    /// Title of the page on the phone for the torrent setup.
+    public static var torrentsForApp: String { string("torrents-for-app", fallback: "Torrents for anistream") }
+
+    /// Title of the page on the phone for signing in. The tracker is a name.
+    public static func torrentsPageSignIn(tracker: String) -> String {
+        format("torrents-page-sign-in", fallback: "Sign in to %1$@", tracker)
+    }
+
+    /// Line on that page: the form was not complete.
+    public static var torrentsPageFillForm: String { string("torrents-page-fill-form", fallback: "Fill in the form, then send it again.") }
+
+    /// Line on that page after sending.
+    public static func torrentsPageLookAtTv(next: String) -> String {
+        format("torrents-page-look-at-tv", fallback: "Look at the TV: %1$@. You can close this page.", next)
+    }
+
+    /// Title when the page address is wrong.
+    public static var torrentsPageNotFound: String { string("torrents-page-not-found", fallback: "Not found") }
+
+    /// Title when the page is not allowed.
+    public static var torrentsPageNotAllowed: String { string("torrents-page-not-allowed", fallback: "Not allowed") }
+
+    /// Line when the address lacks its key.
+    public static var torrentsPageMissingKey: String { string("torrents-page-missing-key", fallback: "This address is missing its key. Scan the QR code on the TV again, and open the whole address it gives.") }
+
+    /// Line when the TV could not read what was sent.
+    public static var torrentsPageUnreadable: String { string("torrents-page-unreadable", fallback: "The TV couldn't read this. Scan the QR code on the TV again.") }
+
+    /// Line when the page needs script.
+    public static var torrentsPageNeedsScript: String { string("torrents-page-needs-script", fallback: "This page needs JavaScript to send the form to the TV safely.") }
+
+    /// Title of the accounts screen. The sidebar item is nav-accounts.
+    public static var accountsTitle: String { string("accounts-title", fallback: "Accounts") }
+
+    /// Heading over the trackers other than the first.
+    public static var accountsOtherTrackers: String { string("accounts-other-trackers", fallback: "Other trackers") }
+
+    /// Line on the welcome screen: where the other trackers are.
+    public static var accountsOtherTrackersNote: String { string("accounts-other-trackers-note", fallback: "Other trackers are in Settings, under Accounts.") }
+
+    /// Line on the welcome screen: why to sign in.
+    public static func accountsWelcomeDetail(tracker: String) -> String {
+        format("accounts-welcome-detail", fallback: "Sign in to %1$@ to sync your list and where you stopped.", tracker)
+    }
+
+    /// Line under a tracker that brings in lists.
+    public static var accountsBringsLists: String { string("accounts-brings-lists", fallback: "Brings in your lists and fills Continue with what you are watching.") }
+
+    /// Line under the accounts screen when the library needs a tracker.
+    public static func accountsLibraryNeeds(tracker: String) -> String {
+        format("accounts-library-needs", fallback: "Library and sync need a %1$@ account", tracker)
+    }
+
+    /// Line on the settings page: where the library gets its lists.
+    public static func accountsLibraryFrom(tracker: String) -> String {
+        format("accounts-library-from", fallback: "Library shows your lists from %1$@.", tracker)
+    }
+
+    /// Line on the library when signed out, one sentence.
+    public static func accountsListsComeFrom(tracker: String) -> String {
+        format("accounts-lists-come-from", fallback: "Your lists come from %1$@.", tracker)
+    }
+
+    /// Line on the library for an empty status.
+    public static func accountsStatusEmpty(tracker: String) -> String {
+        format("accounts-status-empty", fallback: "Titles you set to this status on %1$@ show here.", tracker)
+    }
+
+    /// Line on the library for an empty list.
+    public static func accountsListEmpty(tracker: String) -> String {
+        format("accounts-list-empty", fallback: "Titles you add on %1$@ show up here.", tracker)
+    }
+
+    /// Status: not signed in.
+    public static var accountsStateSignedOut: String { string("accounts-state-signed-out", fallback: "Not signed in") }
+
+    /// Status: signed in. The name is the user's name on the tracker.
+    public static func accountsStateSignedIn(tracker: String, name: String) -> String {
+        format("accounts-state-signed-in", fallback: "Signed in to %1$@ as %2$@", tracker, name)
+    }
+
+    /// Status: signed in, with changes waiting to be sent.
+    public static func accountsStateSignedInWaiting(tracker: String, name: String, count: Int) -> String {
+        format("accounts-state-signed-in-waiting", fallback: "Signed in to %1$@ as %2$@ · %3$lld changes waiting", tracker, name, count)
+    }
+
+    /// Status: the sign-in ran out.
+    public static func accountsStateExpired(tracker: String) -> String {
+        format("accounts-state-expired", fallback: "%1$@ needs you to sign in again", tracker)
+    }
+
+    /// Status: the sign-in ran out, short.
+    public static var accountsStateExpiredShort: String { string("accounts-state-expired-short", fallback: "Sign in again to keep syncing") }
+
+    /// Status: checking the account.
+    public static var accountsStateChecking: String { string("accounts-state-checking", fallback: "Checking…") }
+
+    /// Status: waiting for the browser to return.
+    public static var accountsStateWaitingBrowser: String { string("accounts-state-waiting-browser", fallback: "Waiting for the browser…") }
+
+    /// Status: waiting for a tracker.
+    public static func accountsStateWaiting(tracker: String) -> String {
+        format("accounts-state-waiting", fallback: "Waiting for %1$@…", tracker)
+    }
+
+    /// Status: signing in.
+    public static var accountsStateSigningIn: String { string("accounts-state-signing-in", fallback: "Signing in…") }
+
+    /// Status: no network, so the sign-in waits.
+    public static var accountsStateOffline: String { string("accounts-state-offline", fallback: "Sign in once you're back online") }
+
+    /// Status: sync running.
+    public static var accountsSyncRunning: String { string("accounts-sync-running", fallback: "Syncing…") }
+
+    /// Status: sync running, with the tracker.
+    public static func accountsSyncRunningWith(tracker: String) -> String {
+        format("accounts-sync-running-with", fallback: "Syncing with %1$@", tracker)
+    }
+
+    /// Status: synced.
+    public static var accountsSyncDone: String { string("accounts-sync-done", fallback: "Synced") }
+
+    /// Status: sync failed. The reason is a sentence fragment.
+    public static func accountsSyncFailed(why: String) -> String {
+        format("accounts-sync-failed", fallback: "Not synced: %1$@", why)
+    }
+
+    /// Line on the sync menu: sync with every tracker.
+    public static var accountsSyncAll: String { string("accounts-sync-all", fallback: "Sync with trackers") }
+
+    /// Line on a screen that cannot reach the tracker: changes wait.
+    public static var accountsOfflineChanges: String { string("accounts-offline-changes", fallback: "You're offline. Changes wait here and sync once you're back.") }
+
+    /// Short line on the TV for the same.
+    public static var accountsOfflineChangesTv: String { string("accounts-offline-changes-tv", fallback: "Offline. Changes sync once the network is back.") }
+
+    /// Line on the TV when the sign-in ran out.
+    public static var accountsExpiredTv: String { string("accounts-expired-tv", fallback: "Your sign-in has expired. Sign in again in Accounts.") }
+
+    /// Button that starts signing in.
+    public static var accountsSignIn: String { string("accounts-sign-in", fallback: "Sign in") }
+
+    /// Button that starts signing in on a menu.
+    public static var accountsSignInMenu: String { string("accounts-sign-in-menu", fallback: "Sign in…") }
+
+    /// Button that signs in again.
+    public static var accountsSignInAgain: String { string("accounts-sign-in-again", fallback: "Sign in again…") }
+
+    /// Button that signs in to a named tracker.
+    public static func accountsSignInTo(tracker: String) -> String {
+        format("accounts-sign-in-to", fallback: "Sign in to %1$@", tracker)
+    }
+
+    /// Button that signs out.
+    public static var accountsSignOut: String { string("accounts-sign-out", fallback: "Sign out") }
+
+    /// Button that syncs now.
+    public static var accountsSyncNow: String { string("accounts-sync-now", fallback: "Sync now") }
+
+    /// Button that opens the settings for accounts.
+    public static var accountsSettings: String { string("accounts-settings", fallback: "Accounts settings…") }
+
+    /// Line in the confirmation that signs out on the TV.
+    public static func accountsSignOutTvDetail(name: String) -> String {
+        format("accounts-sign-out-tv-detail", fallback: "This TV stops syncing with %1$@. Your list stays on %1$@.", name)
+    }
+
+    /// Line telling where sign-in tokens are kept: in the keychain.
+    public static var accountsTokensKeychain: String { string("accounts-tokens-keychain", fallback: "Sign-in tokens are kept in this device's keychain.") }
+
+    /// Line telling where sign-in tokens are kept: in a file.
+    public static var accountsTokensFile: String { string("accounts-tokens-file", fallback: "Sign-in tokens are kept in a file on this device, readable only by you.") }
+
+    /// Line telling where sign-in tokens are kept: sealed by the keystore.
+    public static var accountsTokensKeystore: String { string("accounts-tokens-keystore", fallback: "Sign-in tokens are kept on this device, sealed with a key in its keystore.") }
+
+    /// Title of the form.
+    public static func accountsFormTitle(tracker: String) -> String {
+        format("accounts-form-title", fallback: "Sign in to %1$@", tracker)
+    }
+
+    /// Line under the title: where the password goes.
+    public static func accountsFormDetail(tracker: String) -> String {
+        format("accounts-form-detail", fallback: "Your password goes to %1$@ once, for a token kept on this device.", tracker)
+    }
+
+    /// Label of the name field.
+    public static var accountsUserOrEmail: String { string("accounts-user-or-email", fallback: "Email or user name") }
+
+    /// Label of the password field.
+    public static var accountsPassword: String { string("accounts-password", fallback: "Password") }
+
+    /// Button label while the sign-in runs.
+    public static var accountsSigningInAction: String { string("accounts-signing-in-action", fallback: "Signing in") }
+
+    /// Line under the title: what to do.
+    public static func accountsCodeDetail(host: String) -> String {
+        format("accounts-code-detail", fallback: "Go to %1$@ and enter this code. anistream signs in once you have.", host)
+    }
+
+    /// Accessibility label of the code. The code is spelled out.
+    public static func accountsCodeLabel(code: String) -> String {
+        format("accounts-code-label", fallback: "Code %1$@", code)
+    }
+
+    /// Line while waiting for the tracker.
+    public static func accountsCodeWaiting(tracker: String) -> String {
+        format("accounts-code-waiting", fallback: "Waiting for %1$@", tracker)
+    }
+
+    /// Line telling when the code ends. The time is already formatted.
+    public static func accountsCodeExpires(time: String) -> String {
+        format("accounts-code-expires", fallback: "Expires in %1$@", time)
+    }
+
+    /// Line when the code ended.
+    public static var accountsCodeEnded: String { string("accounts-code-ended", fallback: "Code expired") }
+
+    /// Button that copies the code.
+    public static var accountsCopyCode: String { string("accounts-copy-code", fallback: "Copy code") }
+
+    /// Button that opens the tracker's page. The host is a website.
+    public static func accountsOpenHost(host: String) -> String {
+        format("accounts-open-host", fallback: "Open %1$@", host)
+    }
+
+    /// Line while a new code is fetched.
+    public static var accountsGettingCode: String { string("accounts-getting-code", fallback: "Getting a new code…") }
+
+    /// Button that shows the code.
+    public static var accountsShowCode: String { string("accounts-show-code", fallback: "Show code") }
+
+    /// Notice when the browser could not be opened.
+    public static var accountsBrowserFailed: String { string("accounts-browser-failed", fallback: "Couldn't open your browser. Open the address by hand.") }
+
+    /// Line on the TV's sign-in screen for a tracker that signs in by code.
+    public static func accountsScanCode(tracker: String) -> String {
+        format("accounts-scan-code", fallback: "Scan with your phone. Open %1$@ there, allow anistream, then paste the code on this page.", tracker)
+    }
+
+    /// Line on the TV's sign-in screen for a tracker that signs in by password.
+    public static func accountsScanPassword(tracker: String) -> String {
+        format("accounts-scan-password", fallback: "Scan with your phone, then enter your %1$@ user name and password on the page.", tracker)
+    }
+
+    /// Title of the clash sheet.
+    public static func accountsClashTitle(tracker: String) -> String {
+        format("accounts-clash-title", fallback: "Different on %1$@", tracker)
+    }
+
+    /// Line under it.
+    public static func accountsClashDetail(tracker: String) -> String {
+        format("accounts-clash-detail", fallback: "These changed on %1$@ and here since the last sync. Keep one side of each.", tracker)
+    }
+
+    /// One row of the clash sheet.
+    public static func accountsClashRow(field: String, local: String, remote: String, tracker: String) -> String {
+        format("accounts-clash-row", fallback: "%1$@: %2$@ here, %3$@ on %4$@", field, local, remote, tracker)
+    }
+
+    /// Button that keeps this device's value.
+    public static var accountsKeepMine: String { string("accounts-keep-mine", fallback: "Keep this device's") }
+
+    /// Button that keeps the tracker's value.
+    public static func accountsKeepTheirs(tracker: String) -> String {
+        format("accounts-keep-theirs", fallback: "Keep %1$@'s", tracker)
+    }
+
+    /// Menu item and button.
+    public static func accountsOpenOn(tracker: String) -> String {
+        format("accounts-open-on", fallback: "Open on %1$@", tracker)
+    }
+
+    /// Menu item on the title page, as the title is listed there.
+    public static func accountsListedBy(tracker: String) -> String {
+        format("accounts-listed-by", fallback: "Listed by %1$@", tracker)
+    }
+
+    /// Line when the tracker did not answer.
+    public static func accountsDidNotAnswer(tracker: String) -> String {
+        format("accounts-did-not-answer", fallback: "%1$@ did not answer.", tracker)
+    }
+
+    /// Line when the tracker has nothing for the show.
+    public static func accountsNoExtras(tracker: String) -> String {
+        format("accounts-no-extras", fallback: "%1$@ has no cast, staff or recommendations for this show yet.", tracker)
+    }
+
+    /// Line when episodes come from the tracker only.
+    public static func accountsEpisodesFrom(tracker: String) -> String {
+        format("accounts-episodes-from", fallback: "Episodes from %1$@. Add a source to play them.", tracker)
+    }
+
+    /// Line on a list of seasonal titles.
+    public static func accountsAddsSeason(tracker: String) -> String {
+        format("accounts-adds-season", fallback: "%1$@ adds a season's titles as they're announced.", tracker)
+    }
+
+    /// Name of the setting that follows the tracker's own choice.
+    public static func accountsTrackerChoice(tracker: String) -> String {
+        format("accounts-tracker-choice", fallback: "%1$@'s choice", tracker)
+    }
+
+    /// Line under that setting.
+    public static func accountsFollowsAccount(tracker: String) -> String {
+        format("accounts-follows-account", fallback: "Follows your %1$@ account", tracker)
+    }
+
+    /// Line under that setting while signed out.
+    public static func accountsFollowsSignedOut(tracker: String) -> String {
+        format("accounts-follows-signed-out", fallback: "English while signed out of %1$@", tracker)
+    }
+
+    /// Button and menu item that sends the episode to a paired TV.
+    public static var tvPlayOn: String { string("tv-play-on", fallback: "Play on TV") }
+
+    /// Same, with an ellipsis, for a menu item that opens a sheet.
+    public static var tvPlayOnMenu: String { string("tv-play-on-menu", fallback: "Play on TV…") }
+
+    /// Title of the sheet when no TV is paired and the user came from Play on TV.
+    public static var tvSheetTitlePair: String { string("tv-sheet-title-pair", fallback: "Pair a TV") }
+
+    /// Button that opens the pairing sheet.
+    public static var tvPairAction: String { string("tv-pair-action", fallback: "Pair a TV") }
+
+    /// Menu item that opens the pairing sheet.
+    public static var tvPairMenu: String { string("tv-pair-menu", fallback: "Pair a TV…") }
+
+    /// Title of the pairing sheet.
+    public static var tvPairWithTv: String { string("tv-pair-with-tv", fallback: "Pair with a TV") }
+
+    /// Title of the pairing step for one TV. The name is the name the TV gave itself.
+    public static func tvPairWith(name: String) -> String {
+        format("tv-pair-with", fallback: "Pair with %1$@", name)
+    }
+
+    /// Title while pairing is under way.
+    public static func tvPairingWith(name: String) -> String {
+        format("tv-pairing-with", fallback: "Pairing with %1$@", name)
+    }
+
+    /// Button that pairs.
+    public static var tvPair: String { string("tv-pair", fallback: "Pair") }
+
+    /// Button that pairs again after the pairing was lost.
+    public static var tvPairAgain: String { string("tv-pair-again", fallback: "Pair again") }
+
+    /// Title of the card of a TV that needs pairing again.
+    public static func tvPairAgainWith(name: String) -> String {
+        format("tv-pair-again-with", fallback: "Pair again with %1$@", name)
+    }
+
+    /// Button that picks another TV.
+    public static var tvChooseAnother: String { string("tv-choose-another", fallback: "Choose another TV…") }
+
+    /// Accessibility label of the pairing code field.
+    public static var tvPairingCode: String { string("tv-pairing-code", fallback: "Pairing code") }
+
+    /// Line telling where to open the app on the TV.
+    public static var tvOpenOnTv: String { string("tv-open-on-tv", fallback: "Open anistream on the TV. It needs to be on the same Wi-Fi as this device.") }
+
+    /// Line telling what to type.
+    public static func tvTypeCode(name: String) -> String {
+        format("tv-type-code", fallback: "Type the six digits %1$@ shows. After this, this device connects by itself.", name)
+    }
+
+    /// Line while pairing is under way.
+    public static var tvPairingMoment: String { string("tv-pairing-moment", fallback: "This takes a moment.") }
+
+    /// Line while the app looks for TVs.
+    public static var tvLooking: String { string("tv-looking", fallback: "Looking for TVs on this network") }
+
+    /// Title when no TV answered.
+    public static var tvNoneFound: String { string("tv-none-found", fallback: "No TVs found") }
+
+    /// Line under it.
+    public static var tvNoneFoundDetail: String { string("tv-none-found-detail", fallback: "Check that anistream is open on the TV, on the same Wi-Fi as this device.") }
+
+    /// Shorter line under it where the network is not the problem.
+    public static var tvNoneFoundShort: String { string("tv-none-found-short", fallback: "Check that anistream is open on the TV.") }
+
+    /// Line telling where the TV shows its address.
+    public static var tvAddressHint: String { string("tv-address-hint", fallback: "The TV shows its address on its Pair a phone screen.") }
+
+    /// Line telling how to scan the TV's code.
+    public static var tvScanHint: String { string("tv-scan-hint", fallback: "Point the camera app at the code on the TV. It opens anistream and pairs.") }
+
+    /// Line telling what to do once paired.
+    public static var tvAfterPairing: String { string("tv-after-pairing", fallback: "Choose Play on TV on an episode, or search on the TV from here.") }
+
+    /// Line while the TV starts the episode.
+    public static func tvStartingOn(name: String) -> String {
+        format("tv-starting-on", fallback: "Starting on %1$@", name)
+    }
+
+    /// Line while the app starts on the TV, without a name.
+    public static var tvStarting: String { string("tv-starting", fallback: "Starting on the TV") }
+
+    /// Line when something failed while talking to the TV.
+    public static var tvTalkFailed: String { string("tv-talk-failed", fallback: "Something went wrong talking to the TV. Try again.") }
+
+    /// Line when the TV did not start the episode. The reason is a sentence fragment.
+    public static func tvPlayFailed(reason: String) -> String {
+        format("tv-play-failed", fallback: "Play on TV did not start: %1$@", reason)
+    }
+
+    /// Label of the address field.
+    public static var tvAddress: String { string("tv-address", fallback: "Address") }
+
+    /// Menu item and title: type the address of a TV by hand.
+    public static var tvTypeAddress: String { string("tv-type-address", fallback: "Type an address…") }
+
+    /// Button that connects to the typed address.
+    public static var tvConnect: String { string("tv-connect", fallback: "Connect") }
+
+    /// Line in the settings when none is paired.
+    public static var tvNonePaired: String { string("tv-none-paired", fallback: "No TVs paired yet") }
+
+    /// Line under it.
+    public static var tvNonePairedDetail: String { string("tv-none-paired-detail", fallback: "Open anistream on the TV, on the same Wi-Fi, then pair with it here.") }
+
+    /// Line on the settings row of a paired TV.
+    public static func tvPairedOn(when: String) -> String {
+        format("tv-paired-on", fallback: "Paired %1$@", when)
+    }
+
+    /// Short word: paired, no date known.
+    public static var tvPaired: String { string("tv-paired", fallback: "Paired") }
+
+    /// Line with the address.
+    public static func tvConnectedAt(address: String) -> String {
+        format("tv-connected-at", fallback: "Connected · %1$@", address)
+    }
+
+    /// Title of the confirmation that forgets a TV.
+    public static func tvForgetTitle(name: String) -> String {
+        format("tv-forget-title", fallback: "Forget %1$@?", name)
+    }
+
+    /// Line under it.
+    public static var tvForgetDetail: String { string("tv-forget-detail", fallback: "To play on it again, pair with it again.") }
+
+    /// Accessibility label of the forget button.
+    public static func tvForgetLabel(name: String) -> String {
+        format("tv-forget-label", fallback: "Forget %1$@", name)
+    }
+
+    /// Tooltip of a card that opens the remote.
+    public static func tvShowRemote(name: String) -> String {
+        format("tv-show-remote", fallback: "Show the remote for %1$@", name)
+    }
+
+    /// Status on the remote: playing on a TV.
+    public static func tvStatusPlaying(name: String) -> String {
+        format("tv-status-playing", fallback: "Playing on %1$@", name)
+    }
+
+    /// Status on the remote: connecting.
+    public static func tvStatusConnecting(name: String) -> String {
+        format("tv-status-connecting", fallback: "Connecting to %1$@", name)
+    }
+
+    /// Status on the remote: connection lost, trying again.
+    public static func tvStatusReconnecting(name: String) -> String {
+        format("tv-status-reconnecting", fallback: "Reconnecting to %1$@", name)
+    }
+
+    /// Status on the remote: connected.
+    public static var tvStatusConnected: String { string("tv-status-connected", fallback: "Connected") }
+
+    /// Label of the search field on the remote.
+    public static var tvSearchOnTv: String { string("tv-search-on-tv", fallback: "Search on the TV") }
+
+    /// Hint inside the search field on the remote.
+    public static var tvTypeSearch: String { string("tv-type-search", fallback: "Type a search") }
+
+    /// Name of a track that has no name.
+    public static func tvTrackN(id: Int) -> String {
+        format("tv-track-n", fallback: "Track %1$lld", id)
+    }
+
+    /// Title of the screen on the TV that waits for a phone.
+    public static var tvPairPhone: String { string("tv-pair-phone", fallback: "Pair a phone") }
+
+    /// Line on that screen.
+    public static var tvPairPhoneDetail: String { string("tv-pair-phone-detail", fallback: "Open anistream on your phone and choose Play on TV, then scan this code.") }
+
+    /// Line over the code to type.
+    public static var tvOrEnterCode: String { string("tv-or-enter-code", fallback: "Or enter this code") }
+
+    /// Line naming this TV on that screen.
+    public static func tvThisTv(name: String, address: String) -> String {
+        format("tv-this-tv", fallback: "This TV: %1$@, %2$@", name, address)
+    }
+
+    /// Line: how often the code changes.
+    public static var tvCodeChanges: String { string("tv-code-changes", fallback: "The code changes every 5 minutes.") }
+
+    /// Title of the question on the TV when a phone asks to pair.
+    public static func tvPairRequest(name: String) -> String {
+        format("tv-pair-request", fallback: "Pair with %1$@?", name)
+    }
+
+    /// Line under it.
+    public static var tvPairRequestDetail: String { string("tv-pair-request-detail", fallback: "Enter this code on the phone.") }
+
+    /// Line on the TV after a phone paired. The name is a phone name.
+    public static func tvPhonePaired(name: String) -> String {
+        format("tv-phone-paired", fallback: "%1$@ is paired", name)
+    }
+
+    /// Title of the confirmation on the TV that removes a phone.
+    public static func tvRemovePhoneTitle(name: String) -> String {
+        format("tv-remove-phone-title", fallback: "Remove %1$@?", name)
+    }
+
+    /// Line under it.
+    public static var tvRemovePhoneDetail: String { string("tv-remove-phone-detail", fallback: "It stops working as a remote for this TV. It can pair again with a new code.") }
+
+    /// Heading of the settings group on the TV that lists the remotes.
+    public static var tvRemotes: String { string("tv-remotes", fallback: "Remotes") }
+
+    /// Heading of the update row in settings and about.
+    public static var updatesTitle: String { string("updates-title", fallback: "Updates") }
+
+    /// Line while the app checks.
+    public static var updatesChecking: String { string("updates-checking", fallback: "Checking for a newer version…") }
+
+    /// Line when the app is current.
+    public static var updatesUpToDate: String { string("updates-up-to-date", fallback: "Up to date") }
+
+    /// Line when there is no connection to check.
+    public static var updatesChecksOnline: String { string("updates-checks-online", fallback: "Checks once you're back online") }
+
+    /// Line before the first check.
+    public static var updatesNotChecked: String { string("updates-not-checked", fallback: "Not checked yet") }
+
+    /// Line when the check failed. The reason starts with a capital.
+    public static func updatesCheckFailed(reason: String) -> String {
+        format("updates-check-failed", fallback: "Couldn't check: %1$@", reason)
+    }
+
+    /// Line when the check failed on the phone. The reason is already a sentence.
+    public static func updatesNotCheckedBecause(reason: String) -> String {
+        format("updates-not-checked-because", fallback: "Not checked. %1$@", reason)
+    }
+
+    /// Line describing the schedule.
+    public static var updatesSchedule: String { string("updates-schedule", fallback: "Once a day. Nothing is downloaded until you choose to update.") }
+
+    /// Line when the package manager updates the app.
+    public static var updatesManaged: String { string("updates-managed", fallback: "Updates come from your package manager.") }
+
+    /// Line when Flatpak updates the app.
+    public static var updatesFlatpak: String { string("updates-flatpak", fallback: "Flatpak keeps anistream up to date") }
+
+    /// Line when a version is out.
+    public static func updatesVersionOut(version: String) -> String {
+        format("updates-version-out", fallback: "Version %1$@ is out", version)
+    }
+
+    /// Line when a version is out and the software centre installs it.
+    public static func updatesVersionOutSoftware(version: String) -> String {
+        format("updates-version-out-software", fallback: "Version %1$@ is out. Software installs it.", version)
+    }
+
+    /// Line when a version is out and its page has the installer.
+    public static func updatesVersionOutPage(version: String) -> String {
+        format("updates-version-out-page", fallback: "Version %1$@ is out. Its page has the installer.", version)
+    }
+
+    /// Line when a version is out and its page has the AppImage.
+    public static func updatesVersionOutAppimage(version: String) -> String {
+        format("updates-version-out-appimage", fallback: "Version %1$@ is out. Its page has the AppImage.", version)
+    }
+
+    /// Title of the offer card.
+    public static func updatesAvailable(version: String) -> String {
+        format("updates-available", fallback: "anistream %1$@ is available", version)
+    }
+
+    /// Banner on the TV pointing to the update.
+    public static func updatesAvailableTv(version: String) -> String {
+        format("updates-available-tv", fallback: "Update available: anistream %1$@. Settings › About", version)
+    }
+
+    /// Button that starts the update.
+    public static func updatesUpdateTo(version: String) -> String {
+        format("updates-update-to", fallback: "Update to %1$@", version)
+    }
+
+    /// Line on the TV: the version now installed.
+    public static func updatesThisHas(version: String) -> String {
+        format("updates-this-has", fallback: "This TV has %1$@", version)
+    }
+
+    /// Line when the notes are on the release page.
+    public static var updatesNotesOnPage: String { string("updates-notes-on-page", fallback: "The notes for this version are on its page.") }
+
+    /// Line when this build cannot update itself.
+    public static var updatesNoSelfUpdate: String { string("updates-no-self-update", fallback: "This build doesn't update itself. Install the new version from its page.") }
+
+    /// Line on the TV: Android asks first.
+    public static var updatesAndroidAsks: String { string("updates-android-asks", fallback: "Nothing installs until Android asks you to confirm.") }
+
+    /// Line on the phone: the release page opens.
+    public static var updatesOpensPage: String { string("updates-opens-page", fallback: "Opens the page for this version") }
+
+    /// Line while downloading, with the version.
+    public static func updatesDownloading(version: String) -> String {
+        format("updates-downloading", fallback: "Downloading version %1$@", version)
+    }
+
+    /// Line while downloading, with progress. Sizes are already formatted.
+    public static func updatesDownloadingSize(version: String, done: String, total: String) -> String {
+        format("updates-downloading-size", fallback: "Downloading version %1$@ · %2$@ of %3$@", version, done, total)
+    }
+
+    /// Line while downloading, with a percentage.
+    public static func updatesDownloadingPercent(percent: String) -> String {
+        format("updates-downloading-percent", fallback: "Downloading %1$@", percent)
+    }
+
+    /// Line while downloading, with a percentage and sizes.
+    public static func updatesDownloadingFull(percent: String, done: String, total: String) -> String {
+        format("updates-downloading-full", fallback: "Downloading · %1$@ · %2$@ of %3$@", percent, done, total)
+    }
+
+    /// Line while the download is about to start.
+    public static var updatesStartingDownload: String { string("updates-starting-download", fallback: "Starting the download") }
+
+    /// Line while the download is checked.
+    public static func updatesCheckingDownload(version: String) -> String {
+        format("updates-checking-download", fallback: "Checking the download of version %1$@…", version)
+    }
+
+    /// Short line while the download is checked.
+    public static var updatesCheckingDownloadShort: String { string("updates-checking-download-short", fallback: "Checking the download") }
+
+    /// Line when the download is ready.
+    public static func updatesReady(version: String) -> String {
+        format("updates-ready", fallback: "Version %1$@ is ready to install", version)
+    }
+
+    /// Line while installing.
+    public static func updatesInstalling(version: String) -> String {
+        format("updates-installing", fallback: "Installing version %1$@…", version)
+    }
+
+    /// Line after Android is asked to install.
+    public static var updatesConfirmOnAndroid: String { string("updates-confirm-on-android", fallback: "Android is asking to install the update. Confirm on its screen; your sign-ins, lists and settings stay.") }
+
+    /// Line after the update: when it opens.
+    public static func updatesUpdatedTv(version: String) -> String {
+        format("updates-updated-tv", fallback: "Updated to %1$@. It opens next time you start anistream.", version)
+    }
+
+    /// Notice after restarting into the new version.
+    public static func updatesUpdated(version: String) -> String {
+        format("updates-updated", fallback: "Updated to version %1$@", version)
+    }
+
+    /// Short line after the update on a phone.
+    public static var updatesOpensNextTime: String { string("updates-opens-next-time", fallback: "The new version opens next time") }
+
+    /// Line when the update stopped.
+    public static func updatesStopped(version: String, reason: String) -> String {
+        format("updates-stopped", fallback: "The update to version %1$@ stopped. %2$@", version, reason)
+    }
+
+    /// Notice when the new version did not install.
+    public static func updatesDidNotInstall(version: String) -> String {
+        format("updates-did-not-install", fallback: "Version %1$@ didn't install. About can try again.", version)
+    }
+
+    /// Button that opens About.
+    public static var updatesOpenAbout: String { string("updates-open-about", fallback: "Open About") }
+
+    /// Line on Linux when the file is saved to the downloads folder.
+    public static func updatesSaved(version: String) -> String {
+        format("updates-saved", fallback: "Version %1$@ saved to Downloads", version)
+    }
+
+    /// Line on Linux telling what to replace.
+    public static func updatesSavedReplace(version: String, file: String) -> String {
+        format("updates-saved-replace", fallback: "Version %1$@ saved to Downloads. Replace the old file, %2$@, with it to update.", version, file)
+    }
+
+    /// Line on Linux telling what to replace, file unknown.
+    public static func updatesSavedReplacePlain(version: String) -> String {
+        format("updates-saved-replace-plain", fallback: "Version %1$@ saved to Downloads. Replace the old file with it to update.", version)
+    }
+
+    /// The server refused. The code is a number.
+    public static func updatesWhyServer(code: Int) -> String {
+        format("updates-why-server", fallback: "The download stopped: the server answered %1$lld.", code)
+    }
+
+    /// The connection broke.
+    public static var updatesWhyConnection: String { string("updates-why-connection", fallback: "The download stopped: the connection was lost.") }
+
+    /// The file could not be saved. The reason is a sentence fragment.
+    public static func updatesWhySave(reason: String) -> String {
+        format("updates-why-save", fallback: "The download couldn't be saved: %1$@", reason)
+    }
+
+    /// The file has the wrong size. Sizes are already formatted.
+    public static func updatesWhySize(got: String, expected: String) -> String {
+        format("updates-why-size", fallback: "The download is %1$@, not the %2$@ listed for this version.", got, expected)
+    }
+
+    /// The file does not match its checksum.
+    public static var updatesWhyChecksum: String { string("updates-why-checksum", fallback: "The download doesn't match the checksum listed for this version.") }
+
+    /// Android: the file does not match its checksum, and nothing was installed.
+    public static var updatesWhyChecksumAndroid: String { string("updates-why-checksum-android", fallback: "The download does not match the checksum listed for this version, so it was not installed.") }
+
+    /// Android: not an app.
+    public static var updatesWhyNotApp: String { string("updates-why-not-app", fallback: "The download is not an Android app, so it was not installed.") }
+
+    /// Android: another app.
+    public static var updatesWhyOtherApp: String { string("updates-why-other-app", fallback: "The download is a different app, so it was not installed.") }
+
+    /// Android: not signed with the right key.
+    public static var updatesWhyUnsigned: String { string("updates-why-unsigned", fallback: "The download is not signed with anistream's key, so it was not installed.") }
+
+    /// Android: not newer.
+    public static var updatesWhyNotNewer: String { string("updates-why-not-newer", fallback: "The download is not newer than this version, so it was not installed.") }
+
+    /// Android: no space.
+    public static var updatesWhySpace: String { string("updates-why-space", fallback: "Not enough free space for the update. Free some and try again.") }
+
+    /// Android: install failed.
+    public static var updatesWhyInstall: String { string("updates-why-install", fallback: "Couldn't install the update. Try again.") }
+
+    /// Android: the download did not work.
+    public static var updatesWhyDownload: String { string("updates-why-download", fallback: "Couldn't download the update. Check the connection and try again.") }
+
+    /// Android: the download did not start.
+    public static var updatesWhyStart: String { string("updates-why-start", fallback: "Couldn't start the download. Try again.") }
+
+    /// Android: the system stopped the download.
+    public static var updatesWhySystem: String { string("updates-why-system", fallback: "Android stopped the download") }
+
+    /// The installer would not start. The reason is a sentence fragment.
+    public static func updatesWhyInstaller(reason: String) -> String {
+        format("updates-why-installer", fallback: "The installer couldn't start: %1$@", reason)
+    }
+
+    /// Title of the step.
+    public static var updatesAllowTitle: String { string("updates-allow-title", fallback: "Allow anistream to install its update") }
+
+    /// Name of the Android setting.
+    public static var updatesUnknownApps: String { string("updates-unknown-apps", fallback: "Install unknown apps") }
+
+    /// Step one.
+    public static var updatesAllowStep1: String { string("updates-allow-step-1", fallback: "Choose Open settings. Android shows the apps that may install other apps.") }
+
+    /// Step two.
+    public static var updatesAllowStep2: String { string("updates-allow-step-2", fallback: "Turn on anistream.") }
+
+    /// Step three.
+    public static var updatesAllowStep3: String { string("updates-allow-step-3", fallback: "Press Back. The update downloads, and Android asks you to confirm it.") }
+
+    /// Line while waiting for the switch. The path is the Android settings path.
+    public static func updatesAllowWaiting(path: String) -> String {
+        format("updates-allow-waiting", fallback: "Waiting for the switch. If Android's page didn't open, find it under %1$@.", path)
+    }
+
+    /// Line the first time. The path is the Android settings path.
+    public static func updatesAllowOnce(path: String) -> String {
+        format("updates-allow-once", fallback: "Android asks this once. If its page doesn't open, the switch is under %1$@.", path)
+    }
 
     /// The languages this build has text for, source first. `draft` languages carry the draft label.
     public static let languages: [Language] = [

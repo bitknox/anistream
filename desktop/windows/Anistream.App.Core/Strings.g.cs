@@ -603,6 +603,108 @@ public static partial class T
     /// <summary>Under a release in the source picker: how many people share it right now.</summary>
     public static string SourcePickerSeeders(long count) => Fill(GetPlural("SourcePickerSeeders", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
 
+    /// <summary>Title of the about page.</summary>
+    public static string AboutTitle => Get("AboutTitle");
+
+    /// <summary>Title of the about page on desktop.</summary>
+    public static string AboutTitleApp => Get("AboutTitleApp");
+
+    /// <summary>Line with the version.</summary>
+    public static string AboutVersion(string version) => Fill(Get("AboutVersion"), ("version", version));
+
+    /// <summary>Line with the licence.</summary>
+    public static string AboutLicence => Get("AboutLicence");
+
+    /// <summary>Row opening the list of acknowledgements.</summary>
+    public static string AboutAcknowledgements => Get("AboutAcknowledgements");
+
+    /// <summary>Row opening the licences of the parts used.</summary>
+    public static string AboutLicences => Get("AboutLicences");
+
+    /// <summary>Row opening the website.</summary>
+    public static string AboutWebsite => Get("AboutWebsite");
+
+    /// <summary>Button that opens a bug report.</summary>
+    public static string AboutReportBug => Get("AboutReportBug");
+
+    /// <summary>Line under it: what the report carries.</summary>
+    public static string AboutReportBugDetail => Get("AboutReportBugDetail");
+
+    /// <summary>Line about artwork licences.</summary>
+    public static string AboutArtwork => Get("AboutArtwork");
+
+    /// <summary>Line about fonts.</summary>
+    public static string AboutFontLicence => Get("AboutFontLicence");
+
+    /// <summary>Button that shows the week before.</summary>
+    public static string CalendarPreviousWeek => Get("CalendarPreviousWeek");
+
+    /// <summary>Button that shows the week after.</summary>
+    public static string CalendarNextWeek => Get("CalendarNextWeek");
+
+    /// <summary>Button that jumps back to the current week.</summary>
+    public static string CalendarThisWeek => Get("CalendarThisWeek");
+
+    /// <summary>Filter: only shows on the person's list.</summary>
+    public static string CalendarFilterMine => Get("CalendarFilterMine");
+
+    /// <summary>Filter: every show that airs.</summary>
+    public static string CalendarFilterAll => Get("CalendarFilterAll");
+
+    /// <summary>Heading of today's column or row. The day is already worded.</summary>
+    public static string CalendarTodayHeading(string day) => Fill(Get("CalendarTodayHeading"), ("day", day));
+
+    /// <summary>Title of the state when no show airs.</summary>
+    public static string CalendarEmptyTitle => Get("CalendarEmptyTitle");
+
+    /// <summary>Line when no show on the person's list airs this week.</summary>
+    public static string CalendarEmptyMine => Get("CalendarEmptyMine");
+
+    /// <summary>Line when no show airs this week.</summary>
+    public static string CalendarEmptyAll => Get("CalendarEmptyAll");
+
+    /// <summary>Line when no show airs today.</summary>
+    public static string CalendarEmptyToday => Get("CalendarEmptyToday");
+
+    /// <summary>Line when no show airs on the day. The day is already worded, such as "Thursday".</summary>
+    public static string CalendarEmptyDay(string day) => Fill(Get("CalendarEmptyDay"), ("day", day));
+
+    /// <summary>Title of the state when the calendar could not load.</summary>
+    public static string CalendarLoadFailed => Get("CalendarLoadFailed");
+
+    /// <summary>Row: episode number and the time it airs.</summary>
+    public static string CalendarRowTime(long episode, string time) => Fill(Get("CalendarRowTime"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
+
+    /// <summary>Row: episode number, dubbed, and the time it airs.</summary>
+    public static string CalendarRowTimeDubbed(long episode, string time) => Fill(Get("CalendarRowTimeDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("time", time));
+
+    /// <summary>Note on a row whose episode moved to a later time.</summary>
+    public static string CalendarMovedFrom(string time) => Fill(Get("CalendarMovedFrom"), ("time", time));
+
+    /// <summary>Note on a row whose episode was delayed. The note says how long.</summary>
+    public static string CalendarDelayed(string note) => Fill(Get("CalendarDelayed"), ("note", note));
+
+    /// <summary>Row: the episode came out a while ago. The span is already worded.</summary>
+    public static string CalendarOut(string ago) => Fill(Get("CalendarOut"), ("ago", ago));
+
+    /// <summary>Row in a small widget: the episode is out.</summary>
+    public static string CalendarEpisodeOut(long episode) => Fill(Get("CalendarEpisodeOut"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Accessibility word for an aired episode that the person has not watched.</summary>
+    public static string CalendarOutUnwatched => Get("CalendarOutUnwatched");
+
+    /// <summary>Line saying when an episode airs. The time is already worded: "in 1h 30m", "Thursday 16:30".</summary>
+    public static string EpisodeAirs(long episode, string when) => Fill(Get("EpisodeAirs"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("when", when));
+
+    /// <summary>Line for an episode that has not aired and has no date yet.</summary>
+    public static string EpisodeNotOut(long episode) => Fill(Get("EpisodeNotOut"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Header of the list of episodes that air in the next seven days.</summary>
+    public static string CalendarComingUp => Get("CalendarComingUp");
+
+    /// <summary>Line when no show the person follows airs in the next seven days.</summary>
+    public static string CalendarComingUpEmpty => Get("CalendarComingUpEmpty");
+
     /// <summary>Button that runs a failed action again.</summary>
     public static string ActionTryAgain => Get("ActionTryAgain");
 
@@ -645,6 +747,417 @@ public static partial class T
     /// <summary>Button that closes a sheet whose changes have already been made.</summary>
     public static string ActionDone => Get("ActionDone");
 
+    /// <summary>Button that closes a window or sheet.</summary>
+    public static string ActionClose => Get("ActionClose");
+
+    /// <summary>Button and header control that goes to the screen before.</summary>
+    public static string ActionBack => Get("ActionBack");
+
+    /// <summary>Button that deletes something for good, usually in a confirmation.</summary>
+    public static string ActionDelete => Get("ActionDelete");
+
+    /// <summary>Button that takes something away from a list or from this device.</summary>
+    public static string ActionRemove => Get("ActionRemove");
+
+    /// <summary>Button that stores what was typed or chosen.</summary>
+    public static string ActionSave => Get("ActionSave");
+
+    /// <summary>Button that opens something to change it.</summary>
+    public static string ActionEdit => Get("ActionEdit");
+
+    /// <summary>Button that opens an item.</summary>
+    public static string ActionOpen => Get("ActionOpen");
+
+    /// <summary>Button that starts playing.</summary>
+    public static string ActionPlay => Get("ActionPlay");
+
+    /// <summary>Button that pauses playback or a download.</summary>
+    public static string ActionPause => Get("ActionPause");
+
+    /// <summary>Button that stops playback or a job.</summary>
+    public static string ActionStop => Get("ActionStop");
+
+    /// <summary>Button that takes back the last automatic action.</summary>
+    public static string ActionUndo => Get("ActionUndo");
+
+    /// <summary>Button that empties a list or a field.</summary>
+    public static string ActionClear => Get("ActionClear");
+
+    /// <summary>Button that puts a form's choices back to how they started.</summary>
+    public static string ActionReset => Get("ActionReset");
+
+    /// <summary>Button that installs a newer version of something.</summary>
+    public static string ActionUpdate => Get("ActionUpdate");
+
+    /// <summary>Button that installs something.</summary>
+    public static string ActionInstall => Get("ActionInstall");
+
+    /// <summary>Button that copies text to the clipboard.</summary>
+    public static string ActionCopy => Get("ActionCopy");
+
+    /// <summary>What a copy button says for a moment after it copied.</summary>
+    public static string ActionCopied => Get("ActionCopied");
+
+    /// <summary>Button that opens the system share sheet.</summary>
+    public static string ActionShare => Get("ActionShare");
+
+    /// <summary>Name of an overflow menu: the extra actions for a row or a page.</summary>
+    public static string ActionMore => Get("ActionMore");
+
+    /// <summary>Button that skips an optional step.</summary>
+    public static string ActionSkip => Get("ActionSkip");
+
+    /// <summary>Button that signs in to an account.</summary>
+    public static string ActionSignIn => Get("ActionSignIn");
+
+    /// <summary>Button that signs out of an account.</summary>
+    public static string ActionSignOut => Get("ActionSignOut");
+
+    /// <summary>Button that joins something, such as a { -plugin-store } or a { -watch-party }.</summary>
+    public static string ActionJoin => Get("ActionJoin");
+
+    /// <summary>Button that leaves something that was joined.</summary>
+    public static string ActionLeave => Get("ActionLeave");
+
+    /// <summary>Button that pairs two devices.</summary>
+    public static string ActionPair => Get("ActionPair");
+
+    /// <summary>Button that connects to something.</summary>
+    public static string ActionConnect => Get("ActionConnect");
+
+    /// <summary>Button that ends a connection.</summary>
+    public static string ActionDisconnect => Get("ActionDisconnect");
+
+    /// <summary>Button that makes the app forget a paired TV.</summary>
+    public static string ActionForget => Get("ActionForget");
+
+    /// <summary>Button that offers a plugin to other people in a { -plugin-store }.</summary>
+    public static string ActionPublish => Get("ActionPublish");
+
+    /// <summary>Button that swaps one copy of a { -plugin } for another.</summary>
+    public static string ActionReplace => Get("ActionReplace");
+
+    /// <summary>Menu item that turns a { -source } on.</summary>
+    public static string ActionEnable => Get("ActionEnable");
+
+    /// <summary>Menu item that turns a { -source } off.</summary>
+    public static string ActionDisable => Get("ActionDisable");
+
+    /// <summary>Button that checks now rather than waiting for the next scheduled check.</summary>
+    public static string ActionCheckNow => Get("ActionCheckNow");
+
+    /// <summary>Button that checks a { -source } again after it did not answer.</summary>
+    public static string ActionCheckAgain => Get("ActionCheckAgain");
+
+    /// <summary>Button that opens the system's own settings for the app.</summary>
+    public static string ActionOpenSettings => Get("ActionOpenSettings");
+
+    /// <summary>Button that reports an error as a bug.</summary>
+    public static string ActionReport => Get("ActionReport");
+
+    /// <summary>Button that starts the next episode at once.</summary>
+    public static string ActionPlayNow => Get("ActionPlayNow");
+
+    /// <summary>Button that gets a new sign-in or pairing code after the old one expired.</summary>
+    public static string ActionNewCode => Get("ActionNewCode");
+
+    /// <summary>Button that opens a page in the browser.</summary>
+    public static string ActionOpenHost(string host) => Fill(Get("ActionOpenHost"), ("host", host));
+
+    /// <summary>Value of a switch that is on.</summary>
+    public static string ValueOn => Get("ValueOn");
+
+    /// <summary>Value of a switch that is off.</summary>
+    public static string ValueOff => Get("ValueOff");
+
+    /// <summary>Value when nothing is chosen or nothing is there.</summary>
+    public static string ValueNone => Get("ValueNone");
+
+    /// <summary>Value that lets anistream choose.</summary>
+    public static string ValueAutomatic => Get("ValueAutomatic");
+
+    /// <summary>Value that follows the app-wide setting. Shown beside a show's own settings.</summary>
+    public static string ValueDefault => Get("ValueDefault");
+
+    /// <summary>Row that follows the app-wide setting for one show.</summary>
+    public static string ValueUseDefault => Get("ValueUseDefault");
+
+    /// <summary>Row that follows the app-wide setting, with what that setting is now.</summary>
+    public static string ValueUseDefaultIs(string value) => Fill(Get("ValueUseDefaultIs"), ("value", value));
+
+    /// <summary>Accessibility word for the chosen row in a list.</summary>
+    public static string ValueSelected => Get("ValueSelected");
+
+    /// <summary>Accessibility word for a row that is the current one.</summary>
+    public static string ValueCurrent => Get("ValueCurrent");
+
+    /// <summary>A value the app could not work out.</summary>
+    public static string ValueUnknown => Get("ValueUnknown");
+
+    /// <summary>Day word for today.</summary>
+    public static string DayToday => Get("DayToday");
+
+    /// <summary>Day word for tomorrow.</summary>
+    public static string DayTomorrow => Get("DayTomorrow");
+
+    /// <summary>Day word for yesterday.</summary>
+    public static string DayYesterday => Get("DayYesterday");
+
+    /// <summary>How long ago something happened.</summary>
+    public static string TimeAgo(string span) => Fill(Get("TimeAgo"), ("span", span));
+
+    /// <summary>How long until something happens.</summary>
+    public static string TimeIn(string span) => Fill(Get("TimeIn"), ("span", span));
+
+    /// <summary>Under a title or in a row: minutes left in an episode.</summary>
+    public static string TimeMinutesLeft(long minutes) => Fill(Get("TimeMinutesLeft"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>A length in minutes, for an episode.</summary>
+    public static string TimeMinutes(long minutes) => Fill(Get("TimeMinutes"), ("minutes", minutes.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under a title when the device has no connection.</summary>
+    public static string StateOfflineLine => Get("StateOfflineLine");
+
+    /// <summary>Title of the full-screen state when a screen needs a connection and there is none.</summary>
+    public static string StateOfflineTitle => Get("StateOfflineTitle");
+
+    /// <summary>Line under the offline title.</summary>
+    public static string StateOfflineDetail => Get("StateOfflineDetail");
+
+    /// <summary>Button on the offline state that opens the downloads.</summary>
+    public static string StateOfflineShowDownloads => Get("StateOfflineShowDownloads");
+
+    /// <summary>Next step under any "couldn't load" title.</summary>
+    public static string StateCheckConnection => Get("StateCheckConnection");
+
+    /// <summary>Generic failure when nothing more is known.</summary>
+    public static string ErrorGeneric => Get("ErrorGeneric");
+
+    /// <summary>Failure to read a list the server sent.</summary>
+    public static string ErrorListUnreadable => Get("ErrorListUnreadable");
+
+    /// <summary>Failure to reach a service. The name is the service, such as AniList.</summary>
+    public static string ErrorServiceUnreachable(string name) => Fill(Get("ErrorServiceUnreachable"), ("name", name));
+
+    /// <summary>Failure when a request took too long.</summary>
+    public static string ErrorTimedOut => Get("ErrorTimedOut");
+
+    /// <summary>Failure when a tracker rejects the saved sign-in.</summary>
+    public static string ErrorSignInExpired => Get("ErrorSignInExpired");
+
+    /// <summary>Accessibility label on the error icon.</summary>
+    public static string ErrorLabel => Get("ErrorLabel");
+
+    /// <summary>Accessibility label on a spinner.</summary>
+    public static string StateWorking => Get("StateWorking");
+
+    /// <summary>Short placeholder while something loads.</summary>
+    public static string StateLoading => Get("StateLoading");
+
+    /// <summary>Title of the screen and the sidebar item is nav-downloads. This is the heading of the settings group.</summary>
+    public static string DownloadsTitle => Get("DownloadsTitle");
+
+    /// <summary>Button that pauses every running download.</summary>
+    public static string DownloadsPauseAll => Get("DownloadsPauseAll");
+
+    /// <summary>Button that resumes every paused download.</summary>
+    public static string DownloadsResumeAll => Get("DownloadsResumeAll");
+
+    /// <summary>Accessibility label of the pause-all button on a phone.</summary>
+    public static string DownloadsPauseAllLabel => Get("DownloadsPauseAllLabel");
+
+    /// <summary>Accessibility label of the resume-all button on a phone.</summary>
+    public static string DownloadsResumeAllLabel => Get("DownloadsResumeAllLabel");
+
+    /// <summary>Button that removes finished rows from the list. The files stay.</summary>
+    public static string DownloadsClearFinished => Get("DownloadsClearFinished");
+
+    /// <summary>Button that opens the folder with the files. Shown on desktop only.</summary>
+    public static string DownloadsOpenFolder => Get("DownloadsOpenFolder");
+
+    /// <summary>Menu item on a row: reveals one file in the file manager. Shown on desktop only.</summary>
+    public static string DownloadsShowInFolder => Get("DownloadsShowInFolder");
+
+    /// <summary>Line showing the space the downloads use. The size is already formatted.</summary>
+    public static string DownloadsSpaceUsed(string size) => Fill(Get("DownloadsSpaceUsed"), ("size", size));
+
+    /// <summary>Line in the phone settings with the space in use.</summary>
+    public static string DownloadsInDownloads(string size) => Fill(Get("DownloadsInDownloads"), ("size", size));
+
+    /// <summary>Accessibility label of the space-used bar.</summary>
+    public static string DownloadsSpaceLabel => Get("DownloadsSpaceLabel");
+
+    /// <summary>Title when nothing is downloaded.</summary>
+    public static string DownloadsEmptyTitle => Get("DownloadsEmptyTitle");
+
+    /// <summary>Line under the empty title.</summary>
+    public static string DownloadsEmptyDetail => Get("DownloadsEmptyDetail");
+
+    /// <summary>Title when the list could not be read.</summary>
+    public static string DownloadsLoadFailed => Get("DownloadsLoadFailed");
+
+    /// <summary>Line when the folder could not be opened. Shown on desktop only.</summary>
+    public static string DownloadsFolderFailed => Get("DownloadsFolderFailed");
+
+    /// <summary>Name of a row.</summary>
+    public static string DownloadsEpisodeName(long episode) => Fill(Get("DownloadsEpisodeName"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Row caption: waiting for a free place.</summary>
+    public static string DownloadsCaptionQueued => Get("DownloadsCaptionQueued");
+
+    /// <summary>Row caption: waiting for a free place, with the reason.</summary>
+    public static string DownloadsCaptionQueuedSlot => Get("DownloadsCaptionQueuedSlot");
+
+    /// <summary>Row caption: a torrent is fetching its file list.</summary>
+    public static string DownloadsCaptionMetadata => Get("DownloadsCaptionMetadata");
+
+    /// <summary>Row caption: running. Both sizes are already formatted.</summary>
+    public static string DownloadsCaptionRunning(string done, string total) => Fill(Get("DownloadsCaptionRunning"), ("done", done), ("total", total));
+
+    /// <summary>Row caption: running, size not known yet.</summary>
+    public static string DownloadsCaptionRunningPlain => Get("DownloadsCaptionRunningPlain");
+
+    /// <summary>Row caption: paused at a percentage.</summary>
+    public static string DownloadsCaptionPaused(string percent) => Fill(Get("DownloadsCaptionPaused"), ("percent", percent));
+
+    /// <summary>Row caption: finished. The size is already formatted.</summary>
+    public static string DownloadsCaptionDoneSize(string size) => Fill(Get("DownloadsCaptionDoneSize"), ("size", size));
+
+    /// <summary>Row caption: finished.</summary>
+    public static string DownloadsCaptionDone => Get("DownloadsCaptionDone");
+
+    /// <summary>Row caption: finished and removed a day after it is watched.</summary>
+    public static string DownloadsCaptionAhead => Get("DownloadsCaptionAhead");
+
+    /// <summary>Short row caption for an episode downloaded before it was asked for.</summary>
+    public static string DownloadsAhead => Get("DownloadsAhead");
+
+    /// <summary>Row caption: stopped with a reason, which is already a sentence fragment.</summary>
+    public static string DownloadsCaptionFailedWhy(string why) => Fill(Get("DownloadsCaptionFailedWhy"), ("why", why));
+
+    /// <summary>Row caption: stopped without a reason.</summary>
+    public static string DownloadsCaptionFailed => Get("DownloadsCaptionFailed");
+
+    /// <summary>Row caption: sharing back. Both amounts are ratios already formatted, the last is time left.</summary>
+    public static string DownloadsSeedingLine(string shared, string goal, string left) => Fill(Get("DownloadsSeedingLine"), ("shared", shared), ("goal", goal), ("left", left));
+
+    /// <summary>Menu item that starts a queued download before the others.</summary>
+    public static string DownloadsStartNow => Get("DownloadsStartNow");
+
+    /// <summary>Tooltip of the start-now menu item.</summary>
+    public static string DownloadsStartNowHelp => Get("DownloadsStartNowHelp");
+
+    /// <summary>Menu item that takes a row off the queue. The file is not deleted.</summary>
+    public static string DownloadsRemoveFromQueue => Get("DownloadsRemoveFromQueue");
+
+    /// <summary>Menu item that takes a finished row off the list. The file stays.</summary>
+    public static string DownloadsRemoveFromList => Get("DownloadsRemoveFromList");
+
+    /// <summary>Menu item that removes the downloaded file.</summary>
+    public static string DownloadsDeleteFile => Get("DownloadsDeleteFile");
+
+    /// <summary>Accessibility label: pause one download.</summary>
+    public static string DownloadsPauseOne => Get("DownloadsPauseOne");
+
+    /// <summary>Accessibility label: resume one download.</summary>
+    public static string DownloadsResumeOne => Get("DownloadsResumeOne");
+
+    /// <summary>Accessibility label: play one downloaded episode.</summary>
+    public static string DownloadsPlayEpisode(long episode) => Fill(Get("DownloadsPlayEpisode"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Title of the confirmation.</summary>
+    public static string DownloadsDeleteTitle(string name) => Fill(Get("DownloadsDeleteTitle"), ("name", name));
+
+    /// <summary>Line under the confirmation title.</summary>
+    public static string DownloadsDeleteDetail => Get("DownloadsDeleteDetail");
+
+    /// <summary>Title of the confirmation on a phone.</summary>
+    public static string DownloadsDeleteOneTitle => Get("DownloadsDeleteOneTitle");
+
+    /// <summary>Line under it: what you lose.</summary>
+    public static string DownloadsDeleteOneDetail => Get("DownloadsDeleteOneDetail");
+
+    /// <summary>Button on the settings page that removes watched files.</summary>
+    public static string DownloadsDeleteWatched => Get("DownloadsDeleteWatched");
+
+    /// <summary>Heading of the seeding group.</summary>
+    public static string DownloadsSeedingTitle => Get("DownloadsSeedingTitle");
+
+    /// <summary>Heading of the seeding group on the downloads screen.</summary>
+    public static string DownloadsSeedingAfterWatching => Get("DownloadsSeedingAfterWatching");
+
+    /// <summary>Line under the seeding heading.</summary>
+    public static string DownloadsSeedingNote => Get("DownloadsSeedingNote");
+
+    /// <summary>Heading of the setting. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundTitle => Get("DownloadsBackgroundTitle");
+
+    /// <summary>Option: downloads go on. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundKeep => Get("DownloadsBackgroundKeep");
+
+    /// <summary>Option: downloads stop and resume later. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundStop => Get("DownloadsBackgroundStop");
+
+    /// <summary>Option: ask each time. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundAsk => Get("DownloadsBackgroundAsk");
+
+    /// <summary>Line shown when the setting is Keep downloading. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundKeeps => Get("DownloadsBackgroundKeeps");
+
+    /// <summary>Line shown when the setting is Stop downloading. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundStops => Get("DownloadsBackgroundStops");
+
+    /// <summary>Line shown when the setting is Ask each time. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundAsks => Get("DownloadsBackgroundAsks");
+
+    /// <summary>Title of the question when the window closes. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundQuestion => Get("DownloadsBackgroundQuestion");
+
+    /// <summary>Line on the Apple and Linux note in the notification area. Shown on desktop only.</summary>
+    public static string DownloadsBackgroundNote => Get("DownloadsBackgroundNote");
+
+    /// <summary>Label of the folder setting. Shown on desktop only.</summary>
+    public static string DownloadsFolder => Get("DownloadsFolder");
+
+    /// <summary>Label of the quality choice for downloads.</summary>
+    public static string DownloadsQuality => Get("DownloadsQuality");
+
+    /// <summary>Title of the notification when an episode finished.</summary>
+    public static string DownloadsNoticeDone(long episode) => Fill(Get("DownloadsNoticeDone"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Body of that notification.</summary>
+    public static string DownloadsNoticeDoneDetail(string title) => Fill(Get("DownloadsNoticeDoneDetail"), ("title", title));
+
+    /// <summary>Notification text while several episodes download.</summary>
+    public static string DownloadsNoticeRunning(long count) => Fill(GetPlural("DownloadsNoticeRunning", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Notification text: first line of one running download.</summary>
+    public static string DownloadsNoticeEpisodeLeft(long episode, string left) => Fill(Get("DownloadsNoticeEpisodeLeft"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("left", left));
+
+    /// <summary>Notification text: a download is starting.</summary>
+    public static string DownloadsNoticeStarting => Get("DownloadsNoticeStarting");
+
+    /// <summary>Button on a title page to download one episode.</summary>
+    public static string EpisodeDownloadOne(long episode) => Fill(Get("EpisodeDownloadOne"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under that button while it waits.</summary>
+    public static string EpisodeDownloadQueued => Get("EpisodeDownloadQueued");
+
+    /// <summary>Line under that button as the download begins.</summary>
+    public static string EpisodeDownloadStarting => Get("EpisodeDownloadStarting");
+
+    /// <summary>Line under that button while it runs.</summary>
+    public static string EpisodeDownloadRunning(string percent) => Fill(Get("EpisodeDownloadRunning"), ("percent", percent));
+
+    /// <summary>Line under that button while it is paused.</summary>
+    public static string EpisodeDownloadPaused(string percent) => Fill(Get("EpisodeDownloadPaused"), ("percent", percent));
+
+    /// <summary>Line under that button once the file is saved.</summary>
+    public static string EpisodeDownloadDone => Get("EpisodeDownloadDone");
+
+    /// <summary>Line under that button after a failure.</summary>
+    public static string EpisodeDownloadFailed(long episode) => Fill(Get("EpisodeDownloadFailed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Continue row subtitle. The show's title is cut first when the row is short.</summary>
     public static string QueueEpisodesLeft(long count, string title) => Fill(GetPlural("QueueEpisodesLeft", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
@@ -663,11 +1176,1109 @@ public static partial class T
     /// <summary>Group header for what aired in the last few days.</summary>
     public static string GroupNewThisWeek => Get("GroupNewThisWeek");
 
+    /// <summary>Title of the empty Continue screen.</summary>
+    public static string ContinueEmptyTitle => Get("ContinueEmptyTitle");
+
+    /// <summary>Line under the empty Continue title. Seasonal is the name of a screen.</summary>
+    public static string ContinueEmptyDetail => Get("ContinueEmptyDetail");
+
+    /// <summary>Button on the empty Continue screen that opens Seasonal.</summary>
+    public static string ContinueEmptyAction => Get("ContinueEmptyAction");
+
+    /// <summary>Title of the state when Continue could not load.</summary>
+    public static string ContinueLoadFailed => Get("ContinueLoadFailed");
+
+    /// <summary>Row heading on the Continue screen and the TV home screen for the shows in progress.</summary>
+    public static string ContinueHeading => Get("ContinueHeading");
+
+    /// <summary>Header for the strip of shows that air today.</summary>
+    public static string ContinueAiringToday => Get("ContinueAiringToday");
+
+    /// <summary>Header for the strip of shows from the current season.</summary>
+    public static string ContinueThisSeason => Get("ContinueThisSeason");
+
+    /// <summary>Menu item that takes a show off the Continue screen.</summary>
+    public static string ContinueHide => Get("ContinueHide");
+
+    /// <summary>Notice after a show was hidden from Continue.</summary>
+    public static string ContinueHidden => Get("ContinueHidden");
+
+    /// <summary>Menu item that sets a show's status to Dropped and takes it off Continue.</summary>
+    public static string ContinueDrop => Get("ContinueDrop");
+
+    /// <summary>Accessibility label on the overflow button of a row.</summary>
+    public static string ContinueMoreFor(string title) => Fill(Get("ContinueMoreFor"), ("title", title));
+
+    /// <summary>Row caption: resumes this episode where it stopped. The clock is the stored position.</summary>
+    public static string ContinueRowResume(long episode, string clock) => Fill(Get("ContinueRowResume"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("clock", clock));
+
+    /// <summary>Row caption: resumes this episode where it stopped, dubbed.</summary>
+    public static string ContinueRowResumeDubbed(long episode, string clock) => Fill(Get("ContinueRowResumeDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("clock", clock));
+
+    /// <summary>Row caption: the next unwatched episode.</summary>
+    public static string ContinueRowStart(long episode) => Fill(Get("ContinueRowStart"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Row caption: the next unwatched episode, dubbed.</summary>
+    public static string ContinueRowStartDubbed(long episode) => Fill(Get("ContinueRowStartDubbed"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Row caption: the next unwatched episode, which came out a while ago.</summary>
+    public static string ContinueRowStartAired(long episode, string ago) => Fill(Get("ContinueRowStartAired"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("ago", ago));
+
+    /// <summary>Row caption: nothing new to watch. The time is when the next episode airs.</summary>
+    public static string ContinueRowCaughtUp(long episode, string when) => Fill(Get("ContinueRowCaughtUp"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("when", when));
+
+    /// <summary>Row caption: nothing new to watch and no date for the next episode.</summary>
+    public static string ContinueRowCaughtUpPlain => Get("ContinueRowCaughtUpPlain");
+
+    /// <summary>Title of the home-screen widget when the library is empty or signed out.</summary>
+    public static string ContinueWidgetConnect => Get("ContinueWidgetConnect");
+
+    /// <summary>Line on the widget and the TV when there is nothing left to watch.</summary>
+    public static string ContinueCaughtUp => Get("ContinueCaughtUp");
+
+    /// <summary>Main button of the title page: resumes the episode at its stored position.</summary>
+    public static string TitleButtonContinue(long episode) => Fill(Get("TitleButtonContinue"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Main button of the title page: plays the next unwatched episode from the start.</summary>
+    public static string TitleButtonPlay(long episode) => Fill(Get("TitleButtonPlay"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Main button of the title page when there is no { -source } to play from.</summary>
+    public static string TitleButtonAddSource => Get("TitleButtonAddSource");
+
+    /// <summary>Status of a show on a person's list: watching it now.</summary>
+    public static string LibraryStatusWatching => Get("LibraryStatusWatching");
+
+    /// <summary>Status of a show on a person's list: planned.</summary>
+    public static string LibraryStatusPlanning => Get("LibraryStatusPlanning");
+
+    /// <summary>Status of a show on a person's list: finished.</summary>
+    public static string LibraryStatusCompleted => Get("LibraryStatusCompleted");
+
+    /// <summary>Status of a show on a person's list: on hold.</summary>
+    public static string LibraryStatusPaused => Get("LibraryStatusPaused");
+
+    /// <summary>Status of a show on a person's list: given up.</summary>
+    public static string LibraryStatusDropped => Get("LibraryStatusDropped");
+
+    /// <summary>Sort order of the library: by when the list entry last changed.</summary>
+    public static string LibrarySortUpdated => Get("LibrarySortUpdated");
+
+    /// <summary>Sort order of the library: by title.</summary>
+    public static string LibrarySortTitle => Get("LibrarySortTitle");
+
+    /// <summary>Sort order of the library: by the person's own score.</summary>
+    public static string LibrarySortScore => Get("LibrarySortScore");
+
+    /// <summary>Button showing the library's current sort order.</summary>
+    public static string LibrarySortButton(string sort) => Fill(Get("LibrarySortButton"), ("sort", sort));
+
+    /// <summary>Accessibility label of the sort button.</summary>
+    public static string LibrarySortLabel(string sort) => Fill(Get("LibrarySortLabel"), ("sort", sort));
+
+    /// <summary>Title of the library when no tracker is signed in.</summary>
+    public static string LibrarySignedOutTitle => Get("LibrarySignedOutTitle");
+
+    /// <summary>Line under the signed-out library title.</summary>
+    public static string LibrarySignedOutDetail => Get("LibrarySignedOutDetail");
+
+    /// <summary>Button on the signed-out library.</summary>
+    public static string LibrarySignedOutAction => Get("LibrarySignedOutAction");
+
+    /// <summary>Title of an empty list. The list is its status in running text, such as "planning".</summary>
+    public static string LibraryListEmpty(string list) => Fill(Get("LibraryListEmpty"), ("list", list));
+
+    /// <summary>Line under an empty list's title.</summary>
+    public static string LibraryListEmptyDetail => Get("LibraryListEmptyDetail");
+
+    /// <summary>Title of the state when one list could not load.</summary>
+    public static string LibraryListLoadFailed(string list) => Fill(Get("LibraryListLoadFailed"), ("list", list));
+
+    /// <summary>Short line while the library loads.</summary>
+    public static string LibraryLoading => Get("LibraryLoading");
+
+    /// <summary>Menu item on a title that adds it to a list.</summary>
+    public static string LibraryAddToList => Get("LibraryAddToList");
+
+    /// <summary>Menu item that puts a title in the planning list.</summary>
+    public static string LibraryAddPlanning => Get("LibraryAddPlanning");
+
+    /// <summary>Notice after a title was added to the planning list.</summary>
+    public static string LibraryAddedPlanning => Get("LibraryAddedPlanning");
+
+    /// <summary>Marker on a title that is already on the person's list.</summary>
+    public static string LibraryOnYourList => Get("LibraryOnYourList");
+
+    /// <summary>Shorter marker used in a widget row.</summary>
+    public static string LibraryInYourList => Get("LibraryInYourList");
+
+    /// <summary>Short progress under a show: the last episode watched out of the total.</summary>
+    public static string ProgressEpisodesShort(long done, long total) => Fill(Get("ProgressEpisodesShort"), ("done", done.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("total", total.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Short progress under a show when the total is not known.</summary>
+    public static string ProgressEpisodeShort(long done) => Fill(Get("ProgressEpisodeShort"), ("done", done.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Format of a show: broadcast on television.</summary>
+    public static string FormatTv => Get("FormatTv");
+
+    /// <summary>Format of a show: a short series on television.</summary>
+    public static string FormatTvShort => Get("FormatTvShort");
+
+    /// <summary>Format of a show: a film.</summary>
+    public static string FormatMovie => Get("FormatMovie");
+
+    /// <summary>Format of a show: an extra episode that is not part of a series.</summary>
+    public static string FormatSpecial => Get("FormatSpecial");
+
+    /// <summary>Format of a show: released straight to video.</summary>
+    public static string FormatOva => Get("FormatOva");
+
+    /// <summary>Format of a show: released straight to the web.</summary>
+    public static string FormatOna => Get("FormatOna");
+
+    /// <summary>Format of a show: a music video.</summary>
+    public static string FormatMusic => Get("FormatMusic");
+
+    /// <summary>A season of the year, for when a show airs.</summary>
+    public static string SeasonWinter => Get("SeasonWinter");
+
+    /// <summary>A season of the year, for when a show airs.</summary>
+    public static string SeasonSpring => Get("SeasonSpring");
+
+    /// <summary>A season of the year, for when a show airs.</summary>
+    public static string SeasonSummer => Get("SeasonSummer");
+
+    /// <summary>A season of the year, for when a show airs. British English.</summary>
+    public static string SeasonAutumn => Get("SeasonAutumn");
+
+    /// <summary>A season and its year, such as "Autumn 2026". Both are already worded.</summary>
+    public static string SeasonWithYear(string season, string year) => Fill(Get("SeasonWithYear"), ("season", season), ("year", year));
+
+    /// <summary>Status of a show that has finished airing.</summary>
+    public static string MediaStatusAired => Get("MediaStatusAired");
+
+    /// <summary>Status of a show that is airing now.</summary>
+    public static string MediaStatusAiring => Get("MediaStatusAiring");
+
+    /// <summary>Status of a show that has not started airing.</summary>
+    public static string MediaStatusUpcoming => Get("MediaStatusUpcoming");
+
+    /// <summary>Status of a show that was cancelled.</summary>
+    public static string MediaStatusCancelled => Get("MediaStatusCancelled");
+
+    /// <summary>Status of a show that is on a break.</summary>
+    public static string MediaStatusHiatus => Get("MediaStatusHiatus");
+
+    /// <summary>Date line of a show that is airing: when it started.</summary>
+    public static string MediaAiringSince(string date) => Fill(Get("MediaAiringSince"), ("date", date));
+
+    /// <summary>Date line of a show that has not started: when it will.</summary>
+    public static string MediaAiringFrom(string date) => Fill(Get("MediaAiringFrom"), ("date", date));
+
+    /// <summary>Value of "Based on": a story written for the screen.</summary>
+    public static string MaterialOriginal => Get("MaterialOriginal");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialManga => Get("MaterialManga");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialLightNovel => Get("MaterialLightNovel");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialWebNovel => Get("MaterialWebNovel");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialVisualNovel => Get("MaterialVisualNovel");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialVideoGame => Get("MaterialVideoGame");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialNovel => Get("MaterialNovel");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialDoujinshi => Get("MaterialDoujinshi");
+
+    /// <summary>Value of "Based on": another anime.</summary>
+    public static string MaterialAnime => Get("MaterialAnime");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialLiveAction => Get("MaterialLiveAction");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialGame => Get("MaterialGame");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialComic => Get("MaterialComic");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialMultimedia => Get("MaterialMultimedia");
+
+    /// <summary>Value of "Based on".</summary>
+    public static string MaterialPictureBook => Get("MaterialPictureBook");
+
+    /// <summary>Relation of a related title: it comes before this one.</summary>
+    public static string RelationPrequel => Get("RelationPrequel");
+
+    /// <summary>Relation of a related title: it comes after this one.</summary>
+    public static string RelationSequel => Get("RelationSequel");
+
+    /// <summary>Relation of a related title: the story this one branches from.</summary>
+    public static string RelationParent => Get("RelationParent");
+
+    /// <summary>Relation of a related title: a story set beside this one.</summary>
+    public static string RelationSideStory => Get("RelationSideStory");
+
+    /// <summary>Relation of a related title: a show that grew out of this one.</summary>
+    public static string RelationSpinOff => Get("RelationSpinOff");
+
+    /// <summary>Relation of a related title: a retelling.</summary>
+    public static string RelationAlternative => Get("RelationAlternative");
+
+    /// <summary>Relation of a related title: a recap.</summary>
+    public static string RelationSummary => Get("RelationSummary");
+
+    /// <summary>Relation of a related title: a compilation of this one.</summary>
+    public static string RelationCompilation => Get("RelationCompilation");
+
+    /// <summary>Relation of a related title: it contains this one.</summary>
+    public static string RelationContains => Get("RelationContains");
+
+    /// <summary>Relation of a related title: set in the same universe.</summary>
+    public static string RelationSameUniverse => Get("RelationSameUniverse");
+
+    /// <summary>Relation of a related title: it shares characters with this one.</summary>
+    public static string RelationSharesCharacters => Get("RelationSharesCharacters");
+
+    /// <summary>Relation of a related title: an adaptation of this one.</summary>
+    public static string RelationAdaptation => Get("RelationAdaptation");
+
+    /// <summary>Relation of a related title: the work this show is based on.</summary>
+    public static string RelationOriginalWork => Get("RelationOriginalWork");
+
+    /// <summary>Relation of a related title that fits none of the others.</summary>
+    public static string RelationOther => Get("RelationOther");
+
+    /// <summary>A related title's relation, its format and its year.</summary>
+    public static string RelationLine(string relation, string format, string year) => Fill(Get("RelationLine"), ("relation", relation), ("format", format), ("year", year));
+
+    /// <summary>Ranking line, such as "#4 Highest rated, Autumn 2026". The label is already worded.</summary>
+    public static string RankingLine(long rank, string label) => Fill(Get("RankingLine"), ("rank", rank.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("label", label));
+
+    /// <summary>Label of a ranking by score within a period.</summary>
+    public static string RankingHighestRated(string scope) => Fill(Get("RankingHighestRated"), ("scope", scope));
+
+    /// <summary>Label of a ranking by popularity within a period.</summary>
+    public static string RankingMostPopular(string scope) => Fill(Get("RankingMostPopular"), ("scope", scope));
+
+    /// <summary>The period of a ranking that covers everything.</summary>
+    public static string RankingAllTime => Get("RankingAllTime");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreAction => Get("GenreAction");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreAdventure => Get("GenreAdventure");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreComedy => Get("GenreComedy");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreDrama => Get("GenreDrama");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreEcchi => Get("GenreEcchi");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreFantasy => Get("GenreFantasy");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreHorror => Get("GenreHorror");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreMahouShoujo => Get("GenreMahouShoujo");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreMecha => Get("GenreMecha");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreMusic => Get("GenreMusic");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreMystery => Get("GenreMystery");
+
+    /// <summary>Genre name.</summary>
+    public static string GenrePsychological => Get("GenrePsychological");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreRomance => Get("GenreRomance");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreSciFi => Get("GenreSciFi");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreSliceOfLife => Get("GenreSliceOfLife");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreSports => Get("GenreSports");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreSupernatural => Get("GenreSupernatural");
+
+    /// <summary>Genre name.</summary>
+    public static string GenreThriller => Get("GenreThriller");
+
+    /// <summary>Tab and sidebar row for the shows in progress.</summary>
+    public static string NavContinue => Get("NavContinue");
+
+    /// <summary>Tab and sidebar row for the weekly airing schedule.</summary>
+    public static string NavCalendar => Get("NavCalendar");
+
+    /// <summary>Tab and sidebar row for what is airing this season.</summary>
+    public static string NavSeasonal => Get("NavSeasonal");
+
+    /// <summary>Tab and sidebar row for the shows a person has saved.</summary>
+    public static string NavLibrary => Get("NavLibrary");
+
+    /// <summary>Tab and sidebar row for finding a show.</summary>
+    public static string NavSearch => Get("NavSearch");
+
+    /// <summary>Tab and sidebar row for downloaded episodes.</summary>
+    public static string NavDownloads => Get("NavDownloads");
+
+    /// <summary>Sidebar row for the { -plugin-store-pl } a person has joined.</summary>
+    public static string NavPluginStores => Get("NavPluginStores");
+
+    /// <summary>Tab, sidebar row and window title for the settings.</summary>
+    public static string NavSettings => Get("NavSettings");
+
+    /// <summary>Name of the screen and settings page for tracker accounts.</summary>
+    public static string NavAccounts => Get("NavAccounts");
+
+    /// <summary>Button on a phone's header that opens accounts and the settings.</summary>
+    public static string NavAccountsAndSettings => Get("NavAccountsAndSettings");
+
+    /// <summary>Accessibility label for the list of sections in the sidebar.</summary>
+    public static string NavSectionsLabel => Get("NavSectionsLabel");
+
+    /// <summary>Button that folds the navigation rail on a wide screen.</summary>
+    public static string NavCollapse => Get("NavCollapse");
+
+    /// <summary>Button that opens the navigation rail on a wide screen.</summary>
+    public static string NavExpand => Get("NavExpand");
+
+    /// <summary>Name of a shortcut or tooltip: the name, then the key that does it.</summary>
+    public static string TooltipWithKey(string name, string key) => Fill(Get("TooltipWithKey"), ("name", name), ("key", key));
+
+    /// <summary>Title of the welcome window.</summary>
+    public static string OnboardingWelcome => Get("OnboardingWelcome");
+
+    /// <summary>Title of the first page.</summary>
+    public static string OnboardingWelcomeTo => Get("OnboardingWelcomeTo");
+
+    /// <summary>Line under the title.</summary>
+    public static string OnboardingTagline => Get("OnboardingTagline");
+
+    /// <summary>Button that goes to the next page.</summary>
+    public static string OnboardingContinue => Get("OnboardingContinue");
+
+    /// <summary>Button that skips a page.</summary>
+    public static string OnboardingSkip => Get("OnboardingSkip");
+
+    /// <summary>Button that skips a page for now.</summary>
+    public static string OnboardingSkipForNow => Get("OnboardingSkipForNow");
+
+    /// <summary>Button that declines the sign-in page for now.</summary>
+    public static string OnboardingNotNow => Get("OnboardingNotNow");
+
+    /// <summary>Heading of the page about sources.</summary>
+    public static string OnboardingSourcesTitle => Get("OnboardingSourcesTitle");
+
+    /// <summary>Line under it.</summary>
+    public static string OnboardingSourcesDetail => Get("OnboardingSourcesDetail");
+
+    /// <summary>Button that joins a store from the welcome page.</summary>
+    public static string OnboardingJoin => Get("OnboardingJoin");
+
+    /// <summary>Hint inside the invite field on the welcome page.</summary>
+    public static string OnboardingInviteHint => Get("OnboardingInviteHint");
+
+    /// <summary>Button on the title page and in the player that opens the watch party form.</summary>
+    public static string PartyOpen => Get("PartyOpen");
+
+    /// <summary>Title of the form and the panel.</summary>
+    public static string PartyTitle => Get("PartyTitle");
+
+    /// <summary>Title of the form when an invite link opened it.</summary>
+    public static string PartyJoinTitle => Get("PartyJoinTitle");
+
+    /// <summary>Button that sends the form and begins the party.</summary>
+    public static string PartyStart => Get("PartyStart");
+
+    /// <summary>Button that sends the form and joins the party.</summary>
+    public static string PartyJoin => Get("PartyJoin");
+
+    /// <summary>Button on the panel that leaves the party.</summary>
+    public static string PartyLeave => Get("PartyLeave");
+
+    /// <summary>Label of the leave button while it works.</summary>
+    public static string PartyLeaving => Get("PartyLeaving");
+
+    /// <summary>Label of the button that marks you as ready.</summary>
+    public static string PartyReadyAction => Get("PartyReadyAction");
+
+    /// <summary>Button that copies the link to invite someone.</summary>
+    public static string PartyCopyInvite => Get("PartyCopyInvite");
+
+    /// <summary>Button in the leave confirmation that ignores it.</summary>
+    public static string PartyStay => Get("PartyStay");
+
+    /// <summary>Button in the leave confirmation that closes the app.</summary>
+    public static string PartyLeaveAndClose => Get("PartyLeaveAndClose");
+
+    /// <summary>Button on the invite card that is not accepted now.</summary>
+    public static string PartyNotNow => Get("PartyNotNow");
+
+    /// <summary>Line while the form fetches its suggestions.</summary>
+    public static string PartyGettingReady => Get("PartyGettingReady");
+
+    /// <summary>Label of the server field.</summary>
+    public static string PartyServer => Get("PartyServer");
+
+    /// <summary>Hint inside the empty server field.</summary>
+    public static string PartyServerHint => Get("PartyServerHint");
+
+    /// <summary>Accessibility label of the list of servers used before.</summary>
+    public static string PartyRecentServers => Get("PartyRecentServers");
+
+    /// <summary>Heading of the servers used before.</summary>
+    public static string PartyRecentServersHeading => Get("PartyRecentServersHeading");
+
+    /// <summary>Button that fills the suggested server in. The server is a host name.</summary>
+    public static string PartyUseServer(string server) => Fill(Get("PartyUseServer"), ("server", server));
+
+    /// <summary>Button that fills in what was suggested.</summary>
+    public static string PartyUseIt => Get("PartyUseIt");
+
+    /// <summary>Label of the room field.</summary>
+    public static string PartyRoom => Get("PartyRoom");
+
+    /// <summary>Label of the name field.</summary>
+    public static string PartyYourName => Get("PartyYourName");
+
+    /// <summary>Line under the server field when the public server is chosen. The operator is a name.</summary>
+    public static string PartyServerPublic(string @operator) => Fill(Get("PartyServerPublic"), ("operator", @operator));
+
+    /// <summary>Line under the server field when something else is typed.</summary>
+    public static string PartyServerSuggest(string server, string @operator) => Fill(Get("PartyServerSuggest"), ("server", server), ("operator", @operator));
+
+    /// <summary>Line under an invite's room when the server is not the public one.</summary>
+    public static string PartyServerInvited => Get("PartyServerInvited");
+
+    /// <summary>Line when the server was typed in a shape that cannot be used.</summary>
+    public static string PartyServerShape => Get("PartyServerShape");
+
+    /// <summary>Line under the form: what the server learns and what each person plays. The app shows legal-hosts-no-content after it.</summary>
+    public static string PartyPrivacy => Get("PartyPrivacy");
+
+    /// <summary>Line under the room: how others join.</summary>
+    public static string PartyRoomHint => Get("PartyRoomHint");
+
+    /// <summary>Line on the invite card naming the room and server.</summary>
+    public static string PartyInviteRoom(string room, string server) => Fill(Get("PartyInviteRoom"), ("room", room), ("server", server));
+
+    /// <summary>Line while the form joins the party.</summary>
+    public static string PartyJoining(string room, string server) => Fill(Get("PartyJoining"), ("room", room), ("server", server));
+
+    /// <summary>Line on the form when no episode is playing yet.</summary>
+    public static string PartyFormNothing => Get("PartyFormNothing");
+
+    /// <summary>Line naming the episode of the form.</summary>
+    public static string PartyFormEpisodeOf(long episode, string title) => Fill(Get("PartyFormEpisodeOf"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>Line naming the episode of the form when the show has no name.</summary>
+    public static string PartyFormEpisode(long episode) => Fill(Get("PartyFormEpisode"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line on the form when the party could not begin.</summary>
+    public static string PartyEndedEarly => Get("PartyEndedEarly");
+
+    /// <summary>Line in the panel while nobody has joined.</summary>
+    public static string PartyWaitingMembers => Get("PartyWaitingMembers");
+
+    /// <summary>Heading in the panel for people using another app.</summary>
+    public static string PartyOtherApp => Get("PartyOtherApp");
+
+    /// <summary>Server and room in the panel, for another app.</summary>
+    public static string PartyOtherAppDetail(string server, string room) => Fill(Get("PartyOtherAppDetail"), ("server", server), ("room", room));
+
+    /// <summary>Name of a member who is this device.</summary>
+    public static string PartyMemberYou(string name) => Fill(Get("PartyMemberYou"), ("name", name));
+
+    /// <summary>Word for you in a sentence about who is not ready.</summary>
+    public static string PartyYou => Get("PartyYou");
+
+    /// <summary>Short word in the member list: this member is ready.</summary>
+    public static string PartyMemberReady => Get("PartyMemberReady");
+
+    /// <summary>Short word in the member list: this member is not ready.</summary>
+    public static string PartyMemberNotReady => Get("PartyMemberNotReady");
+
+    /// <summary>Short word in the member list: ready state is not shared.</summary>
+    public static string PartyMemberNoReadyState => Get("PartyMemberNoReadyState");
+
+    /// <summary>Note on a member who plays another file.</summary>
+    public static string PartyMemberOtherFile => Get("PartyMemberOtherFile");
+
+    /// <summary>Note on a member who has nothing open.</summary>
+    public static string PartyMemberNoFile => Get("PartyMemberNoFile");
+
+    /// <summary>Line when nobody else is in the room.</summary>
+    public static string PartyAlone => Get("PartyAlone");
+
+    /// <summary>Line when everyone is ready.</summary>
+    public static string PartyAllReady => Get("PartyAllReady");
+
+    /// <summary>Line when you are the one still to be ready.</summary>
+    public static string PartyWaitYou => Get("PartyWaitYou");
+
+    /// <summary>Line when one other member is still to be ready.</summary>
+    public static string PartyWaitOne(string name) => Fill(Get("PartyWaitOne"), ("name", name));
+
+    /// <summary>Line when two members are still to be ready.</summary>
+    public static string PartyWaitTwo(string first, string second) => Fill(Get("PartyWaitTwo"), ("first", first), ("second", second));
+
+    /// <summary>Line when more than two members are still to be ready.</summary>
+    public static string PartyWaitMany(long count) => Fill(Get("PartyWaitMany"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Connection line while the party reconnects.</summary>
+    public static string PartyConnectionLost(long attempt, long of) => Fill(Get("PartyConnectionLost"), ("attempt", attempt.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("of", of.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Connection line: encrypted.</summary>
+    public static string PartyConnectedEncrypted => Get("PartyConnectedEncrypted");
+
+    /// <summary>Connection line: not encrypted.</summary>
+    public static string PartyConnectedPlain => Get("PartyConnectedPlain");
+
+    /// <summary>Connection line with the round trip time.</summary>
+    public static string PartyConnectedLatency(string line, long ms) => Fill(Get("PartyConnectedLatency"), ("line", line), ("ms", ms.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under the invite link button before any episode plays.</summary>
+    public static string PartyInviteAfterPlay => Get("PartyInviteAfterPlay");
+
+    /// <summary>Line under the invite link button.</summary>
+    public static string PartyInviteDetail => Get("PartyInviteDetail");
+
+    /// <summary>Line shown in the room with nothing playing.</summary>
+    public static string PartyInRoomIdle(string room, string server) => Fill(Get("PartyInRoomIdle"), ("room", room), ("server", server));
+
+    /// <summary>Line shown in the room with nothing playing, when the room is unknown.</summary>
+    public static string PartyInRoomIdlePlain => Get("PartyInRoomIdlePlain");
+
+    /// <summary>Note when an invite link lacks parts.</summary>
+    public static string PartyLinkIncomplete => Get("PartyLinkIncomplete");
+
+    /// <summary>Note when the link is for the party you are in.</summary>
+    public static string PartyAlreadyIn => Get("PartyAlreadyIn");
+
+    /// <summary>Note after joining on a desktop: where the link is.</summary>
+    public static string PartyInNote => Get("PartyInNote");
+
+    /// <summary>Note after joining in the player: where the link is.</summary>
+    public static string PartyInNotePlayer => Get("PartyInNotePlayer");
+
+    /// <summary>Note after leaving: playback goes on.</summary>
+    public static string PartyLeftNote => Get("PartyLeftNote");
+
+    /// <summary>Title of the confirmation on closing the app while in a party.</summary>
+    public static string PartyLeaveTitle => Get("PartyLeaveTitle");
+
+    /// <summary>Line under it. The room is a name.</summary>
+    public static string PartyLeaveDetail(string room) => Fill(Get("PartyLeaveDetail"), ("room", room));
+
+    /// <summary>Title when the user has installed no source.</summary>
+    public static string PartyNosourceNoneTitle => Get("PartyNosourceNoneTitle");
+
+    /// <summary>Line under it.</summary>
+    public static string PartyNosourceNoneDetail(string what) => Fill(Get("PartyNosourceNoneDetail"), ("what", what));
+
+    /// <summary>Title when no source has the episode.</summary>
+    public static string PartyNosourceMissingTitle => Get("PartyNosourceMissingTitle");
+
+    /// <summary>Line under it. The reason is a sentence without its full stop.</summary>
+    public static string PartyNosourceMissingDetail(string why, string what) => Fill(Get("PartyNosourceMissingDetail"), ("why", why), ("what", what));
+
+    /// <summary>Line under a title that says the episode has not aired.</summary>
+    public static string PartyNosourceUnaired(long episode) => Fill(Get("PartyNosourceUnaired"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under a title that says the episode has not aired and no date is known.</summary>
+    public static string PartyNosourceUnairedPlain => Get("PartyNosourceUnairedPlain");
+
+    /// <summary>Line over the list of sources that list the episode.</summary>
+    public static string PartySourcesFound(long count) => Fill(GetPlural("PartySourcesFound", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Accessibility label of the list of sources for the episode.</summary>
+    public static string PartySourcesLabel => Get("PartySourcesLabel");
+
+    /// <summary>Line of a source: its quality and size already formatted, and the number of seeders.</summary>
+    public static string PartySourceSeeders(long seeders) => Fill(Get("PartySourceSeeders"), ("seeders", seeders.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
     /// <summary>Label on the card for the episode that plays after this one.</summary>
     public static string PlayerUpNext => Get("PlayerUpNext");
 
     /// <summary>Label before the name of the work a show is based on.</summary>
     public static string TitleBasedOn => Get("TitleBasedOn");
+
+    /// <summary>Line on the starting screen, from the moment the player is asked to play until the first frame.</summary>
+    public static string PlayerStarting(long episode) => Fill(Get("PlayerStarting"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line on the starting screen after a few seconds: the app is looking for a stream.</summary>
+    public static string PlayerFindingSource(long seconds) => Fill(Get("PlayerFindingSource"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Same line before the wait is counted.</summary>
+    public static string PlayerFindingSourcePlain => Get("PlayerFindingSourcePlain");
+
+    /// <summary>Title of the card shown when an episode could not play.</summary>
+    public static string PlayerFailedTitle(long episode) => Fill(Get("PlayerFailedTitle"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under the failure title when every { -source } was tried.</summary>
+    public static string PlayerFailedDetail => Get("PlayerFailedDetail");
+
+    /// <summary>Line when nothing is installed to play from.</summary>
+    public static string PlayerFailedNoSources => Get("PlayerFailedNoSources");
+
+    /// <summary>Button that opens the { -source } picker.</summary>
+    public static string PlayerChooseSource => Get("PlayerChooseSource");
+
+    /// <summary>Button on the failure card of the TV: offers a different { -source }.</summary>
+    public static string PlayerChooseAnotherSource => Get("PlayerChooseAnotherSource");
+
+    /// <summary>Button that adds a { -plugin-store } when there are no { -source-pl }.</summary>
+    public static string PlayerAddPluginStore => Get("PlayerAddPluginStore");
+
+    /// <summary>Short word while the video buffers.</summary>
+    public static string PlayerBuffering => Get("PlayerBuffering");
+
+    /// <summary>Title of the stall card. The seconds count up.</summary>
+    public static string PlayerStallTitle(long seconds) => Fill(Get("PlayerStallTitle"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line under the stall title.</summary>
+    public static string PlayerStallDetail => Get("PlayerStallDetail");
+
+    /// <summary>Button on the stall card that moves to another { -source }.</summary>
+    public static string PlayerSwitchSource => Get("PlayerSwitchSource");
+
+    /// <summary>Button on the stall card that keeps waiting.</summary>
+    public static string PlayerKeepWaiting => Get("PlayerKeepWaiting");
+
+    /// <summary>Line on the Up next card: the episode starts when the count ends.</summary>
+    public static string PlayerPlaysIn(long seconds) => Fill(Get("PlayerPlaysIn"), ("seconds", seconds.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button that skips the opening.</summary>
+    public static string PlayerSkipOpening => Get("PlayerSkipOpening");
+
+    /// <summary>Button that skips the ending.</summary>
+    public static string PlayerSkipEnding => Get("PlayerSkipEnding");
+
+    /// <summary>Note after the opening was skipped by itself.</summary>
+    public static string PlayerSkippedOpening => Get("PlayerSkippedOpening");
+
+    /// <summary>Note after the ending was skipped by itself.</summary>
+    public static string PlayerSkippedEnding => Get("PlayerSkippedEnding");
+
+    /// <summary>Note at the top of the video after it resumed where it stopped.</summary>
+    public static string PlayerResumedAt(string clock) => Fill(Get("PlayerResumedAt"), ("clock", clock));
+
+    /// <summary>Button beside the resume note that plays from the start.</summary>
+    public static string PlayerStartOver => Get("PlayerStartOver");
+
+    /// <summary>Title of the card that asks whether anyone is still there.</summary>
+    public static string PlayerStillWatching => Get("PlayerStillWatching");
+
+    /// <summary>Line under the still-watching title.</summary>
+    public static string PlayerStillWatchingDetail(long count) => Fill(GetPlural("PlayerStillWatchingDetail", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button on the still-watching card that goes on.</summary>
+    public static string PlayerStillWatchingContinue => Get("PlayerStillWatchingContinue");
+
+    /// <summary>Line on the TV player: when the episode ends. The time is already formatted.</summary>
+    public static string PlayerEndsAt(string time) => Fill(Get("PlayerEndsAt"), ("time", time));
+
+    /// <summary>Accessibility label and tooltip: go back ten seconds.</summary>
+    public static string PlayerBack10 => Get("PlayerBack10");
+
+    /// <summary>Accessibility label and tooltip: go forward ten seconds.</summary>
+    public static string PlayerForward10 => Get("PlayerForward10");
+
+    /// <summary>Accessibility label of the seek bar.</summary>
+    public static string PlayerPosition => Get("PlayerPosition");
+
+    /// <summary>Accessibility label of the volume control.</summary>
+    public static string PlayerVolume => Get("PlayerVolume");
+
+    /// <summary>Note on screen after the volume changed. The number is a percentage.</summary>
+    public static string PlayerVolumeLevel(string percent) => Fill(Get("PlayerVolumeLevel"), ("percent", percent));
+
+    /// <summary>Note on screen while the sound is off.</summary>
+    public static string PlayerMuted => Get("PlayerMuted");
+
+    /// <summary>Button and menu for the playback speed.</summary>
+    public static string PlayerSpeed => Get("PlayerSpeed");
+
+    /// <summary>Accessibility label of the speed control, with the speed now.</summary>
+    public static string PlayerSpeedIs(string speed) => Fill(Get("PlayerSpeedIs"), ("speed", speed));
+
+    /// <summary>Menu item that goes back to the normal speed.</summary>
+    public static string PlayerSpeedNormal => Get("PlayerSpeedNormal");
+
+    /// <summary>Menu item that slows playback down.</summary>
+    public static string PlayerSlower => Get("PlayerSlower");
+
+    /// <summary>Menu item that speeds playback up.</summary>
+    public static string PlayerFaster => Get("PlayerFaster");
+
+    /// <summary>Button and sheet for the subtitle tracks.</summary>
+    public static string PlayerSubtitles => Get("PlayerSubtitles");
+
+    /// <summary>Button and sheet for the audio tracks.</summary>
+    public static string PlayerAudio => Get("PlayerAudio");
+
+    /// <summary>Button that opens subtitles and audio together.</summary>
+    public static string PlayerSubtitlesAndAudio => Get("PlayerSubtitlesAndAudio");
+
+    /// <summary>Title of the phone sheet with subtitles, audio and the picture options.</summary>
+    public static string PlayerSubtitlesAudioPicture => Get("PlayerSubtitlesAudioPicture");
+
+    /// <summary>Heading and menu item for the picture options.</summary>
+    public static string PlayerPictureAndSound => Get("PlayerPictureAndSound");
+
+    /// <summary>Button that opens the episode list.</summary>
+    public static string PlayerEpisodes => Get("PlayerEpisodes");
+
+    /// <summary>Button that opens the player's information on the TV.</summary>
+    public static string PlayerInfo => Get("PlayerInfo");
+
+    /// <summary>Button that plays the next episode.</summary>
+    public static string PlayerNextEpisode => Get("PlayerNextEpisode");
+
+    /// <summary>Button that plays the previous episode.</summary>
+    public static string PlayerPreviousEpisode => Get("PlayerPreviousEpisode");
+
+    /// <summary>Row and menu item for the upscaling setting.</summary>
+    public static string PlayerUpscaling => Get("PlayerUpscaling");
+
+    /// <summary>Row and menu item for the night mode setting.</summary>
+    public static string PlayerNightMode => Get("PlayerNightMode");
+
+    /// <summary>Note under night mode: what it does.</summary>
+    public static string PlayerNightModeDetail => Get("PlayerNightModeDetail");
+
+    /// <summary>Note under the track pickers: choices are kept per show.</summary>
+    public static string PlayerRemembered => Get("PlayerRemembered");
+
+    /// <summary>Button that shows the video over other windows.</summary>
+    public static string PlayerPictureInPicture => Get("PlayerPictureInPicture");
+
+    /// <summary>Button that fills the screen with the video.</summary>
+    public static string PlayerFullscreen => Get("PlayerFullscreen");
+
+    /// <summary>Button that shrinks the player to a small window.</summary>
+    public static string PlayerMiniPlayer => Get("PlayerMiniPlayer");
+
+    /// <summary>Button on the mini player that brings the full window back.</summary>
+    public static string PlayerMiniBack => Get("PlayerMiniBack");
+
+    /// <summary>Accessibility label of the button that closes the player.</summary>
+    public static string PlayerClose => Get("PlayerClose");
+
+    /// <summary>Tooltip of the gear button that opens the playback options.</summary>
+    public static string PlayerPlaybackSettings => Get("PlayerPlaybackSettings");
+
+    /// <summary>Button that opens the statistics panel.</summary>
+    public static string PlayerStats => Get("PlayerStats");
+
+    /// <summary>Line in the statistics panel before the stream has started.</summary>
+    public static string PlayerStatsWaiting => Get("PlayerStatsWaiting");
+
+    /// <summary>Accessibility label of the button that closes the statistics panel.</summary>
+    public static string PlayerStatsClose => Get("PlayerStatsClose");
+
+    /// <summary>Title over the statistics numbers.</summary>
+    public static string PlayerStatsHeading => Get("PlayerStatsHeading");
+
+    /// <summary>Button that copies the statistics.</summary>
+    public static string PlayerStatsCopy => Get("PlayerStatsCopy");
+
+    /// <summary>Notice when the statistics could not be copied.</summary>
+    public static string PlayerStatsCopyFailed => Get("PlayerStatsCopyFailed");
+
+    /// <summary>Menu item that loads a subtitle file from disk.</summary>
+    public static string PlayerLoadSubtitleFile => Get("PlayerLoadSubtitleFile");
+
+    /// <summary>Menu item that loads an audio file from disk.</summary>
+    public static string PlayerLoadAudioFile => Get("PlayerLoadAudioFile");
+
+    /// <summary>Notice when the file chooser could not open.</summary>
+    public static string PlayerFilePickerFailed => Get("PlayerFilePickerFailed");
+
+    /// <summary>Notice when a chosen subtitle file could not be loaded.</summary>
+    public static string PlayerSubtitleFileFailed => Get("PlayerSubtitleFileFailed");
+
+    /// <summary>Notice when a chosen audio file could not be loaded.</summary>
+    public static string PlayerAudioFileFailed => Get("PlayerAudioFileFailed");
+
+    /// <summary>Name of a track that has no name or language.</summary>
+    public static string PlayerTrackUnnamed => Get("PlayerTrackUnnamed");
+
+    /// <summary>Name of an audio track the file does not describe.</summary>
+    public static string PlayerAudioTrackN(long id) => Fill(Get("PlayerAudioTrackN"), ("id", id.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Name of a subtitle track the file does not describe.</summary>
+    public static string PlayerSubtitleTrackN(long id) => Fill(Get("PlayerSubtitleTrackN"), ("id", id.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line in the track list before the file has told which tracks it has.</summary>
+    public static string PlayerNoTracks => Get("PlayerNoTracks");
+
+    /// <summary>Line while the picker looks for streams.</summary>
+    public static string SourcePickerFinding => Get("SourcePickerFinding");
+
+    /// <summary>Line when the picker found no stream for the episode.</summary>
+    public static string SourcePickerEmpty => Get("SourcePickerEmpty");
+
+    /// <summary>Title of the picker sheet in the player.</summary>
+    public static string PlayerSources => Get("PlayerSources");
+
+    /// <summary>Button that shows the season before.</summary>
+    public static string SeasonalPrevious => Get("SeasonalPrevious");
+
+    /// <summary>Button that shows the season after.</summary>
+    public static string SeasonalNext => Get("SeasonalNext");
+
+    /// <summary>Short line while a season loads.</summary>
+    public static string SeasonalLoading => Get("SeasonalLoading");
+
+    /// <summary>Title of the state when a season could not load.</summary>
+    public static string SeasonalLoadFailed => Get("SeasonalLoadFailed");
+
+    /// <summary>Title of the state when a season lists no titles. The season is already worded.</summary>
+    public static string SeasonalEmptyTitle(string season) => Fill(Get("SeasonalEmptyTitle"), ("season", season));
+
+    /// <summary>Line under the empty season title.</summary>
+    public static string SeasonalEmptyDetail => Get("SeasonalEmptyDetail");
+
+    /// <summary>Title of the state when the chosen format has no titles this season.</summary>
+    public static string SeasonalEmptyFormat => Get("SeasonalEmptyFormat");
+
+    /// <summary>Line under the empty format title.</summary>
+    public static string SeasonalEmptyFormatDetail => Get("SeasonalEmptyFormatDetail");
+
+    /// <summary>Button that opens the season in Search, where filters narrow it.</summary>
+    public static string SeasonalFilterInSearch => Get("SeasonalFilterInSearch");
+
+    /// <summary>Tooltip of the Filter in Search button.</summary>
+    public static string SeasonalFilterHelp => Get("SeasonalFilterHelp");
+
+    /// <summary>Sort option on Seasonal and Search: most popular first.</summary>
+    public static string SortPopularity => Get("SortPopularity");
+
+    /// <summary>Sort option on Seasonal and Search: highest score first.</summary>
+    public static string SortScore => Get("SortScore");
+
+    /// <summary>Sort option on Seasonal: by the day of the week the show airs.</summary>
+    public static string SortAirDay => Get("SortAirDay");
+
+    /// <summary>Sort option on Search: best match for the words typed.</summary>
+    public static string SortRelevance => Get("SortRelevance");
+
+    /// <summary>Button showing the current sort order.</summary>
+    public static string SortButton(string sort) => Fill(Get("SortButton"), ("sort", sort));
+
+    /// <summary>Accessibility label of the sort button.</summary>
+    public static string SortLabel(string sort) => Fill(Get("SortLabel"), ("sort", sort));
+
+    /// <summary>Placeholder of the search field.</summary>
+    public static string SearchPlaceholder => Get("SearchPlaceholder");
+
+    /// <summary>Accessibility label of the button that empties the search field.</summary>
+    public static string SearchClear => Get("SearchClear");
+
+    /// <summary>Row under the field while a search runs. The query is what the person typed.</summary>
+    public static string SearchSearching(string query) => Fill(Get("SearchSearching"), ("query", query));
+
+    /// <summary>Heading over the results of a search.</summary>
+    public static string SearchResultsFor(string query) => Fill(Get("SearchResultsFor"), ("query", query));
+
+    /// <summary>Heading over the titles shown when nothing was typed.</summary>
+    public static string SearchBrowse => Get("SearchBrowse");
+
+    /// <summary>Title of the state when a search finds nothing.</summary>
+    public static string SearchNothingFound(string query) => Fill(Get("SearchNothingFound"), ("query", query));
+
+    /// <summary>Line under the title when a search finds nothing.</summary>
+    public static string SearchNothingFoundDetail => Get("SearchNothingFoundDetail");
+
+    /// <summary>Title of the state when filters leave nothing.</summary>
+    public static string SearchNothingWithFilters => Get("SearchNothingWithFilters");
+
+    /// <summary>Title of the state when a search and its filters leave nothing.</summary>
+    public static string SearchNothingFoundWithFilters(string query) => Fill(Get("SearchNothingFoundWithFilters"), ("query", query));
+
+    /// <summary>Line under a state that filters emptied.</summary>
+    public static string SearchTryFewerFilters => Get("SearchTryFewerFilters");
+
+    /// <summary>Button that removes every filter.</summary>
+    public static string SearchClearFilters => Get("SearchClearFilters");
+
+    /// <summary>Title of the state when a search failed.</summary>
+    public static string SearchFailed => Get("SearchFailed");
+
+    /// <summary>Title of the state when search needs a connection and there is none.</summary>
+    public static string SearchNeedsConnection => Get("SearchNeedsConnection");
+
+    /// <summary>Line when the search service does not answer.</summary>
+    public static string SearchUnreachable => Get("SearchUnreachable");
+
+    /// <summary>Heading over the searches a person made lately.</summary>
+    public static string SearchRecent => Get("SearchRecent");
+
+    /// <summary>Accessibility label of the button that forgets one recent search.</summary>
+    public static string SearchRecentRemove(string query) => Fill(Get("SearchRecentRemove"), ("query", query));
+
+    /// <summary>Button that shows every title in a group.</summary>
+    public static string SearchSeeAll => Get("SearchSeeAll");
+
+    /// <summary>Heading over the genre shortcuts.</summary>
+    public static string SearchGenres => Get("SearchGenres");
+
+    /// <summary>Line while more results load at the end of a list.</summary>
+    public static string SearchLoadingMore => Get("SearchLoadingMore");
+
+    /// <summary>Title of the filters sheet and panel.</summary>
+    public static string FiltersTitle => Get("FiltersTitle");
+
+    /// <summary>Button that opens the filters, with how many are on.</summary>
+    public static string FiltersButtonCount(long count) => Fill(Get("FiltersButtonCount"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Button that opens the filters when none is on.</summary>
+    public static string FiltersButton => Get("FiltersButton");
+
+    /// <summary>Filter name.</summary>
+    public static string FilterGenre => Get("FilterGenre");
+
+    /// <summary>Filter name, and the heading over the genre choices.</summary>
+    public static string FilterGenres => Get("FilterGenres");
+
+    /// <summary>Filter name.</summary>
+    public static string FilterYear => Get("FilterYear");
+
+    /// <summary>Filter name.</summary>
+    public static string FilterSeason => Get("FilterSeason");
+
+    /// <summary>Filter name.</summary>
+    public static string FilterFormat => Get("FilterFormat");
+
+    /// <summary>Filter name.</summary>
+    public static string FilterStatus => Get("FilterStatus");
+
+    /// <summary>Filter name: how long a show is, in episodes.</summary>
+    public static string FilterLength => Get("FilterLength");
+
+    /// <summary>Filter name: the number of episodes.</summary>
+    public static string FilterEpisodes => Get("FilterEpisodes");
+
+    /// <summary>Filter name: the length of one episode.</summary>
+    public static string FilterEpisodeLength => Get("FilterEpisodeLength");
+
+    /// <summary>Filter group: how well a show was received.</summary>
+    public static string FilterReception => Get("FilterReception");
+
+    /// <summary>Filter name: a show's minimum score.</summary>
+    public static string FilterScoreAtLeast => Get("FilterScoreAtLeast");
+
+    /// <summary>Filter name: hides titles few people rated.</summary>
+    public static string FilterHideObscure => Get("FilterHideObscure");
+
+    /// <summary>Filter group: where a show comes from.</summary>
+    public static string FilterOrigin => Get("FilterOrigin");
+
+    /// <summary>Filter name: the country a show was made in.</summary>
+    public static string FilterCountry => Get("FilterCountry");
+
+    /// <summary>Filter name: when a show came out.</summary>
+    public static string FilterReleased => Get("FilterReleased");
+
+    /// <summary>Filter group: where a show can be watched.</summary>
+    public static string FilterWhereToWatch => Get("FilterWhereToWatch");
+
+    /// <summary>Filter name: only shows with a legal licence.</summary>
+    public static string FilterLicensedOnly => Get("FilterLicensedOnly");
+
+    /// <summary>Filter name: how titles already on the person's list are treated.</summary>
+    public static string FilterMyList => Get("FilterMyList");
+
+    /// <summary>Value of a three-way filter: include the titles.</summary>
+    public static string FilterShow => Get("FilterShow");
+
+    /// <summary>Value of a three-way filter: leave the titles out.</summary>
+    public static string FilterHide => Get("FilterHide");
+
+    /// <summary>Value of a three-way filter: only the titles.</summary>
+    public static string FilterOnly => Get("FilterOnly");
+
+    /// <summary>Note under the filters that tells results change as the person picks.</summary>
+    public static string FilterLiveNote => Get("FilterLiveNote");
+
+    /// <summary>Filter group: tags.</summary>
+    public static string FilterTags => Get("FilterTags");
+
+    /// <summary>Placeholder of the field that finds a tag.</summary>
+    public static string FilterTagFind => Get("FilterTagFind");
+
+    /// <summary>Line when no tag matches what was typed.</summary>
+    public static string FilterTagNone => Get("FilterTagNone");
+
+    /// <summary>Filter name: how closely a tag must fit a show.</summary>
+    public static string FilterTagRank(string rank) => Fill(Get("FilterTagRank"), ("rank", rank));
+
+    /// <summary>Switch that shows tags that give away the story.</summary>
+    public static string FilterSpoilerTags => Get("FilterSpoilerTags");
+
+    /// <summary>Choice meaning no genre filter.</summary>
+    public static string FilterAnyGenre => Get("FilterAnyGenre");
+
+    /// <summary>Choice meaning no year filter.</summary>
+    public static string FilterAnyYear => Get("FilterAnyYear");
+
+    /// <summary>Choice meaning no season filter.</summary>
+    public static string FilterAnySeason => Get("FilterAnySeason");
+
+    /// <summary>Choice meaning no format filter.</summary>
+    public static string FilterAnyFormat => Get("FilterAnyFormat");
+
+    /// <summary>Choice meaning no status filter.</summary>
+    public static string FilterAnyStatus => Get("FilterAnyStatus");
+
+    /// <summary>Choice meaning every format on Seasonal.</summary>
+    public static string FilterAllFormats => Get("FilterAllFormats");
+
+    /// <summary>Note on the season filter while no year is chosen.</summary>
+    public static string FilterSeasonPickYear => Get("FilterSeasonPickYear");
+
+    /// <summary>Choice in the year range: up to a year.</summary>
+    public static string FilterYearsUpTo(string year) => Fill(Get("FilterYearsUpTo"), ("year", year));
+
+    /// <summary>State of a genre or tag in a filter: it must be there.</summary>
+    public static string FilterIncluded => Get("FilterIncluded");
+
+    /// <summary>State of a genre or tag in a filter: it must not be there.</summary>
+    public static string FilterLeftOut => Get("FilterLeftOut");
+
+    /// <summary>Hint on a genre or tag on a touch screen.</summary>
+    public static string FilterHintTouch => Get("FilterHintTouch");
+
+    /// <summary>Hint on a genre or tag on the TV, where a remote presses. Only the Android TV app shows it.</summary>
+    public static string FilterHintRemote => Get("FilterHintRemote");
+
+    /// <summary>Accessibility label of the button that removes one filter.</summary>
+    public static string FilterRemove(string filter) => Fill(Get("FilterRemove"), ("filter", filter));
 
     /// <summary>Settings group and row title for choosing a language.</summary>
     public static string SettingsLanguage => Get("SettingsLanguage");
@@ -695,6 +2306,321 @@ public static partial class T
 
     /// <summary>Value of the audio setting: translated audio.</summary>
     public static string AudioDubbed => Get("AudioDubbed");
+
+    /// <summary>Heading of the settings screen.</summary>
+    public static string SettingsTitle => Get("SettingsTitle");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupGeneral => Get("SettingsGroupGeneral");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupTitles => Get("SettingsGroupTitles");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupPlayback => Get("SettingsGroupPlayback");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupWatching => Get("SettingsGroupWatching");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupPlayer => Get("SettingsGroupPlayer");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupPicture => Get("SettingsGroupPicture");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupFiles => Get("SettingsGroupFiles");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupAhead => Get("SettingsGroupAhead");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupNotifications => Get("SettingsGroupNotifications");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupIntegrations => Get("SettingsGroupIntegrations");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupAdvanced => Get("SettingsGroupAdvanced");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupStorage => Get("SettingsGroupStorage");
+
+    /// <summary>Group heading.</summary>
+    public static string SettingsGroupEpisodes => Get("SettingsGroupEpisodes");
+
+    /// <summary>Row: how titles are written.</summary>
+    public static string SettingsTitleLanguage => Get("SettingsTitleLanguage");
+
+    /// <summary>Option: use the tracker's own choice. The tracker is a name.</summary>
+    public static string SettingsTitleTracker(string tracker) => Fill(Get("SettingsTitleTracker"), ("tracker", tracker));
+
+    /// <summary>Option: English titles.</summary>
+    public static string SettingsTitleEnglish => Get("SettingsTitleEnglish");
+
+    /// <summary>Option: Japanese titles in Latin letters.</summary>
+    public static string SettingsTitleRomaji => Get("SettingsTitleRomaji");
+
+    /// <summary>Option: Japanese titles in Japanese.</summary>
+    public static string SettingsTitleNative => Get("SettingsTitleNative");
+
+    /// <summary>Row: show adult titles.</summary>
+    public static string SettingsAdult => Get("SettingsAdult");
+
+    /// <summary>Line under it. The tracker is a name.</summary>
+    public static string SettingsAdultDetail(string tracker) => Fill(Get("SettingsAdultDetail"), ("tracker", tracker));
+
+    /// <summary>Row: quality.</summary>
+    public static string SettingsQuality => Get("SettingsQuality");
+
+    /// <summary>Row: play the next episode on its own.</summary>
+    public static string SettingsAutoPlay => Get("SettingsAutoPlay");
+
+    /// <summary>Row: length of the Up next countdown.</summary>
+    public static string SettingsUpNextCountdown => Get("SettingsUpNextCountdown");
+
+    /// <summary>Row: skip the opening.</summary>
+    public static string SettingsSkipOpening => Get("SettingsSkipOpening");
+
+    /// <summary>Row: skip filler.</summary>
+    public static string SettingsSkipFiller => Get("SettingsSkipFiller");
+
+    /// <summary>Row: mark the opening and ending.</summary>
+    public static string SettingsMarkOpening => Get("SettingsMarkOpening");
+
+    /// <summary>Row: show the skip button.</summary>
+    public static string SettingsSkipButton => Get("SettingsSkipButton");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsSkipButtonDetail => Get("SettingsSkipButtonDetail");
+
+    /// <summary>Row: when an episode counts as watched.</summary>
+    public static string SettingsCountsWatched => Get("SettingsCountsWatched");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsCountsWatchedDetail => Get("SettingsCountsWatchedDetail");
+
+    /// <summary>Row: spoiler protection.</summary>
+    public static string SettingsSpoiler => Get("SettingsSpoiler");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsSpoilerDetail => Get("SettingsSpoilerDetail");
+
+    /// <summary>Line under the audio row.</summary>
+    public static string SettingsAudioDetail => Get("SettingsAudioDetail");
+
+    /// <summary>Row: follow the system's caption style.</summary>
+    public static string SettingsSystemCaptions => Get("SettingsSystemCaptions");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsSystemCaptionsDetail => Get("SettingsSystemCaptionsDetail");
+
+    /// <summary>Line: how many shows override a setting.</summary>
+    public static string SettingsOverridden(long count) => Fill(GetPlural("SettingsOverridden", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Row: new downloads.</summary>
+    public static string SettingsNewDownloads => Get("SettingsNewDownloads");
+
+    /// <summary>Row: keep the next episodes.</summary>
+    public static string SettingsKeepNext => Get("SettingsKeepNext");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsKeepNextDetail => Get("SettingsKeepNextDetail");
+
+    /// <summary>Row: merge subtitles into the file.</summary>
+    public static string SettingsMergeSubtitles => Get("SettingsMergeSubtitles");
+
+    /// <summary>Row: keep seeding.</summary>
+    public static string SettingsKeepSeeding => Get("SettingsKeepSeeding");
+
+    /// <summary>Row: download only on Wi-Fi.</summary>
+    public static string SettingsWifiOnly => Get("SettingsWifiOnly");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsWifiOnlyDetail => Get("SettingsWifiOnlyDetail");
+
+    /// <summary>Row: torrents on a mobile connection.</summary>
+    public static string SettingsTorrentsCellular => Get("SettingsTorrentsCellular");
+
+    /// <summary>Row: seeding after watching.</summary>
+    public static string SettingsSeedAfter => Get("SettingsSeedAfter");
+
+    /// <summary>Row: longest time to seed.</summary>
+    public static string SettingsSeedFor => Get("SettingsSeedFor");
+
+    /// <summary>Row: upload limit.</summary>
+    public static string SettingsUploadLimit => Get("SettingsUploadLimit");
+
+    /// <summary>Value: nothing set yet.</summary>
+    public static string SettingsNoneYet => Get("SettingsNoneYet");
+
+    /// <summary>Value: nothing set.</summary>
+    public static string SettingsNotSet => Get("SettingsNotSet");
+
+    /// <summary>Value: no store joined.</summary>
+    public static string SettingsNoneJoined => Get("SettingsNoneJoined");
+
+    /// <summary>Row: edit the proxy.</summary>
+    public static string SettingsEditProxy => Get("SettingsEditProxy");
+
+    /// <summary>Row: Discord presence.</summary>
+    public static string SettingsDiscord => Get("SettingsDiscord");
+
+    /// <summary>Row: Discord presence on Apple.</summary>
+    public static string SettingsDiscordPresence => Get("SettingsDiscordPresence");
+
+    /// <summary>Row: choose a folder.</summary>
+    public static string SettingsChoose => Get("SettingsChoose");
+
+    /// <summary>Row: show the file in the file manager.</summary>
+    public static string SettingsShowInFiles => Get("SettingsShowInFiles");
+
+    /// <summary>Row: check for updates.</summary>
+    public static string SettingsCheckUpdates => Get("SettingsCheckUpdates");
+
+    /// <summary>Row: privacy.</summary>
+    public static string SettingsPrivacy => Get("SettingsPrivacy");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsPrivacyDetail => Get("SettingsPrivacyDetail");
+
+    /// <summary>Row: typefaces.</summary>
+    public static string SettingsTypefaces => Get("SettingsTypefaces");
+
+    /// <summary>Row: libraries used.</summary>
+    public static string SettingsLibraries => Get("SettingsLibraries");
+
+    /// <summary>Line under the update row on desktop about page, the build cannot update.</summary>
+    public static string SettingsNotices => Get("SettingsNotices");
+
+    /// <summary>Line about the artwork licence.</summary>
+    public static string SettingsArtwork => Get("SettingsArtwork");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsArtworkDetail => Get("SettingsArtworkDetail");
+
+    /// <summary>Heading and row for notifications of new episodes.</summary>
+    public static string SettingsNewEpisodes => Get("SettingsNewEpisodes");
+
+    /// <summary>Line under it.</summary>
+    public static string SettingsNewEpisodesDetail => Get("SettingsNewEpisodesDetail");
+
+    /// <summary>Line explaining what a notification says.</summary>
+    public static string SettingsNotifyDetail => Get("SettingsNotifyDetail");
+
+    /// <summary>Row: the coming-up digest.</summary>
+    public static string SettingsComingUp => Get("SettingsComingUp");
+
+    /// <summary>Row: the system's notification settings.</summary>
+    public static string SettingsSystemNotifications => Get("SettingsSystemNotifications");
+
+    /// <summary>Line under it on Android.</summary>
+    public static string SettingsSystemNotificationsDetail => Get("SettingsSystemNotificationsDetail");
+
+    /// <summary>Line under it on Apple.</summary>
+    public static string SettingsSystemNotificationsApple => Get("SettingsSystemNotificationsApple");
+
+    /// <summary>Line when the system blocks notifications.</summary>
+    public static string SettingsNotificationsBlocked => Get("SettingsNotificationsBlocked");
+
+    /// <summary>Line when the show turned notifications on.</summary>
+    public static string SettingsNotificationsShowOn => Get("SettingsNotificationsShowOn");
+
+    /// <summary>Line on the show settings: when an episode comes out.</summary>
+    public static string SettingsNotifyShow => Get("SettingsNotifyShow");
+
+    /// <summary>Title of the sheet.</summary>
+    public static string ShowSettingsTitle => Get("ShowSettingsTitle");
+
+    /// <summary>Group heading.</summary>
+    public static string ShowSettingsAudioSubtitles => Get("ShowSettingsAudioSubtitles");
+
+    /// <summary>Row.</summary>
+    public static string ShowSettingsSkipOpening => Get("ShowSettingsSkipOpening");
+
+    /// <summary>Row.</summary>
+    public static string ShowSettingsSkipFiller => Get("ShowSettingsSkipFiller");
+
+    /// <summary>Option: blur stills ahead.</summary>
+    public static string ShowSettingsBlurAhead => Get("ShowSettingsBlurAhead");
+
+    /// <summary>Option: show everything.</summary>
+    public static string ShowSettingsShowEverything => Get("ShowSettingsShowEverything");
+
+    /// <summary>Line under spoiler protection.</summary>
+    public static string ShowSettingsSpoilerDetail => Get("ShowSettingsSpoilerDetail");
+
+    /// <summary>Option: always.</summary>
+    public static string ShowSettingsAlways => Get("ShowSettingsAlways");
+
+    /// <summary>Option: never.</summary>
+    public static string ShowSettingsNever => Get("ShowSettingsNever");
+
+    /// <summary>Line under the subtitles row.</summary>
+    public static string ShowSettingsSubsRemembered => Get("ShowSettingsSubsRemembered");
+
+    /// <summary>Line under the subtitles row, when nothing is remembered.</summary>
+    public static string ShowSettingsSubsFollow => Get("ShowSettingsSubsFollow");
+
+    /// <summary>Row: the source for this show.</summary>
+    public static string ShowSettingsSource => Get("ShowSettingsSource");
+
+    /// <summary>Line under it.</summary>
+    public static string ShowSettingsSourceDetail => Get("ShowSettingsSourceDetail");
+
+    /// <summary>Button that resets the show.</summary>
+    public static string ShowSettingsReset => Get("ShowSettingsReset");
+
+    /// <summary>Line under it.</summary>
+    public static string ShowSettingsResetDetail => Get("ShowSettingsResetDetail");
+
+    /// <summary>Line when nothing is set.</summary>
+    public static string ShowSettingsNothing => Get("ShowSettingsNothing");
+
+    /// <summary>Row: the default track.</summary>
+    public static string ShowSettingsDefault => Get("ShowSettingsDefault");
+
+    /// <summary>Line: notifications are off because the show is not being watched.</summary>
+    public static string ShowSettingsNotWatching => Get("ShowSettingsNotWatching");
+
+    /// <summary>Name of a track with a part in brackets. The part is already formatted.</summary>
+    public static string ShowSettingsTrackWith(string language, string part) => Fill(Get("ShowSettingsTrackWith"), ("language", language), ("part", part));
+
+    /// <summary>Title of the airing widget.</summary>
+    public static string WidgetAiringToday => Get("WidgetAiringToday");
+
+    /// <summary>Line when there is no schedule yet.</summary>
+    public static string WidgetNoSchedule => Get("WidgetNoSchedule");
+
+    /// <summary>Line when nothing airs today.</summary>
+    public static string WidgetNothingToday => Get("WidgetNothingToday");
+
+    /// <summary>Line when nothing airs today and the next is known.</summary>
+    public static string WidgetNothingNext(string when) => Fill(Get("WidgetNothingNext"), ("when", when));
+
+    /// <summary>Heading of the section that shows what is in the library.</summary>
+    public static string WidgetInYourList => Get("WidgetInYourList");
+
+    /// <summary>Short word: an episode was watched.</summary>
+    public static string WidgetWatched => Get("WidgetWatched");
+
+    /// <summary>Line telling when the widget was updated.</summary>
+    public static string WidgetUpdated(string when) => Fill(Get("WidgetUpdated"), ("when", when));
+
+    /// <summary>Line on the continue widget when nothing is connected.</summary>
+    public static string WidgetConnectDetail => Get("WidgetConnectDetail");
+
+    /// <summary>Button on the widget.</summary>
+    public static string WidgetConnect => Get("WidgetConnect");
+
+    /// <summary>Accessibility label of a widget row: continue an episode.</summary>
+    public static string WidgetContinueLabel(long episode, string title) => Fill(Get("WidgetContinueLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>Accessibility label of a widget row: start an episode.</summary>
+    public static string WidgetStartLabel(long episode, string title) => Fill(Get("WidgetStartLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>Accessibility label of a widget row: continue a dubbed episode.</summary>
+    public static string WidgetContinueDubbedLabel(long episode, string title) => Fill(Get("WidgetContinueDubbedLabel"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
 
     /// <summary>Title of the screen or section that lists sources.</summary>
     public static string SourcesTitle => Get("SourcesTitle");
@@ -743,6 +2669,1482 @@ public static partial class T
 
     /// <summary>Under an episode that is out but that no source lists. The row is dimmed and can't be played.</summary>
     public static string EpisodeUnsourced => Get("EpisodeUnsourced");
+
+    /// <summary>Heading of the order list.</summary>
+    public static string SourcesOrder => Get("SourcesOrder");
+
+    /// <summary>Line under the heading.</summary>
+    public static string SourcesOrderDetail => Get("SourcesOrderDetail");
+
+    /// <summary>Line under the heading on a phone, where a show can keep its own.</summary>
+    public static string SourcesOrderDetailShow => Get("SourcesOrderDetailShow");
+
+    /// <summary>Accessibility hint of the drag handle.</summary>
+    public static string SourcesDragHint => Get("SourcesDragHint");
+
+    /// <summary>Menu item that moves a source up.</summary>
+    public static string SourcesMoveUp => Get("SourcesMoveUp");
+
+    /// <summary>Menu item that moves a source down.</summary>
+    public static string SourcesMoveDown => Get("SourcesMoveDown");
+
+    /// <summary>Title when the list could not be read.</summary>
+    public static string SourcesLoadFailed => Get("SourcesLoadFailed");
+
+    /// <summary>Title when no source is installed.</summary>
+    public static string SourcesEmptyTitle => Get("SourcesEmptyTitle");
+
+    /// <summary>Line under it.</summary>
+    public static string SourcesEmptyDetail => Get("SourcesEmptyDetail");
+
+    /// <summary>Row for the built-in torrent source.</summary>
+    public static string SourcesTorrents => Get("SourcesTorrents");
+
+    /// <summary>Label of a source that is not a plugin and controls this device.</summary>
+    public static string SourcesRemote => Get("SourcesRemote");
+
+    /// <summary>Origin: set in the config file.</summary>
+    public static string SourcesOriginConfig => Get("SourcesOriginConfig");
+
+    /// <summary>Origin: built into the app.</summary>
+    public static string SourcesOriginBuiltIn => Get("SourcesOriginBuiltIn");
+
+    /// <summary>Origin: from a store the user left.</summary>
+    public static string SourcesOriginLeftStore => Get("SourcesOriginLeftStore");
+
+    /// <summary>Origin: added by hand.</summary>
+    public static string SourcesOriginByHand => Get("SourcesOriginByHand");
+
+    /// <summary>Origin: not from a store.</summary>
+    public static string SourcesOriginNoStore => Get("SourcesOriginNoStore");
+
+    /// <summary>Origin: from a store.</summary>
+    public static string SourcesOriginFrom(string name) => Fill(Get("SourcesOriginFrom"), ("name", name));
+
+    /// <summary>Origin: from a store, with the place in the list.</summary>
+    public static string SourcesOriginIn(string place) => Fill(Get("SourcesOriginIn"), ("place", place));
+
+    /// <summary>Status: the source does not answer.</summary>
+    public static string SourcesStatusNotAnswering => Get("SourcesStatusNotAnswering");
+
+    /// <summary>Status: held back.</summary>
+    public static string SourcesStatusHeldBack => Get("SourcesStatusHeldBack");
+
+    /// <summary>Status: slow.</summary>
+    public static string SourcesStatusSlow => Get("SourcesStatusSlow");
+
+    /// <summary>Status: an update exists.</summary>
+    public static string SourcesStatusUpdate => Get("SourcesStatusUpdate");
+
+    /// <summary>Status line: no answer, with a reason.</summary>
+    public static string SourcesDetailNotAnswering(string why) => Fill(Get("SourcesDetailNotAnswering"), ("why", why));
+
+    /// <summary>Status line: no answer.</summary>
+    public static string SourcesDetailNotAnsweringPlain => Get("SourcesDetailNotAnsweringPlain");
+
+    /// <summary>Status line: held back by the check.</summary>
+    public static string SourcesDetailHeldBack => Get("SourcesDetailHeldBack");
+
+    /// <summary>Status line: disabled.</summary>
+    public static string SourcesDetailDisabled => Get("SourcesDetailDisabled");
+
+    /// <summary>Status line: the source is gone.</summary>
+    public static string SourcesDetailGone => Get("SourcesDetailGone");
+
+    /// <summary>Status line: the site did not answer.</summary>
+    public static string SourcesDetailSite => Get("SourcesDetailSite");
+
+    /// <summary>Row label: version.</summary>
+    public static string SourcesVersion => Get("SourcesVersion");
+
+    /// <summary>Row label: response time.</summary>
+    public static string SourcesResponseTime => Get("SourcesResponseTime");
+
+    /// <summary>Value: no answer to measure.</summary>
+    public static string SourcesNoAnswer => Get("SourcesNoAnswer");
+
+    /// <summary>Value: not checked yet.</summary>
+    public static string SourcesNotChecked => Get("SourcesNotChecked");
+
+    /// <summary>Row label: the hosts a plugin contacts.</summary>
+    public static string SourcesContactsLabel => Get("SourcesContactsLabel");
+
+    /// <summary>Value: how the plugin is listed.</summary>
+    public static string SourcesListedByStore => Get("SourcesListedByStore");
+
+    /// <summary>Line: the plugin contacts one host.</summary>
+    public static string SourcesContactsOne(string first) => Fill(Get("SourcesContactsOne"), ("first", first));
+
+    /// <summary>Line: the plugin contacts several hosts. The count is the hosts after the first.</summary>
+    public static string SourcesContactsLine(string first, long more) => Fill(GetPlural("SourcesContactsLine", more), ("first", first), ("more", more.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line: the plugin contacts no host.</summary>
+    public static string SourcesContactsNone => Get("SourcesContactsNone");
+
+    /// <summary>Value when no host is listed.</summary>
+    public static string SourcesNoHosts => Get("SourcesNoHosts");
+
+    /// <summary>Line: an update adds one host.</summary>
+    public static string SourcesUpdateContactsOne(string first) => Fill(Get("SourcesUpdateContactsOne"), ("first", first));
+
+    /// <summary>Line: an update adds several hosts. The count is the hosts after the first.</summary>
+    public static string SourcesUpdateContacts(string first, long more) => Fill(GetPlural("SourcesUpdateContacts", more), ("first", first), ("more", more.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Title of the update question.</summary>
+    public static string SourcesUpdateTitle(string name) => Fill(Get("SourcesUpdateTitle"), ("name", name));
+
+    /// <summary>Title of the replace question.</summary>
+    public static string SourcesReplaceTitle(string name) => Fill(Get("SourcesReplaceTitle"), ("name", name));
+
+    /// <summary>Line under the update question.</summary>
+    public static string SourcesUpdateDetail(string version, string store, string from) => Fill(Get("SourcesUpdateDetail"), ("version", version), ("store", store), ("from", from));
+
+    /// <summary>Line under the replace question.</summary>
+    public static string SourcesReplaceDetail(string version, string store, string detail) => Fill(Get("SourcesReplaceDetail"), ("version", version), ("store", store), ("detail", detail));
+
+    /// <summary>Button that opens the settings for sources.</summary>
+    public static string SourcesOpenSettings => Get("SourcesOpenSettings");
+
+    /// <summary>Heading of the torrent group in the settings.</summary>
+    public static string SourcesTorrentSource => Get("SourcesTorrentSource");
+
+    /// <summary>Row: where the plugin's page stands.</summary>
+    public static string SourcesSourceOrderRow => Get("SourcesSourceOrderRow");
+
+    /// <summary>Short label for a joined store, on a row.</summary>
+    public static string StoresJoined => Get("StoresJoined");
+
+    /// <summary>Title of the empty list.</summary>
+    public static string StoresEmptyTitle => Get("StoresEmptyTitle");
+
+    /// <summary>Line under the empty title.</summary>
+    public static string StoresEmptyDetail => Get("StoresEmptyDetail");
+
+    /// <summary>Line under the title of the screen when plugins add sources.</summary>
+    public static string StoresIntro => Get("StoresIntro");
+
+    /// <summary>Line under the join form: who supplies plugins. The app shows legal-hosts-no-content after it.</summary>
+    public static string StoresNotFromApp => Get("StoresNotFromApp");
+
+    /// <summary>Line when the store has no plugins.</summary>
+    public static string StoresNoPlugins => Get("StoresNoPlugins");
+
+    /// <summary>Heading of the plugin list of a store.</summary>
+    public static string StoresPlugins => Get("StoresPlugins");
+
+    /// <summary>Line under the plugin list: what a plugin may do.</summary>
+    public static string StoresPluginLimits => Get("StoresPluginLimits");
+
+    /// <summary>Line in the update sheet: what a plugin may do.</summary>
+    public static string StoresPluginLimitsShort => Get("StoresPluginLimitsShort");
+
+    /// <summary>Line under the name of a store: who runs it and where.</summary>
+    public static string StoresRunBy(string owner, string host) => Fill(Get("StoresRunBy"), ("owner", owner), ("host", host));
+
+    /// <summary>Line under a store added by hand.</summary>
+    public static string StoresAddedByHand(string detail) => Fill(Get("StoresAddedByHand"), ("detail", detail));
+
+    /// <summary>Short status: the store cannot be reached.</summary>
+    public static string StoresStatusOffline => Get("StoresStatusOffline");
+
+    /// <summary>Short status: the store does not answer.</summary>
+    public static string StoresStatusNotAnswering => Get("StoresStatusNotAnswering");
+
+    /// <summary>Short status: the owner ended this device's access.</summary>
+    public static string StoresStatusAccessEnded => Get("StoresStatusAccessEnded");
+
+    /// <summary>Line when the owner ended access. Installed plugins keep working.</summary>
+    public static string StoresAccessEndedDetail => Get("StoresAccessEndedDetail");
+
+    /// <summary>Line on the page of a store that no longer lets the device in.</summary>
+    public static string StoresAccessEndedPage => Get("StoresAccessEndedPage");
+
+    /// <summary>Line on a row where the store is gone from the device.</summary>
+    public static string StoresNoLongerJoined => Get("StoresNoLongerJoined");
+
+    /// <summary>Line when the store cannot be reached but a list was kept. The reason is a sentence fragment.</summary>
+    public static string StoresOfflineLastList(string reason) => Fill(Get("StoresOfflineLastList"), ("reason", reason));
+
+    /// <summary>Line when offline, without a reason.</summary>
+    public static string StoresOfflineLastListPlain => Get("StoresOfflineLastListPlain");
+
+    /// <summary>Line with the store's key and how this device joined.</summary>
+    public static string StoresKeyLine(string key, string joined) => Fill(Get("StoresKeyLine"), ("key", key), ("joined", joined));
+
+    /// <summary>How the device joined, when a name was given.</summary>
+    public static string StoresDeviceJoinedAs(string name) => Fill(Get("StoresDeviceJoinedAs"), ("name", name));
+
+    /// <summary>How the device joined, when no name was given.</summary>
+    public static string StoresJoinedNameless => Get("StoresJoinedNameless");
+
+    /// <summary>Row label: who can join.</summary>
+    public static string StoresWhoCanJoin => Get("StoresWhoCanJoin");
+
+    /// <summary>Row value and line: no invite is needed.</summary>
+    public static string StoresAnyoneWithLink => Get("StoresAnyoneWithLink");
+
+    /// <summary>Short value of the same row.</summary>
+    public static string StoresAnyoneShort => Get("StoresAnyoneShort");
+
+    /// <summary>Row label: the store's address.</summary>
+    public static string StoresAddress => Get("StoresAddress");
+
+    /// <summary>Row label: the store's key.</summary>
+    public static string StoresKeyFingerprint => Get("StoresKeyFingerprint");
+
+    /// <summary>Heading of the section about this store.</summary>
+    public static string StoresThisStore => Get("StoresThisStore");
+
+    /// <summary>Button that opens the join form.</summary>
+    public static string StoresJoinAction => Get("StoresJoinAction");
+
+    /// <summary>Short button on a phone for the same.</summary>
+    public static string StoresJoinShort => Get("StoresJoinShort");
+
+    /// <summary>Menu item that opens the join form.</summary>
+    public static string StoresJoinMenu => Get("StoresJoinMenu");
+
+    /// <summary>Menu item and button that leaves a store.</summary>
+    public static string StoresLeave => Get("StoresLeave");
+
+    /// <summary>Title of the leave confirmation.</summary>
+    public static string StoresLeaveTitle(string name) => Fill(Get("StoresLeaveTitle"), ("name", name));
+
+    /// <summary>Line under it.</summary>
+    public static string StoresLeaveDetail => Get("StoresLeaveDetail");
+
+    /// <summary>Line under it, when a new invite is needed to return.</summary>
+    public static string StoresLeaveRejoin => Get("StoresLeaveRejoin");
+
+    /// <summary>Button that opens the owner's admin page.</summary>
+    public static string StoresOpenAdmin => Get("StoresOpenAdmin");
+
+    /// <summary>Menu item: invite a person.</summary>
+    public static string StoresInviteSomeone => Get("StoresInviteSomeone");
+
+    /// <summary>Menu item: link another device of your own.</summary>
+    public static string StoresLinkDevice => Get("StoresLinkDevice");
+
+    /// <summary>Menu item and button: list the members.</summary>
+    public static string StoresShowMembers => Get("StoresShowMembers");
+
+    /// <summary>Menu item: who can join.</summary>
+    public static string StoresWhoCanJoinMenu => Get("StoresWhoCanJoinMenu");
+
+    /// <summary>Menu item: publish a plugin.</summary>
+    public static string StoresPublishMenu => Get("StoresPublishMenu");
+
+    /// <summary>Accessibility label of the row's actions menu.</summary>
+    public static string StoresActionsFor(string name) => Fill(Get("StoresActionsFor"), ("name", name));
+
+    /// <summary>Short status: installed.</summary>
+    public static string StoresPluginStateInstalled => Get("StoresPluginStateInstalled");
+
+    /// <summary>Short status: installed from another store.</summary>
+    public static string StoresPluginFrom(string other) => Fill(Get("StoresPluginFrom"), ("other", other));
+
+    /// <summary>Short status: the store is offline, so the plugin cannot be installed.</summary>
+    public static string StoresPluginOffline => Get("StoresPluginOffline");
+
+    /// <summary>Short status: the store no longer offers the plugin.</summary>
+    public static string StoresPluginUnavailable => Get("StoresPluginUnavailable");
+
+    /// <summary>Line: the version installed and the one now offered.</summary>
+    public static string StoresPluginUpdateLine(string from, string to) => Fill(Get("StoresPluginUpdateLine"), ("from", from), ("to", to));
+
+    /// <summary>Line: the version installed.</summary>
+    public static string StoresPluginVersion(string version) => Fill(Get("StoresPluginVersion"), ("version", version));
+
+    /// <summary>Accessibility label of the update button.</summary>
+    public static string StoresUpdateLabel(string name, string version) => Fill(Get("StoresUpdateLabel"), ("name", name), ("version", version));
+
+    /// <summary>Accessibility label of the install button.</summary>
+    public static string StoresInstallLabel(string name) => Fill(Get("StoresInstallLabel"), ("name", name));
+
+    /// <summary>Accessibility label of the replace button, for a plugin that was added by hand.</summary>
+    public static string StoresReplaceLabel(string name) => Fill(Get("StoresReplaceLabel"), ("name", name));
+
+    /// <summary>Title of the remove confirmation.</summary>
+    public static string StoresRemovePluginTitle(string name) => Fill(Get("StoresRemovePluginTitle"), ("name", name));
+
+    /// <summary>Line under it.</summary>
+    public static string StoresRemovePluginDetail => Get("StoresRemovePluginDetail");
+
+    /// <summary>Label before the hosts a new version also contacts.</summary>
+    public static string StoresNewlyContacts => Get("StoresNewlyContacts");
+
+    /// <summary>Line in the update sheet: the hosts the new version adds. The hosts are a list already joined.</summary>
+    public static string StoresUpdateContacts(string hosts) => Fill(Get("StoresUpdateContacts"), ("hosts", hosts));
+
+    /// <summary>Heading in the update sheet for what changed.</summary>
+    public static string StoresNewIn(string version) => Fill(Get("StoresNewIn"), ("version", version));
+
+    /// <summary>Title of the join form.</summary>
+    public static string StoresJoinTitle => Get("StoresJoinTitle");
+
+    /// <summary>Title of the join form on the TV, which adds rather than joins.</summary>
+    public static string StoresAddTitle => Get("StoresAddTitle");
+
+    /// <summary>Line under the form title.</summary>
+    public static string StoresJoinDetail => Get("StoresJoinDetail");
+
+    /// <summary>Line under the form title on desktop, where nothing happens before the check.</summary>
+    public static string StoresJoinDetailDesktop => Get("StoresJoinDetailDesktop");
+
+    /// <summary>Line under the field on a phone when a link was opened from another app.</summary>
+    public static string StoresJoinDetailOpened => Get("StoresJoinDetailOpened");
+
+    /// <summary>Label and hint of the link field.</summary>
+    public static string StoresInviteLink => Get("StoresInviteLink");
+
+    /// <summary>Hint inside the empty link field.</summary>
+    public static string StoresInviteLinkHint => Get("StoresInviteLinkHint");
+
+    /// <summary>Button that checks the link.</summary>
+    public static string StoresCheckLink => Get("StoresCheckLink");
+
+    /// <summary>Button that checks the link, desktop wording.</summary>
+    public static string StoresCheckInvite => Get("StoresCheckInvite");
+
+    /// <summary>Line while the link is checked.</summary>
+    public static string StoresCheckingLink => Get("StoresCheckingLink");
+
+    /// <summary>Line while the store is checked.</summary>
+    public static string StoresCheckingStore => Get("StoresCheckingStore");
+
+    /// <summary>Line when the text is not an invite link.</summary>
+    public static string StoresNotAnInvite => Get("StoresNotAnInvite");
+
+    /// <summary>Line when the link could not be opened.</summary>
+    public static string StoresLinkFailed => Get("StoresLinkFailed");
+
+    /// <summary>Button that goes back to the link field.</summary>
+    public static string StoresTryAnotherLink => Get("StoresTryAnotherLink");
+
+    /// <summary>Title of the confirmation on a desktop.</summary>
+    public static string StoresJoinConfirmTitle(string name) => Fill(Get("StoresJoinConfirmTitle"), ("name", name));
+
+    /// <summary>Line: joining installs nothing.</summary>
+    public static string StoresJoinInstallsNothing => Get("StoresJoinInstallsNothing");
+
+    /// <summary>Line when the key in the link matches the store. The key is shown beside it.</summary>
+    public static string StoresKeyMatches(string key) => Fill(Get("StoresKeyMatches"), ("key", key));
+
+    /// <summary>Line when the link is open to anyone.</summary>
+    public static string StoresAnyoneNote => Get("StoresAnyoneNote");
+
+    /// <summary>Line when the device joined this store already.</summary>
+    public static string StoresAlreadyJoinedNote => Get("StoresAlreadyJoinedNote");
+
+    /// <summary>Label of the device name field.</summary>
+    public static string StoresDeviceName => Get("StoresDeviceName");
+
+    /// <summary>Line under the device name field.</summary>
+    public static string StoresDeviceNameDetail => Get("StoresDeviceNameDetail");
+
+    /// <summary>Button that joins.</summary>
+    public static string StoresJoinButton => Get("StoresJoinButton");
+
+    /// <summary>Button that opens a store that was joined already.</summary>
+    public static string StoresOpenStore => Get("StoresOpenStore");
+
+    /// <summary>Notice when the TV joined a store. The name is a store name.</summary>
+    public static string StoresTvJoined(string name) => Fill(Get("StoresTvJoined"), ("name", name));
+
+    /// <summary>Notice when the TV joined a store with no name known.</summary>
+    public static string StoresTvJoinedPlain => Get("StoresTvJoinedPlain");
+
+    /// <summary>Button that skips the join step in onboarding.</summary>
+    public static string StoresSkip => Get("StoresSkip");
+
+    /// <summary>Button that types the link instead of scanning.</summary>
+    public static string StoresTypeLink => Get("StoresTypeLink");
+
+    /// <summary>Line beside the QR code on the TV.</summary>
+    public static string StoresQrInstructions => Get("StoresQrInstructions");
+
+    /// <summary>Line over the address under the QR code.</summary>
+    public static string StoresOrOpenAddress => Get("StoresOrOpenAddress");
+
+    /// <summary>Line when the code on the TV ran out.</summary>
+    public static string StoresCodeExpired => Get("StoresCodeExpired");
+
+    /// <summary>Line under it: how long the page lived.</summary>
+    public static string StoresPageClosed => Get("StoresPageClosed");
+
+    /// <summary>Button that makes a new code.</summary>
+    public static string StoresNewCode => Get("StoresNewCode");
+
+    /// <summary>Line when the TV has no reachable address.</summary>
+    public static string StoresTvNoNetwork => Get("StoresTvNoNetwork");
+
+    /// <summary>Line under the QR code on the TV: when the page closes.</summary>
+    public static string StoresPageCloses => Get("StoresPageCloses");
+
+    /// <summary>Heading of the people section.</summary>
+    public static string StoresPeople => Get("StoresPeople");
+
+    /// <summary>Heading of the members list.</summary>
+    public static string StoresMembersOf(string name) => Fill(Get("StoresMembersOf"), ("name", name));
+
+    /// <summary>Heading of the members section on a small screen.</summary>
+    public static string StoresMembers => Get("StoresMembers");
+
+    /// <summary>Row for the owner. The devices count is already formatted.</summary>
+    public static string StoresOwnerDevices(string devices) => Fill(Get("StoresOwnerDevices"), ("devices", devices));
+
+    /// <summary>Line of a member: the number of devices.</summary>
+    public static string StoresMemberDevices(long count) => Fill(GetPlural("StoresMemberDevices", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Label of the field for the name of the person invited.</summary>
+    public static string StoresInviteFor => Get("StoresInviteFor");
+
+    /// <summary>Placeholder in the name field of the invite sheet.</summary>
+    public static string StoresTheirName => Get("StoresTheirName");
+
+    /// <summary>Button that makes an invite.</summary>
+    public static string StoresMakeLink => Get("StoresMakeLink");
+
+    /// <summary>Title of the sheet that links a device of your own.</summary>
+    public static string StoresLinkDeviceTitle => Get("StoresLinkDeviceTitle");
+
+    /// <summary>Title of the invite sheet.</summary>
+    public static string StoresInviteTitle => Get("StoresInviteTitle");
+
+    /// <summary>Line under the link-your-device button.</summary>
+    public static string StoresLinkDeviceDetail => Get("StoresLinkDeviceDetail");
+
+    /// <summary>Line under an invite link: it works once, for one person.</summary>
+    public static string StoresInviteOnce => Get("StoresInviteOnce");
+
+    /// <summary>Line under a link made for your own device.</summary>
+    public static string StoresLinkOnceUntil(string until) => Fill(Get("StoresLinkOnceUntil"), ("until", until));
+
+    /// <summary>Title of an invite for a named person.</summary>
+    public static string StoresInviteForName(string name) => Fill(Get("StoresInviteForName"), ("name", name));
+
+    /// <summary>Line when no invites wait.</summary>
+    public static string StoresNoInvites => Get("StoresNoInvites");
+
+    /// <summary>Heading over the list of unused invites.</summary>
+    public static string StoresInvitesUnused => Get("StoresInvitesUnused");
+
+    /// <summary>Name of an invite that was not given one.</summary>
+    public static string StoresInviteUnnamed => Get("StoresInviteUnnamed");
+
+    /// <summary>Line of an unused invite.</summary>
+    public static string StoresInvitedUntil(string until) => Fill(Get("StoresInvitedUntil"), ("until", until));
+
+    /// <summary>Menu item that cancels an invite.</summary>
+    public static string StoresCancelInvite => Get("StoresCancelInvite");
+
+    /// <summary>Menu item that removes a member.</summary>
+    public static string StoresRemoveMember => Get("StoresRemoveMember");
+
+    /// <summary>Title of the confirmation that removes a member.</summary>
+    public static string StoresRemoveMemberTitle(string name) => Fill(Get("StoresRemoveMemberTitle"), ("name", name));
+
+    /// <summary>Line under it.</summary>
+    public static string StoresRemoveMemberDetail => Get("StoresRemoveMemberDetail");
+
+    /// <summary>Heading of the who-can-join sheet.</summary>
+    public static string StoresWhoCanJoinTitle(string name) => Fill(Get("StoresWhoCanJoinTitle"), ("name", name));
+
+    /// <summary>Option: anyone with the store's link.</summary>
+    public static string StoresAnyoneWithStoreLink => Get("StoresAnyoneWithStoreLink");
+
+    /// <summary>Option: only people invited.</summary>
+    public static string StoresOnlyInvited => Get("StoresOnlyInvited");
+
+    /// <summary>Line over the list of devices that joined with the link.</summary>
+    public static string StoresDevicesJoined(long count) => Fill(GetPlural("StoresDevicesJoined", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line of a device that joined.</summary>
+    public static string StoresDeviceJoinedAt(string when) => Fill(Get("StoresDeviceJoinedAt"), ("when", when));
+
+    /// <summary>Line under the list when it is cut off.</summary>
+    public static string StoresNewestListed(long count) => Fill(Get("StoresNewestListed"), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Line when the store's server cannot offer the choice.</summary>
+    public static string StoresServerOlder => Get("StoresServerOlder");
+
+    /// <summary>Title of the confirmation that removes devices that joined with the link.</summary>
+    public static string StoresRemoveDevicesTitle => Get("StoresRemoveDevicesTitle");
+
+    /// <summary>Line under it.</summary>
+    public static string StoresRemoveDevicesDetail(string name) => Fill(Get("StoresRemoveDevicesDetail"), ("name", name));
+
+    /// <summary>Title of the publish sheet.</summary>
+    public static string StoresPublishTitle(string name) => Fill(Get("StoresPublishTitle"), ("name", name));
+
+    /// <summary>Line when there is nothing to publish.</summary>
+    public static string StoresPublishNone => Get("StoresPublishNone");
+
+    /// <summary>Version line of a plugin in the publish sheet.</summary>
+    public static string StoresPluginNameVersion(string name, string version) => Fill(Get("StoresPluginNameVersion"), ("name", name), ("version", version));
+
+    /// <summary>Title of the state when a title page could not load.</summary>
+    public static string TitleLoadFailed => Get("TitleLoadFailed");
+
+    /// <summary>Line under the load failure when AniList did not answer.</summary>
+    public static string TitleNoAnswer => Get("TitleNoAnswer");
+
+    /// <summary>Short line while a title page loads.</summary>
+    public static string TitleLoading => Get("TitleLoading");
+
+    /// <summary>Button on the title page that plays the trailer.</summary>
+    public static string TitleTrailer => Get("TitleTrailer");
+
+    /// <summary>Menu item that plays the trailer.</summary>
+    public static string TitlePlayTrailer => Get("TitlePlayTrailer");
+
+    /// <summary>Menu item that opens the title on the AniList website.</summary>
+    public static string TitleOpenAnilist => Get("TitleOpenAnilist");
+
+    /// <summary>Menu item that opens the title page of the show a row belongs to.</summary>
+    public static string TitleOpen => Get("TitleOpen");
+
+    /// <summary>Heading of the list of seasons.</summary>
+    public static string TitleSeasons => Get("TitleSeasons");
+
+    /// <summary>Name of one season of a show, such as "Season 2".</summary>
+    public static string SeasonNumber(long number) => Fill(Get("SeasonNumber"), ("number", number.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Heading of the list of episodes.</summary>
+    public static string TitleEpisodes => Get("TitleEpisodes");
+
+    /// <summary>Heading of the list of related titles.</summary>
+    public static string TitleRelated => Get("TitleRelated");
+
+    /// <summary>Heading of the block of facts about a title.</summary>
+    public static string TitleDetails => Get("TitleDetails");
+
+    /// <summary>Label of the studio in the details.</summary>
+    public static string TitleStudio => Get("TitleStudio");
+
+    /// <summary>Heading of the block of tags.</summary>
+    public static string TitleTags => Get("TitleTags");
+
+    /// <summary>Button that opens the full page of facts about a show.</summary>
+    public static string TitleMoreAbout => Get("TitleMoreAbout");
+
+    /// <summary>Accessibility hint of the button that expands a synopsis.</summary>
+    public static string TitleSynopsisHint => Get("TitleSynopsisHint");
+
+    /// <summary>Label under a season: which episodes are dubbed so far.</summary>
+    public static string TitleDubbedTo(long episode) => Fill(Get("TitleDubbedTo"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>State of a title with no episodes listed yet.</summary>
+    public static string TitleNoEpisodes => Get("TitleNoEpisodes");
+
+    /// <summary>Line when the episodes could not be listed.</summary>
+    public static string TitleEpisodesLoadFailed => Get("TitleEpisodesLoadFailed");
+
+    /// <summary>Line under the episode list when it comes from AniList and no source can play them.</summary>
+    public static string TitleEpisodesNoSource => Get("TitleEpisodesNoSource");
+
+    /// <summary>Button that collapses the watched episodes of a season.</summary>
+    public static string TitleHideWatched => Get("TitleHideWatched");
+
+    /// <summary>Button that shows the watched episodes of a season again.</summary>
+    public static string TitleShowWatched => Get("TitleShowWatched");
+
+    /// <summary>Accessibility state of a section that is open.</summary>
+    public static string StateExpanded => Get("StateExpanded");
+
+    /// <summary>Accessibility state of a section that is closed.</summary>
+    public static string StateCollapsed => Get("StateCollapsed");
+
+    /// <summary>Row that stands for several watched episodes in a row, such as "Episodes 1 to 5 watched".</summary>
+    public static string TitleWatchedRange(long first, long last) => Fill(Get("TitleWatchedRange"), ("first", first.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("last", last.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Name of an episode, such as "Episode 7".</summary>
+    public static string EpisodeNumber(long number) => Fill(Get("EpisodeNumber"), ("number", number.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Short name of an episode, for tight spaces.</summary>
+    public static string EpisodeNumberShort(long number) => Fill(Get("EpisodeNumberShort"), ("number", number.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>An episode and its name.</summary>
+    public static string EpisodeWithTitle(long number, string title) => Fill(Get("EpisodeWithTitle"), ("number", number.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>An episode, dubbed, and its name.</summary>
+    public static string EpisodeWithTitleDubbed(long number, string title) => Fill(Get("EpisodeWithTitleDubbed"), ("number", number.ToString(System.Globalization.CultureInfo.CurrentCulture)), ("title", title));
+
+    /// <summary>Badge on an episode the person has watched.</summary>
+    public static string EpisodeWatched => Get("EpisodeWatched");
+
+    /// <summary>Badge on an episode that is filler.</summary>
+    public static string EpisodeFiller => Get("EpisodeFiller");
+
+    /// <summary>Row note for an episode that has not aired.</summary>
+    public static string EpisodeRowNotOut => Get("EpisodeRowNotOut");
+
+    /// <summary>Row note for an episode that has not aired, with when it does.</summary>
+    public static string EpisodeRowAirs(string when) => Fill(Get("EpisodeRowAirs"), ("when", when));
+
+    /// <summary>Accessibility label of an episode's still while spoiler protection hides it.</summary>
+    public static string EpisodeSpoilerHidden => Get("EpisodeSpoilerHidden");
+
+    /// <summary>Accessibility label of the button that opens an episode's menu.</summary>
+    public static string EpisodeOptions => Get("EpisodeOptions");
+
+    /// <summary>Menu item that marks an episode as watched.</summary>
+    public static string EpisodeMarkWatched => Get("EpisodeMarkWatched");
+
+    /// <summary>Menu item that marks an episode as not watched.</summary>
+    public static string EpisodeMarkUnwatched => Get("EpisodeMarkUnwatched");
+
+    /// <summary>Menu item that marks every episode before this one as watched.</summary>
+    public static string EpisodeMarkPreviousWatched => Get("EpisodeMarkPreviousWatched");
+
+    /// <summary>Menu item that marks every episode up to a given one as watched.</summary>
+    public static string EpisodeMarkUpTo(long episode) => Fill(Get("EpisodeMarkUpTo"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Menu item that marks one numbered episode as watched.</summary>
+    public static string EpisodeMarkNWatched(long episode) => Fill(Get("EpisodeMarkNWatched"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Menu item that marks one numbered episode as not watched.</summary>
+    public static string EpisodeMarkNUnwatched(long episode) => Fill(Get("EpisodeMarkNUnwatched"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Notice after an episode was marked watched.</summary>
+    public static string EpisodeMarkedWatched(long episode) => Fill(Get("EpisodeMarkedWatched"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Menu item that starts an episode from the beginning.</summary>
+    public static string EpisodePlayFromBeginning => Get("EpisodePlayFromBeginning");
+
+    /// <summary>Menu item that downloads one numbered episode.</summary>
+    public static string EpisodeDownloadN(long episode) => Fill(Get("EpisodeDownloadN"), ("episode", episode.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Menu item that downloads every episode not yet watched.</summary>
+    public static string EpisodeDownloadUnwatched => Get("EpisodeDownloadUnwatched");
+
+    /// <summary>Heading of the cast list.</summary>
+    public static string MoreCast => Get("MoreCast");
+
+    /// <summary>Note under the cast heading: whose voices are listed.</summary>
+    public static string MoreCastVoices => Get("MoreCastVoices");
+
+    /// <summary>Role of a character in the story.</summary>
+    public static string MoreRoleMain => Get("MoreRoleMain");
+
+    /// <summary>Role of a character in the story.</summary>
+    public static string MoreRoleSupporting => Get("MoreRoleSupporting");
+
+    /// <summary>Role of a character in the story.</summary>
+    public static string MoreRoleBackground => Get("MoreRoleBackground");
+
+    /// <summary>Heading of the staff list.</summary>
+    public static string MoreStaff => Get("MoreStaff");
+
+    /// <summary>Heading of the list of recommended titles.</summary>
+    public static string MoreRecommendations => Get("MoreRecommendations");
+
+    /// <summary>Heading of the list of rankings.</summary>
+    public static string MoreRankings => Get("MoreRankings");
+
+    /// <summary>Line when AniList has no cast, staff or recommendations for a show.</summary>
+    public static string MoreEmpty => Get("MoreEmpty");
+
+    /// <summary>Badge on a tag that gives away the story.</summary>
+    public static string MoreSpoiler => Get("MoreSpoiler");
+
+    /// <summary>Button that hides the spoiler tags.</summary>
+    public static string MoreHideSpoilerTags => Get("MoreHideSpoilerTags");
+
+    /// <summary>Button that shows the spoiler tags.</summary>
+    public static string MoreShowSpoilerTags(long count) => Fill(GetPlural("MoreShowSpoilerTags", count), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Title of the settings group and the screen.</summary>
+    public static string TorrentsTitle => Get("TorrentsTitle");
+
+    /// <summary>Label and short value for the switch.</summary>
+    public static string TorrentsOn => Get("TorrentsOn");
+
+    /// <summary>Line under the switch while torrents are off.</summary>
+    public static string TorrentsOffDetail => Get("TorrentsOffDetail");
+
+    /// <summary>Line explaining the risk, before torrents start.</summary>
+    public static string TorrentsRisk => Get("TorrentsRisk");
+
+    /// <summary>Line in the Apple sources screen: torrents belong to the app, not to a plugin.</summary>
+    public static string TorrentsNotAPlugin => Get("TorrentsNotAPlugin");
+
+    /// <summary>Label of the choice of protection.</summary>
+    public static string TorrentsProtectWith => Get("TorrentsProtectWith");
+
+    /// <summary>Option: no protection.</summary>
+    public static string TorrentsProtectNone => Get("TorrentsProtectNone");
+
+    /// <summary>Option: a proxy.</summary>
+    public static string TorrentsProtectProxy => Get("TorrentsProtectProxy");
+
+    /// <summary>Option: a VPN already running on the device.</summary>
+    public static string TorrentsProtectVpn => Get("TorrentsProtectVpn");
+
+    /// <summary>Line under the proxy option.</summary>
+    public static string TorrentsProtectProxyDetail => Get("TorrentsProtectProxyDetail");
+
+    /// <summary>Line under the VPN option.</summary>
+    public static string TorrentsProtectVpnDetail => Get("TorrentsProtectVpnDetail");
+
+    /// <summary>Line under the no-protection option.</summary>
+    public static string TorrentsProtectNoneDetail => Get("TorrentsProtectNoneDetail");
+
+    /// <summary>Line when no protection is set.</summary>
+    public static string TorrentsProtectNoneNote => Get("TorrentsProtectNoneNote");
+
+    /// <summary>Summary: a proxy protects. Host and port are already formatted.</summary>
+    public static string TorrentsSummaryProxyAt(string host, string port) => Fill(Get("TorrentsSummaryProxyAt"), ("host", host), ("port", port));
+
+    /// <summary>Summary: a proxy protects, address not shown.</summary>
+    public static string TorrentsSummaryProxy => Get("TorrentsSummaryProxy");
+
+    /// <summary>Summary: a VPN protects.</summary>
+    public static string TorrentsSummaryVpn => Get("TorrentsSummaryVpn");
+
+    /// <summary>Summary: nothing protects.</summary>
+    public static string TorrentsSummaryNone => Get("TorrentsSummaryNone");
+
+    /// <summary>Title of the question when torrents are turned on without protection.</summary>
+    public static string TorrentsUnprotectedTitle => Get("TorrentsUnprotectedTitle");
+
+    /// <summary>Line under it.</summary>
+    public static string TorrentsUnprotectedDetail => Get("TorrentsUnprotectedDetail");
+
+    /// <summary>Button that confirms turning torrents on without protection.</summary>
+    public static string TorrentsTurnOnUnprotected => Get("TorrentsTurnOnUnprotected");
+
+    /// <summary>Button that confirms using no protection.</summary>
+    public static string TorrentsUseUnprotected => Get("TorrentsUseUnprotected");
+
+    /// <summary>Label of the proxy host field.</summary>
+    public static string TorrentsProxyHost => Get("TorrentsProxyHost");
+
+    /// <summary>Label of the proxy port field.</summary>
+    public static string TorrentsProxyPort => Get("TorrentsProxyPort");
+
+    /// <summary>Label of the proxy user name field.</summary>
+    public static string TorrentsProxyUser => Get("TorrentsProxyUser");
+
+    /// <summary>Label of the proxy password field.</summary>
+    public static string TorrentsProxyPassword => Get("TorrentsProxyPassword");
+
+    /// <summary>Line under the password field.</summary>
+    public static string TorrentsPasswordKeep => Get("TorrentsPasswordKeep");
+
+    /// <summary>Line under the proxy form: what happens while the new proxy is checked.</summary>
+    public static string TorrentsProxyKeepsSaved => Get("TorrentsProxyKeepsSaved");
+
+    /// <summary>Line when the host or port is wrong.</summary>
+    public static string TorrentsProxyInvalid => Get("TorrentsProxyInvalid");
+
+    /// <summary>Line while the proxy is checked.</summary>
+    public static string TorrentsCheckingProxy => Get("TorrentsCheckingProxy");
+
+    /// <summary>Notice after the proxy was saved.</summary>
+    public static string TorrentsProxySaved => Get("TorrentsProxySaved");
+
+    /// <summary>Why a save was refused: traffic left outside the proxy.</summary>
+    public static string TorrentsLeftOutsideProxy => Get("TorrentsLeftOutsideProxy");
+
+    /// <summary>Why a save was refused: the check could not run through the proxy.</summary>
+    public static string TorrentsCheckNotMadeProxy => Get("TorrentsCheckNotMadeProxy");
+
+    /// <summary>Notice when a proxy was not saved. The reason is a sentence fragment.</summary>
+    public static string TorrentsProxyNotSaved(string why) => Fill(Get("TorrentsProxyNotSaved"), ("why", why));
+
+    /// <summary>Notice when protection was not saved. The reason is a sentence fragment.</summary>
+    public static string TorrentsProtectionNotSaved(string why) => Fill(Get("TorrentsProtectionNotSaved"), ("why", why));
+
+    /// <summary>Notice when torrents stayed off. The reason is a sentence fragment.</summary>
+    public static string TorrentsStillOff(string why) => Fill(Get("TorrentsStillOff"), ("why", why));
+
+    /// <summary>Label of the index address field.</summary>
+    public static string TorrentsIndex => Get("TorrentsIndex");
+
+    /// <summary>Line under the index field. The app shows legal-hosts-no-content after it.</summary>
+    public static string TorrentsIndexDetail => Get("TorrentsIndexDetail");
+
+    /// <summary>Hint inside the index field.</summary>
+    public static string TorrentsIndexHint => Get("TorrentsIndexHint");
+
+    /// <summary>Line when no index address is set.</summary>
+    public static string TorrentsIndexNeeded => Get("TorrentsIndexNeeded");
+
+    /// <summary>Line when the index address has the wrong scheme.</summary>
+    public static string TorrentsIndexScheme => Get("TorrentsIndexScheme");
+
+    /// <summary>Notice after the index was saved.</summary>
+    public static string TorrentsIndexSaved => Get("TorrentsIndexSaved");
+
+    /// <summary>Label of the choice of what to do when a check fails.</summary>
+    public static string TorrentsIfCheckFails => Get("TorrentsIfCheckFails");
+
+    /// <summary>Title of the question that asks whether torrents may keep running.</summary>
+    public static string TorrentsKeepRunningTitle => Get("TorrentsKeepRunningTitle");
+
+    /// <summary>Line under the question: what the choice is about.</summary>
+    public static string TorrentsKeepRunningDetail => Get("TorrentsKeepRunningDetail");
+
+    /// <summary>Option: pause torrents.</summary>
+    public static string TorrentsFailPause => Get("TorrentsFailPause");
+
+    /// <summary>Option: stop torrents.</summary>
+    public static string TorrentsFailStop => Get("TorrentsFailStop");
+
+    /// <summary>Option: only warn.</summary>
+    public static string TorrentsFailWarn => Get("TorrentsFailWarn");
+
+    /// <summary>Result of the choice: torrents run.</summary>
+    public static string TorrentsFailWarnResult => Get("TorrentsFailWarnResult");
+
+    /// <summary>Result of the choice: torrents stop.</summary>
+    public static string TorrentsFailStopResult => Get("TorrentsFailStopResult");
+
+    /// <summary>Result of the choice: torrents pause.</summary>
+    public static string TorrentsFailPauseResult => Get("TorrentsFailPauseResult");
+
+    /// <summary>Label of the last check.</summary>
+    public static string TorrentsLastCheck => Get("TorrentsLastCheck");
+
+    /// <summary>Check passed. The exit is where the traffic leaves from, already formatted.</summary>
+    public static string TorrentsCheckPassedExit(string exit) => Fill(Get("TorrentsCheckPassedExit"), ("exit", exit));
+
+    /// <summary>Check passed.</summary>
+    public static string TorrentsCheckPassed => Get("TorrentsCheckPassed");
+
+    /// <summary>Check running: the line.</summary>
+    public static string TorrentsCheckRunningLine => Get("TorrentsCheckRunningLine");
+
+    /// <summary>Check running: the short word.</summary>
+    public static string TorrentsCheckRunning => Get("TorrentsCheckRunning");
+
+    /// <summary>Check failed: traffic left outside. The consequence follows.</summary>
+    public static string TorrentsCheckLeaked(string then) => Fill(Get("TorrentsCheckLeaked"), ("then", then));
+
+    /// <summary>Check failed: the check could not be made. The consequence follows.</summary>
+    public static string TorrentsCheckUnmade(string then) => Fill(Get("TorrentsCheckUnmade"), ("then", then));
+
+    /// <summary>Short word: the check failed.</summary>
+    public static string TorrentsCheckFailed => Get("TorrentsCheckFailed");
+
+    /// <summary>Line: no protection is set, so nothing was checked.</summary>
+    public static string TorrentsCheckNoneLine => Get("TorrentsCheckNoneLine");
+
+    /// <summary>Short word: unprotected.</summary>
+    public static string TorrentsCheckNone => Get("TorrentsCheckNone");
+
+    /// <summary>Line: no check yet.</summary>
+    public static string TorrentsCheckWaitingLine => Get("TorrentsCheckWaitingLine");
+
+    /// <summary>Short word: waiting for the first check.</summary>
+    public static string TorrentsCheckWaiting => Get("TorrentsCheckWaiting");
+
+    /// <summary>Short word: no check.</summary>
+    public static string TorrentsNotChecked => Get("TorrentsNotChecked");
+
+    /// <summary>Button that runs the check.</summary>
+    public static string TorrentsCheckNow => Get("TorrentsCheckNow");
+
+    /// <summary>Title of the page on the phone for the torrent setup.</summary>
+    public static string TorrentsForApp => Get("TorrentsForApp");
+
+    /// <summary>Title of the page on the phone for signing in. The tracker is a name.</summary>
+    public static string TorrentsPageSignIn(string tracker) => Fill(Get("TorrentsPageSignIn"), ("tracker", tracker));
+
+    /// <summary>Line on that page: the form was not complete.</summary>
+    public static string TorrentsPageFillForm => Get("TorrentsPageFillForm");
+
+    /// <summary>Line on that page after sending.</summary>
+    public static string TorrentsPageLookAtTv(string next) => Fill(Get("TorrentsPageLookAtTv"), ("next", next));
+
+    /// <summary>Title when the page address is wrong.</summary>
+    public static string TorrentsPageNotFound => Get("TorrentsPageNotFound");
+
+    /// <summary>Title when the page is not allowed.</summary>
+    public static string TorrentsPageNotAllowed => Get("TorrentsPageNotAllowed");
+
+    /// <summary>Line when the address lacks its key.</summary>
+    public static string TorrentsPageMissingKey => Get("TorrentsPageMissingKey");
+
+    /// <summary>Line when the TV could not read what was sent.</summary>
+    public static string TorrentsPageUnreadable => Get("TorrentsPageUnreadable");
+
+    /// <summary>Line when the page needs script.</summary>
+    public static string TorrentsPageNeedsScript => Get("TorrentsPageNeedsScript");
+
+    /// <summary>Title of the accounts screen. The sidebar item is nav-accounts.</summary>
+    public static string AccountsTitle => Get("AccountsTitle");
+
+    /// <summary>Heading over the trackers other than the first.</summary>
+    public static string AccountsOtherTrackers => Get("AccountsOtherTrackers");
+
+    /// <summary>Line on the welcome screen: where the other trackers are.</summary>
+    public static string AccountsOtherTrackersNote => Get("AccountsOtherTrackersNote");
+
+    /// <summary>Line on the welcome screen: why to sign in.</summary>
+    public static string AccountsWelcomeDetail(string tracker) => Fill(Get("AccountsWelcomeDetail"), ("tracker", tracker));
+
+    /// <summary>Line under a tracker that brings in lists.</summary>
+    public static string AccountsBringsLists => Get("AccountsBringsLists");
+
+    /// <summary>Line under the accounts screen when the library needs a tracker.</summary>
+    public static string AccountsLibraryNeeds(string tracker) => Fill(Get("AccountsLibraryNeeds"), ("tracker", tracker));
+
+    /// <summary>Line on the settings page: where the library gets its lists.</summary>
+    public static string AccountsLibraryFrom(string tracker) => Fill(Get("AccountsLibraryFrom"), ("tracker", tracker));
+
+    /// <summary>Line on the library when signed out, one sentence.</summary>
+    public static string AccountsListsComeFrom(string tracker) => Fill(Get("AccountsListsComeFrom"), ("tracker", tracker));
+
+    /// <summary>Line on the library for an empty status.</summary>
+    public static string AccountsStatusEmpty(string tracker) => Fill(Get("AccountsStatusEmpty"), ("tracker", tracker));
+
+    /// <summary>Line on the library for an empty list.</summary>
+    public static string AccountsListEmpty(string tracker) => Fill(Get("AccountsListEmpty"), ("tracker", tracker));
+
+    /// <summary>Status: not signed in.</summary>
+    public static string AccountsStateSignedOut => Get("AccountsStateSignedOut");
+
+    /// <summary>Status: signed in. The name is the user's name on the tracker.</summary>
+    public static string AccountsStateSignedIn(string tracker, string name) => Fill(Get("AccountsStateSignedIn"), ("tracker", tracker), ("name", name));
+
+    /// <summary>Status: signed in, with changes waiting to be sent.</summary>
+    public static string AccountsStateSignedInWaiting(string tracker, string name, long count) => Fill(GetPlural("AccountsStateSignedInWaiting", count), ("tracker", tracker), ("name", name), ("count", count.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Status: the sign-in ran out.</summary>
+    public static string AccountsStateExpired(string tracker) => Fill(Get("AccountsStateExpired"), ("tracker", tracker));
+
+    /// <summary>Status: the sign-in ran out, short.</summary>
+    public static string AccountsStateExpiredShort => Get("AccountsStateExpiredShort");
+
+    /// <summary>Status: checking the account.</summary>
+    public static string AccountsStateChecking => Get("AccountsStateChecking");
+
+    /// <summary>Status: waiting for the browser to return.</summary>
+    public static string AccountsStateWaitingBrowser => Get("AccountsStateWaitingBrowser");
+
+    /// <summary>Status: waiting for a tracker.</summary>
+    public static string AccountsStateWaiting(string tracker) => Fill(Get("AccountsStateWaiting"), ("tracker", tracker));
+
+    /// <summary>Status: signing in.</summary>
+    public static string AccountsStateSigningIn => Get("AccountsStateSigningIn");
+
+    /// <summary>Status: no network, so the sign-in waits.</summary>
+    public static string AccountsStateOffline => Get("AccountsStateOffline");
+
+    /// <summary>Status: sync running.</summary>
+    public static string AccountsSyncRunning => Get("AccountsSyncRunning");
+
+    /// <summary>Status: sync running, with the tracker.</summary>
+    public static string AccountsSyncRunningWith(string tracker) => Fill(Get("AccountsSyncRunningWith"), ("tracker", tracker));
+
+    /// <summary>Status: synced.</summary>
+    public static string AccountsSyncDone => Get("AccountsSyncDone");
+
+    /// <summary>Status: sync failed. The reason is a sentence fragment.</summary>
+    public static string AccountsSyncFailed(string why) => Fill(Get("AccountsSyncFailed"), ("why", why));
+
+    /// <summary>Line on the sync menu: sync with every tracker.</summary>
+    public static string AccountsSyncAll => Get("AccountsSyncAll");
+
+    /// <summary>Line on a screen that cannot reach the tracker: changes wait.</summary>
+    public static string AccountsOfflineChanges => Get("AccountsOfflineChanges");
+
+    /// <summary>Short line on the TV for the same.</summary>
+    public static string AccountsOfflineChangesTv => Get("AccountsOfflineChangesTv");
+
+    /// <summary>Line on the TV when the sign-in ran out.</summary>
+    public static string AccountsExpiredTv => Get("AccountsExpiredTv");
+
+    /// <summary>Button that starts signing in.</summary>
+    public static string AccountsSignIn => Get("AccountsSignIn");
+
+    /// <summary>Button that starts signing in on a menu.</summary>
+    public static string AccountsSignInMenu => Get("AccountsSignInMenu");
+
+    /// <summary>Button that signs in again.</summary>
+    public static string AccountsSignInAgain => Get("AccountsSignInAgain");
+
+    /// <summary>Button that signs in to a named tracker.</summary>
+    public static string AccountsSignInTo(string tracker) => Fill(Get("AccountsSignInTo"), ("tracker", tracker));
+
+    /// <summary>Button that signs out.</summary>
+    public static string AccountsSignOut => Get("AccountsSignOut");
+
+    /// <summary>Button that syncs now.</summary>
+    public static string AccountsSyncNow => Get("AccountsSyncNow");
+
+    /// <summary>Button that opens the settings for accounts.</summary>
+    public static string AccountsSettings => Get("AccountsSettings");
+
+    /// <summary>Line in the confirmation that signs out on the TV.</summary>
+    public static string AccountsSignOutTvDetail(string name) => Fill(Get("AccountsSignOutTvDetail"), ("name", name));
+
+    /// <summary>Line telling where sign-in tokens are kept: in the keychain.</summary>
+    public static string AccountsTokensKeychain => Get("AccountsTokensKeychain");
+
+    /// <summary>Line telling where sign-in tokens are kept: in a file.</summary>
+    public static string AccountsTokensFile => Get("AccountsTokensFile");
+
+    /// <summary>Line telling where sign-in tokens are kept: sealed by the keystore.</summary>
+    public static string AccountsTokensKeystore => Get("AccountsTokensKeystore");
+
+    /// <summary>Title of the form.</summary>
+    public static string AccountsFormTitle(string tracker) => Fill(Get("AccountsFormTitle"), ("tracker", tracker));
+
+    /// <summary>Line under the title: where the password goes.</summary>
+    public static string AccountsFormDetail(string tracker) => Fill(Get("AccountsFormDetail"), ("tracker", tracker));
+
+    /// <summary>Label of the name field.</summary>
+    public static string AccountsUserOrEmail => Get("AccountsUserOrEmail");
+
+    /// <summary>Label of the password field.</summary>
+    public static string AccountsPassword => Get("AccountsPassword");
+
+    /// <summary>Button label while the sign-in runs.</summary>
+    public static string AccountsSigningInAction => Get("AccountsSigningInAction");
+
+    /// <summary>Line under the title: what to do.</summary>
+    public static string AccountsCodeDetail(string host) => Fill(Get("AccountsCodeDetail"), ("host", host));
+
+    /// <summary>Accessibility label of the code. The code is spelled out.</summary>
+    public static string AccountsCodeLabel(string code) => Fill(Get("AccountsCodeLabel"), ("code", code));
+
+    /// <summary>Line while waiting for the tracker.</summary>
+    public static string AccountsCodeWaiting(string tracker) => Fill(Get("AccountsCodeWaiting"), ("tracker", tracker));
+
+    /// <summary>Line telling when the code ends. The time is already formatted.</summary>
+    public static string AccountsCodeExpires(string time) => Fill(Get("AccountsCodeExpires"), ("time", time));
+
+    /// <summary>Line when the code ended.</summary>
+    public static string AccountsCodeEnded => Get("AccountsCodeEnded");
+
+    /// <summary>Button that copies the code.</summary>
+    public static string AccountsCopyCode => Get("AccountsCopyCode");
+
+    /// <summary>Button that opens the tracker's page. The host is a website.</summary>
+    public static string AccountsOpenHost(string host) => Fill(Get("AccountsOpenHost"), ("host", host));
+
+    /// <summary>Line while a new code is fetched.</summary>
+    public static string AccountsGettingCode => Get("AccountsGettingCode");
+
+    /// <summary>Button that shows the code.</summary>
+    public static string AccountsShowCode => Get("AccountsShowCode");
+
+    /// <summary>Notice when the browser could not be opened.</summary>
+    public static string AccountsBrowserFailed => Get("AccountsBrowserFailed");
+
+    /// <summary>Line on the TV's sign-in screen for a tracker that signs in by code.</summary>
+    public static string AccountsScanCode(string tracker) => Fill(Get("AccountsScanCode"), ("tracker", tracker));
+
+    /// <summary>Line on the TV's sign-in screen for a tracker that signs in by password.</summary>
+    public static string AccountsScanPassword(string tracker) => Fill(Get("AccountsScanPassword"), ("tracker", tracker));
+
+    /// <summary>Title of the clash sheet.</summary>
+    public static string AccountsClashTitle(string tracker) => Fill(Get("AccountsClashTitle"), ("tracker", tracker));
+
+    /// <summary>Line under it.</summary>
+    public static string AccountsClashDetail(string tracker) => Fill(Get("AccountsClashDetail"), ("tracker", tracker));
+
+    /// <summary>One row of the clash sheet.</summary>
+    public static string AccountsClashRow(string field, string local, string remote, string tracker) => Fill(Get("AccountsClashRow"), ("field", field), ("local", local), ("remote", remote), ("tracker", tracker));
+
+    /// <summary>Button that keeps this device's value.</summary>
+    public static string AccountsKeepMine => Get("AccountsKeepMine");
+
+    /// <summary>Button that keeps the tracker's value.</summary>
+    public static string AccountsKeepTheirs(string tracker) => Fill(Get("AccountsKeepTheirs"), ("tracker", tracker));
+
+    /// <summary>Menu item and button.</summary>
+    public static string AccountsOpenOn(string tracker) => Fill(Get("AccountsOpenOn"), ("tracker", tracker));
+
+    /// <summary>Menu item on the title page, as the title is listed there.</summary>
+    public static string AccountsListedBy(string tracker) => Fill(Get("AccountsListedBy"), ("tracker", tracker));
+
+    /// <summary>Line when the tracker did not answer.</summary>
+    public static string AccountsDidNotAnswer(string tracker) => Fill(Get("AccountsDidNotAnswer"), ("tracker", tracker));
+
+    /// <summary>Line when the tracker has nothing for the show.</summary>
+    public static string AccountsNoExtras(string tracker) => Fill(Get("AccountsNoExtras"), ("tracker", tracker));
+
+    /// <summary>Line when episodes come from the tracker only.</summary>
+    public static string AccountsEpisodesFrom(string tracker) => Fill(Get("AccountsEpisodesFrom"), ("tracker", tracker));
+
+    /// <summary>Line on a list of seasonal titles.</summary>
+    public static string AccountsAddsSeason(string tracker) => Fill(Get("AccountsAddsSeason"), ("tracker", tracker));
+
+    /// <summary>Name of the setting that follows the tracker's own choice.</summary>
+    public static string AccountsTrackerChoice(string tracker) => Fill(Get("AccountsTrackerChoice"), ("tracker", tracker));
+
+    /// <summary>Line under that setting.</summary>
+    public static string AccountsFollowsAccount(string tracker) => Fill(Get("AccountsFollowsAccount"), ("tracker", tracker));
+
+    /// <summary>Line under that setting while signed out.</summary>
+    public static string AccountsFollowsSignedOut(string tracker) => Fill(Get("AccountsFollowsSignedOut"), ("tracker", tracker));
+
+    /// <summary>Button and menu item that sends the episode to a paired TV.</summary>
+    public static string TvPlayOn => Get("TvPlayOn");
+
+    /// <summary>Same, with an ellipsis, for a menu item that opens a sheet.</summary>
+    public static string TvPlayOnMenu => Get("TvPlayOnMenu");
+
+    /// <summary>Title of the sheet when no TV is paired and the user came from Play on TV.</summary>
+    public static string TvSheetTitlePair => Get("TvSheetTitlePair");
+
+    /// <summary>Button that opens the pairing sheet.</summary>
+    public static string TvPairAction => Get("TvPairAction");
+
+    /// <summary>Menu item that opens the pairing sheet.</summary>
+    public static string TvPairMenu => Get("TvPairMenu");
+
+    /// <summary>Title of the pairing sheet.</summary>
+    public static string TvPairWithTv => Get("TvPairWithTv");
+
+    /// <summary>Title of the pairing step for one TV. The name is the name the TV gave itself.</summary>
+    public static string TvPairWith(string name) => Fill(Get("TvPairWith"), ("name", name));
+
+    /// <summary>Title while pairing is under way.</summary>
+    public static string TvPairingWith(string name) => Fill(Get("TvPairingWith"), ("name", name));
+
+    /// <summary>Button that pairs.</summary>
+    public static string TvPair => Get("TvPair");
+
+    /// <summary>Button that pairs again after the pairing was lost.</summary>
+    public static string TvPairAgain => Get("TvPairAgain");
+
+    /// <summary>Title of the card of a TV that needs pairing again.</summary>
+    public static string TvPairAgainWith(string name) => Fill(Get("TvPairAgainWith"), ("name", name));
+
+    /// <summary>Button that picks another TV.</summary>
+    public static string TvChooseAnother => Get("TvChooseAnother");
+
+    /// <summary>Accessibility label of the pairing code field.</summary>
+    public static string TvPairingCode => Get("TvPairingCode");
+
+    /// <summary>Line telling where to open the app on the TV.</summary>
+    public static string TvOpenOnTv => Get("TvOpenOnTv");
+
+    /// <summary>Line telling what to type.</summary>
+    public static string TvTypeCode(string name) => Fill(Get("TvTypeCode"), ("name", name));
+
+    /// <summary>Line while pairing is under way.</summary>
+    public static string TvPairingMoment => Get("TvPairingMoment");
+
+    /// <summary>Line while the app looks for TVs.</summary>
+    public static string TvLooking => Get("TvLooking");
+
+    /// <summary>Title when no TV answered.</summary>
+    public static string TvNoneFound => Get("TvNoneFound");
+
+    /// <summary>Line under it.</summary>
+    public static string TvNoneFoundDetail => Get("TvNoneFoundDetail");
+
+    /// <summary>Shorter line under it where the network is not the problem.</summary>
+    public static string TvNoneFoundShort => Get("TvNoneFoundShort");
+
+    /// <summary>Line telling where the TV shows its address.</summary>
+    public static string TvAddressHint => Get("TvAddressHint");
+
+    /// <summary>Line telling how to scan the TV's code.</summary>
+    public static string TvScanHint => Get("TvScanHint");
+
+    /// <summary>Line telling what to do once paired.</summary>
+    public static string TvAfterPairing => Get("TvAfterPairing");
+
+    /// <summary>Line while the TV starts the episode.</summary>
+    public static string TvStartingOn(string name) => Fill(Get("TvStartingOn"), ("name", name));
+
+    /// <summary>Line while the app starts on the TV, without a name.</summary>
+    public static string TvStarting => Get("TvStarting");
+
+    /// <summary>Line when something failed while talking to the TV.</summary>
+    public static string TvTalkFailed => Get("TvTalkFailed");
+
+    /// <summary>Line when the TV did not start the episode. The reason is a sentence fragment.</summary>
+    public static string TvPlayFailed(string reason) => Fill(Get("TvPlayFailed"), ("reason", reason));
+
+    /// <summary>Label of the address field.</summary>
+    public static string TvAddress => Get("TvAddress");
+
+    /// <summary>Menu item and title: type the address of a TV by hand.</summary>
+    public static string TvTypeAddress => Get("TvTypeAddress");
+
+    /// <summary>Button that connects to the typed address.</summary>
+    public static string TvConnect => Get("TvConnect");
+
+    /// <summary>Line in the settings when none is paired.</summary>
+    public static string TvNonePaired => Get("TvNonePaired");
+
+    /// <summary>Line under it.</summary>
+    public static string TvNonePairedDetail => Get("TvNonePairedDetail");
+
+    /// <summary>Line on the settings row of a paired TV.</summary>
+    public static string TvPairedOn(string when) => Fill(Get("TvPairedOn"), ("when", when));
+
+    /// <summary>Short word: paired, no date known.</summary>
+    public static string TvPaired => Get("TvPaired");
+
+    /// <summary>Line with the address.</summary>
+    public static string TvConnectedAt(string address) => Fill(Get("TvConnectedAt"), ("address", address));
+
+    /// <summary>Title of the confirmation that forgets a TV.</summary>
+    public static string TvForgetTitle(string name) => Fill(Get("TvForgetTitle"), ("name", name));
+
+    /// <summary>Line under it.</summary>
+    public static string TvForgetDetail => Get("TvForgetDetail");
+
+    /// <summary>Accessibility label of the forget button.</summary>
+    public static string TvForgetLabel(string name) => Fill(Get("TvForgetLabel"), ("name", name));
+
+    /// <summary>Tooltip of a card that opens the remote.</summary>
+    public static string TvShowRemote(string name) => Fill(Get("TvShowRemote"), ("name", name));
+
+    /// <summary>Status on the remote: playing on a TV.</summary>
+    public static string TvStatusPlaying(string name) => Fill(Get("TvStatusPlaying"), ("name", name));
+
+    /// <summary>Status on the remote: connecting.</summary>
+    public static string TvStatusConnecting(string name) => Fill(Get("TvStatusConnecting"), ("name", name));
+
+    /// <summary>Status on the remote: connection lost, trying again.</summary>
+    public static string TvStatusReconnecting(string name) => Fill(Get("TvStatusReconnecting"), ("name", name));
+
+    /// <summary>Status on the remote: connected.</summary>
+    public static string TvStatusConnected => Get("TvStatusConnected");
+
+    /// <summary>Label of the search field on the remote.</summary>
+    public static string TvSearchOnTv => Get("TvSearchOnTv");
+
+    /// <summary>Hint inside the search field on the remote.</summary>
+    public static string TvTypeSearch => Get("TvTypeSearch");
+
+    /// <summary>Name of a track that has no name.</summary>
+    public static string TvTrackN(long id) => Fill(Get("TvTrackN"), ("id", id.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>Title of the screen on the TV that waits for a phone.</summary>
+    public static string TvPairPhone => Get("TvPairPhone");
+
+    /// <summary>Line on that screen.</summary>
+    public static string TvPairPhoneDetail => Get("TvPairPhoneDetail");
+
+    /// <summary>Line over the code to type.</summary>
+    public static string TvOrEnterCode => Get("TvOrEnterCode");
+
+    /// <summary>Line naming this TV on that screen.</summary>
+    public static string TvThisTv(string name, string address) => Fill(Get("TvThisTv"), ("name", name), ("address", address));
+
+    /// <summary>Line: how often the code changes.</summary>
+    public static string TvCodeChanges => Get("TvCodeChanges");
+
+    /// <summary>Title of the question on the TV when a phone asks to pair.</summary>
+    public static string TvPairRequest(string name) => Fill(Get("TvPairRequest"), ("name", name));
+
+    /// <summary>Line under it.</summary>
+    public static string TvPairRequestDetail => Get("TvPairRequestDetail");
+
+    /// <summary>Line on the TV after a phone paired. The name is a phone name.</summary>
+    public static string TvPhonePaired(string name) => Fill(Get("TvPhonePaired"), ("name", name));
+
+    /// <summary>Title of the confirmation on the TV that removes a phone.</summary>
+    public static string TvRemovePhoneTitle(string name) => Fill(Get("TvRemovePhoneTitle"), ("name", name));
+
+    /// <summary>Line under it.</summary>
+    public static string TvRemovePhoneDetail => Get("TvRemovePhoneDetail");
+
+    /// <summary>Heading of the settings group on the TV that lists the remotes.</summary>
+    public static string TvRemotes => Get("TvRemotes");
+
+    /// <summary>Heading of the update row in settings and about.</summary>
+    public static string UpdatesTitle => Get("UpdatesTitle");
+
+    /// <summary>Line while the app checks.</summary>
+    public static string UpdatesChecking => Get("UpdatesChecking");
+
+    /// <summary>Line when the app is current.</summary>
+    public static string UpdatesUpToDate => Get("UpdatesUpToDate");
+
+    /// <summary>Line when there is no connection to check.</summary>
+    public static string UpdatesChecksOnline => Get("UpdatesChecksOnline");
+
+    /// <summary>Line before the first check.</summary>
+    public static string UpdatesNotChecked => Get("UpdatesNotChecked");
+
+    /// <summary>Line when the check failed. The reason starts with a capital.</summary>
+    public static string UpdatesCheckFailed(string reason) => Fill(Get("UpdatesCheckFailed"), ("reason", reason));
+
+    /// <summary>Line when the check failed on the phone. The reason is already a sentence.</summary>
+    public static string UpdatesNotCheckedBecause(string reason) => Fill(Get("UpdatesNotCheckedBecause"), ("reason", reason));
+
+    /// <summary>Line describing the schedule.</summary>
+    public static string UpdatesSchedule => Get("UpdatesSchedule");
+
+    /// <summary>Line when the package manager updates the app.</summary>
+    public static string UpdatesManaged => Get("UpdatesManaged");
+
+    /// <summary>Line when Flatpak updates the app.</summary>
+    public static string UpdatesFlatpak => Get("UpdatesFlatpak");
+
+    /// <summary>Line when a version is out.</summary>
+    public static string UpdatesVersionOut(string version) => Fill(Get("UpdatesVersionOut"), ("version", version));
+
+    /// <summary>Line when a version is out and the software centre installs it.</summary>
+    public static string UpdatesVersionOutSoftware(string version) => Fill(Get("UpdatesVersionOutSoftware"), ("version", version));
+
+    /// <summary>Line when a version is out and its page has the installer.</summary>
+    public static string UpdatesVersionOutPage(string version) => Fill(Get("UpdatesVersionOutPage"), ("version", version));
+
+    /// <summary>Line when a version is out and its page has the AppImage.</summary>
+    public static string UpdatesVersionOutAppimage(string version) => Fill(Get("UpdatesVersionOutAppimage"), ("version", version));
+
+    /// <summary>Title of the offer card.</summary>
+    public static string UpdatesAvailable(string version) => Fill(Get("UpdatesAvailable"), ("version", version));
+
+    /// <summary>Banner on the TV pointing to the update.</summary>
+    public static string UpdatesAvailableTv(string version) => Fill(Get("UpdatesAvailableTv"), ("version", version));
+
+    /// <summary>Button that starts the update.</summary>
+    public static string UpdatesUpdateTo(string version) => Fill(Get("UpdatesUpdateTo"), ("version", version));
+
+    /// <summary>Line on the TV: the version now installed.</summary>
+    public static string UpdatesThisHas(string version) => Fill(Get("UpdatesThisHas"), ("version", version));
+
+    /// <summary>Line when the notes are on the release page.</summary>
+    public static string UpdatesNotesOnPage => Get("UpdatesNotesOnPage");
+
+    /// <summary>Line when this build cannot update itself.</summary>
+    public static string UpdatesNoSelfUpdate => Get("UpdatesNoSelfUpdate");
+
+    /// <summary>Line on the TV: Android asks first.</summary>
+    public static string UpdatesAndroidAsks => Get("UpdatesAndroidAsks");
+
+    /// <summary>Line on the phone: the release page opens.</summary>
+    public static string UpdatesOpensPage => Get("UpdatesOpensPage");
+
+    /// <summary>Line while downloading, with the version.</summary>
+    public static string UpdatesDownloading(string version) => Fill(Get("UpdatesDownloading"), ("version", version));
+
+    /// <summary>Line while downloading, with progress. Sizes are already formatted.</summary>
+    public static string UpdatesDownloadingSize(string version, string done, string total) => Fill(Get("UpdatesDownloadingSize"), ("version", version), ("done", done), ("total", total));
+
+    /// <summary>Line while downloading, with a percentage.</summary>
+    public static string UpdatesDownloadingPercent(string percent) => Fill(Get("UpdatesDownloadingPercent"), ("percent", percent));
+
+    /// <summary>Line while downloading, with a percentage and sizes.</summary>
+    public static string UpdatesDownloadingFull(string percent, string done, string total) => Fill(Get("UpdatesDownloadingFull"), ("percent", percent), ("done", done), ("total", total));
+
+    /// <summary>Line while the download is about to start.</summary>
+    public static string UpdatesStartingDownload => Get("UpdatesStartingDownload");
+
+    /// <summary>Line while the download is checked.</summary>
+    public static string UpdatesCheckingDownload(string version) => Fill(Get("UpdatesCheckingDownload"), ("version", version));
+
+    /// <summary>Short line while the download is checked.</summary>
+    public static string UpdatesCheckingDownloadShort => Get("UpdatesCheckingDownloadShort");
+
+    /// <summary>Line when the download is ready.</summary>
+    public static string UpdatesReady(string version) => Fill(Get("UpdatesReady"), ("version", version));
+
+    /// <summary>Line while installing.</summary>
+    public static string UpdatesInstalling(string version) => Fill(Get("UpdatesInstalling"), ("version", version));
+
+    /// <summary>Line after Android is asked to install.</summary>
+    public static string UpdatesConfirmOnAndroid => Get("UpdatesConfirmOnAndroid");
+
+    /// <summary>Line after the update: when it opens.</summary>
+    public static string UpdatesUpdatedTv(string version) => Fill(Get("UpdatesUpdatedTv"), ("version", version));
+
+    /// <summary>Notice after restarting into the new version.</summary>
+    public static string UpdatesUpdated(string version) => Fill(Get("UpdatesUpdated"), ("version", version));
+
+    /// <summary>Short line after the update on a phone.</summary>
+    public static string UpdatesOpensNextTime => Get("UpdatesOpensNextTime");
+
+    /// <summary>Line when the update stopped.</summary>
+    public static string UpdatesStopped(string version, string reason) => Fill(Get("UpdatesStopped"), ("version", version), ("reason", reason));
+
+    /// <summary>Notice when the new version did not install.</summary>
+    public static string UpdatesDidNotInstall(string version) => Fill(Get("UpdatesDidNotInstall"), ("version", version));
+
+    /// <summary>Button that opens About.</summary>
+    public static string UpdatesOpenAbout => Get("UpdatesOpenAbout");
+
+    /// <summary>Line on Linux when the file is saved to the downloads folder.</summary>
+    public static string UpdatesSaved(string version) => Fill(Get("UpdatesSaved"), ("version", version));
+
+    /// <summary>Line on Linux telling what to replace.</summary>
+    public static string UpdatesSavedReplace(string version, string file) => Fill(Get("UpdatesSavedReplace"), ("version", version), ("file", file));
+
+    /// <summary>Line on Linux telling what to replace, file unknown.</summary>
+    public static string UpdatesSavedReplacePlain(string version) => Fill(Get("UpdatesSavedReplacePlain"), ("version", version));
+
+    /// <summary>The server refused. The code is a number.</summary>
+    public static string UpdatesWhyServer(long code) => Fill(Get("UpdatesWhyServer"), ("code", code.ToString(System.Globalization.CultureInfo.CurrentCulture)));
+
+    /// <summary>The connection broke.</summary>
+    public static string UpdatesWhyConnection => Get("UpdatesWhyConnection");
+
+    /// <summary>The file could not be saved. The reason is a sentence fragment.</summary>
+    public static string UpdatesWhySave(string reason) => Fill(Get("UpdatesWhySave"), ("reason", reason));
+
+    /// <summary>The file has the wrong size. Sizes are already formatted.</summary>
+    public static string UpdatesWhySize(string got, string expected) => Fill(Get("UpdatesWhySize"), ("got", got), ("expected", expected));
+
+    /// <summary>The file does not match its checksum.</summary>
+    public static string UpdatesWhyChecksum => Get("UpdatesWhyChecksum");
+
+    /// <summary>Android: the file does not match its checksum, and nothing was installed.</summary>
+    public static string UpdatesWhyChecksumAndroid => Get("UpdatesWhyChecksumAndroid");
+
+    /// <summary>Android: not an app.</summary>
+    public static string UpdatesWhyNotApp => Get("UpdatesWhyNotApp");
+
+    /// <summary>Android: another app.</summary>
+    public static string UpdatesWhyOtherApp => Get("UpdatesWhyOtherApp");
+
+    /// <summary>Android: not signed with the right key.</summary>
+    public static string UpdatesWhyUnsigned => Get("UpdatesWhyUnsigned");
+
+    /// <summary>Android: not newer.</summary>
+    public static string UpdatesWhyNotNewer => Get("UpdatesWhyNotNewer");
+
+    /// <summary>Android: no space.</summary>
+    public static string UpdatesWhySpace => Get("UpdatesWhySpace");
+
+    /// <summary>Android: install failed.</summary>
+    public static string UpdatesWhyInstall => Get("UpdatesWhyInstall");
+
+    /// <summary>Android: the download did not work.</summary>
+    public static string UpdatesWhyDownload => Get("UpdatesWhyDownload");
+
+    /// <summary>Android: the download did not start.</summary>
+    public static string UpdatesWhyStart => Get("UpdatesWhyStart");
+
+    /// <summary>Android: the system stopped the download.</summary>
+    public static string UpdatesWhySystem => Get("UpdatesWhySystem");
+
+    /// <summary>The installer would not start. The reason is a sentence fragment.</summary>
+    public static string UpdatesWhyInstaller(string reason) => Fill(Get("UpdatesWhyInstaller"), ("reason", reason));
+
+    /// <summary>Title of the step.</summary>
+    public static string UpdatesAllowTitle => Get("UpdatesAllowTitle");
+
+    /// <summary>Name of the Android setting.</summary>
+    public static string UpdatesUnknownApps => Get("UpdatesUnknownApps");
+
+    /// <summary>Step one.</summary>
+    public static string UpdatesAllowStep1 => Get("UpdatesAllowStep1");
+
+    /// <summary>Step two.</summary>
+    public static string UpdatesAllowStep2 => Get("UpdatesAllowStep2");
+
+    /// <summary>Step three.</summary>
+    public static string UpdatesAllowStep3 => Get("UpdatesAllowStep3");
+
+    /// <summary>Line while waiting for the switch. The path is the Android settings path.</summary>
+    public static string UpdatesAllowWaiting(string path) => Fill(Get("UpdatesAllowWaiting"), ("path", path));
+
+    /// <summary>Line the first time. The path is the Android settings path.</summary>
+    public static string UpdatesAllowOnce(string path) => Fill(Get("UpdatesAllowOnce"), ("path", path));
 
     /// <summary>The languages this build has text for, source first. Draft ones carry the draft label.</summary>
     public static readonly IReadOnlyList<(string Tag, string Name, bool Draft)> Languages = new (string, string, bool)[]
@@ -961,6 +4363,40 @@ public static partial class T
         ["NoticeEpisodesQueued_other"] = "Queued {count} episodes.",
         ["SourcePickerSeeders_one"] = "One seeder",
         ["SourcePickerSeeders_other"] = "{count} seeders",
+        ["AboutTitle"] = "About",
+        ["AboutTitleApp"] = "About anistream",
+        ["AboutVersion"] = "Version {version}",
+        ["AboutLicence"] = "Released under the MIT licence.",
+        ["AboutAcknowledgements"] = "Acknowledgements",
+        ["AboutLicences"] = "Licences",
+        ["AboutWebsite"] = "Website",
+        ["AboutReportBug"] = "Report a bug",
+        ["AboutReportBugDetail"] = "Opens a bug report on GitHub, where you sign in. It carries your versions and the last error, with no addresses, file paths or titles.",
+        ["AboutArtwork"] = "Some artwork is licensed under Creative Commons BY-NC 4.0.",
+        ["AboutFontLicence"] = "Licensed under the SIL Open Font License 1.1.",
+        ["CalendarPreviousWeek"] = "Previous week",
+        ["CalendarNextWeek"] = "Next week",
+        ["CalendarThisWeek"] = "This week",
+        ["CalendarFilterMine"] = "My list",
+        ["CalendarFilterAll"] = "All airing",
+        ["CalendarTodayHeading"] = "Today · {day}",
+        ["CalendarEmptyTitle"] = "Nothing airing",
+        ["CalendarEmptyMine"] = "Nothing on your list airs this week.",
+        ["CalendarEmptyAll"] = "Nothing airs this week.",
+        ["CalendarEmptyToday"] = "Nothing airs today.",
+        ["CalendarEmptyDay"] = "Nothing airs on {day}.",
+        ["CalendarLoadFailed"] = "Couldn't load the calendar",
+        ["CalendarRowTime"] = "E{episode} · {time}",
+        ["CalendarRowTimeDubbed"] = "E{episode} dubbed · {time}",
+        ["CalendarMovedFrom"] = "Moved from {time}",
+        ["CalendarDelayed"] = "Delayed {note}",
+        ["CalendarOut"] = "Out {ago}",
+        ["CalendarEpisodeOut"] = "E{episode} out",
+        ["CalendarOutUnwatched"] = "Out, not watched",
+        ["EpisodeAirs"] = "Episode {episode} airs {when}",
+        ["EpisodeNotOut"] = "Episode {episode} is not out yet",
+        ["CalendarComingUp"] = "Coming up · next 7 days",
+        ["CalendarComingUpEmpty"] = "Nothing airs this week for the shows you follow.",
         ["ActionTryAgain"] = "Try again",
         ["ActionCancel"] = "Cancel",
         ["ActionNotNow"] = "Not now",
@@ -975,6 +4411,144 @@ public static partial class T
         ["SizeMegabyte"] = "{value} MB",
         ["SizeGigabyte"] = "{value} GB",
         ["ActionDone"] = "Done",
+        ["ActionClose"] = "Close",
+        ["ActionBack"] = "Back",
+        ["ActionDelete"] = "Delete",
+        ["ActionRemove"] = "Remove",
+        ["ActionSave"] = "Save",
+        ["ActionEdit"] = "Edit",
+        ["ActionOpen"] = "Open",
+        ["ActionPlay"] = "Play",
+        ["ActionPause"] = "Pause",
+        ["ActionStop"] = "Stop",
+        ["ActionUndo"] = "Undo",
+        ["ActionClear"] = "Clear",
+        ["ActionReset"] = "Reset",
+        ["ActionUpdate"] = "Update",
+        ["ActionInstall"] = "Install",
+        ["ActionCopy"] = "Copy",
+        ["ActionCopied"] = "Copied",
+        ["ActionShare"] = "Share",
+        ["ActionMore"] = "More",
+        ["ActionSkip"] = "Skip",
+        ["ActionSignIn"] = "Sign in",
+        ["ActionSignOut"] = "Sign out",
+        ["ActionJoin"] = "Join",
+        ["ActionLeave"] = "Leave",
+        ["ActionPair"] = "Pair",
+        ["ActionConnect"] = "Connect",
+        ["ActionDisconnect"] = "Disconnect",
+        ["ActionForget"] = "Forget",
+        ["ActionPublish"] = "Publish",
+        ["ActionReplace"] = "Replace",
+        ["ActionEnable"] = "Enable",
+        ["ActionDisable"] = "Disable",
+        ["ActionCheckNow"] = "Check now",
+        ["ActionCheckAgain"] = "Check again",
+        ["ActionOpenSettings"] = "Open settings",
+        ["ActionReport"] = "Report",
+        ["ActionPlayNow"] = "Play now",
+        ["ActionNewCode"] = "Get a new code",
+        ["ActionOpenHost"] = "Open {host}",
+        ["ValueOn"] = "On",
+        ["ValueOff"] = "Off",
+        ["ValueNone"] = "None",
+        ["ValueAutomatic"] = "Automatic",
+        ["ValueDefault"] = "Default",
+        ["ValueUseDefault"] = "Use default",
+        ["ValueUseDefaultIs"] = "Use default · {value}",
+        ["ValueSelected"] = "Selected",
+        ["ValueCurrent"] = "Current",
+        ["ValueUnknown"] = "Unknown",
+        ["DayToday"] = "Today",
+        ["DayTomorrow"] = "Tomorrow",
+        ["DayYesterday"] = "Yesterday",
+        ["TimeAgo"] = "{span} ago",
+        ["TimeIn"] = "in {span}",
+        ["TimeMinutesLeft"] = "{minutes} min left",
+        ["TimeMinutes"] = "{minutes} min",
+        ["StateOfflineLine"] = "Offline. Downloaded episodes still play.",
+        ["StateOfflineTitle"] = "You're offline",
+        ["StateOfflineDetail"] = "Downloaded episodes still play.",
+        ["StateOfflineShowDownloads"] = "Show downloads",
+        ["StateCheckConnection"] = "Check your connection and try again.",
+        ["ErrorGeneric"] = "Something went wrong. Try again.",
+        ["ErrorListUnreadable"] = "Couldn't read the list. Try again.",
+        ["ErrorServiceUnreachable"] = "Couldn't reach {name}. Check your connection and try again.",
+        ["ErrorTimedOut"] = "The request took too long. Try again.",
+        ["ErrorSignInExpired"] = "Your sign-in has expired. Sign in again under Accounts.",
+        ["ErrorLabel"] = "Problem",
+        ["StateWorking"] = "Working",
+        ["StateLoading"] = "Loading",
+        ["DownloadsTitle"] = "Downloads",
+        ["DownloadsPauseAll"] = "Pause all",
+        ["DownloadsResumeAll"] = "Resume all",
+        ["DownloadsPauseAllLabel"] = "Pause all downloads",
+        ["DownloadsResumeAllLabel"] = "Resume all downloads",
+        ["DownloadsClearFinished"] = "Clear finished",
+        ["DownloadsOpenFolder"] = "Open folder",
+        ["DownloadsShowInFolder"] = "Show in folder",
+        ["DownloadsSpaceUsed"] = "Downloads take {size}",
+        ["DownloadsInDownloads"] = "{size} in downloads",
+        ["DownloadsSpaceLabel"] = "Space used by downloads",
+        ["DownloadsEmptyTitle"] = "No downloads",
+        ["DownloadsEmptyDetail"] = "Downloaded episodes play without a connection.",
+        ["DownloadsLoadFailed"] = "Couldn't load downloads",
+        ["DownloadsFolderFailed"] = "Couldn't open the folder. Check that it still exists.",
+        ["DownloadsEpisodeName"] = "Episode {episode}",
+        ["DownloadsCaptionQueued"] = "Queued",
+        ["DownloadsCaptionQueuedSlot"] = "Queued · starts when a download slot is free",
+        ["DownloadsCaptionMetadata"] = "Waiting for metadata",
+        ["DownloadsCaptionRunning"] = "Downloading · {done} of {total}",
+        ["DownloadsCaptionRunningPlain"] = "Downloading",
+        ["DownloadsCaptionPaused"] = "Paused · {percent}",
+        ["DownloadsCaptionDoneSize"] = "Downloaded · {size}",
+        ["DownloadsCaptionDone"] = "Downloaded",
+        ["DownloadsCaptionAhead"] = "Downloaded ahead · Removed a day after you watch it",
+        ["DownloadsAhead"] = "Downloaded ahead",
+        ["DownloadsCaptionFailedWhy"] = "Failed · {why}",
+        ["DownloadsCaptionFailed"] = "Failed",
+        ["DownloadsSeedingLine"] = "Shared {shared} of {goal} · {left}",
+        ["DownloadsStartNow"] = "Start now",
+        ["DownloadsStartNowHelp"] = "Start this download ahead of the queue",
+        ["DownloadsRemoveFromQueue"] = "Remove from queue",
+        ["DownloadsRemoveFromList"] = "Remove from list",
+        ["DownloadsDeleteFile"] = "Delete file…",
+        ["DownloadsPauseOne"] = "Pause download",
+        ["DownloadsResumeOne"] = "Resume download",
+        ["DownloadsPlayEpisode"] = "Play episode {episode}",
+        ["DownloadsDeleteTitle"] = "Delete {name}?",
+        ["DownloadsDeleteDetail"] = "The file is removed from this device.",
+        ["DownloadsDeleteOneTitle"] = "Delete download",
+        ["DownloadsDeleteOneDetail"] = "It plays again only with a connection, or once you download it again.",
+        ["DownloadsDeleteWatched"] = "Delete watched downloads",
+        ["DownloadsSeedingTitle"] = "Seeding",
+        ["DownloadsSeedingAfterWatching"] = "Seeding after watching",
+        ["DownloadsSeedingNote"] = "Watched episodes are shared back while anistream is open, until the ratio or the time limit set in Sources is reached.",
+        ["DownloadsBackgroundTitle"] = "When the window closes with downloads running",
+        ["DownloadsBackgroundKeep"] = "Keep downloading",
+        ["DownloadsBackgroundStop"] = "Stop downloading",
+        ["DownloadsBackgroundAsk"] = "Ask each time",
+        ["DownloadsBackgroundKeeps"] = "Downloads keep going when you close the window.",
+        ["DownloadsBackgroundStops"] = "Closing the window stops downloads. They resume the next time anistream opens.",
+        ["DownloadsBackgroundAsks"] = "Downloads keep going when you close the window, if you choose to.",
+        ["DownloadsBackgroundQuestion"] = "Keep downloads going?",
+        ["DownloadsBackgroundNote"] = "Downloads keep going after you leave anistream.",
+        ["DownloadsFolder"] = "Download folder",
+        ["DownloadsQuality"] = "Download quality",
+        ["DownloadsNoticeDone"] = "Episode {episode} downloaded",
+        ["DownloadsNoticeDoneDetail"] = "{title} · ready to watch offline",
+        ["DownloadsNoticeRunning_one"] = "Downloading one episode",
+        ["DownloadsNoticeRunning_other"] = "Downloading {count} episodes",
+        ["DownloadsNoticeEpisodeLeft"] = "Episode {episode} · {left} left",
+        ["DownloadsNoticeStarting"] = "Starting",
+        ["EpisodeDownloadOne"] = "Download episode {episode}",
+        ["EpisodeDownloadQueued"] = "Queued to download",
+        ["EpisodeDownloadStarting"] = "Starting the download",
+        ["EpisodeDownloadRunning"] = "Downloading · {percent}",
+        ["EpisodeDownloadPaused"] = "Download paused at {percent}",
+        ["EpisodeDownloadDone"] = "Downloaded",
+        ["EpisodeDownloadFailed"] = "Couldn't download episode {episode}. Download again.",
         ["QueueEpisodesLeft_one"] = "One episode left in {title}",
         ["QueueEpisodesLeft_other"] = "{count} episodes left in {title}",
         ["EpisodesCount_one"] = "{count} episode",
@@ -984,8 +4558,376 @@ public static partial class T
         ["DurationDaysHours"] = "{days}d {hours}h",
         ["GroupInProgress"] = "In progress",
         ["GroupNewThisWeek"] = "New this week",
+        ["ContinueEmptyTitle"] = "Nothing watched yet",
+        ["ContinueEmptyDetail"] = "Pick something from Seasonal, or search for a title.",
+        ["ContinueEmptyAction"] = "Browse Seasonal",
+        ["ContinueLoadFailed"] = "Couldn't load Continue",
+        ["ContinueHeading"] = "Continue watching",
+        ["ContinueAiringToday"] = "Airing today",
+        ["ContinueThisSeason"] = "This season",
+        ["ContinueHide"] = "Hide from Continue",
+        ["ContinueHidden"] = "Hidden from Continue.",
+        ["ContinueDrop"] = "Drop",
+        ["ContinueMoreFor"] = "More for {title}",
+        ["ContinueRowResume"] = "Continue E{episode} · {clock}",
+        ["ContinueRowResumeDubbed"] = "Continue E{episode} dubbed · {clock}",
+        ["ContinueRowStart"] = "Play E{episode}",
+        ["ContinueRowStartDubbed"] = "Play E{episode} dubbed",
+        ["ContinueRowStartAired"] = "Play E{episode} · out {ago}",
+        ["ContinueRowCaughtUp"] = "Caught up · E{episode} {when}",
+        ["ContinueRowCaughtUpPlain"] = "Caught up",
+        ["ContinueWidgetConnect"] = "Connect AniList to see it here.",
+        ["ContinueCaughtUp"] = "You're caught up.",
+        ["TitleButtonContinue"] = "Continue episode {episode}",
+        ["TitleButtonPlay"] = "Play episode {episode}",
+        ["TitleButtonAddSource"] = "Add a source to play",
+        ["LibraryStatusWatching"] = "Watching",
+        ["LibraryStatusPlanning"] = "Planning",
+        ["LibraryStatusCompleted"] = "Completed",
+        ["LibraryStatusPaused"] = "Paused",
+        ["LibraryStatusDropped"] = "Dropped",
+        ["LibrarySortUpdated"] = "Last updated",
+        ["LibrarySortTitle"] = "Title",
+        ["LibrarySortScore"] = "Score",
+        ["LibrarySortButton"] = "Sort: {sort}",
+        ["LibrarySortLabel"] = "Sort by {sort}",
+        ["LibrarySignedOutTitle"] = "Your lists come from AniList",
+        ["LibrarySignedOutDetail"] = "Sign in to sync what you watch and where you stopped.",
+        ["LibrarySignedOutAction"] = "Sign in to AniList",
+        ["LibraryListEmpty"] = "Nothing on your {list} list",
+        ["LibraryListEmptyDetail"] = "Titles you add to this list on AniList show up here.",
+        ["LibraryListLoadFailed"] = "Couldn't load your {list} list",
+        ["LibraryLoading"] = "Loading your lists",
+        ["LibraryAddToList"] = "Add to list",
+        ["LibraryAddPlanning"] = "Add to planning",
+        ["LibraryAddedPlanning"] = "Added to planning.",
+        ["LibraryOnYourList"] = "On your list",
+        ["LibraryInYourList"] = "In your list",
+        ["ProgressEpisodesShort"] = "E{done} of {total}",
+        ["ProgressEpisodeShort"] = "E{done}",
+        ["FormatTv"] = "TV",
+        ["FormatTvShort"] = "TV short",
+        ["FormatMovie"] = "Movie",
+        ["FormatSpecial"] = "Special",
+        ["FormatOva"] = "OVA",
+        ["FormatOna"] = "ONA",
+        ["FormatMusic"] = "Music",
+        ["SeasonWinter"] = "Winter",
+        ["SeasonSpring"] = "Spring",
+        ["SeasonSummer"] = "Summer",
+        ["SeasonAutumn"] = "Autumn",
+        ["SeasonWithYear"] = "{season} {year}",
+        ["MediaStatusAired"] = "Aired",
+        ["MediaStatusAiring"] = "Airing",
+        ["MediaStatusUpcoming"] = "Not yet released",
+        ["MediaStatusCancelled"] = "Cancelled",
+        ["MediaStatusHiatus"] = "On hiatus",
+        ["MediaAiringSince"] = "Since {date}",
+        ["MediaAiringFrom"] = "From {date}",
+        ["MaterialOriginal"] = "Original story",
+        ["MaterialManga"] = "Manga",
+        ["MaterialLightNovel"] = "Light novel",
+        ["MaterialWebNovel"] = "Web novel",
+        ["MaterialVisualNovel"] = "Visual novel",
+        ["MaterialVideoGame"] = "Video game",
+        ["MaterialNovel"] = "Novel",
+        ["MaterialDoujinshi"] = "Doujinshi",
+        ["MaterialAnime"] = "Anime",
+        ["MaterialLiveAction"] = "Live action",
+        ["MaterialGame"] = "Game",
+        ["MaterialComic"] = "Comic",
+        ["MaterialMultimedia"] = "Multimedia project",
+        ["MaterialPictureBook"] = "Picture book",
+        ["RelationPrequel"] = "Prequel",
+        ["RelationSequel"] = "Sequel",
+        ["RelationParent"] = "Parent story",
+        ["RelationSideStory"] = "Side story",
+        ["RelationSpinOff"] = "Spin-off",
+        ["RelationAlternative"] = "Alternative",
+        ["RelationSummary"] = "Summary",
+        ["RelationCompilation"] = "Compilation",
+        ["RelationContains"] = "Contains",
+        ["RelationSameUniverse"] = "Same universe",
+        ["RelationSharesCharacters"] = "Shares characters",
+        ["RelationAdaptation"] = "Adaptation",
+        ["RelationOriginalWork"] = "Original work",
+        ["RelationOther"] = "Related",
+        ["RelationLine"] = "{relation} · {format} · {year}",
+        ["RankingLine"] = "#{rank} {label}",
+        ["RankingHighestRated"] = "Highest rated, {scope}",
+        ["RankingMostPopular"] = "Most popular, {scope}",
+        ["RankingAllTime"] = "all time",
+        ["GenreAction"] = "Action",
+        ["GenreAdventure"] = "Adventure",
+        ["GenreComedy"] = "Comedy",
+        ["GenreDrama"] = "Drama",
+        ["GenreEcchi"] = "Ecchi",
+        ["GenreFantasy"] = "Fantasy",
+        ["GenreHorror"] = "Horror",
+        ["GenreMahouShoujo"] = "Mahou shoujo",
+        ["GenreMecha"] = "Mecha",
+        ["GenreMusic"] = "Music",
+        ["GenreMystery"] = "Mystery",
+        ["GenrePsychological"] = "Psychological",
+        ["GenreRomance"] = "Romance",
+        ["GenreSciFi"] = "Sci-fi",
+        ["GenreSliceOfLife"] = "Slice of life",
+        ["GenreSports"] = "Sports",
+        ["GenreSupernatural"] = "Supernatural",
+        ["GenreThriller"] = "Thriller",
+        ["NavContinue"] = "Continue",
+        ["NavCalendar"] = "Calendar",
+        ["NavSeasonal"] = "Seasonal",
+        ["NavLibrary"] = "Library",
+        ["NavSearch"] = "Search",
+        ["NavDownloads"] = "Downloads",
+        ["NavPluginStores"] = "Plugin stores",
+        ["NavSettings"] = "Settings",
+        ["NavAccounts"] = "Accounts",
+        ["NavAccountsAndSettings"] = "Accounts and settings",
+        ["NavSectionsLabel"] = "Sections",
+        ["NavCollapse"] = "Collapse navigation",
+        ["NavExpand"] = "Expand navigation",
+        ["TooltipWithKey"] = "{name} ({key})",
+        ["OnboardingWelcome"] = "Welcome",
+        ["OnboardingWelcomeTo"] = "Welcome to anistream",
+        ["OnboardingTagline"] = "Keep track of anime and play it from sources you choose.",
+        ["OnboardingContinue"] = "Continue",
+        ["OnboardingSkip"] = "Skip",
+        ["OnboardingSkipForNow"] = "Skip for now",
+        ["OnboardingNotNow"] = "Not now",
+        ["OnboardingSourcesTitle"] = "Sources",
+        ["OnboardingSourcesDetail"] = "Sources are plugins, shared through plugin stores by invite.",
+        ["OnboardingJoin"] = "Join",
+        ["OnboardingInviteHint"] = "Invite link",
+        ["PartyOpen"] = "Watch party…",
+        ["PartyTitle"] = "Watch party",
+        ["PartyJoinTitle"] = "Join the watch party?",
+        ["PartyStart"] = "Start watch party",
+        ["PartyJoin"] = "Join watch party",
+        ["PartyLeave"] = "Leave watch party",
+        ["PartyLeaving"] = "Leaving…",
+        ["PartyReadyAction"] = "I'm ready",
+        ["PartyCopyInvite"] = "Copy invite link",
+        ["PartyStay"] = "Stay",
+        ["PartyLeaveAndClose"] = "Leave and close",
+        ["PartyNotNow"] = "Not now",
+        ["PartyGettingReady"] = "Getting things ready…",
+        ["PartyServer"] = "Server",
+        ["PartyServerHint"] = "host:port",
+        ["PartyRecentServers"] = "Recent servers",
+        ["PartyRecentServersHeading"] = "Servers used before",
+        ["PartyUseServer"] = "Use {server}",
+        ["PartyUseIt"] = "Use it",
+        ["PartyRoom"] = "Room",
+        ["PartyYourName"] = "Your name in the room",
+        ["PartyServerPublic"] = "A public server run by {operator}, not by anistream.",
+        ["PartyServerSuggest"] = "No server of your own? {server} is a public one, run by {operator}.",
+        ["PartyServerInvited"] = "A server the person who invited you chose. anistream doesn't run it.",
+        ["PartyServerShape"] = "Write the server as a host and a port, like party.example:8999.",
+        ["PartyPrivacy"] = "The server sees your name, the room, and when anyone plays, pauses or seeks. Each of you plays the episode from your own sources.",
+        ["PartyRoomHint"] = "Anyone who knows the room's name can join it. The invite link carries it, so nobody has to read it out.",
+        ["PartyInviteRoom"] = "Room {room} on {server}",
+        ["PartyJoining"] = "Joining {room} on {server}…",
+        ["PartyFormNothing"] = "What's playing now plays with the room.",
+        ["PartyFormEpisodeOf"] = "Episode {episode} of {title}",
+        ["PartyFormEpisode"] = "Episode {episode}",
+        ["PartyEndedEarly"] = "The party ended before it began.",
+        ["PartyWaitingMembers"] = "Waiting for the room's members",
+        ["PartyOtherApp"] = "For Syncplay's own app",
+        ["PartyOtherAppDetail"] = "Server {server}. Room {room}.",
+        ["PartyMemberYou"] = "{name} (you)",
+        ["PartyYou"] = "you",
+        ["PartyMemberReady"] = "Ready",
+        ["PartyMemberNotReady"] = "Not ready",
+        ["PartyMemberNoReadyState"] = "No ready state",
+        ["PartyMemberOtherFile"] = "Playing a different file",
+        ["PartyMemberNoFile"] = "Nothing open yet",
+        ["PartyAlone"] = "Nobody else is here yet. Send the invite link.",
+        ["PartyAllReady"] = "Everyone is ready",
+        ["PartyWaitYou"] = "Play starts once you're ready",
+        ["PartyWaitOne"] = "Play starts once {name} is ready",
+        ["PartyWaitTwo"] = "Play starts once {first} and {second} are ready",
+        ["PartyWaitMany"] = "Play starts once {count} more are ready",
+        ["PartyConnectionLost"] = "Connection lost. Trying again, {attempt} of {of}",
+        ["PartyConnectedEncrypted"] = "Connected, encrypted",
+        ["PartyConnectedPlain"] = "Connected, not encrypted",
+        ["PartyConnectedLatency"] = "{line} · {ms} ms",
+        ["PartyInviteAfterPlay"] = "The invite link comes once an episode plays.",
+        ["PartyInviteDetail"] = "It names the room and the episode. Each friend plays it from their own sources.",
+        ["PartyInRoomIdle"] = "You're in {room} on {server}, with nothing playing.",
+        ["PartyInRoomIdlePlain"] = "You're in the room, with nothing playing.",
+        ["PartyLinkIncomplete"] = "That party link is missing its server, room or episode.",
+        ["PartyAlreadyIn"] = "You're already in this watch party.",
+        ["PartyInNote"] = "You're in the watch party. The people button has the invite link.",
+        ["PartyInNotePlayer"] = "You're in the watch party. The people button in the player has the invite link.",
+        ["PartyLeftNote"] = "You left the watch party. What's playing goes on, just for you.",
+        ["PartyLeaveTitle"] = "Leave the watch party?",
+        ["PartyLeaveDetail"] = "Closing anistream leaves {room}. Everyone else carries on without you.",
+        ["PartyNosourceNoneTitle"] = "You have no sources yet",
+        ["PartyNosourceNoneDetail"] = "Sources come from plugins, which a plugin store adds. {what} plays with the room once one of them has it.",
+        ["PartyNosourceMissingTitle"] = "None of your sources has this episode",
+        ["PartyNosourceMissingDetail"] = "{why}. {what} plays with the room once you choose a source that has it.",
+        ["PartyNosourceUnaired"] = "Your sources won't have episode {episode} before it's out.",
+        ["PartyNosourceUnairedPlain"] = "Your sources won't have it before then. It plays with the room once one of them does.",
+        ["PartySourcesFound_one"] = "One source has it",
+        ["PartySourcesFound_other"] = "{count} sources have it",
+        ["PartySourcesLabel"] = "Sources for this episode",
+        ["PartySourceSeeders"] = "{seeders} seeders",
         ["PlayerUpNext"] = "Up next",
         ["TitleBasedOn"] = "Based on",
+        ["PlayerStarting"] = "Starting episode {episode}",
+        ["PlayerFindingSource"] = "Finding a source · {seconds} s",
+        ["PlayerFindingSourcePlain"] = "Finding a source",
+        ["PlayerFailedTitle"] = "Couldn't play episode {episode}",
+        ["PlayerFailedDetail"] = "No source had a stream that played. Try another.",
+        ["PlayerFailedNoSources"] = "No sources yet. Add a plugin store to play.",
+        ["PlayerChooseSource"] = "Choose source",
+        ["PlayerChooseAnotherSource"] = "Choose another source",
+        ["PlayerAddPluginStore"] = "Add a plugin store",
+        ["PlayerBuffering"] = "Buffering",
+        ["PlayerStallTitle"] = "Source is buffering · {seconds} s",
+        ["PlayerStallDetail"] = "Another stream may play without waiting.",
+        ["PlayerSwitchSource"] = "Switch source",
+        ["PlayerKeepWaiting"] = "Keep waiting",
+        ["PlayerPlaysIn"] = "Plays in {seconds} s",
+        ["PlayerSkipOpening"] = "Skip opening",
+        ["PlayerSkipEnding"] = "Skip ending",
+        ["PlayerSkippedOpening"] = "Skipped opening",
+        ["PlayerSkippedEnding"] = "Skipped ending",
+        ["PlayerResumedAt"] = "Resumed at {clock}",
+        ["PlayerStartOver"] = "Start over",
+        ["PlayerStillWatching"] = "Still watching?",
+        ["PlayerStillWatchingDetail_one"] = "Paused after one episode in a row.",
+        ["PlayerStillWatchingDetail_other"] = "Paused after {count} episodes in a row.",
+        ["PlayerStillWatchingContinue"] = "Continue watching",
+        ["PlayerEndsAt"] = "Ends at {time}",
+        ["PlayerBack10"] = "Back 10 seconds",
+        ["PlayerForward10"] = "Forward 10 seconds",
+        ["PlayerPosition"] = "Position",
+        ["PlayerVolume"] = "Volume",
+        ["PlayerVolumeLevel"] = "Volume {percent}",
+        ["PlayerMuted"] = "Muted",
+        ["PlayerSpeed"] = "Speed",
+        ["PlayerSpeedIs"] = "Playback speed, {speed}",
+        ["PlayerSpeedNormal"] = "Normal speed",
+        ["PlayerSlower"] = "Slower",
+        ["PlayerFaster"] = "Faster",
+        ["PlayerSubtitles"] = "Subtitles",
+        ["PlayerAudio"] = "Audio",
+        ["PlayerSubtitlesAndAudio"] = "Subtitles and audio",
+        ["PlayerSubtitlesAudioPicture"] = "Subtitles, audio and picture",
+        ["PlayerPictureAndSound"] = "Picture and sound",
+        ["PlayerEpisodes"] = "Episodes",
+        ["PlayerInfo"] = "Info",
+        ["PlayerNextEpisode"] = "Next episode",
+        ["PlayerPreviousEpisode"] = "Previous episode",
+        ["PlayerUpscaling"] = "Upscaling",
+        ["PlayerNightMode"] = "Night mode",
+        ["PlayerNightModeDetail"] = "Quiet parts louder, loud parts quieter",
+        ["PlayerRemembered"] = "Remembered for this show",
+        ["PlayerPictureInPicture"] = "Picture in picture",
+        ["PlayerFullscreen"] = "Full screen",
+        ["PlayerMiniPlayer"] = "Mini player",
+        ["PlayerMiniBack"] = "Back to the full window",
+        ["PlayerClose"] = "Close player",
+        ["PlayerPlaybackSettings"] = "Playback settings",
+        ["PlayerStats"] = "Stats for nerds",
+        ["PlayerStatsWaiting"] = "Waiting for the stream",
+        ["PlayerStatsClose"] = "Close stats for nerds",
+        ["PlayerStatsHeading"] = "Stats",
+        ["PlayerStatsCopy"] = "Copy stats",
+        ["PlayerStatsCopyFailed"] = "Couldn't copy the stats. Try again.",
+        ["PlayerLoadSubtitleFile"] = "Load subtitle file…",
+        ["PlayerLoadAudioFile"] = "Load audio file…",
+        ["PlayerFilePickerFailed"] = "Couldn't open the file chooser. Try again.",
+        ["PlayerSubtitleFileFailed"] = "Couldn't load that subtitle file. Check that it is a subtitle file.",
+        ["PlayerAudioFileFailed"] = "Couldn't load that audio file. Check that it is an audio file.",
+        ["PlayerTrackUnnamed"] = "Unnamed track",
+        ["PlayerAudioTrackN"] = "Audio {id}",
+        ["PlayerSubtitleTrackN"] = "Subtitles {id}",
+        ["PlayerNoTracks"] = "No tracks yet",
+        ["SourcePickerFinding"] = "Finding sources…",
+        ["SourcePickerEmpty"] = "No source has a stream for this episode.",
+        ["PlayerSources"] = "Sources",
+        ["SeasonalPrevious"] = "Previous season",
+        ["SeasonalNext"] = "Next season",
+        ["SeasonalLoading"] = "Loading this season",
+        ["SeasonalLoadFailed"] = "Couldn't load this season",
+        ["SeasonalEmptyTitle"] = "Nothing listed for {season} yet",
+        ["SeasonalEmptyDetail"] = "AniList adds a season's titles as they're announced.",
+        ["SeasonalEmptyFormat"] = "No titles in this format",
+        ["SeasonalEmptyFormatDetail"] = "Try all formats.",
+        ["SeasonalFilterInSearch"] = "Filter in Search",
+        ["SeasonalFilterHelp"] = "This season in Search, where every filter narrows it",
+        ["SortPopularity"] = "Popularity",
+        ["SortScore"] = "Score",
+        ["SortAirDay"] = "Air day",
+        ["SortRelevance"] = "Relevance",
+        ["SortButton"] = "Sort: {sort}",
+        ["SortLabel"] = "Sort by {sort}",
+        ["SearchPlaceholder"] = "Search titles",
+        ["SearchClear"] = "Clear search",
+        ["SearchSearching"] = "Searching for “{query}”",
+        ["SearchResultsFor"] = "Results for “{query}”",
+        ["SearchBrowse"] = "Browse",
+        ["SearchNothingFound"] = "Nothing found for “{query}”",
+        ["SearchNothingFoundDetail"] = "Check the spelling, or try the English or Japanese title.",
+        ["SearchNothingWithFilters"] = "Nothing found with these filters",
+        ["SearchNothingFoundWithFilters"] = "Nothing found for “{query}” with these filters",
+        ["SearchTryFewerFilters"] = "Try fewer filters.",
+        ["SearchClearFilters"] = "Clear filters",
+        ["SearchFailed"] = "Couldn't search",
+        ["SearchNeedsConnection"] = "Search needs a connection",
+        ["SearchUnreachable"] = "Search isn't reachable right now. Try again in a minute.",
+        ["SearchRecent"] = "Recent searches",
+        ["SearchRecentRemove"] = "Remove {query}",
+        ["SearchSeeAll"] = "See all",
+        ["SearchGenres"] = "Genres",
+        ["SearchLoadingMore"] = "Loading more titles",
+        ["FiltersTitle"] = "Filters",
+        ["FiltersButtonCount"] = "All filters · {count}",
+        ["FiltersButton"] = "All filters",
+        ["FilterGenre"] = "Genre",
+        ["FilterGenres"] = "Genres",
+        ["FilterYear"] = "Year",
+        ["FilterSeason"] = "Season",
+        ["FilterFormat"] = "Format",
+        ["FilterStatus"] = "Status",
+        ["FilterLength"] = "Length",
+        ["FilterEpisodes"] = "Episodes",
+        ["FilterEpisodeLength"] = "Episode length",
+        ["FilterReception"] = "Reception",
+        ["FilterScoreAtLeast"] = "Score at least",
+        ["FilterHideObscure"] = "Hide obscure titles",
+        ["FilterOrigin"] = "Origin",
+        ["FilterCountry"] = "Country",
+        ["FilterReleased"] = "Released",
+        ["FilterWhereToWatch"] = "Where to watch",
+        ["FilterLicensedOnly"] = "Licensed only",
+        ["FilterMyList"] = "Titles on my list",
+        ["FilterShow"] = "Show",
+        ["FilterHide"] = "Hide",
+        ["FilterOnly"] = "Only",
+        ["FilterLiveNote"] = "Results update as you change these.",
+        ["FilterTags"] = "Tags",
+        ["FilterTagFind"] = "Find a tag",
+        ["FilterTagNone"] = "No tag has that in its name",
+        ["FilterTagRank"] = "Tag rank at least {rank}",
+        ["FilterSpoilerTags"] = "Show spoiler tags",
+        ["FilterAnyGenre"] = "Any genre",
+        ["FilterAnyYear"] = "Any year",
+        ["FilterAnySeason"] = "Any season",
+        ["FilterAnyFormat"] = "Any format",
+        ["FilterAnyStatus"] = "Any status",
+        ["FilterAllFormats"] = "All formats",
+        ["FilterSeasonPickYear"] = "Choose a year first",
+        ["FilterYearsUpTo"] = "Up to {year}",
+        ["FilterIncluded"] = "Included",
+        ["FilterLeftOut"] = "Left out",
+        ["FilterHintTouch"] = "Tap once to include, twice to leave out.",
+        ["FilterHintRemote"] = "Press once to include, twice to leave out.",
+        ["FilterRemove"] = "Remove {filter}",
         ["SettingsLanguage"] = "Language",
         ["SettingsLanguageApp"] = "App language",
         ["LanguageFollowSystem"] = "Follow system language",
@@ -995,6 +4937,112 @@ public static partial class T
         ["SettingsAudio"] = "Audio",
         ["AudioSubbed"] = "Subbed",
         ["AudioDubbed"] = "Dubbed",
+        ["SettingsTitle"] = "Settings",
+        ["SettingsGroupGeneral"] = "General",
+        ["SettingsGroupTitles"] = "Titles",
+        ["SettingsGroupPlayback"] = "Playback",
+        ["SettingsGroupWatching"] = "Watching",
+        ["SettingsGroupPlayer"] = "Player",
+        ["SettingsGroupPicture"] = "Picture",
+        ["SettingsGroupFiles"] = "Files",
+        ["SettingsGroupAhead"] = "Ahead",
+        ["SettingsGroupNotifications"] = "Notifications",
+        ["SettingsGroupIntegrations"] = "Integrations",
+        ["SettingsGroupAdvanced"] = "Advanced",
+        ["SettingsGroupStorage"] = "Storage",
+        ["SettingsGroupEpisodes"] = "Episodes",
+        ["SettingsTitleLanguage"] = "Title language",
+        ["SettingsTitleTracker"] = "{tracker}'s choice",
+        ["SettingsTitleEnglish"] = "English",
+        ["SettingsTitleRomaji"] = "Romaji",
+        ["SettingsTitleNative"] = "Native",
+        ["SettingsAdult"] = "Show adult titles",
+        ["SettingsAdultDetail"] = "Titles {tracker} marks adult, in Search and Seasonal",
+        ["SettingsQuality"] = "Quality",
+        ["SettingsAutoPlay"] = "Auto-play next",
+        ["SettingsUpNextCountdown"] = "Up next countdown",
+        ["SettingsSkipOpening"] = "Skip opening automatically",
+        ["SettingsSkipFiller"] = "Skip filler automatically",
+        ["SettingsMarkOpening"] = "Mark opening and ending",
+        ["SettingsSkipButton"] = "Show skip button",
+        ["SettingsSkipButtonDetail"] = "While the opening or ending plays, when it isn't skipped automatically",
+        ["SettingsCountsWatched"] = "Counts as watched at",
+        ["SettingsCountsWatchedDetail"] = "Or when the ending starts, if it is marked",
+        ["SettingsSpoiler"] = "Spoiler protection",
+        ["SettingsSpoilerDetail"] = "Blurs stills of unwatched episodes after the next one",
+        ["SettingsAudioDetail"] = "Each show remembers its own audio and subtitles.",
+        ["SettingsSystemCaptions"] = "Follow system caption style",
+        ["SettingsSystemCaptionsDetail"] = "Plain subtitles use your caption preferences from Accessibility. Styled subtitles keep their own look.",
+        ["SettingsOverridden_one"] = "Overridden for one show",
+        ["SettingsOverridden_other"] = "Overridden for {count} shows",
+        ["SettingsNewDownloads"] = "New downloads",
+        ["SettingsKeepNext"] = "Keep next episodes",
+        ["SettingsKeepNextDetail"] = "Downloads the episodes after the one you are on, for each show you watch",
+        ["SettingsMergeSubtitles"] = "Merge subtitles in",
+        ["SettingsKeepSeeding"] = "Keep seeding",
+        ["SettingsWifiOnly"] = "Wi-Fi only",
+        ["SettingsWifiOnlyDetail"] = "Downloads wait for Wi-Fi",
+        ["SettingsTorrentsCellular"] = "Torrents on cellular",
+        ["SettingsSeedAfter"] = "Seed after watching",
+        ["SettingsSeedFor"] = "Seed for at most",
+        ["SettingsUploadLimit"] = "Upload limit",
+        ["SettingsNoneYet"] = "None yet",
+        ["SettingsNotSet"] = "Not set",
+        ["SettingsNoneJoined"] = "None joined",
+        ["SettingsEditProxy"] = "Edit proxy…",
+        ["SettingsDiscord"] = "Discord",
+        ["SettingsDiscordPresence"] = "Discord presence",
+        ["SettingsChoose"] = "Choose…",
+        ["SettingsShowInFiles"] = "Show in Files",
+        ["SettingsCheckUpdates"] = "Check for updates",
+        ["SettingsPrivacy"] = "Privacy",
+        ["SettingsPrivacyDetail"] = "What anistream sends, and what stays on this device",
+        ["SettingsTypefaces"] = "Typefaces",
+        ["SettingsLibraries"] = "Libraries",
+        ["SettingsNotices"] = "Notices",
+        ["SettingsArtwork"] = "Artwork under CC BY-NC",
+        ["SettingsArtworkDetail"] = "Attribution in the app's notices",
+        ["SettingsNewEpisodes"] = "New episodes",
+        ["SettingsNewEpisodesDetail"] = "For shows in your Watching list",
+        ["SettingsNotifyDetail"] = "One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.",
+        ["SettingsComingUp"] = "Coming up · next 7 days",
+        ["SettingsSystemNotifications"] = "Notification settings",
+        ["SettingsSystemNotificationsDetail"] = "Sound, vibration and the lock screen",
+        ["SettingsSystemNotificationsApple"] = "Opens System Settings, where the banner style, sound and badges are set.",
+        ["SettingsNotificationsBlocked"] = "Off: the system isn't allowing notifications for anistream",
+        ["SettingsNotificationsShowOn"] = "On in this show's settings",
+        ["SettingsNotifyShow"] = "When an episode of this show comes out",
+        ["ShowSettingsTitle"] = "Settings for this show",
+        ["ShowSettingsAudioSubtitles"] = "Audio and subtitles",
+        ["ShowSettingsSkipOpening"] = "Skip opening",
+        ["ShowSettingsSkipFiller"] = "Skip filler",
+        ["ShowSettingsBlurAhead"] = "Blur stills ahead",
+        ["ShowSettingsShowEverything"] = "Show everything",
+        ["ShowSettingsSpoilerDetail"] = "Blurs stills after the next episode.",
+        ["ShowSettingsAlways"] = "Always",
+        ["ShowSettingsNever"] = "Never",
+        ["ShowSettingsSubsRemembered"] = "Remembered from your last episode.",
+        ["ShowSettingsSubsFollow"] = "Chosen in the player. Following Settings › Playback.",
+        ["ShowSettingsSource"] = "Source",
+        ["ShowSettingsSourceDetail"] = "Automatic tries your sources in order.",
+        ["ShowSettingsReset"] = "Reset to defaults",
+        ["ShowSettingsResetDetail"] = "Also clears the remembered audio and subtitles.",
+        ["ShowSettingsNothing"] = "Nothing set for this show",
+        ["ShowSettingsDefault"] = "Default",
+        ["ShowSettingsNotWatching"] = "Off · not watching",
+        ["ShowSettingsTrackWith"] = "{language} ({part})",
+        ["WidgetAiringToday"] = "Airing today",
+        ["WidgetNoSchedule"] = "No schedule for today yet. Open anistream to update it.",
+        ["WidgetNothingToday"] = "Nothing airing today.",
+        ["WidgetNothingNext"] = "Nothing airing. Next: {when}.",
+        ["WidgetInYourList"] = "In your list",
+        ["WidgetWatched"] = "Watched",
+        ["WidgetUpdated"] = "Updated {when}",
+        ["WidgetConnectDetail"] = "Connect tracker, or play an episode, to see it here.",
+        ["WidgetConnect"] = "Connect",
+        ["WidgetContinueLabel"] = "Continue episode {episode} of {title}",
+        ["WidgetStartLabel"] = "Play episode {episode} of {title}",
+        ["WidgetContinueDubbedLabel"] = "Continue episode {episode}, dubbed, of {title}",
         ["SourcesTitle"] = "Sources",
         ["SourcesEmpty"] = "No sources yet. Join a plugin store to add some.",
         ["PluginRiskWarning"] = "Plugins are written by other people and run on your device. Install only from people you trust.",
@@ -1012,6 +5060,504 @@ public static partial class T
         ["SourcePickerChosen"] = "Chosen",
         ["SourcePinUnavailable"] = "{name} isn't available right now, so this title's episodes come from your other sources.",
         ["EpisodeUnsourced"] = "No source has this episode",
+        ["SourcesOrder"] = "Source order",
+        ["SourcesOrderDetail"] = "Sources are tried top to bottom. Drag one by its handle to change the order.",
+        ["SourcesOrderDetailShow"] = "Sources are tried in order, top to bottom. A show can keep its own source, chosen from its title page.",
+        ["SourcesDragHint"] = "Drag to change the order",
+        ["SourcesMoveUp"] = "Move up",
+        ["SourcesMoveDown"] = "Move down",
+        ["SourcesLoadFailed"] = "Couldn't load sources",
+        ["SourcesEmptyTitle"] = "No sources yet",
+        ["SourcesEmptyDetail"] = "Sources come from plugin stores. Join one with the invite link its owner sends you.",
+        ["SourcesTorrents"] = "Torrents",
+        ["SourcesRemote"] = "Remote",
+        ["SourcesOriginConfig"] = "Set in the config file",
+        ["SourcesOriginBuiltIn"] = "Built in",
+        ["SourcesOriginLeftStore"] = "From a plugin store you left",
+        ["SourcesOriginByHand"] = "Added by hand",
+        ["SourcesOriginNoStore"] = "Not from a plugin store",
+        ["SourcesOriginFrom"] = "From {name}",
+        ["SourcesOriginIn"] = "In {place}",
+        ["SourcesStatusNotAnswering"] = "Not answering",
+        ["SourcesStatusHeldBack"] = "Held back",
+        ["SourcesStatusSlow"] = "Slow",
+        ["SourcesStatusUpdate"] = "Update available",
+        ["SourcesDetailNotAnswering"] = "Not answering. {why}",
+        ["SourcesDetailNotAnsweringPlain"] = "Not answering.",
+        ["SourcesDetailHeldBack"] = "Held back until the connection check passes.",
+        ["SourcesDetailDisabled"] = "Disabled. It keeps its place and is not tried.",
+        ["SourcesDetailGone"] = "This source is no longer here.",
+        ["SourcesDetailSite"] = "The site did not answer.",
+        ["SourcesVersion"] = "Version",
+        ["SourcesResponseTime"] = "Response time",
+        ["SourcesNoAnswer"] = "No answer",
+        ["SourcesNotChecked"] = "Not checked yet",
+        ["SourcesContactsLabel"] = "Contacts",
+        ["SourcesListedByStore"] = "Listed by its plugin store",
+        ["SourcesContactsOne"] = "Contacts {first}",
+        ["SourcesContactsLine_one"] = "Contacts {first} and one more",
+        ["SourcesContactsLine_other"] = "Contacts {first} and {more} more",
+        ["SourcesContactsNone"] = "Contacts no hosts",
+        ["SourcesNoHosts"] = "No hosts",
+        ["SourcesUpdateContactsOne"] = "This update also contacts {first}.",
+        ["SourcesUpdateContacts_one"] = "This update also contacts {first} and one more.",
+        ["SourcesUpdateContacts_other"] = "This update also contacts {first} and {more} more.",
+        ["SourcesUpdateTitle"] = "Update {name}?",
+        ["SourcesReplaceTitle"] = "Replace {name}?",
+        ["SourcesUpdateDetail"] = "Version {version} from {store} replaces {from}.",
+        ["SourcesReplaceDetail"] = "Version {version} from {store} replaces the copy added by hand. {detail}.",
+        ["SourcesOpenSettings"] = "Open source settings",
+        ["SourcesTorrentSource"] = "Torrent source",
+        ["SourcesSourceOrderRow"] = "Source order",
+        ["StoresJoined"] = "Joined",
+        ["StoresEmptyTitle"] = "No plugin stores yet",
+        ["StoresEmptyDetail"] = "Plugin stores are run by people you know. Join one with the invite link its owner sends you.",
+        ["StoresIntro"] = "Plugins add sources. Each one lists the hosts it contacts before you install it.",
+        ["StoresNotFromApp"] = "Plugins come from the plugin store's owner, not from anistream. You can leave a plugin store at any time.",
+        ["StoresNoPlugins"] = "This plugin store offers no plugins yet.",
+        ["StoresPlugins"] = "Plugins",
+        ["StoresPluginLimits"] = "Each plugin can contact only the hosts listed with it and cannot read your files.",
+        ["StoresPluginLimitsShort"] = "Plugins cannot read your files or contact a host that is not listed.",
+        ["StoresRunBy"] = "Run by {owner} · {host}",
+        ["StoresAddedByHand"] = "Added by hand · {detail}",
+        ["StoresStatusOffline"] = "Offline",
+        ["StoresStatusNotAnswering"] = "Not answering",
+        ["StoresStatusAccessEnded"] = "Access ended",
+        ["StoresAccessEndedDetail"] = "This plugin store's owner ended your access. Installed plugins keep working, and none will update.",
+        ["StoresAccessEndedPage"] = "This plugin store no longer lets this device in. Its plugins stay installed until you remove them.",
+        ["StoresNoLongerJoined"] = "This plugin store is no longer joined.",
+        ["StoresOfflineLastList"] = "Offline: {reason}. The plugins below are the last list that was checked.",
+        ["StoresOfflineLastListPlain"] = "Offline. Showing the last list it sent.",
+        ["StoresKeyLine"] = "Store key {key} · {joined}",
+        ["StoresDeviceJoinedAs"] = "Joined as {name}",
+        ["StoresJoinedNameless"] = "Joined without a name",
+        ["StoresWhoCanJoin"] = "Who can join",
+        ["StoresAnyoneWithLink"] = "Anyone with the link can join",
+        ["StoresAnyoneShort"] = "Anyone with the link",
+        ["StoresAddress"] = "Address",
+        ["StoresKeyFingerprint"] = "Key fingerprint",
+        ["StoresThisStore"] = "This store",
+        ["StoresJoinAction"] = "Join a plugin store",
+        ["StoresJoinShort"] = "Join a store",
+        ["StoresJoinMenu"] = "Join plugin store…",
+        ["StoresLeave"] = "Leave plugin store",
+        ["StoresLeaveTitle"] = "Leave {name}?",
+        ["StoresLeaveDetail"] = "This device can no longer install or update its plugins. Plugins already installed stay.",
+        ["StoresLeaveRejoin"] = "Plugins installed from it stay installed. To join again, you need a new invite from its owner.",
+        ["StoresOpenAdmin"] = "Open admin page",
+        ["StoresInviteSomeone"] = "Invite someone…",
+        ["StoresLinkDevice"] = "Link another device…",
+        ["StoresShowMembers"] = "Show members",
+        ["StoresWhoCanJoinMenu"] = "Who can join…",
+        ["StoresPublishMenu"] = "Publish a plugin…",
+        ["StoresActionsFor"] = "Actions for {name}",
+        ["StoresPluginStateInstalled"] = "Installed",
+        ["StoresPluginFrom"] = "From {other}",
+        ["StoresPluginOffline"] = "Offline",
+        ["StoresPluginUnavailable"] = "Not available",
+        ["StoresPluginUpdateLine"] = "Version {from} installed, {to} available",
+        ["StoresPluginVersion"] = "Version {version}",
+        ["StoresUpdateLabel"] = "Update {name} to {version}",
+        ["StoresInstallLabel"] = "Install {name}",
+        ["StoresReplaceLabel"] = "Replace the copy of {name} added by hand",
+        ["StoresRemovePluginTitle"] = "Remove {name}?",
+        ["StoresRemovePluginDetail"] = "It is deleted from this device. The plugin store can install it again.",
+        ["StoresNewlyContacts"] = "Newly contacts",
+        ["StoresUpdateContacts"] = "This update also contacts {hosts}.",
+        ["StoresNewIn"] = "New in {version}",
+        ["StoresJoinTitle"] = "Join a plugin store",
+        ["StoresAddTitle"] = "Add a plugin store",
+        ["StoresJoinDetail"] = "Paste the link the plugin store's owner sent you.",
+        ["StoresJoinDetailDesktop"] = "Paste the invite link a plugin store's owner sent you. You see what the plugin store offers before anything is joined or installed.",
+        ["StoresJoinDetailOpened"] = "Paste the link the plugin store's owner sent you. A anistream:// invite link opened from Messages fills this sheet in directly.",
+        ["StoresInviteLink"] = "Invite link",
+        ["StoresInviteLinkHint"] = "https://…/join/…",
+        ["StoresCheckLink"] = "Check the link",
+        ["StoresCheckInvite"] = "Check invite",
+        ["StoresCheckingLink"] = "Checking the link…",
+        ["StoresCheckingStore"] = "Checking the plugin store…",
+        ["StoresNotAnInvite"] = "That is not an invite link.",
+        ["StoresLinkFailed"] = "Couldn't open this link.",
+        ["StoresTryAnotherLink"] = "Try another link",
+        ["StoresJoinConfirmTitle"] = "Join {name}?",
+        ["StoresJoinInstallsNothing"] = "Joining installs nothing. You choose which plugins to install, and each one asks for the hosts it contacts.",
+        ["StoresKeyMatches"] = "Key {key} matches the plugin store.",
+        ["StoresAnyoneNote"] = "You join without a name. Another device joins with the same link.",
+        ["StoresAlreadyJoinedNote"] = "This device has joined this plugin store already.",
+        ["StoresDeviceName"] = "Device name",
+        ["StoresDeviceNameDetail"] = "The plugin store's owner sees this device by this name.",
+        ["StoresJoinButton"] = "Join plugin store",
+        ["StoresOpenStore"] = "Open plugin store",
+        ["StoresTvJoined"] = "Joined {name}",
+        ["StoresTvJoinedPlain"] = "Joined the plugin store",
+        ["StoresSkip"] = "Skip for now",
+        ["StoresTypeLink"] = "Type the link",
+        ["StoresQrInstructions"] = "Scan the QR code with your phone, then paste the plugin store's invite link on the page that opens.",
+        ["StoresOrOpenAddress"] = "Or open this address",
+        ["StoresCodeExpired"] = "Code expired",
+        ["StoresPageClosed"] = "The page closed after 10 minutes.",
+        ["StoresNewCode"] = "Get a new code",
+        ["StoresTvNoNetwork"] = "This TV isn't on a network a phone can reach.",
+        ["StoresPageCloses"] = "The page closes with this screen, or in 10 minutes.",
+        ["StoresPeople"] = "People",
+        ["StoresMembersOf"] = "Members of {name}",
+        ["StoresMembers"] = "Members",
+        ["StoresOwnerDevices"] = "Owner · {devices}",
+        ["StoresMemberDevices_one"] = "Their one device",
+        ["StoresMemberDevices_other"] = "Their {count} devices",
+        ["StoresInviteFor"] = "Who is it for? (optional)",
+        ["StoresTheirName"] = "Their name",
+        ["StoresMakeLink"] = "Make invite link",
+        ["StoresLinkDeviceTitle"] = "Link another device",
+        ["StoresInviteTitle"] = "Invite someone",
+        ["StoresLinkDeviceDetail"] = "Make a link to open on your other device.",
+        ["StoresInviteOnce"] = "Works once, for the person you send it to.",
+        ["StoresLinkOnceUntil"] = "Open this link on the other device. It works once, until {until}.",
+        ["StoresInviteForName"] = "Invite for {name}",
+        ["StoresNoInvites"] = "No invites waiting. An invite link shows here until it is used.",
+        ["StoresInvitesUnused"] = "Invites not used yet",
+        ["StoresInviteUnnamed"] = "Another device",
+        ["StoresInvitedUntil"] = "Invited, until {until}",
+        ["StoresCancelInvite"] = "Cancel invite",
+        ["StoresRemoveMember"] = "Remove member",
+        ["StoresRemoveMemberTitle"] = "Remove {name}?",
+        ["StoresRemoveMemberDetail"] = "Their devices lose access to this plugin store. Plugins they installed keep working but stop updating.",
+        ["StoresWhoCanJoinTitle"] = "Who can join {name}",
+        ["StoresAnyoneWithStoreLink"] = "Anyone with the plugin store's link",
+        ["StoresOnlyInvited"] = "Only people you invite",
+        ["StoresDevicesJoined_one"] = "One device joined with the link",
+        ["StoresDevicesJoined_other"] = "{count} devices joined with the link",
+        ["StoresDeviceJoinedAt"] = "Joined {when}",
+        ["StoresNewestListed"] = "The newest {count} are listed.",
+        ["StoresServerOlder"] = "This plugin store's server is older, and lets in only people you invite. Updating it adds the choice.",
+        ["StoresRemoveDevicesTitle"] = "Remove the devices that joined with the link?",
+        ["StoresRemoveDevicesDetail"] = "They stop working with {name} at once. Plugins already installed on them stay.",
+        ["StoresPublishTitle"] = "Publish a plugin to {name}",
+        ["StoresPublishNone"] = "No plugins on this device to publish.",
+        ["StoresPluginNameVersion"] = "{name} {version}",
+        ["TitleLoadFailed"] = "Couldn't load this title",
+        ["TitleNoAnswer"] = "AniList didn't answer. Try again.",
+        ["TitleLoading"] = "Loading this title",
+        ["TitleTrailer"] = "Trailer",
+        ["TitlePlayTrailer"] = "Play trailer",
+        ["TitleOpenAnilist"] = "Open on AniList",
+        ["TitleOpen"] = "Open title",
+        ["TitleSeasons"] = "Seasons",
+        ["SeasonNumber"] = "Season {number}",
+        ["TitleEpisodes"] = "Episodes",
+        ["TitleRelated"] = "Related",
+        ["TitleDetails"] = "Details",
+        ["TitleStudio"] = "Studio",
+        ["TitleTags"] = "Tags",
+        ["TitleMoreAbout"] = "More about this show",
+        ["TitleSynopsisHint"] = "Shows the whole synopsis",
+        ["TitleDubbedTo"] = "Dubbed to episode {episode}",
+        ["TitleNoEpisodes"] = "No episodes yet",
+        ["TitleEpisodesLoadFailed"] = "Couldn't list episodes",
+        ["TitleEpisodesNoSource"] = "Episodes come from AniList. Add a source to play them.",
+        ["TitleHideWatched"] = "Hide watched episodes",
+        ["TitleShowWatched"] = "Show watched episodes",
+        ["StateExpanded"] = "Expanded",
+        ["StateCollapsed"] = "Collapsed",
+        ["TitleWatchedRange"] = "Episodes {first} to {last} watched",
+        ["EpisodeNumber"] = "Episode {number}",
+        ["EpisodeNumberShort"] = "E{number}",
+        ["EpisodeWithTitle"] = "Episode {number} · {title}",
+        ["EpisodeWithTitleDubbed"] = "Episode {number} · Dubbed · {title}",
+        ["EpisodeWatched"] = "Watched",
+        ["EpisodeFiller"] = "Filler",
+        ["EpisodeRowNotOut"] = "Not out yet",
+        ["EpisodeRowAirs"] = "Airs {when}",
+        ["EpisodeSpoilerHidden"] = "Still hidden: spoiler protection",
+        ["EpisodeOptions"] = "Episode options",
+        ["EpisodeMarkWatched"] = "Mark watched",
+        ["EpisodeMarkUnwatched"] = "Mark unwatched",
+        ["EpisodeMarkPreviousWatched"] = "Mark all previous watched",
+        ["EpisodeMarkUpTo"] = "Mark watched up to episode {episode}",
+        ["EpisodeMarkNWatched"] = "Mark episode {episode} watched",
+        ["EpisodeMarkNUnwatched"] = "Mark episode {episode} unwatched",
+        ["EpisodeMarkedWatched"] = "Marked episode {episode} watched.",
+        ["EpisodePlayFromBeginning"] = "Play from the beginning",
+        ["EpisodeDownloadN"] = "Download episode {episode}",
+        ["EpisodeDownloadUnwatched"] = "Download unwatched episodes",
+        ["MoreCast"] = "Cast",
+        ["MoreCastVoices"] = "Japanese voices",
+        ["MoreRoleMain"] = "Main",
+        ["MoreRoleSupporting"] = "Supporting",
+        ["MoreRoleBackground"] = "Background",
+        ["MoreStaff"] = "Staff",
+        ["MoreRecommendations"] = "Recommendations",
+        ["MoreRankings"] = "Rankings",
+        ["MoreEmpty"] = "AniList has no cast, staff or recommendations for this show yet.",
+        ["MoreSpoiler"] = "Spoiler",
+        ["MoreHideSpoilerTags"] = "Hide spoiler tags",
+        ["MoreShowSpoilerTags_one"] = "Show one spoiler tag",
+        ["MoreShowSpoilerTags_other"] = "Show {count} spoiler tags",
+        ["TorrentsTitle"] = "Torrents",
+        ["TorrentsOn"] = "Torrents are on",
+        ["TorrentsOffDetail"] = "Off by default. Turning this on asks how to protect your connection first.",
+        ["TorrentsRisk"] = "Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.",
+        ["TorrentsNotAPlugin"] = "Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Sources settings.",
+        ["TorrentsProtectWith"] = "Protect with",
+        ["TorrentsProtectNone"] = "No protection",
+        ["TorrentsProtectProxy"] = "Proxy",
+        ["TorrentsProtectVpn"] = "VPN",
+        ["TorrentsProtectProxyDetail"] = "Torrent traffic goes through a proxy you run or rent.",
+        ["TorrentsProtectVpnDetail"] = "Uses the VPN already running on this device.",
+        ["TorrentsProtectNoneDetail"] = "Your address is visible to everyone in the torrent.",
+        ["TorrentsProtectNoneNote"] = "With no protection, anistream does not check the connection.",
+        ["TorrentsSummaryProxyAt"] = "Protected by a SOCKS5 proxy at {host}:{port}.",
+        ["TorrentsSummaryProxy"] = "Protected by a SOCKS5 proxy.",
+        ["TorrentsSummaryVpn"] = "Protected by the VPN on this device.",
+        ["TorrentsSummaryNone"] = "Not protected. Your address is visible to everyone in the torrent.",
+        ["TorrentsUnprotectedTitle"] = "Use torrents without protection?",
+        ["TorrentsUnprotectedDetail"] = "Other people can see your IP address while you download and share a torrent, and anistream does not check the connection.",
+        ["TorrentsTurnOnUnprotected"] = "Turn on without protection",
+        ["TorrentsUseUnprotected"] = "Use without protection",
+        ["TorrentsProxyHost"] = "Proxy host",
+        ["TorrentsProxyPort"] = "Proxy port",
+        ["TorrentsProxyUser"] = "User name",
+        ["TorrentsProxyPassword"] = "Password",
+        ["TorrentsPasswordKeep"] = "Leave the password empty to keep the saved one.",
+        ["TorrentsProxyKeepsSaved"] = "Torrents keep using the saved proxy until the new one passes the connection check.",
+        ["TorrentsProxyInvalid"] = "The proxy needs a host and a port from 1 to 65535.",
+        ["TorrentsCheckingProxy"] = "Checking the proxy…",
+        ["TorrentsProxySaved"] = "Proxy saved",
+        ["TorrentsLeftOutsideProxy"] = "Torrent traffic left outside this proxy",
+        ["TorrentsCheckNotMadeProxy"] = "The check could not be made through this proxy",
+        ["TorrentsProxyNotSaved"] = "Not saved. {why}, so the saved proxy stays.",
+        ["TorrentsProtectionNotSaved"] = "Not saved. {why}, so the saved protection stays.",
+        ["TorrentsStillOff"] = "Torrents are still off. {why}.",
+        ["TorrentsIndex"] = "Torrent index",
+        ["TorrentsIndexDetail"] = "The RSS search address anistream asks for torrents.",
+        ["TorrentsIndexHint"] = "https://…/?q={{query}}",
+        ["TorrentsIndexNeeded"] = "Torrents need an index address.",
+        ["TorrentsIndexScheme"] = "Use an http or https address.",
+        ["TorrentsIndexSaved"] = "Torrent index saved",
+        ["TorrentsIfCheckFails"] = "If a check fails",
+        ["TorrentsKeepRunningTitle"] = "Keep torrents running if a check fails?",
+        ["TorrentsKeepRunningDetail"] = "What happens to torrents when the check finds traffic leaving outside your VPN or proxy.",
+        ["TorrentsFailPause"] = "Pause torrents",
+        ["TorrentsFailStop"] = "Stop torrents",
+        ["TorrentsFailWarn"] = "Warn only",
+        ["TorrentsFailWarnResult"] = "Torrents keep running.",
+        ["TorrentsFailStopResult"] = "Torrents are stopped.",
+        ["TorrentsFailPauseResult"] = "Torrents are paused.",
+        ["TorrentsLastCheck"] = "Last check",
+        ["TorrentsCheckPassedExit"] = "Leaving through {exit}",
+        ["TorrentsCheckPassed"] = "Passed",
+        ["TorrentsCheckRunningLine"] = "Checking where torrent traffic leaves from",
+        ["TorrentsCheckRunning"] = "Checking",
+        ["TorrentsCheckLeaked"] = "Traffic left outside the protection. {then}",
+        ["TorrentsCheckUnmade"] = "The check could not be made. {then}",
+        ["TorrentsCheckFailed"] = "Failed",
+        ["TorrentsCheckNoneLine"] = "No protection is set",
+        ["TorrentsCheckNone"] = "Unprotected",
+        ["TorrentsCheckWaitingLine"] = "Not checked yet",
+        ["TorrentsCheckWaiting"] = "Waiting",
+        ["TorrentsNotChecked"] = "Not checked",
+        ["TorrentsCheckNow"] = "Check now",
+        ["TorrentsForApp"] = "Torrents for anistream",
+        ["TorrentsPageSignIn"] = "Sign in to {tracker}",
+        ["TorrentsPageFillForm"] = "Fill in the form, then send it again.",
+        ["TorrentsPageLookAtTv"] = "Look at the TV: {next}. You can close this page.",
+        ["TorrentsPageNotFound"] = "Not found",
+        ["TorrentsPageNotAllowed"] = "Not allowed",
+        ["TorrentsPageMissingKey"] = "This address is missing its key. Scan the QR code on the TV again, and open the whole address it gives.",
+        ["TorrentsPageUnreadable"] = "The TV couldn't read this. Scan the QR code on the TV again.",
+        ["TorrentsPageNeedsScript"] = "This page needs JavaScript to send the form to the TV safely.",
+        ["AccountsTitle"] = "Accounts",
+        ["AccountsOtherTrackers"] = "Other trackers",
+        ["AccountsOtherTrackersNote"] = "Other trackers are in Settings, under Accounts.",
+        ["AccountsWelcomeDetail"] = "Sign in to {tracker} to sync your list and where you stopped.",
+        ["AccountsBringsLists"] = "Brings in your lists and fills Continue with what you are watching.",
+        ["AccountsLibraryNeeds"] = "Library and sync need a {tracker} account",
+        ["AccountsLibraryFrom"] = "Library shows your lists from {tracker}.",
+        ["AccountsListsComeFrom"] = "Your lists come from {tracker}.",
+        ["AccountsStatusEmpty"] = "Titles you set to this status on {tracker} show here.",
+        ["AccountsListEmpty"] = "Titles you add on {tracker} show up here.",
+        ["AccountsStateSignedOut"] = "Not signed in",
+        ["AccountsStateSignedIn"] = "Signed in to {tracker} as {name}",
+        ["AccountsStateSignedInWaiting_one"] = "Signed in to {tracker} as {name} · one change waiting",
+        ["AccountsStateSignedInWaiting_other"] = "Signed in to {tracker} as {name} · {count} changes waiting",
+        ["AccountsStateExpired"] = "{tracker} needs you to sign in again",
+        ["AccountsStateExpiredShort"] = "Sign in again to keep syncing",
+        ["AccountsStateChecking"] = "Checking…",
+        ["AccountsStateWaitingBrowser"] = "Waiting for the browser…",
+        ["AccountsStateWaiting"] = "Waiting for {tracker}…",
+        ["AccountsStateSigningIn"] = "Signing in…",
+        ["AccountsStateOffline"] = "Sign in once you're back online",
+        ["AccountsSyncRunning"] = "Syncing…",
+        ["AccountsSyncRunningWith"] = "Syncing with {tracker}",
+        ["AccountsSyncDone"] = "Synced",
+        ["AccountsSyncFailed"] = "Not synced: {why}",
+        ["AccountsSyncAll"] = "Sync with trackers",
+        ["AccountsOfflineChanges"] = "You're offline. Changes wait here and sync once you're back.",
+        ["AccountsOfflineChangesTv"] = "Offline. Changes sync once the network is back.",
+        ["AccountsExpiredTv"] = "Your sign-in has expired. Sign in again in Accounts.",
+        ["AccountsSignIn"] = "Sign in",
+        ["AccountsSignInMenu"] = "Sign in…",
+        ["AccountsSignInAgain"] = "Sign in again…",
+        ["AccountsSignInTo"] = "Sign in to {tracker}",
+        ["AccountsSignOut"] = "Sign out",
+        ["AccountsSyncNow"] = "Sync now",
+        ["AccountsSettings"] = "Accounts settings…",
+        ["AccountsSignOutTvDetail"] = "This TV stops syncing with {name}. Your list stays on {name}.",
+        ["AccountsTokensKeychain"] = "Sign-in tokens are kept in this device's keychain.",
+        ["AccountsTokensFile"] = "Sign-in tokens are kept in a file on this device, readable only by you.",
+        ["AccountsTokensKeystore"] = "Sign-in tokens are kept on this device, sealed with a key in its keystore.",
+        ["AccountsFormTitle"] = "Sign in to {tracker}",
+        ["AccountsFormDetail"] = "Your password goes to {tracker} once, for a token kept on this device.",
+        ["AccountsUserOrEmail"] = "Email or user name",
+        ["AccountsPassword"] = "Password",
+        ["AccountsSigningInAction"] = "Signing in",
+        ["AccountsCodeDetail"] = "Go to {host} and enter this code. anistream signs in once you have.",
+        ["AccountsCodeLabel"] = "Code {code}",
+        ["AccountsCodeWaiting"] = "Waiting for {tracker}",
+        ["AccountsCodeExpires"] = "Expires in {time}",
+        ["AccountsCodeEnded"] = "Code expired",
+        ["AccountsCopyCode"] = "Copy code",
+        ["AccountsOpenHost"] = "Open {host}",
+        ["AccountsGettingCode"] = "Getting a new code…",
+        ["AccountsShowCode"] = "Show code",
+        ["AccountsBrowserFailed"] = "Couldn't open your browser. Open the address by hand.",
+        ["AccountsScanCode"] = "Scan with your phone. Open {tracker} there, allow anistream, then paste the code on this page.",
+        ["AccountsScanPassword"] = "Scan with your phone, then enter your {tracker} user name and password on the page.",
+        ["AccountsClashTitle"] = "Different on {tracker}",
+        ["AccountsClashDetail"] = "These changed on {tracker} and here since the last sync. Keep one side of each.",
+        ["AccountsClashRow"] = "{field}: {local} here, {remote} on {tracker}",
+        ["AccountsKeepMine"] = "Keep this device's",
+        ["AccountsKeepTheirs"] = "Keep {tracker}'s",
+        ["AccountsOpenOn"] = "Open on {tracker}",
+        ["AccountsListedBy"] = "Listed by {tracker}",
+        ["AccountsDidNotAnswer"] = "{tracker} did not answer.",
+        ["AccountsNoExtras"] = "{tracker} has no cast, staff or recommendations for this show yet.",
+        ["AccountsEpisodesFrom"] = "Episodes from {tracker}. Add a source to play them.",
+        ["AccountsAddsSeason"] = "{tracker} adds a season's titles as they're announced.",
+        ["AccountsTrackerChoice"] = "{tracker}'s choice",
+        ["AccountsFollowsAccount"] = "Follows your {tracker} account",
+        ["AccountsFollowsSignedOut"] = "English while signed out of {tracker}",
+        ["TvPlayOn"] = "Play on TV",
+        ["TvPlayOnMenu"] = "Play on TV…",
+        ["TvSheetTitlePair"] = "Pair a TV",
+        ["TvPairAction"] = "Pair a TV",
+        ["TvPairMenu"] = "Pair a TV…",
+        ["TvPairWithTv"] = "Pair with a TV",
+        ["TvPairWith"] = "Pair with {name}",
+        ["TvPairingWith"] = "Pairing with {name}",
+        ["TvPair"] = "Pair",
+        ["TvPairAgain"] = "Pair again",
+        ["TvPairAgainWith"] = "Pair again with {name}",
+        ["TvChooseAnother"] = "Choose another TV…",
+        ["TvPairingCode"] = "Pairing code",
+        ["TvOpenOnTv"] = "Open anistream on the TV. It needs to be on the same Wi-Fi as this device.",
+        ["TvTypeCode"] = "Type the six digits {name} shows. After this, this device connects by itself.",
+        ["TvPairingMoment"] = "This takes a moment.",
+        ["TvLooking"] = "Looking for TVs on this network",
+        ["TvNoneFound"] = "No TVs found",
+        ["TvNoneFoundDetail"] = "Check that anistream is open on the TV, on the same Wi-Fi as this device.",
+        ["TvNoneFoundShort"] = "Check that anistream is open on the TV.",
+        ["TvAddressHint"] = "The TV shows its address on its Pair a phone screen.",
+        ["TvScanHint"] = "Point the camera app at the code on the TV. It opens anistream and pairs.",
+        ["TvAfterPairing"] = "Choose Play on TV on an episode, or search on the TV from here.",
+        ["TvStartingOn"] = "Starting on {name}",
+        ["TvStarting"] = "Starting on the TV",
+        ["TvTalkFailed"] = "Something went wrong talking to the TV. Try again.",
+        ["TvPlayFailed"] = "Play on TV did not start: {reason}",
+        ["TvAddress"] = "Address",
+        ["TvTypeAddress"] = "Type an address…",
+        ["TvConnect"] = "Connect",
+        ["TvNonePaired"] = "No TVs paired yet",
+        ["TvNonePairedDetail"] = "Open anistream on the TV, on the same Wi-Fi, then pair with it here.",
+        ["TvPairedOn"] = "Paired {when}",
+        ["TvPaired"] = "Paired",
+        ["TvConnectedAt"] = "Connected · {address}",
+        ["TvForgetTitle"] = "Forget {name}?",
+        ["TvForgetDetail"] = "To play on it again, pair with it again.",
+        ["TvForgetLabel"] = "Forget {name}",
+        ["TvShowRemote"] = "Show the remote for {name}",
+        ["TvStatusPlaying"] = "Playing on {name}",
+        ["TvStatusConnecting"] = "Connecting to {name}",
+        ["TvStatusReconnecting"] = "Reconnecting to {name}",
+        ["TvStatusConnected"] = "Connected",
+        ["TvSearchOnTv"] = "Search on the TV",
+        ["TvTypeSearch"] = "Type a search",
+        ["TvTrackN"] = "Track {id}",
+        ["TvPairPhone"] = "Pair a phone",
+        ["TvPairPhoneDetail"] = "Open anistream on your phone and choose Play on TV, then scan this code.",
+        ["TvOrEnterCode"] = "Or enter this code",
+        ["TvThisTv"] = "This TV: {name}, {address}",
+        ["TvCodeChanges"] = "The code changes every 5 minutes.",
+        ["TvPairRequest"] = "Pair with {name}?",
+        ["TvPairRequestDetail"] = "Enter this code on the phone.",
+        ["TvPhonePaired"] = "{name} is paired",
+        ["TvRemovePhoneTitle"] = "Remove {name}?",
+        ["TvRemovePhoneDetail"] = "It stops working as a remote for this TV. It can pair again with a new code.",
+        ["TvRemotes"] = "Remotes",
+        ["UpdatesTitle"] = "Updates",
+        ["UpdatesChecking"] = "Checking for a newer version…",
+        ["UpdatesUpToDate"] = "Up to date",
+        ["UpdatesChecksOnline"] = "Checks once you're back online",
+        ["UpdatesNotChecked"] = "Not checked yet",
+        ["UpdatesCheckFailed"] = "Couldn't check: {reason}",
+        ["UpdatesNotCheckedBecause"] = "Not checked. {reason}",
+        ["UpdatesSchedule"] = "Once a day. Nothing is downloaded until you choose to update.",
+        ["UpdatesManaged"] = "Updates come from your package manager.",
+        ["UpdatesFlatpak"] = "Flatpak keeps anistream up to date",
+        ["UpdatesVersionOut"] = "Version {version} is out",
+        ["UpdatesVersionOutSoftware"] = "Version {version} is out. Software installs it.",
+        ["UpdatesVersionOutPage"] = "Version {version} is out. Its page has the installer.",
+        ["UpdatesVersionOutAppimage"] = "Version {version} is out. Its page has the AppImage.",
+        ["UpdatesAvailable"] = "anistream {version} is available",
+        ["UpdatesAvailableTv"] = "Update available: anistream {version}. Settings › About",
+        ["UpdatesUpdateTo"] = "Update to {version}",
+        ["UpdatesThisHas"] = "This TV has {version}",
+        ["UpdatesNotesOnPage"] = "The notes for this version are on its page.",
+        ["UpdatesNoSelfUpdate"] = "This build doesn't update itself. Install the new version from its page.",
+        ["UpdatesAndroidAsks"] = "Nothing installs until Android asks you to confirm.",
+        ["UpdatesOpensPage"] = "Opens the page for this version",
+        ["UpdatesDownloading"] = "Downloading version {version}",
+        ["UpdatesDownloadingSize"] = "Downloading version {version} · {done} of {total}",
+        ["UpdatesDownloadingPercent"] = "Downloading {percent}",
+        ["UpdatesDownloadingFull"] = "Downloading · {percent} · {done} of {total}",
+        ["UpdatesStartingDownload"] = "Starting the download",
+        ["UpdatesCheckingDownload"] = "Checking the download of version {version}…",
+        ["UpdatesCheckingDownloadShort"] = "Checking the download",
+        ["UpdatesReady"] = "Version {version} is ready to install",
+        ["UpdatesInstalling"] = "Installing version {version}…",
+        ["UpdatesConfirmOnAndroid"] = "Android is asking to install the update. Confirm on its screen; your sign-ins, lists and settings stay.",
+        ["UpdatesUpdatedTv"] = "Updated to {version}. It opens next time you start anistream.",
+        ["UpdatesUpdated"] = "Updated to version {version}",
+        ["UpdatesOpensNextTime"] = "The new version opens next time",
+        ["UpdatesStopped"] = "The update to version {version} stopped. {reason}",
+        ["UpdatesDidNotInstall"] = "Version {version} didn't install. About can try again.",
+        ["UpdatesOpenAbout"] = "Open About",
+        ["UpdatesSaved"] = "Version {version} saved to Downloads",
+        ["UpdatesSavedReplace"] = "Version {version} saved to Downloads. Replace the old file, {file}, with it to update.",
+        ["UpdatesSavedReplacePlain"] = "Version {version} saved to Downloads. Replace the old file with it to update.",
+        ["UpdatesWhyServer"] = "The download stopped: the server answered {code}.",
+        ["UpdatesWhyConnection"] = "The download stopped: the connection was lost.",
+        ["UpdatesWhySave"] = "The download couldn't be saved: {reason}",
+        ["UpdatesWhySize"] = "The download is {got}, not the {expected} listed for this version.",
+        ["UpdatesWhyChecksum"] = "The download doesn't match the checksum listed for this version.",
+        ["UpdatesWhyChecksumAndroid"] = "The download does not match the checksum listed for this version, so it was not installed.",
+        ["UpdatesWhyNotApp"] = "The download is not an Android app, so it was not installed.",
+        ["UpdatesWhyOtherApp"] = "The download is a different app, so it was not installed.",
+        ["UpdatesWhyUnsigned"] = "The download is not signed with anistream's key, so it was not installed.",
+        ["UpdatesWhyNotNewer"] = "The download is not newer than this version, so it was not installed.",
+        ["UpdatesWhySpace"] = "Not enough free space for the update. Free some and try again.",
+        ["UpdatesWhyInstall"] = "Couldn't install the update. Try again.",
+        ["UpdatesWhyDownload"] = "Couldn't download the update. Check the connection and try again.",
+        ["UpdatesWhyStart"] = "Couldn't start the download. Try again.",
+        ["UpdatesWhySystem"] = "Android stopped the download",
+        ["UpdatesWhyInstaller"] = "The installer couldn't start: {reason}",
+        ["UpdatesAllowTitle"] = "Allow anistream to install its update",
+        ["UpdatesUnknownApps"] = "Install unknown apps",
+        ["UpdatesAllowStep1"] = "Choose Open settings. Android shows the apps that may install other apps.",
+        ["UpdatesAllowStep2"] = "Turn on anistream.",
+        ["UpdatesAllowStep3"] = "Press Back. The update downloads, and Android asks you to confirm it.",
+        ["UpdatesAllowWaiting"] = "Waiting for the switch. If Android's page didn't open, find it under {path}.",
+        ["UpdatesAllowOnce"] = "Android asks this once. If its page doesn't open, the switch is under {path}.",
     };
 
     /// <summary>The plural category of a whole number in a language, from CLDR.</summary>
