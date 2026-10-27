@@ -10,6 +10,7 @@ use std::{
 
 use adw::prelude::*;
 use anistream_core::ids::AnilistId;
+use anistream_i18n::t;
 use anistream_model::{
     catalog::{Entry, LibrarySegment, LinkedTitle, RelationKind},
     command::Command,
@@ -20,7 +21,7 @@ use anistream_model::{
 use gtk::{gio, glib};
 
 use crate::{
-    catalog, motion,
+    catalog, choices, motion,
     states::{Shape, States},
     widgets,
     window::{Ctx, Size},
@@ -39,6 +40,8 @@ struct EpisodeLine {
     name: gtk::Label,
     still: gtk::Widget,
     frame: gtk::Box,
+    /// The row's content, dimmed when no source lists the episode.
+    root: gtk::Box,
     sub: gtk::Label,
     bar: gtk::ProgressBar,
     menu: gio::Menu,
@@ -228,6 +231,7 @@ pub fn page(ctx: &Rc<Ctx>, id: AnilistId) -> adw::NavigationPage {
         }
     });
     page.actions();
+    ctx.hub.known.borrow_mut().visit(id);
     if let Some(entry) = &entry {
         page.fill(entry);
     }
@@ -280,6 +284,14 @@ impl Page {
             Event::MatchChoices { id, .. } if *id == self.id => {
                 self.listed.set(true);
                 self.episodes_state.empty();
+            }
+            // The source pinned for this title is off, gone or resting, so its episodes come
+            // from the others. Said once, until a source is chosen again.
+            Event::PinUnavailable { id, provider_id, name } if *id == self.id => {
+                let new = self.ctx.hub.known.borrow_mut().say_pin(*id, provider_id);
+                if new {
+                    self.ctx.toast(&t::source_pin_unavailable(name));
+                }
             }
             Event::TitleDub { id, dub } if *id == self.id => {
                 self.dubbed_to.replace(anistream_model::present::dub_line(dub.as_ref()));
@@ -396,6 +408,15 @@ impl Page {
             }
         });
         group.add_action(&show_settings);
+        let source = gio::SimpleAction::new("source-picker", None);
+        source.connect_activate({
+            let ctx = Rc::downgrade(&self.ctx);
+            move |_, _| {
+                let Some(ctx) = ctx.upgrade() else { return };
+                let _ = crate::pages::source_picker::open(&ctx, &ctx.window, id);
+            }
+        });
+        group.add_action(&source);
         let watched = gio::SimpleAction::new(
             "watched",
             Some(&glib::VariantType::new("(sb)").expect("a type")),
@@ -440,7 +461,10 @@ impl Page {
             text.append(&widgets::haze(line, "numeric"));
         }
 
-        let item = words::queue_item(entry);
+        let item = {
+            let rows = self.rows.borrow();
+            words::queue_item(entry, (!rows.is_empty()).then_some(rows.as_slice()))
+        };
         let actions = gtk::Box::new(gtk::Orientation::Horizontal, 8);
         actions.set_margin_top(10);
         match item.button.clone() {
@@ -484,9 +508,12 @@ impl Page {
         status.add_css_class("pill");
         let more_menu = gio::Menu::new();
         let first = gio::Menu::new();
-        let playable = {
+        let (playable, unsourced) = {
             let rows = self.rows.borrow();
-            !rows.is_empty() && !rows.iter().any(|r| r.metadata_only)
+            (
+                !rows.is_empty() && !rows.iter().any(|r| r.metadata_only),
+                choices::next(entry, Some(rows.as_slice())).unsourced,
+            )
         };
         let on_tv = playable && item.button.is_some() && self.ctx.tv.available();
         self.tv_button.set_visible(on_tv);
@@ -504,10 +531,12 @@ impl Page {
             );
         }
         if playable {
-            first.append(
-                Some(&format!("Download Episode {}", item.episode)),
-                Some(&format!("win.download((uint32 {id}, '{}'))", item.episode)),
-            );
+            if !unsourced {
+                first.append(
+                    Some(&format!("Download Episode {}", item.episode)),
+                    Some(&format!("win.download((uint32 {id}, '{}'))", item.episode)),
+                );
+            }
             if unwatched(&self.rows.borrow()).len() > 1 {
                 first.append(
                     Some("Download Unwatched Episodes"),
@@ -524,6 +553,7 @@ impl Page {
         second.append(Some("Open on AniList"), Some(&format!("win.open-anilist(uint32 {id})")));
         more_menu.append_section(None, &second);
         let third = gio::Menu::new();
+        third.append(Some(&t::source_picker_title()), Some("title.source-picker"));
         third.append(Some("Show Settings…"), Some("title.show-settings"));
         more_menu.append_section(None, &third);
         let more = gtk::MenuButton::builder()
@@ -764,8 +794,10 @@ impl Page {
             more.add_css_class("flat");
             line.append(&more);
 
-            let list_row =
-                gtk::ListBoxRow::builder().child(&line).activatable(!row.metadata_only).build();
+            let list_row = gtk::ListBoxRow::builder()
+                .child(&line)
+                .activatable(choices::playable(row))
+                .build();
             list_row.set_action_name(Some("win.play"));
             list_row.set_action_target_value(Some(&(id, row.number.clone()).to_variant()));
             widgets::context_menu(&list_row, &menu);
@@ -778,6 +810,7 @@ impl Page {
                 name: label,
                 still: still.upcast(),
                 frame,
+                root: line,
                 sub,
                 bar,
                 menu,
@@ -847,8 +880,15 @@ impl Page {
             line.still.set_opacity(to);
         }
 
+        // An episode no source lists is dimmed and says so; it cannot be played or downloaded.
+        if row.unsourced {
+            line.root.add_css_class("dim-label");
+        } else {
+            line.root.remove_css_class("dim-label");
+        }
         let part_way = row.watched > 0.0 && !row.completed;
         let sub = match (part_way, row.duration_secs) {
+            _ if row.unsourced => t::episode_unsourced(),
             (true, Some(d)) => {
                 let left = (d as f64 * (1.0 - row.watched)).max(60.0);
                 format!("{} min left", (left / 60.0).round() as u64)
@@ -867,7 +907,7 @@ impl Page {
         let target = format!("(uint32 {id}, '{n}')");
         line.menu.remove_all();
         let first = gio::Menu::new();
-        if !row.metadata_only {
+        if choices::playable(row) {
             let verb = if part_way { "Resume" } else { "Play" };
             first.append(
                 Some(&format!("{verb} Episode {n}")),
@@ -905,7 +945,7 @@ impl Page {
             );
         }
         line.menu.append_section(None, &second);
-        if !row.metadata_only {
+        if choices::playable(row) {
             let third = gio::Menu::new();
             third.append(
                 Some(&format!("Download Episode {n}")),
@@ -916,12 +956,14 @@ impl Page {
     }
 }
 
-/// The episodes Download Unwatched Episodes queues: each one listed from a source, out, and
-/// not watched.
+/// The episodes Download Unwatched Episodes queues: each one a source lists, out, and not
+/// watched.
 fn unwatched(rows: &[EpisodeRow]) -> Vec<String> {
     let now = glib::DateTime::now_utc().map_or(0, |t| t.to_unix());
     rows.iter()
-        .filter(|r| !r.metadata_only && !r.completed && r.airs_at.is_none_or(|at| at <= now))
+        .filter(|r| {
+            choices::playable(r) && !r.completed && r.airs_at.is_none_or(|at| at <= now)
+        })
         .map(|r| r.number.clone())
         .collect()
 }
@@ -953,6 +995,33 @@ fn spaced(name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_range_download_skips_the_episodes_no_source_lists() {
+        let row = |number: &str, unsourced: bool, metadata_only: bool| EpisodeRow {
+            number: number.into(),
+            title: None,
+            thumbnail: None,
+            description: None,
+            duration_secs: None,
+            watched: 0.0,
+            completed: false,
+            kind: None,
+            skippable: false,
+            airs_at: None,
+            delayed_from: None,
+            metadata_only,
+            unsourced,
+            source: None,
+        };
+        let rows = [
+            row("1", false, false),
+            row("2", true, false),
+            row("3", false, false),
+            row("4", false, true),
+        ];
+        assert_eq!(unwatched(&rows), ["1", "3"]);
+    }
 
     #[test]
     fn enum_names_read_as_words() {

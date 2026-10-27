@@ -7,6 +7,7 @@
 //!                     [--shots <dir> [--shot <a,b,...>] [--prefix <name>]] [--size <w>x<h>]
 
 mod catalog;
+mod choices;
 mod engine;
 mod fit;
 #[cfg(feature = "fixtures")]

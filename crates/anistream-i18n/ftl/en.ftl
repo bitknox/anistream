@@ -633,6 +633,13 @@ notice-episodes-queued =
        *[other] Queued { $count } episodes.
     }
 
+# Under a release in the source picker: how many people share it right now.
+source-picker-seeders-linux =
+    { $count ->
+        [one] One seeder
+       *[other] { $count } seeders
+    }
+
 # Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 chrome-meta-chip = Metadata { $mark }
 

@@ -3,22 +3,37 @@
 
 use anistream_model::{
     catalog::{Entry, Season},
-    present::Casing,
+    episodes::EpisodeRow,
+    present::QUEUE_ROWS,
     wording,
 };
+
+use crate::choices;
 
 /// Continue's queue and its rows, worded by the engine's present helpers so a dub is marked as
 /// every app marks it: "Resume E7 · Dub · 10:06".
 pub use anistream_model::present::{Queue, QueueItem};
 
-/// The queue of `entries` less `hidden`, its buttons in GNOME's header capitalisation.
-pub fn queue(entries: &[Entry], hidden: &[u32]) -> Queue {
-    Queue::of(entries, hidden, Casing::Header)
+/// The queue of `entries` less `hidden`, its buttons in GNOME's header capitalisation. Each row
+/// plays the next episode that a source lists, where `tables` holds the title's episodes.
+pub fn queue(
+    entries: &[Entry],
+    hidden: &[u32],
+    tables: &std::collections::HashMap<u32, Vec<EpisodeRow>>,
+) -> Queue {
+    let (new_this_week, in_progress) = entries
+        .iter()
+        .filter(|e| !hidden.contains(&e.id.get()))
+        .take(QUEUE_ROWS)
+        .map(|e| choices::queue_item(e, tables.get(&e.id.get()).map(Vec::as_slice)))
+        .partition(|item| item.aired_ago.is_some());
+    Queue { in_progress, new_this_week }
 }
 
 /// The row for `entry`, its button in header capitalisation: "Resume Episode 7 · Dub · 10:06".
-pub fn queue_item(entry: &Entry) -> QueueItem {
-    QueueItem::of(entry, Casing::Header)
+/// With the title's episodes, it plays the next episode that a source lists.
+pub fn queue_item(entry: &Entry, rows: Option<&[EpisodeRow]>) -> QueueItem {
+    choices::queue_item(entry, rows)
 }
 
 /// A season as it is said: "Fall 2026".
@@ -256,16 +271,53 @@ mod tests {
         e.progress = Some(TitleProgress { done: 6, next: 7 });
         e.resume = Some(ResumePoint { position: 606.0, fraction: Some(606.0 / 1440.0) });
         e.watched_in = Some(Translation::Dub);
-        let item = queue_item(&e);
+        let item = queue_item(&e, None);
         assert_eq!(item.action, "Resume E7 · Dub · 10:06");
         assert_eq!(item.button.as_deref(), Some("Resume Episode 7 · Dub · 10:06"));
         assert_eq!(item.left.as_deref(), Some("14 min left"));
         for watched_in in [Some(Translation::Sub), None] {
             e.watched_in = watched_in;
-            let item = queue_item(&e);
+            let item = queue_item(&e, None);
             assert_eq!(item.action, "Resume E7 · 10:06");
             assert_eq!(item.button.as_deref(), Some("Resume Episode 7 · 10:06"));
         }
+    }
+
+    #[test]
+    fn continue_plays_the_next_episode_a_source_lists() {
+        let mut e = entry(5);
+        e.progress = Some(TitleProgress { done: 3, next: 4 });
+        let table = |unsourced: &[u32]| -> Vec<EpisodeRow> {
+            (1..=8)
+                .map(|n| EpisodeRow {
+                    number: n.to_string(),
+                    title: None,
+                    thumbnail: None,
+                    description: None,
+                    duration_secs: None,
+                    watched: 0.0,
+                    completed: false,
+                    kind: None,
+                    skippable: false,
+                    airs_at: None,
+                    delayed_from: None,
+                    metadata_only: false,
+                    unsourced: unsourced.contains(&n),
+                    source: None,
+                })
+                .collect()
+        };
+        let mut tables = std::collections::HashMap::new();
+        tables.insert(5, table(&[4]));
+        let first = queue(&[e.clone()], &[], &tables);
+        let item = first.all().next().expect("a row");
+        assert_eq!(item.episode, 5);
+        assert!(item.playable);
+        tables.insert(5, table(&[4, 5, 6, 7, 8]));
+        let second = queue(&[e], &[], &tables);
+        let item = second.all().next().expect("a row");
+        assert!(!item.playable);
+        assert_eq!(item.button, None);
     }
 
     #[test]
@@ -276,7 +328,7 @@ mod tests {
         e.next_episode = Some(10);
         e.next_airing_in = Some(86_400 + 3 * 3600);
         e.watched_in = Some(Translation::Dub);
-        let item = queue_item(&e);
+        let item = queue_item(&e, None);
         assert!(!item.playable);
         assert_eq!(item.action, "Caught up · E10 airs in 1d 3h");
         assert_eq!(item.button, None);
@@ -286,7 +338,7 @@ mod tests {
     fn the_queue_keeps_five_rows_less_the_hidden_and_puts_new_ones_last() {
         let mut entries: Vec<_> = (1..=7).map(entry).collect();
         entries[0].last_aired = Some(Aired { episode: 1, ago: 3600 });
-        let queue = queue(&entries, &[2]);
+        let queue = queue(&entries, &[2], &Default::default());
         let ids: Vec<_> = queue.all().map(|i| i.entry.id.get()).collect();
         assert_eq!(ids, [3, 4, 5, 6, 1]);
         assert_eq!(queue.new_this_week.len(), 1);

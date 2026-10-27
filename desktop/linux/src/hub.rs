@@ -21,7 +21,7 @@ use anistream_model::{
     event::Event,
     party::{PartyForm, PartyMember, PartyView},
     settings::{SettingKey, SettingRow, SettingsView},
-    sources::{GuardView, ProviderOrigin, ProviderRow},
+    sources::{GuardView, ProviderOrigin, ProviderRow, SourceOption},
     stores::{StorePluginRow, StorePluginStatus, StoreRow},
     sync::SyncState,
 };
@@ -70,6 +70,12 @@ pub struct Known {
     pub party_members: Option<Vec<PartyMember>>,
     /// What the form that starts a party opens with, once the engine has said.
     pub party_form: Option<PartyForm>,
+    /// What each source has of a title, as the engine last listed them for the source picker, in
+    /// the order they are tried.
+    pub source_options: HashMap<u32, Vec<SourceOption>>,
+    /// The pins the engine could not use that were said, by title and source, so each is told
+    /// once until the title's source is chosen again.
+    pin_said: std::collections::HashSet<(u32, String)>,
 }
 
 impl Known {
@@ -154,6 +160,26 @@ impl Known {
         (downloading, self.seeding.len())
     }
 
+    /// A source, or a release of one, picked for a title; `None` for Automatic. Shown at once, so
+    /// the picker reads right before the engine's next listing, and a pin the engine cannot use
+    /// is told again.
+    pub fn choose(&mut self, id: AnilistId, provider: Option<&str>, release: Option<&str>) {
+        self.pin_said.retain(|(at, _)| *at != id.get());
+        if let Some(options) = self.source_options.get_mut(&id.get()) {
+            crate::choices::chose(options, provider, release);
+        }
+    }
+
+    /// Whether the notice for a pin the engine could not use is new, and so said.
+    pub fn say_pin(&mut self, id: AnilistId, provider: &str) -> bool {
+        self.pin_said.insert((id.get(), provider.to_owned()))
+    }
+
+    /// A title page opens: a pin that cannot be used is told again for this visit.
+    pub fn visit(&mut self, id: AnilistId) {
+        self.pin_said.retain(|(at, _)| *at != id.get());
+    }
+
     fn take(&mut self, event: &Event) {
         match event {
             Event::Content { content, .. } => {
@@ -197,6 +223,9 @@ impl Known {
                 self.providers_said = true;
             }
             Event::Stores(rows) => self.stores = rows.clone(),
+            Event::SourceOptions { id, options } => {
+                self.source_options.insert(id.get(), options.clone());
+            }
             Event::Connectivity { offline } => self.offline = *offline,
             Event::Update(status) => self.update = Some(status.clone()),
             Event::Vpn(guard) => {
@@ -268,6 +297,13 @@ pub struct Hub {
     /// never, so the form's checking and failed states hold still.
     #[cfg(feature = "fixtures")]
     pub check_answer: RefCell<Option<Option<GuardView>>>,
+    /// For a shot: what the sources have of a title in place of the engine's listing, and
+    /// whether it never comes, so the picker's loading state holds still.
+    #[cfg(feature = "fixtures")]
+    pub listing: RefCell<Option<(Vec<SourceOption>, bool)>>,
+    /// For a shot: a title and the episodes of it, first to last, that no source lists.
+    #[cfg(feature = "fixtures")]
+    pub unsourced: Cell<Option<(u32, u32, u32)>>,
 }
 
 impl Hub {
@@ -284,6 +320,10 @@ impl Hub {
             me: _me.clone(),
             #[cfg(feature = "fixtures")]
             check_answer: RefCell::default(),
+            #[cfg(feature = "fixtures")]
+            listing: RefCell::default(),
+            #[cfg(feature = "fixtures")]
+            unsourced: Cell::default(),
         })
     }
 
@@ -311,6 +351,23 @@ impl Hub {
                     hub.take(events);
                 }
             });
+            return None;
+        }
+        #[cfg(feature = "fixtures")]
+        if let Command::LoadSourceOptions(id) = &command
+            && let Some((options, silent)) = self.listing.borrow().clone()
+        {
+            if !silent {
+                let (me, id) = (self.me.clone(), *id);
+                glib::timeout_add_local_once(
+                    std::time::Duration::from_millis(300),
+                    move || {
+                        if let Some(hub) = me.upgrade() {
+                            hub.take(vec![Event::SourceOptions { id, options }]);
+                        }
+                    },
+                );
+            }
             return None;
         }
         #[cfg(feature = "fixtures")]
@@ -348,6 +405,8 @@ impl Hub {
     /// A batch of the engine's events, in order.
     pub fn take(self: &Rc<Self>, batch: Vec<Event>) {
         for event in batch {
+            #[cfg(feature = "fixtures")]
+            let event = self.unsourced_in(event);
             match &event {
                 Event::ArtworkReady { url, bytes } => {
                     self.art.arrived(url.clone(), bytes.clone());
@@ -371,6 +430,21 @@ impl Hub {
                 listener(&event);
             }
         }
+    }
+
+    /// A shot's table as if the sources fell short of it.
+    #[cfg(feature = "fixtures")]
+    fn unsourced_in(&self, mut event: Event) -> Event {
+        if let (Some((title, first, last)), Event::Episodes { id, rows }) =
+            (self.unsourced.get(), &mut event)
+            && id.get() == title
+        {
+            for row in rows.iter_mut() {
+                row.unsourced =
+                    row.number.parse::<u32>().is_ok_and(|n| (first..=last).contains(&n));
+            }
+        }
+        event
     }
 
     /// Show `events` in place of the engine's own of their kinds, from now on: rows the fixture
@@ -515,6 +589,34 @@ mod tests {
         state.connected = true;
         known.take(&Event::Sync(Box::new(state)));
         assert!(known.signing.is_empty(), "signed in ends it");
+    }
+
+    #[test]
+    fn a_choice_changes_the_listing_and_a_pin_that_cannot_be_used_is_told_once() {
+        let mut known = Known::default();
+        let id = AnilistId::new(7);
+        let option = |provider: &str| SourceOption {
+            provider_id: provider.into(),
+            name: provider.into(),
+            covered: 6,
+            of: 13,
+            pinned: provider == "a",
+            note: None,
+            releases: Vec::new(),
+            pinned_release: None,
+        };
+        known.take(&Event::SourceOptions { id, options: vec![option("a"), option("b")] });
+        known.choose(id, Some("b"), None);
+        let listed = &known.source_options[&7];
+        assert!(!listed[0].pinned && listed[1].pinned);
+
+        assert!(known.say_pin(id, "a"));
+        assert!(!known.say_pin(id, "a"), "told once");
+        known.choose(id, None, None);
+        assert!(known.say_pin(id, "a"), "a new choice may meet it again");
+        assert!(!known.say_pin(id, "a"));
+        known.visit(id);
+        assert!(known.say_pin(id, "a"), "a new visit tells it again");
     }
 
     #[test]

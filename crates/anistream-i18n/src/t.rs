@@ -980,6 +980,11 @@ pub fn notice_episodes_queued(count: i64) -> String {
     text("notice-episodes-queued", &[("count", Arg::Int(count))])
 }
 
+/// Under a release in the source picker: how many people share it right now.
+pub fn source_picker_seeders_linux(count: i64) -> String {
+    text("source-picker-seeders-linux", &[("count", Arg::Int(count))])
+}
+
 /// Header chip while the metadata sources are degraded. The mark is a status glyph. Shown beside the { -source } chips, which are short.
 pub fn chrome_meta_chip(mark: &str) -> String {
     text("chrome-meta-chip", &[("mark", Arg::Text(mark))])
