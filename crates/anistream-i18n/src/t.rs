@@ -35,6 +35,11 @@ pub fn notice_episodes_queued(count: i64) -> String {
     text("notice-episodes-queued", &[("count", Arg::Int(count))])
 }
 
+/// Under a release in the source picker: how many people share it right now.
+pub fn source_picker_seeders_linux(count: i64) -> String {
+    text("source-picker-seeders-linux", &[("count", Arg::Int(count))])
+}
+
 /// Button that runs a failed action again.
 pub fn action_try_again() -> String {
     text("action-try-again", &[])

@@ -125,6 +125,17 @@ pub const TV: [&str; 17] = [
     "tv-connecting",
 ];
 
+/// The source picker's shots, apart from the rest: `--shot sources` takes them.
+pub const SOURCES: [&str; 7] = [
+    "source-picker",
+    "source-picker-pinned",
+    "source-picker-releases",
+    "source-picker-loading",
+    "source-pin-unavailable",
+    "source-unsourced",
+    "source-unsourced-none",
+];
+
 /// Stats for nerds' shots, apart from the rest so a run of every shot keeps to its time:
 /// `--shot stats` takes them.
 pub const STATS: [&str; 5] = [
@@ -571,6 +582,7 @@ fn stage(shell: &Rc<Shell>, shot: &str) -> f64 {
             1.5
         }
         party if party.starts_with("party-") => party_stage(shell, party),
+        source if source.starts_with("source-") => source_stage(shell, source),
         tv if tv.starts_with("tv-") => tv_stage(shell, tv),
         other => {
             tracing::warn!(shot = other, "no such shot");
@@ -665,6 +677,7 @@ fn unstage(shell: &Rc<Shell>, shot: &str) {
         }
         "player" | "player-marks" | "player-undo" | "mini" => shell.player.close(),
         party if party.starts_with("party-") => party_unstage(shell, party),
+        source if source.starts_with("source-") => source_unstage(shell),
         tv if tv.starts_with("tv-") => tv_unstage(shell, tv),
         _ => {}
     }
@@ -1044,6 +1057,7 @@ pub fn named(list: Option<&str>) -> Vec<String> {
             .filter(|s| !s.is_empty())
             .flat_map(|s| match s {
                 "party" => PARTY.iter().map(|p| (*p).to_owned()).collect(),
+                "sources" => SOURCES.iter().map(|p| (*p).to_owned()).collect(),
                 "stats" => STATS.iter().map(|p| (*p).to_owned()).collect(),
                 "tv" => TV.iter().map(|p| (*p).to_owned()).collect(),
                 one => vec![one.to_owned()],
@@ -1664,6 +1678,162 @@ fn title_menu_popover(window: &adw::ApplicationWindow) -> Option<(gtk::Widget, f
         .clamp(0.0, (window.width() as f32 - width).max(0.0));
     Some((popover.upcast(), x, bounds.y() + bounds.height()))
 }
+
+/// What the sources have of the title the source picker's shots open: all of it, part of it,
+/// failed, off, and a torrent source with a batch and singles. `pinned` is the source pinned, and
+/// `release` the one of its releases.
+#[cfg(feature = "fixtures")]
+fn source_options(
+    pinned: Option<&str>,
+    release: Option<&str>,
+) -> Vec<anistream_model::sources::SourceOption> {
+    use anistream_core::traits::SourceCandidate;
+    use anistream_model::sources::{SourceNote, SourceOption};
+    let candidate = |id: &str, title: &str, quality, seeders, size: &str| SourceCandidate {
+        id: id.into(),
+        provider_id: "torrent".into(),
+        title: title.into(),
+        quality: Some(quality),
+        seeders: Some(seeders),
+        size: Some(size.into()),
+        dual_audio: false,
+        dubbed: false,
+        auto_pick: false,
+    };
+    let option = |id: &str, name: &str, covered, note, releases| SourceOption {
+        provider_id: id.into(),
+        name: name.into(),
+        covered,
+        of: 13,
+        pinned: pinned == Some(id),
+        note,
+        releases,
+        pinned_release: release.filter(|_| pinned == Some(id)).map(str::to_owned),
+    };
+    vec![
+        option("hotaru-open-archive", "Hotaru Open Archive", 13, None, Vec::new()),
+        option("mukashi-archive", "Mukashi Archive", 9, None, Vec::new()),
+        option(
+            "torrent",
+            "Torrents",
+            6,
+            None,
+            vec![
+                candidate(
+                    "batch-1080",
+                    "Hoshikuzu no Tabibito (Batch) 1080p",
+                    1080,
+                    84,
+                    "14.2 GiB",
+                ),
+                candidate(
+                    "batch-720",
+                    "Hoshikuzu no Tabibito (Batch) 720p",
+                    720,
+                    31,
+                    "6.8 GiB",
+                ),
+                candidate(
+                    "single-1080",
+                    "Hoshikuzu no Tabibito - 01 1080p",
+                    1080,
+                    12,
+                    "1.1 GiB",
+                ),
+            ],
+        ),
+        option(
+            "machi-library-films",
+            "Machi Library Films",
+            0,
+            Some(SourceNote::Failed { reason: "the site did not answer in 15 s.".into() }),
+            Vec::new(),
+        ),
+        option(
+            "sora-festival",
+            "Sora Animation Festival",
+            0,
+            Some(SourceNote::Off),
+            Vec::new(),
+        ),
+    ]
+}
+
+/// The source picker's scenes: the title's page, then the picker over it.
+#[cfg(feature = "fixtures")]
+fn source_stage(shell: &Rc<Shell>, shot: &str) -> f64 {
+    use anistream_core::ids::AnilistId;
+    use anistream_model::event::Event;
+
+    let hub = Rc::clone(&shell.ctx.hub);
+    shell.ctx.toasts.dismiss_all();
+    let unsourced = shot.starts_with("source-unsourced");
+    let title = if unsourced { PLAYING.0 } else { TITLE };
+    hub.known.borrow_mut().source_options.clear();
+    let listing = match shot {
+        "source-picker-pinned" => Some((source_options(Some("mukashi-archive"), None), false)),
+        "source-picker-releases" => {
+            Some((source_options(Some("torrent"), Some("batch-720")), false))
+        }
+        "source-picker-loading" => Some((Vec::new(), true)),
+        _ => Some((source_options(None, None), false)),
+    };
+    hub.listing.replace(listing);
+    if unsourced {
+        // The next episode, or it and every one after, is listed by no source.
+        hub.unsourced.set(Some((title, 4, if shot == "source-unsourced" { 4 } else { 99 })));
+    }
+    shell.go(Dest::Continue);
+    let _ = WidgetExt::activate_action(
+        &shell.ctx.window,
+        "win.open-title",
+        Some(&title.to_variant()),
+    );
+    let ctx = Rc::clone(&shell.ctx);
+    let shot = shot.to_owned();
+    glib::timeout_add_local_once(Duration::from_millis(2500), move || match shot.as_str() {
+        "source-pin-unavailable" => ctx.hub.take(vec![Event::PinUnavailable {
+            id: AnilistId::new(title),
+            provider_id: "mukashi-archive".into(),
+            name: "Mukashi Archive".into(),
+        }]),
+        "source-unsourced" | "source-unsourced-none" => {
+            // The page scrolled to the dimmed episode.
+            if let Some(scroll) = ctx
+                .nav()
+                .and_then(|nav| nav.visible_page())
+                .and_then(|page| first::<gtk::ScrolledWindow>(page.upcast_ref()))
+            {
+                scroll.vadjustment().set_value(330.0);
+            }
+        }
+        _ => {
+            if let Some(page) = ctx.nav().and_then(|nav| nav.visible_page()) {
+                let _ = WidgetExt::activate_action(&page, "title.source-picker", None);
+            }
+        }
+    });
+    5.0
+}
+
+/// Leave the source picker's scene: the picker closed, the title's page left, the engine's own
+/// answers back.
+#[cfg(feature = "fixtures")]
+fn source_unstage(shell: &Rc<Shell>) {
+    close_dialogs(&shell.ctx.window);
+    shell.ctx.hub.listing.replace(None);
+    shell.ctx.hub.unsourced.set(None);
+    shell.ctx.toasts.dismiss_all();
+    let _ = WidgetExt::activate_action(&shell.ctx.window, "win.back", None);
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn source_stage(_: &Rc<Shell>, _: &str) -> f64 {
+    0.0
+}
+
+#[cfg(not(feature = "fixtures"))]
+fn source_unstage(_: &Rc<Shell>) {}
 
 #[cfg(test)]
 mod tests {

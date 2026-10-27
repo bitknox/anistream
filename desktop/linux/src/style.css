@@ -90,6 +90,8 @@ progressbar.waiting progress { background: var(--haze); }
 row progressbar.horizontal > trough { min-width: 60px; }
 row levelbar.horizontal trough { min-width: 60px; }
 row.failed .subtitle { color: var(--haze); }
+/* The source picker: a source with a note in place of a count reads quieter. */
+row.noted .title { color: var(--haze); }
 levelbar block.filled { background: var(--water); }
 levelbar block.empty { background: var(--rule); }
 

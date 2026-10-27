@@ -15,6 +15,7 @@ pub mod seasonal;
 pub mod settings;
 pub mod settings_preview;
 pub mod show_settings;
+pub mod source_picker;
 pub mod store_owner;
 pub mod stores;
 pub mod title;

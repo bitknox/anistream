@@ -22,6 +22,13 @@ notice-episodes-queued =
        *[other] Queued { $count } episodes.
     }
 
+# Under a release in the source picker: how many people share it right now.
+source-picker-seeders-linux =
+    { $count ->
+        [one] One seeder
+       *[other] { $count } seeders
+    }
+
 # Button that runs a failed action again.
 action-try-again = Try again
 
