@@ -513,13 +513,13 @@ fn spawn_playback(
                         id,
                         episode: episode.clone(),
                         why: reason.why,
-                        reason: Msg::verbatim(reason.text.clone()),
+                        reason: reason.text.clone(),
                     });
                 } else {
-                    let _ = tx.send(Event::Toast(Notice::raw_alert(reason.text.clone())));
+                    let _ = tx.send(Event::Toast(Notice::alert(reason.text.clone())));
                 }
                 let _ = tx.send(Event::PlaybackKept);
-                handoff.keep(commands, reason.text).await;
+                handoff.keep(commands, reason.text.english()).await;
                 return;
             }
             Err(reason) => {
@@ -533,10 +533,10 @@ fn spawn_playback(
                         id,
                         episode: episode.clone(),
                         why: reason.why,
-                        reason: Msg::verbatim(reason.text),
+                        reason: reason.text,
                     });
                 } else {
-                    let _ = tx.send(Event::Toast(Notice::raw_alert(reason.text)));
+                    let _ = tx.send(Event::Toast(Notice::alert(reason.text)));
                 }
                 // A window left open for this episode would wait for nothing.
                 slot.release();
@@ -568,7 +568,7 @@ fn spawn_playback(
         // header is sent from playback itself, per attempt, so failover never credits the
         // stream that just failed.
         if let Some(note) = streams.first().and_then(|s| s.pick_note.clone()) {
-            let _ = tx.send(Event::Toast(Notice::raw_info(note)));
+            let _ = tx.send(Event::Toast(Notice::info(Msg::verbatim(note))));
         }
 
         let settings =

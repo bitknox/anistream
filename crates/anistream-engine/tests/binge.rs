@@ -171,7 +171,7 @@ fn windows(updates: &[Event]) -> usize {
     updates
         .iter()
         .filter(
-            |u| matches!(u, Event::Status(Some(s)) if s.english().starts_with("starting mpv")),
+            |u| matches!(u, Event::Status(Some(s)) if s.english().starts_with("Starting mpv")),
         )
         .count()
 }
@@ -471,7 +471,7 @@ async fn until_loaded(updates: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Event
     let mut seen = Vec::new();
     while let Some(update) = updates.recv().await {
         let loaded =
-            matches!(&update, Event::Status(Some(s)) if s.english().starts_with("playing"));
+            matches!(&update, Event::Status(Some(s)) if s.english().starts_with("Playing"));
         seen.push(update);
         if loaded {
             break;
@@ -647,9 +647,9 @@ async fn nothing_follows_the_finale() {
 
     assert_eq!(asked_for(&updates), ["1"], "only the previous episode exists");
     assert!(
-        updates
-            .iter()
-            .any(|u| matches!(u, Event::Toast(t) if t.text.starts_with("no next episode"))),
+        updates.iter().any(
+            |u| matches!(u, Event::Toast(t) if t.text.starts_with("There's no next episode"))
+        ),
         "the terminal is told there is no next episode"
     );
     assert_eq!(ended(&updates), Some((true, complete(None))), "the finale played to its end");

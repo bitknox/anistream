@@ -47,7 +47,7 @@ use std::{
 
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_meta::{Media, Meta};
-use anistream_model::{event::Event, notice::Notice, settings::SettingKey};
+use anistream_model::{Msg, event::Event, notice::Notice, settings::SettingKey};
 use anistream_providers::ProviderRegistry;
 use anistream_store::{Download, DownloadState, Store};
 
@@ -79,7 +79,7 @@ pub const GRACE: i64 = DAY;
 pub const WATCHED_WITHIN: i64 = 30 * DAY;
 
 /// What keep next says, once, when the device has no room for another episode.
-pub const FULL: &str = "not enough free space to keep the next episodes downloaded";
+pub const FULL: Msg = Msg::NoticeKeepNextFull;
 
 /// Keep next's state, which the engine side keeps: whether it runs at all, the top-up asked for
 /// while one runs, and whether a full device has been said.
@@ -579,7 +579,7 @@ pub(crate) async fn run(
             let queue = store.downloads().unwrap_or_default();
             if !fits(work.free(&show.config), &queue) {
                 if !said_full.swap(true, Ordering::Relaxed) {
-                    let _ = tx.send(Event::Toast(Notice::raw_info(FULL)));
+                    let _ = tx.send(Event::Toast(Notice::info(FULL)));
                 }
                 return;
             }
@@ -607,7 +607,7 @@ pub(crate) async fn run(
 mod tests {
     use std::{collections::HashMap, sync::Mutex};
 
-    use anistream_model::{command::AppState, notice::NoticeKind};
+    use anistream_model::{Cause, command::AppState, notice::NoticeKind};
     use anistream_store::WatchEvent;
     use anistream_testkit::fixtures::{self, AIRING, FINISHED, ONA, SEQUEL};
     use tokio::sync::mpsc;
@@ -742,7 +742,7 @@ mod tests {
             self.store
                 .enqueue_download_ahead(id, episode, "Show", "magnet:?xt=urn:btih:fake")
                 .map(|_| Queued::New)
-                .map_err(|e| Refusal::Title(e.to_string()))
+                .map_err(|e| Refusal::Title(Cause::verbatim(e.to_string())))
         }
 
         fn free(&self, _: &Config) -> Option<u64> {
@@ -765,10 +765,10 @@ mod tests {
         std::iter::from_fn(|| rx.try_recv().ok()).collect()
     }
 
-    fn toasts(said: &[Event]) -> Vec<String> {
+    fn toasts(said: &[Event]) -> Vec<Msg> {
         said.iter()
             .filter_map(|event| match event {
-                Event::Toast(notice) => Some(notice.text.clone()),
+                Event::Toast(notice) => Some(notice.message()),
                 _ => None,
             })
             .collect()

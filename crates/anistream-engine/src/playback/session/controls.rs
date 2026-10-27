@@ -2,7 +2,7 @@
 //! an adjacent episode, and the terminal's controls turned into mpv IPC.
 
 use anistream_core::{media::Translation, stream::Stream};
-use anistream_model::{command::PlayerCommand, event::Event, notice::Notice};
+use anistream_model::{Msg, command::PlayerCommand, event::Event, notice::Notice};
 use anistream_playback::{Choice, PlaybackTracker, ScriptEvent, SkipKind, companion};
 
 use super::{FileOutcome, Run, skips::skip_target};
@@ -22,27 +22,24 @@ impl Run<'_> {
             self.episodes.is_empty() || self.episodes.iter().any(|e| e.number == n.to_string())
         };
         let refusal = match target {
-            Some(n) if n < 1 => Some("Already at the first episode".to_owned()),
+            Some(n) if n < 1 => Some(Msg::NoticeAlreadyFirstEpisode),
             Some(n) if listed(n) => None,
             // "OVA" and "Special" have no neighbour to guess at.
             _ if delta > 0 => Some(match target {
-                Some(_) => {
-                    format!("No next episode · {} is the last", self.context.episode_label())
-                }
-                None => "No next episode".to_owned(),
+                Some(_) => Msg::NoticeLastEpisode { episode: self.context.episode.clone() },
+                None => Msg::NoticeNoNextEpisode,
             }),
-            _ => Some("No previous episode".to_owned()),
+            _ => Some(Msg::NoticeNoPreviousEpisode),
         };
         match (refusal, target) {
             (Some(refusal), _) => {
                 // Said where the key was pressed.
                 if from_terminal {
-                    let _ =
-                        self.tx.send(Event::Toast(Notice::raw_info(refusal.to_lowercase())));
+                    let _ = self.tx.send(Event::Toast(Notice::info(refusal)));
                 } else {
                     let _ = link
                         .overlay(Overlay::Toast {
-                            text: refusal,
+                            text: refusal.english(),
                             level: companion::Level::Info,
                         })
                         .await;

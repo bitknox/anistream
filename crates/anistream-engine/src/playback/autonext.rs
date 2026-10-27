@@ -16,8 +16,9 @@
 
 use std::collections::HashMap;
 
-use anistream_core::ids::AnilistId;
+use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_model::{
+    Msg,
     event::Event,
     notice::Notice,
     playback::{Ending, PlaybackId},
@@ -154,9 +155,9 @@ pub fn follow(
                 let rows = cache.listed(finished.id).unwrap_or_default();
                 let episode = after_filler(rows, next.clone(), skip_filler);
                 if episode != *next {
-                    said.push(Event::Toast(Notice::raw_info(format!(
-                        "skipped filler — ep {episode} next"
-                    ))));
+                    said.push(Event::Toast(Notice::info(Msg::NoticeFillerSkipped {
+                        episode: episode.clone(),
+                    })));
                 }
                 Follow {
                     id: finished.id,
@@ -172,7 +173,10 @@ pub fn follow(
             episode_title: title.clone().or_else(|| cache.episode_title(front.id, episode)),
         }),
         Event::PlayerTranslation(translation) => {
-            said.push(Event::Toast(Notice::raw_info(format!("now using {translation}"))));
+            said.push(Event::Toast(Notice::info(match translation {
+                Translation::Sub => Msg::NoticeAudioNowSubbed,
+                Translation::Dub => Msg::NoticeAudioNowDubbed,
+            })));
             front.map(|front| Follow {
                 id: front.id,
                 episode: front.episode.clone(),
@@ -306,7 +310,7 @@ mod tests {
         let (said, next) = follow(&complete(Some("2")), finished(), None, &cache, true);
         assert_eq!(next.map(|next| next.episode).as_deref(), Some("4"), "eps 2-3 are filler");
         let [Event::Toast(notice)] = &said[..] else { panic!("said why: {said:?}") };
-        assert_eq!(notice.text, "skipped filler — ep 4 next");
+        assert_eq!(notice.message(), Msg::NoticeFillerSkipped { episode: "4".into() });
         // Not asked: filler plays like any other episode, and nothing is said.
         let (said, next) = follow(&complete(Some("2")), finished(), None, &cache, false);
         assert_eq!((said.len(), next.map(|next| next.episode)), (0, Some("2".into())));
@@ -367,7 +371,7 @@ mod tests {
             Staged { episode_title: Some("The fourth".into()), ..on_screen(1, "Title 0", "4") };
         let (said, next) = follow(&pick, None, Some(&named), &cache, false);
         let [Event::Toast(notice)] = &said[..] else { panic!("said: {said:?}") };
-        assert_eq!(notice.text, "now using dub");
+        assert_eq!(notice.message(), Msg::NoticeAudioNowDubbed);
         let next = next.expect("restarted");
         assert_eq!((next.episode.as_str(), next.title.as_str()), ("4", "Title 0"));
         assert_eq!(next.episode_title.as_deref(), Some("The fourth"));

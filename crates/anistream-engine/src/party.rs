@@ -82,11 +82,11 @@ pub fn join(
 ) -> bool {
     let server = match Server::parse(server) {
         Ok(server) => server,
-        Err(bad) => return refuse(bad.to_string(), tx),
+        Err(bad) => return refuse(Msg::verbatim(bad.to_string()), tx),
     };
     let room = room.trim();
     if room.is_empty() {
-        return refuse("A party needs a room to meet in".into(), tx);
+        return refuse(Msg::PartyNeedsRoom, tx);
     }
     let address = server.to_string();
     if let Some(running) = going(engine) {
@@ -144,10 +144,10 @@ pub fn join_for_play(
         .or_else(|| syncplay.recent_servers.iter().find_map(|s| named(Some(s.clone()))));
     let Some(server) = server else {
         return refuse(
-            format!(
-                "Choose a server for the party first, as syncplay.server. \
-                 {SUGGESTED_SERVER} is run by {SUGGESTED_SERVER_RUN_BY}."
-            ),
+            Msg::PartyNeedsServer {
+                server: SUGGESTED_SERVER.to_owned(),
+                operator: SUGGESTED_SERVER_RUN_BY.to_owned(),
+            },
             tx,
         );
     };
@@ -203,9 +203,9 @@ fn not_in_one(tx: &Outbox) {
 }
 
 /// A party that can't be joined: the reason, as the party's end.
-fn refuse(reason: String, tx: &Outbox) -> bool {
+fn refuse(reason: Msg, tx: &Outbox) -> bool {
     tracing::info!(%reason, "no watch party");
-    let _ = tx.send(Event::PartyLeft { reason: Some(Msg::verbatim(reason)) });
+    let _ = tx.send(Event::PartyLeft { reason: Some(reason) });
     false
 }
 
@@ -282,13 +282,13 @@ async fn run(
                     }
                     PartyEvent::Reconnecting { attempt, of } => {
                         if attempt == 1 {
-                            cue(&cues, SeatCue::Notice("Lost the party's server, trying again".into()));
+                            cue(&cues, SeatCue::Notice(Msg::PartyServerLost.english()));
                         }
                         view.connection = PartyConnection::Reconnecting { attempt, of };
                         let _ = tx.send(Event::PartyState(view.clone()));
                     }
                     PartyEvent::Rejoined { name, encrypted } => {
-                        cue(&cues, SeatCue::Notice("Back with the party".into()));
+                        cue(&cues, SeatCue::Notice(Msg::PartyRejoined.english()));
                         (view.name, view.encrypted) = (name, encrypted);
                         view.connection = PartyConnection::Connected;
                         let _ = tx.send(Event::PartyState(view.clone()));
@@ -296,7 +296,7 @@ async fn run(
                     PartyEvent::Left(reason) => {
                         tracing::info!(?reason, "the watch party ended");
                         if !quiet {
-                            let said = reason.clone().unwrap_or_else(|| "Left the party".into());
+                            let said = reason.clone().unwrap_or_else(|| Msg::PartyLeft.english());
                             let reason = reason.map(Msg::verbatim);
                             cue(&cues, SeatCue::Notice(said));
                             let _ = tx.send(Event::PartyLeft { reason });

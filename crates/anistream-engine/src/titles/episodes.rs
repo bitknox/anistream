@@ -2,7 +2,9 @@
 
 use anistream_core::{ids::AnilistId, media::Translation};
 use anistream_meta::Meta;
-use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice, progress::Watch};
+use anistream_model::{
+    Msg, episodes::EpisodeRow, event::Event, notice::Notice, progress::Watch,
+};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
@@ -220,9 +222,7 @@ pub(crate) fn said(
         // Quietly: the table is there, and a play says what is missing when one is asked for.
         Ok(EpisodeLoad::Unlisted { rows, reason }) => {
             let notice = reason.map(|reason| {
-                Event::Toast(Notice::raw_info(format!(
-                    "no source could list this show: {reason}"
-                )))
+                Event::Toast(Notice::info(Msg::NoticeNoSourceCouldList { reason }))
             });
             std::iter::once(Event::Episodes { id, rows }).chain(notice).collect()
         }
@@ -234,7 +234,7 @@ pub(crate) fn said(
         Err(reason) => {
             vec![
                 Event::Episodes { id, rows: Vec::new() },
-                Event::Toast(Notice::raw_alert(reason)),
+                Event::Toast(Notice::alert(Msg::verbatim(reason))),
             ]
         }
     }
@@ -687,7 +687,10 @@ mod tests {
             anistream_model::notice::NoticeKind::Info,
             "quiet, not an alert"
         );
-        assert_eq!(notice.text, "no source could list this show: fixture found no matches");
+        assert_eq!(
+            notice.message(),
+            Msg::NoticeNoSourceCouldList { reason: "fixture found no matches".into() }
+        );
     }
 
     #[test]
