@@ -238,7 +238,7 @@ pub(super) fn render_placeholder(
     buf.set_string(
         area.left(),
         area.top(),
-        title.to_owned(),
+        title,
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
     // The note is said as given. It was the tail of "arrives in …", which suited "a moment"

@@ -13,7 +13,7 @@ anistream                                                                       
                             │
                             │  Type to search
                             │
-                            │  Or press ↵ to browse the most popular.
+                            │  Press ↵ to browse the most popular.
                             │
                             │
                             │
@@ -118,7 +118,7 @@ r13 c28-28 fg=rule
 r13 c31-44 fg=text-dim
 r14 c28-28 fg=rule
 r15 c28-28 fg=rule
-r15 c31-68 fg=text-dim
+r15 c31-65 fg=text-dim
 r16 c28-28 fg=rule
 r17 c28-28 fg=rule
 r18 c28-28 fg=rule

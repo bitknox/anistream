@@ -649,7 +649,7 @@ overlays-window-position = [{ $from }–{ $to } öƒ { $total }~~~~~]
 overlays-help-page = [Þàĝé { $page } öƒ { $pages }~~~~~]
 
 # The log overlay, when nothing has been logged this session.
-overlays-logs-empty = [Ñöţĥîñĝ ļöĝĝéð ýéţ.~~~~~~]
+overlays-logs-empty = [Ñöţĥîñĝ ļöĝĝéð ýéţ~~~~~~]
 
 # Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
 overlays-hint-manual-query = [Ţýþé ŵĥàţ ţö šéàŕçĥ ƒöŕ. Åñ éɱþţý Éñţéŕ ŕéšéţš ţö ţĥé àüţöɱàţîç ɱàţçĥ.~~~~~~~~~~~~~~~~~~~~~]
@@ -658,7 +658,7 @@ overlays-hint-manual-query = [Ţýþé ŵĥàţ ţö šéàŕçĥ ƒöŕ. Åñ �
 overlays-hint-kitsu-username = [Éɱàîļ öŕ üšéŕñàɱé. Éñţéŕ çöñţîñüéš, Éšç çàñçéļš.~~~~~~~~~~~~~~~]
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
-overlays-hint-kitsu-password = [Éẋçĥàñĝéð ƒöŕ à ţöķéñ öñçé àñð ñéṽéŕ šţöŕéð. Éñţéŕ šîĝñš îñ.~~~~~~~~~~~~~~~~~~]
+overlays-hint-kitsu-password = [Ýöüŕ þàššŵöŕð îš éẋçĥàñĝéð ƒöŕ à ţöķéñ àñð ñöţ šţöŕéð. Éñţéŕ šîĝñš îñ.~~~~~~~~~~~~~~~~~~~~~]
 
 # Prompt hint for the download range. The examples are episode numbers and stay as written.
 overlays-hint-download-range = [4 ƒöŕ öñé éþîšöðé, 1-12 ƒöŕ à ŕüñ, 7- ƒöŕ éṽéŕýţĥîñĝ ƒŕöɱ ţĥéŕé.~~~~~~~~~~~~~~~~~~~~]
@@ -959,7 +959,7 @@ episodes-dub-complete = [Ðüƀƀéð~~]
 episodes-empty-filtered = [Ñöţĥîñĝ ɱàţçĥéš ţĥé ƒîļţéŕ~~~~~~~~]
 
 # Under the heading when the filter hides every episode. The key is the filter key.
-episodes-empty-filtered-hint = [Þŕéšš { $key } ţö çýçļé ţĥé ƒîļţéŕ. Îţ îš ĥîðîñĝ éṽéŕý éþîšöðé ñöŵ.~~~~~~~~~~~~~~~~~~~]
+episodes-empty-filtered-hint = [Ţĥé ƒîļţéŕ ĥîðéš éṽéŕý éþîšöðé. Þŕéšš { $key } ţö çĥàñĝé îţ.~~~~~~~~~~~~~~~~~]
 
 # Heading of the empty episode table when no { -source } is ready.
 episodes-empty-no-source = [Ñö éþîšöðéš ýéţ~~~~~]
@@ -1794,10 +1794,10 @@ lists-empty-press-enter = [Þŕéšš ↵ ţö šéàŕçĥ~~~~~~]
 lists-empty-type-to-search = [Ţýþé ţö šéàŕçĥ~~~~~]
 
 # Hint under the Search heading when filters are set. ↵ is the Enter key.
-lists-empty-browse-filtered = [Öŕ þŕéšš ↵ ţö ƀŕöŵšé ŵîţĥ ţĥéšé ƒîļţéŕš.~~~~~~~~~~~~]
+lists-empty-browse-filtered = [Þŕéšš ↵ ţö ƀŕöŵšé ŵîţĥ ţĥéšé ƒîļţéŕš.~~~~~~~~~~~~]
 
 # Hint under the Search heading when no filter is set. ↵ is the Enter key.
-lists-empty-browse-popular = [Öŕ þŕéšš ↵ ţö ƀŕöŵšé ţĥé ɱöšţ þöþüļàŕ.~~~~~~~~~~~~]
+lists-empty-browse-popular = [Þŕéšš ↵ ţö ƀŕöŵšé ţĥé ɱöšţ þöþüļàŕ.~~~~~~~~~~~]
 
 # Heading when a search or a browse found nothing.
 lists-empty-no-matches = [Ñö ɱàţçĥéš~~~]
@@ -2585,7 +2585,7 @@ stores-column-plugin = [Þļüĝîñ~~]
 stores-column-version = [Ṽéŕšîöñ~~~]
 
 # Shown on a store's page when it offers nothing and this person owns it, who can publish from the rows below.
-stores-empty-owner = [Ñöţĥîñĝ þüƀļîšĥéð ýéţ. Þüƀļîšĥ à þļüĝîñ ƒŕöɱ ƀéļöŵ.~~~~~~~~~~~~~~~~]
+stores-empty-owner = [Ñöţĥîñĝ þüƀļîšĥéð ýéţ. Þüƀļîšĥ à þļüĝîñ ƀéļöŵ.~~~~~~~~~~~~~~]
 
 # Shown on a store's page when it offers nothing and this person is a member.
 stores-empty-member = [Ñöţĥîñĝ þüƀļîšĥéð ýéţ~~~~~~~]

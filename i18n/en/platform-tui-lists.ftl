@@ -399,11 +399,11 @@ lists-empty-type-to-search = Type to search
 
 # Hint under the Search heading when filters are set. ↵ is the Enter key.
 # @only tui
-lists-empty-browse-filtered = Or press ↵ to browse with these filters.
+lists-empty-browse-filtered = Press ↵ to browse with these filters.
 
 # Hint under the Search heading when no filter is set. ↵ is the Enter key.
 # @only tui
-lists-empty-browse-popular = Or press ↵ to browse the most popular.
+lists-empty-browse-popular = Press ↵ to browse the most popular.
 
 # Heading when a search or a browse found nothing.
 # @only tui

@@ -5,7 +5,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   ▦│
   /│    Plugin                      Version       State
   ▥│  ────────────────────────────────────────────────────────────────────────
-  ↓│    Nothing published yet. Publish a plugin from below.
+  ↓│    Nothing published yet. Publish a plugin below.
 ▌ ◇│
   ◎│  ▌ Link another device
   ⚙│    Invite someone
@@ -51,7 +51,7 @@ r06 c03-03 fg=rule
 r06 c06-77 fg=rule
 r07 c02-02 fg=text-dim
 r07 c03-03 fg=rule
-r07 c08-58 fg=text-dim
+r07 c08-53 fg=text-dim
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
 r08 c03-03 fg=rule

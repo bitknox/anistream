@@ -11,7 +11,7 @@ anistream                                                                       
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 ▌ Logs
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Nothing logged yet.
+  Nothing logged yet
 
                             │
                             │                                         Hoshikuzu no Tabibito
@@ -56,8 +56,8 @@ r11 c02-05 fg=text bg=ground mod=BOLD
 r11 c06-119 fg=rule bg=ground
 r12 c00-119 fg=rule bg=ground
 r13 c00-01 fg=rule bg=ground
-r13 c02-20 fg=text-dim bg=ground
-r13 c21-119 fg=rule bg=ground
+r13 c02-19 fg=text-dim bg=ground
+r13 c20-119 fg=rule bg=ground
 r14 c00-119 fg=rule bg=ground
 r15 c00-119 fg=rule
 r16 c00-69 fg=rule

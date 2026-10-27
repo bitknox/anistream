@@ -282,7 +282,7 @@ episodes-empty-filtered = Nothing matches the filter
 # Under the heading when the filter hides every episode. The key is the filter key.
 # @arg key: text
 # @only tui
-episodes-empty-filtered-hint = Press { $key } to cycle the filter. It is hiding every episode now.
+episodes-empty-filtered-hint = The filter hides every episode. Press { $key } to change it.
 
 # Heading of the empty episode table when no { -source } is ready.
 # @only tui

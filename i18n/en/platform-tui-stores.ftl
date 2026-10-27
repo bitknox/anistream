@@ -130,7 +130,7 @@ stores-column-version = Version
 
 # Shown on a store's page when it offers nothing and this person owns it, who can publish from the rows below.
 # @only tui
-stores-empty-owner = Nothing published yet. Publish a { -plugin } from below.
+stores-empty-owner = Nothing published yet. Publish a { -plugin } below.
 
 # Shown on a store's page when it offers nothing and this person is a member.
 # @only tui

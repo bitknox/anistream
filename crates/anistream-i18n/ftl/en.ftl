@@ -649,7 +649,7 @@ overlays-window-position = { $from }–{ $to } of { $total }
 overlays-help-page = Page { $page } of { $pages }
 
 # The log overlay, when nothing has been logged this session.
-overlays-logs-empty = Nothing logged yet.
+overlays-logs-empty = Nothing logged yet
 
 # Prompt hint under the manual search heading. Enter and Esc are the fixed keys of every prompt.
 overlays-hint-manual-query = Type what to search for. An empty Enter resets to the automatic match.
@@ -658,7 +658,7 @@ overlays-hint-manual-query = Type what to search for. An empty Enter resets to t
 overlays-hint-kitsu-username = Email or username. Enter continues, Esc cancels.
 
 # Prompt hint for the second step of signing in to Kitsu. The password is shown as dots.
-overlays-hint-kitsu-password = Exchanged for a token once and never stored. Enter signs in.
+overlays-hint-kitsu-password = Your password is exchanged for a token and not stored. Enter signs in.
 
 # Prompt hint for the download range. The examples are episode numbers and stay as written.
 overlays-hint-download-range = 4 for one episode, 1-12 for a run, 7- for everything from there.
@@ -959,7 +959,7 @@ episodes-dub-complete = Dubbed
 episodes-empty-filtered = Nothing matches the filter
 
 # Under the heading when the filter hides every episode. The key is the filter key.
-episodes-empty-filtered-hint = Press { $key } to cycle the filter. It is hiding every episode now.
+episodes-empty-filtered-hint = The filter hides every episode. Press { $key } to change it.
 
 # Heading of the empty episode table when no { -source } is ready.
 episodes-empty-no-source = No episodes yet
@@ -1794,10 +1794,10 @@ lists-empty-press-enter = Press ↵ to search
 lists-empty-type-to-search = Type to search
 
 # Hint under the Search heading when filters are set. ↵ is the Enter key.
-lists-empty-browse-filtered = Or press ↵ to browse with these filters.
+lists-empty-browse-filtered = Press ↵ to browse with these filters.
 
 # Hint under the Search heading when no filter is set. ↵ is the Enter key.
-lists-empty-browse-popular = Or press ↵ to browse the most popular.
+lists-empty-browse-popular = Press ↵ to browse the most popular.
 
 # Heading when a search or a browse found nothing.
 lists-empty-no-matches = No matches
@@ -2585,7 +2585,7 @@ stores-column-plugin = Plugin
 stores-column-version = Version
 
 # Shown on a store's page when it offers nothing and this person owns it, who can publish from the rows below.
-stores-empty-owner = Nothing published yet. Publish a plugin from below.
+stores-empty-owner = Nothing published yet. Publish a plugin below.
 
 # Shown on a store's page when it offers nothing and this person is a member.
 stores-empty-member = Nothing published yet

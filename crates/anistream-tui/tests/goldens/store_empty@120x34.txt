@@ -5,7 +5,7 @@ anistream                                                                       
   ▦  Seasonal               │
   /  Search                 │    Plugin                      Version       State
   ▥  Library                │  ───────────────────────────────────────────────────────────────────────────────────────
-  ↓  Downloads              │    Nothing published yet. Publish a plugin from below.
+  ↓  Downloads              │    Nothing published yet. Publish a plugin below.
 ▌ ◇  Sources                │
   ◎  Accounts               │  ▌ Link another device
   ⚙  Settings               │    Invite someone
@@ -67,7 +67,7 @@ r06 c31-117 fg=rule
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
-r07 c33-83 fg=text-dim
+r07 c33-78 fg=text-dim
 r08 c00-00 fg=text-dim
 r08 c02-02 fg=text
 r08 c05-11 fg=text mod=BOLD

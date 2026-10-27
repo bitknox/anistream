@@ -13,7 +13,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
   Status                                                              Airing
 ▌ Sort                                                                 Score
 
-   │  Or press ↵ to browse with these filters.
+   │  Press ↵ to browse with these filters.
    │
    │
    │

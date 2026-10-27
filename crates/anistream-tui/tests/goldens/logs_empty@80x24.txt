@@ -8,7 +8,7 @@ anistream                                   torrent ○  plugins ●  ·  anilis
 ────────────────────────────────────────────────────────────────────────────────
 ▌ Logs
 ────────────────────────────────────────────────────────────────────────────────
-  Nothing logged yet.
+  Nothing logged yet
 
    │
    │
@@ -41,8 +41,8 @@ r08 c02-05 fg=text bg=ground mod=BOLD
 r08 c06-79 fg=rule bg=ground
 r09 c00-79 fg=rule bg=ground
 r10 c00-01 fg=rule bg=ground
-r10 c02-20 fg=text-dim bg=ground
-r10 c21-79 fg=rule bg=ground
+r10 c02-19 fg=text-dim bg=ground
+r10 c20-79 fg=rule bg=ground
 r11 c00-79 fg=rule bg=ground
 r12 c00-79 fg=rule
 r13 c00-79 fg=rule
