@@ -253,6 +253,10 @@ impl Page {
             Event::TitlesChanged(_) => self.ctx.hub.send(Command::LoadContinue),
             Event::Episodes { id, rows } => {
                 self.episodes.borrow_mut().insert(id.get(), rows.clone());
+                // A row plays the next episode a source lists, so a table can move it.
+                if self.ids.borrow().contains(&id.get()) {
+                    self.rebuild();
+                }
                 if self.selected.get() == Some(id.get()) {
                     self.show_preview(true);
                 }
@@ -267,7 +271,7 @@ impl Page {
             let known = self.ctx.hub.known.borrow();
             self.ids.borrow().iter().filter_map(|id| known.entries.get(id).cloned()).collect()
         };
-        let queue = words::queue(&entries, &[]);
+        let queue = words::queue(&entries, &[], &self.episodes.borrow());
         let same = *self.queue.borrow() == queue;
         *self.queue.borrow_mut() = queue;
         if same && self.list.first_child().is_some() && self.body.has_answer() {
@@ -420,7 +424,12 @@ impl Page {
     fn show_preview(&self, fade: bool) {
         let Some(item) = self.selected_item() else { return };
         let id = item.entry.id.get();
-        let name = format!("{id}-{}", self.episodes.borrow().get(&id).map_or(0, Vec::len));
+        let name = format!(
+            "{id}-{}-{}-{}",
+            self.episodes.borrow().get(&id).map_or(0, Vec::len),
+            item.episode,
+            item.playable
+        );
         if self.preview.child_by_name(&name).is_none() {
             let view = self.preview_of(&item);
             self.preview.add_named(&view, Some(&name));

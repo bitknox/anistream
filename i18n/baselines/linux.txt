@@ -13,7 +13,7 @@ desktop/linux/src/pages/search_filters.rs: 1
 desktop/linux/src/pages/seasonal.rs: 1
 desktop/linux/src/pages/settings.rs: 20
 desktop/linux/src/pages/settings_preview.rs: 1
-desktop/linux/src/pages/show_settings.rs: 8
+desktop/linux/src/pages/show_settings.rs: 5
 desktop/linux/src/pages/store_owner.rs: 15
 desktop/linux/src/pages/stores.rs: 7
 desktop/linux/src/pages/title.rs: 5

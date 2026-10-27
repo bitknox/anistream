@@ -17,6 +17,8 @@ use anistream_model::{
     show::{RememberedSubtitles, ShowSettingKey as S, ShowSettingRow, ShowSettingsView},
 };
 
+use anistream_i18n::t;
+
 use crate::{pages::providers, widgets, window::Ctx, words};
 
 /// The rows the sheet shows, as the Mac's sheet has them, by group.
@@ -81,9 +83,8 @@ struct Sheet {
     id: AnilistId,
     rows: Vec<(S, adw::ComboRow)>,
     subtitles: gtk::Label,
-    source: adw::ComboRow,
-    /// The sources the source row lists after Automatic, by id.
-    sources: Vec<String>,
+    /// Opens the source picker; says what the title's episodes come from.
+    source: adw::ActionRow,
     /// Set while rows take the engine's values, so a row does not send what it was told.
     quiet: Cell<bool>,
     view: RefCell<Option<ShowSettingsView>>,
@@ -124,17 +125,16 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
     }
     let (subtitles, subtitles_value) = subtitles.expect("the audio group");
 
-    let known = ctx.hub.known.borrow();
-    let ordered = known.ordered_providers();
-    drop(known);
-    let mut names = vec!["Automatic".to_owned()];
-    names.extend(ordered.iter().map(providers::name));
-    let refs: Vec<&str> = names.iter().map(String::as_str).collect();
-    let source =
-        adw::ComboRow::builder().title("Source").model(&gtk::StringList::new(&refs)).build();
+    let source = adw::ActionRow::builder()
+        .title(t::source_picker_title())
+        .subtitle(t::source_picker_automatic())
+        .activatable(true)
+        .use_markup(false)
+        .build();
+    source.add_suffix(&widgets::chevron());
     let group = adw::PreferencesGroup::builder()
-        .title("Source")
-        .description("Automatic tries your sources in order.")
+        .title(t::sources_title())
+        .description(t::source_picker_automatic_detail())
         .build();
     group.add(&source);
     page.add(&group);
@@ -164,7 +164,6 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
         rows,
         subtitles: subtitles_value,
         source,
-        sources: ordered.iter().map(|p| p.id.clone()).collect(),
         quiet: Cell::new(true),
         view: RefCell::default(),
     });
@@ -185,19 +184,20 @@ pub fn open(ctx: &Rc<Ctx>, id: AnilistId, title: &str) {
             sheet.ctx.hub.send(Command::SetShowSetting { id: sheet.id, key, value });
         });
     }
-    sheet.source.connect_selected_notify({
+    sheet.source.connect_activated({
         let weak = Rc::downgrade(&sheet);
-        move |row| {
-            let Some(sheet) = weak.upgrade() else { return };
-            if sheet.quiet.get() {
-                return;
+        let dialog = dialog.downgrade();
+        move |_| {
+            if let (Some(sheet), Some(dialog)) = (weak.upgrade(), dialog.upgrade()) {
+                let picker = super::source_picker::open(&sheet.ctx, &dialog, sheet.id);
+                // The row says what was chosen once the picker is gone.
+                let (hub, id) = (Rc::downgrade(&sheet.ctx.hub), sheet.id);
+                picker.connect_closed(move |_| {
+                    if let Some(hub) = hub.upgrade() {
+                        hub.send(Command::LoadShowSettings { id });
+                    }
+                });
             }
-            let provider = match row.selected() {
-                0 => None,
-                at => sheet.sources.get(at as usize - 1).cloned(),
-            };
-            sheet.ctx.hub.send(Command::SetProviderPreference { id: sheet.id, provider });
-            sheet.ctx.hub.send(Command::LoadShowSettings { id: sheet.id });
         }
     });
     reset.connect_activated({
@@ -274,12 +274,16 @@ impl Sheet {
             .map(|r| r.value)
             .unwrap_or_default();
         self.subtitles.set_label(&subtitles(view, &settings));
-        let at = view
-            .source
-            .as_ref()
-            .and_then(|id| self.sources.iter().position(|s| s == id))
-            .map_or(0, |i| i + 1);
-        self.source.set_selected(at as u32);
+        // The source pinned for the title by name, or Automatic.
+        let pinned = view.source.as_ref().map(|id| {
+            let known = self.ctx.hub.known.borrow();
+            known
+                .providers
+                .iter()
+                .find(|p| &p.id == id)
+                .map_or_else(|| id.clone(), providers::name)
+        });
+        self.source.set_subtitle(&pinned.unwrap_or_else(t::source_picker_automatic));
         self.view.replace(Some(view.clone()));
         self.quiet.set(false);
     }
