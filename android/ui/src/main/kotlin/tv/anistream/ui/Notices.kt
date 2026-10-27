@@ -102,3 +102,17 @@ internal fun EngineNotices(onHint: (NoticeHint) -> Unit) {
         store.notices.dismiss(item)
     }
 }
+
+/** A pinned source the engine could not use, said once as a snackbar. */
+@Composable
+internal fun SourcePinNotice() {
+    val store = LocalAppStore.current
+    val snackbars = LocalSnackbars.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val notice by store.sourceChoices.pinNotice.collectAsStateWithLifecycle()
+    LaunchedEffect(notice?.serial) {
+        val said = notice ?: return@LaunchedEffect
+        snackbars.show(tv.anistream.i18n.Strings.sourcePinUnavailable(context, said.name))
+        store.sourceChoices.told(said)
+    }
+}

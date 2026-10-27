@@ -37,6 +37,10 @@ object Strings {
     fun channelDownloadsName(context: Context): String =
         context.getString(R.string.channel_downloads_name)
 
+    /** Under a release in the source picker: how many people share it right now. */
+    fun releaseSeeders(context: Context, count: Int): String =
+        context.resources.getQuantityString(R.plurals.release_seeders, count, count)
+
     /** Button that runs a failed action again. */
     fun actionTryAgain(context: Context): String =
         context.getString(R.string.action_try_again)

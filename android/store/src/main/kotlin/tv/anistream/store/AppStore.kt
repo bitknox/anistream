@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.core.SourceCandidate
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
@@ -102,6 +103,9 @@ class AppStore(
     val settings = SettingsModel()
     val providers = ProvidersModel()
     val showSettings = ShowSettingsModel()
+
+    /** The source picker's options per title. */
+    val sourceChoices = SourceChoiceModel()
     val episodeFolds = EpisodeFolds()
     val coming = ComingModel()
 
@@ -481,6 +485,8 @@ class AppStore(
 
     /** Queue [episode] of [id] for download. */
     fun downloadEpisode(id: AnilistId, episode: String) {
+        // No source lists it: the engine would refuse, and the queue never offers it.
+        if (titles.episodes.value[id]?.any { it.number == episode && it.unsourced } == true) return
         send(Command.DownloadEpisode(id, episode))
     }
 
@@ -760,6 +766,30 @@ class AppStore(
         send(Command.SetProviderPreference(id, provider))
     }
 
+    /**
+     * Ask for what each source has of [id], for the picker. The engine answers with
+     * `Event.SourceOptions`.
+     */
+    fun loadSourceOptions(id: AnilistId) {
+        sourceChoices.asking(id)
+        send(Command.LoadSourceOptions(id))
+    }
+
+    /**
+     * Pin [provider] for [id], or give it back to automatic with `null`, as the picker's rows do.
+     * The engine relists the episodes by itself.
+     */
+    fun chooseSource(id: AnilistId, provider: String?) {
+        sourceChoices.chose(id, provider)
+        setProviderPreference(id, provider)
+    }
+
+    /** Pin one release of a source for [id], played for every episode that release holds. */
+    fun chooseRelease(id: AnilistId, provider: String, release: SourceCandidate) {
+        sourceChoices.chose(id, provider, release.id)
+        send(Command.PinRelease(id, provider, release.id, release.title))
+    }
+
     /** The providers in the order failover tries them, as the config now has it. */
     fun orderedProviders(): List<tv.anistream.engine.model.ProviderRow> =
         SourceOrder.sorted(providers.rows.value, settings.view.value?.sources?.order.orEmpty())
@@ -861,6 +891,8 @@ class AppStore(
             is Event.Vpn -> providers.guardSaid(event.v1)
             is Event.ProtectionChecked -> providers.trialSaid(event.v1)?.let { send(Command.CheckTorrentProtection(it.mode, it.proxy)) }
             is Event.ProviderPreference -> providers.preference(event.v1)
+            is Event.SourceOptions -> sourceChoices.apply(event.id, event.options)
+            is Event.PinUnavailable -> sourceChoices.pinUnavailable(event.id, event.providerId, event.name)
             is Event.Stores -> stores.apply(event.v1)
             is Event.StorePreview -> stores.previewed(event.v1)
             is Event.StoreJoined -> stores.joined(event.store)

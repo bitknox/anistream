@@ -16,11 +16,20 @@ import tv.anistream.store.AppClock
 import tv.anistream.store.ContinueItem
 import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
+import tv.anistream.store.playableNext
 
 /** The episode a title's amber action plays, and how it says so. */
-data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null, val translation: Translation? = null) {
-    /** Whether it plays now: never an episode still to air. */
-    val playable: Boolean get() = airing.hasAired
+data class PlayAction(
+    val episode: UInt,
+    val resume: ResumePoint?,
+    val airing: EpisodeAiring,
+    val airsAt: Long? = null,
+    val translation: Translation? = null,
+    /** Every episode from the next on is one no source lists: nothing to play. */
+    val unsourced: Boolean = false,
+) {
+    /** Whether it plays now: never an episode still to air, nor one no source lists. */
+    val playable: Boolean get() = airing.hasAired && !unsourced
 
     /**
      * "Resume episode 7", "Play episode 1", or for one not out yet "Play episode 10 (out Thursday)",
@@ -47,11 +56,17 @@ data class PlayAction(val episode: UInt, val resume: ResumePoint?, val airing: E
     }
 
     companion object {
-        fun of(entry: Entry, now: Long = AppClock.now().epochSecond): PlayAction {
-            val episode = entry.progress?.next ?: 1u
+        /**
+         * The action for [entry]: the engine's next episode, or in [rows], once the table is
+         * loaded, the first after it that some source lists.
+         */
+        fun of(entry: Entry, now: Long = AppClock.now().epochSecond, rows: List<EpisodeRow>? = null): PlayAction {
+            val target = entry.playableNext(rows)
+            val episode = target.episode
             val resume = entry.resume
             val dub = entry.watchedIn
             if (resume != null) return PlayAction(episode, resume, EpisodeAiring.Aired, translation = dub)
+            if (target.unsourced) return PlayAction(episode, null, entry.airing(episode), translation = dub, unsourced = true)
             val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
             if (scheduled != null) {
                 return if (scheduled.airsAt > now) {
@@ -117,3 +132,8 @@ val EpisodeRow.cardTitle: String
 /** Synopses from AniList carry their spoilers marked; the TV shows only the text before them. */
 fun synopsisWithoutSpoilers(text: String): String =
     text.replace(Regex("~!.*?!~", RegexOption.DOT_MATCHES_ALL), "").replace(Regex("\\s+\\n"), "\n").trim()
+
+/** What a Continue card says it plays; with no source for what is left, that no source has it. */
+@androidx.compose.runtime.Composable
+fun ContinueItem.actionText(): String =
+    if (unsourced) androidx.compose.ui.res.stringResource(tv.anistream.i18n.R.string.episode_unsourced) else action
