@@ -95,8 +95,30 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 format: node.format.and_then(format_label),
             })
             .collect(),
+        prequels: media
+            .prequel_ids()
+            .into_iter()
+            .map(|id| anistream_model::catalog::EarlierTitle {
+                id,
+                list_status: store.and_then(|s| library_segment(s, id)),
+            })
+            .collect(),
         ..Entry::new(media.id, media.title.display())
     }
+}
+
+/// Where `id` is on the library, as `store` last kept it. A rewatch is on the Watching segment,
+/// as AniList's own list shows it.
+fn library_segment(
+    store: &Store,
+    id: anistream_core::ids::AnilistId,
+) -> Option<LibrarySegment> {
+    store
+        .library_status(id)
+        .ok()
+        .flatten()
+        .map(|status| if status == "REPEATING" { "CURRENT".to_owned() } else { status })
+        .and_then(|status| LibrarySegment::ALL.into_iter().find(|s| s.wire() == status))
 }
 
 /// A title as its page shows it: [`entry_from`], with what only the single-title fetch brings,
@@ -119,11 +141,7 @@ fn detail_from(
     seasons: Option<&[RelationNode]>,
 ) -> TitleDetail {
     let linked = |node: &RelationNode, relation| LinkedTitle {
-        list_status: store
-            .and_then(|s| s.library_status(node.id).ok().flatten())
-            // A rewatch is on the Watching segment, as AniList's own list shows it.
-            .map(|status| if status == "REPEATING" { "CURRENT".to_owned() } else { status })
-            .and_then(|status| LibrarySegment::ALL.into_iter().find(|s| s.wire() == status)),
+        list_status: store.and_then(|s| library_segment(s, node.id)),
         ..linked(node, relation)
     };
     use anistream_core::media::MediaFormat;

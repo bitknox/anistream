@@ -375,8 +375,7 @@ pub fn autoplay(setting: TrailerAutoplay, network: Network, device: Device) -> A
 /// part ends. [`autoplay`] says whether any trailer may start now; both must hold.
 ///
 /// Decided from what the entry carries: the title page's relations and seasons, each with where
-/// it is on the viewer's list. A list row carries neither, so on a list row only the trailer is
-/// asked about.
+/// it is on the viewer's list, or, on a list row that has no page's detail, its prequels.
 pub fn trailer_may_autoplay(entry: &Entry, spoiler_protection: bool) -> bool {
     entry.trailer.as_ref().is_some_and(Trailer::embeddable)
         && !(spoiler_protection && follows_unfinished(entry))
@@ -385,17 +384,9 @@ pub fn trailer_may_autoplay(entry: &Entry, spoiler_protection: bool) -> bool {
 /// Whether an earlier part of the title's story is on the viewer's list, unfinished: a prequel or
 /// the parent story, or a season before it in the franchise's watch order.
 fn follows_unfinished(entry: &Entry) -> bool {
-    let Some(detail) = &entry.detail else { return false };
-    let unfinished = |title: &LinkedTitle| {
-        matches!(
-            title.list_status,
-            Some(
-                LibrarySegment::Watching
-                    | LibrarySegment::Planning
-                    | LibrarySegment::Paused
-                    | LibrarySegment::Dropped
-            )
-        )
+    let unfinished = |title: &LinkedTitle| is_unfinished(title.list_status);
+    let Some(detail) = &entry.detail else {
+        return entry.prequels.iter().any(|prequel| is_unfinished(prequel.list_status));
     };
     let earlier_related = detail.relations.iter().any(|title| {
         matches!(title.relation, Some(RelationKind::Prequel | RelationKind::Parent))
@@ -407,12 +398,24 @@ fn follows_unfinished(entry: &Entry) -> bool {
     earlier_related || earlier_season
 }
 
+fn is_unfinished(status: Option<LibrarySegment>) -> bool {
+    matches!(
+        status,
+        Some(
+            LibrarySegment::Watching
+                | LibrarySegment::Planning
+                | LibrarySegment::Paused
+                | LibrarySegment::Dropped
+        )
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use anistream_core::ids::AnilistId;
 
     use super::*;
-    use crate::catalog::{TitleDetail, TrailerHost};
+    use crate::catalog::{EarlierTitle, TitleDetail, TrailerHost};
 
     fn youtube(id: &str) -> Trailer {
         Trailer { host: TrailerHost::YouTube, id: id.into() }
@@ -639,6 +642,12 @@ mod tests {
         row.trailer = Some(Trailer { host: TrailerHost::Dailymotion, id: "x7abc".into() });
         assert!(!trailer_may_autoplay(&row, false), "a browser link only");
         row.trailer = Some(youtube("abc123"));
-        assert!(trailer_may_autoplay(&row, true), "a list row knows no relations to hold it");
+        assert!(trailer_may_autoplay(&row, true), "no prequel to hold it");
+        let earlier = |status| EarlierTitle { id: AnilistId::new(6), list_status: status };
+        row.prequels = vec![earlier(Some(LibrarySegment::Watching))];
+        assert!(!trailer_may_autoplay(&row, true), "a list row's prequel, unfinished");
+        assert!(trailer_may_autoplay(&row, false), "protection off");
+        row.prequels = vec![earlier(Some(LibrarySegment::Completed)), earlier(None)];
+        assert!(trailer_may_autoplay(&row, true), "its prequels watched or off the list");
     }
 }
