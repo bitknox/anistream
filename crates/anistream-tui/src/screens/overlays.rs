@@ -2,6 +2,7 @@
 //! help table laid out in columns and pages, and the rows of the search filters, the command
 //! palette and the log. A picker's rows that belong to one screen are drawn with that screen.
 
+use anistream_i18n::t;
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
@@ -34,7 +35,7 @@ fn search_filter_rows(app: &App) -> Vec<(String, String)> {
     SEARCH_FILTER_ROWS
         .iter()
         .enumerate()
-        .map(|(row, name)| (search_filter_value(&app.search_filter, row), glyph::eyebrow(name)))
+        .map(|(row, name)| (search_filter_value(&app.search_filter, row), name.to_string()))
         .collect()
 }
 
@@ -141,37 +142,21 @@ pub(super) fn render_overlay(
         Overlay::SourceRelease => source_release_rows(app),
         Overlay::WatchOrder => watch_order_rows(app),
         Overlay::Recommendations => recommendation_rows(app),
-        Overlay::ManualQuery => vec![(
-            String::new(),
-            "type what to search for — an empty enter resets to the automatic match".into(),
-        )],
+        Overlay::ManualQuery => vec![(String::new(), t::overlays_hint_manual_query())],
         Overlay::KitsuUsername => {
-            vec![(String::new(), "email or username — enter continues, esc cancels".into())]
+            vec![(String::new(), t::overlays_hint_kitsu_username())]
         }
-        Overlay::KitsuPassword => vec![(
-            String::new(),
-            "exchanged for a token once and never stored — enter signs in".into(),
-        )],
-        Overlay::DownloadRange => vec![(
-            String::new(),
-            "4 for one episode, 1-12 for a run, 7- for everything from there".into(),
-        )],
+        Overlay::KitsuPassword => vec![(String::new(), t::overlays_hint_kitsu_password())],
+        Overlay::DownloadRange => vec![(String::new(), t::overlays_hint_download_range())],
         Overlay::EditSetting => vec![(
             String::new(),
             match app.edit_target {
-                Some(id) => format!("{} — enter saves, esc leaves it be", id.label()),
-                None => "enter saves, esc leaves it be".into(),
+                Some(id) => t::overlays_hint_edit_setting(id.label()),
+                None => t::overlays_hint_edit_setting_bare(),
             },
         )],
-        Overlay::JoinStore => vec![(
-            String::new(),
-            "paste the invite or store link you were given — enter checks it, esc cancels"
-                .into(),
-        )],
-        Overlay::InviteName => vec![(
-            String::new(),
-            "their name, as the members list will show it — enter makes the link".into(),
-        )],
+        Overlay::JoinStore => vec![(String::new(), t::overlays_hint_join_store())],
+        Overlay::InviteName => vec![(String::new(), t::overlays_hint_invite_name())],
         Overlay::StoreConfirm => store_confirm_rows(app),
         Overlay::PluginAction => plugin_action_rows(app).0,
         Overlay::InviteLink => invite_link_rows(app, link_width(area.width)),
@@ -233,7 +218,8 @@ pub(super) fn render_overlay(
             .max()
             .unwrap_or(0) as u16;
         let width = (available / help.across.max(1) as u16).min(natural + 2);
-        let position = (pages > 1).then(|| format!("page {} of {pages}", page + 1));
+        let position =
+            (pages > 1).then(|| t::overlays_help_page(page as i64 + 1, pages as i64));
         (shown, width, help.height, position)
     } else {
         // One column, windowed around the selection so a long list scrolls with its highlight
@@ -248,8 +234,13 @@ pub(super) fn render_overlay(
             None => 0,
         };
         report.overlay_offset = Some(offset);
-        let position = (rows.len() > visible)
-            .then(|| format!("{}–{} of {}", offset + 1, offset + visible, rows.len()));
+        let position = (rows.len() > visible).then(|| {
+            t::overlays_window_position(
+                (offset + 1) as i64,
+                (offset + visible) as i64,
+                rows.len() as i64,
+            )
+        });
         let shown = std::iter::once(offset..offset + visible).collect();
         (shown, area.width.saturating_sub(4), visible.max(1), position)
     };
@@ -286,140 +277,78 @@ pub(super) fn render_overlay(
         return report;
     }
     buf[(band.left(), title_y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+    let title = overlay.title().to_string();
+    // The title, then what goes with it, three cells apart.
+    let titled = |rest: &str| format!("{}   {}", title, rest);
+    // A title, then what is typed so far and the caret.
+    let typed = |field: Field| titled(&format!("{}▏", field_text(app, field)));
     let heading = match overlay {
-        Overlay::CommandPalette => {
-            format!(
-                "{}   {}▏",
-                glyph::eyebrow(overlay.title()),
-                field_text(app, Field::Palette)
-            )
-        }
-        Overlay::ManualQuery => {
-            format!(
-                "{}   {}▏",
-                glyph::eyebrow(overlay.title()),
-                field_text(app, Field::ManualQuery)
-            )
-        }
-        Overlay::DownloadRange => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), field_text(app, Field::Range))
-        }
-        Overlay::EditSetting => {
-            format!(
-                "{}   {}▏",
-                glyph::eyebrow(overlay.title()),
-                field_text(app, Field::Setting)
-            )
-        }
-        Overlay::KitsuUsername => {
-            format!(
-                "{}   {}▏",
-                glyph::eyebrow(overlay.title()),
-                field_text(app, Field::KitsuUser)
-            )
-        }
+        Overlay::CommandPalette => typed(Field::Palette),
+        Overlay::ManualQuery => typed(Field::ManualQuery),
+        Overlay::DownloadRange => typed(Field::Range),
+        Overlay::EditSetting => typed(Field::Setting),
+        Overlay::KitsuUsername => typed(Field::KitsuUser),
         // A link is longer than the band, and the end is where the cursor is, so the end is
         // what shows.
         Overlay::JoinStore => {
-            let title = glyph::eyebrow(overlay.title());
             let room = (band.width as usize).saturating_sub(title.chars().count() + 8);
-            format!("{title}   {}▏", tail(&field_text(app, Field::JoinLink), room))
+            titled(&format!("{}▏", tail(&field_text(app, Field::JoinLink), room)))
         }
-        Overlay::InviteName => {
-            format!(
-                "{}   {}▏",
-                glyph::eyebrow(overlay.title()),
-                field_text(app, Field::InviteName)
-            )
-        }
+        Overlay::InviteName => typed(Field::InviteName),
         Overlay::StoreConfirm => store_confirm_heading(app),
         Overlay::PluginAction => match app.plugin_in_action() {
-            Some((store, plugin)) => format!(
-                "{}   {}  ·  from {}",
-                glyph::eyebrow(&plugin.name),
-                plugin.version,
-                store.name
-            ),
-            None => glyph::eyebrow(overlay.title()),
+            Some((store, plugin)) => {
+                t::overlays_heading_plugin(&plugin.name, &plugin.version, &store.name)
+            }
+            None => title.clone(),
         },
         Overlay::InviteLink => match app.invite_link.as_ref().and_then(|l| l.for_whom.as_ref())
         {
-            Some(name) => format!("{}   for {name}", glyph::eyebrow(overlay.title())),
-            None => glyph::eyebrow("link another device"),
+            Some(name) => titled(&t::overlays_heading_invite_for(name)),
+            None => t::overlays_title_link_device(),
         },
         Overlay::OpenLink => match app.open_join.as_ref().and_then(|(id, _)| app.store(id)) {
-            Some(store) => format!("{}   of {}", glyph::eyebrow(overlay.title()), store.name),
-            None => glyph::eyebrow(overlay.title()),
+            Some(store) => titled(&t::overlays_heading_open_link_of(&store.name)),
+            None => title.clone(),
         },
         Overlay::PublishPick => match app.publish_for.as_deref().and_then(|id| app.store(id)) {
-            Some(store) => format!("{}   to {}", glyph::eyebrow(overlay.title()), store.name),
-            None => glyph::eyebrow(overlay.title()),
+            Some(store) => titled(&t::overlays_heading_publish_to(&store.name)),
+            None => title.clone(),
         },
         // Masked, one dot per character: length feedback without the letters. This screen
         // can be shared, streamed, or screenshotted — a password never renders in it.
-        Overlay::KitsuPassword => format!(
-            "{}   {}▏",
-            glyph::eyebrow(overlay.title()),
-            field_text(app, Field::KitsuPassword)
-        ),
-        // Say what is being asked, or a bare "WHICH ONE" over a list of near-identical release
+        Overlay::KitsuPassword => typed(Field::KitsuPassword),
+        // Say what is being asked, or a bare "Which one" over a list of near-identical release
         // names is a riddle rather than a question. Not why: the same list answers a search
         // typed after `m`, where "no confident match" sat above a 100% candidate.
-        Overlay::Disambiguate => format!(
-            "{}   {}",
-            glyph::eyebrow(overlay.title()),
-            match app.detail.as_ref() {
-                Some(detail) => format!("is {} — enter pins it", detail.title),
-                None => "enter pins it".into(),
-            }
-        ),
+        Overlay::Disambiguate => titled(&match app.detail.as_ref() {
+            Some(detail) => t::overlays_heading_disambiguate(&detail.title),
+            None => t::overlays_heading_disambiguate_bare(),
+        }),
         // Name the title the order is anchored on — a list of sequels floats without it.
-        Overlay::WatchOrder => format!(
-            "{}   {}",
-            glyph::eyebrow(overlay.title()),
-            match app.target() {
-                Some(detail) => format!("around {} — enter opens", detail.title),
-                None => "enter opens".into(),
-            }
-        ),
+        Overlay::WatchOrder => titled(&match app.target() {
+            Some(detail) => t::overlays_heading_watch_order(&detail.title),
+            None => t::overlays_heading_watch_order_bare(),
+        }),
         // Anchor on the title the recommendations came from.
-        Overlay::Recommendations => format!(
-            "{}   {}",
-            glyph::eyebrow(overlay.title()),
-            match app.target() {
-                Some(detail) => format!("if you liked {} — enter opens", detail.title),
-                None => "enter opens".into(),
-            }
-        ),
-        Overlay::SourceRelease => format!(
-            "{}   {}",
-            glyph::eyebrow(overlay.title()),
-            "enter pins it; the other sources fill what it lacks"
-        ),
+        Overlay::Recommendations => titled(&match app.target() {
+            Some(detail) => t::overlays_heading_recommendations(&detail.title),
+            None => t::overlays_heading_recommendations_bare(),
+        }),
+        Overlay::SourceRelease => titled(&t::overlays_heading_release()),
         // Name the title, since the choice is remembered against it rather than globally.
-        Overlay::SourceProvider => format!(
-            "{}   {}",
-            glyph::eyebrow(overlay.title()),
-            match app.detail.as_ref() {
-                Some(detail) => format!("{} — enter pins it", detail.title),
-                None => "enter pins it".into(),
-            }
-        ),
+        Overlay::SourceProvider => titled(&match app.detail.as_ref() {
+            Some(detail) => t::overlays_heading_source(&detail.title),
+            None => t::overlays_heading_source_bare(),
+        }),
         // The grammar is not self-evident for a value editor, so the heading states it.
-        Overlay::SearchFilters => format!(
-            "{}   ←/→ pick · enter searches · esc keeps them",
-            glyph::eyebrow(overlay.title())
-        ),
+        Overlay::SearchFilters => titled(&t::overlays_heading_filters()),
         // Name the episode the slate is for, or a wall of release names has no anchor.
-        Overlay::Sources => format!(
-            "{}   {}",
-            glyph::eyebrow(overlay.title()),
-            match app.source_context.as_ref() {
-                Some((_, episode)) => format!("ep {episode} — enter plays your pick"),
-                None => "enter plays your pick".into(),
-            }
-        ),
-        other => glyph::eyebrow(other.title()),
+        Overlay::Sources => titled(&match app.source_context.as_ref() {
+            Some((_, episode)) => t::overlays_heading_releases(episode),
+            None => t::overlays_heading_releases_bare(),
+        }),
+        _ => title.clone(),
     };
     // Where in a table too long for the band the window is, so the rest is known to exist.
     let position = position.filter(|p| p.chars().count() + 8 < band.width as usize);
@@ -497,15 +426,15 @@ fn tail(text: &str, room: usize) -> String {
         return text.to_owned();
     }
     let kept: String = text.chars().skip(len - (room - 1)).collect();
-    format!("…{kept}")
+    format!("…{}", kept)
 }
 
 fn help_rows(app: &App) -> Vec<(String, String)> {
     let mut rows = Vec::new();
     for (scope, entries) in app.keymap.help() {
-        rows.push((String::new(), glyph::eyebrow(scope.heading())));
+        rows.push((String::new(), scope.heading().to_string()));
         for (key, label) in entries {
-            rows.push((key, format!("  {label}")));
+            rows.push((key, format!("  {}", label)));
         }
     }
     rows
@@ -526,7 +455,7 @@ fn palette_rows(app: &App) -> Vec<(String, String)> {
 /// a log viewer that clips the *newest* lines is answering a question nobody asked.
 fn log_rows(app: &App) -> Vec<(String, String)> {
     if app.logs.is_empty() {
-        return vec![(String::new(), "nothing logged yet".into())];
+        return vec![(String::new(), t::overlays_logs_empty())];
     }
     app.logs
         .iter()
@@ -539,7 +468,7 @@ fn log_rows(app: &App) -> Vec<(String, String)> {
             };
             // A repeat shows as a count where a key would go, not as more lines.
             let count = if row.count > 1 { format!("×{}", row.count) } else { String::new() };
-            (count, format!("{marker}  {}", row.text))
+            (count, format!("{}  {}", marker, row.text))
         })
         .collect()
 }

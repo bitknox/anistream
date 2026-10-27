@@ -2,7 +2,8 @@
 //! and what the screens share — the selection mark, the placeholder a screen draws when it has
 //! nothing to show or no room to show it, and the cell of a fixed-column table.
 
-use anistream_model::{notice::NoticeKind, wording::clock};
+use anistream_i18n::t;
+use anistream_model::notice::NoticeKind;
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
@@ -34,7 +35,7 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
             S::Failing => (glyph::STATE_DOWN, Role::Alert),
             S::Pending => (glyph::STATE_UNKNOWN, Role::TextDim),
         };
-        chips.push((format!("{source} {mark}"), role));
+        chips.push((format!("{} {}", source, mark), role));
     }
 
     // VPN state sits next to the source it governs. Always shown when torrenting is
@@ -47,7 +48,7 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     // Only while degraded: a healthy ladder is the resting state and saying so on every frame
     // would be noise. The Providers screen has the detail.
     if app.meta_degraded() {
-        chips.push((format!("meta {}", glyph::STATE_DEGRADED), Role::Alert));
+        chips.push((t::chrome_meta_chip(&glyph::STATE_DEGRADED.to_string()), Role::Alert));
     }
 
     // One chip per tracker, carrying the queue depth — the answer to "did my progress actually
@@ -64,7 +65,9 @@ pub(super) fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         ));
     }
 
-    Header::new(&app.palette, "anistream").chips(&chips).render(geometry.header, buf);
+    Header::new(&app.palette, "anistream") // i18n-skip: the product name
+        .chips(&chips)
+        .render(geometry.header, buf);
 }
 
 /// The running jobs, newest first, each with how long it has taken, written into the status
@@ -108,7 +111,7 @@ pub(super) fn render_activity(
         // Whatever does not fit is counted rather than cut mid-word; the first job always gets
         // what room there is, because it is the one just asked for.
         let rest = jobs.len() - shown;
-        let more = format!("   +{rest}");
+        let more = format!("   {}", t::chrome_activity_more(rest as i64));
         if shown > 0 && x + width + more.chars().count() as u16 > right {
             let room = right.saturating_sub(x) as usize;
             let (mx, _) =
@@ -128,7 +131,7 @@ pub(super) fn render_activity(
             let (dx, _) = buf.set_stringn(
                 x,
                 area.top(),
-                format!(" · {detail}"),
+                format!(" · {}", detail),
                 room,
                 app.palette.style(Role::TextDim),
             );
@@ -142,12 +145,24 @@ pub(super) fn render_activity(
     x + 1
 }
 
+/// A short wait as the language writes it: `7s`, then `1m 05s`.
+fn clock(span: std::time::Duration) -> String {
+    let secs = span.as_secs().max(1);
+    if secs < 60 {
+        t::duration_seconds(secs as i64)
+    } else {
+        t::duration_minutes_seconds((secs / 60) as i64, &format!("{:02}", secs % 60))
+    }
+}
+
 /// A job's label, and what to say after it: the hold-up and its countdown while it lasts,
 /// otherwise the elapsed time once there is a second of it to show.
 fn job_text(job: &crate::app::Job, now: std::time::Instant) -> (String, Option<String>) {
     let held = job.note.as_ref().and_then(|(note, until)| match until {
         Some(until) if *until <= now => None,
-        Some(until) => Some(format!("{note}, {}", clock(until.saturating_duration_since(now)))),
+        Some(until) => {
+            Some(t::chrome_job_held(note, &clock(until.saturating_duration_since(now))))
+        }
         None => Some(note.clone()),
     });
     let ran = now.saturating_duration_since(job.started);

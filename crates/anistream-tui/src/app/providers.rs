@@ -259,9 +259,11 @@ mod tests {
         let mut a = app();
         assert_eq!(a.handle(Action::RaiseSource, 20), None);
         assert!(
-            a.toasts
-                .iter()
-                .any(|t| t.notice.text == "move source up works on the Providers screen"),
+            a.toasts.iter().any(|t| t.notice.text
+                == anistream_i18n::t::toast_works_elsewhere(
+                    Action::RaiseSource.label(),
+                    Action::RaiseSource.where_it_works()
+                )),
             "{:?}",
             a.toasts
         );

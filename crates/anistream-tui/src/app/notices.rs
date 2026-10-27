@@ -91,7 +91,7 @@ pub fn worded(notice: Notice, keymap: &Keymap) -> Notice {
                 NoticeHint::OpenStores => t::hint_open_stores(),
                 NoticeHint::KitsuCredentials => t::hint_kitsu_credentials(),
             };
-            format!("{said} {hint}")
+            format!("{} {}", said, hint)
         }
     };
     Notice { kind: notice.kind, text, hint: None, msg: None }
@@ -102,27 +102,26 @@ impl App {
     /// link goes into the log whole, for a terminal that cannot open it, and the browser opens it.
     pub(super) fn report_bug(&mut self) -> Option<Command> {
         let url = issue_url(&self.bug_report());
-        self.push_toast(Notice::raw_info(
-            "opening a bug report in the browser; the link is in the log",
-        ));
-        self.log(NoticeKind::Info, format!("bug report: {url}"));
+        self.push_toast(info(t::toast_bug_report_opening()));
+        self.log(NoticeKind::Info, t::tui_log_bug_report_link(&url));
         Some(Command::OpenExternal { url })
     }
 
     /// What a report from here says: this build, the sources, and the newest alert.
     pub fn bug_report(&self) -> BugReport {
-        let error = self
-            .logs
-            .iter()
-            .rev()
-            .find(|row| row.kind == NoticeKind::Alert)
-            .map(|row| BugError { kind: "message".into(), message: row.text.clone() });
+        let error =
+            self.logs.iter().rev().find(|row| row.kind == NoticeKind::Alert).map(|row| {
+                BugError {
+                    kind: "message".into(), // i18n-skip
+                    message: row.text.clone(),
+                }
+            });
         BugReport {
             app_version: env!("CARGO_PKG_VERSION").into(),
-            platform: "Terminal".into(),
+            platform: "Terminal".into(), // i18n-skip
             os_version: format!("{} {}", std::env::consts::OS, std::env::consts::ARCH),
             device: DeviceClass::Terminal,
-            build: if cfg!(debug_assertions) { "debug" } else { "release" }.into(),
+            build: if cfg!(debug_assertions) { "debug" } else { "release" }.into(), // i18n-skip
             providers: self.providers.clone(),
             error,
             private: Vec::new(),
@@ -284,8 +283,10 @@ mod tests {
         assert!(url.contains("diagnostics="));
         assert!(!url.contains("lantern") && !url.contains("Hidden"), "{url}");
         let logged = a.logs.last().expect("the link is logged");
-        assert_eq!(logged.text, format!("bug report: {url}"));
-        assert!(a.toasts.last().is_some_and(|t| t.notice.text.contains("bug report")));
+        assert_eq!(logged.text, t::tui_log_bug_report_link(&url));
+        assert!(
+            a.toasts.last().is_some_and(|t| t.notice.text == t::toast_bug_report_opening())
+        );
     }
 
     #[test]
@@ -297,53 +298,49 @@ mod tests {
 
     #[test]
     fn a_hint_is_said_in_the_terminal_s_words_where_the_key_used_to_be() {
-        // Each line as the work wrote it with the key in it, word for word.
+        // Each notice as the work wrote it, then the hint as a sentence of its own.
         let keymap = Keymap::new();
         let said = |notice: Notice| worded(notice, &keymap).text;
-        let stalled = "mpv has not started playing after 20s — the source may have no data, \
-                       or check `mpv` plays a file on its own";
+        let stalled = "mpv has not started playing after 20s. The source may have no data.";
         assert_eq!(
             said(Notice::raw_alert(stalled).with_hint(NoticeHint::StopPlayback)),
-            "mpv has not started playing after 20s — press x to stop; the source may have no \
-             data, or check `mpv` plays a file on its own"
+            format!("{stalled} Press x to stop playback.")
         );
         assert_eq!(
             said(
-                Notice::raw_info("plugin update ready: alpha")
+                Notice::raw_info("Plugin update ready: alpha.")
                     .with_hint(NoticeHint::OpenStores)
             ),
-            "plugin update ready: alpha — Providers, Enter"
+            format!("Plugin update ready: alpha. {}", t::hint_open_stores())
         );
         assert_eq!(
             said(
-                Notice::raw_info("kitsu signs in from the Accounts screen")
+                Notice::raw_info("Kitsu signs in from the Accounts screen.")
                     .with_hint(NoticeHint::KitsuCredentials)
             ),
-            "kitsu signs in from the Accounts screen — enter on its row asks for credentials"
+            format!("Kitsu signs in from the Accounts screen. {}", t::hint_kitsu_credentials())
         );
-        assert_eq!(said(Notice::raw_info("no hint — said as sent")), "no hint — said as sent");
+        assert_eq!(said(Notice::raw_info("No hint.")), "No hint.");
 
         // The key bound now, not the default.
         let mut keymap = Keymap::new();
         let rebound = [("stop_playback".to_owned(), "s".to_owned())].into_iter().collect();
         assert!(keymap.apply_overrides(&rebound).is_empty());
-        let notice = Notice::raw_alert("stuck — try again").with_hint(NoticeHint::StopPlayback);
-        assert_eq!(worded(notice, &keymap).text, "stuck — press s to stop; try again");
+        let notice = Notice::raw_alert("Stuck.").with_hint(NoticeHint::StopPlayback);
+        assert_eq!(worded(notice, &keymap).text, "Stuck. Press s to stop playback.");
     }
 
     #[test]
     fn a_hinted_notice_is_shown_and_logged_as_the_terminal_words_it() {
         let mut a = app();
         let notice =
-            Notice::raw_info("plugin update ready: alpha").with_hint(NoticeHint::OpenStores);
+            Notice::raw_info("Plugin update ready: alpha.").with_hint(NoticeHint::OpenStores);
+        let said = format!("Plugin update ready: alpha. {}", t::hint_open_stores());
         a.apply(Event::Toast(notice.clone()));
         a.apply(Event::Toast(notice));
         assert_eq!(a.toasts.len(), 1, "the same notice again is the same line");
-        assert_eq!(a.toasts[0].notice.text, "plugin update ready: alpha — Providers, Enter");
-        assert_eq!(
-            a.logs.last().unwrap().text,
-            "plugin update ready: alpha — Providers, Enter"
-        );
+        assert_eq!(a.toasts[0].notice.text, said);
+        assert_eq!(a.logs.last().unwrap().text, said);
     }
 
     #[test]

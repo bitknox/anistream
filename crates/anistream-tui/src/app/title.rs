@@ -707,7 +707,11 @@ mod tests {
         a.apply(Event::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.notice.text.contains("nothing selected")));
+        assert!(
+            a.toasts
+                .iter()
+                .any(|t| t.notice.text == anistream_i18n::t::toast_nothing_selected())
+        );
     }
 
     #[test]
@@ -1041,7 +1045,7 @@ mod tests {
         let mut a = app();
         a.handle(Action::WatchOrder, 10);
         assert_eq!(a.toasts.len(), 1);
-        assert!(a.toasts[0].notice.text.contains("nothing selected"));
+        assert!(a.toasts[0].notice.text == anistream_i18n::t::toast_nothing_selected());
     }
 
     #[test]
