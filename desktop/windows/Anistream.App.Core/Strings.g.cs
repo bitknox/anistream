@@ -232,7 +232,7 @@ public static partial class T
     public static string NoticeKeepNextFull => Get("NoticeKeepNextFull");
 
     /// <summary>Message when a watch party was asked for with no server chosen. The names are a suggested server and who runs it.</summary>
-    public static string PartyNeedsServer(string server, string operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", operator));
+    public static string PartyNeedsServer(string server, string @operator) => Fill(Get("PartyNeedsServer"), ("server", server), ("operator", @operator));
 
     /// <summary>Toast when a watch party is asked for in a build without watch parties.</summary>
     public static string NoticeNoParty => Get("NoticeNoParty");
